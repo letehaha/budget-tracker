@@ -9,6 +9,13 @@ import { BACKUP_TABLES, type BackupTableDef } from '../registry';
 import type { ArchiveAnalysis, TableColumnPlan } from './analyze-archive';
 import { buildInsertRecord, runBulkInsert } from './bulk-insert';
 import type { ParsedArchive } from './load-archive';
+import {
+  type GuardedFk,
+  buildGuardedReferenceMap,
+  foreignReferenceDroppedMessage,
+  foreignReferenceNulledMessage,
+  guardRowReferences,
+} from './owned-reference-guard';
 
 type Row = Record<string, unknown>;
 
@@ -22,6 +29,11 @@ interface InsertContext {
   mccByCode: Map<string, number>;
   /** Currency codes that exist on the target instance. */
   currencyCodes: Set<string>;
+  /** Guarded FK columns per backup file name, derived from model metadata. */
+  guardedFkMap: Map<string, GuardedFk[]>;
+  /** Ids actually inserted this restore, keyed by DB target table name. A guarded
+   *  FK is legitimate only when its value is in the target table's set. */
+  insertedIds: Map<string, Set<string>>;
   transaction: Transaction;
   warnings: BackupRestoreWarning[];
 }
@@ -118,6 +130,12 @@ function buildRowOverrides({
  * AccountGroups.parentGroupId) go in two passes: every row inserts with the
  * parent nulled, then a batched UPDATE repoints the parents once all rows exist
  * (their UUIDs are preserved, so the parents are guaranteed present by then).
+ *
+ * Every foreign-key column that targets a user-owned table is validated against
+ * the ids inserted so far this restore: a value that isn't the restorer's own
+ * (a hand-edited archive aiming a child row at another user's row) drops the row
+ * when the column is required, or is nulled when it's nullable. Surviving ids are
+ * recorded so a dropped parent cascades to its children.
  */
 async function insertTable({
   def,
@@ -133,6 +151,16 @@ async function insertTable({
   if (rows.length === 0) return 0;
 
   const selfRefColumn = def.selfRefColumn;
+  const targetTable = String(def.model.getTableName());
+  let ownIds = ctx.insertedIds.get(targetTable);
+  if (!ownIds) {
+    ownIds = new Set<string>();
+    ctx.insertedIds.set(targetTable, ownIds);
+  }
+
+  // The self-ref column is validated in the second pass, not here — exclude it.
+  const guardedFks = (ctx.guardedFkMap.get(def.fileName) ?? []).filter((fk) => fk.attrName !== selfRefColumn);
+
   const secondPass: Array<{ id: string; parent: unknown }> = [];
   const records: Row[] = [];
 
@@ -140,6 +168,8 @@ async function insertTable({
   // count) instead of one warning per dropped row.
   let droppedMccCount = 0;
   let droppedCurrencyCount = 0;
+  const fkDroppedByColumn = new Map<string, number>();
+  const fkNulledByColumn = new Map<string, number>();
 
   for (const row of rows) {
     const overrides = buildRowOverrides({ def, plan, row, ctx });
@@ -154,12 +184,24 @@ async function insertTable({
       continue;
     }
 
+    const guard = guardRowReferences({ guardedFks, row, insertedIds: ctx.insertedIds });
+    if (!guard.keep) {
+      const column = guard.droppedColumn!;
+      fkDroppedByColumn.set(column, (fkDroppedByColumn.get(column) ?? 0) + 1);
+      continue;
+    }
+    for (const column of guard.nulledColumns) {
+      fkNulledByColumn.set(column, (fkNulledByColumn.get(column) ?? 0) + 1);
+    }
+    Object.assign(overrides, guard.overrides);
+
     if (selfRefColumn && row[selfRefColumn] != null) {
       secondPass.push({ id: String(row.id), parent: row[selfRefColumn] });
       overrides[selfRefColumn] = null;
     }
 
     records.push(buildInsertRecord({ row, plan, overrides }));
+    if (row.id != null) ownIds.add(String(row.id));
   }
 
   if (droppedMccCount > 0) {
@@ -178,19 +220,50 @@ async function insertTable({
       count: droppedCurrencyCount,
     });
   }
+  for (const [column, count] of fkDroppedByColumn) {
+    ctx.warnings.push({
+      code: 'foreign_reference_dropped',
+      table: def.fileName,
+      message: foreignReferenceDroppedMessage({ table: def.fileName, column, count }),
+      count,
+    });
+  }
+  for (const [column, count] of fkNulledByColumn) {
+    ctx.warnings.push({
+      code: 'foreign_reference_nulled',
+      table: def.fileName,
+      message: foreignReferenceNulledMessage({ table: def.fileName, column, count }),
+      count,
+    });
+  }
 
   const inserted = await runBulkInsert({ model: def.model, records, transaction: ctx.transaction });
 
   if (selfRefColumn && secondPass.length) {
+    // Repoint a parent only when it's one of this table's own surviving ids;
+    // a parent outside that set (forged, or dropped upstream) stays null.
     const byParent = new Map<string, string[]>();
+    let selfRefNulled = 0;
     for (const { id, parent } of secondPass) {
       const key = String(parent);
+      if (!ownIds.has(key)) {
+        selfRefNulled += 1;
+        continue;
+      }
       const bucket = byParent.get(key);
       if (bucket) bucket.push(id);
       else byParent.set(key, [id]);
     }
     for (const [parent, ids] of byParent) {
       await def.model.update({ [selfRefColumn]: parent }, { where: { id: ids }, transaction: ctx.transaction });
+    }
+    if (selfRefNulled > 0) {
+      ctx.warnings.push({
+        code: 'foreign_reference_nulled',
+        table: def.fileName,
+        message: foreignReferenceNulledMessage({ table: def.fileName, column: selfRefColumn, count: selfRefNulled }),
+        count: selfRefNulled,
+      });
     }
   }
 
@@ -217,9 +290,14 @@ export async function insertRestoreTables({
   securitiesRemap: Map<string, string>;
   transaction: Transaction;
   onProgress?: TableProgressCallback;
-}): Promise<{ insertedByTable: Record<string, number>; warnings: BackupRestoreWarning[] }> {
+}): Promise<{
+  insertedByTable: Record<string, number>;
+  warnings: BackupRestoreWarning[];
+  insertedIds: Map<string, Set<string>>;
+}> {
   const warnings: BackupRestoreWarning[] = [];
   const insertedByTable: Record<string, number> = {};
+  const insertedIds = new Map<string, Set<string>>();
 
   const needsMcc = BACKUP_TABLES.some((d) => d.enrichMccCode && (archive.data.get(d.fileName)?.length ?? 0) > 0);
   const needsCurrency = (archive.data.get('users-currencies')?.length ?? 0) > 0;
@@ -240,6 +318,8 @@ export async function insertRestoreTables({
     securitiesRemap,
     mccByCode: new Map(mccRows.map((r) => [String(r.code), r.id])),
     currencyCodes: new Set(currencyRows.map((r) => r.code)),
+    guardedFkMap: buildGuardedReferenceMap(),
+    insertedIds,
     transaction,
     warnings,
   };
@@ -271,5 +351,5 @@ export async function insertRestoreTables({
     await onProgress?.({ tier: def.tier, table: def.fileName, insertedRows: inserted });
   }
 
-  return { insertedByTable, warnings };
+  return { insertedByTable, warnings, insertedIds };
 }

@@ -347,6 +347,203 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
     });
   });
 
+  // A backup file is user-editable (checksums are recomputed by any editor), so a
+  // hand-edited archive can aim a child row's foreign key at another user's row.
+  // The DB constraint is satisfied by ANY existing row, so on a shared instance a
+  // forged FK would attach the restorer's data to a victim. The restore must
+  // accept only ids it itself inserted this run: a foreign value on a required
+  // column drops the row, on a nullable column is nulled, and never touches the
+  // victim's data.
+  describe('Cross-user reference forgery guard', () => {
+    /** Provision a second user (the would-be victim) and seed a real account,
+     *  category, payee and transaction whose ids a forged backup can point at. */
+    async function seedVictimRow() {
+      const victim = await helpers.provisionSecondUserWithBaseCurrency();
+      const ids = await helpers.asUser({
+        cookies: victim.cookies,
+        fn: async () => {
+          const account = await helpers.createAccount({
+            payload: helpers.buildAccountPayload({ name: 'Victim Account', initialBalance: 111000 }),
+            raw: true,
+          });
+          const category = await helpers.addCustomCategory({
+            name: 'Victim Only Category',
+            color: '#654321',
+            raw: true,
+          });
+          const payee = await helpers.createPayee({
+            payload: helpers.buildPayeePayload({ name: 'Victim Only Payee' }),
+            raw: true,
+          });
+          const [tx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 777,
+              transactionType: TRANSACTION_TYPES.expense,
+              categoryId: category.id,
+            }),
+            raw: true,
+          });
+          return { accountId: account.id, categoryId: category.id, payeeId: payee.id, txId: tx!.id };
+        },
+      });
+      return { victim, ids };
+    }
+
+    const hasWarning = ({ status, code, table }: { status: Row; code: string; table: string }): boolean =>
+      ((status.summary as { warnings?: Array<{ code: string; table?: string }> } | undefined)?.warnings ?? []).some(
+        (w) => w.code === code && w.table === table,
+      );
+
+    it('drops a row whose required FK points at another user (Balances.accountId)', async () => {
+      const { accountA } = await seedBasicData();
+      const { victim, ids } = await seedVictimRow();
+
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      // Aim one Balances row's required accountId at the victim's account. The DB FK
+      // would accept it (the account exists), so only the ownership guard stops it.
+      const balances = readArchiveJson({ files, path: 'data/balances.json' }) as Row[];
+      expect(balances.length).toBeGreaterThan(0);
+      balances[0]!.accountId = ids.accountId;
+      writeArchiveJson({ files, path: 'data/balances.json', value: balances });
+      const base64 = await helpers.repackBackup({ files });
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+
+      // The forged Balances row was dropped, not attached to the victim's account.
+      expect(
+        hasWarning({ status: status as unknown as Row, code: 'foreign_reference_dropped', table: 'balances' }),
+      ).toBe(true);
+      // The restore still succeeded and re-owned the restorer's own accounts.
+      expect((await helpers.getAccounts()).some((a) => a.id === accountA.id)).toBe(true);
+
+      // The victim's own data is untouched.
+      await helpers.asUser({
+        cookies: victim.cookies,
+        fn: async () => {
+          expect((await helpers.getAccounts()).some((a) => a.id === ids.accountId)).toBe(true);
+        },
+      });
+    });
+
+    it('nulls a nullable FK that points at another user (Transactions.categoryId)', async () => {
+      const { tx } = await seedBasicData();
+      const { victim, ids } = await seedVictimRow();
+
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      const transactions = readArchiveJson({ files, path: 'data/transactions.json' }) as Row[];
+      const target = transactions.find((t) => t.id === tx.id) ?? transactions[0]!;
+      target.categoryId = ids.categoryId;
+      writeArchiveJson({ files, path: 'data/transactions.json', value: transactions });
+      const base64 = await helpers.repackBackup({ files });
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+
+      expect(
+        hasWarning({ status: status as unknown as Row, code: 'foreign_reference_nulled', table: 'transactions' }),
+      ).toBe(true);
+
+      // The transaction was kept, but its foreign category link was cleared.
+      const restoredTx = (await helpers.getTransactionById({ id: tx.id, raw: true })) as { categoryId: unknown } | null;
+      expect(restoredTx).not.toBeNull();
+      expect(restoredTx!.categoryId).toBeNull();
+
+      // The victim's category still exists.
+      await helpers.asUser({
+        cookies: victim.cookies,
+        fn: async () => {
+          expect((await helpers.getCategoriesList()).some((c) => c.id === ids.categoryId)).toBe(true);
+        },
+      });
+    });
+
+    it('nulls a self-ref parent that points at another user (Categories.parentId)', async () => {
+      const { category } = await seedBasicData();
+      const { victim, ids } = await seedVictimRow();
+
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      const categories = readArchiveJson({ files, path: 'data/categories.json' }) as Row[];
+      const own = categories.find((c) => c.id === category.id)!;
+      own.parentId = ids.categoryId;
+      writeArchiveJson({ files, path: 'data/categories.json', value: categories });
+      const base64 = await helpers.repackBackup({ files });
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+
+      expect(
+        hasWarning({ status: status as unknown as Row, code: 'foreign_reference_nulled', table: 'categories' }),
+      ).toBe(true);
+
+      // The category was kept, but its foreign parent link was cleared.
+      const restoredCategory = (await helpers.getCategoriesList()).find((c) => c.id === category.id);
+      expect(restoredCategory).toBeDefined();
+      expect(restoredCategory!.parentId ?? null).toBeNull();
+
+      await helpers.asUser({
+        cookies: victim.cookies,
+        fn: async () => {
+          expect((await helpers.getCategoriesList()).some((c) => c.id === ids.categoryId)).toBe(true);
+        },
+      });
+    });
+
+    it("nulls the user record's defaultCategoryId when it points at another user", async () => {
+      await seedBasicData();
+      const { ids } = await seedVictimRow();
+
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      const userJson = readArchiveJson({ files, path: 'data/user.json' }) as Row;
+      userJson.defaultCategoryId = ids.categoryId;
+      writeArchiveJson({ files, path: 'data/user.json', value: userJson });
+      const base64 = await helpers.repackBackup({ files });
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+
+      expect(hasWarning({ status: status as unknown as Row, code: 'foreign_reference_nulled', table: 'user' })).toBe(
+        true,
+      );
+
+      // Re-exporting shows the foreign default category was cleared, not persisted.
+      const after = helpers.parseBackupArchive({ buffer: (await exportArchive()).buffer });
+      const userAfter = after.readData({ name: 'user' }) as Row;
+      expect(userAfter.defaultCategoryId ?? null).toBeNull();
+    });
+
+    it('produces no foreign-reference warnings for a normal, unedited restore', async () => {
+      await seedRichData();
+      const { base64 } = await exportArchive();
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+
+      const warnings = status.summary?.warnings ?? [];
+      expect(warnings.some((w) => w.code === 'foreign_reference_dropped')).toBe(false);
+      expect(warnings.some((w) => w.code === 'foreign_reference_nulled')).toBe(false);
+    });
+  });
+
   describe('Securities resolve-or-create', () => {
     it('creates an absent security and remaps its holdings', async () => {
       const portfolio = await helpers.createPortfolio({ payload: { name: 'Resolve PF' }, raw: true });
@@ -513,11 +710,15 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       const { buffer } = await exportArchive();
       const { files } = helpers.parseBackupArchive({ buffer });
 
-      // Point a transaction at an account that doesn't exist — a real FK violation
-      // the worker hits mid-insert. Checksums are refreshed so preflight passes.
+      // Point a transaction at a currency the instance doesn't have — a real FK
+      // violation (Currencies) the worker hits mid-insert. It must be a FK the
+      // owned-reference guard does NOT cover: a foreign *owned* FK (e.g. accountId)
+      // would be dropped-and-repaired and the restore would complete, so use a
+      // global-catalog FK to exercise rollback on a genuine failure. Checksums are
+      // refreshed so preflight passes.
       const transactions = readArchiveJson({ files, path: 'data/transactions.json' }) as Row[];
       const target = transactions.find((t) => t.id === tx.id) ?? transactions[0]!;
-      target.accountId = generateRandomRecordId();
+      target.currencyCode = 'ZZZ';
       writeArchiveJson({ files, path: 'data/transactions.json', value: transactions });
       const base64 = await helpers.repackBackup({ files });
 

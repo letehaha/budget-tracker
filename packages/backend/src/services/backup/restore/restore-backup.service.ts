@@ -10,6 +10,7 @@ import type { Transaction } from 'sequelize';
 import { BACKUP_TABLES } from '../registry';
 import { analyzeArchive } from './analyze-archive';
 import { loadBackupArchive, type ParsedArchive } from './load-archive';
+import { USER_ROW_GUARDED_FK, foreignReferenceNulledMessage } from './owned-reference-guard';
 import { resolveSecurities } from './resolve-securities';
 import { insertRestoreTables, purgeUserOwnedRestoreTables } from './restore-tables';
 
@@ -20,14 +21,39 @@ const USER_RESTORE_FIELDS = BACKUP_TABLES.find((def) => def.restoreMode === 'upd
 
 /** UPDATE the target Users row with the tier-1 restorable fields only. Identity
  *  (id/username/email/authUserId/role) is never touched. Category UUIDs are
- *  preserved, so `defaultCategoryId` needs no remap. */
-async function restoreUserRow({ archive, user }: { archive: ParsedArchive; user: Users }): Promise<void> {
+ *  preserved, so `defaultCategoryId` needs no remap — but a hand-edited archive
+ *  can point it at another user's category, so it's validated against the
+ *  categories actually inserted this restore and nulled (with a warning) when
+ *  foreign. */
+async function restoreUserRow({
+  archive,
+  user,
+  restoredCategoryIds,
+  warnings,
+}: {
+  archive: ParsedArchive;
+  user: Users;
+  restoredCategoryIds: Set<string>;
+  warnings: BackupRestoreWarning[];
+}): Promise<void> {
   const src = archive.user;
   if (!src) return;
   const update: Row = {};
   for (const field of USER_RESTORE_FIELDS) {
     if (field in src) update[field] = src[field];
   }
+
+  const defaultCategoryId = update[USER_ROW_GUARDED_FK.attrName];
+  if (defaultCategoryId != null && !restoredCategoryIds.has(String(defaultCategoryId))) {
+    update[USER_ROW_GUARDED_FK.attrName] = null;
+    warnings.push({
+      code: 'foreign_reference_nulled',
+      table: 'user',
+      message: foreignReferenceNulledMessage({ table: 'user', column: USER_ROW_GUARDED_FK.attrName, count: 1 }),
+      count: 1,
+    });
+  }
+
   if (Object.keys(update).length > 0) {
     await Users.update(update, { where: { id: user.id } });
   }
@@ -138,7 +164,8 @@ export async function restoreUserBackup({
       Object.assign(insertedByTable, tableResult.insertedByTable);
       warnings.push(...tableResult.warnings);
 
-      await restoreUserRow({ archive, user });
+      const restoredCategoryIds = tableResult.insertedIds.get(USER_ROW_GUARDED_FK.targetTable) ?? new Set<string>();
+      await restoreUserRow({ archive, user, restoredCategoryIds, warnings });
       await upsertUserSettings({ archive, userId: user.id, warnings });
     },
   });

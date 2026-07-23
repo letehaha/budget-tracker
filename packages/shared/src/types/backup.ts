@@ -132,7 +132,14 @@ export type BackupRestoreWarningCode =
   // reset to defaults so the rest of the restore could still complete.
   | 'settings_reset'
   // The backup carried no settings row; the user's settings fell back to defaults.
-  | 'no_settings';
+  | 'no_settings'
+  // A required foreign-key column pointed at data outside this backup (e.g. a
+  // hand-edited archive aiming a child row at another user's row); the whole row
+  // was dropped rather than attached to foreign data.
+  | 'foreign_reference_dropped'
+  // A nullable foreign-key column pointed at data outside this backup; the column
+  // was reset to null and the row kept.
+  | 'foreign_reference_nulled';
 
 export interface BackupRestoreWarning {
   code: BackupRestoreWarningCode;
