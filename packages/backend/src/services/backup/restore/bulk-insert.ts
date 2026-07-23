@@ -34,44 +34,30 @@ export function buildInsertRecord({
  * Insert already-projected records in batches, bypassing the model layer so
  * timestamps and money values land verbatim. Passing the model's field-mapped
  * attributes lets the query generator serialize JSONB / arrays / decimals by
- * their real column types. `ignoreDuplicates` emits `ON CONFLICT DO NOTHING`
- * (used for idempotent SecurityPricing inserts). Returns the number of rows
- * actually inserted (accounts for rows `ignoreDuplicates` skipped as conflicts).
+ * their real column types. Callers only feed rows expected to be fresh inserts
+ * (wiped user tables; only natural-key-absent catalog securities), so a
+ * duplicate-key error is a real corruption signal rather than an expected
+ * conflict. Returns the row count.
  */
 export async function runBulkInsert({
   model,
   records,
   transaction,
-  ignoreDuplicates = false,
   batchSize = 1000,
 }: {
   model: AnyModel;
   records: Row[];
   transaction?: Transaction;
-  ignoreDuplicates?: boolean;
   batchSize?: number;
 }): Promise<number> {
   if (records.length === 0) return 0;
   const queryInterface = connection.sequelize.getQueryInterface();
   const fieldAttrs = getFieldMappedAttributes({ model });
   const tableName = model.getTableName();
+  const options: QueryOptions = { transaction };
 
-  // `ignoreDuplicates` (→ ON CONFLICT DO NOTHING) isn't on QueryOptions but the
-  // query generator reads it; widen the option bag to pass it through.
-  // With `ignoreDuplicates` a batch can silently drop rows on conflict, so ask
-  // Postgres to RETURNING them: skipped rows produce no RETURNING row, so
-  // counting what comes back gives the real inserted count instead of assuming
-  // every row in the batch landed.
-  const options = { transaction, ignoreDuplicates, returning: ignoreDuplicates } as QueryOptions & {
-    ignoreDuplicates?: boolean;
-    returning?: boolean;
-  };
-
-  let insertedCount = 0;
   for (let i = 0; i < records.length; i += batchSize) {
-    const batch = records.slice(i, i + batchSize);
-    const result = await queryInterface.bulkInsert(tableName, batch, options, fieldAttrs);
-    insertedCount += ignoreDuplicates ? (result as unknown as Row[]).length : batch.length;
+    await queryInterface.bulkInsert(tableName, records.slice(i, i + batchSize), options, fieldAttrs);
   }
-  return insertedCount;
+  return records.length;
 }

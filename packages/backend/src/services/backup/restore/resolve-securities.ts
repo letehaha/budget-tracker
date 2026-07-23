@@ -1,5 +1,4 @@
 import Securities from '@models/investments/securities.model';
-import SecurityPricing from '@models/investments/security-pricing.model';
 import { Op } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
@@ -27,13 +26,14 @@ function providerKey({ providerName, providerSymbol }: Row): string {
  * Resolve every backup security against the target catalog by natural key
  * (isin → cusip → symbol+currencyCode+providerName → providerName+providerSymbol)
  * and create the ones that don't exist, keeping the backup UUID when free so
- * pricing inserts need no remap. The providerName+providerSymbol pair is the
- * table's real DB uniqueness (a unique index), so it must be a resolution key —
- * otherwise a backup security matching an existing one only on that pair slips
- * past the natural-key checks and collides on insert. Runs OUTSIDE the main
- * restore transaction: Securities/SecurityPricing are global, idempotent data
- * (pricing uses ON CONFLICT DO NOTHING), so they survive a later rollback of the
- * user's own tables and never need re-creating.
+ * holdings/investment transactions referencing it need no remap. The
+ * providerName+providerSymbol pair is the table's real DB uniqueness (a unique
+ * index), so it must be a resolution key — otherwise a backup security matching
+ * an existing one only on that pair slips past the natural-key checks and
+ * collides on insert. Runs OUTSIDE the main restore transaction: the Securities
+ * catalog is global, idempotent identity data, so created rows survive a later
+ * rollback of the user's own tables and never need re-creating. Prices are not
+ * restored — see SecurityPricing in BACKUP_EXCLUDED.
  */
 export async function resolveSecurities({
   archive,
@@ -134,21 +134,6 @@ export async function resolveSecurities({
 
   if (toInsert.length) {
     insertedByTable.securities = await runBulkInsert({ model: Securities, records: toInsert });
-  }
-
-  const pricingPlan = analysis.plans.get('security-pricing');
-  const pricingRows = archive.reference.securityPricing;
-  if (pricingPlan && pricingRows.length) {
-    const records = pricingRows.map((row) => {
-      const backupSecurityId = String(row.securityId);
-      const resolvedSecurityId = remap.get(backupSecurityId) ?? backupSecurityId;
-      return buildInsertRecord({ row, plan: pricingPlan, overrides: { securityId: resolvedSecurityId } });
-    });
-    insertedByTable['security-pricing'] = await runBulkInsert({
-      model: SecurityPricing,
-      records,
-      ignoreDuplicates: true,
-    });
   }
 
   return { remap, insertedByTable };

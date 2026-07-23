@@ -1,6 +1,5 @@
 import type { BackupRestoreWarning } from '@bt/shared/types';
 import Securities from '@models/investments/securities.model';
-import SecurityPricing from '@models/investments/security-pricing.model';
 import { Model, type ModelStatic } from 'sequelize';
 
 import { BACKUP_TABLES } from '../registry';
@@ -150,12 +149,6 @@ export function analyzeArchive({ archive }: { archive: ParsedArchive }): Archive
     key: 'securities',
     model: Securities,
     rows: archive.reference.securities,
-    present: true,
-  });
-  addTablePlan({
-    key: 'security-pricing',
-    model: SecurityPricing,
-    rows: archive.reference.securityPricing,
     present: true,
   });
 

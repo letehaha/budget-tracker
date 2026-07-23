@@ -94,6 +94,11 @@ describe('Data backup export (POST /user/backup)', () => {
       expect(archive.readData({ name: 'balances' })).toEqual([]);
       expect(archive.readData({ name: 'holdings' })).toEqual([]);
       expect(archive.files.get('reference/securities.json')?.toString('utf8')).toBe('[]');
+
+      // Prices are never exported — derived market data, and dumping them would
+      // give a crafted backup a path to poison the global SecurityPricing table.
+      expect(archive.files.has('reference/security-pricing.json')).toBe(false);
+      expect(archive.manifest.files['reference/security-pricing.json']).toBeUndefined();
     });
 
     it('rejects an unauthenticated request with 401', async () => {

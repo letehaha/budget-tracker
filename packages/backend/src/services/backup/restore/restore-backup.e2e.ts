@@ -20,9 +20,9 @@ import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 
 type Row = Record<string, unknown>;
 
-// Tables whose restored copy legitimately differs from the dump: `user`/`user-settings`
-// are re-created rather than bulk-inserted (fresh ids/timestamps, Zod-normalized
-// settings), and `security-pricing` receives async background writes during seeding.
+// Tables whose restored copy legitimately differs from the dump: `user` and
+// `user-settings` are re-created rather than bulk-inserted (fresh ids/timestamps,
+// Zod-normalized settings).
 const ROUNDTRIP_EXCLUDED = new Set(['user', 'user-settings']);
 
 // --- Canonicalization: order-independent, key-sorted deep equality -----------
@@ -277,7 +277,7 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
         expect({ name, rows: after }).toEqual({ name, rows: before });
       }
 
-      // reference/securities.json must also round-trip (pricing excluded — async writes).
+      // reference/securities.json must also round-trip (prices aren't part of a backup).
       const secBefore = canonicalRows(
         readArchiveJson({ files: firstArchive.files, path: 'reference/securities.json' }),
       );
@@ -425,6 +425,33 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       const holdings = await helpers.getHoldings({ portfolioId: portfolio.id, payload: {}, raw: true });
       expect(holdings.some((h) => h.securityId === oldId)).toBe(true);
       expect(holdings.some((h) => h.securityId === newId)).toBe(false);
+    });
+
+    it('ignores a pricing file smuggled into the archive (never writes global SecurityPricing)', async () => {
+      const portfolio = await helpers.createPortfolio({ payload: { name: 'Pricing PF' }, raw: true });
+      const [security] = await helpers.seedSecurities([{ symbol: 'CCC', name: 'Gamma Fund' }]);
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: security!.id }, raw: true });
+
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      // A tampered backup smuggles a pricing file back in — the vector an attacker
+      // would use to gap-fill poisoned prices for a security other users hold.
+      // repackBackup lists and checksums it, so it passes integrity; the restore
+      // must still ignore it because prices are not a restorable resource.
+      const poisoned: Row[] = [{ securityId: security!.id, date: '1990-01-01', priceClose: '999999' }];
+      writeArchiveJson({ files, path: 'reference/security-pricing.json', value: poisoned });
+
+      const base64 = await helpers.repackBackup({ files });
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+
+      // The holding round-tripped (summary is populated), but the restore has no
+      // pricing step at all, so the smuggled rows were never inserted.
+      expect(status.summary?.insertedByTable.holdings).toBeGreaterThan(0);
+      expect(status.summary?.insertedByTable).not.toHaveProperty('security-pricing');
     });
   });
 
@@ -791,7 +818,7 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
 });
 
 /** Rewrite every `securityId` reference in the archive from `oldId` to `newId`,
- *  across the only files that carry one (holdings, investment tx, pricing). */
+ *  across the only files that carry one (holdings, investment transactions). */
 function remapSecurityIdInArchive({
   files,
   oldId,
@@ -801,7 +828,7 @@ function remapSecurityIdInArchive({
   oldId: string;
   newId: string;
 }): void {
-  const paths = ['data/holdings.json', 'data/investment-transactions.json', 'reference/security-pricing.json'];
+  const paths = ['data/holdings.json', 'data/investment-transactions.json'];
   for (const path of paths) {
     const rows = readArchiveJson({ files, path });
     if (!Array.isArray(rows)) continue;

@@ -475,13 +475,11 @@ interface BackupReferenceDef {
 
 /**
  * Global catalog subset embedded under `reference/`. Not owner-scoped: dumped
- * as the exact Securities/SecurityPricing rows the user's holdings and
- * investment transactions reference, then resolve-or-create on restore.
+ * as the exact Securities rows the user's holdings and investment transactions
+ * reference (identity only), then resolve-or-create on restore. Prices are NOT
+ * dumped — see SecurityPricing in BACKUP_EXCLUDED.
  */
-export const REFERENCE_TABLES: readonly BackupReferenceDef[] = [
-  { fileName: 'securities', model: Securities },
-  { fileName: 'security-pricing', model: SecurityPricing },
-];
+export const REFERENCE_TABLES: readonly BackupReferenceDef[] = [{ fileName: 'securities', model: Securities }];
 
 interface BackupExcludedDef {
   model: AnyModel;
@@ -499,6 +497,11 @@ export const BACKUP_EXCLUDED: readonly BackupExcludedDef[] = [
   { model: MerchantCategoryCodes, reason: 'Global seed; user rows carry the natural code for remap on restore.' },
   { model: BrandLogos, reason: 'Global logo cache, re-resolved by domain string.' },
   { model: SecurityCurrencyCache, reason: 'Global symbol→currency cache, re-resolved on demand.' },
+  {
+    model: SecurityPricing,
+    reason:
+      'Global derived price history, refetched from the market-data provider. Never trusted from an uploaded backup — writing it from an archive would let a crafted backup poison prices for securities other users hold.',
+  },
 ];
 
 /**

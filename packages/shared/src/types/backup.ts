@@ -82,11 +82,15 @@ export const BACKUP_FILE_NAMES = [
 export type BackupFileName = (typeof BACKUP_FILE_NAMES)[number];
 
 /**
- * Global-catalog subset embedded under `reference/`. Securities are created
- * on-demand per instance with no natural-key fallback in holdings creation, so
- * restored holdings would dangle without these.
+ * Global-catalog subset embedded under `reference/`. Only the security
+ * *identity* travels — restore resolves each backup security to the target
+ * catalog by natural key (or creates it) so restored holdings/investment
+ * transactions can re-link. Prices are deliberately NOT included: they are
+ * derived market data the instance refetches from its provider, and letting an
+ * uploaded archive write the global SecurityPricing table would let a crafted
+ * backup poison prices for securities other users hold.
  */
-export const BACKUP_REFERENCE_FILE_NAMES = ['securities', 'security-pricing'] as const;
+export const BACKUP_REFERENCE_FILE_NAMES = ['securities'] as const;
 export type BackupReferenceFileName = (typeof BACKUP_REFERENCE_FILE_NAMES)[number];
 
 /** Per-file entry in the manifest's `files` map. Key is the zip path. */

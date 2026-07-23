@@ -2,7 +2,6 @@ import type { RecordId } from '@bt/shared/types';
 import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Securities from '@models/investments/securities.model';
-import SecurityPricing from '@models/investments/security-pricing.model';
 import MerchantCategoryCodes from '@models/merchant-category-codes.model';
 import { Op } from 'sequelize';
 
@@ -108,9 +107,10 @@ async function dumpTable({
 }
 
 /**
- * Securities + SecurityPricing referenced by the user's holdings and
- * investment transactions (the only two owner-scoped tables carrying a
- * `securityId`). Not owner-filtered — restore resolves-or-creates them.
+ * Securities referenced by the user's holdings and investment transactions (the
+ * only two owner-scoped tables carrying a `securityId`). Identity only — restore
+ * resolves-or-creates by natural key. Prices are not dumped: derived market data
+ * the instance refetches, never trusted from an uploaded backup.
  */
 async function dumpReferenceFiles({ resolver }: { resolver: ScopeResolver }): Promise<BackupFile[]> {
   const portfolioIds = await resolver.getScope({ scope: 'portfolios' });
@@ -137,17 +137,11 @@ async function dumpReferenceFiles({ resolver }: { resolver: ScopeResolver }): Pr
     securityIds = [...new Set(ids)];
   }
 
-  const [securities, pricing] = securityIds.length
-    ? await Promise.all([
-        Securities.findAll({ where: { id: { [Op.in]: securityIds } }, raw: true }),
-        SecurityPricing.findAll({ where: { securityId: { [Op.in]: securityIds } }, raw: true }),
-      ])
-    : [[], []];
+  const securities = securityIds.length
+    ? await Securities.findAll({ where: { id: { [Op.in]: securityIds } }, raw: true })
+    : [];
 
-  return [
-    { path: 'reference/securities.json', rows: securities.length, buffer: toBuffer({ value: securities }) },
-    { path: 'reference/security-pricing.json', rows: pricing.length, buffer: toBuffer({ value: pricing }) },
-  ];
+  return [{ path: 'reference/securities.json', rows: securities.length, buffer: toBuffer({ value: securities }) }];
 }
 
 /** Dump every backup file (data + reference) for one user. */
