@@ -19,17 +19,12 @@ export const exportBackupController = createController(
       }
     });
 
-    try {
-      const result = await exportUserBackup({ userId: user.id });
+    const result = await exportUserBackup({ userId: user.id });
 
-      res.setHeader('Content-Type', result.contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-      res.setHeader('Content-Length', result.buffer.length.toString());
-      res.status(200).end(result.buffer);
-      return;
-    } catch (err) {
-      logger.error({ message: `Backup export failed for userId=${user.id}`, error: err as Error });
-      throw err;
-    }
+    res.setHeader('Content-Type', result.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader('Content-Length', result.buffer.length.toString());
+    res.status(200).end(result.buffer);
+    return;
   },
 );

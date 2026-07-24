@@ -1,25 +1,36 @@
 import { getBaseCurrencyChangeStatus } from '@/api/currencies';
-import { createBlockingJobWatchdog } from '@/composable/blocking-job-watchdog/create-blocking-job-watchdog';
+import {
+  type BlockingJobWatchdog,
+  createBlockingJobWatchdog,
+} from '@/composable/blocking-job-watchdog/create-blocking-job-watchdog';
 import { SSE_EVENT_TYPES, type BaseCurrencyChangeStatus, type BaseCurrencyChangeStep } from '@bt/shared/types';
 
-// Module-scoped singleton: at most one base-currency change runs per user, and its
-// blocking overlay must be identical on every open screen, so every caller shares
-// this watchdog. The generic machinery (poll-as-guarantee + SSE bonus, taking-long
-// timer, unreachable escape hatch, once-only wipe+reload, boot reconciliation) lives
-// in the shared factory; only the status source and dedup key are base-currency's.
-const watchdog = createBlockingJobWatchdog<
-  BaseCurrencyChangeStatus,
-  typeof SSE_EVENT_TYPES.BASE_CURRENCY_CHANGE_STATUS
->({
-  scope: 'base-currency-change-status',
-  handledJobStorageKey: 'base-currency-change-handled-job',
-  fetchStatus: getBaseCurrencyChangeStatus,
-  sse: {
-    event: SSE_EVENT_TYPES.BASE_CURRENCY_CHANGE_STATUS,
-    // The SSE payload for this event already IS the status shape.
-    toStatus: (payload) => payload,
-  },
-});
+// Built lazily on first use, not at module top level: this composable sits in the
+// api ↔ store import cycle, and a synchronous factory call during that cycle can run
+// the factory body before its own `vue` import has initialized (temporal dead zone).
+// Deferring to first call means the watchdog is created after the graph has loaded.
+let watchdog: BlockingJobWatchdog<BaseCurrencyChangeStatus> | null = null;
+
+// Singleton: at most one base-currency change runs per user, and its blocking overlay
+// must be identical on every open screen, so every caller shares this watchdog. The
+// generic machinery (poll-as-guarantee + SSE bonus, taking-long timer, unreachable
+// escape hatch, once-only wipe+reload, boot reconciliation) lives in the shared
+// factory; only the status source and dedup key are base-currency's.
+function getWatchdog(): BlockingJobWatchdog<BaseCurrencyChangeStatus> {
+  if (!watchdog) {
+    watchdog = createBlockingJobWatchdog<BaseCurrencyChangeStatus, typeof SSE_EVENT_TYPES.BASE_CURRENCY_CHANGE_STATUS>({
+      scope: 'base-currency-change-status',
+      handledJobStorageKey: 'base-currency-change-handled-job',
+      fetchStatus: getBaseCurrencyChangeStatus,
+      sse: {
+        event: SSE_EVENT_TYPES.BASE_CURRENCY_CHANGE_STATUS,
+        // The SSE payload for this event already IS the status shape.
+        toStatus: (payload) => payload,
+      },
+    });
+  }
+  return watchdog;
+}
 
 /**
  * Shared SSE + status-poll watchdog for the base-currency change job. Polling is
@@ -27,7 +38,7 @@ const watchdog = createBlockingJobWatchdog<
  * terminal handler is idempotent and fires on the first observed terminal state.
  */
 export function useBaseCurrencyChangeStatus() {
-  return watchdog;
+  return getWatchdog();
 }
 
 // ---- Dev-only overlay driver ----
@@ -56,7 +67,7 @@ if (import.meta.env.DEV) {
     'holdings',
     'portfolioBalances',
   ];
-  const { status, isTakingLong, statusUnreachable, liveFailure, stop } = watchdog;
+  const { status, isTakingLong, statusUnreachable, liveFailure, stop } = getWatchdog();
   let devTimer: ReturnType<typeof setInterval> | null = null;
   const stopDevTimer = () => {
     if (devTimer) {

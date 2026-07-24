@@ -105,6 +105,29 @@ function parseJson({ buffer, path }: { buffer: Buffer; path: string }): unknown 
 }
 
 /**
+ * Coerce a checksum-clean data/reference file into a typed row array. The SHA-256
+ * gate only proves the bytes match the manifest, not their shape: a file that
+ * parses to a non-array would coerce to `[]` (silent data loss for the table),
+ * and an array carrying a non-plain-object element (e.g. `[null]`) would later
+ * make `collectFileColumns`'s `Object.keys(row)` throw a 500. Reject both as 422.
+ */
+function assertRowArray({ value, path }: { value: unknown; path: string }): Row[] {
+  if (!Array.isArray(value)) {
+    throw new ValidationError({
+      message: `Backup file ${path} is corrupt: expected a JSON array of rows.`,
+    });
+  }
+  for (const row of value) {
+    if (!isPlainObject(row)) {
+      throw new ValidationError({
+        message: `Backup file ${path} is corrupt: every row must be a JSON object.`,
+      });
+    }
+  }
+  return value as Row[];
+}
+
+/**
  * Decode the base64 zip, verify the manifest's format version and every file's
  * SHA-256, then parse each data/reference file. Throws a 422 `ValidationError`
  * with a human-readable reason on any structural failure (unreadable zip,
@@ -203,25 +226,31 @@ export async function loadBackupArchive({
     if (!parsedByPath.has(path)) continue;
     const value = parsedByPath.get(path);
     if (name === 'user') {
-      user = isPlainObject(value) ? (value as Row) : null;
+      // A present-but-malformed user.json (checksum-clean but not an object)
+      // must fail loudly here. Coercing it to null routes into analyzeArchive's
+      // "contains no user record" path, which misdescribes a corrupt file.
+      if (!isPlainObject(value)) {
+        throw new ValidationError({
+          message: `Backup file ${path} is corrupt: the user record must be a JSON object.`,
+        });
+      }
+      user = value as Row;
       continue;
     }
-    // The SHA-256 gate only proves the bytes match the manifest, not their shape.
-    // A checksum-clean file that parses to a non-array (e.g. `{}` or a scalar)
-    // would otherwise coerce to `[]` and restore zero rows for the table while
-    // reporting success — silent data loss. Reject it as a 422 instead.
-    if (!Array.isArray(value)) {
-      throw new ValidationError({
-        message: `Backup file ${path} is corrupt: expected a JSON array of rows.`,
-      });
-    }
-    data.set(name, value as Row[]);
+    data.set(name, assertRowArray({ value, path }));
   }
 
   const referenceByName = new Map<string, Row[]>();
   for (const name of BACKUP_REFERENCE_FILE_NAMES) {
-    const value = parsedByPath.get(`reference/${name}.json`);
-    referenceByName.set(name, Array.isArray(value) ? (value as Row[]) : []);
+    const refPath = `reference/${name}.json`;
+    // Apply the same shape contract as data files: a checksum-clean securities
+    // catalog that parses to a non-array or carries a non-object row would leave
+    // the remap empty and fail mid-transaction with an opaque constraint error.
+    if (!parsedByPath.has(refPath)) {
+      referenceByName.set(name, []);
+      continue;
+    }
+    referenceByName.set(name, assertRowArray({ value: parsedByPath.get(refPath), path: refPath }));
   }
 
   // Data files the manifest carried that this app doesn't recognize — a backup

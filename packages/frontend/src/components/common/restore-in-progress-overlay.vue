@@ -6,87 +6,67 @@
     :status-unreachable="statusUnreachable"
     :unreachable-title="$t('settings.security.backup.restore.overlay.unreachableTitle')"
     :unreachable-description="$t('settings.security.backup.restore.overlay.unreachableDescription')"
-    :live-failure="liveFailure"
+    :live-failure="overlayLiveFailure"
     :failed-title="$t('settings.security.backup.restore.overlay.failedTitle')"
     :dismiss-label="$t('settings.security.backup.restore.overlay.dismiss')"
     @dismiss="stop"
   >
     <template #progress>
-      <!-- Hero: a spinning ring around a restore badge signals the wipe-and-replace is live. -->
-      <div class="relative mx-auto flex size-16 items-center justify-center">
-        <Loader2Icon
-          class="text-primary/30 animation-duration-[2.5s] absolute size-16 animate-spin motion-reduce:hidden"
-          aria-hidden="true"
-        />
-        <div class="bg-primary/10 ring-primary/15 flex size-11 items-center justify-center rounded-full ring-1">
+      <BlockingJobProgress
+        :ordered-step-keys="PHASE_ORDER"
+        :step-label-keys="RESTORE_PHASE_LABEL_KEYS"
+        :state="progress.kind"
+        :current-step-key="progress.kind === 'running' ? progress.phase : null"
+        preparing-label-key="settings.security.backup.restore.overlay.preparing"
+        finishing-label-key="settings.security.backup.restore.overlay.finishing"
+      >
+        <template #icon>
           <DatabaseBackupIcon class="text-primary size-5" aria-hidden="true" />
-        </div>
-      </div>
-
-      <h2 id="blocking-job-overlay-title" class="mt-5 text-lg font-semibold">
-        {{ $t('settings.security.backup.restore.overlay.title') }}
-      </h2>
-
-      <p id="blocking-job-overlay-description" class="text-muted-foreground mt-2 text-sm">
-        {{ $t('settings.security.backup.restore.overlay.description') }}
-      </p>
-
-      <div class="mt-6">
-        <div
-          class="bg-primary/25 relative h-2 w-full overflow-hidden rounded-full"
-          role="progressbar"
-          :aria-valuemin="0"
-          :aria-valuemax="totalPhases"
-          :aria-valuenow="currentPhaseNumber ?? undefined"
-        >
-          <div
-            class="bg-primary absolute inset-y-0 left-0 transition-[width] duration-700 ease-out"
-            :style="{ width: `${donePercent}%` }"
-          />
-          <div v-if="showSweep" class="bjo-sweep pointer-events-none absolute inset-0" aria-hidden="true" />
-        </div>
-
-        <div class="mt-3 flex items-center justify-between gap-3 text-sm">
-          <span class="text-foreground flex min-w-0 items-center gap-2 font-medium">
-            <CircleCheckIcon v-if="isFinishing" class="text-success-text size-4 shrink-0" aria-hidden="true" />
-            <span v-else class="bg-primary size-1.5 shrink-0 animate-pulse rounded-full" aria-hidden="true" />
-            <span class="truncate">{{ $t(currentLabelKey) }}</span>
-          </span>
-
+        </template>
+        <template #title>{{ $t('settings.security.backup.restore.overlay.title') }}</template>
+        <template #description>{{ $t('settings.security.backup.restore.overlay.description') }}</template>
+        <template #trailing>
           <span v-if="insertedRows != null" class="text-muted-foreground shrink-0 text-xs tabular-nums">
             {{ $t('settings.security.backup.restore.progress.inserted', { count: insertedRows }) }}
           </span>
-        </div>
-      </div>
+        </template>
+      </BlockingJobProgress>
     </template>
   </BlockingJobOverlay>
 </template>
 
 <script setup lang="ts">
 import BlockingJobOverlay from '@/components/common/blocking-job-overlay.vue';
+import BlockingJobProgress from '@/components/common/blocking-job-progress.vue';
 import { RESTORE_PHASE_LABEL_KEYS } from '@/components/common/restore-phase-labels';
-import { useRestoreJobStatus } from '@/composable/use-restore-job-status';
+import { restoreDialogPresenting, useRestoreJobStatus } from '@/composable/use-restore-job-status';
 import { ensureChunkLoaded } from '@/i18n';
 import type { BackupRestorePhase } from '@bt/shared/types';
-import { CircleCheckIcon, DatabaseBackupIcon, Loader2Icon } from '@lucide/vue';
+import { DatabaseBackupIcon } from '@lucide/vue';
 import { computed, watch } from 'vue';
 
 const { status, isBlocking, isTakingLong, liveFailure, statusUnreachable, stop } = useRestoreJobStatus();
 
 const PHASE_ORDER = Object.keys(RESTORE_PHASE_LABEL_KEYS) as BackupRestorePhase[];
-const totalPhases = PHASE_ORDER.length;
 
 // Keep the progress card up through the brief `completed` window: the watchdog is
 // wiping caches and about to reload, and dropping the overlay early would flash the
-// underlying pre-restore UI.
-const showProgress = computed(() => isBlocking.value || status.value?.state === 'completed');
+// underlying pre-restore UI. Stand down entirely while the restore dialog is the
+// active presenter, so this app-root overlay never double-renders on top of it.
+const showProgress = computed(
+  () => !restoreDialogPresenting.value && (isBlocking.value || status.value?.state === 'completed'),
+);
+
+// Failure is likewise the dialog's to show while it presents; suppress the overlay's
+// own failure panel so the two can't both render.
+const overlayLiveFailure = computed(() => (restoreDialogPresenting.value ? null : liveFailure.value));
 
 // This overlay lives at the app root and can surface on a non-settings route — e.g. a
 // reload on the dashboard while a restore runs in another tab. Its strings live in the
 // `settings/security` i18n chunk, which only auto-loads under /settings, so pull it in
 // the moment the overlay is about to show; a no-op once the chunk is already loaded.
 watch(
-  () => showProgress.value || liveFailure.value != null,
+  () => showProgress.value || overlayLiveFailure.value != null,
   (visible) => {
     if (visible) void ensureChunkLoaded('settings/security');
   },
@@ -115,50 +95,4 @@ const progress = computed<
   }
   return { kind: 'preparing' };
 });
-
-const isFinishing = computed(() => progress.value.kind === 'finishing');
-const showSweep = computed(() => progress.value.kind !== 'finishing');
-
-const donePercent = computed(() => {
-  const p = progress.value;
-  if (p.kind === 'finishing') return 100;
-  if (p.kind === 'running') return (p.index / totalPhases) * 100;
-  return 0;
-});
-
-const currentPhaseNumber = computed(() => (progress.value.kind === 'running' ? progress.value.index + 1 : null));
-
-const currentLabelKey = computed(() => {
-  const p = progress.value;
-  if (p.kind === 'running') return RESTORE_PHASE_LABEL_KEYS[p.phase];
-  if (p.kind === 'finishing') return 'settings.security.backup.restore.overlay.finishing';
-  return 'settings.security.backup.restore.overlay.preparing';
-});
 </script>
-
-<style scoped>
-/* A soft white highlight travelling left→right across the bar — signals the restore
-   is actively progressing, on top of the determinate done/remaining fill. */
-.bjo-sweep {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-primary-foreground) 24%, transparent),
-    transparent
-  );
-  transform: translateX(-100%);
-  animation: bjo-sweep 1.4s linear infinite;
-}
-
-@keyframes bjo-sweep {
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bjo-sweep {
-    animation: none;
-  }
-}
-</style>

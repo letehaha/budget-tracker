@@ -72,6 +72,66 @@ function understateCentralDirSize({
   throw new Error(`Central-directory entry not found for ${fileName}`);
 }
 
+/**
+ * Build a loadable, checksum-clean backup zip from an arbitrary set of files, so a
+ * test can drop in a deliberately malformed data/reference/user file and drive the
+ * shape guards. Each file's SHA-256 is computed into the manifest so it passes the
+ * integrity gate and reaches the post-checksum shape checks.
+ */
+async function buildArchiveFromFiles({ files }: { files: Record<string, string> }): Promise<Buffer> {
+  const manifestFiles: Record<string, { sha256: string }> = {};
+  const zip = new JSZip();
+  for (const [path, content] of Object.entries(files)) {
+    const buffer = Buffer.from(content, 'utf8');
+    manifestFiles[path] = { sha256: sha256Hex({ buffer }) };
+    zip.file(path, buffer);
+  }
+  zip.file('manifest.json', JSON.stringify({ formatVersion: 1, files: manifestFiles }));
+  return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+}
+
+describe('loadBackupArchive file-shape guards', () => {
+  it('rejects a data file whose array carries a non-object element', async () => {
+    const buffer = await buildArchiveFromFiles({ files: { 'data/transactions.json': '[null]' } });
+
+    await expect(loadBackupArchive({ fileContent: buffer.toString('base64') })).rejects.toThrow(
+      /every row must be a JSON object/,
+    );
+  });
+
+  it('rejects a securities reference file that parses to a non-array', async () => {
+    const buffer = await buildArchiveFromFiles({ files: { 'reference/securities.json': '{}' } });
+
+    await expect(loadBackupArchive({ fileContent: buffer.toString('base64') })).rejects.toThrow(
+      /expected a JSON array of rows/,
+    );
+  });
+
+  it('rejects a securities reference file whose array carries a non-object element', async () => {
+    const buffer = await buildArchiveFromFiles({ files: { 'reference/securities.json': '[null]' } });
+
+    await expect(loadBackupArchive({ fileContent: buffer.toString('base64') })).rejects.toThrow(
+      /every row must be a JSON object/,
+    );
+  });
+
+  it('rejects a present-but-malformed user file with a corrupt-record message', async () => {
+    const buffer = await buildArchiveFromFiles({ files: { 'data/user.json': '42' } });
+
+    await expect(loadBackupArchive({ fileContent: buffer.toString('base64') })).rejects.toThrow(
+      /the user record must be a JSON object/,
+    );
+  });
+
+  it('leaves user null when user.json is absent entirely', async () => {
+    const buffer = await buildArchiveFromFiles({ files: { 'data/transactions.json': '[]' } });
+
+    const archive = await loadBackupArchive({ fileContent: buffer.toString('base64') });
+
+    expect(archive.user).toBeNull();
+  });
+});
+
 describe('loadBackupArchive uncompressed-size budget', () => {
   it('rejects up front when the archive honestly declares more bytes than the budget', async () => {
     // ~4 KB uncompressed but trivially compressible, so the central directory

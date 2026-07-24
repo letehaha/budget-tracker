@@ -6,7 +6,8 @@ import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useRestoreBackup, useRestoreStatus } from '@/composable/data-queries/backup';
-import { useRestoreJobStatus } from '@/composable/use-restore-job-status';
+import { useRestoreJobStatus, restoreDialogPresenting } from '@/composable/use-restore-job-status';
+import { useStallTimer } from '@/composable/use-stall-timer';
 import { ApiErrorResponseError } from '@/js/errors';
 import { resetQueryCaches } from '@/lib/query-persister';
 import { captureException } from '@/lib/sentry';
@@ -38,48 +39,23 @@ const failureMessage = ref('');
 const { mutate: restore, isPending: isSubmitting } = useRestoreBackup();
 const { data: statusData, isError: isStatusError, error: statusError } = useRestoreStatus({ jobId });
 
-// Matches the boot watchdog's taking-long threshold: the restore holds the same
-// wipe-and-replace lock, and the backend ticks progress once per table, so a single
-// huge table (hundreds of thousands of rows) legitimately sits on one phase for
-// minutes. After this window the dialog surfaces a "still working" note but keeps
-// polling and blocking — it never calls a healthy destructive restore failed.
-const RESTORE_TAKING_LONG_THRESHOLD_MS = 5 * 60 * 1000;
-
-const isTakingLong = ref(false);
-let takingLongTimer: ReturnType<typeof setTimeout> | null = null;
-
-// Signature of the last observed progress point (phase + inserted rows). The timer
-// re-arms only when this actually changes, so neither per-poll object churn nor the
-// status query's structural sharing can wrongly reset the clock or leave it running.
-let lastProgressSignature: string | null = null;
-
-const clearTakingLongTimer = () => {
-  if (takingLongTimer) {
-    clearTimeout(takingLongTimer);
-    takingLongTimer = null;
-  }
-};
+// The restore holds the same wipe-and-replace lock as the boot watchdog and the
+// backend ticks progress once per table, so a single huge table legitimately sits on
+// one phase for minutes. `useStallTimer` surfaces a "still working" note past its
+// threshold while the dialog keeps polling and blocking — it never calls a healthy
+// destructive restore failed. Shared threshold, so the dialog and watchdog can't drift.
+const { isTakingLong, track: trackStall, arm: armStall, reset: resetStall } = useStallTimer();
 
 // Bail to a safe "reload and check" message. Reserved for a poll that keeps failing
 // (status genuinely unverifiable), not for a slow-but-healthy restore: the wipe is
 // atomic (already committed or rolled back), so the honest move is to stop the
 // spinner and let the user verify, rather than pretend we know the outcome.
 const failWithUnconfirmed = () => {
-  clearTakingLongTimer();
-  isTakingLong.value = false;
+  resetStall();
   failureMessage.value = t('settings.security.backup.restore.failed.unconfirmed');
   step.value = 'failed';
   // Stop polling — the status is untrustworthy.
   jobId.value = null;
-};
-
-// Restart the "still working" timer from the moment the restore last advanced.
-const armTakingLongTimer = () => {
-  clearTakingLongTimer();
-  isTakingLong.value = false;
-  takingLongTimer = setTimeout(() => {
-    if (step.value === 'progress') isTakingLong.value = true;
-  }, RESTORE_TAKING_LONG_THRESHOLD_MS);
 };
 
 const summary = computed(() => statusData.value?.summary ?? null);
@@ -104,14 +80,14 @@ const warnings = computed(() => summary.value?.warnings ?? []);
 const humanizeTable = (table: string) => table.replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
 const resetState = () => {
-  clearTakingLongTimer();
-  isTakingLong.value = false;
-  lastProgressSignature = null;
+  resetStall();
   step.value = 'confirm';
   jobId.value = null;
   sharedResources.value = null;
   acknowledged.value = false;
   failureMessage.value = '';
+  // Fresh attempt from the confirm step: this dialog isn't presenting a restore yet.
+  restoreDialogPresenting.value = false;
 };
 
 // A fresh open always starts a new restore attempt from the confirm step.
@@ -119,23 +95,30 @@ watch(
   () => props.open,
   (open) => {
     if (open) resetState();
-    else clearTakingLongTimer();
+    else resetStall();
   },
 );
 
-onBeforeUnmount(clearTakingLongTimer);
+onBeforeUnmount(() => {
+  resetStall();
+  // Hand off to the app-root overlay: once this presenter is gone (e.g. route change
+  // mid-restore), the watchdog armed in onSuccess must be free to render and reload.
+  restoreDialogPresenting.value = false;
+});
 
 // Drive the step machine off the poll's terminal states.
 watch(statusData, (status) => {
   if (!status) return;
   if (status.status === 'completed') {
-    clearTakingLongTimer();
-    isTakingLong.value = false;
+    resetStall();
     step.value = 'summary';
     // Mark this restore handled for the boot watchdog: this dialog already wipes the
     // cache and reloads on "Done", so a plain F5 from the summary must not make the
     // next boot wipe + reload a second time.
     if (jobId.value) useRestoreJobStatus().markHandled({ jobId: jobId.value });
+    // Release the safety-net watchdog armed in onSuccess: the dialog owns the completion
+    // UX now (summary + reload on Done), so the watchdog must not also wipe + reload.
+    useRestoreJobStatus().stop();
     // Purge the persisted IndexedDB cache the moment the restore lands, not only
     // on the "Done" click — otherwise closing the tab before clicking Done leaves
     // the pre-restore data to rehydrate on the next load.
@@ -143,19 +126,19 @@ watch(statusData, (status) => {
       captureException({ error, context: { feature: 'data-backup-restore' } }),
     );
   } else if (status.status === 'failed') {
-    clearTakingLongTimer();
-    isTakingLong.value = false;
+    resetStall();
     failureMessage.value = status.error || t('settings.security.backup.restore.failed.genericError');
     step.value = 'failed';
+    // The user is watching this failure live in the dialog; mark it handled so the boot
+    // watchdog doesn't re-toast it, and release the safety-net watchdog (rollback left
+    // nothing to reload).
+    if (jobId.value) useRestoreJobStatus().markHandled({ jobId: jobId.value });
+    useRestoreJobStatus().stop();
   } else {
-    // Still working. Re-arm the "still working" timer only when the restore actually
-    // advanced (new phase or more rows), so a long single-table insert can't reset
+    // Still working. The stall timer re-arms only when this signature actually
+    // advances (new phase or more rows), so a long single-table insert can't reset
     // the clock forever and a genuinely stalled one still surfaces the note.
-    const signature = `${status.progress?.phase ?? ''}:${status.progress?.insertedRows ?? ''}`;
-    if (signature !== lastProgressSignature) {
-      lastProgressSignature = signature;
-      armTakingLongTimer();
-    }
+    trackStall({ signature: `${status.progress?.phase ?? ''}:${status.progress?.insertedRows ?? ''}` });
   }
 });
 
@@ -176,9 +159,14 @@ const submit = ({ acknowledgeSharing }: { acknowledgeSharing?: boolean }) => {
       onSuccess: ({ jobId: id }) => {
         jobId.value = id;
         step.value = 'progress';
-        lastProgressSignature = null;
-        // Start the "still working" timer in case the first poll never arrives.
-        armTakingLongTimer();
+        // Start the "still working" clock now, in case the first poll never arrives.
+        armStall();
+        // Arm the shared watchdog as a safety net: if this dialog unmounts (route change)
+        // mid-restore, it keeps blocking + polling and reloads on completion. While the
+        // dialog stays mounted it is the active presenter, so the app-root overlay and
+        // the watchdog's own wipe+reload defer to it (see restoreDialogPresenting).
+        restoreDialogPresenting.value = true;
+        useRestoreJobStatus().start({ initialStatus: { state: 'running', jobId: id } });
       },
       onError: (e) => {
         if (
@@ -212,10 +200,6 @@ const handleAcknowledge = () => {
   submit({ acknowledgeSharing: true });
 };
 
-const setOpen = (open: boolean) => {
-  emit('update:open', open);
-};
-
 // Restore wipes and replaces every table, so the persisted IndexedDB cache would
 // rehydrate the pre-restore data on next load. Purge it (same teardown as logout /
 // wipe) and hard-reload so the app reflects exactly what was restored.
@@ -227,6 +211,22 @@ const finishAndReload = async () => {
   } finally {
     window.location.reload();
   }
+};
+
+const setOpen = (open: boolean) => {
+  if (!open) {
+    // Mid-restore the dialog is not dismissible: the wipe is running server-side and
+    // closing would strand the user on stale data with no visible progress.
+    if (step.value === 'progress') return;
+    // Closing from the summary (ESC / outside-click / swipe) must go through the same
+    // cache-wipe + reload as the Done button, so a dismiss can't skip the reload and
+    // leave pre-restore data cached.
+    if (step.value === 'summary') {
+      void finishAndReload();
+      return;
+    }
+  }
+  emit('update:open', open);
 };
 
 const handleClose = () => setOpen(false);

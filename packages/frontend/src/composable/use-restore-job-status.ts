@@ -4,7 +4,19 @@ import {
   createBlockingJobWatchdog,
 } from '@/composable/blocking-job-watchdog/create-blocking-job-watchdog';
 import { i18n } from '@/i18n';
+import { queryClient } from '@/lib/query-client';
+import { resetQueryCaches } from '@/lib/query-persister';
+import { captureException } from '@/lib/sentry';
 import { SSE_EVENT_TYPES, type BackupRestoreActiveStatus, type BackupRestoreSseProgress } from '@bt/shared/types';
+import { ref } from 'vue';
+
+/**
+ * True while the restore dialog is mounted and driving its own progress/summary UI.
+ * The app-root overlay and this watchdog's wipe+reload defer to the dialog while it is
+ * the active presenter, so nothing double-renders and the summary survives; the dialog
+ * clears it on unmount so the watchdog takes over if it disappears mid-restore.
+ */
+export const restoreDialogPresenting = ref(false);
 
 /**
  * Map the restore worker's live SSE payload onto the watchdog's status shape. The
@@ -57,6 +69,23 @@ function getWatchdog(): BlockingJobWatchdog<BackupRestoreActiveStatus> {
       sse: {
         event: SSE_EVENT_TYPES.BACKUP_RESTORE_PROGRESS,
         toStatus: sseToStatus,
+      },
+      onCompleted: async (status) => {
+        if (restoreDialogPresenting.value) {
+          // The restore dialog is mounted and owns completion: it shows the summary and
+          // reloads only when the user clicks Done. Stand down instead of wiping +
+          // reloading out from under that summary; the dialog already marked it handled.
+          getWatchdog().stop();
+          return;
+        }
+        // No dialog present (another tab, or the dialog unmounted mid-restore): every
+        // cached value was computed against pre-restore data, so wipe all caches and
+        // reload once — the only honest repaint.
+        await resetQueryCaches(queryClient).catch((error) =>
+          captureException({ error, context: { scope: 'backup-restore-status:reset' } }),
+        );
+        if (status.state === 'completed') getWatchdog().markHandled({ jobId: status.jobId });
+        window.location.reload();
       },
     });
   }

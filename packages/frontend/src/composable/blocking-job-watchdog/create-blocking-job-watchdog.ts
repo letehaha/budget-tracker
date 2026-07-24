@@ -1,5 +1,6 @@
 import { useNotificationCenter } from '@/components/notification-center';
 import { useSSE } from '@/composable/use-sse';
+import { useStallTimer } from '@/composable/use-stall-timer';
 import { i18n } from '@/i18n';
 import { AuthError } from '@/js/errors';
 import { queryClient } from '@/lib/query-client';
@@ -81,18 +82,25 @@ interface BlockingJobWatchdogConfig<TStatus extends BlockingJobStatusBase, TEven
 }
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
+/** Boot status check retries a few times before giving up: a restore may be in flight
+ *  right now, so a transient network blip at app init must not leave the device
+ *  unblocked and unaware. */
+const BOOT_STATUS_MAX_ATTEMPTS = 3;
+const BOOT_STATUS_RETRY_BASE_DELAY_MS = 500;
 /** Consecutive poll failures before the overlay offers a manual escape hatch —
  *  ~20s at the default interval, long enough to ride out a brief backend blip. */
 const DEFAULT_MAX_POLL_FAILURES = 10;
-/** After this long on the same step the overlay adds a "still working" note but
- *  keeps blocking — the server lock is still held, so the job is not done. */
-const DEFAULT_TAKING_LONG_THRESHOLD_MS = 5 * 60 * 1000;
 
 /**
- * Build a module-singleton watchdog for one kind of blocking background job. Call
- * once at the top level of a per-job composable module and share the result — at
- * most one such job runs per user, and its overlay must be identical on every open
- * screen, so every caller reads the same state.
+ * Build a module-singleton watchdog for one kind of blocking background job. Create it
+ * exactly once per job kind and share the result — at most one such job runs per user,
+ * and its overlay must be identical on every open screen, so every caller reads the
+ * same state.
+ *
+ * Build it lazily (on first access via a `getWatchdog()` helper), NOT at module top
+ * level: per-job composables sit in the api ↔ store import cycle, and a synchronous
+ * factory call during that cycle can run this factory body before its own `vue` import
+ * has initialized (temporal dead zone). Deferring to first call sidesteps that.
  */
 export function createBlockingJobWatchdog<
   TStatus extends BlockingJobStatusBase,
@@ -107,7 +115,11 @@ export function createBlockingJobWatchdog<
 
   const status = ref<TStatus | null>(null) as Ref<TStatus | null>;
   const liveFailure = ref<string | null>(null);
-  const isTakingLong = ref(false);
+  // Owns the "still working" note: it flips true once the job has sat on one
+  // progress signature past the threshold, shared with the restore dialog so the two
+  // can't drift. `config.takingLongThresholdMs` falls back to the composable's default.
+  const stallTimer = useStallTimer({ thresholdMs: config.takingLongThresholdMs });
+  const isTakingLong = stallTimer.isTakingLong;
   const statusUnreachable = ref(false);
 
   const isBlocking = computed(() => status.value?.state === 'queued' || status.value?.state === 'running');
@@ -119,10 +131,6 @@ export function createBlockingJobWatchdog<
   /** Guards the terminal side effect so completion fires exactly once even if SSE
    *  and the poll deliver the terminal state in the same tick. */
   let terminalHandled = false;
-  /** Timestamp of the last observed progress change, for the taking-long timer. */
-  let lastProgressAt = 0;
-  /** Identity of the last applied status, to detect real progress. */
-  let lastProgressKey = '';
   /** True while the poll is in a run of consecutive failures, so a sustained outage
    *  reports to Sentry once rather than on every tick. */
   let pollFailing = false;
@@ -161,7 +169,7 @@ export function createBlockingJobWatchdog<
   function stop(): void {
     clearTimers();
     terminalHandled = false;
-    isTakingLong.value = false;
+    stallTimer.reset();
     statusUnreachable.value = false;
     consecutivePollFailures = 0;
     pollFailing = false;
@@ -196,18 +204,15 @@ export function createBlockingJobWatchdog<
       await runCompleted(next);
     } else if (next.state === 'failed') {
       liveFailure.value = next.error ?? null;
+      // Mark the failure handled so a later boot doesn't re-toast it: the user watched
+      // it fail live here, and checkOnBoot toasts any unhandled failure it finds.
+      if (next.jobId) markHandled({ jobId: next.jobId });
     }
   }
 
-  /** Applies an observed status: tracks progress for the taking-long timer and fires
+  /** Applies an observed status: feeds the stall timer while the job runs and fires
    *  the terminal handler on the first queued/running → completed/failed transition. */
   function applyStatus(next: TStatus): void {
-    const key = computeProgressKey(next);
-    if (key !== lastProgressKey) {
-      lastProgressKey = key;
-      lastProgressAt = Date.now();
-      isTakingLong.value = false;
-    }
     status.value = next;
 
     if (next.state === 'idle') {
@@ -217,8 +222,13 @@ export function createBlockingJobWatchdog<
       return;
     }
     if (next.state === 'completed' || next.state === 'failed') {
+      stallTimer.reset();
       void handleTerminal(next);
+      return;
     }
+    // Still queued/running: only real progress (a changed signature) re-arms the
+    // "still working" clock, so a long single-table insert can't reset it forever.
+    stallTimer.track({ signature: computeProgressKey(next) });
   }
 
   async function poll(): Promise<void> {
@@ -256,11 +266,13 @@ export function createBlockingJobWatchdog<
     terminalHandled = false;
     pollFailing = false;
     consecutivePollFailures = 0;
-    isTakingLong.value = false;
     statusUnreachable.value = false;
     liveFailure.value = null;
-    lastProgressKey = '';
-    lastProgressAt = Date.now();
+    // Arm the stall clock from now: the seed below is blocking, so if the first poll
+    // is slow the "still working" note still lands on schedule. The first observed
+    // status re-arms it against the real progress signature.
+    stallTimer.reset();
+    stallTimer.arm();
 
     // Seed a blocking placeholder so the overlay appears instantly; the first poll
     // replaces it with the real state (with the jobId) within one tick.
@@ -276,12 +288,6 @@ export function createBlockingJobWatchdog<
 
     void poll();
     pollHandle = setInterval(() => {
-      if (
-        isBlocking.value &&
-        Date.now() - lastProgressAt >= (config.takingLongThresholdMs ?? DEFAULT_TAKING_LONG_THRESHOLD_MS)
-      ) {
-        isTakingLong.value = true;
-      }
       void poll();
     }, config.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS);
   }
@@ -300,9 +306,26 @@ export function createBlockingJobWatchdog<
    * rolled back), so there's nothing to reload — but the user who closed the tab
    * never saw it fail, so it gets a one-time toast instead, deduped the same way.
    */
+  /** Fetch status with a small bounded retry so a transient blip at boot — while a
+   *  destructive job may be running — doesn't leave this device unblocked for good. */
+  async function fetchStatusOnBoot(): Promise<TStatus> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= BOOT_STATUS_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        return await config.fetchStatus();
+      } catch (error) {
+        lastError = error;
+        if (attempt < BOOT_STATUS_MAX_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, BOOT_STATUS_RETRY_BASE_DELAY_MS * attempt));
+        }
+      }
+    }
+    throw lastError;
+  }
+
   async function checkOnBoot(): Promise<void> {
     try {
-      const next = await config.fetchStatus();
+      const next = await fetchStatusOnBoot();
       if (next.state === 'queued' || next.state === 'running') {
         beginWatch({ seed: next });
         return;

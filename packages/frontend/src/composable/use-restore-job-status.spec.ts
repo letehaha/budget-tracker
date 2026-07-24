@@ -17,7 +17,7 @@ vi.mock('@/composable/use-sse', () => ({ useSSE: () => ({ on: sseOnMock }) }));
 // Stable, prefix-tagged `t` so the failed-fallback assertion is deterministic.
 vi.mock('@/i18n', () => ({ i18n: { global: { t: (key: string) => `t:${key}` } } }));
 
-import { sseToStatus, useRestoreJobStatus } from './use-restore-job-status';
+import { restoreDialogPresenting, sseToStatus, useRestoreJobStatus } from './use-restore-job-status';
 
 const idle = (): BackupRestoreActiveStatus => ({ state: 'idle' });
 const running = (jobId = 'r-1'): BackupRestoreActiveStatus => ({
@@ -116,6 +116,8 @@ describe('useRestoreJobStatus', () => {
 
   afterEach(() => {
     useRestoreJobStatus().stop();
+    // Shared module singleton: reset the presenter flag so it can't bleed between tests.
+    restoreDialogPresenting.value = false;
     vi.clearAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
@@ -191,6 +193,22 @@ describe('useRestoreJobStatus', () => {
 
     expect(reloadMock).toHaveBeenCalledTimes(1);
     expect(resetQueryCachesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('defers to the restore dialog while it is presenting: a completion neither wipes nor reloads', async () => {
+    // The dialog owns the completion UX (summary + reload on Done) while mounted, so the
+    // watchdog must stand down instead of wiping caches and reloading out from under it.
+    restoreDialogPresenting.value = true;
+    getStatusMock.mockResolvedValueOnce(completed());
+
+    const store = useRestoreJobStatus();
+    store.start({ initialStatus: running() });
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(resetQueryCachesMock).not.toHaveBeenCalled();
+    expect(store.isBlocking.value).toBe(false);
   });
 
   it('ignores a completed SSE push with no summary yet (waits for the poll to carry it)', async () => {
