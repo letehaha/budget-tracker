@@ -59,7 +59,7 @@ describe('fetchRemoteVersion', () => {
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
-  it('returns null + captures exception on non-2xx response', async () => {
+  it('returns null + breadcrumb (no exception) on a 404 — endpoint not served here', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(makeResponse({ ok: false, status: 404, statusText: 'Not Found' })),
@@ -69,9 +69,25 @@ describe('fetchRemoteVersion', () => {
     const result = await fetchRemoteVersion();
 
     expect(result).toBeNull();
+    expect(addBreadcrumbMock).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'version-check', level: 'info' }),
+    );
+    expect(captureExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it('returns null + captures exception on a non-404 non-2xx response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(makeResponse({ ok: false, status: 502, statusText: 'Bad Gateway' })),
+    );
+    const { fetchRemoteVersion } = await importModule();
+
+    const result = await fetchRemoteVersion();
+
+    expect(result).toBeNull();
     expect(captureExceptionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        context: expect.objectContaining({ status: 404, statusText: 'Not Found' }),
+        context: expect.objectContaining({ status: 502, statusText: 'Bad Gateway' }),
       }),
     );
   });

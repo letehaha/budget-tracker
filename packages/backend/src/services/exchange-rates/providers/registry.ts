@@ -191,7 +191,13 @@ class ExchangeRateProviderRegistry {
 
     const requestedDate = params.date.toISOString().slice(0, 10);
     const providerRates: ProviderRatesInput[] = [];
+    // `failed` = a provider threw or was unavailable (a real degradation).
+    // `noData` = a provider cleanly returned nothing for this date (expected for a
+    // secondary, e.g. fawazahmed0's dated tag for today not being published yet).
+    // Only `failed` feeds the degraded-sync alert; coverage gaps are caught on
+    // their own further down, so a benign empty return never pages.
     const failed: ProviderFailure[] = [];
+    const noData: ProviderFailure[] = [];
     let resultDate: string | undefined;
 
     for (const provider of available) {
@@ -228,8 +234,12 @@ class ExchangeRateProviderRegistry {
         const result = await provider.fetchRatesForDate(params);
 
         if (!result || Object.keys(result.rates).length === 0) {
-          logger.warn(`${provider.metadata.name} returned no rates, continuing to next provider`);
-          failed.push({ name: provider.metadata.name, type: provider.metadata.type, reason: 'No rates returned' });
+          // A clean empty return means the provider has no data for this date, not
+          // that it broke — expected for a secondary (fawazahmed0's dated tag for
+          // today publishes a few hours late). Track it as no-data, not a failure,
+          // and keep it out of Sentry; a real gap is caught by the coverage check.
+          logger.info(`${provider.metadata.name} returned no rates, continuing to next provider`);
+          noData.push({ name: provider.metadata.name, type: provider.metadata.type, reason: 'No rates returned' });
           continue;
         }
 
@@ -247,6 +257,7 @@ class ExchangeRateProviderRegistry {
     if (Object.keys(rates).length === 0) {
       logger.error('All exchange rate providers failed to fetch rates', {
         failed,
+        noData,
         unavailable,
         date: params.date.toISOString(),
       });
@@ -261,17 +272,18 @@ class ExchangeRateProviderRegistry {
 
     // fawazahmed0 MUST have data for any date >= its floor, so an enabled currency
     // ApiLayer had to fill on such a date is a data anomaly worth a Sentry signal.
-    // Deliberately narrow: a fawaz fetch FAILURE is already reported by the
-    // degraded-sync alert, and a currency missing entirely by the coverage alert —
-    // this one only flags "fawaz ran but lacked a rate the paid fallback had".
+    // Deliberately narrow: this only flags "fawaz ran but lacked a rate the paid
+    // fallback had". Skip it when fawaz contributed nothing at all (failed or
+    // returned no data) — otherwise every currency looks like an ApiLayer gap.
+    // A whole-currency miss is caught by the coverage alert instead.
     // The floor compares the REQUESTED date, not merged.date (a provider's own
     // stale-date fallback must not shift the check). Runs on BOTH the daily and
     // the on-demand paths since both route through here.
     const fawaz = available.find((p) => p.metadata.type === EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API);
-    const fawazFailed = failed.some((p) => p.type === EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API);
+    const fawazAbsent = [...failed, ...noData].some((p) => p.type === EXCHANGE_RATE_PROVIDER_TYPE.FAWAZ_CURRENCY_API);
     if (
       fawaz &&
-      !fawazFailed &&
+      !fawazAbsent &&
       enabledCodes &&
       fawaz.metadata.minHistoricalDate &&
       requestedDate >= fawaz.metadata.minHistoricalDate
