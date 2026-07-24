@@ -352,6 +352,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const metadata = connection.metadata as unknown as EnableBankingMetadata;
     const credentials = (await this.getDecryptedCredentials(connectionId)) as unknown as EnableBankingCredentials;
 
+    // A backup restore leaves an empty-credentials stub (no appId/privateKey) so the
+    // ciphertext never travels between instances. The renew path below signs a JWT with
+    // those keys and would crash on the stub; route it to a full reconnect instead.
+    if (!this.isValidCredentials(credentials)) {
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidStoredCredentials' }) });
+    }
+
     if (!metadata.bankName || !metadata.bankCountry) {
       throw new BadRequestError({ message: t({ key: 'bankDataProviders.enableBanking.bankInfoNotFound' }) });
     }

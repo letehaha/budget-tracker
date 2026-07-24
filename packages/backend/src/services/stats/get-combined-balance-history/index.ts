@@ -72,6 +72,11 @@ const calculatePortfolioBalanceHistory = async ({
 
   const [transactions, portfolioTransfers, currentBalances]: [TransactionRow[], TransferRow[], CurrentBalanceRow[]] =
     await Promise.all([
+      // `raw: true` + narrow attributes on purpose: there is deliberately no
+      // lower date bound (pre-window rows seed opening holdings and cash), so
+      // an active trader's full history loads here. Hydrating model instances
+      // would materialize a Money object per money column per row — enough to
+      // OOM under concurrent dashboard requests. DECIMALs arrive as strings.
       InvestmentTransaction.findAll({
         where: {
           portfolioId: { [Op.in]: portfolioIds },
@@ -90,12 +95,12 @@ const calculatePortfolioBalanceHistory = async ({
           'date',
           'quantity',
           'refAmount',
-          'refFees',
           'currencyCode',
           'settlementAmount',
           'settlementCurrencyCode',
         ],
-      }),
+        raw: true,
+      }) as unknown as Promise<TransactionRow[]>,
       // Cash that settled inside a portfolio (deposits/withdrawals, account↔portfolio
       // transfers, portfolio↔portfolio moves, in-portfolio FX) is recorded here.
       // `date` is DATEONLY, so a `yyyy-MM-dd` upper bound compares as a plain string.

@@ -1,122 +1,51 @@
 <template>
-  <Teleport to="body">
-    <div
-      v-if="isVisible"
-      ref="overlayRef"
-      class="bg-background/95 fixed inset-0 z-(--z-app-lock) flex items-center justify-center p-4 backdrop-blur-sm"
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby="base-currency-overlay-title"
-      aria-describedby="base-currency-overlay-description"
-      tabindex="-1"
-    >
-      <Card class="w-full max-w-md shadow-lg">
-        <CardContent class="p-6 text-center sm:pt-6">
-          <template v-if="showProgress">
-            <!-- Hero: a slow ring spinning around a currency-swap badge signals live work. -->
-            <div class="relative mx-auto flex size-16 items-center justify-center">
-              <!-- Frozen mid-spin the ring reads as a broken circle, so drop it entirely
-                   under reduced motion — the badge alone stays clean. -->
-              <Loader2Icon
-                class="text-primary/30 animation-duration-[2.5s] absolute size-16 animate-spin motion-reduce:hidden"
-                aria-hidden="true"
-              />
-              <div class="bg-primary/10 ring-primary/15 flex size-11 items-center justify-center rounded-full ring-1">
-                <ArrowLeftRightIcon class="text-primary size-5" aria-hidden="true" />
-              </div>
-            </div>
-
-            <h2 id="base-currency-overlay-title" class="mt-5 text-lg font-semibold">
-              {{ $t('settings.currencies.setBase.overlay.title') }}
-            </h2>
-
-            <p id="base-currency-overlay-description" class="text-muted-foreground mt-2 text-sm">
-              {{ $t('settings.currencies.setBase.overlay.description') }}
-            </p>
-
-            <!-- Progress: a determinate bar (solid = done, shimmering slice = in progress)
-                 plus the current step label and an "X of N" counter. -->
-            <div class="mt-6">
-              <div
-                class="bg-primary/25 relative h-2 w-full overflow-hidden rounded-full"
-                role="progressbar"
-                :aria-valuemin="0"
-                :aria-valuemax="totalSteps"
-                :aria-valuenow="currentStepNumber ?? undefined"
-                :aria-valuetext="counterText ?? undefined"
-              >
-                <div
-                  class="bg-primary absolute inset-y-0 left-0 transition-[width] duration-700 ease-out"
-                  :style="{ width: `${donePercent}%` }"
-                />
-                <div v-if="showSweep" class="bcc-sweep pointer-events-none absolute inset-0" aria-hidden="true" />
-              </div>
-
-              <div class="mt-3 flex items-center justify-between gap-3 text-sm">
-                <span class="text-foreground flex min-w-0 items-center gap-2 font-medium">
-                  <CircleCheckIcon v-if="isFinishing" class="text-success-text size-4 shrink-0" aria-hidden="true" />
-                  <span v-else class="bg-primary size-1.5 shrink-0 animate-pulse rounded-full" aria-hidden="true" />
-                  <span class="truncate">{{ $t(currentLabelKey) }}</span>
-                </span>
-
-                <span v-if="counterText" class="text-muted-foreground shrink-0 text-xs tabular-nums">
-                  {{ counterText }}
-                </span>
-              </div>
-            </div>
-
-            <p v-if="isTakingLong" class="text-muted-foreground mt-5 text-sm">
-              {{ $t('settings.currencies.setBase.overlay.takingLong') }}
-            </p>
-
-            <template v-if="statusUnreachable">
-              <div class="border-border/60 mt-5 border-t pt-5">
-                <p class="text-destructive-text text-sm font-medium">
-                  {{ $t('settings.currencies.setBase.overlay.unreachableTitle') }}
-                </p>
-
-                <p class="text-muted-foreground mt-2 text-sm">
-                  {{ $t('settings.currencies.setBase.overlay.unreachableDescription') }}
-                </p>
-
-                <Button ref="dismissButtonRef" variant="outline" class="mt-4" @click="stop">
-                  {{ $t('settings.currencies.setBase.overlay.dismiss') }}
-                </Button>
-              </div>
-            </template>
-          </template>
-
-          <template v-else-if="liveFailure">
-            <div class="bg-destructive/10 mx-auto flex size-16 items-center justify-center rounded-full">
-              <TriangleAlertIcon class="text-destructive-text size-8" aria-hidden="true" />
-            </div>
-
-            <h2 id="base-currency-overlay-title" class="mt-5 text-lg font-semibold">
-              {{ $t('settings.currencies.setBase.overlay.failedTitle') }}
-            </h2>
-
-            <p id="base-currency-overlay-description" class="text-muted-foreground mt-2 text-sm">{{ liveFailure }}</p>
-
-            <Button ref="dismissButtonRef" variant="outline" class="mt-6" @click="stop">
-              {{ $t('settings.currencies.setBase.overlay.dismiss') }}
-            </Button>
-          </template>
-        </CardContent>
-      </Card>
-    </div>
-  </Teleport>
+  <BlockingJobOverlay
+    :show-progress="showProgress"
+    :is-taking-long="isTakingLong"
+    :taking-long-label="$t('settings.currencies.setBase.overlay.takingLong')"
+    :status-unreachable="statusUnreachable"
+    :unreachable-title="$t('settings.currencies.setBase.overlay.unreachableTitle')"
+    :unreachable-description="$t('settings.currencies.setBase.overlay.unreachableDescription')"
+    :live-failure="liveFailure"
+    :failed-title="$t('settings.currencies.setBase.overlay.failedTitle')"
+    :dismiss-label="$t('settings.currencies.setBase.overlay.dismiss')"
+    @dismiss="stop"
+  >
+    <template #progress>
+      <BlockingJobProgress
+        :ordered-step-keys="STEP_ORDER"
+        :step-label-keys="STEP_LABEL_KEYS"
+        :state="progress.kind"
+        :current-step-key="progress.kind === 'running' ? progress.step : null"
+        preparing-label-key="settings.currencies.setBase.overlay.preparing"
+        finishing-label-key="settings.currencies.setBase.overlay.finishing"
+        :counter-text="counterText"
+      >
+        <template #icon>
+          <ArrowLeftRightIcon class="text-primary size-5" aria-hidden="true" />
+        </template>
+        <template #title>{{ $t('settings.currencies.setBase.overlay.title') }}</template>
+        <template #description>{{ $t('settings.currencies.setBase.overlay.description') }}</template>
+        <template #trailing>
+          <span v-if="counterText" class="text-muted-foreground shrink-0 text-xs tabular-nums">
+            {{ counterText }}
+          </span>
+        </template>
+      </BlockingJobProgress>
+    </template>
+  </BlockingJobOverlay>
 </template>
 
 <script setup lang="ts">
-import Button from '@/components/lib/ui/button/Button.vue';
-import type { ComponentPublicInstance } from 'vue';
-import { Card, CardContent } from '@/components/lib/ui/card';
+import BlockingJobOverlay from '@/components/common/blocking-job-overlay.vue';
+import BlockingJobProgress from '@/components/common/blocking-job-progress.vue';
 import { useBaseCurrencyChangeStatus } from '@/composable/use-base-currency-change-status';
+import { ensureChunkLoaded } from '@/i18n';
 // Type-only: a runtime import of the shared step const can read as stale-undefined
 // in the dockerized dev frontend until its container restarts.
 import type { BaseCurrencyChangeStep } from '@bt/shared/types';
-import { ArrowLeftRightIcon, CircleCheckIcon, Loader2Icon, TriangleAlertIcon } from '@lucide/vue';
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
+import { ArrowLeftRightIcon } from '@lucide/vue';
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -144,7 +73,17 @@ const totalSteps = STEP_ORDER.length;
 // flash the underlying stale-base UI.
 const showProgress = computed(() => isBlocking.value || status.value?.state === 'completed');
 
-const isVisible = computed(() => showProgress.value || Boolean(liveFailure.value));
+// This overlay lives at the app root and can surface on a non-settings route — e.g. a
+// reload on the dashboard while a base-currency change runs. Its strings live in the
+// `settings/currencies` i18n chunk, which only auto-loads under /settings, so pull it
+// in the moment the overlay is about to show; a no-op once the chunk is already loaded.
+watch(
+  () => showProgress.value || liveFailure.value != null,
+  (visible) => {
+    if (visible) void ensureChunkLoaded('settings/currencies');
+  },
+  { immediate: true },
+);
 
 /**
  * Where the change is right now, mapped to what the bar shows:
@@ -164,22 +103,6 @@ const progress = computed<
   return { kind: 'preparing' };
 });
 
-const isFinishing = computed(() => progress.value.kind === 'finishing');
-
-// A white highlight sweeps the bar while work is in flight; the completed frame drops
-// it and just shows the full fill.
-const showSweep = computed(() => progress.value.kind !== 'finishing');
-
-// Steps reported before the current one are done, so the fill is index/total: solid
-// primary up to there, a dimmer primary track for what's left. `finishing` fills fully;
-// `preparing` leaves the track empty with only the sweep, reading as indeterminate work.
-const donePercent = computed(() => {
-  const p = progress.value;
-  if (p.kind === 'finishing') return 100;
-  if (p.kind === 'running') return (p.index / totalSteps) * 100;
-  return 0;
-});
-
 const currentStepNumber = computed(() => (progress.value.kind === 'running' ? progress.value.index + 1 : null));
 
 const counterText = computed(() =>
@@ -187,72 +110,4 @@ const counterText = computed(() =>
     ? null
     : t('settings.currencies.setBase.overlay.stepCounter', { current: currentStepNumber.value, total: totalSteps }),
 );
-
-const currentLabelKey = computed(() => {
-  const p = progress.value;
-  if (p.kind === 'running') return STEP_LABEL_KEYS[p.step];
-  if (p.kind === 'finishing') return 'settings.currencies.setBase.overlay.finishing';
-  return 'settings.currencies.setBase.overlay.preparing';
-});
-
-const overlayRef = ref<HTMLElement | null>(null);
-const dismissButtonRef = ref<ComponentPublicInstance | null>(null);
-
-/** True whenever a panel with a dismiss button is showing (failure or unreachable). */
-const dismissActionVisible = computed(() => Boolean(liveFailure.value) || statusUnreachable.value);
-
-/** The app mount root; inerting it keeps Tab from reaching the app behind the overlay. */
-const appRoot = (): HTMLElement | null => document.getElementById('app');
-
-watch(isVisible, async (visible) => {
-  const root = appRoot();
-  if (visible) {
-    root?.setAttribute('inert', '');
-    await nextTick();
-    overlayRef.value?.focus();
-  } else {
-    root?.removeAttribute('inert');
-  }
-});
-
-// The overlay can swap from progress to the failure/unreachable panel without ever
-// hiding, so the isVisible watch above won't fire. Move focus to the dismiss button
-// on that in-place switch so keyboard users land on the only remaining action.
-watch(dismissActionVisible, async (present) => {
-  if (!present) return;
-  await nextTick();
-  (dismissButtonRef.value?.$el as HTMLElement | undefined)?.focus();
-});
-
-onUnmounted(() => {
-  // A leaked inert attribute would dead-lock the whole UI, so always clear it.
-  appRoot()?.removeAttribute('inert');
-});
 </script>
-
-<style scoped>
-/* A soft white highlight travelling left→right across the whole bar — signals the
-   recalculation is actively progressing, on top of the determinate done/remaining fill. */
-.bcc-sweep {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-primary-foreground) 24%, transparent),
-    transparent
-  );
-  transform: translateX(-100%);
-  animation: bcc-sweep 1.4s linear infinite;
-}
-
-@keyframes bcc-sweep {
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bcc-sweep {
-    animation: none;
-  }
-}
-</style>

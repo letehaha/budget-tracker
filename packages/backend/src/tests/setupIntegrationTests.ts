@@ -11,6 +11,7 @@ import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
 import { categorizationQueue, categorizationWorker } from '@services/ai-categorization/categorization-queue';
 import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
+import { backupRestoreQueue, backupRestoreWorker } from '@services/backup/restore/restore-queue';
 import { closeAllMonobankQueueBundles } from '@services/bank-data-providers/monobank/transaction-sync-queue';
 import { logoResolutionQueue, logoResolutionWorker } from '@services/brand-logos';
 import { baseCurrencyChangeQueue, baseCurrencyChangeWorker } from '@services/currencies/base-currency-change-queue';
@@ -468,6 +469,8 @@ afterAll(async () => {
     await budgetBakersWalletImportQueue.close();
     await csvImportWorker.close();
     await csvImportQueue.close();
+    await backupRestoreWorker.close();
+    await backupRestoreQueue.close();
     await logoResolutionWorker.close();
     await logoResolutionQueue.close();
     await subscriptionReminderEmailWorker.close();

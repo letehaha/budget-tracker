@@ -140,6 +140,9 @@ export function setupMiddleware(app: Express) {
         `${API_PREFIX}/import/ynab/parse`,
         `${API_PREFIX}/import/ynab/execute`,
       ],
+      // Backup restore carries the whole backup zip as a base64 JSON string; the
+      // base64 envelope inflates ~4/3, so a ~40MB zip needs this ceiling.
+      '64mb': [`${API_PREFIX}/user/backup/restore`],
     };
 
     // For webhook paths, preserve raw body for signature verification

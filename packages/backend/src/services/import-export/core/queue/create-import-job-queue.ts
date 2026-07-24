@@ -326,7 +326,16 @@ export function createImportJobQueue<
       ...buildRunningPayload({ jobId, processedCount: 0, totalCount: 0 }),
       status: 'queued',
     } as TProgress;
-    sendProgress({ userId, payload: queuedPayload });
+    // The job is already committed to the queue, so a failed initial notification
+    // must not surface as an enqueue failure — callers roll back their tracking
+    // pointer on throw, which would orphan the committed job.
+    try {
+      sendProgress({ userId, payload: queuedPayload });
+    } catch (err) {
+      logger.warn(`[${logLabel}] Initial queued SSE emit failed for job ${jobId}`, {
+        error: err instanceof Error ? err : new Error(String(err)),
+      });
+    }
   }
 
   async function getImportProgress({ userId, jobId }: { userId: number; jobId: string }): Promise<TProgress | null> {

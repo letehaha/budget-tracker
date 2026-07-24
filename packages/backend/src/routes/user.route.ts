@@ -1,3 +1,7 @@
+import { activeRestoreStatusController } from '@controllers/backup/active-restore-status.controller';
+import { exportBackupController } from '@controllers/backup/export-backup.controller';
+import { restoreBackupController } from '@controllers/backup/restore-backup.controller';
+import { restoreStatusController } from '@controllers/backup/restore-status.controller';
 import addUserCurrencies from '@controllers/currencies/add-user-currencies';
 import changeBaseCurrencyStatus from '@controllers/currencies/change-base-currency-status.controller';
 import changeBaseCurrency from '@controllers/currencies/change-base-currency.controller';
@@ -41,7 +45,7 @@ import {
 } from '@controllers/user.controller';
 import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
-import { dataExportRateLimit } from '@middlewares/rate-limit';
+import { backupRateLimit, backupRestoreRateLimit, dataExportRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -69,6 +73,35 @@ router.post(
   dataExportRateLimit,
   validateEndpoint(exportDataController.schema),
   exportDataController.handler,
+);
+router.post(
+  '/backup',
+  authenticateSession,
+  backupRateLimit,
+  validateEndpoint(exportBackupController.schema),
+  exportBackupController.handler,
+);
+router.post(
+  '/backup/restore',
+  authenticateSession,
+  // Guard the most destructive write like every other mutating route: 423 while a
+  // base-currency migration (or an in-flight restore, which takes the same lock) runs.
+  checkBaseCurrencyLock,
+  backupRestoreRateLimit,
+  validateEndpoint(restoreBackupController.schema),
+  restoreBackupController.handler,
+);
+router.get(
+  '/backup/restore/status',
+  authenticateSession,
+  validateEndpoint(activeRestoreStatusController.schema),
+  activeRestoreStatusController.handler,
+);
+router.get(
+  '/backup/restore/status/:jobId',
+  authenticateSession,
+  validateEndpoint(restoreStatusController.schema),
+  restoreStatusController.handler,
 );
 
 router.get('/currencies', authenticateSession, validateEndpoint(getUserCurrencies.schema), getUserCurrencies.handler);

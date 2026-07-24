@@ -36,8 +36,10 @@ export const accumulateCashDeltas = ({
 
   for (const tx of transactions) {
     const delta = calculateCashDelta({
+      // Raw row: `settlementAmount` is already a Postgres decimal string, the
+      // exact shape `calculateCashDelta` feeds into Big — no precision loss.
+      settlementAmount: tx.settlementAmount,
       category: tx.category,
-      settlementAmount: tx.settlementAmount.toDecimalString(10),
     });
     // `==` (not `===`) so an `undefined` escaping a future gap in
     // `calculateCashDelta` is also skipped instead of becoming NaN below.
