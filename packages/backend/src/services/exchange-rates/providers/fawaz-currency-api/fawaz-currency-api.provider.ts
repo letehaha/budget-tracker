@@ -122,8 +122,15 @@ export class FawazCurrencyApiProvider extends BaseExchangeRateProvider {
     }
 
     if (!response) {
-      this.handleFetchError({ error: lastError, date: formattedDate });
-      return null;
+      const status = isAxiosError(lastError) ? lastError.response?.status : undefined;
+      // 404 = no published snapshot for this date yet; an expected miss the next
+      // provider covers, so return null and let the registry stay quiet. Anything
+      // else (5xx, timeout, network) is a real outage — rethrow so it pages.
+      if (status === 404) {
+        this.logInfo(`No data available for ${formattedDate}`);
+        return null;
+      }
+      throw lastError;
     }
 
     const rateMap = response.data?.[base] as Record<string, number> | undefined;
