@@ -10,7 +10,7 @@
  * but only from 2024-03-02 onward; earlier dates 404).
  */
 import Currencies from '@models/currencies.model';
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse, isAxiosError } from 'axios';
 
 import { BaseExchangeRateProvider } from '../base-provider';
 import {
@@ -104,11 +104,19 @@ export class FawazCurrencyApiProvider extends BaseExchangeRateProvider {
         });
         break;
       } catch (error) {
-        // Warn per mirror so a dead primary CDN stays visible even while the
-        // fallback mirror keeps the provider working.
-        this.logWarn(`Fetch failed from ${url}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        const status = isAxiosError(error) ? error.response?.status : undefined;
+        // A 404 means this date's snapshot isn't published yet — the dated tag
+        // for the current day lags by a few hours — or the date genuinely has no
+        // data. Either way it's an expected miss the chain recovers from via the
+        // next provider, so keep it out of Sentry. Only a genuinely unexpected
+        // mirror failure (network, timeout, 5xx) warrants a warning.
+        if (status === 404) {
+          this.logInfo(`No data at ${url} (404)`);
+        } else {
+          this.logWarn(`Fetch failed from ${url}`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
         lastError = error;
       }
     }

@@ -379,7 +379,10 @@ const calculateInvestmentSlice = async ({
   // known per currency — the rate lookup does not surface the day it failed on —
   // so its dates are bounded by the window rather than listed.
   if (missingRateCurrencies.size > 0 || unpricedSecurityIds.size > 0) {
-    logger.error('Net-worth drivers valued with degraded data', {
+    // Warning, not error: a fallback to cost basis / a missing FX rate degrades
+    // the numbers but the report still renders — it is a data-quality signal to
+    // watch, not an app fault that should page.
+    logger.warn('Net-worth drivers valued with degraded data', {
       userId,
       baseCurrency: userBaseCurrency.currencyCode,
       window: { from: minDate, to: maxDate },
