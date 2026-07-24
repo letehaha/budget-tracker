@@ -19,12 +19,10 @@ describe('Change Base Currency — active share guard', () => {
     await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
   });
 
-  const callChangeBase = () =>
-    helpers.makeRequest({
-      method: 'post',
-      url: '/user/currencies/change-base',
-      payload: { newCurrencyCode: 'USD' },
-    });
+  // Share-blocker rejections still surface synchronously at enqueue, so these tests
+  // read the immediate response. The "allows" cases enqueue a real job and poll it
+  // to completion via changeBaseCurrencyAndWait instead.
+  const callChangeBase = () => helpers.changeBaseCurrency({ newCurrencyCode: 'USD' });
 
   it('rejects the change when the caller is the owner of an accepted share', async () => {
     const account = await helpers.createAccount({ raw: true });
@@ -47,7 +45,7 @@ describe('Change Base Currency — active share guard', () => {
     const res = await callChangeBase();
 
     expect(res.statusCode).toBe(409);
-    const err = res.body.response as ErrorResponse;
+    const err = res.body.response as unknown as ErrorResponse;
     expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByShares);
   });
 
@@ -80,7 +78,7 @@ describe('Change Base Currency — active share guard', () => {
     });
 
     expect(res.statusCode).toBe(409);
-    const err = res.body.response as ErrorResponse;
+    const err = res.body.response as unknown as ErrorResponse;
     expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByShares);
   });
 
@@ -96,15 +94,13 @@ describe('Change Base Currency — active share guard', () => {
       raw: true,
     });
 
-    const res = await callChangeBase();
-
-    expect(res.statusCode).toBe(200);
+    const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+    helpers.expectBaseCurrencyChangeCompleted(status);
   });
 
   it('allows the change when the user has no shares at all', async () => {
-    const res = await callChangeBase();
-
-    expect(res.statusCode).toBe(200);
+    const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+    helpers.expectBaseCurrencyChangeCompleted(status);
   });
 
   it('rejects with BASE_CURRENCY_LOCKED_BY_HOUSEHOLD when an active household membership blocks', async () => {
@@ -127,7 +123,7 @@ describe('Change Base Currency — active share guard', () => {
     const res = await callChangeBase();
 
     expect(res.statusCode).toBe(409);
-    const err = res.body.response as ErrorResponse & {
+    const err = res.body.response as unknown as ErrorResponse & {
       details?: { blockers?: Array<{ type: string; count: number }> };
     };
     expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByHousehold);
@@ -167,7 +163,7 @@ describe('Change Base Currency — active share guard', () => {
     const res = await callChangeBase();
 
     expect(res.statusCode).toBe(409);
-    const err = res.body.response as ErrorResponse & {
+    const err = res.body.response as unknown as ErrorResponse & {
       details?: { blockers?: Array<{ type: string; count: number }> };
     };
     // Household takes the primary code when both are present.
@@ -208,7 +204,7 @@ describe('Change Base Currency — active share guard', () => {
     });
 
     expect(res.statusCode).toBe(409);
-    const err = res.body.response as ErrorResponse & {
+    const err = res.body.response as unknown as ErrorResponse & {
       details?: { blockers?: Array<{ type: string; count: number }> };
     };
     expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByHousehold);

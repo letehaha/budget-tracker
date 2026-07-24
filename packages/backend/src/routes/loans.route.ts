@@ -8,6 +8,7 @@ import linkPayments from '@controllers/loans/link-payments';
 import unlinkPayment from '@controllers/loans/unlink-payment';
 import updateLoan from '@controllers/loans/update-loan';
 import { authenticateSession } from '@middlewares/better-auth';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -21,11 +22,41 @@ router.get(
   validateEndpoint(getBalanceHistory.schema),
   getBalanceHistory.handler,
 );
-router.post('/', authenticateSession, validateEndpoint(createLoan.schema), createLoan.handler);
-router.patch('/:id', authenticateSession, validateEndpoint(updateLoan.schema), updateLoan.handler);
-router.delete('/:id', authenticateSession, validateEndpoint(deleteLoan.schema), deleteLoan.handler);
-router.post('/:id/events', authenticateSession, validateEndpoint(appendNoteEvent.schema), appendNoteEvent.handler);
-router.post('/:id/link-payments', authenticateSession, validateEndpoint(linkPayments.schema), linkPayments.handler);
-router.post('/:id/unlink-payment', authenticateSession, validateEndpoint(unlinkPayment.schema), unlinkPayment.handler);
+router.post('/', authenticateSession, checkBaseCurrencyLock, validateEndpoint(createLoan.schema), createLoan.handler);
+router.patch(
+  '/:id',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(updateLoan.schema),
+  updateLoan.handler,
+);
+router.delete(
+  '/:id',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(deleteLoan.schema),
+  deleteLoan.handler,
+);
+router.post(
+  '/:id/events',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(appendNoteEvent.schema),
+  appendNoteEvent.handler,
+);
+router.post(
+  '/:id/link-payments',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(linkPayments.schema),
+  linkPayments.handler,
+);
+router.post(
+  '/:id/unlink-payment',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(unlinkPayment.schema),
+  unlinkPayment.handler,
+);
 
 export default router;

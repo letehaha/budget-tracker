@@ -74,7 +74,7 @@ const RAW_CATEGORIES: RawCategory[] = [
     id: 'bank-import',
     icon: 'link',
     tasks: [
-      { id: 'connect-bank', route: ROUTES_NAMES.accountIntegrations, demoHidden: true },
+      { id: 'connect-bank', route: ROUTES_NAMES.accounts, demoHidden: true },
       { id: 'import-csv', route: ROUTES_NAMES.settingsDataManagement },
     ],
   },

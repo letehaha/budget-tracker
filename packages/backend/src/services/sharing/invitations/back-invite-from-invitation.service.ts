@@ -5,6 +5,7 @@ import { connection } from '@models/index';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { assertUsersNotBaseCurrencyLocked } from '@services/currencies/base-currency-lock';
 import { Op, QueryTypes } from 'sequelize';
 
 import { getEmailForUser } from '../find-user-by-email.service';
@@ -76,6 +77,12 @@ const backInviteFromInvitationImpl = async ({
   if (!acceptedMembership) {
     throw new NotFoundError({ message: 'Invitation not found' });
   }
+
+  // Refuse while either the caller or the inviter is mid base-currency migration. Sharing
+  // a household back during a migration recreates the shared-account/mixed-base state
+  // `changeBaseCurrencyImpl`'s share validation forbids. The route guard only inspects the
+  // caller's lock, so the inviter's is checked here too.
+  await assertUsersNotBaseCurrencyLocked({ requesterUserId: callerUserId, otherUserIds: [inviterUserId] });
 
   // Reject early when the reciprocal share already exists. createInvitation's duplicate
   // check fires at accept time, not at create time, so without this guard a redundant

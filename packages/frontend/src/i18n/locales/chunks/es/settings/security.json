@@ -7,7 +7,8 @@
         "loginMethods": "Métodos de inicio de sesión",
         "activeSessions": "Sesiones activas",
         "password": "Contraseña",
-        "dangerZone": "Zona de peligro"
+        "dangerZone": "Zona de peligro",
+        "backup": "Copia de seguridad y restauración"
       },
       "loginMethods": {
         "title": "Métodos de inicio de sesión",
@@ -172,6 +173,93 @@
         "notifications": {
           "success": "Su cuenta ha sido eliminada correctamente",
           "failed": "Se ha producido un error al intentar eliminar su cuenta"
+        }
+      },
+      "backup": {
+        "download": {
+          "title": "Descargar copia de seguridad",
+          "description": "Guarde una copia completa y restaurable de todos sus datos en un archivo zip.",
+          "button": "Descargar",
+          "loading": "Preparando...",
+          "success": "Copia de seguridad descargada",
+          "failed": "No se pudo crear la copia de seguridad. Inténtelo de nuevo.",
+          "downloadBlocked": "La copia de seguridad se creó, pero su navegador bloqueó la descarga. Revise su configuración de descargas e inténtelo de nuevo.",
+          "limitations": {
+            "trigger": "Tiene limitaciones",
+            "title": "Qué queda fuera de la copia de seguridad",
+            "intro": "Su copia de seguridad incluye todos sus datos. Por seguridad, un par de elementos cifrados no pueden incluirse en ella y deberá configurarlos de nuevo después de restaurar:",
+            "items": {
+              "bankConnectionsTerm": "Conexiones bancarias",
+              "bankConnections": "{term} — los tokens de acceso están cifrados y vinculados a este servidor, así que deberá reconectar cada banco después de restaurar.",
+              "aiKeysTerm": "Claves de API de IA",
+              "aiKeys": "{term} — se almacenan cifradas, así que deberá volver a introducirlas después de restaurar."
+            },
+            "included": "Todo lo demás — cuentas, transacciones, categorías, presupuestos, inversiones, préstamos, etiquetas, beneficiarios y suscripciones — está incluido."
+          }
+        },
+        "restore": {
+          "title": "Restaurar desde una copia de seguridad",
+          "description": "Reemplace todos los datos actuales con el contenido de un archivo zip de copia de seguridad.",
+          "button": "Seleccionar archivo de copia de seguridad",
+          "reading": "Leyendo archivo...",
+          "failedGeneric": "Error al restaurar la copia de seguridad",
+          "invalidFileType": "Elija un archivo de copia de seguridad .zip.",
+          "fileTooLarge": "Esa copia de seguridad es demasiado grande para restaurarla (máx. {max}).",
+          "readFailed": "No se pudo leer ese archivo. Inténtelo de nuevo.",
+          "confirm": {
+            "title": "¿Restaurar desde la copia de seguridad?",
+            "warning": "Esto reemplaza TODOS sus datos actuales",
+            "description": "Todo lo que hay actualmente en su cuenta se eliminará permanentemente y se reemplazará con el contenido de esta copia de seguridad. Esta acción no se puede deshacer.",
+            "selectedFile": "Archivo seleccionado: {name}",
+            "confirmLabel": "Restaurar",
+            "reconnectTitle": "Después de restaurar, configure de nuevo lo siguiente",
+            "reconnectBankConnections": "Reconecte sus conexiones bancarias",
+            "reconnectAiKeys": "Vuelva a introducir sus claves de API de IA (si usa alguna)"
+          },
+          "acknowledge": {
+            "title": "Los recursos compartidos perderán el acceso",
+            "description": "Usted posee recursos a los que otras personas tienen acceso actualmente. Restaurar eliminará ese acceso.",
+            "householdsCount": "{count} hogar compartido | {count} hogares compartidos",
+            "checkbox": "Entiendo que estos recursos compartidos perderán el acceso.",
+            "confirmLabel": "Restaurar de todos modos"
+          },
+          "progress": {
+            "title": "Restaurando sus datos",
+            "description": "Esto puede tardar un poco. Mantenga esta ventana abierta.",
+            "inserted": "{count} registros restaurados",
+            "phases": {
+              "validating": "Validando copia de seguridad...",
+              "preparingSecurities": "Preparando valores...",
+              "wiping": "Borrando datos actuales...",
+              "restoring": "Restaurando registros...",
+              "finalizing": "Finalizando..."
+            }
+          },
+          "summary": {
+            "title": "Restauración completa",
+            "description": "Sus datos se han restaurado desde la copia de seguridad.",
+            "recordsHeading": "Registros restaurados",
+            "warningsHeading": "Advertencias",
+            "noRecords": "No se restauró ningún registro.",
+            "doneButton": "Hecho"
+          },
+          "failed": {
+            "title": "Error al restaurar",
+            "genericError": "Se produjo un error al restaurar su copia de seguridad.",
+            "unconfirmed": "No se pudo confirmar el estado de la restauración. Recargue la página y compruebe sus datos.",
+            "closeButton": "Cerrar"
+          },
+          "overlay": {
+            "title": "Restaurando sus datos",
+            "description": "Mantenga esta pestaña abierta. Estamos reemplazando sus datos con su copia de seguridad — esto puede tardar un momento.",
+            "preparing": "Preparando…",
+            "finishing": "Finalizando",
+            "takingLong": "Esto está tardando más de lo habitual. Sus datos todavía se están restaurando — mantenga esta pestaña abierta.",
+            "unreachableTitle": "No se puede contactar con el servidor",
+            "unreachableDescription": "Perdimos el contacto mientras la restauración estaba en curso. Puede que todavía esté terminando. Puede cerrar esto y recargar la página para comprobarlo.",
+            "failedTitle": "Error al restaurar",
+            "dismiss": "Descartar"
+          }
         }
       }
     }

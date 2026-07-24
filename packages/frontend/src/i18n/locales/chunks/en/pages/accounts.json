@@ -4,13 +4,15 @@
     "title": "Accounts",
     "createAccount": "Create account",
     "createVehicle": "Add vehicle",
+    "actionsMenu": "Account actions",
     "bankIntegrations": "Bank Integrations",
     "sections": {
       "archived": "Archived",
       "manual": "Manual accounts",
       "connected": "Connected Accounts",
       "sharedWithMe": "Shared with me",
-      "vehicles": "Vehicles"
+      "vehicles": "Vehicles",
+      "bankConnections": "Bank connections"
     },
     "empty": {
       "title": "No Accounts Yet",
@@ -18,7 +20,30 @@
       "connectBank": "Connect Bank Account",
       "createManual": "Create Manual Account"
     },
+    "overview": {
+      "totalBalance": "Total balance",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "vehicles": "Vehicles"
+    },
     "sharedBy": "Shared by {handle}",
-    "viaHousehold": "Shared via {handle}'s household"
+    "viaHousehold": "Shared via {handle}'s household",
+    "connect": "Connect",
+    "connectBank": "Connect bank",
+    "noBanksConnected": "No banks connected yet — connect one to sync balances automatically.",
+    "reconnect": "Reconnect",
+    "manageConnection": "Manage connection",
+    "accountsCount": "{count} account | {count} accounts",
+    "sort": {
+      "auto": "Auto",
+      "name": "Name",
+      "balance": "Balance",
+      "ariaLabel": "Sort accounts"
+    },
+    "status": {
+      "active": "Active",
+      "expiringSoon": "Expiring soon",
+      "expired": "Expired"
+    }
   }
 }

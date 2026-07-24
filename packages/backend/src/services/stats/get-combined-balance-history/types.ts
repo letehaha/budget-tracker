@@ -1,5 +1,4 @@
-import { ASSET_CLASS } from '@bt/shared/types';
-import InvestmentTransaction from '@models/investments/investment-transaction.model';
+import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, RecordId } from '@bt/shared/types';
 import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Securities from '@models/investments/securities.model';
@@ -25,19 +24,28 @@ export interface CombinedBalanceHistoryItem {
   totalBalance: number;
 }
 
-export type TransactionRow = Pick<
-  InvestmentTransaction,
-  | 'portfolioId'
-  | 'securityId'
-  | 'category'
-  | 'date'
-  | 'quantity'
-  | 'refAmount'
-  | 'refFees'
-  | 'currencyCode'
-  | 'settlementAmount'
-  | 'settlementCurrencyCode'
->;
+/**
+ * Raw (`raw: true`) projection of `InvestmentTransactions`. The replay loads a
+ * user's FULL trade history (pre-window rows seed opening positions/cash), so
+ * these rows skip model hydration — every Money getter materialized per row
+ * across thousands of rows is a real memory cost on this hot dashboard path.
+ * DECIMAL columns therefore arrive as Postgres decimal strings, not `Money`.
+ */
+export interface TransactionRow {
+  portfolioId: RecordId;
+  securityId: RecordId;
+  category: INVESTMENT_TRANSACTION_CATEGORY;
+  /** TIMESTAMPTZ — the pg driver parses it into a `Date`. */
+  date: Date;
+  /** DECIMAL(36,18) string, e.g. `"10.000000000000000000"`. */
+  quantity: string;
+  /** DECIMAL(20,10) string. Base-currency cost of the leg, fees included. */
+  refAmount: string;
+  currencyCode: string;
+  /** DECIMAL(20,10) string. Absolute cash moved in `settlementCurrencyCode`. */
+  settlementAmount: string;
+  settlementCurrencyCode: string;
+}
 
 export type TransferRow = Pick<
   PortfolioTransfers,

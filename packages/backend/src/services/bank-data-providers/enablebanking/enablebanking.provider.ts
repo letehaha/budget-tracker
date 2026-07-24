@@ -352,6 +352,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const metadata = connection.metadata as unknown as EnableBankingMetadata;
     const credentials = (await this.getDecryptedCredentials(connectionId)) as unknown as EnableBankingCredentials;
 
+    // A backup restore leaves an empty-credentials stub (no appId/privateKey) so the
+    // ciphertext never travels between instances. The renew path below signs a JWT with
+    // those keys and would crash on the stub; route it to a full reconnect instead.
+    if (!this.isValidCredentials(credentials)) {
+      throw new ValidationError({ message: t({ key: 'bankDataProviders.enableBanking.invalidStoredCredentials' }) });
+    }
+
     if (!metadata.bankName || !metadata.bankCountry) {
       throw new BadRequestError({ message: t({ key: 'bankDataProviders.enableBanking.bankInfoNotFound' }) });
     }
@@ -733,8 +740,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // Process each transaction and collect created/updated transaction IDs
           const createdTransactionIds: string[] = [];
           let updatedCount = 0;
+          const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
 
           for (const tx of providerTransactions) {
+            await checkpoint();
+
             // Match an existing tx using a tiered strategy that survives hash drift:
             //   1. by entry_reference (ASPSP-promised stable id, may appear later)
             //   2. by current originalId (the legacy hash)

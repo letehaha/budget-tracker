@@ -10,6 +10,8 @@ import { connection } from '@models/index';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
 import MerchantCategoryCodes from '@models/merchant-category-codes.model';
+import PayeeIgnoredNames from '@models/payee-ignored-names.model';
+import Payees from '@models/payees.model';
 import ResourceShares from '@models/resource-shares.model';
 import Tags from '@models/tags.model';
 import Transactions from '@models/transactions.model';
@@ -44,6 +46,8 @@ describe('User data wipe (POST /user/wipe-data)', () => {
     const budget = await helpers.createCustomBudget({ name: 'Wipe budget', limitAmount: 500, raw: true });
     const portfolio = await helpers.createPortfolio({ payload: { name: 'Wipe portfolio' }, raw: true });
     const tag = await helpers.createTag({ payload: { name: 'wipe-tag', color: '#123456' }, raw: true });
+    await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Wipe payee' }), raw: true });
+    await helpers.addIgnoredName({ rawName: 'Wipe ignored merchant', raw: true });
     await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
     await helpers.updateUserSettings({ settings: { locale: 'uk' } });
 
@@ -75,6 +79,11 @@ describe('User data wipe (POST /user/wipe-data)', () => {
     expect(await Budgets.findAll({ where: { id: budget.id } })).toHaveLength(0);
     expect(await UsersCurrencies.findAll({ where: { userId } })).toHaveLength(0);
     expect(await UserSettings.findAll({ where: { userId } })).toHaveLength(0);
+
+    // Payee library is part of "everything the user owns" — the wipe is a clean slate,
+    // so learned payees and the ignore-list must not survive it.
+    expect(await Payees.findAll({ where: { userId } })).toHaveLength(0);
+    expect(await PayeeIgnoredNames.findAll({ where: { userId } })).toHaveLength(0);
 
     // Custom category is gone but defaults are reseeded. The user gets a fresh-start state,
     // not an empty-state — opening the app after a wipe shouldn't force them to recreate

@@ -8,10 +8,11 @@ import {
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
+import { namespace } from '@models/connection';
 import ResourceShares from '@models/resource-shares.model';
 import Transactions from '@models/transactions.model';
 import * as Users from '@models/users.model';
-import { Op } from 'sequelize';
+import { Op, type Transaction } from 'sequelize';
 
 import { removePendingJobsForUser } from '../bank-data-providers/monobank/transaction-sync-queue';
 import { REDIS_KEYS as SYNC_REDIS_KEYS, clearAccountSyncStatus } from '../bank-data-providers/sync/sync-status-tracker';
@@ -59,6 +60,13 @@ interface OwnerSnapshot {
 
 interface DestroyInTxArgs {
   user: Users.default;
+  /**
+   * The active transaction the destroy runs inside. `runDestroyInTx` runs the hook
+   * within `withTransaction`, so this is always live — passed explicitly so hooks
+   * that write more rows (backup restore) don't re-read it from the CLS namespace.
+   * Hooks that don't need it (delete-user, wipe-data) can ignore it.
+   */
+  transaction: Transaction;
 }
 
 interface RunUserDestroyLifecycleArgs {
@@ -104,6 +112,11 @@ interface RunUserDestroyLifecycleArgs {
  * `share_owner_account_deleted` / `household_revoked` / `household_member_account_deleted`
  * notifications from the recipient's POV, so the helper names use the neutral "destroy"
  * framing rather than "delete".
+ *
+ * Returns `true` when the in-tx destroy hook actually ran, `false` when the user row
+ * had already vanished (a concurrent delete from another session) so the hook was
+ * skipped. Callers that wrote data inside the hook (backup restore) must treat `false`
+ * as a failure; wipe-data can ignore it.
  */
 export const runUserDestroyLifecycle = async ({
   userId,
@@ -113,7 +126,7 @@ export const runUserDestroyLifecycle = async ({
   cacheLogPrefix,
   failureLogCode,
   failureLogMessage,
-}: RunUserDestroyLifecycleArgs): Promise<void> => {
+}: RunUserDestroyLifecycleArgs): Promise<boolean> => {
   try {
     // 1. BullMQ pending sync jobs — waiting/delayed only. Active jobs hold their lock and
     //    finish on their own; they reference accountIds that may be gone by then, but the
@@ -136,7 +149,7 @@ export const runUserDestroyLifecycle = async ({
     // 3. In-tx spine + caller's destroyInTx. Returns null when the user vanished between
     //    the route auth and the tx (concurrent delete from another session).
     const txResult = await runDestroyInTx({ userId, destroyInTx, stampCreatorSnapshot });
-    if (!txResult) return;
+    if (!txResult) return false;
 
     const { notificationTargets, householdRevokedTargets, householdOwnerNotifyTargets, ownerSnapshot } = txResult;
 
@@ -161,6 +174,8 @@ export const runUserDestroyLifecycle = async ({
         memberSnapshot: ownerSnapshot,
       });
     }
+
+    return true;
   } catch (e) {
     logger.error({ message: failureLogMessage, error: e as Error }, { code: failureLogCode, userId });
     throw e;
@@ -224,7 +239,10 @@ const runDestroyInTx = withTransaction(
       avatar: user.avatar ?? null,
     };
 
-    await destroyInTx({ user });
+    // Active transaction established by the surrounding `withTransaction`. Passed to
+    // the hook so callers that write more rows use the same transaction directly.
+    const transaction = namespace.get('transaction') as Transaction;
+    await destroyInTx({ user, transaction });
 
     return {
       notificationTargets,

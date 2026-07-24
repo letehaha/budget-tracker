@@ -20,6 +20,7 @@ const NON_RETRYABLE_API_CODES: ReadonlySet<API_ERROR_CODES> = new Set([
   API_ERROR_CODES.categoryHasTransactions,
   API_ERROR_CODES.locked,
   API_ERROR_CODES.baseCurrencyChangeInProgress,
+  API_ERROR_CODES.baseCurrencyChangeInProgressOtherUser,
   API_ERROR_CODES.payloadTooLarge,
   API_ERROR_CODES.currencyNotConnected,
 ]);

@@ -2,6 +2,8 @@ import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_PERIOD_STATUSES, SUBSCRIPTION_TY
 import { describe, expect, it } from '@jest/globals';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
+import { redisClient } from '@root/redis-client';
+import { buildLockKey } from '@services/currencies/base-currency-lock';
 import * as helpers from '@tests/helpers';
 import { addDays, format, subDays } from 'date-fns';
 
@@ -225,6 +227,27 @@ describe('Subscription auto-record cron', () => {
       const result = await processAutoRecordPeriods();
       expect(result.booked).toBe(2);
       expect(result.failed).toBe(0);
+    });
+  });
+
+  describe('base-currency lock', () => {
+    it('skips a locked user this tick, then books once the lock clears', async () => {
+      const { id: userId } = await helpers.getUserInfo({ raw: true });
+      const account = await helpers.createAccount({ raw: true });
+      await createAutoRecordSubscription({ name: 'Locked user', accountId: account.id });
+
+      await redisClient.set(buildLockKey(userId), 'test-lock');
+      try {
+        const locked = await processAutoRecordPeriods();
+        expect(locked.booked).toBe(0);
+        expect(await countTransactionsForAccount({ accountId: account.id })).toBe(0);
+      } finally {
+        await redisClient.del(buildLockKey(userId));
+      }
+
+      const unlocked = await processAutoRecordPeriods();
+      expect(unlocked.booked).toBe(1);
+      expect(await countTransactionsForAccount({ accountId: account.id })).toBe(1);
     });
   });
 

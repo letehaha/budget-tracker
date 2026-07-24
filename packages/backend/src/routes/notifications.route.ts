@@ -8,6 +8,7 @@ import {
   markAsRead,
 } from '@controllers/notifications.controller';
 import { authenticateSession } from '@middlewares/better-auth';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -23,7 +24,13 @@ router.get('/unread-count', authenticateSession, validateEndpoint(getUnreadCount
 router.get('/:id', authenticateSession, validateEndpoint(getNotificationById.schema), getNotificationById.handler);
 
 // Create a notification (primarily for internal/admin use, but exposed for testing)
-router.post('/', authenticateSession, validateEndpoint(createNotification.schema), createNotification.handler);
+router.post(
+  '/',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(createNotification.schema),
+  createNotification.handler,
+);
 
 // Mark a specific notification as read
 router.post('/:id/read', authenticateSession, validateEndpoint(markAsRead.schema), markAsRead.handler);
@@ -35,6 +42,7 @@ router.post('/read-all', authenticateSession, validateEndpoint(markAllAsRead.sch
 router.post(
   '/:id/dismiss',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(dismissNotification.schema),
   dismissNotification.handler,
 );

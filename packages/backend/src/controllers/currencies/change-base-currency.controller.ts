@@ -2,7 +2,7 @@ import { currencyCode } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import { changeBaseCurrency } from '@root/services/currencies/change-base-currency.service';
+import { enqueueBaseCurrencyChange } from '@services/currencies/base-currency-change-queue';
 import { exchangeRateProviderRegistry } from '@services/exchange-rates/providers';
 import { z } from 'zod';
 
@@ -13,7 +13,8 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, body }) => {
-  // Validate that the currency is supported by providers that handle historical data
+  // Historical-rate coverage is checked before enqueue so an unsupported currency
+  // never takes the lock or spins up a job that would only fail on first conversion.
   if (!exchangeRateProviderRegistry.isCurrencySupportedForHistoricalData(body.newCurrencyCode)) {
     const supportedCurrencies = exchangeRateProviderRegistry.getSupportedCurrenciesForHistoricalData();
     throw new ValidationError({
@@ -24,13 +25,16 @@ export default createController(schema, async ({ user, body }) => {
     });
   }
 
-  const result = await changeBaseCurrency({
+  // The recalculation runs as a background job. Remaining validation (share
+  // blockers, same-currency) and the enqueue-time lock live in the queue service;
+  // share-blocker rejections still surface synchronously here.
+  const { jobId, state } = await enqueueBaseCurrencyChange({
     userId: user.id,
     newCurrencyCode: body.newCurrencyCode,
   });
 
   return {
-    data: result,
-    statusCode: 200,
+    data: { jobId, state },
+    statusCode: 202,
   };
 });

@@ -13,6 +13,7 @@ import revokeMember from '@controllers/share/revoke-member';
 import updateMember from '@controllers/share/update-member';
 import { authenticateSession } from '@middlewares/better-auth';
 import { blockDemoUsers } from '@middlewares/block-demo-users';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { shareInvitationSendRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
@@ -23,6 +24,7 @@ router.post(
   '/invitations',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   shareInvitationSendRateLimit,
   validateEndpoint(createInvitation.schema),
   createInvitation.handler,
@@ -43,6 +45,7 @@ router.post(
   '/invitations/:token/accept',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(acceptInvitation.schema),
   acceptInvitation.handler,
 );
@@ -50,6 +53,7 @@ router.post(
   '/invitations/:token/decline',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(declineInvitation.schema),
   declineInvitation.handler,
 );
@@ -57,6 +61,7 @@ router.post(
   '/invitations/:id/resend',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(resendInvitation.schema),
   resendInvitation.handler,
 );
@@ -64,6 +69,7 @@ router.delete(
   '/invitations/:id',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(cancelInvitation.schema),
   cancelInvitation.handler,
 );
@@ -71,6 +77,7 @@ router.post(
   '/invitations/:id/back-invite',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   shareInvitationSendRateLimit,
   validateEndpoint(backInviteFromInvitation.schema),
   backInviteFromInvitation.handler,
@@ -86,6 +93,7 @@ router.patch(
   '/resources/:resourceType/:resourceId/members/:userId',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(updateMember.schema),
   updateMember.handler,
 );
@@ -93,6 +101,7 @@ router.delete(
   '/resources/:resourceType/:resourceId/members/:userId',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(revokeMember.schema),
   revokeMember.handler,
 );
@@ -102,6 +111,7 @@ router.post(
   '/shared-with-me/:resourceType/:resourceId/leave',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(leaveShare.schema),
   leaveShare.handler,
 );

@@ -14,6 +14,7 @@ import ShareInvitations from '@models/share-invitations.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
+import { assertUsersNotBaseCurrencyLocked } from '@services/currencies/base-currency-lock';
 import { Op, QueryTypes } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
@@ -93,6 +94,12 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
     // because the surrounding transaction rolls back when we throw.
     throw new ConflictError({ message: 'This invitation has expired.' });
   }
+
+  // Refuse while either the acceptor or the resource owner is mid base-currency
+  // migration. The route guard only inspects the acceptor's lock, so the owner's is
+  // checked here too — accepting during their migration recreates exactly the
+  // shared-account/mixed-base state `changeBaseCurrencyImpl`'s share validation forbids.
+  await assertUsersNotBaseCurrencyLocked({ requesterUserId: userId, otherUserIds: [invitation.ownerUserId] });
 
   const resourceName = await resolveResourceName({
     resourceType: invitation.resourceType,

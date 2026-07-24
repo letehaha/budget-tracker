@@ -388,8 +388,8 @@
         }
       },
       "authFailure": {
-        "title": "Authentication Failed",
-        "description": "Your credentials have expired. Please update them to continue syncing transactions.",
+        "title": "Reconnection required",
+        "description": "This connection needs to be reconnected before it can sync again.",
         "updateButton": "Update Credentials"
       },
       "updateCredentials": {

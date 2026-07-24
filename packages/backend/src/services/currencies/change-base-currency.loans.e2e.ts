@@ -1,4 +1,4 @@
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_RESPONSE_STATUS, LOAN_TYPE } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, LOAN_TYPE } from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import * as helpers from '@tests/helpers';
@@ -21,12 +21,7 @@ describe('Change Base Currency — loans keep their own currency', () => {
     await helpers.addUserCurrencies({ currencyCodes: ['EUR', 'USD'], raw: true });
   });
 
-  const changeBaseTo = (newCurrencyCode: string) =>
-    helpers.makeRequest({
-      method: 'post',
-      url: '/user/currencies/change-base',
-      payload: { newCurrencyCode },
-    });
+  const changeBaseTo = (newCurrencyCode: string) => helpers.changeBaseCurrencyAndWait({ newCurrencyCode });
 
   it('preserves a foreign-currency loan currency while recalculating its ref amounts', async () => {
     // Loan in EUR, distinct from both the old base (GBP) and the new base (USD).
@@ -54,10 +49,9 @@ describe('Change Base Currency — loans keep their own currency', () => {
     const accountBefore = await Accounts.findByPk(loan.id, { raw: true });
     const refInitialBalanceBefore = accountBefore!.refInitialBalance;
 
-    const response = await changeBaseTo('USD');
-    expect(response.statusCode).toEqual(200);
-    expect(response.body.status).toEqual(API_RESPONSE_STATUS.success);
-    expect(response.body.response.loanDetailsUpdated).toBeGreaterThan(0);
+    const status = await changeBaseTo('USD');
+    helpers.expectBaseCurrencyChangeCompleted(status);
+    expect(status.result.loanDetailsUpdated).toBeGreaterThan(0);
 
     // Base currency actually flipped.
     const newBaseCurrency = (await helpers.getUserCurrencies()).find((i) => i.isDefaultCurrency)!;
@@ -102,8 +96,8 @@ describe('Change Base Currency — loans keep their own currency', () => {
       raw: true,
     });
 
-    const response = await changeBaseTo('USD');
-    expect(response.statusCode).toEqual(200);
+    const status = await changeBaseTo('USD');
+    helpers.expectBaseCurrencyChangeCompleted(status);
 
     const loanAfter = await helpers.getLoanById({ id: loan.id, raw: true });
     // Currency untouched.
@@ -135,8 +129,8 @@ describe('Change Base Currency — loans keep their own currency', () => {
       }),
     ]);
 
-    const response = await changeBaseTo('USD');
-    expect(response.statusCode).toEqual(200);
+    const status = await changeBaseTo('USD');
+    helpers.expectBaseCurrencyChangeCompleted(status);
 
     const [eurAfter, usdAfter, gbpAfter] = await Promise.all([
       helpers.getLoanById({ id: eurLoan.id, raw: true }),

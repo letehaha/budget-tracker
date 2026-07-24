@@ -16,7 +16,7 @@
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { RouterTabs, type RouterTabItem } from '@/components/lib/ui/router-tabs';
 import { ROUTES_NAMES } from '@/routes';
-import { KeyRoundIcon, LockIcon, MonitorSmartphoneIcon, TriangleAlertIcon } from '@lucide/vue';
+import { DatabaseBackupIcon, KeyRoundIcon, LockIcon, MonitorSmartphoneIcon, TriangleAlertIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -41,6 +41,11 @@ const tabs = computed<RouterTabItem[]>(() => [
     value: ROUTES_NAMES.settingsSecurityPassword,
     label: t('settings.security.tabs.password'),
     icon: LockIcon,
+  },
+  {
+    value: ROUTES_NAMES.settingsSecurityBackup,
+    label: t('settings.security.tabs.backup'),
+    icon: DatabaseBackupIcon,
   },
   {
     value: ROUTES_NAMES.settingsSecurityDanger,

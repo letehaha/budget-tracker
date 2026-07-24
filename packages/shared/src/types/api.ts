@@ -19,6 +19,7 @@ export enum API_ERROR_CODES {
   BadRequest = 'BAD_REQUEST',
   locked = 'LOCKED',
   baseCurrencyChangeInProgress = 'BASE_CURRENCY_CHANGE_IN_PROGRESS',
+  baseCurrencyChangeInProgressOtherUser = 'BASE_CURRENCY_CHANGE_IN_PROGRESS_OTHER_USER',
   badGateway = 'BAD_GATEWAY',
   payloadTooLarge = 'PAYLOAD_TOO_LARGE',
   serviceUnavailable = 'SERVICE_UNAVAILABLE',

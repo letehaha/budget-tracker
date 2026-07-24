@@ -6,6 +6,7 @@ import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import { DatabaseError } from 'sequelize';
 
 /**
@@ -83,10 +84,19 @@ export async function remeasureRefBalances({ userId }: { userId?: number } = {})
   const ambientTransaction = namespace.get('transaction');
   const hasAmbientTransaction = !!ambientTransaction && !ambientTransaction.finished;
 
+  // The all-users cron sweep skips users mid-base-currency-migration — the recalc
+  // owns those ref* amounts. isBaseCurrencyChangeLocked is a sub-ms Redis GET, so
+  // it re-checks per account; targeted per-user calls are guarded at their route.
+  const isGlobalSweep = userId === undefined;
+
   let updated = 0;
   let failed = 0;
 
   for (const account of accounts) {
+    if (isGlobalSweep && (await isBaseCurrencyChangeLocked({ userId: account.userId }))) {
+      continue;
+    }
+
     try {
       const status = await remeasureAccountRefBalances({ account });
       if (status === 'updated') updated += 1;

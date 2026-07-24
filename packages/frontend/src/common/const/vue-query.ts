@@ -211,6 +211,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // append the search term when using
   brandLogoSearch: ['brand-logo-search'] as const,
 
+  // append the restore jobId when using
+  backupRestoreStatus: ['backup-restore-status'] as const,
+
   // venture
   venturePlatformsList: [ventureChange, 'venture-platforms-list'] as const,
   ventureDealsList: [ventureChange, 'venture-deals-list'] as const,

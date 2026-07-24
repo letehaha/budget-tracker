@@ -29,9 +29,24 @@ router.use(authenticateSession);
 // Platforms
 router.get('/platforms', validateEndpoint(listPlatformsController.schema), listPlatformsController.handler);
 router.get('/platforms/:id', validateEndpoint(getPlatformController.schema), getPlatformController.handler);
-router.post('/platforms', validateEndpoint(createPlatformController.schema), createPlatformController.handler);
-router.put('/platforms/:id', validateEndpoint(updatePlatformController.schema), updatePlatformController.handler);
-router.delete('/platforms/:id', validateEndpoint(deletePlatformController.schema), deletePlatformController.handler);
+router.post(
+  '/platforms',
+  checkBaseCurrencyLock,
+  validateEndpoint(createPlatformController.schema),
+  createPlatformController.handler,
+);
+router.put(
+  '/platforms/:id',
+  checkBaseCurrencyLock,
+  validateEndpoint(updatePlatformController.schema),
+  updatePlatformController.handler,
+);
+router.delete(
+  '/platforms/:id',
+  checkBaseCurrencyLock,
+  validateEndpoint(deletePlatformController.schema),
+  deletePlatformController.handler,
+);
 
 // Deals
 router.get('/deals', validateEndpoint(listDealsController.schema), listDealsController.handler);

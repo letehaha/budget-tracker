@@ -49,9 +49,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/accounts/integrations',
-        name: ROUTES_NAMES.accountIntegrations,
-        component: () => import('@/pages/accounts/integrations/index.vue'),
-        meta: { i18nChunks: ['pages/account-integrations'] as I18nChunkName[] },
+        redirect: { name: ROUTES_NAMES.accounts },
       },
       {
         path: '/accounts/integrations/:connectionId',
@@ -418,6 +416,11 @@ const routes: RouteRecordRaw[] = [
                 path: 'password',
                 name: ROUTES_NAMES.settingsSecurityPassword,
                 component: () => import('@/pages/settings/subpages/security/pages/password.vue'),
+              },
+              {
+                path: 'backup',
+                name: ROUTES_NAMES.settingsSecurityBackup,
+                component: () => import('@/pages/settings/subpages/security/pages/backup.vue'),
               },
               {
                 path: 'danger',

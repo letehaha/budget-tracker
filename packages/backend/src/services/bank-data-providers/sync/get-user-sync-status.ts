@@ -1,9 +1,15 @@
-import { ACCOUNT_STATUSES, type ConnectionNeedingReauth, DEACTIVATION_REASON } from '@bt/shared/types';
+import {
+  ACCOUNT_STATUSES,
+  type ConnectionNeedingReauth,
+  type ConnectionStatusSummary,
+  DEACTIVATION_REASON,
+} from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import { Op, literal } from 'sequelize';
+import { DatabaseError, Op, literal } from 'sequelize';
 
+import { computeConsentValidity } from '../connection/consent-validity';
 import {
   type AccountSyncStatus,
   SyncStatus,
@@ -13,6 +19,28 @@ import {
 
 export interface AccountWithConnection extends Accounts {
   bankDataProviderConnection: BankDataProviderConnections;
+}
+
+/**
+ * Shared catch-block guard: only a `DatabaseError` (the SQL query itself failing)
+ * degrades to an empty list; any other error is a genuine bug and is re-thrown so
+ * it surfaces as a failed request instead of looking like "nothing found".
+ */
+function toEmptyListOnDatabaseError({
+  error,
+  logMessage,
+  userId,
+}: {
+  error: unknown;
+  logMessage: string;
+  userId: number;
+}): never[] {
+  if (!(error instanceof DatabaseError)) {
+    throw error;
+  }
+
+  logger.error({ message: logMessage, error: error as Error }, { userId });
+  return [];
 }
 
 /**
@@ -37,17 +65,22 @@ export async function getUserBankAccounts(userId: number): Promise<AccountWithCo
 }
 
 /**
- * Get connections that were auto-deactivated due to an upstream auth failure
- * (expired session, revoked consent). These don't appear in regular sync status
- * because `getUserBankAccounts` filters by `isActive: true` — but the user needs
- * to see them to know they should reconnect.
+ * Get connections the user must reconnect: auto-deactivated after an upstream
+ * auth failure (expired session, revoked consent), or brought in by a data
+ * restore (credentials never travel, so a restored connection starts
+ * deactivated). These don't appear in regular sync status because
+ * `getUserBankAccounts` filters by `isActive: true` — but the user needs to see
+ * them to know they should reconnect.
  *
- * Filters by `metadata.deactivationReason === AUTH_FAILURE` so connections the
- * user disconnected manually stay hidden.
+ * Filters `metadata.deactivationReason` to AUTH_FAILURE or RESTORED so
+ * connections the user disconnected manually stay hidden.
  *
- * Wrapped in try/catch so a JSONB query failure degrades to an empty list
- * instead of taking down the whole sync-status response — the regular sync
- * status is more important than the reauth banner.
+ * Wrapped in try/catch so a DB-level failure of the raw JSONB query degrades
+ * to an empty list instead of taking down the whole sync-status response —
+ * the regular sync status is more important than the reauth banner. Only a
+ * `DatabaseError` (the SQL query itself failing) is tolerated this way; any
+ * other error is a genuine bug and is re-thrown so it surfaces as a failed
+ * request instead of looking like "nothing needs reauth".
  */
 async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNeedingReauth[]> {
   try {
@@ -58,7 +91,11 @@ async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNe
         // Raw JSONB path query — Sequelize's nested object form is unreliable
         // across dialect versions for JSONB, so use the Postgres ->> operator
         // directly to compare the text value of metadata.deactivationReason.
-        [Op.and]: [literal(`metadata->>'deactivationReason' = '${DEACTIVATION_REASON.AUTH_FAILURE}'`)],
+        [Op.and]: [
+          literal(
+            `metadata->>'deactivationReason' IN ('${DEACTIVATION_REASON.AUTH_FAILURE}', '${DEACTIVATION_REASON.RESTORED}')`,
+          ),
+        ],
       },
       include: [
         {
@@ -83,8 +120,41 @@ async function getConnectionsNeedingReauth(userId: number): Promise<ConnectionNe
       };
     });
   } catch (error) {
-    logger.error({ message: 'Failed to load connectionsNeedingReauth', error: error as Error }, { userId });
-    return [];
+    return toEmptyListOnDatabaseError({ error, logMessage: 'Failed to load connectionsNeedingReauth', userId });
+  }
+}
+
+/**
+ * Get a consent-status summary for every connection the user has, so the
+ * Accounts page can render Active / Expiring-soon / Expired badges without
+ * fetching each connection's details separately.
+ *
+ * Wrapped in try/catch so a query failure degrades to an empty list instead of
+ * taking down the whole sync-status response, mirroring getConnectionsNeedingReauth.
+ * Only a `DatabaseError` (the SQL query itself failing) is tolerated this way; any
+ * other error is a genuine bug (bad mapping, model/schema drift) and is re-thrown
+ * so it surfaces as a failed request instead of rendering connections with no
+ * consent badge.
+ */
+async function getConnectionStatuses(userId: number): Promise<ConnectionStatusSummary[]> {
+  try {
+    const connections = await BankDataProviderConnections.findAll({
+      where: { userId },
+      attributes: ['id', 'isActive', 'metadata'],
+    });
+
+    return connections.map((conn) => {
+      const consent = computeConsentValidity({ metadata: conn.metadata });
+      return {
+        connectionId: conn.id,
+        isActive: conn.isActive,
+        consentExpired: consent?.isExpired ?? false,
+        consentExpiringSoon: consent?.isExpiringSoon ?? false,
+        daysRemaining: consent?.daysRemaining ?? null,
+      };
+    });
+  } catch (error) {
+    return toEmptyListOnDatabaseError({ error, logMessage: 'Failed to load connectionStatuses', userId });
   }
 }
 
@@ -95,6 +165,7 @@ export async function getUserAccountsSyncStatus(userId: number): Promise<{
   lastSyncAt: number | null;
   accounts: Array<AccountSyncStatus & { accountName: string; providerType: string }>;
   connectionsNeedingReauth: ConnectionNeedingReauth[];
+  connectionStatuses: ConnectionStatusSummary[];
   summary: {
     total: number;
     syncing: number;
@@ -107,10 +178,11 @@ export async function getUserAccountsSyncStatus(userId: number): Promise<{
   const accounts = await getUserBankAccounts(userId);
   const accountIds = accounts.map((a) => a.id);
 
-  const [statuses, lastSyncAt, connectionsNeedingReauth] = await Promise.all([
+  const [statuses, lastSyncAt, connectionsNeedingReauth, connectionStatuses] = await Promise.all([
     getMultipleAccountsSyncStatus(accountIds),
     getLastAutoSync(userId),
     getConnectionsNeedingReauth(userId),
+    getConnectionStatuses(userId),
   ]);
 
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
@@ -149,6 +221,7 @@ export async function getUserAccountsSyncStatus(userId: number): Promise<{
     lastSyncAt,
     accounts: enrichedStatuses,
     connectionsNeedingReauth,
+    connectionStatuses,
     summary,
   };
 }

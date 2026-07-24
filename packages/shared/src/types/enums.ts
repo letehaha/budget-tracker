@@ -48,9 +48,15 @@ export enum BANK_PROVIDER_TYPE {
  * `BankDataProviderConnections.metadata.deactivationReason`. Drives the
  * "needs reauth" UI surfacing – only `AUTH_FAILURE` deactivations are
  * shown to the user, manual disconnects stay hidden.
+ *
+ * `RESTORED` marks a connection that came in through a data-backup restore:
+ * its encrypted credentials were undecryptable on this instance and were
+ * replaced with an empty stub, so the connection is honestly broken and the
+ * user must reconnect before it can sync again.
  */
 export const DEACTIVATION_REASON = {
   AUTH_FAILURE: 'auth_failure',
+  RESTORED: 'restored',
 } as const;
 
 export type DeactivationReason = (typeof DEACTIVATION_REASON)[keyof typeof DEACTIVATION_REASON];

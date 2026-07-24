@@ -57,7 +57,8 @@
       "copyToClipboardFailed": "Error al copiar al portapapeles"
     },
     "notifications": {
-      "subscriptionCurrencyNotConnected": "El resumen de suscripciones no puede convertir {currencies} a su moneda base. Conecte la moneda en Ajustes → Monedas."
+      "subscriptionCurrencyNotConnected": "El resumen de suscripciones no puede convertir {currencies} a su moneda base. Conecte la moneda en Ajustes → Monedas.",
+      "backgroundJobFailed": "Ha fallado un trabajo en segundo plano mientras estaba ausente: {error}"
     },
     "labels": {
       "email": "Correo electrónico",
@@ -308,6 +309,34 @@
       "timeFormat": {
         "hoursMinutes": "{hours}h {minutes}m",
         "minutes": "{minutes}m"
+      }
+    }
+  },
+  "settings": {
+    "currencies": {
+      "setBase": {
+        "overlay": {
+          "title": "Cambio de moneda base",
+          "description": "Estamos recalculando todos los importes a su nueva moneda base. Esto puede tardar unos minutos — mantenga esta pestaña abierta.",
+          "takingLong": "Esto está tardando más de lo habitual. Sus datos están a salvo — seguimos trabajando en ello.",
+          "failedTitle": "Error al cambiar la moneda base",
+          "unreachableTitle": "No se puede verificar el estado del cambio",
+          "unreachableDescription": "El servidor no responde. Puede cerrar esta pantalla — si el cambio sigue en curso, la aplicación se bloqueará de nuevo en su próxima acción.",
+          "dismiss": "Descartar",
+          "preparing": "Preparando todo…",
+          "finishing": "Finalizando…",
+          "stepCounter": "Paso {current} de {total}",
+          "steps": {
+            "transactions": "Actualizando transacciones",
+            "accounts": "Actualizando cuentas",
+            "loanDetails": "Actualizando préstamos",
+            "balances": "Reconstruyendo el historial de saldos",
+            "investmentTransactions": "Actualizando transacciones de inversión",
+            "portfolioTransfers": "Actualizando transferencias de cartera",
+            "holdings": "Actualizando posiciones",
+            "portfolioBalances": "Reconstruyendo los saldos de la cartera"
+          }
+        }
       }
     }
   }

@@ -1,4 +1,9 @@
+import { activeRestoreStatusController } from '@controllers/backup/active-restore-status.controller';
+import { exportBackupController } from '@controllers/backup/export-backup.controller';
+import { restoreBackupController } from '@controllers/backup/restore-backup.controller';
+import { restoreStatusController } from '@controllers/backup/restore-status.controller';
 import addUserCurrencies from '@controllers/currencies/add-user-currencies';
+import changeBaseCurrencyStatus from '@controllers/currencies/change-base-currency-status.controller';
 import changeBaseCurrency from '@controllers/currencies/change-base-currency.controller';
 import editCurrencyExchangeRate from '@controllers/currencies/edit-currency-exchange-rate';
 import { exportDataController } from '@controllers/data-export/export-data.controller';
@@ -39,7 +44,8 @@ import {
   wipeUserData,
 } from '@controllers/user.controller';
 import { authenticateSession } from '@middlewares/better-auth';
-import { dataExportRateLimit } from '@middlewares/rate-limit';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
+import { backupRateLimit, backupRestoreRateLimit, dataExportRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -47,14 +53,55 @@ const router = Router({});
 
 router.get('/', authenticateSession, validateEndpoint(getUser.schema), getUser.handler);
 router.put('/update', authenticateSession, validateEndpoint(updateUser.schema), updateUser.handler);
-router.delete('/delete', authenticateSession, validateEndpoint(deleteUser.schema), deleteUser.handler);
-router.post('/wipe-data', authenticateSession, validateEndpoint(wipeUserData.schema), wipeUserData.handler);
+router.delete(
+  '/delete',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(deleteUser.schema),
+  deleteUser.handler,
+);
+router.post(
+  '/wipe-data',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(wipeUserData.schema),
+  wipeUserData.handler,
+);
 router.post(
   '/data-export',
   authenticateSession,
   dataExportRateLimit,
   validateEndpoint(exportDataController.schema),
   exportDataController.handler,
+);
+router.post(
+  '/backup',
+  authenticateSession,
+  backupRateLimit,
+  validateEndpoint(exportBackupController.schema),
+  exportBackupController.handler,
+);
+router.post(
+  '/backup/restore',
+  authenticateSession,
+  // Guard the most destructive write like every other mutating route: 423 while a
+  // base-currency migration (or an in-flight restore, which takes the same lock) runs.
+  checkBaseCurrencyLock,
+  backupRestoreRateLimit,
+  validateEndpoint(restoreBackupController.schema),
+  restoreBackupController.handler,
+);
+router.get(
+  '/backup/restore/status',
+  authenticateSession,
+  validateEndpoint(activeRestoreStatusController.schema),
+  activeRestoreStatusController.handler,
+);
+router.get(
+  '/backup/restore/status/:jobId',
+  authenticateSession,
+  validateEndpoint(restoreStatusController.schema),
+  restoreStatusController.handler,
 );
 
 router.get('/currencies', authenticateSession, validateEndpoint(getUserCurrencies.schema), getUserCurrencies.handler);
@@ -71,24 +118,48 @@ router.get(
   getCurrenciesExchangeRates.handler,
 );
 
-router.post('/currencies', authenticateSession, validateEndpoint(addUserCurrencies.schema), addUserCurrencies.handler);
+router.post(
+  '/currencies',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(addUserCurrencies.schema),
+  addUserCurrencies.handler,
+);
 router.post(
   '/currencies/base',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(setBaseUserCurrency.schema),
   setBaseUserCurrency.handler,
 );
+// The enqueue route owns its own dedupe: its NX lock acquisition returns the proper 423,
+// so guarding it here would reject the request that is supposed to start the change.
 router.post(
   '/currencies/change-base',
   authenticateSession,
   validateEndpoint(changeBaseCurrency.schema),
   changeBaseCurrency.handler,
 );
+// Read-only status any device polls to drive the blocking overlay; GET routes are
+// never lock-guarded.
+router.get(
+  '/currencies/change-base/status',
+  authenticateSession,
+  validateEndpoint(changeBaseCurrencyStatus.schema),
+  changeBaseCurrencyStatus.handler,
+);
 
-router.put('/currency', authenticateSession, validateEndpoint(editUserCurrency.schema), editUserCurrency.handler);
+router.put(
+  '/currency',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(editUserCurrency.schema),
+  editUserCurrency.handler,
+);
 router.put(
   '/currency/rates',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(editCurrencyExchangeRate.schema),
   editCurrencyExchangeRate.handler,
 );
@@ -96,12 +167,14 @@ router.put(
 router.delete(
   '/currency',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(deleteUserCurrency.schema),
   deleteUserCurrency.handler,
 );
 router.delete(
   '/currency/rates',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(removeUserCurrencyExchangeRate.schema),
   removeUserCurrencyExchangeRate.handler,
 );

@@ -7,7 +7,8 @@
         "loginMethods": "Metode Masuk",
         "activeSessions": "Sesi Aktif",
         "password": "Kata Sandi",
-        "dangerZone": "Zona Berbahaya"
+        "dangerZone": "Zona Berbahaya",
+        "backup": "Cadangan & Pemulihan"
       },
       "loginMethods": {
         "title": "Metode Masuk",
@@ -172,6 +173,93 @@
         "notifications": {
           "success": "Akun Anda berhasil dihapus",
           "failed": "Terjadi kesalahan saat mencoba menghapus akun Anda"
+        }
+      },
+      "backup": {
+        "download": {
+          "title": "Unduh cadangan",
+          "description": "Simpan salinan lengkap dan dapat dipulihkan dari semua data Anda sebagai file zip.",
+          "button": "Unduh",
+          "loading": "Menyiapkan...",
+          "success": "Cadangan diunduh",
+          "failed": "Tidak dapat membuat cadangan. Silakan coba lagi.",
+          "downloadBlocked": "Cadangan telah dibuat, tetapi browser Anda memblokir pengunduhan. Periksa pengaturan unduhan Anda dan coba lagi.",
+          "limitations": {
+            "trigger": "Ada beberapa batasan",
+            "title": "Apa yang tidak disertakan dalam cadangan",
+            "intro": "Cadangan Anda mencakup semua data Anda. Demi keamanan, beberapa item terenkripsi tidak dapat disertakan dan perlu diatur ulang setelah Anda memulihkan:",
+            "items": {
+              "bankConnectionsTerm": "Koneksi bank",
+              "bankConnections": "{term} — token akses terenkripsi dan terikat ke server ini, sehingga Anda perlu menghubungkan kembali setiap bank setelah memulihkan.",
+              "aiKeysTerm": "Kunci API AI",
+              "aiKeys": "{term} — disimpan terenkripsi, sehingga Anda perlu memasukkannya kembali setelah memulihkan."
+            },
+            "included": "Semua yang lain — akun, transaksi, kategori, anggaran, investasi, pinjaman, tag, penerima, dan biaya berulang — turut disertakan."
+          }
+        },
+        "restore": {
+          "title": "Pulihkan dari cadangan",
+          "description": "Ganti semua data saat ini dengan isi file zip cadangan.",
+          "button": "Pilih file cadangan",
+          "reading": "Membaca file...",
+          "failedGeneric": "Pemulihan cadangan gagal",
+          "invalidFileType": "Silakan pilih file cadangan berformat .zip.",
+          "fileTooLarge": "Cadangan tersebut terlalu besar untuk dipulihkan (maks {max}).",
+          "readFailed": "Tidak dapat membaca file tersebut. Silakan coba lagi.",
+          "confirm": {
+            "title": "Pulihkan dari cadangan?",
+            "warning": "Ini akan mengganti SEMUA data Anda saat ini",
+            "description": "Semua yang ada di akun Anda saat ini akan dihapus secara permanen dan diganti dengan isi cadangan ini. Tindakan ini tidak dapat dibatalkan.",
+            "selectedFile": "File terpilih: {name}",
+            "confirmLabel": "Pulihkan",
+            "reconnectTitle": "Setelah memulihkan, atur ulang berikut ini",
+            "reconnectBankConnections": "Hubungkan kembali koneksi bank Anda",
+            "reconnectAiKeys": "Masukkan kembali kunci API AI Anda (jika Anda menggunakannya)"
+          },
+          "acknowledge": {
+            "title": "Sumber daya yang dibagikan akan kehilangan akses",
+            "description": "Anda memiliki sumber daya yang saat ini dapat diakses oleh orang lain. Memulihkan akan menghapus akses tersebut.",
+            "householdsCount": "{count} rumah tangga yang dibagikan",
+            "checkbox": "Saya memahami bahwa sumber daya yang dibagikan ini akan kehilangan akses.",
+            "confirmLabel": "Tetap pulihkan"
+          },
+          "progress": {
+            "title": "Memulihkan data Anda",
+            "description": "Ini mungkin memakan waktu sebentar. Harap biarkan jendela ini tetap terbuka.",
+            "inserted": "{count} catatan dipulihkan",
+            "phases": {
+              "validating": "Memvalidasi cadangan...",
+              "preparingSecurities": "Menyiapkan sekuritas...",
+              "wiping": "Menghapus data saat ini...",
+              "restoring": "Memulihkan catatan...",
+              "finalizing": "Menyelesaikan..."
+            }
+          },
+          "summary": {
+            "title": "Pemulihan selesai",
+            "description": "Data Anda telah dipulihkan dari cadangan.",
+            "recordsHeading": "Catatan yang dipulihkan",
+            "warningsHeading": "Peringatan",
+            "noRecords": "Tidak ada catatan yang dipulihkan.",
+            "doneButton": "Selesai"
+          },
+          "failed": {
+            "title": "Pemulihan gagal",
+            "genericError": "Terjadi kesalahan saat memulihkan cadangan Anda.",
+            "unconfirmed": "Tidak dapat mengonfirmasi status pemulihan. Muat ulang halaman dan periksa data Anda.",
+            "closeButton": "Tutup"
+          },
+          "overlay": {
+            "title": "Memulihkan data Anda",
+            "description": "Harap biarkan tab ini tetap terbuka. Kami sedang mengganti data Anda dengan cadangan Anda — ini mungkin memakan waktu sebentar.",
+            "preparing": "Menyiapkan…",
+            "finishing": "Menyelesaikan",
+            "takingLong": "Ini memakan waktu lebih lama dari biasanya. Data Anda masih dalam proses pemulihan — harap biarkan tab ini tetap terbuka.",
+            "unreachableTitle": "Tidak dapat menjangkau server",
+            "unreachableDescription": "Kami kehilangan koneksi saat pemulihan sedang berjalan. Prosesnya mungkin masih berlangsung. Anda dapat menutup ini dan memuat ulang halaman untuk memeriksanya.",
+            "failedTitle": "Pemulihan gagal",
+            "dismiss": "Tutup"
+          }
         }
       }
     }

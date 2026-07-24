@@ -20,6 +20,7 @@ import getSyncStatus from '@controllers/bank-data-providers/sync/get-sync-status
 import triggerSync from '@controllers/bank-data-providers/sync/trigger-sync';
 import { authenticateSession } from '@middlewares/better-auth';
 import { blockDemoUsers } from '@middlewares/block-demo-users';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { validateEndpoint } from '@middlewares/validations';
 import express from 'express';
 
@@ -50,6 +51,7 @@ router.post(
   '/:providerType/connect',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(connectProvider.schema),
   connectProvider.handler,
 );
@@ -57,6 +59,7 @@ router.delete(
   '/connections/:connectionId',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(disconnectProvider.schema),
   disconnectProvider.handler,
 );
@@ -64,6 +67,7 @@ router.post(
   '/connections/:connectionId/reauthorize',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(reauthorizeConnection.schema),
   reauthorizeConnection.handler,
 );
@@ -71,6 +75,7 @@ router.patch(
   '/connections/:connectionId',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(updateConnectionDetails.schema),
   updateConnectionDetails.handler,
 );
@@ -87,6 +92,7 @@ router.post(
   '/connections/:connectionId/sync-selected-accounts',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(connectSelectedAccounts.schema),
   connectSelectedAccounts.handler,
 );
@@ -96,6 +102,7 @@ router.post(
   '/connections/:connectionId/sync-transactions',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(syncTransactionsForAccount.schema),
   syncTransactionsForAccount.handler,
 );
@@ -103,6 +110,7 @@ router.post(
   '/connections/:connectionId/reconcile-duplicates',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(reconcileDuplicatesForAccount.schema),
   reconcileDuplicatesForAccount.handler,
 );
@@ -110,6 +118,7 @@ router.post(
   '/connections/:connectionId/load-transactions-for-period',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(loadTransactionsForPeriod.schema),
   loadTransactionsForPeriod.handler,
 );
@@ -132,6 +141,7 @@ router.post(
   '/sync/trigger',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(triggerSync.schema),
   triggerSync.handler,
 );
@@ -148,6 +158,7 @@ router.post(
   '/enablebanking/countries',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(listCountries.schema),
   listCountries.handler,
 );
@@ -155,6 +166,7 @@ router.post(
   '/enablebanking/banks',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(listBanks.schema),
   listBanks.handler,
 );
@@ -162,6 +174,7 @@ router.post(
   '/enablebanking/oauth-callback',
   authenticateSession,
   blockDemoUsers,
+  checkBaseCurrencyLock,
   validateEndpoint(oauthCallback.schema),
   oauthCallback.handler,
 );

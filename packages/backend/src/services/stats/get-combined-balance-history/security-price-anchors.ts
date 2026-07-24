@@ -1,7 +1,8 @@
 import type { Money } from '@common/types/money';
+import { connection } from '@models/connection';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import { parseISO, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
+import { QueryTypes } from 'sequelize';
 
 import { buildPriceLookup } from './security-price-lookup';
 
@@ -12,20 +13,10 @@ type SecurityPriceRow = Pick<SecurityPricing, 'securityId' | 'date'> & {
   priceClose: Money | string;
 };
 
-/**
- * Keep the single latest pre-window close per security. `rows` MUST arrive sorted
- * securityId ASC, date DESC, so the first row seen for a security is its latest —
- * later rows for the same security are older and dropped.
- */
-export const selectLatestPreWindowAnchors = <T extends { securityId: string }>(rows: T[]): T[] => {
-  const anchors: T[] = [];
-  const seenSecurities = new Set<string>();
-  for (const row of rows) {
-    if (seenSecurities.has(row.securityId)) continue;
-    seenSecurities.add(row.securityId);
-    anchors.push(row);
-  }
-  return anchors;
+// Raw SQL result: TIMESTAMPTZ comes back as a JS Date, DECIMAL as a string —
+// the same shapes a `raw: true` model query produces.
+type PreWindowAnchorRow = Pick<SecurityPricing, 'securityId' | 'date'> & {
+  priceClose: string;
 };
 
 /**
@@ -57,27 +48,29 @@ export const buildPriceLookupWithPreWindowAnchors = async ({
   /** yyyy-MM-dd — inclusive lower bound of the preloaded window. */
   windowStart: string;
 }): Promise<ReturnType<typeof buildPriceLookup>> => {
-  // Single query for every pre-window row across all securities, then keep the
-  // latest per securityId in JS. One findOne-per-security Promise.all here would
-  // fan out into N parallel `pg.connect` spans that Sentry's detector flags as N+1.
-  const preWindowRows = securityIds.length
-    ? ((await SecurityPricing.findAll({
-        where: {
-          securityId: { [Op.in]: securityIds },
-          date: { [Op.lt]: startOfDay(parseISO(windowStart)) },
+  // Only one row per security is ever needed (the latest close before the
+  // window), so DISTINCT ON does the per-security top-1 inside Postgres and
+  // returns ~N anchor rows regardless of how deep price history goes. A
+  // findOne-per-security Promise.all would fan out into N parallel
+  // `pg.connect` spans that Sentry's detector flags as N+1.
+  const preWindowAnchors = securityIds.length
+    ? ((await connection.sequelize.query(
+        `
+        SELECT DISTINCT ON ("securityId") "securityId", "date", "priceClose"
+          FROM "SecurityPricings"
+         WHERE "securityId" IN (:securityIds)
+           AND "date" < :windowStart
+         ORDER BY "securityId", "date" DESC
+        `,
+        {
+          type: QueryTypes.SELECT,
+          replacements: {
+            securityIds,
+            windowStart: startOfDay(parseISO(windowStart)),
+          },
         },
-        order: [
-          ['securityId', 'ASC'],
-          ['date', 'DESC'],
-        ],
-        attributes: ['securityId', 'date', 'priceClose'],
-        raw: true,
-      })) as SecurityPriceRow[])
+      )) as PreWindowAnchorRow[])
     : [];
-
-  // First row per securityId is the latest pre-window close (rows are sorted by
-  // securityId ASC, date DESC).
-  const preWindowAnchors = selectLatestPreWindowAnchors(preWindowRows);
 
   // Anchors first (each strictly older than every in-window date), then the
   // in-window rows in ascending date order — keeps each security's date list

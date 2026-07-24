@@ -6,6 +6,7 @@ import { ForbiddenError } from '@js/errors';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 
 import { SyncStatus, setAccountSyncStatus } from './sync/sync-status-tracker';
 import {
@@ -33,6 +34,20 @@ interface AuthTrackingMetadata {
  * to stop us hammering the upstream with bad credentials.
  */
 const AUTH_FAILURE_DEACTIVATION_THRESHOLD = 2;
+
+/**
+ * Thrown from a provider's per-row persist loop to unwind an inline sync when a
+ * base-currency recalculation acquires the user's lock mid-run. runSyncWithStatus
+ * catches it and marks the account FAILED — a terminal state, so the recalc's
+ * drain (which waits while any of the user's accounts are QUEUED/SYNCING) stops
+ * waiting. The next auto-sync re-fetches the skipped, deduped rows.
+ */
+class BaseCurrencyChangeLockedError extends Error {
+  constructor() {
+    super(t({ key: 'currencies.baseCurrencyChangeInProgress' }));
+    this.name = 'BaseCurrencyChangeLockedError';
+  }
+}
 
 /**
  * Abstract base class for all bank data providers.
@@ -198,6 +213,36 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
   // ============================================================================
   // Sync Lifecycle Scaffolding
   // ============================================================================
+
+  /**
+   * Abort an inline sync mid-run if a base-currency recalculation holds the
+   * user's lock. Called at row-batch boundaries inside the per-row persist loops
+   * (every ~25 createTransaction calls) so a sync that started just before the
+   * lock landed stops committing old-base rows past the recalc's snapshot.
+   * Throws {@link BaseCurrencyChangeLockedError}, which runSyncWithStatus turns
+   * into a terminal FAILED status.
+   */
+  protected async abortSyncIfBaseCurrencyChangeLocked({ userId }: { userId: number }): Promise<void> {
+    if (await isBaseCurrencyChangeLocked({ userId })) {
+      throw new BaseCurrencyChangeLockedError();
+    }
+  }
+
+  /**
+   * Returns a checkpoint to call once per row inside a persist loop. It bails out
+   * the moment a base-currency change takes the lock, so rows stop landing against
+   * the old base past the recalc's snapshot. The lock is only read every 25 rows to
+   * bound the Redis GET; the returned closure owns that counter.
+   */
+  protected createBaseCurrencyLockCheckpoint({ userId }: { userId: number }): () => Promise<void> {
+    let processedInLoop = 0;
+    return async () => {
+      if (processedInLoop % 25 === 0) {
+        await this.abortSyncIfBaseCurrencyChangeLocked({ userId });
+      }
+      processedInLoop += 1;
+    };
+  }
 
   /**
    * Wrap a provider's inline sync work with the shared status lifecycle:

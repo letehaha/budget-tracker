@@ -144,7 +144,7 @@ onMounted(async () => {
 });
 
 const goToIntegrations = () => {
-  router.push({ name: ROUTES_NAMES.accountIntegrations });
+  router.push({ name: ROUTES_NAMES.accounts });
 };
 
 const goToAccounts = () => {

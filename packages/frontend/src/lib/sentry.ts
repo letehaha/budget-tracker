@@ -105,6 +105,14 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
       /error loading dynamically imported module/,
       /Unable to preload CSS/,
       /Couldn't resolve component/,
+      // Vue vDOM patch/unmount crashes triggered by third-party DOM mutation
+      // (browser translation extensions, injected widgets) editing nodes Vue
+      // owns. The stack is entirely Vue-internal with no app frame, so there is
+      // nothing to fix in app code — only the environment differs.
+      // Fixes MONEY-MATTER-CLIENT-X + MONEY-MATTER-CLIENT-11 + MONEY-MATTER-CLIENT-Z + MONEY-MATTER-CLIENT-Y
+      /Failed to execute 'insertBefore' on 'Node'/,
+      /Cannot read properties of null \(reading 'parentNode'\)/,
+      /Cannot destructure property 'bum'/,
     ],
     // Before sending error, add extra context
     beforeSend(event, hint) {

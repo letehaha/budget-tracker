@@ -69,7 +69,7 @@
           "finalizing": "Menyelesaikan ekstraksi...",
           "almostDone": "Hampir selesai..."
         },
-        "tokenFormat": "{inputTokens}K input, ~{outputTokens}K output",
+        "tokenFormat": "{inputTokens}K masukan, ~{outputTokens}K keluaran",
         "fileSize": "{size} KB"
       },
       "accountSelect": {

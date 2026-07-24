@@ -49,12 +49,14 @@ router.get(
 router.post(
   '/transfer-recommendations/bulk-scan',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(bulkScanTransferRecommendations.schema),
   bulkScanTransferRecommendations.handler,
 );
 router.post(
   '/transfer-recommendations/dismiss',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(dismissTransferSuggestion.schema),
   dismissTransferSuggestion.handler,
 );

@@ -10,7 +10,8 @@
       "manual": "Akun manual",
       "connected": "Akun Terhubung",
       "sharedWithMe": "Dibagikan dengan saya",
-      "vehicles": "Kendaraan"
+      "vehicles": "Kendaraan",
+      "bankConnections": "Koneksi Bank"
     },
     "empty": {
       "title": "Belum Ada Akun",
@@ -19,6 +20,30 @@
       "createManual": "Buat Akun Manual"
     },
     "sharedBy": "Dibagikan oleh {handle}",
-    "viaHousehold": "Dibagikan melalui rumah tangga {handle}"
+    "viaHousehold": "Dibagikan melalui rumah tangga {handle}",
+    "actionsMenu": "Tindakan akun",
+    "overview": {
+      "totalBalance": "Total saldo",
+      "assets": "Aset",
+      "liabilities": "Kewajiban",
+      "vehicles": "Kendaraan"
+    },
+    "connect": "Hubungkan",
+    "connectBank": "Hubungkan bank",
+    "noBanksConnected": "Belum ada bank yang terhubung — hubungkan satu untuk menyinkronkan saldo secara otomatis.",
+    "reconnect": "Hubungkan Kembali",
+    "manageConnection": "Kelola koneksi",
+    "accountsCount": "{count} akun",
+    "sort": {
+      "auto": "Otomatis",
+      "name": "Nama",
+      "balance": "Saldo",
+      "ariaLabel": "Urutkan akun"
+    },
+    "status": {
+      "active": "Aktif",
+      "expiringSoon": "Segera Kedaluwarsa",
+      "expired": "Kedaluwarsa"
+    }
   }
 }

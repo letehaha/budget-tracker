@@ -1,4 +1,5 @@
 import { type Cents, INVESTMENT_TRANSACTION_CATEGORY, asCents } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { toUtcDateString } from '@common/utils/date';
 
 import type { InvestmentFlowRow, InvestmentFlowsCents } from './types';
@@ -55,8 +56,10 @@ export const accumulateInvestmentFlows = ({
     if (index === -1) continue;
 
     const bucket = flows[index]!;
-    const refAmount = tx.refAmount.toCents();
-    const refFees = tx.refFees.toCents();
+    // Raw rows carry DECIMAL strings; Money.fromDecimal is the same conversion
+    // the model getter applies, so cents come out identical to hydrated rows.
+    const refAmount = Money.fromDecimal(tx.refAmount).toCents();
+    const refFees = Money.fromDecimal(tx.refFees).toCents();
     const notional = asCents(refAmount - refFees);
 
     switch (tx.category) {

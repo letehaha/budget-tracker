@@ -1,6 +1,7 @@
 {
   "common": {
-    "processAlreadyLocked": "Процес синхронізації для \"{{lockKey}}\" вже заблоковано."
+    "processAlreadyLocked": "Процес синхронізації для \"{{lockKey}}\" вже заблоковано.",
+    "serviceTemporarilyUnavailable": "Сервіс тимчасово недоступний. Спробуйте ще раз."
   },
   "accounts": {
     "groupNotFound": "Групу або рахунок не знайдено",
@@ -286,7 +287,11 @@
     "cannotFindForRefAmount": "Не вдалося знайти валюту для розрахунку референтної суми!",
     "cannotCalculateRefAmount": "Не вдалося розрахувати референтну суму",
     "currencyNotConnected": "Запитана валюта не підключена",
-    "exchangeRateNotAvailable": "Курс обміну недоступний для {{baseCode}}/{{quoteCode}} на {{date}}"
+    "exchangeRateNotAvailable": "Курс обміну недоступний для {{baseCode}}/{{quoteCode}} на {{date}}",
+    "baseCurrencyChangeInProgress": "Зміна базової валюти вже триває. Будь ласка, зачекайте, поки процес завершиться.",
+    "baseCurrencyChangeSyncInProgress": "Синхронізація з банком ще завершується. Спробуйте змінити базову валюту знову за кілька хвилин.",
+    "baseCurrencyChangeDrainCheckFailed": "Не вдалося перевірити, чи завершені банківські синхронізації. Спробуйте ще раз.",
+    "baseCurrencyChangeInProgressOtherUser": "Інший учасник наразі змінює свою базову валюту. Спробуйте ще раз, коли його міграція завершиться."
   },
   "userSettings": {
     "excludedCategoriesNotFound": "Одну або декілька виключених категорій не знайдено",

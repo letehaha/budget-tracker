@@ -1,10 +1,11 @@
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types';
-import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
 
 import { computeHoldingsValueByDate } from './holdings-replay';
 import type { SecurityRow, TransactionRow } from './types';
 
+// `TransactionRow` mirrors a `raw: true` query result, so DECIMAL fields are
+// plain strings here, exactly as the pg driver returns them.
 const tx = ({
   portfolioId = 'p1',
   securityId = 'sec-1',
@@ -12,7 +13,6 @@ const tx = ({
   date,
   quantity,
   refAmount,
-  refFees = 0,
   currencyCode = 'USD',
 }: {
   portfolioId?: string;
@@ -21,19 +21,18 @@ const tx = ({
   date: string;
   quantity: number;
   refAmount: number;
-  refFees?: number;
   currencyCode?: string;
 }): TransactionRow =>
+  // Cast launders the `RecordId` brand on the fixture ids.
   ({
     portfolioId,
     securityId,
     category,
     date: new Date(`${date}T00:00:00Z`),
-    quantity: Money.fromDecimal(quantity),
-    refAmount: Money.fromDecimal(refAmount),
-    refFees: Money.fromDecimal(refFees),
+    quantity: String(quantity),
+    refAmount: String(refAmount),
     currencyCode,
-    settlementAmount: Money.fromDecimal(refAmount),
+    settlementAmount: String(refAmount),
     settlementCurrencyCode: currencyCode,
   }) as unknown as TransactionRow;
 
@@ -292,18 +291,17 @@ describe('computeHoldingsValueByDate', () => {
     expect(result.get('2024-05-10')).toBe(0);
   });
 
-  it('falls back to refAmount alone, not refAmount + refFees, when refAmount already includes the fee', () => {
+  it('folds refAmount alone into cost basis, with no separate fee added on top', () => {
     // `resolveSettlement` composes refAmount as quantity * price *including*
-    // fees, so a 1000 principal + 50 fee buy carries refAmount 1050 — refFees
-    // is metadata only. Cost basis must be the 1050 refAmount alone; adding
-    // refFees on top would double-count the fee and inflate it to 1100.
+    // fees, so a 1000 principal + 50 fee buy carries refAmount 1050. Cost basis
+    // must be that 1050 alone; adding the fee again would inflate it to 1100
+    // (which is why `refFees` is not even part of the projected row).
     const transactions = [
       tx({
         category: INVESTMENT_TRANSACTION_CATEGORY.buy,
         date: '2024-05-09',
         quantity: 10,
         refAmount: 1050,
-        refFees: 50,
       }),
     ];
     const result = computeHoldingsValueByDate({

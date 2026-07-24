@@ -5,7 +5,7 @@ import {
   loadUserCurrenciesExchangeRates,
   setBaseUserCurrency,
 } from '@/api/currencies';
-import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useCurrenciesStore } from '@/stores';
 import { CurrencyModel, UserExchangeRatesModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
@@ -69,23 +69,15 @@ export const useSetBaseCurrency = () => {
 };
 
 /**
- * Mutation for changing user's base currency and recalculating all amounts
+ * Enqueues a base-currency change. The mutation resolves as soon as the job is
+ * queued; the change runs in the background and the completion handler (which
+ * owns cache invalidation, via a full reset + reload) is driven by
+ * `use-base-currency-change-status`.
  */
-export const useChangeBaseCurrency = () => {
-  const queryClient = useQueryClient();
-  const currenciesStore = useCurrenciesStore();
-
-  return useMutation({
+export const useChangeBaseCurrency = () =>
+  useMutation({
     mutationFn: (newCurrencyCode: string) => changeBaseCurrency(newCurrencyCode),
-    onSuccess: () => {
-      currenciesStore.loadCurrencies({ force: true });
-      currenciesStore.loadBaseCurrency({ force: true });
-      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.securityPriceChange] });
-      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.currencies] });
-    },
   });
-};
 
 /**
  * Query for fetching user's exchange rates.

@@ -120,6 +120,16 @@ export class MonobankProvider extends BaseBankDataProvider {
 
     // Update credentials - newCredentials is validated as MonobankCredentials, cast to Record for encryption
     connection.setEncryptedCredentials(newCredentials as unknown as Record<string, unknown>);
+
+    // Clear the reauth state so the connection syncs again. Spread into a new
+    // object so Sequelize flags the JSONB column dirty (a same-reference
+    // re-assign won't persist the reset).
+    const metadata: MonobankMetadata = { ...(connection.metadata as MonobankMetadata) };
+    metadata.consecutiveAuthFailures = 0;
+    metadata.deactivationReason = null;
+    connection.metadata = metadata as any;
+    connection.isActive = true;
+
     await connection.save();
   }
 

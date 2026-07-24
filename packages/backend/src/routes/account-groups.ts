@@ -1,5 +1,6 @@
 import * as accountGroupController from '@controllers/account-groups';
 import { authenticateSession } from '@middlewares/better-auth';
+import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -8,6 +9,7 @@ const router = Router();
 router.post(
   '/',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(accountGroupController.createAccountGroup.schema),
   accountGroupController.createAccountGroup.handler,
 );
@@ -22,6 +24,7 @@ router.get(
 router.put(
   '/:groupId',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(accountGroupController.updateGroup.schema),
   accountGroupController.updateGroup.handler,
 );
@@ -29,6 +32,7 @@ router.put(
 router.delete(
   '/:groupId',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(accountGroupController.deleteGroup.schema),
   accountGroupController.deleteGroup.handler,
 );
@@ -36,6 +40,7 @@ router.delete(
 router.post(
   '/:groupId/add-account/:accountId',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(accountGroupController.addAccountToGroup.schema),
   accountGroupController.addAccountToGroup.handler,
 );
@@ -43,6 +48,7 @@ router.post(
 router.delete(
   '/:groupId/accounts',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(accountGroupController.removeAccountFromGroup.schema),
   accountGroupController.removeAccountFromGroup.handler,
 );
@@ -50,6 +56,7 @@ router.delete(
 router.put(
   '/:groupId/move',
   authenticateSession,
+  checkBaseCurrencyLock,
   validateEndpoint(accountGroupController.moveAccountToGroup.schema),
   accountGroupController.moveAccountToGroup.handler,
 );

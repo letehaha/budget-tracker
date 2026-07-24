@@ -4,6 +4,8 @@ import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Balances from '@models/balances.model';
 import Transactions from '@models/transactions.model';
+import { redisClient } from '@root/redis-client';
+import { buildLockKey } from '@services/currencies/base-currency-lock';
 import * as helpers from '@tests/helpers';
 import {
   SIMPLEFIN_ACCOUNT_1,
@@ -372,6 +374,33 @@ describe('SimpleFIN Data Provider E2E', () => {
       const today = new Date().toISOString().slice(0, 10);
       expect(balances1.some((b) => new Date(b.date).toISOString().slice(0, 10) === today)).toBe(true);
       expect(balances2.some((b) => new Date(b.date).toISOString().slice(0, 10) === today)).toBe(true);
+    });
+  });
+
+  describe('Base-currency lock', () => {
+    it('rejects a sync while the user holds the base-currency lock and writes no transactions', async () => {
+      const { id: userId } = await helpers.getUserInfo({ raw: true });
+      const { connectionId, accountId } = await connectAndImport(getMockedSimplefinTransactions(3));
+      expect(await Transactions.count({ where: { accountId } })).toBe(3);
+
+      // Fresh (new-id) transactions the sync would otherwise import.
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({
+          response: getMockedSimplefinAccountSet({ account1Transactions: getMockedSimplefinTransactions(4) }),
+        }),
+      );
+
+      await redisClient.set(buildLockKey(userId), 'test-lock');
+      let response;
+      try {
+        response = await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId });
+      } finally {
+        await redisClient.del(buildLockKey(userId));
+      }
+
+      expect(response.statusCode).toBe(ERROR_CODES.Locked);
+      // No new rows landed against the old base.
+      expect(await Transactions.count({ where: { accountId } })).toBe(3);
     });
   });
 

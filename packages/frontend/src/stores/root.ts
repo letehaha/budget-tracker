@@ -1,3 +1,5 @@
+import { useBaseCurrencyChangeStatus } from '@/composable/use-base-currency-change-status';
+import { useRestoreJobStatus } from '@/composable/use-restore-job-status';
 import { useAuthStore } from '@/stores/auth';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { useCurrenciesStore } from '@/stores/currencies';
@@ -30,6 +32,11 @@ export const useRootStore = defineStore('root', () => {
         ...(categories.value.length ? [] : [categoriesStore.loadCategories()]),
         currenciesStore.loadCurrencies(),
         ...(isBaseCurrencyExists.value ? [] : [currenciesStore.loadBaseCurrency()]),
+        // Attaches the blocking overlay if a base-currency change is already in flight.
+        useBaseCurrencyChangeStatus().checkOnBoot(),
+        // Same for a data restore: block if one is running, or wipe caches + reload
+        // once if one completed while this device was away (its cache is pre-restore).
+        useRestoreJobStatus().checkOnBoot(),
       ]);
 
       isAppInitialized.value = true;

@@ -1,7 +1,8 @@
+import { connection } from '@models/connection';
 import ExchangeRates from '@models/exchange-rates.model';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
 import { format, parseISO, startOfDay } from 'date-fns';
-import { Op } from 'sequelize';
+import { QueryTypes } from 'sequelize';
 
 const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
 
@@ -44,35 +45,34 @@ export const buildUsdRateLookup = async ({
 }): Promise<UsdRateLookup> => {
   const anchorCodes = quoteCodes.filter((code) => code !== API_LAYER_BASE_CURRENCY_CODE);
 
-  // Single query for every pre-window row across all anchor currencies, then
-  // keep the latest per quoteCode in JS. One findOne-per-currency Promise.all
-  // here previously triggered N parallel `pg.connect` spans that Sentry's
-  // detector flagged as N+1.
-  const preWindowRows = anchorCodes.length
-    ? ((await ExchangeRates.findAll({
-        where: {
-          baseCode: API_LAYER_BASE_CURRENCY_CODE,
-          quoteCode: { [Op.in]: anchorCodes },
-          date: { [Op.lt]: startOfDay(parseISO(windowStart)) },
+  // Only one row per currency is ever needed (the latest rate before the
+  // window), so DISTINCT ON does the per-currency top-1 inside Postgres and
+  // returns ~30 anchor rows — ExchangeRates is a global every-currency×every-day
+  // table, so anything broader ships tens of thousands of rows. A
+  // findOne-per-currency Promise.all would fan out into N parallel
+  // `pg.connect` spans that Sentry's detector flags as N+1.
+  // TIMESTAMPTZ `date` comes back as a JS Date and FLOAT `rate` as a number,
+  // matching UsdRateRow.
+  const preWindowAnchors = anchorCodes.length
+    ? ((await connection.sequelize.query(
+        `
+        SELECT DISTINCT ON ("quoteCode") "quoteCode", "date", "rate"
+          FROM "ExchangeRates"
+         WHERE "baseCode" = :baseCode
+           AND "quoteCode" IN (:anchorCodes)
+           AND "date" < :windowStart
+         ORDER BY "quoteCode", "date" DESC
+        `,
+        {
+          type: QueryTypes.SELECT,
+          replacements: {
+            baseCode: API_LAYER_BASE_CURRENCY_CODE,
+            anchorCodes,
+            windowStart: startOfDay(parseISO(windowStart)),
+          },
         },
-        order: [
-          ['quoteCode', 'ASC'],
-          ['date', 'DESC'],
-        ],
-        attributes: ['quoteCode', 'date', 'rate'],
-        raw: true,
-      })) as UsdRateRow[])
+      )) as UsdRateRow[])
     : [];
-
-  // First row per quoteCode is the latest pre-window rate (rows are sorted
-  // by quoteCode ASC, date DESC).
-  const preWindowAnchors: UsdRateRow[] = [];
-  const seenQuotes = new Set<string>();
-  for (const row of preWindowRows) {
-    if (seenQuotes.has(row.quoteCode)) continue;
-    seenQuotes.add(row.quoteCode);
-    preWindowAnchors.push(row);
-  }
 
   const usdRatesMap = new Map<string, number>();
   const usdRateDatesByQuote = new Map<string, string[]>();

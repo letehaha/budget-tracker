@@ -57,7 +57,8 @@
       "copyToClipboardFailed": "Gagal menyalin ke papan klip"
     },
     "notifications": {
-      "subscriptionCurrencyNotConnected": "Ringkasan langganan tidak dapat mengonversi {currencies} ke mata uang dasar Anda. Hubungkan mata uang tersebut di Pengaturan → Mata Uang."
+      "subscriptionCurrencyNotConnected": "Ringkasan langganan tidak dapat mengonversi {currencies} ke mata uang dasar Anda. Hubungkan mata uang tersebut di Pengaturan → Mata Uang.",
+      "backgroundJobFailed": "Tugas latar belakang gagal saat Anda tidak ada: {error}"
     },
     "labels": {
       "email": "Email",
@@ -308,6 +309,34 @@
       "timeFormat": {
         "hoursMinutes": "{hours}j {minutes}m",
         "minutes": "{minutes}m"
+      }
+    }
+  },
+  "settings": {
+    "currencies": {
+      "setBase": {
+        "overlay": {
+          "title": "Mengubah mata uang dasar Anda",
+          "description": "Kami sedang menghitung ulang semua jumlah ke mata uang dasar baru Anda. Ini mungkin memakan waktu beberapa menit — harap biarkan tab ini tetap terbuka.",
+          "takingLong": "Ini memakan waktu lebih lama dari biasanya. Data Anda aman — kami masih mengerjakannya.",
+          "failedTitle": "Perubahan mata uang dasar gagal",
+          "unreachableTitle": "Tidak dapat memverifikasi status perubahan",
+          "unreachableDescription": "Server tidak merespons. Anda dapat menutup layar ini — jika perubahan masih berjalan, aplikasi akan terkunci kembali pada tindakan Anda berikutnya.",
+          "dismiss": "Tutup",
+          "preparing": "Menyiapkan…",
+          "finishing": "Menyelesaikan…",
+          "stepCounter": "Langkah {current} dari {total}",
+          "steps": {
+            "transactions": "Memperbarui transaksi",
+            "accounts": "Memperbarui akun",
+            "loanDetails": "Memperbarui pinjaman",
+            "balances": "Membangun ulang riwayat saldo",
+            "investmentTransactions": "Memperbarui transaksi investasi",
+            "portfolioTransfers": "Memperbarui transfer portofolio",
+            "holdings": "Memperbarui kepemilikan",
+            "portfolioBalances": "Membangun ulang saldo portofolio"
+          }
+        }
       }
     }
   }

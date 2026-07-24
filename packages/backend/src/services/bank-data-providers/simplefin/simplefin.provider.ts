@@ -752,8 +752,11 @@ export class SimplefinProvider extends BaseBankDataProvider {
     const transactions = rawTransactions.toSorted((a, b) => a.posted - b.posted);
     const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
     const createdIds: string[] = [];
+    const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId: connection.userId });
 
     for (const tx of transactions) {
+      await checkpoint();
+
       // Primary dedup: normal re-sync.
       const existingTx = await Transactions.findOne({ where: { accountId: account.id, originalId: tx.id } });
       if (existingTx) continue;

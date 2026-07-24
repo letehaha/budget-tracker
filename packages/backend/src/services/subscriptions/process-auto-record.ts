@@ -2,6 +2,7 @@ import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import { Op } from 'sequelize';
 
 import { markPeriodPaid } from './mark-period-paid';
@@ -59,7 +60,20 @@ export async function processAutoRecordPeriods(): Promise<ProcessResult> {
   let booked = 0;
   let failed = 0;
 
+  // A user mid base-currency migration has their ref* amounts owned by the
+  // recalc; booking a period would compute refAmount against the wrong base.
+  // Skip that user's subscriptions this tick — the hourly cron retries once the
+  // lock clears. Cached per user so one Redis GET covers all their subscriptions.
+  const lockedUserCache = new Map<number, boolean>();
+
   for (const subscription of subscriptions) {
+    let userLocked = lockedUserCache.get(subscription.userId);
+    if (userLocked === undefined) {
+      userLocked = await isBaseCurrencyChangeLocked({ userId: subscription.userId });
+      lockedUserCache.set(subscription.userId, userLocked);
+    }
+    if (userLocked) continue;
+
     for (const period of subscription.periods) {
       try {
         await markPeriodPaid({

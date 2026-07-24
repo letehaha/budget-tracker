@@ -2,12 +2,16 @@
   <main class="bg-background">
     <router-view />
 
+    <base-currency-change-overlay />
+    <restore-in-progress-overlay />
     <notifications-center />
     <update-available-banner />
   </main>
 </template>
 
 <script setup lang="ts">
+import BaseCurrencyChangeOverlay from '@/components/common/base-currency-change-overlay.vue';
+import RestoreInProgressOverlay from '@/components/common/restore-in-progress-overlay.vue';
 import UpdateAvailableBanner from '@/components/common/update-available-banner.vue';
 import NotificationsCenter from '@/components/notification-center/notifications-center.vue';
 import { useExchangeRates } from '@/composable/data-queries/currencies';

@@ -65,12 +65,14 @@ export const computeHoldingsValueByDate = ({
         if (toUtcDateString(tx.date) > dateStr) break;
 
         const securityId = tx.securityId;
-        const quantity = tx.quantity.toNumber();
+        // Raw rows carry DECIMALs as strings (see `TransactionRow`); this replay
+        // runs on floats anyway, so plain Number() conversion loses nothing.
+        const quantity = Number(tx.quantity);
         // `refAmount` is the leg's full cost in base currency — quantity × price
         // *including* fees, as `resolveSettlement` composes it. That is exactly
         // what `computeHoldingTotals` folds into the basis, so `refFees` must not
         // be added on top of it: the fee is already in there and would count twice.
-        const totalAmount = tx.refAmount.toNumber();
+        const totalAmount = Number(tx.refAmount);
 
         if (!holdings.has(securityId)) {
           const security = securitiesById.get(securityId);

@@ -1,7 +1,9 @@
 import { SSEEventPayload, SSEEventType } from '@bt/shared/types';
+import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { sseManager } from '@services/common/sse';
+import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import { Job, Queue, Worker } from 'bullmq';
 
 /**
@@ -220,6 +222,16 @@ export function createImportJobQueue<
         fn: async () => {
           const { userId } = job.data;
 
+          // A base-currency recalculation holds this user's lock: it drains
+          // in-flight writers before snapshotting rows, so an import committing
+          // transactions now would land amounts against the wrong base. Fail the
+          // job (attempts: 1, no retry) with a message the import UI surfaces. The
+          // enqueue route is already lock-guarded; this only catches jobs queued
+          // in the brief window before the lock landed.
+          if (await isBaseCurrencyChangeLocked({ userId })) {
+            throw new Error(t({ key: 'currencies.baseCurrencyChangeInProgress' }));
+          }
+
           sendProgress({
             userId,
             payload: buildRunningPayload({ jobId: job.id!, processedCount: 0, totalCount: 0 }),
@@ -314,7 +326,16 @@ export function createImportJobQueue<
       ...buildRunningPayload({ jobId, processedCount: 0, totalCount: 0 }),
       status: 'queued',
     } as TProgress;
-    sendProgress({ userId, payload: queuedPayload });
+    // The job is already committed to the queue, so a failed initial notification
+    // must not surface as an enqueue failure — callers roll back their tracking
+    // pointer on throw, which would orphan the committed job.
+    try {
+      sendProgress({ userId, payload: queuedPayload });
+    } catch (err) {
+      logger.warn(`[${logLabel}] Initial queued SSE emit failed for job ${jobId}`, {
+        error: err instanceof Error ? err : new Error(String(err)),
+      });
+    }
   }
 
   async function getImportProgress({ userId, jobId }: { userId: number; jobId: string }): Promise<TProgress | null> {

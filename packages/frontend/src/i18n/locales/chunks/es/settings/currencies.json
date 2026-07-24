@@ -9,7 +9,9 @@
         "tooltip": "Al añadir monedas personalizadas, puede crear y gestionar cuentas y transacciones en esas monedas. También podrá ajustar y actualizar sus tipos de cambio relativos a su moneda base. Las cuentas vinculadas crearán automáticamente las monedas necesarias.",
         "errors": {
           "addFailed": "Error inesperado. La moneda no ha sido añadida."
-        }
+        },
+        "sectionLabel": "Añadir una moneda",
+        "successfullyAdded": "Moneda añadida"
       },
       "list": {
         "editCurrency": "Editar moneda",
@@ -26,7 +28,8 @@
         "errors": {
           "unexpectedError": "Error inesperado",
           "updateFailed": "Error inesperado. La moneda no ha sido actualizada."
-        }
+        },
+        "ratePlaceholder": "0.00"
       },
       "delete": {
         "description": "La moneda solo puede eliminarse/desconectarse si no hay cuentas ni transacciones asociadas a ella.",
@@ -35,7 +38,9 @@
         "successfullyDeleted": "Eliminada correctamente.",
         "errors": {
           "deleteFailed": "Error inesperado. La moneda no ha sido eliminada."
-        }
+        },
+        "confirmTitle": "¿Eliminar moneda?",
+        "buttonShort": "Eliminar"
       },
       "setBase": {
         "label": "Establecer como moneda base",
@@ -65,7 +70,27 @@
           "changeFailed": "Error inesperado. No se pudo cambiar la moneda base.",
           "lockedHousehold": "Usted pertenece a {count} membresía de hogar activa. Abandónela desde Ajustes → Hogar primero. | Usted pertenece a {count} membresías de hogar activas. Abandónelas desde Ajustes → Hogar primero.",
           "lockedShares": "Tiene {count} cuenta compartida activa. Revóquela desde la cuenta primero. | Tiene {count} cuentas compartidas activas. Revóquelas desde cada cuenta primero."
-        }
+        },
+        "buttonShort": "Establecer como base"
+      },
+      "page": {
+        "title": "Monedas",
+        "description": "Gestione las monedas que sigue y los tipos de cambio que se usan en sus cuentas."
+      },
+      "howItWorks": {
+        "trigger": "¿Cómo funciona?",
+        "body": "Su moneda base es aquella a la que se convierte cada saldo para los totales y los informes. Cada moneda añadida se actualiza automáticamente con los tipos de cambio del mercado en tiempo real, o puede establecer un tipo personalizado para anularlo."
+      },
+      "row": {
+        "baseBadge": "Base",
+        "custom": "Personalizado",
+        "live": "En vivo",
+        "unused": "Sin usar",
+        "accountsCount": "{count} cuenta | {count} cuentas"
+      },
+      "empty": {
+        "title": "Aún no hay otras monedas",
+        "description": "Añada una moneda arriba para hacer seguimiento de saldos y tipos de cambio junto a su moneda base."
       }
     }
   }

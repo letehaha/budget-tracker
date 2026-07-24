@@ -1,10 +1,13 @@
 import { API_HTTP, API_VER } from '@/api/api-base-url';
 import { ApiBaseError } from '@/common/types';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import { useBaseCurrencyChangeStatus } from '@/composable/use-base-currency-change-status';
+import { useRestoreJobStatus } from '@/composable/use-restore-job-status';
 import { getCurrentLocale, i18n } from '@/i18n';
 import * as errors from '@/js/errors';
 import { router } from '@/routes';
 import { useAuthStore } from '@/stores';
+import type { BaseCurrencyChangeStatus } from '@bt/shared/types';
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types/api';
 
 type HTTP_METHOD = 'PATCH' | 'POST' | 'PUT' | 'GET' | 'DELETE';
@@ -276,6 +279,13 @@ class ApiCaller {
 
     if (status === API_RESPONSE_STATUS.error) {
       if (response.code === API_ERROR_CODES.unauthorized) {
+        // Tear down both blocking-job watchdogs first: without a session their 2s status
+        // polls would 401 on every tick. Each poll swallows the AuthError (assuming the
+        // API handler already stopped it), so a still-running restore watchdog would
+        // otherwise loop logout()/router.push forever and keep #app inert.
+        useBaseCurrencyChangeStatus().stop();
+        useRestoreJobStatus().stop();
+
         useAuthStore().logout();
 
         router.push('/sign-in');
@@ -287,6 +297,32 @@ class ApiCaller {
         });
 
         throw new errors.AuthError(response, url);
+      }
+
+      if (response.code === API_ERROR_CODES.baseCurrencyChangeInProgress) {
+        // The base-currency write-lock is held server-side and rejected this mutation —
+        // by a real base-currency change OR by a data restore, which grabs the same lock.
+        // Engage BOTH watchdogs; each polls its own status endpoint and self-dismisses if
+        // idle, so whichever job is actually running sticks. Then still reject so callers
+        // unwind.
+        const currencyWatch = useBaseCurrencyChangeStatus();
+        if (!currencyWatch.isBlocking.value) {
+          // The LockedError carries the live status in `details.status`; seeding it
+          // skips the one-tick flash of a fabricated "queued" placeholder.
+          const seed = response.details?.status;
+          if (typeof seed?.state === 'string') {
+            currencyWatch.start({ initialStatus: seed as BaseCurrencyChangeStatus });
+          } else {
+            currencyWatch.start();
+          }
+        }
+        const restoreWatch = useRestoreJobStatus();
+        if (!restoreWatch.isBlocking.value) {
+          // No restore-specific status in the 423 payload, so use the boot check path: it
+          // fetches the restore status first and only blocks if a restore is truly running
+          // (idle → no-op, no fabricated "queued" flash).
+          void restoreWatch.checkOnBoot();
+        }
       }
 
       if (response.code === API_ERROR_CODES.unexpected) {
