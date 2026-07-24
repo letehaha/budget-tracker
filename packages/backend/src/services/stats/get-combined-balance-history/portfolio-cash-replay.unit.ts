@@ -18,16 +18,17 @@ const tx = ({
   settlementAmount: number;
   settlementCurrencyCode?: string;
 }): TransactionRow =>
+  // `TransactionRow` mirrors a `raw: true` query result — DECIMAL fields are
+  // plain strings. Cast launders the `RecordId` brand on the fixture ids.
   ({
     portfolioId,
     securityId: 'sec-1',
     category,
     date: new Date(`${date}T00:00:00Z`),
-    quantity: Money.fromDecimal(1),
-    refAmount: Money.fromDecimal(settlementAmount),
-    refFees: Money.fromDecimal(0),
+    quantity: '1',
+    refAmount: String(settlementAmount),
     currencyCode: settlementCurrencyCode,
-    settlementAmount: Money.fromDecimal(settlementAmount),
+    settlementAmount: String(settlementAmount),
     settlementCurrencyCode,
   }) as unknown as TransactionRow;
 

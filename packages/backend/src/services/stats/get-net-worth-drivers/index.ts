@@ -34,16 +34,11 @@ import {
 } from '../get-combined-balance-history/portfolio-cash-replay';
 import { buildPriceLookupWithPreWindowAnchors } from '../get-combined-balance-history/security-price-anchors';
 import { createFindPriceForDate } from '../get-combined-balance-history/security-price-lookup';
-import type {
-  CurrentBalanceRow,
-  SecurityRow,
-  TransactionRow,
-  TransferRow,
-} from '../get-combined-balance-history/types';
+import type { CurrentBalanceRow, SecurityRow, TransferRow } from '../get-combined-balance-history/types';
 import { buildBoundaryDates, buildDenseDateRange } from './date-range';
 import { accumulateInvestmentFlows, computeInvestmentGrowth } from './investment-growth';
 import { accumulateSavings } from './savings';
-import type { NetWorthDriversResultCents } from './types';
+import type { NetWorthDriversResultCents, ReportTransactionRow } from './types';
 
 export type { NetWorthDriversResultCents } from './types';
 
@@ -180,56 +175,56 @@ const calculateInvestmentSlice = async ({
   const todayKey = format(new Date(), 'yyyy-MM-dd');
   const cashFetchMaxDate = maxDate > todayKey ? maxDate : todayKey;
 
-  const [transactions, portfolioTransfers, currentBalances]: [TransactionRow[], TransferRow[], CurrentBalanceRow[]] =
-    await Promise.all([
-      InvestmentTransaction.findAll({
-        where: {
-          portfolioId: { [Op.in]: portfolioIds },
-          // `date` is TIMESTAMPTZ; end-of-day bound keeps the final day's intraday trades.
-          date: { [Op.lte]: `${cashFetchMaxDate}T23:59:59.999Z` },
-        },
-        // The holdings replay folds a forward-only cursor per portfolio and
-        // breaks at the first transaction past the snapshot day — it reads wrong
-        // unless each portfolio's rows arrive ascending by date.
-        order: [
-          ['portfolioId', 'ASC'],
-          ['date', 'ASC'],
-          ['createdAt', 'ASC'],
-        ],
-        attributes: [
-          'portfolioId',
-          'securityId',
-          'category',
-          'date',
-          'quantity',
-          'refAmount',
-          'refFees',
-          'currencyCode',
-          'settlementAmount',
-          'settlementCurrencyCode',
-        ],
-      }),
-      PortfolioTransfers.findAll({
-        where: {
-          userId,
-          date: { [Op.lte]: cashFetchMaxDate },
-          [Op.or]: [{ fromPortfolioId: { [Op.in]: portfolioIds } }, { toPortfolioId: { [Op.in]: portfolioIds } }],
-        },
-        attributes: [
-          'fromPortfolioId',
-          'toPortfolioId',
-          'amount',
-          'currencyCode',
-          'toCurrencyCode',
-          'toAmount',
-          'date',
-        ],
-      }),
-      PortfolioBalances.findAll({
-        where: { portfolioId: { [Op.in]: portfolioIds } },
-        attributes: ['portfolioId', 'currencyCode', 'totalCash', 'refTotalCash'],
-      }),
-    ]);
+  const [transactions, portfolioTransfers, currentBalances]: [
+    ReportTransactionRow[],
+    TransferRow[],
+    CurrentBalanceRow[],
+  ] = await Promise.all([
+    // `raw: true` + narrow attributes on purpose: the full trade history loads
+    // here (pre-window rows seed opening holdings and cash), and hydrating a
+    // Money object per money column per row is enough to OOM under concurrent
+    // dashboard requests. DECIMALs arrive as strings (see `ReportTransactionRow`).
+    InvestmentTransaction.findAll({
+      where: {
+        portfolioId: { [Op.in]: portfolioIds },
+        // `date` is TIMESTAMPTZ; end-of-day bound keeps the final day's intraday trades.
+        date: { [Op.lte]: `${cashFetchMaxDate}T23:59:59.999Z` },
+      },
+      // The holdings replay folds a forward-only cursor per portfolio and
+      // breaks at the first transaction past the snapshot day — it reads wrong
+      // unless each portfolio's rows arrive ascending by date.
+      order: [
+        ['portfolioId', 'ASC'],
+        ['date', 'ASC'],
+        ['createdAt', 'ASC'],
+      ],
+      attributes: [
+        'portfolioId',
+        'securityId',
+        'category',
+        'date',
+        'quantity',
+        'refAmount',
+        'refFees',
+        'currencyCode',
+        'settlementAmount',
+        'settlementCurrencyCode',
+      ],
+      raw: true,
+    }) as unknown as Promise<ReportTransactionRow[]>,
+    PortfolioTransfers.findAll({
+      where: {
+        userId,
+        date: { [Op.lte]: cashFetchMaxDate },
+        [Op.or]: [{ fromPortfolioId: { [Op.in]: portfolioIds } }, { toPortfolioId: { [Op.in]: portfolioIds } }],
+      },
+      attributes: ['fromPortfolioId', 'toPortfolioId', 'amount', 'currencyCode', 'toCurrencyCode', 'toAmount', 'date'],
+    }),
+    PortfolioBalances.findAll({
+      where: { portfolioId: { [Op.in]: portfolioIds } },
+      attributes: ['portfolioId', 'currencyCode', 'totalCash', 'refTotalCash'],
+    }),
+  ]);
 
   if (transactions.length === 0 && portfolioTransfers.length === 0 && currentBalances.length === 0) {
     return buildEmptySlice({ boundaryDates });

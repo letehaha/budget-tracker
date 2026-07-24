@@ -1,3 +1,4 @@
+import { INVESTMENT_TRANSACTION_CATEGORY } from '@bt/shared/types/investments';
 import { INVESTMENT_DECIMAL_SCALE, Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import Holdings from '@models/investments/holdings.model';
@@ -16,6 +17,22 @@ interface GetHoldingValuesParams {
   portfolioId: string;
   date?: Date; // If not provided, uses latest available prices
   userId?: number; // For reference currency conversion
+}
+
+/**
+ * Raw (`raw: true`) projection of `InvestmentTransactions` for the FIFO gains
+ * calculation. DECIMAL columns are Postgres decimal strings; `date` is a
+ * driver-parsed `Date` (TIMESTAMPTZ).
+ */
+interface GainsTransactionRow {
+  securityId: string;
+  date: Date;
+  category: INVESTMENT_TRANSACTION_CATEGORY;
+  /** DECIMAL(36,18) string. */
+  quantity: string;
+  /** DECIMAL(20,10) strings. */
+  price: string;
+  fees: string;
 }
 
 interface HoldingValue {
@@ -68,8 +85,13 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
 
   const securityIds = holdings.map((h) => h.securityId);
 
-  // Get all investment transactions for these securities in this portfolio
-  const transactions = await InvestmentTransaction.findAll({
+  // Get all investment transactions for these securities in this portfolio.
+  // `raw: true` + narrow attributes on purpose: this is the portfolio's full,
+  // unbounded trade history and the rows only feed the FIFO gains math below —
+  // hydrating a Money object per money column per row is avoidable memory
+  // pressure on a dashboard-hot path. DECIMAL columns arrive as strings, which
+  // is exactly what `calculateAllGains` accepts.
+  const transactions = (await InvestmentTransaction.findAll({
     where: {
       portfolioId,
       securityId: { [Op.in]: securityIds },
@@ -82,7 +104,9 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       ['date', 'ASC'],
       ['createdAt', 'ASC'],
     ],
-  });
+    attributes: ['securityId', 'date', 'category', 'quantity', 'price', 'fees'],
+    raw: true,
+  })) as unknown as GainsTransactionRow[];
 
   // Group transactions by securityId
   const transactionsBySecurityId = transactions.reduce(
@@ -93,7 +117,7 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
       acc[transaction.securityId]!.push(transaction);
       return acc;
     },
-    {} as Record<string, InvestmentTransaction[]>,
+    {} as Record<string, GainsTransactionRow[]>,
   );
 
   // Build price query - fetch only the latest price per security
@@ -228,13 +252,9 @@ const getHoldingValuesImpl = async ({ portfolioId, date, userId }: GetHoldingVal
     const gains = calculateAllGains(
       parseFloat(marketValue),
       holding.costBasis.toNumber(),
-      securityTransactions.map((tx) => ({
-        date: tx.date,
-        category: tx.category,
-        quantity: tx.quantity.toDecimalString(INVESTMENT_DECIMAL_SCALE),
-        price: tx.price.toDecimalString(INVESTMENT_DECIMAL_SCALE),
-        fees: tx.fees.toDecimalString(INVESTMENT_DECIMAL_SCALE),
-      })),
+      // Raw rows: quantity/price/fees are already decimal strings, the exact
+      // shape `TransactionForGains` accepts.
+      securityTransactions,
     );
 
     const displayRate = await getDisplayRate(holding.currencyCode);
