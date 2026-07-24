@@ -47,6 +47,7 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   'DELETE /api/v1/user/settings/ai/features/:feature',
   'DELETE /api/v1/user/settings/mcp/connected-apps/:clientId',
   'PATCH /api/v1/user/settings',
+  'POST /api/v1/user/backup',
   'POST /api/v1/user/data-export',
   'PUT /api/v1/user/settings',
   'PUT /api/v1/user/settings/ai/api-keys',

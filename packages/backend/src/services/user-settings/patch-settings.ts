@@ -1,36 +1,9 @@
 import { ValidationError } from '@js/errors';
 import { type SettingsPatchSchema, type SettingsSchema, ZodSettingsSchema } from '@models/user-settings.model';
+import mergeWith from 'lodash/mergeWith';
 
 import { withTransaction } from '../common/with-transaction';
 import { getOrCreateUserSettings } from './get-or-create-user-settings';
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/**
- * Recursively merges `patch` into `base`. Plain objects merge key-by-key;
- * arrays, primitives and `null` replace the stored value wholesale (an array
- * in a patch is always the full desired list, never an append). `undefined`
- * values are skipped, so an absent key can never erase stored data.
- */
-const deepMerge = ({
-  base,
-  patch,
-}: {
-  base: Record<string, unknown>;
-  patch: Record<string, unknown>;
-}): Record<string, unknown> => {
-  const result: Record<string, unknown> = { ...base };
-
-  for (const [key, value] of Object.entries(patch)) {
-    if (value === undefined) continue;
-
-    const current = result[key];
-    result[key] = isPlainObject(current) && isPlainObject(value) ? deepMerge({ base: current, patch: value }) : value;
-  }
-
-  return result;
-};
 
 /**
  * Applies a partial settings update: only the keys present in `patch` change,
@@ -56,7 +29,13 @@ export const patchUserSettings = withTransaction(
     const [existing] = await getOrCreateUserSettings({ userId, lock: true });
 
     const base = existing.settings as Record<string, unknown>;
-    const merged = deepMerge({ base, patch: patchWithoutOnboarding });
+    // Deep-merge patch into stored settings (empty target keeps `base` unmutated):
+    // lodash recurses objects, replaces primitives/null, skips `undefined` (so an
+    // absent key never erases). The customizer replaces arrays wholesale — a patch
+    // array is always the full desired list, never an element-wise merge.
+    const merged = mergeWith({}, base, patchWithoutOnboarding, (_current, incoming) =>
+      Array.isArray(incoming) ? incoming : undefined,
+    );
 
     const parsed = ZodSettingsSchema.safeParse(merged);
     if (!parsed.success) {

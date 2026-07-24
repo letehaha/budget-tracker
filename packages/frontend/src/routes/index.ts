@@ -418,6 +418,11 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/pages/settings/subpages/security/pages/password.vue'),
               },
               {
+                path: 'backup',
+                name: ROUTES_NAMES.settingsSecurityBackup,
+                component: () => import('@/pages/settings/subpages/security/pages/backup.vue'),
+              },
+              {
                 path: 'danger',
                 name: ROUTES_NAMES.settingsSecurityDanger,
                 component: () => import('@/pages/settings/subpages/security/pages/danger-zone.vue'),

@@ -2,6 +2,7 @@ import { API_HTTP, API_VER } from '@/api/api-base-url';
 import { ApiBaseError } from '@/common/types';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { useBaseCurrencyChangeStatus } from '@/composable/use-base-currency-change-status';
+import { useRestoreJobStatus } from '@/composable/use-restore-job-status';
 import { getCurrentLocale, i18n } from '@/i18n';
 import * as errors from '@/js/errors';
 import { router } from '@/routes';
@@ -278,9 +279,12 @@ class ApiCaller {
 
     if (status === API_RESPONSE_STATUS.error) {
       if (response.code === API_ERROR_CODES.unauthorized) {
-        // Tear down the base-currency watchdog first: without a session its 2s
-        // status poll would 401 on every tick and re-enter this same branch.
+        // Tear down both blocking-job watchdogs first: without a session their 2s status
+        // polls would 401 on every tick. Each poll swallows the AuthError (assuming the
+        // API handler already stopped it), so a still-running restore watchdog would
+        // otherwise loop logout()/router.push forever and keep #app inert.
         useBaseCurrencyChangeStatus().stop();
+        useRestoreJobStatus().stop();
 
         useAuthStore().logout();
 
@@ -296,19 +300,28 @@ class ApiCaller {
       }
 
       if (response.code === API_ERROR_CODES.baseCurrencyChangeInProgress) {
-        // A change is running server-side and rejected this mutation. Bring up the
-        // blocking overlay on this device (only if not already watching, so a burst
-        // of 423s doesn't reset the visible step), then still reject so callers unwind.
-        const watch = useBaseCurrencyChangeStatus();
-        if (!watch.isBlocking.value) {
+        // The base-currency write-lock is held server-side and rejected this mutation —
+        // by a real base-currency change OR by a data restore, which grabs the same lock.
+        // Engage BOTH watchdogs; each polls its own status endpoint and self-dismisses if
+        // idle, so whichever job is actually running sticks. Then still reject so callers
+        // unwind.
+        const currencyWatch = useBaseCurrencyChangeStatus();
+        if (!currencyWatch.isBlocking.value) {
           // The LockedError carries the live status in `details.status`; seeding it
           // skips the one-tick flash of a fabricated "queued" placeholder.
           const seed = response.details?.status;
           if (typeof seed?.state === 'string') {
-            watch.start({ initialStatus: seed as BaseCurrencyChangeStatus });
+            currencyWatch.start({ initialStatus: seed as BaseCurrencyChangeStatus });
           } else {
-            watch.start();
+            currencyWatch.start();
           }
+        }
+        const restoreWatch = useRestoreJobStatus();
+        if (!restoreWatch.isBlocking.value) {
+          // No restore-specific status in the 423 payload, so use the boot check path: it
+          // fetches the restore status first and only blocks if a restore is truly running
+          // (idle → no-op, no fabricated "queued" flash).
+          void restoreWatch.checkOnBoot();
         }
       }
 

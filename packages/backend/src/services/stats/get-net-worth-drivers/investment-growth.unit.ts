@@ -1,9 +1,10 @@
 import { type Cents, INVESTMENT_TRANSACTION_CATEGORY, asCents } from '@bt/shared/types';
-import { Money } from '@common/types/money';
 
 import { accumulateInvestmentFlows, computeInvestmentGrowth } from './investment-growth';
 import type { InvestmentFlowRow, InvestmentFlowsCents } from './types';
 
+// `InvestmentFlowRow` mirrors a `raw: true` query result — DECIMAL fields are
+// plain strings, exactly as the pg driver returns them.
 const buildTx = ({
   category,
   date,
@@ -15,13 +16,12 @@ const buildTx = ({
   /** Decimal, as `refAmount` is stored: quantity * price + fees. */
   amount: number;
   fees?: number;
-}): InvestmentFlowRow =>
-  ({
-    category,
-    date: new Date(`${date}T12:00:00.000Z`),
-    refAmount: Money.fromDecimal(amount),
-    refFees: Money.fromDecimal(fees),
-  }) as InvestmentFlowRow;
+}): InvestmentFlowRow => ({
+  category,
+  date: new Date(`${date}T12:00:00.000Z`),
+  refAmount: String(amount),
+  refFees: String(fees),
+});
 
 /** Cents-branded flow bucket from decimal-free integer inputs, defaulting each leg to zero. */
 const flowsBucket = ({

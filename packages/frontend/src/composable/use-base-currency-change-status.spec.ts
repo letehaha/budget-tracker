@@ -272,6 +272,35 @@ describe('useBaseCurrencyChangeStatus', () => {
     expect(resetQueryCachesMock).not.toHaveBeenCalled();
   });
 
+  it('marks a live failure handled so a later boot does not re-notify the user', async () => {
+    // The user watched it fail live here; checkOnBoot toasts any unhandled failure, so the
+    // terminal handler must write the handled marker even though nothing gets reloaded.
+    getStatusMock.mockResolvedValueOnce(failed('drain timed out'));
+
+    const store = useBaseCurrencyChangeStatus();
+    store.start({ initialStatus: queued() });
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(storageMock.setItem).toHaveBeenCalledWith(HANDLED_JOB_KEY, 'job-1');
+  });
+
+  it('retries a transient boot status failure before attaching the live watch', async () => {
+    // A network blip at app init while a job may be running must not leave the device
+    // unblocked: the boot check retries a few times before giving up.
+    getStatusMock.mockRejectedValueOnce(new Error('boot blip')).mockResolvedValue(running('accounts'));
+
+    const store = useBaseCurrencyChangeStatus();
+    const boot = store.checkOnBoot();
+    // Advance past the first retry backoff so the second attempt runs.
+    await vi.advanceTimersByTimeAsync(500);
+    await boot;
+
+    expect(store.isBlocking.value).toBe(true);
+    // The blip was ridden out, not reported as a boot failure.
+    expect(captureExceptionMock).not.toHaveBeenCalled();
+  });
+
   it('drops the overlay when the server reports idle', async () => {
     getStatusMock.mockResolvedValueOnce({ state: 'idle' } as BaseCurrencyChangeStatus);
 
