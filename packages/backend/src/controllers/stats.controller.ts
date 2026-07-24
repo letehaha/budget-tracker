@@ -18,6 +18,7 @@ import {
   serializeExpensesAmountForPeriod,
   serializeInvestmentContributions,
   serializeNetWorthDrivers,
+  serializeNetWorthHistory,
   serializePivotReport,
   serializeSpendingsByCategories,
   serializeSpendingsByCategoriesByType,
@@ -235,6 +236,27 @@ export const getNetWorthDrivers = createController(netWorthDriversSchema, async 
 
   // Serialize: convert cents to decimal for API response
   return { data: serializeNetWorthDrivers(result) };
+});
+
+const netWorthHistorySchema = z.object({
+  query: withDateOrder(
+    z.object({
+      ...dateRange({ required: true }),
+      granularity: z.enum(endpointsTypes.NET_WORTH_HISTORY_GRANULARITIES),
+    }),
+  ),
+});
+
+export const getNetWorthHistory = createController(netWorthHistorySchema, async ({ user, query }) => {
+  const { id: userId } = user;
+  const { from, to, granularity } = query;
+
+  // `includeCreditLimitInStats` is deliberately not read here: net worth reflects
+  // actual balances, and available credit is not debt.
+  const result = await statsService.getNetWorthHistory({ userId, from, to, granularity });
+
+  // Serialize: convert cents to decimal for API response
+  return { data: serializeNetWorthHistory(result) };
 });
 
 const investmentContributionsSchema = z.object({

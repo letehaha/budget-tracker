@@ -48,6 +48,12 @@ router.get(
   statsController.getNetWorthDrivers.handler,
 );
 router.get(
+  '/net-worth-history',
+  authenticateSession,
+  validateEndpoint(statsController.getNetWorthHistory.schema),
+  statsController.getNetWorthHistory.handler,
+);
+router.get(
   '/investment-contributions',
   authenticateSession,
   validateEndpoint(statsController.getInvestmentContributions.schema),

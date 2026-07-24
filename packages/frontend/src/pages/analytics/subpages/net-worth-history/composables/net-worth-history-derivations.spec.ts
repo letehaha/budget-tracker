@@ -1,0 +1,300 @@
+import { ACCOUNT_CATEGORIES, type endpointsTypes } from '@bt/shared/types';
+import { addDays, addWeeks, startOfISOWeek } from 'date-fns';
+import { describe, expect, it } from 'vitest';
+
+import {
+  MAX_NET_WORTH_HISTORY_BUCKETS,
+  autoGranularity,
+  averageOwedLiabilities,
+  buildDisplayPoints,
+  computeLiabilityScale,
+  computePeriodChange,
+  countBuckets,
+  disabledGranularities,
+  kindsWithActivity,
+  resolveSelectedKinds,
+} from './net-worth-history-derivations';
+
+const CREDIT_CARD = ACCOUNT_CATEGORIES.creditCard as endpointsTypes.NetWorthLiabilityKind;
+const LOAN = ACCOUNT_CATEGORIES.loan as endpointsTypes.NetWorthLiabilityKind;
+const OVERDRAFT = ACCOUNT_CATEGORIES.overdraft as endpointsTypes.NetWorthLiabilityKind;
+
+const buildPoint = ({
+  date,
+  assets = 0,
+  creditCard = 0,
+  loan = 0,
+  overdraft = 0,
+}: {
+  date: string;
+  assets?: number;
+  creditCard?: number;
+  loan?: number;
+  overdraft?: number;
+}): endpointsTypes.NetWorthHistoryPoint => {
+  const liabilitiesTotal = creditCard + loan + overdraft;
+  return {
+    date,
+    assets,
+    liabilities: { 'credit-card': creditCard, loan, overdraft },
+    liabilitiesTotal,
+    netWorth: assets + liabilitiesTotal,
+  };
+};
+
+describe('kindsWithActivity', () => {
+  it('keeps only kinds with a nonzero balance somewhere in the series', () => {
+    const kinds = kindsWithActivity({
+      points: [
+        buildPoint({ date: '2026-01-31', assets: 100, creditCard: -50 }),
+        buildPoint({ date: '2026-02-28', assets: 120, loan: -200 }),
+      ],
+    });
+
+    expect(kinds).toEqual([CREDIT_CARD, LOAN]);
+  });
+
+  it('counts a positive (overpaid) balance as activity', () => {
+    const kinds = kindsWithActivity({ points: [buildPoint({ date: '2026-01-31', creditCard: 25 })] });
+
+    expect(kinds).toEqual([CREDIT_CARD]);
+  });
+
+  it('returns empty for a debt-free series', () => {
+    expect(kindsWithActivity({ points: [buildPoint({ date: '2026-01-31', assets: 100 })] })).toEqual([]);
+  });
+});
+
+describe('resolveSelectedKinds', () => {
+  it('treats an empty selection as all available kinds', () => {
+    expect(resolveSelectedKinds({ stored: [], available: [CREDIT_CARD, LOAN] })).toEqual([CREDIT_CARD, LOAN]);
+  });
+
+  it('drops stored kinds absent from the loaded series', () => {
+    expect(resolveSelectedKinds({ stored: [OVERDRAFT, LOAN], available: [LOAN] })).toEqual([LOAN]);
+  });
+
+  it('falls back to all when nothing stored survives', () => {
+    expect(resolveSelectedKinds({ stored: [OVERDRAFT], available: [CREDIT_CARD] })).toEqual([CREDIT_CARD]);
+  });
+});
+
+describe('buildDisplayPoints', () => {
+  it('sums only the selected kinds and rebuilds net worth from them', () => {
+    const [point] = buildDisplayPoints({
+      points: [buildPoint({ date: '2026-01-31', assets: 1000, creditCard: -100, loan: -400 })],
+      selectedKinds: [CREDIT_CARD],
+    });
+
+    expect(point).toEqual({
+      date: '2026-01-31',
+      assets: 1000,
+      liabilitiesByKind: { 'credit-card': -100 },
+      liabilitiesTotal: -100,
+      netWorth: 900,
+    });
+  });
+
+  it('matches the server totals when every kind is selected', () => {
+    const [point] = buildDisplayPoints({
+      points: [buildPoint({ date: '2026-01-31', assets: 1000, creditCard: -100, loan: -400, overdraft: -50 })],
+      selectedKinds: [CREDIT_CARD, LOAN, OVERDRAFT],
+    });
+
+    expect(point!.liabilitiesTotal).toBe(-550);
+    expect(point!.netWorth).toBe(450);
+  });
+});
+
+describe('averageOwedLiabilities', () => {
+  it('reports the mean owed amount as a positive magnitude', () => {
+    const points = buildDisplayPoints({
+      points: [
+        buildPoint({ date: '2026-01-31', creditCard: -100 }),
+        buildPoint({ date: '2026-02-28', creditCard: -300 }),
+      ],
+      selectedKinds: [CREDIT_CARD],
+    });
+
+    expect(averageOwedLiabilities({ points })).toBe(200);
+  });
+
+  it('reads as zero when the mean is overpaid or flat', () => {
+    const points = buildDisplayPoints({
+      points: [buildPoint({ date: '2026-01-31', creditCard: 50 }), buildPoint({ date: '2026-02-28', creditCard: -30 })],
+      selectedKinds: [CREDIT_CARD],
+    });
+
+    expect(averageOwedLiabilities({ points })).toBe(0);
+    expect(averageOwedLiabilities({ points: [] })).toBe(0);
+  });
+});
+
+describe('computeLiabilityScale', () => {
+  const displayPoints = ({
+    entries,
+  }: {
+    entries: { date: string; assets?: number; creditCard?: number; loan?: number }[];
+  }) =>
+    buildDisplayPoints({
+      points: entries.map((entry) => buildPoint(entry)),
+      selectedKinds: [CREDIT_CARD, LOAN],
+    });
+
+  it('zooms when owed totals are tiny next to the positive extreme', () => {
+    const points = displayPoints({
+      entries: [
+        { date: '2026-01-31', assets: 374_000, creditCard: -2_700 },
+        { date: '2026-02-28', assets: 380_000, creditCard: -1_200 },
+      ],
+    });
+
+    expect(computeLiabilityScale({ points })).toEqual({
+      asymmetric: true,
+      maxPositive: 380_000,
+      maxOwed: 2_700,
+    });
+  });
+
+  it('stays on the shared scale when there is nothing owed', () => {
+    const points = displayPoints({ entries: [{ date: '2026-01-31', assets: 1000 }] });
+
+    expect(computeLiabilityScale({ points }).asymmetric).toBe(false);
+  });
+
+  it('stays on the shared scale when owed reaches a tenth of the positive extreme', () => {
+    const points = displayPoints({
+      entries: [{ date: '2026-01-31', assets: 1000, loan: -100 }],
+    });
+
+    expect(computeLiabilityScale({ points }).asymmetric).toBe(false);
+  });
+
+  it('stays on the shared scale when any net worth dips negative', () => {
+    const points = displayPoints({
+      entries: [
+        { date: '2026-01-31', assets: 100_000, loan: -900 },
+        { date: '2026-02-28', assets: 500, loan: -900 },
+      ],
+    });
+
+    expect(computeLiabilityScale({ points }).asymmetric).toBe(false);
+  });
+
+  it('counts a positive liability sum toward the positive extreme, not owed', () => {
+    const points = displayPoints({
+      entries: [{ date: '2026-01-31', assets: 1000, loan: 50 }],
+    });
+
+    const scale = computeLiabilityScale({ points });
+    expect(scale.maxOwed).toBe(0);
+    expect(scale.maxPositive).toBe(1050);
+    expect(scale.asymmetric).toBe(false);
+  });
+
+  it('never zooms when the user turned zooming off', () => {
+    const points = displayPoints({
+      entries: [
+        { date: '2026-01-31', assets: 374_000, creditCard: -2_700 },
+        { date: '2026-02-28', assets: 380_000, creditCard: -1_200 },
+      ],
+    });
+
+    expect(computeLiabilityScale({ points, zoomEnabled: false }).asymmetric).toBe(false);
+  });
+});
+
+describe('computePeriodChange', () => {
+  it('returns last-minus-first with a percentage against the first point', () => {
+    const points = buildDisplayPoints({
+      points: [buildPoint({ date: '2026-01-31', assets: 1000 }), buildPoint({ date: '2026-06-30', assets: 1500 })],
+      selectedKinds: [],
+    });
+
+    expect(computePeriodChange({ points })).toEqual({ amount: 500, pct: 50 });
+  });
+
+  it('keeps the percentage meaningful when starting from negative net worth', () => {
+    const points = buildDisplayPoints({
+      points: [
+        buildPoint({ date: '2026-01-31', assets: 100, loan: -300 }),
+        buildPoint({ date: '2026-06-30', assets: 100, loan: -100 }),
+      ],
+      selectedKinds: [LOAN],
+    });
+
+    expect(computePeriodChange({ points })).toEqual({ amount: 200, pct: 100 });
+  });
+
+  it('suppresses the percentage when the first point is zero', () => {
+    const points = buildDisplayPoints({
+      points: [buildPoint({ date: '2026-01-31' }), buildPoint({ date: '2026-06-30', assets: 500 })],
+      selectedKinds: [],
+    });
+
+    expect(computePeriodChange({ points })).toEqual({ amount: 500, pct: null });
+    expect(computePeriodChange({ points: [] })).toEqual({ amount: 0, pct: null });
+  });
+});
+
+describe('granularity helpers', () => {
+  it('counts calendar buckets per granularity', () => {
+    const range = { from: new Date(2026, 0, 1), to: new Date(2026, 11, 31) };
+
+    expect(countBuckets({ ...range, granularity: 'weekly' })).toBe(53);
+    expect(countBuckets({ ...range, granularity: 'monthly' })).toBe(12);
+    expect(countBuckets({ ...range, granularity: 'quarterly' })).toBe(4);
+    expect(countBuckets({ ...range, granularity: 'yearly' })).toBe(1);
+  });
+
+  it('picks the auto granularity from the period length', () => {
+    const from = new Date(2026, 0, 1);
+
+    expect(autoGranularity({ from, to: new Date(2026, 1, 15) })).toBe('weekly');
+    expect(autoGranularity({ from, to: new Date(2026, 11, 31) })).toBe('weekly');
+    expect(autoGranularity({ from, to: new Date(2029, 11, 31) })).toBe('monthly');
+    expect(autoGranularity({ from, to: new Date(2036, 11, 31) })).toBe('quarterly');
+  });
+
+  it('sits exactly on both auto-granularity day thresholds', () => {
+    const from = new Date(2026, 0, 1);
+
+    // 370 vs 371 inclusive days (differenceInCalendarDays + 1).
+    expect(autoGranularity({ from, to: addDays(from, 369) })).toBe('weekly');
+    expect(autoGranularity({ from, to: addDays(from, 370) })).toBe('monthly');
+
+    // 1850 vs 1851 inclusive days.
+    expect(autoGranularity({ from, to: addDays(from, 1849) })).toBe('monthly');
+    expect(autoGranularity({ from, to: addDays(from, 1850) })).toBe('quarterly');
+  });
+
+  it('disables granularities whose bucket count exceeds the cap', () => {
+    // ~13 years: weekly = ~680 buckets > 500, monthly and coarser stay allowed.
+    const disabled = disabledGranularities({ from: new Date(2013, 0, 1), to: new Date(2025, 11, 31) });
+
+    expect(disabled).toEqual(['weekly']);
+    expect(
+      countBuckets({ from: new Date(2013, 0, 1), to: new Date(2025, 11, 31), granularity: 'monthly' }),
+    ).toBeLessThanOrEqual(MAX_NET_WORTH_HISTORY_BUCKETS);
+  });
+
+  it('treats the bucket cap as exclusive, not inclusive', () => {
+    const from = startOfISOWeek(new Date(2015, 0, 1));
+    const atCap = addWeeks(from, MAX_NET_WORTH_HISTORY_BUCKETS - 1);
+    const overCap = addWeeks(from, MAX_NET_WORTH_HISTORY_BUCKETS);
+
+    expect(countBuckets({ from, to: atCap, granularity: 'weekly' })).toBe(MAX_NET_WORTH_HISTORY_BUCKETS);
+    expect(disabledGranularities({ from, to: atCap })).not.toContain('weekly');
+
+    expect(countBuckets({ from, to: overCap, granularity: 'weekly' })).toBe(MAX_NET_WORTH_HISTORY_BUCKETS + 1);
+    expect(disabledGranularities({ from, to: overCap })).toContain('weekly');
+  });
+
+  it('never lets the auto choice exceed the cap', () => {
+    const from = new Date(2000, 0, 1);
+    const to = new Date(2026, 6, 24);
+
+    const granularity = autoGranularity({ from, to });
+    expect(countBuckets({ from, to, granularity })).toBeLessThanOrEqual(MAX_NET_WORTH_HISTORY_BUCKETS);
+  });
+});

@@ -73,24 +73,28 @@ interface GranularitySpec {
   advance: (periodStart: Date) => Date;
 }
 
+type StatsGranularity =
+  | endpointsTypes.PivotGranularity
+  | endpointsTypes.CashFlowGranularity
+  | endpointsTypes.NetWorthHistoryGranularity;
+
 // Every granularity used by any stats report. `biweekly` (cash-flow only) is a 2-week window, so
 // its period end is the day before the start of the week two ahead.
-const GRANULARITY_SPECS: Record<endpointsTypes.PivotGranularity | endpointsTypes.CashFlowGranularity, GranularitySpec> =
-  {
-    yearly: { startOf: startOfYear, endOf: endOfYear, advance: (date) => addYears(date, 1) },
-    quarterly: { startOf: startOfQuarter, endOf: endOfQuarter, advance: (date) => addQuarters(date, 1) },
-    monthly: { startOf: startOfMonth, endOf: endOfMonth, advance: (date) => addMonths(date, 1) },
-    weekly: {
-      startOf: (date) => startOfWeek(date, WEEK_OPTS),
-      endOf: (date) => endOfWeek(date, WEEK_OPTS),
-      advance: (date) => addWeeks(date, 1),
-    },
-    biweekly: {
-      startOf: (date) => startOfWeek(date, WEEK_OPTS),
-      endOf: (date) => endOfDay(addDays(addWeeks(date, 2), -1)),
-      advance: (date) => addWeeks(date, 2),
-    },
-  };
+const GRANULARITY_SPECS: Record<StatsGranularity, GranularitySpec> = {
+  yearly: { startOf: startOfYear, endOf: endOfYear, advance: (date) => addYears(date, 1) },
+  quarterly: { startOf: startOfQuarter, endOf: endOfQuarter, advance: (date) => addQuarters(date, 1) },
+  monthly: { startOf: startOfMonth, endOf: endOfMonth, advance: (date) => addMonths(date, 1) },
+  weekly: {
+    startOf: (date) => startOfWeek(date, WEEK_OPTS),
+    endOf: (date) => endOfWeek(date, WEEK_OPTS),
+    advance: (date) => addWeeks(date, 1),
+  },
+  biweekly: {
+    startOf: (date) => startOfWeek(date, WEEK_OPTS),
+    endOf: (date) => endOfDay(addDays(addWeeks(date, 2), -1)),
+    advance: (date) => addWeeks(date, 2),
+  },
+};
 
 /**
  * Generates the [from, to] time buckets (one per report column) for a granularity. Both edges are
@@ -105,7 +109,7 @@ export const generatePeriodBuckets = ({
 }: {
   from: string;
   to: string;
-  granularity: endpointsTypes.PivotGranularity | endpointsTypes.CashFlowGranularity;
+  granularity: StatsGranularity;
 }): PeriodBucket[] => {
   const spec = GRANULARITY_SPECS[granularity];
   const buckets: PeriodBucket[] = [];

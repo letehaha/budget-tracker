@@ -6,6 +6,7 @@ export * from './get-expenses-amount-for-period';
 export * from './get-combined-balance-history';
 export * from './get-cash-flow';
 export * from './get-net-worth-drivers';
+export * from './get-net-worth-history';
 export * from './get-investment-contributions';
 export * from './get-pivot';
 export * from './get-cumulative-data';

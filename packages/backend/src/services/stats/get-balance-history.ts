@@ -252,24 +252,31 @@ interface AggregatedBalanceHistoryItem {
   amount: number;
 }
 
+interface BalanceFillIndex {
+  /** Accounts that carry at least one row, so they get a value on every date. */
+  accountIds: Set<string>;
+  /** Every date in the requested range, ascending. */
+  allDates: string[];
+  /** "accountId_date" -> cents, for O(1) lookup of a known value. */
+  centsByAccountAndDate: Map<string, number>;
+  /** accountId -> earliest row's (date, cents), used for back-fill. */
+  earliestRowByAccount: Map<string, { dateStr: string; cents: number }>;
+}
+
 /**
- * Aggregates balance trend data by filling gaps and summing all accounts per date.
+ * Builds the shared lookup structures both fills iterate over: the ascending
+ * date range and, in a single pass over the rows, an "accountId_date -> cents"
+ * map plus each account's earliest row for back-filling prior dates.
  */
-function aggregateBalanceTrendData({
+function buildBalanceFillIndex({
   data,
   from,
   to,
-  openingCentsByAccount,
 }: {
   data: BalanceHistoryRow[];
   from?: string;
   to?: string;
-  openingCentsByAccount?: Map<string, number>;
-}): AggregatedBalanceHistoryItem[] {
-  if (!data || data.length === 0) {
-    return [];
-  }
-
+}): BalanceFillIndex {
   // Extract unique account IDs and dates from the data.
   const accountIds = new Set(data.map((item) => item.accountId));
   const datesList = new Set(data.map((item) => formatDate(item.date)));
@@ -288,9 +295,6 @@ function aggregateBalanceTrendData({
     allDates.push(formatDate(dt));
   }
 
-  // Build lookup Maps in a single pass:
-  // - centsByAccountAndDate: "accountId_date" -> cents for O(1) access
-  // - earliestRowByAccount: accountId -> earliest row's (date, cents), used for back-fill
   const centsByAccountAndDate = new Map<string, number>();
   const earliestRowByAccount = new Map<string, { dateStr: string; cents: number }>();
   for (const item of data) {
@@ -303,35 +307,145 @@ function aggregateBalanceTrendData({
     }
   }
 
-  // Forward-fill each account across all dates while summing straight into a
-  // single per-date total, so no per-account day map is ever materialized.
+  return { accountIds, allDates, centsByAccountAndDate, earliestRowByAccount };
+}
+
+/**
+ * The cents an account carries on `date` while forward-filling: the row on that
+ * date if present, otherwise the opening/earliest value for dates before the
+ * account's first record, otherwise the previous day's carried value.
+ *
+ * `openingCents` back-fills the dates STRICTLY BEFORE the account's earliest
+ * record. Loans pass their `initialBalance` here (the outstanding as-of the
+ * anchor date) so a payoff dated on the anchor day — which folds the anchor-day
+ * row toward zero — can't retroactively rewrite the outstanding shown on earlier
+ * days. `initialBalance` never changes on payment, so pre-anchor days stay
+ * stable. The earliest record's own date always keeps its real value.
+ */
+function carryForwardCents({
+  date,
+  previousCents,
+  earliest,
+  actualCents,
+  openingCents,
+}: {
+  date: string;
+  previousCents: number;
+  earliest: { dateStr: string; cents: number };
+  actualCents: number | undefined;
+  openingCents: number | undefined;
+}): number {
+  if (actualCents !== undefined) {
+    return actualCents;
+  }
+  if (date < earliest.dateStr) {
+    return openingCents !== undefined ? openingCents : earliest.cents;
+  }
+  if (date === earliest.dateStr) {
+    return earliest.cents;
+  }
+  // Dates after the earliest record with no row keep the previous day's value.
+  return previousCents;
+}
+
+/**
+ * Gap-fill raw balance rows into a per-account daily series over the range:
+ * each account's earliest value back-fills prior dates (or `openingCentsByAccount`
+ * when provided), and known values carry forward across dates with no rows.
+ * Keyed `accountId → yyyy-MM-dd → cents`. Every account present carries a value
+ * for every date in the range.
+ */
+function fillPerAccountBalanceSeries({
+  data,
+  from,
+  to,
+  openingCentsByAccount,
+}: {
+  data: BalanceHistoryRow[];
+  from?: string;
+  to?: string;
+  openingCentsByAccount?: Map<string, number>;
+}): Record<string, Record<string, number>> {
+  if (!data || data.length === 0) {
+    return {};
+  }
+
+  const { accountIds, allDates, centsByAccountAndDate, earliestRowByAccount } = buildBalanceFillIndex({
+    data,
+    from,
+    to,
+  });
+
+  const seriesByAccount: Record<string, Record<string, number>> = {};
+
+  for (const accountId of accountIds) {
+    const earliest = earliestRowByAccount.get(accountId);
+    if (!earliest) continue;
+
+    const openingCents = openingCentsByAccount?.get(accountId);
+    let currentCents = 0;
+    const series: Record<string, number> = {};
+
+    for (const date of allDates) {
+      currentCents = carryForwardCents({
+        date,
+        previousCents: currentCents,
+        earliest,
+        actualCents: centsByAccountAndDate.get(`${accountId}_${date}`),
+        openingCents,
+      });
+      series[date] = currentCents;
+    }
+
+    seriesByAccount[accountId] = series;
+  }
+
+  return seriesByAccount;
+}
+
+/**
+ * Aggregates balance trend data by filling gaps and summing all accounts per date.
+ * Sums each account's forward-filled value straight into a single per-date total,
+ * so no per-account day map is ever materialized.
+ */
+function aggregateBalanceTrendData({
+  data,
+  from,
+  to,
+  openingCentsByAccount,
+}: {
+  data: BalanceHistoryRow[];
+  from?: string;
+  to?: string;
+  openingCentsByAccount?: Map<string, number>;
+}): AggregatedBalanceHistoryItem[] {
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  const { accountIds, allDates, centsByAccountAndDate, earliestRowByAccount } = buildBalanceFillIndex({
+    data,
+    from,
+    to,
+  });
+
   const totalCentsByDate = new Map<string, number>();
 
   for (const accountId of accountIds) {
     const earliest = earliestRowByAccount.get(accountId);
     if (!earliest) continue;
 
-    // An optional opening balance back-fills the dates STRICTLY BEFORE the
-    // account's earliest record. Loans pass their `initialBalance` here (the
-    // outstanding as-of the anchor date) so a payoff dated on the anchor day —
-    // which folds the anchor-day row toward zero — can't retroactively rewrite
-    // the outstanding shown on earlier days. `initialBalance` never changes on
-    // payment, so pre-anchor days stay stable. The earliest record's own date
-    // always keeps its real value.
     const openingCents = openingCentsByAccount?.get(accountId);
     let currentCents = 0;
 
     for (const date of allDates) {
-      const actualCents = centsByAccountAndDate.get(`${accountId}_${date}`);
-      if (actualCents !== undefined) {
-        currentCents = actualCents;
-      } else if (date < earliest.dateStr) {
-        currentCents = openingCents !== undefined ? openingCents : earliest.cents;
-      } else if (date === earliest.dateStr) {
-        currentCents = earliest.cents;
-      }
-      // Dates after the earliest record with no row keep the previous day's value.
-
+      currentCents = carryForwardCents({
+        date,
+        previousCents: currentCents,
+        earliest,
+        actualCents: centsByAccountAndDate.get(`${accountId}_${date}`),
+        openingCents,
+      });
       totalCentsByDate.set(date, (totalCentsByDate.get(date) ?? 0) + currentCents);
     }
   }
@@ -374,4 +488,29 @@ export const getAggregatedBalanceHistory = async ({
   const rawBalanceHistory = await getBalanceHistoryRows({ userId, from, to, categoryFilter });
 
   return aggregateBalanceTrendData({ data: rawBalanceHistory, from, to, openingCentsByAccount });
+};
+
+/**
+ * Per-account daily balance series over the range, gap-filled with the same
+ * carry-forward/back-fill rules as `getAggregatedBalanceHistory` but WITHOUT the
+ * cross-account summation. For callers that classify each account individually
+ * (e.g. the net-worth history splits credit cards by balance sign per account).
+ * Keyed `accountId → yyyy-MM-dd → cents`; empty object when no balance data.
+ */
+export const getPerAccountBalanceHistory = async ({
+  userId,
+  from,
+  to,
+  categoryFilter,
+  openingCentsByAccount,
+}: {
+  userId: number;
+  from: string;
+  to: string;
+  categoryFilter?: AccountCategoryFilter;
+  openingCentsByAccount?: Map<string, number>;
+}): Promise<Record<string, Record<string, number>>> => {
+  const rawBalanceHistory = await getBalanceHistoryRows({ userId, from, to, categoryFilter });
+
+  return fillPerAccountBalanceSeries({ data: rawBalanceHistory, from, to, openingCentsByAccount });
 };

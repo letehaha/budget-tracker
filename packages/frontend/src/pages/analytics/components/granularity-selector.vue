@@ -4,7 +4,7 @@
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
-      <SelectItem v-for="option in options" :key="option.value" :value="option.value">
+      <SelectItem v-for="option in options" :key="option.value" :value="option.value" :disabled="option.disabled">
         {{ option.label }}
       </SelectItem>
     </SelectContent>
@@ -23,6 +23,9 @@ const props = defineProps<{
   granularities: readonly T[];
   // i18n key prefix; each option's label reads `${labelKeyPrefix}.${value}`.
   labelKeyPrefix: string;
+  // Granularities kept visible but not selectable — e.g. ones the API would reject
+  // for the current date range. Staying in the list keeps the option discoverable.
+  disabledValues?: readonly T[];
 }>();
 
 const emit = defineEmits<{
@@ -35,6 +38,7 @@ const options = computed(() =>
   props.granularities.map((value) => ({
     value,
     label: t(`${props.labelKeyPrefix}.${value}`),
+    disabled: props.disabledValues?.includes(value) ?? false,
   })),
 );
 </script>

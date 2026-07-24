@@ -4,12 +4,13 @@
  * Serializes stats data for API responses.
  * Uses Money.fromCents() for raw cents values from services/aggregates.
  */
-import { type endpointsTypes } from '@bt/shared/types';
+import { endpointsTypes } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import type Balances from '@models/balances.model';
 import type { CombinedBalanceHistoryItem } from '@services/stats/get-combined-balance-history';
 import type { InvestmentContributionsResultCents } from '@services/stats/get-investment-contributions';
 import type { NetWorthDriversResultCents } from '@services/stats/get-net-worth-drivers';
+import type { NetWorthHistoryResultCents } from '@services/stats/get-net-worth-history';
 import type { PivotReportResultCents } from '@services/stats/get-pivot';
 
 // ============================================================================
@@ -331,6 +332,42 @@ export function serializeNetWorthDrivers(
     // contract lets a client decide on `degraded` alone whether to warn, and a
     // present-but-empty key would trip that check on a cleanly valued range.
     ...(result.degraded ? { degraded: result.degraded } : {}),
+  };
+}
+
+// ============================================================================
+// Net Worth History Serializer
+// ============================================================================
+
+/**
+ * Decimalize a liability-kinds record, keyed off the canonical tuple so every
+ * kind the API contract declares is present regardless of insertion order.
+ */
+const decimalizeLiabilities = (
+  liabilities: Record<endpointsTypes.NetWorthLiabilityKind, number>,
+): Record<endpointsTypes.NetWorthLiabilityKind, number> => {
+  const result = {} as Record<endpointsTypes.NetWorthLiabilityKind, number>;
+  for (const kind of endpointsTypes.NET_WORTH_LIABILITY_KINDS) {
+    result[kind] = centsToApiDecimal(liabilities[kind]);
+  }
+  return result;
+};
+
+/**
+ * Serialize net worth history (from getNetWorthHistory). Every amount is money,
+ * so every amount is decimalized; the snapshot dates pass through unchanged.
+ */
+export function serializeNetWorthHistory(
+  result: NetWorthHistoryResultCents,
+): endpointsTypes.GetNetWorthHistoryResponse {
+  return {
+    points: result.points.map((point) => ({
+      date: point.date,
+      assets: centsToApiDecimal(point.assets),
+      liabilities: decimalizeLiabilities(point.liabilities),
+      liabilitiesTotal: centsToApiDecimal(point.liabilitiesTotal),
+      netWorth: centsToApiDecimal(point.netWorth),
+    })),
   };
 }
 

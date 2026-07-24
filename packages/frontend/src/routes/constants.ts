@@ -20,6 +20,7 @@ export const ROUTES_NAMES = Object.freeze({
   budgetsInfo: `${ROUTER_LAYOUTS.dashboard}.budgets.info`,
   analytics: `${ROUTER_LAYOUTS.dashboard}.analytics`,
   analyticsCashFlow: `${ROUTER_LAYOUTS.dashboard}.analytics.cash-flow`,
+  analyticsNetWorthHistory: `${ROUTER_LAYOUTS.dashboard}.analytics.net-worth-history`,
   analyticsNetWorthDrivers: `${ROUTER_LAYOUTS.dashboard}.analytics.net-worth-drivers`,
   analyticsInvestmentContributions: `${ROUTER_LAYOUTS.dashboard}.analytics.investment-contributions`,
   analyticsPivotReport: `${ROUTER_LAYOUTS.dashboard}.analytics.pivot-report`,

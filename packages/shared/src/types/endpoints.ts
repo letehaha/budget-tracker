@@ -1,5 +1,5 @@
 import { AccountModel, CategoryModel, TransactionModel } from './db-models';
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, TRANSACTION_TYPES } from './enums';
 import { RecordId } from './record-id';
 
 export type BodyPayload = {
@@ -486,6 +486,68 @@ export interface GetInvestmentContributionsResponse {
   // Portfolios that contributed anywhere in the window, ordered largest mover first —
   // a stable order so the client can assign each a consistent colour across renders.
   portfolios: InvestmentContributionsPortfolioMeta[];
+}
+
+// Net Worth History Analytics
+// Mint-style assets/liabilities/net-worth series: every point is an end-of-bucket
+// balance snapshot (a level, not a flow). The liability split is by account category
+// with a per-account sign rule: a credit-card or overdraft account counts as a
+// liability only while it is owing (negative balance) at that snapshot — one holding
+// the user's own funds counts as assets instead. Loan accounts are always liabilities
+// at their whole signed value. Everything else (regular accounts, portfolios,
+// ventures, vehicles) counts as assets.
+// The client derives filtered views (e.g. "average credit-card liabilities") from the
+// per-kind values, so toggling kinds never refetches. The includeCreditLimitInStats
+// setting is deliberately ignored here: net worth reflects actual balances, and
+// available credit is not debt. Ranges producing more than `MAX_NET_WORTH_HISTORY_BUCKETS`
+// buckets are rejected with 422 — the client must pick a coarser granularity.
+// Single source of truth for the granularity enum — the backend Zod validator builds
+// its `z.enum(...)` straight off this tuple, so it can't drift from what the API accepts.
+export const NET_WORTH_HISTORY_GRANULARITIES = ['weekly', 'monthly', 'quarterly', 'yearly'] as const;
+export type NetWorthHistoryGranularity = (typeof NET_WORTH_HISTORY_GRANULARITIES)[number];
+
+/** Max buckets a net-worth-history range may span before the API rejects it with 422. */
+export const MAX_NET_WORTH_HISTORY_BUCKETS = 500;
+
+// Account categories the report treats as debt products. A deliberate closed subset of
+// ACCOUNT_CATEGORIES so the liability breakdown keys are a typed, exhaustive set.
+export const NET_WORTH_LIABILITY_KINDS = [
+  ACCOUNT_CATEGORIES.creditCard,
+  ACCOUNT_CATEGORIES.loan,
+  ACCOUNT_CATEGORIES.overdraft,
+] as const;
+export type NetWorthLiabilityKind = (typeof NET_WORTH_LIABILITY_KINDS)[number];
+
+export interface GetNetWorthHistoryPayload extends QueryPayload {
+  // yyyy-mm-dd (required)
+  from: string;
+  // yyyy-mm-dd (required)
+  to: string;
+  granularity: NetWorthHistoryGranularity;
+}
+
+// Every amount below is a decimal in the user's base currency.
+export interface NetWorthHistoryPoint {
+  // yyyy-mm-dd — the bucket-end date the snapshot is taken at. The final bucket is
+  // clamped to the requested `to`, so it can cover a partial period.
+  date: string;
+  // Regular/savings/etc. accounts (signed — an overdrawn cash account subtracts),
+  // portfolios (holdings plus uninvested cash), ventures and vehicles, plus any
+  // credit-card/overdraft account holding a positive balance at this snapshot.
+  assets: number;
+  // Balance per liability kind, keyed by account category. Credit-card and
+  // overdraft are sums of their owing accounts only (always ≤ 0; a paid-off card
+  // reads 0 and a positive-balance card moves to `assets`). Loan is the whole
+  // signed value, so an overpaid loan can read positive.
+  liabilities: Record<NetWorthLiabilityKind, number>;
+  // Sum of `liabilities` values. Signed, negative = owed.
+  liabilitiesTotal: number;
+  // assets + liabilitiesTotal.
+  netWorth: number;
+}
+
+export interface GetNetWorthHistoryResponse {
+  points: NetWorthHistoryPoint[];
 }
 
 // Cumulative Analytics (Trends Comparison)

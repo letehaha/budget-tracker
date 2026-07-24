@@ -9,6 +9,7 @@
       "pivotReport": "Pivot",
       "netWorthDrivers": "Net Worth Drivers",
       "investmentContributions": "Contributions",
+      "netWorthHistory": "Net Worth History",
       "collapse": "Collapse",
       "sections": {
         "investments": "Investments"
@@ -44,7 +45,8 @@
         "last6Months": "Last 6 months",
         "last12Months": "Last 12 months",
         "thisYear": "This year",
-        "previousYear": "Previous year"
+        "previousYear": "Previous year",
+        "allTime": "All time"
       },
       "periodSelector": {
         "quickSelect": "Quick Select",
@@ -182,7 +184,8 @@
       "thisYear": "This year",
       "previousYear": "Previous year",
       "last3Years": "Last 3 years",
-      "last5Years": "Last 5 years"
+      "last5Years": "Last 5 years",
+      "allTime": "All time"
     },
     "savedViews": {
       "trigger": "Views",
@@ -311,6 +314,46 @@
       "noPortfoliosPlaceholder": "Create a portfolio and start investing to track your contributions here.",
       "noPortfoliosAction": "Add a portfolio",
       "loadError": "Couldn't load contributions"
+    }
+  },
+  "netWorthHistory": {
+    "title": "Net Worth History",
+    "subtitle": "How your assets, liabilities and net worth changed over time",
+    "granularity": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "kindFilter": {
+      "all": "All liabilities",
+      "scopeHint": "Choose which debt types count as liabilities in this report.",
+      "selectedOne": "1 type",
+      "selectedMany": "{n} types"
+    },
+    "cards": {
+      "currentNetWorth": "Current net worth",
+      "periodChange": "Period change",
+      "averageLiabilities": "You have an average of {amount} in liabilities during the selected period.",
+      "noLiabilities": "You had no liabilities during the selected period."
+    },
+    "chart": {
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "liabilitiesTotal": "Liabilities total",
+      "netWorth": "Net worth",
+      "averageLiabilities": "Avg. liabilities",
+      "liabilitiesZoomed": "Liabilities scale zoomed"
+    },
+    "settings": {
+      "title": "Chart settings",
+      "zoomLiabilities": "Zoom liabilities scale",
+      "zoomLiabilitiesHint": "Enlarge small debts so they stay visible next to large assets."
+    },
+    "states": {
+      "loadError": "Failed to load net worth history. Please try again later.",
+      "noData": "No history for this period",
+      "noDataHint": "Try a longer period, or add accounts and transactions so there are balances to snapshot."
     }
   }
 }

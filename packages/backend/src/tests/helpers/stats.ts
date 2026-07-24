@@ -152,6 +152,31 @@ export async function getNetWorthDrivers<R extends boolean | undefined = undefin
   return result;
 }
 
+export async function getNetWorthHistory<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  granularity,
+  raw,
+}: {
+  from: string;
+  to: string;
+  granularity: endpointsTypes.NetWorthHistoryGranularity;
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('granularity', granularity);
+
+  const result = await helpers.makeRequest<endpointsTypes.GetNetWorthHistoryResponse, R>({
+    method: 'get',
+    url: `/stats/net-worth-history?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
 export async function getInvestmentContributions<R extends boolean | undefined = undefined>({
   from,
   to,
