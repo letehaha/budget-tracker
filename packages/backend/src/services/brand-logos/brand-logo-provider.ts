@@ -52,50 +52,62 @@ export async function searchBrands({ query }: { query: string }): Promise<BrandS
 
   const url = `${LOGO_DEV_SEARCH_URL}?q=${encodeURIComponent(trimmed)}`;
 
-  const rawItems = await withRetry(
-    async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), LOGO_DEV_REQUEST_TIMEOUT_MS);
+  let rawItems: LogoDevResult[] | undefined;
 
-      try {
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${secretKey}`,
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        });
+  try {
+    rawItems = await withRetry(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), LOGO_DEV_REQUEST_TIMEOUT_MS);
 
-        if (!response.ok) {
-          throw new Error(`logo.dev search returned HTTP ${response.status} for query "${trimmed}"`);
+        try {
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${secretKey}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            throw new Error(`logo.dev search returned HTTP ${response.status} for query "${trimmed}"`);
+          }
+
+          const data: unknown = await response.json();
+
+          if (!Array.isArray(data)) {
+            logger.warn(`[logo-provider] Unexpected response shape from logo.dev for query "${trimmed}"`);
+            return [] as LogoDevResult[];
+          }
+
+          return data as LogoDevResult[];
+        } finally {
+          clearTimeout(timeoutId);
         }
-
-        const data: unknown = await response.json();
-
-        if (!Array.isArray(data)) {
-          logger.warn(`[logo-provider] Unexpected response shape from logo.dev for query "${trimmed}"`);
-          return [] as LogoDevResult[];
-        }
-
-        return data as LogoDevResult[];
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    },
-    {
-      maxRetries: 2,
-      delay: 500,
-      onError(error, attempt) {
-        // Abort (timeout) and 4xx errors are not worth retrying.
-        if (error instanceof Error) {
-          if (error.name === 'AbortError') return false;
-          if (error.message.includes('HTTP 4')) return false;
-        }
-        logger.warn(`[logo-provider] Search attempt ${attempt + 1} failed for "${trimmed}": ${String(error)}`);
-        return true;
       },
-    },
-  );
+      {
+        maxRetries: 2,
+        delay: 500,
+        onError(error, attempt) {
+          // Abort (timeout) and 4xx errors are not worth retrying.
+          if (error instanceof Error) {
+            if (error.name === 'AbortError') return false;
+            if (error.message.includes('HTTP 4')) return false;
+          }
+          logger.warn(`[logo-provider] Search attempt ${attempt + 1} failed for "${trimmed}": ${String(error)}`);
+          return true;
+        },
+      },
+    );
+  } catch (error) {
+    // logo.dev sometimes doesn't answer within the timeout. This search only
+    // feeds an autocomplete, so treat a timeout as "no results" instead of a 500.
+    if (error instanceof Error && error.name === 'AbortError') {
+      logger.info(`[logo-provider] Search timed out for "${trimmed}", returning empty results`);
+      return [];
+    }
+    throw error;
+  }
 
   if (!rawItems || rawItems.length === 0) return [];
 

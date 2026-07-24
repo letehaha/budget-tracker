@@ -1,5 +1,5 @@
 import { AI_PROVIDER } from '@bt/shared/types';
-import { APICallError, generateText } from 'ai';
+import { APICallError, RetryError, generateText } from 'ai';
 
 import { createAIClientWithConfig } from './ai-client-factory';
 import { AI_MODEL_ID } from './models-config';
@@ -28,13 +28,19 @@ const GENERIC_INVALID_KEY_MESSAGE =
 
 /**
  * Check if an error is a temporary/transient error that shouldn't mark the key as invalid.
- * Returns true for rate limits (429) and server errors (5xx).
+ * Returns true for rate limits (429), server errors (5xx), connection/header timeouts
+ * (no statusCode but the SDK flags them retryable), and retry-exhaustion (the `ai` SDK
+ * retries transient failures internally, then throws RetryError once retries run out —
+ * that's still a transient outcome, classified by its underlying cause).
  */
 export function isTemporaryError(error: unknown): boolean {
+  if (error instanceof RetryError) {
+    return error.lastError ? isTemporaryError(error.lastError) : true;
+  }
   if (error instanceof APICallError) {
     const status = error.statusCode;
-    // 429 = rate limit, 5xx = server errors
-    if (status === 429 || (status && status >= 500)) {
+    // 429 = rate limit, 5xx = server errors, isRetryable = SDK-flagged transient failure (eg. timeouts with no status)
+    if (status === 429 || (status && status >= 500) || error.isRetryable) {
       return true;
     }
   }
