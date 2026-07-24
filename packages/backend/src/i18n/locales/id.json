@@ -1,6 +1,7 @@
 {
   "common": {
-    "processAlreadyLocked": "Proses sinkronisasi untuk \"{{lockKey}}\" sudah terkunci."
+    "processAlreadyLocked": "Proses sinkronisasi untuk \"{{lockKey}}\" sudah terkunci.",
+    "serviceTemporarilyUnavailable": "Layanan sementara tidak tersedia. Silakan coba lagi."
   },
   "accounts": {
     "groupNotFound": "Grup atau akun tidak ditemukan",
@@ -286,7 +287,11 @@
     "cannotFindForRefAmount": "Tidak dapat menemukan mata uang untuk menghitung jumlah referensi!",
     "cannotCalculateRefAmount": "Tidak dapat menghitung jumlah referensi",
     "currencyNotConnected": "Mata uang yang diminta tidak terhubung",
-    "exchangeRateNotAvailable": "Nilai tukar tidak tersedia untuk {{baseCode}}/{{quoteCode}} pada {{date}}"
+    "exchangeRateNotAvailable": "Nilai tukar tidak tersedia untuk {{baseCode}}/{{quoteCode}} pada {{date}}",
+    "baseCurrencyChangeInProgress": "Perubahan mata uang dasar sedang berlangsung. Harap tunggu hingga selesai.",
+    "baseCurrencyChangeSyncInProgress": "Sinkronisasi bank masih berlangsung. Silakan coba ubah mata uang dasar Anda lagi dalam beberapa menit.",
+    "baseCurrencyChangeDrainCheckFailed": "Tidak dapat memverifikasi bahwa sinkronisasi bank sedang tidak aktif. Silakan coba lagi.",
+    "baseCurrencyChangeInProgressOtherUser": "Peserta lain sedang mengubah mata uang dasar mereka. Silakan coba lagi setelah proses migrasi mereka selesai."
   },
   "userSettings": {
     "excludedCategoriesNotFound": "Satu atau lebih kategori yang dikecualikan tidak ditemukan",

@@ -9,7 +9,9 @@
         "tooltip": "Dengan menambahkan mata uang kustom, Anda dapat membuat dan mengelola akun serta transaksi dalam mata uang tersebut. Anda juga dapat menyesuaikan dan memperbarui nilai tukarnya terhadap mata uang dasar Anda. Akun yang ditautkan akan secara otomatis membuat mata uang yang diperlukan.",
         "errors": {
           "addFailed": "Kesalahan tak terduga. Mata uang tidak ditambahkan."
-        }
+        },
+        "sectionLabel": "Tambah mata uang",
+        "successfullyAdded": "Mata uang ditambahkan"
       },
       "list": {
         "editCurrency": "Edit mata uang",
@@ -26,7 +28,8 @@
         "errors": {
           "unexpectedError": "Kesalahan tak terduga",
           "updateFailed": "Kesalahan tak terduga. Mata uang tidak diperbarui."
-        }
+        },
+        "ratePlaceholder": "0.00"
       },
       "delete": {
         "description": "Mata uang hanya dapat dihapus/diputuskan jika tidak ada akun dan/atau transaksi yang terkait dengannya.",
@@ -35,7 +38,9 @@
         "successfullyDeleted": "Berhasil dihapus.",
         "errors": {
           "deleteFailed": "Kesalahan tak terduga. Mata uang tidak dihapus."
-        }
+        },
+        "confirmTitle": "Hapus mata uang?",
+        "buttonShort": "Hapus"
       },
       "setBase": {
         "label": "Jadikan mata uang dasar",
@@ -65,7 +70,27 @@
           "changeFailed": "Kesalahan tak terduga. Gagal mengubah mata uang dasar.",
           "lockedHousehold": "Anda berada di {count} keanggotaan rumah tangga aktif. Keluar dari Pengaturan → Rumah Tangga terlebih dahulu. | Anda berada di {count} keanggotaan rumah tangga aktif. Keluar dari Pengaturan → Rumah Tangga terlebih dahulu.",
           "lockedShares": "Anda memiliki {count} pembagian akun aktif. Cabut dari akun terlebih dahulu. | Anda memiliki {count} pembagian akun aktif. Cabut dari masing-masing akun terlebih dahulu."
-        }
+        },
+        "buttonShort": "Jadikan dasar"
+      },
+      "page": {
+        "title": "Mata Uang",
+        "description": "Kelola mata uang yang Anda lacak dan nilai tukar yang digunakan di seluruh akun Anda."
+      },
+      "howItWorks": {
+        "trigger": "Bagaimana cara kerjanya?",
+        "body": "Mata uang dasar Anda adalah mata uang yang menjadi acuan konversi setiap saldo untuk total dan laporan. Setiap mata uang yang ditambahkan diperbarui secara otomatis dari nilai tukar pasar langsung, atau Anda dapat mengatur nilai tukar kustom untuk menggantikannya."
+      },
+      "row": {
+        "baseBadge": "Dasar",
+        "custom": "Kustom",
+        "live": "Langsung",
+        "unused": "Tidak Terpakai",
+        "accountsCount": "{count} akun"
+      },
+      "empty": {
+        "title": "Belum ada mata uang lain",
+        "description": "Tambahkan mata uang di atas untuk melacak saldo dan nilai tukar selain mata uang dasar Anda."
       }
     }
   }

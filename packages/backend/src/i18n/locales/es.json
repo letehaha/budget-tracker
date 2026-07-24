@@ -1,6 +1,7 @@
 {
   "common": {
-    "processAlreadyLocked": "El proceso de sincronización para \"{{lockKey}}\" ya está bloqueado."
+    "processAlreadyLocked": "El proceso de sincronización para \"{{lockKey}}\" ya está bloqueado.",
+    "serviceTemporarilyUnavailable": "Servicio no disponible temporalmente. Inténtelo de nuevo."
   },
   "accounts": {
     "groupNotFound": "Grupo o cuenta no encontrados",
@@ -286,7 +287,11 @@
     "cannotFindForRefAmount": "¡No se puede encontrar la moneda para calcular el importe de referencia!",
     "cannotCalculateRefAmount": "No se puede calcular el importe de referencia",
     "currencyNotConnected": "La moneda solicitada no está conectada",
-    "exchangeRateNotAvailable": "Tipo de cambio no disponible para {{baseCode}}/{{quoteCode}} en {{date}}"
+    "exchangeRateNotAvailable": "Tipo de cambio no disponible para {{baseCode}}/{{quoteCode}} en {{date}}",
+    "baseCurrencyChangeInProgress": "El cambio de moneda base está en curso. Espere a que finalice.",
+    "baseCurrencyChangeSyncInProgress": "Una sincronización bancaria todavía se está completando. Inténtelo de nuevo dentro de unos minutos.",
+    "baseCurrencyChangeDrainCheckFailed": "No se pudo verificar que las sincronizaciones bancarias estén inactivas. Inténtelo de nuevo.",
+    "baseCurrencyChangeInProgressOtherUser": "El otro participante está cambiando actualmente su moneda base. Inténtelo de nuevo cuando finalice su migración."
   },
   "userSettings": {
     "excludedCategoriesNotFound": "Una o más categorías excluidas no encontradas",
