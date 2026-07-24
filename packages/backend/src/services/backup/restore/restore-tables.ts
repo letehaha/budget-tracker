@@ -4,6 +4,7 @@ import Currencies from '@models/currencies.model';
 import MerchantCategoryCodes from '@models/merchant-category-codes.model';
 import { encryptCredentials } from '@services/bank-data-providers/utils/credential-encryption';
 import type { Transaction } from 'sequelize';
+import { v7 as uuidv7 } from 'uuid';
 
 import { BACKUP_TABLES, type BackupTableDef } from '../registry';
 import type { ArchiveAnalysis, TableColumnPlan } from './analyze-archive';
@@ -16,6 +17,7 @@ import {
   foreignReferenceNulledMessage,
   guardRowReferences,
 } from './owned-reference-guard';
+import { remapEmbeddedReferences } from './remap-embedded-references';
 
 type Row = Record<string, unknown>;
 
@@ -31,9 +33,10 @@ interface InsertContext {
   currencyCodes: Set<string>;
   /** Guarded FK columns per backup file name, derived from model metadata. */
   guardedFkMap: Map<string, GuardedFk[]>;
-  /** Ids actually inserted this restore, keyed by DB target table name. A guarded
-   *  FK is legitimate only when its value is in the target table's set. */
-  insertedIds: Map<string, Set<string>>;
+  /** Per-table backup id → final id map, keyed by DB target table name. A guarded
+   *  FK is remapped through the target table's map; a value absent from it is
+   *  foreign/forged. */
+  insertedIds: Map<string, Map<string, string>>;
   transaction: Transaction;
   warnings: BackupRestoreWarning[];
 }
@@ -42,9 +45,9 @@ const hasColumn = ({ plan, field }: { plan: TableColumnPlan; field: string }): b
   plan.columns.some((c) => c.field === field);
 
 /**
- * Delete any restore-target rows that outlived the shared wipe, so the tiered
- * inserts below always land in empty tables and can keep the backup's preserved
- * primary keys. `destroyUserOwnedData` keeps the Users row, so tables whose only
+ * Delete any restore-target rows that outlived the shared wipe, so this user's
+ * own backup ids are free and the keep-if-free inserts below reuse them instead
+ * of reminting. `destroyUserOwnedData` keeps the Users row, so tables whose only
  * owner link is `userId` with an ON DELETE CASCADE to Users (Payees,
  * PayeeIgnoredNames, …) are never reached by that wipe and would collide on their
  * primary keys when re-inserted. Delete every `insert`-mode `userColumn` table
@@ -128,16 +131,18 @@ function buildRowOverrides({
 }
 
 /**
- * Insert one `insert`-mode table. Self-referential tables (Categories.parentId,
- * AccountGroups.parentGroupId) go in two passes: every row inserts with the
- * parent nulled, then a batched UPDATE repoints the parents once all rows exist
- * (their UUIDs are preserved, so the parents are guaranteed present by then).
+ * Insert one `insert`-mode table. A standalone UUID `id` is kept when it's free
+ * and reminted when another user's row already holds it; the resulting backup
+ * id → final id map drives every reference rewrite. Self-referential tables
+ * (Categories.parentId, AccountGroups.parentGroupId) go in two passes: each row
+ * inserts with the parent nulled, then a batched UPDATE repoints each child at
+ * its parent's final id once all rows exist.
  *
- * Every foreign-key column that targets a user-owned table is validated against
- * the ids inserted so far this restore: a value that isn't the restorer's own
- * (a hand-edited archive aiming a child row at another user's row) drops the row
- * when the column is required, or is nulled when it's nullable. Surviving ids are
- * recorded so a dropped parent cascades to its children.
+ * Every foreign-key column that targets a user-owned table is remapped to the
+ * inserted final id; a value that isn't the restorer's own (a hand-edited archive
+ * aiming a child row at another user's row) drops the row when the column is
+ * required, or is nulled when it's nullable. Kept ids are recorded so a dropped
+ * parent cascades to its children.
  */
 async function insertTable({
   def,
@@ -154,16 +159,47 @@ async function insertTable({
 
   const selfRefColumn = def.selfRefColumn;
   const targetTable = String(def.model.getTableName());
-  let ownIds = ctx.insertedIds.get(targetTable);
-  if (!ownIds) {
-    ownIds = new Set<string>();
-    ctx.insertedIds.set(targetTable, ownIds);
+  let ownMap = ctx.insertedIds.get(targetTable);
+  if (!ownMap) {
+    ownMap = new Map<string, string>();
+    ctx.insertedIds.set(targetTable, ownMap);
+  }
+
+  // A standalone UUID `id` (IdColumn) can be reminted when another user's row
+  // already holds it; composite-PK tables (Holdings, join tables) have no such
+  // column and rely on their FK columns being remapped by the guard instead.
+  const pkAttrs = def.model.primaryKeyAttributes;
+  const hasStandaloneId = pkAttrs.length === 1 && pkAttrs[0] === 'id';
+
+  // Probe which backup ids another row already holds, inside the restore tx.
+  // After the wipe only OTHER users' rows survive, so a hit is a real collision.
+  // `paranoid: false` so a soft-deleted row still counts as taken — the primary
+  // key ignores `deletedAt`, so keeping its id would collide on insert anyway.
+  // Chunked so a table with tens of thousands of rows stays under Postgres's
+  // bind-parameter cap on a single `id IN (...)`.
+  const taken = new Set<string>();
+  if (hasStandaloneId) {
+    const rowIds = rows
+      .map((r) => r.id)
+      .filter((id) => id != null)
+      .map((id) => String(id));
+    const PROBE_CHUNK = 10000;
+    for (let i = 0; i < rowIds.length; i += PROBE_CHUNK) {
+      const existing = (await def.model.findAll({
+        attributes: ['id'],
+        where: { id: rowIds.slice(i, i + PROBE_CHUNK) },
+        transaction: ctx.transaction,
+        paranoid: false,
+        raw: true,
+      })) as unknown as Array<{ id: string }>;
+      for (const e of existing) taken.add(String(e.id));
+    }
   }
 
   // The self-ref column is validated in the second pass, not here — exclude it.
   const guardedFks = (ctx.guardedFkMap.get(def.fileName) ?? []).filter((fk) => fk.attrName !== selfRefColumn);
 
-  const secondPass: Array<{ id: string; parent: unknown }> = [];
+  const secondPass: Array<{ finalId: string; oldParent: unknown }> = [];
   const records: Row[] = [];
 
   // Tally dropped rows so each reason becomes one aggregated warning (with a total
@@ -197,13 +233,22 @@ async function insertTable({
     }
     Object.assign(overrides, guard.overrides);
 
-    if (selfRefColumn && row[selfRefColumn] != null) {
-      secondPass.push({ id: String(row.id), parent: row[selfRefColumn] });
+    // Keep the backup id when free, else mint a fresh one; record the mapping so
+    // this table's FK referrers and the self-ref second pass resolve to it.
+    let finalId: string | undefined;
+    if (hasStandaloneId && row.id != null) {
+      const oldId = String(row.id);
+      finalId = taken.has(oldId) ? uuidv7() : oldId;
+      ownMap.set(oldId, finalId);
+      overrides.id = finalId;
+    }
+
+    if (selfRefColumn && row[selfRefColumn] != null && finalId != null) {
+      secondPass.push({ finalId, oldParent: row[selfRefColumn] });
       overrides[selfRefColumn] = null;
     }
 
     records.push(buildInsertRecord({ row, plan, overrides }));
-    if (row.id != null) ownIds.add(String(row.id));
   }
 
   if (droppedMccCount > 0) {
@@ -242,19 +287,19 @@ async function insertTable({
   const inserted = await runBulkInsert({ model: def.model, records, transaction: ctx.transaction });
 
   if (selfRefColumn && secondPass.length) {
-    // Repoint a parent only when it's one of this table's own surviving ids;
-    // a parent outside that set (forged, or dropped upstream) stays null.
+    // Repoint each child at its parent's final id; a parent outside this table's
+    // own remapped ids (forged, or dropped upstream) stays null.
     const byParent = new Map<string, string[]>();
     let selfRefNulled = 0;
-    for (const { id, parent } of secondPass) {
-      const key = String(parent);
-      if (!ownIds.has(key)) {
+    for (const { finalId, oldParent } of secondPass) {
+      const mappedParent = ownMap.get(String(oldParent));
+      if (mappedParent === undefined) {
         selfRefNulled += 1;
         continue;
       }
-      const bucket = byParent.get(key);
-      if (bucket) bucket.push(id);
-      else byParent.set(key, [id]);
+      const bucket = byParent.get(mappedParent);
+      if (bucket) bucket.push(finalId);
+      else byParent.set(mappedParent, [finalId]);
     }
     for (const [parent, ids] of byParent) {
       await def.model.update({ [selfRefColumn]: parent }, { where: { id: ids }, transaction: ctx.transaction });
@@ -295,11 +340,11 @@ export async function insertRestoreTables({
 }): Promise<{
   insertedByTable: Record<string, number>;
   warnings: BackupRestoreWarning[];
-  insertedIds: Map<string, Set<string>>;
+  insertedIds: Map<string, Map<string, string>>;
 }> {
   const warnings: BackupRestoreWarning[] = [];
   const insertedByTable: Record<string, number> = {};
-  const insertedIds = new Map<string, Set<string>>();
+  const insertedIds = new Map<string, Map<string, string>>();
 
   const needsMcc = BACKUP_TABLES.some((d) => d.enrichMccCode && (archive.data.get(d.fileName)?.length ?? 0) > 0);
   const needsCurrency = (archive.data.get('users-currencies')?.length ?? 0) > 0;
@@ -352,6 +397,11 @@ export async function insertRestoreTables({
     insertedByTable[def.fileName] = inserted;
     await onProgress?.({ tier: def.tier, table: def.fileName, insertedRows: inserted });
   }
+
+  // Owned ids embedded in JSONB / array columns aren't reachable by the scalar FK
+  // remap above and some point across tiers, so rewrite them once every owned map
+  // is complete.
+  await remapEmbeddedReferences({ archive, insertedIds, transaction });
 
   return { insertedByTable, warnings, insertedIds };
 }

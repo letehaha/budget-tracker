@@ -9,6 +9,7 @@ import { type ParsedArchive } from './load-archive';
 import { loadValidatedArchive } from './load-validated-archive';
 import { USER_ROW_GUARDED_FK, foreignReferenceNulledMessage } from './owned-reference-guard';
 import { triggerPostRestorePriceSync } from './post-restore-price-sync';
+import { remapSavedPivotViewIds } from './remap-embedded-references';
 import { resolveSecurities } from './resolve-securities';
 import { insertRestoreTables, purgeUserOwnedRestoreTables } from './restore-tables';
 
@@ -23,20 +24,19 @@ if (!USER_RESTORE_DEF?.fields) {
 const USER_RESTORE_FIELDS = USER_RESTORE_DEF.fields;
 
 /** UPDATE the target Users row with the tier-1 restorable fields only. Identity
- *  (id/username/email/authUserId/role) is never touched. Category UUIDs are
- *  preserved, so `defaultCategoryId` needs no remap — but a hand-edited archive
- *  can point it at another user's category, so it's validated against the
- *  categories actually inserted this restore and nulled (with a warning) when
- *  foreign. */
+ *  (id/username/email/authUserId/role) is never touched. Category UUIDs may be
+ *  reminted on restore, so `defaultCategoryId` is remapped to the category's
+ *  final id; a value that isn't one of this restore's categories (forged or
+ *  foreign) is nulled with a warning. */
 async function restoreUserRow({
   archive,
   user,
-  restoredCategoryIds,
+  categoriesMap,
   warnings,
 }: {
   archive: ParsedArchive;
   user: Users;
-  restoredCategoryIds: Set<string>;
+  categoriesMap: Map<string, string>;
   warnings: BackupRestoreWarning[];
 }): Promise<void> {
   const src = archive.user;
@@ -47,14 +47,19 @@ async function restoreUserRow({
   }
 
   const defaultCategoryId = update[USER_ROW_GUARDED_FK.attrName];
-  if (defaultCategoryId != null && !restoredCategoryIds.has(String(defaultCategoryId))) {
-    update[USER_ROW_GUARDED_FK.attrName] = null;
-    warnings.push({
-      code: 'foreign_reference_nulled',
-      table: 'user',
-      message: foreignReferenceNulledMessage({ table: 'user', column: USER_ROW_GUARDED_FK.attrName, count: 1 }),
-      count: 1,
-    });
+  if (defaultCategoryId != null) {
+    const mapped = categoriesMap.get(String(defaultCategoryId));
+    if (mapped === undefined) {
+      update[USER_ROW_GUARDED_FK.attrName] = null;
+      warnings.push({
+        code: 'foreign_reference_nulled',
+        table: 'user',
+        message: foreignReferenceNulledMessage({ table: 'user', column: USER_ROW_GUARDED_FK.attrName, count: 1 }),
+        count: 1,
+      });
+    } else {
+      update[USER_ROW_GUARDED_FK.attrName] = mapped;
+    }
   }
 
   if (Object.keys(update).length > 0) {
@@ -71,10 +76,12 @@ async function restoreUserRow({
 async function upsertUserSettings({
   archive,
   userId,
+  insertedIds,
   warnings,
 }: {
   archive: ParsedArchive;
   userId: number;
+  insertedIds: Map<string, Map<string, string>>;
   warnings: BackupRestoreWarning[];
 }): Promise<void> {
   const rows = archive.data.get('user-settings') ?? [];
@@ -103,6 +110,10 @@ async function upsertUserSettings({
     await UserSettings.create({ userId, settings: ZodSettingsSchema.parse({}) });
     return;
   }
+
+  // Category/account/payee UUIDs may be reminted on restore, so rewrite the ids
+  // saved inside each Pivot view before persisting the settings blob.
+  remapSavedPivotViewIds({ views: parsed.data.savedPivotViews, insertedIds });
 
   await UserSettings.create({ userId, settings: parsed.data });
 }
@@ -158,9 +169,9 @@ export async function restoreUserBackup({
       Object.assign(insertedByTable, tableResult.insertedByTable);
       warnings.push(...tableResult.warnings);
 
-      const restoredCategoryIds = tableResult.insertedIds.get(USER_ROW_GUARDED_FK.targetTable) ?? new Set<string>();
-      await restoreUserRow({ archive, user, restoredCategoryIds, warnings });
-      await upsertUserSettings({ archive, userId: user.id, warnings });
+      const categoriesMap = tableResult.insertedIds.get(USER_ROW_GUARDED_FK.targetTable) ?? new Map<string, string>();
+      await restoreUserRow({ archive, user, categoriesMap, warnings });
+      await upsertUserSettings({ archive, userId: user.id, insertedIds: tableResult.insertedIds, warnings });
     },
   });
 

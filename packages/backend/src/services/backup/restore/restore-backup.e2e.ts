@@ -347,6 +347,122 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
     });
   });
 
+  // The reported production bug: a user backed up their own account and restored it
+  // onto a demo account on a SHARED preview DB, where the source rows are still live.
+  // Verbatim-PK inserts then collided with the source's own rows (e.g.
+  // `SequelizeUniqueConstraintError ... UsersCurrencies_pkey ... already exists`).
+  // keep-if-free remap keeps a backup id only when no other row already holds it and
+  // remints a fresh uuidv7 otherwise, so a live source no longer breaks the restore.
+  // (The "Cross-user restore" case above deliberately WIPES the source first to free
+  // the ids — this one is its inverse: the source stays live to force the collision.)
+  describe('Cross-account restore without wiping source', () => {
+    it('restores onto another user without colliding on the still-live source ids', async () => {
+      const { checking, portfolio } = await seedRichData();
+
+      // Snapshot the source as it exists BEFORE the restore: its live rows still hold
+      // every backup UUID, so restoring the same file onto another user forces the
+      // exact collision the fix guards against.
+      const sourceUserId = await getCurrentUserId();
+      const sourceAccounts = await helpers.getAccounts();
+      const sourceAccountIds = new Set(sourceAccounts.map((a) => a.id));
+      const sourcePortfolioId = portfolio.id;
+
+      // Source UsersCurrencies (the colliding table from the bug report). Its PK is a
+      // UUIDv7 `id`, so two users holding the same backup id would hit UsersCurrencies_pkey.
+      const sourceCurrencyCodes = (await helpers.getUserCurrencies()).map((c) => c.currencyCode).toSorted();
+
+      // Source transactions, incl. the transfer pair whose two legs share a `transferId`.
+      const sourceTx = await helpers.getTransactions({ raw: true, limit: 500 });
+      const sourceTransferLegs = sourceTx.filter(
+        (t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
+      );
+      const sourceTransferId = sourceTransferLegs[0]?.transferId;
+
+      // Sanity: the dataset genuinely exercises the colliding tables and the transfer pair.
+      expect(sourceAccountIds.size).toBeGreaterThan(0);
+      expect(sourceCurrencyCodes.length).toBeGreaterThan(0);
+      expect(sourceTransferLegs).toHaveLength(2);
+      expect(sourceTransferId).toBeTruthy();
+
+      // Export, but crucially DO NOT wipe the source — its rows stay live to collide.
+      const { base64 } = await exportArchive();
+
+      const target = await helpers.provisionSecondUserWithBaseCurrency();
+      await helpers.asUser({
+        cookies: target.cookies,
+        fn: async () => {
+          // Core regression: this completed only after keep-if-free remap. Before the
+          // fix the worker threw the UsersCurrencies_pkey collision and the job failed.
+          const restore = await helpers.restoreBackup({ fileContent: base64 });
+          expect(restore.statusCode).toBe(200);
+          const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+          expect(status.status).toBe('completed');
+
+          // The target received the full account set from the backup.
+          const targetAccounts = await helpers.getAccounts();
+          expect(targetAccounts.length).toBe(sourceAccounts.length);
+          const targetAccountIds = new Set(targetAccounts.map((a) => a.id));
+
+          // Disjoint-ids proof: the source still owns every original account UUID, so
+          // the target's accounts MUST have been reminted — not one target id may equal
+          // a source id. Verbatim reuse (the pre-fix behaviour) would share ids here.
+          for (const id of targetAccountIds) expect(sourceAccountIds.has(id)).toBe(false);
+
+          // UsersCurrencies restored: the exact source currency codes are readable under
+          // the target, proving the colliding rows landed (with fresh ids) rather than
+          // being dropped.
+          const targetCurrencyCodes = (await helpers.getUserCurrencies()).map((c) => c.currencyCode).toSorted();
+          expect(targetCurrencyCodes).toEqual(sourceCurrencyCodes);
+
+          // Internal consistency: every restored transaction points at one of the
+          // target's own (reminted) accounts — never a dangling source id. This is what
+          // proves the FKs were rewritten through the per-table old→final id map, not
+          // left pointing at the source rows.
+          const targetTx = await helpers.getTransactions({ raw: true, limit: 500 });
+          expect(targetTx.length).toBe(sourceTx.length);
+          for (const t of targetTx) expect(targetAccountIds.has(t.accountId)).toBe(true);
+
+          // The seeded transfer pair is visible under the target, queried by the SOURCE's
+          // transferId: `transferId` is a shared token copied verbatim (no PK constraint,
+          // so nothing to remap), so both legs still resolve under it and still agree.
+          const targetLegs = await helpers.getTransactionsByTransferId({ transferId: sourceTransferId!, raw: true });
+          expect(targetLegs).toHaveLength(2);
+          for (const leg of targetLegs) expect(leg.transferId).toBe(sourceTransferId);
+
+          // Holdings resolve under the target's own (reminted) portfolio. The source
+          // portfolio id was taken, so it must not appear among the target's portfolios,
+          // and the restored holding must hang off one that does.
+          const targetPortfolios = (await helpers.listPortfolios({ raw: true })).data;
+          // Set<string> so it accepts both the RecordId-branded portfolio ids and the
+          // plain-string portfolioId the holdings helper returns.
+          const targetPortfolioIds = new Set<string>(targetPortfolios.map((p) => p.id));
+          expect(targetPortfolioIds.has(sourcePortfolioId)).toBe(false);
+
+          let restoredHolding: { portfolioId: string } | undefined;
+          for (const p of targetPortfolios) {
+            const holdings = await helpers.getHoldings({ portfolioId: p.id, payload: {}, raw: true });
+            if (holdings.length > 0) {
+              restoredHolding = holdings[0];
+              break;
+            }
+          }
+          expect(restoredHolding).toBeDefined();
+          expect(targetPortfolioIds.has(restoredHolding!.portfolioId)).toBe(true);
+        },
+      });
+
+      // Source-intact proof: restoring onto the target must not have altered or deleted
+      // a single source row. Back as the source user, its accounts are all still present
+      // under the SAME original ids, and its UsersCurrencies are unchanged.
+      expect(await getCurrentUserId()).toBe(sourceUserId);
+      const sourceAccountsAfter = await helpers.getAccounts();
+      expect(new Set(sourceAccountsAfter.map((a) => a.id))).toEqual(sourceAccountIds);
+      expect(sourceAccountsAfter.some((a) => a.id === checking.id)).toBe(true);
+      const sourceCurrencyCodesAfter = (await helpers.getUserCurrencies()).map((c) => c.currencyCode).toSorted();
+      expect(sourceCurrencyCodesAfter).toEqual(sourceCurrencyCodes);
+    });
+  });
+
   // Backup files are user-editable (checksums recompute), so a hand-edited archive
   // can aim a child row's FK at another user's row — the DB constraint accepts ANY
   // existing row. The restore only accepts ids it inserted this run: a required

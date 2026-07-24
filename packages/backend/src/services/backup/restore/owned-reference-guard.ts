@@ -149,7 +149,8 @@ type GuardRowResult =
       keep: true;
       /** Attribute names of nullable FKs that were reset to null on a kept row. */
       nulledColumns: string[];
-      /** Column overrides (keyed by DB field) that null each foreign nullable FK. */
+      /** Column overrides (keyed by DB field): the remapped final id for each kept
+       *  FK, plus null for each foreign nullable FK. */
       overrides: Row;
     }
   | {
@@ -159,12 +160,13 @@ type GuardRowResult =
     };
 
 /**
- * Validate one row's guarded FKs against the ids inserted so far. A FK value is
- * legitimate only when it belongs to its target table's inserted-id set (the
- * restorer's own rows from this same archive). A foreign value on a required
- * column drops the row; on a nullable column it's reset to null. Null values are
- * fine. `insertedIds` is keyed by DB table name; the caller passes the guarded
- * FK set for this table (self-ref columns handled separately in the second pass).
+ * Remap one row's guarded FKs through the ids inserted so far. Each target
+ * table's map is backup id → final id for the restorer's own rows from this same
+ * archive, so a kept FK is rewritten to its final id (equal to the old id when
+ * that id was kept). A value absent from the target map is foreign/forged: it
+ * drops the row on a required column, or is reset to null on a nullable one. Null
+ * values are fine. `insertedIds` is keyed by DB table name; the caller passes the
+ * guarded FK set for this table (self-ref columns handled in the second pass).
  */
 export function guardRowReferences({
   guardedFks,
@@ -173,7 +175,7 @@ export function guardRowReferences({
 }: {
   guardedFks: GuardedFk[];
   row: Row;
-  insertedIds: Map<string, Set<string>>;
+  insertedIds: Map<string, Map<string, string>>;
 }): GuardRowResult {
   const overrides: Row = {};
   const nulledColumns: string[] = [];
@@ -182,8 +184,11 @@ export function guardRowReferences({
     const value = row[fk.attrName];
     if (value == null) continue;
 
-    const targetIds = insertedIds.get(fk.targetTable);
-    if (targetIds && targetIds.has(String(value))) continue;
+    const mapped = insertedIds.get(fk.targetTable)?.get(String(value));
+    if (mapped !== undefined) {
+      overrides[fk.field] = mapped;
+      continue;
+    }
 
     if (!fk.allowNull) {
       // A single required foreign FK is enough to drop the whole row; attribute
