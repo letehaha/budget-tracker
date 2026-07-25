@@ -144,7 +144,8 @@ describe('[Stats] Net worth history', () => {
 
       const [monthTwoAgo, monthOneAgo, current] = result.points;
 
-      expect(monthTwoAgo!.assets).toBe(1000);
+      expect(monthTwoAgo!.assetsTotal).toBe(1000);
+      expect(monthTwoAgo!.assets.cash).toBe(1000);
       expect(monthTwoAgo!.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(-500);
       expect(monthTwoAgo!.liabilities[ACCOUNT_CATEGORIES.loan]).toBe(-200_000);
       expect(monthTwoAgo!.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(0);
@@ -152,13 +153,15 @@ describe('[Stats] Net worth history', () => {
       expect(monthTwoAgo!.netWorth).toBe(-199_500);
 
       // A month with no transactions still shows the carried balances.
-      expect(monthOneAgo!.assets).toBe(1500);
+      expect(monthOneAgo!.assetsTotal).toBe(1500);
+      expect(monthOneAgo!.assets.cash).toBe(1500);
       expect(monthOneAgo!.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(-500);
       expect(monthOneAgo!.liabilities[ACCOUNT_CATEGORIES.loan]).toBe(-200_000);
       expect(monthOneAgo!.liabilitiesTotal).toBe(-200_500);
       expect(monthOneAgo!.netWorth).toBe(-199_000);
 
-      expect(current!.assets).toBe(1500);
+      expect(current!.assetsTotal).toBe(1500);
+      expect(current!.assets.cash).toBe(1500);
       expect(current!.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(-500);
       expect(current!.liabilities[ACCOUNT_CATEGORIES.loan]).toBe(-200_000);
       expect(current!.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(0);
@@ -174,7 +177,11 @@ describe('[Stats] Net worth history', () => {
 
       expect(result.points).toHaveLength(3);
       for (const point of result.points) {
-        expect(point.assets).toBe(0);
+        expect(point.assetsTotal).toBe(0);
+        expect(point.assets.cash).toBe(0);
+        expect(point.assets.investments).toBe(0);
+        expect(point.assets.vehicles).toBe(0);
+        expect(point.assets.ventures).toBe(0);
         expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
         expect(point.liabilities[ACCOUNT_CATEGORIES.loan]).toBe(0);
         expect(point.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(0);
@@ -249,7 +256,8 @@ describe('[Stats] Net worth history', () => {
 
       expect(result.points).toHaveLength(1);
       const point = result.points[0]!;
-      expect(point.assets).toBe(1000);
+      expect(point.assetsTotal).toBe(1000);
+      expect(point.assets.cash).toBe(1000);
       expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
       expect(point.liabilitiesTotal).toBe(0);
       expect(point.netWorth).toBe(1000);
@@ -285,8 +293,10 @@ describe('[Stats] Net worth history', () => {
       expect(result.points).toHaveLength(1);
       const point = result.points[0]!;
       // Sign rule: the card holds own funds, so it moves to assets and the
-      // liability kind reads 0; netWorth stays assets + liabilitiesTotal.
-      expect(point.assets).toBe(1200);
+      // liability kind reads 0; netWorth stays assets + liabilitiesTotal. The
+      // card's positive balance folds into the `cash` kind alongside the account.
+      expect(point.assetsTotal).toBe(1200);
+      expect(point.assets.cash).toBe(1200);
       expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
       expect(point.liabilitiesTotal).toBe(0);
       expect(point.netWorth).toBe(1200);
@@ -337,7 +347,8 @@ describe('[Stats] Net worth history', () => {
 
       expect(result.points).toHaveLength(1);
       const point = result.points[0]!;
-      expect(point.assets).toBe(1300);
+      expect(point.assetsTotal).toBe(1300);
+      expect(point.assets.cash).toBe(1300);
       expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(-500);
       expect(point.liabilitiesTotal).toBe(-500);
       expect(point.netWorth).toBe(800);
@@ -378,9 +389,12 @@ describe('[Stats] Net worth history', () => {
 
       expect(result.points).toHaveLength(1);
       const point = result.points[0]!;
-      // This path had zero coverage before — the holding must land in assets
-      // (and net worth), not silently read as 0.
-      expect(point.assets).toBe(1500);
+      // This path had zero coverage before — the holding must land in the
+      // `investments` asset kind (and net worth), not silently read as 0 or leak
+      // into the cash bucket.
+      expect(point.assetsTotal).toBe(1500);
+      expect(point.assets.investments).toBe(1500);
+      expect(point.assets.cash).toBe(0);
       expect(point.netWorth).toBe(1500);
     });
 
@@ -413,12 +427,11 @@ describe('[Stats] Net worth history', () => {
       expect(point.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(-400);
       expect(point.liabilitiesTotal).toBe(-400);
       expect(point.netWorth).toBe(-400);
-      expect(point.assets).toBe(0);
+      expect(point.assetsTotal).toBe(0);
     });
 
     it('backfills a loan payoff dated on the anchor day without rewriting earlier buckets', async () => {
       const monthTwoAgoStart = startOfMonth(subMonths(new Date(), 2));
-      const monthOneAgoStart = startOfMonth(subMonths(new Date(), 1));
       const from = formatDay(monthTwoAgoStart);
       const to = formatDay(new Date());
 
@@ -489,7 +502,9 @@ describe('[Stats] Net worth history', () => {
 
       expect(result.points).toHaveLength(1);
       const point = result.points[0]!;
-      expect(point.assets).toBe(25_000);
+      expect(point.assetsTotal).toBe(25_000);
+      expect(point.assets.vehicles).toBe(25_000);
+      expect(point.assets.cash).toBe(0);
       expect(point.netWorth).toBe(25_000);
     });
   });

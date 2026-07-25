@@ -5,19 +5,42 @@ import {
   differenceInCalendarMonths,
   differenceInCalendarQuarters,
   differenceInCalendarYears,
+  parseISO,
 } from 'date-fns';
 
 export const MAX_NET_WORTH_HISTORY_BUCKETS = endpointsTypes.MAX_NET_WORTH_HISTORY_BUCKETS;
 
+// One color per asset kind for the stacked bars, legend and tooltip dots. Fixed
+// mid-tone hues (Tailwind ~500 weight) that stay legible on both themes; cash keeps
+// a green so it still reads as the classic "assets" color. Liabilities stay red and
+// the net-worth line stays the theme foreground, so they never collide with these.
+export const NET_WORTH_ASSET_KIND_COLORS: Record<endpointsTypes.NetWorthAssetKind, string> = {
+  cash: 'rgb(16, 185, 129)', // emerald
+  investments: 'rgb(59, 130, 246)', // blue
+  vehicles: 'rgb(245, 158, 11)', // amber
+  ventures: 'rgb(168, 85, 247)', // purple
+};
+
+/** i18n label key per asset kind, shared by the filter, legend and tooltip. */
+export const NET_WORTH_ASSET_KIND_LABEL_KEYS: Record<endpointsTypes.NetWorthAssetKind, string> = {
+  cash: 'netWorthHistory.assetKinds.cash',
+  investments: 'netWorthHistory.assetKinds.investments',
+  vehicles: 'netWorthHistory.assetKinds.vehicles',
+  ventures: 'netWorthHistory.assetKinds.ventures',
+};
+
 export interface NetWorthDisplayPoint {
   /** yyyy-MM-dd bucket-end date the snapshot is taken at. */
   date: string;
-  assets: number;
-  /** Signed per-kind values for the selected kinds only, for the tooltip breakdown. */
+  /** Signed per-kind values for the selected asset kinds only, for the stacked bars and tooltip. */
+  assetsByKind: Partial<Record<endpointsTypes.NetWorthAssetKind, number>>;
+  /** Sum of the selected asset kinds; equals the server's assetsTotal when every kind is selected. */
+  assetsTotal: number;
+  /** Signed per-kind values for the selected liability kinds only, for the tooltip breakdown. */
   liabilitiesByKind: Partial<Record<endpointsTypes.NetWorthLiabilityKind, number>>;
   /** Sum of the selected kinds' signed values — negative = owed. */
   liabilitiesTotal: number;
-  /** assets + liabilitiesTotal; equals the server's netWorth when every kind is selected. */
+  /** assetsTotal + liabilitiesTotal; equals the server's netWorth when every kind is selected. */
   netWorth: number;
 }
 
@@ -31,17 +54,20 @@ export const kindsWithActivity = ({
     points.some((point) => (point.liabilities[kind] ?? 0) !== 0),
   );
 
+/** Asset kinds with a nonzero balance anywhere in the series, in canonical order. */
+export const assetKindsWithActivity = ({
+  points,
+}: {
+  points: endpointsTypes.NetWorthHistoryPoint[];
+}): endpointsTypes.NetWorthAssetKind[] =>
+  endpointsTypes.NET_WORTH_ASSET_KINDS.filter((kind) => points.some((point) => (point.assets[kind] ?? 0) !== 0));
+
 /**
  * Empty selection is the "all kinds" sentinel. A stored kind that has no activity
  * in the loaded series is dropped; if nothing valid remains, fall back to all.
+ * Generic over the kind so the asset and liability filters share one resolver.
  */
-export const resolveSelectedKinds = ({
-  stored,
-  available,
-}: {
-  stored: endpointsTypes.NetWorthLiabilityKind[];
-  available: endpointsTypes.NetWorthLiabilityKind[];
-}): endpointsTypes.NetWorthLiabilityKind[] => {
+export const resolveSelectedKinds = <T extends string>({ stored, available }: { stored: T[]; available: T[] }): T[] => {
   if (stored.length === 0) return available;
   const availableSet = new Set(available);
   const valid = stored.filter((kind) => availableSet.has(kind));
@@ -50,25 +76,37 @@ export const resolveSelectedKinds = ({
 
 export const buildDisplayPoints = ({
   points,
-  selectedKinds,
+  selectedAssetKinds,
+  selectedLiabilityKinds,
 }: {
   points: endpointsTypes.NetWorthHistoryPoint[];
-  selectedKinds: endpointsTypes.NetWorthLiabilityKind[];
+  selectedAssetKinds: endpointsTypes.NetWorthAssetKind[];
+  selectedLiabilityKinds: endpointsTypes.NetWorthLiabilityKind[];
 }): NetWorthDisplayPoint[] =>
   points.map((point) => {
+    const assetsByKind: NetWorthDisplayPoint['assetsByKind'] = {};
+    let assetsTotal = 0;
+    for (const kind of selectedAssetKinds) {
+      const value = point.assets[kind] ?? 0;
+      assetsByKind[kind] = value;
+      assetsTotal += value;
+    }
+
     const liabilitiesByKind: NetWorthDisplayPoint['liabilitiesByKind'] = {};
     let liabilitiesTotal = 0;
-    for (const kind of selectedKinds) {
+    for (const kind of selectedLiabilityKinds) {
       const value = point.liabilities[kind] ?? 0;
       liabilitiesByKind[kind] = value;
       liabilitiesTotal += value;
     }
+
     return {
       date: point.date,
-      assets: point.assets,
+      assetsByKind,
+      assetsTotal,
       liabilitiesByKind,
       liabilitiesTotal,
-      netWorth: point.assets + liabilitiesTotal,
+      netWorth: assetsTotal + liabilitiesTotal,
     };
   });
 
@@ -113,9 +151,9 @@ export const computeLiabilityScale = ({
   let allAboveBaselineNonNegative = true;
 
   for (const point of points) {
-    maxPositive = Math.max(maxPositive, point.assets, point.netWorth, point.liabilitiesTotal);
+    maxPositive = Math.max(maxPositive, point.assetsTotal, point.netWorth, point.liabilitiesTotal);
     if (point.liabilitiesTotal < 0) maxOwed = Math.max(maxOwed, -point.liabilitiesTotal);
-    if (point.netWorth < 0 || point.assets < 0) allAboveBaselineNonNegative = false;
+    if (point.netWorth < 0 || point.assetsTotal < 0) allAboveBaselineNonNegative = false;
   }
 
   return {
@@ -145,6 +183,30 @@ export const computePeriodChange = ({
   const amount = last.netWorth - first.netWorth;
   const pct = first.netWorth !== 0 ? (amount / Math.abs(first.netWorth)) * 100 : null;
   return { amount, pct };
+};
+
+// Below one year, annualizing extrapolates a partial period into a full-year rate,
+// which overstates the trend — so a compound annual growth rate is only reported
+// for ranges of at least a year.
+const MIN_YEARS_FOR_ANNUALIZED = 1;
+const DAYS_PER_YEAR = 365.25;
+
+/**
+ * Compound annual growth rate of net worth across the displayed range, as a
+ * percentage. Null when it can't be expressed as compounding growth: a
+ * non-positive endpoint (net worth that started or ended at/below zero has no
+ * meaningful ratio) or a span shorter than a year.
+ */
+export const annualizedGrowthPct = ({ points }: { points: NetWorthDisplayPoint[] }): number | null => {
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (!first || !last || first === last) return null;
+  if (first.netWorth <= 0 || last.netWorth <= 0) return null;
+
+  const years = differenceInCalendarDays(parseISO(last.date), parseISO(first.date)) / DAYS_PER_YEAR;
+  if (years < MIN_YEARS_FOR_ANNUALIZED) return null;
+
+  return (Math.pow(last.netWorth / first.netWorth, 1 / years) - 1) * 100;
 };
 
 /** Calendar buckets the range spans at a granularity — mirrors how the API buckets. */

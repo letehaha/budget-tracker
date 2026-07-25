@@ -331,9 +331,22 @@
       "selectedOne": "1 type",
       "selectedMany": "{n} types"
     },
+    "assetKinds": {
+      "cash": "Cash & accounts",
+      "investments": "Investments",
+      "vehicles": "Vehicles",
+      "ventures": "Ventures"
+    },
+    "assetFilter": {
+      "all": "All assets",
+      "scopeHint": "Choose which asset types count in this report.",
+      "selectedOne": "1 type",
+      "selectedMany": "{n} types"
+    },
     "cards": {
       "currentNetWorth": "Current net worth",
       "periodChange": "Period change",
+      "annualized": "≈ {pct} / yr",
       "averageLiabilities": "You have an average of {amount} in liabilities during the selected period.",
       "noLiabilities": "You had no liabilities during the selected period."
     },

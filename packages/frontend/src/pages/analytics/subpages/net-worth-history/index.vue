@@ -8,7 +8,8 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <PeriodSelector v-model="selectedPeriod" />
       <div class="flex flex-wrap items-center gap-2">
-        <LiabilityKindFilter v-model="storedKinds" :kinds="availableKinds" />
+        <AssetKindFilter v-model="storedAssetKinds" :kinds="availableAssetKinds" />
+        <LiabilityKindFilter v-model="storedLiabilityKinds" :kinds="availableLiabilityKinds" />
         <GranularitySelector
           :model-value="effectiveGranularity"
           :granularities="endpointsTypes.NET_WORTH_HISTORY_GRANULARITIES"
@@ -51,6 +52,9 @@
           >
             {{ formattedPeriodChange }}
             <span v-if="periodChange.pct !== null" class="text-sm font-medium"> ({{ formattedPeriodChangePct }}) </span>
+          </div>
+          <div v-if="formattedAnnualizedGrowth" class="text-muted-foreground mt-0.5 text-xs">
+            {{ $t('netWorthHistory.cards.annualized', { pct: formattedAnnualizedGrowth }) }}
           </div>
         </div>
 
@@ -101,10 +105,13 @@ import { createPeriodSerializer } from '../../utils';
 import GranularitySelector from '../../components/granularity-selector.vue';
 import PeriodSelector from '../cash-flow/components/period-selector.vue';
 import SummaryCard from '../cash-flow/components/summary-card.vue';
+import AssetKindFilter from './components/asset-kind-filter.vue';
 import LiabilityKindFilter from './components/liability-kind-filter.vue';
 import NetWorthChart from './components/net-worth-chart.vue';
 import SettingsPopover from './components/net-worth-history-settings-popover.vue';
 import {
+  annualizedGrowthPct,
+  assetKindsWithActivity,
   autoGranularity,
   averageOwedLiabilities,
   buildDisplayPoints,
@@ -175,21 +182,35 @@ const query = useQuery({
 
 const points = computed(() => query.data.value?.points ?? []);
 
-// Empty = all kinds (the sentinel the filter component shares). Kind toggling is
+// Empty = all kinds (the sentinel the filter components share). Kind toggling is
 // purely client-side — it reshapes the loaded series, never refetches.
-const storedKinds = useLocalStorage<endpointsTypes.NetWorthLiabilityKind[]>('net-worth-history-liability-kinds', []);
+const storedLiabilityKinds = useLocalStorage<endpointsTypes.NetWorthLiabilityKind[]>(
+  'net-worth-history-liability-kinds',
+  [],
+);
+const storedAssetKinds = useLocalStorage<endpointsTypes.NetWorthAssetKind[]>('net-worth-history-asset-kinds', []);
 
-const availableKinds = computed(() => kindsWithActivity({ points: points.value }));
+const availableLiabilityKinds = computed(() => kindsWithActivity({ points: points.value }));
+const availableAssetKinds = computed(() => assetKindsWithActivity({ points: points.value }));
 
-const selectedKinds = computed(() =>
-  resolveSelectedKinds({ stored: storedKinds.value, available: availableKinds.value }),
+const selectedLiabilityKinds = computed(() =>
+  resolveSelectedKinds({ stored: storedLiabilityKinds.value, available: availableLiabilityKinds.value }),
+);
+const selectedAssetKinds = computed(() =>
+  resolveSelectedKinds({ stored: storedAssetKinds.value, available: availableAssetKinds.value }),
 );
 
-const displayPoints = computed(() => buildDisplayPoints({ points: points.value, selectedKinds: selectedKinds.value }));
+const displayPoints = computed(() =>
+  buildDisplayPoints({
+    points: points.value,
+    selectedAssetKinds: selectedAssetKinds.value,
+    selectedLiabilityKinds: selectedLiabilityKinds.value,
+  }),
+);
 
 // The backend returns a full list of all-zero buckets even for a user with no
 // balances, so row presence can't distinguish "no data" — only nonzero values can.
-const hasData = computed(() => points.value.some((point) => point.assets !== 0 || point.liabilitiesTotal !== 0));
+const hasData = computed(() => points.value.some((point) => point.assetsTotal !== 0 || point.liabilitiesTotal !== 0));
 
 const { formatBaseCurrency } = useFormatCurrency();
 
@@ -205,6 +226,14 @@ const formattedPeriodChange = computed(() => {
 
 const formattedPeriodChangePct = computed(() => {
   const pct = periodChange.value.pct;
+  if (pct === null) return '';
+  return `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+});
+
+// Compound annual growth rate, shown under the period change for ranges of a year
+// or more; empty string suppresses the line for shorter or non-positive ranges.
+const formattedAnnualizedGrowth = computed(() => {
+  const pct = annualizedGrowthPct({ points: displayPoints.value });
   if (pct === null) return '';
   return `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
 });

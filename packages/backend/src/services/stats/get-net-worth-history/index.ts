@@ -277,14 +277,17 @@ export const getNetWorthHistory = async ({
     });
     const loanCents = resolveLoan(dateStr);
 
-    const assets = asCents(
-      resolveAssetAccounts(dateStr) +
-        readAssetValue({ map: vehicleValuesByDate, dateStr, label: 'vehicle', userId }) +
-        readAssetValue({ map: portfolioValuesByDate, dateStr, label: 'portfolio', userId }) +
-        readAssetValue({ map: ventureValuesByDate, dateStr, label: 'venture', userId }) +
-        creditCard.surplusCents +
-        overdraft.surplusCents,
-    );
+    // Each asset class is already computed by its own sub-calculator above; this
+    // groups them into the report's kinds instead of summing to one number.
+    // `cash` folds deposit accounts with the own-funds surplus of any card or
+    // overdraft currently in the black.
+    const assets: Record<endpointsTypes.NetWorthAssetKind, Cents> = {
+      cash: asCents(resolveAssetAccounts(dateStr) + creditCard.surplusCents + overdraft.surplusCents),
+      investments: asCents(readAssetValue({ map: portfolioValuesByDate, dateStr, label: 'portfolio', userId })),
+      vehicles: asCents(readAssetValue({ map: vehicleValuesByDate, dateStr, label: 'vehicle', userId })),
+      ventures: asCents(readAssetValue({ map: ventureValuesByDate, dateStr, label: 'venture', userId })),
+    };
+    const assetsTotal = asCents(endpointsTypes.NET_WORTH_ASSET_KINDS.reduce((sum, kind) => sum + assets[kind], 0));
 
     const liabilitiesTotal = asCents(creditCard.owedCents + overdraft.owedCents + loanCents);
 
@@ -300,6 +303,7 @@ export const getNetWorthHistory = async ({
     return {
       date: dateStr,
       assets,
+      assetsTotal,
       liabilities: endpointsTypes.NET_WORTH_LIABILITY_KINDS.reduce(
         (acc, kind) => {
           acc[kind] = owedCentsByKind[kind];
@@ -308,7 +312,7 @@ export const getNetWorthHistory = async ({
         {} as Record<endpointsTypes.NetWorthLiabilityKind, Cents>,
       ),
       liabilitiesTotal,
-      netWorth: asCents(assets + liabilitiesTotal),
+      netWorth: asCents(assetsTotal + liabilitiesTotal),
     };
   });
 

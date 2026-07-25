@@ -1,9 +1,11 @@
-import { ACCOUNT_CATEGORIES, type endpointsTypes } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, endpointsTypes } from '@bt/shared/types';
 import { addDays, addWeeks, startOfISOWeek } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 
 import {
   MAX_NET_WORTH_HISTORY_BUCKETS,
+  annualizedGrowthPct,
+  assetKindsWithActivity,
   autoGranularity,
   averageOwedLiabilities,
   buildDisplayPoints,
@@ -19,26 +21,41 @@ const CREDIT_CARD = ACCOUNT_CATEGORIES.creditCard as endpointsTypes.NetWorthLiab
 const LOAN = ACCOUNT_CATEGORIES.loan as endpointsTypes.NetWorthLiabilityKind;
 const OVERDRAFT = ACCOUNT_CATEGORIES.overdraft as endpointsTypes.NetWorthLiabilityKind;
 
+const CASH: endpointsTypes.NetWorthAssetKind = 'cash';
+const INVESTMENTS: endpointsTypes.NetWorthAssetKind = 'investments';
+const VEHICLES: endpointsTypes.NetWorthAssetKind = 'vehicles';
+const ALL_ASSET_KINDS: endpointsTypes.NetWorthAssetKind[] = [...endpointsTypes.NET_WORTH_ASSET_KINDS];
+
 const buildPoint = ({
   date,
+  // `assets` is shorthand for the `cash` kind — most tests only need one asset bucket.
   assets = 0,
+  investments = 0,
+  vehicles = 0,
+  ventures = 0,
   creditCard = 0,
   loan = 0,
   overdraft = 0,
 }: {
   date: string;
   assets?: number;
+  investments?: number;
+  vehicles?: number;
+  ventures?: number;
   creditCard?: number;
   loan?: number;
   overdraft?: number;
 }): endpointsTypes.NetWorthHistoryPoint => {
+  const assetsByKind = { cash: assets, investments, vehicles, ventures };
+  const assetsTotal = assets + investments + vehicles + ventures;
   const liabilitiesTotal = creditCard + loan + overdraft;
   return {
     date,
-    assets,
+    assets: assetsByKind,
+    assetsTotal,
     liabilities: { 'credit-card': creditCard, loan, overdraft },
     liabilitiesTotal,
-    netWorth: assets + liabilitiesTotal,
+    netWorth: assetsTotal + liabilitiesTotal,
   };
 };
 
@@ -65,6 +82,24 @@ describe('kindsWithActivity', () => {
   });
 });
 
+describe('assetKindsWithActivity', () => {
+  it('keeps only asset kinds with a nonzero balance somewhere in the series', () => {
+    const kinds = assetKindsWithActivity({
+      points: [buildPoint({ date: '2026-01-31', assets: 100 }), buildPoint({ date: '2026-02-28', vehicles: 25_000 })],
+    });
+
+    expect(kinds).toEqual([CASH, VEHICLES]);
+  });
+
+  it('counts a negative (overdrawn) cash balance as activity', () => {
+    expect(assetKindsWithActivity({ points: [buildPoint({ date: '2026-01-31', assets: -40 })] })).toEqual([CASH]);
+  });
+
+  it('returns empty for an all-zero series', () => {
+    expect(assetKindsWithActivity({ points: [buildPoint({ date: '2026-01-31' })] })).toEqual([]);
+  });
+});
+
 describe('resolveSelectedKinds', () => {
   it('treats an empty selection as all available kinds', () => {
     expect(resolveSelectedKinds({ stored: [], available: [CREDIT_CARD, LOAN] })).toEqual([CREDIT_CARD, LOAN]);
@@ -77,30 +112,55 @@ describe('resolveSelectedKinds', () => {
   it('falls back to all when nothing stored survives', () => {
     expect(resolveSelectedKinds({ stored: [OVERDRAFT], available: [CREDIT_CARD] })).toEqual([CREDIT_CARD]);
   });
+
+  it('resolves asset kinds through the same generic helper', () => {
+    expect(resolveSelectedKinds({ stored: [INVESTMENTS], available: [CASH, INVESTMENTS] })).toEqual([INVESTMENTS]);
+  });
 });
 
 describe('buildDisplayPoints', () => {
-  it('sums only the selected kinds and rebuilds net worth from them', () => {
+  it('sums only the selected liability kinds and rebuilds net worth from them', () => {
     const [point] = buildDisplayPoints({
       points: [buildPoint({ date: '2026-01-31', assets: 1000, creditCard: -100, loan: -400 })],
-      selectedKinds: [CREDIT_CARD],
+      selectedAssetKinds: [CASH],
+      selectedLiabilityKinds: [CREDIT_CARD],
     });
 
     expect(point).toEqual({
       date: '2026-01-31',
-      assets: 1000,
+      assetsByKind: { cash: 1000 },
+      assetsTotal: 1000,
       liabilitiesByKind: { 'credit-card': -100 },
       liabilitiesTotal: -100,
       netWorth: 900,
     });
   });
 
+  it('sums only the selected asset kinds and rebuilds assets and net worth', () => {
+    const [point] = buildDisplayPoints({
+      points: [buildPoint({ date: '2026-01-31', assets: 1000, investments: 5000, vehicles: 2000, creditCard: -100 })],
+      selectedAssetKinds: [CASH, INVESTMENTS],
+      selectedLiabilityKinds: [CREDIT_CARD],
+    });
+
+    expect(point).toEqual({
+      date: '2026-01-31',
+      assetsByKind: { cash: 1000, investments: 5000 },
+      assetsTotal: 6000,
+      liabilitiesByKind: { 'credit-card': -100 },
+      liabilitiesTotal: -100,
+      netWorth: 5900,
+    });
+  });
+
   it('matches the server totals when every kind is selected', () => {
     const [point] = buildDisplayPoints({
       points: [buildPoint({ date: '2026-01-31', assets: 1000, creditCard: -100, loan: -400, overdraft: -50 })],
-      selectedKinds: [CREDIT_CARD, LOAN, OVERDRAFT],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [CREDIT_CARD, LOAN, OVERDRAFT],
     });
 
+    expect(point!.assetsTotal).toBe(1000);
     expect(point!.liabilitiesTotal).toBe(-550);
     expect(point!.netWorth).toBe(450);
   });
@@ -113,7 +173,8 @@ describe('averageOwedLiabilities', () => {
         buildPoint({ date: '2026-01-31', creditCard: -100 }),
         buildPoint({ date: '2026-02-28', creditCard: -300 }),
       ],
-      selectedKinds: [CREDIT_CARD],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [CREDIT_CARD],
     });
 
     expect(averageOwedLiabilities({ points })).toBe(200);
@@ -122,7 +183,8 @@ describe('averageOwedLiabilities', () => {
   it('reads as zero when the mean is overpaid or flat', () => {
     const points = buildDisplayPoints({
       points: [buildPoint({ date: '2026-01-31', creditCard: 50 }), buildPoint({ date: '2026-02-28', creditCard: -30 })],
-      selectedKinds: [CREDIT_CARD],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [CREDIT_CARD],
     });
 
     expect(averageOwedLiabilities({ points })).toBe(0);
@@ -138,7 +200,8 @@ describe('computeLiabilityScale', () => {
   }) =>
     buildDisplayPoints({
       points: entries.map((entry) => buildPoint(entry)),
-      selectedKinds: [CREDIT_CARD, LOAN],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [CREDIT_CARD, LOAN],
     });
 
   it('zooms when owed totals are tiny next to the positive extreme', () => {
@@ -208,7 +271,8 @@ describe('computePeriodChange', () => {
   it('returns last-minus-first with a percentage against the first point', () => {
     const points = buildDisplayPoints({
       points: [buildPoint({ date: '2026-01-31', assets: 1000 }), buildPoint({ date: '2026-06-30', assets: 1500 })],
-      selectedKinds: [],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [],
     });
 
     expect(computePeriodChange({ points })).toEqual({ amount: 500, pct: 50 });
@@ -220,7 +284,8 @@ describe('computePeriodChange', () => {
         buildPoint({ date: '2026-01-31', assets: 100, loan: -300 }),
         buildPoint({ date: '2026-06-30', assets: 100, loan: -100 }),
       ],
-      selectedKinds: [LOAN],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [LOAN],
     });
 
     expect(computePeriodChange({ points })).toEqual({ amount: 200, pct: 100 });
@@ -229,11 +294,56 @@ describe('computePeriodChange', () => {
   it('suppresses the percentage when the first point is zero', () => {
     const points = buildDisplayPoints({
       points: [buildPoint({ date: '2026-01-31' }), buildPoint({ date: '2026-06-30', assets: 500 })],
-      selectedKinds: [],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [],
     });
 
     expect(computePeriodChange({ points })).toEqual({ amount: 500, pct: null });
     expect(computePeriodChange({ points: [] })).toEqual({ amount: 0, pct: null });
+  });
+});
+
+describe('annualizedGrowthPct', () => {
+  it('annualizes net-worth growth over a multi-year range', () => {
+    // 100k → 200k over exactly two years compounds to ~41.4%/yr.
+    const points = buildDisplayPoints({
+      points: [
+        buildPoint({ date: '2024-01-01', investments: 100_000 }),
+        buildPoint({ date: '2026-01-01', investments: 200_000 }),
+      ],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [],
+    });
+
+    const pct = annualizedGrowthPct({ points });
+    expect(pct).not.toBeNull();
+    expect(pct!).toBeCloseTo(41.4, 0);
+  });
+
+  it('does not annualize ranges shorter than a year', () => {
+    const points = buildDisplayPoints({
+      points: [
+        buildPoint({ date: '2026-01-01', investments: 100_000 }),
+        buildPoint({ date: '2026-06-30', investments: 150_000 }),
+      ],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [],
+    });
+
+    expect(annualizedGrowthPct({ points })).toBeNull();
+  });
+
+  it('is null when an endpoint net worth is not positive', () => {
+    const points = buildDisplayPoints({
+      points: [
+        buildPoint({ date: '2024-01-01', investments: 100, loan: -100 }),
+        buildPoint({ date: '2026-01-01', investments: 5000 }),
+      ],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [LOAN],
+    });
+
+    expect(annualizedGrowthPct({ points })).toBeNull();
   });
 });
 

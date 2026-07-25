@@ -340,6 +340,20 @@ export function serializeNetWorthDrivers(
 // ============================================================================
 
 /**
+ * Decimalize an asset-kinds record, keyed off the canonical tuple so every kind
+ * the API contract declares is present regardless of insertion order.
+ */
+const decimalizeAssets = (
+  assets: Record<endpointsTypes.NetWorthAssetKind, number>,
+): Record<endpointsTypes.NetWorthAssetKind, number> => {
+  const result = {} as Record<endpointsTypes.NetWorthAssetKind, number>;
+  for (const kind of endpointsTypes.NET_WORTH_ASSET_KINDS) {
+    result[kind] = centsToApiDecimal(assets[kind]);
+  }
+  return result;
+};
+
+/**
  * Decimalize a liability-kinds record, keyed off the canonical tuple so every
  * kind the API contract declares is present regardless of insertion order.
  */
@@ -363,7 +377,8 @@ export function serializeNetWorthHistory(
   return {
     points: result.points.map((point) => ({
       date: point.date,
-      assets: centsToApiDecimal(point.assets),
+      assets: decimalizeAssets(point.assets),
+      assetsTotal: centsToApiDecimal(point.assetsTotal),
       liabilities: decimalizeLiabilities(point.liabilities),
       liabilitiesTotal: centsToApiDecimal(point.liabilitiesTotal),
       netWorth: centsToApiDecimal(point.netWorth),

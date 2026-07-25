@@ -11,26 +11,40 @@
       >
         <div class="mb-1.5 font-medium">{{ tooltip.periodLabel }}</div>
 
+        <div class="text-muted-foreground text-xs">{{ $t('netWorthHistory.chart.assets') }}</div>
+        <div class="text-app-income-color mb-1 text-base font-semibold tabular-nums">
+          {{ formatBaseCurrency(tooltip.assetsTotal) }}
+        </div>
         <div class="space-y-1">
-          <div class="flex items-center justify-between gap-4">
+          <div v-for="entry in tooltip.assetKinds" :key="entry.kind" class="flex items-center justify-between gap-4">
             <span class="flex items-center gap-2">
-              <span class="bg-app-income-color inline-block size-2.5 rounded-full" />
-              <span class="text-muted-foreground">{{ $t('netWorthHistory.chart.assets') }}</span>
+              <span
+                class="inline-block size-2.5 rounded-full"
+                :style="{ backgroundColor: NET_WORTH_ASSET_KIND_COLORS[entry.kind] }"
+              />
+              <span class="text-muted-foreground">{{ $t(NET_WORTH_ASSET_KIND_LABEL_KEYS[entry.kind]) }}</span>
             </span>
-            <span class="font-medium tabular-nums">{{ formatBaseCurrency(tooltip.assets) }}</span>
+            <span class="font-medium tabular-nums">{{ formatBaseCurrency(entry.value) }}</span>
           </div>
+        </div>
 
-          <div v-for="entry in tooltip.kinds" :key="entry.kind" class="flex items-center justify-between gap-4">
-            <span class="flex items-center gap-2">
-              <span class="bg-app-expense-color inline-block size-2.5 rounded-full" />
-              <span class="text-muted-foreground">{{ $t(ACCOUNT_CATEGORIES_TRANSLATION_KEYS[entry.kind]) }}</span>
-            </span>
-            <span class="font-medium tabular-nums">{{ formatLiabilityValue(entry.value) }}</span>
-          </div>
-
+        <div v-if="tooltip.liabilityKinds.length" class="border-border mt-1.5 border-t pt-1.5">
           <div class="flex items-center justify-between gap-4">
-            <span class="text-muted-foreground pl-[1.125rem]">{{ $t('netWorthHistory.chart.liabilitiesTotal') }}</span>
+            <span class="text-muted-foreground">{{ $t('netWorthHistory.chart.liabilities') }}</span>
             <span class="font-medium tabular-nums">{{ formatLiabilityValue(tooltip.liabilitiesTotal) }}</span>
+          </div>
+          <div class="mt-1 space-y-1">
+            <div
+              v-for="entry in tooltip.liabilityKinds"
+              :key="entry.kind"
+              class="flex items-center justify-between gap-4 pl-[1.125rem]"
+            >
+              <span class="flex items-center gap-2">
+                <span class="bg-app-expense-color inline-block size-2.5 rounded-full" />
+                <span class="text-muted-foreground">{{ $t(ACCOUNT_CATEGORIES_TRANSLATION_KEYS[entry.kind]) }}</span>
+              </span>
+              <span class="font-medium tabular-nums">{{ formatLiabilityValue(entry.value) }}</span>
+            </div>
           </div>
         </div>
 
@@ -47,11 +61,11 @@
     </div>
 
     <div class="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm">
-      <div class="flex items-center gap-2">
-        <span class="bg-app-income-color inline-block size-3 rounded-sm" />
-        <span class="text-muted-foreground">{{ $t('netWorthHistory.chart.assets') }}</span>
+      <div v-for="kind in presentAssetKinds" :key="kind" class="flex items-center gap-2">
+        <span class="inline-block size-3 rounded-sm" :style="{ backgroundColor: NET_WORTH_ASSET_KIND_COLORS[kind] }" />
+        <span class="text-muted-foreground">{{ $t(NET_WORTH_ASSET_KIND_LABEL_KEYS[kind]) }}</span>
       </div>
-      <div class="flex items-center gap-2">
+      <div v-if="hasLiabilities" class="flex items-center gap-2">
         <span class="bg-app-expense-color inline-block size-3 rounded-sm" />
         <span class="text-muted-foreground">{{ $t('netWorthHistory.chart.liabilities') }}</span>
       </div>
@@ -78,13 +92,18 @@ import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useDateLocale } from '@/composable/use-date-locale';
-import type { endpointsTypes } from '@bt/shared/types';
+import { endpointsTypes } from '@bt/shared/types';
 import { useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
 import { parseISO } from 'date-fns';
 import { computed, reactive, ref, watch } from 'vue';
 
-import { type NetWorthDisplayPoint, computeLiabilityScale } from '../composables/net-worth-history-derivations';
+import {
+  NET_WORTH_ASSET_KIND_COLORS,
+  NET_WORTH_ASSET_KIND_LABEL_KEYS,
+  type NetWorthDisplayPoint,
+  computeLiabilityScale,
+} from '../composables/net-worth-history-derivations';
 
 const props = defineProps<{
   points: NetWorthDisplayPoint[];
@@ -115,8 +134,13 @@ const POSITIVE_REGION_RATIO = 0.82;
 const OWED_DOMAIN_HEADROOM = 1.1;
 const OWED_REGION_TINT_OPACITY = 0.06;
 
-interface TooltipKindEntry {
+interface TooltipLiabilityEntry {
   kind: endpointsTypes.NetWorthLiabilityKind;
+  value: number;
+}
+
+interface TooltipAssetEntry {
+  kind: endpointsTypes.NetWorthAssetKind;
   value: number;
 }
 
@@ -125,9 +149,10 @@ const tooltip = reactive({
   x: 0,
   y: 0,
   periodLabel: '',
-  assets: 0,
-  kinds: [] as TooltipKindEntry[],
+  assetsTotal: 0,
+  assetKinds: [] as TooltipAssetEntry[],
   liabilitiesTotal: 0,
+  liabilityKinds: [] as TooltipLiabilityEntry[],
   netWorth: 0,
 });
 
@@ -137,6 +162,17 @@ const { updateTooltipPosition } = useChartTooltipPosition({ containerRef, toolti
 const liabilityScale = computed(() =>
   computeLiabilityScale({ points: props.points, zoomEnabled: props.zoomLiabilitiesScale }),
 );
+
+// Asset kinds present in the current (already kind-filtered) series, in canonical
+// order — drives the legend swatches. The stacked bars iterate the same tuple.
+const presentAssetKinds = computed(() =>
+  endpointsTypes.NET_WORTH_ASSET_KINDS.filter((kind) =>
+    props.points.some((point) => point.assetsByKind[kind] !== undefined),
+  ),
+);
+
+// A debt-free range draws no liability bar, so its legend swatch is dropped too.
+const hasLiabilities = computed(() => props.points.some((point) => point.liabilitiesTotal !== 0));
 
 const getMargins = ({ width }: { width: number }) => {
   const isMobile = width < MOBILE_BREAKPOINT_PX;
@@ -186,6 +222,21 @@ const formatLiabilityValue = (value: number): string => {
   if (value > 0) return `+${formatBaseCurrency(value)}`;
   return formatBaseCurrency(value);
 };
+
+// The asset stack rises to the sum of its positive kinds and hangs to the sum of
+// its negative ones; the y-domain needs both extremes so a rare negative kind
+// (an overdrawn cash bucket) isn't clipped.
+const positiveAssetSum = (point: NetWorthDisplayPoint): number =>
+  endpointsTypes.NET_WORTH_ASSET_KINDS.reduce((sum, kind) => {
+    const value = point.assetsByKind[kind] ?? 0;
+    return value > 0 ? sum + value : sum;
+  }, 0);
+
+const negativeAssetSum = (point: NetWorthDisplayPoint): number =>
+  endpointsTypes.NET_WORTH_ASSET_KINDS.reduce((sum, kind) => {
+    const value = point.assetsByKind[kind] ?? 0;
+    return value < 0 ? sum + value : sum;
+  }, 0);
 
 const renderChart = () => {
   if (!svgRef.value || !containerRef.value) return;
@@ -288,7 +339,12 @@ const renderChart = () => {
     const owedTicks = yOwed.ticks(2).filter((value) => value < 0);
     drawYAxisWithGrid({ scale: yOwed, tickValues: owedTicks.length > 0 ? owedTicks : [-maxOwed] });
   } else {
-    const allValues = points.flatMap((point) => [point.assets, point.liabilitiesTotal, point.netWorth]);
+    const allValues = points.flatMap((point) => [
+      positiveAssetSum(point),
+      negativeAssetSum(point),
+      point.liabilitiesTotal,
+      point.netWorth,
+    ]);
     if (props.averageOwed > 0) allValues.push(-props.averageOwed);
     const yScale = d3
       .scaleLinear()
@@ -352,7 +408,43 @@ const renderChart = () => {
       .style('pointer-events', 'none');
   };
 
-  drawSignedBars({ className: 'bar-assets', accessor: (point) => point.assets, fill: colors.appIncome });
+  // Stacked asset bars: each present kind is its own segment. Positive kinds stack
+  // upward from the baseline; a negative kind hangs below it, continuing its own
+  // downward run so a positive kind never masks it.
+  interface AssetSegmentRect {
+    x: number;
+    y: number;
+    height: number;
+    color: string;
+  }
+  const assetSegments: AssetSegmentRect[] = [];
+  for (const point of points) {
+    const x = barX(point);
+    let posCum = 0;
+    let negCum = 0;
+    for (const kind of endpointsTypes.NET_WORTH_ASSET_KINDS) {
+      const value = point.assetsByKind[kind] ?? 0;
+      if (value === 0) continue;
+      const color = NET_WORTH_ASSET_KIND_COLORS[kind];
+      const [from, to] = value > 0 ? [posCum, (posCum += value)] : [negCum, (negCum += value)];
+      const yStart = yFor(from);
+      const yEnd = yFor(to);
+      assetSegments.push({ x, y: Math.min(yStart, yEnd), height: Math.abs(yStart - yEnd), color });
+    }
+  }
+
+  g.selectAll('.bar-asset-segment')
+    .data(assetSegments)
+    .enter()
+    .append('rect')
+    .attr('class', 'bar-asset-segment')
+    .attr('x', (segment) => segment.x)
+    .attr('y', (segment) => segment.y)
+    .attr('width', barWidth)
+    .attr('height', (segment) => segment.height)
+    .attr('fill', (segment) => segment.color)
+    .style('pointer-events', 'none');
+
   drawSignedBars({
     className: 'bar-liabilities',
     accessor: (point) => point.liabilitiesTotal,
@@ -417,6 +509,20 @@ const renderChart = () => {
       .style('pointer-events', 'none');
   }
 
+  // All-time-high marker: a hollow ring on the net-worth line at its peak bucket.
+  if (points.length >= 2) {
+    const peak = points.reduce((best, point) => (point.netWorth > best.netWorth ? point : best), points[0]!);
+    g.append('circle')
+      .attr('class', 'net-worth-peak')
+      .attr('cx', bandCenter(peak))
+      .attr('cy', yFor(peak.netWorth))
+      .attr('r', 5)
+      .attr('fill', 'none')
+      .attr('stroke', colors.foreground)
+      .attr('stroke-width', 2)
+      .style('pointer-events', 'none');
+  }
+
   // Hover crosshair + highlight dot on the net-worth line.
   const hoverLine = g
     .append('line')
@@ -457,12 +563,14 @@ const renderChart = () => {
       hoverDot.attr('cx', cx).attr('cy', yFor(point.netWorth));
 
       tooltip.periodLabel = formatTooltipPeriodLabel(point.date);
-      tooltip.assets = point.assets;
-      tooltip.kinds = Object.entries(point.liabilitiesByKind).map(([kind, value]) => ({
-        kind: kind as endpointsTypes.NetWorthLiabilityKind,
-        value: value ?? 0,
-      }));
+      tooltip.assetsTotal = point.assetsTotal;
+      tooltip.assetKinds = endpointsTypes.NET_WORTH_ASSET_KINDS.filter(
+        (kind) => point.assetsByKind[kind] !== undefined,
+      ).map((kind) => ({ kind, value: point.assetsByKind[kind] ?? 0 }));
       tooltip.liabilitiesTotal = point.liabilitiesTotal;
+      tooltip.liabilityKinds = endpointsTypes.NET_WORTH_LIABILITY_KINDS.filter(
+        (kind) => point.liabilitiesByKind[kind] !== undefined,
+      ).map((kind) => ({ kind, value: point.liabilitiesByKind[kind] ?? 0 }));
       tooltip.netWorth = point.netWorth;
       tooltip.visible = true;
       updateTooltipPosition(event);

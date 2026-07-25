@@ -518,6 +518,14 @@ export const NET_WORTH_LIABILITY_KINDS = [
 ] as const;
 export type NetWorthLiabilityKind = (typeof NET_WORTH_LIABILITY_KINDS)[number];
 
+// Asset classes the report splits net-worth assets into. Report-specific rather than
+// ACCOUNT_CATEGORIES values because vehicles and ventures are their own entities, and
+// `cash` folds every deposit account (regular/savings/cash, plus a positive-balance
+// card or overdraft) into one bucket. The client derives filtered views by toggling
+// kinds, so it never refetches.
+export const NET_WORTH_ASSET_KINDS = ['cash', 'investments', 'vehicles', 'ventures'] as const;
+export type NetWorthAssetKind = (typeof NET_WORTH_ASSET_KINDS)[number];
+
 export interface GetNetWorthHistoryPayload extends QueryPayload {
   // yyyy-mm-dd (required)
   from: string;
@@ -531,18 +539,21 @@ export interface NetWorthHistoryPoint {
   // yyyy-mm-dd — the bucket-end date the snapshot is taken at. The final bucket is
   // clamped to the requested `to`, so it can cover a partial period.
   date: string;
-  // Regular/savings/etc. accounts (signed — an overdrawn cash account subtracts),
-  // portfolios (holdings plus uninvested cash), ventures and vehicles, plus any
-  // credit-card/overdraft account holding a positive balance at this snapshot.
-  assets: number;
+  // Balance per asset kind, keyed by `NET_WORTH_ASSET_KINDS`. `cash` is signed —
+  // it folds every deposit account (an overdrawn one subtracts) plus any card or
+  // overdraft holding a positive balance. `investments` is portfolios (holdings
+  // plus uninvested cash); `vehicles` and `ventures` are their valued balances.
+  assets: Record<NetWorthAssetKind, number>;
+  // Sum of `assets` values.
+  assetsTotal: number;
   // Balance per liability kind, keyed by account category. Credit-card and
   // overdraft are sums of their owing accounts only (always ≤ 0; a paid-off card
-  // reads 0 and a positive-balance card moves to `assets`). Loan is the whole
+  // reads 0 and a positive-balance card moves to `assets.cash`). Loan is the whole
   // signed value, so an overpaid loan can read positive.
   liabilities: Record<NetWorthLiabilityKind, number>;
   // Sum of `liabilities` values. Signed, negative = owed.
   liabilitiesTotal: number;
-  // assets + liabilitiesTotal.
+  // assetsTotal + liabilitiesTotal.
   netWorth: number;
 }
 
