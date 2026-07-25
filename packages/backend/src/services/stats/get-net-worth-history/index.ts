@@ -60,11 +60,13 @@ const buildPartitionResolver = ({
 };
 
 /**
- * Split one liability-kind per-account series at a snapshot date by balance sign:
- * accounts currently owing (negative) sum into the liability kind, accounts
- * holding the user's own funds (positive) count as assets instead. A missing
- * snapshot key on a present account is a key-derivation bug — the series fills
- * every day of its range — so it fails loud rather than zeroing the account.
+ * Split one per-account balance series at a snapshot date by balance sign:
+ * accounts currently owing (negative) sum into `owedCents`, accounts holding the
+ * user's own funds (positive) into `surplusCents`. Used for every account class
+ * that can sit on either side of zero — cards, overdrafts and plain deposit
+ * accounts alike — so an overdrawn account counts as debt, not a negative asset.
+ * A missing snapshot key on a present account is a key-derivation bug — the series
+ * fills every day of its range — so it fails loud rather than zeroing the account.
  */
 const splitSeriesBySign = ({
   series,
@@ -135,11 +137,13 @@ const readAssetValue = <T extends number>({
  * Assets/liabilities/net-worth series: one end-of-bucket balance snapshot per
  * granularity bucket over [from, to], the last bucket clamped to `to`. Assets =
  * every non-liability account plus portfolios (holdings + uninvested cash),
- * ventures and vehicles. Credit-card and overdraft accounts are classified per
- * account by balance sign at each snapshot: owing (negative) balances sum into
- * their liability kind, while an account holding the user's own funds counts as
- * assets. Loans are always liabilities at their whole signed value. All amounts
- * are base-currency cents; the serializer converts to decimals.
+ * ventures and vehicles. Every account that can cross zero — cards, overdrafts
+ * and plain deposit accounts — is classified per account by balance sign at each
+ * snapshot: an owing (negative) balance sums into a liability kind, while a
+ * positive balance counts as assets. An overdrawn deposit account has no liability
+ * category of its own, so its owed balance joins the overdraft kind. Loans are
+ * always liabilities at their whole signed value. All amounts are base-currency
+ * cents; the serializer converts to decimals.
  *
  * The `includeCreditLimitInStats` setting is deliberately ignored: net worth
  * reflects actual balances, and available credit is not debt.
@@ -192,7 +196,7 @@ export const getNetWorthHistory = async ({
   // below, rather than each branch checking out its own and a burst of report
   // loads draining the pool.
   const [
-    assetAccountsHistory,
+    assetAccountsSeries,
     creditCardSeries,
     overdraftSeries,
     loanHistory,
@@ -210,12 +214,15 @@ export const getNetWorthHistory = async ({
     // Each partition is a separate filtered aggregation so it keeps its own
     // forward-fill (a loan anchor date must not forward-fill into the cash series).
     return Promise.all([
-      getAggregatedBalanceHistory({
+      // Per-account (not pre-summed) so the sign split is per account: one deposit
+      // account overdrawn −500 and another holding +300 on the same day land on
+      // opposite sides of the split, rather than netting to a single +/−200 figure.
+      // Vehicles are excluded here because they enter assets through their own
+      // depreciation series below, not through Balances rows; the liability kinds
+      // are excluded because cards/overdrafts/loans get their own series.
+      getPerAccountBalanceHistory({
         userId,
         ...accountsRange,
-        // The shared liability-kinds tuple is the report's category split; vehicles
-        // are excluded here because they enter assets through their own depreciation
-        // series below, not through Balances rows.
         categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle, ...endpointsTypes.NET_WORTH_LIABILITY_KINDS] },
       }),
       // Per-account (not pre-summed) series: the sign classification is per
@@ -257,12 +264,17 @@ export const getNetWorthHistory = async ({
     ]);
   })();
 
-  const resolveAssetAccounts = buildPartitionResolver({ history: assetAccountsHistory, partition: 'assets', userId });
   const resolveLoan = buildPartitionResolver({ history: loanHistory, partition: ACCOUNT_CATEGORIES.loan, userId });
 
   // A user with no data still gets one all-zero point per bucket — the chart
   // renders a flat zero line for the requested range rather than an empty state.
   const points: NetWorthHistoryPointCents[] = snapshotDates.map((dateStr) => {
+    const assetAccounts = splitSeriesBySign({
+      series: assetAccountsSeries,
+      snapshotDate: dateStr,
+      partition: 'asset-accounts',
+      userId,
+    });
     const creditCard = splitSeriesBySign({
       series: creditCardSeries,
       snapshotDate: dateStr,
@@ -277,19 +289,24 @@ export const getNetWorthHistory = async ({
     });
     const loanCents = resolveLoan(dateStr);
 
+    // An overdrawn deposit account is a debt with no liability category of its own,
+    // so its owed balance joins the overdraft kind (both are negative account balances).
+    const overdraftOwedCents = asCents(overdraft.owedCents + assetAccounts.owedCents);
+
     // Each asset class is already computed by its own sub-calculator above; this
     // groups them into the report's kinds instead of summing to one number.
-    // `cash` folds deposit accounts with the own-funds surplus of any card or
-    // overdraft currently in the black.
+    // `cash` folds the own-funds surplus of deposit accounts with the surplus of any
+    // card or overdraft currently in the black; anything overdrawn is a liability, so
+    // cash never goes negative.
     const assets: Record<endpointsTypes.NetWorthAssetKind, Cents> = {
-      cash: asCents(resolveAssetAccounts(dateStr) + creditCard.surplusCents + overdraft.surplusCents),
+      cash: asCents(assetAccounts.surplusCents + creditCard.surplusCents + overdraft.surplusCents),
       investments: asCents(readAssetValue({ map: portfolioValuesByDate, dateStr, label: 'portfolio', userId })),
       vehicles: asCents(readAssetValue({ map: vehicleValuesByDate, dateStr, label: 'vehicle', userId })),
       ventures: asCents(readAssetValue({ map: ventureValuesByDate, dateStr, label: 'venture', userId })),
     };
     const assetsTotal = asCents(endpointsTypes.NET_WORTH_ASSET_KINDS.reduce((sum, kind) => sum + assets[kind], 0));
 
-    const liabilitiesTotal = asCents(creditCard.owedCents + overdraft.owedCents + loanCents);
+    const liabilitiesTotal = asCents(creditCard.owedCents + overdraftOwedCents + loanCents);
 
     // Each kind's owed cents come from a different computation above (loan is a plain
     // resolver, credit-card/overdraft are sign-split), so this lookup is the one place
@@ -297,7 +314,7 @@ export const getNetWorthHistory = async ({
     const owedCentsByKind: Record<endpointsTypes.NetWorthLiabilityKind, Cents> = {
       [ACCOUNT_CATEGORIES.creditCard]: creditCard.owedCents,
       [ACCOUNT_CATEGORIES.loan]: loanCents,
-      [ACCOUNT_CATEGORIES.overdraft]: overdraft.owedCents,
+      [ACCOUNT_CATEGORIES.overdraft]: overdraftOwedCents,
     };
 
     return {

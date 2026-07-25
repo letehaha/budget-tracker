@@ -135,9 +135,11 @@ export interface LiabilityScale {
 
 /**
  * Decides whether the chart may zoom the owed region. `zoomEnabled` is the user's
- * setting — off means never zoom. Even when on, zooming is only honest while
- * everything above the baseline stays on one scale, so any negative net worth or
- * assets value (which would also need the sub-scale) forces the shared scale.
+ * setting — off means never zoom. Even when on, zooming is only honest while the
+ * only thing hanging below the baseline is liabilities: a negative net worth,
+ * negative assets total, or a single overdrawn asset kind (a below-baseline
+ * segment that isn't a liability) all need the shared scale, since the zoomed owed
+ * sub-scale would either misrepresent them or push them off the plot.
  */
 export const computeLiabilityScale = ({
   points,
@@ -148,12 +150,13 @@ export const computeLiabilityScale = ({
 }): LiabilityScale => {
   let maxPositive = 0;
   let maxOwed = 0;
-  let allAboveBaselineNonNegative = true;
+  let onlyLiabilitiesBelowBaseline = true;
 
   for (const point of points) {
     maxPositive = Math.max(maxPositive, point.assetsTotal, point.netWorth, point.liabilitiesTotal);
     if (point.liabilitiesTotal < 0) maxOwed = Math.max(maxOwed, -point.liabilitiesTotal);
-    if (point.netWorth < 0 || point.assetsTotal < 0) allAboveBaselineNonNegative = false;
+    const hasNegativeAssetKind = Object.values(point.assetsByKind).some((value) => value < 0);
+    if (point.netWorth < 0 || point.assetsTotal < 0 || hasNegativeAssetKind) onlyLiabilitiesBelowBaseline = false;
   }
 
   return {
@@ -161,7 +164,7 @@ export const computeLiabilityScale = ({
       zoomEnabled &&
       maxOwed > 0 &&
       maxOwed < ASYMMETRIC_OWED_SHARE_THRESHOLD * maxPositive &&
-      allAboveBaselineNonNegative,
+      onlyLiabilitiesBelowBaseline,
     maxPositive,
     maxOwed,
   };

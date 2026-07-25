@@ -244,6 +244,22 @@ describe('computeLiabilityScale', () => {
     expect(computeLiabilityScale({ points }).asymmetric).toBe(false);
   });
 
+  it('stays on the shared scale when an asset kind hangs below the baseline', () => {
+    // Totals stay positive (big investments), but an overdrawn cash bucket puts a
+    // segment below zero — the zoomed owed sub-scale can't honestly hold it, so the
+    // chart must fall back to the shared scale rather than scale it like a liability.
+    const points = buildDisplayPoints({
+      points: [
+        buildPoint({ date: '2026-01-31', assets: -1_524, investments: 340_000, creditCard: -500 }),
+        buildPoint({ date: '2026-02-28', investments: 345_000, creditCard: -400 }),
+      ],
+      selectedAssetKinds: ALL_ASSET_KINDS,
+      selectedLiabilityKinds: [CREDIT_CARD],
+    });
+
+    expect(computeLiabilityScale({ points }).asymmetric).toBe(false);
+  });
+
   it('counts a positive liability sum toward the positive extreme, not owed', () => {
     const points = displayPoints({
       entries: [{ date: '2026-01-31', assets: 1000, loan: 50 }],

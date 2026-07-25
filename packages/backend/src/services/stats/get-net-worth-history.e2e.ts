@@ -430,6 +430,89 @@ describe('[Stats] Net worth history', () => {
       expect(point.assetsTotal).toBe(0);
     });
 
+    it('classifies an overdrawn deposit account as an overdraft liability, keeping cash non-negative', async () => {
+      const from = formatDay(startOfMonth(new Date()));
+      const to = formatDay(new Date());
+
+      // A plain deposit account holding the user's own funds.
+      const positiveAccount = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      // A second deposit account overdrawn into the negative by an expense.
+      const overdrawnAccount = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 0 }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: overdrawnAccount.id,
+          amount: 300,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
+
+      expect(result.points).toHaveLength(1);
+      const point = result.points[0]!;
+      // Per-account sign split: the positive account's own funds stay in `cash`, the
+      // overdrawn account's owed balance moves to the overdraft liability kind rather
+      // than dragging cash negative. Net worth is the same either way.
+      expect(point.assets.cash).toBe(1000);
+      expect(point.assetsTotal).toBe(1000);
+      expect(point.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(-300);
+      expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
+      expect(point.liabilitiesTotal).toBe(-300);
+      expect(point.netWorth).toBe(700);
+    });
+
+    it('folds an overdrawn deposit account and an owing overdraft account into one overdraft total', async () => {
+      const from = formatDay(startOfMonth(new Date()));
+      const to = formatDay(new Date());
+
+      const overdrawnDeposit = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 0 }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: overdrawnDeposit.id,
+          amount: 150,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const overdraftAccount = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({
+          accountCategory: ACCOUNT_CATEGORIES.overdraft,
+          initialBalance: 0,
+        }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: overdraftAccount.id,
+          amount: 250,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
+
+      expect(result.points).toHaveLength(1);
+      const point = result.points[0]!;
+      // Both owed balances share the overdraft kind — there is no separate bucket
+      // for an overdrawn plain account.
+      expect(point.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(-400);
+      expect(point.assets.cash).toBe(0);
+      expect(point.netWorth).toBe(-400);
+    });
+
     it('backfills a loan payoff dated on the anchor day without rewriting earlier buckets', async () => {
       const monthTwoAgoStart = startOfMonth(subMonths(new Date(), 2));
       const from = formatDay(monthTwoAgoStart);
