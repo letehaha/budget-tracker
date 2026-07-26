@@ -80,6 +80,14 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
     'analytics-balance-history-trend',
   ] as const,
   analyticsCashFlow: [transactionChange, 'analytics-cash-flow'] as const,
+  // End-of-bucket balance snapshots: security prices and venture valuations move
+  // the series without any transaction changing, so all three prefixes invalidate it.
+  analyticsNetWorthHistory: [
+    transactionChange,
+    securityPriceChange,
+    ventureChange,
+    'analytics-net-worth-history',
+  ] as const,
   // Depends on security prices as well as transactions: a price move changes the
   // report's growth series without any transaction being touched.
   analyticsNetWorthDrivers: [transactionChange, securityPriceChange, 'analytics-net-worth-drivers'] as const,

@@ -178,6 +178,27 @@ export const getNetWorthDrivers = async ({
   return api.get('/stats/net-worth-drivers', params);
 };
 
+interface GetNetWorthHistoryParams {
+  from: Date;
+  to: Date;
+  granularity: endpointsTypes.NetWorthHistoryGranularity;
+}
+
+/** Assets/liabilities/net-worth snapshots per bucket — signed decimals in base currency. */
+export const getNetWorthHistory = async ({
+  from,
+  to,
+  granularity,
+}: GetNetWorthHistoryParams): Promise<endpointsTypes.GetNetWorthHistoryResponse> => {
+  const params: Record<string, string> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    granularity,
+  };
+
+  return api.get('/stats/net-worth-history', params);
+};
+
 interface GetInvestmentContributionsParams {
   from: Date;
   to: Date;

@@ -460,5 +460,8 @@
   },
   "vehicles": {
     "notFound": "Vehicle not found"
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": "This date range and granularity produce too many data points. Pick a coarser granularity or a shorter range."
   }
 }

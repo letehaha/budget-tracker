@@ -132,6 +132,11 @@ const routes: RouteRecordRaw[] = [
             component: () => import('@/pages/analytics/subpages/cash-flow/index.vue'),
           },
           {
+            path: 'net-worth-history',
+            name: ROUTES_NAMES.analyticsNetWorthHistory,
+            component: () => import('@/pages/analytics/subpages/net-worth-history/index.vue'),
+          },
+          {
             path: 'net-worth-drivers',
             name: ROUTES_NAMES.analyticsNetWorthDrivers,
             component: () => import('@/pages/analytics/subpages/net-worth-drivers/index.vue'),
