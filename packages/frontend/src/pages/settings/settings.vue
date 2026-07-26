@@ -187,7 +187,6 @@ const workspaceTabs = computed<Tab[]>(() => {
       label: t('settings.navigation.payees'),
       to: { name: ROUTES_NAMES.settingsPayees },
       icon: StoreIcon,
-      badgeSince: '2026-06-04',
     },
     {
       name: 'subscriptions',
