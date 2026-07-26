@@ -172,10 +172,13 @@ export function serializeCashFlow(cashFlow: endpointsTypes.GetCashFlowResponse):
 // Pivot Report Serializer
 // ============================================================================
 
-const decimalizeValues = (values: Record<string, number>): Record<string, number> => {
-  const result: Record<string, number> = {};
-  for (const [columnKey, cents] of Object.entries(values)) {
-    result[columnKey] = centsToApiDecimal(cents);
+// Convert every cents amount in a keyed record to an API decimal, preserving the
+// key type — a plain `Record<string, number>` for the pivot columns, or a
+// closed-kind record (assets/liabilities) whose exact keys are kept intact.
+const decimalizeValues = <K extends string>(values: Record<K, number>): Record<K, number> => {
+  const result = {} as Record<K, number>;
+  for (const key of Object.keys(values) as K[]) {
+    result[key] = centsToApiDecimal(values[key]);
   }
   return result;
 };
@@ -340,36 +343,9 @@ export function serializeNetWorthDrivers(
 // ============================================================================
 
 /**
- * Decimalize an asset-kinds record, keyed off the canonical tuple so every kind
- * the API contract declares is present regardless of insertion order.
- */
-const decimalizeAssets = (
-  assets: Record<endpointsTypes.NetWorthAssetKind, number>,
-): Record<endpointsTypes.NetWorthAssetKind, number> => {
-  const result = {} as Record<endpointsTypes.NetWorthAssetKind, number>;
-  for (const kind of endpointsTypes.NET_WORTH_ASSET_KINDS) {
-    result[kind] = centsToApiDecimal(assets[kind]);
-  }
-  return result;
-};
-
-/**
- * Decimalize a liability-kinds record, keyed off the canonical tuple so every
- * kind the API contract declares is present regardless of insertion order.
- */
-const decimalizeLiabilities = (
-  liabilities: Record<endpointsTypes.NetWorthLiabilityKind, number>,
-): Record<endpointsTypes.NetWorthLiabilityKind, number> => {
-  const result = {} as Record<endpointsTypes.NetWorthLiabilityKind, number>;
-  for (const kind of endpointsTypes.NET_WORTH_LIABILITY_KINDS) {
-    result[kind] = centsToApiDecimal(liabilities[kind]);
-  }
-  return result;
-};
-
-/**
- * Serialize net worth history (from getNetWorthHistory). Every amount is money,
- * so every amount is decimalized; the snapshot dates pass through unchanged.
+ * Serialize net worth history (from getNetWorthHistory). Every amount is money, so
+ * every amount is decimalized; the snapshot dates pass through unchanged, and
+ * `degraded` (securities and currency codes, no money) forwards untouched.
  */
 export function serializeNetWorthHistory(
   result: NetWorthHistoryResultCents,
@@ -377,12 +353,16 @@ export function serializeNetWorthHistory(
   return {
     points: result.points.map((point) => ({
       date: point.date,
-      assets: decimalizeAssets(point.assets),
+      assets: decimalizeValues(point.assets),
       assetsTotal: centsToApiDecimal(point.assetsTotal),
-      liabilities: decimalizeLiabilities(point.liabilities),
+      liabilities: decimalizeValues(point.liabilities),
       liabilitiesTotal: centsToApiDecimal(point.liabilitiesTotal),
       netWorth: centsToApiDecimal(point.netWorth),
     })),
+    // Kept off the response entirely when the service reports nothing degraded: the
+    // contract lets a client decide on `degraded` alone whether to warn, and a
+    // present-but-empty key would trip that check on a cleanly valued range.
+    ...(result.degraded ? { degraded: result.degraded } : {}),
   };
 }
 

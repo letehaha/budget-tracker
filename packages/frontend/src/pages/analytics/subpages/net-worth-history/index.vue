@@ -8,8 +8,19 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <PeriodSelector v-model="selectedPeriod" />
       <div class="flex flex-wrap items-center gap-2">
-        <AssetKindFilter v-model="storedAssetKinds" :kinds="availableAssetKinds" />
-        <LiabilityKindFilter v-model="storedLiabilityKinds" :kinds="availableLiabilityKinds" />
+        <KindFilter
+          v-model="storedAssetKinds"
+          :kinds="availableAssetKinds"
+          :label-keys="NET_WORTH_ASSET_KIND_LABEL_KEYS"
+          :colors="NET_WORTH_ASSET_KIND_COLORS"
+          i18n-prefix="netWorthHistory.assetFilter"
+        />
+        <KindFilter
+          v-model="storedLiabilityKinds"
+          :kinds="availableLiabilityKinds"
+          :label-keys="ACCOUNT_CATEGORIES_TRANSLATION_KEYS"
+          i18n-prefix="netWorthHistory.kindFilter"
+        />
         <GranularitySelector
           :model-value="effectiveGranularity"
           :granularities="endpointsTypes.NET_WORTH_HISTORY_GRANULARITIES"
@@ -39,6 +50,24 @@
     </div>
 
     <template v-else>
+      <Callout v-if="degraded" variant="warning" :title="$t('netWorthHistory.degraded.title')">
+        <ul class="space-y-1">
+          <li v-if="unpricedSecuritiesLabel">
+            {{
+              unpricedSecurities.length > MAX_LISTED_SECURITIES
+                ? $t('netWorthHistory.degraded.unpricedSecuritiesTruncated', {
+                    count: unpricedSecurities.length,
+                    securities: unpricedSecuritiesLabel,
+                  })
+                : $t('netWorthHistory.degraded.unpricedSecurities', { securities: unpricedSecuritiesLabel })
+            }}
+          </li>
+          <li v-if="fxFallbackCurrenciesLabel">
+            {{ $t('netWorthHistory.degraded.fxFallback', { currencies: fxFallbackCurrenciesLabel }) }}
+          </li>
+        </ul>
+      </Callout>
+
       <div v-if="hasData" class="grid grid-cols-1 gap-4 @sm/net-worth-history:grid-cols-3">
         <SummaryCard :title="$t('netWorthHistory.cards.currentNetWorth')" :value="currentNetWorth" />
 
@@ -91,7 +120,9 @@
 
 <script setup lang="ts">
 import { getNetWorthHistory } from '@/api';
+import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const/account-categories-verbose';
 import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { Callout } from '@/components/lib/ui/callout';
 import { useFormatCurrency } from '@/composable/formatters';
 import type { Period } from '@/composable/use-period-navigation';
 import { endpointsTypes } from '@bt/shared/types';
@@ -105,8 +136,7 @@ import { createPeriodSerializer } from '../../utils';
 import GranularitySelector from '../../components/granularity-selector.vue';
 import PeriodSelector from '../cash-flow/components/period-selector.vue';
 import SummaryCard from '../cash-flow/components/summary-card.vue';
-import AssetKindFilter from './components/asset-kind-filter.vue';
-import LiabilityKindFilter from './components/liability-kind-filter.vue';
+import KindFilter from './components/kind-filter.vue';
 import NetWorthChart from './components/net-worth-chart.vue';
 import SettingsPopover from './components/net-worth-history-settings-popover.vue';
 import {
@@ -118,6 +148,8 @@ import {
   computePeriodChange,
   disabledGranularities,
   kindsWithActivity,
+  NET_WORTH_ASSET_KIND_COLORS,
+  NET_WORTH_ASSET_KIND_LABEL_KEYS,
   resolveSelectedKinds,
 } from './composables/net-worth-history-derivations';
 
@@ -239,4 +271,25 @@ const formattedAnnualizedGrowth = computed(() => {
 });
 
 const averageOwed = computed(() => averageOwedLiabilities({ points: displayPoints.value }));
+
+/** Present only when the range could not be valued truthfully; never an empty object. */
+const degraded = computed(() => query.data.value?.degraded);
+
+/** Beyond this the list stops being a hint and becomes a wall of tickers. */
+const MAX_LISTED_SECURITIES = 5;
+
+const unpricedSecurities = computed(() => degraded.value?.unpricedSecurities ?? []);
+
+/**
+ * Both label columns are nullable, so the id is the last resort — it identifies
+ * nothing to the user, but it beats rendering an empty entry.
+ */
+const unpricedSecuritiesLabel = computed(() =>
+  unpricedSecurities.value
+    .slice(0, MAX_LISTED_SECURITIES)
+    .map((security) => security.symbol ?? security.name ?? String(security.securityId))
+    .join(', '),
+);
+
+const fxFallbackCurrenciesLabel = computed(() => (degraded.value?.fxFallbackCurrencies ?? []).join(', '));
 </script>

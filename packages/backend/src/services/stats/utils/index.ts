@@ -99,8 +99,8 @@ const GRANULARITY_SPECS: Record<StatsGranularity, GranularitySpec> = {
 /**
  * Generates the [from, to] time buckets (one per report column) for a granularity. Both edges are
  * clamped to the requested range exactly — the first bucket starts at `from`, the last ends at
- * `endOfDay(to)` — so a transaction on the boundary day is still counted. Shared by the cash-flow
- * and pivot reports.
+ * `endOfDay(to)` — so a transaction on the boundary day is still counted. Shared by the cash-flow,
+ * pivot and net-worth-history reports.
  */
 export const generatePeriodBuckets = ({
   from,

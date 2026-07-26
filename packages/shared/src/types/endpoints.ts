@@ -557,8 +557,35 @@ export interface NetWorthHistoryPoint {
   netWorth: number;
 }
 
+// One security whose holdings the report could not price on some snapshot days.
+// Same shape as the net-worth-drivers report's: a holding with no price is carried
+// at cost on those days, so its `assets.investments` understates market value.
+export interface NetWorthHistoryUnpricedSecurity {
+  securityId: RecordId;
+  // Label the security by `symbol ?? name ?? securityId` — both columns are
+  // nullable, and an id shown to a user identifies nothing.
+  symbol: string | null;
+  name: string | null;
+}
+
+// What the report could not value truthfully. Two independent failures: a holding
+// with no price is carried at cost, a currency with no rate converts at 1:1 — they
+// distort different amounts and neither implies the other, so they stay apart.
+export interface NetWorthHistoryDegraded {
+  // Holdings with no price data in the range, carried at cost — their contribution
+  // to `assets.investments` understates market value. Omitted when every holding priced.
+  unpricedSecurities?: NetWorthHistoryUnpricedSecurity[];
+  // ISO codes that converted at a 1:1 placeholder — every amount touching them is
+  // off by the true rate. Omitted when every currency resolved.
+  fxFallbackCurrencies?: string[];
+}
+
 export interface GetNetWorthHistoryResponse {
   points: NetWorthHistoryPoint[];
+  // Absent whenever the range valued cleanly, so a truthiness check on `degraded`
+  // alone decides whether to render a data-quality warning. Present only when at
+  // least one field inside it is non-empty — an empty object is never sent.
+  degraded?: NetWorthHistoryDegraded;
 }
 
 // Cumulative Analytics (Trends Comparison)

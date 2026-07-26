@@ -12,8 +12,9 @@ import { generatePeriodBuckets } from '@services/stats/utils';
 import { format } from 'date-fns';
 
 import { buildDenseDateRange } from '../get-net-worth-drivers/date-range';
+import { assembleNetWorthPoint } from './assemble-point';
 import { calculatePortfolioValueByDate } from './portfolio-value';
-import type { NetWorthHistoryPointCents, NetWorthHistoryResultCents } from './types';
+import type { NetWorthHistoryResultCents } from './types';
 
 export type { NetWorthHistoryResultCents } from './types';
 
@@ -134,6 +135,27 @@ const readAssetValue = <T extends number>({
 };
 
 /**
+ * Assemble the `degraded` payload from the portfolio valuation's two independent
+ * data-quality failures, or `undefined` when neither fired. The wire contract
+ * forbids an empty object: a truthiness check on `degraded` alone decides whether
+ * the client renders a warning, so each inner field is set only when non-empty and
+ * the whole object is dropped when both are.
+ */
+const buildDegraded = ({
+  unpricedSecurities,
+  fxFallbackCurrencies,
+}: {
+  unpricedSecurities: endpointsTypes.NetWorthHistoryUnpricedSecurity[];
+  fxFallbackCurrencies: string[];
+}): endpointsTypes.NetWorthHistoryDegraded | undefined => {
+  const degraded: endpointsTypes.NetWorthHistoryDegraded = {};
+  if (unpricedSecurities.length > 0) degraded.unpricedSecurities = unpricedSecurities;
+  if (fxFallbackCurrencies.length > 0) degraded.fxFallbackCurrencies = fxFallbackCurrencies;
+
+  return degraded.unpricedSecurities || degraded.fxFallbackCurrencies ? degraded : undefined;
+};
+
+/**
  * Assets/liabilities/net-worth series: one end-of-bucket balance snapshot per
  * granularity bucket over [from, to], the last bucket clamped to `to`. Assets =
  * every non-liability account plus portfolios (holdings + uninvested cash),
@@ -201,7 +223,7 @@ export const getNetWorthHistory = async ({
     overdraftSeries,
     loanHistory,
     vehicleValuesByDate,
-    portfolioValuesByDate,
+    portfolioValuation,
     ventureValuesByDate,
   ] = await withTransaction(async () => {
     // Shared by every sub-calculator that converts to base currency — fetch once.
@@ -268,70 +290,43 @@ export const getNetWorthHistory = async ({
 
   // A user with no data still gets one all-zero point per bucket — the chart
   // renders a flat zero line for the requested range rather than an empty state.
-  const points: NetWorthHistoryPointCents[] = snapshotDates.map((dateStr) => {
-    const assetAccounts = splitSeriesBySign({
-      series: assetAccountsSeries,
-      snapshotDate: dateStr,
-      partition: 'asset-accounts',
-      userId,
-    });
-    const creditCard = splitSeriesBySign({
-      series: creditCardSeries,
-      snapshotDate: dateStr,
-      partition: ACCOUNT_CATEGORIES.creditCard,
-      userId,
-    });
-    const overdraft = splitSeriesBySign({
-      series: overdraftSeries,
-      snapshotDate: dateStr,
-      partition: ACCOUNT_CATEGORIES.overdraft,
-      userId,
-    });
-    const loanCents = resolveLoan(dateStr);
-
-    // An overdrawn deposit account is a debt with no liability category of its own,
-    // so its owed balance joins the overdraft kind (both are negative account balances).
-    const overdraftOwedCents = asCents(overdraft.owedCents + assetAccounts.owedCents);
-
-    // Each asset class is already computed by its own sub-calculator above; this
-    // groups them into the report's kinds instead of summing to one number.
-    // `cash` folds the own-funds surplus of deposit accounts with the surplus of any
-    // card or overdraft currently in the black; anything overdrawn is a liability, so
-    // cash never goes negative.
-    const assets: Record<endpointsTypes.NetWorthAssetKind, Cents> = {
-      cash: asCents(assetAccounts.surplusCents + creditCard.surplusCents + overdraft.surplusCents),
-      investments: asCents(readAssetValue({ map: portfolioValuesByDate, dateStr, label: 'portfolio', userId })),
-      vehicles: asCents(readAssetValue({ map: vehicleValuesByDate, dateStr, label: 'vehicle', userId })),
-      ventures: asCents(readAssetValue({ map: ventureValuesByDate, dateStr, label: 'venture', userId })),
-    };
-    const assetsTotal = asCents(endpointsTypes.NET_WORTH_ASSET_KINDS.reduce((sum, kind) => sum + assets[kind], 0));
-
-    const liabilitiesTotal = asCents(creditCard.owedCents + overdraftOwedCents + loanCents);
-
-    // Each kind's owed cents come from a different computation above (loan is a plain
-    // resolver, credit-card/overdraft are sign-split), so this lookup is the one place
-    // that pairs a kind with its value; the canonical tuple drives the returned shape.
-    const owedCentsByKind: Record<endpointsTypes.NetWorthLiabilityKind, Cents> = {
-      [ACCOUNT_CATEGORIES.creditCard]: creditCard.owedCents,
-      [ACCOUNT_CATEGORIES.loan]: loanCents,
-      [ACCOUNT_CATEGORIES.overdraft]: overdraftOwedCents,
-    };
-
-    return {
+  // The per-account sign split, loan resolution and asset-class valuation happen
+  // here (they need the fetched series); the folding into kinds is `assembleNetWorthPoint`.
+  const points = snapshotDates.map((dateStr) =>
+    assembleNetWorthPoint({
       date: dateStr,
-      assets,
-      assetsTotal,
-      liabilities: endpointsTypes.NET_WORTH_LIABILITY_KINDS.reduce(
-        (acc, kind) => {
-          acc[kind] = owedCentsByKind[kind];
-          return acc;
-        },
-        {} as Record<endpointsTypes.NetWorthLiabilityKind, Cents>,
+      assetAccounts: splitSeriesBySign({
+        series: assetAccountsSeries,
+        snapshotDate: dateStr,
+        partition: 'asset-accounts',
+        userId,
+      }),
+      creditCard: splitSeriesBySign({
+        series: creditCardSeries,
+        snapshotDate: dateStr,
+        partition: ACCOUNT_CATEGORIES.creditCard,
+        userId,
+      }),
+      overdraft: splitSeriesBySign({
+        series: overdraftSeries,
+        snapshotDate: dateStr,
+        partition: ACCOUNT_CATEGORIES.overdraft,
+        userId,
+      }),
+      loanCents: resolveLoan(dateStr),
+      portfolioCents: asCents(
+        readAssetValue({ map: portfolioValuation.valuesByDate, dateStr, label: 'portfolio', userId }),
       ),
-      liabilitiesTotal,
-      netWorth: asCents(assetsTotal + liabilitiesTotal),
-    };
-  });
+      vehicleCents: asCents(readAssetValue({ map: vehicleValuesByDate, dateStr, label: 'vehicle', userId })),
+      ventureCents: asCents(readAssetValue({ map: ventureValuesByDate, dateStr, label: 'venture', userId })),
+    }),
+  );
 
-  return { points };
+  return {
+    points,
+    degraded: buildDegraded({
+      unpricedSecurities: portfolioValuation.unpricedSecurities,
+      fxFallbackCurrencies: portfolioValuation.fxFallbackCurrencies,
+    }),
+  };
 };

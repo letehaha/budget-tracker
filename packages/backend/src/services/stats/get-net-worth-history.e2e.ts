@@ -590,5 +590,75 @@ describe('[Stats] Net worth history', () => {
       expect(point.assets.cash).toBe(0);
       expect(point.netWorth).toBe(25_000);
     });
+
+    it('includes a venture deal at its principal in the ventures asset kind', async () => {
+      const from = formatDay(startOfMonth(new Date()));
+      const to = formatDay(new Date());
+
+      // A single deal with no entry fee values at its principal on and after the
+      // investment date; base-currency so no FX cross-rate muddies the assertion.
+      await helpers.createVentureDeal({
+        payload: {
+          currencyCode: global.BASE_CURRENCY.code,
+          principal: '10000',
+          entryFeePct: '0',
+          investmentDate: from,
+        },
+        raw: true,
+      });
+
+      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
+
+      expect(result.points).toHaveLength(1);
+      const point = result.points[0]!;
+      // The ventures kind had no real-data coverage before — prove the deal lands
+      // in `assets.ventures` (and net worth), not silently zero or another kind.
+      expect(point.assets.ventures).toBe(10000);
+      expect(point.assets.cash).toBe(0);
+      expect(point.assetsTotal).toBe(10000);
+      expect(point.netWorth).toBe(10000);
+    });
+
+    it('adds uninvested portfolio cash on top of the holding value in investments', async () => {
+      // Fixed past window so the single bucket is elapsed and the price is deterministic.
+      const from = '2025-12-01';
+      const to = '2025-12-31';
+
+      const portfolio = await helpers.createPortfolio({ raw: true });
+      const security = await createBaseCurrencySecurity();
+      await seedHolding({ portfolioId: portfolio.id, securityId: security.id });
+
+      // Deposit more than the buy costs, so 500 of uninvested cash is left in the
+      // portfolio — the report must add it to the holding value, not drop it.
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: { type: 'deposit', amount: '1500', currencyCode: global.BASE_CURRENCY.code, date: '2025-11-15' },
+        raw: true,
+      });
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: portfolio.id,
+          securityId: security.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          date: '2025-11-20',
+          quantity: '10',
+          price: '100',
+          fees: '0',
+        },
+        raw: true,
+      });
+      await setPrice({ securityId: security.id, date: to, price: '150' });
+
+      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
+
+      expect(result.points).toHaveLength(1);
+      const point = result.points[0]!;
+      // 10 shares @ 150 = 1500 holdings + 500 uninvested cash = 2000; the leftover
+      // portfolio cash had zero coverage before and must not silently vanish.
+      expect(point.assets.investments).toBe(2000);
+      expect(point.assets.cash).toBe(0);
+      expect(point.assetsTotal).toBe(2000);
+      expect(point.netWorth).toBe(2000);
+    });
   });
 });

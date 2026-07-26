@@ -363,6 +363,12 @@
       "zoomLiabilities": "Zoom liabilities scale",
       "zoomLiabilitiesHint": "Enlarge small debts so they stay visible next to large assets."
     },
+    "degraded": {
+      "title": "Some values are estimated",
+      "unpricedSecurities": "No recent price data for {securities}, so they're shown at cost and may understate your net worth.",
+      "unpricedSecuritiesTruncated": "No recent price data for {securities} and others ({count} securities total); they're shown at cost and may understate your net worth.",
+      "fxFallback": "Missing exchange rates for {currencies}; those amounts use a 1:1 rate."
+    },
     "states": {
       "loadError": "Failed to load net worth history. Please try again later.",
       "noData": "No history for this period",

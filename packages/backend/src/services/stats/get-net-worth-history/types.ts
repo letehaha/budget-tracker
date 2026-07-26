@@ -27,4 +27,6 @@ export interface NetWorthHistoryPointCents {
 
 export interface NetWorthHistoryResultCents {
   points: NetWorthHistoryPointCents[];
+  /** Absent when the range valued cleanly; never an empty object (see `buildDegraded`). */
+  degraded?: endpointsTypes.NetWorthHistoryDegraded;
 }
