@@ -6,7 +6,7 @@
       <div
         v-show="tooltip.visible"
         ref="tooltipRef"
-        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-[15rem] rounded-lg border px-3 py-2 text-sm shadow-lg"
+        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-60 rounded-lg border px-3 py-2 text-sm shadow-lg"
         :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
       >
         <div class="mb-1.5 font-medium">{{ tooltip.periodLabel }}</div>
@@ -37,7 +37,7 @@
             <div
               v-for="entry in tooltip.liabilityKinds"
               :key="entry.kind"
-              class="flex items-center justify-between gap-4 pl-[1.125rem]"
+              class="flex items-center justify-between gap-4 pl-4.5"
             >
               <span class="flex items-center gap-2">
                 <span class="bg-app-expense-color inline-block size-2.5 rounded-full" />
@@ -132,7 +132,10 @@ const AVERAGE_LINE_OPACITY = 0.55;
 const POSITIVE_REGION_RATIO = 0.82;
 // Headroom below the deepest owed bar so it doesn't touch the plot edge.
 const OWED_DOMAIN_HEADROOM = 1.1;
-const OWED_REGION_TINT_OPACITY = 0.06;
+const OWED_REGION_TINT_OPACITY = 0.08;
+// The zero baseline runs this far past the plot's left edge so it meets the "$0"
+// tick mark (d3's default tick size) instead of floating away from its label.
+const ZERO_LINE_TICK_OVERHANG_PX = 6;
 
 interface TooltipLiabilityEntry {
   kind: endpointsTypes.NetWorthLiabilityKind;
@@ -302,7 +305,30 @@ const renderChart = () => {
         axis.select('.domain').attr('stroke', colors.grid);
         axis.selectAll('.tick text').attr('fill', colors.text).attr('font-size', fontSize);
         axis.selectAll('.tick line').attr('stroke', colors.grid);
+        // The "$0" label anchors the whole read of the chart — assets above it,
+        // liabilities below — so it gets full-contrast text while the rest stay muted.
+        axis
+          .selectAll('.tick')
+          .filter((value) => (value as number) === 0)
+          .select('text')
+          .attr('fill', colors.foreground)
+          .attr('font-weight', 600);
       });
+  };
+
+  // Faint wash over everything under the baseline so the owed half reads as
+  // negative territory even where the red bars are short.
+  const drawOwedRegionTint = ({ baselineY }: { baselineY: number }) => {
+    if (innerHeight - baselineY <= 0) return;
+    g.append('rect')
+      .attr('class', 'owed-region-tint')
+      .attr('x', 0)
+      .attr('y', baselineY)
+      .attr('width', innerWidth)
+      .attr('height', innerHeight - baselineY)
+      .attr('fill', colors.appExpense)
+      .attr('fill-opacity', OWED_REGION_TINT_OPACITY)
+      .style('pointer-events', 'none');
   };
 
   // Signed value → pixel. On the shared scale this is one linear mapping; in
@@ -322,16 +348,7 @@ const renderChart = () => {
       .range([centerY, innerHeight]);
     yFor = (value) => (value >= 0 ? yPositive(value) : yOwed(value));
 
-    // Tint the zoomed region so the scale break is visible, not sneaky.
-    g.append('rect')
-      .attr('class', 'owed-region-tint')
-      .attr('x', 0)
-      .attr('y', centerY)
-      .attr('width', innerWidth)
-      .attr('height', innerHeight - centerY)
-      .attr('fill', colors.appExpense)
-      .attr('fill-opacity', OWED_REGION_TINT_OPACITY)
-      .style('pointer-events', 'none');
+    drawOwedRegionTint({ baselineY: centerY });
 
     drawYAxisWithGrid({ scale: yPositive, tickCount: isMobile ? 4 : 5 });
 
@@ -354,6 +371,7 @@ const renderChart = () => {
     yFor = yScale;
     centerY = yScale(0);
 
+    drawOwedRegionTint({ baselineY: centerY });
     drawYAxisWithGrid({ scale: yScale, tickCount: isMobile ? 5 : 6 });
   }
 
@@ -451,16 +469,19 @@ const renderChart = () => {
     fill: colors.appExpense,
   });
 
-  // Zero baseline, drawn over the bars so both stacks visibly hang off it.
+  // Zero baseline, drawn over the bars so both stacks visibly hang off it, and in
+  // muted-foreground rather than grid so it reads as a divider instead of one more
+  // gridline. It overhangs to the left to meet its own "$0" tick.
   // Slightly heavier in asymmetric mode — it doubles as the scale break.
   g.append('line')
     .attr('class', 'zero-line')
-    .attr('x1', 0)
+    .attr('x1', -ZERO_LINE_TICK_OVERHANG_PX)
     .attr('x2', innerWidth)
     .attr('y1', centerY)
     .attr('y2', centerY)
-    .attr('stroke', colors.grid)
-    .attr('stroke-width', asymmetric ? 1.75 : 1);
+    .attr('stroke', colors.text)
+    .attr('stroke-width', asymmetric ? 2 : 1.5)
+    .style('pointer-events', 'none');
 
   // Dashed average-liabilities reference in the owed (negative) region.
   if (props.averageOwed > 0) {
