@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { linkAccountToGroup, loadAccountGroups, removeAccountFromGroup } from '@/api/account-groups';
+import { loadAccountGroups } from '@/api/account-groups';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AccountGroups } from '@/common/types/models';
 import AccountGroupName from '@/components/common/account-group-name.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { useAccountGroupForAccount } from '@/composable/data-queries/account-groups';
+import {
+  useAccountGroupForAccount,
+  useLinkAccountToGroup,
+  useUnlinkAccountFromGroup,
+} from '@/composable/data-queries/account-groups';
 import { AccountModel } from '@bt/shared/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useQuery } from '@tanstack/vue-query';
 import { CheckIcon, PlusIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -23,7 +27,6 @@ const isOpen = ref(false);
 
 const selectedGroup = ref<AccountGroups | null>(null);
 
-const queryClient = useQueryClient();
 const { data } = useQuery({
   queryFn: () => loadAccountGroups(),
   queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
@@ -32,7 +35,7 @@ const { data } = useQuery({
 
 const accountId = ref(props.account.id);
 
-const { data: currentSelection, invalidate: invalidateAccountGroup } = useAccountGroupForAccount(accountId, {
+const { data: currentSelection } = useAccountGroupForAccount(accountId, {
   enabled: () => isOpen.value,
 });
 
@@ -52,26 +55,12 @@ watch(
   { immediate: true },
 );
 
-const { isPending: isLinkingAccount, mutate: linkAccount } = useMutation({
-  mutationFn: linkAccountToGroup,
-  onSuccess: () => {
-    invalidateAccountGroup();
-    queryClient.invalidateQueries({
-      queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
-    });
-    isOpen.value = false;
-  },
-});
-const { isPending: isUnlinkingAccount, mutate: unlinkAccount } = useMutation({
-  mutationFn: removeAccountFromGroup,
-  onSuccess: () => {
-    invalidateAccountGroup();
-    queryClient.invalidateQueries({
-      queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
-    });
-    isOpen.value = false;
-  },
-});
+const closeDialog = () => {
+  isOpen.value = false;
+};
+
+const { isPending: isLinkingAccount, mutate: linkAccount } = useLinkAccountToGroup({ onSuccess: closeDialog });
+const { isPending: isUnlinkingAccount, mutate: unlinkAccount } = useUnlinkAccountFromGroup({ onSuccess: closeDialog });
 
 const isFormPending = computed(() => isLinkingAccount.value || isUnlinkingAccount.value);
 
@@ -83,7 +72,7 @@ const saveChanges = () => {
     });
   } else {
     unlinkAccount({
-      accountIds: [props.account.id],
+      accountId: props.account.id,
       groupId: currentSelection.value!.id,
     });
   }

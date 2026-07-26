@@ -1,3 +1,4 @@
+import { captureException } from '@/lib/sentry';
 import { compile } from '@intlify/core-base';
 import { type I18n, type MessageCompiler, type MessageFunction, createI18n } from 'vue-i18n';
 import type { RouteLocationNormalized } from 'vue-router';
@@ -310,7 +311,12 @@ async function loadChunk({ locale, chunk }: { locale: string; chunk: I18nChunkNa
       console.log(`[i18n] Loaded chunk "${chunk}" for locale "${locale}"`);
     }
   } catch (error) {
+    // Swallowed so one unreachable chunk can't break a route transition — the chunk stays
+    // out of `localeChunks`, which is how callers (and `ensureChunkLoaded`) tell it failed.
+    // Reported because the visible symptom is a screen of raw dotted key paths, which
+    // otherwise only ever shows up in a console nobody is watching.
     console.error(`Failed to load chunk "${chunk}" for locale "${locale}":`, error);
+    captureException({ error, context: { chunk, locale } });
   }
 }
 
@@ -337,7 +343,14 @@ const ensureChunkPromises = new Map<I18nChunkName, Promise<void>>();
 export function ensureChunkLoaded(chunk: I18nChunkName): Promise<void> {
   let promise = ensureChunkPromises.get(chunk);
   if (!promise) {
-    promise = loadChunks({ locale: getCurrentLocale(), chunks: [chunk] });
+    const locale = getCurrentLocale();
+    // `loadChunk` reports failure by leaving the chunk out of `loadedChunks` rather than
+    // rejecting. Dropping the cached promise in that case lets the next caller retry —
+    // otherwise one flaky fetch leaves the tab rendering raw key paths for that chunk
+    // until a full reload.
+    promise = loadChunks({ locale, chunks: [chunk] }).then(() => {
+      if (!loadedChunks.get(locale)?.has(chunk)) ensureChunkPromises.delete(chunk);
+    });
     ensureChunkPromises.set(chunk, promise);
   }
   return promise;

@@ -35,12 +35,7 @@
         <UiButton variant="ghost" size="icon" @click="router.push({ name: ROUTES_NAMES.accounts })">
           <span class="text-xl">←</span>
         </UiButton>
-        <img
-          v-if="institutionLogoUrl"
-          :src="institutionLogoUrl"
-          :alt="connectionDetails.providerName"
-          class="size-7 shrink-0 rounded-sm"
-        />
+        <BankConnectionLogo :connection-id="connectionId" :alt="connectionDetails.providerName" size="size-7" />
         <h1 class="text-2xl tracking-wider">{{ connectionDetails.providerName }}</h1>
         <UiButton variant="ghost" size="icon" @click="openEditNameDialog">
           <PencilIcon class="size-4" />
@@ -565,17 +560,15 @@
 
 <script lang="ts" setup>
 import {
-  type BankConnection,
   disconnectProvider,
   getAvailableAccounts,
-  listConnections,
   reauthorizeConnection,
   syncSelectedAccounts,
   updateConnectionDetails,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
-import { getBankInstitutionLogoUrl } from '@/common/utils/find-bank-institution';
+import BankConnectionLogo from '@/components/common/bank-connection-logo.vue';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
@@ -648,19 +641,6 @@ const {
 } = useBankConnectionDetails({ connectionId: connectionId, queryOptions: { retry: false } });
 
 const isConnectionNotFound = computed(() => isNotFoundError(error.value));
-
-const { data: bankConnections } = useQuery({
-  queryFn: listConnections,
-  queryKey: VUE_QUERY_CACHE_KEYS.bankConnections,
-  staleTime: Infinity,
-  placeholderData: [] as BankConnection[],
-});
-
-const institutionLogoUrl = computed(() => {
-  const conn = bankConnections.value?.find((c) => c.id === connectionId.value);
-  if (!conn?.bankName) return null;
-  return getBankInstitutionLogoUrl({ bankName: conn.bankName });
-});
 
 // A connection needs manual reconnection either after an auth failure or after a
 // data-backup restore (restored connections come in with an empty credential stub).

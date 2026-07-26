@@ -70,16 +70,11 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import GroupTotal from '@/components/sidebar/accounts-view/group-total.vue';
-import {
-  collectGroupAccounts,
-  sumAccountsBaseBalance,
-} from '@/components/sidebar/accounts-view/helpers/account-totals';
-import { useUserSettings } from '@/composable/data-queries/user-settings';
+import { collectGroupAccounts } from '@/components/sidebar/accounts-view/helpers/account-totals';
+import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { useSyncStatus } from '@/composable/use-sync-status';
-import { ROUTES_NAMES } from '@/routes/constants';
-import { useCurrenciesStore } from '@/stores';
+import { goToConnectionDetails } from '@/routes/navigation';
 import { ChevronRightIcon, FolderIcon, Settings2Icon } from '@lucide/vue';
-import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -116,28 +111,14 @@ const connectionStatus = computed<ConnectionStatusKind>(() =>
   }),
 );
 
-const { baseCurrency } = storeToRefs(useCurrenciesStore());
-const baseCurrencyCode = computed(() => baseCurrency.value?.currency?.code);
-const { data: userSettings } = useUserSettings();
+const { baseCurrencyCode, sumBaseBalance } = useBaseBalanceTotals();
 
 const groupAccounts = computed(() => collectGroupAccounts({ group: props.group }));
 const accountCount = computed(() => groupAccounts.value.length);
 
 // The whole subtree rolls up here: direct accounts plus every nested child group,
 // so a collapsed connection shows its full worth without expanding.
-const groupTotal = computed(() =>
-  sumAccountsBaseBalance({
-    accounts: groupAccounts.value,
-    baseCurrencyCode: baseCurrencyCode.value,
-    includeCreditLimit: !!userSettings.value?.includeCreditLimitInStats,
-  }),
-);
+const groupTotal = computed(() => sumBaseBalance({ accounts: groupAccounts.value }));
 
-const goToConnection = () => {
-  if (!props.group.bankDataProviderConnectionId) return;
-  router.push({
-    name: ROUTES_NAMES.accountIntegrationDetails,
-    params: { connectionId: props.group.bankDataProviderConnectionId },
-  });
-};
+const goToConnection = () => goToConnectionDetails({ router, connectionId: props.group.bankDataProviderConnectionId });
 </script>
