@@ -29,6 +29,15 @@ export const isNotFoundError = (error: unknown): error is ApiErrorResponseError 
   isApiErrorWithCode(error, API_ERROR_CODES.notFound);
 
 /**
+ * Single source for unwrapping the server's message off an `ApiErrorResponseError` — the
+ * API client throws this class with `data: { code, message, details }`, so the common
+ * reflex of reading `err.response.data.response.message` silently returns undefined.
+ * Mutation handlers pair it with a fallback key: `extractApiErrorMessage(err) || t(key)`.
+ */
+export const extractApiErrorMessage = (error: unknown): string | undefined =>
+  error instanceof ApiErrorResponseError ? error.data?.message : undefined;
+
+/**
  * Detects whether every Zod validation failure on the response originated from
  * a URL path/query param (e.g. `params.id`) rather than the request body.
  * A request that fails purely on URL params never reaches the resource, which

@@ -1,24 +1,44 @@
 {
   "settings": {
     "accountGroups": {
-      "title": "Manage account groups",
-      "addButton": "Add new group",
-      "table": {
-        "placeholder": "Account name",
-        "saveButton": "Save",
-        "editButton": "Edit",
-        "deleteButton": "Delete",
-        "deleteDisabledTooltip": "This group is linked to a bank connection and cannot be deleted manually. Disconnect the bank to remove it automatically.",
-        "unlinkButton": "Unlink",
-        "noData": "No group account data",
-        "deleteDialog": {
-          "title": "Do you want to delete this account group?",
-          "unlinkWarning": "Before deletion please unlink accounts listed below"
-        },
-        "notifications": {
-          "unlinked": "Account has been unlinked",
-          "deleted": "Group has been deleted"
-        }
+      "page": {
+        "title": "Account groups",
+        "description": "Organize accounts into groups. Bank connections create and manage their own groups automatically.",
+        "addButton": "Add group"
+      },
+      "empty": {
+        "title": "No account groups yet",
+        "description": "Group accounts by bank, currency or purpose to keep your accounts list tidy."
+      },
+      "loadError": {
+        "title": "Couldn't load your groups",
+        "description": "Something went wrong while fetching your account groups. Check your connection and try again.",
+        "retry": "Try again"
+      },
+      "row": {
+        "bankBadge": "Bank connection",
+        "bankBadgeShort": "Connection",
+        "accountsCount": "{count} account | {count} accounts",
+        "noAccounts": "No accounts",
+        "inParent": "in {name}",
+        "manageConnection": "Manage connection"
+      },
+      "rename": {
+        "label": "Group name",
+        "placeholder": "Enter group name",
+        "saveButton": "Save"
+      },
+      "accounts": {
+        "heading": "Accounts in this group",
+        "empty": "No accounts in this group yet. Add accounts to a group from the account page.",
+        "unlinkTooltip": "Remove from group"
+      },
+      "delete": {
+        "button": "Delete group",
+        "disabledTooltip": "This group is linked to a bank connection and cannot be deleted manually. Disconnect the bank to remove it automatically.",
+        "confirmTitle": "Delete this group?",
+        "description": "The group will be deleted. Its accounts are not deleted — they simply stop being grouped.",
+        "affectedAccounts": "These accounts will be removed from the group:"
       }
     }
   }

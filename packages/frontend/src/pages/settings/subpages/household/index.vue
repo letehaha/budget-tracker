@@ -19,7 +19,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { useNotificationCenter } from '@/components/notification-center';
-import { ApiErrorResponseError } from '@/js/errors';
+import { extractApiErrorMessage } from '@/js/errors';
 import { useUserStore } from '@/stores';
 import { useOnboardingStore } from '@/stores/onboarding';
 import {
@@ -42,13 +42,6 @@ const { user, isDemo } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 const onboardingStore = useOnboardingStore();
-
-// Single source for unwrapping ApiErrorResponseError messages — the API client throws
-// this class with `data: { code, message, details }`, so the common reflex of reading
-// `err.response.data.response.message` silently returns undefined. Centralizing the
-// extraction keeps every mutation handler consistent.
-const extractApiErrorMessage = (err: unknown): string | undefined =>
-  err instanceof ApiErrorResponseError ? err.data?.message : undefined;
 
 // "My household" = the household I own. Identified by my own userId in the resource shape.
 const myHouseholdId = computed(() => user.value?.id ?? null);

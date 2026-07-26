@@ -190,6 +190,27 @@
       "resetToAuto": "Reset to automatic"
     }
   },
+  "accountGroups": {
+    "create": {
+      "error": "Failed to create the group"
+    },
+    "rename": {
+      "success": "Group has been renamed",
+      "error": "Failed to rename the group"
+    },
+    "delete": {
+      "success": "Group has been deleted",
+      "error": "Failed to delete the group"
+    },
+    "link": {
+      "success": "Account has been added to the group",
+      "error": "Failed to add the account to the group"
+    },
+    "unlink": {
+      "success": "Account has been removed from the group",
+      "error": "Failed to remove the account from the group"
+    }
+  },
   "validation": {
     "minLength": "Minimal length is {length}.",
     "emailInvalid": "Please enter a valid email address.",
