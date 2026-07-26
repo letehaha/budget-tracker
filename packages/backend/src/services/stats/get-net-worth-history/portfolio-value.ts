@@ -107,6 +107,10 @@ export const calculatePortfolioValueByDate = async ({
 
   const [transactions, portfolioTransfers, currentBalances]: [TransactionRow[], TransferRow[], CurrentBalanceRow[]] =
     await Promise.all([
+      // `raw: true` + cast so the DECIMAL money columns (`quantity` is a Money
+      // field on the model) arrive as strings, the shape the shared holdings
+      // replay expects — and to avoid hydrating a Money object per column per row
+      // across an active trader's full pre-window history.
       InvestmentTransaction.findAll({
         where: {
           portfolioId: { [Op.in]: portfolioIds },
@@ -128,12 +132,12 @@ export const calculatePortfolioValueByDate = async ({
           'date',
           'quantity',
           'refAmount',
-          'refFees',
           'currencyCode',
           'settlementAmount',
           'settlementCurrencyCode',
         ],
-      }),
+        raw: true,
+      }) as unknown as Promise<TransactionRow[]>,
       PortfolioTransfers.findAll({
         where: {
           userId,
