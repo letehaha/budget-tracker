@@ -7,9 +7,10 @@
       "trendsComparison": "Perbandingan Tren",
       "investmentCalculator": "Kalkulator Investasi",
       "pivotReport": "Pivot",
-      "collapse": "Tutup",
       "netWorthDrivers": "Pendorong Kekayaan Bersih",
       "investmentContributions": "Kontribusi",
+      "netWorthHistory": "",
+      "collapse": "Tutup",
       "sections": {
         "investments": "Investasi"
       }
@@ -44,7 +45,8 @@
         "last6Months": "6 bulan terakhir",
         "last12Months": "12 bulan terakhir",
         "thisYear": "Tahun ini",
-        "previousYear": "Tahun sebelumnya"
+        "previousYear": "Tahun sebelumnya",
+        "allTime": ""
       },
       "periodSelector": {
         "quickSelect": "Pilih Cepat",
@@ -95,6 +97,7 @@
       "timeHorizon": "Cakrawala waktu (tahun)",
       "years": "Tahun",
       "annualReturn": "Pengembalian tahunan (%)",
+      "annualReturnPlaceholder": "Pilih prasetel",
       "annualInflation": "Inflasi tahunan (%)",
       "perMonth": "per bulan",
       "totalInvested": "Total diinvestasikan",
@@ -123,8 +126,7 @@
       "configure": "Konfigurasi",
       "hideInputs": "Sembunyikan",
       "portfolioReturnOption": "{name} (~{rate}%/tahun Anda)",
-      "portfolioNoHistoryOption": "{name} — riwayat tidak mencukupi",
-      "annualReturnPlaceholder": "Pilih prasetel"
+      "portfolioNoHistoryOption": "{name} — riwayat tidak mencukupi"
     },
     "portfolioFilter": {
       "all": "Semua portofolio",
@@ -182,7 +184,8 @@
       "thisYear": "Tahun ini",
       "previousYear": "Tahun sebelumnya",
       "last3Years": "3 tahun terakhir",
-      "last5Years": "5 tahun terakhir"
+      "last5Years": "5 tahun terakhir",
+      "allTime": ""
     },
     "savedViews": {
       "trigger": "Tampilan",
@@ -301,7 +304,7 @@
       "averagePerPeriod": "Rata-rata per periode"
     },
     "chart": {
-      "total": "Total",
+      "total": "",
       "vsPrevious": "vs sebelumnya"
     },
     "states": {
@@ -311,6 +314,65 @@
       "noPortfoliosPlaceholder": "Buat portofolio dan mulai berinvestasi untuk melacak kontribusi Anda di sini.",
       "noPortfoliosAction": "Tambahkan portofolio",
       "loadError": "Kontribusi gagal dimuat"
+    }
+  },
+  "netWorthHistory": {
+    "title": "",
+    "subtitle": "",
+    "granularity": {
+      "weekly": "",
+      "monthly": "",
+      "quarterly": "",
+      "yearly": ""
+    },
+    "kindFilter": {
+      "all": "",
+      "scopeHint": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "assetKinds": {
+      "cash": "",
+      "investments": "",
+      "vehicles": "",
+      "ventures": ""
+    },
+    "assetFilter": {
+      "all": "",
+      "scopeHint": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "cards": {
+      "currentNetWorth": "",
+      "periodChange": "",
+      "annualized": "",
+      "averageLiabilities": "",
+      "noLiabilities": ""
+    },
+    "chart": {
+      "assets": "",
+      "liabilities": "",
+      "liabilitiesTotal": "",
+      "netWorth": "",
+      "averageLiabilities": "",
+      "liabilitiesZoomed": ""
+    },
+    "settings": {
+      "title": "",
+      "zoomLiabilities": "",
+      "zoomLiabilitiesHint": ""
+    },
+    "degraded": {
+      "title": "",
+      "unpricedSecurities": "",
+      "unpricedSecuritiesTruncated": "",
+      "fxFallback": ""
+    },
+    "states": {
+      "loadError": "",
+      "noData": "",
+      "noDataHint": ""
     }
   }
 }

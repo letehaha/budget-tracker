@@ -190,6 +190,27 @@
       "resetToAuto": "Restablecer a automático"
     }
   },
+  "accountGroups": {
+    "create": {
+      "error": ""
+    },
+    "rename": {
+      "success": "",
+      "error": ""
+    },
+    "delete": {
+      "success": "",
+      "error": ""
+    },
+    "link": {
+      "success": "",
+      "error": ""
+    },
+    "unlink": {
+      "success": "",
+      "error": ""
+    }
+  },
   "validation": {
     "minLength": "La longitud mínima es {length}.",
     "emailInvalid": "Introduzca una dirección de correo electrónico válida.",

@@ -3,6 +3,10 @@
     "dataManagement": {
       "title": "Importar datos",
       "description": "Importe sus datos financieros desde diversas fuentes",
+      "tabs": {
+        "import": "Importar",
+        "export": "Exportar"
+      },
       "textSource": {
         "title": "Importar desde cualquier fuente de texto",
         "description": "Analice e importe transacciones desde extractos bancarios, correos electrónicos o cualquier fuente de texto. Utiliza IA para extraer datos de transacciones automáticamente.",
@@ -39,10 +43,6 @@
         "requestMore": {
           "title": "¿Quieres más opciones? Solicítalo aquí"
         }
-      },
-      "tabs": {
-        "import": "Importar",
-        "export": "Exportar"
       },
       "export": {
         "cardTitle": "Exporta tus datos",

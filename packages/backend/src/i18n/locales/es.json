@@ -183,7 +183,6 @@
     "dateInvalid": "\"date\" es una fecha no válida."
   },
   "bankDataProviders": {
-    "apiError": "Error de API de {{provider}}: {{message}}",
     "reauthorizationStarted": "Reautorización iniciada. Por favor, complete el flujo de OAuth.",
     "connectionEstablished": "Conexión establecida correctamente",
     "failedToFetchBanks": "No se pudieron obtener los bancos. Por favor, verifique sus credenciales y el código de país.",
@@ -201,6 +200,7 @@
     "accountCurrencyNotSupported": "La moneda de la cuenta \"{{currency}}\" no está soportada por este sistema.",
     "periodLoadNotSupported": "La carga de transacciones para un período personalizado no está soportada por este proveedor.",
     "transactionsLoadedCount": "Se cargaron {{count}} transacciones.",
+    "apiError": "Error de API de {{provider}}: {{message}}",
     "monobank": {
       "invalidCredentialsFormat": "Formato de credenciales no válido para Monobank",
       "invalidApiToken": "Token de API de Monobank no válido",
@@ -284,14 +284,14 @@
     "alreadyBaseCurrency": "La moneda seleccionada ya es la moneda base",
     "baseCurrencyLockedByShares": "No se puede cambiar la moneda base mientras tenga recursos compartidos activos. Revóquelos o abandónelos primero.",
     "baseCurrencyLockedByHousehold": "No se puede cambiar la moneda base mientras forme parte de un hogar activo. Revoque o abandone su membresía en el hogar primero.",
-    "cannotFindForRefAmount": "¡No se puede encontrar la moneda para calcular el importe de referencia!",
-    "cannotCalculateRefAmount": "No se puede calcular el importe de referencia",
-    "currencyNotConnected": "La moneda solicitada no está conectada",
-    "exchangeRateNotAvailable": "Tipo de cambio no disponible para {{baseCode}}/{{quoteCode}} en {{date}}",
     "baseCurrencyChangeInProgress": "El cambio de moneda base está en curso. Espere a que finalice.",
     "baseCurrencyChangeSyncInProgress": "Una sincronización bancaria todavía se está completando. Inténtelo de nuevo dentro de unos minutos.",
     "baseCurrencyChangeDrainCheckFailed": "No se pudo verificar que las sincronizaciones bancarias estén inactivas. Inténtelo de nuevo.",
-    "baseCurrencyChangeInProgressOtherUser": "El otro participante está cambiando actualmente su moneda base. Inténtelo de nuevo cuando finalice su migración."
+    "baseCurrencyChangeInProgressOtherUser": "El otro participante está cambiando actualmente su moneda base. Inténtelo de nuevo cuando finalice su migración.",
+    "cannotFindForRefAmount": "¡No se puede encontrar la moneda para calcular el importe de referencia!",
+    "cannotCalculateRefAmount": "No se puede calcular el importe de referencia",
+    "currencyNotConnected": "La moneda solicitada no está conectada",
+    "exchangeRateNotAvailable": "Tipo de cambio no disponible para {{baseCode}}/{{quoteCode}} en {{date}}"
   },
   "userSettings": {
     "excludedCategoriesNotFound": "Una o más categorías excluidas no encontradas",
@@ -460,5 +460,8 @@
   },
   "vehicles": {
     "notFound": "Vehículo no encontrado"
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": ""
   }
 }

@@ -284,14 +284,14 @@
     "alreadyBaseCurrency": "Mata uang yang dipilih sudah menjadi mata uang dasar",
     "baseCurrencyLockedByShares": "Tidak dapat mengubah mata uang dasar saat Anda memiliki sumber daya bersama yang aktif. Cabut atau tinggalkan terlebih dahulu.",
     "baseCurrencyLockedByHousehold": "Tidak dapat mengubah mata uang dasar saat Anda masih menjadi bagian dari rumah tangga aktif. Cabut atau tinggalkan keanggotaan rumah tangga Anda terlebih dahulu.",
-    "cannotFindForRefAmount": "Tidak dapat menemukan mata uang untuk menghitung jumlah referensi!",
-    "cannotCalculateRefAmount": "Tidak dapat menghitung jumlah referensi",
-    "currencyNotConnected": "Mata uang yang diminta tidak terhubung",
-    "exchangeRateNotAvailable": "Nilai tukar tidak tersedia untuk {{baseCode}}/{{quoteCode}} pada {{date}}",
     "baseCurrencyChangeInProgress": "Perubahan mata uang dasar sedang berlangsung. Harap tunggu hingga selesai.",
     "baseCurrencyChangeSyncInProgress": "Sinkronisasi bank masih berlangsung. Silakan coba ubah mata uang dasar Anda lagi dalam beberapa menit.",
     "baseCurrencyChangeDrainCheckFailed": "Tidak dapat memverifikasi bahwa sinkronisasi bank sedang tidak aktif. Silakan coba lagi.",
-    "baseCurrencyChangeInProgressOtherUser": "Peserta lain sedang mengubah mata uang dasar mereka. Silakan coba lagi setelah proses migrasi mereka selesai."
+    "baseCurrencyChangeInProgressOtherUser": "Peserta lain sedang mengubah mata uang dasar mereka. Silakan coba lagi setelah proses migrasi mereka selesai.",
+    "cannotFindForRefAmount": "Tidak dapat menemukan mata uang untuk menghitung jumlah referensi!",
+    "cannotCalculateRefAmount": "Tidak dapat menghitung jumlah referensi",
+    "currencyNotConnected": "Mata uang yang diminta tidak terhubung",
+    "exchangeRateNotAvailable": "Nilai tukar tidak tersedia untuk {{baseCode}}/{{quoteCode}} pada {{date}}"
   },
   "userSettings": {
     "excludedCategoriesNotFound": "Satu atau lebih kategori yang dikecualikan tidak ditemukan",
@@ -460,5 +460,8 @@
   },
   "vehicles": {
     "notFound": "Kendaraan tidak ditemukan"
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": ""
   }
 }

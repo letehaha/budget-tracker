@@ -1,24 +1,44 @@
 {
   "settings": {
     "accountGroups": {
-      "title": "Керування групами рахунків",
-      "addButton": "Додати нову групу",
-      "table": {
-        "placeholder": "Назва рахунку",
-        "saveButton": "Зберегти",
-        "editButton": "Редагувати",
-        "deleteButton": "Видалити",
-        "deleteDisabledTooltip": "Ця група пов'язана з банківським підключенням і не може бути видалена вручну. Від'єднайте банк, щоб видалити її автоматично.",
-        "unlinkButton": "Відв'язати",
-        "noData": "Немає даних груп рахунків",
-        "deleteDialog": {
-          "title": "Бажаєте видалити цю групу рахунків?",
-          "unlinkWarning": "Перед видаленням, будь ласка, відв'яжіть рахунки, перелічені нижче"
-        },
-        "notifications": {
-          "unlinked": "Рахунок відв'язано",
-          "deleted": "Групу видалено"
-        }
+      "page": {
+        "title": "",
+        "description": "",
+        "addButton": ""
+      },
+      "empty": {
+        "title": "",
+        "description": ""
+      },
+      "loadError": {
+        "title": "",
+        "description": "",
+        "retry": ""
+      },
+      "row": {
+        "bankBadge": "",
+        "bankBadgeShort": "",
+        "accountsCount": "",
+        "noAccounts": "",
+        "inParent": "",
+        "manageConnection": ""
+      },
+      "rename": {
+        "label": "",
+        "placeholder": "",
+        "saveButton": ""
+      },
+      "accounts": {
+        "heading": "",
+        "empty": "",
+        "unlinkTooltip": ""
+      },
+      "delete": {
+        "button": "",
+        "disabledTooltip": "",
+        "confirmTitle": "",
+        "description": "",
+        "affectedAccounts": ""
       }
     }
   }

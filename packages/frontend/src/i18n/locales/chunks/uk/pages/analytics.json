@@ -7,9 +7,10 @@
       "trendsComparison": "Порівняння трендів",
       "investmentCalculator": "Інвестиційний калькулятор",
       "pivotReport": "Зведення",
-      "collapse": "Згорнути",
       "netWorthDrivers": "Драйвери чистого майна",
       "investmentContributions": "Внески",
+      "netWorthHistory": "",
+      "collapse": "Згорнути",
       "sections": {
         "investments": "Інвестиції"
       }
@@ -44,7 +45,8 @@
         "last6Months": "Останні 6 місяців",
         "last12Months": "Останні 12 місяців",
         "thisYear": "Цього року",
-        "previousYear": "Минулого року"
+        "previousYear": "Минулого року",
+        "allTime": ""
       },
       "periodSelector": {
         "quickSelect": "Швидкий вибір",
@@ -95,6 +97,7 @@
       "timeHorizon": "Горизонт (роки)",
       "years": "Роки",
       "annualReturn": "Річна дохідність (%)",
+      "annualReturnPlaceholder": "Оберіть предустановку",
       "annualInflation": "Річна інфляція (%)",
       "perMonth": "на місяць",
       "totalInvested": "Всього інвестовано",
@@ -123,8 +126,7 @@
       "configure": "Налаштувати",
       "hideInputs": "Сховати",
       "portfolioReturnOption": "{name} (ваш ~{rate}%/рік)",
-      "portfolioNoHistoryOption": "{name} — недостатньо історії",
-      "annualReturnPlaceholder": "Оберіть предустановку"
+      "portfolioNoHistoryOption": "{name} — недостатньо історії"
     },
     "portfolioFilter": {
       "all": "Усі портфелі",
@@ -182,7 +184,8 @@
       "thisYear": "Цього року",
       "previousYear": "Минулого року",
       "last3Years": "Останні 3 років",
-      "last5Years": "Останні 5 років"
+      "last5Years": "Останні 5 років",
+      "allTime": ""
     },
     "savedViews": {
       "trigger": "Подання",
@@ -311,6 +314,65 @@
       "noPortfoliosPlaceholder": "Створіть портфель і почніть інвестувати, щоб відстежувати свої внески тут.",
       "noPortfoliosAction": "Додати портфель",
       "loadError": "Не вдалося завантажити внески"
+    }
+  },
+  "netWorthHistory": {
+    "title": "",
+    "subtitle": "",
+    "granularity": {
+      "weekly": "",
+      "monthly": "",
+      "quarterly": "",
+      "yearly": ""
+    },
+    "kindFilter": {
+      "all": "",
+      "scopeHint": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "assetKinds": {
+      "cash": "",
+      "investments": "",
+      "vehicles": "",
+      "ventures": ""
+    },
+    "assetFilter": {
+      "all": "",
+      "scopeHint": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "cards": {
+      "currentNetWorth": "",
+      "periodChange": "",
+      "annualized": "",
+      "averageLiabilities": "",
+      "noLiabilities": ""
+    },
+    "chart": {
+      "assets": "",
+      "liabilities": "",
+      "liabilitiesTotal": "",
+      "netWorth": "",
+      "averageLiabilities": "",
+      "liabilitiesZoomed": ""
+    },
+    "settings": {
+      "title": "",
+      "zoomLiabilities": "",
+      "zoomLiabilitiesHint": ""
+    },
+    "degraded": {
+      "title": "",
+      "unpricedSecurities": "",
+      "unpricedSecuritiesTruncated": "",
+      "fxFallback": ""
+    },
+    "states": {
+      "loadError": "",
+      "noData": "",
+      "noDataHint": ""
     }
   }
 }

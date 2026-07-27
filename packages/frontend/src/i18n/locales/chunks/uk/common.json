@@ -190,6 +190,27 @@
       "resetToAuto": "Скинути на автоматичний"
     }
   },
+  "accountGroups": {
+    "create": {
+      "error": ""
+    },
+    "rename": {
+      "success": "",
+      "error": ""
+    },
+    "delete": {
+      "success": "",
+      "error": ""
+    },
+    "link": {
+      "success": "",
+      "error": ""
+    },
+    "unlink": {
+      "success": "",
+      "error": ""
+    }
+  },
   "validation": {
     "minLength": "Мінімальна довжина {length}.",
     "emailInvalid": "Будь ласка, введіть дійсну адресу електронної пошти.",

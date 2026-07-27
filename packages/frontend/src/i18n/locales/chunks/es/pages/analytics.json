@@ -7,9 +7,10 @@
       "trendsComparison": "Comparación de tendencias",
       "investmentCalculator": "Calculadora de inversiones",
       "pivotReport": "Tabla dinámica",
-      "collapse": "Contraer",
       "netWorthDrivers": "Impulsores del patrimonio neto",
       "investmentContributions": "Aportaciones",
+      "netWorthHistory": "",
+      "collapse": "Contraer",
       "sections": {
         "investments": "Inversiones"
       }
@@ -44,7 +45,8 @@
         "last6Months": "Últimos 6 meses",
         "last12Months": "Últimos 12 meses",
         "thisYear": "Este año",
-        "previousYear": "Año anterior"
+        "previousYear": "Año anterior",
+        "allTime": ""
       },
       "periodSelector": {
         "quickSelect": "Selección rápida",
@@ -95,6 +97,7 @@
       "timeHorizon": "Horizonte temporal (años)",
       "years": "Años",
       "annualReturn": "Rentabilidad anual (%)",
+      "annualReturnPlaceholder": "Seleccionar preajuste",
       "annualInflation": "Inflación anual (%)",
       "perMonth": "al mes",
       "totalInvested": "Total invertido",
@@ -123,8 +126,7 @@
       "configure": "Configurar",
       "hideInputs": "Ocultar",
       "portfolioReturnOption": "{name} (su ~{rate}%/año)",
-      "portfolioNoHistoryOption": "{name} — historial insuficiente",
-      "annualReturnPlaceholder": "Seleccionar preajuste"
+      "portfolioNoHistoryOption": "{name} — historial insuficiente"
     },
     "portfolioFilter": {
       "all": "Todas las carteras",
@@ -182,7 +184,8 @@
       "thisYear": "Este año",
       "previousYear": "Año anterior",
       "last3Years": "Últimos 3 años",
-      "last5Years": "Últimos 5 años"
+      "last5Years": "Últimos 5 años",
+      "allTime": ""
     },
     "savedViews": {
       "trigger": "Vistas",
@@ -301,7 +304,7 @@
       "averagePerPeriod": "Media por período"
     },
     "chart": {
-      "total": "Total",
+      "total": "",
       "vsPrevious": "vs anterior"
     },
     "states": {
@@ -311,6 +314,65 @@
       "noPortfoliosPlaceholder": "Cree una cartera y empiece a invertir para hacer seguimiento de sus aportaciones aquí.",
       "noPortfoliosAction": "Añadir una cartera",
       "loadError": "No se pudieron cargar las aportaciones"
+    }
+  },
+  "netWorthHistory": {
+    "title": "",
+    "subtitle": "",
+    "granularity": {
+      "weekly": "",
+      "monthly": "",
+      "quarterly": "",
+      "yearly": ""
+    },
+    "kindFilter": {
+      "all": "",
+      "scopeHint": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "assetKinds": {
+      "cash": "",
+      "investments": "",
+      "vehicles": "",
+      "ventures": ""
+    },
+    "assetFilter": {
+      "all": "",
+      "scopeHint": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "cards": {
+      "currentNetWorth": "",
+      "periodChange": "",
+      "annualized": "",
+      "averageLiabilities": "",
+      "noLiabilities": ""
+    },
+    "chart": {
+      "assets": "",
+      "liabilities": "",
+      "liabilitiesTotal": "",
+      "netWorth": "",
+      "averageLiabilities": "",
+      "liabilitiesZoomed": ""
+    },
+    "settings": {
+      "title": "",
+      "zoomLiabilities": "",
+      "zoomLiabilitiesHint": ""
+    },
+    "degraded": {
+      "title": "",
+      "unpricedSecurities": "",
+      "unpricedSecuritiesTruncated": "",
+      "fxFallback": ""
+    },
+    "states": {
+      "loadError": "",
+      "noData": "",
+      "noDataHint": ""
     }
   }
 }

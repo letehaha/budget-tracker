@@ -190,6 +190,27 @@
       "resetToAuto": "Kembalikan ke otomatis"
     }
   },
+  "accountGroups": {
+    "create": {
+      "error": ""
+    },
+    "rename": {
+      "success": "",
+      "error": ""
+    },
+    "delete": {
+      "success": "",
+      "error": ""
+    },
+    "link": {
+      "success": "",
+      "error": ""
+    },
+    "unlink": {
+      "success": "",
+      "error": ""
+    }
+  },
   "validation": {
     "minLength": "Panjang minimal adalah {length}.",
     "emailInvalid": "Silakan masukkan alamat email yang valid.",
