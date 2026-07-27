@@ -31,9 +31,9 @@ export interface AIModelPricing {
  * This is static config returned via API for frontend display.
  */
 export interface AIModelInfo {
-  /** Full model ID in 'provider/model' format: 'openai/gpt-4o' */
+  /** Full model ID in 'provider/model' format: 'openai/gpt-5.6-terra' */
   id: string;
-  /** Human-readable name: 'GPT-4o' */
+  /** Human-readable name: 'GPT-5.6 Terra' */
   name: string;
   /** Provider enum value */
   provider: AI_PROVIDER;
@@ -65,7 +65,7 @@ export interface AIModelInfoWithRecommendation extends AIModelInfo {
 export interface AIFeatureConfig {
   /** The AI feature this config applies to */
   feature: AI_FEATURE;
-  /** Model ID in 'provider/model' format: 'openai/gpt-4o' */
+  /** Model ID in 'provider/model' format: 'openai/gpt-5.6-terra' */
   modelId: string;
 }
 
@@ -154,17 +154,6 @@ export interface AIFeatureDisplayInfo {
 
 /** Maximum character length for custom AI categorization instructions */
 export const AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH = 2000;
-
-/**
- * Helper to extract provider from combined model ID
- */
-export function getProviderFromModelId({ modelId }: { modelId: string }): AI_PROVIDER | null {
-  const [providerStr] = modelId.split('/');
-  if (Object.values(AI_PROVIDER).includes(providerStr as AI_PROVIDER)) {
-    return providerStr as AI_PROVIDER;
-  }
-  return null;
-}
 
 /**
  * Helper to get just the model name from combined model ID

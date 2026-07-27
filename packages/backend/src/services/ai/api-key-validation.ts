@@ -1,17 +1,21 @@
 import { AI_PROVIDER } from '@bt/shared/types';
+import { logger } from '@js/utils/logger';
 import { APICallError, RetryError, generateText } from 'ai';
 
 import { createAIClientWithConfig } from './ai-client-factory';
 import { AI_MODEL_ID } from './models-config';
 
 /**
- * Default models to use for validation (cheapest/fastest per provider)
+ * Default models to use for validation (cheapest/fastest per provider).
+ * Google uses gemini-3.5-flash-lite (costTier low) instead of the cheaper
+ * google/gemma-4-31b-it (costTier free) — the free Gemma tier is aggressively
+ * rate-limited and makes key validation flaky.
  */
 const VALIDATION_MODELS: Record<AI_PROVIDER, AI_MODEL_ID> = {
-  [AI_PROVIDER.openai]: AI_MODEL_ID['openai/gpt-4o-mini'],
+  [AI_PROVIDER.openai]: AI_MODEL_ID['openai/gpt-5.4-nano'],
   [AI_PROVIDER.anthropic]: AI_MODEL_ID['anthropic/claude-haiku-4-5'],
-  [AI_PROVIDER.google]: AI_MODEL_ID['google/gemini-2.5-flash-lite'],
-  [AI_PROVIDER.groq]: AI_MODEL_ID['groq/llama-3.1-8b-instant'],
+  [AI_PROVIDER.google]: AI_MODEL_ID['google/gemini-3.5-flash-lite'],
+  [AI_PROVIDER.groq]: AI_MODEL_ID['groq/openai/gpt-oss-20b'],
 };
 
 interface APIKeyValidationResult {
@@ -93,13 +97,11 @@ export async function validateApiKey({
     });
 
     // Make a minimal test call - just ask for a single word response
-    const res = await generateText({
+    await generateText({
       model,
       prompt: "Reply with only the word 'ok'",
       maxOutputTokens: 5,
     });
-
-    console.log('res', res);
 
     return { isValid: true };
   } catch (error) {
@@ -110,10 +112,16 @@ export async function validateApiKey({
       return { isValid: true };
     }
 
-    // For auth errors or any other errors, the key is invalid
-    return {
-      isValid: false,
-      error: GENERIC_INVALID_KEY_MESSAGE,
-    };
+    if (isAuthError(error)) {
+      // Expected result of a user pasting a wrong key - info level, must not create a Sentry event
+      logger.info('API key validation failed with auth error', { provider, modelId, error });
+    } else {
+      // Neither temporary nor auth-related - likely a config issue on our side
+      // (eg. a decommissioned VALIDATION_MODELS entry returning model-not-found),
+      // not proof the key itself is bad. Still report invalid since we couldn't confirm it works.
+      logger.error('API key validation failed with unexpected error', { provider, modelId, error });
+    }
+
+    return { isValid: false, error: GENERIC_INVALID_KEY_MESSAGE };
   }
 }

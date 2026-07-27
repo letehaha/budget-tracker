@@ -1,9 +1,9 @@
-import { AI_FEATURE, AI_PROVIDER, getProviderFromModelId } from '@bt/shared/types';
+import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 
 import { getAiApiKey } from '../user-settings/ai-api-key';
 import { getFeatureConfig } from '../user-settings/ai-feature-settings';
-import { getDefaultModelForFeature, isValidModelId } from './models-config';
+import { getDefaultModelForFeature, getProviderFromModelId } from './models-config';
 
 interface AIConfigResolution {
   /** The resolved provider */
@@ -57,14 +57,8 @@ export async function resolveAIConfiguration({
   if (featureConfig) {
     const provider = getProviderFromModelId({ modelId: featureConfig.modelId });
 
+    // A null provider means the ID isn't in the model catalog at all.
     if (!provider) {
-      logger.warn('Invalid model ID in user feature config', {
-        userId,
-        feature,
-        modelId: featureConfig.modelId,
-      });
-      // Fall through to defaults
-    } else if (!isValidModelId({ modelId: featureConfig.modelId })) {
       logger.warn('Unknown model ID in user feature config', {
         userId,
         feature,

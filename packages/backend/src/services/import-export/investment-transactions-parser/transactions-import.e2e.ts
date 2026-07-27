@@ -1,11 +1,13 @@
+import { AI_FEATURE, getModelNameFromModelId } from '@bt/shared/types';
 import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Securities from '@models/investments/securities.model';
+import { getDefaultModelForFeature } from '@services/ai/models-config';
 import * as helpers from '@tests/helpers';
-import { VALID_GEMINI_API_KEY } from '@tests/mocks/gemini/mock-api';
+import { GEMINI_API_URL, VALID_GEMINI_API_KEY, rejectIfWrongModel } from '@tests/mocks/gemini/mock-api';
 import { HttpResponse, http } from 'msw';
 
 import { dataProviderFactory } from '../../../services/investments/data-providers/provider-factory';
@@ -66,26 +68,32 @@ const csvRow = ({
   confidence?: number;
 }) => `${symbol},${name},${date},${side},${quantity},${price},${fees},${currency},${assetClassHint},${confidence}`;
 
+/** The model the investment-import CSV extraction is actually configured to call. */
+const EXPECTED_GEMINI_MODEL = getModelNameFromModelId({
+  modelId: getDefaultModelForFeature({ feature: AI_FEATURE.investmentTransactionsParsing }),
+});
+
 /**
  * MSW handler that returns a fixed CSV from Gemini's generateContent endpoint.
  * The Vercel AI SDK with `createGoogleGenerativeAI({ apiKey })` calls
  * https://generativelanguage.googleapis.com/v1beta/models/<model>:generateContent
  */
 function geminiCsvHandler({ csv }: { csv: string }) {
-  return http.post(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent',
-    () =>
-      HttpResponse.json({
-        candidates: [
-          {
-            content: { parts: [{ text: csv }], role: 'model' },
-            finishReason: 'STOP',
-            index: 0,
-          },
-        ],
-        usageMetadata: { promptTokenCount: 200, candidatesTokenCount: 60, totalTokenCount: 260 },
-      }),
-  );
+  return http.post(GEMINI_API_URL, ({ request }) => {
+    const modelMismatch = rejectIfWrongModel({ request, expectedModel: EXPECTED_GEMINI_MODEL });
+    if (modelMismatch) return modelMismatch;
+
+    return HttpResponse.json({
+      candidates: [
+        {
+          content: { parts: [{ text: csv }], role: 'model' },
+          finishReason: 'STOP',
+          index: 0,
+        },
+      ],
+      usageMetadata: { promptTokenCount: 200, candidatesTokenCount: 60, totalTokenCount: 260 },
+    });
+  });
 }
 
 /** Encode a string source file as base64 for the upload endpoint. */
