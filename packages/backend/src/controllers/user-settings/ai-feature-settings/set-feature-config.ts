@@ -1,7 +1,7 @@
-import { AI_FEATURE, getProviderFromModelId } from '@bt/shared/types';
+import { AI_FEATURE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
-import { getModelInfo, isRetiredModelId, isValidModelId } from '@services/ai';
+import { getModelInfo, getProviderFromModelId, isRetiredModelId, isValidModelId } from '@services/ai';
 import { hasAiApiKey } from '@services/user-settings/ai-api-key';
 import { setFeatureConfig } from '@services/user-settings/ai-feature-settings';
 import { z } from 'zod';

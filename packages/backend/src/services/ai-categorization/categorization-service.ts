@@ -1,4 +1,4 @@
-import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES, getProviderFromModelId } from '@bt/shared/types';
+import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import Accounts from '@models/accounts.model';
@@ -339,41 +339,39 @@ export async function categorizeTransactions({
 
     // Handle auth errors with user's key - mark invalid and fallback to server
     if (batchResult.isAuthError && aiClient.usingUserKey && !hasTriedFallback) {
-      const provider = getProviderFromModelId({ modelId: aiClient.modelId });
+      const provider = aiClient.provider;
 
-      if (provider) {
-        logger.warn('User API key auth error, marking invalid and trying server fallback', {
+      logger.warn('User API key auth error, marking invalid and trying server fallback', {
+        userId,
+        provider,
+      });
+
+      // Mark the user's key as invalid
+      await markApiKeyInvalid({
+        userId,
+        provider,
+        errorMessage: INVALID_KEY_ERROR_MESSAGE,
+      });
+
+      // Try to get a new AI client (will now use server key if available)
+      const fallbackClient = await createAIClient({
+        userId,
+        feature: AI_FEATURE.categorization,
+      });
+
+      if (fallbackClient && !fallbackClient.usingUserKey) {
+        logger.info('Falling back to server API key', {
           userId,
-          provider,
+          provider: fallbackClient.provider,
         });
 
-        // Mark the user's key as invalid
-        await markApiKeyInvalid({
-          userId,
-          provider,
-          errorMessage: INVALID_KEY_ERROR_MESSAGE,
-        });
+        aiClient = fallbackClient;
+        customInstructions = undefined;
+        hasTriedFallback = true;
 
-        // Try to get a new AI client (will now use server key if available)
-        const fallbackClient = await createAIClient({
-          userId,
-          feature: AI_FEATURE.categorization,
-        });
-
-        if (fallbackClient && !fallbackClient.usingUserKey) {
-          logger.info('Falling back to server API key', {
-            userId,
-            provider: fallbackClient.provider,
-          });
-
-          aiClient = fallbackClient;
-          customInstructions = undefined;
-          hasTriedFallback = true;
-
-          // Retry this batch with the fallback client
-          i -= BATCH_SIZE;
-          continue;
-        }
+        // Retry this batch with the fallback client
+        i -= BATCH_SIZE;
+        continue;
       }
 
       // If no fallback available, return with error
@@ -388,10 +386,7 @@ export async function categorizeTransactions({
 
       // If using user's key and it succeeded, mark it as valid (update lastValidatedAt)
       if (aiClient.usingUserKey) {
-        const provider = getProviderFromModelId({ modelId: aiClient.modelId });
-        if (provider) {
-          await markApiKeyValid({ userId, provider });
-        }
+        await markApiKeyValid({ userId, provider: aiClient.provider });
       }
     }
 

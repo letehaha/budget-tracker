@@ -29,7 +29,7 @@ const ZodAiApiKeySchema = z.object({
 
 const ZodAiFeatureConfigSchema = z.object({
   feature: z.nativeEnum(AI_FEATURE),
-  modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-4o'
+  modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-5.6-terra'
 });
 
 const ZodAiSettingsSchema = z.object({

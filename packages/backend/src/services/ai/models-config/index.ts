@@ -1,4 +1,5 @@
 import { AIModelInfo, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import { logger } from '@js/utils/logger';
 
 import { AI_MODEL_ID } from './model-ids';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, GROQ_MODELS, OPENAI_MODELS } from './providers';
@@ -65,20 +66,30 @@ export function isModelRecommendedForFeature({ modelId, feature }: { modelId: st
 }
 
 /**
- * Extract provider from a model ID (e.g., 'openai/gpt-4o' -> 'openai')
+ * Extract provider from a model ID (e.g., 'openai/gpt-5.6-terra' -> 'openai')
  */
 export function getProviderFromModelId({ modelId }: { modelId: string }): AI_PROVIDER | null {
   const model = AVAILABLE_MODELS[modelId as AI_MODEL_ID];
   return model?.provider ?? null;
 }
 
-// Walks `RETIRED_MODELS` until a live ID is reached. Falls back to the feature
-// default if the chain dead-ends. Cycles impossible by type construction.
+// RETIRED_MODELS values are typed AI_MODEL_ID, so a retired ID always maps
+// straight to a live one — a single lookup always resolves, no recursion.
 export function resolveLiveModelId({ modelId, feature }: { modelId: string; feature: AI_FEATURE }): AI_MODEL_ID {
   if (modelId in AVAILABLE_MODELS) return modelId as AI_MODEL_ID;
+
   const replacement = RETIRED_MODELS[modelId];
-  if (replacement) return resolveLiveModelId({ modelId: replacement, feature });
-  return FEATURE_DEFAULTS[feature];
+  if (replacement) return replacement;
+
+  // Callers persist the returned ID, so a dead end silently overwrites the
+  // user's pick. Means `RETIRED_MODELS` is missing an entry for this ID.
+  const fallbackModelId = FEATURE_DEFAULTS[feature];
+  logger.warn('Unresolvable AI model ID, falling back to feature default', {
+    modelId,
+    feature,
+    fallbackModelId,
+  });
+  return fallbackModelId;
 }
 
 /**
