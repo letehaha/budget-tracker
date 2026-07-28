@@ -39,7 +39,7 @@
             {{ t('pages.integrations.simplefin.backButton') }}
           </UiButton>
 
-          <DemoRestricted :message="t('demo.featureNotAvailable')">
+          <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_simplefin">
             <UiButton
               @click="handleConnectProvider"
               :disabled="!setupToken || isLoading || isDemo"
@@ -77,7 +77,7 @@
               {{ t('pages.integrations.simplefin.backButton') }}
             </UiButton>
 
-            <DemoRestricted :message="t('demo.featureNotAvailable')">
+            <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_simplefin_import_accounts">
               <UiButton
                 @click="handleImportAccounts"
                 :disabled="selectedAccountIds.length === 0 || isLoading || isDemo"

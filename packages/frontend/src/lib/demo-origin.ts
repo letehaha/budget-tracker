@@ -1,9 +1,9 @@
 import type { DemoEndReason } from './posthog';
 
-// Breadcrumb left on the device when a demo session ends, so the real account that may
-// follow can be attributed back to it.
+// Breadcrumb written when a demo session ends. The next sign-in reads it to link a new
+// account back to that demo.
 const DEMO_ORIGIN_KEY = 'demo-origin';
-// A signup further than this from the demo is treated as unrelated to it.
+// Ignore a signup further than this from the demo.
 const DEMO_ORIGIN_TTL_MS = 24 * 60 * 60 * 1000;
 
 interface DemoOrigin {
@@ -20,14 +20,13 @@ export function markDemoOrigin({ reason }: { reason: DemoEndReason }): void {
  * Reads and clears the breadcrumb, returning person properties that link a fresh
  * account back to the demo session it followed.
  *
- * `posthog.reset()` on logout and the server-side deletion of the demo user leave the
- * demo visitor and the account they sign up with as two unrelated distinct IDs, so
- * conversion is not otherwise computable.
+ * `posthog.reset()` on logout and the server-side delete of the demo user give the demo
+ * visitor and the account they sign up with two unrelated distinct IDs. Nothing else
+ * bridges the two, so this is the only way to compute a conversion rate.
  *
- * `isFirstSignInOnDevice` gates the attribution: someone returning to an account they
- * already use on this device, having poked at the demo in between, is not a conversion.
- * The breadcrumb is consumed either way — it describes one demo session, not a standing
- * property of the device.
+ * `isFirstSignInOnDevice` gates the attribution: someone who already uses an account on
+ * this device and poked at the demo in between has not converted. Either way the call
+ * clears the breadcrumb, which describes one demo session rather than the device.
  */
 export function consumeDemoOriginProperties({
   isFirstSignInOnDevice,

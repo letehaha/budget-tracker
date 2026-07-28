@@ -19,9 +19,12 @@ type AnalyticsEvent =
   // Demo mode
   | { event: 'demo_started'; properties: { location: 'hero' } }
   | { event: 'demo_signup_clicked'; properties: { location: 'banner' } }
-  // Terminal event for a demo session. Without it, a visitor who abandons the tab
-  // and one whose account the cleanup cron swept look identical in the funnel.
+  // Terminal event for a demo session. A visitor who abandons the tab and one whose
+  // account the cleanup cron swept look identical in the funnel without it.
   | { event: 'demo_session_ended'; properties: { reason: DemoEndReason } }
+  // A demo user reaching for a control that demo mode disables. The backend emits the
+  // same event with `surface: 'api'` for requests that get as far as a 403.
+  | { event: 'demo_feature_blocked'; properties: { feature: string; surface: 'restricted_control'; path: string } }
   // Language selector
   | { event: 'language_changed'; properties: { from_locale: string; to_locale: string } }
   | { event: 'crowdin_contribute_clicked'; properties: { current_locale: string } }
@@ -101,13 +104,13 @@ export function initPostHog(): void {
     ui_host: 'https://eu.posthog.com',
     // Disable automatic pageview capture - we track specific events instead
     capture_pageview: false,
-    // Pairs with the manual $pageview below so a page has a measurable duration and
-    // the last page of a session is identifiable as the exit page.
+    // Pairs with the manual $pageview below: gives each page a duration and marks the
+    // last page of a session as the exit page.
     capture_pageleave: true,
     // IMPORTANT: Disable autocapture to save quota
     // Autocapture tracks every click, form submit, input change - very expensive
     autocapture: false,
-    // Recording starts off and is switched on per-session by `startSessionRecording`
+    // Recording starts off. `startSessionRecording` turns it on per session.
     disable_session_recording: true,
     // Respect Do Not Track
     respect_dnt: true,
@@ -169,9 +172,9 @@ export function identifyUser({
 /**
  * Turn on session recording for the current session.
  *
- * Only called for demo accounts. Their data is generated, so a recording carries no
- * user-privacy cost, and confining it to that cohort keeps the recording quota bounded
- * while still showing what a first-time visitor actually did before leaving.
+ * Callers limit this to demo accounts. Demo data is generated, so a recording exposes
+ * no real finances, and the narrow cohort keeps the recording quota small while still
+ * showing what a first-time visitor did before leaving.
  */
 export function startSessionRecording(): void {
   if (!isPostHogEnabled()) {

@@ -20,9 +20,8 @@ import { resetAllDefinedStores } from './setup';
 function identifyUserForTracking(user: UserModel) {
   const isDemo = user.role === USER_ROLES.demo;
 
-  // Demo accounts hold generated data, so recording carries no user-privacy cost, and
-  // limiting it to them keeps the recording quota bounded while still showing what a
-  // first-time visitor did before leaving.
+  // Demo accounts hold generated data, so a recording exposes no real finances.
+  // Limiting it to them also keeps the recording quota small.
   if (isDemo) {
     startSessionRecording();
   }
@@ -314,8 +313,8 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Logout the current user.
    *
-   * `demoEndReason` is only meaningful when the current user is a demo account – it
-   * labels the demo funnel's terminal event.
+   * `demoEndReason` only matters for a demo account. It labels the demo funnel's
+   * terminal event.
    */
   const logout = async ({ demoEndReason = 'logout' }: { demoEndReason?: DemoEndReason } = {}) => {
     const wasDemo = userStore.user?.role === USER_ROLES.demo;
@@ -326,7 +325,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Ignore signout errors, we still want to clear local state
     }
 
-    // Emitted before `resetUser` so it is still attributed to the demo distinct ID.
+    // Fires before `resetUser` so the event still carries the demo distinct ID.
     if (wasDemo) {
       trackAnalyticsEvent({ event: 'demo_session_ended', properties: { reason: demoEndReason } });
       markDemoOrigin({ reason: demoEndReason });

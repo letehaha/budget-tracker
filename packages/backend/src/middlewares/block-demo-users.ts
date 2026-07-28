@@ -1,6 +1,7 @@
 import { API_ERROR_CODES, API_RESPONSE_STATUS, USER_ROLES } from '@bt/shared/types';
 import { ERROR_CODES } from '@js/errors';
 import { logger } from '@js/utils';
+import { trackDemoFeatureBlocked } from '@js/utils/posthog';
 import Users from '@models/users.model';
 import type { NextFunction, Request, Response } from 'express';
 
@@ -36,6 +37,14 @@ export const blockDemoUsers = (req: Request, res: Response, next: NextFunction) 
   }
 
   if (user.role === USER_ROLES.demo) {
+    // Express sets `req.route` before it dispatches a route's handler stack, so the
+    // pattern is here even though this runs ahead of the controller.
+    trackDemoFeatureBlocked({
+      userId: user.id,
+      method: req.method,
+      route: `${req.baseUrl}${req.route?.path ?? req.path}`,
+    });
+
     return res.status(ERROR_CODES.Forbidden).json({
       status: API_RESPONSE_STATUS.error,
       response: {

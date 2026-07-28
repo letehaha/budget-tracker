@@ -68,7 +68,7 @@ const { email, permission, permissionOptions, canSubmit, mutation, submit } = us
         <Button type="button" variant="outline" :disabled="mutation.isPending.value" @click="isOpen = false">
           {{ $t('dialogs.shareBudgetDialog.cancel') }}
         </Button>
-        <DemoRestricted>
+        <DemoRestricted feature="share_budget_dialog_submit">
           <Button type="submit" :disabled="!canSubmit || isDemo" :loading="mutation.isPending.value">
             {{ $t('dialogs.shareBudgetDialog.send') }}
           </Button>

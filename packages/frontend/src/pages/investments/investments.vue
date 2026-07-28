@@ -3,7 +3,7 @@
     <div class="mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
       <h1 class="text-2xl tracking-wider">{{ $t('investments.title') }}</h1>
 
-      <DemoRestricted :message="$t('demo.featureNotAvailable')">
+      <DemoRestricted feature="create_portfolio_header" :message="$t('demo.featureNotAvailable')">
         <CreatePortfolioDialog v-if="!isDemo">
           <UiButton>
             <PlusIcon class="mr-2 size-4" />
@@ -109,7 +109,7 @@
                       {{ $t('investments.menu.delete') }}
                     </DropdownMenuItem>
                   </DeletePortfolioDialog>
-                  <DemoRestricted v-else :message="$t('demo.featureNotAvailable')">
+                  <DemoRestricted v-else feature="delete_portfolio" :message="$t('demo.featureNotAvailable')">
                     <DropdownMenuItem
                       disabled
                       class="text-destructive-text focus:bg-destructive-text/10 focus:text-destructive-text"
@@ -177,7 +177,7 @@
             {{ $t('investments.empty.description') }}
           </p>
         </div>
-        <DemoRestricted :message="$t('demo.featureNotAvailable')">
+        <DemoRestricted feature="create_portfolio_empty_state" :message="$t('demo.featureNotAvailable')">
           <CreatePortfolioDialog v-if="!isDemo">
             <UiButton size="lg">
               <PlusIcon class="mr-2 size-4" />

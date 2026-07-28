@@ -97,9 +97,9 @@ export const securitiesPricesBulkUploadRateLimit = createRateLimit({
 /**
  * Demo-start rate limit (per IP, 10 attempts per 15 minutes).
  *
- * The key prefix is the endpoint's own, so a visitor on a shared IP — an office, a
- * campus, mobile carrier NAT — can only be refused a demo because of other demo
- * starts. The budget stays bounded because each demo provisions a full seeded account.
+ * The key prefix belongs to this endpoint alone, so only other demo starts can use up a
+ * visitor's budget. That matters on a shared IP: an office, a campus, mobile carrier
+ * NAT. The cap stays low because each demo provisions a full seeded account.
  */
 export const demoStartRateLimit = createRateLimit({
   windowSeconds: 15 * 60,

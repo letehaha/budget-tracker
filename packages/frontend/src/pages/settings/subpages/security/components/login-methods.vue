@@ -46,7 +46,7 @@
             <Loader2Icon v-if="isDisconnecting" class="mr-2 size-4 animate-spin" />
             {{ $t('settings.security.loginMethods.oauth.disconnect') }}
           </Button>
-          <DemoRestricted v-else>
+          <DemoRestricted v-else feature="connect_oauth_provider">
             <Button
               variant="outline"
               size="sm"
@@ -105,7 +105,7 @@
               </p>
             </div>
           </div>
-          <DemoRestricted>
+          <DemoRestricted feature="add_passkey">
             <Button variant="outline" size="sm" :disabled="isAddingPasskey || isDemo" @click="handleAddPasskey">
               <Loader2Icon v-if="isAddingPasskey" class="mr-2 size-4 animate-spin" />
               <PlusIcon v-else class="mr-2 size-4" />
