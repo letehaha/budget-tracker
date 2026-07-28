@@ -84,6 +84,29 @@
     "dark": "Dark",
     "system": "System"
   },
+  "feedback": {
+    "dialog": {
+      "title": "Leave feedback",
+      "description": "Tell us what is working and what is not.",
+      "typeLabel": "Type",
+      "typePlaceholder": "Choose a type",
+      "types": {
+        "bug": "Something is broken",
+        "featureRequest": "I want a feature",
+        "other": "Something else"
+      },
+      "messageLabel": "Your feedback",
+      "messagePlaceholder": "What happened, or what would you like to see?",
+      "messageRequired": "Please write a message before sending.",
+      "submit": "Send",
+      "thanks": "Thanks, we read every message.",
+      "or": "or",
+      "board": {
+        "title": "Post it on the public board",
+        "description": "Vote on other people's ideas, see what is already planned, and get a reply on yours."
+      }
+    }
+  },
   "syncStatusTooltip": {
     "title": "Banks connections sync status",
     "syncedSuccessfully": "Synced successfully",

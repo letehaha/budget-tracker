@@ -112,6 +112,12 @@ export function initPostHog(): void {
     autocapture: false,
     // Recording starts off. `startSessionRecording` turns it on per session.
     disable_session_recording: true,
+    // Surveys are written and targeted in the PostHog dashboard, not here. Set
+    // explicitly because it reads like something to switch off alongside
+    // autocapture when trimming quota, and doing that would silently retire
+    // every running survey. Demo-only targeting works off the `is_demo` person
+    // property that `identifyUser` already sets.
+    disable_surveys: false,
     // Respect Do Not Track
     respect_dnt: true,
     // Persistence
