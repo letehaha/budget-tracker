@@ -53,10 +53,9 @@
   },
   "header": {
     "add": "Add",
-    "import": "Import",
     "importData": "Import data",
     "language": "Language",
-    "newTransaction": "New Transaction",
+    "newTransaction": "Add transaction",
     "settings": "Settings",
     "feedback": "Send feedback",
     "support": "Support",
