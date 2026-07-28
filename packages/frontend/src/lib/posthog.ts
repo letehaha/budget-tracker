@@ -2,6 +2,9 @@ import { config } from '@/common/config';
 import posthog from 'posthog-js';
 import type { Router } from 'vue-router';
 
+/** How a demo session stopped. `logout` covers both an explicit sign-out and a session that stopped validating. */
+export type DemoEndReason = 'signup_clicked' | 'logout' | 'expired';
+
 // ============================================
 // Event Types
 // ============================================
@@ -16,6 +19,9 @@ type AnalyticsEvent =
   // Demo mode
   | { event: 'demo_started'; properties: { location: 'hero' } }
   | { event: 'demo_signup_clicked'; properties: { location: 'banner' } }
+  // Terminal event for a demo session. Without it, a visitor who abandons the tab
+  // and one whose account the cleanup cron swept look identical in the funnel.
+  | { event: 'demo_session_ended'; properties: { reason: DemoEndReason } }
   // Language selector
   | { event: 'language_changed'; properties: { from_locale: string; to_locale: string } }
   | { event: 'crowdin_contribute_clicked'; properties: { current_locale: string } }
@@ -95,12 +101,13 @@ export function initPostHog(): void {
     ui_host: 'https://eu.posthog.com',
     // Disable automatic pageview capture - we track specific events instead
     capture_pageview: false,
-    // Disable pageleave to reduce events
-    capture_pageleave: false,
+    // Pairs with the manual $pageview below so a page has a measurable duration and
+    // the last page of a session is identifiable as the exit page.
+    capture_pageleave: true,
     // IMPORTANT: Disable autocapture to save quota
     // Autocapture tracks every click, form submit, input change - very expensive
     autocapture: false,
-    // Disable session recording to save quota (recordings are expensive)
+    // Recording starts off and is switched on per-session by `startSessionRecording`
     disable_session_recording: true,
     // Respect Do Not Track
     respect_dnt: true,
@@ -157,6 +164,21 @@ export function identifyUser({
     username,
     ...properties,
   });
+}
+
+/**
+ * Turn on session recording for the current session.
+ *
+ * Only called for demo accounts. Their data is generated, so a recording carries no
+ * user-privacy cost, and confining it to that cohort keeps the recording quota bounded
+ * while still showing what a first-time visitor actually did before leaving.
+ */
+export function startSessionRecording(): void {
+  if (!isPostHogEnabled()) {
+    return;
+  }
+
+  posthog.startSessionRecording();
 }
 
 /**

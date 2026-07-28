@@ -11,7 +11,15 @@ type LandingAnalyticsEvent =
       event: 'landing_github_clicked';
       properties: { location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' };
     }
-  | { event: 'demo_started'; properties: { location: 'hero' } };
+  | { event: 'demo_started'; properties: { location: 'hero' } }
+  // `demo_started` fires on the click; these two close it out. The gap between them
+  // covers a bulk insert of ~1.5k transactions plus two balance rebuilds, so a slow
+  // or rejected setup is otherwise indistinguishable from a visitor who never clicked.
+  | { event: 'demo_setup_succeeded'; properties: { duration_ms: number } }
+  | {
+      event: 'demo_setup_failed';
+      properties: { reason: 'rate_limited' | 'server_error' | 'network'; status?: number };
+    };
 
 function isPostHogEnabled(): boolean {
   return import.meta.env.PROD && Boolean(config.posthogKey);
@@ -23,8 +31,11 @@ export function initPostHog(): void {
   posthog.init(config.posthogKey!, {
     api_host: config.posthogHost || '/helper',
     ui_host: 'https://eu.posthog.com',
-    capture_pageview: false,
-    capture_pageleave: false,
+    // The landing is a static multi-page site, so the built-in capture is the only
+    // pageview source here — unlike the SPA, which captures manually on route change.
+    capture_pageview: true,
+    // Gives the landing page a measurable dwell time and marks it as an exit page.
+    capture_pageleave: true,
     autocapture: false,
     disable_session_recording: true,
     respect_dnt: true,

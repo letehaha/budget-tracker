@@ -15,16 +15,16 @@ This middleware provides Redis-based rate limiting for API endpoints.
 ### Pre-configured Middleware
 
 ```typescript
-import { apiRateLimit, authRateLimit, priceSyncRateLimit } from '@middlewares/rate-limit';
+import { demoStartRateLimit, logoSearchRateLimit, priceSyncRateLimit } from '@middlewares/rate-limit';
 
 // 5-minute window, 1 attempt per user
 router.post('/expensive-operation', authenticateSession, priceSyncRateLimit, handler);
 
 // 1-minute window, 60 attempts per user
-router.get('/api-data', authenticateSession, apiRateLimit, handler);
+router.get('/api-data', authenticateSession, logoSearchRateLimit, handler);
 
-// 15-minute window, 5 attempts per IP
-router.post('/auth/login', authRateLimit, handler);
+// 15-minute window, 10 attempts per IP
+router.post('/demo', demoStartRateLimit, handler);
 ```
 
 ### Custom Rate Limiting

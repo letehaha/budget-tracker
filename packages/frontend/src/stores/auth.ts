@@ -2,7 +2,8 @@ import { startDemo as startDemoApi } from '@/api/demo';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { OAuthProviderNotConfiguredError, UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
-import { identifyUser, resetUser } from '@/lib/posthog';
+import { consumeDemoOriginProperties, markDemoOrigin } from '@/lib/demo-origin';
+import { type DemoEndReason, identifyUser, resetUser, startSessionRecording, trackAnalyticsEvent } from '@/lib/posthog';
 import { collectPersistedQueryGarbage, resetQueryCaches } from '@/lib/query-persister';
 import { clearSentryUser, setSentryUser } from '@/lib/sentry';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
@@ -19,6 +20,13 @@ import { resetAllDefinedStores } from './setup';
 function identifyUserForTracking(user: UserModel) {
   const isDemo = user.role === USER_ROLES.demo;
 
+  // Demo accounts hold generated data, so recording carries no user-privacy cost, and
+  // limiting it to them keeps the recording quota bounded while still showing what a
+  // first-time visitor did before leaving.
+  if (isDemo) {
+    startSessionRecording();
+  }
+
   // PostHog analytics
   identifyUser({
     userId: user.id,
@@ -27,6 +35,9 @@ function identifyUserForTracking(user: UserModel) {
     properties: {
       is_demo: isDemo,
       user_role: user.role,
+      ...(isDemo
+        ? {}
+        : consumeDemoOriginProperties({ isFirstSignInOnDevice: !localStorage.getItem(HAS_EVER_LOGGED_IN_KEY) })),
     },
   });
 
@@ -301,13 +312,24 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
-   * Logout the current user
+   * Logout the current user.
+   *
+   * `demoEndReason` is only meaningful when the current user is a demo account – it
+   * labels the demo funnel's terminal event.
    */
-  const logout = async () => {
+  const logout = async ({ demoEndReason = 'logout' }: { demoEndReason?: DemoEndReason } = {}) => {
+    const wasDemo = userStore.user?.role === USER_ROLES.demo;
+
     try {
       await signOut();
     } catch {
       // Ignore signout errors, we still want to clear local state
+    }
+
+    // Emitted before `resetUser` so it is still attributed to the demo distinct ID.
+    if (wasDemo) {
+      trackAnalyticsEvent({ event: 'demo_session_ended', properties: { reason: demoEndReason } });
+      markDemoOrigin({ reason: demoEndReason });
     }
 
     // Reset analytics and error tracking user context

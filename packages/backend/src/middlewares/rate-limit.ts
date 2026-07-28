@@ -95,12 +95,16 @@ export const securitiesPricesBulkUploadRateLimit = createRateLimit({
 });
 
 /**
- * Auth rate limit (per IP, 5 attempts per 15 minutes)
+ * Demo-start rate limit (per IP, 10 attempts per 15 minutes).
+ *
+ * The key prefix is the endpoint's own, so a visitor on a shared IP — an office, a
+ * campus, mobile carrier NAT — can only be refused a demo because of other demo
+ * starts. The budget stays bounded because each demo provisions a full seeded account.
  */
-export const authRateLimit = createRateLimit({
-  windowSeconds: 15 * 60, // 15 minutes
-  maxAttempts: 5,
-  keyGenerator: (req: Request) => `auth:ip:${req.ip}`,
+export const demoStartRateLimit = createRateLimit({
+  windowSeconds: 15 * 60,
+  maxAttempts: 10,
+  keyGenerator: (req: Request) => `demo-start:ip:${req.ip}`,
 });
 
 /**

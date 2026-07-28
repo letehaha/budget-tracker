@@ -74,7 +74,7 @@ watch(
   isExpired,
   async (expired) => {
     if (expired) {
-      await authStore.logout();
+      await authStore.logout({ demoEndReason: 'expired' });
       router.push({ name: ROUTES_NAMES.signIn, query: { reason: 'demo_expired' } });
     }
   },
@@ -104,7 +104,7 @@ const handleSignUpClick = async () => {
   });
 
   // Logout demo user before redirecting to sign-up
-  await authStore.logout();
+  await authStore.logout({ demoEndReason: 'signup_clicked' });
   router.push({ name: ROUTES_NAMES.signUp });
 };
 </script>
