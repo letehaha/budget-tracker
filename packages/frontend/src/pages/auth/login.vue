@@ -31,6 +31,10 @@
 
         <AuthDivider :text="$t('auth.login.divider')" />
 
+        <Callout v-if="showDemoExpiredNotice" variant="info">
+          {{ $t('demo.sessionExpiredNotice') }}
+        </Callout>
+
         <form-wrapper :error="formError" class="grid gap-5">
           <input-field
             v-model="form.email"
@@ -70,6 +74,7 @@
 
 <script lang="ts" setup>
 import { getOAuthAuthorizeUrl } from '@/api/mcp';
+import { DEMO_SESSION_EXPIRED_REASON } from '@/common/const';
 import {
   AuthDivider,
   GithubIcon,
@@ -81,6 +86,7 @@ import {
 import { InputField } from '@/components/fields';
 import FormWrapper from '@/components/fields/form-wrapper.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/lib/ui/card';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
@@ -123,6 +129,13 @@ const oauthError = route.query.oauth_error as string | undefined;
 if (oauthError) {
   formError.value = oauthError;
   // Clean up the URL without triggering a navigation
+  router.replace({ name: ROUTES_NAMES.signIn });
+}
+
+// Demo session auto-logout redirects here with this reason so the user
+// knows why they landed on sign-in instead of the app.
+const showDemoExpiredNotice = ref(route.query.reason === DEMO_SESSION_EXPIRED_REASON);
+if (showDemoExpiredNotice.value) {
   router.replace({ name: ROUTES_NAMES.signIn });
 }
 

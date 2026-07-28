@@ -57,6 +57,7 @@ const demoUser: UserModel = {
   totalBalance: 0,
   defaultCategoryId: '00000000-0000-0000-0000-000000000001' as RecordId,
   role: 'demo',
+  createdAt: new Date(),
 };
 
 const regularUser: UserModel = {
@@ -70,6 +71,7 @@ const regularUser: UserModel = {
   totalBalance: 0,
   defaultCategoryId: '00000000-0000-0000-0000-000000000001' as RecordId,
   role: 'common',
+  createdAt: new Date(),
 };
 
 describe('DemoBanner component', () => {
@@ -94,7 +96,6 @@ describe('DemoBanner component', () => {
 
     // Mock auth store methods after mount
     const authStore = useAuthStore();
-    authStore.getDemoSession = vi.fn().mockReturnValue(null);
     authStore.logout = vi.fn().mockResolvedValue(undefined);
 
     return wrapper;

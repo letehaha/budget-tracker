@@ -23,21 +23,24 @@
 </template>
 
 <script setup lang="ts">
+import { DEMO_SESSION_EXPIRED_REASON } from '@/common/const';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { DEMO_EXPIRY_HOURS, useAuthStore, useUserStore } from '@/stores';
+import { useAuthStore, useUserStore } from '@/stores';
 import { AlertCircle } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import { getDemoExpiresAt, getDemoTimeRemaining } from './demo-expiry';
+
 const { t } = useI18n();
 
 const router = useRouter();
 const userStore = useUserStore();
 const authStore = useAuthStore();
-const { isDemo } = storeToRefs(userStore);
+const { isDemo, user } = storeToRefs(userStore);
 
 // Reactive time remaining calculation
 const now = ref(Date.now());
@@ -56,16 +59,13 @@ onUnmounted(() => {
   }
 });
 
-// Calculate expiry timestamp once
-const expiresAt = computed(() => {
-  const demoSession = authStore.getDemoSession();
-  if (!demoSession) return null;
-  return demoSession.startedAt + DEMO_EXPIRY_HOURS * 60 * 60 * 1000;
-});
+// Derived from the user's `createdAt`, so it's correct on first load, on a
+// reload, and regardless of which flow started the demo session.
+const expiresAt = computed(() => getDemoExpiresAt(user.value));
 
 // Check if demo has expired
 const isExpired = computed(() => {
-  if (!isDemo.value || !expiresAt.value) return false;
+  if (!isDemo.value || expiresAt.value === null) return false;
   return now.value >= expiresAt.value;
 });
 
@@ -75,26 +75,20 @@ watch(
   async (expired) => {
     if (expired) {
       await authStore.logout({ demoEndReason: 'expired' });
-      router.push({ name: ROUTES_NAMES.signIn, query: { reason: 'demo_expired' } });
+      router.push({ name: ROUTES_NAMES.signIn, query: { reason: DEMO_SESSION_EXPIRED_REASON } });
     }
   },
   { immediate: true },
 );
 
 const timeRemaining = computed(() => {
-  if (!expiresAt.value) return null;
+  const remaining = getDemoTimeRemaining({ expiresAt: expiresAt.value, now: now.value });
+  if (!remaining) return null;
 
-  const remaining = expiresAt.value - now.value;
-
-  if (remaining <= 0) return null;
-
-  const hours = Math.floor(remaining / (60 * 60 * 1000));
-  const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-
-  if (hours > 0) {
-    return t('demo.banner.timeFormat.hoursMinutes', { hours, minutes });
+  if (remaining.hours > 0) {
+    return t('demo.banner.timeFormat.hoursMinutes', { hours: remaining.hours, minutes: remaining.minutes });
   }
-  return t('demo.banner.timeFormat.minutes', { minutes });
+  return t('demo.banner.timeFormat.minutes', { minutes: remaining.minutes });
 });
 
 const handleSignUpClick = async () => {

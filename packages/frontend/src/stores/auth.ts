@@ -1,4 +1,3 @@
-import { startDemo as startDemoApi } from '@/api/demo';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { OAuthProviderNotConfiguredError, UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
@@ -49,19 +48,10 @@ function identifyUserForTracking(user: UserModel) {
 }
 
 const HAS_EVER_LOGGED_IN_KEY = 'has-ever-logged-in';
-const DEMO_SESSION_KEY = 'demo-session';
 // Identity of the user whose queries are currently persisted on this device.
 // Compared on every auth entry so a session swap without an explicit logout
 // (expiry, logging into a different account) can't restore the prior user's data.
 const PERSISTED_QUERIES_USER_KEY = 'persisted-queries-user-id';
-
-// Demo session expires after 4 hours (same as backend)
-export const DEMO_EXPIRY_HOURS = 4;
-
-interface DemoSession {
-  startedAt: number; // timestamp
-  userId: number;
-}
 
 export const useAuthStore = defineStore('auth', () => {
   const userStore = useUserStore();
@@ -259,58 +249,6 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
-   * Start a demo session.
-   * Creates a temporary demo user with pre-seeded data.
-   * Demo users are automatically cleaned up after 4 hours or on logout.
-   */
-  const startDemo = async () => {
-    const response = await startDemoApi();
-
-    // Store user data
-    userStore.user = response.user;
-
-    // Store demo session info in LocalStorage for page refresh handling
-    const demoSession: DemoSession = {
-      startedAt: Date.now(),
-      userId: response.user.id,
-    };
-    localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(demoSession));
-
-    // Load post-auth data (currencies, categories)
-    await loadPostAuthData();
-
-    // Identify for analytics (using demo- prefix to distinguish)
-    if (userStore.user) {
-      identifyUserForTracking(userStore.user);
-    }
-
-    isLoggedIn.value = true;
-    // Don't set HAS_EVER_LOGGED_IN_KEY for demo users
-  };
-
-  /**
-   * Get the current demo session info from LocalStorage.
-   * Returns null if no demo session exists.
-   */
-  const getDemoSession = (): DemoSession | null => {
-    const stored = localStorage.getItem(DEMO_SESSION_KEY);
-    if (!stored) return null;
-    try {
-      return JSON.parse(stored) as DemoSession;
-    } catch {
-      return null;
-    }
-  };
-
-  /**
-   * Clear demo session from LocalStorage.
-   * Called on logout.
-   */
-  const clearDemoSession = () => {
-    localStorage.removeItem(DEMO_SESSION_KEY);
-  };
-
-  /**
    * Logout the current user.
    *
    * `demoEndReason` only matters for a demo account. It labels the demo funnel's
@@ -334,9 +272,6 @@ export const useAuthStore = defineStore('auth', () => {
     // Reset analytics and error tracking user context
     resetUser();
     clearSentryUser();
-
-    // Clear demo session from LocalStorage
-    clearDemoSession();
 
     isMobileSheetOpen.value = false;
     // Set logged out state before resetting stores
@@ -366,8 +301,6 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithPasskey,
     registerPasskey,
     signup,
-    startDemo,
-    getDemoSession,
     logout,
   };
 });
