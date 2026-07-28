@@ -2,8 +2,10 @@ import {
   ACCOUNT_CATEGORIES,
   API_ERROR_CODES,
   API_RESPONSE_STATUS,
+  BUDGET_TYPES,
   LOAN_TYPE,
   PAYMENT_TYPES,
+  SUBSCRIPTION_PERIOD_STATUSES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   USER_ROLES,
@@ -75,6 +77,23 @@ async function createDemoUserAndAuth(): Promise<{
     sessionToken,
     cookies,
   };
+}
+
+/** The transaction fields the dataset assertions below read off `GET /transactions`. */
+interface DemoTransactionRow {
+  id: string;
+  amount: number;
+  refAmount: number;
+  transactionType: string;
+  transferNature: string;
+  transferId: string | null;
+  accountId: string;
+  categoryId: string | null;
+  currencyCode: string;
+  payeeId: string | null;
+  refundLinked: boolean;
+  splits?: { amount: number }[];
+  tags?: { id: string; name: string }[];
 }
 
 /**
@@ -397,6 +416,352 @@ describe('Demo Mode', () => {
         expect(loan.loanDetails.originalPrincipal).toBeLessThanOrEqual(25_000_00);
         expect(loan.projection.isPaidOff).toBe(false);
       }
+    });
+  });
+
+  describe('Enriched Demo Dataset', () => {
+    let demoSessionToken: string;
+
+    beforeEach(async () => {
+      const demoUser = await createDemoUserAndAuth();
+      demoSessionToken = demoUser.sessionToken;
+    }, 60000); // 60s timeout - demo user creation involves lots of data
+
+    afterEach(() => {
+      if (demoSessionToken) {
+        clearMockSession(demoSessionToken);
+      }
+    });
+
+    /**
+     * One high-limit page of the demo history. The seeded dataset is ~1.5k rows,
+     * so a single fetch avoids paging logic in every assertion below.
+     */
+    const fetchTransactions = async (params: Record<string, string | number> = {}): Promise<DemoTransactionRow[]> => {
+      const rows = await makeRequest({
+        method: 'get',
+        url: '/transactions',
+        payload: { limit: 5000, ...params },
+        raw: true,
+      });
+
+      expect(Array.isArray(rows)).toBe(true);
+      return rows as DemoTransactionRow[];
+    };
+
+    it('seeds payees with logo domains and links transactions to them', async () => {
+      const payees = await makeRequest({
+        method: 'get',
+        url: '/payees',
+        payload: { limit: 200 },
+        raw: true,
+      });
+
+      expect(Array.isArray(payees)).toBe(true);
+      expect(payees.length).toBeGreaterThan(30);
+
+      // A missing domain would send the brand-logo worker off to do a network
+      // lookup per merchant on every demo signup.
+      for (const payee of payees as { logoDomain: string | null }[]) {
+        expect(payee.logoDomain).toBeTruthy();
+      }
+
+      const withTransactions = (payees as { stats: { transactionCount: number } | null }[]).filter(
+        (payee) => (payee.stats?.transactionCount ?? 0) > 0,
+      );
+      expect(withTransactions.length).toBeGreaterThan(0);
+
+      const transactions = await fetchTransactions();
+      expect(transactions.filter((tx) => tx.payeeId !== null).length).toBeGreaterThan(0);
+    });
+
+    it('attaches the default and demo-only tags to transactions', async () => {
+      const tags = await makeRequest({
+        method: 'get',
+        url: '/tags',
+        raw: true,
+      });
+
+      // Three defaults every user gets plus the three demo-only ones. The default
+      // names are translated, so only the demo-only names are matched by name.
+      expect(tags.length).toBeGreaterThanOrEqual(6);
+      const tagNames = (tags as { name: string }[]).map((tag) => tag.name);
+      expect(tagNames).toEqual(expect.arrayContaining(['Reimbursable', 'Vacation', 'Subscription']));
+
+      const transactions = await fetchTransactions({ includeTags: 'true' });
+      const tagged = transactions.filter((tx) => (tx.tags?.length ?? 0) > 0);
+      expect(tagged.length).toBeGreaterThan(0);
+
+      const usedTagIds = new Set(tagged.flatMap((tx) => tx.tags!.map((tag) => tag.id)));
+      expect(usedTagIds.size).toBeGreaterThan(1);
+    });
+
+    it('seeds transfers as paired legs worth the same in the base currency', async () => {
+      const transfers = await fetchTransactions({
+        transferNatures: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      });
+
+      expect(transfers.length).toBeGreaterThan(0);
+
+      const legsByTransferId = new Map<string, DemoTransactionRow[]>();
+      for (const tx of transfers) {
+        expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+        expect(tx.transferId).not.toBeNull();
+        const legs = legsByTransferId.get(tx.transferId!) ?? [];
+        legs.push(tx);
+        legsByTransferId.set(tx.transferId!, legs);
+      }
+
+      expect(legsByTransferId.size).toBeGreaterThan(0);
+
+      let crossCurrencyPairs = 0;
+
+      for (const legs of legsByTransferId.values()) {
+        expect(legs).toHaveLength(2);
+
+        const income = legs.filter((leg) => leg.transactionType === TRANSACTION_TYPES.income);
+        const expense = legs.filter((leg) => leg.transactionType === TRANSACTION_TYPES.expense);
+        expect(income).toHaveLength(1);
+        expect(expense).toHaveLength(1);
+        expect(income[0]!.accountId).not.toBe(expense[0]!.accountId);
+
+        // Both legs must be worth the same in the base currency; converting each
+        // leg at its own rate would let a transfer create or destroy net worth.
+        expect(income[0]!.refAmount).toBe(expense[0]!.refAmount);
+
+        if (income[0]!.currencyCode !== expense[0]!.currencyCode) {
+          crossCurrencyPairs += 1;
+        }
+      }
+
+      expect(crossCurrencyPairs).toBeGreaterThan(0);
+    });
+
+    it('seeds splits that add up to their parent transaction', async () => {
+      const transactions = await fetchTransactions({ includeSplits: 'true' });
+      const withSplits = transactions.filter((tx) => (tx.splits?.length ?? 0) > 0);
+
+      expect(withSplits.length).toBeGreaterThan(0);
+
+      for (const tx of withSplits) {
+        // Compared in cents: the API speaks decimals, and summing those directly
+        // makes the totals drift by fractions of a cent.
+        const splitTotal = tx.splits!.reduce((sum, split) => sum + Math.round(split.amount * 100), 0);
+        expect(splitTotal).toBe(Math.round(tx.amount * 100));
+      }
+    });
+
+    it('seeds refund pairs with both sides flagged and pointing opposite ways', async () => {
+      const refunds = await makeRequest({
+        method: 'get',
+        url: '/transactions/refunds',
+        payload: { page: 1, limit: 20 },
+        raw: true,
+      });
+
+      expect(refunds.meta.total).toBeGreaterThan(0);
+      expect(refunds.data.length).toBeGreaterThan(0);
+
+      for (const link of refunds.data as {
+        originalTransaction: DemoTransactionRow;
+        refundTransaction: DemoTransactionRow;
+      }[]) {
+        expect(link.originalTransaction.refundLinked).toBe(true);
+        expect(link.refundTransaction.refundLinked).toBe(true);
+        expect(link.originalTransaction.transactionType).toBe(TRANSACTION_TYPES.expense);
+        expect(link.refundTransaction.transactionType).toBe(TRANSACTION_TYPES.income);
+      }
+    });
+
+    it('seeds subscriptions with an open period and paid history', async () => {
+      const subscriptions = await makeRequest({
+        method: 'get',
+        url: '/subscriptions',
+        raw: true,
+      });
+
+      expect(subscriptions.length).toBeGreaterThan(0);
+
+      let totalLinkedTransactions = 0;
+
+      for (const subscription of subscriptions as {
+        id: string;
+        currentPeriod: { id: string; dueDate: string; status: string } | null;
+        linkedTransactionsCount: number;
+      }[]) {
+        // An open period is what makes the due-date chip and "Mark paid" reachable.
+        expect(subscription.currentPeriod).not.toBeNull();
+        expect(subscription.currentPeriod!.dueDate).toBeTruthy();
+        totalLinkedTransactions += subscription.linkedTransactionsCount;
+      }
+
+      expect(totalLinkedTransactions).toBeGreaterThan(0);
+
+      const firstSubscription = subscriptions[0];
+      const periodsRes = await makeRequest({
+        method: 'get',
+        url: `/subscriptions/${firstSubscription.id}/periods`,
+        payload: { limit: 50 },
+        raw: true,
+      });
+
+      expect(periodsRes.total).toBeGreaterThan(1);
+
+      const paidPeriods = (periodsRes.periods as { status: string; transactionId: string | null }[]).filter(
+        (period) => period.status === SUBSCRIPTION_PERIOD_STATUSES.paid,
+      );
+      expect(paidPeriods.length).toBeGreaterThan(0);
+
+      for (const period of paidPeriods) {
+        expect(period.transactionId).not.toBeNull();
+      }
+    });
+
+    it('seeds category budgets over a window with plausible utilization', async () => {
+      const budgets = await makeRequest({
+        method: 'get',
+        url: '/budgets',
+        raw: true,
+      });
+
+      expect(budgets.length).toBeGreaterThanOrEqual(3);
+
+      for (const budget of budgets as {
+        id: string;
+        type: string;
+        startDate: string | null;
+        endDate: string | null;
+        categories: unknown[];
+      }[]) {
+        // `category` is what writes the BudgetCategories rows the stats read; a
+        // `manual` budget with no linked transactions would report zero spend.
+        expect(budget.type).toBe(BUDGET_TYPES.category);
+        expect(budget.startDate).not.toBeNull();
+        expect(budget.endDate).not.toBeNull();
+        expect(budget.categories.length).toBeGreaterThan(0);
+
+        const stats = await makeRequest({
+          method: 'get',
+          url: `/budgets/${budget.id}/stats`,
+          raw: true,
+        });
+
+        expect(stats.summary.actualExpense).toBeGreaterThan(0);
+        expect(Number.isFinite(stats.summary.utilizationRate)).toBe(true);
+        expect(stats.summary.utilizationRate).toBeGreaterThan(0);
+        // Sanity band on the date window: a budget without one totals all three
+        // years of history against a one-month limit and blows far past this.
+        expect(stats.summary.utilizationRate).toBeLessThan(400);
+      }
+    });
+
+    it('seeds account groups with accounts attached', async () => {
+      const groups = await makeRequest({
+        method: 'get',
+        url: '/account-group',
+        raw: true,
+      });
+
+      expect(groups.length).toBeGreaterThanOrEqual(4);
+
+      const typedGroups = groups as { name: string; accounts: { id: string }[] }[];
+      const populated = typedGroups.filter((group) => group.accounts.length > 0);
+      expect(populated.length).toBeGreaterThanOrEqual(4);
+
+      // Every seeded account lands in exactly one group, cash and system-backed
+      // (vehicle, loan) accounts included.
+      const groupedAccountIds = new Set(typedGroups.flatMap((group) => group.accounts.map((account) => account.id)));
+      expect(groupedAccountIds.size).toBe(9);
+    });
+
+    it('seeds transaction groups holding at least two transactions', async () => {
+      const groups = await makeRequest({
+        method: 'get',
+        url: '/transaction-groups',
+        raw: true,
+      });
+
+      expect(groups.length).toBeGreaterThan(0);
+
+      // The service refuses a group smaller than two, so any seeded group that
+      // came out short means members were silently dropped.
+      for (const group of groups as { transactionCount: number }[]) {
+        expect(group.transactionCount).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    it('backfills a price series for every demo security', async () => {
+      const portfoliosRes = await makeRequest({
+        method: 'get',
+        url: '/investments/portfolios',
+        raw: true,
+      });
+
+      const securityIds: string[] = [];
+      for (const portfolio of portfoliosRes.data as { id: string }[]) {
+        const holdings = await makeRequest({
+          method: 'get',
+          url: `/investments/portfolios/${portfolio.id}/holdings`,
+          raw: true,
+        });
+
+        for (const holding of holdings as { security?: { id: string } }[]) {
+          if (holding.security) securityIds.push(holding.security.id);
+        }
+      }
+
+      expect(securityIds.length).toBe(6);
+
+      // No endpoint exposes the raw pricing series, so it is read from the table
+      // the historical net-worth chart resolves prices through.
+      const [pricingRows] = await connection.sequelize.query(
+        `SELECT "securityId", COUNT(*) as "rowCount", MIN(date) as "firstDate", MAX(date) as "lastDate"
+         FROM "SecurityPricings" WHERE "securityId" IN (:securityIds) GROUP BY "securityId"`,
+        { replacements: { securityIds } },
+      );
+
+      const series = pricingRows as { securityId: string; rowCount: string; firstDate: Date; lastDate: Date }[];
+      expect(series.length).toBe(securityIds.length);
+
+      let longestSpanDays = 0;
+
+      for (const row of series) {
+        // A single row dated today makes every earlier bucket fall back to cost
+        // basis, which draws the net-worth chart flat and then cliffs it.
+        expect(Number(row.rowCount)).toBeGreaterThan(1);
+
+        const spanDays = (new Date(row.lastDate).getTime() - new Date(row.firstDate).getTime()) / 86400000;
+        expect(spanDays).toBeGreaterThan(250);
+        longestSpanDays = Math.max(longestSpanDays, spanDays);
+      }
+
+      // Purchases are spread across the history window, so the oldest holding
+      // carries market prices over most of the net-worth chart rather than
+      // appearing only in its last few months.
+      expect(longestSpanDays).toBeGreaterThan(700);
+    });
+
+    it('files transactions under subcategories, not only top-level categories', async () => {
+      const categories = await makeRequest({
+        method: 'get',
+        url: '/categories',
+        raw: true,
+      });
+
+      const subcategoryIds = new Set(
+        (categories as { id: string; parentId: string | null }[])
+          .filter((category) => category.parentId !== null)
+          .map((category) => category.id),
+      );
+      expect(subcategoryIds.size).toBeGreaterThan(0);
+
+      const transactions = await fetchTransactions();
+      const categorized = transactions.filter((tx) => tx.categoryId !== null);
+      expect(categorized.length).toBeGreaterThan(0);
+
+      const inSubcategory = categorized.filter((tx) => subcategoryIds.has(tx.categoryId!));
+      expect(inSubcategory.length).toBeGreaterThan(0);
+      expect(inSubcategory.length / categorized.length).toBeGreaterThan(0.5);
     });
   });
 

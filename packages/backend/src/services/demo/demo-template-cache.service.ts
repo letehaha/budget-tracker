@@ -1,6 +1,7 @@
 import { logger } from '@js/utils/logger';
 
-import { DemoTemplate, generateDemoTemplate } from './generate-demo-template.service';
+import { generateDemoTemplate } from './template/generate';
+import type { DemoTemplate } from './template/types';
 
 let cachedTemplate: DemoTemplate | null = null;
 

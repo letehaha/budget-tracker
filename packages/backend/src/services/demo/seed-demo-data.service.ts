@@ -1,11 +1,10 @@
 import type { RecordId } from '@bt/shared/types';
 import {
-  ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
   BUDGET_STATUSES,
+  BUDGET_TYPES,
   DEPRECIATION_PRESET,
   LOAN_TYPE,
-  SUBSCRIPTION_FREQUENCIES,
   SUPPORTED_LOAN_TYPES,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
@@ -29,7 +28,6 @@ import PortfolioBalances from '@models/investments/portfolio-balances.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
-import Subscriptions from '@models/subscriptions.model';
 import UserSettings, { DEFAULT_SETTINGS, type SettingsSchema } from '@models/user-settings.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import * as accountsService from '@services/accounts.service';
@@ -44,44 +42,10 @@ import { createVentureDeal } from '@services/venture/deals/create.service';
 import { createVentureEvent } from '@services/venture/events/create.service';
 import { createVenturePlatform } from '@services/venture/platforms/create.service';
 import { Big } from 'big.js';
-import { format, setDate, subDays, subMonths, subYears } from 'date-fns';
+import { format, subDays, subMonths, subYears } from 'date-fns';
 import { type Transaction } from 'sequelize';
-import { v7 as uuidv7 } from 'uuid';
 
-// Demo data configuration based on PRD
-export const DEMO_CONFIG = {
-  // Transaction history spans 2.5+ years (36 months to ensure tests always get >= 2 years)
-  historyMonths: 36,
-  baseCurrency: 'USD',
-  currencies: ['USD', 'EUR', 'PLN'],
-  exchangeRates: { EUR: 0.92, PLN: 4.0 } as Record<string, number>,
-  accounts: [
-    { name: 'Main Checking', currency: 'USD', type: ACCOUNT_CATEGORIES.currentAccount, initialBalance: 500000 }, // $5,000 in cents
-    { name: 'Savings', currency: 'USD', type: ACCOUNT_CATEGORIES.saving, initialBalance: 1200000 }, // $12,000 in cents
-    {
-      name: 'Travel Card',
-      currency: 'EUR',
-      type: ACCOUNT_CATEGORIES.creditCard,
-      initialBalance: 0,
-      creditLimit: 300000,
-    }, // €3,000 limit
-    { name: 'Cash', currency: 'PLN', type: ACCOUNT_CATEGORIES.cash, initialBalance: 50000 }, // 500 PLN in cents
-  ],
-  budgets: [
-    { name: 'Monthly Groceries', limitAmount: 50000, categoryKey: 'food' }, // $500 in cents
-    { name: 'Entertainment & Life', limitAmount: 25000, categoryKey: 'life' }, // $250 in cents (life includes hobbies, events, etc.)
-    { name: 'Dining Out', limitAmount: 35000, categoryKey: 'food' }, // $350 in cents
-  ],
-  subscriptions: [
-    { name: 'Netflix', expectedAmount: 1599, dayOfMonth: 2, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
-    { name: 'Apple One', expectedAmount: 1995, dayOfMonth: 5, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
-    { name: 'Spotify', expectedAmount: 999, dayOfMonth: 8, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
-    { name: 'YouTube Premium', expectedAmount: 1399, dayOfMonth: 12, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
-    { name: 'Adobe Creative Cloud', expectedAmount: 5499, dayOfMonth: 15, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
-    { name: 'Amazon Prime', expectedAmount: 1499, dayOfMonth: 20, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
-    { name: 'ChatGPT Plus', expectedAmount: 2000, dayOfMonth: 25, frequency: SUBSCRIPTION_FREQUENCIES.monthly },
-  ],
-};
+import { DEMO_CONFIG, DEMO_TAGS, subcategoryMapKey } from './demo-config';
 
 export async function setupCurrencies({ userId }: { userId: number }): Promise<void> {
   for (const currencyCode of DEMO_CONFIG.currencies) {
@@ -131,14 +95,19 @@ export async function createCategories({ userId }: { userId: number }): Promise<
     }
   });
 
-  // Create subcategories
+  // Create subcategories. `parentKey` is carried alongside the insert payload
+  // rather than in it, because it addresses the row in `categoryMap` and is not
+  // a column.
   const subcats: Array<{
-    name: string;
-    parentId: string;
-    color: string;
-    userId: number;
-    type: string;
-    key: string;
+    parentKey: string;
+    row: {
+      name: string;
+      parentId: string;
+      color: string;
+      userId: number;
+      type: string;
+      key: string;
+    };
   }> = [];
 
   translatedCategories.subcategories.forEach((subcat) => {
@@ -148,34 +117,39 @@ export async function createCategories({ userId }: { userId: number }): Promise<
     if (parentId && parentCategory) {
       subcat.values.forEach((subItem) => {
         subcats.push({
-          name: subItem.name,
-          type: subItem.type,
-          parentId,
-          color: parentCategory.color,
-          userId,
-          key: subItem.key,
+          parentKey: subcat.parentKey,
+          row: {
+            name: subItem.name,
+            type: subItem.type,
+            parentId,
+            color: parentCategory.color,
+            userId,
+            key: subItem.key,
+          },
         });
       });
     }
   });
 
-  const subMissingKey = subcats.find((s) => !s.key);
+  const subMissingKey = subcats.find((s) => !s.row.key);
   if (subMissingKey) {
-    const message = `Seed integrity bug: default subcategory "${subMissingKey.name}" is missing 'key'`;
+    const message = `Seed integrity bug: default subcategory "${subMissingKey.row.name}" is missing 'key'`;
     logger.error(message);
     if (process.env.NODE_ENV !== 'production') throw new Error(message);
   }
 
   if (subcats.length > 0) {
-    const createdSubcats = await categoriesService.bulkCreate({ data: subcats }, { returning: true });
+    const createdSubcats = await categoriesService.bulkCreate(
+      { data: subcats.map((subcat) => subcat.row) },
+      { returning: true },
+    );
 
-    // Add subcategories to the map
+    // Keyed by `parent/child` rather than by display name: the same child key
+    // appears under more than one parent, and names are locale-dependent.
     subcats.forEach((subcat, index) => {
       const createdSubcat = createdSubcats[index];
       if (createdSubcat) {
-        // Use a composite key for subcategories
-        const subcatKey = `${subcat.name.toLowerCase().replace(/\s+/g, '_')}`;
-        categoryMap.set(subcatKey, createdSubcat.id);
+        categoryMap.set(subcategoryMapKey({ parentKey: subcat.parentKey, key: subcat.row.key }), createdSubcat.id);
       }
     });
   }
@@ -194,23 +168,46 @@ export async function createCategories({ userId }: { userId: number }): Promise<
   return categoryMap;
 }
 
-export async function createTags({ userId }: { userId: number }): Promise<void> {
+/**
+ * Seeds the default tags every user gets, plus the demo-only ones, and returns
+ * a key -> id map. The template addresses tags by key so the mapping survives
+ * the locale-dependent display names.
+ */
+export async function createTags({ userId }: { userId: number }): Promise<Map<string, string>> {
   const locale = 'en';
-  const translatedTags = getTranslatedDefaultTags({ locale });
+  const defaultTags = getTranslatedDefaultTags({ locale });
 
-  const defaultTags = translatedTags.map((tag) => ({
-    name: tag.name,
-    color: tag.color,
-    icon: tag.icon,
-    description: tag.description,
-  }));
+  const tagsToCreate = [
+    ...defaultTags.map((tag) => ({
+      key: tag.key,
+      name: tag.name,
+      color: tag.color,
+      icon: tag.icon,
+      description: tag.description,
+    })),
+    ...DEMO_TAGS.map((tag) => ({
+      key: tag.key,
+      name: tag.name,
+      color: tag.color,
+      icon: tag.icon,
+      description: null,
+    })),
+  ];
 
-  if (defaultTags.length > 0) {
-    await tagsService.bulkCreateTags({
-      userId,
-      tags: defaultTags,
-    });
-  }
+  const created = await tagsService.bulkCreateTags({
+    userId,
+    tags: tagsToCreate.map(({ key: _key, ...tag }) => tag),
+  });
+
+  const tagMap = new Map<string, string>();
+  tagsToCreate.forEach((tag, index) => {
+    const createdTag = created[index];
+    if (createdTag) {
+      tagMap.set(tag.key, createdTag.id);
+    }
+  });
+
+  return tagMap;
 }
 
 export async function createAccounts({ userId }: { userId: number }): Promise<Accounts[]> {
@@ -234,61 +231,65 @@ export async function createAccounts({ userId }: { userId: number }): Promise<Ac
   return accounts;
 }
 
+/** Rounds a cents amount to the nearest $10 so a derived limit reads as a number a person chose. */
+function roundToNearestTenDollars({ cents }: { cents: number }): number {
+  const step = 1000;
+  return Math.max(step, Math.round(cents / step) * step);
+}
+
+/**
+ * Seeds category budgets over a trailing window.
+ *
+ * Two things this depends on, both easy to get wrong:
+ *
+ * - `type` must be `category`, or `createBudget` falls back to `manual` and
+ *   writes no `BudgetCategories` rows, leaving every card at zero spend.
+ * - `startDate`/`endDate` must both be set. `buildDateFilter` returns an empty
+ *   filter when either is missing, which would total all three years of history
+ *   against a one-month limit.
+ *
+ * Limits come from what the generated data actually spent in the window, so the
+ * cards land on the intended under/near/over states even as the generator drifts.
+ */
 export async function createBudgets({
   userId,
   categoryMap,
+  spendByCategoryKey,
+  windowStart,
+  windowEnd,
 }: {
   userId: number;
   categoryMap: Map<string, string>;
+  spendByCategoryKey: Map<string, number>;
+  windowStart: Date;
+  windowEnd: Date;
 }): Promise<void> {
-  // Create budgets based on config
-  for (const budgetConfig of DEMO_CONFIG.budgets) {
-    const categoryId = categoryMap.get(budgetConfig.categoryKey);
+  let created = 0;
 
-    if (categoryId) {
-      await createBudget({
-        userId,
-        name: budgetConfig.name,
-        status: BUDGET_STATUSES.active,
-        limitAmount: Money.fromCents(budgetConfig.limitAmount),
-        categoryIds: [categoryId],
-      });
-    }
+  for (const budgetConfig of DEMO_CONFIG.budgets) {
+    const categoryIds = budgetConfig.categoryKeys
+      .map((key) => categoryMap.get(key))
+      .filter((id): id is string => id !== undefined);
+
+    if (!categoryIds.length) continue;
+
+    const spent = budgetConfig.categoryKeys.reduce((total, key) => total + (spendByCategoryKey.get(key) ?? 0), 0);
+    if (spent <= 0) continue;
+
+    await createBudget({
+      userId,
+      name: budgetConfig.name,
+      status: BUDGET_STATUSES.active,
+      type: BUDGET_TYPES.category,
+      categoryIds,
+      limitAmount: Money.fromCents(roundToNearestTenDollars({ cents: spent / budgetConfig.targetUtilization })),
+      startDate: windowStart,
+      endDate: windowEnd,
+    });
+    created += 1;
   }
 
-  logger.info(`Created ${DEMO_CONFIG.budgets.length} demo budgets`);
-}
-
-export async function createSubscriptions({
-  userId,
-  accountId,
-  categoryId,
-  referenceDate,
-}: {
-  userId: number;
-  accountId: string;
-  categoryId: string | null;
-  referenceDate: Date;
-}): Promise<void> {
-  const startBase = subMonths(referenceDate, 8);
-
-  const rows = DEMO_CONFIG.subscriptions.map((sub) => ({
-    id: uuidv7(),
-    userId,
-    name: sub.name,
-    type: 'subscription' as const,
-    expectedAmount: sub.expectedAmount,
-    expectedCurrencyCode: DEMO_CONFIG.baseCurrency,
-    frequency: sub.frequency,
-    startDate: format(setDate(startBase, sub.dayOfMonth), 'yyyy-MM-dd'),
-    accountId,
-    categoryId,
-    matchingRules: { rules: [] },
-    isActive: true,
-  }));
-
-  await Subscriptions.bulkCreate(rows);
-  logger.info(`Created ${rows.length} demo subscriptions`);
+  logger.info(`Created ${created} demo budgets`);
 }
 
 const DEMO_WATCHLIST_CATEGORY_KEYS = ['food', 'housing', 'transportation', 'life', 'income'];
@@ -325,323 +326,6 @@ export async function setupDashboardSettings({
   });
 
   logger.info(`Configured demo dashboard with spending watchlist (${selectedCategoryIds.length} categories)`);
-}
-
-interface DemoSecurityConfig {
-  symbol: string;
-  providerSymbol: string;
-  name: string;
-  assetClass: ASSET_CLASS;
-  providerName: SECURITY_PROVIDER;
-  currencyCode: string;
-  cryptoCurrencyCode?: string | null;
-  exchangeAcronym?: string | null;
-  exchangeMic?: string | null;
-  exchangeName?: string | null;
-  /**
-   * Logo shown in the holdings UI. Stocks leave this null and the frontend
-   * derives a logo.dev URL from the ticker (needs VITE_LOGO_DEV_TOKEN); crypto
-   * stores the CoinGecko CDN URL the live sync would produce, so demo crypto
-   * logos render even without a logo.dev token configured.
-   */
-  logoUrl?: string | null;
-  currentPrice: number;
-  purchasePrice: number;
-  quantity: number;
-  purchaseDaysAgo: number;
-}
-
-const DEMO_SECURITIES: DemoSecurityConfig[] = [
-  {
-    symbol: 'AAPL',
-    providerSymbol: 'AAPL',
-    name: 'Apple Inc.',
-    assetClass: ASSET_CLASS.stocks,
-    providerName: SECURITY_PROVIDER.yahoo,
-    currencyCode: 'USD',
-    exchangeAcronym: 'NASDAQ',
-    exchangeMic: 'XNAS',
-    exchangeName: 'NASDAQ',
-    currentPrice: 185.5,
-    purchasePrice: 150.0,
-    quantity: 10,
-    purchaseDaysAgo: 120,
-  },
-  {
-    symbol: 'VOO',
-    providerSymbol: 'VOO',
-    name: 'Vanguard S&P 500 ETF',
-    assetClass: ASSET_CLASS.stocks,
-    providerName: SECURITY_PROVIDER.yahoo,
-    currencyCode: 'USD',
-    exchangeAcronym: 'NYSEARCA',
-    exchangeMic: 'ARCX',
-    exchangeName: 'NYSE Arca',
-    currentPrice: 480.25,
-    purchasePrice: 410.0,
-    quantity: 5,
-    purchaseDaysAgo: 180,
-  },
-  {
-    symbol: 'MSFT',
-    providerSymbol: 'MSFT',
-    name: 'Microsoft Corporation',
-    assetClass: ASSET_CLASS.stocks,
-    providerName: SECURITY_PROVIDER.yahoo,
-    currencyCode: 'USD',
-    exchangeAcronym: 'NASDAQ',
-    exchangeMic: 'XNAS',
-    exchangeName: 'NASDAQ',
-    currentPrice: 415.75,
-    purchasePrice: 370.0,
-    quantity: 8,
-    purchaseDaysAgo: 90,
-  },
-];
-
-// CoinGecko-sourced crypto holdings. `providerSymbol` is the CoinGecko coin id
-// (what the price-sync pipeline queries), while `symbol`/`cryptoCurrencyCode`
-// hold the ticker. Shape mirrors `coingecko-provider.ts` so the demo holdings
-// are indistinguishable from a real synced crypto security.
-const DEMO_CRYPTO: DemoSecurityConfig[] = [
-  {
-    symbol: 'BTC',
-    providerSymbol: 'bitcoin',
-    name: 'Bitcoin',
-    assetClass: ASSET_CLASS.crypto,
-    providerName: SECURITY_PROVIDER.coingecko,
-    currencyCode: 'USD',
-    cryptoCurrencyCode: 'BTC',
-    exchangeName: 'CoinGecko',
-    logoUrl: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png',
-    currentPrice: 67500,
-    purchasePrice: 42000,
-    quantity: 0.35,
-    purchaseDaysAgo: 220,
-  },
-  {
-    symbol: 'ETH',
-    providerSymbol: 'ethereum',
-    name: 'Ethereum',
-    assetClass: ASSET_CLASS.crypto,
-    providerName: SECURITY_PROVIDER.coingecko,
-    currencyCode: 'USD',
-    cryptoCurrencyCode: 'ETH',
-    exchangeName: 'CoinGecko',
-    logoUrl: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png',
-    currentPrice: 3500,
-    purchasePrice: 2400,
-    quantity: 4,
-    purchaseDaysAgo: 160,
-  },
-  {
-    symbol: 'SOL',
-    providerSymbol: 'solana',
-    name: 'Solana',
-    assetClass: ASSET_CLASS.crypto,
-    providerName: SECURITY_PROVIDER.coingecko,
-    currencyCode: 'USD',
-    cryptoCurrencyCode: 'SOL',
-    exchangeName: 'CoinGecko',
-    logoUrl: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png',
-    currentPrice: 145,
-    purchasePrice: 95,
-    quantity: 40,
-    purchaseDaysAgo: 100,
-  },
-];
-
-const DEMO_INVESTMENT_STARTING_CASH = 5000;
-const DEMO_CRYPTO_STARTING_CASH = 1500;
-
-/**
- * Seeds securities, pricing, holdings and the opening buy transaction for a
- * single portfolio. Shared by the stock and crypto portfolios so both asset
- * classes follow the exact same holding-creation path.
- */
-async function seedPortfolioHoldings({
-  portfolioId,
-  securities,
-  referenceDate,
-  transaction,
-}: {
-  portfolioId: string;
-  securities: DemoSecurityConfig[];
-  referenceDate: Date;
-  transaction: Transaction;
-}): Promise<void> {
-  const pricingDate = format(referenceDate, 'yyyy-MM-dd');
-
-  for (const sec of securities) {
-    const [security, created] = await Securities.findOrCreate({
-      where: { providerName: sec.providerName, providerSymbol: sec.providerSymbol },
-      defaults: {
-        symbol: sec.symbol,
-        providerSymbol: sec.providerSymbol,
-        name: sec.name,
-        assetClass: sec.assetClass,
-        currencyCode: sec.currencyCode,
-        cryptoCurrencyCode: sec.cryptoCurrencyCode ?? null,
-        providerName: sec.providerName,
-        exchangeAcronym: sec.exchangeAcronym ?? null,
-        exchangeMic: sec.exchangeMic ?? null,
-        exchangeName: sec.exchangeName ?? null,
-        logoUrl: sec.logoUrl ?? null,
-        pricingLastSyncedAt: referenceDate,
-        isBrokerageCash: false,
-      },
-      transaction,
-    });
-
-    // Securities is a shared reference table. If a row for the same symbol
-    // already exists (e.g. seeded by a real user sync), findOrCreate silently
-    // reuses it and `defaults` are not applied. Surface metadata drift so
-    // demo inconsistencies are at least visible in logs.
-    if (!created && security.exchangeMic !== (sec.exchangeMic ?? null)) {
-      logger.warn(
-        `Demo security ${sec.symbol}: existing exchangeMic=${security.exchangeMic} differs from demo config exchangeMic=${sec.exchangeMic}. Using existing row.`,
-      );
-    }
-
-    await SecurityPricing.findOrCreate({
-      where: { securityId: security.id, date: pricingDate },
-      defaults: {
-        securityId: security.id,
-        date: pricingDate,
-        priceClose: sec.currentPrice.toFixed(10),
-        priceAsOf: referenceDate,
-        source: 'demo',
-      },
-      transaction,
-    });
-
-    const quantityStr = new Big(sec.quantity).toFixed(10);
-    const costBasisStr = new Big(sec.purchasePrice).times(sec.quantity).toFixed(10);
-
-    await Holdings.create(
-      {
-        portfolioId,
-        securityId: security.id,
-        currencyCode: sec.currencyCode,
-        quantity: quantityStr,
-        costBasis: costBasisStr,
-        refCostBasis: costBasisStr,
-        excluded: false,
-      },
-      { transaction },
-    );
-
-    const buyDate = format(subDays(referenceDate, sec.purchaseDaysAgo), 'yyyy-MM-dd');
-    await InvestmentTransaction.create(
-      {
-        portfolioId,
-        securityId: security.id,
-        transactionType: TRANSACTION_TYPES.expense,
-        date: buyDate,
-        name: `Bought ${sec.quantity} ${sec.symbol}`,
-        amount: costBasisStr,
-        refAmount: costBasisStr,
-        fees: '0',
-        refFees: '0',
-        quantity: quantityStr,
-        price: sec.purchasePrice.toFixed(10),
-        refPrice: sec.purchasePrice.toFixed(10),
-        currencyCode: sec.currencyCode,
-        settlementCurrencyCode: sec.currencyCode,
-        settlementAmount: costBasisStr,
-        settlementFees: '0',
-        settlementRate: '1',
-        category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-      },
-      { transaction },
-    );
-  }
-}
-
-export async function setupInvestments({
-  userId,
-  referenceDate,
-}: {
-  userId: number;
-  referenceDate: Date;
-}): Promise<void> {
-  const transaction = await connection.sequelize.transaction();
-
-  try {
-    const stockPortfolio = await Portfolios.create(
-      {
-        userId,
-        name: 'Growth Portfolio',
-        portfolioType: PORTFOLIO_TYPE.investment,
-        description: 'Demo portfolio of US equities and ETFs',
-        isEnabled: true,
-      },
-      { transaction },
-    );
-
-    await seedPortfolioHoldings({
-      portfolioId: stockPortfolio.id,
-      securities: DEMO_SECURITIES,
-      referenceDate,
-      transaction,
-    });
-
-    const stockCash = new Big(DEMO_INVESTMENT_STARTING_CASH).toFixed(10);
-
-    // Demo base currency is USD, so ref amounts mirror direct amounts 1:1.
-    await PortfolioBalances.create(
-      {
-        portfolioId: stockPortfolio.id,
-        currencyCode: 'USD',
-        availableCash: stockCash,
-        totalCash: stockCash,
-        refAvailableCash: stockCash,
-        refTotalCash: stockCash,
-      },
-      { transaction },
-    );
-
-    const cryptoPortfolio = await Portfolios.create(
-      {
-        userId,
-        name: 'Crypto Portfolio',
-        portfolioType: PORTFOLIO_TYPE.investment,
-        description: 'Demo portfolio of crypto holdings',
-        isEnabled: true,
-      },
-      { transaction },
-    );
-
-    await seedPortfolioHoldings({
-      portfolioId: cryptoPortfolio.id,
-      securities: DEMO_CRYPTO,
-      referenceDate,
-      transaction,
-    });
-
-    const cryptoCash = new Big(DEMO_CRYPTO_STARTING_CASH).toFixed(10);
-
-    await PortfolioBalances.create(
-      {
-        portfolioId: cryptoPortfolio.id,
-        currencyCode: 'USD',
-        availableCash: cryptoCash,
-        totalCash: cryptoCash,
-        refAvailableCash: cryptoCash,
-        refTotalCash: cryptoCash,
-      },
-      { transaction },
-    );
-
-    await transaction.commit();
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
-
-  logger.info(
-    `Created demo portfolios (${DEMO_SECURITIES.length} stock + ${DEMO_CRYPTO.length} crypto holdings) for user ${userId}`,
-  );
 }
 
 interface DemoVehicleConfig {
