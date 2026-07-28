@@ -1,123 +1,358 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import { connection } from '@models/index';
 import Transactions from '@models/transactions.model';
-import { subDays } from 'date-fns';
+import { addMinutes, startOfDay, subDays } from 'date-fns';
 import { QueryTypes } from 'sequelize';
+import { v4 as uuidv4, v7 as uuidv7 } from 'uuid';
 
+import { DEMO_CONFIG, type DemoAccountKey } from './demo-config';
 import { getDemoTemplate } from './demo-template-cache.service';
+import { setupAccountGroups } from './seed-account-groups.service';
 import {
-  DEMO_CONFIG,
   createAccounts,
   createBudgets,
   createCategories,
-  createSubscriptions,
   createTags,
   setupCurrencies,
   setupDashboardSettings,
-  setupInvestments,
   setupLoans,
   setupVehicles,
   setupVentures,
 } from './seed-demo-data.service';
+import { setupInvestments } from './seed-investments.service';
+import { seedPayees } from './seed-payees.service';
+import { setupSubscriptions } from './seed-subscriptions.service';
+import { seedTransactionExtras } from './seed-transaction-extras.service';
+import { sumSpendByCategoryKey } from './template/budget-spend';
+import { toBaseCurrencyCents } from './template/fx';
+import type { DemoTemplateTransaction } from './template/types';
 
-const ACCOUNT_NAME_TO_KEY: Record<string, string> = {
-  'Main Checking': 'main_checking',
-  Savings: 'savings',
-  'Travel Card': 'travel_card',
-  Cash: 'cash',
-};
+/** How far back demo budgets look: a fixed window, always complete unlike a part-elapsed calendar month. */
+const BUDGET_WINDOW_DAYS = 30;
+
+interface TransferReconcilableRow {
+  transferId: string | null;
+  currencyCode: string;
+  amount: number;
+  refAmount: number;
+}
 
 /**
- * Fast application of the pre-generated demo template to a user.
- * Uses bulk INSERT with hooks disabled and raw SQL for balance computation.
+ * Counts of template references the seeded data couldn't resolve, whether a
+ * dropped row or a category fallback to "Other".
+ *
+ * Every count is zero in a healthy build: the template is deterministic and
+ * shared by every signup, so nonzero flags a bug in the generator or seeders,
+ * not visitor action.
  */
-export async function applyDemoTemplate({ userId }: { userId: number }): Promise<void> {
+interface DemoApplyMisses {
+  accounts: number;
+  categoryFallbacks: number;
+  payees: number;
+  splits: number;
+  refunds: number;
+  tagLinks: number;
+  groups: number;
+}
+
+/**
+ * Applies the pre-generated demo template to a user.
+ *
+ * Inserts rows with hooks disabled, then recomputes balances in raw SQL, since
+ * a visitor is waiting on this during signup. The template stores no id,
+ * `refAmount`, or `transferId`, so all three get resolved here.
+ */
+export async function applyDemoTemplate({
+  userId,
+  referenceDate = new Date(),
+}: {
+  userId: number;
+  /** The demo's "today". Every seeded record dates itself against this. */
+  referenceDate?: Date;
+}): Promise<void> {
   const startTime = Date.now();
   logger.info(`Applying demo template for user ${userId}...`);
 
   const template = getDemoTemplate();
+  const misses: DemoApplyMisses = {
+    accounts: 0,
+    categoryFallbacks: 0,
+    payees: 0,
+    splits: 0,
+    refunds: 0,
+    tagLinks: 0,
+    groups: 0,
+  };
 
   await setupCurrencies({ userId });
   const categoryMap = await createCategories({ userId });
-  await createTags({ userId });
+  const tagMap = await createTags({ userId });
   const accounts = await createAccounts({ userId });
+  const payeeMap = await seedPayees({ userId, categoryMap });
 
-  // Build lookup maps from created accounts
-  const accountKeyToId: Record<string, string> = {};
-  const accountKeyToAccountType: Record<string, ACCOUNT_TYPES> = {};
-  const accountKeyToCurrency: Record<string, string> = {};
+  // Display names are what came back from the DB; the template speaks keys.
+  const keyByAccountName = new Map<string, DemoAccountKey>(
+    DEMO_CONFIG.accounts.map((account) => [account.name, account.key]),
+  );
+
+  const accountKeyToId: Partial<Record<DemoAccountKey, string>> = {};
+  const accountKeyToAccountType: Partial<Record<DemoAccountKey, ACCOUNT_TYPES>> = {};
+  const accountKeyToCurrency: Partial<Record<DemoAccountKey, string>> = {};
   for (const account of accounts) {
-    const key = ACCOUNT_NAME_TO_KEY[account.name];
-    if (key) {
-      accountKeyToId[key] = account.id;
-      accountKeyToAccountType[key] = account.type;
-      accountKeyToCurrency[key] = account.currencyCode;
+    const key = keyByAccountName.get(account.name);
+    if (!key) {
+      misses.accounts += 1;
+      continue;
     }
+
+    accountKeyToId[key] = account.id;
+    accountKeyToAccountType[key] = account.type;
+    accountKeyToCurrency[key] = account.currencyCode;
   }
 
   const fallbackCategoryId = categoryMap.get('other') || undefined;
 
-  const rows = template.transactions.map((tx) => {
-    const accountId = accountKeyToId[tx.accountKey];
-    const categoryId = categoryMap.get(tx.categoryKey) || fallbackCategoryId;
-    const currencyCode = accountKeyToCurrency[tx.accountKey] || DEMO_CONFIG.baseCurrency;
-    const accountType = accountKeyToAccountType[tx.accountKey] || ACCOUNT_TYPES.system;
-    const time = subDays(template.generatedAt, tx.dayOffset);
+  // Rows that take part in a refund pair carry the flag at insert time, which
+  // saves a second UPDATE pass over the whole table.
+  const refundLinkedRefs = new Set(template.refunds.flatMap((pair) => [pair.originalRef, pair.refundRef]));
 
-    const exchangeRate = DEMO_CONFIG.exchangeRates[currencyCode];
-    const refAmount = exchangeRate ? roundHalfToEven(tx.amount / exchangeRate) : tx.amount;
+  const idByRef = new Map<string, string>();
+  const transferIdByKey = new Map<string, string>();
+
+  const resolveTime = (tx: DemoTemplateTransaction): Date => {
+    const time = addMinutes(startOfDay(subDays(referenceDate, tx.dayOffset)), tx.minuteOfDay);
+    // Otherwise minuteOfDay can push today's row past the moment this runs,
+    // dating a transaction in the future.
+    return time > referenceDate ? referenceDate : time;
+  };
+
+  const rows = template.transactions.map((tx) => {
+    const id = uuidv7();
+    if (tx.ref) idByRef.set(tx.ref, id);
+
+    let transferId: string | null = null;
+    if (tx.transferKey) {
+      transferId = transferIdByKey.get(tx.transferKey) ?? uuidv4();
+      transferIdByKey.set(tx.transferKey, transferId);
+    }
+
+    const currencyCode = accountKeyToCurrency[tx.accountKey] || DEMO_CONFIG.baseCurrency;
+
+    const categoryId = categoryMap.get(tx.categoryKey);
+    if (!categoryId) misses.categoryFallbacks += 1;
+
+    let payeeId: string | null = null;
+    if (tx.merchantName) {
+      payeeId = payeeMap.get(tx.merchantName) ?? null;
+      if (!payeeId) misses.payees += 1;
+    }
 
     return {
+      id,
       userId,
       amount: tx.amount,
-      refAmount,
+      refAmount: toBaseCurrencyCents({
+        amount: tx.amount,
+        currencyCode,
+        dayOffset: tx.dayOffset,
+        spotRate: DEMO_CONFIG.exchangeRates[currencyCode],
+      }),
       transactionType: tx.transactionType,
-      categoryId,
-      accountId,
+      categoryId: categoryId ?? fallbackCategoryId,
+      accountId: accountKeyToId[tx.accountKey],
+      payeeId,
       currencyCode,
       refCurrencyCode: DEMO_CONFIG.baseCurrency,
-      accountType,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      accountType: accountKeyToAccountType[tx.accountKey] || ACCOUNT_TYPES.system,
+      transferNature: tx.transferNature ?? TRANSACTION_TRANSFER_NATURE.not_transfer,
+      transferId,
       paymentType: tx.paymentType,
       note: tx.note,
-      time,
+      time: resolveTime(tx),
       commissionRate: 0,
       refCommissionRate: 0,
       cashbackAmount: 0,
-      refundLinked: false,
+      refundLinked: tx.ref ? refundLinkedRefs.has(tx.ref) : false,
     };
   });
+
+  reconcileTransferRefAmounts({ rows });
 
   logger.info(`Bulk inserting ${rows.length} demo transactions...`);
   await Transactions.bulkCreate(rows, { hooks: false, validate: false });
 
+  const refAmountById = new Map(rows.map((row) => [row.id, row.refAmount]));
+  const amountById = new Map(rows.map((row) => [row.id, row.amount]));
+
+  await seedTransactionExtras({
+    userId,
+    splits: template.splits.flatMap((split) => {
+      const transactionId = idByRef.get(split.transactionRef);
+      const categoryId = categoryMap.get(split.categoryKey);
+      if (!transactionId || !categoryId) {
+        misses.splits += 1;
+        return [];
+      }
+
+      // Splits store both the account-currency and base-currency amounts.
+      // Scaling the parent's own refAmount keeps the two consistent with
+      // whichever rate applied that day.
+      const parentAmount = amountById.get(transactionId) ?? split.amount;
+      const parentRefAmount = refAmountById.get(transactionId) ?? split.amount;
+
+      return [
+        {
+          transactionId,
+          categoryId,
+          amount: split.amount,
+          refAmount: Math.round((split.amount / parentAmount) * parentRefAmount),
+          note: split.note,
+        },
+      ];
+    }),
+    refunds: template.refunds.flatMap((pair) => {
+      const originalTxId = idByRef.get(pair.originalRef);
+      const refundTxId = idByRef.get(pair.refundRef);
+      if (!originalTxId || !refundTxId) {
+        misses.refunds += 1;
+        return [];
+      }
+
+      return [{ originalTxId, refundTxId }];
+    }),
+    // Tagged rows rarely carry a `ref`, so this resolves by position: `rows`
+    // is built one-for-one from `template.transactions`.
+    tagLinks: template.transactions.flatMap((tx, index) => {
+      const transactionId = rows[index]?.id;
+      if (!tx.tagKeys?.length) return [];
+      if (!transactionId) {
+        misses.tagLinks += tx.tagKeys.length;
+        return [];
+      }
+
+      return tx.tagKeys.flatMap((tagKey) => {
+        const tagId = tagMap.get(tagKey);
+        if (!tagId) {
+          misses.tagLinks += 1;
+          return [];
+        }
+
+        return [{ tagId, transactionId }];
+      });
+    }),
+    groups: template.groups.flatMap((group) => {
+      const transactionIds = group.transactionRefs
+        .map((ref) => idByRef.get(ref))
+        .filter((id): id is string => id !== undefined);
+
+      // The group service refuses anything smaller than two members.
+      if (transactionIds.length < 2) {
+        misses.groups += 1;
+        return [];
+      }
+
+      return [{ name: group.name, note: group.note, transactionIds }];
+    }),
+  });
+
+  reportMisses({ misses });
+
+  // Runs before updateAccountBalances below: its portfolio-funding transactions
+  // land on the savings account and must be counted in that recompute.
+  const savingsAccountId = accountKeyToId['savings'];
+  if (savingsAccountId) {
+    await setupInvestments({ userId, referenceDate, savingsAccountId });
+  }
+
   await updateAccountBalances({ userId });
   await rebuildBalancesHistory({ userId });
-  await createBudgets({ userId, categoryMap });
 
-  // Create demo subscriptions linked to main checking account and 'life' category
+  await createBudgets({
+    userId,
+    categoryMap,
+    spendByCategoryKey: sumSpendByCategoryKey({
+      template,
+      windowDays: BUDGET_WINDOW_DAYS,
+      currencyByAccountKey: accountKeyToCurrency,
+    }),
+    windowStart: subDays(referenceDate, BUDGET_WINDOW_DAYS),
+    windowEnd: referenceDate,
+  });
+
   const mainCheckingAccountId = accountKeyToId['main_checking'];
-  const lifeCategoryId = categoryMap.get('life') ?? null;
   if (mainCheckingAccountId) {
-    await createSubscriptions({
+    await setupSubscriptions({
       userId,
       accountId: mainCheckingAccountId,
-      categoryId: lifeCategoryId,
-      referenceDate: template.generatedAt,
+      categoryMap,
+      referenceDate,
+      payments: template.subscriptionPayments.flatMap((payment) => {
+        const transactionId = idByRef.get(payment.transactionRef);
+        if (!transactionId) return [];
+
+        return [
+          {
+            subscriptionName: payment.subscriptionName,
+            transactionId,
+            dueDate: subDays(referenceDate, payment.dueDayOffset),
+          },
+        ];
+      }),
     });
   }
 
   await setupDashboardSettings({ userId, categoryMap });
-  await setupInvestments({ userId, referenceDate: template.generatedAt });
-  await setupVehicles({ userId, referenceDate: template.generatedAt });
-  await setupLoans({ userId, referenceDate: template.generatedAt });
-  await setupVentures({ userId, referenceDate: template.generatedAt });
+  await setupVehicles({ userId, referenceDate });
+  await setupLoans({ userId, referenceDate });
+  await setupVentures({ userId, referenceDate });
+  await setupAccountGroups({ userId });
 
   const duration = Date.now() - startTime;
   logger.info(`Demo template applied for user ${userId} in ${duration}ms (${rows.length} transactions)`);
+}
+
+/**
+ * Forces both legs of a transfer to the same base-currency value.
+ *
+ * Each leg converts independently at that day's rate, so a cross-currency pair
+ * can otherwise arrive worth more or less than it left. When one leg is already
+ * in the base currency, its own amount becomes the transfer's value, matching
+ * the real transfer service.
+ */
+function reconcileTransferRefAmounts({ rows }: { rows: TransferReconcilableRow[] }): void {
+  const legsByTransferId = new Map<string, TransferReconcilableRow[]>();
+
+  for (const row of rows) {
+    if (!row.transferId) continue;
+    const legs = legsByTransferId.get(row.transferId) ?? [];
+    legs.push(row);
+    legsByTransferId.set(row.transferId, legs);
+  }
+
+  for (const legs of legsByTransferId.values()) {
+    const baseLeg = legs.find((leg) => leg.currencyCode === DEMO_CONFIG.baseCurrency);
+    if (!baseLeg) continue;
+
+    for (const leg of legs) {
+      leg.refAmount = baseLeg.amount;
+    }
+  }
+}
+
+/**
+ * Reports unresolved template references once, at `error` level.
+ *
+ * Without it, a demo account missing splits, refunds, tags, or payees reads as
+ * complete, and a mistyped category key lands in "Other" unflagged.
+ */
+function reportMisses({ misses }: { misses: DemoApplyMisses }): void {
+  const nonZero = Object.entries(misses).filter(([, count]) => count > 0);
+  if (!nonZero.length) return;
+
+  const summary = nonZero.map(([name, count]) => `${name}=${count}`).join(', ');
+  logger.error(`Demo template references the seeded data could not resolve: ${summary}`);
 }
 
 /**

@@ -43,3 +43,4 @@ export const OUT_OF_WALLET_ACCOUNT_MOCK = {
 
 export * from './account-categories-verbose';
 export * from './ai-features';
+export * from './demo';

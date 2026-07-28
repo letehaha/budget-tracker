@@ -384,7 +384,7 @@ watch(permissionOptions, (next) => {
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <DemoRestricted>
+                  <DemoRestricted feature="household_change_permission">
                     <Button
                       v-if="member.permission !== SHARE_PERMISSIONS.read"
                       size="sm"
@@ -408,7 +408,7 @@ watch(permissionOptions, (next) => {
                       {{ $t('pages.household.permissionChange.setWrite') }}
                     </Button>
                   </DemoRestricted>
-                  <DemoRestricted>
+                  <DemoRestricted feature="household_revoke_member">
                     <Button
                       size="sm"
                       variant="soft-destructive"
@@ -445,7 +445,7 @@ watch(permissionOptions, (next) => {
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <DemoRestricted>
+                  <DemoRestricted feature="household_resend_invite">
                     <Button
                       size="sm"
                       variant="outline"
@@ -457,7 +457,7 @@ watch(permissionOptions, (next) => {
                       {{ $t('pages.household.pending.resend') }}
                     </Button>
                   </DemoRestricted>
-                  <DemoRestricted>
+                  <DemoRestricted feature="household_cancel_invite">
                     <Button
                       size="sm"
                       variant="soft-destructive"
@@ -513,7 +513,7 @@ watch(permissionOptions, (next) => {
                   </p>
                 </div>
               </div>
-              <DemoRestricted>
+              <DemoRestricted feature="household_leave">
                 <Button
                   size="sm"
                   variant="soft-destructive"

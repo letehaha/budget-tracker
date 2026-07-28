@@ -65,7 +65,7 @@
             {{ t('pages.integrations.enableBankingConnector.buttons.back') }}
           </UiButton>
 
-          <DemoRestricted :message="t('demo.featureNotAvailable')">
+          <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_enablebanking">
             <UiButton @click="handleLoadBanks" :disabled="!appId || !privateKey || isLoading || isDemo">
               {{
                 isLoading
@@ -213,7 +213,10 @@
           <AccountSelectionList v-model="selectedAccountIds" :accounts="availableAccounts" />
 
           <div class="flex gap-2 pt-4">
-            <DemoRestricted :message="t('demo.featureNotAvailable')">
+            <DemoRestricted
+              :message="t('demo.featureNotAvailable')"
+              feature="bank_connect_enablebanking_import_accounts"
+            >
               <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading || isDemo">
                 {{
                   isLoading

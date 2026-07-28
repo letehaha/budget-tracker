@@ -249,7 +249,7 @@ const goToCurrencySettings = () => {
       </div>
 
       <div class="flex shrink-0 flex-col-reverse pt-4 sm:flex-row sm:justify-end sm:gap-x-2">
-        <DemoRestricted>
+        <DemoRestricted feature="household_invitation_decline">
           <Button
             variant="outline"
             class="flex-1"
@@ -260,7 +260,7 @@ const goToCurrencySettings = () => {
             {{ $t('dialogs.shareInvitationDialog.decline') }}
           </Button>
         </DemoRestricted>
-        <DemoRestricted>
+        <DemoRestricted feature="household_invitation_accept">
           <Button
             class="flex-1"
             :loading="acceptMutation.isPending.value"
@@ -311,7 +311,7 @@ const goToCurrencySettings = () => {
           <Button variant="outline" class="flex-1" :disabled="backInviteMutation.isPending.value" @click="closeDialog">
             {{ $t('dialogs.shareInvitationDialog.backInvite.notNow') }}
           </Button>
-          <DemoRestricted>
+          <DemoRestricted feature="household_invitation_back_invite">
             <Button
               class="flex-1"
               :loading="backInviteMutation.isPending.value"

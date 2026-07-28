@@ -50,6 +50,8 @@ export interface UserModel {
   role: UserRole;
   /** @deprecated Use role === 'admin' instead */
   isAdmin?: boolean;
+  /** Feeds the demo-account expiry countdown. */
+  createdAt: Date;
 }
 
 export interface CategoryModel {

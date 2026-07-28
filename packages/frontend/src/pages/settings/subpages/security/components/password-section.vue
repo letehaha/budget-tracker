@@ -19,7 +19,7 @@
     <template v-else>
       <!-- Demo mode restriction notice -->
       <div v-if="isDemo" class="bg-muted/50 text-muted-foreground flex items-center gap-3 rounded-lg border p-4">
-        <AlertCircle class="size-5 shrink-0" />
+        <AlertCircleIcon class="size-5 shrink-0" />
         <p class="text-sm">
           {{ $t('demo.passwordChangeRestricted') }}
         </p>
@@ -84,14 +84,16 @@
         <p v-if="errorMessage" class="text-destructive-text text-sm">{{ errorMessage }}</p>
 
         <!-- Submit button -->
-        <Button type="submit" :disabled="isSubmitting || isDemo">
-          <Loader2Icon v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
-          {{
-            hasPassword
-              ? $t('settings.security.passwordSection.buttons.change')
-              : $t('settings.security.passwordSection.buttons.set')
-          }}
-        </Button>
+        <DemoRestricted feature="change_password">
+          <Button type="submit" :disabled="isSubmitting || isDemo">
+            <Loader2Icon v-if="isSubmitting" class="mr-2 size-4 animate-spin" />
+            {{
+              hasPassword
+                ? $t('settings.security.passwordSection.buttons.change')
+                : $t('settings.security.passwordSection.buttons.set')
+            }}
+          </Button>
+        </DemoRestricted>
       </form>
 
       <!-- Info text -->
@@ -108,6 +110,7 @@
 </template>
 
 <script setup lang="ts">
+import DemoRestricted from '@/components/demo/demo-restricted.vue';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -115,7 +118,7 @@ import { useFormValidation } from '@/composable';
 import { minLength, required, sameAs } from '@/js/helpers/validators';
 import { authClient, setPassword } from '@/lib/auth-client';
 import { useUserStore } from '@/stores';
-import { AlertCircle, Loader2Icon } from '@lucide/vue';
+import { AlertCircleIcon, Loader2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

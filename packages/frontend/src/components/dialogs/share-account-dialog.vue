@@ -154,7 +154,7 @@ const matchingMemberPermissionLabel = computed(() => {
         <Button type="button" variant="outline" :disabled="mutation.isPending.value" @click="isOpen = false">
           {{ $t('dialogs.shareAccountDialog.cancel') }}
         </Button>
-        <DemoRestricted>
+        <DemoRestricted feature="share_account_dialog_submit">
           <Button type="submit" :disabled="!canSubmit || isDemo" :loading="mutation.isPending.value">
             {{ $t('dialogs.shareAccountDialog.send') }}
           </Button>

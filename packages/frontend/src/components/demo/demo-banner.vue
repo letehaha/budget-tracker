@@ -3,7 +3,7 @@
     v-if="isDemo"
     class="bg-primary/10 border-primary/20 flex items-center justify-center gap-2 border-b px-4 py-2 text-sm"
   >
-    <AlertCircle class="text-primary size-4 shrink-0" />
+    <AlertCircleIcon class="text-primary size-4 shrink-0" />
     <span class="text-primary/90">
       <i18n-t keypath="demo.banner.message" tag="span">
         <template #time>
@@ -23,21 +23,25 @@
 </template>
 
 <script setup lang="ts">
+import { DEMO_SESSION_EXPIRED_REASON } from '@/common/const';
 import { trackAnalyticsEvent } from '@/lib/posthog';
+import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { DEMO_EXPIRY_HOURS, useAuthStore, useUserStore } from '@/stores';
-import { AlertCircle } from '@lucide/vue';
+import { useAuthStore, useUserStore } from '@/stores';
+import { AlertCircleIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+
+import { getDemoExpiresAt, getDemoTimeRemaining } from './demo-expiry';
 
 const { t } = useI18n();
 
 const router = useRouter();
 const userStore = useUserStore();
 const authStore = useAuthStore();
-const { isDemo } = storeToRefs(userStore);
+const { isDemo, user } = storeToRefs(userStore);
 
 // Reactive time remaining calculation
 const now = ref(Date.now());
@@ -56,45 +60,42 @@ onUnmounted(() => {
   }
 });
 
-// Calculate expiry timestamp once
-const expiresAt = computed(() => {
-  const demoSession = authStore.getDemoSession();
-  if (!demoSession) return null;
-  return demoSession.startedAt + DEMO_EXPIRY_HOURS * 60 * 60 * 1000;
-});
+// Derived from the user's `createdAt`, so it's correct on first load, a reload, and
+// regardless of which flow started the demo session.
+const expiresAt = computed(() => getDemoExpiresAt({ user: user.value }));
 
 // Check if demo has expired
 const isExpired = computed(() => {
-  if (!isDemo.value || !expiresAt.value) return false;
+  if (!isDemo.value || expiresAt.value === null) return false;
   return now.value >= expiresAt.value;
 });
 
-// Auto-logout when demo expires
+// Redirect runs even if logout fails, so an expired session can't leave the user
+// stuck in the app with a dead server session.
 watch(
   isExpired,
   async (expired) => {
-    if (expired) {
-      await authStore.logout();
-      router.push({ name: ROUTES_NAMES.signIn, query: { reason: 'demo_expired' } });
+    if (!expired) return;
+
+    try {
+      await authStore.logout({ demoEndReason: 'expired' });
+    } catch (error) {
+      captureException({ error, context: { scope: 'demo-banner:expiry-logout' } });
     }
+
+    router.push({ name: ROUTES_NAMES.signIn, query: { reason: DEMO_SESSION_EXPIRED_REASON } });
   },
   { immediate: true },
 );
 
 const timeRemaining = computed(() => {
-  if (!expiresAt.value) return null;
+  const remaining = getDemoTimeRemaining({ expiresAt: expiresAt.value, now: now.value });
+  if (!remaining) return null;
 
-  const remaining = expiresAt.value - now.value;
-
-  if (remaining <= 0) return null;
-
-  const hours = Math.floor(remaining / (60 * 60 * 1000));
-  const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-
-  if (hours > 0) {
-    return t('demo.banner.timeFormat.hoursMinutes', { hours, minutes });
+  if (remaining.hours > 0) {
+    return t('demo.banner.timeFormat.hoursMinutes', { hours: remaining.hours, minutes: remaining.minutes });
   }
-  return t('demo.banner.timeFormat.minutes', { minutes });
+  return t('demo.banner.timeFormat.minutes', { minutes: remaining.minutes });
 });
 
 const handleSignUpClick = async () => {
@@ -104,7 +105,7 @@ const handleSignUpClick = async () => {
   });
 
   // Logout demo user before redirecting to sign-up
-  await authStore.logout();
+  await authStore.logout({ demoEndReason: 'signup_clicked' });
   router.push({ name: ROUTES_NAMES.signUp });
 };
 </script>

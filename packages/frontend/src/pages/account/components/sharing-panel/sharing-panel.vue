@@ -217,7 +217,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
         <p class="text-muted-foreground text-sm">{{ $t('pages.account.sharing.description') }}</p>
       </div>
 
-      <DemoRestricted v-if="isOwner">
+      <DemoRestricted v-if="isOwner" feature="share_account_invite">
         <Button variant="outline" size="sm" :disabled="isDemo" @click="inviteDialogOpen = true">
           <UserPlusIcon class="mr-2 size-4" />
           {{ $t('pages.account.sharing.inviteAnother') }}
@@ -292,7 +292,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
                   :disabled="updateMemberMutation.isPending.value || isSelfRow(member) || isDemo"
                   @update:model-value="(opt) => handleScopeChange(member, opt as ScopeOption | null)"
                 />
-                <DemoRestricted>
+                <DemoRestricted feature="share_account_revoke_member">
                   <DesktopOnlyTooltip :content="$t('pages.account.sharing.member.revoke')">
                     <Button
                       variant="soft-destructive"
@@ -345,7 +345,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
             </div>
 
             <div class="flex items-center gap-2 @sm/sharing-panel:ml-auto">
-              <DemoRestricted>
+              <DemoRestricted feature="share_account_resend_invite">
                 <DesktopOnlyTooltip :content="$t('pages.account.sharing.pending.resend')">
                   <Button
                     variant="ghost"
@@ -357,7 +357,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
                   </Button>
                 </DesktopOnlyTooltip>
               </DemoRestricted>
-              <DemoRestricted>
+              <DemoRestricted feature="share_account_cancel_invite">
                 <DesktopOnlyTooltip :content="$t('pages.account.sharing.pending.cancel')">
                   <Button
                     variant="ghost-destructive"

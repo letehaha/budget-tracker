@@ -47,7 +47,7 @@
             {{ t('pages.integrations.walutomat.backButton') }}
           </UiButton>
 
-          <DemoRestricted :message="t('demo.featureNotAvailable')">
+          <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_walutomat">
             <UiButton :disabled="!canConnect || isLoading || isDemo" @click="handleConnect">
               {{
                 isLoading
@@ -115,7 +115,7 @@
               {{ t('pages.integrations.walutomat.backButton') }}
             </UiButton>
 
-            <DemoRestricted :message="t('demo.featureNotAvailable')">
+            <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_walutomat_import_accounts">
               <UiButton :disabled="selectedIds.size === 0 || isLoading || isDemo" @click="handleImport">
                 {{
                   isLoading

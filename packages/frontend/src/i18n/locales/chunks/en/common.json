@@ -324,14 +324,15 @@
       "description": "The investments feature is not available in demo mode. Please sign up for a full account to access investments tracking."
     },
     "banner": {
-      "message": "You're exploring a demo{time}. {signUpLink} to keep your data permanently.",
+      "message": "You're exploring a demo with sample data{time}. {signUpLink} to create your own account.",
       "resets": "resets in {time}",
       "signUp": "Sign up",
       "timeFormat": {
         "hoursMinutes": "{hours}h {minutes}m",
         "minutes": "{minutes}m"
       }
-    }
+    },
+    "sessionExpiredNotice": "Your demo session has ended. Create a free account to continue, or sign in below if you already have one."
   },
   "settings": {
     "currencies": {

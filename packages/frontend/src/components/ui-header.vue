@@ -45,18 +45,21 @@
 
       <div class="ml-auto flex items-center gap-2">
         <DesktopOnlyTooltip :content="$t('header.feedback')" :disabled="!isHeaderBarCompact">
-          <Button
-            variant="ghost-primary"
-            size="sm"
-            :class="['flex items-center gap-1.5', { 'feedback-pulse': isFeedbackPulsing }]"
-            :aria-label="$t('header.feedback')"
-            @mouseenter="onFeedbackEnter"
-            @click="openFeedback"
-          >
-            <FeedbackIcon class="size-5 @[890px]/header-bar:hidden" />
-            <span class="hidden @[890px]/header-bar:inline">{{ $t('header.feedback') }}</span>
-            <ExternalLinkIcon class="hidden size-3.5 opacity-70 @[890px]/header-bar:inline" />
-          </Button>
+          <span class="inline-flex">
+            <FeedbackDialog>
+              <Button
+                variant="secondary"
+                :size="isHeaderBarCompact ? 'icon' : 'sm'"
+                :class="['flex items-center gap-1.5', { 'feedback-pulse': isFeedbackPulsing }]"
+                :aria-label="$t('header.feedback')"
+                @mouseenter="onFeedbackEnter"
+                @click="onFeedbackClick"
+              >
+                <FeedbackIcon class="text-primary size-4" />
+                <span class="hidden @[890px]/header-bar:inline">{{ $t('header.feedback') }}</span>
+              </Button>
+            </FeedbackDialog>
+          </span>
         </DesktopOnlyTooltip>
 
         <DesktopOnlyTooltip
@@ -137,6 +140,7 @@
 <script setup lang="ts">
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
 import FeedbackIcon from '@/components/common/icons/feedback-icon.vue';
+import FeedbackDialog from '@/components/dialogs/feedback-dialog.vue';
 import DemoBanner from '@/components/demo/demo-banner.vue';
 import ManageTransactionDialog from '@/components/dialogs/manage-transaction/index.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -158,11 +162,9 @@ import { useSyncStatus } from '@/composable/use-sync-status';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
-import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
 import {
   AlertTriangleIcon,
   CloudCheckIcon,
-  ExternalLinkIcon,
   HeartIcon,
   ImportIcon,
   MenuIcon,
@@ -200,11 +202,6 @@ useResizeObserver(headerBarRef, ([entry]) => {
   if (!entry) return;
   isHeaderBarCompact.value = entry.contentRect.width < 890;
 });
-
-const openFeedback = () => {
-  onFeedbackClick();
-  window.open(EXTERNAL_URLS.featurebaseBoard, '_blank', 'noopener,noreferrer');
-};
 
 const DONATE_URL = 'https://donatr.ee/letehaha';
 

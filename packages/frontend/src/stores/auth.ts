@@ -1,10 +1,16 @@
-import { startDemo as startDemoApi } from '@/api/demo';
+import type { DemoEndReason } from '@/common/const/demo';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { OAuthProviderNotConfiguredError, UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
-import { identifyUser, resetUser } from '@/lib/posthog';
+import {
+  consumeDemoOriginProperties,
+  hasSignedInOnDevice,
+  markDemoOrigin,
+  markSignedInOnDevice,
+} from '@/lib/demo-origin';
+import { identifyUser, resetUser, startSessionRecording, trackAnalyticsEvent } from '@/lib/posthog';
 import { collectPersistedQueryGarbage, resetQueryCaches } from '@/lib/query-persister';
-import { clearSentryUser, setSentryUser } from '@/lib/sentry';
+import { captureException, clearSentryUser, setSentryUser } from '@/lib/sentry';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
 import { OAUTH_PROVIDER, USER_ROLES, UserModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -19,6 +25,20 @@ import { resetAllDefinedStores } from './setup';
 function identifyUserForTracking(user: UserModel) {
   const isDemo = user.role === USER_ROLES.demo;
 
+  // Demo accounts hold generated data, so recording exposes no real finances and keeps quota small.
+  if (isDemo) {
+    startSessionRecording();
+  }
+
+  // Read the device flag before setting it, otherwise this sign-in gates itself out.
+  const demoOriginProperties = isDemo
+    ? {}
+    : consumeDemoOriginProperties({ isFirstSignInOnDevice: !hasSignedInOnDevice() });
+
+  if (!isDemo) {
+    markSignedInOnDevice();
+  }
+
   // PostHog analytics
   identifyUser({
     userId: user.id,
@@ -27,6 +47,7 @@ function identifyUserForTracking(user: UserModel) {
     properties: {
       is_demo: isDemo,
       user_role: user.role,
+      ...demoOriginProperties,
     },
   });
 
@@ -39,19 +60,10 @@ function identifyUserForTracking(user: UserModel) {
 }
 
 const HAS_EVER_LOGGED_IN_KEY = 'has-ever-logged-in';
-const DEMO_SESSION_KEY = 'demo-session';
 // Identity of the user whose queries are currently persisted on this device.
 // Compared on every auth entry so a session swap without an explicit logout
 // (expiry, logging into a different account) can't restore the prior user's data.
 const PERSISTED_QUERIES_USER_KEY = 'persisted-queries-user-id';
-
-// Demo session expires after 4 hours (same as backend)
-export const DEMO_EXPIRY_HOURS = 4;
-
-interface DemoSession {
-  startedAt: number; // timestamp
-  userId: number;
-}
 
 export const useAuthStore = defineStore('auth', () => {
   const userStore = useUserStore();
@@ -219,7 +231,10 @@ export const useAuthStore = defineStore('auth', () => {
 
       isSessionChecked.value = true;
       return true;
-    } catch {
+    } catch (error) {
+      // Everything above returns a result object or is our own code; a throw here signals a
+      // network failure or bug that the catch below reports as an ordinary signed-out state.
+      captureException({ error, context: { scope: 'auth:validate-session' } });
       isLoggedIn.value = false;
       isSessionChecked.value = true;
       return false;
@@ -248,74 +263,26 @@ export const useAuthStore = defineStore('auth', () => {
     // The register page will redirect to verify-email page
   };
 
-  /**
-   * Start a demo session.
-   * Creates a temporary demo user with pre-seeded data.
-   * Demo users are automatically cleaned up after 4 hours or on logout.
-   */
-  const startDemo = async () => {
-    const response = await startDemoApi();
+  /** `demoEndReason` only matters for a demo account; it labels the demo funnel's terminal event. */
+  const logout = async ({ demoEndReason = 'logout' }: { demoEndReason?: DemoEndReason } = {}) => {
+    const wasDemo = userStore.isDemo;
 
-    // Store user data
-    userStore.user = response.user;
-
-    // Store demo session info in LocalStorage for page refresh handling
-    const demoSession: DemoSession = {
-      startedAt: Date.now(),
-      userId: response.user.id,
-    };
-    localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(demoSession));
-
-    // Load post-auth data (currencies, categories)
-    await loadPostAuthData();
-
-    // Identify for analytics (using demo- prefix to distinguish)
-    if (userStore.user) {
-      identifyUserForTracking(userStore.user);
-    }
-
-    isLoggedIn.value = true;
-    // Don't set HAS_EVER_LOGGED_IN_KEY for demo users
-  };
-
-  /**
-   * Get the current demo session info from LocalStorage.
-   * Returns null if no demo session exists.
-   */
-  const getDemoSession = (): DemoSession | null => {
-    const stored = localStorage.getItem(DEMO_SESSION_KEY);
-    if (!stored) return null;
-    try {
-      return JSON.parse(stored) as DemoSession;
-    } catch {
-      return null;
-    }
-  };
-
-  /**
-   * Clear demo session from LocalStorage.
-   * Called on logout.
-   */
-  const clearDemoSession = () => {
-    localStorage.removeItem(DEMO_SESSION_KEY);
-  };
-
-  /**
-   * Logout the current user
-   */
-  const logout = async () => {
     try {
       await signOut();
-    } catch {
-      // Ignore signout errors, we still want to clear local state
+    } catch (error) {
+      // Local state clears either way; a session the server never dropped deserves visibility.
+      captureException({ error, context: { scope: 'auth:logout-signout' } });
+    }
+
+    // Fires before `resetUser` so the event still carries the demo distinct ID.
+    if (wasDemo) {
+      trackAnalyticsEvent({ event: 'demo_session_ended', properties: { reason: demoEndReason } });
+      markDemoOrigin({ reason: demoEndReason });
     }
 
     // Reset analytics and error tracking user context
     resetUser();
     clearSentryUser();
-
-    // Clear demo session from LocalStorage
-    clearDemoSession();
 
     isMobileSheetOpen.value = false;
     // Set logged out state before resetting stores
@@ -345,8 +312,6 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithPasskey,
     registerPasskey,
     signup,
-    startDemo,
-    getDemoSession,
     logout,
   };
 });

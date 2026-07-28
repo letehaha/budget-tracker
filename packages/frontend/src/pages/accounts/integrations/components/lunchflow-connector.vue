@@ -36,7 +36,7 @@
             {{ t('pages.integrations.lunchflow.backButton') }}
           </UiButton>
 
-          <DemoRestricted :message="t('demo.featureNotAvailable')">
+          <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_lunchflow">
             <UiButton @click="handleConnectProvider" :disabled="!apiKey || isLoading || isDemo">
               {{
                 isLoading
@@ -111,7 +111,7 @@
                 </Tooltip.Tooltip>
               </Tooltip.TooltipProvider>
 
-              <DemoRestricted :message="t('demo.featureNotAvailable')">
+              <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_lunchflow_import_accounts">
                 <UiButton
                   @click="handleImportAccounts"
                   :disabled="availableAccounts.length === 0 || isLoading || isDemo"
