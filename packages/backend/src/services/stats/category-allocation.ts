@@ -72,7 +72,7 @@ export interface CategoryAllocations {
  * `resolveRefundPairs`. A side that was only fetched to resolve the pair contributed no positive
  * amount to the caller's report, so netting against it would invent money.
  */
-export interface RefundPair {
+interface RefundPair {
   /** Refund magnitude in integer cents (base/reference currency), always positive: callers negate it. */
   cents: number;
   /** The refund tx's own date — the bucket the money actually moved in. */

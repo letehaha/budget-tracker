@@ -24,6 +24,10 @@ import { QueryInterface } from 'sequelize';
  * duplicate holds real money; refund duplicates are plain link rows, so the earliest link wins
  * (matching `createSingleRefund`, which rejects any later attempt to re-link the same refund).
  *
+ * Last, it tightens `RefundTransactions.originalTxId` from ON DELETE SET NULL to CASCADE — see the
+ * comment at that statement. Existing rows already nulled by the old rule are left alone: nothing
+ * distinguishes them from refunds the user legitimately recorded against an untracked purchase.
+ *
  * Every statement is idempotent so a database that already ran an earlier revision of this file
  * converges to the same schema.
  */
@@ -76,16 +80,31 @@ module.exports = {
       await query(`DELETE FROM refund_dupe_map WHERE loser_id = keeper_id;`);
       await query(`DELETE FROM "RefundTransactions" WHERE id IN (SELECT loser_id FROM refund_dupe_map);`);
 
-      // Dropping a link can leave its original flagged as refunded with nothing backing it. Only
-      // clears the flag where no link survives, so a genuinely linked transaction is untouched.
+      // --- Sweep: realign refundLinked with the links that survived ---
+      // Runs after the deletes above so it reads the final set of links. The flag decides whether
+      // the reporting engines even look a transaction's refunds up, so both directions matter:
+      // a stale true costs a wasted lookup, a stale false makes a real refund stop netting and the
+      // expense reports overstate. Removing one of a purchase's several refunds used to clear the
+      // purchase's flag outright, and nothing set it back.
+      await query(`
+        CREATE TEMP TABLE linked_tx_ids ON COMMIT DROP AS
+        SELECT "refundTxId" AS id FROM "RefundTransactions"
+        UNION
+        SELECT "originalTxId" AS id FROM "RefundTransactions" WHERE "originalTxId" IS NOT NULL;
+      `);
+      await query(`CREATE INDEX ON linked_tx_ids (id);`);
+
+      await query(`
+        UPDATE "Transactions" t
+        SET "refundLinked" = true
+        FROM linked_tx_ids l
+        WHERE l.id = t.id AND t."refundLinked" = false;
+      `);
       await query(`
         UPDATE "Transactions" t
         SET "refundLinked" = false
         WHERE t."refundLinked" = true
-          AND NOT EXISTS (
-            SELECT 1 FROM "RefundTransactions" r
-            WHERE r."refundTxId" = t.id OR r."originalTxId" = t.id
-          );
+          AND NOT EXISTS (SELECT 1 FROM linked_tx_ids l WHERE l.id = t.id);
       `);
 
       // --- Rebuild the indexes ---
@@ -108,6 +127,21 @@ module.exports = {
         `CREATE UNIQUE INDEX IF NOT EXISTS refund_transactions_refund_tx_id_unique_idx ON "RefundTransactions" ("refundTxId");`,
       );
 
+      // --- originalTxId: SET NULL -> CASCADE ---
+      // A null originalTxId means the refund covers a purchase the user never tracked, so SET NULL
+      // rewrote "refund of this purchase" into a claim about the user's accounts that nothing can
+      // undo: the report engine reads the row as plain income, and the row keeps occupying that
+      // refund's UNIQUE(refundTxId) slot. Deleting the purchase should take the link with it.
+      // `deleteTransaction` clears the links itself, so this rule is what covers every other way a
+      // transaction disappears — deleting an account cascades into its transactions, and several
+      // services delete rows directly.
+      await query(`ALTER TABLE "RefundTransactions" DROP CONSTRAINT IF EXISTS "RefundTransactions_originalTxId_fkey";`);
+      await query(`
+        ALTER TABLE "RefundTransactions"
+        ADD CONSTRAINT "RefundTransactions_originalTxId_fkey"
+        FOREIGN KEY ("originalTxId") REFERENCES "Transactions" (id) ON UPDATE CASCADE ON DELETE CASCADE;
+      `);
+
       await t.commit();
     } catch (error) {
       await t.rollback();
@@ -127,6 +161,13 @@ module.exports = {
       await query(`DROP INDEX IF EXISTS transaction_splits_tx_category_idx;`);
       await query(`DROP INDEX IF EXISTS refund_transactions_original_tx_id_idx;`);
       await query(`DROP INDEX IF EXISTS refund_transactions_refund_tx_id_unique_idx;`);
+
+      await query(`ALTER TABLE "RefundTransactions" DROP CONSTRAINT IF EXISTS "RefundTransactions_originalTxId_fkey";`);
+      await query(`
+        ALTER TABLE "RefundTransactions"
+        ADD CONSTRAINT "RefundTransactions_originalTxId_fkey"
+        FOREIGN KEY ("originalTxId") REFERENCES "Transactions" (id) ON DELETE SET NULL;
+      `);
 
       await t.commit();
     } catch (error) {
