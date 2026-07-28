@@ -1,4 +1,3 @@
-import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import { addAccountToGroup } from '@services/account-groups/add-account-to-group';
@@ -9,32 +8,25 @@ import { DEMO_CONFIG, type DemoAccountKey } from './demo-config';
 /**
  * Account groups for the demo user.
  *
+ * Only cash accounts are grouped. Vehicle and loan accounts are backed by
+ * accounts but presented as their own entities (Vehicles section, `/loans`
+ * page), and the accounts UI filters them out of the manual account list — a
+ * group holding them would render as an empty row.
+ *
  * Groups stay flat: `getAccountGroups` returns a child group's accounts
  * unhydrated, so the settings page renders every group at one level and names
  * its parent instead of nesting. Seeding a hierarchy would surface that edge.
  */
-const DEMO_ACCOUNT_GROUPS: {
-  name: string;
-  accountKeys?: DemoAccountKey[];
-  accountCategories?: ACCOUNT_CATEGORIES[];
-}[] = [
+const DEMO_ACCOUNT_GROUPS: { name: string; accountKeys: DemoAccountKey[] }[] = [
   { name: 'Day-to-day', accountKeys: ['main_checking', 'cash'] },
   { name: 'Travel', accountKeys: ['travel_card'] },
   { name: 'Savings & Goals', accountKeys: ['savings'] },
-  // Vehicle and loan accounts are created by their own seeders under generated
-  // names, so these two match on category rather than naming accounts.
-  { name: 'Vehicles', accountCategories: [ACCOUNT_CATEGORIES.vehicle] },
-  { name: 'Debt', accountCategories: [ACCOUNT_CATEGORIES.loan] },
 ];
 
-/**
- * Runs after every account-producing seeder, since it groups the vehicle and
- * loan accounts those create.
- */
 export async function setupAccountGroups({ userId }: { userId: number }): Promise<void> {
   const accounts = await Accounts.findAll({
     where: { userId },
-    attributes: ['id', 'name', 'accountCategory'],
+    attributes: ['id', 'name'],
   });
 
   // The DB rows carry display names; the config addresses accounts by key.
@@ -45,10 +37,8 @@ export async function setupAccountGroups({ userId }: { userId: number }): Promis
   let groupedCount = 0;
 
   for (const groupConfig of DEMO_ACCOUNT_GROUPS) {
-    const names = new Set(groupConfig.accountKeys?.map((key) => nameByAccountKey.get(key)));
-    const members = accounts.filter(
-      (account) => names.has(account.name) || groupConfig.accountCategories?.includes(account.accountCategory),
-    );
+    const names = new Set(groupConfig.accountKeys.map((key) => nameByAccountKey.get(key)));
+    const members = accounts.filter((account) => names.has(account.name));
 
     if (!members.length) continue;
 

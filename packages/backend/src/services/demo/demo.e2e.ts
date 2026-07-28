@@ -662,16 +662,36 @@ describe('Demo Mode', () => {
         raw: true,
       });
 
-      expect(groups.length).toBeGreaterThanOrEqual(4);
+      expect(groups.length).toBeGreaterThanOrEqual(3);
 
       const typedGroups = groups as { name: string; accounts: { id: string }[] }[];
       const populated = typedGroups.filter((group) => group.accounts.length > 0);
-      expect(populated.length).toBeGreaterThanOrEqual(4);
+      expect(populated.length).toBeGreaterThanOrEqual(3);
 
-      // Every seeded account lands in exactly one group, cash and system-backed
-      // (vehicle, loan) accounts included.
+      // Each of the 4 cash accounts lands in exactly one group.
       const groupedAccountIds = new Set(typedGroups.flatMap((group) => group.accounts.map((account) => account.id)));
-      expect(groupedAccountIds.size).toBe(9);
+      expect(groupedAccountIds.size).toBe(4);
+
+      // Vehicles and loans are presented as their own entities (Vehicles section,
+      // /loans page) and the accounts UI filters them out of the manual list, so
+      // grouping them would leave the group rendering empty.
+      const accountsRes = await makeRequest({
+        method: 'get',
+        url: '/accounts',
+        raw: true,
+      });
+      const dedicatedFlowAccountIds = accountsRes
+        .filter(
+          (account: { accountCategory: string }) =>
+            account.accountCategory === ACCOUNT_CATEGORIES.vehicle ||
+            account.accountCategory === ACCOUNT_CATEGORIES.loan,
+        )
+        .map((account: { id: string }) => account.id);
+
+      expect(dedicatedFlowAccountIds.length).toBeGreaterThan(0);
+      for (const accountId of dedicatedFlowAccountIds) {
+        expect(groupedAccountIds.has(accountId)).toBe(false);
+      }
     });
 
     it('seeds transaction groups holding at least two transactions', async () => {
