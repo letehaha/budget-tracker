@@ -272,7 +272,7 @@ const chartCategories = computed(() => {
     // Check if this category has any amount for the current metric in any period
     for (const period of chartData.value) {
       const periodCat = period.categories?.find((c) => c.categoryId === cat.categoryId);
-      if (periodCat && getCategoryAmount(periodCat) > 0) {
+      if (periodCat && getCategoryAmount(periodCat) !== 0) {
         return true;
       }
     }
@@ -291,10 +291,12 @@ const metricLabel = computed(() => {
 });
 
 // Get value based on metric
+// The endpoint already returns expenses as a positive magnitude, except where a refund landed in a
+// bucket its original purchase isn't in — there the bucket is genuinely negative and must stay so.
 const getMetricValue = (period: endpointsTypes.CashFlowPeriodData): number => {
   switch (props.metric) {
     case 'expenses':
-      return Math.abs(period.expenses);
+      return period.expenses;
     case 'income':
       return period.income;
     case 'savings':
@@ -308,16 +310,21 @@ const getMetricValue = (period: endpointsTypes.CashFlowPeriodData): number => {
 const getCategoryAmount = (cat: endpointsTypes.CashFlowCategoryData): number => {
   switch (props.metric) {
     case 'expenses':
-      return Math.abs(cat.expenseAmount);
+      return cat.expenseAmount;
     case 'income':
       return cat.incomeAmount;
     case 'savings':
       // For savings, we might use netFlow (income - expense) but categories don't have this
-      return cat.incomeAmount - Math.abs(cat.expenseAmount);
+      return cat.incomeAmount - cat.expenseAmount;
     default:
       return 0;
   }
 };
+
+// Sum of only the positive (or only the negative) amounts — the bounds a stack's running total
+// can reach whatever order its segments are drawn in.
+const sumBySign = ({ amounts, keepPositive }: { amounts: number[]; keepPositive: boolean }): number =>
+  amounts.reduce((acc, amount) => acc + (keepPositive ? Math.max(amount, 0) : Math.min(amount, 0)), 0);
 
 // Get the displayed value for a period (what the bar actually shows)
 // For stacked bars, this is the sum of category amounts; otherwise the metric total
@@ -479,24 +486,25 @@ const renderChart = () => {
   // Get list of category IDs to render (only those with data for current metric)
   const renderCategoryIds = new Set(chartCategories.value.map((c) => c.categoryId));
 
-  // Y scale - calculate max value
+  // Y scale — the domain has to cover negatives for every metric, not just savings: a bucket whose
+  // refunds outweigh its purchases reports negative expenses.
   let yMax = 0;
+  let yMin = 0;
   if (isStacked) {
-    // For stacked bars, max is sum of all category amounts per period (filtered by metric)
+    // A stack's running total peaks at the sum of its positive segments and bottoms out at the sum
+    // of its negative ones, whatever order they are drawn in.
     chartData.value.forEach((period) => {
-      if (period.categories) {
-        const sum = period.categories
-          .filter((cat) => renderCategoryIds.has(cat.categoryId))
-          .reduce((acc, cat) => acc + getCategoryAmount(cat), 0);
-        yMax = Math.max(yMax, sum);
-      }
+      if (!period.categories) return;
+      const amounts = period.categories
+        .filter((cat) => renderCategoryIds.has(cat.categoryId))
+        .map((cat) => getCategoryAmount(cat));
+      yMax = Math.max(yMax, sumBySign({ amounts, keepPositive: true }));
+      yMin = Math.min(yMin, sumBySign({ amounts, keepPositive: false }));
     });
   } else {
     yMax = d3.max(chartData.value, (d) => d.value) || 0;
+    yMin = Math.min(d3.min(chartData.value, (d) => d.value) || 0, 0);
   }
-
-  const minValue = props.metric === 'savings' && !isStacked ? d3.min(chartData.value, (d) => d.value) || 0 : 0;
-  const yMin = Math.min(minValue, 0);
 
   const yScale = d3
     .scaleLinear()
@@ -518,8 +526,8 @@ const renderChart = () => {
       grid.selectAll('.tick line').attr('stroke', colors.grid).attr('stroke-opacity', 0.5);
     });
 
-  // Zero line for savings metric
-  if (props.metric === 'savings' && yMin < 0 && !isStacked) {
+  // Zero line, drawn whenever the domain crosses zero
+  if (yMin < 0) {
     g.append('line')
       .attr('x1', 0)
       .attr('x2', innerWidth)
@@ -621,7 +629,7 @@ const renderChart = () => {
     chartData.value.forEach((period) => {
       if (!period.categories) return;
 
-      let currentY = innerHeight; // Start from bottom
+      let currentY = zeroY; // Stack grows away from the zero line, in both directions
 
       // Filter to only categories with data for current metric, then sort
       const filteredCategories = period.categories.filter((cat) => renderCategoryIds.has(cat.categoryId));
@@ -644,8 +652,12 @@ const renderChart = () => {
         const catAmount = getCategoryAmount(cat);
         if (catAmount === 0) return; // Skip categories with zero amount
 
-        const catHeight = Math.abs(yScale(0) - yScale(catAmount));
-        currentY -= catHeight;
+        // Signed: a refund-dominated category has a negative amount and must pull the stack back
+        // down rather than add another block on top of it.
+        const signedHeight = zeroY - yScale(catAmount);
+        const catHeight = Math.abs(signedHeight);
+        const segmentY = signedHeight >= 0 ? currentY - signedHeight : currentY;
+        currentY -= signedHeight;
 
         const isTopSegment = cat.categoryId === topSegmentId;
         const segmentX = xScale(period.periodStart)! + barOffset;
@@ -657,7 +669,7 @@ const renderChart = () => {
             .attr('data-category-id', cat.categoryId)
             .attr(
               'd',
-              createTopRoundedRect({ x: segmentX, y: currentY, width: barWidth, height: catHeight, radius: 4 }),
+              createTopRoundedRect({ x: segmentX, y: segmentY, width: barWidth, height: catHeight, radius: 4 }),
             )
             .attr('fill', cat.color)
             .style('cursor', 'pointer')
@@ -671,7 +683,7 @@ const renderChart = () => {
             .attr('class', 'bar-segment')
             .attr('data-category-id', cat.categoryId)
             .attr('x', segmentX)
-            .attr('y', currentY)
+            .attr('y', segmentY)
             .attr('width', barWidth)
             .attr('height', catHeight)
             .attr('fill', cat.color)
@@ -705,7 +717,7 @@ const renderChart = () => {
           g.append('rect')
             .attr('class', 'segment-shadow')
             .attr('x', segmentX)
-            .attr('y', currentY + catHeight - actualShadowHeight)
+            .attr('y', segmentY + catHeight - actualShadowHeight)
             .attr('width', barWidth)
             .attr('height', actualShadowHeight)
             .attr('fill', `url(#${gradientId})`)

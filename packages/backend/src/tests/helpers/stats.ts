@@ -100,12 +100,14 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   from,
   to,
   granularity,
+  accountId,
   categoryIds,
   raw,
 }: {
   from: string;
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
+  accountId?: string;
   categoryIds?: string[];
   raw?: R;
 }) {
@@ -113,6 +115,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   params.append('from', from);
   params.append('to', to);
   params.append('granularity', granularity);
+  if (accountId) params.append('accountId', accountId);
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
 
   const result = await helpers.makeRequest<endpointsTypes.GetCashFlowResponse, R>({

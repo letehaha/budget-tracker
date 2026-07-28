@@ -41,17 +41,18 @@ const { displayValue: animatedIncome } = useAnimatedNumber({ value: income });
 const { displayValue: animatedExpenses } = useAnimatedNumber({ value: expenses });
 const { displayValue: animatedNetFlow } = useAnimatedNumber({ value: netFlow });
 
-// Flow bar proportions
-const flowBarTotal = computed(() => income.value + expenses.value);
+// Flow bar proportions. Either side can be negative — a period whose refunds outweigh its purchases
+// reports negative expenses — so the bar compares magnitudes.
+const flowBarTotal = computed(() => Math.abs(income.value) + Math.abs(expenses.value));
 
 const incomePercent = computed(() => {
   if (flowBarTotal.value === 0) return 50;
-  return Math.max(5, (income.value / flowBarTotal.value) * 100);
+  return Math.max(5, (Math.abs(income.value) / flowBarTotal.value) * 100);
 });
 
 const expensePercent = computed(() => {
   if (flowBarTotal.value === 0) return 50;
-  return Math.max(5, (expenses.value / flowBarTotal.value) * 100);
+  return Math.max(5, (Math.abs(expenses.value) / flowBarTotal.value) * 100);
 });
 
 // Percentage change vs previous period

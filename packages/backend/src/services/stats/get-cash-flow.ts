@@ -12,6 +12,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { format } from 'date-fns';
 import { Op } from 'sequelize';
 
+import { computeCategoryAllocations, resolveRefundPairs } from './category-allocation';
 import { findBucketIndex, generatePeriodBuckets, getWhereConditionForTime } from './utils';
 
 interface GetCashFlowParams {
@@ -79,6 +80,11 @@ const getAggregationCategoryId = ({
  * Fetches cash flow data (income vs expenses) for a specified user within a date range,
  * aggregated by the specified granularity.
  *
+ * Spend is routed through the shared category-allocation engine, so split transactions land on
+ * their own categories and a refund reduces the side it reverses instead of inflating the other
+ * one — the same numbers the expenses-structure and pivot reports show. Both halves of a refund
+ * pair are subtracted in the same bucket, so netting never moves a period's net cash.
+ *
  * Wrapped in a transaction so the category-map and transaction reads share one
  * pinned Postgres connection instead of a pool checkout per query — checkouts
  * from a drained pool trigger slow physical `pg.connect` mid-request.
@@ -145,8 +151,15 @@ export const getCashFlow = withTransaction(
           attributes: [],
         },
       ],
-      attributes: ['time', 'refAmount', 'transactionType', 'categoryId'],
+      attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
     });
+
+    // Each leg carries its transaction's type, so one call covers both directions. Refunds are
+    // resolved separately because this report nets them against income as well as expenses.
+    const [allocations, refundPairs] = await Promise.all([
+      computeCategoryAllocations({ transactions, applyRefunds: false }),
+      resolveRefundPairs({ transactions }),
+    ]);
 
     // Determine which categories to report in the breakdown
     // If specific categories selected, report those exact categories (not aggregated to root)
@@ -166,45 +179,82 @@ export const getCashFlow = withTransaction(
     // Create a set of target categories for aggregation (when specific categories are selected)
     const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
 
-    // Aggregate transactions into buckets
-    for (const tx of transactions) {
-      const txTime = new Date(tx.time);
-      const bucketIndex = findBucketIndex({ transactionTime: txTime, buckets });
-
-      if (bucketIndex === -1) continue;
+    /**
+     * Folds one signed contribution into its time bucket, both into the period total and — when
+     * the leg carries a category — into the breakdown. Legs outside every bucket are dropped.
+     *
+     * When specific categories are selected the breakdown aggregates to those; otherwise to roots.
+     */
+    const applyLeg = ({
+      categoryId,
+      cents,
+      time,
+      isExpense,
+    }: {
+      categoryId: string | null;
+      cents: number;
+      time: Date;
+      isExpense: boolean;
+    }): void => {
+      const bucketIndex = findBucketIndex({ transactionTime: time, buckets });
+      if (bucketIndex === -1) return;
 
       const periodData = periodDataMap.get(bucketIndex)!;
-      const amount = tx.refAmount.toCents();
-
-      if (tx.transactionType === TRANSACTION_TYPES.income) {
-        periodData.income += amount;
-      } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-        periodData.expenses += amount;
+      if (isExpense) {
+        periodData.expenses += cents;
+      } else {
+        periodData.income += cents;
       }
 
-      // Track per-category amounts by type
-      // When specific categories selected: aggregate to those categories
-      // Otherwise: aggregate to root categories
-      if (tx.categoryId) {
-        const aggregationCategoryId = getAggregationCategoryId({
-          categoryId: tx.categoryId,
-          categoryMap,
-          targetCategoryIds,
-        });
-        const currentAmounts = periodData.categories.get(aggregationCategoryId) || {
-          incomeAmount: 0,
-          expenseAmount: 0,
-        };
+      if (!categoryId) return;
 
-        if (tx.transactionType === TRANSACTION_TYPES.income) {
-          currentAmounts.incomeAmount += amount;
-        } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-          currentAmounts.expenseAmount += amount;
-        }
+      const aggregationCategoryId = getAggregationCategoryId({ categoryId, categoryMap, targetCategoryIds });
+      const currentAmounts = periodData.categories.get(aggregationCategoryId) || {
+        incomeAmount: 0,
+        expenseAmount: 0,
+      };
 
-        periodData.categories.set(aggregationCategoryId, currentAmounts);
+      if (isExpense) {
+        currentAmounts.expenseAmount += cents;
+      } else {
+        currentAmounts.incomeAmount += cents;
       }
+
+      periodData.categories.set(aggregationCategoryId, currentAmounts);
+    };
+
+    for (const leg of allocations.base) {
+      applyLeg({
+        categoryId: leg.categoryId,
+        cents: leg.cents,
+        time: leg.time,
+        isExpense: leg.transactionType === TRANSACTION_TYPES.expense,
+      });
     }
+
+    for (const pair of refundPairs) {
+      // Netting needs both halves of the pair inside this report's scope. When an account, category
+      // or date filter admits only one of them, subtracting that half alone would take away money
+      // the other half never contributed — the range/filter simply keeps both sides gross instead.
+      if (!pair.expenseInScope || !pair.incomeInScope) continue;
+
+      // Both halves land in the refund's own bucket, so the period keeps the net cash it saw while
+      // the money stops counting as spend on one side and as income on the other.
+      applyLeg({ categoryId: pair.expenseCategoryId, cents: -pair.cents, time: pair.time, isExpense: true });
+      applyLeg({ categoryId: pair.incomeCategoryId, cents: -pair.cents, time: pair.time, isExpense: false });
+    }
+
+    // Every period reports the same category set (stacked bars need a stable series list), so the
+    // "has data somewhere" scan runs once rather than once per period.
+    const categoriesWithData = reportCategoryIds.filter((catId) => {
+      for (const [, periodData] of periodDataMap) {
+        const amounts = periodData.categories.get(catId);
+        if (amounts && (amounts.incomeAmount !== 0 || amounts.expenseAmount !== 0)) {
+          return true;
+        }
+      }
+      return false;
+    });
 
     // Build response periods
     const periods: endpointsTypes.CashFlowPeriodData[] = buckets.map((bucket, index) => {
@@ -217,19 +267,6 @@ export const getCashFlow = withTransaction(
         expenses: data.expenses,
         netFlow: data.income - data.expenses,
       };
-
-      // Always add category breakdown (for stacked bars)
-      // Filter to only include categories that have data in at least one period
-      const categoriesWithData = reportCategoryIds.filter((catId) => {
-        // Check if this category has any data across all periods
-        for (const [, periodData] of periodDataMap) {
-          const amounts = periodData.categories.get(catId);
-          if (amounts && (amounts.incomeAmount !== 0 || amounts.expenseAmount !== 0)) {
-            return true;
-          }
-        }
-        return false;
-      });
 
       period.categories = categoriesWithData.map((catId) => {
         const catInfo = categoryMap.get(catId) || { name: 'Unknown', color: '#888888' };

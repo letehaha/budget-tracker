@@ -198,7 +198,8 @@ export interface CashFlowCategoryData {
   categoryId: RecordId;
   name: string;
   color: string;
-  // Separate amounts by transaction type for proper filtering
+  // Separate amounts by transaction type for proper filtering.
+  // Refunds net against the side they reverse, so either can be negative — see CashFlowPeriodData.
   incomeAmount: number;
   expenseAmount: number;
 }
@@ -208,6 +209,9 @@ export interface CashFlowPeriodData {
   periodStart: string;
   // yyyy-mm-dd
   periodEnd: string;
+  // Both are net of refunds and CAN BE NEGATIVE: a refund reduces the side it reverses in the
+  // bucket the money moved, so a period holding a refund whose original purchase sits in an
+  // earlier bucket reports negative expenses. netFlow is always income - expenses.
   income: number;
   expenses: number;
   netFlow: number;
@@ -218,6 +222,7 @@ export interface CashFlowPeriodData {
 export interface GetCashFlowResponse {
   periods: CashFlowPeriodData[];
   totals: {
+    // Net of refunds, so negative is possible — see CashFlowPeriodData.
     income: number;
     expenses: number;
     netFlow: number;
