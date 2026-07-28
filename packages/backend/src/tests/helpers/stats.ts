@@ -102,6 +102,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   granularity,
   accountId,
   categoryIds,
+  excludedCategoryIds,
   raw,
 }: {
   from: string;
@@ -109,6 +110,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: string;
   categoryIds?: string[];
+  excludedCategoryIds?: string[];
   raw?: R;
 }) {
   const params = new URLSearchParams();
@@ -117,6 +119,9 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   params.append('granularity', granularity);
   if (accountId) params.append('accountId', accountId);
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) {
+    params.append('excludedCategoryIds', excludedCategoryIds.join(','));
+  }
 
   const result = await helpers.makeRequest<endpointsTypes.GetCashFlowResponse, R>({
     method: 'get',

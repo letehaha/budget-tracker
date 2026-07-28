@@ -22,6 +22,11 @@ interface GetCashFlowParams {
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: string;
   categoryIds?: RecordId[];
+  /**
+   * Categories the caller has hidden. Descendants are expected to already be in the list — the
+   * picker adds them when a parent is checked, same as the expenses-structure report.
+   */
+  excludedCategoryIds?: RecordId[];
 }
 
 type CategoryInfo = AccessibleCategoryInfo;
@@ -97,6 +102,7 @@ export const getCashFlow = withTransaction(
     granularity,
     accountId,
     categoryIds,
+    excludedCategoryIds,
   }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
     // Generate period buckets
     const buckets = generatePeriodBuckets({ from, to, granularity });
@@ -179,6 +185,8 @@ export const getCashFlow = withTransaction(
     // Create a set of target categories for aggregation (when specific categories are selected)
     const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
 
+    const excludedCategoryIdSet = new Set<string>(excludedCategoryIds ?? []);
+
     /**
      * Folds one signed contribution into its time bucket, both into the period total and — when
      * the leg carries a category — into the breakdown. Legs outside every bucket are dropped.
@@ -196,6 +204,11 @@ export const getCashFlow = withTransaction(
       time: Date;
       isExpense: boolean;
     }): void => {
+      // An excluded leg leaves the period totals as well as the breakdown, so the widget's headline
+      // income/expenses match the bars underneath. Filtering here rather than in the query keeps a
+      // split whose own category is still counted, and never touches uncategorized legs.
+      if (categoryId && excludedCategoryIdSet.has(categoryId)) return;
+
       const bucketIndex = findBucketIndex({ transactionTime: time, buckets });
       if (bucketIndex === -1) return;
 

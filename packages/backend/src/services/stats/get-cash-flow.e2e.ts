@@ -1,4 +1,10 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTIONS_WRITE_SCOPES,
+  TRANSACTION_TYPES,
+  endpointsTypes,
+} from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
@@ -652,5 +658,224 @@ describe('GET /stats/cash-flow — refunds and splits', () => {
     expect(splitEntry).toBeDefined();
     expect(primaryEntry!.incomeAmount).toBe(60);
     expect(splitEntry!.incomeAmount).toBe(40);
+  });
+
+  describe('excludedCategoryIds', () => {
+    it('drops the excluded category from the period totals and the breakdown', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const keptCategory = await helpers.addCustomCategory({ name: uniqueName('Kept'), color: '#112233', raw: true });
+      const hiddenCategory = await helpers.addCustomCategory({
+        name: uniqueName('Hidden'),
+        color: '#332211',
+        raw: true,
+      });
+
+      for (const [category, amount] of [
+        [keptCategory, 40],
+        [hiddenCategory, 60],
+      ] as const) {
+        await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount,
+              transactionType: TRANSACTION_TYPES.expense,
+              categoryId: category.id,
+            }),
+            time: TX_TIME,
+          },
+          raw: true,
+        });
+      }
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [hiddenCategory.id],
+        raw: true,
+      });
+
+      const period = result.periods[0]!;
+      expect(period.expenses).toBe(40);
+      expect(period.netFlow).toBe(-40);
+      expect(result.totals.expenses).toBe(40);
+      expect(period.categories!.some((entry) => entry.categoryId === hiddenCategory.id)).toBe(false);
+      expect(period.categories!.find((entry) => entry.categoryId === keptCategory.id)!.expenseAmount).toBe(40);
+    });
+
+    it('excludes income as well as expenses', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const hiddenCategory = await helpers.addCustomCategory({
+        name: uniqueName('HiddenIncome'),
+        color: '#445566',
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 500,
+            transactionType: TRANSACTION_TYPES.income,
+            categoryId: hiddenCategory.id,
+          }),
+          time: TX_TIME,
+        },
+        raw: true,
+      });
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [hiddenCategory.id],
+        raw: true,
+      });
+
+      expect(result.totals.income).toBe(0);
+      expect(result.totals.netFlow).toBe(0);
+    });
+
+    it('removes only the excluded split, leaving the rest of its transaction counted', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const primaryCategory = await helpers.addCustomCategory({
+        name: uniqueName('PrimaryKept'),
+        color: '#aa1100',
+        raw: true,
+      });
+      const splitCategory = await helpers.addCustomCategory({
+        name: uniqueName('SplitHidden'),
+        color: '#0011aa',
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: primaryCategory.id,
+            splits: [{ categoryId: splitCategory.id, amount: 30 }],
+          }),
+          time: TX_TIME,
+        },
+        raw: true,
+      });
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [splitCategory.id],
+        raw: true,
+      });
+
+      const period = result.periods[0]!;
+      expect(period.expenses).toBe(70);
+      expect(period.categories!.find((entry) => entry.categoryId === primaryCategory.id)!.expenseAmount).toBe(70);
+      expect(period.categories!.some((entry) => entry.categoryId === splitCategory.id)).toBe(false);
+    });
+
+    it('keeps a refunded expense out entirely when its category is excluded', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const hiddenCategory = await helpers.addCustomCategory({
+        name: uniqueName('HiddenRefunded'),
+        color: '#654321',
+        raw: true,
+      });
+
+      const [expenseTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: hiddenCategory.id,
+          }),
+          time: '2025-01-10T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      const [refundTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 30,
+            transactionType: TRANSACTION_TYPES.income,
+            categoryId: hiddenCategory.id,
+          }),
+          time: '2025-01-20T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [hiddenCategory.id],
+        raw: true,
+      });
+
+      const period = result.periods[0]!;
+      // Both the gross spend and the refund that nets against it belong to the hidden category, so
+      // neither the expense nor its negative adjustment may leak into the totals.
+      expect(period.expenses).toBe(0);
+      expect(period.income).toBe(0);
+      expect(period.netFlow).toBe(0);
+    });
+
+    it('leaves the report untouched when the excluded id matches nothing', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const category = await helpers.addCustomCategory({ name: uniqueName('Unrelated'), color: '#010203', raw: true });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 25,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: category.id,
+          }),
+          time: TX_TIME,
+        },
+        raw: true,
+      });
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [generateRandomRecordId()],
+        raw: true,
+      });
+
+      expect(result.totals.expenses).toBe(25);
+    });
+
+    it('drops a malformed id from the list and still applies the valid ones', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const hiddenCategory = await helpers.addCustomCategory({
+        name: uniqueName('HiddenAmongGarbage'),
+        color: '#987654',
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 80,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: hiddenCategory.id,
+          }),
+          time: TX_TIME,
+        },
+        raw: true,
+      });
+
+      // `optionalCommaSeparatedIds` filters unparseable entries out rather than rejecting the
+      // request, so one bad id must not take the rest of the exclusion list down with it.
+      const response = await helpers.makeRequest<endpointsTypes.GetCashFlowResponse, true>({
+        method: 'get',
+        url: `/stats/cash-flow?from=${RANGE.from}&to=${RANGE.to}&granularity=monthly&excludedCategoryIds=not-a-uuid,${hiddenCategory.id}`,
+        raw: true,
+      });
+
+      expect(response.totals.expenses).toBe(0);
+    });
   });
 });

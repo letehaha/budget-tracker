@@ -478,6 +478,18 @@
         "error": "Failed to send the invitation."
       }
     },
+    "categoryExclusions": {
+      "title": "Exclude categories",
+      "description": "Hidden from this widget's chart and totals",
+      "menuItem": "Exclude categories",
+      "nothingExcluded": "Nothing excluded. Every category counts toward this widget.",
+      "excludedTag": "Excluded",
+      "stopExcluding": "Stop excluding {name}",
+      "badgeTooltip": "1 category excluded from this widget | {count} categories excluded from this widget",
+      "andMore": "and {count} more",
+      "clearAll": "Clear all",
+      "countExcluded": "1 category excluded | {count} categories excluded"
+    },
     "subscriptionMarkPaid": {
       "title": "Mark Payment",
       "description": "Record a payment for {name}",

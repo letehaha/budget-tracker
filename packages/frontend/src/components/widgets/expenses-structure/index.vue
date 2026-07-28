@@ -4,16 +4,16 @@
       <div class="flex items-center gap-2">
         {{ $t('dashboard.widgets.expensesStructure.title') }}
 
-        <ExcludedCategoriesPopover
-          v-if="hasExcludedStats"
-          :category-ids="excludedCategoryIds"
-          @remove="handleRemoveExclusion"
-        />
+        <ExcludedCountBadge v-if="hasExcludedStats" :count="excludedCategoryIds.length" test-id="es-excluded-badge" />
       </div>
     </template>
 
     <template v-if="widgetConfigRef" #action>
-      <ExcludeSettingsPopover :excluded-category-ids="excludedCategoryIds" @save="persistExcludedCategories" />
+      <ExcludeCategoriesMenu
+        :excluded-category-ids="excludedCategoryIds"
+        test-id-prefix="es"
+        @save="persistExcludedCategories"
+      />
     </template>
 
     <!-- Stats row - two columns with space between -->
@@ -72,6 +72,8 @@
 
 <script lang="ts" setup>
 import type { DashboardWidgetConfig } from '@/api/user-settings';
+import ExcludeCategoriesMenu from '@/components/common/category-exclusions/exclude-categories-menu.vue';
+import ExcludedCountBadge from '@/components/common/category-exclusions/excluded-count-badge.vue';
 import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
@@ -86,8 +88,6 @@ import LoadingState from '../components/loading-state.vue';
 import WidgetWrapper from '../components/widget-wrapper.vue';
 
 import DonutChart from './donut-chart.vue';
-import ExcludeSettingsPopover from './exclude-settings-popover.vue';
-import ExcludedCategoriesPopover from './excluded-categories-popover.vue';
 import { useExpensesStructureData } from './use-expenses-structure-data';
 
 defineOptions({
@@ -135,12 +135,6 @@ const persistExcludedCategories = async ({ categoryIds }: { categoryIds: string[
   await saveWidgetConfig({
     widgetId: widgetConfigRef.value.widgetId,
     config: { excludedCategoryIds: categoryIds },
-  });
-};
-
-const handleRemoveExclusion = ({ categoryId }: { categoryId: string }) => {
-  persistExcludedCategories({
-    categoryIds: excludedCategoryIds.value.filter((id) => id !== categoryId),
   });
 };
 

@@ -1,11 +1,14 @@
 <script lang="ts" setup>
+import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference } from '@/js/helpers/math/calculate-percentage-difference';
+import ExcludeCategoriesMenu from '@/components/common/category-exclusions/exclude-categories-menu.vue';
+import ExcludedCountBadge from '@/components/common/category-exclusions/excluded-count-badge.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { format, isSameMonth, parseISO } from 'date-fns';
 import { ArrowDownRightIcon, ArrowUpRightIcon, InfoIcon, WalletIcon } from '@lucide/vue';
-import { computed } from 'vue';
+import { type Ref, computed, inject } from 'vue';
 
 import EmptyState from '../components/empty-state.vue';
 import LoadingState from '../components/loading-state.vue';
@@ -20,6 +23,26 @@ const props = defineProps<{
 
 const { formatBaseCurrency } = useFormatCurrency();
 
+const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
+const saveWidgetConfig =
+  inject<(params: { widgetId: string; config: Record<string, unknown> }) => Promise<void>>(
+    'dashboard-save-widget-config',
+  );
+
+const excludedCategoryIds = computed<string[]>(() => {
+  const ids = widgetConfigRef?.value?.config?.excludedCategoryIds;
+  return Array.isArray(ids) ? (ids as string[]) : [];
+});
+
+const persistExcludedCategories = async ({ categoryIds }: { categoryIds: string[] }) => {
+  if (!saveWidgetConfig || !widgetConfigRef?.value) return;
+
+  await saveWidgetConfig({
+    widgetId: widgetConfigRef.value.widgetId,
+    config: { excludedCategoryIds: categoryIds },
+  });
+};
+
 const {
   currentTotals,
   prevNetFlow,
@@ -30,7 +53,7 @@ const {
   isFetching,
   isInitialLoading,
   isEmpty,
-} = useCashFlowData({ selectedPeriod: () => props.selectedPeriod });
+} = useCashFlowData({ selectedPeriod: () => props.selectedPeriod, excludedCategoryIds });
 
 const income = computed(() => currentTotals.value.income);
 const expenses = computed(() => currentTotals.value.expenses);
@@ -126,7 +149,21 @@ const trendBars = computed(() => {
         >
           <InfoIcon class="text-muted-foreground ml-1 size-4 cursor-help" />
         </ResponsiveTooltip>
+
+        <ExcludedCountBadge
+          v-if="excludedCategoryIds.length"
+          :count="excludedCategoryIds.length"
+          test-id="cf-excluded-badge"
+        />
       </span>
+    </template>
+
+    <template v-if="widgetConfigRef" #action>
+      <ExcludeCategoriesMenu
+        :excluded-category-ids="excludedCategoryIds"
+        test-id-prefix="cf"
+        @save="persistExcludedCategories"
+      />
     </template>
 
     <template v-if="isInitialLoading">
