@@ -101,6 +101,7 @@ export interface SecurityPriceFetchInput {
   symbol: string;
   providerSymbol: ProviderSymbol;
   assetClass: ASSET_CLASS;
+  exchangeAcronym?: string | null;
 }
 
 export abstract class BaseSecurityDataProvider {
