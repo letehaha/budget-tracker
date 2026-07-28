@@ -2,9 +2,9 @@
 """Detects whether a Claude Code session still has background work in flight.
 
 A Stop hook fires at the end of every main-agent turn, including the turn that
-merely launches a background Workflow or Agent. Checks that inspect the working
-tree (linters, dead-code scans, build gates) see a half-finished state there and
-report findings nobody can act on yet. Ask this module first and bail out.
+only launches a background Workflow or Agent. Linters, dead-code scans, and
+build gates then run against a half-finished tree and report findings nobody
+can act on yet. Call this module first and bail out.
 
 Use as a library from a sibling hook script:
 
@@ -28,8 +28,8 @@ BACKGROUND_LAUNCH_MARKERS = (
     "Workflow launched in background",
     "Async agent launched successfully",
 )
-# A launch older than this with no completion notification is treated as dead
-# (killed workflow, crashed agent) so the caller can't be muted for a whole session.
+# A launch older than this with no completion notification counts as dead
+# (killed workflow, crashed agent), so it can't mute the caller for a whole session.
 DEFAULT_STALE_AFTER = timedelta(hours=2)
 
 _TOOL_USE_ID_RE = re.compile(r"<tool-use-id>([^<]+)</tool-use-id>")
@@ -48,10 +48,10 @@ def pending_background_launches(transcript_path, markers=BACKGROUND_LAUNCH_MARKE
                                 stale_after=DEFAULT_STALE_AFTER):
     """Tool-use ids of background launches with no completion notification yet.
 
-    A background launch writes a tool_result carrying one of `markers`; its
-    completion arrives later as a <task-notification> quoting the same tool-use
-    id. Anything launched but never notified — and not older than `stale_after`
-    — is still running. Returns [] for an unreadable transcript."""
+    A background launch writes a tool_result carrying one of `markers`. Completion
+    arrives later as a <task-notification> quoting the same id. A launch with no
+    notification and not older than `stale_after` counts as still running.
+    Returns [] for an unreadable transcript."""
     launched = {}  # tool_use_id -> launch time
     finished = set()
 
@@ -62,7 +62,7 @@ def pending_background_launches(transcript_path, markers=BACKGROUND_LAUNCH_MARKE
         return []
 
     for line in lines:
-        # Notifications are plain text in the raw line, whatever block shape they use.
+        # Notifications are plain text in the raw line, regardless of block shape.
         finished.update(_TOOL_USE_ID_RE.findall(line))
 
         try:

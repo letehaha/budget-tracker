@@ -1,10 +1,16 @@
+import type { DemoEndReason } from '@/common/const/demo';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { OAuthProviderNotConfiguredError, UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
-import { consumeDemoOriginProperties, markDemoOrigin } from '@/lib/demo-origin';
-import { type DemoEndReason, identifyUser, resetUser, startSessionRecording, trackAnalyticsEvent } from '@/lib/posthog';
+import {
+  consumeDemoOriginProperties,
+  hasSignedInOnDevice,
+  markDemoOrigin,
+  markSignedInOnDevice,
+} from '@/lib/demo-origin';
+import { identifyUser, resetUser, startSessionRecording, trackAnalyticsEvent } from '@/lib/posthog';
 import { collectPersistedQueryGarbage, resetQueryCaches } from '@/lib/query-persister';
-import { clearSentryUser, setSentryUser } from '@/lib/sentry';
+import { captureException, clearSentryUser, setSentryUser } from '@/lib/sentry';
 import { useCategoriesStore, useCurrenciesStore, useUserStore } from '@/stores';
 import { OAUTH_PROVIDER, USER_ROLES, UserModel } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -19,10 +25,18 @@ import { resetAllDefinedStores } from './setup';
 function identifyUserForTracking(user: UserModel) {
   const isDemo = user.role === USER_ROLES.demo;
 
-  // Demo accounts hold generated data, so a recording exposes no real finances.
-  // Limiting it to them also keeps the recording quota small.
+  // Demo accounts hold generated data, so recording exposes no real finances and keeps quota small.
   if (isDemo) {
     startSessionRecording();
+  }
+
+  // Read the device flag before setting it, otherwise this sign-in gates itself out.
+  const demoOriginProperties = isDemo
+    ? {}
+    : consumeDemoOriginProperties({ isFirstSignInOnDevice: !hasSignedInOnDevice() });
+
+  if (!isDemo) {
+    markSignedInOnDevice();
   }
 
   // PostHog analytics
@@ -33,9 +47,7 @@ function identifyUserForTracking(user: UserModel) {
     properties: {
       is_demo: isDemo,
       user_role: user.role,
-      ...(isDemo
-        ? {}
-        : consumeDemoOriginProperties({ isFirstSignInOnDevice: !localStorage.getItem(HAS_EVER_LOGGED_IN_KEY) })),
+      ...demoOriginProperties,
     },
   });
 
@@ -219,7 +231,10 @@ export const useAuthStore = defineStore('auth', () => {
 
       isSessionChecked.value = true;
       return true;
-    } catch {
+    } catch (error) {
+      // Everything above returns a result object or is our own code; a throw here signals a
+      // network failure or bug that the catch below reports as an ordinary signed-out state.
+      captureException({ error, context: { scope: 'auth:validate-session' } });
       isLoggedIn.value = false;
       isSessionChecked.value = true;
       return false;
@@ -248,19 +263,15 @@ export const useAuthStore = defineStore('auth', () => {
     // The register page will redirect to verify-email page
   };
 
-  /**
-   * Logout the current user.
-   *
-   * `demoEndReason` only matters for a demo account. It labels the demo funnel's
-   * terminal event.
-   */
+  /** `demoEndReason` only matters for a demo account; it labels the demo funnel's terminal event. */
   const logout = async ({ demoEndReason = 'logout' }: { demoEndReason?: DemoEndReason } = {}) => {
-    const wasDemo = userStore.user?.role === USER_ROLES.demo;
+    const wasDemo = userStore.isDemo;
 
     try {
       await signOut();
-    } catch {
-      // Ignore signout errors, we still want to clear local state
+    } catch (error) {
+      // Local state clears either way; a session the server never dropped deserves visibility.
+      captureException({ error, context: { scope: 'auth:logout-signout' } });
     }
 
     // Fires before `resetUser` so the event still carries the demo distinct ID.

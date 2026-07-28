@@ -12,9 +12,9 @@ type LandingAnalyticsEvent =
       properties: { location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' };
     }
   | { event: 'demo_started'; properties: { location: 'hero' } }
-  // `demo_started` fires on the click; these two close it out. Between them the server
-  // bulk-inserts ~1.5k transactions and rebuilds balances twice, so without these a slow
-  // or rejected setup looks the same as a visitor who never clicked.
+  // `demo_started` fires on click; these two close out that funnel.
+  // Setup bulk-inserts ~1.5k transactions and rebuilds balances twice, so without
+  // them a slow or rejected run looks the same as a visitor who never clicked.
   | { event: 'demo_setup_succeeded'; properties: { duration_ms: number } }
   | {
       event: 'demo_setup_failed';
@@ -31,10 +31,10 @@ export function initPostHog(): void {
   posthog.init(config.posthogKey!, {
     api_host: config.posthogHost || '/helper',
     ui_host: 'https://eu.posthog.com',
-    // The landing is a static multi-page site, so the built-in capture is its only
-    // pageview source. The SPA captures manually on route change instead.
+    // The landing is a static multi-page site, so built-in capture is its only pageview source.
+    // The SPA captures pageviews manually on route change.
     capture_pageview: true,
-    // Gives the landing page a measurable dwell time and marks it as an exit page.
+    // Records dwell time and marks the landing page as an exit point.
     capture_pageleave: true,
     autocapture: false,
     disable_session_recording: true,

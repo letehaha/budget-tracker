@@ -1,9 +1,8 @@
 import { config } from '@/common/config';
+import type { DemoBlockedFeature, DemoEndReason } from '@/common/const/demo';
+import type { FeedbackType } from '@/components/dialogs/feedback-submission';
 import posthog from 'posthog-js';
 import type { Router } from 'vue-router';
-
-/** How a demo session stopped. `logout` covers both an explicit sign-out and a session that stopped validating. */
-export type DemoEndReason = 'signup_clicked' | 'logout' | 'expired';
 
 // ============================================
 // Event Types
@@ -24,7 +23,10 @@ type AnalyticsEvent =
   | { event: 'demo_session_ended'; properties: { reason: DemoEndReason } }
   // A demo user reaching for a control that demo mode disables. The backend emits the
   // same event with `surface: 'api'` for requests that get as far as a 403.
-  | { event: 'demo_feature_blocked'; properties: { feature: string; surface: 'restricted_control'; path: string } }
+  | {
+      event: 'demo_feature_blocked';
+      properties: { feature: DemoBlockedFeature; surface: 'restricted_control'; path: string };
+    }
   // Language selector
   | { event: 'language_changed'; properties: { from_locale: string; to_locale: string } }
   | { event: 'crowdin_contribute_clicked'; properties: { current_locale: string } }
@@ -67,7 +69,7 @@ type AnalyticsEvent =
   | {
       event: 'user_feedback_submitted';
       properties: {
-        feedback_type: 'bug' | 'feature_request' | 'other';
+        feedback_type: FeedbackType;
         message: string;
       };
     };
@@ -112,11 +114,9 @@ export function initPostHog(): void {
     autocapture: false,
     // Recording starts off. `startSessionRecording` turns it on per session.
     disable_session_recording: true,
-    // Surveys are written and targeted in the PostHog dashboard, not here. Set
-    // explicitly because it reads like something to switch off alongside
-    // autocapture when trimming quota, and doing that would silently retire
-    // every running survey. Demo-only targeting works off the `is_demo` person
-    // property that `identifyUser` already sets.
+    // Surveys are configured in the PostHog dashboard, not here. Set explicitly since it reads
+    // like another quota knob to flip off alongside autocapture, which would silently kill
+    // every running survey. Demo-only targeting uses the `is_demo` person property `identifyUser` sets.
     disable_surveys: false,
     // Respect Do Not Track
     respect_dnt: true,
@@ -132,12 +132,18 @@ export function initPostHog(): void {
 }
 
 /**
- * Track a typed analytics event.
- * All frontend events are automatically tagged with source: 'fe'.
+ * Tracks a typed analytics event tagged with source: 'fe'.
+ * Returns false when the event has nowhere to go, so callers can skip promising the user it landed.
+ * True still overstates it: an ad blocker can drop the request, and on_request_error stays quiet.
  */
-export function trackAnalyticsEvent(eventData: AnalyticsEvent): void {
+export function trackAnalyticsEvent(eventData: AnalyticsEvent): boolean {
   if (!isPostHogEnabled()) {
-    return;
+    return false;
+  }
+
+  // respect_dnt turns capture into a no-op for Do Not Track browsers.
+  if (posthog.has_opted_out_capturing()) {
+    return false;
   }
 
   const { event, ...rest } = eventData as AnalyticsEvent & { properties?: Record<string, unknown> };
@@ -147,6 +153,8 @@ export function trackAnalyticsEvent(eventData: AnalyticsEvent): void {
     source: 'fe',
     ...properties,
   });
+
+  return true;
 }
 
 /**
@@ -176,11 +184,9 @@ export function identifyUser({
 }
 
 /**
- * Turn on session recording for the current session.
- *
- * Callers limit this to demo accounts. Demo data is generated, so a recording exposes
- * no real finances, and the narrow cohort keeps the recording quota small while still
- * showing what a first-time visitor did before leaving.
+ * Callers limit this to demo accounts: demo data isn't real finances, so recording is safe,
+ * and the narrow cohort keeps quota small while still showing what first-time visitors do
+ * before leaving.
  */
 export function startSessionRecording(): void {
   if (!isPostHogEnabled()) {

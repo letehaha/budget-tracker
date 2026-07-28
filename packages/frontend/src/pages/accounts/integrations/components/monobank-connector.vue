@@ -78,7 +78,7 @@
               {{ t('pages.integrations.monobank.backButton') }}
             </UiButton>
 
-            <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_monobank_sync_accounts">
+            <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_monobank_import_accounts">
               <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading || isDemo">
                 {{
                   isLoading

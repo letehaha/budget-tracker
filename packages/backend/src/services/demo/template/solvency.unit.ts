@@ -1,33 +1,26 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 
-import { DEMO_CONFIG } from '../demo-config';
+import { DEMO_CONFIG, type DemoAccountKey } from '../demo-config';
 import { toBaseCurrencyCents } from './fx';
 import { generateDemoTemplate } from './generate';
 
 /**
  * The demo persona has to stay solvent.
  *
- * The generator emits income, spending and transfers independently, so a change
- * to any one rate can quietly push an account negative or let one balloon into
- * a number nobody would believe. Replaying the balances here catches that at
- * build time rather than on the dashboard of a visitor.
+ * The generator emits income, spending, and transfers independently, so a rate
+ * change elsewhere can push an account negative or balloon one into a number
+ * nobody would believe. Replaying balances here catches that at build time,
+ * not on a visitor's dashboard.
  */
 describe('demo persona solvency', () => {
-  const ACCOUNT_KEY_BY_NAME: Record<string, string> = {
-    'Main Checking': 'main_checking',
-    Savings: 'savings',
-    'Travel Card': 'travel_card',
-    Cash: 'cash',
-  };
-
   /** Base-currency cents that the investment seeder pulls out of savings. */
   const PORTFOLIO_CONTRIBUTIONS_CENTS = 2648500;
 
-  const initialByKey = new Map(
-    DEMO_CONFIG.accounts.map((account) => [ACCOUNT_KEY_BY_NAME[account.name]!, account.initialBalance]),
+  const initialByKey = new Map<DemoAccountKey, number>(
+    DEMO_CONFIG.accounts.map((account) => [account.key, account.initialBalance]),
   );
-  const currencyByKey = new Map(
-    DEMO_CONFIG.accounts.map((account) => [ACCOUNT_KEY_BY_NAME[account.name]!, account.currency]),
+  const currencyByKey = new Map<DemoAccountKey, string>(
+    DEMO_CONFIG.accounts.map((account) => [account.key, account.currency]),
   );
 
   const template = generateDemoTemplate();
@@ -52,26 +45,29 @@ describe('demo persona solvency', () => {
 
   const { balances, lowest } = replay();
 
-  const inBaseCents = (accountKey: string, amount: number) =>
-    toBaseCurrencyCents({
+  const inBaseCents = ({ accountKey, amount }: { accountKey: DemoAccountKey; amount: number }) => {
+    const currencyCode = currencyByKey.get(accountKey)!;
+
+    return toBaseCurrencyCents({
       amount,
-      currencyCode: currencyByKey.get(accountKey)!,
+      currencyCode,
       dayOffset: 0,
-      spotRate: DEMO_CONFIG.exchangeRates[currencyByKey.get(accountKey)!],
+      spotRate: DEMO_CONFIG.exchangeRates[currencyCode],
     });
+  };
 
   it('never overdraws the checking account', () => {
     expect(lowest.get('main_checking')).toBeGreaterThan(0);
   });
 
   it('leaves savings able to fund the portfolio contributions', () => {
-    // The investment seeder books its funding against savings, and that runs
-    // against the same balance this replay produces.
+    // The investment seeder funds itself from savings, against the same
+    // balance this replay computes.
     expect(balances.get('savings')! - PORTFOLIO_CONTRIBUTIONS_CENTS).toBeGreaterThan(0);
   });
 
   it('keeps the travel card inside its credit limit', () => {
-    const creditLimit = DEMO_CONFIG.accounts.find((account) => account.name === 'Travel Card')!.creditLimit!;
+    const creditLimit = DEMO_CONFIG.accounts.find((account) => account.key === 'travel_card')!.creditLimit;
 
     // A credit card carries a negative balance when money is owed.
     expect(Math.abs(Math.min(0, lowest.get('travel_card')!))).toBeLessThan(creditLimit);
@@ -82,11 +78,12 @@ describe('demo persona solvency', () => {
   });
 
   it('lands every account on a believable closing balance', () => {
-    const checking = inBaseCents('main_checking', balances.get('main_checking')!);
-    const savings = inBaseCents('savings', balances.get('savings')!) - PORTFOLIO_CONTRIBUTIONS_CENTS;
+    const checking = inBaseCents({ accountKey: 'main_checking', amount: balances.get('main_checking')! });
+    const savings =
+      inBaseCents({ accountKey: 'savings', amount: balances.get('savings')! }) - PORTFOLIO_CONTRIBUTIONS_CENTS;
 
-    // Wide bands: these guard against an order-of-magnitude mistake, not against
-    // ordinary drift as the generator's rates get tuned.
+    // Wide bands catch an order-of-magnitude mistake while tolerating ordinary
+    // drift as the generator's rates get tuned.
     expect(checking).toBeGreaterThan(100_000);
     expect(checking).toBeLessThan(6_000_000);
     expect(savings).toBeGreaterThan(500_000);

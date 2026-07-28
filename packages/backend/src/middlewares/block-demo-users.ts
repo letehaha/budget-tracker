@@ -37,8 +37,8 @@ export const blockDemoUsers = (req: Request, res: Response, next: NextFunction) 
   }
 
   if (user.role === USER_ROLES.demo) {
-    // Express sets `req.route` before it dispatches a route's handler stack, so the
-    // pattern is here even though this runs ahead of the controller.
+    // Express sets `req.route` before dispatching the handler stack, so the
+    // pattern is available here even though the controller hasn't run yet.
     trackDemoFeatureBlocked({
       userId: user.id,
       method: req.method,

@@ -9,18 +9,18 @@ describe('getDemoExpiresAt', () => {
   it('returns createdAt + 4h for a demo user', () => {
     const createdAt = new Date('2026-07-01T00:00:00.000Z');
 
-    expect(getDemoExpiresAt({ role: 'demo', createdAt })).toBe(createdAt.getTime() + 4 * HOUR);
+    expect(getDemoExpiresAt({ user: { role: 'demo', createdAt } })).toBe(createdAt.getTime() + 4 * HOUR);
   });
 
   it('returns null for a non-demo user (no expiry at all)', () => {
     const createdAt = new Date('2026-07-01T00:00:00.000Z');
 
-    expect(getDemoExpiresAt({ role: 'common', createdAt })).toBeNull();
+    expect(getDemoExpiresAt({ user: { role: 'common', createdAt } })).toBeNull();
   });
 
   it('returns null when there is no user', () => {
-    expect(getDemoExpiresAt(null)).toBeNull();
-    expect(getDemoExpiresAt(undefined)).toBeNull();
+    expect(getDemoExpiresAt({ user: null })).toBeNull();
+    expect(getDemoExpiresAt({ user: undefined })).toBeNull();
   });
 });
 

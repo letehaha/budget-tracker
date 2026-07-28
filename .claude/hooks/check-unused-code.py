@@ -2,8 +2,8 @@
 """Stop hook: runs knip to detect unused code after Claude finishes responding.
 If unused exports/files are found, blocks Claude from stopping and asks it to clean up.
 
-Skipped while a background Workflow/Agent is still running: the tree is mid-edit
-there, so every knip finding would be noise the agent can't act on yet."""
+Skipped while a background Workflow/Agent is running: the tree is mid-edit,
+and findings would be noise the agent can't act on yet."""
 
 import json
 import os

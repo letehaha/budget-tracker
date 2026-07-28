@@ -5,6 +5,7 @@ import {
   PORTFOLIO_TYPE,
   SECURITY_PROVIDER,
 } from '@bt/shared/types/investments';
+import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import { connection } from '@models/index';
 import Holdings from '@models/investments/holdings.model';
@@ -21,6 +22,7 @@ import { type Transaction } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
 import { DEMO_CONFIG } from './demo-config';
+import { type ContributionPlan, type DemoContributionConfig, resolveContributions } from './investment-contributions';
 
 interface DemoSecurityConfig {
   symbol: string;
@@ -149,18 +151,6 @@ const DEMO_CRYPTO: DemoSecurityConfig[] = [
 const DEMO_INVESTMENT_STARTING_CASH = 5000;
 const DEMO_CRYPTO_STARTING_CASH = 1500;
 
-interface DemoContributionConfig {
-  /** Days before the reference date the cash left the savings account. */
-  daysAgo: number;
-  /**
-   * Whole-dollar amount, or `null` for "whatever is still missing". Exactly one
-   * entry per portfolio may be null: it absorbs the difference so the funding
-   * always adds up to the buys plus the ending cash balance.
-   */
-  amount: number | null;
-  description: string;
-}
-
 interface DemoPortfolioPlan {
   name: string;
   description: string;
@@ -222,7 +212,7 @@ function hashSeed({ seed }: { seed: string }): number {
 
   // FNV alone barely changes its high bits when only the last character differs,
   // and those are the bits the wobble reads. This finalizer spreads them so
-  // consecutive months get genuinely different offsets.
+  // consecutive months get different offsets.
   hash ^= hash >>> 16;
   hash = Math.imul(hash, 0x85ebca6b);
   hash ^= hash >>> 13;
@@ -236,8 +226,8 @@ function wobble({ seed }: { seed: string }): number {
   return (hashSeed({ seed }) / 0x100000000) * 2 - 1;
 }
 
-// A type alias, not an interface: `bulkCreate` takes an index-signature type and
-// only aliases get the implicit index signature that satisfies it.
+// A type alias: `bulkCreate` needs an index-signature type, which only a type
+// alias implicitly satisfies.
 type SecurityPricingRow = {
   securityId: string;
   date: Date;
@@ -247,14 +237,10 @@ type SecurityPricingRow = {
 };
 
 /**
- * Monthly price rows from the purchase date through the reference date. The
- * price lookup binary-searches for the latest row on or before a bucket date, so
- * monthly coverage is enough to make historical net worth track the market
- * instead of falling back to cost basis.
- *
- * The path interpolates purchase price -> current price and adds a wobble tapered
- * to zero at both ends, which keeps the first row at the exact purchase price and
- * the last row at the exact price the holdings UI shows.
+ * Monthly price rows from purchase date to reference date, dense enough for
+ * the price lookup (latest row on or before a bucket date) to track the
+ * market instead of cost basis. The wobble tapers to zero at both ends, so
+ * the first and last rows are the exact purchase and current prices.
  */
 function buildPriceHistory({
   securityId,
@@ -301,11 +287,6 @@ function buildPriceHistory({
   });
 }
 
-/** Whole cents for a decimal dollar amount. */
-function toCents({ amount }: { amount: Big }): number {
-  return Number(amount.times(100).round(0).toFixed(0));
-}
-
 /**
  * Seeds securities, monthly price history, holdings and the opening buy
  * transaction for a single portfolio. Shared by the stock and crypto portfolios
@@ -348,12 +329,11 @@ async function seedPortfolioHoldings({
       transaction,
     });
 
-    // Securities is a shared reference table. If a row for the same symbol
-    // already exists (e.g. seeded by a real user sync), findOrCreate silently
-    // reuses it and `defaults` are not applied. Surface metadata drift so
-    // demo inconsistencies are at least visible in logs.
+    // Securities is a shared reference table; a real user's sync may already
+    // own this symbol with different metadata. Reusing that row is expected,
+    // so this logs at info: warn reports to Sentry, and this isn't an error.
     if (!created && security.exchangeMic !== (sec.exchangeMic ?? null)) {
-      logger.warn(
+      logger.info(
         `Demo security ${sec.symbol}: existing exchangeMic=${security.exchangeMic} differs from demo config exchangeMic=${sec.exchangeMic}. Using existing row.`,
       );
     }
@@ -417,43 +397,6 @@ async function seedPortfolioHoldings({
   });
 }
 
-interface ContributionPlan {
-  daysAgo: number;
-  amount: Big;
-  description: string;
-}
-
-/**
- * Resolves the placeholder entry so the portfolio's funding equals its buys plus
- * its ending cash. Without that equality the ending `PortfolioBalances` row would
- * contradict the transfers the contributions report sums.
- */
-function resolveContributions({
-  contributions,
-  totalNeeded,
-}: {
-  contributions: DemoContributionConfig[];
-  totalNeeded: Big;
-}): ContributionPlan[] {
-  const fixedTotal = contributions.reduce(
-    (sum, item) => (item.amount === null ? sum : sum.plus(item.amount)),
-    new Big(0),
-  );
-  const remainder = totalNeeded.minus(fixedTotal);
-
-  if (remainder.lte(0)) {
-    throw new Error(
-      `Demo investments: fixed contributions (${fixedTotal.toString()}) exceed the funding needed (${totalNeeded.toString()})`,
-    );
-  }
-
-  return contributions.map((item) => ({
-    daysAgo: item.daysAgo,
-    amount: item.amount === null ? remainder : new Big(item.amount),
-    description: item.description,
-  }));
-}
-
 /**
  * Money moving from the savings account into a portfolio: an expense on the
  * account plus the PortfolioTransfers row, which is the only table the
@@ -483,8 +426,8 @@ async function seedPortfolioFunding({
     return {
       transactionId: uuidv7(),
       time,
-      amountCents: toCents({ amount: item.amount }),
-      amountDecimal: item.amount.toFixed(10),
+      amountCents: item.amount.toCents(),
+      amountDecimal: item.amount.toDecimalString(10),
       description: `${item.description} (${portfolioName})`,
     };
   });
@@ -569,13 +512,12 @@ export async function setupInvestments({
         transaction,
       });
 
-      const totalBuyCost = plan.securities.reduce(
-        (sum, sec) => sum.plus(new Big(sec.purchasePrice).times(sec.quantity)),
-        new Big(0),
+      const totalBuyCost = Money.sum(
+        plan.securities.map((sec) => Money.fromDecimal(sec.purchasePrice).multiply(sec.quantity)),
       );
       const contributions = resolveContributions({
         contributions: plan.contributions,
-        totalNeeded: totalBuyCost.plus(plan.endingCash),
+        totalNeeded: totalBuyCost.add(Money.fromDecimal(plan.endingCash)),
       });
 
       await seedPortfolioFunding({
@@ -590,10 +532,9 @@ export async function setupInvestments({
 
       // Written directly rather than through the transfer service, whose balance
       // updates are additive and would double-count against these rows.
-      const endingCash = contributions
-        .reduce((sum, item) => sum.plus(item.amount), new Big(0))
-        .minus(totalBuyCost)
-        .toFixed(10);
+      const endingCash = Money.sum(contributions.map((item) => item.amount))
+        .subtract(totalBuyCost)
+        .toDecimalString(10);
 
       // Demo base currency is USD, so ref amounts mirror direct amounts 1:1.
       await PortfolioBalances.create(

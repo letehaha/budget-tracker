@@ -460,8 +460,8 @@ describe('Demo Mode', () => {
       expect(Array.isArray(payees)).toBe(true);
       expect(payees.length).toBeGreaterThan(30);
 
-      // A missing domain would send the brand-logo worker off to do a network
-      // lookup per merchant on every demo signup.
+      // Without a domain, the brand-logo worker does a network lookup per
+      // merchant on every demo signup.
       for (const payee of payees as { logoDomain: string | null }[]) {
         expect(payee.logoDomain).toBeTruthy();
       }
@@ -712,8 +712,8 @@ describe('Demo Mode', () => {
 
       expect(securityIds.length).toBe(6);
 
-      // No endpoint exposes the raw pricing series, so it is read from the table
-      // the historical net-worth chart resolves prices through.
+      // No endpoint exposes the raw pricing series, so this reads it directly
+      // from the table the historical net-worth chart resolves prices through.
       const [pricingRows] = await connection.sequelize.query(
         `SELECT "securityId", COUNT(*) as "rowCount", MIN(date) as "firstDate", MAX(date) as "lastDate"
          FROM "SecurityPricings" WHERE "securityId" IN (:securityIds) GROUP BY "securityId"`,
@@ -736,8 +736,7 @@ describe('Demo Mode', () => {
       }
 
       // Purchases are spread across the history window, so the oldest holding
-      // carries market prices over most of the net-worth chart rather than
-      // appearing only in its last few months.
+      // carries market prices across most of the net-worth chart.
       expect(longestSpanDays).toBeGreaterThan(700);
     });
 

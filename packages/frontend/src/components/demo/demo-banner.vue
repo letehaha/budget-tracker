@@ -3,7 +3,7 @@
     v-if="isDemo"
     class="bg-primary/10 border-primary/20 flex items-center justify-center gap-2 border-b px-4 py-2 text-sm"
   >
-    <AlertCircle class="text-primary size-4 shrink-0" />
+    <AlertCircleIcon class="text-primary size-4 shrink-0" />
     <span class="text-primary/90">
       <i18n-t keypath="demo.banner.message" tag="span">
         <template #time>
@@ -25,9 +25,10 @@
 <script setup lang="ts">
 import { DEMO_SESSION_EXPIRED_REASON } from '@/common/const';
 import { trackAnalyticsEvent } from '@/lib/posthog';
+import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore, useUserStore } from '@/stores';
-import { AlertCircle } from '@lucide/vue';
+import { AlertCircleIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -59,9 +60,9 @@ onUnmounted(() => {
   }
 });
 
-// Derived from the user's `createdAt`, so it's correct on first load, on a
-// reload, and regardless of which flow started the demo session.
-const expiresAt = computed(() => getDemoExpiresAt(user.value));
+// Derived from the user's `createdAt`, so it's correct on first load, a reload, and
+// regardless of which flow started the demo session.
+const expiresAt = computed(() => getDemoExpiresAt({ user: user.value }));
 
 // Check if demo has expired
 const isExpired = computed(() => {
@@ -69,14 +70,20 @@ const isExpired = computed(() => {
   return now.value >= expiresAt.value;
 });
 
-// Auto-logout when demo expires
+// Redirect runs even if logout fails, so an expired session can't leave the user
+// stuck in the app with a dead server session.
 watch(
   isExpired,
   async (expired) => {
-    if (expired) {
+    if (!expired) return;
+
+    try {
       await authStore.logout({ demoEndReason: 'expired' });
-      router.push({ name: ROUTES_NAMES.signIn, query: { reason: DEMO_SESSION_EXPIRED_REASON } });
+    } catch (error) {
+      captureException({ error, context: { scope: 'demo-banner:expiry-logout' } });
     }
+
+    router.push({ name: ROUTES_NAMES.signIn, query: { reason: DEMO_SESSION_EXPIRED_REASON } });
   },
   { immediate: true },
 );

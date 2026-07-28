@@ -9,12 +9,8 @@ export interface FeedbackSubmission {
 }
 
 /**
- * Turns raw dialog input into the analytics payload, or `null` when there is
- * nothing worth sending.
- *
- * Whitespace-only input counts as empty: it reaches PostHog as a real
- * submission otherwise, and a feedback stream full of blank rows is worse than
- * no feedback stream.
+ * Returns null for input not worth sending. Whitespace-only counts as empty, else it
+ * reaches PostHog as a real submission and blank rows pollute the feedback stream.
  */
 export function buildFeedbackSubmission({
   message,

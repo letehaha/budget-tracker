@@ -6,28 +6,14 @@ import {
   DEPRECIATION_PRESET,
   LOAN_TYPE,
   SUPPORTED_LOAN_TYPES,
-  TRANSACTION_TYPES,
   VEHICLE_CLASS,
 } from '@bt/shared/types';
-import {
-  ASSET_CLASS,
-  INVESTMENT_TRANSACTION_CATEGORY,
-  PORTFOLIO_TYPE,
-  SECURITY_PROVIDER,
-} from '@bt/shared/types/investments';
 import { VENTURE_CASH_FLOW_MODE, VENTURE_EVENT_TYPE, VENTURE_SPV_SUBTYPE } from '@bt/shared/types/venture';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
-import { connection } from '@models/index';
-import Holdings from '@models/investments/holdings.model';
-import InvestmentTransaction from '@models/investments/investment-transaction.model';
-import PortfolioBalances from '@models/investments/portfolio-balances.model';
-import Portfolios from '@models/investments/portfolios.model';
-import Securities from '@models/investments/securities.model';
-import SecurityPricing from '@models/investments/security-pricing.model';
 import UserSettings, { DEFAULT_SETTINGS, type SettingsSchema } from '@models/user-settings.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import * as accountsService from '@services/accounts.service';
@@ -41,9 +27,7 @@ import { overrideVehicleValue } from '@services/vehicles/override-vehicle-value.
 import { createVentureDeal } from '@services/venture/deals/create.service';
 import { createVentureEvent } from '@services/venture/events/create.service';
 import { createVenturePlatform } from '@services/venture/platforms/create.service';
-import { Big } from 'big.js';
-import { format, subDays, subMonths, subYears } from 'date-fns';
-import { type Transaction } from 'sequelize';
+import { format, subMonths, subYears } from 'date-fns';
 
 import { DEMO_CONFIG, DEMO_TAGS, subcategoryMapKey } from './demo-config';
 
@@ -95,9 +79,8 @@ export async function createCategories({ userId }: { userId: number }): Promise<
     }
   });
 
-  // Create subcategories. `parentKey` is carried alongside the insert payload
-  // rather than in it, because it addresses the row in `categoryMap` and is not
-  // a column.
+  // Create subcategories. `parentKey` rides alongside the row, not inside it:
+  // it addresses `categoryMap` below and isn't a column.
   const subcats: Array<{
     parentKey: string;
     row: {
@@ -238,18 +221,11 @@ function roundToNearestTenDollars({ cents }: { cents: number }): number {
 }
 
 /**
- * Seeds category budgets over a trailing window.
- *
- * Two things this depends on, both easy to get wrong:
- *
- * - `type` must be `category`, or `createBudget` falls back to `manual` and
- *   writes no `BudgetCategories` rows, leaving every card at zero spend.
- * - `startDate`/`endDate` must both be set. `buildDateFilter` returns an empty
- *   filter when either is missing, which would total all three years of history
- *   against a one-month limit.
- *
- * Limits come from what the generated data actually spent in the window, so the
- * cards land on the intended under/near/over states even as the generator drifts.
+ * Seeds category budgets over a trailing window. Skipping `type: category` or
+ * `startDate`/`endDate` breaks the read path: `createBudget` then writes no
+ * `BudgetCategories` rows (every card reads zero), or `buildDateFilter` drops
+ * the filter and totals all history against a one-month limit. Limits derive
+ * from actual spend in the window so the cards keep their under/near/over states.
  */
 export async function createBudgets({
   userId,
@@ -265,16 +241,24 @@ export async function createBudgets({
   windowEnd: Date;
 }): Promise<void> {
   let created = 0;
+  let skippedUnknownCategories = 0;
+  let skippedNoSpend = 0;
 
   for (const budgetConfig of DEMO_CONFIG.budgets) {
     const categoryIds = budgetConfig.categoryKeys
       .map((key) => categoryMap.get(key))
       .filter((id): id is string => id !== undefined);
 
-    if (!categoryIds.length) continue;
+    if (!categoryIds.length) {
+      skippedUnknownCategories += 1;
+      continue;
+    }
 
     const spent = budgetConfig.categoryKeys.reduce((total, key) => total + (spendByCategoryKey.get(key) ?? 0), 0);
-    if (spent <= 0) continue;
+    if (spent <= 0) {
+      skippedNoSpend += 1;
+      continue;
+    }
 
     await createBudget({
       userId,
@@ -289,7 +273,15 @@ export async function createBudgets({
     created += 1;
   }
 
-  logger.info(`Created ${created} demo budgets`);
+  const summary = `Created ${created} of ${DEMO_CONFIG.budgets.length} demo budgets (skipped: ${skippedUnknownCategories} with no matching category, ${skippedNoSpend} with no spend in the window)`;
+
+  // Zero budgets leaves the Budgets page empty for every demo user; the skip
+  // counters above narrow it to a category-key or generator drift.
+  if (created === 0 && DEMO_CONFIG.budgets.length > 0) {
+    logger.error(summary);
+  } else {
+    logger.info(summary);
+  }
 }
 
 const DEMO_WATCHLIST_CATEGORY_KEYS = ['food', 'housing', 'transportation', 'life', 'income'];

@@ -100,6 +100,7 @@
       "messageRequired": "Please write a message before sending.",
       "submit": "Send",
       "thanks": "Thanks, we read every message.",
+      "unavailable": "Sending is unavailable right now. Use the board below instead.",
       "or": "or",
       "board": {
         "title": "Post it on the public board",

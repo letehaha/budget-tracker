@@ -30,25 +30,24 @@ const AMOUNT_TOLERANCE = 0.1;
 /** Floor for the tolerance window so cheap subscriptions still get some slack. */
 const MIN_TOLERANCE_CENTS = 100;
 
-function clampDayToMonth({ month, dayOfMonth }: { month: Date; dayOfMonth: number }): Date {
+/** `dayOfMonth` inside `month`, pulled back to the last day when the month is shorter. */
+export function clampDayToMonth({ month, dayOfMonth }: { month: Date; dayOfMonth: number }): Date {
   return setDate(month, Math.min(dayOfMonth, getDaysInMonth(month)));
 }
 
 /** First `dayOfMonth` strictly after `referenceDate`, rolling into next month when today already passed it. */
-function nextOccurrenceAfter({ referenceDate, dayOfMonth }: { referenceDate: Date; dayOfMonth: number }): Date {
+export function nextOccurrenceAfter({ referenceDate, dayOfMonth }: { referenceDate: Date; dayOfMonth: number }): Date {
   const thisMonth = clampDayToMonth({ month: referenceDate, dayOfMonth });
   if (startOfDay(thisMonth) > startOfDay(referenceDate)) return thisMonth;
   return clampDayToMonth({ month: addMonths(startOfMonth(referenceDate), 1), dayOfMonth });
 }
 
 /**
- * Seeds the demo subscriptions plus their payment history.
- *
- * Each subscription goes through `createSubscription` so it gets the same open
- * `SubscriptionPeriods` row a real one would, which is what makes `currentPeriod`
- * non-null and "Mark paid" reachable. History is bulk-inserted instead of going
- * through `markPeriodPaid`, which would cost a lookup plus a next-period write
- * for each of ~7 subscriptions times ~36 months.
+ * Seeds demo subscriptions and their payment history. Creation goes through
+ * `createSubscription` so each gets a real open `SubscriptionPeriods` row,
+ * making `currentPeriod` non-null and "Mark paid" reachable. History
+ * bulk-inserts instead, skipping the per-period `markPeriodPaid` lookup and
+ * write across ~7 subscriptions times ~36 months.
  */
 export async function setupSubscriptions({
   userId,
@@ -141,8 +140,8 @@ export async function setupSubscriptions({
       matchingRules,
     });
 
-    // Seeded with the open period's date so history never lands a paid row on the
-    // date the subscription is still waiting to be paid.
+    // usedDueDates starts with the open period's date, so history never lands
+    // a paid row on the date the subscription is still waiting to be paid.
     const usedDueDates = new Set<string>([openDueDate]);
 
     for (const payment of history) {

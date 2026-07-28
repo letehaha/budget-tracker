@@ -138,10 +138,11 @@ async function seedTagLinks({ tagLinks }: { tagLinks: TagLinkInput[] }): Promise
 }
 
 /**
- * Goes through the real group service (not a raw insert) because it also
- * writes TransactionGroupItems and enforces size/ownership rules. A group
- * that violates those rules is skipped rather than aborting the whole seed,
- * since one bad group in generated demo data shouldn't break account setup.
+ * Goes through the real group service, not a raw insert, because it also
+ * writes TransactionGroupItems and enforces size/ownership rules. The
+ * template is identical for every demo user, so a failure here means a bug
+ * in the template or in `createTransactionGroup`. That's why it logs as an
+ * error and keeps going so the rest of signup completes.
  */
 async function seedGroups({ userId, groups }: { userId: number; groups: GroupInput[] }): Promise<number> {
   if (!groups.length) return 0;
@@ -157,7 +158,10 @@ async function seedGroups({ userId, groups }: { userId: number; groups: GroupInp
       });
       created += 1;
     } catch (error) {
-      logger.warn(`Skipped demo transaction group "${group.name}" for user ${userId}: ${(error as Error).message}`);
+      logger.error({
+        message: `Failed to create demo transaction group "${group.name}" for user ${userId}`,
+        error: error as Error,
+      });
     }
   }
 

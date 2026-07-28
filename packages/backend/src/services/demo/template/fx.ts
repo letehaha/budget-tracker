@@ -3,17 +3,17 @@ import { roundHalfToEven } from '@common/utils/round-half-to-even';
 /**
  * Synthetic exchange-rate curve for demo transactions.
  *
- * The demo converts every non-USD amount to its base-currency `refAmount` by
- * hand. Real historical rates are deliberately not used: the shared
- * `ExchangeRates` table is global rather than per-user and e2e treats it as
- * fixed seed data, so having demo signups fetch and write rates for three years
- * of dates would leak into other users' lookups and into the test corpus.
+ * Real historical rates aren't used: the shared `ExchangeRates` table is
+ * global, not per-user, and e2e treats it as fixed seed data, so writing rates
+ * for three years of demo dates would leak into other users' lookups and the
+ * test corpus.
  *
- * A curve rather than one frozen number means the EUR and PLN accounts drift
- * against USD over the history window, which is the whole point of showing
- * multi-currency at all. Both waves are sine-based and therefore exactly zero at
- * `dayOffset: 0`, so today's rate equals the configured spot rate and matches
- * what `UsersCurrencies` stores.
+ * A curve, not a frozen number, lets EUR and PLN visibly drift against USD
+ * across the history window.
+ *
+ * Both drift waves are sine-based, so they're exactly zero at `dayOffset: 0`:
+ * today's rate always equals the configured spot rate, matching what
+ * `UsersCurrencies` stores.
  */
 interface CurrencyDrift {
   /** Peak swing of the long wave, as a fraction of the spot rate. */

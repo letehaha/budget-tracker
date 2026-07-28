@@ -1,5 +1,7 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 
+import type { DemoAccountKey } from '../demo-config';
+
 /**
  * A generated transaction, still free of database ids.
  *
@@ -8,18 +10,17 @@ import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@
  */
 export interface DemoTemplateTransaction {
   /**
-   * Set only when another part of the template points at this row: a split, a
-   * refund link, a group, or a subscription period. The seeder mints one
-   * transaction id per ref before inserting, because the bulk insert runs with
-   * hooks off and never reads ids back.
+   * Set when a split, refund link, group, or subscription period points at this
+   * row. The seeder mints one transaction id per ref before inserting, since
+   * the bulk insert runs with hooks off and never reads ids back.
    */
   ref?: string;
-  accountKey: string;
+  accountKey: DemoAccountKey;
   /** Either a main category key or a `parent/child` subcategory key. */
   categoryKey: string;
   amount: number;
   transactionType: TRANSACTION_TYPES;
-  /** Days before the template's `generatedAt`. 0 is today. */
+  /** Days before the reference date the seeder anchors the template to. 0 is today. */
   dayOffset: number;
   /** Minutes past local midnight, so same-day rows read in a plausible order. */
   minuteOfDay: number;
@@ -61,6 +62,10 @@ export interface DemoTemplateSubscriptionPayment {
 }
 
 export interface DemoTemplate {
+  /**
+   * When this copy was generated. The daily cache refresh renews it, but the
+   * demo's "today" is the `referenceDate` the seeder passes, not this field.
+   */
   generatedAt: Date;
   transactions: DemoTemplateTransaction[];
   splits: DemoTemplateSplit[];

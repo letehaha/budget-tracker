@@ -1,14 +1,13 @@
 /**
  * Merchant vocabulary for generated demo transactions.
  *
- * Every spending row picks its merchant from here, and the seeder turns this
- * list into `Payees` rows keyed by `name`. Two properties matter:
+ * Every spending row picks its merchant from here; the seeder turns this list
+ * into `Payees` rows keyed by `name`.
  *
- * - `domain` is stored as the payee's `logoDomain` with `logoSource: 'manual'`,
- *   so logos render on first paint and the brand-logo worker skips the row.
- *   Seeding without it would queue a lookup per merchant per demo user.
- * - `categoryKey` is the payee's default category, which is what makes the
- *   payee-driven categorization visible in the demo.
+ * - `domain` is stored as `logoDomain` with `logoSource: 'manual'`, so logos
+ *   render immediately and the brand-logo worker skips a per-merchant lookup.
+ * - `categoryKey` is the payee's default category, making payee-driven
+ *   categorization visible in the demo.
  */
 export interface DemoMerchant {
   name: string;
@@ -86,9 +85,9 @@ export const DEMO_MERCHANTS = {
     { name: 'Trainline', domain: 'thetrainline.com', categoryKey: 'transportation/long-distance' },
     { name: 'Deutsche Bahn', domain: 'bahn.de', categoryKey: 'transportation/long-distance' },
   ],
-  // EUR routine card spending abroad. Deliberately spread across categories:
-  // when this bucket was all restaurants, the euro volume the demo needs pushed
-  // food past half of all spending on its own.
+  // EUR routine spending abroad, spread across categories. An all-restaurant
+  // bucket here (the abolished alternative) pushes food past half of total
+  // spending and fails the category-balance test.
   travelDining: [
     { name: 'Vapiano', domain: 'vapiano.com', categoryKey: 'food/restaurant' },
     { name: 'Le Pain Quotidien', domain: 'lepainquotidien.com', categoryKey: 'food/restaurant' },

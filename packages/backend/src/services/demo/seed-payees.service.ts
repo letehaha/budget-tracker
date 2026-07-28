@@ -6,19 +6,11 @@ import { normalizePayeeName } from '@services/payees/normalize-name';
 import { allDemoMerchants } from './template/merchants';
 
 /**
- * Inserts one Payee per demo merchant so generated transactions can carry a
- * real `payeeId` instead of only a note string.
- *
- * Goes straight through `Payees.bulkCreate` rather than `createPayee`:
- * `createPayee` enqueues a brand-logo lookup job per row, which would queue
- * one job per merchant on every demo signup even though the logo domain is
- * already known here. Setting `logoSource: 'manual'` tells the logo resolver
- * the row is already authoritative, so it's skipped entirely.
- *
- * Two merchant display names can normalize to the same string, which the
- * unique `(userId, normalizedName)` index would reject. Colliding names are
- * deduped before insert; every original name still maps to the one payee id
- * that got created for it.
+ * Inserts one Payee per demo merchant so generated transactions carry a real
+ * `payeeId` instead of a note string. Goes through `Payees.bulkCreate`, not
+ * `createPayee`: `createPayee` queues a brand-logo lookup job per row, and
+ * the domain is already known here. `logoSource: 'manual'` marks the row
+ * authoritative, so the resolver skips it.
  */
 export async function seedPayees({
   userId,

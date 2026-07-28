@@ -2,7 +2,8 @@ import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@
 import { faker } from '@faker-js/faker';
 import { addDays, eachDayOfInterval, endOfMonth, isWeekend, setDate, startOfMonth, subMonths } from 'date-fns';
 
-import { DEMO_CONFIG } from '../demo-config';
+import { DEMO_CONFIG, type DemoAccountKey } from '../demo-config';
+import { rateForDayOffset } from './fx';
 import { DEMO_MERCHANTS, type DemoMerchant } from './merchants';
 import type {
   DemoTemplate,
@@ -37,8 +38,8 @@ function daysBetween({ from, to }: { from: Date; to: Date }): number {
 /**
  * Builds the template for one demo dataset.
  *
- * Seeded faker keeps every demo user's history identical, which is what lets
- * budget limits be derived from the data and keeps screenshots stable.
+ * Seeded faker keeps every demo user's history identical, so budget limits can
+ * be derived from the data and screenshots stay stable.
  */
 export function generateDemoTemplate(): DemoTemplate {
   faker.seed(12345);
@@ -64,11 +65,22 @@ export function generateDemoTemplate(): DemoTemplate {
   /**
    * Euro charged to the travel card and not yet paid off.
    *
-   * The monthly payment settles this balance rather than a fixed amount, the way
-   * a card paid in full behaves. A fixed payment cannot track variable spending,
-   * and the shortfall compounds until the balance runs past the credit limit.
+   * The monthly payoff settles this balance rather than a fixed amount, matching
+   * how a card paid in full behaves. A fixed payment would let variable spending
+   * drift the balance past the credit limit.
    */
   let travelCardOwed = 0;
+
+  /**
+   * The day's drifted rate. A transfer's two legs imply an exchange rate, and
+   * `refAmount` must convert at that same rate.
+   */
+  const rateOn = ({ currencyCode, date }: { currencyCode: 'EUR' | 'PLN'; date: Date }): number =>
+    rateForDayOffset({
+      currencyCode,
+      dayOffset: daysBetween({ from: date, to: generatedAt }),
+      spotRate: DEMO_CONFIG.exchangeRates[currencyCode],
+    });
 
   const minuteIn = (window: TimeWindow): number => {
     const [from, to] = TIME_WINDOWS[window];
@@ -106,7 +118,7 @@ export function generateDemoTemplate(): DemoTemplate {
     date: Date;
     merchant: DemoMerchant;
     amount: number;
-    accountKey: string;
+    accountKey: DemoAccountKey;
     paymentType: PAYMENT_TYPES;
     window: TimeWindow;
     tagKeys?: string[];
@@ -136,8 +148,8 @@ export function generateDemoTemplate(): DemoTemplate {
     window,
   }: {
     date: Date;
-    fromAccountKey: string;
-    toAccountKey: string;
+    fromAccountKey: DemoAccountKey;
+    toAccountKey: DemoAccountKey;
     fromAmount: number;
     toAmount: number;
     note: string;
@@ -381,12 +393,13 @@ export function generateDemoTemplate(): DemoTemplate {
     });
 
     const withdrawalUsd = cents({ min: 8000, max: 16000 });
+    const withdrawalDate = setDate(monthDate, faker.number.int({ min: 8, max: 14 }));
     emitTransfer({
-      date: setDate(monthDate, faker.number.int({ min: 8, max: 14 })),
+      date: withdrawalDate,
       fromAccountKey: 'main_checking',
       toAccountKey: 'cash',
       fromAmount: withdrawalUsd,
-      toAmount: Math.round(withdrawalUsd * (DEMO_CONFIG.exchangeRates.PLN ?? 4)),
+      toAmount: Math.round(withdrawalUsd * rateOn({ currencyCode: 'PLN', date: withdrawalDate })),
       note: 'ATM withdrawal',
       window: 'afternoon',
     });
@@ -394,11 +407,12 @@ export function generateDemoTemplate(): DemoTemplate {
     // Settles what the card ran up in earlier months, so its balance stays
     // inside the credit limit the utilization widget reads against.
     if (travelCardOwed > 0) {
+      const payoffDate = setDate(monthDate, 26);
       emitTransfer({
-        date: setDate(monthDate, 26),
+        date: payoffDate,
         fromAccountKey: 'main_checking',
         toAccountKey: 'travel_card',
-        fromAmount: Math.round(travelCardOwed / (DEMO_CONFIG.exchangeRates.EUR ?? 0.92)),
+        fromAmount: Math.round(travelCardOwed / rateOn({ currencyCode: 'EUR', date: payoffDate })),
         toAmount: travelCardOwed,
         note: 'Travel card payment',
         window: 'businessHours',
@@ -438,12 +452,12 @@ export function generateDemoTemplate(): DemoTemplate {
       ref,
     });
 
-    // A big-box run is rarely just food. Splitting it shows the feature against
-    // a transaction where a single category would be the wrong answer.
+    // A big-box run rarely means food alone, so this shows a split transaction
+    // instead of one flat category.
     //
-    // The splits cover the whole amount, remainder included: budget stats skip a
-    // parent that has splits and count only the split rows, so any unallocated
-    // part of the receipt would land in no budget at all.
+    // Splits must cover the full amount: budget stats skip a parent that has
+    // splits and count the split rows instead, so a leftover remainder would
+    // land in no budget.
     if (ref && emitted) {
       const household = Math.round(amount * 0.3);
       const pharmacy = Math.round(amount * 0.12);
@@ -672,8 +686,8 @@ export function generateDemoTemplate(): DemoTemplate {
         tagKeys: ['vacation'],
       },
       {
-        // The restaurants at the head of the bucket, so a trip's meal leg is a
-        // meal rather than whatever else that mixed bucket holds.
+        // travelDining lists restaurants first, so this leg's merchant is a
+        // meal, not a transit or lodging entry from the same mixed bucket.
         date: addDays(tripStart, 2),
         merchants: [DEMO_MERCHANTS.travelDining[0]!, DEMO_MERCHANTS.travelDining[1]!],
         amount: cents({ min: 3500, max: 14000 }),

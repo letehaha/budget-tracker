@@ -132,8 +132,7 @@ if (oauthError) {
   router.replace({ name: ROUTES_NAMES.signIn });
 }
 
-// Demo session auto-logout redirects here with this reason so the user
-// knows why they landed on sign-in instead of the app.
+// Demo auto-logout redirects here with this reason, so the user sees why sign-in replaced the app.
 const showDemoExpiredNotice = ref(route.query.reason === DEMO_SESSION_EXPIRED_REASON);
 if (showDemoExpiredNotice.value) {
   router.replace({ name: ROUTES_NAMES.signIn });

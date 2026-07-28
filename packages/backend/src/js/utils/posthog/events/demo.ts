@@ -1,11 +1,9 @@
 import { trackEvent } from '../index';
 
 /**
- * Track a demo session being provisioned.
- *
- * `durationMs` covers user creation plus the template apply, which bulk-inserts the
- * seeded dataset and rebuilds balances. Server-side counterpart to the landing page's
- * `demo_setup_succeeded`, and the only view of how long that work takes.
+ * Tracks demo provisioning duration. `durationMs` spans user creation through
+ * template apply (seed insert + balance rebuild); no other server-side timer
+ * covers that work.
  */
 export function trackDemoSessionCreated({ userId, durationMs }: { userId: string | number; durationMs: number }): void {
   trackEvent({
@@ -18,15 +16,11 @@ export function trackDemoSessionCreated({ userId, durationMs }: { userId: string
 }
 
 /**
- * Track a demo user being refused a feature by `blockDemoUsers`.
- *
- * Shares its event name with the frontend's `demo_feature_blocked`, separated by the
- * `surface` property: this one records requests that reached the API, the frontend one
- * records controls disabled before any request went out. Read together they list what
- * demo visitors try to do and cannot.
- *
- * `route` holds the Express route pattern (`/:id/restore`), so the property groups
- * instead of fragmenting on record ids.
+ * Tracks a demo user refused a feature by `blockDemoUsers`, a request that
+ * reached the API. Shares its event name with the frontend's
+ * `demo_feature_blocked`, split by `surface`. `route` is the Express pattern
+ * (`/:id/restore`), not the raw path, so events group instead of fragmenting
+ * per record id.
  */
 export function trackDemoFeatureBlocked({
   userId,

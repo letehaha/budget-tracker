@@ -7,6 +7,9 @@ let cachedTemplate: DemoTemplate | null = null;
 
 /**
  * Returns the cached demo template, generating one if the cache is empty (lazy init).
+ *
+ * Dates in the template are offsets, not calendar dates, so a copy stays usable
+ * between refreshes: the seeder anchors the offsets to its own reference date.
  */
 export function getDemoTemplate(): DemoTemplate {
   if (!cachedTemplate) {
@@ -16,8 +19,7 @@ export function getDemoTemplate(): DemoTemplate {
 }
 
 /**
- * Regenerates the cached template with fresh dates.
- * Called by the daily cron job and on app startup.
+ * Regenerates the cached template. Called by the daily cron job and on app startup.
  */
 export function refreshDemoTemplate(): void {
   cachedTemplate = generateDemoTemplate();

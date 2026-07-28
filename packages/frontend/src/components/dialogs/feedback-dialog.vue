@@ -89,10 +89,9 @@ const feedbackType = ref<{ value: FeedbackType; label: string } | null>(feedback
 
 const canSubmit = computed(() => message.value.trim().length > 0 && Boolean(feedbackType.value));
 
-// The message rides along on the PostHog event rather than being stored here.
-// Nothing in the app reads feedback back, so persisting it would mean a table,
-// an endpoint and a moderation story for data we only ever look at in PostHog.
-// The board link below covers the cases that need a reply or public voting.
+// The message rides along on the PostHog event; nothing in the app reads feedback back, so
+// persisting it would mean a table, an endpoint and a moderation story. When analytics is off
+// the event goes nowhere, so the dialog keeps the typed message and points at the board below.
 function submit() {
   const submission = buildFeedbackSubmission({
     message: message.value,
@@ -104,7 +103,13 @@ function submit() {
     return;
   }
 
-  trackAnalyticsEvent({ event: 'user_feedback_submitted', properties: submission });
+  const sent = trackAnalyticsEvent({ event: 'user_feedback_submitted', properties: submission });
+
+  if (!sent) {
+    errorMessage.value = t('feedback.dialog.unavailable');
+    return;
+  }
+
   addSuccessNotification(t('feedback.dialog.thanks'));
 
   message.value = '';

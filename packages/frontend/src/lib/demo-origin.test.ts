@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { consumeDemoOriginProperties, markDemoOrigin } from './demo-origin';
+import { consumeDemoOriginProperties, hasSignedInOnDevice, markDemoOrigin, markSignedInOnDevice } from './demo-origin';
 
 const DEMO_ORIGIN_KEY = 'demo-origin';
 const HOUR_MS = 60 * 60 * 1000;
@@ -14,6 +14,7 @@ describe('demo-origin', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   describe('markDemoOrigin', () => {
@@ -99,6 +100,54 @@ describe('demo-origin', () => {
       localStorage.setItem(DEMO_ORIGIN_KEY, JSON.stringify({ reason: 'logout' }));
 
       expect(consumeDemoOriginProperties({ isFirstSignInOnDevice: true })).toEqual({});
+    });
+  });
+
+  describe('device sign-in flag', () => {
+    it('reports nothing until a non-demo sign-in is marked', () => {
+      expect(hasSignedInOnDevice()).toBe(false);
+
+      markSignedInOnDevice();
+
+      expect(hasSignedInOnDevice()).toBe(true);
+    });
+  });
+
+  // Callers are logout and sign-in, so a throwing storage must not propagate out of here.
+  describe('when localStorage throws', () => {
+    const quotaError = () => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    };
+
+    it('the device flag reads as unset and marking it does not throw', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(quotaError);
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(quotaError);
+
+      expect(() => markSignedInOnDevice()).not.toThrow();
+      expect(hasSignedInOnDevice()).toBe(false);
+    });
+
+    it('markDemoOrigin swallows a failed write', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(quotaError);
+
+      expect(() => markDemoOrigin({ reason: 'logout' })).not.toThrow();
+    });
+
+    it('consumeDemoOriginProperties returns nothing when the read throws', () => {
+      markDemoOrigin({ reason: 'logout' });
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(quotaError);
+
+      expect(consumeDemoOriginProperties({ isFirstSignInOnDevice: true })).toEqual({});
+    });
+
+    it('consumeDemoOriginProperties still attributes when clearing the breadcrumb throws', () => {
+      markDemoOrigin({ reason: 'signup_clicked' });
+      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(quotaError);
+
+      expect(consumeDemoOriginProperties({ isFirstSignInOnDevice: true })).toMatchObject({
+        came_from_demo: true,
+        demo_end_reason: 'signup_clicked',
+      });
     });
   });
 });
