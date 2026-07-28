@@ -251,11 +251,15 @@ const makeBasicBaseTxUpdation = async (
 
       if (refundsShouldBeRemoved) baseTransactionUpdateParams.refundLinked = false;
       if (refundsShouldBeSetOrOverriden) {
+        // A repeated id would both understate the refunded sum and race two identical link
+        // inserts past `createSingleRefund`'s already-linked check inside one transaction.
+        const refundedByTxIds = [...new Set(newData.refundedByTxIds!)];
+
         const newTransactions = await Transactions.default.findAll({
           where: {
             userId: newData.userId,
             id: {
-              [Op.in]: newData.refundedByTxIds,
+              [Op.in]: refundedByTxIds,
             },
           },
           attributes: ['refAmount'],
@@ -272,7 +276,7 @@ const makeBasicBaseTxUpdation = async (
         // Defer refund creation until after transaction is updated
         pendingRefundOperation = async () => {
           await Promise.all(
-            newData.refundedByTxIds!.map((id) =>
+            refundedByTxIds.map((id) =>
               refundsService.createSingleRefund({
                 originalTxId: newData.id,
                 refundTxId: id,

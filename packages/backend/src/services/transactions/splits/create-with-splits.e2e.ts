@@ -167,6 +167,31 @@ describe('Create transaction with splits', () => {
     expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
+  it('should reject two splits that share a category', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const categories = await helpers.getCategoriesList();
+
+    const txPayload = helpers.buildTransactionPayload({
+      accountId: account.id,
+      categoryId: categories[0]!.id,
+      amount: 1000,
+      splits: [
+        { categoryId: categories[1]!.id, amount: 300 },
+        { categoryId: categories[1]!.id, amount: 200 },
+      ],
+    });
+
+    const res = await helpers.createTransaction({
+      payload: txPayload,
+      raw: false,
+    });
+
+    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const transactions = await helpers.getTransactions({ raw: true, includeSplits: true });
+    expect(transactions).toHaveLength(0);
+  });
+
   it('should reject more than 10 splits', async () => {
     const account = await helpers.createAccount({ raw: true });
     const categories = await helpers.getCategoriesList();
