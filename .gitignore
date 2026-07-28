@@ -164,3 +164,6 @@ packages/landing/.astro/
 
 # i18next dev-mode auto-written files for keys missing from the base locale
 packages/backend/src/i18n/locales/*.missing.json
+
+# Python bytecode from the .claude hook scripts
+__pycache__/
