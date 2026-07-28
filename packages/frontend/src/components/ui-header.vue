@@ -29,18 +29,16 @@
         </template>
 
         <ManageTransactionDialog>
-          <Button variant="default" size="sm" class="flex items-center gap-1">
+          <Button variant="default" size="sm">
             <PlusIcon class="size-4" />
-            <span class="hidden @[580px]/header-bar:block">{{ $t('header.newTransaction') }}</span>
-            <span class="@[580px]/header-bar:hidden">{{ $t('header.add') }}</span>
+            {{ isMobileView ? $t('header.add') : $t('header.newTransaction') }}
           </Button>
         </ManageTransactionDialog>
 
-        <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagement }" class="hidden md:block">
-          <Button variant="secondary" size="sm" class="flex items-center gap-1">
+        <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagement }" class="max-md:hidden">
+          <Button variant="secondary" size="sm">
             <ImportIcon class="size-4" />
-            <span class="hidden @[580px]/header-bar:block">{{ $t('header.importData') }}</span>
-            <span class="@[580px]/header-bar:hidden">{{ $t('header.import') }}</span>
+            {{ $t('header.importData') }}
           </Button>
         </RouterLink>
       </div>
