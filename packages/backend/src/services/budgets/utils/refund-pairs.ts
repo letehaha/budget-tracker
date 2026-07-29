@@ -14,7 +14,7 @@ interface RefundTxData {
   categoryId: RecordId;
 }
 
-export interface RefundPair {
+export interface BudgetRefundPair {
   originalTx: RefundTxData;
   refundTx: RefundTxData;
   /**
@@ -24,10 +24,10 @@ export interface RefundPair {
    * "Expenses Structure" widget). Null when the refund applies to the whole transaction.
    */
   splitCategoryId: RecordId | null;
-  /** True when originalTx contributed to the budget aggregation */
-  originalInBudget: boolean;
-  /** True when refundTx contributed to the budget aggregation */
-  refundInBudget: boolean;
+  /** True when originalTx was in `countedTransactions`, i.e. it contributed to the aggregation. */
+  originalInScope: boolean;
+  /** True when refundTx was in `countedTransactions`. */
+  refundInScope: boolean;
 }
 
 /**
@@ -40,12 +40,16 @@ export interface RefundPair {
  *
  * The returned pairs carry both transactions plus flags indicating which side(s) were counted,
  * so callers can decide where to apply `refundTx.refAmount` adjustments.
+ *
+ * Stats' `resolveRefundPairs` answers the same question for its own reports but hands back a pair
+ * already oriented into expense/income sides; budgets keep the raw transactions because each call
+ * site sorts the sides out differently.
  */
 export const fetchBudgetRefundPairs = async ({
   countedTransactions,
 }: {
   countedTransactions: { id: string; refundLinked: boolean }[];
-}): Promise<RefundPair[]> => {
+}): Promise<BudgetRefundPair[]> => {
   const budgetTxIds = new Set(countedTransactions.map((t) => t.id));
   const txIdsWithRefunds = countedTransactions.filter((t) => t.refundLinked).map((t) => t.id);
 
@@ -95,7 +99,7 @@ export const fetchBudgetRefundPairs = async ({
 
   const splitCategoryById = new Map<string, RecordId>(splits.map((s) => [s.id, s.categoryId]));
 
-  const pairs: RefundPair[] = [];
+  const pairs: BudgetRefundPair[] = [];
   for (const refund of refunds) {
     if (!refund.originalTxId) continue;
     const originalTx = txById.get(refund.originalTxId);
@@ -106,8 +110,8 @@ export const fetchBudgetRefundPairs = async ({
       originalTx,
       refundTx,
       splitCategoryId: refund.splitId ? (splitCategoryById.get(refund.splitId) ?? null) : null,
-      originalInBudget: budgetTxIds.has(originalTx.id),
-      refundInBudget: budgetTxIds.has(refundTx.id),
+      originalInScope: budgetTxIds.has(originalTx.id),
+      refundInScope: budgetTxIds.has(refundTx.id),
     });
   }
 

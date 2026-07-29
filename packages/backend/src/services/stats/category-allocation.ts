@@ -71,8 +71,12 @@ export interface CategoryAllocations {
  * The `…InScope` flags say whether that side's transaction was in the set handed to
  * `resolveRefundPairs`. A side that was only fetched to resolve the pair contributed no positive
  * amount to the caller's report, so netting against it would invent money.
+ *
+ * Two siblings resolve refunds for other reports and stay separate on purpose: budgets'
+ * `BudgetRefundPair` keys its scope flags on original/refund rather than expense/income, and the
+ * pivot's `WholeTxRefund` carries payee/tag, which splits don't have.
  */
-interface RefundPair {
+interface CategoryRefundPair {
   /** Refund magnitude in integer cents (base/reference currency), always positive: callers negate it. */
   cents: number;
   /** The refund tx's own date — the bucket the money actually moved in. */
@@ -113,7 +117,7 @@ export const resolveRefundPairs = async ({
   transactions,
 }: {
   transactions: AllocatableTransaction[];
-}): Promise<RefundPair[]> => {
+}): Promise<CategoryRefundPair[]> => {
   const txIdsWithRefunds = transactions.filter((tx) => tx.refundLinked).map((tx) => tx.id);
   if (txIdsWithRefunds.length === 0) return [];
 
@@ -155,7 +159,7 @@ export const resolveRefundPairs = async ({
     for (const split of targetSplits) splitCategoryById.set(split.id, split.categoryId);
   }
 
-  const pairs: RefundPair[] = [];
+  const pairs: CategoryRefundPair[] = [];
   for (const refund of refunds) {
     if (!refund.originalTxId) continue;
     const originalTx = txMap.get(refund.originalTxId);
@@ -200,7 +204,7 @@ export const computeCategoryAllocations = async ({
       where: { transactionId: { [Op.in]: txIds } },
       attributes: ['id', 'transactionId', 'categoryId', 'refAmount'],
     }),
-    applyRefunds ? resolveRefundPairs({ transactions }) : Promise.resolve<RefundPair[]>([]),
+    applyRefunds ? resolveRefundPairs({ transactions }) : Promise.resolve<CategoryRefundPair[]>([]),
   ]);
 
   const splitsByTxId = new Map<string, TransactionSplits[]>();
