@@ -72,26 +72,26 @@ test.describe('Expenses Structure – Exclude Categories', () => {
     await expect(dialog).toBeVisible({ timeout: 5_000 });
 
     // Count initial categories
-    const allLabels = dialog.locator('label');
-    const initialCount = await allLabels.count();
+    const allRows = dialog.locator('[data-testid^="ec-row-"]');
+    const initialCount = await allRows.count();
     expect(initialCount).toBeGreaterThan(0);
 
-    // Search for "Food"
+    // Search for "Food". A matching parent keeps its whole subtree, so this still
+    // drops every unrelated root rather than collapsing to a single row.
     const searchInput = dialog.locator('input[type="text"]');
     await searchInput.fill('Food');
+    await expect(allRows).not.toHaveCount(initialCount);
 
-    // Should have fewer categories
-    const filteredCount = await allLabels.count();
+    const filteredCount = await allRows.count();
     expect(filteredCount).toBeLessThan(initialCount);
     expect(filteredCount).toBeGreaterThan(0);
 
     // Clear search
-    await page.getByTestId('es-search-clear').click();
-    const restoredCount = await allLabels.count();
-    expect(restoredCount).toBe(initialCount);
+    await page.getByTestId('ec-search-clear').click();
+    await expect(allRows).toHaveCount(initialCount);
   });
 
-  test('select a category, save, dialog closes, and warning popover shows it', async ({ page }) => {
+  test('select a category, save, dialog closes, and the badge shows it', async ({ page }) => {
     const widget = page.getByTestId('widget-expenses-structure');
     await expect(widget).toBeVisible({ timeout: 10_000 });
 
@@ -102,72 +102,75 @@ test.describe('Expenses Structure – Exclude Categories', () => {
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 5_000 });
 
-    // Click on "Food" label to check it
-    const foodLabel = dialog.locator('label').filter({ hasText: 'Food' }).first();
-    await expect(foodLabel).toBeVisible();
-    await foodLabel.click();
+    // The row itself is the control — clicking it excludes the category and its subtree
+    const foodRow = dialog.locator('[data-testid^="ec-row-"]').filter({ hasText: 'Food & Drinks' }).first();
+    await expect(foodRow).toBeVisible();
+    await foodRow.click();
 
-    // The checkbox should be checked
-    const checkbox = foodLabel.locator('button[role="checkbox"]');
-    await expect(checkbox).toHaveAttribute('data-state', 'checked');
+    // The chip strip is the confirmation that it took, and lists the parent first
+    const chips = dialog.getByTestId('ec-chips');
+    await expect(chips).toBeVisible();
+    await expect(chips.getByText('Food & Drinks')).toBeVisible();
 
     // Click Save
-    await page.getByTestId('es-save-exclusions-btn').click();
+    await page.getByTestId('ec-save-btn').click();
 
     // Dialog should close
     await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
-    // The warning icon should now appear in the widget title
-    const warningIcon = page.getByTestId('es-excluded-warning');
-    await expect(warningIcon).toBeVisible({ timeout: 10_000 });
-
-    // Click the warning icon to open excluded categories popover
-    await warningIcon.click();
-
-    // Popover should show the excluded category name
-    const popover = page.getByTestId('es-excluded-popover');
-    await expect(popover).toBeVisible({ timeout: 5_000 });
-    await expect(popover.getByText('Food & Drinks')).toBeVisible();
+    // The count badge should now appear in the widget title
+    await expect(page.getByTestId('es-excluded-badge')).toBeVisible({ timeout: 10_000 });
   });
 
   test('excluded category persists after page reload', async ({ page }) => {
     await expect(page.getByTestId('widget-expenses-structure')).toBeVisible({ timeout: 10_000 });
 
-    // The warning icon should be visible (from previous test's exclusion)
-    await expect(page.getByTestId('es-excluded-warning')).toBeVisible({ timeout: 10_000 });
+    // The badge should be visible (from previous test's exclusion)
+    await expect(page.getByTestId('es-excluded-badge')).toBeVisible({ timeout: 10_000 });
 
     // Reload the page
     await page.reload();
     await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
 
-    // Warning icon should still be visible after reload
+    // Badge should still be visible after reload
     await expect(page.getByTestId('widget-expenses-structure')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId('es-excluded-warning')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('es-excluded-badge')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('remove exclusion via the warning popover', async ({ page }) => {
-    await expect(page.getByTestId('widget-expenses-structure')).toBeVisible({ timeout: 10_000 });
+  test('a chip removes one exclusion and Clear all removes the rest', async ({ page }) => {
+    const widget = page.getByTestId('widget-expenses-structure');
+    await expect(widget).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('es-excluded-badge')).toBeVisible({ timeout: 10_000 });
 
-    // Click the warning icon to open the excluded categories popover
-    const warningIcon = page.getByTestId('es-excluded-warning');
-    await expect(warningIcon).toBeVisible({ timeout: 10_000 });
-    await warningIcon.click();
+    // Reopen the dialog — exclusions are managed inside it, not from the badge
+    await widget.getByTestId('es-settings-btn').click();
+    await page.getByTestId('es-exclude-categories-btn').click();
 
-    // The popover should show the excluded category with a remove button
-    const popover = page.getByTestId('es-excluded-popover');
-    await expect(popover).toBeVisible({ timeout: 5_000 });
-    await expect(popover.getByText('Food & Drinks')).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 5_000 });
 
-    // Click the first X button to remove a category exclusion
-    await popover.locator('button').first().click();
+    // Checking the parent excluded its subcategories too, so the strip lists it plus children
+    const chips = dialog.getByTestId('ec-chips');
+    await expect(chips).toBeVisible();
+    await expect(chips.getByText('Food & Drinks', { exact: true })).toBeVisible();
+    expect(await chips.locator('button').count()).toBeGreaterThan(1);
 
-    // Keep removing until all are gone (parent check added all subcategories)
-    while ((await popover.locator('button').count()) > 0) {
-      await popover.locator('button').first().click();
-      await page.waitForTimeout(300);
-    }
+    // Remove a subcategory chip — the parent's chip keeps the strip alive. Clicking the parent
+    // chip instead would take its whole subtree, same as clicking the parent row.
+    const childChip = chips.locator('button').filter({ hasNotText: 'Food & Drinks' }).first();
+    const childName = (await childChip.innerText()).trim();
+    await childChip.click();
+    await expect(chips.getByText(childName, { exact: true })).toHaveCount(0);
+    await expect(chips).toBeVisible();
 
-    // Warning icon should disappear (no more exclusions)
-    await expect(warningIcon).not.toBeVisible({ timeout: 10_000 });
+    // Clear all drops the remainder and the strip goes away with them
+    await dialog.getByTestId('ec-clear-all').click();
+    await expect(chips).not.toBeVisible();
+
+    await page.getByTestId('ec-save-btn').click();
+    await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+
+    // Badge disappears once nothing is excluded
+    await expect(page.getByTestId('es-excluded-badge')).not.toBeVisible({ timeout: 10_000 });
   });
 });
