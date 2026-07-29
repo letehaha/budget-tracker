@@ -71,6 +71,15 @@ const validateSplits = async ({
         code: SPLIT_ERROR_CODES.SPLIT_MISSING_CATEGORY,
       });
     } else {
+      // One row per category: the table enforces it, and `manage-splits` relinks refunds by
+      // categoryId, so a second row for the same category would steal the first one's refunds.
+      if (categoryIds.has(split.categoryId)) {
+        errors.push({
+          field: `${fieldPrefix}.categoryId`,
+          message: t({ key: 'transactions.splits.duplicateCategory' }),
+          code: SPLIT_ERROR_CODES.SPLIT_DUPLICATE_CATEGORY,
+        });
+      }
       categoryIds.add(split.categoryId);
     }
 

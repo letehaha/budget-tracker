@@ -7,6 +7,7 @@ import RefundTransactions from '@models/refund-transactions.model';
 import * as Transactions from '@models/transactions.model';
 import { deletePortfolioTransfer } from '@services/investments/portfolios/transfers';
 import { assertSharedWritePhase1Guards } from '@services/sharing/auth/authorize-account-write.service';
+import { syncRefundLinkedFlags } from '@services/tx-refunds/sync-refund-linked-flags';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -38,9 +39,9 @@ export const deleteTransaction = withTransaction(
         });
       }
 
-      if (refundLinked) {
-        await unlinkRefundTransaction(id);
-      }
+      // Not gated on `refundLinked` — the flag is a cache of the link rows, and a row whose flag
+      // drifted false would otherwise keep its links and leave the other end flagged forever.
+      await unlinkRefundTransaction({ id });
 
       // The model's deleteTransactionById filters by `(id, userId)` — pass the row's
       // actual creator userId rather than the caller's so a recipient with `'all'`
@@ -107,27 +108,26 @@ export const deleteTransaction = withTransaction(
   },
 );
 
-const unlinkRefundTransaction = withTransaction(async (id: string) => {
-  const refundTx = await RefundTransactions.findOne({
+/**
+ * Drops every refund link touching this transaction, then recomputes the flag on the transactions
+ * at the other end. A purchase can carry several partial refunds, so all of them are released.
+ *
+ * Both foreign keys would cascade the links away anyway, but that happens only once the row is
+ * actually deleted — too late to read the counterparts off the links or to recompute their flag
+ * from a state where the links are already gone.
+ */
+const unlinkRefundTransaction = withTransaction(async ({ id }: { id: string }) => {
+  const links = await RefundTransactions.findAll({
     where: {
       [Op.or]: [{ originalTxId: id }, { refundTxId: id }],
     },
   });
 
-  if (!refundTx) return undefined;
+  if (!links.length) return;
 
-  const transactionIdsToUpdate = [refundTx.refundTxId, refundTx.originalTxId].filter((i) => Boolean(i) && i !== id);
+  const counterpartIds = links.flatMap((link) => [link.originalTxId, link.refundTxId]).filter((txId) => txId !== id);
 
-  if (transactionIdsToUpdate.length) {
-    await Transactions.default.update(
-      { refundLinked: false },
-      {
-        where: {
-          id: {
-            [Op.in]: transactionIdsToUpdate,
-          },
-        },
-      },
-    );
-  }
+  await RefundTransactions.destroy({ where: { id: { [Op.in]: links.map((link) => link.id) } } });
+
+  await syncRefundLinkedFlags({ transactionIds: counterpartIds });
 });

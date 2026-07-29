@@ -138,7 +138,11 @@ const chartData = computed(() => {
     periodStart: d.periodStart,
     periodEnd: d.periodEnd,
     income: d.income,
-    expenses: Math.abs(d.expenses),
+    // All three bar layouts size the expense bar from a magnitude growing away from a baseline. A
+    // period whose refunds outweigh its purchases reports negative expenses; it draws as no bar,
+    // while the tooltip keeps the real figure.
+    expenses: Math.max(d.expenses, 0),
+    expensesValue: d.expenses,
     netFlow: d.netFlow,
   }));
 });
@@ -463,7 +467,7 @@ function handleMouseEnter(event: MouseEvent, d: (typeof chartData.value)[0]) {
     ? format(startDate, 'MMMM yyyy')
     : `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
   tooltip.income = d.income;
-  tooltip.expenses = d.expenses;
+  tooltip.expenses = d.expensesValue;
   tooltip.netFlow = d.netFlow;
   tooltip.visible = true;
 

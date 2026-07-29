@@ -1,4 +1,4 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { RecordId, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
@@ -112,6 +112,74 @@ describe('Delete transaction controller', () => {
       });
 
       expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    });
+  });
+  describe('refunded transactions', () => {
+    const createExpense = async (accountId: RecordId) => {
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+      return tx;
+    };
+
+    const createRefundIncome = async (accountId: RecordId) => {
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId,
+          amount: 40,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+      return tx;
+    };
+
+    it('releases the refund transaction so it can be linked to another purchase', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const originalTx = await createExpense(account.id);
+      const refundTx = await createRefundIncome(account.id);
+
+      await helpers.createSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx.id });
+
+      expect((await helpers.deleteTransaction({ id: originalTx.id })).statusCode).toEqual(200);
+
+      const replacementTx = await createExpense(account.id);
+      const relink = await helpers.createSingleRefund({
+        originalTxId: replacementTx.id,
+        refundTxId: refundTx.id,
+      });
+
+      expect(relink.statusCode).toEqual(200);
+    });
+
+    it('releases every refund of the deleted purchase, not just the first', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const originalTx = await createExpense(account.id);
+      const firstRefundTx = await createRefundIncome(account.id);
+      const secondRefundTx = await createRefundIncome(account.id);
+
+      for (const refundTx of [firstRefundTx, secondRefundTx]) {
+        await helpers.createSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx.id });
+      }
+
+      expect((await helpers.deleteTransaction({ id: originalTx.id })).statusCode).toEqual(200);
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      expect(transactions.every((tx) => !tx.refundLinked)).toBe(true);
+
+      const replacementTx = await createExpense(account.id);
+      for (const refundTx of [firstRefundTx, secondRefundTx]) {
+        const relink = await helpers.createSingleRefund({
+          originalTxId: replacementTx.id,
+          refundTxId: refundTx.id,
+        });
+        expect(relink.statusCode).toEqual(200);
+      }
     });
   });
 });

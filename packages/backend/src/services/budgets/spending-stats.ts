@@ -23,7 +23,7 @@ import { Op } from 'sequelize';
 
 import { authorizeBudgetRead } from './authorize-budget-access';
 import { buildDateFilter } from './utils/build-date-filter';
-import { fetchBudgetRefundPairs, type RefundPair } from './utils/refund-pairs';
+import { type BudgetRefundPair, fetchBudgetRefundPairs } from './utils/refund-pairs';
 
 interface CategoryInfo {
   id: RecordId;
@@ -358,7 +358,7 @@ const buildRefundAdjustments = ({
   pairs,
   resolveCategoryBucket,
 }: {
-  pairs: RefundPair[];
+  pairs: BudgetRefundPair[];
   resolveCategoryBucket: (categoryId: RecordId) => RecordId | null;
 }): NormalizedTxData[] => {
   const adjustments: NormalizedTxData[] = [];
@@ -370,7 +370,7 @@ const buildRefundAdjustments = ({
       tx,
       overrideCategoryId,
     }: {
-      tx: RefundPair['originalTx'];
+      tx: BudgetRefundPair['originalTx'];
       overrideCategoryId: RecordId | null;
     }) => {
       const isExpense = tx.transactionType === TRANSACTION_TYPES.expense;
@@ -387,8 +387,8 @@ const buildRefundAdjustments = ({
     };
 
     // splitId only applies to the original side — splits belong to the original tx.
-    if (pair.originalInBudget) pushSide({ tx: pair.originalTx, overrideCategoryId: pair.splitCategoryId });
-    if (pair.refundInBudget) pushSide({ tx: pair.refundTx, overrideCategoryId: null });
+    if (pair.originalInScope) pushSide({ tx: pair.originalTx, overrideCategoryId: pair.splitCategoryId });
+    if (pair.refundInScope) pushSide({ tx: pair.refundTx, overrideCategoryId: null });
   }
 
   return adjustments;

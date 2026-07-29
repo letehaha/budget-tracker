@@ -24,6 +24,7 @@ import Users from './users.model';
     },
     {
       fields: ['transactionId', 'categoryId'],
+      unique: true,
     },
   ],
 })

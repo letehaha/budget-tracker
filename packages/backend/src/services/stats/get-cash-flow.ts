@@ -12,6 +12,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { format } from 'date-fns';
 import { Op } from 'sequelize';
 
+import { computeCategoryAllocations, resolveRefundPairs } from './category-allocation';
 import { findBucketIndex, generatePeriodBuckets, getWhereConditionForTime } from './utils';
 
 interface GetCashFlowParams {
@@ -21,6 +22,12 @@ interface GetCashFlowParams {
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: string;
   categoryIds?: RecordId[];
+  /**
+   * Categories the caller has hidden. Expanded to descendants here, because the list is a snapshot
+   * saved in the widget config: a subcategory added after that save is still part of its hidden
+   * parent.
+   */
+  excludedCategoryIds?: RecordId[];
 }
 
 type CategoryInfo = AccessibleCategoryInfo;
@@ -37,9 +44,12 @@ interface PeriodCategoryData {
 }
 
 /**
- * Get the aggregation category ID for a transaction's category.
- * If targetCategoryIds is provided, finds the closest ancestor (or self) that's in the target set.
- * Otherwise, returns the root category ID.
+ * Resolves the category a leg is reported under.
+ *
+ * With `targetCategoryIds` the closest selected ancestor (or the category itself) wins, and null
+ * means the category sits outside the selection — a split can point anywhere, so this is the same
+ * "no selected ancestor" answer the expenses-structure report uses to drop such legs.
+ * Without a selection everything rolls up to its root category.
  */
 const getAggregationCategoryId = ({
   categoryId,
@@ -49,7 +59,7 @@ const getAggregationCategoryId = ({
   categoryId: string;
   categoryMap: Map<string, CategoryInfo>;
   targetCategoryIds?: Set<string>;
-}): string => {
+}): string | null => {
   // If no target categories specified, aggregate to root
   if (!targetCategoryIds) {
     return getRootCategoryId({ categoryId, byId: categoryMap });
@@ -70,14 +80,17 @@ const getAggregationCategoryId = ({
     current = categoryMap.get(current.parentId);
   }
 
-  // Fallback: if no target ancestor found, use the category itself
-  // (this shouldn't happen if filtering is correct, but handles edge cases)
-  return categoryId;
+  return null;
 };
 
 /**
  * Fetches cash flow data (income vs expenses) for a specified user within a date range,
  * aggregated by the specified granularity.
+ *
+ * Spend is routed through the shared category-allocation engine, so split transactions land on
+ * their own categories and a refund reduces the side it reverses instead of inflating the other
+ * one — the same numbers the expenses-structure and pivot reports show. Both halves of a refund
+ * pair are subtracted in the same bucket, so netting never moves a period's net cash.
  *
  * Wrapped in a transaction so the category-map and transaction reads share one
  * pinned Postgres connection instead of a pool checkout per query — checkouts
@@ -91,6 +104,7 @@ export const getCashFlow = withTransaction(
     granularity,
     accountId,
     categoryIds,
+    excludedCategoryIds,
   }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
     // Generate period buckets
     const buckets = generatePeriodBuckets({ from, to, granularity });
@@ -145,8 +159,15 @@ export const getCashFlow = withTransaction(
           attributes: [],
         },
       ],
-      attributes: ['time', 'refAmount', 'transactionType', 'categoryId'],
+      attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
     });
+
+    // Each leg carries its transaction's type, so one call covers both directions. Refunds are
+    // resolved separately because this report nets them against income as well as expenses.
+    const [allocations, refundPairs] = await Promise.all([
+      computeCategoryAllocations({ transactions, applyRefunds: false }),
+      resolveRefundPairs({ transactions }),
+    ]);
 
     // Determine which categories to report in the breakdown
     // If specific categories selected, report those exact categories (not aggregated to root)
@@ -166,45 +187,105 @@ export const getCashFlow = withTransaction(
     // Create a set of target categories for aggregation (when specific categories are selected)
     const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
 
-    // Aggregate transactions into buckets
-    for (const tx of transactions) {
-      const txTime = new Date(tx.time);
-      const bucketIndex = findBucketIndex({ transactionTime: txTime, buckets });
+    // Hiding a parent hides everything under it, including subcategories created after the caller
+    // saved the exclusion list.
+    const excludedCategoryIdSet = new Set<string>(
+      excludedCategoryIds && excludedCategoryIds.length > 0
+        ? expandCategoryIdsWithDescendants({
+            categoryIds: excludedCategoryIds,
+            categories: allCategories,
+            byId: categoryMap,
+          })
+        : [],
+    );
 
-      if (bucketIndex === -1) continue;
+    /**
+     * Folds one signed contribution into its time bucket, both into the period total and — when
+     * the leg carries a category — into the breakdown. Legs outside every bucket are dropped.
+     *
+     * When specific categories are selected the breakdown aggregates to those; otherwise to roots.
+     */
+    const applyLeg = ({
+      categoryId,
+      cents,
+      time,
+      isExpense,
+    }: {
+      categoryId: string | null;
+      cents: number;
+      time: Date;
+      isExpense: boolean;
+    }): void => {
+      // An excluded leg leaves the period totals as well as the breakdown, so the widget's headline
+      // income/expenses match the bars underneath. Filtering here rather than in the query keeps a
+      // split whose own category is still counted, and never touches uncategorized legs.
+      if (categoryId && excludedCategoryIdSet.has(categoryId)) return;
+
+      // A split can point at a category the caller filtered out. Such a leg leaves the totals too,
+      // so they stay equal to the sum of the reported categories.
+      const aggregationCategoryId = categoryId
+        ? getAggregationCategoryId({ categoryId, categoryMap, targetCategoryIds })
+        : null;
+      if (categoryId && aggregationCategoryId === null) return;
+
+      const bucketIndex = findBucketIndex({ transactionTime: time, buckets });
+      if (bucketIndex === -1) return;
 
       const periodData = periodDataMap.get(bucketIndex)!;
-      const amount = tx.refAmount.toCents();
-
-      if (tx.transactionType === TRANSACTION_TYPES.income) {
-        periodData.income += amount;
-      } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-        periodData.expenses += amount;
+      if (isExpense) {
+        periodData.expenses += cents;
+      } else {
+        periodData.income += cents;
       }
 
-      // Track per-category amounts by type
-      // When specific categories selected: aggregate to those categories
-      // Otherwise: aggregate to root categories
-      if (tx.categoryId) {
-        const aggregationCategoryId = getAggregationCategoryId({
-          categoryId: tx.categoryId,
-          categoryMap,
-          targetCategoryIds,
-        });
-        const currentAmounts = periodData.categories.get(aggregationCategoryId) || {
-          incomeAmount: 0,
-          expenseAmount: 0,
-        };
+      if (!aggregationCategoryId) return;
 
-        if (tx.transactionType === TRANSACTION_TYPES.income) {
-          currentAmounts.incomeAmount += amount;
-        } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
-          currentAmounts.expenseAmount += amount;
-        }
+      const currentAmounts = periodData.categories.get(aggregationCategoryId) || {
+        incomeAmount: 0,
+        expenseAmount: 0,
+      };
 
-        periodData.categories.set(aggregationCategoryId, currentAmounts);
+      if (isExpense) {
+        currentAmounts.expenseAmount += cents;
+      } else {
+        currentAmounts.incomeAmount += cents;
       }
+
+      periodData.categories.set(aggregationCategoryId, currentAmounts);
+    };
+
+    for (const leg of allocations.base) {
+      applyLeg({
+        categoryId: leg.categoryId,
+        cents: leg.cents,
+        time: leg.time,
+        isExpense: leg.transactionType === TRANSACTION_TYPES.expense,
+      });
     }
+
+    for (const pair of refundPairs) {
+      // Netting needs both halves of the pair inside this report's scope. When an account, category
+      // or date filter admits only one of them, subtracting that half alone would take away money
+      // the other half never contributed — the range/filter simply keeps both sides gross instead.
+      if (!pair.expenseInScope || !pair.incomeInScope) continue;
+
+      // Both halves land in the refund's own bucket, so the period keeps the net cash it saw while
+      // the money stops counting as spend on one side and as income on the other.
+      applyLeg({ categoryId: pair.expenseCategoryId, cents: -pair.cents, time: pair.time, isExpense: true });
+      applyLeg({ categoryId: pair.incomeCategoryId, cents: -pair.cents, time: pair.time, isExpense: false });
+    }
+
+    // Every period reports the same category set (stacked bars need a stable series list), so the
+    // "has data somewhere" scan runs once rather than once per period.
+    const categoriesWithData = reportCategoryIds.filter((catId) => {
+      for (const [, periodData] of periodDataMap) {
+        const amounts = periodData.categories.get(catId);
+        if (amounts && (amounts.incomeAmount !== 0 || amounts.expenseAmount !== 0)) {
+          return true;
+        }
+      }
+      return false;
+    });
 
     // Build response periods
     const periods: endpointsTypes.CashFlowPeriodData[] = buckets.map((bucket, index) => {
@@ -217,19 +298,6 @@ export const getCashFlow = withTransaction(
         expenses: data.expenses,
         netFlow: data.income - data.expenses,
       };
-
-      // Always add category breakdown (for stacked bars)
-      // Filter to only include categories that have data in at least one period
-      const categoriesWithData = reportCategoryIds.filter((catId) => {
-        // Check if this category has any data across all periods
-        for (const [, periodData] of periodDataMap) {
-          const amounts = periodData.categories.get(catId);
-          if (amounts && (amounts.incomeAmount !== 0 || amounts.expenseAmount !== 0)) {
-            return true;
-          }
-        }
-        return false;
-      });
 
       period.categories = categoriesWithData.map((catId) => {
         const catInfo = categoryMap.get(catId) || { name: 'Unknown', color: '#888888' };

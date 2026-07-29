@@ -191,13 +191,14 @@ const cashFlowSchema = z.object({
       granularity: z.enum(['monthly', 'biweekly', 'weekly']),
       accountId: z.string().optional(),
       categoryIds: optionalCommaSeparatedIds(),
+      excludedCategoryIds: optionalCommaSeparatedIds(),
     }),
   ),
 });
 
 export const getCashFlow = createController(cashFlowSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, granularity, accountId, categoryIds } = query;
+  const { from, to, granularity, accountId, categoryIds, excludedCategoryIds } = query;
 
   const result = await statsService.getCashFlow(
     removeUndefinedKeys({
@@ -207,6 +208,7 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
       granularity,
       accountId,
       categoryIds,
+      excludedCategoryIds,
     }),
   );
 

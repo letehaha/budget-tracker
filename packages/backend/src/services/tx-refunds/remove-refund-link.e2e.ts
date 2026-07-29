@@ -56,7 +56,7 @@ describe('removeRefundLink', () => {
 
       // Check that after refund deletion all transactions are in place
       expect([originalTx.id, refundTx.id].every((id) => transactions.find((tx) => tx.id === id))).toBe(true);
-      expect(transactions.every((tx) => tx.refundLinked)).toBe(false);
+      expect(transactions.every((tx) => !tx.refundLinked)).toBe(true);
     });
 
     it('successfully removes a refund link between two transactions when some transaction is deleted', async () => {
@@ -101,7 +101,7 @@ describe('removeRefundLink', () => {
       expect(getResponse.statusCode).toBe(404);
 
       transactions = await helpers.getTransactions({ raw: true });
-      expect(transactions.every((tx) => tx.refundLinked)).toBe(false);
+      expect(transactions.every((tx) => !tx.refundLinked)).toBe(true);
     });
   });
 
@@ -149,6 +149,120 @@ describe('removeRefundLink', () => {
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('original transaction with several refunds', () => {
+    const buildScenario = async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const rootCategory = (await helpers.getCategoriesList()).find((category) => !category.parentId)!;
+
+      const [originalTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          categoryId: rootCategory.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const [firstRefundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 40,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+
+      const [secondRefundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 30,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+
+      for (const refundTx of [firstRefundTx, secondRefundTx]) {
+        const response = await helpers.createSingleRefund({
+          originalTxId: originalTx.id,
+          refundTxId: refundTx.id,
+        });
+        expect(response.statusCode).toBe(200);
+      }
+
+      return { rootCategory, originalTx, firstRefundTx, secondRefundTx };
+    };
+
+    it('leaves the original flagged as refunded while another refund still points at it', async () => {
+      const { originalTx, firstRefundTx, secondRefundTx } = await buildScenario();
+
+      const removal = await helpers.deleteRefund({
+        originalTxId: originalTx.id,
+        refundTxId: firstRefundTx.id,
+      });
+      expect(removal.statusCode).toBe(200);
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const refundLinkedOf = (id: string) => transactions.find((tx) => tx.id === id)!.refundLinked;
+
+      expect(refundLinkedOf(originalTx.id)).toBe(true);
+      expect(refundLinkedOf(firstRefundTx.id)).toBe(false);
+      expect(refundLinkedOf(secondRefundTx.id)).toBe(true);
+    });
+
+    it('leaves the original flagged when one of its refund transactions is deleted', async () => {
+      const { originalTx, firstRefundTx, secondRefundTx } = await buildScenario();
+
+      await helpers.deleteTransaction({ id: firstRefundTx.id });
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const refundLinkedOf = (id: string) => transactions.find((tx) => tx.id === id)!.refundLinked;
+
+      expect(refundLinkedOf(originalTx.id)).toBe(true);
+      expect(refundLinkedOf(secondRefundTx.id)).toBe(true);
+    });
+
+    it('leaves the original flagged when one of its refunds is repointed to another purchase', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const { originalTx, firstRefundTx, secondRefundTx } = await buildScenario();
+
+      const [otherPurchase] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      await helpers.updateTransaction({
+        id: firstRefundTx.id,
+        payload: { refundsTxId: otherPurchase.id },
+        raw: true,
+      });
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const refundLinkedOf = (id: string) => transactions.find((tx) => tx.id === id)!.refundLinked;
+
+      expect(refundLinkedOf(originalTx.id)).toBe(true);
+      expect(refundLinkedOf(secondRefundTx.id)).toBe(true);
+      expect(refundLinkedOf(otherPurchase.id)).toBe(true);
+      expect(refundLinkedOf(firstRefundTx.id)).toBe(true);
+    });
+
+    it('keeps netting the surviving refund out of the expenses report', async () => {
+      const { rootCategory, originalTx, firstRefundTx } = await buildScenario();
+
+      const beforeRemoval = await helpers.getSpendingsByCategories({ raw: true });
+      expect(beforeRemoval[rootCategory.id].amount).toBe(30);
+
+      await helpers.deleteRefund({ originalTxId: originalTx.id, refundTxId: firstRefundTx.id });
+
+      const afterRemoval = await helpers.getSpendingsByCategories({ raw: true });
+      expect(afterRemoval[rootCategory.id].amount).toBe(70);
     });
   });
 
