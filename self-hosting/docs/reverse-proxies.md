@@ -22,6 +22,11 @@ no second port to configure.
   default, which makes large imports fail with a "413" or "Request Entity Too
   Large" error. If your proxy has an upload size (or request size) limit, raise
   it to at least 15 MB.
+- **Forward the whole domain, not a list of paths.** Everything the app needs
+  is on that one port, but it is more than `/` and `/api/`: MCP clients also
+  fetch `/mcp`, `/.well-known/oauth-*` and `/authorize`, `/token`, `/register`.
+  If you hand-wrote per-path rules, those requests land on the wrong place and
+  MCP silently connects to the hosted service instead of yours.
 - **Close the direct port.** Your proxy serves the app over HTTPS, but the
   plain-HTTP port `8080` is still open to anyone until you close it –
   see [setup-guide.md](setup-guide.md#3-behind-your-own-reverse-proxy), step 3.
@@ -43,6 +48,11 @@ open the Proxy Host's **Advanced** tab, add the line below, and save:
 ```
 client_max_body_size 15m;
 ```
+
+If you connect an MCP client (Claude, ChatGPT) and the sign-in page returns a
+**403**, turn **Block Common Exploits** off on the Proxy Host. Nginx Proxy
+Manager's exploit filter rejects the OAuth authorization URL because of its
+query string.
 
 Nginx Proxy Manager is almost always run as a container itself. If yours is,
 don't forward to `http://<host>:8080` – reach the app over the Docker network
