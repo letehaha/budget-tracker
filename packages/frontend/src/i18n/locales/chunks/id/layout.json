@@ -85,6 +85,30 @@
     "dark": "Gelap",
     "system": "Sistem"
   },
+  "feedback": {
+    "dialog": {
+      "title": "Kirim masukan",
+      "description": "Beri tahu kami apa yang berjalan baik dan apa yang tidak.",
+      "typeLabel": "Jenis",
+      "typePlaceholder": "Pilih jenis",
+      "types": {
+        "bug": "Ada yang rusak",
+        "featureRequest": "Saya ingin fitur baru",
+        "other": "Hal lainnya"
+      },
+      "messageLabel": "Masukan Anda",
+      "messagePlaceholder": "Apa yang terjadi, atau apa yang ingin Anda lihat?",
+      "messageRequired": "Tulis pesan sebelum mengirim.",
+      "submit": "Kirim",
+      "thanks": "Terima kasih, kami membaca setiap pesan.",
+      "unavailable": "Pengiriman sedang tidak tersedia. Gunakan papan di bawah ini sebagai gantinya.",
+      "or": "atau",
+      "board": {
+        "title": "Posting di papan publik",
+        "description": "Beri suara pada ide orang lain, lihat apa yang sudah direncanakan, dan dapatkan balasan untuk ide Anda."
+      }
+    }
+  },
   "syncStatusTooltip": {
     "title": "Status sinkronisasi koneksi bank",
     "syncedSuccessfully": "Berhasil disinkronkan",

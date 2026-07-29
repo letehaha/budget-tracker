@@ -11,7 +11,7 @@
     "transactionGroups": "Групи",
     "analytics": "Аналітика",
     "optimizations": "Оптимізація",
-    "accountDetails": "Деталі акаунту",
+    "accountDetails": "Деталі рахунку",
     "logout": "Вийти",
     "settings": "Налаштування",
     "planned": {
@@ -53,7 +53,6 @@
   },
   "header": {
     "add": "Додати",
-    "import": "Імпорт",
     "importData": "Імпорт даних",
     "language": "Мова",
     "newTransaction": "Нова транзакція",
@@ -63,7 +62,7 @@
     "sync": {
       "syncing": "Синхронізація",
       "synchronizing": "Синхронізація...",
-      "syncedTime": "{time}",
+      "syncedTime": "Синхронізовано {time}",
       "connectBank": "Підключити банк",
       "syncingAccounts": "Синхронізація {count} рахунків",
       "stuck": "Синхронізація зависла"
@@ -85,10 +84,34 @@
     "dark": "Темна",
     "system": "Системна"
   },
+  "feedback": {
+    "dialog": {
+      "title": "Залишити відгук",
+      "description": "Розкажіть, що працює, а що ні.",
+      "typeLabel": "Тип",
+      "typePlaceholder": "Оберіть тип",
+      "types": {
+        "bug": "Щось не працює",
+        "featureRequest": "Хочу нову функцію",
+        "other": "Щось інше"
+      },
+      "messageLabel": "Ваш відгук",
+      "messagePlaceholder": "Що сталося, або що б ви хотіли бачити?",
+      "messageRequired": "Будь ласка, напишіть повідомлення перед надсиланням.",
+      "submit": "Надіслати",
+      "thanks": "Дякуємо, ми читаємо кожне повідомлення.",
+      "unavailable": "Наразі надсилання недоступне. Скористайтеся дошкою нижче.",
+      "or": "або",
+      "board": {
+        "title": "Опублікуйте на публічній дошці",
+        "description": "Голосуйте за ідеї інших, дивіться, що вже заплановано, та отримайте відповідь на свою."
+      }
+    }
+  },
   "syncStatusTooltip": {
     "title": "Статус синхронізації банків",
     "syncedSuccessfully": "Успішно синхронізовано",
-    "syncCompletedWithErrors": "Деякі акаунти не вдалось синхронізувати",
+    "syncCompletedWithErrors": "Деякі рахунки не вдалося синхронізувати",
     "syncStuckTitle": "Синхронізація зависла",
     "syncStuckDescription": "Деякі банківські з'єднання не відповіли вчасно. Спробуйте ще раз або перепідключіть їх на сторінці інтеграцій.",
     "progress": "{current} з {total} синхронізовано",

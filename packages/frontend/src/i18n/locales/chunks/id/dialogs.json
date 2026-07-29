@@ -478,6 +478,18 @@
         "error": "Gagal mengirim undangan."
       }
     },
+    "categoryExclusions": {
+      "title": "Kecualikan kategori",
+      "description": "Disembunyikan dari grafik dan total widget ini",
+      "menuItem": "Kecualikan kategori",
+      "nothingExcluded": "Tidak ada yang dikecualikan. Semua kategori dihitung dalam widget ini.",
+      "excludedTag": "Dikecualikan",
+      "stopExcluding": "Berhenti mengecualikan {name}",
+      "badgeTooltip": "1 kategori dikecualikan dari widget ini | {count} kategori dikecualikan dari widget ini",
+      "andMore": "dan {count} lainnya",
+      "clearAll": "Bersihkan semua",
+      "countExcluded": "1 kategori dikecualikan | {count} kategori dikecualikan"
+    },
     "subscriptionMarkPaid": {
       "title": "Tandai Pembayaran",
       "description": "Catat pembayaran untuk {name}",

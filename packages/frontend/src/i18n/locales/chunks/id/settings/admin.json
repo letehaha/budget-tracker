@@ -4,34 +4,34 @@
       "title": "Panel Admin",
       "description": "Alat administratif dan manajemen sistem",
       "priceSync": {
-        "title": "Sinkronisasi Harga Efek",
-        "description": "Picu sinkronisasi harga secara manual untuk semua efek yang dimiliki",
+        "title": "Sinkronisasi Harga Sekuritas",
+        "description": "Picu sinkronisasi harga secara manual untuk semua sekuritas yang dimiliki",
         "button": "Mulai Sinkronisasi Harga",
         "buttonLoading": "Menyinkronkan...",
         "notifications": {
-          "success": "Sinkronisasi harga efek berhasil",
+          "success": "Sinkronisasi harga sekuritas berhasil",
           "failed": "Gagal memicu sinkronisasi harga",
           "rateLimited": "Tidak diizinkan. Coba lagi dalam {time}.",
           "adminRequired": "Hak akses admin diperlukan untuk tindakan ini"
         }
       },
       "priceUpload": {
-        "title": "Upload Harga Efek Manual",
-        "description": "Upload data harga historis efek melalui file CSV atau JSON",
-        "button": "Upload Harga Efek",
-        "dialogTitle": "Upload Harga Efek",
+        "title": "Upload Harga Sekuritas Manual",
+        "description": "Upload data harga historis sekuritas melalui file CSV atau JSON",
+        "button": "Upload Harga Sekuritas",
+        "dialogTitle": "Upload Harga Sekuritas",
         "selectSecurity": {
           "searchLabel": "Cari simbol atau nama",
           "searchPlaceholder": "AAPL",
           "searching": "Mencari…",
-          "failed": "Gagal mencari efek.",
+          "failed": "Gagal mencari sekuritas.",
           "noResults": "Tidak ada hasil.",
           "changeButton": "Ganti"
         },
         "dateRangeInfo": {
           "loading": "Memuat informasi rentang tanggal...",
-          "title": "Rentang Tanggal Kurs Tersedia ({currency}):",
-          "tooltipText": "Anda hanya dapat mengupload harga efek untuk tanggal yang memiliki kurs tersedia. Jika tidak, harga efek tidak dapat dikonversi ke mata uang lain. Jika membutuhkan data lama, upload kurs terlebih dahulu. Tergantung opsi yang dipilih, data akan difilter otomatis (dilewati) atau upload akan gagal."
+          "title": "Rentang Tanggal Nilai Tukar Tersedia ({currency}):",
+          "tooltipText": "Anda hanya dapat mengupload harga sekuritas untuk tanggal yang memiliki nilai tukar tersedia. Jika tidak, harga sekuritas tidak dapat dikonversi ke mata uang lain. Jika membutuhkan data lama, upload nilai tukar terlebih dahulu. Tergantung opsi yang dipilih, data akan difilter otomatis (dilewati) atau upload akan gagal."
         },
         "fileUpload": {
           "title": "Unggah File",
@@ -64,12 +64,12 @@
         },
         "preview": {
           "title": "Pratinjau Data",
-          "recordsCount": "{count} catatan akan diupload",
+          "recordsCount": "{count} catatan akan diupload | {count} catatan akan diupload",
           "recordsPeriod": "untuk periode antara {oldest} dan {newest}",
           "loadingExisting": "Memuat harga yang sudah ada untuk perbandingan...",
           "warnings": {
             "significantDifferences": "Perbedaan harga signifikan terdeteksi",
-            "differencesDetails": "{count} catatan memiliki perbedaan harga lebih dari 4% dibanding data yang ada. Tinjau dengan hati-hati."
+            "differencesDetails": "{count} catatan memiliki perbedaan harga lebih dari 4% dibanding data yang ada. Tinjau dengan hati-hati. | {count} catatan memiliki perbedaan harga lebih dari 4% dibanding data yang ada. Tinjau dengan hati-hati."
           },
           "filterCheckbox": "Tampilkan hanya catatan dengan perbedaan signifikan (>4%)",
           "tableHeaders": {
@@ -88,7 +88,7 @@
           "title": "Opsi Upload",
           "autoFilter": {
             "title": "Filter otomatis tanggal di luar rentang yang tersedia",
-            "description": "Hapus otomatis tanggal yang berada di luar rentang kurs yang tersedia"
+            "description": "Hapus otomatis tanggal yang berada di luar rentang nilai tukar yang tersedia"
           },
           "override": {
             "title": "Timpa catatan yang sudah ada",
@@ -100,17 +100,17 @@
         },
         "result": {
           "title": "Upload Selesai!",
-          "inserted": "✓ {count} catatan baru ditambahkan",
+          "inserted": "✓ {count} catatan baru ditambahkan | ✓ {count} catatan baru ditambahkan",
           "duplicates": "• {count} duplikat {action}",
           "duplicatesUpdated": "diperbarui",
           "duplicatesSkipped": "dilewati",
-          "filtered": "• {count} tanggal difilter (di luar rentang)",
+          "filtered": "• {count} tanggal difilter (di luar rentang) | • {count} tanggal difilter (di luar rentang)",
           "closeButton": "Tutup",
           "uploadMoreButton": "Upload Lagi"
         },
         "notifications": {
           "dateInfoLoadFailed": "Gagal memuat info tanggal: {error}",
-          "uploadSuccess": "Berhasil mengupload {count} catatan harga",
+          "uploadSuccess": "Berhasil mengupload {count} catatan harga | Berhasil mengupload {count} catatan harga",
           "uploadFailed": "Upload gagal: {error}"
         }
       }

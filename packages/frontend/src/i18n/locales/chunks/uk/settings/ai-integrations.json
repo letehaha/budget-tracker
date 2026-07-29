@@ -33,9 +33,9 @@
         }
       },
       "actions": {
-        "addCustomConnector": "Add custom connector",
-        "addConnector": "Add connector",
-        "add": "Add"
+        "addCustomConnector": "Додати власний конектор",
+        "addConnector": "Додати конектор",
+        "add": "Додати"
       },
       "connectedApps": {
         "title": "Підключені додатки",

@@ -63,8 +63,8 @@
       "payees": {
         "label": "Отримувачі",
         "searchPlaceholder": "Пошук отримувачів",
-        "selectedOne": "1 Платник вибраний",
-        "selectedMany": "{n} Платників вибрано"
+        "selectedOne": "1 отримувач вибраний",
+        "selectedMany": "{n} отримувачів вибрано"
       },
       "removeFilter": "Видалити фільтр",
       "menu": {
@@ -78,7 +78,7 @@
         "disabledTooltip": "Перекази виключені фільтром вище, тому види переказів не мають ефекту.",
         "commonTransfer": "Між рахунками",
         "outOfWallet": "Зі гаманця",
-        "toPortfolio": "До портфоліо",
+        "toPortfolio": "До портфеля",
         "toVenture": "До венчурного проекту",
         "selectedCount": "Вибрано: {n}"
       }
@@ -98,8 +98,8 @@
       "dialogDescription": "Зміни буде застосовано до всіх вибраних транзакцій. Оновлені будуть лише заповнені поля.",
       "categoryLabel": "Категорія",
       "categoryPlaceholder": "Оберіть категорію...",
-      "payeeLabel": "Контрагент",
-      "payeePlaceholder": "Виберіть контрагента...",
+      "payeeLabel": "Отримувач",
+      "payeePlaceholder": "Виберіть отримувача...",
       "tagsLabel": "Теги",
       "tagsPlaceholder": "Оберіть теги...",
       "noteLabel": "Примітка",
@@ -109,7 +109,7 @@
       "confirmTitle": "Підтвердження змін",
       "confirmDescription": "Ви збираєтесь оновити {count} транзакцій:",
       "confirmCategoryLabel": "Категорія",
-      "confirmPayeeLabel": "Контрагент",
+      "confirmPayeeLabel": "Отримувач",
       "confirmTagsLabel": "Теги",
       "confirmNoteLabel": "Примітка",
       "cancelButton": "Скасувати",
@@ -208,7 +208,7 @@
         "date": "Дата",
         "account": "Рахунок",
         "category": "Категорія",
-        "payee": "Контрагент",
+        "payee": "Отримувач",
         "amount": "Сума",
         "refAmount": "Базова сума",
         "note": "Примітка",
@@ -233,8 +233,8 @@
         "ai": "ШІ",
         "mcc_rule": "MCC правило",
         "user_rule": "Користувацьке правило",
-        "subscription_rule": "Правило передплати",
-        "payee_rule": "Правило контрагента"
+        "subscription_rule": "Правило підписки",
+        "payee_rule": "Правило отримувача"
       },
       "viewToggle": {
         "list": "Вигляд списком",

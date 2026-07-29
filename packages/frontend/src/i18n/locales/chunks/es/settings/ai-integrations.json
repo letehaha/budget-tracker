@@ -33,9 +33,9 @@
         }
       },
       "actions": {
-        "addCustomConnector": "Add custom connector",
-        "addConnector": "Add connector",
-        "add": "Add"
+        "addCustomConnector": "Añadir conector personalizado",
+        "addConnector": "Añadir conector",
+        "add": "Añadir"
       },
       "connectedApps": {
         "title": "Aplicaciones conectadas",

@@ -37,7 +37,7 @@
         "expense": "Pengeluaran",
         "enterAmountAbove": "Masukkan jumlah di atas",
         "noAdjustmentNeeded": "Tidak perlu penyesuaian",
-        "incomeWillBeCreated": "Pendapatan sebesar {amount} {currency} akan dibuat",
+        "incomeWillBeCreated": "Pemasukan sebesar {amount} {currency} akan dibuat",
         "expenseWillBeCreated": "Pengeluaran sebesar {amount} {currency} akan dibuat",
         "transactionNote": "Catatan Transaksi",
         "optionalNote": "Catatan opsional",

@@ -10,6 +10,7 @@
       "collapse": "Contraer",
       "netWorthDrivers": "Impulsores del patrimonio neto",
       "investmentContributions": "Aportaciones",
+      "netWorthHistory": "Historial de patrimonio neto",
       "sections": {
         "investments": "Inversiones"
       }
@@ -44,7 +45,8 @@
         "last6Months": "Últimos 6 meses",
         "last12Months": "Últimos 12 meses",
         "thisYear": "Este año",
-        "previousYear": "Año anterior"
+        "previousYear": "Año anterior",
+        "allTime": "Todo el tiempo"
       },
       "periodSelector": {
         "quickSelect": "Selección rápida",
@@ -182,7 +184,8 @@
       "thisYear": "Este año",
       "previousYear": "Año anterior",
       "last3Years": "Últimos 3 años",
-      "last5Years": "Últimos 5 años"
+      "last5Years": "Últimos 5 años",
+      "allTime": "Todo el tiempo"
     },
     "savedViews": {
       "trigger": "Vistas",
@@ -311,6 +314,65 @@
       "noPortfoliosPlaceholder": "Cree una cartera y empiece a invertir para hacer seguimiento de sus aportaciones aquí.",
       "noPortfoliosAction": "Añadir una cartera",
       "loadError": "No se pudieron cargar las aportaciones"
+    }
+  },
+  "netWorthHistory": {
+    "title": "Historial de patrimonio neto",
+    "subtitle": "Cómo cambiaron sus activos, pasivos y patrimonio neto a lo largo del tiempo",
+    "granularity": {
+      "weekly": "Semanal",
+      "monthly": "Mensual",
+      "quarterly": "Trimestral",
+      "yearly": "Anual"
+    },
+    "kindFilter": {
+      "all": "Todos los pasivos",
+      "scopeHint": "Elija qué tipos de deuda cuentan como pasivos en este informe.",
+      "selectedOne": "1 tipo",
+      "selectedMany": "{n} tipos"
+    },
+    "assetKinds": {
+      "cash": "Efectivo y cuentas",
+      "investments": "Inversiones",
+      "vehicles": "Vehículos",
+      "ventures": "Proyectos"
+    },
+    "assetFilter": {
+      "all": "Todos los activos",
+      "scopeHint": "Elija qué tipos de activo cuentan en este informe.",
+      "selectedOne": "1 tipo",
+      "selectedMany": "{n} tipos"
+    },
+    "cards": {
+      "currentNetWorth": "Patrimonio neto actual",
+      "periodChange": "Cambio del período",
+      "annualized": "≈ {pct} / año",
+      "averageLiabilities": "Tiene un promedio de {amount} en pasivos durante el período seleccionado.",
+      "noLiabilities": "No tuvo pasivos durante el período seleccionado."
+    },
+    "chart": {
+      "assets": "Activos",
+      "liabilities": "Pasivos",
+      "liabilitiesTotal": "Total de pasivos",
+      "netWorth": "Patrimonio neto",
+      "averageLiabilities": "Pasivos prom.",
+      "liabilitiesZoomed": "Escala de pasivos ampliada"
+    },
+    "settings": {
+      "title": "Ajustes del gráfico",
+      "zoomLiabilities": "Ampliar escala de pasivos",
+      "zoomLiabilitiesHint": "Amplía las deudas pequeñas para que sigan siendo visibles junto a los activos grandes."
+    },
+    "degraded": {
+      "title": "Algunos valores son estimados",
+      "unpricedSecurities": "No hay datos de precio recientes para {securities}, por lo que se muestran al coste y pueden subestimar su patrimonio neto.",
+      "unpricedSecuritiesTruncated": "No hay datos de precio recientes para {securities} y otros ({count} valores en total); se muestran al coste y pueden subestimar su patrimonio neto.",
+      "fxFallback": "Faltan tipos de cambio para {currencies}; esos importes usan un tipo 1:1."
+    },
+    "states": {
+      "loadError": "Error al cargar el historial de patrimonio neto. Inténtelo de nuevo más tarde.",
+      "noData": "Sin historial para este período",
+      "noDataHint": "Pruebe con un período más largo, o añada cuentas y transacciones para que haya saldos que capturar."
     }
   }
 }

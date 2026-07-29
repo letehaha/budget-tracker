@@ -33,7 +33,7 @@
     "noBanksConnected": "Belum ada bank yang terhubung — hubungkan satu untuk menyinkronkan saldo secara otomatis.",
     "reconnect": "Hubungkan Kembali",
     "manageConnection": "Kelola koneksi",
-    "accountsCount": "{count} akun",
+    "accountsCount": "{count} akun | {count} akun",
     "sort": {
       "auto": "Otomatis",
       "name": "Nama",

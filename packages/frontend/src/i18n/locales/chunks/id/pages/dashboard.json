@@ -100,12 +100,12 @@
         "configTypeInstallments": "Cicilan",
         "activeSummary": "{count} aktif",
         "perYear": " per tahun",
-        "percentOfIncome": "{percent}% dari rata-rata pendapatan",
+        "percentOfIncome": "{percent}% dari rata-rata pemasukan",
         "settings": {
           "title": "Pengaturan",
           "show": "Tampilkan",
-          "incomeWindow": "Jendela pendapatan",
-          "incomeWindowTooltip": "Kami rata-rata transaksi masuk Anda selama periode ini untuk menghitung % pendapatan yang dihabiskan untuk pembayaran berulang.",
+          "incomeWindow": "Jendela pemasukan",
+          "incomeWindowTooltip": "Kami rata-rata transaksi masuk Anda selama periode ini untuk menghitung % pemasukan yang dihabiskan untuk pembayaran berulang.",
           "lookbackOption": {
             "1": "Bulan lalu",
             "3": "3 bulan terakhir",
@@ -122,9 +122,9 @@
       },
       "cashFlow": {
         "title": "Arus Kas",
-        "description": "Menunjukkan tabungan bersih Anda: pendapatan dikurangi pengeluaran untuk periode yang dipilih, dengan tren periode sebelumnya",
+        "description": "Menunjukkan tabungan bersih Anda: pemasukan dikurangi pengeluaran untuk periode yang dipilih, dengan tren periode sebelumnya",
         "vsPrevious": "vs sebelumnya",
-        "income": "Pendapatan",
+        "income": "Pemasukan",
         "expenses": "Pengeluaran",
         "saved": "Ditabung",
         "previousPeriodsTrend": "Tren periode sebelumnya"
@@ -143,7 +143,7 @@
         },
         "categoryTracker": {
           "name": "Pantauan Kategori",
-          "description": "Pantau pengeluaran dan pendapatan untuk kategori yang dipilih"
+          "description": "Pantau pengeluaran dan pemasukan untuk kategori yang dipilih"
         },
         "spendingCategories": {
           "name": "Pengeluaran per Kategori",
@@ -159,7 +159,7 @@
         },
         "cashFlow": {
           "name": "Arus Kas",
-          "description": "Pendapatan vs pengeluaran dengan tingkat tabungan"
+          "description": "Pemasukan vs pengeluaran dengan tingkat tabungan"
         },
         "creditUtilization": {
           "name": "Penggunaan Kredit",

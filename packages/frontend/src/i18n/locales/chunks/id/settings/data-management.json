@@ -24,9 +24,9 @@
       },
       "ynab": {
         "title": "Impor dari YNAB",
-        "description": "Upload Register.csv YNAB Anda untuk memigrasikan akun, transaksi, kategori, penerima pembayaran, dan flag.",
+        "description": "Upload Register.csv YNAB Anda untuk memigrasikan akun, transaksi, kategori, penerima, dan flag.",
         "cta": "Impor dari YNAB",
-        "listDescription": "Akun, transaksi, kategori, dan penerima pembayaran"
+        "listDescription": "Akun, transaksi, kategori, dan penerima"
       },
       "budget-bakers-wallet": {
         "title": "Wallet (BudgetBakers)",

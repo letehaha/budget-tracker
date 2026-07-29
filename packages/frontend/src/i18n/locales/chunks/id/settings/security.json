@@ -219,7 +219,7 @@
           "acknowledge": {
             "title": "Sumber daya yang dibagikan akan kehilangan akses",
             "description": "Anda memiliki sumber daya yang saat ini dapat diakses oleh orang lain. Memulihkan akan menghapus akses tersebut.",
-            "householdsCount": "{count} rumah tangga yang dibagikan",
+            "householdsCount": "{count} rumah tangga yang dibagikan | {count} rumah tangga yang dibagikan",
             "checkbox": "Saya memahami bahwa sumber daya yang dibagikan ini akan kehilangan akses.",
             "confirmLabel": "Tetap pulihkan"
           },

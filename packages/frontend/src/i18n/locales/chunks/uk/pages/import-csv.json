@@ -117,7 +117,7 @@
           "accountsCreated": "Створено рахунків",
           "categoriesCreated": "Створено категорій",
           "tagsCreated": "Створено тегів",
-          "payeesCreated": "Створено одержувачів",
+          "payeesCreated": "Створено отримувачів",
           "importErrors": "Помилки імпорту",
           "rowNumber": "Рядок #",
           "error": "Помилка",
@@ -371,7 +371,7 @@
           "account": "Рахунок",
           "currency": "Валюта",
           "transactionType": "Тип транзакції",
-          "payee": "Одержувач"
+          "payee": "Отримувач"
         },
         "dateFormat": {
           "label": "Формат дати",

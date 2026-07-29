@@ -39,7 +39,7 @@
         "feeLabel": "Biaya (dalam mata uang pembayaran)",
         "feePlaceholder": "0",
         "sameCurrencyFeeHint": "Biaya dicatat sebagai selisih antara total dan kuantitas × harga.",
-        "crossCurrencyFeeHint": "Biaya eksplisit broker. Selisih kurs ditangkap dalam nilai tukar perdagangan.",
+        "crossCurrencyFeeHint": "Biaya eksplisit broker. Selisih nilai tukar ditangkap dalam nilai konversi perdagangan.",
         "modeFee": "Saya tahu biayanya",
         "modeAuto": "Otomatis",
         "modeRate": "Saya tahu nilainya",

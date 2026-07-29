@@ -37,7 +37,7 @@
       "backToBudgets": "Kembali ke Anggaran",
       "noTransactionsYet": "Belum ada transaksi",
       "transactions": "Transaksi",
-      "transactionsLinked": "{count} transaksi terhubung ke anggaran ini",
+      "transactionsLinked": "{count} transaksi terhubung ke anggaran ini | {count} transaksi terhubung ke anggaran ini",
       "tabs": {
         "statistics": "Statistik",
         "transactions": "Transaksi",
