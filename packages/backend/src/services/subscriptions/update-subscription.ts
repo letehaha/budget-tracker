@@ -3,6 +3,7 @@ import {
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
   SubscriptionMatchingRules,
 } from '@bt/shared/types';
 import { Money, centsToApiDecimalOrNull } from '@common/types/money';
@@ -31,6 +32,7 @@ interface UpdateSubscriptionParams {
   userId: number;
   name?: string;
   type?: SUBSCRIPTION_TYPES;
+  transactionType?: TRANSACTION_TYPES;
   expectedAmount?: number | null;
   expectedCurrencyCode?: string | null;
   frequency?: SUBSCRIPTION_FREQUENCIES;

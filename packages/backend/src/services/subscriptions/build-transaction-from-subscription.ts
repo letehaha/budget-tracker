@@ -110,7 +110,7 @@ export async function buildTransactionFromSubscription({
     userId: subscription.userId,
     accountId: subscription.accountId,
     amount: amountMoney,
-    transactionType: TRANSACTION_TYPES.expense,
+    transactionType: subscription.transactionType ?? TRANSACTION_TYPES.expense,
     paymentType: PAYMENT_TYPES.bankTransfer,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     accountType: ACCOUNT_TYPES.system,

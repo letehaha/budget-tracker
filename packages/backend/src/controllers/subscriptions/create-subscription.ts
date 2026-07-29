@@ -4,6 +4,7 @@ import {
   RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { currencyCode, dateBound, recordId, withDateOrder } from '@common/lib/zod/custom-types';
 import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
@@ -25,6 +26,10 @@ const schema = z.object({
           .enum(Object.values(SUBSCRIPTION_TYPES) as [SUBSCRIPTION_TYPES, ...SUBSCRIPTION_TYPES[]])
           .optional()
           .default(SUBSCRIPTION_TYPES.subscription),
+        transactionType: z
+          .enum(Object.values(TRANSACTION_TYPES) as [TRANSACTION_TYPES, ...TRANSACTION_TYPES[]])
+          .optional()
+          .default(TRANSACTION_TYPES.expense),
         // Decimal amount (e.g. 9.99). Stored as cents internally by the service.
         expectedAmount: z.number().nonnegative().nullable().optional(),
         expectedCurrencyCode: currencyCode().nullable().optional(),
