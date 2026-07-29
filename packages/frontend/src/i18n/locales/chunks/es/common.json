@@ -190,6 +190,27 @@
       "resetToAuto": "Restablecer a automático"
     }
   },
+  "accountGroups": {
+    "create": {
+      "error": "Error al crear el grupo"
+    },
+    "rename": {
+      "success": "El grupo ha sido renombrado",
+      "error": "Error al renombrar el grupo"
+    },
+    "delete": {
+      "success": "El grupo ha sido eliminado",
+      "error": "Error al eliminar el grupo"
+    },
+    "link": {
+      "success": "La cuenta ha sido añadida al grupo",
+      "error": "Error al añadir la cuenta al grupo"
+    },
+    "unlink": {
+      "success": "La cuenta ha sido quitada del grupo",
+      "error": "Error al quitar la cuenta del grupo"
+    }
+  },
   "validation": {
     "minLength": "La longitud mínima es {length}.",
     "emailInvalid": "Introduzca una dirección de correo electrónico válida.",
@@ -310,7 +331,8 @@
         "hoursMinutes": "{hours}h {minutes}m",
         "minutes": "{minutes}m"
       }
-    }
+    },
+    "sessionExpiredNotice": "Su sesión de demostración ha finalizado. Cree una cuenta gratuita para continuar, o inicie sesión a continuación si ya tiene una."
   },
   "settings": {
     "currencies": {

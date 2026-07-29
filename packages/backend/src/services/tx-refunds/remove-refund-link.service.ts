@@ -1,10 +1,9 @@
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/refund-transactions.model';
-import * as Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
+import { syncRefundLinkedFlags } from './sync-refund-linked-flags';
 
 interface RemoveRefundLinkParams {
   userId: number;
@@ -30,11 +29,8 @@ export const removeRefundLink = withTransaction(
       // Remove the refund link
       await refundLink.destroy();
 
-      await Transactions.updateTransactions(
-        { refundLinked: false },
-        { userId, id: { [Op.in]: [originalTxId, refundTxId].filter(Boolean) } },
-        { individualHooks: false },
-      );
+      // Recompute rather than clear: the original may still hold other partial refunds.
+      await syncRefundLinkedFlags({ transactionIds: [originalTxId, refundTxId] });
 
       logger.info(`Refund link between transactions ${originalTxId} and ${refundTxId} removed successfully`);
     } catch (e) {

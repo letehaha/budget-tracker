@@ -1,5 +1,5 @@
 import { AccountModel, CategoryModel, TransactionModel } from './db-models';
-import { ACCOUNT_STATUSES, ACCOUNT_TYPES, FILTER_OPERATION, SORT_DIRECTIONS, TRANSACTION_TYPES } from './enums';
+import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, TRANSACTION_TYPES } from './enums';
 import { RecordId } from './record-id';
 
 export type BodyPayload = {
@@ -198,7 +198,8 @@ export interface CashFlowCategoryData {
   categoryId: RecordId;
   name: string;
   color: string;
-  // Separate amounts by transaction type for proper filtering
+  // Separate amounts by transaction type for proper filtering.
+  // Refunds net against the side they reverse, so either can be negative — see CashFlowPeriodData.
   incomeAmount: number;
   expenseAmount: number;
 }
@@ -208,6 +209,9 @@ export interface CashFlowPeriodData {
   periodStart: string;
   // yyyy-mm-dd
   periodEnd: string;
+  // Both are net of refunds and CAN BE NEGATIVE: a refund reduces the side it reverses in the
+  // bucket the money moved, so a period holding a refund whose original purchase sits in an
+  // earlier bucket reports negative expenses. netFlow is always income - expenses.
   income: number;
   expenses: number;
   netFlow: number;
@@ -218,6 +222,7 @@ export interface CashFlowPeriodData {
 export interface GetCashFlowResponse {
   periods: CashFlowPeriodData[];
   totals: {
+    // Net of refunds, so negative is possible — see CashFlowPeriodData.
     income: number;
     expenses: number;
     netFlow: number;
@@ -486,6 +491,106 @@ export interface GetInvestmentContributionsResponse {
   // Portfolios that contributed anywhere in the window, ordered largest mover first —
   // a stable order so the client can assign each a consistent colour across renders.
   portfolios: InvestmentContributionsPortfolioMeta[];
+}
+
+// Net Worth History Analytics
+// Mint-style assets/liabilities/net-worth series: every point is an end-of-bucket
+// balance snapshot (a level, not a flow). The liability split is by account category
+// with a per-account sign rule: a credit-card or overdraft account counts as a
+// liability only while it is owing (negative balance) at that snapshot — one holding
+// the user's own funds counts as assets instead. Loan accounts are always liabilities
+// at their whole signed value. Everything else (regular accounts, portfolios,
+// ventures, vehicles) counts as assets.
+// The client derives filtered views (e.g. "average credit-card liabilities") from the
+// per-kind values, so toggling kinds never refetches. The includeCreditLimitInStats
+// setting is deliberately ignored here: net worth reflects actual balances, and
+// available credit is not debt. Ranges producing more than `MAX_NET_WORTH_HISTORY_BUCKETS`
+// buckets are rejected with 422 — the client must pick a coarser granularity.
+// Single source of truth for the granularity enum — the backend Zod validator builds
+// its `z.enum(...)` straight off this tuple, so it can't drift from what the API accepts.
+export const NET_WORTH_HISTORY_GRANULARITIES = ['weekly', 'monthly', 'quarterly', 'yearly'] as const;
+export type NetWorthHistoryGranularity = (typeof NET_WORTH_HISTORY_GRANULARITIES)[number];
+
+/** Max buckets a net-worth-history range may span before the API rejects it with 422. */
+export const MAX_NET_WORTH_HISTORY_BUCKETS = 500;
+
+// Account categories the report treats as debt products. A deliberate closed subset of
+// ACCOUNT_CATEGORIES so the liability breakdown keys are a typed, exhaustive set.
+export const NET_WORTH_LIABILITY_KINDS = [
+  ACCOUNT_CATEGORIES.creditCard,
+  ACCOUNT_CATEGORIES.loan,
+  ACCOUNT_CATEGORIES.overdraft,
+] as const;
+export type NetWorthLiabilityKind = (typeof NET_WORTH_LIABILITY_KINDS)[number];
+
+// Asset classes the report splits net-worth assets into. Report-specific rather than
+// ACCOUNT_CATEGORIES values because vehicles and ventures are their own entities, and
+// `cash` folds every deposit account (regular/savings/cash, plus a positive-balance
+// card or overdraft) into one bucket. The client derives filtered views by toggling
+// kinds, so it never refetches.
+export const NET_WORTH_ASSET_KINDS = ['cash', 'investments', 'vehicles', 'ventures'] as const;
+export type NetWorthAssetKind = (typeof NET_WORTH_ASSET_KINDS)[number];
+
+export interface GetNetWorthHistoryPayload extends QueryPayload {
+  // yyyy-mm-dd (required)
+  from: string;
+  // yyyy-mm-dd (required)
+  to: string;
+  granularity: NetWorthHistoryGranularity;
+}
+
+// Every amount below is a decimal in the user's base currency.
+export interface NetWorthHistoryPoint {
+  // yyyy-mm-dd — the bucket-end date the snapshot is taken at. The final bucket is
+  // clamped to the requested `to`, so it can cover a partial period.
+  date: string;
+  // Balance per asset kind, keyed by `NET_WORTH_ASSET_KINDS`. `cash` is signed —
+  // it folds every deposit account (an overdrawn one subtracts) plus any card or
+  // overdraft holding a positive balance. `investments` is portfolios (holdings
+  // plus uninvested cash); `vehicles` and `ventures` are their valued balances.
+  assets: Record<NetWorthAssetKind, number>;
+  // Sum of `assets` values.
+  assetsTotal: number;
+  // Balance per liability kind, keyed by account category. Credit-card and
+  // overdraft are sums of their owing accounts only (always ≤ 0; a paid-off card
+  // reads 0 and a positive-balance card moves to `assets.cash`). Loan is the whole
+  // signed value, so an overpaid loan can read positive.
+  liabilities: Record<NetWorthLiabilityKind, number>;
+  // Sum of `liabilities` values. Signed, negative = owed.
+  liabilitiesTotal: number;
+  // assetsTotal + liabilitiesTotal.
+  netWorth: number;
+}
+
+// One security whose holdings the report could not price on some snapshot days.
+// Same shape as the net-worth-drivers report's: a holding with no price is carried
+// at cost on those days, so its `assets.investments` understates market value.
+export interface NetWorthHistoryUnpricedSecurity {
+  securityId: RecordId;
+  // Label the security by `symbol ?? name ?? securityId` — both columns are
+  // nullable, and an id shown to a user identifies nothing.
+  symbol: string | null;
+  name: string | null;
+}
+
+// What the report could not value truthfully. Two independent failures: a holding
+// with no price is carried at cost, a currency with no rate converts at 1:1 — they
+// distort different amounts and neither implies the other, so they stay apart.
+export interface NetWorthHistoryDegraded {
+  // Holdings with no price data in the range, carried at cost — their contribution
+  // to `assets.investments` understates market value. Omitted when every holding priced.
+  unpricedSecurities?: NetWorthHistoryUnpricedSecurity[];
+  // ISO codes that converted at a 1:1 placeholder — every amount touching them is
+  // off by the true rate. Omitted when every currency resolved.
+  fxFallbackCurrencies?: string[];
+}
+
+export interface GetNetWorthHistoryResponse {
+  points: NetWorthHistoryPoint[];
+  // Absent whenever the range valued cleanly, so a truthiness check on `degraded`
+  // alone decides whether to render a data-quality warning. Present only when at
+  // least one field inside it is non-empty — an empty object is never sent.
+  degraded?: NetWorthHistoryDegraded;
 }
 
 // Cumulative Analytics (Trends Comparison)

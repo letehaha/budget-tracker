@@ -1,6 +1,45 @@
 {
   "settings": {
     "accountGroups": {
+      "page": {
+        "title": "Grupos de cuentas",
+        "description": "Organice las cuentas en grupos. Las conexiones bancarias crean y gestionan sus propios grupos automáticamente.",
+        "addButton": "Añadir grupo"
+      },
+      "empty": {
+        "title": "Aún no hay grupos de cuentas",
+        "description": "Agrupe las cuentas por banco, moneda o propósito para mantener ordenada la lista de cuentas."
+      },
+      "loadError": {
+        "title": "No se pudieron cargar sus grupos",
+        "description": "Se produjo un error al obtener sus grupos de cuentas. Compruebe su conexión e inténtelo de nuevo.",
+        "retry": "Intentar de nuevo"
+      },
+      "row": {
+        "bankBadge": "Conexión bancaria",
+        "bankBadgeShort": "Conexión",
+        "accountsCount": "{count} cuenta | {count} cuentas",
+        "noAccounts": "Sin cuentas",
+        "inParent": "en {name}",
+        "manageConnection": "Gestionar conexión"
+      },
+      "rename": {
+        "label": "Nombre del grupo",
+        "placeholder": "Introduzca el nombre del grupo",
+        "saveButton": "Guardar"
+      },
+      "accounts": {
+        "heading": "Cuentas de este grupo",
+        "empty": "Aún no hay cuentas en este grupo. Añada cuentas a un grupo desde la página de la cuenta.",
+        "unlinkTooltip": "Quitar del grupo"
+      },
+      "delete": {
+        "button": "Eliminar grupo",
+        "disabledTooltip": "Este grupo está vinculado a una conexión bancaria y no se puede eliminar manualmente. Desconecte el banco para eliminarlo automáticamente.",
+        "confirmTitle": "¿Eliminar este grupo?",
+        "description": "El grupo se eliminará. Sus cuentas no se eliminan, simplemente dejan de estar agrupadas.",
+        "affectedAccounts": "Estas cuentas se quitarán del grupo:"
+      },
       "title": "Gestionar grupos de cuentas",
       "addButton": "Añadir nuevo grupo",
       "table": {

@@ -35,6 +35,7 @@ export const getSpendingsByCategories = async ({
   from,
   to,
   categoryIds,
+  excludedCategoryIds,
   type,
   groupByType,
 }: {
@@ -42,6 +43,7 @@ export const getSpendingsByCategories = async ({
   from?: string;
   to?: string;
   categoryIds?: string[];
+  excludedCategoryIds?: string[];
   type?: TRANSACTION_TYPES;
   groupByType?: boolean;
 } = {}) => {
@@ -49,6 +51,9 @@ export const getSpendingsByCategories = async ({
   if (from) params.append('from', from);
   if (to) params.append('to', to);
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) {
+    params.append('excludedCategoryIds', excludedCategoryIds.join(','));
+  }
   if (type) params.append('type', type);
   if (groupByType) params.append('groupByType', 'true');
 
@@ -63,15 +68,20 @@ export const getSpendingsByCategories = async ({
 export async function getExpensesAmountForPeriod<R extends boolean | undefined = undefined>({
   from,
   to,
+  excludedCategoryIds,
   raw,
 }: {
   from?: string;
   to?: string;
+  excludedCategoryIds?: string[];
   raw?: R;
 }) {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
   if (to) params.append('to', to);
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) {
+    params.append('excludedCategoryIds', excludedCategoryIds.join(','));
+  }
 
   const result = await helpers.makeRequest<number, R>({
     method: 'get',
@@ -100,20 +110,28 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   from,
   to,
   granularity,
+  accountId,
   categoryIds,
+  excludedCategoryIds,
   raw,
 }: {
   from: string;
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
+  accountId?: string;
   categoryIds?: string[];
+  excludedCategoryIds?: string[];
   raw?: R;
 }) {
   const params = new URLSearchParams();
   params.append('from', from);
   params.append('to', to);
   params.append('granularity', granularity);
+  if (accountId) params.append('accountId', accountId);
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) {
+    params.append('excludedCategoryIds', excludedCategoryIds.join(','));
+  }
 
   const result = await helpers.makeRequest<endpointsTypes.GetCashFlowResponse, R>({
     method: 'get',
@@ -146,6 +164,31 @@ export async function getNetWorthDrivers<R extends boolean | undefined = undefin
   const result = await helpers.makeRequest<endpointsTypes.GetNetWorthDriversResponse, R>({
     method: 'get',
     url: `/stats/net-worth-drivers?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
+export async function getNetWorthHistory<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  granularity,
+  raw,
+}: {
+  from: string;
+  to: string;
+  granularity: endpointsTypes.NetWorthHistoryGranularity;
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('granularity', granularity);
+
+  const result = await helpers.makeRequest<endpointsTypes.GetNetWorthHistoryResponse, R>({
+    method: 'get',
+    url: `/stats/net-worth-history?${params.toString()}`,
     raw,
   });
 

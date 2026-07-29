@@ -19,6 +19,45 @@
           "unlinked": "Akun telah dilepaskan",
           "deleted": "Grup telah dihapus"
         }
+      },
+      "page": {
+        "title": "Grup akun",
+        "description": "Atur akun ke dalam grup. Koneksi bank membuat dan mengelola grupnya sendiri secara otomatis.",
+        "addButton": "Tambah grup"
+      },
+      "empty": {
+        "title": "Belum ada grup akun",
+        "description": "Kelompokkan akun berdasarkan bank, mata uang, atau tujuan agar daftar akun Anda tetap rapi."
+      },
+      "loadError": {
+        "title": "Gagal memuat grup Anda",
+        "description": "Terjadi kesalahan saat mengambil data grup akun Anda. Periksa koneksi Anda dan coba lagi.",
+        "retry": "Coba lagi"
+      },
+      "row": {
+        "bankBadge": "Koneksi bank",
+        "bankBadgeShort": "Koneksi",
+        "accountsCount": "{count} akun | {count} akun",
+        "noAccounts": "Tidak ada akun",
+        "inParent": "di {name}",
+        "manageConnection": "Kelola koneksi"
+      },
+      "rename": {
+        "label": "Nama grup",
+        "placeholder": "Masukkan nama grup",
+        "saveButton": "Simpan"
+      },
+      "accounts": {
+        "heading": "Akun dalam grup ini",
+        "empty": "Belum ada akun dalam grup ini. Tambahkan akun ke grup dari halaman akun.",
+        "unlinkTooltip": "Hapus dari grup"
+      },
+      "delete": {
+        "button": "Hapus grup",
+        "disabledTooltip": "Grup ini terhubung ke koneksi bank dan tidak dapat dihapus secara manual. Putuskan koneksi bank untuk menghapusnya secara otomatis.",
+        "confirmTitle": "Hapus grup ini?",
+        "description": "Grup akan dihapus. Akun di dalamnya tidak ikut dihapus — akun tersebut hanya berhenti dikelompokkan.",
+        "affectedAccounts": "Akun berikut akan dihapus dari grup:"
       }
     }
   }

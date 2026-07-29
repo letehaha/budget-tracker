@@ -12,14 +12,14 @@ import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { useLoans } from '@/composable/data-queries/loans';
 import { portfolioSummaryQueryOptions } from '@/composable/data-queries/portfolio-summary';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
-import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useVentureDeals } from '@/composable/data-queries/venture/deals';
+import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { useSidebarSections } from '@/composable/use-sidebar-sections';
 import { waitForAnimationEnd } from '@/composable/wait-for-animation-end';
 import { partitionLoans } from '@/pages/loans/utils/partition-loans';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { useAccountsStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
 import { useQueries, useQuery } from '@tanstack/vue-query';
 import {
@@ -42,7 +42,6 @@ import AccountGroupsList from './account-groups-list.vue';
 import AccountsList from './accounts-list.vue';
 import AccountsSkeleton from './accounts-skeleton.vue';
 import GroupTotal from './group-total.vue';
-import { sumAccountsBaseBalance } from './helpers/account-totals';
 import { computeStickyOffsets } from './helpers/sticky-offsets';
 import { useActiveAccountGroups } from './helpers/use-active-account-groups';
 import LoansList from './loans-list.vue';
@@ -100,18 +99,11 @@ const isVenturesOpen = useLocalStorage('sidebar:accounts-ventures-open', true);
 const isCarsOpen = useLocalStorage('sidebar:accounts-cars-open', true);
 const isLoansOpen = useLocalStorage('sidebar:accounts-loans-open', true);
 
-const { baseCurrency } = storeToRefs(useCurrenciesStore());
-const baseCurrencyCode = computed(() => baseCurrency.value?.currency?.code);
-const { data: userSettings } = useUserSettings();
-const includeCreditLimit = computed(() => !!userSettings.value?.includeCreditLimitInStats);
+const { baseCurrencyCode, sumBaseBalance } = useBaseBalanceTotals();
 
 // Bank Accounts total = every account rendered under the section (grouped + ungrouped).
 const bankAccountsTotal = computed(() =>
-  sumAccountsBaseBalance({
-    accounts: [...Object.values(accountsInGroups.value), ...accountsWithoutGroups.value],
-    baseCurrencyCode: baseCurrencyCode.value,
-    includeCreditLimit: includeCreditLimit.value,
-  }),
+  sumBaseBalance({ accounts: [...Object.values(accountsInGroups.value), ...accountsWithoutGroups.value] }),
 );
 
 // Non-critical sidebar batches (portfolio roll-up summaries, venture deals) are deferred until
@@ -150,26 +142,14 @@ const { data: ventureDeals } = useVentureDeals({ enabled: idleEnabled });
 const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 
 // Cars total = vehicle accounts in base currency.
-const carsTotal = computed(() =>
-  sumAccountsBaseBalance({
-    accounts: vehicleAccounts.value,
-    baseCurrencyCode: baseCurrencyCode.value,
-    includeCreditLimit: includeCreditLimit.value,
-  }),
-);
+const carsTotal = computed(() => sumBaseBalance({ accounts: vehicleAccounts.value }));
 const carsCount = computed(() => vehicleAccounts.value.length);
 
 const { data: loans } = useLoans();
 const activeLoans = computed(() => partitionLoans({ loans: loans.value ?? [] }).active);
 const loansCount = computed(() => activeLoans.value.length);
 // Loans are liabilities (negative balances), so this total reads red like the loan rows.
-const loansTotal = computed(() =>
-  sumAccountsBaseBalance({
-    accounts: activeLoans.value,
-    baseCurrencyCode: baseCurrencyCode.value,
-    includeCreditLimit: includeCreditLimit.value,
-  }),
-);
+const loansTotal = computed(() => sumBaseBalance({ accounts: activeLoans.value }));
 
 const { sidebarSections } = useSidebarSections();
 const showPortfolios = computed(() => sidebarSections.value.portfolios);

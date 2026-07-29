@@ -29,6 +29,9 @@ const DEFAULT_TAG_STRUCTURE = Object.freeze([
  */
 export function getTranslatedDefaultTags({ locale }: { locale: string }) {
   return DEFAULT_TAG_STRUCTURE.map((tag) => ({
+    // The demo seeder attaches these tags to generated transactions after
+    // creation, so it needs a locale-independent handle here.
+    key: tag.key,
     name: t({ key: `defaultTags.${tag.key}.name`, locale }),
     description: t({ key: `defaultTags.${tag.key}.description`, locale }),
     color: tag.color,

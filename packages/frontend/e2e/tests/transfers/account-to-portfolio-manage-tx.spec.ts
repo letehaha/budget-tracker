@@ -38,7 +38,7 @@ async function seedTestData({ request }: { request: import('@playwright/test').A
 }
 
 async function openCreateTransactionDialog({ page }: { page: Page }) {
-  await page.getByRole('button', { name: /new transaction/i }).click();
+  await page.getByRole('button', { name: /add transaction|new transaction/i }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible({ timeout: 5_000 });
   return dialog;

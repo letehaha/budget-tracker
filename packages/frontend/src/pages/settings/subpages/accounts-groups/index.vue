@@ -1,31 +1,34 @@
 <template>
-  <Card class="@container/accounts-groups-card max-w-[700px]">
+  <Card class="@container/account-groups max-w-4xl">
     <CardHeader
-      :class="[
-        'flex justify-between gap-4 border-b',
-        '@[450px]/accounts-groups-card:flex-row @[450px]/accounts-groups-card:items-center',
-      ]"
+      class="flex flex-col gap-4 border-b @sm/account-groups:flex-row @sm/account-groups:items-start @sm/account-groups:justify-between"
     >
-      <h3 class="text-xl">{{ $t('settings.accountGroups.title') }}</h3>
+      <div class="min-w-0">
+        <h2 class="mb-2 text-2xl font-semibold">{{ $t('settings.accountGroups.page.title') }}</h2>
+        <p class="text-sm opacity-80">{{ $t('settings.accountGroups.page.description') }}</p>
+      </div>
 
-      <CreateAccountGroupDialog>
-        <Button type="button" class="w-min">
-          {{ $t('settings.accountGroups.addButton') }} <PlusIcon class="ml-2 size-5" />
-        </Button>
-      </CreateAccountGroupDialog>
+      <div class="@sm/account-groups:shrink-0">
+        <CreateAccountGroupDialog>
+          <Button type="button" size="sm">
+            <PlusIcon class="size-4" />
+            {{ $t('settings.accountGroups.page.addButton') }}
+          </Button>
+        </CreateAccountGroupDialog>
+      </div>
     </CardHeader>
 
-    <CardContent>
-      <AccountsGroupsTable class="mt-4" />
+    <CardContent class="mt-6">
+      <AccountGroupsList />
     </CardContent>
   </Card>
 </template>
 
 <script setup lang="ts">
 import CreateAccountGroupDialog from '@/components/dialogs/account-groups/create-account-group-dialog.vue';
-import Button from '@/components/lib/ui/button/Button.vue';
+import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { PlusIcon } from '@lucide/vue';
 
-import AccountsGroupsTable from './table.vue';
+import AccountGroupsList from './list.vue';
 </script>

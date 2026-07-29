@@ -130,6 +130,7 @@ interface GetCashFlowParams {
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: string;
   categoryIds?: string[];
+  excludedCategoryIds?: string[];
 }
 
 export const getCashFlow = async ({
@@ -138,6 +139,7 @@ export const getCashFlow = async ({
   granularity,
   accountId,
   categoryIds,
+  excludedCategoryIds,
 }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
   const params: Record<string, string | number | boolean> = {
     from: formatDate(from),
@@ -148,6 +150,9 @@ export const getCashFlow = async ({
   if (accountId !== undefined) params.accountId = accountId;
   if (categoryIds !== undefined && categoryIds.length > 0) {
     params.categoryIds = categoryIds.join(',');
+  }
+  if (excludedCategoryIds !== undefined && excludedCategoryIds.length > 0) {
+    params.excludedCategoryIds = excludedCategoryIds.join(',');
   }
 
   return api.get('/stats/cash-flow', params);
@@ -176,6 +181,27 @@ export const getNetWorthDrivers = async ({
   if (portfolioIds && portfolioIds.length > 0) params.portfolioIds = portfolioIds.join(',');
 
   return api.get('/stats/net-worth-drivers', params);
+};
+
+interface GetNetWorthHistoryParams {
+  from: Date;
+  to: Date;
+  granularity: endpointsTypes.NetWorthHistoryGranularity;
+}
+
+/** Assets/liabilities/net-worth snapshots per bucket — signed decimals in base currency. */
+export const getNetWorthHistory = async ({
+  from,
+  to,
+  granularity,
+}: GetNetWorthHistoryParams): Promise<endpointsTypes.GetNetWorthHistoryResponse> => {
+  const params: Record<string, string> = {
+    from: formatDate(from),
+    to: formatDate(to),
+    granularity,
+  };
+
+  return api.get('/stats/net-worth-history', params);
 };
 
 interface GetInvestmentContributionsParams {

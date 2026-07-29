@@ -8,23 +8,23 @@ This middleware provides Redis-based rate limiting for API endpoints.
 - **Configurable**: Custom time windows and attempt limits
 - **User-aware**: Rate limiting by user ID or IP address
 - **Standard headers**: Returns RFC-compliant rate limit headers
-- **Graceful degradation**: Allows requests if Redis is unavailable
+- **Graceful degradation**: Allows requests by default when Redis is unreachable; opt into `failClosed: true` (used by `demoStartRateLimit`) to return 429 on that failure instead
 
 ## Usage
 
 ### Pre-configured Middleware
 
 ```typescript
-import { apiRateLimit, authRateLimit, priceSyncRateLimit } from '@middlewares/rate-limit';
+import { demoStartRateLimit, logoSearchRateLimit, priceSyncRateLimit } from '@middlewares/rate-limit';
 
 // 5-minute window, 1 attempt per user
 router.post('/expensive-operation', authenticateSession, priceSyncRateLimit, handler);
 
 // 1-minute window, 60 attempts per user
-router.get('/api-data', authenticateSession, apiRateLimit, handler);
+router.get('/api-data', authenticateSession, logoSearchRateLimit, handler);
 
-// 15-minute window, 5 attempts per IP
-router.post('/auth/login', authRateLimit, handler);
+// 15-minute window, 10 attempts per IP
+router.post('/demo', demoStartRateLimit, handler);
 ```
 
 ### Custom Rate Limiting
@@ -46,6 +46,7 @@ router.post('/custom-endpoint', authenticateSession, customRateLimit, handler);
 - `windowSeconds`: Time window in seconds
 - `maxAttempts`: Maximum attempts allowed in the window (default: 1)
 - `keyGenerator`: Function to generate rate limit keys (optional)
+- `failClosed`: Return 429 instead of allowing the request through when Redis is unreachable (default: false)
 
 ## Response Headers
 
@@ -58,12 +59,14 @@ When rate limited (429 status), the middleware sets:
 
 ## Error Response
 
+HTTP status is 429. Body:
+
 ```json
 {
   "status": "error",
   "response": {
-    "code": 429,
-    "statusText": "Too many requests. Please try again later.",
+    "message": "Too many requests. Please try again later.",
+    "code": "TOO_MANY_REQUESTS",
     "details": {
       "retryAfter": 250,
       "resetTime": "2024-01-01T12:05:00.000Z"
@@ -74,13 +77,14 @@ When rate limited (429 status), the middleware sets:
 
 ## Redis Key Format
 
-Keys are automatically formatted as: `rate_limit:{custom-key}`
+Keys are automatically formatted as: `rate_limit:{custom-key}`, where `{custom-key}` comes
+from each limiter's `keyGenerator` (prefix + subject).
 
 Examples:
 
 - `rate_limit:price-sync:user:123`
-- `rate_limit:api:user:456`
-- `rate_limit:auth:ip:192.168.1.1`
+- `rate_limit:demo-start:ip:192.168.1.1`
+- `rate_limit:logo-search:user:456`
 
 ## Manual Rate Limit Management
 

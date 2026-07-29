@@ -2,7 +2,6 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
-import { Op } from 'sequelize';
 
 import { getWhereConditionForTime } from './utils';
 
@@ -22,6 +21,10 @@ type GetExpensesHistoryResponseSchema = Pick<
 /**
  * Fetches the expense history for a specified user within an optional date range and account.
  *
+ * Category scoping (selected and hidden categories alike) is left to the caller: a transaction can
+ * split across several categories, so a row that looks irrelevant by its own `categoryId` may still
+ * carry legs that belong in the report.
+ *
  * @param {Object} params - The parameters for fetching balances.
  * @param {number} params.userId - The ID of the user for whom balances are to be fetched.
  * @param {string} [params.from] - The start date (inclusive) of the date range in 'yyyy-mm-dd' format.
@@ -39,14 +42,12 @@ export const getExpensesHistory = async ({
   to,
   accountId,
   transactionType = TRANSACTION_TYPES.expense,
-  excludedCategoryIds,
 }: {
   userId: number;
   accountId?: string;
   from?: string;
   to?: string;
   transactionType?: TRANSACTION_TYPES;
-  excludedCategoryIds?: string[];
 }): Promise<GetExpensesHistoryResponseSchema[]> => {
   const dataAttributes: (keyof Transactions.default)[] = [
     'id',
@@ -60,16 +61,12 @@ export const getExpensesHistory = async ({
     'transactionType',
   ];
 
-  const categoryWhere =
-    excludedCategoryIds && excludedCategoryIds.length > 0 ? { [Op.notIn]: excludedCategoryIds } : undefined;
-
   const transactions = await Transactions.default.findAll({
     where: removeUndefinedKeys({
       accountId,
       userId,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       transactionType,
-      ...(categoryWhere ? { categoryId: categoryWhere } : {}),
       ...getWhereConditionForTime({ from, to, columnName: 'time' }),
     }),
     include: [

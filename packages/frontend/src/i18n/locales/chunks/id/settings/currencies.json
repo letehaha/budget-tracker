@@ -86,7 +86,7 @@
         "custom": "Kustom",
         "live": "Langsung",
         "unused": "Tidak Terpakai",
-        "accountsCount": "{count} akun"
+        "accountsCount": "{count} akun | {count} akun"
       },
       "empty": {
         "title": "Belum ada mata uang lain",

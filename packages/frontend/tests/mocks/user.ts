@@ -11,6 +11,7 @@ export const USER: UserModel = {
   totalBalance: 0,
   defaultCategoryId: '00000000-0000-0000-0000-000000003131' as RecordId,
   role: USER_ROLES.common as UserRole,
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
 };
 
 export const DEMO_USER = {

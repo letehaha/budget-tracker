@@ -1,9 +1,12 @@
+import { DEMO_SESSION_EXPIRED_REASON } from '@/common/const';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useUserStore } from '@/stores';
+import { DEMO_EXPIRY_HOURS } from '@bt/shared/const/demo';
 import { UserModel, type RecordId } from '@bt/shared/types';
 import { createTestingPinia } from '@pinia/testing';
 import { VueQueryPlugin } from '@tanstack/vue-query';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import { subHours } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
 import { createRouter, createWebHistory } from 'vue-router';
@@ -13,6 +16,11 @@ import DemoBanner from './demo-banner.vue';
 // Mock posthog
 vi.mock('@/lib/posthog', () => ({
   trackAnalyticsEvent: vi.fn(),
+}));
+
+vi.mock('@/lib/sentry', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/sentry')>()),
+  captureException: vi.fn(),
 }));
 
 // Create a mock router
@@ -57,6 +65,13 @@ const demoUser: UserModel = {
   totalBalance: 0,
   defaultCategoryId: '00000000-0000-0000-0000-000000000001' as RecordId,
   role: 'demo',
+  createdAt: new Date(),
+};
+
+// Past the fixed demo window, so `isExpired` flips as soon as the store holds this user.
+const expiredDemoUser: UserModel = {
+  ...demoUser,
+  createdAt: subHours(new Date(), DEMO_EXPIRY_HOURS + 1),
 };
 
 const regularUser: UserModel = {
@@ -70,11 +85,14 @@ const regularUser: UserModel = {
   totalBalance: 0,
   defaultCategoryId: '00000000-0000-0000-0000-000000000001' as RecordId,
   role: 'common',
+  createdAt: new Date(),
 };
 
 describe('DemoBanner component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The expiry tests spy on the shared router instance.
+    vi.restoreAllMocks();
   });
 
   const mountComponent = (userData: UserModel | null = null) => {
@@ -94,7 +112,6 @@ describe('DemoBanner component', () => {
 
     // Mock auth store methods after mount
     const authStore = useAuthStore();
-    authStore.getDemoSession = vi.fn().mockReturnValue(null);
     authStore.logout = vi.fn().mockResolvedValue(undefined);
 
     return wrapper;
@@ -151,6 +168,51 @@ describe('DemoBanner component', () => {
       expect(trackAnalyticsEvent).toHaveBeenCalledWith({
         event: 'demo_signup_clicked',
         properties: { location: 'banner' },
+      });
+    });
+  });
+
+  describe('expiry auto-logout', () => {
+    // Mounting with a still-valid user and ageing it afterwards keeps the stubbed
+    // `logout` in place before the watcher can fire.
+    const expireAfterMount = async () => {
+      mountComponent(demoUser);
+
+      const authStore = useAuthStore();
+      const pushSpy = vi.spyOn(router, 'push').mockResolvedValue(undefined);
+
+      useUserStore().user = expiredDemoUser;
+      await flushPromises();
+
+      return { authStore, pushSpy };
+    };
+
+    it('logs the user out and sends them to sign-in with the expired reason', async () => {
+      const { authStore, pushSpy } = await expireAfterMount();
+
+      expect(authStore.logout).toHaveBeenCalledWith({ demoEndReason: 'expired' });
+      expect(pushSpy).toHaveBeenCalledWith({
+        name: ROUTES_NAMES.signIn,
+        query: { reason: DEMO_SESSION_EXPIRED_REASON },
+      });
+    });
+
+    it('still redirects and reports the failure when logout rejects', async () => {
+      const { captureException } = await import('@/lib/sentry');
+
+      mountComponent(demoUser);
+
+      const authStore = useAuthStore();
+      authStore.logout = vi.fn().mockRejectedValue(new Error('signOut failed'));
+      const pushSpy = vi.spyOn(router, 'push').mockResolvedValue(undefined);
+
+      useUserStore().user = expiredDemoUser;
+      await flushPromises();
+
+      expect(captureException).toHaveBeenCalled();
+      expect(pushSpy).toHaveBeenCalledWith({
+        name: ROUTES_NAMES.signIn,
+        query: { reason: DEMO_SESSION_EXPIRED_REASON },
       });
     });
   });

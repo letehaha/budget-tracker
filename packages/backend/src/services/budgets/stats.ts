@@ -226,7 +226,7 @@ const applyRefundAdjustments = async ({
   for (const pair of pairs) {
     const adjustment = pair.refundTx.refAmount.toCents();
 
-    if (pair.originalInBudget) {
+    if (pair.originalInScope) {
       if (pair.originalTx.transactionType === TRANSACTION_TYPES.expense) {
         result.summary.actualExpense -= adjustment;
       } else {
@@ -234,7 +234,7 @@ const applyRefundAdjustments = async ({
       }
     }
 
-    if (pair.refundInBudget) {
+    if (pair.refundInScope) {
       if (pair.refundTx.transactionType === TRANSACTION_TYPES.expense) {
         result.summary.actualExpense -= adjustment;
       } else {

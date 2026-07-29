@@ -9,7 +9,7 @@
     "actions": {
       "more": "Lainnya",
       "moreAriaLabel": "Tindakan lainnya",
-      "excludeFromStats": "Keluarkan dari statistik",
+      "excludeFromStats": "Kecualikan dari statistik",
       "linkPayments": "Hubungkan pembayaran sebelumnya"
     },
     "linkPayments": {
@@ -20,7 +20,7 @@
       "selectedCount": "{count} dipilih",
       "clearSelection": "Hapus",
       "linkSelected": "Hubungkan {count}",
-      "success": "Berhasil menghubungkan {count} pembayaran ke pinjaman.",
+      "success": "Berhasil menghubungkan {count} pembayaran ke pinjaman. | Berhasil menghubungkan {count} pembayaran ke pinjaman.",
       "error": "Tidak dapat menghubungkan pembayaran yang dipilih. Silakan coba lagi.",
       "overpayTitle": "Pembayaran melebihi saldo",
       "overpayDescription": "Pembayaran yang dipilih berjumlah {amount} lebih dari sisa saldo pinjaman. Tetap hubungkan?",
@@ -28,7 +28,7 @@
     },
     "dialog": {
       "createTitle": "Tambah pinjaman",
-      "createDescription": "Lacak hipotek, pinjaman mobil, pinjaman mahasiswa, atau kewajiban lainnya. Anda dapat mengeditnya nanti.",
+      "createDescription": "Lacak KPR, pinjaman mobil, pinjaman mahasiswa, atau kewajiban lainnya. Anda dapat mengeditnya nanti.",
       "editTitle": "Edit pinjaman",
       "editDescription": "Perbarui ketentuan pinjaman. Perubahan pada suku bunga, jangka waktu, atau pembayaran yang direncanakan dicatat dalam linimasa peristiwa."
     },
@@ -37,7 +37,7 @@
       "editTitle": "Edit detail pinjaman",
       "editDescription": "Perbarui nama, saldo, suku bunga, jangka waktu, bidang pembayaran, atau info pemberi pinjaman.",
       "editButton": "Sunting",
-      "excludeFromStatsTitle": "Keluarkan dari statistik",
+      "excludeFromStatsTitle": "Kecualikan dari statistik",
       "excludeFromStatsDescription": "Sembunyikan pinjaman ini dari kekayaan bersih, grafik, dan laporan tanpa mengarsipkannya.",
       "archiveTitle": "Arsipkan pinjaman",
       "archiveDescription": "Menyembunyikan pinjaman dari sidebar dan daftar akun. Anda dapat memulihkannya kapan saja.",
@@ -47,7 +47,7 @@
       "unarchiveButton": "Pulihkan",
       "archiveConfirmTitle": "Arsipkan pinjaman ini?",
       "archiveConfirmDescription": "{name} akan dipindahkan ke bagian Diarsipkan di halaman ini dan disembunyikan dari sidebar dan pemilih akun.",
-      "archiveAlsoExclude": "Juga keluarkan dari statistik",
+      "archiveAlsoExclude": "Juga kecualikan dari statistik",
       "deleteTitle": "Hapus pinjaman",
       "deleteDescription": "Menghapus pinjaman dan riwayatnya secara permanen. Ini tidak dapat dibatalkan.",
       "deleteButton": "Hapus",
@@ -64,7 +64,7 @@
     },
     "empty": {
       "title": "Belum ada pinjaman",
-      "description": "Lacak hipotek, pinjaman mobil, pinjaman mahasiswa, dan kewajiban lainnya di sini.",
+      "description": "Lacak KPR, pinjaman mobil, pinjaman mahasiswa, dan kewajiban lainnya di sini.",
       "createFirstButton": "Tambah pinjaman pertama"
     },
     "paidOff": {
@@ -108,7 +108,7 @@
       "ofPrincipal": "dari {amount}"
     },
     "types": {
-      "mortgage": "Hipotek",
+      "mortgage": "KPR",
       "auto": "Kendaraan",
       "student": "Mahasiswa",
       "personal": "Pribadi",
@@ -131,7 +131,7 @@
         "apr": "APR",
         "originalPrincipal": "Pokok awal",
         "term": "Jangka waktu",
-        "termMonths": "{count} bulan",
+        "termMonths": "{count} bulan | {count} bulan",
         "startDate": "Tanggal mulai",
         "paymentDay": "Hari pembayaran",
         "dayOfMonth": "Tanggal {day} setiap bulan",
@@ -205,7 +205,7 @@
         "amountPlaceholder": "0.00",
         "targetAmountLabel": "Jumlah yang diterapkan ke pinjaman",
         "targetAmountPlaceholder": "0.00",
-        "targetAmountTooltip": "Akun sumber dalam {source}, pinjaman dalam {loan}. Kami mengisi jumlah yang dikonversi menggunakan kurs saat ini – sesuaikan jika bank Anda menerapkan kurs yang berbeda.",
+        "targetAmountTooltip": "Akun sumber dalam {source}, pinjaman dalam {loan}. Kami mengisi jumlah yang dikonversi menggunakan nilai tukar saat ini – sesuaikan jika bank Anda menerapkan nilai tukar yang berbeda.",
         "saveButton": "Simpan",
         "recordButton": "Catat",
         "overdrawWarning": "Ini melebihi saldo {account} dan akan membuat akun menjadi negatif.",

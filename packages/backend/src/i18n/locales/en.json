@@ -74,6 +74,7 @@
       "amountTooSmall": "Split amount must be at least {{min}} (system minimum)",
       "noteTooLong": "Split note cannot exceed {{max}} characters",
       "invalidCategory": "Category with id {{categoryId}} not found or does not belong to user",
+      "duplicateCategory": "Each split must use a different category",
       "exceedTotal": "Total split amount ({{total}}) exceeds transaction amount ({{transactionAmount}})",
       "invalidData": "Invalid split data",
       "splitNotFound": "Split not found",
@@ -460,5 +461,8 @@
   },
   "vehicles": {
     "notFound": "Vehicle not found"
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": "This date range and granularity produce too many data points. Pick a coarser granularity or a shorter range."
   }
 }

@@ -190,6 +190,27 @@
       "resetToAuto": "Kembalikan ke otomatis"
     }
   },
+  "accountGroups": {
+    "create": {
+      "error": "Gagal membuat grup"
+    },
+    "rename": {
+      "success": "Grup telah diganti nama",
+      "error": "Gagal mengganti nama grup"
+    },
+    "delete": {
+      "success": "Grup telah dihapus",
+      "error": "Gagal menghapus grup"
+    },
+    "link": {
+      "success": "Akun telah ditambahkan ke grup",
+      "error": "Gagal menambahkan akun ke grup"
+    },
+    "unlink": {
+      "success": "Akun telah dihapus dari grup",
+      "error": "Gagal menghapus akun dari grup"
+    }
+  },
   "validation": {
     "minLength": "Panjang minimal adalah {length}.",
     "emailInvalid": "Silakan masukkan alamat email yang valid.",
@@ -310,7 +331,8 @@
         "hoursMinutes": "{hours}j {minutes}m",
         "minutes": "{minutes}m"
       }
-    }
+    },
+    "sessionExpiredNotice": "Sesi demo Anda telah berakhir. Buat akun gratis untuk melanjutkan, atau masuk di bawah jika Anda sudah memiliki akun."
   },
   "settings": {
     "currencies": {

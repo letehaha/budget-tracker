@@ -117,7 +117,7 @@
           "accountsCreated": "Akun Dibuat",
           "categoriesCreated": "Kategori Dibuat",
           "tagsCreated": "Tag Dibuat",
-          "payeesCreated": "Penerima Pembayaran Dibuat",
+          "payeesCreated": "Penerima Dibuat",
           "importErrors": "Error Impor",
           "rowNumber": "Baris #",
           "error": "Kesalahan",
@@ -151,22 +151,22 @@
       "transactionTypeMapping": {
         "title": "Penentuan Tipe Transaksi",
         "methodLabel": "Metode",
-        "methodDescription": "Pilih bagaimana tipe transaksi (pendapatan/pengeluaran) harus ditentukan",
+        "methodDescription": "Pilih bagaimana tipe transaksi (pemasukan/pengeluaran) harus ditentukan",
         "columnLabel": "Kolom Tipe Transaksi",
         "columnDescription": "Pilih kolom CSV yang berisi informasi tipe transaksi",
-        "incomeValuesLabel": "Nilai Pendapatan",
+        "incomeValuesLabel": "Nilai Pemasukan",
         "expenseValuesLabel": "Nilai Pengeluaran",
         "commaSeparatedHint": "Nilai dipisahkan koma",
-        "uncoveredValues": "Nilai-nilai ini di kolom tipe belum ditetapkan ke Pendapatan atau Pengeluaran: {values}. Tambahkan masing-masing ke daftar di atas untuk melanjutkan.",
+        "uncoveredValues": "Nilai-nilai ini di kolom tipe belum ditetapkan ke Pemasukan atau Pengeluaran: {values}. Tambahkan masing-masing ke daftar di atas untuk melanjutkan.",
         "selectMethod": "Pilih metode...",
         "selectColumn": "Pilih kolom...",
         "incomeValuesPlaceholder": "Mis: Credit, Deposit, Income",
         "expenseValuesPlaceholder": "Mis: Debit, Withdrawal, Expense",
         "methodOptions": {
-          "amountSign": "Dari Tanda Jumlah (negatif = pengeluaran, positif = pendapatan)",
+          "amountSign": "Dari Tanda Jumlah (negatif = pengeluaran, positif = pemasukan)",
           "dataSourceColumn": "Dari Kolom (tentukan nilai)"
         },
-        "amountSignInfo": "ℹ️ Tipe transaksi akan ditentukan secara otomatis: jumlah negatif = pengeluaran, jumlah positif = pendapatan"
+        "amountSignInfo": "ℹ️ Tipe transaksi akan ditentukan secara otomatis: jumlah negatif = pengeluaran, jumlah positif = pemasukan"
       },
       "currencyMapping": {
         "title": "Penetapan Mata Uang",
@@ -371,7 +371,7 @@
           "account": "Akun",
           "currency": "Mata Uang",
           "transactionType": "Tipe transaksi",
-          "payee": "Penerima Pembayaran"
+          "payee": "Penerima"
         },
         "dateFormat": {
           "label": "Format tanggal",

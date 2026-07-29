@@ -187,7 +187,7 @@ const closeDialog = () => emit('close');
       </div>
 
       <div class="flex shrink-0 flex-col-reverse pt-4 sm:flex-row sm:justify-end sm:gap-x-2">
-        <DemoRestricted>
+        <DemoRestricted feature="share_invitation_decline">
           <Button
             variant="outline"
             class="flex-1"
@@ -198,7 +198,7 @@ const closeDialog = () => emit('close');
             {{ $t('dialogs.shareInvitationDialog.decline') }}
           </Button>
         </DemoRestricted>
-        <DemoRestricted>
+        <DemoRestricted feature="share_invitation_accept">
           <Button
             class="flex-1"
             :loading="acceptMutation.isPending.value"

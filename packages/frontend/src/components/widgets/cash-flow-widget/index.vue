@@ -2,6 +2,9 @@
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference } from '@/js/helpers/math/calculate-percentage-difference';
+import ExcludeCategoriesMenu from '@/components/common/category-exclusions/exclude-categories-menu.vue';
+import ExcludedCountBadge from '@/components/common/category-exclusions/excluded-count-badge.vue';
+import { useCategoryExclusionsConfig } from '@/components/common/category-exclusions/use-category-exclusions-config';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { format, isSameMonth, parseISO } from 'date-fns';
 import { ArrowDownRightIcon, ArrowUpRightIcon, InfoIcon, WalletIcon } from '@lucide/vue';
@@ -20,6 +23,8 @@ const props = defineProps<{
 
 const { formatBaseCurrency } = useFormatCurrency();
 
+const { widgetConfigRef, excludedCategoryIds, persistExcludedCategories } = useCategoryExclusionsConfig();
+
 const {
   currentTotals,
   prevNetFlow,
@@ -30,7 +35,7 @@ const {
   isFetching,
   isInitialLoading,
   isEmpty,
-} = useCashFlowData({ selectedPeriod: () => props.selectedPeriod });
+} = useCashFlowData({ selectedPeriod: () => props.selectedPeriod, excludedCategoryIds });
 
 const income = computed(() => currentTotals.value.income);
 const expenses = computed(() => currentTotals.value.expenses);
@@ -41,17 +46,18 @@ const { displayValue: animatedIncome } = useAnimatedNumber({ value: income });
 const { displayValue: animatedExpenses } = useAnimatedNumber({ value: expenses });
 const { displayValue: animatedNetFlow } = useAnimatedNumber({ value: netFlow });
 
-// Flow bar proportions
-const flowBarTotal = computed(() => income.value + expenses.value);
+// Flow bar proportions. Either side can be negative — a period whose refunds outweigh its purchases
+// reports negative expenses — so the bar compares magnitudes.
+const flowBarTotal = computed(() => Math.abs(income.value) + Math.abs(expenses.value));
 
 const incomePercent = computed(() => {
   if (flowBarTotal.value === 0) return 50;
-  return Math.max(5, (income.value / flowBarTotal.value) * 100);
+  return Math.max(5, (Math.abs(income.value) / flowBarTotal.value) * 100);
 });
 
 const expensePercent = computed(() => {
   if (flowBarTotal.value === 0) return 50;
-  return Math.max(5, (expenses.value / flowBarTotal.value) * 100);
+  return Math.max(5, (Math.abs(expenses.value) / flowBarTotal.value) * 100);
 });
 
 // Percentage change vs previous period
@@ -125,7 +131,21 @@ const trendBars = computed(() => {
         >
           <InfoIcon class="text-muted-foreground ml-1 size-4 cursor-help" />
         </ResponsiveTooltip>
+
+        <ExcludedCountBadge
+          v-if="excludedCategoryIds.length"
+          :count="excludedCategoryIds.length"
+          test-id="cf-excluded-badge"
+        />
       </span>
+    </template>
+
+    <template v-if="widgetConfigRef" #action>
+      <ExcludeCategoriesMenu
+        :excluded-category-ids="excludedCategoryIds"
+        test-id-prefix="cf"
+        @save="persistExcludedCategories"
+      />
     </template>
 
     <template v-if="isInitialLoading">

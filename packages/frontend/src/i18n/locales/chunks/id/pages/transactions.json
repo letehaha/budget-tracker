@@ -44,7 +44,7 @@
       },
       "filterOperation": {
         "all": "Semua",
-        "exclude": "Keluarkan",
+        "exclude": "Kecualikan",
         "only": "Hanya"
       },
       "noteIncludes": {

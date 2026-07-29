@@ -1,6 +1,7 @@
 import { errorHandler } from '@controllers/helpers';
 import { t } from '@i18n/index';
 import { TooManyRequests } from '@js/errors';
+import { logger } from '@js/utils';
 import Users from '@models/users.model';
 import { RateLimitService } from '@services/common/rate-limit.service';
 import { getMaxSendInvitationsPerOwnerPer24h } from '@services/sharing/limits';
@@ -10,6 +11,13 @@ interface RateLimitOptions {
   windowSeconds: number;
   maxAttempts?: number;
   keyGenerator?: (req: Request) => string;
+  /**
+   * When true, a Redis/rate-limit-service failure returns the same 429 as a
+   * real limit hit instead of letting the request through. Reserve it for
+   * guards where unlimited access during a Redis blip is worse than a false
+   * 429; cheap read endpoints stay fail-open.
+   */
+  failClosed?: boolean;
 }
 
 /**
@@ -26,44 +34,79 @@ const nonDev =
   };
 
 /**
+ * Sends the 429 response shape shared by an actual limit hit and a
+ * fail-closed error, so callers see one consistent contract either way.
+ */
+const respondTooManyRequests = ({
+  res,
+  maxAttempts,
+  retryAfterSeconds,
+  resetTime,
+}: {
+  res: Response;
+  maxAttempts: number;
+  retryAfterSeconds: number;
+  resetTime?: Date;
+}) => {
+  const error = new TooManyRequests({
+    message: t({ key: 'middleware.tooManyRequests' }),
+    details: {
+      retryAfter: retryAfterSeconds,
+      resetTime: resetTime?.toISOString(),
+    },
+  });
+
+  res.set({
+    'Retry-After': String(retryAfterSeconds),
+    'X-RateLimit-Limit': String(maxAttempts),
+    'X-RateLimit-Remaining': '0',
+    'X-RateLimit-Reset': resetTime?.getTime().toString() || '',
+  });
+
+  return errorHandler(res, error);
+};
+
+/**
  * Creates a rate limiting middleware
  * @param options - Rate limiting configuration
  */
 const createRateLimit = (options: RateLimitOptions) => {
-  const { windowSeconds, maxAttempts = 1, keyGenerator } = options;
+  const { windowSeconds, maxAttempts = 1, keyGenerator, failClosed = false } = options;
 
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Generate rate limit key
       const key = keyGenerator ? keyGenerator(req) : `${req.ip}:${req.route?.path || req.path}`;
 
-      // Check rate limit
+      // `serviceUnavailable` means Redis was unreachable; `allowed: true` is a
+      // fallback, not a real count. The service already logged it, so only
+      // act on `failClosed` here.
       const result = await RateLimitService.checkRateLimit(key, windowSeconds, maxAttempts);
 
+      if (result.serviceUnavailable && failClosed) {
+        return respondTooManyRequests({ res, maxAttempts, retryAfterSeconds: windowSeconds });
+      }
+
       if (!result.allowed) {
-        const error = new TooManyRequests({
-          message: t({ key: 'middleware.tooManyRequests' }),
-          details: {
-            retryAfter: result.remainingSeconds || 0,
-            resetTime: result.resetTime?.toISOString(),
-          },
+        return respondTooManyRequests({
+          res,
+          maxAttempts,
+          retryAfterSeconds: result.remainingSeconds || 0,
+          resetTime: result.resetTime,
         });
-
-        // Add custom headers for rate limiting info
-        res.set({
-          'Retry-After': String(result.remainingSeconds || 0),
-          'X-RateLimit-Limit': String(maxAttempts),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': result.resetTime?.getTime().toString() || '',
-        });
-
-        return errorHandler(res, error);
       }
 
       next();
     } catch (error) {
-      // If rate limiting fails, log error but allow request to proceed
-      console.error('Rate limiting error:', error);
+      // checkRateLimit never rejects. This catch only fires for bugs elsewhere
+      // in the middleware (e.g. a throwing keyGenerator), so it never
+      // double-logs a Redis outage the service already reported.
+      logger.error(error as Error, { context: 'rate-limit middleware failed to check limit', failClosed });
+
+      if (failClosed) {
+        return respondTooManyRequests({ res, maxAttempts, retryAfterSeconds: windowSeconds });
+      }
+
       next();
     }
   };
@@ -95,12 +138,18 @@ export const securitiesPricesBulkUploadRateLimit = createRateLimit({
 });
 
 /**
- * Auth rate limit (per IP, 5 attempts per 15 minutes)
+ * Demo-start rate limit (per IP, 10 attempts per 15 minutes).
+ *
+ * The key prefix scopes to this endpoint alone, so a shared IP (an office, a
+ * campus, carrier NAT) only burns its own demo-start budget. `failClosed`
+ * because this guards the app's most expensive unauthenticated route, so a
+ * Redis outage must not open unlimited demo provisioning.
  */
-export const authRateLimit = createRateLimit({
-  windowSeconds: 15 * 60, // 15 minutes
-  maxAttempts: 5,
-  keyGenerator: (req: Request) => `auth:ip:${req.ip}`,
+export const demoStartRateLimit = createRateLimit({
+  windowSeconds: 15 * 60,
+  maxAttempts: 10,
+  keyGenerator: (req: Request) => `demo-start:ip:${req.ip}`,
+  failClosed: true,
 });
 
 /**

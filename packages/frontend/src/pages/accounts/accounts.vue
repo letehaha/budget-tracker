@@ -221,13 +221,10 @@ import { Card } from '@/components/lib/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import * as Popover from '@/components/lib/ui/popover';
 import GroupTotal from '@/components/sidebar/accounts-view/group-total.vue';
-import {
-  collectGroupAccounts,
-  sumAccountsBaseBalance,
-} from '@/components/sidebar/accounts-view/helpers/account-totals';
-import { useUserSettings } from '@/composable/data-queries/user-settings';
+import { collectGroupAccounts } from '@/components/sidebar/accounts-view/helpers/account-totals';
+import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';
-import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { useAccountsStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { CarIcon, ChevronDownIcon, EllipsisVerticalIcon, LandmarkIcon, LinkIcon, PlusIcon } from '@lucide/vue';
@@ -274,10 +271,7 @@ const { data: providers } = useQuery({
   placeholderData: [] as BankProvider[],
 });
 
-const { baseCurrency } = storeToRefs(useCurrenciesStore());
-const baseCurrencyCode = computed(() => baseCurrency.value?.currency?.code);
-const { data: userSettings } = useUserSettings();
-const includeCreditLimit = computed(() => !!userSettings.value?.includeCreditLimitInStats);
+const { baseCurrencyCode, includeCreditLimit, sumBaseBalance } = useBaseBalanceTotals();
 
 // Gate the skeleton on the groups query too: until it resolves every account would
 // render as ungrouped and Bank connections would flash "no banks connected".
@@ -385,13 +379,7 @@ const manualCount = computed(() => {
   return inFolders + ungroupedAccounts.value.length;
 });
 
-const vehiclesBaseTotal = computed(() =>
-  sumAccountsBaseBalance({
-    accounts: vehicleAccounts.value,
-    baseCurrencyCode: baseCurrencyCode.value,
-    includeCreditLimit: includeCreditLimit.value,
-  }),
-);
+const vehiclesBaseTotal = computed(() => sumBaseBalance({ accounts: vehicleAccounts.value }));
 
 const isArchivedOpen = ref(false);
 

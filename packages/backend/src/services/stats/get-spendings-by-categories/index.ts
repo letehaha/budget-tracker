@@ -1,6 +1,9 @@
 import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import type { RecordId } from '@bt/shared/types';
-import { getRootCategoryId as resolveRootCategoryId } from '@services/categories/category-hierarchy';
+import {
+  expandCategoryIdsWithDescendants,
+  getRootCategoryId as resolveRootCategoryId,
+} from '@services/categories/category-hierarchy';
 import {
   AccessibleCategoryInfo,
   getAccessibleCategoryMap,
@@ -24,18 +27,35 @@ export const getSpendingsByCategories = withTransaction(
     to?: string;
     categoryIds?: string[];
     transactionType?: TRANSACTION_TYPES;
+    /**
+     * Categories the caller has hidden. Expanded to descendants here, because the list is a
+     * snapshot saved in the widget config: a subcategory added after that save is still part of
+     * its hidden parent.
+     */
     excludedCategoryIds?: string[];
   }): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
     const transactions = await getExpensesHistory(params);
 
     // Split distribution + refund netting is shared with the pivot report; this service only
     // differs in how the resulting per-category legs are grouped (see `groupAllocations`).
-    const [allocations, { categories }] = await Promise.all([
+    const [allocations, { categories, byId }] = await Promise.all([
       computeCategoryAllocations({ transactions, applyRefunds: true }),
       getAccessibleCategoryMap({ userId: params.userId }),
     ]);
 
-    return groupAllocations({ categories, allocations, selectedCategoryIds: params.categoryIds });
+    // Hiding a parent hides everything under it, including subcategories created after the caller
+    // saved the exclusion list.
+    const excludedCategoryIds =
+      params.excludedCategoryIds && params.excludedCategoryIds.length > 0
+        ? expandCategoryIdsWithDescendants({ categoryIds: params.excludedCategoryIds, categories, byId })
+        : [];
+
+    return groupAllocations({
+      categories,
+      allocations,
+      selectedCategoryIds: params.categoryIds,
+      excludedCategoryIds,
+    });
   },
 );
 
@@ -91,19 +111,27 @@ export async function getSpendingsByCategoriesByType(params: {
  * selected category is seeded to 0 so it always shows). A refund leg only subtracts when its
  * group already received spend — a refund whose original expense fell outside the range/filter
  * never conjures a phantom negative row.
+ *
+ * `excludedCategoryIds` drops legs one by one rather than filtering the query: a split whose own
+ * category stays visible must still count even when its transaction's primary category is hidden,
+ * and an uncategorized row must never be swept out along with them.
  */
 function groupAllocations({
   categories,
   allocations,
   selectedCategoryIds,
+  excludedCategoryIds,
 }: {
   categories: AccessibleCategoryInfo[];
   allocations: CategoryAllocations;
   selectedCategoryIds?: string[];
+  /** Already expanded to descendants by the caller. */
+  excludedCategoryIds: string[];
 }): endpointsTypes.GetSpendingsByCategoriesReturnType {
   const categoryMap = new Map<string, AccessibleCategoryInfo>(categories.map((cat) => [cat.id, cat]));
   const result: endpointsTypes.GetSpendingsByCategoriesReturnType = {};
   const selectedSet = selectedCategoryIds ? new Set<string>(selectedCategoryIds) : null;
+  const excludedSet = new Set<string>(excludedCategoryIds);
 
   // Cache category -> group id to avoid repeated hierarchy walks.
   const groupCache = new Map<string, string | null>();
@@ -141,16 +169,18 @@ function groupAllocations({
   const getGroupId = (categoryId: string): string | null =>
     selectedSet ? getSelectedGroupId(categoryId) : getRootId(categoryId);
 
-  // Pre-seed every selected category so it appears even with no matching spend.
+  // Pre-seed every selected category so it appears even with no matching spend. A hidden one is
+  // left out, so selecting a category and hiding it does not resurrect it as an empty row.
   if (selectedSet) {
     for (const catId of selectedSet) {
+      if (excludedSet.has(catId)) continue;
       const cat = categoryMap.get(catId);
       result[catId] = { amount: 0, name: cat ? cat.name : 'Unknown', color: cat ? cat.color : '#000000' };
     }
   }
 
   for (const leg of allocations.base) {
-    if (leg.categoryId === null) continue;
+    if (leg.categoryId === null || excludedSet.has(leg.categoryId)) continue;
     const groupId = getGroupId(leg.categoryId);
     if (groupId === null) continue;
 
@@ -168,7 +198,7 @@ function groupAllocations({
   }
 
   for (const leg of allocations.refunds) {
-    if (leg.categoryId === null) continue;
+    if (leg.categoryId === null || excludedSet.has(leg.categoryId)) continue;
     const groupId = getGroupId(leg.categoryId);
     if (groupId === null) continue;
 

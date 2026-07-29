@@ -110,6 +110,7 @@ import { useElementSize, useLocalStorage } from '@vueuse/core';
 import {
   CalculatorIcon,
   ChartAreaIcon,
+  ChartLineIcon,
   ChevronRightIcon,
   DollarSignIcon,
   PanelLeftCloseIcon,
@@ -180,6 +181,12 @@ const sections = computed<NavSection[]>(() => [
         label: t('analytics.navigation.cashFlow'),
         to: { name: ROUTES_NAMES.analyticsCashFlow },
         icon: DollarSignIcon,
+      },
+      {
+        name: 'net-worth-history',
+        label: t('analytics.navigation.netWorthHistory'),
+        to: { name: ROUTES_NAMES.analyticsNetWorthHistory },
+        icon: ChartLineIcon,
       },
       {
         name: 'pivot-report',

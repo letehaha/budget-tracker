@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { createAccountsGroup } from '@/api/account-groups';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { useCreateAccountGroup } from '@/composable/data-queries/account-groups';
 import { useOnboardingStore } from '@/stores/onboarding';
-import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 
-const queryClient = useQueryClient();
 const form = ref({
   name: '',
 });
@@ -17,13 +14,8 @@ const emit = defineEmits(['created']);
 
 const isOpen = ref(false);
 
-const { isPending: isMutating, mutate } = useMutation({
-  mutationFn: createAccountsGroup,
+const { isPending: isMutating, mutate } = useCreateAccountGroup({
   onSuccess: () => {
-    queryClient.invalidateQueries({
-      queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
-    });
-
     // Mark onboarding task as complete
     const onboardingStore = useOnboardingStore();
     onboardingStore.completeTask('create-account-group');
@@ -35,8 +27,8 @@ const { isPending: isMutating, mutate } = useMutation({
 });
 const isSubmitDisabled = computed(() => isMutating.value || !form.value.name);
 
-const createGroup = async () => {
-  await mutate({ name: form.value.name });
+const createGroup = () => {
+  mutate({ name: form.value.name });
 };
 </script>
 

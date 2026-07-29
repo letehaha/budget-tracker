@@ -10,6 +10,7 @@
       "collapse": "Tutup",
       "netWorthDrivers": "Pendorong Kekayaan Bersih",
       "investmentContributions": "Kontribusi",
+      "netWorthHistory": "Riwayat Kekayaan Bersih",
       "sections": {
         "investments": "Investasi"
       }
@@ -44,7 +45,8 @@
         "last6Months": "6 bulan terakhir",
         "last12Months": "12 bulan terakhir",
         "thisYear": "Tahun ini",
-        "previousYear": "Tahun sebelumnya"
+        "previousYear": "Tahun sebelumnya",
+        "allTime": "Sepanjang waktu"
       },
       "periodSelector": {
         "quickSelect": "Pilih Cepat",
@@ -182,7 +184,8 @@
       "thisYear": "Tahun ini",
       "previousYear": "Tahun sebelumnya",
       "last3Years": "3 tahun terakhir",
-      "last5Years": "5 tahun terakhir"
+      "last5Years": "5 tahun terakhir",
+      "allTime": "Sepanjang waktu"
     },
     "savedViews": {
       "trigger": "Tampilan",
@@ -311,6 +314,65 @@
       "noPortfoliosPlaceholder": "Buat portofolio dan mulai berinvestasi untuk melacak kontribusi Anda di sini.",
       "noPortfoliosAction": "Tambahkan portofolio",
       "loadError": "Kontribusi gagal dimuat"
+    }
+  },
+  "netWorthHistory": {
+    "title": "Riwayat Kekayaan Bersih",
+    "subtitle": "Bagaimana aset, kewajiban, dan kekayaan bersih Anda berubah dari waktu ke waktu",
+    "granularity": {
+      "weekly": "Mingguan",
+      "monthly": "Bulanan",
+      "quarterly": "Triwulan",
+      "yearly": "Tahunan"
+    },
+    "kindFilter": {
+      "all": "Semua kewajiban",
+      "scopeHint": "Pilih jenis utang yang dihitung sebagai kewajiban dalam laporan ini.",
+      "selectedOne": "1 jenis",
+      "selectedMany": "{n} jenis"
+    },
+    "assetKinds": {
+      "cash": "Kas & akun",
+      "investments": "Investasi",
+      "vehicles": "Kendaraan",
+      "ventures": "Ventura"
+    },
+    "assetFilter": {
+      "all": "Semua aset",
+      "scopeHint": "Pilih jenis aset yang dihitung dalam laporan ini.",
+      "selectedOne": "1 jenis",
+      "selectedMany": "{n} jenis"
+    },
+    "cards": {
+      "currentNetWorth": "Kekayaan bersih saat ini",
+      "periodChange": "Perubahan periode",
+      "annualized": "≈ {pct} / thn",
+      "averageLiabilities": "Anda memiliki rata-rata {amount} kewajiban selama periode yang dipilih.",
+      "noLiabilities": "Anda tidak memiliki kewajiban selama periode yang dipilih."
+    },
+    "chart": {
+      "assets": "Aset",
+      "liabilities": "Kewajiban",
+      "liabilitiesTotal": "Total kewajiban",
+      "netWorth": "Kekayaan bersih",
+      "averageLiabilities": "Rata-rata kewajiban",
+      "liabilitiesZoomed": "Skala kewajiban diperbesar"
+    },
+    "settings": {
+      "title": "Pengaturan grafik",
+      "zoomLiabilities": "Perbesar skala kewajiban",
+      "zoomLiabilitiesHint": "Perbesar utang kecil agar tetap terlihat di samping aset besar."
+    },
+    "degraded": {
+      "title": "Beberapa nilai diperkirakan",
+      "unpricedSecurities": "Tidak ada data harga terbaru untuk {securities}, sehingga ditampilkan berdasarkan biaya perolehan dan mungkin meremehkan kekayaan bersih Anda.",
+      "unpricedSecuritiesTruncated": "Tidak ada data harga terbaru untuk {securities} dan lainnya (total {count} sekuritas); ditampilkan berdasarkan biaya perolehan dan mungkin meremehkan kekayaan bersih Anda.",
+      "fxFallback": "Nilai tukar tidak tersedia untuk {currencies}; jumlah tersebut menggunakan rasio 1:1."
+    },
+    "states": {
+      "loadError": "Gagal memuat riwayat kekayaan bersih. Silakan coba lagi nanti.",
+      "noData": "Tidak ada riwayat untuk periode ini",
+      "noDataHint": "Coba periode yang lebih panjang, atau tambahkan akun dan transaksi agar ada saldo untuk direkam."
     }
   }
 }

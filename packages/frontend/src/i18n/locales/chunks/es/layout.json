@@ -85,6 +85,30 @@
     "dark": "Oscuro",
     "system": "Sistema"
   },
+  "feedback": {
+    "dialog": {
+      "title": "Dejar comentarios",
+      "description": "Cuéntenos qué funciona y qué no.",
+      "typeLabel": "Tipo",
+      "typePlaceholder": "Elija un tipo",
+      "types": {
+        "bug": "Algo no funciona",
+        "featureRequest": "Quiero una función",
+        "other": "Otra cosa"
+      },
+      "messageLabel": "Su comentario",
+      "messagePlaceholder": "¿Qué ocurrió o qué le gustaría ver?",
+      "messageRequired": "Escriba un mensaje antes de enviarlo.",
+      "submit": "Enviar",
+      "thanks": "Gracias, leemos todos los mensajes.",
+      "unavailable": "El envío no está disponible en este momento. Use el tablero de abajo en su lugar.",
+      "or": "o",
+      "board": {
+        "title": "Publíquelo en el tablero público",
+        "description": "Vote las ideas de otras personas, vea qué está ya planificado y reciba una respuesta a la suya."
+      }
+    }
+  },
   "syncStatusTooltip": {
     "title": "Estado de sincronización de conexiones bancarias",
     "syncedSuccessfully": "Sincronizado correctamente",

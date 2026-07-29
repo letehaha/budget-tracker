@@ -270,6 +270,12 @@ const periodPresets = computed<DateSelectorPreset[]>(() => [
     label: t('pivotReport.periods.last5Years'),
     getValue: () => ({ from: startOfYear(subYears(new Date(), 4)), to: endOfYear(new Date()) }),
   },
+  {
+    label: t('pivotReport.periods.allTime'),
+    // Fallback start covers the case where the earliest-date query hasn't resolved:
+    // far enough back to include any realistic personal-finance history.
+    getValue: () => ({ from: earliestDate.value ?? new Date(2000, 0, 1), to: new Date() }),
+  },
 ]);
 
 const isSettingsOpen = ref(false);

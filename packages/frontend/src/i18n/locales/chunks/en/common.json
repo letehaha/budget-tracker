@@ -190,6 +190,27 @@
       "resetToAuto": "Reset to automatic"
     }
   },
+  "accountGroups": {
+    "create": {
+      "error": "Failed to create the group"
+    },
+    "rename": {
+      "success": "Group has been renamed",
+      "error": "Failed to rename the group"
+    },
+    "delete": {
+      "success": "Group has been deleted",
+      "error": "Failed to delete the group"
+    },
+    "link": {
+      "success": "Account has been added to the group",
+      "error": "Failed to add the account to the group"
+    },
+    "unlink": {
+      "success": "Account has been removed from the group",
+      "error": "Failed to remove the account from the group"
+    }
+  },
   "validation": {
     "minLength": "Minimal length is {length}.",
     "emailInvalid": "Please enter a valid email address.",
@@ -303,14 +324,15 @@
       "description": "The investments feature is not available in demo mode. Please sign up for a full account to access investments tracking."
     },
     "banner": {
-      "message": "You're exploring a demo{time}. {signUpLink} to keep your data permanently.",
+      "message": "You're exploring a demo with sample data{time}. {signUpLink} to create your own account.",
       "resets": "resets in {time}",
       "signUp": "Sign up",
       "timeFormat": {
         "hoursMinutes": "{hours}h {minutes}m",
         "minutes": "{minutes}m"
       }
-    }
+    },
+    "sessionExpiredNotice": "Your demo session has ended. Create a free account to continue, or sign in below if you already have one."
   },
   "settings": {
     "currencies": {

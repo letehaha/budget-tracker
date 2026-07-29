@@ -1,7 +1,7 @@
 ---
 name: release-notes-generator
 description: Generates GitHub release notes by comparing commits since the last tag. Use when user says "prepare release", "release notes", "next release", "release text", "prepare next release text", or "create release".
-allowed-tools: Bash, Read
+allowed-tools: Bash, Read, Skill
 ---
 
 # Release Notes Generator
@@ -10,7 +10,7 @@ Generates formatted release notes for the next GitHub release by analyzing commi
 
 ## Mode
 
-This skill is a **direct execution workflow** — no questions needed. Gather all context from git history and PRs, then produce the release text.
+This skill is a **direct execution workflow** — no questions needed. Gather all context from git history and PRs, produce the release text, then run it through the `stop-slop` skill (Step 6) before showing it to the user.
 
 ## When to Use
 
@@ -166,7 +166,32 @@ Follow the **exact format** observed from recent releases. The format is:
 - Always end with the Full Changelog compare link
 - Skip `chore:` commits from feature descriptions (but still list in Code Changes)
 
-### Step 6: Suggest Release Title
+### Step 6: De-slop the Prose (mandatory)
+
+Release notes go out to every user, so the draft gets an editing pass before anyone sees it.
+
+**Invoke the `stop-slop` skill** (`Skill` tool, `skill: "stop-slop"`) and apply its rules to the draft from Step 5. This step is not optional and not something to approximate from memory — load the skill and follow what it says.
+
+Run the pass over the **prose only**: section titles, feature descriptions, and bug-fix lines. Leave these alone:
+
+- The "Code Changes" list — commit prefixes, PR titles, and URLs are verbatim by design
+- The Full Changelog link
+- Product/brand names and the required `[MoneyMatter](https://moneymatter.app)` link
+
+Watch for the patterns that show up most in release notes specifically:
+
+- Em dashes joining two clauses. Split the sentence or use a colon.
+- Passive voice hiding who acted: "the countdown was fixed" → "the countdown now counts down correctly".
+- Inanimate subjects doing human verbs: "the dashboard now understands your filters".
+- Marketing adjectives: "seamless", "robust", "comprehensive", "powerful", "significantly".
+- Three-beat lists where two items would do.
+- Throat-clearing openers: "This release introduces…", "We've also added…".
+
+Where a stop-slop rule collides with a rule from Step 5, **Step 5 wins**. In particular, keep the bug-fix scope requirement (which flow, under what condition, what was unaffected) even when stop-slop's density rule tempts you to cut it — specificity is the point of both rules.
+
+Report the edit briefly to the user after Step 8: what you cut, and the stop-slop score.
+
+### Step 7: Suggest Release Title
 
 Suggest a title following the pattern: `v<version> – <short description>`
 
@@ -176,7 +201,7 @@ Examples from past releases:
 - `v0.10.5 – "Balance Trend" spikes markers`
 - `v0.10.4 - Stats on budget's details page`
 
-### Step 7: Present to User
+### Step 8: Present to User
 
 Output the release text as a markdown code block so the user can copy it directly. Also state the suggested release title separately.
 

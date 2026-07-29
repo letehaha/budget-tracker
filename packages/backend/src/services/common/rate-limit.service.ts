@@ -5,12 +5,20 @@ interface RateLimitResult {
   allowed: boolean;
   remainingSeconds?: number;
   resetTime?: Date;
+  /**
+   * True when the check itself couldn't run (Redis unreachable); `allowed:
+   * true` is then a fallback, not a real count. Callers that need to fail
+   * closed read this flag explicitly instead of defaulting to fail-open.
+   */
+  serviceUnavailable?: boolean;
 }
 
 // oxlint-disable-next-line typescript/no-extraneous-class -- static utility class used as a namespace
 export class RateLimitService {
   /**
-   * Check if an action is allowed based on rate limiting rules
+   * Check if an action is allowed based on rate limiting rules. Never rejects:
+   * a Redis failure resolves as `{ allowed: true, serviceUnavailable: true }`,
+   * so every caller keeps failing open by default.
    * @param key - Unique identifier for the rate limit (e.g., "user:123:price-sync")
    * @param windowSeconds - Time window in seconds for the rate limit
    * @param maxAttempts - Maximum number of attempts allowed in the window
@@ -54,9 +62,11 @@ export class RateLimitService {
         error: error as Error,
       });
 
-      // If Redis fails, allow the request to proceed
+      // Redis is unreachable. Allow by default, but flag it so a caller that
+      // opted into failing closed (e.g. the demo-start limiter) can still deny.
       return {
         allowed: true,
+        serviceUnavailable: true,
       };
     }
   }

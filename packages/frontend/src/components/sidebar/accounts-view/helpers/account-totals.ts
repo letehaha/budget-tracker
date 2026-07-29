@@ -6,7 +6,7 @@ import { AccountModel } from '@bt/shared/types';
  * The only fields a base-currency roll-up reads. Kept minimal so both `AccountModel`
  * and the API's `LoanApi`/`AccountApiResponse` shapes satisfy it.
  */
-interface BalanceAccount {
+export interface BalanceAccount {
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;

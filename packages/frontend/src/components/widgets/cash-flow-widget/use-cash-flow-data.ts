@@ -3,7 +3,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useRootStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
-import { computed } from 'vue';
+import { type Ref, computed } from 'vue';
 
 import {
   type CashFlowTotals,
@@ -27,10 +27,18 @@ const ZERO_TOTALS: CashFlowTotals = { income: 0, expenses: 0, netFlow: 0, saving
  * from monthly buckets, so the current and previous periods fall back to their
  * own exact calls there.
  */
-export function useCashFlowData({ selectedPeriod }: { selectedPeriod: () => { from: Date; to: Date } }) {
+export function useCashFlowData({
+  selectedPeriod,
+  excludedCategoryIds,
+}: {
+  selectedPeriod: () => { from: Date; to: Date };
+  excludedCategoryIds: Ref<string[]>;
+}) {
   const { isAppInitialized } = storeToRefs(useRootStore());
 
   const periodQueryKey = computed(() => `${selectedPeriod().from.toISOString()}-${selectedPeriod().to.toISOString()}`);
+  const excludedKey = computed(() => excludedCategoryIds.value.join(','));
+  const excludedParam = computed(() => (excludedCategoryIds.value.length > 0 ? excludedCategoryIds.value : undefined));
 
   const isFullMonth = computed(() => isFullMonthPeriod(selectedPeriod()));
   const prevPeriod = computed(() => computePrevPeriod(selectedPeriod()));
@@ -47,8 +55,14 @@ export function useCashFlowData({ selectedPeriod }: { selectedPeriod: () => { fr
   const unionRange = computed(() => ({ from: trendRange.value.from, to: selectedPeriod().to }));
 
   const { data: unionData, isFetching: isUnionFetching } = useQuery({
-    queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlowTrend, periodQueryKey.value]),
-    queryFn: () => getCashFlow({ from: unionRange.value.from, to: unionRange.value.to, granularity: 'monthly' }),
+    queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlowTrend, periodQueryKey.value, excludedKey.value]),
+    queryFn: () =>
+      getCashFlow({
+        from: unionRange.value.from,
+        to: unionRange.value.to,
+        granularity: 'monthly',
+        excludedCategoryIds: excludedParam.value,
+      }),
     staleTime: Infinity,
     placeholderData: (prev) => prev,
     enabled: isAppInitialized,
@@ -57,16 +71,28 @@ export function useCashFlowData({ selectedPeriod }: { selectedPeriod: () => { fr
   const useExactRanges = computed(() => isAppInitialized.value && !isFullMonth.value);
 
   const { data: currentExactData, isFetching: isCurrentFetching } = useQuery({
-    queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlow, periodQueryKey.value]),
-    queryFn: () => getCashFlow({ from: selectedPeriod().from, to: selectedPeriod().to, granularity: 'monthly' }),
+    queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlow, periodQueryKey.value, excludedKey.value]),
+    queryFn: () =>
+      getCashFlow({
+        from: selectedPeriod().from,
+        to: selectedPeriod().to,
+        granularity: 'monthly',
+        excludedCategoryIds: excludedParam.value,
+      }),
     staleTime: Infinity,
     placeholderData: (prev) => prev,
     enabled: useExactRanges,
   });
 
   const { data: prevExactData, isFetching: isPrevFetching } = useQuery({
-    queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlowPrev, periodQueryKey.value]),
-    queryFn: () => getCashFlow({ from: prevPeriod.value.from, to: prevPeriod.value.to, granularity: 'monthly' }),
+    queryKey: computed(() => [...VUE_QUERY_CACHE_KEYS.widgetCashFlowPrev, periodQueryKey.value, excludedKey.value]),
+    queryFn: () =>
+      getCashFlow({
+        from: prevPeriod.value.from,
+        to: prevPeriod.value.to,
+        granularity: 'monthly',
+        excludedCategoryIds: excludedParam.value,
+      }),
     staleTime: Infinity,
     placeholderData: (prev) => prev,
     enabled: useExactRanges,

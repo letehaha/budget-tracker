@@ -2,6 +2,7 @@ import { API_RESPONSE_STATUS } from '@bt/shared/types';
 import { auth } from '@config/auth';
 import { errorHandler } from '@controllers/helpers';
 import { logger } from '@js/utils/logger';
+import { trackDemoSessionCreated } from '@js/utils/posthog';
 import { applyDemoTemplate } from '@services/demo/apply-demo-template.service';
 import { createDemoUserFast } from '@services/demo/create-demo-user.service';
 import { Request, Response } from 'express';
@@ -10,17 +11,20 @@ import { Request, Response } from 'express';
  * POST /api/v1/demo
  *
  * Creates a new demo user with seeded data and returns session credentials.
- * Rate limited to 5 requests per 15 minutes per IP.
+ * Rate limited to 10 requests per 15 minutes per IP.
  */
 export const startDemo = async (req: Request, res: Response) => {
   try {
     logger.info(`Demo session requested from IP: ${req.ip}`);
+    const startedAt = Date.now();
 
     // 1. Create demo user records (auth + app user, no data seeding)
     const { user, email, password } = await createDemoUserFast();
 
     // 2. Apply pre-generated template (fast bulk insert)
     await applyDemoTemplate({ userId: user.id });
+
+    trackDemoSessionCreated({ userId: user.id, durationMs: Date.now() - startedAt });
 
     // 3. Sign in using better-auth's API to get proper session with signed cookies
     // Pass asResponse: true to get a full Response object with Set-Cookie headers

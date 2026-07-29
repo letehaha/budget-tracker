@@ -227,8 +227,8 @@ const trends = computed(() => {
       previous: previousTotals?.income,
     }),
     expenses: calculateTrend({
-      current: currentTotals?.expenses ? Math.abs(currentTotals.expenses) : undefined,
-      previous: previousTotals?.expenses ? Math.abs(previousTotals.expenses) : undefined,
+      current: currentTotals?.expenses,
+      previous: previousTotals?.expenses,
     }),
     netFlow: calculateTrend({
       current: currentTotals?.netFlow,

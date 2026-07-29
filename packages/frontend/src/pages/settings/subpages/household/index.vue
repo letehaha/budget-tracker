@@ -19,7 +19,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { useNotificationCenter } from '@/components/notification-center';
-import { ApiErrorResponseError } from '@/js/errors';
+import { extractApiErrorMessage } from '@/js/errors';
 import { useUserStore } from '@/stores';
 import { useOnboardingStore } from '@/stores/onboarding';
 import {
@@ -42,13 +42,6 @@ const { user, isDemo } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const queryClient = useQueryClient();
 const onboardingStore = useOnboardingStore();
-
-// Single source for unwrapping ApiErrorResponseError messages — the API client throws
-// this class with `data: { code, message, details }`, so the common reflex of reading
-// `err.response.data.response.message` silently returns undefined. Centralizing the
-// extraction keeps every mutation handler consistent.
-const extractApiErrorMessage = (err: unknown): string | undefined =>
-  err instanceof ApiErrorResponseError ? err.data?.message : undefined;
 
 // "My household" = the household I own. Identified by my own userId in the resource shape.
 const myHouseholdId = computed(() => user.value?.id ?? null);
@@ -391,7 +384,7 @@ watch(permissionOptions, (next) => {
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <DemoRestricted>
+                  <DemoRestricted feature="household_change_permission">
                     <Button
                       v-if="member.permission !== SHARE_PERMISSIONS.read"
                       size="sm"
@@ -415,7 +408,7 @@ watch(permissionOptions, (next) => {
                       {{ $t('pages.household.permissionChange.setWrite') }}
                     </Button>
                   </DemoRestricted>
-                  <DemoRestricted>
+                  <DemoRestricted feature="household_revoke_member">
                     <Button
                       size="sm"
                       variant="soft-destructive"
@@ -452,7 +445,7 @@ watch(permissionOptions, (next) => {
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <DemoRestricted>
+                  <DemoRestricted feature="household_resend_invite">
                     <Button
                       size="sm"
                       variant="outline"
@@ -464,7 +457,7 @@ watch(permissionOptions, (next) => {
                       {{ $t('pages.household.pending.resend') }}
                     </Button>
                   </DemoRestricted>
-                  <DemoRestricted>
+                  <DemoRestricted feature="household_cancel_invite">
                     <Button
                       size="sm"
                       variant="soft-destructive"
@@ -520,7 +513,7 @@ watch(permissionOptions, (next) => {
                   </p>
                 </div>
               </div>
-              <DemoRestricted>
+              <DemoRestricted feature="household_leave">
                 <Button
                   size="sm"
                   variant="soft-destructive"

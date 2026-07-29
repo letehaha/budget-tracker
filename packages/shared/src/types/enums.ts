@@ -2,7 +2,7 @@
  * User roles for access control and feature gating.
  * - admin: Full access to all features including admin panel
  * - common: Regular registered user
- * - demo: Temporary demo user (auto-deleted after 6 hours)
+ * - demo: Temporary demo user (auto-deleted after 4 hours)
  */
 export const USER_ROLES = {
   admin: 'admin',

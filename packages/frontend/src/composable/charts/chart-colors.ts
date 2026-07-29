@@ -9,6 +9,7 @@ export function getChartColors() {
   return {
     grid: read('--border', 'rgb(39, 39, 42)'),
     text: read('--muted-foreground', 'rgb(161, 161, 170)'),
+    foreground: read('--foreground', 'rgb(250, 250, 250)'),
     primary: read('--primary', 'rgb(139, 92, 246)'),
     card: read('--card', 'rgb(24, 24, 27)'),
     appIncome: read('--app-income-color', 'rgb(46, 204, 113)'),

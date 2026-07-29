@@ -196,7 +196,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
         <p class="text-muted-foreground text-sm">{{ $t('pages.budgetDetails.sharing.description') }}</p>
       </div>
 
-      <DemoRestricted v-if="isOwner">
+      <DemoRestricted v-if="isOwner" feature="share_budget_invite">
         <Button variant="outline" size="sm" :disabled="isDemo" @click="inviteDialogOpen = true">
           <UserPlusIcon class="mr-2 size-4" />
           {{ $t('pages.budgetDetails.sharing.inviteAnother') }}
@@ -263,7 +263,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
                   :disabled="updateMemberMutation.isPending.value || isSelfRow(member) || isDemo"
                   @update:model-value="(opt) => handlePermissionChange(member, opt as PermissionOption | null)"
                 />
-                <DemoRestricted>
+                <DemoRestricted feature="share_budget_revoke_member">
                   <DesktopOnlyTooltip :content="$t('pages.budgetDetails.sharing.member.revoke')">
                     <Button
                       variant="soft-destructive"
@@ -316,7 +316,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
             </div>
 
             <div class="flex items-center gap-2 @sm/sharing-panel:ml-auto">
-              <DemoRestricted>
+              <DemoRestricted feature="share_budget_resend_invite">
                 <DesktopOnlyTooltip :content="$t('pages.budgetDetails.sharing.pending.resend')">
                   <Button
                     variant="ghost"
@@ -328,7 +328,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
                   </Button>
                 </DesktopOnlyTooltip>
               </DemoRestricted>
-              <DemoRestricted>
+              <DemoRestricted feature="share_budget_cancel_invite">
                 <DesktopOnlyTooltip :content="$t('pages.budgetDetails.sharing.pending.cancel')">
                   <Button
                     variant="ghost-destructive"

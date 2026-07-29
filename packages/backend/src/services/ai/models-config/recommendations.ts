@@ -3,40 +3,36 @@ import { AI_FEATURE } from '@bt/shared/types';
 import { AI_MODEL_ID } from './model-ids';
 
 /**
+ * Shared recommendation list for document-extraction features (statement parsing,
+ * investment transaction parsing). Both features extract structured data from the
+ * same kind of image/text documents, so the same models rank the same way.
+ */
+const DOCUMENT_EXTRACTION_MODELS: AI_MODEL_ID[] = [
+  // Gemini models - fast and cost-effective for text extraction
+  AI_MODEL_ID['google/gemini-3.6-flash'], // Latest Flash, strong document understanding
+  AI_MODEL_ID['google/gemini-3.1-pro-preview'], // Best Gemini quality for messy statements
+  // Claude models - best for document understanding
+  AI_MODEL_ID['anthropic/claude-haiku-4-5'], // Cheap Claude with vision
+  AI_MODEL_ID['anthropic/claude-sonnet-5'], // Great balance of quality and cost
+  // GPT-5.6 tiers all accept image input
+  AI_MODEL_ID['openai/gpt-5.6-luna'], // Cheaper option with decent vision
+  AI_MODEL_ID['openai/gpt-5.6-terra'], // Good vision capabilities for image-based extraction
+];
+
+/**
  * Per-feature recommended models.
  * Models are listed in order of recommendation (first = most recommended).
  */
 export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
   [AI_FEATURE.categorization]: [
-    AI_MODEL_ID['google/gemma-4-31b-it'], // Generous free-tier (1.5K/day), ~92% agreement with Gemini 3 Flash
-    AI_MODEL_ID['google/gemini-2.5-flash'], // Fast, cheap, great for bulk categorization
-    AI_MODEL_ID['google/gemini-2.5-flash-lite'], // Ultra-lightweight, highest throughput
-    AI_MODEL_ID['openai/gpt-4o-mini'], // Good balance of quality and cost
+    AI_MODEL_ID['google/gemma-4-31b-it'], // Free on the Gemini API, accurate enough for short merchant names
+    AI_MODEL_ID['google/gemini-3.5-flash-lite'], // Cheapest Gemini with a free tier
+    AI_MODEL_ID['groq/openai/gpt-oss-20b'], // Very cheap and the fastest option overall
+    AI_MODEL_ID['openai/gpt-5.4-nano'], // Cheapest OpenAI tier
     AI_MODEL_ID['anthropic/claude-haiku-4-5'], // Fast Claude option
-    AI_MODEL_ID['groq/mixtral-8x7b-32768'], // Free/cheap option with good speed
   ],
-  [AI_FEATURE.statementParsing]: [
-    // Gemini models - fast and cost-effective for text extraction
-    AI_MODEL_ID['google/gemini-3-flash-preview'], // Latest, fast and capable
-    AI_MODEL_ID['google/gemini-2.5-flash'], // Fast and good for document understanding
-    AI_MODEL_ID['google/gemini-2.5-pro'], // Best Gemini quality for complex statements
-    // Claude models - best for document understanding
-    AI_MODEL_ID['anthropic/claude-haiku-4-5'], // Latest and best for complex documents
-    AI_MODEL_ID['anthropic/claude-3-7-sonnet-latest'], // Great balance of quality and cost
-    // GPT-4o has vision capabilities
-    AI_MODEL_ID['openai/gpt-4o-mini'], // Cheaper option with decent vision
-    AI_MODEL_ID['openai/gpt-4o'], // Good vision capabilities for image-based extraction
-  ],
-  [AI_FEATURE.investmentTransactionsParsing]: [
-    // Same shape as statement parsing — token-efficient text extraction
-    AI_MODEL_ID['google/gemini-3-flash-preview'],
-    AI_MODEL_ID['google/gemini-2.5-flash'],
-    AI_MODEL_ID['google/gemini-2.5-pro'],
-    AI_MODEL_ID['anthropic/claude-haiku-4-5'],
-    AI_MODEL_ID['anthropic/claude-3-7-sonnet-latest'],
-    AI_MODEL_ID['openai/gpt-4o-mini'],
-    AI_MODEL_ID['openai/gpt-4o'],
-  ],
+  [AI_FEATURE.statementParsing]: DOCUMENT_EXTRACTION_MODELS,
+  [AI_FEATURE.investmentTransactionsParsing]: DOCUMENT_EXTRACTION_MODELS,
 };
 
 /**
@@ -45,6 +41,6 @@ export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
  */
 export const FEATURE_DEFAULTS: Record<AI_FEATURE, AI_MODEL_ID> = {
   [AI_FEATURE.categorization]: AI_MODEL_ID['google/gemma-4-31b-it'],
-  [AI_FEATURE.statementParsing]: AI_MODEL_ID['google/gemini-3-flash-preview'],
-  [AI_FEATURE.investmentTransactionsParsing]: AI_MODEL_ID['google/gemini-3-flash-preview'],
+  [AI_FEATURE.statementParsing]: AI_MODEL_ID['google/gemini-3.6-flash'],
+  [AI_FEATURE.investmentTransactionsParsing]: AI_MODEL_ID['google/gemini-3.6-flash'],
 };

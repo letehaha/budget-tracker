@@ -56,7 +56,7 @@
             "description": "Get your API key from"
           },
           "groq": {
-            "label": "Groq (Llama, Mixtral)",
+            "label": "Groq (Llama, GPT-OSS)",
             "placeholder": "gsk_...",
             "description": "Get your API key from"
           }
@@ -78,7 +78,7 @@
       "categorization": {
         "modelHint": {
           "trigger": "What model should I choose?",
-          "text": "For transaction categorization, low-cost models like Gemini Flash, Claude Haiku, or GPT-4o Mini are recommended. Categorization is a straightforward task that doesn't require expensive reasoning models. Using cheaper models lets you process more transactions at lower cost."
+          "text": "For transaction categorization, low-cost models like Gemma 4, Gemini 3.5 Flash Lite, or Claude Haiku 4.5 are recommended. Categorization is a straightforward task that doesn't require expensive reasoning models. Using cheaper models lets you process more transactions at lower cost."
         },
         "howItWorks": {
           "title": "How it works",
@@ -94,7 +94,7 @@
       "statementParsing": {
         "modelHint": {
           "trigger": "What model should I choose?",
-          "text": "For statement parsing, mid-tier models like Claude Sonnet, Gemini Pro, or GPT-4o are recommended. Statement parsing requires understanding complex document structures and extracting accurate data, which benefits from more capable models. However, cheaper models like Gemini Flash or Claude Haiku can also work well for simpler statements."
+          "text": "For statement parsing, mid-tier models like Gemini 3.6 Flash, Claude Sonnet 5, or GPT-5.6 Terra are recommended. Statement parsing requires understanding complex document structures and extracting accurate data, which benefits from more capable models. However, cheaper models like Gemini 3.5 Flash Lite or Claude Haiku 4.5 can also work well for simpler statements."
         },
         "howItWorks": {
           "title": "How it works",

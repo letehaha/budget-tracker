@@ -88,7 +88,7 @@
             "override": "Anda selalu dapat mengganti kategori yang disarankan AI secara manual."
           }
         },
-        "payeeTip": "Tip: mengatur kategori bawaan pada penerima pembayaran akan melewati AI untuk transaksi tersebut sepenuhnya.",
+        "payeeTip": "Tip: mengatur kategori bawaan pada penerima akan melewati AI untuk transaksi tersebut sepenuhnya.",
         "loading": "Memuat model..."
       },
       "statementParsing": {
@@ -157,7 +157,7 @@
       "customInstructions": {
         "title": "Instruksi Kustom",
         "description": "Berikan konteks untuk membantu AI mengkategorikan transaksi Anda. Instruksi ini disertakan saat mengkategorikan transaksi selama sinkronisasi bank dan impor manual.",
-        "placeholder": "Mis: Transaksi dari 'Starbucks' harus 'Kopi'. Pendapatan lepas saya berasal dari 'Acme Corp'.",
+        "placeholder": "Mis: Transaksi dari 'Starbucks' harus 'Kopi'. Pemasukan lepas saya berasal dari 'Acme Corp'.",
         "requiresApiKey": "Tambahkan kunci API pribadi untuk menggunakan instruksi kustom.",
         "save": "Simpan",
         "saved": "Tersimpan!",

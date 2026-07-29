@@ -27,7 +27,7 @@
       "frequencyLabel": "Frekuensi",
       "nextExpected": "Berikutnya diharapkan",
       "startDate": "Tanggal mulai",
-      "linkedTransactions": "{count} transaksi terhubung",
+      "linkedTransactions": "{count} transaksi terhubung | {count} transaksi terhubung",
       "linkedTransactionsTitle": "Transaksi Terhubung",
       "noLinkedTransactions": "Belum ada transaksi terhubung",
       "unlinkTransaction": "Lepaskan transaksi",
@@ -181,8 +181,8 @@
         "monthlyCost": "~{amount}/bln",
         "yearlyProjected": "{amount} diproyeksikan",
         "perYear": "{amount}/thn",
-        "acrossSubscriptions": "di {count} langganan aktif",
-        "acrossBills": "di {count} tagihan aktif",
+        "acrossSubscriptions": "di {count} langganan aktif | di {count} langganan aktif",
+        "acrossBills": "di {count} tagihan aktif | di {count} tagihan aktif",
         "acrossAll": "di {count} langganan & tagihan aktif"
       },
       "candidates": {

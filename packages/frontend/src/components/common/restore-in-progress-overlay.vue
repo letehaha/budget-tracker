@@ -1,5 +1,6 @@
 <template>
   <BlockingJobOverlay
+    v-if="isOverlayNeeded && isChunkReady"
     :show-progress="showProgress"
     :is-taking-long="isTakingLong"
     :taking-long-label="$t('settings.security.backup.restore.overlay.takingLong')"
@@ -43,7 +44,7 @@ import { restoreDialogPresenting, useRestoreJobStatus } from '@/composable/use-r
 import { ensureChunkLoaded } from '@/i18n';
 import type { BackupRestorePhase } from '@bt/shared/types';
 import { DatabaseBackupIcon } from '@lucide/vue';
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const { status, isBlocking, isTakingLong, liveFailure, statusUnreachable, stop } = useRestoreJobStatus();
 
@@ -61,14 +62,36 @@ const showProgress = computed(
 // own failure panel so the two can't both render.
 const overlayLiveFailure = computed(() => (restoreDialogPresenting.value ? null : liveFailure.value));
 
+const isOverlayNeeded = computed(() => showProgress.value || overlayLiveFailure.value != null);
+
 // This overlay lives at the app root and can surface on a non-settings route — e.g. a
 // reload on the dashboard while a restore runs in another tab. Its strings live in the
 // `settings/security` i18n chunk, which only auto-loads under /settings, so pull it in
 // the moment the overlay is about to show; a no-op once the chunk is already loaded.
+// Rendering is held until then because the label props are plain `$t()` strings: without
+// the chunk they log missing-key warnings and paint raw key paths.
+//
+// A blocking job must never go unannounced, so the wait is capped from both ends:
+// `finally` rather than `then` covers a chunk fetch that rejects, and the timer covers one
+// that stalls without ever settling. Past either, the overlay shows — raw keys beat a
+// destructive restore running behind a fully interactive UI.
+const CHUNK_WAIT_TIMEOUT_MS = 3000;
+
+const isChunkReady = ref(false);
+
 watch(
-  () => showProgress.value || overlayLiveFailure.value != null,
-  (visible) => {
-    if (visible) void ensureChunkLoaded('settings/security');
+  isOverlayNeeded,
+  (needed) => {
+    if (!needed || isChunkReady.value) return;
+
+    const timer = setTimeout(() => {
+      isChunkReady.value = true;
+    }, CHUNK_WAIT_TIMEOUT_MS);
+
+    void ensureChunkLoaded('settings/security').finally(() => {
+      clearTimeout(timer);
+      isChunkReady.value = true;
+    });
   },
   { immediate: true },
 );

@@ -478,6 +478,18 @@
         "error": "Error al enviar la invitación."
       }
     },
+    "categoryExclusions": {
+      "title": "Excluir categorías",
+      "description": "Ocultas del gráfico y de los totales de este widget",
+      "menuItem": "Excluir categorías",
+      "nothingExcluded": "Nada excluido. Todas las categorías cuentan para este widget.",
+      "excludedTag": "Excluida",
+      "stopExcluding": "Dejar de excluir {name}",
+      "badgeTooltip": "1 categoría excluida de este widget | {count} categorías excluidas de este widget",
+      "andMore": "y {count} más",
+      "clearAll": "Borrar todo",
+      "countExcluded": "1 categoría excluida | {count} categorías excluidas"
+    },
     "subscriptionMarkPaid": {
       "title": "Registrar pago",
       "description": "Registrar un pago para {name}",
