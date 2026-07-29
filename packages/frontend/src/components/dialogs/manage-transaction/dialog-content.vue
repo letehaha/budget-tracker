@@ -13,6 +13,7 @@ import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
@@ -811,16 +812,16 @@ onUnmounted(() => {
   <PortfolioLinkedView v-if="isPortfolioLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VentureLinkedView v-else-if="isVentureLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VehicleLinkedView v-else-if="isVehicleLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
-  <div v-else class="flex min-h-0 flex-col rounded-t-xl">
+  <div v-else class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-t-xl">
     <div
       :class="[
-        'h-3 shrink-0 rounded-t-lg transition-[background-color] duration-200 ease-out',
+        'h-3 rounded-t-lg transition-[background-color] duration-200 ease-out',
         currentTxType === FORM_TYPES.income && 'bg-app-income-color',
         currentTxType === FORM_TYPES.expense && 'bg-app-expense-color',
         currentTxType === FORM_TYPES.transfer && 'bg-app-transfer-color',
       ]"
     />
-    <div class="mb-4 flex shrink-0 items-center justify-between px-6 py-3">
+    <div class="mb-4 flex items-center justify-between px-6 py-3">
       <DialogTitle>
         <span class="text-2xl">
           {{
@@ -837,7 +838,7 @@ onUnmounted(() => {
         <Button variant="ghost"> {{ $t('dialogs.manageTransaction.form.closeButton') }} </Button>
       </DialogClose>
     </div>
-    <div class="min-h-0 flex-1 overflow-y-auto">
+    <ScrollArea class="min-h-0">
       <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
         <div class="px-6 pb-6">
           <type-selector
@@ -1049,12 +1050,9 @@ onUnmounted(() => {
           <ReuseMoreOptions />
         </div>
       </div>
-    </div>
+    </ScrollArea>
 
-    <div
-      v-if="!isReadOnly || canDelete"
-      class="border-border bg-card flex shrink-0 items-center gap-3 border-t px-6 py-4"
-    >
+    <div v-if="!isReadOnly || canDelete" class="border-border bg-card flex items-center gap-3 border-t px-6 py-4">
       <Button
         v-if="canDelete"
         class="min-w-25"
