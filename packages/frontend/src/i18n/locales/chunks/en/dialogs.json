@@ -186,6 +186,7 @@
         "saveButton": "Save",
         "confirmButton": "Confirm",
         "linkedRefunds": "Linked refunds",
+        "unlinkRefund": "Unlink refund",
         "refundsPortion": "Refunds {name} portion",
         "selectOnlyOne": "* you can select only one transaction",
         "selectMultipleWithLimit": "* you can select multiple transactions, but their total amount cannot be greater than the original transaction amount",
