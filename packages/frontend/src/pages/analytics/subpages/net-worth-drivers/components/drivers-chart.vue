@@ -32,6 +32,13 @@
             <span v-if="tooltip.hasSplit" class="text-muted-foreground/70 text-xs tabular-nums"
               >{{ tooltip.savedPct }}%</span
             >
+            <span
+              v-if="savedShift"
+              class="flex items-center gap-0.5 text-xs tabular-nums"
+              :class="savedShift.colorClass"
+            >
+              <component :is="savedShift.icon" class="size-3" />{{ savedShift.value }}pp
+            </span>
           </span>
           <span class="font-medium tabular-nums">{{ formatBaseCurrency(tooltip.savedCumulative) }}</span>
         </div>
@@ -43,6 +50,13 @@
             <span v-if="tooltip.hasSplit" class="text-muted-foreground/70 text-xs tabular-nums"
               >{{ 100 - tooltip.savedPct }}%</span
             >
+            <span
+              v-if="grownShift"
+              class="flex items-center gap-0.5 text-xs tabular-nums"
+              :class="grownShift.colorClass"
+            >
+              <component :is="grownShift.icon" class="size-3" />{{ grownShift.value }}pp
+            </span>
           </span>
           <span class="font-medium tabular-nums">{{ formatBaseCurrency(tooltip.grownCumulative) }}</span>
         </div>
@@ -53,13 +67,13 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <div class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.chart.periodSavings') }}</div>
-            <div class="font-medium tabular-nums" :class="{ 'text-app-expense-color': tooltip.savingsNet < 0 }">
+            <div class="font-medium tabular-nums" :class="deltaColorClass({ value: tooltip.savingsNet })">
               {{ formatBaseCurrency(tooltip.savingsNet) }}
             </div>
           </div>
           <div>
             <div class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.chart.periodGrowth') }}</div>
-            <div class="font-medium tabular-nums" :class="{ 'text-app-expense-color': tooltip.growth < 0 }">
+            <div class="font-medium tabular-nums" :class="deltaColorClass({ value: tooltip.growth })">
               {{ formatBaseCurrency(tooltip.growth) }}
             </div>
           </div>
@@ -79,8 +93,9 @@ import { currentTheme } from '@/common/utils/color-theme';
 import { endpointsTypes } from '@bt/shared/types';
 import { useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
+import { TrendingDownIcon, TrendingUpIcon } from '@lucide/vue';
 import { parseISO } from 'date-fns';
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 
 import type { CumulativePoint } from '../composables/net-worth-drivers-derivations';
 import { useSeriesColors } from '../composables/use-series-colors';
@@ -108,11 +123,45 @@ const tooltip = reactive({
   growth: 0,
   hasSplit: false,
   savedPct: 0,
+  /** Percentage points the saved share moved by since the previous bucket; null when there is nothing comparable to sit next to. */
+  savedPctShift: null as number | null,
 });
+
+const deltaColorClass = ({ value }: { value: number }) =>
+  value < 0 ? 'text-app-expense-color' : value > 0 ? 'text-app-income-color' : '';
+
+const describeShift = ({ shift }: { shift: number | null }) => {
+  if (shift === null || shift === 0) return null;
+
+  return {
+    value: Math.abs(shift),
+    icon: shift > 0 ? TrendingUpIcon : TrendingDownIcon,
+    colorClass: shift > 0 ? 'text-app-income-color' : 'text-app-expense-color',
+  };
+};
+
+const savedShift = computed(() => describeShift({ shift: tooltip.savedPctShift }));
+const grownShift = computed(() =>
+  describeShift({ shift: tooltip.savedPctShift === null ? null : -tooltip.savedPctShift }),
+);
 
 const { updateTooltipPosition } = useChartTooltipPosition({ containerRef, tooltipRef, tooltip });
 
 const seriesColors = useSeriesColors();
+
+/**
+ * Saved's share of the saved-plus-grown total, rounded to whole percent.
+ *
+ * Null when either side is negative or the total isn't positive: that isn't a
+ * proportion, so the split bar and the percentages are dropped rather than
+ * shown as nonsense.
+ */
+const savedSharePct = ({ point }: { point: CumulativePoint }): number | null => {
+  const total = point.savedCumulative + point.grownCumulative;
+  if (point.savedCumulative < 0 || point.grownCumulative < 0 || total <= 0) return null;
+
+  return Math.round((point.savedCumulative / total) * 100);
+};
 
 const AREA_FILL_OPACITY = 0.22;
 
@@ -312,11 +361,13 @@ const renderChart = () => {
       tooltip.savingsNet = point.savingsNet;
       tooltip.growth = point.growth;
 
-      // A share of a total that either side is dragging negative isn't a
-      // proportion, so the split bar is dropped rather than shown as nonsense.
-      const total = point.savedCumulative + point.grownCumulative;
-      tooltip.hasSplit = point.savedCumulative >= 0 && point.grownCumulative >= 0 && total > 0;
-      tooltip.savedPct = tooltip.hasSplit ? Math.round((point.savedCumulative / total) * 100) : 0;
+      const savedPct = savedSharePct({ point });
+      tooltip.hasSplit = savedPct !== null;
+      tooltip.savedPct = savedPct ?? 0;
+
+      const previousPoint = props.points[index - 1];
+      const previousSavedPct = previousPoint ? savedSharePct({ point: previousPoint }) : null;
+      tooltip.savedPctShift = savedPct !== null && previousSavedPct !== null ? savedPct - previousSavedPct : null;
 
       tooltip.visible = true;
       updateTooltipPosition(event);
