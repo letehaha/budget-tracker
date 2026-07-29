@@ -78,10 +78,18 @@ is not derivable from the DSN by the entrypoint, so a Sentry deployment that
 leaves this unset gets a `connect-src` that blocks every error report.
 
 `MCP_BASE_URL` is the URL the app advertises to external MCP clients (Claude
-Desktop, ChatGPT). In same-origin mode the frontend reverse-proxies only `/api`,
-**not** `/mcp`, so the advertised `<origin>/mcp` would 404. To use MCP, publish
-the backend on a reachable origin (e.g. split-domain mode, or a subdomain) and
-set `MCP_BASE_URL` to it. Leave it unset if you do not use MCP.
+Desktop, ChatGPT). In same-origin mode set it to the origin you reach the app on
+(`https://money.example.com`): the frontend container proxies `/mcp` and the
+OAuth discovery endpoints to the backend, and the backend builds its discovery
+documents from this value, so clients are pointed at your instance rather than
+the hosted one. In split-domain mode set it to the backend's own origin. Leave
+it unset if you do not use MCP.
+
+Whatever fronts the frontend container must pass these paths through to it
+unchanged, alongside `/api/`: `/mcp`, `/.well-known/oauth-authorization-server`,
+`/.well-known/oauth-protected-resource` (both also in their `/mcp`-suffixed
+form), and `/authorize`, `/token`, `/register`. A proxy that forwards only `/`
+and `/api/` already covers them; one with an explicit path allow-list does not.
 
 The `VITE_` prefix on the frontend keys above is historical: these are read from
 the container's env at start, not inlined at build time. `docker-compose.yml`
