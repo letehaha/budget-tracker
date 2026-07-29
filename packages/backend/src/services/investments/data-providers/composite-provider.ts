@@ -227,14 +227,10 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
         `${failedSecurities.length} symbols failed primary provider, attempting fallbacks: ${failedSecurities.map((s) => s.symbol).join(', ')}`,
       );
 
-      // Securities still missing after fallbacks simply stay absent from
-      // `allResults` – by contract (see the class doc) the caller diffs the
-      // requested ids against the returned keys to detect partial failures and
-      // owns the user-facing report at the right severity. We deliberately do
-      // NOT re-derive / log "missing" here: the sole caller (daily-sync) already
-      // partitions misses by market status, warns on the genuine ones, and
-      // advances `pricingLastSyncedAt`. Reporting it here too just double-logged
-      // the same fact (once as error, once as warn) into Sentry.
+      // Do not log the securities that stay absent from `allResults`. The only
+      // caller (daily-sync) groups them by market status, logs them, and updates
+      // `pricingLastSyncedAt`. A second record here sends the same data to
+      // Sentry two times.
       for (const security of failedSecurities) {
         const preference = getHistoricalPriceProviderPreference(security.symbol, security.assetClass);
         // Skip the primary (already failed) and try only fallback providers
