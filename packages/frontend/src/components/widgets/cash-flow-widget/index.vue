@@ -1,14 +1,14 @@
 <script lang="ts" setup>
-import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { calculatePercentageDifference } from '@/js/helpers/math/calculate-percentage-difference';
 import ExcludeCategoriesMenu from '@/components/common/category-exclusions/exclude-categories-menu.vue';
 import ExcludedCountBadge from '@/components/common/category-exclusions/excluded-count-badge.vue';
+import { useCategoryExclusionsConfig } from '@/components/common/category-exclusions/use-category-exclusions-config';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { format, isSameMonth, parseISO } from 'date-fns';
 import { ArrowDownRightIcon, ArrowUpRightIcon, InfoIcon, WalletIcon } from '@lucide/vue';
-import { type Ref, computed, inject } from 'vue';
+import { computed } from 'vue';
 
 import EmptyState from '../components/empty-state.vue';
 import LoadingState from '../components/loading-state.vue';
@@ -23,25 +23,7 @@ const props = defineProps<{
 
 const { formatBaseCurrency } = useFormatCurrency();
 
-const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
-const saveWidgetConfig =
-  inject<(params: { widgetId: string; config: Record<string, unknown> }) => Promise<void>>(
-    'dashboard-save-widget-config',
-  );
-
-const excludedCategoryIds = computed<string[]>(() => {
-  const ids = widgetConfigRef?.value?.config?.excludedCategoryIds;
-  return Array.isArray(ids) ? (ids as string[]) : [];
-});
-
-const persistExcludedCategories = async ({ categoryIds }: { categoryIds: string[] }) => {
-  if (!saveWidgetConfig || !widgetConfigRef?.value) return;
-
-  await saveWidgetConfig({
-    widgetId: widgetConfigRef.value.widgetId,
-    config: { excludedCategoryIds: categoryIds },
-  });
-};
+const { widgetConfigRef, excludedCategoryIds, persistExcludedCategories } = useCategoryExclusionsConfig();
 
 const {
   currentTotals,

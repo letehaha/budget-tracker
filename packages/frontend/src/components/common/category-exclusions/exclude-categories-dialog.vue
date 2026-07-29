@@ -10,14 +10,9 @@
           <span class="text-warning-text text-xs font-medium">
             {{ $t('dialogs.categoryExclusions.countExcluded', excludedCategories.length) }}
           </span>
-          <button
-            type="button"
-            class="text-muted-foreground hover:text-foreground text-xs font-medium underline underline-offset-2"
-            data-testid="ec-clear-all"
-            @click="clearAll"
-          >
+          <Button variant="ghost" size="sm" data-testid="ec-clear-all" @click="clearAll">
             {{ $t('dialogs.categoryExclusions.clearAll') }}
-          </button>
+          </Button>
         </div>
 
         <div class="flex flex-wrap items-center gap-1.5" data-testid="ec-chips">

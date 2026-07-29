@@ -35,6 +35,7 @@ export const getSpendingsByCategories = async ({
   from,
   to,
   categoryIds,
+  excludedCategoryIds,
   type,
   groupByType,
 }: {
@@ -42,6 +43,7 @@ export const getSpendingsByCategories = async ({
   from?: string;
   to?: string;
   categoryIds?: string[];
+  excludedCategoryIds?: string[];
   type?: TRANSACTION_TYPES;
   groupByType?: boolean;
 } = {}) => {
@@ -49,6 +51,9 @@ export const getSpendingsByCategories = async ({
   if (from) params.append('from', from);
   if (to) params.append('to', to);
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) {
+    params.append('excludedCategoryIds', excludedCategoryIds.join(','));
+  }
   if (type) params.append('type', type);
   if (groupByType) params.append('groupByType', 'true');
 
@@ -63,15 +68,20 @@ export const getSpendingsByCategories = async ({
 export async function getExpensesAmountForPeriod<R extends boolean | undefined = undefined>({
   from,
   to,
+  excludedCategoryIds,
   raw,
 }: {
   from?: string;
   to?: string;
+  excludedCategoryIds?: string[];
   raw?: R;
 }) {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
   if (to) params.append('to', to);
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) {
+    params.append('excludedCategoryIds', excludedCategoryIds.join(','));
+  }
 
   const result = await helpers.makeRequest<number, R>({
     method: 'get',

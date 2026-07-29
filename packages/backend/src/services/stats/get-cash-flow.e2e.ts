@@ -877,5 +877,350 @@ describe('GET /stats/cash-flow — refunds and splits', () => {
 
       expect(response.totals.expenses).toBe(0);
     });
+
+    it('hides a subcategory of an excluded parent that the list itself does not name', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const parentCategory = await helpers.addCustomCategory({
+        name: uniqueName('HiddenParent'),
+        color: '#221100',
+        raw: true,
+      });
+      const childCategory = await helpers.addCustomCategory({
+        name: uniqueName('HiddenChild'),
+        color: '#001122',
+        parentId: parentCategory.id,
+        raw: true,
+      });
+      const keptCategory = await helpers.addCustomCategory({ name: uniqueName('Kept'), color: '#123123', raw: true });
+
+      for (const [category, amount] of [
+        [childCategory, 200],
+        [keptCategory, 50],
+      ] as const) {
+        await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount,
+              transactionType: TRANSACTION_TYPES.expense,
+              categoryId: category.id,
+            }),
+            time: TX_TIME,
+          },
+          raw: true,
+        });
+      }
+
+      // Only the parent is named — the caller saved the exclusion list before the subcategory
+      // existed, so the server has to fill in the descendants itself.
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [parentCategory.id],
+        raw: true,
+      });
+
+      const period = result.periods[0]!;
+      expect(period.expenses).toBe(50);
+      expect(result.totals.expenses).toBe(50);
+      // The breakdown rolls to roots, so a leaked child would resurface under the hidden parent.
+      expect(period.categories!.some((entry) => entry.categoryId === parentCategory.id)).toBe(false);
+      expect(period.categories!.find((entry) => entry.categoryId === keptCategory.id)!.expenseAmount).toBe(50);
+    });
+
+    it('keeps the parent counted when only one of its subcategories is excluded', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const parentCategory = await helpers.addCustomCategory({
+        name: uniqueName('KeptParent'),
+        color: '#334455',
+        raw: true,
+      });
+      const childCategory = await helpers.addCustomCategory({
+        name: uniqueName('HiddenChild'),
+        color: '#554433',
+        parentId: parentCategory.id,
+        raw: true,
+      });
+
+      for (const [category, amount] of [
+        [parentCategory, 40],
+        [childCategory, 60],
+      ] as const) {
+        await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount,
+              transactionType: TRANSACTION_TYPES.expense,
+              categoryId: category.id,
+            }),
+            time: TX_TIME,
+          },
+          raw: true,
+        });
+      }
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [childCategory.id],
+        raw: true,
+      });
+
+      const period = result.periods[0]!;
+      expect(period.expenses).toBe(40);
+      expect(period.categories!.find((entry) => entry.categoryId === parentCategory.id)!.expenseAmount).toBe(40);
+    });
+
+    it('reports the unfiltered numbers when a cross-category refund has only its expense side excluded', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const spendCategory = await helpers.addCustomCategory({
+        name: uniqueName('CrossSpend'),
+        color: '#111111',
+        raw: true,
+      });
+      const refundCategory = await helpers.addCustomCategory({
+        name: uniqueName('CrossRefund'),
+        color: '#222222',
+        raw: true,
+      });
+
+      const [expenseTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: spendCategory.id,
+          }),
+          time: '2025-01-10T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      const [refundTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.income,
+            categoryId: refundCategory.id,
+          }),
+          time: '2025-01-20T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+      const baseline = await helpers.getCashFlow({ ...RANGE, raw: true });
+      const excluded = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [spendCategory.id],
+        raw: true,
+      });
+
+      // Excluding one side takes that side's gross leg and its netting leg out together, so the
+      // pair cancels either way.
+      expect(excluded.periods).toEqual(baseline.periods);
+      expect(excluded.totals).toEqual(baseline.totals);
+      expect(excluded.totals.expenses).toBe(0);
+      expect(excluded.totals.income).toBe(0);
+      expect(excluded.totals.netFlow).toBe(0);
+    });
+
+    it('reports the unfiltered numbers when a cross-category refund has only its income side excluded', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const spendCategory = await helpers.addCustomCategory({
+        name: uniqueName('CrossSpend'),
+        color: '#111111',
+        raw: true,
+      });
+      const refundCategory = await helpers.addCustomCategory({
+        name: uniqueName('CrossRefund'),
+        color: '#222222',
+        raw: true,
+      });
+
+      const [expenseTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: spendCategory.id,
+          }),
+          time: '2025-01-10T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      const [refundTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.income,
+            categoryId: refundCategory.id,
+          }),
+          time: '2025-01-20T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+      const baseline = await helpers.getCashFlow({ ...RANGE, raw: true });
+      const excluded = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [refundCategory.id],
+        raw: true,
+      });
+
+      expect(excluded.periods).toEqual(baseline.periods);
+      expect(excluded.totals).toEqual(baseline.totals);
+      expect(excluded.totals.expenses).toBe(0);
+      expect(excluded.totals.income).toBe(0);
+      expect(excluded.totals.netFlow).toBe(0);
+    });
+
+    it('keeps a partial cross-category refund out of income when its expense side is excluded', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const spendCategory = await helpers.addCustomCategory({
+        name: uniqueName('PartialSpend'),
+        color: '#333333',
+        raw: true,
+      });
+      const refundCategory = await helpers.addCustomCategory({
+        name: uniqueName('PartialRefund'),
+        color: '#444444',
+        raw: true,
+      });
+
+      const [expenseTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: spendCategory.id,
+          }),
+          time: '2025-01-10T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      const [refundTx] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 30,
+            transactionType: TRANSACTION_TYPES.income,
+            categoryId: refundCategory.id,
+          }),
+          time: '2025-01-20T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+      const baseline = await helpers.getCashFlow({ ...RANGE, raw: true });
+      expect(baseline.totals.expenses).toBe(70);
+      expect(baseline.totals.income).toBe(0);
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        excludedCategoryIds: [spendCategory.id],
+        raw: true,
+      });
+
+      // The hidden expense takes its refund's netting leg with it, so the $30 that came back is
+      // still not income — it reversed spend the caller chose not to see.
+      const period = result.periods[0]!;
+      expect(period.expenses).toBe(0);
+      expect(period.income).toBe(0);
+      expect(period.netFlow).toBe(0);
+      expect(period.categories!.some((entry) => entry.categoryId === refundCategory.id)).toBe(false);
+    });
+  });
+
+  describe('categoryIds filter', () => {
+    it('keeps a split outside the selection out of the totals as well as the breakdown', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const selectedCategory = await helpers.addCustomCategory({
+        name: uniqueName('Selected'),
+        color: '#aa1100',
+        raw: true,
+      });
+      const otherCategory = await helpers.addCustomCategory({
+        name: uniqueName('Unselected'),
+        color: '#0011aa',
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: selectedCategory.id,
+            splits: [{ categoryId: otherCategory.id, amount: 30 }],
+          }),
+          time: TX_TIME,
+        },
+        raw: true,
+      });
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        categoryIds: [selectedCategory.id],
+        raw: true,
+      });
+
+      const period = result.periods[0]!;
+      expect(period.expenses).toBe(70);
+      expect(result.totals.expenses).toBe(70);
+      expect(period.categories!.find((entry) => entry.categoryId === selectedCategory.id)!.expenseAmount).toBe(70);
+      expect(period.categories!.some((entry) => entry.categoryId === otherCategory.id)).toBe(false);
+
+      // The stacked bars sum the breakdown, so the headline total has to equal that sum.
+      const breakdownTotal = period.categories!.reduce((sum, entry) => sum + entry.expenseAmount, 0);
+      expect(breakdownTotal).toBe(period.expenses);
+    });
+
+    it('counts a split into a subcategory of the selected category', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const parentCategory = await helpers.addCustomCategory({
+        name: uniqueName('SelectedParent'),
+        color: '#aa1100',
+        raw: true,
+      });
+      const childCategory = await helpers.addCustomCategory({
+        name: uniqueName('SelectedChild'),
+        color: '#0011aa',
+        parentId: parentCategory.id,
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: parentCategory.id,
+            splits: [{ categoryId: childCategory.id, amount: 30 }],
+          }),
+          time: TX_TIME,
+        },
+        raw: true,
+      });
+
+      const result = await helpers.getCashFlow({
+        ...RANGE,
+        categoryIds: [parentCategory.id],
+        raw: true,
+      });
+
+      const period = result.periods[0]!;
+      // A subcategory is part of the selection, so its split rolls up to the selected parent.
+      expect(period.expenses).toBe(100);
+      expect(result.totals.expenses).toBe(100);
+      expect(period.categories!.find((entry) => entry.categoryId === parentCategory.id)!.expenseAmount).toBe(100);
+    });
   });
 });

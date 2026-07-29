@@ -23,6 +23,12 @@ const HISTORICAL_EUR_TO_AED = HISTORICAL_AED_PER_USD / HISTORICAL_EUR_PER_USD; /
 const SPOT_EUR_TO_AED = AED_PER_USD / EUR_PER_USD; // ~3.86883
 
 const seedHistoricalRates = async () => {
+  // ExchangeRates is keyed on (baseCode, quoteCode, date) and is not truncated between tests, so
+  // clear this date first — another file seeding the same fixture would make the insert throw.
+  await connection.sequelize.query(`DELETE FROM "ExchangeRates" WHERE date = :date`, {
+    replacements: { date: HISTORICAL_DATE },
+  });
+
   await connection.sequelize.query(
     `INSERT INTO "ExchangeRates" ("baseCode", "quoteCode", "date", "rate", "source")
      VALUES ('USD', 'EUR', :date, :eurRate, 'api-layer'), ('USD', 'AED', :date, :aedRate, 'api-layer')`,

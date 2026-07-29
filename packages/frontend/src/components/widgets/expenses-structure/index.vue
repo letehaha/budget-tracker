@@ -71,16 +71,15 @@
 </template>
 
 <script lang="ts" setup>
-import type { DashboardWidgetConfig } from '@/api/user-settings';
 import ExcludeCategoriesMenu from '@/components/common/category-exclusions/exclude-categories-menu.vue';
 import ExcludedCountBadge from '@/components/common/category-exclusions/excluded-count-badge.vue';
+import { useCategoryExclusionsConfig } from '@/components/common/category-exclusions/use-category-exclusions-config';
 import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { ChartPieIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { type Ref, computed, inject } from 'vue';
 import { useRouter } from 'vue-router';
 
 import EmptyState from '../components/empty-state.vue';
@@ -103,16 +102,7 @@ const categoriesStore = useCategoriesStore();
 const { categoriesMap } = storeToRefs(categoriesStore);
 const router = useRouter();
 
-const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
-const saveWidgetConfig =
-  inject<(params: { widgetId: string; config: Record<string, unknown> }) => Promise<void>>(
-    'dashboard-save-widget-config',
-  );
-
-const excludedCategoryIds = computed<string[]>(() => {
-  const ids = widgetConfigRef?.value?.config?.excludedCategoryIds;
-  return Array.isArray(ids) ? (ids as string[]) : [];
-});
+const { widgetConfigRef, excludedCategoryIds, persistExcludedCategories } = useCategoryExclusionsConfig();
 
 const {
   hasExcludedStats,
@@ -128,15 +118,6 @@ const {
   selectedPeriod: () => props.selectedPeriod,
   excludedCategoryIds,
 });
-
-const persistExcludedCategories = async ({ categoryIds }: { categoryIds: string[] }) => {
-  if (!saveWidgetConfig || !widgetConfigRef?.value) return;
-
-  await saveWidgetConfig({
-    widgetId: widgetConfigRef.value.widgetId,
-    config: { excludedCategoryIds: categoryIds },
-  });
-};
 
 const getAllCategoryIds = (rootCategoryId: string): string[] => {
   const result = [rootCategoryId];

@@ -27,6 +27,10 @@ export const buildDescendantMap = ({ categories }: { categories: FormattedCatego
 /**
  * Keeps a category when its own name matches, and keeps its ancestors so a match stays reachable
  * instead of appearing at the root with no context. An empty query returns the tree untouched.
+ *
+ * Once a category itself matches, its whole subtree is kept unfiltered rather than re-filtered by
+ * the same query: excluding a category excludes everything under it, so a matching parent must show
+ * all its children even if their own names don't contain the query.
  */
 export const filterCategoryTree = ({
   categories,
@@ -37,12 +41,16 @@ export const filterCategoryTree = ({
 }): ExcludableCategoryNode[] => {
   const normalized = query.trim().toLowerCase();
 
+  const toNodeTree = (nodes: FormattedCategory[]): ExcludableCategoryNode[] =>
+    nodes.map((category) => ({ category, children: toNodeTree(category.subCategories ?? []) }));
+
   const walk = (nodes: FormattedCategory[]): ExcludableCategoryNode[] =>
     nodes.flatMap((category) => {
-      const children = walk(category.subCategories ?? []);
       const selfMatches = !normalized || category.name.toLowerCase().includes(normalized);
+      if (selfMatches) return [{ category, children: toNodeTree(category.subCategories ?? []) }];
 
-      if (!selfMatches && children.length === 0) return [];
+      const children = walk(category.subCategories ?? []);
+      if (children.length === 0) return [];
       return [{ category, children }];
     });
 

@@ -70,6 +70,16 @@ describe('filterCategoryTree', () => {
   it('returns nothing when no category matches', () => {
     expect(filterCategoryTree({ categories: TREE, query: 'zzz' })).toEqual([]);
   });
+
+  it('keeps the whole subtree when a parent matches but none of its children do', () => {
+    // "Drinks" only matches the parent name ("Food & Drinks") -- none of its children
+    // ("Fast-food", "Groceries", "Sushi", "Burgers") contain "drinks".
+    const result = filterCategoryTree({ categories: TREE, query: 'Drinks' });
+
+    expect(result.map((node) => node.category.id)).toEqual(['food']);
+    expect(result[0]!.children.map((node) => node.category.id)).toEqual(['fast', 'groceries']);
+    expect(result[0]!.children[0]!.children.map((node) => node.category.id)).toEqual(['sushi', 'burgers']);
+  });
 });
 
 describe('toggleExclusion', () => {

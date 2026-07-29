@@ -23,8 +23,9 @@ interface GetCashFlowParams {
   accountId?: string;
   categoryIds?: RecordId[];
   /**
-   * Categories the caller has hidden. Descendants are expected to already be in the list — the
-   * picker adds them when a parent is checked, same as the expenses-structure report.
+   * Categories the caller has hidden. Expanded to descendants here, because the list is a snapshot
+   * saved in the widget config: a subcategory added after that save is still part of its hidden
+   * parent.
    */
   excludedCategoryIds?: RecordId[];
 }
@@ -43,9 +44,12 @@ interface PeriodCategoryData {
 }
 
 /**
- * Get the aggregation category ID for a transaction's category.
- * If targetCategoryIds is provided, finds the closest ancestor (or self) that's in the target set.
- * Otherwise, returns the root category ID.
+ * Resolves the category a leg is reported under.
+ *
+ * With `targetCategoryIds` the closest selected ancestor (or the category itself) wins, and null
+ * means the category sits outside the selection — a split can point anywhere, so this is the same
+ * "no selected ancestor" answer the expenses-structure report uses to drop such legs.
+ * Without a selection everything rolls up to its root category.
  */
 const getAggregationCategoryId = ({
   categoryId,
@@ -55,7 +59,7 @@ const getAggregationCategoryId = ({
   categoryId: string;
   categoryMap: Map<string, CategoryInfo>;
   targetCategoryIds?: Set<string>;
-}): string => {
+}): string | null => {
   // If no target categories specified, aggregate to root
   if (!targetCategoryIds) {
     return getRootCategoryId({ categoryId, byId: categoryMap });
@@ -76,9 +80,7 @@ const getAggregationCategoryId = ({
     current = categoryMap.get(current.parentId);
   }
 
-  // Fallback: if no target ancestor found, use the category itself
-  // (this shouldn't happen if filtering is correct, but handles edge cases)
-  return categoryId;
+  return null;
 };
 
 /**
@@ -185,7 +187,17 @@ export const getCashFlow = withTransaction(
     // Create a set of target categories for aggregation (when specific categories are selected)
     const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
 
-    const excludedCategoryIdSet = new Set<string>(excludedCategoryIds ?? []);
+    // Hiding a parent hides everything under it, including subcategories created after the caller
+    // saved the exclusion list.
+    const excludedCategoryIdSet = new Set<string>(
+      excludedCategoryIds && excludedCategoryIds.length > 0
+        ? expandCategoryIdsWithDescendants({
+            categoryIds: excludedCategoryIds,
+            categories: allCategories,
+            byId: categoryMap,
+          })
+        : [],
+    );
 
     /**
      * Folds one signed contribution into its time bucket, both into the period total and — when
@@ -209,6 +221,13 @@ export const getCashFlow = withTransaction(
       // split whose own category is still counted, and never touches uncategorized legs.
       if (categoryId && excludedCategoryIdSet.has(categoryId)) return;
 
+      // A split can point at a category the caller filtered out. Such a leg leaves the totals too,
+      // so they stay equal to the sum of the reported categories.
+      const aggregationCategoryId = categoryId
+        ? getAggregationCategoryId({ categoryId, categoryMap, targetCategoryIds })
+        : null;
+      if (categoryId && aggregationCategoryId === null) return;
+
       const bucketIndex = findBucketIndex({ transactionTime: time, buckets });
       if (bucketIndex === -1) return;
 
@@ -219,9 +238,8 @@ export const getCashFlow = withTransaction(
         periodData.income += cents;
       }
 
-      if (!categoryId) return;
+      if (!aggregationCategoryId) return;
 
-      const aggregationCategoryId = getAggregationCategoryId({ categoryId, categoryMap, targetCategoryIds });
       const currentAmounts = periodData.categories.get(aggregationCategoryId) || {
         incomeAmount: 0,
         expenseAmount: 0,

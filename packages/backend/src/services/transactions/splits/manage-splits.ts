@@ -57,12 +57,14 @@ export const manageSplits = async ({
     where: { transactionId },
   });
 
-  // Build a map of categoryId -> refund info for existing splits
+  // Build a map of categoryId -> refund info for existing splits.
+  // `refundIds` holds the RefundTransactions row ids: the old splits get deleted further
+  // down, and the FK is ON DELETE SET NULL, so `splitId` stops identifying these rows.
   const refundsByCategoryId = new Map<
     string,
     {
       totalRefundedRefAmount: Money;
-      splitId: string;
+      refundIds: string[];
       refundAmounts: { amount: Money; currencyCode: string }[];
     }
   >();
@@ -82,7 +84,7 @@ export const manageSplits = async ({
       }));
       refundsByCategoryId.set(existingSplit.categoryId, {
         totalRefundedRefAmount: totalRefunded,
-        splitId: existingSplit.id,
+        refundIds: refunds.map((r) => r.id),
         refundAmounts,
       });
     }
@@ -91,8 +93,8 @@ export const manageSplits = async ({
   // If no splits provided, relink any split-level refunds to main transaction
   if (!splits || splits.length === 0) {
     // Move refunds from split-level to transaction-level (set splitId to null)
-    for (const { splitId } of refundsByCategoryId.values()) {
-      await RefundTransactions.update({ splitId: null }, { where: { splitId } });
+    for (const { refundIds } of refundsByCategoryId.values()) {
+      await RefundTransactions.update({ splitId: null }, { where: { id: refundIds } });
     }
     await deleteSplitsForTransaction({ transactionId });
     return [];
@@ -162,11 +164,11 @@ export const manageSplits = async ({
   );
 
   // If a category with refunds is being removed, relink those refunds to main transaction
-  for (const [categoryId, { splitId }] of refundsByCategoryId) {
+  for (const [categoryId, { refundIds }] of refundsByCategoryId) {
     const stillExists = splits.some((s) => s.categoryId === categoryId);
     if (!stillExists) {
       // Move refunds from this split to transaction-level (set splitId to null)
-      await RefundTransactions.update({ splitId: null }, { where: { splitId } });
+      await RefundTransactions.update({ splitId: null }, { where: { id: refundIds } });
     }
   }
 
@@ -174,19 +176,12 @@ export const manageSplits = async ({
   await deleteSplitsForTransaction({ transactionId });
   const createdSplits = await bulkCreateSplits({ data: splitPayloads });
 
-  // Migrate refund links to new split IDs (match by categoryId)
+  // Point each refund at the freshly inserted split carrying its category. Categories that
+  // were dropped from the payload have no new split, so their refunds stay transaction-level.
   for (const newSplit of createdSplits) {
     const existingRefundInfo = refundsByCategoryId.get(newSplit.categoryId);
     if (existingRefundInfo) {
-      // Update all refund records to point to the new split ID
-      await RefundTransactions.update(
-        { splitId: newSplit.id },
-        {
-          where: {
-            splitId: existingRefundInfo.splitId,
-          },
-        },
-      );
+      await RefundTransactions.update({ splitId: newSplit.id }, { where: { id: existingRefundInfo.refundIds } });
     }
   }
 
