@@ -459,7 +459,13 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
         <div class="flex items-center gap-3">
-          <BrandLogo :domain="subscription.logoDomain" :name="subscription.name" class="size-10" />
+          <BrandLogo
+            :domain="subscription.logoDomain"
+            :initials="subscription.logoInitials"
+            :color="subscription.logoColor"
+            :name="subscription.name"
+            class="size-10"
+          />
           <h1 class="text-2xl font-semibold tracking-tight">{{ subscription.name }}</h1>
           <SubscriptionTypeBadge :type="subscription.type" size="md" />
           <span

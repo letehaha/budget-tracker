@@ -143,7 +143,7 @@ const createPayeeStrategy = (): PivotDimensionStrategy => ({
 
     const payees = await Payees.findAll({
       where: { userId, id: { [Op.in]: payeeIds } },
-      attributes: ['id', 'name', 'logoDomain'],
+      attributes: ['id', 'name', 'logoDomain', 'logoInitials', 'logoColor'],
       raw: true,
     });
     const payeeById = new Map<string, (typeof payees)[number]>(payees.map((payee) => [payee.id, payee]));
@@ -155,6 +155,8 @@ const createPayeeStrategy = (): PivotDimensionStrategy => ({
       // fall back to an explicit label rather than leaking the raw uuid to the client.
       row.label = payee?.name ?? UNKNOWN_PAYEE_LABEL;
       row.logoDomain = payee?.logoDomain ?? null;
+      row.logoInitials = payee?.logoInitials ?? null;
+      row.logoColor = payee?.logoColor ?? null;
     }
   },
 });

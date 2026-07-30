@@ -22,7 +22,7 @@
               <InfoIcon class="text-muted-foreground size-3.5 cursor-help" @click.prevent.stop />
             </ResponsiveTooltip>
           </div>
-          <LogoField v-model="form.logoDomain" :name-for-search="form.name" />
+          <LogoField v-model="form.logo" :name-for-search="form.name" />
         </div>
 
         <CategorySelectField
@@ -77,6 +77,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import LogoField from '@/components/common/logo-field.vue';
+import { type LogoSelection, toLogoPayload } from '@/components/common/logo-selection';
 
 interface Props {
   open: boolean;
@@ -134,14 +135,14 @@ const form = reactive<{
   name: string;
   category: FormattedCategory | null;
   categorizationMode: ModeOption;
-  /** Manually chosen logo domain (create mode only). null = auto-resolve. */
-  logoDomain: string | null;
+  /** Manually chosen brand or monogram (create mode only). null = auto-resolve. */
+  logo: LogoSelection | null;
 }>({
   name: '',
   category: null,
   // Default is `enforce` – matches the backend default for new Payees.
   categorizationMode: categorizationModeOptions.value[0]!,
-  logoDomain: null,
+  logo: null,
 });
 
 // Resolved against the live options array instead of reading
@@ -177,7 +178,7 @@ watch(
     form.categorizationMode =
       categorizationModeOptions.value.find((opt) => opt.value === existingMode) ?? categorizationModeOptions.value[0]!;
     // Logo picker is create-only; reset so a reopened dialog starts auto-resolving.
-    form.logoDomain = null;
+    form.logo = null;
   },
   { immediate: true },
 );
@@ -205,9 +206,9 @@ async function handleSave() {
         name: form.name,
         defaultCategoryId: form.category?.id ?? null,
         categorizationMode: form.categorizationMode.value,
-        // Omit the key when no logo was picked so the new payee keeps
-        // auto-resolving; a non-null value stamps a manual override.
-        ...(form.logoDomain !== null ? { logoDomain: form.logoDomain } : {}),
+        // Omit the logo fields when nothing was picked so the new payee keeps
+        // auto-resolving; a selection stamps a manual override.
+        ...(form.logo ? toLogoPayload({ selection: form.logo }) : {}),
       });
       addSuccessNotification(t('payees.toasts.created'));
     }

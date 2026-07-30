@@ -183,6 +183,8 @@ function handlePayeeCreated(payee: PayeeModel) {
           <BrandLogo
             v-if="selectedPayee"
             :domain="selectedPayee.logoDomain ?? null"
+            :initials="selectedPayee.logoInitials ?? null"
+            :color="selectedPayee.logoColor ?? null"
             :name="selectedPayee.name"
             class="size-5 shrink-0"
           />
@@ -233,7 +235,13 @@ function handlePayeeCreated(payee: PayeeModel) {
               :class="{ 'bg-primary/15 hover:bg-primary/20': modelValue === item.id }"
               @click="selectPayee(item)"
             >
-              <BrandLogo :domain="item.logoDomain ?? null" :name="item.name" class="size-6 shrink-0" />
+              <BrandLogo
+                :domain="item.logoDomain ?? null"
+                :initials="item.logoInitials ?? null"
+                :color="item.logoColor ?? null"
+                :name="item.name"
+                class="size-6 shrink-0"
+              />
               <span class="min-w-0 grow truncate">{{ item.name }}</span>
             </button>
 

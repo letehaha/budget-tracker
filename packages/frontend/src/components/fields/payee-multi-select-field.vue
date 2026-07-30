@@ -12,7 +12,13 @@
     @clear="clearSelection"
   >
     <template v-if="singleSelectedPayee" #leading>
-      <BrandLogo :domain="singleSelectedPayee.logoDomain" :name="singleSelectedPayee.name" class="size-4 shrink-0" />
+      <BrandLogo
+        :domain="singleSelectedPayee.logoDomain"
+        :initials="singleSelectedPayee.logoInitials"
+        :color="singleSelectedPayee.logoColor"
+        :name="singleSelectedPayee.name"
+        class="size-4 shrink-0"
+      />
     </template>
 
     <ScrollArea class="max-h-85 lg:max-h-60" viewport-class="max-h-85 lg:max-h-60">
@@ -31,7 +37,13 @@
             class="hover:bg-accent hover:text-accent-foreground flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-left"
             @click="pickPayee(payee)"
           >
-            <BrandLogo :domain="payee.logoDomain" :name="payee.name" class="size-4 shrink-0" />
+            <BrandLogo
+              :domain="payee.logoDomain"
+              :initials="payee.logoInitials"
+              :color="payee.logoColor"
+              :name="payee.name"
+              class="size-4 shrink-0"
+            />
             <span class="min-w-0 grow truncate">{{ payee.name }}</span>
             <CheckIcon v-if="isPayeeSelected(payee.id)" class="size-4 shrink-0" />
           </button>
@@ -112,19 +124,54 @@ watch(
     if (isEqual([...newIds].sort(), selectedPayees.value.map((p) => p.id).sort())) return;
     const byId = new Map<string, SelectedPayee>([
       ...selectedPayees.value.map((p) => [p.id, p] as const),
-      ...serverPayees.value.map((p) => [p.id, { id: p.id, name: p.name, logoDomain: p.logoDomain ?? null }] as const),
+      ...serverPayees.value.map(
+        (p) =>
+          [
+            p.id,
+            {
+              id: p.id,
+              name: p.name,
+              logoDomain: p.logoDomain ?? null,
+              logoInitials: p.logoInitials ?? null,
+              logoColor: p.logoColor ?? null,
+            },
+          ] as const,
+      ),
     ]);
     selectedPayees.value = newIds.map(
-      (id) => byId.get(id) ?? { id: id as RecordId, name: t('fields.payeeMultiSelect.unknownPayee'), logoDomain: null },
+      (id) =>
+        byId.get(id) ?? {
+          id: id as RecordId,
+          name: t('fields.payeeMultiSelect.unknownPayee'),
+          logoDomain: null,
+          logoInitials: null,
+          logoColor: null,
+        },
     );
   },
   { immediate: true },
 );
 
 const toLookup = (
-  rows: readonly { id: string; name: string; logoDomain?: string | null }[],
+  rows: readonly {
+    id: string;
+    name: string;
+    logoDomain?: string | null;
+    logoInitials?: string | null;
+    logoColor?: string | null;
+  }[],
 ): Map<string, PayeeLookupEntry> =>
-  new Map(rows.map((p): [string, PayeeLookupEntry] => [p.id, { name: p.name, logoDomain: p.logoDomain ?? null }]));
+  new Map(
+    rows.map((p): [string, PayeeLookupEntry] => [
+      p.id,
+      {
+        name: p.name,
+        logoDomain: p.logoDomain ?? null,
+        logoInitials: p.logoInitials ?? null,
+        logoColor: p.logoColor ?? null,
+      },
+    ]),
+  );
 
 const hydrateFromLookup = (lookup: Map<string, PayeeLookupEntry>) => {
   if (selectedPayees.value.length === 0) return;
@@ -158,7 +205,13 @@ const displayedPayees = computed<SelectedPayee[]>(() => {
   const selectedIds = new Set(selected.map((p) => p.id));
   const rest = serverPayees.value
     .filter((p) => !selectedIds.has(p.id))
-    .map<SelectedPayee>((p) => ({ id: p.id, name: p.name, logoDomain: p.logoDomain ?? null }));
+    .map<SelectedPayee>((p) => ({
+      id: p.id,
+      name: p.name,
+      logoDomain: p.logoDomain ?? null,
+      logoInitials: p.logoInitials ?? null,
+      logoColor: p.logoColor ?? null,
+    }));
   return [...selected, ...rest];
 });
 
@@ -168,7 +221,16 @@ const pickPayee = (payee: SelectedPayee) => {
   if (isPayeeSelected(payee.id)) {
     selectedPayees.value = selectedPayees.value.filter((p) => p.id !== payee.id);
   } else {
-    selectedPayees.value = [...selectedPayees.value, { id: payee.id, name: payee.name, logoDomain: payee.logoDomain }];
+    selectedPayees.value = [
+      ...selectedPayees.value,
+      {
+        id: payee.id,
+        name: payee.name,
+        logoDomain: payee.logoDomain,
+        logoInitials: payee.logoInitials,
+        logoColor: payee.logoColor,
+      },
+    ];
   }
   emit('update:payeeIds', selectedPayeeIds.value);
 };

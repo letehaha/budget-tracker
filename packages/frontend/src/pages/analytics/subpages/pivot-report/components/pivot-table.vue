@@ -110,6 +110,8 @@
                 <BrandLogo
                   v-if="rowDimension === 'payee'"
                   :domain="row.logoDomain ?? null"
+                  :initials="row.logoInitials ?? null"
+                  :color="row.logoColor ?? null"
                   :name="row.label"
                   class="size-4 shrink-0"
                 />

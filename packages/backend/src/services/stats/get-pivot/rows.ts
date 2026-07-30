@@ -27,6 +27,9 @@ export interface PivotReportRowCents {
   color: string | null;
   // Only populated for the payee dimension (via hydratePayeeLabels); null = payee has no logo.
   logoDomain?: string | null;
+  // Monogram letters + '#rrggbb' background, same payee-only population as logoDomain.
+  logoInitials?: string | null;
+  logoColor?: string | null;
   parentId: string | null;
   kind: PivotRowKind;
   values: Record<string, number>;

@@ -7,6 +7,7 @@ import {
 } from '@bt/shared/types';
 import { currencyCode, dateBound, recordId, withDateOrder } from '@common/lib/zod/custom-types';
 import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
+import { logoColorSchema, logoInitialsSchema, refineLogoSelection } from '@controllers/common/logo-initials.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import * as subscriptionsService from '@services/subscriptions';
@@ -45,8 +46,13 @@ const schema = z.object({
         autoRecord: z.boolean().optional(),
         // Present key (even null) → manual override; absent → leave logo untouched.
         logoDomain: logoDomainSchema.optional(),
+        // Monogram letters + background, the alternative to a brand domain.
+        logoInitials: logoInitialsSchema.optional(),
+        logoColor: logoColorSchema.optional(),
       })
       .superRefine((data, ctx) => {
+        refineLogoSelection({ data, ctx });
+
         // When both are explicitly provided in the same update, they must be consistent
         const hasAmount = data.expectedAmount !== undefined ? data.expectedAmount != null : undefined;
         const hasCurrency = data.expectedCurrencyCode !== undefined ? data.expectedCurrencyCode != null : undefined;

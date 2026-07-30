@@ -20,7 +20,13 @@
 
       <div class="mt-3 flex items-center gap-3 px-5 sm:px-6">
         <div class="group relative shrink-0">
-          <BrandLogo :domain="payeeData?.logoDomain ?? null" :name="payeeData?.name ?? ''" class="size-11 text-lg" />
+          <BrandLogo
+            :domain="payeeData?.logoDomain ?? null"
+            :initials="payeeData?.logoInitials ?? null"
+            :color="payeeData?.logoColor ?? null"
+            :name="payeeData?.name ?? ''"
+            class="size-11 text-lg"
+          />
           <DesktopOnlyTooltip :content="$t('payees.logo.change')">
             <Button
               variant="ghost"
@@ -208,6 +214,8 @@
       :payee-id="payeeData.id"
       :payee-name="payeeData.name"
       :current-domain="payeeData.logoDomain ?? null"
+      :current-initials="payeeData.logoInitials ?? null"
+      :current-color="payeeData.logoColor ?? null"
     />
 
     <PayeeFormDialog v-model:open="renameOpen" :payee="payeeData ?? null" @saved="refetch()" />

@@ -1,4 +1,5 @@
 import {
+  type EntityLogoPayload,
   RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_PERIOD_STATUSES,
@@ -8,6 +9,7 @@ import {
 import { Money, centsToApiDecimalOrNull } from '@common/types/money';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
+import { resolveManualLogoFields } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { Op } from 'sequelize';
@@ -26,7 +28,7 @@ import { resolveOpenPeriodStatus } from './resolve-period-status';
 /** Statuses that count as a live, un-consumed period. */
 const OPEN_PERIOD_STATUSES = [SUBSCRIPTION_PERIOD_STATUSES.upcoming, SUBSCRIPTION_PERIOD_STATUSES.overdue];
 
-interface UpdateSubscriptionParams {
+interface UpdateSubscriptionParams extends EntityLogoPayload {
   id: string;
   userId: number;
   name?: string;
@@ -46,13 +48,6 @@ interface UpdateSubscriptionParams {
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
   autoRecord?: boolean;
-  /**
-   * When present (including null), sets logoDomain to this value and stamps
-   * logoSource = 'manual' so the auto-resolver never overwrites the user's
-   * choice. null = user explicitly wants no logo, still treated as manual. When
-   * absent (undefined), both logo fields are left untouched.
-   */
-  logoDomain?: string | null;
 }
 
 export const updateSubscription = withTransaction(async ({ id, userId, ...fields }: UpdateSubscriptionParams) => {
@@ -122,11 +117,24 @@ export const updateSubscription = withTransaction(async ({ id, userId, ...fields
     fields = { ...fields, anchorDay: null } as typeof fields & { anchorDay: number | null };
   }
 
-  // Key present (even null) → user is making a manual override; stamp logoSource
-  // so the background resolver never overwrites the user's choice.
-  if (fields.logoDomain !== undefined) {
-    fields = { ...fields, logoSource: 'manual' } as typeof fields & { logoSource: 'manual' };
-  }
+  // A logo key that changes a stored value → manual override: the resolved patch
+  // stamps logoSource and clears whichever of domain/initials the payload
+  // replaced, so the background resolver never overwrites the choice. A payload
+  // that just re-states the stored values resolves to no writes, keeping the
+  // resolver's ownership. Raw logo keys are stripped so only the resolved patch
+  // reaches `subscription.update`.
+  const { logoDomain, logoInitials, logoColor, ...nonLogoFields } = fields;
+  fields = {
+    ...nonLogoFields,
+    ...resolveManualLogoFields({
+      input: { logoDomain, logoInitials, logoColor },
+      stored: {
+        logoDomain: subscription.logoDomain,
+        logoInitials: subscription.logoInitials,
+        logoColor: subscription.logoColor,
+      },
+    }),
+  } as typeof fields & { logoSource?: 'manual' };
 
   // Remember the pre-edit type and dueDate before `update` overwrites them. The
   // type lets a change away from installment be detected below; the dueDate lets
