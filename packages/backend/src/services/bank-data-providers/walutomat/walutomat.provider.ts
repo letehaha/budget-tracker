@@ -409,8 +409,11 @@ export class WalutomatProvider extends BaseBankDataProvider {
             await writeBankBalanceWithHistory({ account, balance: balanceMoney });
           }
         } catch (error) {
+          // Best-effort: transactions are already synced and the next sync
+          // retries the balance; failures here are provider/credential churn,
+          // not worth a Sentry event.
           const errorMsg = error instanceof Error ? error.message : String(error);
-          logger.warn(`[Walutomat] Failed to update balance for account ${account.id}: ${errorMsg}`);
+          logger.info(`[Walutomat] Failed to update balance for account ${account.id}: ${errorMsg}`);
         }
 
         return { transactionIds: createdTransactionIds };
