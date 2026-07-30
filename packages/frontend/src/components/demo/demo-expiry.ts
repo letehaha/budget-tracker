@@ -16,7 +16,7 @@ export function getDemoExpiresAt({ user }: { user: DemoExpiryUser | null | undef
   return addHours(new Date(user.createdAt), DEMO_EXPIRY_HOURS).getTime();
 }
 
-export interface DemoTimeRemaining {
+interface DemoTimeRemaining {
   hours: number;
   minutes: number;
 }

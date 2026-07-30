@@ -13,6 +13,7 @@ import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
@@ -811,7 +812,7 @@ onUnmounted(() => {
   <PortfolioLinkedView v-if="isPortfolioLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VentureLinkedView v-else-if="isVentureLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VehicleLinkedView v-else-if="isVehicleLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
-  <div v-else class="rounded-t-xl">
+  <div v-else class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-t-xl">
     <div
       :class="[
         'h-3 rounded-t-lg transition-[background-color] duration-200 ease-out',
@@ -837,248 +838,250 @@ onUnmounted(() => {
         <Button variant="ghost"> {{ $t('dialogs.manageTransaction.form.closeButton') }} </Button>
       </DialogClose>
     </div>
-    <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
-      <div class="px-6">
-        <type-selector
-          :is-form-creation="isFormCreation"
-          :selected-transaction-type="currentTxType"
-          :transaction="transaction"
-          :account="transaction ? accountsRecord[transaction.accountId] : undefined"
-          :disabled="isFormFieldsDisabled"
-          class="mb-6"
-          @change-tx-type="selectTransactionType"
-        />
-
-        <div>
-          <form-row>
-            <input-field
-              v-model="form.amount"
-              :label="$t('dialogs.manageTransaction.form.amountLabel')"
-              type="number"
-              :disabled="isFormFieldsDisabled || isAmountFieldDisabled"
-              only-positive
-              :placeholder="$t('dialogs.manageTransaction.form.amountPlaceholder')"
-              :error-message="amountErrorMessage"
-              autofocus
-              @blur="onAmountBlur"
-            >
-              <template #iconTrailing>
-                <span>{{ currencyCode }}</span>
-              </template>
-            </input-field>
-          </form-row>
-
-          <p v-if="wouldOverdrawLoanSource" class="text-warning-text -mt-1 px-1 text-xs">
-            {{ $t('loans.detail.payment.overdrawWarning', { account: form.account?.name ?? '' }) }}
-          </p>
-
-          <account-field
-            v-model:account="form.account"
-            v-model:to-account="form.toAccount"
-            v-model:to-portfolio="form.toPortfolio"
-            v-model:destination-type="transferDestinationType"
+    <ScrollArea class="min-h-0">
+      <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
+        <div class="px-6 pb-6">
+          <type-selector
+            :is-form-creation="isFormCreation"
+            :selected-transaction-type="currentTxType"
+            :transaction="transaction"
+            :account="transaction ? accountsRecord[transaction.accountId] : undefined"
             :disabled="isFormFieldsDisabled"
-            :is-transfer-transaction="isTransferTx"
-            :is-transaction-linking="!!linkedTransaction"
-            :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
-            :accounts="isTransferTx ? transferSourceAccounts : txTargetableSourceAccountsActiveFirst"
-            :from-account-disabled="fromAccountFieldDisabled"
-            :to-account-disabled="toAccountFieldDisabled"
-            :destination-type-disabled="isDestinationTypeLocked"
-            :filtered-accounts="transferDestinationAccounts"
-            :portfolios="portfolios ?? []"
-            :loan-accounts="loanDestinationAccounts"
+            class="mb-6"
+            @change-tx-type="selectTransactionType"
           />
 
-          <template v-if="!isTransferTx">
-            <form-row>
-              <category-select-field
-                v-model="form.category"
-                :label="$t('dialogs.manageTransaction.form.categoryLabel')"
-                :values="effectiveFormattedCategories"
-                :categories-map="isAccountSharedWithCaller ? effectiveCategoriesMap : undefined"
-                :shared-owner-username="isAccountSharedWithCaller ? accountShare?.owner.username : undefined"
-                label-key="name"
-                :disabled="isFormFieldsDisabled"
-                @update:model-value="handleCategoryUserTouched"
-              />
-            </form-row>
-
-            <!-- Split button and summary -->
-            <form-row>
-              <template v-if="hasSplits">
-                <!-- Splits summary -->
-                <button
-                  type="button"
-                  class="bg-muted/30 hover:bg-muted/50 border-border group flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors"
-                  :disabled="isFormFieldsDisabled"
-                  @click="isSplitDialogOpen = true"
-                >
-                  <div class="flex items-center gap-2">
-                    <SplitIcon class="text-muted-foreground size-4" />
-                    <span class="text-sm font-medium">
-                      {{ $t('dialogs.manageTransaction.form.splitInfo', { count: (form.splits?.length ?? 0) + 1 }) }}
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-muted-foreground text-sm tabular-nums">
-                      {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
-                    </span>
-                    <span class="text-muted-foreground text-xs">{{
-                      $t('dialogs.manageTransaction.form.editSplit')
-                    }}</span>
-                  </div>
-                </button>
-              </template>
-              <template v-else>
-                <!-- Add splits button -->
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  class="w-full border-dashed"
-                  :disabled="isFormFieldsDisabled"
-                  @click="isSplitDialogOpen = true"
-                >
-                  <SplitIcon class="mr-2 size-4 opacity-70" />
-                  {{ $t('dialogs.manageTransaction.form.addSplitButton') }}
-                </Button>
-              </template>
-            </form-row>
-
-            <!-- Split Dialog -->
-            <SplitDialog
-              v-model:open="isSplitDialogOpen"
-              v-model="form.splits"
-              :total-amount="form.amount ? Number(form.amount) : null"
-              :currency-code="currencyCode"
-              :main-category="form.category"
-              :categories="effectiveFormattedCategories"
-            />
-          </template>
-
-          <template v-if="isTargetFieldVisible">
+          <div>
             <form-row>
               <input-field
-                v-model="form.targetAmount"
-                :disabled="isFormFieldsDisabled || isTargetAmountFieldDisabled"
-                only-positive
-                :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
-                :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
+                v-model="form.amount"
+                :label="$t('dialogs.manageTransaction.form.amountLabel')"
                 type="number"
-                :error-message="targetAmountErrorMessage"
-                @blur="touchField('form.targetAmount')"
+                :disabled="isFormFieldsDisabled || isAmountFieldDisabled"
+                only-positive
+                :placeholder="$t('dialogs.manageTransaction.form.amountPlaceholder')"
+                :error-message="amountErrorMessage"
+                autofocus
+                @blur="onAmountBlur"
               >
                 <template #iconTrailing>
-                  <span>{{ targetCurrency?.currency?.code }}</span>
+                  <span>{{ currencyCode }}</span>
                 </template>
               </input-field>
             </form-row>
-          </template>
 
-          <!-- Transfer linking on accounts shared *with* the caller isn't supported by
+            <p v-if="wouldOverdrawLoanSource" class="text-warning-text -mt-1 px-1 text-xs">
+              {{ $t('loans.detail.payment.overdrawWarning', { account: form.account?.name ?? '' }) }}
+            </p>
+
+            <account-field
+              v-model:account="form.account"
+              v-model:to-account="form.toAccount"
+              v-model:to-portfolio="form.toPortfolio"
+              v-model:destination-type="transferDestinationType"
+              :disabled="isFormFieldsDisabled"
+              :is-transfer-transaction="isTransferTx"
+              :is-transaction-linking="!!linkedTransaction"
+              :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
+              :accounts="isTransferTx ? transferSourceAccounts : txTargetableSourceAccountsActiveFirst"
+              :from-account-disabled="fromAccountFieldDisabled"
+              :to-account-disabled="toAccountFieldDisabled"
+              :destination-type-disabled="isDestinationTypeLocked"
+              :filtered-accounts="transferDestinationAccounts"
+              :portfolios="portfolios ?? []"
+              :loan-accounts="loanDestinationAccounts"
+            />
+
+            <template v-if="!isTransferTx">
+              <form-row>
+                <category-select-field
+                  v-model="form.category"
+                  :label="$t('dialogs.manageTransaction.form.categoryLabel')"
+                  :values="effectiveFormattedCategories"
+                  :categories-map="isAccountSharedWithCaller ? effectiveCategoriesMap : undefined"
+                  :shared-owner-username="isAccountSharedWithCaller ? accountShare?.owner.username : undefined"
+                  label-key="name"
+                  :disabled="isFormFieldsDisabled"
+                  @update:model-value="handleCategoryUserTouched"
+                />
+              </form-row>
+
+              <!-- Split button and summary -->
+              <form-row>
+                <template v-if="hasSplits">
+                  <!-- Splits summary -->
+                  <button
+                    type="button"
+                    class="bg-muted/30 hover:bg-muted/50 border-border group flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors"
+                    :disabled="isFormFieldsDisabled"
+                    @click="isSplitDialogOpen = true"
+                  >
+                    <div class="flex items-center gap-2">
+                      <SplitIcon class="text-muted-foreground size-4" />
+                      <span class="text-sm font-medium">
+                        {{ $t('dialogs.manageTransaction.form.splitInfo', { count: (form.splits?.length ?? 0) + 1 }) }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-muted-foreground text-sm tabular-nums">
+                        {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
+                      </span>
+                      <span class="text-muted-foreground text-xs">{{
+                        $t('dialogs.manageTransaction.form.editSplit')
+                      }}</span>
+                    </div>
+                  </button>
+                </template>
+                <template v-else>
+                  <!-- Add splits button -->
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    class="w-full border-dashed"
+                    :disabled="isFormFieldsDisabled"
+                    @click="isSplitDialogOpen = true"
+                  >
+                    <SplitIcon class="mr-2 size-4 opacity-70" />
+                    {{ $t('dialogs.manageTransaction.form.addSplitButton') }}
+                  </Button>
+                </template>
+              </form-row>
+
+              <!-- Split Dialog -->
+              <SplitDialog
+                v-model:open="isSplitDialogOpen"
+                v-model="form.splits"
+                :total-amount="form.amount ? Number(form.amount) : null"
+                :currency-code="currencyCode"
+                :main-category="form.category"
+                :categories="effectiveFormattedCategories"
+              />
+            </template>
+
+            <template v-if="isTargetFieldVisible">
+              <form-row>
+                <input-field
+                  v-model="form.targetAmount"
+                  :disabled="isFormFieldsDisabled || isTargetAmountFieldDisabled"
+                  only-positive
+                  :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
+                  :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
+                  type="number"
+                  :error-message="targetAmountErrorMessage"
+                  @blur="touchField('form.targetAmount')"
+                >
+                  <template #iconTrailing>
+                    <span>{{ targetCurrency?.currency?.code }}</span>
+                  </template>
+                </input-field>
+              </form-row>
+            </template>
+
+            <!-- Transfer linking on accounts shared *with* the caller isn't supported by
                the backend yet – hide the linker for recipients rather than letting
                them trigger a confusing server error. Loan payments never link two
                pre-existing legs (single source → one loan), so it's irrelevant here. -->
-          <LinkTransactionSection
-            v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
-            v-model:linked-transaction="linkedTransaction"
-            :is-transfer-tx="isTransferTx"
-            :is-form-creation="isFormCreation"
-            :opposite-transaction="oppositeTransaction"
-            :transaction-type="transaction?.transactionType"
-            :disabled="isFormFieldsDisabled"
-            :origin-transaction-id="transaction?.id"
-            :origin-amount="form.amount ? Number(form.amount) : null"
-            :origin-account-id="form.account?.id"
-            @unlink="unlinkTransactions"
-          />
-
-          <form-row>
-            <date-field
-              v-model="form.time"
-              :disabled="isFormFieldsDisabled || isRecordExternal"
-              :label="$t('dialogs.manageTransaction.form.datetimeLabel')"
-              :calendar-options="{
-                maxDate: new Date(),
-              }"
+            <LinkTransactionSection
+              v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
+              v-model:linked-transaction="linkedTransaction"
+              :is-transfer-tx="isTransferTx"
+              :is-form-creation="isFormCreation"
+              :opposite-transaction="oppositeTransaction"
+              :transaction-type="transaction?.transactionType"
+              :disabled="isFormFieldsDisabled"
+              :origin-transaction-id="transaction?.id"
+              :origin-amount="form.amount ? Number(form.amount) : null"
+              :origin-account-id="form.account?.id"
+              @unlink="unlinkTransactions"
             />
-          </form-row>
 
-          <p v-if="isPreAnchorLoanPayment" class="text-muted-foreground -mt-1 px-1 text-xs">
-            {{ $t('loans.detail.payment.preAnchorHint') }}
-          </p>
-
-          <template v-if="currentTxType !== FORM_TYPES.transfer">
             <form-row>
-              <payee-select-field
-                v-model="form.payeeId"
-                :label="$t('dialogs.manageTransaction.form.payeeLabel')"
-                :disabled="isFormFieldsDisabled"
-                :account-id="resolvedAccountId"
-                :owner-scoped="isAccountSharedWithCaller"
-                @payee-selected="handlePayeeSelected"
+              <date-field
+                v-model="form.time"
+                :disabled="isFormFieldsDisabled || isRecordExternal"
+                :label="$t('dialogs.manageTransaction.form.datetimeLabel')"
+                :calendar-options="{
+                  maxDate: new Date(),
+                }"
               />
             </form-row>
+
+            <p v-if="isPreAnchorLoanPayment" class="text-muted-foreground -mt-1 px-1 text-xs">
+              {{ $t('loans.detail.payment.preAnchorHint') }}
+            </p>
+
+            <template v-if="currentTxType !== FORM_TYPES.transfer">
+              <form-row>
+                <payee-select-field
+                  v-model="form.payeeId"
+                  :label="$t('dialogs.manageTransaction.form.payeeLabel')"
+                  :disabled="isFormFieldsDisabled"
+                  :account-id="resolvedAccountId"
+                  :owner-scoped="isAccountSharedWithCaller"
+                  @payee-selected="handlePayeeSelected"
+                />
+              </form-row>
+            </template>
+          </div>
+
+          <template v-if="isMobileView">
+            <Drawer.Drawer>
+              <Drawer.DrawerTrigger class="w-full" as-child>
+                <Button variant="secondary" size="default" class="w-full">
+                  {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
+                </Button>
+              </Drawer.DrawerTrigger>
+
+              <Drawer.DrawerContent>
+                <Drawer.DrawerTitle></Drawer.DrawerTitle>
+                <div class="bg-card dark:bg-muted dark:shadow-foreground/10 px-6 pt-6 dark:shadow-[inset_2px_4px_12px]">
+                  <ReuseMoreOptions />
+                </div>
+              </Drawer.DrawerContent>
+            </Drawer.Drawer>
           </template>
         </div>
 
-        <template v-if="isMobileView">
-          <Drawer.Drawer>
-            <Drawer.DrawerTrigger class="w-full" as-child>
-              <Button variant="secondary" size="default" class="w-full">
-                {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
-              </Button>
-            </Drawer.DrawerTrigger>
-
-            <Drawer.DrawerContent>
-              <Drawer.DrawerTitle></Drawer.DrawerTitle>
-              <div class="bg-card dark:bg-muted dark:shadow-foreground/10 px-6 pt-6 dark:shadow-[inset_2px_4px_12px]">
-                <ReuseMoreOptions />
-              </div>
-            </Drawer.DrawerContent>
-          </Drawer.Drawer>
-        </template>
-
-        <div class="flex items-center justify-between py-6">
-          <Button
-            v-if="canDelete"
-            class="min-w-25"
-            :disabled="isFormFieldsDisabled"
-            :aria-label="$t('dialogs.manageTransaction.form.deleteAriaLabel')"
-            variant="destructive"
-            @click="deleteTransactionHandler"
-          >
-            {{ $t('dialogs.manageTransaction.form.deleteButton') }}
-          </Button>
-          <Button
-            v-if="!isReadOnly"
-            class="ml-auto min-w-30"
-            :aria-label="
-              isFormCreation
-                ? $t('dialogs.manageTransaction.form.createAriaLabel')
-                : $t('dialogs.manageTransaction.form.editAriaLabel')
-            "
-            :disabled="isFormFieldsDisabled"
-            @click="submit"
-          >
-            {{
-              isLoading
-                ? $t('dialogs.manageTransaction.form.loadingButton')
-                : isFormCreation
-                  ? $t('dialogs.manageTransaction.form.createButton')
-                  : $t('dialogs.manageTransaction.form.editButton')
-            }}
-          </Button>
+        <div
+          v-if="!isMobileView"
+          class="bg-muted shadow-foreground/10 px-6 py-6 shadow-[inset_2px_4px_12px] dark:bg-black/20 dark:shadow-black/40"
+        >
+          <ReuseMoreOptions />
         </div>
       </div>
+    </ScrollArea>
 
-      <div
-        v-if="!isMobileView"
-        class="bg-muted shadow-foreground/10 px-6 pt-6 shadow-[inset_2px_4px_12px] dark:bg-black/20 dark:shadow-black/40"
+    <div v-if="!isReadOnly || canDelete" class="border-border bg-card flex items-center gap-3 border-t px-6 py-4">
+      <Button
+        v-if="canDelete"
+        class="min-w-25"
+        :disabled="isFormFieldsDisabled"
+        :aria-label="$t('dialogs.manageTransaction.form.deleteAriaLabel')"
+        variant="destructive"
+        @click="deleteTransactionHandler"
       >
-        <ReuseMoreOptions />
-      </div>
+        {{ $t('dialogs.manageTransaction.form.deleteButton') }}
+      </Button>
+      <Button
+        v-if="!isReadOnly"
+        class="ml-auto min-w-30"
+        :aria-label="
+          isFormCreation
+            ? $t('dialogs.manageTransaction.form.createAriaLabel')
+            : $t('dialogs.manageTransaction.form.editAriaLabel')
+        "
+        :disabled="isFormFieldsDisabled"
+        @click="submit"
+      >
+        {{
+          isLoading
+            ? $t('dialogs.manageTransaction.form.loadingButton')
+            : isFormCreation
+              ? $t('dialogs.manageTransaction.form.createButton')
+              : $t('dialogs.manageTransaction.form.editButton')
+        }}
+      </Button>
     </div>
   </div>
 </template>

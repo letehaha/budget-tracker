@@ -115,4 +115,127 @@ else
   : > "$API_PROXY_INCLUDE"
 fi
 
+# --- MCP endpoint + OAuth discovery metadata --------------------------------
+
+# MCP clients read /.well-known/oauth-authorization-server and
+# /.well-known/oauth-protected-resource to learn which authorization server to
+# talk to, then call /mcp. Both root and path-aware forms are served
+# (RFC 8414 3.1, RFC 9728 3.1) because clients differ in which they request.
+#
+# Same-origin deployments proxy them to the backend, which builds the documents
+# from MCP_BASE_URL and so names this deployment. Split-domain deployments have
+# no backend to proxy to here and serve the static mirrors baked into
+# /app/.well-known/ instead. The mirrors ship with the hosted deployment's
+# URLs, so when MCP_BASE_URL is set they are rewritten to it — otherwise a
+# client that asks this origin would be sent to the hosted service.
+OAUTH_MCP_INCLUDE="/etc/nginx/includes/oauth-mcp.conf"
+if [ -n "${BACKEND_URL-}" ]; then
+  cat > "$OAUTH_MCP_INCLUDE" <<EOF
+location = /mcp {
+  proxy_pass ${BACKEND_URL};
+  proxy_http_version 1.1;
+  proxy_set_header Host \$host;
+  proxy_set_header X-Real-IP \$remote_addr;
+  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+  proxy_set_header X-Forwarded-Host \$host;
+  proxy_set_header Connection "";
+  # MCP responses stream over SSE; buffering would stall them.
+  proxy_buffering off;
+  proxy_read_timeout 3600s;
+}
+# Clients differ on whether the pasted MCP URL keeps a trailing slash; without
+# this a "/mcp/" connector lands on the SPA fallback and fails confusingly.
+location = /mcp/ {
+  rewrite ^ /mcp last;
+}
+
+# Claude.ai ignores the endpoints advertised in the metadata and calls
+# /authorize, /token and /register on the origin root. The backend answers
+# those with 307s to their real /api/v1/auth/oauth2/* paths.
+location = /authorize {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
+location = /token {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
+location = /register {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
+
+location = /.well-known/oauth-authorization-server {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
+location = /.well-known/oauth-authorization-server/mcp {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
+location = /.well-known/oauth-protected-resource {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
+location = /.well-known/oauth-protected-resource/mcp {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
+EOF
+else
+  # The sed pattern must match the issuer baked into the mirror files
+  # (packages/frontend/public/.well-known/). On the hosted deployment
+  # MCP_BASE_URL equals that issuer, so the rewrite is a no-op there.
+  if [ -n "$MCP_BASE_URL" ]; then
+    for doc in /app/.well-known/oauth-authorization-server /app/.well-known/oauth-protected-resource; do
+      sed "s|https://mcp\.moneymatter\.app|${MCP_BASE_URL%/}|g" "$doc" > "$doc.tmp"
+      mv "$doc.tmp" "$doc"
+    done
+  fi
+
+  cat > "$OAUTH_MCP_INCLUDE" <<'EOF'
+location = /.well-known/oauth-authorization-server {
+  root /app;
+  default_type "application/json";
+  add_header Access-Control-Allow-Origin "*" always;
+  add_header Cache-Control "public, max-age=3600" always;
+  add_header X-Content-Type-Options "nosniff" always;
+}
+location = /.well-known/oauth-authorization-server/mcp {
+  root /app;
+  try_files /.well-known/oauth-authorization-server =404;
+  default_type "application/json";
+  add_header Access-Control-Allow-Origin "*" always;
+  add_header Cache-Control "public, max-age=3600" always;
+  add_header X-Content-Type-Options "nosniff" always;
+}
+location = /.well-known/oauth-protected-resource {
+  root /app;
+  default_type "application/json";
+  add_header Access-Control-Allow-Origin "*" always;
+  add_header Cache-Control "public, max-age=3600" always;
+  add_header X-Content-Type-Options "nosniff" always;
+}
+location = /.well-known/oauth-protected-resource/mcp {
+  root /app;
+  try_files /.well-known/oauth-protected-resource =404;
+  default_type "application/json";
+  add_header Access-Control-Allow-Origin "*" always;
+  add_header Cache-Control "public, max-age=3600" always;
+  add_header X-Content-Type-Options "nosniff" always;
+}
+EOF
+fi
+
 exec "$@"

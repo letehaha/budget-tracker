@@ -26,7 +26,7 @@
  * Shape of `window.__APP_CONFIG__`. Keys use the runtime env-var names (no
  * `VITE_` prefix) – they mirror the container env vars the entrypoint reads.
  */
-export interface AppRuntimeConfig {
+interface AppRuntimeConfig {
   API_HTTP?: string;
   API_VER?: string;
   MCP_BASE_URL?: string;

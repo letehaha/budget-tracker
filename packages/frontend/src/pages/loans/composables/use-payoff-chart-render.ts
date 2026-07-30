@@ -28,7 +28,7 @@ interface PayoffChartTooltip {
   entries: Array<{ key: ScenarioKey; color: string; label: string; value: number; paidOff: boolean }>;
 }
 
-export interface UsePayoffChartRenderOptions {
+interface UsePayoffChartRenderOptions {
   svgRef: Ref<SVGSVGElement | null>;
   containerRef: Ref<HTMLDivElement | null>;
   /** Scenarios that pay off and have enough points to draw, in stacking order. */

@@ -1,4 +1,4 @@
-export interface BudgetEditFormValues {
+interface BudgetEditFormValues {
   name: string;
   limitAmount: number | null | undefined;
   categoryIds: string[];

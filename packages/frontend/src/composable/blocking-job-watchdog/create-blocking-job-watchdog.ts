@@ -22,7 +22,7 @@ import { type ComputedRef, type Ref, computed, ref } from 'vue';
  * live poll, or the boot check.
  */
 
-export type BlockingJobState = 'idle' | 'queued' | 'running' | 'completed' | 'failed';
+type BlockingJobState = 'idle' | 'queued' | 'running' | 'completed' | 'failed';
 
 /** Minimum contract every job's status must satisfy to plug into the watchdog. */
 export interface BlockingJobStatusBase {

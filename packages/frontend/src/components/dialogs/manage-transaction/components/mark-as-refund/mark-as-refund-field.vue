@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import { Button } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, TransactionSplitModel } from '@bt/shared/types';
-import { SplitIcon, XIcon } from '@lucide/vue';
+import { SplitIcon, Unlink2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -69,7 +70,7 @@ const getSplitInfo = (refund: RefundWithSplit) => {
 <template>
   <template v-if="refunds || refundedBy">
     <p class="text-sm">{{ t('dialogs.manageTransaction.markAsRefund.linkedRefunds') }}</p>
-    <div class="flex items-start justify-between gap-2">
+    <div class="flex items-center justify-between gap-2">
       <div class="grid w-full gap-1">
         <template v-for="refund of refundTransactions" :key="refund.transaction.id">
           <div>
@@ -88,9 +89,18 @@ const getSplitInfo = (refund: RefundWithSplit) => {
         </template>
       </div>
 
-      <Button variant="default" size="icon" :disabled="disabled" class="shrink-0" @click="emptyField">
-        <XIcon />
-      </Button>
+      <DesktopOnlyTooltip :content="t('dialogs.manageTransaction.markAsRefund.unlinkRefund')">
+        <Button
+          variant="ghost-destructive"
+          size="icon"
+          :disabled="disabled"
+          :aria-label="t('dialogs.manageTransaction.markAsRefund.unlinkRefund')"
+          class="shrink-0"
+          @click="emptyField"
+        >
+          <Unlink2Icon class="size-5" />
+        </Button>
+      </DesktopOnlyTooltip>
     </div>
   </template>
   <template v-else>

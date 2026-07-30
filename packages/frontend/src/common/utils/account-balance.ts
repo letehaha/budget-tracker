@@ -1,5 +1,5 @@
 /** The balance fields the credit-limit display adjustment reads. */
-export interface CreditLimitBalanceInput {
+interface CreditLimitBalanceInput {
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
@@ -7,7 +7,7 @@ export interface CreditLimitBalanceInput {
   includeCreditLimit: boolean;
 }
 
-export interface AccountDisplayBalances {
+interface AccountDisplayBalances {
   hasCreditLimitAdjustment: boolean;
   /** Balance in the account's own currency, net of the credit limit when adjusting. */
   displayBalance: number;

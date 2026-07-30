@@ -2,14 +2,14 @@ import { ASSET_CLASS } from '@bt/shared/types/investments';
 import { isWeekend } from 'date-fns';
 
 /**
- * v1: weekend-only. Returns true when the security's market was closed on the
- * given date and we should expect providers to return no data. Crypto trades
- * 24/7.
+ * Returns true if the market for the security was closed on the given date. If
+ * the market was closed, the providers send no data. Crypto markets are open on
+ * all days.
  *
- * TODO: exchange-specific holidays (NYSE July 4, WSE Polish holidays, NSE
- * Diwali, etc.) still slip through and generate Sentry noise. Add a holiday
- * calendar keyed by `exchangeAcronym` (already on Securities model — just
- * needs to be threaded into SecurityPriceFetchInput).
+ * Weekends only. Exchange holidays go to `actuallyMissing`, which the code logs
+ * at the info level. Do not add a manual holiday calendar: it becomes incorrect
+ * after its last year with no warning, and each provider writes a different
+ * `exchangeAcronym` value.
  */
 export function isMarketClosedOn({ assetClass, date }: { assetClass: ASSET_CLASS; date: Date }): boolean {
   if (assetClass === ASSET_CLASS.crypto) return false;
