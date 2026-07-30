@@ -56,6 +56,8 @@ interface SubscriptionBase extends Pick<
   | 'notifyEmail'
   | 'logoDomain'
   | 'logoSource'
+  | 'logoInitials'
+  | 'logoColor'
   | 'createdAt'
   | 'updatedAt'
 > {

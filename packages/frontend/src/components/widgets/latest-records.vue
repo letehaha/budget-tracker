@@ -148,7 +148,13 @@ const isDataEmpty = computed(() => !isTxFetching.value && (transactions.value?.l
           :key="sub.id"
           class="bg-muted/40 mb-1.5 flex items-center gap-2.5 rounded-md px-3 py-2"
         >
-          <BrandLogo :domain="sub.logoDomain ?? null" :name="sub.name" class="size-5 shrink-0" />
+          <BrandLogo
+            :domain="sub.logoDomain ?? null"
+            :initials="sub.logoInitials ?? null"
+            :color="sub.logoColor ?? null"
+            :name="sub.name"
+            class="size-5 shrink-0"
+          />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm leading-tight font-medium">{{ sub.name }}</p>
             <p class="text-muted-foreground overflow-hidden text-xs text-ellipsis whitespace-nowrap">

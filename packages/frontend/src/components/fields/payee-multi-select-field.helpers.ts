@@ -1,14 +1,12 @@
-import type { RecordId } from '@bt/shared/types';
+import type { EntityLogoFields, RecordId } from '@bt/shared/types';
 
-export interface SelectedPayee {
+export interface SelectedPayee extends EntityLogoFields {
   id: RecordId;
   name: string;
-  logoDomain: string | null;
 }
 
-export interface PayeeLookupEntry {
+export interface PayeeLookupEntry extends EntityLogoFields {
   name: string;
-  logoDomain: string | null;
 }
 
 /**
@@ -17,8 +15,8 @@ export interface PayeeLookupEntry {
  * while open, and the by-id resolver that hydrates a saved view's selection
  * before the dropdown is ever opened (without it a restored single payee shows
  * its raw id until first open). Rows the lookup can't resolve — and rows whose
- * name and logo are unchanged — keep their existing object identity so Vue skips
- * needless re-renders.
+ * name and logo fields are unchanged — keep their existing object identity so Vue
+ * skips needless re-renders.
  */
 export const hydrateSelectedPayees = ({
   selected,
@@ -31,6 +29,15 @@ export const hydrateSelectedPayees = ({
     const fresh = lookup.get(sel.id);
     if (!fresh) return sel;
     const nextLogo = fresh.logoDomain ?? null;
-    if (fresh.name === sel.name && nextLogo === sel.logoDomain) return sel;
-    return { id: sel.id, name: fresh.name, logoDomain: nextLogo };
+    const nextInitials = fresh.logoInitials ?? null;
+    const nextColor = fresh.logoColor ?? null;
+    if (
+      fresh.name === sel.name &&
+      nextLogo === sel.logoDomain &&
+      nextInitials === sel.logoInitials &&
+      nextColor === sel.logoColor
+    ) {
+      return sel;
+    }
+    return { id: sel.id, name: fresh.name, logoDomain: nextLogo, logoInitials: nextInitials, logoColor: nextColor };
   });

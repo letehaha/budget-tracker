@@ -289,6 +289,10 @@ export interface PivotRow {
   // Brand domain (e.g. "netflix.com") for the payee dimension, so the client can render the
   // payee's logo; null when the payee has no resolved logo. Absent for every other dimension.
   logoDomain?: string | null;
+  // Custom monogram letters + '#rrggbb' background for the payee dimension, taking
+  // priority over logoDomain when set. Absent for every other dimension.
+  logoInitials?: string | null;
+  logoColor?: string | null;
   // Subcategory child rows point at their parent row id; parents/flat rows are null.
   parentId: string | null;
   kind: 'flat' | 'parent' | 'child';

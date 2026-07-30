@@ -3,17 +3,27 @@ import { describe, expect, it } from 'vitest';
 
 import { type SelectedPayee, hydrateSelectedPayees } from './payee-multi-select-field.helpers';
 
-const payee = (id: string, name: string, logoDomain: string | null = null): SelectedPayee => ({
+const payee = (
+  id: string,
+  name: string,
+  logoDomain: string | null = null,
+  logoInitials: string | null = null,
+  logoColor: string | null = null,
+): SelectedPayee => ({
   id: id as RecordId,
   name,
   logoDomain,
+  logoInitials,
+  logoColor,
 });
 
 describe('hydrateSelectedPayees', () => {
   it('replaces an id-placeholder name once the lookup resolves it (saved-view restore)', () => {
     // A restored selection starts with name === id because no source has resolved it yet.
     const selected = [payee('019ea731-0e4e', '019ea731-0e4e')];
-    const lookup = new Map([['019ea731-0e4e', { name: 'Glovo', logoDomain: 'glovoapp.com' }]]);
+    const lookup = new Map([
+      ['019ea731-0e4e', { name: 'Glovo', logoDomain: 'glovoapp.com', logoInitials: null, logoColor: null }],
+    ]);
 
     const result = hydrateSelectedPayees({ selected, lookup });
 
@@ -29,7 +39,7 @@ describe('hydrateSelectedPayees', () => {
 
   it('keeps object identity when name and logo are unchanged', () => {
     const row = payee('a', 'Amazon', 'amazon.com');
-    const lookup = new Map([['a', { name: 'Amazon', logoDomain: 'amazon.com' }]]);
+    const lookup = new Map([['a', { name: 'Amazon', logoDomain: 'amazon.com', logoInitials: null, logoColor: null }]]);
 
     const result = hydrateSelectedPayees({ selected: [row], lookup });
 
@@ -38,10 +48,19 @@ describe('hydrateSelectedPayees', () => {
 
   it('normalizes an undefined lookup logo to null', () => {
     const row = payee('a', 'a', null);
-    const lookup = new Map([['a', { name: 'Amazon', logoDomain: null }]]);
+    const lookup = new Map([['a', { name: 'Amazon', logoDomain: null, logoInitials: null, logoColor: null }]]);
 
     const result = hydrateSelectedPayees({ selected: [row], lookup });
 
     expect(result[0]).toEqual(payee('a', 'Amazon', null));
+  });
+
+  it('refreshes a custom monogram when only the initials/color changed', () => {
+    const row = payee('a', 'Amazon', null, 'AM', '#7355be');
+    const lookup = new Map([['a', { name: 'Amazon', logoDomain: null, logoInitials: 'AZ', logoColor: '#c2410c' }]]);
+
+    const result = hydrateSelectedPayees({ selected: [row], lookup });
+
+    expect(result[0]).toEqual(payee('a', 'Amazon', null, 'AZ', '#c2410c'));
   });
 });

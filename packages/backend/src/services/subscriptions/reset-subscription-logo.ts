@@ -7,7 +7,7 @@ import { findSubscriptionOrThrow } from './helpers';
 
 /**
  * Clears the manual logo override so the background resolver can re-run and pick
- * a new domain automatically. Sets both logo fields to null (logoSource null
+ * a new domain automatically. Sets all four logo fields to null (logoSource null
  * signals the resolver this subscription still needs a resolution pass), then
  * schedules resolution to run once the transaction commits. Enqueuing after
  * commit is required: the worker reads the subscription on a separate
@@ -19,6 +19,8 @@ export const resetSubscriptionLogo = withTransaction(async ({ id, userId }: { id
   const subscription = await findSubscriptionOrThrow({ id, userId });
   subscription.logoDomain = null;
   subscription.logoSource = null;
+  subscription.logoInitials = null;
+  subscription.logoColor = null;
   await subscription.save();
   enqueueLogoResolutionAfterCommit({ entity: 'subscription', id });
 

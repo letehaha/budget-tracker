@@ -64,7 +64,13 @@
       <!-- Payee -->
       <template v-else-if="column.id === TABLE_COLUMN.payee">
         <div v-if="payee" class="flex items-center gap-2">
-          <BrandLogo :domain="payee.logoDomain" :name="payee.name" class="size-5 shrink-0" />
+          <BrandLogo
+            :domain="payee.logoDomain"
+            :initials="payee.logoInitials"
+            :color="payee.logoColor"
+            :name="payee.name"
+            class="size-5 shrink-0"
+          />
           <DesktopOnlyTooltip :content="payee.name" only-when-truncated>
             <span class="max-w-32 truncate">{{ payee.name }}</span>
           </DesktopOnlyTooltip>
@@ -183,7 +189,7 @@ const props = defineProps<{
   isSelectable: boolean;
   /** Shown as an explainer tooltip in place of the checkbox when not selectable. */
   unselectableReason?: BulkUnselectableReason | null;
-  /** Resolved payee (name + logo domain) for the beneficiary cell; undefined for transfers/unassigned. */
+  /** Resolved payee (name + logo fields) for the beneficiary cell; undefined for transfers/unassigned. */
   payee: PayeeLookupItem | undefined;
 }>();
 

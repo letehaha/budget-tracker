@@ -1,6 +1,7 @@
 import { CATEGORIZATION_MODE } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
+import { logoColorSchema, logoInitialsSchema, refineLogoSelection } from '@controllers/common/logo-initials.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as payeesService from '@services/payees';
 import { z } from 'zod';
@@ -11,14 +12,19 @@ const schema = z.object({
   params: z.object({
     id: recordId(),
   }),
-  body: z.object({
-    name: z.string().trim().min(1).max(200).optional(),
-    defaultCategoryId: recordId().nullable().optional(),
-    categorizationMode: z.nativeEnum(CATEGORIZATION_MODE).optional(),
-    defaultTagIds: z.array(recordId()).optional(),
-    // Present key (even null) → manual override; absent key → no change.
-    logoDomain: logoDomainSchema.optional(),
-  }),
+  body: z
+    .object({
+      name: z.string().trim().min(1).max(200).optional(),
+      defaultCategoryId: recordId().nullable().optional(),
+      categorizationMode: z.nativeEnum(CATEGORIZATION_MODE).optional(),
+      defaultTagIds: z.array(recordId()).optional(),
+      // Present key (even null) → manual override; absent key → no change.
+      logoDomain: logoDomainSchema.optional(),
+      // Monogram letters + background, the alternative to a brand domain.
+      logoInitials: logoInitialsSchema.optional(),
+      logoColor: logoColorSchema.optional(),
+    })
+    .superRefine((data, ctx) => refineLogoSelection({ data, ctx })),
 });
 
 export default createController(schema, async ({ user, params, body }) => {
@@ -32,6 +38,8 @@ export default createController(schema, async ({ user, params, body }) => {
     // Pass undefined when the key was absent (Zod treats missing optional as
     // undefined), so the service can distinguish "set manual" from "leave alone".
     logoDomain: body.logoDomain,
+    logoInitials: body.logoInitials,
+    logoColor: body.logoColor,
   });
   return { data: serializePayee(payee) };
 });
