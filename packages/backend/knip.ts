@@ -14,8 +14,6 @@ const config: KnipConfig = {
   ignore: [
     'config/**',
     'src/migrations/**',
-    // False positive: imported via @common/types path alias which knip doesn't resolve
-    'src/common/types/index.ts',
     // Barrel file re-exporting 3rd-party API types - @public is set on source files
     'src/services/bank-data-providers/enablebanking/types/index.ts',
   ],

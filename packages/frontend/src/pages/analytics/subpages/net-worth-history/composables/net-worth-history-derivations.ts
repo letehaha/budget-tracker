@@ -124,7 +124,7 @@ export const averageOwedLiabilities = ({ points }: { points: NetWorthDisplayPoin
 // linear scale, so the chart switches to a zoomed sub-scale for the owed region.
 const ASYMMETRIC_OWED_SHARE_THRESHOLD = 0.1;
 
-export interface LiabilityScale {
+interface LiabilityScale {
   /** Render the owed region on its own zoomed sub-scale instead of the shared one. */
   asymmetric: boolean;
   /** Largest of assets, net worth and positive liability sums across the series. */

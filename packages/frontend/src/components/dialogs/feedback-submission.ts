@@ -3,7 +3,7 @@ export const MAX_FEEDBACK_MESSAGE_LENGTH = 1000;
 
 export type FeedbackType = 'bug' | 'feature_request' | 'other';
 
-export interface FeedbackSubmission {
+interface FeedbackSubmission {
   feedback_type: FeedbackType;
   message: string;
 }

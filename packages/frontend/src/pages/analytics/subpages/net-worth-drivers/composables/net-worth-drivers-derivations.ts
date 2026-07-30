@@ -89,7 +89,7 @@ export const computeHoldingsSharePct = ({
   return (composition.holdingsValue / total) * 100;
 };
 
-export interface AllocationContext {
+interface AllocationContext {
   /** Share of net worth held in investments at the end of the window. */
   currentSharePct: number | null;
   /** The same share a period back, for a "was X%" comparison. */

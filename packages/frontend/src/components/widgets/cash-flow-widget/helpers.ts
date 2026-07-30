@@ -1,12 +1,12 @@
 import { endpointsTypes } from '@bt/shared/types';
 import { differenceInDays, endOfMonth, isSameMonth, parseISO, startOfMonth, subDays, subMonths } from 'date-fns';
 
-export interface DatePeriod {
+interface DatePeriod {
   from: Date;
   to: Date;
 }
 
-export interface TrendPeriod extends DatePeriod {
+interface TrendPeriod extends DatePeriod {
   isCurrent: boolean;
 }
 

@@ -30,7 +30,7 @@ const AMBIGUOUS_DMY = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/;
 // First separator character of an ambiguous-family value, for option labels.
 const AMBIGUOUS_SEPARATOR = /^\d{1,2}([/.-])/;
 
-export interface DateFieldOrderSuggestion {
+interface DateFieldOrderSuggestion {
   /**
    * The order to pre-highlight as "Suggested". From a >12-field data signal
    * when one exists, otherwise the caller-provided locale fallback. Never
@@ -49,7 +49,7 @@ export interface DateFieldOrderSuggestion {
 }
 
 /** Calendar-day components of a parsed date cell, for previews. */
-export interface DateCellParts {
+interface DateCellParts {
   year: number;
   month: number;
   day: number;

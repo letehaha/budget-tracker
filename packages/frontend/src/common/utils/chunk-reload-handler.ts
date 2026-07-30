@@ -26,11 +26,17 @@ const STALE_CHUNK_PATTERNS = [
   /Couldn't resolve component/i,
 ];
 
+/**
+ * @public exported only for the unit test, which reaches these through a
+ * dynamic `import()` (the module holds per-incident state, so each case needs a
+ * fresh instance). Static analysis can't see that, hence the tag.
+ */
 export const isStaleChunkError = (error: unknown): boolean => {
   const message = error instanceof Error ? error.message : String(error);
   return STALE_CHUNK_PATTERNS.some((pattern) => pattern.test(message));
 };
 
+/** @public exported only for the unit test — see `isStaleChunkError` above. */
 export const readCounter = (): number => {
   const stored = window.sessionStorage.getItem(RELOAD_COUNTER_KEY);
   const timestamp = Number(window.sessionStorage.getItem(RELOAD_TIMESTAMP_KEY) ?? 0);
@@ -58,6 +64,8 @@ const NAVIGATE_DEFER_MS = 50;
  * suppress their default error handling), `false` when the retry cap is
  * exhausted — then the incident is reported to Sentry so the genuine
  * deploy/CDN problem is visible instead of the user being silently stranded.
+ *
+ * @public exported only for the unit test — see `isStaleChunkError` above.
  */
 export const scheduleRecovery = ({ error, redirectTo }: { error: Error; redirectTo?: string }): boolean => {
   if (redirectTo) pendingTarget = redirectTo;

@@ -4,7 +4,7 @@
  * All parsing uses a canonical '.'; the component normalizes locale separators in/out.
  */
 
-export interface AmountSeparators {
+interface AmountSeparators {
   decimal: string;
   group: string;
 }

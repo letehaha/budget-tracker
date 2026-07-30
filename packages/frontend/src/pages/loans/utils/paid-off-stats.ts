@@ -11,7 +11,7 @@ import { addMonths, differenceInCalendarMonths } from 'date-fns';
 const MONTHS_PER_YEAR = 12;
 const CENTS_PER_UNIT = 100;
 
-export interface LoanDurationParts {
+interface LoanDurationParts {
   /** Whole calendar months the loan was open, floored at 0. */
   totalMonths: number;
   years: number;
@@ -48,7 +48,7 @@ export function getMonthsEarly({
   return early > 0 ? early : 0;
 }
 
-export interface LoanCostSplit {
+interface LoanCostSplit {
   /** principal + interest — the "total this loan cost" figure. */
   total: number;
   principal: number;

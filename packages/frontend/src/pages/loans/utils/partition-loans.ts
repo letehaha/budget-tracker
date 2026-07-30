@@ -1,7 +1,7 @@
 import type { LoanApi } from '@/api/loans';
 import { ACCOUNT_STATUSES } from '@bt/shared/types';
 
-export interface PartitionedLoans {
+interface PartitionedLoans {
   /** Loans the user is still paying down. */
   active: LoanApi[];
   /** Settled loans the user still tracks. */
