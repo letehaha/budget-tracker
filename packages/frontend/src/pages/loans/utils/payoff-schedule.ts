@@ -165,7 +165,7 @@ export function computePayoffScenario({
 /** Below this absolute interest delta (decimal currency units), two scenarios read as "the same" interest. */
 export const SAME_INTEREST_EPSILON = 0.005;
 
-export interface PayoffComparison {
+interface PayoffComparison {
   /** scenario.totalInterest − baseline.totalInterest (decimal). Negative = scenario saves interest. */
   interestDelta: number;
   /** scenario.monthsRemaining − baseline.monthsRemaining. Negative = scenario pays off sooner. */

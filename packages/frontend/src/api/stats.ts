@@ -16,22 +16,6 @@ export interface BalanceHistoryEntity {
   accountId: string;
 }
 
-/** Per-account balance history — signed amounts (liabilities negative), decimals. */
-export const getAccountBalanceHistory = async ({
-  accountId,
-  from,
-  to,
-}: {
-  accountId: RecordId;
-  from?: Date;
-  to?: Date;
-}): Promise<BalanceHistoryEntity[]> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload = { accountId };
-  if (from) params.from = formatDate(from);
-  if (to) params.to = formatDate(to);
-  return api.get('/stats/balance-history', params);
-};
-
 export const getExpensesAmountForPeriod = async ({
   from,
   to,

@@ -12,7 +12,7 @@
 export const TOP_OFFSET_CLASSES = ['top-0', 'top-9', 'top-18', 'top-27', 'top-36'] as const;
 export const BOTTOM_OFFSET_CLASSES = ['bottom-0', 'bottom-9', 'bottom-18', 'bottom-27', 'bottom-36'] as const;
 
-export interface StickyOffset {
+interface StickyOffset {
   top: string;
   bottom: string;
 }

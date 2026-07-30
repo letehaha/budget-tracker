@@ -2,7 +2,7 @@ const MONTHS_PER_YEAR = 12;
 /** Held strictly below 100%: at a full share the needed portfolio value is infinite. */
 const MAX_TARGET_FRACTION = 0.99;
 
-export interface FireTargetInput {
+interface FireTargetInput {
   /** Holdings value now, in base currency. */
   currentPortfolioValue: number;
   /** Expected monthly saving going forward, in base currency. */
