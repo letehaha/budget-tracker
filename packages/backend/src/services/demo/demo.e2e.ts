@@ -20,6 +20,8 @@ import Users from '@models/users.model';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { clearMockSession, registerMockSession } from '@tests/mocks/better-auth';
 
+import { allDemoPayeeMerchants } from './template/merchants';
+
 /**
  * Extracts the session token value from a cookie string.
  */
@@ -460,10 +462,15 @@ describe('Demo Mode', () => {
       expect(Array.isArray(payees)).toBe(true);
       expect(payees.length).toBeGreaterThan(30);
 
-      // Without a domain, the brand-logo worker does a network lookup per
-      // merchant on every demo signup.
-      for (const payee of payees as { logoDomain: string | null }[]) {
-        expect(payee.logoDomain).toBeTruthy();
+      // Every seeded payee mirrors its merchant entry: a domain when the
+      // merchant declares one, none for fictional companies (Acme Corp and
+      // friends), which render as monograms. `logoSource: 'manual'` either way,
+      // or the brand-logo worker does a network lookup per merchant on every
+      // demo signup.
+      const domainByName = new Map(allDemoPayeeMerchants().map((merchant) => [merchant.name, merchant.domain ?? null]));
+      for (const payee of payees as { name: string; logoDomain: string | null }[]) {
+        expect(domainByName.has(payee.name)).toBe(true);
+        expect(payee.logoDomain).toBe(domainByName.get(payee.name));
       }
 
       const withTransactions = (payees as { stats: { transactionCount: number } | null }[]).filter(
