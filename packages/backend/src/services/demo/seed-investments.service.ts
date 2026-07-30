@@ -1,4 +1,10 @@
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  USER_ROLES,
+} from '@bt/shared/types';
 import {
   ASSET_CLASS,
   INVESTMENT_TRANSACTION_CATEGORY,
@@ -16,12 +22,14 @@ import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
 import Transactions from '@models/transactions.model';
+import { findSecurityByIdentity } from '@services/investments/securities/identity';
 import { Big } from 'big.js';
 import { addMonths, format, subDays } from 'date-fns';
-import { type Transaction } from 'sequelize';
+import { QueryTypes, type Transaction } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
 import { DEMO_CONFIG } from './demo-config';
+import { fitPurchaseToPrices } from './fit-purchase-to-prices';
 import { type ContributionPlan, type DemoContributionConfig, resolveContributions } from './investment-contributions';
 
 interface DemoSecurityConfig {
@@ -169,11 +177,11 @@ const DEMO_PORTFOLIO_PLANS: DemoPortfolioPlan[] = [
     securities: DEMO_SECURITIES,
     endingCash: DEMO_INVESTMENT_STARTING_CASH,
     contributions: [
-      { daysAgo: 950, amount: 2500, description: 'Brokerage account funding' },
-      { daysAgo: 700, amount: 2000, description: 'Monthly investing transfer' },
-      { daysAgo: 500, amount: 3000, description: 'Monthly investing transfer' },
-      { daysAgo: 300, amount: 2000, description: 'Monthly investing transfer' },
-      { daysAgo: 120, amount: null, description: 'Brokerage top-up' },
+      { daysAgo: 950, share: 0.22, description: 'Brokerage account funding' },
+      { daysAgo: 700, share: 0.17, description: 'Monthly investing transfer' },
+      { daysAgo: 500, share: 0.26, description: 'Monthly investing transfer' },
+      { daysAgo: 300, share: 0.17, description: 'Monthly investing transfer' },
+      { daysAgo: 120, share: null, description: 'Brokerage top-up' },
     ],
   },
   {
@@ -182,11 +190,11 @@ const DEMO_PORTFOLIO_PLANS: DemoPortfolioPlan[] = [
     securities: DEMO_CRYPTO,
     endingCash: DEMO_CRYPTO_STARTING_CASH,
     contributions: [
-      { daysAgo: 860, amount: 6500, description: 'Crypto exchange funding' },
-      { daysAgo: 600, amount: 5000, description: 'Crypto exchange funding' },
-      { daysAgo: 350, amount: 2500, description: 'Monthly crypto transfer' },
-      { daysAgo: 180, amount: 500, description: 'Monthly crypto transfer' },
-      { daysAgo: 60, amount: null, description: 'Crypto exchange top-up' },
+      { daysAgo: 860, share: 0.43, description: 'Crypto exchange funding' },
+      { daysAgo: 600, share: 0.33, description: 'Crypto exchange funding' },
+      { daysAgo: 350, share: 0.16, description: 'Monthly crypto transfer' },
+      { daysAgo: 180, share: 0.03, description: 'Monthly crypto transfer' },
+      { daysAgo: 60, share: null, description: 'Crypto exchange top-up' },
     ],
   },
 ];
@@ -288,9 +296,99 @@ function buildPriceHistory({
 }
 
 /**
- * Seeds securities, monthly price history, holdings and the opening buy
- * transaction for a single portfolio. Shared by the stock and crypto portfolios
- * so both asset classes follow the exact same holding-creation path.
+ * Resolves the shared `Securities` row for a demo config, creating it only when
+ * the instance has never seen the symbol.
+ *
+ * Looked up through `findSecurityByIdentity` rather than by
+ * `(providerName, providerSymbol)`: the demo hardcodes `yahoo` for its stocks,
+ * but an instance may already carry AAPL under fmp or polygon, and a second
+ * AAPL/USD row makes security resolution nondeterministic for every user.
+ * `findOrCreate` still guards the insert so two concurrent demo signups racing
+ * on the same new symbol don't collide.
+ */
+async function resolveDemoSecurity({
+  config,
+  transaction,
+}: {
+  config: DemoSecurityConfig;
+  transaction: Transaction;
+}): Promise<Securities> {
+  const existing = await findSecurityByIdentity({
+    assetClass: config.assetClass,
+    providerName: config.providerName,
+    providerSymbol: config.providerSymbol,
+    symbol: config.symbol,
+    currencyCode: config.currencyCode,
+  });
+
+  if (existing) return existing;
+
+  const [security] = await Securities.findOrCreate({
+    where: {
+      providerName: config.providerName,
+      providerSymbol: config.providerSymbol,
+    },
+    defaults: {
+      symbol: config.symbol,
+      providerSymbol: config.providerSymbol,
+      name: config.name,
+      assetClass: config.assetClass,
+      currencyCode: config.currencyCode,
+      cryptoCurrencyCode: config.cryptoCurrencyCode ?? null,
+      providerName: config.providerName,
+      exchangeAcronym: config.exchangeAcronym ?? null,
+      exchangeMic: config.exchangeMic ?? null,
+      exchangeName: config.exchangeName ?? null,
+      logoUrl: config.logoUrl ?? null,
+      isBrokerageCash: false,
+    },
+    transaction,
+  });
+
+  return security;
+}
+
+/**
+ * True when a real (non-demo) user holds this security. Their holding renders
+ * from whatever prices the table carries, so the demo must not invent any.
+ */
+async function hasNonDemoHolders({
+  securityId,
+  transaction,
+}: {
+  securityId: string;
+  transaction: Transaction;
+}): Promise<boolean> {
+  const rows = await connection.sequelize.query(
+    `SELECT 1
+       FROM "Holdings" h
+       JOIN "Portfolios" p ON p.id = h."portfolioId" AND p."deletedAt" IS NULL
+       JOIN "Users" u ON u.id = p."userId"
+      WHERE h."securityId" = :securityId AND u."role" <> :demoRole
+      LIMIT 1`,
+    {
+      replacements: { securityId, demoRole: USER_ROLES.demo },
+      type: QueryTypes.SELECT,
+      transaction,
+    },
+  );
+
+  return rows.length > 0;
+}
+
+/** What one seeded holding contributes to its portfolio's funding math. */
+interface SeededHolding {
+  costBasis: Money;
+}
+
+/**
+ * Seeds securities, holdings and the opening buy transaction for a single
+ * portfolio. Shared by the stock and crypto portfolios so both asset classes
+ * follow the exact same holding-creation path.
+ *
+ * `Securities` and `SecurityPricings` are global tables that every user reads,
+ * so the demo values its holdings from the prices already there and writes its
+ * own series only for a security nobody has ever priced.
  */
 async function seedPortfolioHoldings({
   portfolioId,
@@ -302,54 +400,59 @@ async function seedPortfolioHoldings({
   securities: DemoSecurityConfig[];
   referenceDate: Date;
   transaction: Transaction;
-}): Promise<void> {
+}): Promise<SeededHolding[]> {
   const pricingRows: SecurityPricingRow[] = [];
+  const seeded: SeededHolding[] = [];
 
   for (const sec of securities) {
-    const [security, created] = await Securities.findOrCreate({
-      where: {
-        providerName: sec.providerName,
-        providerSymbol: sec.providerSymbol,
-      },
-      defaults: {
-        symbol: sec.symbol,
-        providerSymbol: sec.providerSymbol,
-        name: sec.name,
-        assetClass: sec.assetClass,
-        currencyCode: sec.currencyCode,
-        cryptoCurrencyCode: sec.cryptoCurrencyCode ?? null,
-        providerName: sec.providerName,
-        exchangeAcronym: sec.exchangeAcronym ?? null,
-        exchangeMic: sec.exchangeMic ?? null,
-        exchangeName: sec.exchangeName ?? null,
-        logoUrl: sec.logoUrl ?? null,
-        pricingLastSyncedAt: referenceDate,
-        isBrokerageCash: false,
-      },
+    const security = await resolveDemoSecurity({ config: sec, transaction });
+
+    const existingPrices = await SecurityPricing.findAll({
+      where: { securityId: security.id },
+      order: [['date', 'ASC']],
       transaction,
     });
 
-    // Securities is a shared reference table; a real user's sync may already
-    // own this symbol with different metadata. Reusing that row is expected,
-    // so this logs at info: warn reports to Sentry, and this isn't an error.
-    if (!created && security.exchangeMic !== (sec.exchangeMic ?? null)) {
-      logger.info(
-        `Demo security ${sec.symbol}: existing exchangeMic=${security.exchangeMic} differs from demo config exchangeMic=${sec.exchangeMic}. Using existing row.`,
+    const targetDate = subDays(referenceDate, sec.purchaseDaysAgo);
+
+    let purchaseDate: Date;
+    let purchasePrice: number;
+
+    if (existingPrices.length > 0) {
+      // Real coverage exists. It may not reach as far back as the configured
+      // purchase date (CoinGecko's free tier stops at one year), so the buy
+      // moves forward onto a day that has a price.
+      const fitted = fitPurchaseToPrices({
+        prices: existingPrices.map((row) => ({ date: row.date, price: row.priceClose.toNumber() })),
+        targetDate,
+      })!;
+
+      purchaseDate = fitted.date;
+      purchasePrice = fitted.price;
+    } else if (await hasNonDemoHolders({ securityId: security.id, transaction })) {
+      // Held but unpriced. A synthetic series here would put demo numbers on
+      // someone's real holding, so the demo goes without this security.
+      logger.info(`Demo investments: skipping ${sec.symbol}, a real user holds it and it has no prices.`);
+      continue;
+    } else {
+      // Nobody has ever priced this security and nobody holds it, so there is
+      // no one a synthetic series could mislead. This is what keeps the demo
+      // usable on a fresh install.
+      purchaseDate = targetDate;
+      purchasePrice = sec.purchasePrice;
+      pricingRows.push(
+        ...buildPriceHistory({
+          securityId: security.id,
+          config: sec,
+          purchaseDate,
+          referenceDate,
+        }),
       );
     }
 
-    const purchaseDate = subDays(referenceDate, sec.purchaseDaysAgo);
-    pricingRows.push(
-      ...buildPriceHistory({
-        securityId: security.id,
-        config: sec,
-        purchaseDate,
-        referenceDate,
-      }),
-    );
-
     const quantityStr = new Big(sec.quantity).toFixed(10);
-    const costBasisStr = new Big(sec.purchasePrice).times(sec.quantity).toFixed(10);
+    const priceStr = new Big(purchasePrice).toFixed(10);
+    const costBasisStr = new Big(purchasePrice).times(sec.quantity).toFixed(10);
 
     await Holdings.create(
       {
@@ -376,8 +479,8 @@ async function seedPortfolioHoldings({
         fees: '0',
         refFees: '0',
         quantity: quantityStr,
-        price: sec.purchasePrice.toFixed(10),
-        refPrice: sec.purchasePrice.toFixed(10),
+        price: priceStr,
+        refPrice: priceStr,
         currencyCode: sec.currencyCode,
         settlementCurrencyCode: sec.currencyCode,
         settlementAmount: costBasisStr,
@@ -387,14 +490,18 @@ async function seedPortfolioHoldings({
       },
       { transaction },
     );
+
+    seeded.push({ costBasis: Money.fromDecimal(costBasisStr) });
   }
 
-  // A price row for the same security and day may already exist because
-  // Securities is shared across users; keep whichever row got there first.
-  await SecurityPricing.bulkCreate(pricingRows, {
-    ignoreDuplicates: true,
-    transaction,
-  });
+  if (pricingRows.length > 0) {
+    await SecurityPricing.bulkCreate(pricingRows, {
+      ignoreDuplicates: true,
+      transaction,
+    });
+  }
+
+  return seeded;
 }
 
 /**
@@ -505,16 +612,16 @@ export async function setupInvestments({
         { transaction },
       );
 
-      await seedPortfolioHoldings({
+      const seeded = await seedPortfolioHoldings({
         portfolioId: portfolio.id,
         securities: plan.securities,
         referenceDate,
         transaction,
       });
 
-      const totalBuyCost = Money.sum(
-        plan.securities.map((sec) => Money.fromDecimal(sec.purchasePrice).multiply(sec.quantity)),
-      );
+      // Summed from what the holdings actually cost, since market prices decide
+      // that now rather than the config.
+      const totalBuyCost = Money.sum(seeded.map((holding) => holding.costBasis));
       const contributions = resolveContributions({
         contributions: plan.contributions,
         totalNeeded: totalBuyCost.add(Money.fromDecimal(plan.endingCash)),
