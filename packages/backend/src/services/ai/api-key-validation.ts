@@ -6,16 +6,20 @@ import { createAIClientWithConfig } from './ai-client-factory';
 import { AI_MODEL_ID } from './models-config';
 
 /**
- * Default models to use for validation (cheapest/fastest per provider).
- * Google uses gemini-3.5-flash-lite (costTier low) instead of the cheaper
+ * Models to try for validation, cheapest first. A key can authenticate fine
+ * while the first model still rejects the call — providers gate newer models
+ * per account (e.g. OpenAI returns an instant 400/404 on `gpt-5.4-nano` for
+ * unverified organizations) — so each provider lists a second, more broadly
+ * available model before the key is declared broken.
+ * Google leads with gemini-3.5-flash-lite (costTier low) instead of the cheaper
  * google/gemma-4-31b-it (costTier free) — the free Gemma tier is aggressively
  * rate-limited and makes key validation flaky.
  */
-const VALIDATION_MODELS: Record<AI_PROVIDER, AI_MODEL_ID> = {
-  [AI_PROVIDER.openai]: AI_MODEL_ID['openai/gpt-5.4-nano'],
-  [AI_PROVIDER.anthropic]: AI_MODEL_ID['anthropic/claude-haiku-4-5'],
-  [AI_PROVIDER.google]: AI_MODEL_ID['google/gemini-3.5-flash-lite'],
-  [AI_PROVIDER.groq]: AI_MODEL_ID['groq/openai/gpt-oss-20b'],
+const VALIDATION_MODELS: Record<AI_PROVIDER, AI_MODEL_ID[]> = {
+  [AI_PROVIDER.openai]: [AI_MODEL_ID['openai/gpt-5.4-nano'], AI_MODEL_ID['openai/gpt-5.6-luna']],
+  [AI_PROVIDER.anthropic]: [AI_MODEL_ID['anthropic/claude-haiku-4-5'], AI_MODEL_ID['anthropic/claude-sonnet-5']],
+  [AI_PROVIDER.google]: [AI_MODEL_ID['google/gemini-3.5-flash-lite'], AI_MODEL_ID['google/gemini-3.6-flash']],
+  [AI_PROVIDER.groq]: [AI_MODEL_ID['groq/openai/gpt-oss-20b'], AI_MODEL_ID['groq/llama-3.3-70b-versatile']],
 };
 
 interface APIKeyValidationResult {
@@ -87,41 +91,52 @@ export async function validateApiKey({
   provider: AI_PROVIDER;
   apiKey: string;
 }): Promise<APIKeyValidationResult> {
-  const modelId = VALIDATION_MODELS[provider];
+  const modelFailures: { modelId: AI_MODEL_ID; error: unknown }[] = [];
 
-  try {
-    const model = createAIClientWithConfig({
-      provider,
-      modelId,
-      apiKey,
-    });
+  for (const modelId of VALIDATION_MODELS[provider]) {
+    try {
+      const model = createAIClientWithConfig({
+        provider,
+        modelId,
+        apiKey,
+      });
 
-    // Make a minimal test call - just ask for a single word response
-    await generateText({
-      model,
-      prompt: "Reply with only the word 'ok'",
-      maxOutputTokens: 5,
-    });
+      // Minimal test call. The output budget stays comfortably above provider
+      // minimums (OpenAI's Responses API rejects max_output_tokens below 16)
+      // and leaves room for models that burn reasoning tokens before replying.
+      await generateText({
+        model,
+        prompt: "Reply with only the word 'ok'",
+        maxOutputTokens: 64,
+      });
 
-    return { isValid: true };
-  } catch (error) {
-    // Check if it's a temporary error - we should still consider the key valid
-    if (isTemporaryError(error)) {
-      // Key might be valid, just rate limited or provider having issues
-      // We'll accept it for now - if it keeps failing, it'll be marked invalid during actual usage
       return { isValid: true };
-    }
+    } catch (error) {
+      // Check if it's a temporary error - we should still consider the key valid
+      if (isTemporaryError(error)) {
+        // Key might be valid, just rate limited or provider having issues
+        // We'll accept it for now - if it keeps failing, it'll be marked invalid during actual usage
+        return { isValid: true };
+      }
 
-    if (isAuthError(error)) {
-      // Expected result of a user pasting a wrong key - info level, must not create a Sentry event
-      logger.info('API key validation failed with auth error', { provider, modelId, error });
-    } else {
-      // Neither temporary nor auth-related - likely a config issue on our side
-      // (eg. a decommissioned VALIDATION_MODELS entry returning model-not-found),
-      // not proof the key itself is bad. Still report invalid since we couldn't confirm it works.
-      logger.error('API key validation failed with unexpected error', { provider, modelId, error });
-    }
+      if (isAuthError(error)) {
+        // Expected result of a user pasting a wrong key - info level, must not
+        // create a Sentry event. A bad key fails auth on every model, so no
+        // point trying the rest of the chain.
+        logger.info('API key validation failed with auth error', { provider, modelId, error });
+        return { isValid: false, error: GENERIC_INVALID_KEY_MESSAGE };
+      }
 
-    return { isValid: false, error: GENERIC_INVALID_KEY_MESSAGE };
+      // Neither temporary nor auth-related: the key authenticated but this
+      // model rejected the call (account-gated model, decommissioned id).
+      // The next model in the chain settles which one it was.
+      modelFailures.push({ modelId, error });
+    }
   }
+
+  // Every model in the chain rejected a key that never failed auth - likely a
+  // config issue on our side, not proof the key itself is bad. Still report
+  // invalid since we couldn't confirm it works.
+  logger.error('API key validation failed with unexpected error', { provider, modelFailures });
+  return { isValid: false, error: GENERIC_INVALID_KEY_MESSAGE };
 }
