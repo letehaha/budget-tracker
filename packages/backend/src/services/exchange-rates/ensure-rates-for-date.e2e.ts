@@ -198,9 +198,10 @@ describe('Exchange Rates Functionality', () => {
     expect(loggerErrorCalledWith(errorSpy, 'Degraded sync')).toBe(true);
   });
 
-  it('reports a Sentry event (logger.error) listing enabled currencies missing from the result', async () => {
+  // Provider outages still page via the error-level alerts covered above.
+  it('logs (info) the enabled currencies missing from the result', async () => {
     const date = format(new Date(), 'yyyy-MM-dd');
-    const errorSpy = jest.spyOn(logger, 'error');
+    const infoSpy = jest.spyOn(logger, 'info');
     // Starve BOTH fallbacks so the exotic long tail is uncovered: fawazahmed0 down,
     // ApiLayer trimmed to a single currency. Only the primary's ~38 currencies land.
     fawazOverride.setOverride({ status: 500 });
@@ -208,7 +209,7 @@ describe('Exchange Rates Functionality', () => {
 
     await helpers.syncExchangeRates();
 
-    const coverageCall = loggerErrorCalls(errorSpy).find(
+    const coverageCall = loggerErrorCalls(infoSpy).find(
       ([arg]) => typeof arg === 'string' && arg.includes('Enabled currencies missing'),
     );
     expect(coverageCall).toBeTruthy();

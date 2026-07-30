@@ -308,10 +308,10 @@ export const calculatePortfolioValueByDate = async ({
     });
   }
 
-  // Holdings carried at cost basis for lack of a price silently understate market
-  // value on those days; log which securities and days so the degradation is visible.
+  // Info-only: the degradation is already surfaced via `unpricedSecurities` in
+  // the response, and permanent price gaps would page Sentry on every request.
   if (unpricedSecurityIds.size > 0) {
-    logger.error('Net-worth history valued holdings at cost basis for unpriced days', {
+    logger.info('Net-worth history valued holdings at cost basis for unpriced days', {
       userId,
       baseCurrency: userBaseCurrency.currencyCode,
       dateRange: { from: minDate, to: maxDate },

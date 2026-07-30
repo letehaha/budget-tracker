@@ -352,7 +352,9 @@ class ExchangeRateProviderRegistry {
       baseCurrency: merged.baseCurrency,
     });
     if (missingCurrencies.length > 0) {
-      logger.error('[exchange-rates] Enabled currencies missing from sync result', {
+      // Info-only: dead currencies (KPW, SYP, retired SLL) keep this non-empty on
+      // every healthy sync; regressions show as `missingCount` jumping in Loki.
+      logger.info('[exchange-rates] Enabled currencies missing from sync result', {
         missingCurrencies,
         missingCount: missingCurrencies.length,
         date: merged.date,
