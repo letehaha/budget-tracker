@@ -18,6 +18,8 @@ import { AI_FEATURE } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';
 
+import { useAiCustomEndpoints } from './use-ai-custom-endpoints';
+
 const QUERY_KEYS = {
   apiKeyStatus: VUE_QUERY_CACHE_KEYS.aiApiKeyStatus,
   featuresStatus: VUE_QUERY_CACHE_KEYS.aiFeaturesStatus,
@@ -26,6 +28,7 @@ const QUERY_KEYS = {
 
 export const useAiSettings = () => {
   const queryClient = useQueryClient();
+  const { customEndpoints } = useAiCustomEndpoints();
 
   // ===== Queries =====
 
@@ -49,7 +52,6 @@ export const useAiSettings = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.apiKeyStatus });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.featuresStatus });
 
-      // Mark onboarding task as complete
       const onboardingStore = useOnboardingStore();
       onboardingStore.completeTask('configure-ai');
     },
@@ -105,6 +107,13 @@ export const useAiSettings = () => {
 
   const hasAnyApiKey = computed(() => apiKeyStatusQuery.data.value?.hasApiKey ?? false);
 
+  /**
+   * The backend gates user-only features, such as custom instructions, on the
+   * user owning the credentials. A custom endpoint counts on its own: a local
+   * model needs no API key.
+   */
+  const hasOwnCredentials = computed(() => hasAnyApiKey.value || customEndpoints.value.length > 0);
+
   const defaultProvider = computed(() => apiKeyStatusQuery.data.value?.defaultProvider);
 
   const customInstructions = computed(() => customInstructionsQuery.data.value?.instructions ?? null);
@@ -130,6 +139,7 @@ export const useAiSettings = () => {
     // Data
     configuredProviders,
     hasAnyApiKey,
+    hasOwnCredentials,
     defaultProvider,
     customInstructions,
     featuresStatus,

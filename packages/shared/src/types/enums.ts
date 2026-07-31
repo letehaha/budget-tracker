@@ -320,13 +320,19 @@ export type LogoSource = 'auto' | 'manual';
 export type LogoResolutionState = LogoSource | null;
 
 /**
- * Supported AI providers for features like transaction categorization
+ * Supported AI providers for features like transaction categorization.
+ *
+ * `custom` is the user's own OpenAI-compatible endpoint (Ollama, vLLM, a proxy).
+ * It has no catalog models and no `apiKeys` entry — its connection details live
+ * in `UserSettings.settings.ai.customEndpoints`, so it must be excluded wherever
+ * a provider is treated as an API-key slot (key CRUD, `defaultProvider`).
  */
 export enum AI_PROVIDER {
   anthropic = 'anthropic',
   openai = 'openai',
   google = 'google',
   groq = 'groq',
+  custom = 'custom',
 }
 
 /**

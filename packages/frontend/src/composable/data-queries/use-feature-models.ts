@@ -1,12 +1,12 @@
 import { type AvailableModelsResponse, getAvailableModels } from '@/api/ai-settings';
-import { AIModelInfoWithRecommendation, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import { AIKeyProvider, AIModelInfoWithRecommendation, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 
 import { useAiSettings } from './ai-settings';
 
 export interface ModelGroup {
-  provider: AI_PROVIDER | 'recommended';
+  provider: AIKeyProvider | 'recommended';
   models: AIModelInfoWithRecommendation[];
 }
 
@@ -26,10 +26,10 @@ export const useFeatureModels = (feature: MaybeRefOrGetter<AI_FEATURE>) => {
   const availableModels = computed(() => modelsQuery.data.value?.models ?? []);
 
   /** Set of providers the user has configured API keys for */
-  const userProviders = computed(() => new Set(configuredProviders.value.map((p) => p.provider)));
+  const userProviders = computed(() => new Set<AIKeyProvider>(configuredProviders.value.map((p) => p.provider)));
 
   /** Check if user has API key for a provider */
-  const hasUserKey = (provider: AI_PROVIDER) => userProviders.value.has(provider);
+  const hasUserKey = (provider: AIKeyProvider) => userProviders.value.has(provider);
 
   /**
    * Sort models: available (user has key) first, then unavailable
@@ -50,7 +50,7 @@ export const useFeatureModels = (feature: MaybeRefOrGetter<AI_FEATURE>) => {
    */
   const groupedModels = computed<ModelGroup[]>(() => {
     const recommended: AIModelInfoWithRecommendation[] = [];
-    const groups: Record<AI_PROVIDER, AIModelInfoWithRecommendation[]> = {
+    const groups: Record<AIKeyProvider, AIModelInfoWithRecommendation[]> = {
       [AI_PROVIDER.openai]: [],
       [AI_PROVIDER.anthropic]: [],
       [AI_PROVIDER.google]: [],
@@ -76,15 +76,15 @@ export const useFeatureModels = (feature: MaybeRefOrGetter<AI_FEATURE>) => {
     const sortedProviders = Object.entries(groups)
       .filter(([, models]) => models.length > 0)
       .sort(([providerA], [providerB]) => {
-        const aHasKey = hasUserKey(providerA as AI_PROVIDER);
-        const bHasKey = hasUserKey(providerB as AI_PROVIDER);
+        const aHasKey = hasUserKey(providerA as AIKeyProvider);
+        const bHasKey = hasUserKey(providerB as AIKeyProvider);
         if (aHasKey && !bHasKey) return -1;
         if (!aHasKey && bHasKey) return 1;
         return 0;
       });
 
     for (const [provider, models] of sortedProviders) {
-      result.push({ provider: provider as AI_PROVIDER, models });
+      result.push({ provider: provider as AIKeyProvider, models });
     }
 
     return result;

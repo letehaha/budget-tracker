@@ -3,35 +3,54 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createGroq } from '@ai-sdk/groq';
 import { createOpenAI } from '@ai-sdk/openai';
 import { AI_FEATURE, AI_PROVIDER, getModelNameFromModelId } from '@bt/shared/types';
+import { createGuardedFetch } from '@common/utils/url-guard';
 import type { LanguageModel } from 'ai';
 
 import { resolveAIConfiguration } from './ai-model-resolver';
 
 export interface AIClientResult {
-  /** The configured language model instance */
   model: LanguageModel;
-  /** The provider being used */
   provider: AI_PROVIDER;
-  /** The full model ID (provider/model format) */
+  /** `provider/model` format */
   modelId: string;
-  /** Whether using the user's own API key */
+  /** Which custom endpoint serves the model, set only for `AI_PROVIDER.custom` */
+  customEndpointId?: string;
   usingUserKey: boolean;
 }
 
 /**
- * Create a provider-specific model instance using Vercel AI SDK
+ * Create a provider-specific model instance using Vercel AI SDK.
+ * `baseUrl` only applies to `AI_PROVIDER.custom`, whose endpoint the user supplies.
  */
 function createProviderModel({
   provider,
   modelId,
   apiKey,
+  baseUrl,
 }: {
   provider: AI_PROVIDER;
   modelId: string;
-  apiKey: string;
+  apiKey: string | null;
+  baseUrl?: string;
 }): LanguageModel {
-  // Extract just the model name from 'provider/model' format
   const modelName = getModelNameFromModelId({ modelId });
+
+  if (provider === AI_PROVIDER.custom) {
+    const custom = createOpenAI({
+      // Ollama and vLLM accept any bearer token; the placeholder also stops the
+      // SDK from falling back to the server's OPENAI_API_KEY env var.
+      apiKey: apiKey || 'no-key-required',
+      baseURL: baseUrl,
+      fetch: createGuardedFetch(),
+    });
+    // .chat() targets /chat/completions. The default responses-API path is not
+    // served by Ollama, vLLM or most OpenAI-compatible proxies.
+    return custom.chat(modelName);
+  }
+
+  if (!apiKey) {
+    throw new Error(`Missing API key for AI provider: ${provider}`);
+  }
 
   switch (provider) {
     case AI_PROVIDER.openai: {
@@ -59,14 +78,8 @@ function createProviderModel({
 
 /**
  * Creates a configured AI model instance for a given feature and user.
- *
- * Resolution order:
- * 1. User's feature-specific config with user's API key
- * 2. User's feature-specific config with server API key
- * 3. Default model with user's API key for that provider
- * 4. Default model with server API key
- *
- * Returns null if no API key is available for any provider.
+ * `resolveAIConfiguration` owns the resolution order.
+ * Returns null when neither an API key nor a custom endpoint is available.
  */
 export async function createAIClient({
   userId,
@@ -75,24 +88,24 @@ export async function createAIClient({
   userId: number;
   feature: AI_FEATURE;
 }): Promise<AIClientResult | null> {
-  // Resolve which provider, model, and API key to use
   const resolution = await resolveAIConfiguration({ userId, feature });
 
   if (!resolution) {
     return null;
   }
 
-  // Create the appropriate provider client
   const model = createProviderModel({
     provider: resolution.provider,
     modelId: resolution.modelId,
     apiKey: resolution.apiKey,
+    baseUrl: resolution.baseUrl,
   });
 
   return {
     model,
     provider: resolution.provider,
     modelId: resolution.modelId,
+    customEndpointId: resolution.customEndpointId,
     usingUserKey: resolution.usingUserKey,
   };
 }
@@ -104,10 +117,12 @@ export function createAIClientWithConfig({
   provider,
   modelId,
   apiKey,
+  baseUrl,
 }: {
   provider: AI_PROVIDER;
   modelId: string;
-  apiKey: string;
+  apiKey: string | null;
+  baseUrl?: string;
 }): LanguageModel {
-  return createProviderModel({ provider, modelId, apiKey });
+  return createProviderModel({ provider, modelId, apiKey, baseUrl });
 }

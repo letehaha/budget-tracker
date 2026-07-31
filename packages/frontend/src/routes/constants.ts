@@ -58,6 +58,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsAi: `${ROUTER_LAYOUTS.dashboard}.settings.ai`,
   settingsAiFeatures: `${ROUTER_LAYOUTS.dashboard}.settings.ai.features`,
   settingsAiKeys: `${ROUTER_LAYOUTS.dashboard}.settings.ai.keys`,
+  settingsAiEndpoints: `${ROUTER_LAYOUTS.dashboard}.settings.ai.endpoints`,
   settingsSecurity: `${ROUTER_LAYOUTS.dashboard}.settings.security`,
   settingsSecurityLoginMethods: `${ROUTER_LAYOUTS.dashboard}.settings.security.login-methods`,
   settingsSecuritySessions: `${ROUTER_LAYOUTS.dashboard}.settings.security.sessions`,

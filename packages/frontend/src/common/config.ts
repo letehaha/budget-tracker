@@ -1,34 +1,21 @@
 /**
  * Runtime-configurable app settings.
  *
- * The production Docker image serves `/config.js` (written by the container
- * entrypoint) which assigns `window.__APP_CONFIG__`. That is the only source of
- * deployment config in the image: the entrypoint writes every key, so the
- * `import.meta.env` fallback below is unreachable there.
+ * Per key: `window.__APP_CONFIG__` (Docker entrypoint writes `/config.js`) →
+ * `import.meta.env` (dev only, no entrypoint) → code default. `??` so a runtime
+ * empty string still wins: an empty `apiHttp` selects same-origin (relative
+ * `/api/v1`) mode.
  *
- * That fallback exists for `npm run dev`, where there is no entrypoint —
- * `public/config.js` ships an empty `window.__APP_CONFIG__` and the
- * `.env.development` values supply the config instead.
- *
- * Precedence per key: `window.__APP_CONFIG__` (runtime) → `import.meta.env`
- * (dev only) → code default. `??` is used so a runtime **empty string** still
- * wins – an empty `apiHttp` selects same-origin (relative `/api/v1`) mode.
- *
- * Reads are lazy getters, not values snapshotted at module load, so a
- * `config.x` read at point of use observes `vi.stubEnv` changes made after
- * import – prefer reading `config.x` inside functions for that reason. The
- * guarantee does not extend to modules that derive their own module-level
- * constants from `config` (e.g. `api-base-url.ts` exports `API_HTTP`
- * computed at import) – those freeze at first import.
+ * Getters are lazy: read `config.x` inside a function to see `vi.stubEnv` changes
+ * made after import. Constants derived from `config` at module level (e.g.
+ * `API_HTTP` in `api-base-url.ts`) freeze at first import.
  */
 
-/**
- * Shape of `window.__APP_CONFIG__`. Keys use the runtime env-var names (no
- * `VITE_` prefix) – they mirror the container env vars the entrypoint reads.
- */
+/** Shape of `window.__APP_CONFIG__`. Keys use runtime env-var names, no `VITE_` prefix. */
 interface AppRuntimeConfig {
   API_HTTP?: string;
   API_VER?: string;
+  IS_SELF_HOST?: string;
   MCP_BASE_URL?: string;
   POSTHOG_KEY?: string;
   POSTHOG_HOST?: string;
@@ -51,6 +38,15 @@ export const config = {
   },
   get apiVer(): string {
     return runtime().API_VER ?? import.meta.env.VITE_APP_API_VER ?? '/api/v1';
+  },
+  /**
+   * Only the exact string `'true'` is on, mirroring the backend. No
+   * `import.meta.env` fallback: hosted and self-hosted run the same image, and a
+   * `VITE_` var is inlined at build time, so one bundle could not answer
+   * differently for the two.
+   */
+  get isSelfHost(): boolean {
+    return runtime().IS_SELF_HOST === 'true';
   },
   get mcpBaseUrl(): string | undefined {
     return runtime().MCP_BASE_URL ?? import.meta.env.VITE_MCP_BASE_URL;

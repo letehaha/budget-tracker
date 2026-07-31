@@ -1,8 +1,9 @@
 import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
 import {
+  AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH,
   AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH,
   AI_FEATURE,
-  AI_PROVIDER,
+  AI_KEY_PROVIDERS,
   NOTIFICATION_TYPES,
   RecordId,
   endpointsTypes,
@@ -17,8 +18,10 @@ import Users from './users.model';
 
 const ZodAiApiKeyStatusSchema = z.enum(['valid', 'invalid']);
 
+// `custom` is excluded on purpose: custom endpoints store a base URL under
+// `customEndpoints`, never an entry in `apiKeys`.
 const ZodAiApiKeySchema = z.object({
-  provider: z.nativeEnum(AI_PROVIDER),
+  provider: z.enum(AI_KEY_PROVIDERS),
   keyEncrypted: z.string(),
   createdAt: z.string().datetime(),
   status: ZodAiApiKeyStatusSchema.optional(),
@@ -30,22 +33,35 @@ const ZodAiApiKeySchema = z.object({
 const ZodAiFeatureConfigSchema = z.object({
   feature: z.nativeEnum(AI_FEATURE),
   modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-5.6-terra'
+  // Which entry of `customEndpoints` serves the model. Only set for 'custom/*' IDs.
+  customEndpointId: z.string().optional(),
+});
+
+// One of the user's own OpenAI-compatible endpoints. `name` is unique per user.
+const ZodAiCustomEndpointSchema = z.object({
+  id: z.string(),
+  name: z.string().max(AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH),
+  baseUrl: z.string(),
+  keyEncrypted: z.string().optional(),
+  defaultModel: z.string(),
+  createdAt: z.string().datetime(),
+  status: ZodAiApiKeyStatusSchema,
+  lastValidatedAt: z.string().datetime(),
+  lastError: z.string().optional(),
+  invalidatedAt: z.string().datetime().optional(),
 });
 
 const ZodAiSettingsSchema = z.object({
   apiKeys: z.array(ZodAiApiKeySchema).default([]),
-  defaultProvider: z.nativeEnum(AI_PROVIDER).optional(),
+  defaultProvider: z.enum(AI_KEY_PROVIDERS).optional(),
   featureConfigs: z.array(ZodAiFeatureConfigSchema).default([]),
   customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
+  customEndpoints: z.array(ZodAiCustomEndpointSchema).optional(),
 });
 
-/**
- * Notification preferences per notification type.
- * Users can enable/disable specific notification types.
- */
+// Notification preferences per notification type.
 const ZodNotificationPreferencesSchema = z.object({
   enabled: z.boolean().default(true),
-  // Per-type preferences (all enabled by default)
   types: z.object({
     [NOTIFICATION_TYPES.budgetAlert]: z.boolean().default(true),
     [NOTIFICATION_TYPES.system]: z.boolean().default(true),
@@ -93,8 +109,8 @@ const ZodDashboardWidgetSchema = z
   .superRefine((widget, ctx) => {
     if (!widget.config) return;
 
-    // Validate spike config keys when present on any widget (only balance-trend
-    // uses them, but the schema is widget-agnostic — unknown keys are ignored)
+    // Only balance-trend uses spike keys, but the schema is widget-agnostic, so
+    // validate them on any widget that carries them and ignore unknown keys.
     const spikeKeys = Object.keys(ZodSpikeConfigSchema.shape);
     const hasSpikeKeys = spikeKeys.some((key) => key in widget.config!);
 
@@ -125,32 +141,27 @@ const ZodSidebarSectionsSchema = z.object({
 // frontend concern and may grow without a backend deploy. Unknown ids are
 // dropped client-side on read, so stale entries are harmless.
 const ZodTransactionsTableSettingsSchema = z.object({
-  /** Ordered list of column ids the user wants visible. */
   visibleColumns: z.array(z.string()).default([]),
-  /** Full column order (visible + hidden) used by the column-config UI. */
+  /** Full column order, visible and hidden alike. */
   columnOrder: z.array(z.string()).default([]),
-  /** Preferred transactions view on narrow screens: compact list or the full table. */
   mobileView: z.enum(['list', 'table']).optional(),
-  /** Preferred transactions view on wide screens: compact list or the full table. */
   desktopView: z.enum(['list', 'table']).optional(),
   /**
-   * Optional filters the user added to the transactions filter bar (besides the
-   * always-visible ones). Plain strings for the same reason as column ids.
+   * Filters the user added to the transactions filter bar on top of the always-visible
+   * ones. Plain strings for the same reason as column ids.
    */
   extraFilters: z.array(z.string()).optional(),
 });
 
 const ZodInvestmentTransactionsTableSettingsSchema = z.object({
-  /** Ordered list of column ids the user wants visible. */
   visibleColumns: z.array(z.string()).default([]),
-  /** Full column order (visible + hidden) used by the column-config UI. */
+  /** Full column order, visible and hidden alike. */
   columnOrder: z.array(z.string()).default([]),
 });
 
 // List-view-only preferences for /records (the table view has its own schema).
 const ZodTransactionsListSettingsSchema = z.object({
-  /** When true the pinned "Upcoming" section (overdue + due within 3 days) is
-   *  suppressed from list view. Defaults to false (section visible). */
+  /** Hides the pinned "Upcoming" section (overdue + due within 3 days). Defaults to false. */
   hideUpcoming: z.boolean().optional(),
 });
 
@@ -162,27 +173,22 @@ const ZodUiSettingsSchema = z.object({
   investmentTransactionsTable: ZodInvestmentTransactionsTableSettingsSchema.optional(),
 });
 
-// Subscription-related defaults. Currently only `defaultAutoRecord`, which seeds
-// the auto-record toggle on the create-subscription form. The form still lets
-// the user override it per subscription — this is only the default.
+// Subscription-related defaults. `defaultAutoRecord` only seeds the auto-record toggle on
+// the create-subscription form; the user can still override it per subscription.
 const ZodSubscriptionsSettingsSchema = z.object({
   defaultAutoRecord: z.boolean().optional(),
 });
 
-// Data-import defaults. `recalculateAccountBalance` seeds the "update account
-// balances from imported transactions" checkbox in the CSV / Wallet import
-// wizards; the execute request still carries the chosen value explicitly as
-// `recalculateBalance` on `ImportExecuteRequestBase` (shared import-export
-// types) — this persisted key is the default, that wire field is the override.
+// Data-import defaults. `recalculateAccountBalance` seeds the "update account balances from
+// imported transactions" checkbox in the import wizards. The execute request still carries
+// the chosen value as `recalculateBalance`, and that wire field wins.
 const ZodImportSettingsSchema = z.object({
   recalculateAccountBalance: z.boolean().optional(),
 });
 
-// A saved Pivot Report "view": the full configuration a user pinned so they can reopen the
-// same cross-tab later. Persisted in the settings JSONB (no dedicated table). The period is
-// stored as an explicit range.
-// The live report rejects an inverted range; persist the same `dateRange()` + `withDateOrder()`
-// pairing so a saved view can't store a range the report will 400 on when replayed.
+// A saved Pivot Report "view": the config a user pinned to reopen the same cross-tab later,
+// persisted in the settings JSONB with no dedicated table. Reuses the `dateRange()` +
+// `withDateOrder()` pairing so a saved view can't store a range the live report would 400 on.
 const ZodSavedPivotViewConfigSchema = withDateOrder(
   z.object({
     // Enum members come from the shared pivot tuples so a persisted view can never accept a
@@ -219,43 +225,37 @@ export const ZodSettingsSchema = z.object({
   subscriptions: ZodSubscriptionsSettingsSchema.optional(),
   import: ZodImportSettingsSchema.optional(),
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
-  // When true, both the inline sync-time Payee extraction and the post-sync
-  // note fuzzy backfill fall back to the transaction description/note if the
-  // provider's dedicated merchant field is empty. Off by default — Monobank's
-  // `counterName` is empty for most card purchases, so users have to opt in
-  // to use `description` instead.
+  // When true, both sync-time Payee extraction and the post-sync note backfill fall back to
+  // the transaction description/note when the provider's merchant field is empty. Off by
+  // default: Monobank's `counterName` is empty for most card purchases, so it's an opt-in.
   payeeExtractionUsesDescription: z.boolean().optional(),
-  // Visibility of the header "Support" (donation) button. Defaults to visible
-  // when unset; users opt out by turning it off in Appearance settings.
+  // Header "Support" (donation) button. Visible when unset; users opt out in Appearance settings.
   showSupportButton: z.boolean().optional(),
   // When true, the sidebar Accounts panel hides accounts whose display balance is
   // zero, and hides any account group left with no non-zero account. Off by default.
   hideZeroBalances: z.boolean().optional(),
 });
 
-// Infer the TypeScript type from the Zod schema
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
 /**
- * Schema for the partial settings update (PATCH). Mirrors `ZodSettingsSchema`
- * but with every field optional and **no defaults** – a `.default([])` would be
- * injected for absent keys on parse and the deep-merge would then clobber
- * stored arrays with empty ones (zod's `.partial()` does not stop default
- * injection, so the full schema cannot be reused here). Same approach as
- * `ZodOnboardingStateUpdateSchema`. `onboarding` is intentionally absent – it
- * has its own endpoint.
+ * Partial settings update (PATCH): every field optional and **no defaults**. Zod's
+ * `.partial()` still injects defaults for absent keys, and the deep-merge would then clobber
+ * stored arrays with empty ones. Arrays stay non-partial – the merge replaces them wholesale.
  *
- * Arrays stay non-partial: the merge replaces them wholesale, so a patched
- * array is always the full desired list.
+ * `onboarding` and `ai.customEndpoints` are absent on purpose: their own endpoints enforce
+ * invariants (outbound URL guard, unique names, live probe, key encryption) that a wholesale
+ * replace cannot. Zod drops unknown keys, so sending either one here is a no-op.
  */
 export const ZodSettingsPatchSchema = z.object({
   locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN, SUPPORTED_LOCALES.SPANISH]).optional(),
   ai: z
     .object({
       apiKeys: z.array(ZodAiApiKeySchema).optional(),
-      defaultProvider: z.enum(AI_PROVIDER).optional(),
+      defaultProvider: z.enum(AI_KEY_PROVIDERS).optional(),
       featureConfigs: z.array(ZodAiFeatureConfigSchema).optional(),
       customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
+      // `customEndpoints` belongs to /user/settings/ai/custom-endpoints only.
     })
     .optional(),
   notifications: z
@@ -318,8 +318,7 @@ export const ZodSettingsPatchSchema = z.object({
       recalculateAccountBalance: z.boolean().optional(),
     })
     .optional(),
-  // Arrays are replaced wholesale by the PATCH merge, so the same element schema (defaults and
-  // all) is reused here to stay in sync with `ZodSettingsSchema`.
+  // Same element schema as `ZodSettingsSchema`, defaults and all, so the two can't drift.
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   payeeExtractionUsesDescription: z.boolean().optional(),
   showSupportButton: z.boolean().optional(),
@@ -328,8 +327,7 @@ export const ZodSettingsPatchSchema = z.object({
 
 export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
 
-/** Arrays stay non-partial – the PATCH merge replaces them wholesale. The
- * `NonNullable` keeps recursion working for optional properties. */
+/** `NonNullable` keeps the recursion working for optional properties. */
 type DeepPartial<T> = {
   [K in keyof T]?: NonNullable<T[K]> extends (infer U)[]
     ? U[]
@@ -338,24 +336,24 @@ type DeepPartial<T> = {
       : T[K];
 };
 
+/** The slice of settings the generic PATCH endpoint owns – everything except the
+ * keys served by their own endpoints. */
+type PatchableSettings = Omit<SettingsSchema, 'onboarding' | 'ai'> & {
+  ai?: Omit<NonNullable<SettingsSchema['ai']>, 'customEndpoints'>;
+};
+
 /**
- * Compile-time drift guard: `ZodSettingsPatchSchema` must infer exactly the
- * deep-partial of the full settings schema (minus `onboarding`). When a field
- * is added to `ZodSettingsSchema` but not mirrored in the patch schema, this
- * line becomes a type error – without it the PATCH endpoint would silently
- * strip the new key from incoming patches.
+ * Compile-time drift guard: `ZodSettingsPatchSchema` must infer exactly the deep-partial of
+ * `PatchableSettings`. Without it, a field added to `ZodSettingsSchema` but not mirrored in
+ * the patch schema would be silently stripped from incoming patches.
  *
- * @public exported only so the assertion isn't flagged as unused – nothing
- * should import it.
+ * @public exported only so the assertion isn't flagged as unused – nothing should import it.
  */
-export type SettingsPatchSchemaIsInSync = Expect<
-  Equals<SettingsPatchSchema, DeepPartial<Omit<SettingsSchema, 'onboarding'>>>
->;
+export type SettingsPatchSchemaIsInSync = Expect<Equals<SettingsPatchSchema, DeepPartial<PatchableSettings>>>;
 
 /**
  * Compile-time drift guard: the persisted saved-pivot-view schema must infer exactly the shared
- * `SavedPivotView` contract the frontend also builds against. If either side changes a field
- * without the other, this line becomes a type error.
+ * `SavedPivotView` contract the frontend also builds against.
  *
  * @public exported only so the assertion isn't flagged as unused – nothing should import it.
  */
@@ -365,8 +363,7 @@ export type SavedPivotViewSchemaIsInSync = Expect<
 
 /**
  * Compile-time drift guard: the sidebar-sections schema must infer exactly the shared
- * `SidebarSectionsConfig` contract the frontend also reads. If either side adds or renames a
- * section without the other, this line becomes a type error.
+ * `SidebarSectionsConfig` contract the frontend also reads.
  *
  * @public exported only so the assertion isn't flagged as unused – nothing should import it.
  */
@@ -382,7 +379,7 @@ export const DEFAULT_SETTINGS: SettingsSchema = {
 @Table({
   tableName: 'UserSettings',
   freezeTableName: true,
-  timestamps: true, // To include `createdAt` and `updatedAt`
+  timestamps: true,
 })
 export default class UserSettings extends Model {
   @Column(IdColumn())

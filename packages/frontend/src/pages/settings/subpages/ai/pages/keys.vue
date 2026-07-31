@@ -1,5 +1,7 @@
 <template>
-  <ApiKeyManager />
+  <div class="flex flex-col gap-6">
+    <ApiKeyManager />
+  </div>
 </template>
 
 <script setup lang="ts">

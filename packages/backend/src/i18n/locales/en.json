@@ -183,6 +183,15 @@
     "fromGreaterThanTo": "\"from\" cannot be greater than \"to\" date.",
     "dateInvalid": "\"date\" is invalid date."
   },
+  "urlGuard": {
+    "invalidUrl": "This is not a valid URL.",
+    "unsupportedProtocol": "Only http:// and https:// URLs are allowed.",
+    "credentialsInUrlNotAllowed": "The URL must not contain a username or password. Use the API key field instead.",
+    "privateAddressBlocked": "{{host}} points to a private or reserved network address, which is not allowed.",
+    "hostnameNotResolvable": "{{host}} could not be resolved. Check the address for typos.",
+    "redirectNotAllowed": "The endpoint answered with a redirect. Enter the final URL instead.",
+    "hostnameLookupUnavailable": "We couldn't verify {{host}} right now. Please try again in a moment."
+  },
   "bankDataProviders": {
     "reauthorizationStarted": "Reauthorization started. Please complete the OAuth flow.",
     "connectionEstablished": "Connection successfully established",
@@ -312,7 +321,21 @@
   },
   "ai": {
     "apiKeyValidationFailed": "API key validation failed",
-    "noApiKeyForProvider": "No API key configured for provider: {{provider}}"
+    "noApiKeyForProvider": "No API key configured for provider: {{provider}}",
+    "customEndpointUnreachable": "Could not reach the endpoint. Check the base URL and make sure the server is running and reachable from the internet.",
+    "customEndpointAuthFailed": "The endpoint rejected the API key. Check that the key is correct and has the required permissions.",
+    "customEndpointModelNotFound": "The endpoint does not serve a model named \"{{model}}\".",
+    "customEndpointModelNotListed": "The endpoint does not serve \"{{model}}\". Models it offers: {{available}}.",
+    "customEndpointMoreModels": "and {{count}} more",
+    "customEndpointValidationFailed": "The endpoint did not return a usable response. Check the base URL, model name and API key.",
+    "customEndpointMissingFields": "A base URL and a model name are required.",
+    "customEndpointNameTaken": "You already have an endpoint with this name.",
+    "customEndpointNameInvalidLength": "Endpoint name must be between 1 and 50 characters.",
+    "customEndpointNotFound": "Custom endpoint not found.",
+    "customEndpointIdRequired": "Select which custom endpoint serves this model.",
+    "customModelNameInvalidLength": "The model name must be between 1 and 200 characters.",
+    "customEndpointLimitReached": "You can store up to {{max}} custom endpoints. Remove one before adding another.",
+    "customEndpointStoredKeyUnreadable": "The saved API key for this endpoint can no longer be read. Please enter it again."
   },
   "middleware": {
     "tooManyRequests": "Too many requests. Please try again later."

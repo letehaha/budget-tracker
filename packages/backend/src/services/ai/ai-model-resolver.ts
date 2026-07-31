@@ -1,24 +1,25 @@
-import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import { AI_CUSTOM_MODEL_PREFIX, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 
 import { getAiApiKey } from '../user-settings/ai-api-key';
+import { getCustomEndpointById } from '../user-settings/ai-custom-endpoint';
 import { getFeatureConfig } from '../user-settings/ai-feature-settings';
+import { resolveFallbackCustomEndpoint } from './custom-endpoint-fallback';
 import { getDefaultModelForFeature, getProviderFromModelId } from './models-config';
 
 interface AIConfigResolution {
-  /** The resolved provider */
   provider: AI_PROVIDER;
-  /** The resolved model ID (provider/model format) */
+  /** `provider/model` format */
   modelId: string;
-  /** The API key to use */
-  apiKey: string;
-  /** Whether we're using the user's own key (vs server key) */
+  /** Null only for a custom endpoint that needs no auth */
+  apiKey: string | null;
+  /** Endpoint root, set only for `AI_PROVIDER.custom` */
+  baseUrl?: string;
+  /** Which custom endpoint answered, set only for `AI_PROVIDER.custom` */
+  customEndpointId?: string;
   usingUserKey: boolean;
 }
 
-/**
- * Get server-side API key for a provider from environment variables
- */
 function getServerApiKey({ provider }: { provider: AI_PROVIDER }): string | null {
   switch (provider) {
     case AI_PROVIDER.google:
@@ -35,14 +36,10 @@ function getServerApiKey({ provider }: { provider: AI_PROVIDER }): string | null
 }
 
 /**
- * Resolves the AI configuration for a user and feature.
- *
- * Priority:
- * 1. User's explicit feature config with user's API key
- * 2. User's explicit feature config with server API key (if user has no key)
- * 3. Server fallback (default model with server API key)
- *
- * Returns null if no API key is available.
+ * Resolves the AI configuration for a user and feature. Priority: the user's explicit
+ * feature config, then the feature default on the user's own key, then their first
+ * custom endpoint not flagged invalid, then the feature default on the server key.
+ * Returns null when none of those yield credentials.
  */
 export async function resolveAIConfiguration({
   userId,
@@ -65,8 +62,31 @@ export async function resolveAIConfiguration({
         modelId: featureConfig.modelId,
       });
       // Fall through to defaults
+    } else if (provider === AI_PROVIDER.custom) {
+      const configuredEndpoint = featureConfig.customEndpointId
+        ? await getCustomEndpointById({ userId, endpointId: featureConfig.customEndpointId })
+        : null;
+
+      if (configuredEndpoint) {
+        return {
+          provider: AI_PROVIDER.custom,
+          modelId: featureConfig.modelId,
+          apiKey: configuredEndpoint.apiKey,
+          baseUrl: configuredEndpoint.baseUrl,
+          customEndpointId: configuredEndpoint.id,
+          usingUserKey: true,
+        };
+      }
+
+      // Reachable by deleting the endpoint in another tab: user state, not a bug.
+      logger.info('Feature config points at a custom model but its endpoint is missing', {
+        userId,
+        feature,
+        modelId: featureConfig.modelId,
+        customEndpointId: featureConfig.customEndpointId,
+      });
+      // Fall through to defaults
     } else {
-      // Try user's API key first
       const userApiKey = await getAiApiKey({ userId, provider });
       if (userApiKey) {
         return {
@@ -77,7 +97,6 @@ export async function resolveAIConfiguration({
         };
       }
 
-      // Try server API key for this provider
       const serverApiKey = getServerApiKey({ provider });
       if (serverApiKey) {
         return {
@@ -97,7 +116,7 @@ export async function resolveAIConfiguration({
     }
   }
 
-  // 2. Server fallback with defaults for the feature
+  // 2. Feature default with the user's own key
   const defaultModelId = getDefaultModelForFeature({ feature });
   const defaultProvider = getProviderFromModelId({ modelId: defaultModelId });
 
@@ -109,7 +128,6 @@ export async function resolveAIConfiguration({
     return null;
   }
 
-  // Try user's key for default provider first
   const userApiKeyForDefault = await getAiApiKey({ userId, provider: defaultProvider });
   if (userApiKeyForDefault) {
     return {
@@ -120,7 +138,32 @@ export async function resolveAIConfiguration({
     };
   }
 
-  // Finally, try server API key for default provider
+  // 3. The user's own endpoint, before falling back to server credentials
+  const fallbackEndpointInfo = await resolveFallbackCustomEndpoint({ userId });
+  if (fallbackEndpointInfo) {
+    const fallbackEndpoint = await getCustomEndpointById({ userId, endpointId: fallbackEndpointInfo.id });
+
+    if (fallbackEndpoint) {
+      return {
+        provider: AI_PROVIDER.custom,
+        modelId: `${AI_CUSTOM_MODEL_PREFIX}${fallbackEndpoint.defaultModel}`,
+        apiKey: fallbackEndpoint.apiKey,
+        baseUrl: fallbackEndpoint.baseUrl,
+        customEndpointId: fallbackEndpoint.id,
+        usingUserKey: true,
+      };
+    }
+
+    // Reachable by deleting the endpoint between the two reads: user state, not a bug.
+    logger.info('Fallback custom endpoint went away before its credentials could be read', {
+      userId,
+      feature,
+      customEndpointId: fallbackEndpointInfo.id,
+    });
+    // Fall through to the server key
+  }
+
+  // 4. Server API key for the default provider
   const serverApiKey = getServerApiKey({ provider: defaultProvider });
   if (!serverApiKey) {
     logger.warn('No API key available for AI feature', {

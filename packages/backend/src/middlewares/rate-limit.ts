@@ -1,3 +1,4 @@
+import { isCustomModelId } from '@bt/shared/types';
 import { errorHandler } from '@controllers/helpers';
 import { t } from '@i18n/index';
 import { TooManyRequests } from '@js/errors';
@@ -12,19 +13,17 @@ interface RateLimitOptions {
   maxAttempts?: number;
   keyGenerator?: (req: Request) => string;
   /**
-   * When true, a Redis/rate-limit-service failure returns the same 429 as a
-   * real limit hit instead of letting the request through. Reserve it for
-   * guards where unlimited access during a Redis blip is worse than a false
-   * 429; cheap read endpoints stay fail-open.
+   * When true, a Redis failure returns 429 instead of letting the request through.
+   * For guards where unlimited access during a Redis blip is worse than a false 429;
+   * cheap read endpoints stay fail-open.
    */
   failClosed?: boolean;
 }
 
 /**
- * Wraps a middleware so it is bypassed only when `NODE_ENV === 'development'`.
- * Production runs the guard for real abuse protection; the test suite runs it
- * so the behavior can be asserted end-to-end. Local dev is opted out so a
- * developer mashing the export button doesn't lock themselves out.
+ * Bypasses a middleware only when `NODE_ENV === 'development'`, so the test suite
+ * still asserts the guard end-to-end while a developer mashing the export button
+ * locally doesn't lock themselves out.
  */
 const nonDev =
   (middleware: (req: Request, res: Response, next: NextFunction) => unknown | Promise<unknown>) =>
@@ -34,8 +33,8 @@ const nonDev =
   };
 
 /**
- * Sends the 429 response shape shared by an actual limit hit and a
- * fail-closed error, so callers see one consistent contract either way.
+ * Sends the 429 shape shared by a real limit hit and a fail-closed error, so
+ * callers see one contract either way.
  */
 const respondTooManyRequests = ({
   res,
@@ -66,21 +65,16 @@ const respondTooManyRequests = ({
   return errorHandler(res, error);
 };
 
-/**
- * Creates a rate limiting middleware
- * @param options - Rate limiting configuration
- */
+/** Creates a rate limiting middleware. */
 const createRateLimit = (options: RateLimitOptions) => {
   const { windowSeconds, maxAttempts = 1, keyGenerator, failClosed = false } = options;
 
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Generate rate limit key
       const key = keyGenerator ? keyGenerator(req) : `${req.ip}:${req.route?.path || req.path}`;
 
       // `serviceUnavailable` means Redis was unreachable; `allowed: true` is a
-      // fallback, not a real count. The service already logged it, so only
-      // act on `failClosed` here.
+      // fallback, not a real count. The service already logged it.
       const result = await RateLimitService.checkRateLimit(key, windowSeconds, maxAttempts);
 
       if (result.serviceUnavailable && failClosed) {
@@ -98,9 +92,8 @@ const createRateLimit = (options: RateLimitOptions) => {
 
       next();
     } catch (error) {
-      // checkRateLimit never rejects. This catch only fires for bugs elsewhere
-      // in the middleware (e.g. a throwing keyGenerator), so it never
-      // double-logs a Redis outage the service already reported.
+      // checkRateLimit never rejects, so this only fires for bugs elsewhere in
+      // the middleware (e.g. a throwing keyGenerator).
       logger.error(error as Error, { context: 'rate-limit middleware failed to check limit', failClosed });
 
       if (failClosed) {
@@ -116,7 +109,7 @@ const createRateLimit = (options: RateLimitOptions) => {
  * Rate limit for price sync operations (5 minutes window, 1 attempt per user)
  */
 export const priceSyncRateLimit = createRateLimit({
-  windowSeconds: 5 * 60, // 5 minutes
+  windowSeconds: 5 * 60,
   maxAttempts: 1,
   keyGenerator: (req: Request) => {
     const user = req.user as Users;
@@ -129,7 +122,7 @@ export const priceSyncRateLimit = createRateLimit({
  * Prevents accidental DoS from repeated large uploads
  */
 export const securitiesPricesBulkUploadRateLimit = createRateLimit({
-  windowSeconds: 60, // 1 minute
+  windowSeconds: 60,
   maxAttempts: 5,
   keyGenerator: (req: Request) => {
     const user = req.user as Users;
@@ -138,12 +131,10 @@ export const securitiesPricesBulkUploadRateLimit = createRateLimit({
 });
 
 /**
- * Demo-start rate limit (per IP, 10 attempts per 15 minutes).
- *
- * The key prefix scopes to this endpoint alone, so a shared IP (an office, a
- * campus, carrier NAT) only burns its own demo-start budget. `failClosed`
- * because this guards the app's most expensive unauthenticated route, so a
- * Redis outage must not open unlimited demo provisioning.
+ * Demo-start rate limit (per IP, 10 attempts per 15 minutes). The key prefix scopes to
+ * this endpoint alone, so a shared IP (office, campus, carrier NAT) only burns its own
+ * demo budget. `failClosed` so a Redis outage can't open unlimited demo provisioning on
+ * the app's most expensive unauthenticated route.
  */
 export const demoStartRateLimit = createRateLimit({
   windowSeconds: 15 * 60,
@@ -153,9 +144,8 @@ export const demoStartRateLimit = createRateLimit({
 });
 
 /**
- * CSV import rate limit (per user, 30 attempts per 5 minutes).
- * Bounds the cost of repeated 10MB CSV submissions across the import flow
- * (parse / extract-unique-values / detect-duplicates / execute).
+ * CSV import rate limit (per user, 30 attempts per 5 minutes). Bounds the cost of repeated
+ * 10MB CSV submissions across the whole import flow, not just one step.
  */
 export const csvImportRateLimit = createRateLimit({
   windowSeconds: 5 * 60,
@@ -167,11 +157,9 @@ export const csvImportRateLimit = createRateLimit({
 });
 
 /**
- * Per-user rate limit (5 attempts per 15 minutes) enforced everywhere except
- * local dev. Shared by the heavyweight export/backup/restore endpoints, which
- * each materialize or rewrite the user's full data on the API thread and so can
- * degrade the whole box under a click-storm. They differ only by Redis key
- * prefix, which keeps each endpoint's budget independent.
+ * Per-user rate limit (5 attempts per 15 minutes), skipped in local dev. Shared by the
+ * export/backup/restore endpoints, which each materialize or rewrite the user's full data
+ * on the API thread. The key prefix keeps each endpoint's budget independent.
  */
 const perUserNonDevRateLimit = ({ prefix }: { prefix: string }) =>
   nonDev(
@@ -186,33 +174,30 @@ const perUserNonDevRateLimit = ({ prefix }: { prefix: string }) =>
   );
 
 /**
- * Data-export rate limit. The export endpoint runs every transformer in
- * parallel, materializes the full result set in memory, and ties up the event
- * loop for several seconds during CSV/XLSX serialization. The window allows a
- * real user to try JSON/CSV/XLSX back-to-back without being blocked.
+ * Data-export rate limit. The export runs every transformer in parallel, holds the full
+ * result set in memory, and ties up the event loop for seconds during CSV/XLSX
+ * serialization. 5 attempts still lets a user try JSON/CSV/XLSX back-to-back.
  */
 export const dataExportRateLimit = perUserNonDevRateLimit({ prefix: 'data-export' });
 
 /**
- * Backup export rate limit. A backup dumps every user-owned table as raw JSON
- * and DEFLATE-compresses the result on the API thread, so a click-storm can tie
- * up the event loop.
+ * Backup export rate limit. A backup dumps every user-owned table as raw JSON and
+ * DEFLATE-compresses it on the API thread, tying up the event loop.
  */
 export const backupRateLimit = perUserNonDevRateLimit({ prefix: 'backup' });
 
 /**
- * Backup restore rate limit. A restore wipes and re-inserts every user-owned
- * table inside one transaction, far heavier than an export. Its own key keeps a
- * user's downloads and restores from draining a shared budget.
+ * Backup restore rate limit. A restore wipes and re-inserts every user-owned table in one
+ * transaction, far heavier than an export, and its own key keeps downloads and restores
+ * from draining a shared budget.
  */
 export const backupRestoreRateLimit = perUserNonDevRateLimit({ prefix: 'backup-restore' });
 
 /**
  * Share-invitation send rate limit (per owner, 30 sends per 24h in prod, 5 in test).
- * Closes the cross-resource email-bombing gap that the per-resource pending cap and the
- * per-invitee resend rate limit don't cover (see PRD F11). Threshold is resolved at
- * module load via `getMaxSendInvitationsPerOwnerPer24h` so the test-env override is the
- * single source of truth.
+ * Closes the email-bombing gap the per-resource pending cap and the per-invitee resend
+ * limit miss. The threshold is read at module load so the test-env override is the single
+ * source of truth.
  */
 export const shareInvitationSendRateLimit = createRateLimit({
   windowSeconds: 24 * 60 * 60,
@@ -224,11 +209,40 @@ export const shareInvitationSendRateLimit = createRateLimit({
 });
 
 /**
- * Logo search rate limit (per user, 60 searches per minute).
- *
- * Each call fans out to logo.dev's Brand Search API, which counts against a
- * shared API quota. The limit is generous enough not to block a fast typist
- * using live search but still closes the scripted-scraping gap.
+ * Custom AI endpoint probe rate limit (per user, 15 attempts per minute). One budget shared
+ * by create, update, test and feature-config writes, since each makes the server dial a
+ * user-supplied URL. Fail-open, so a Redis blip can't break the settings page, where saving
+ * an endpoint depends on a probe succeeding.
+ */
+export const aiCustomEndpointTestRateLimit = createRateLimit({
+  windowSeconds: 60,
+  maxAttempts: 15,
+  keyGenerator: (req: Request) => {
+    const user = req.user as Users;
+    return `ai-custom-endpoint-test:user:${user.id}`;
+  },
+});
+
+/**
+ * Applies the probe budget to a feature-config write only when the body carries a `custom/*`
+ * model, the only case that dials the user's endpoint. A catalog model is saved without any
+ * outbound call, so switching between two of them must never be throttled. Runs ahead of
+ * schema validation, so the body is still unvalidated input here.
+ */
+export const aiCustomModelProbeRateLimit = (req: Request, res: Response, next: NextFunction) => {
+  const modelId = (req.body as { modelId?: unknown } | undefined)?.modelId;
+
+  if (typeof modelId !== 'string' || !isCustomModelId({ modelId })) {
+    return next();
+  }
+
+  return aiCustomEndpointTestRateLimit(req, res, next);
+};
+
+/**
+ * Logo search rate limit (per user, 60 searches per minute). Each call hits logo.dev's Brand
+ * Search API against a shared quota. Generous enough for a fast typist using live search,
+ * tight enough to block scripted scraping.
  */
 export const logoSearchRateLimit = createRateLimit({
   windowSeconds: 60,

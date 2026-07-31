@@ -1,11 +1,20 @@
-import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES } from '@bt/shared/types';
+import { AI_FEATURE, AI_PROVIDER, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES } from '@bt/shared/types';
+import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import Accounts from '@models/accounts.model';
 import { getCategories } from '@models/categories.model';
 import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
-import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
+import {
+  AIClientResult,
+  buildModelNotServedMessage,
+  createAIClient,
+  isAuthError,
+  isModelNotFoundError,
+  isTemporaryError,
+  unwrapRetryError,
+} from '@services/ai';
 import { sseManager } from '@services/common/sse';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
 import { getCustomInstructions } from '@services/user-settings/ai-custom-instructions';
@@ -16,20 +25,32 @@ import { CategorizationBatchResult, CategorizationResult, TransactionForCategori
 import { buildCategoryList } from './utils/build-category-list';
 import { parseCategorizationResponse } from './utils/parse-response';
 
-/** Error message shown to user when API key is invalid */
 const INVALID_KEY_ERROR_MESSAGE =
   'API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.';
+
+/** A local endpoint often has no key at all, so credits and permissions are the wrong advice. */
+const CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE =
+  'Your custom AI endpoint rejected the request. Please verify its URL, model name, and API key in AI settings.';
+
+/** Shown when the outbound guard refuses the endpoint's address mid-run */
+const CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE =
+  'Your custom AI endpoint address was rejected. Please point it at a publicly reachable address in AI settings.';
+
+/** Credentials advice only fits a catalog provider; a custom endpoint gets its own wording. */
+function authErrorMessage({ provider }: { provider: AI_PROVIDER }): string {
+  return provider === AI_PROVIDER.custom ? CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE : INVALID_KEY_ERROR_MESSAGE;
+}
 
 // Batch size of 500 provides ~17.5k tokens per batch (average case)
 // Well within safe limits for AI models while providing good progress feedback
 const BATCH_SIZE = 500;
 
 interface CategorizeBatchResult extends CategorizationBatchResult {
-  /** True if the error was an auth error (invalid key) */
   isAuthError?: boolean;
-  /** True if the error was a temporary error (rate limit, server error) */
   isTemporaryError?: boolean;
-  /** Token usage for this batch */
+  /** True if the endpoint answered but does not serve the configured model */
+  isModelNotFoundError?: boolean;
+  isBlockedAddressError?: boolean;
   tokenUsage?: {
     inputTokens: number;
     outputTokens: number;
@@ -65,7 +86,6 @@ async function categorizeBatch({
       prompt: userMessage,
     });
 
-    // Log detailed token usage for batch size analysis
     const inputTokens = usage?.inputTokens ?? 0;
     const outputTokens = usage?.outputTokens ?? 0;
     const totalTokens = inputTokens + outputTokens;
@@ -101,39 +121,47 @@ async function categorizeBatch({
       },
     };
   } catch (error) {
-    const isTemp = isTemporaryError(error);
-    const isAuth = isAuthError(error);
+    const cause = unwrapRetryError({ error });
+    const causeMessage = cause instanceof Error ? cause.message : String(cause);
 
-    if (isTemp || isAuth) {
-      // Handled by parent: temporary errors return early, auth errors fall back to server key.
-      // Avoid Sentry noise for these expected paths.
-      logger.info(
-        `AI categorization batch failed (handled: ${isTemp ? 'temporary' : 'auth'}): ${(error as Error).message}`,
-      );
+    // A blocked address is the user's endpoint config, not a provider failure.
+    const isBlockedAddress = cause instanceof ValidationError;
+    // Checked before the other two, which would swallow it: `isTemporaryError` accepts
+    // anything the SDK flagged retryable, `isAuthError` matches substrings in the message.
+    const isModelNotFound = !isBlockedAddress && isModelNotFoundError({ error: cause });
+    const isTemp = !isBlockedAddress && !isModelNotFound && isTemporaryError(cause);
+    const isAuth = !isBlockedAddress && !isModelNotFound && isAuthError(cause);
+
+    if (isBlockedAddress) {
+      logger.info(`AI categorization batch failed (custom endpoint address blocked): ${causeMessage}`);
+    } else if (isModelNotFound) {
+      // The user picked a model the endpoint does not have: their config, not our bug
+      logger.info(`AI categorization batch failed (model not served by endpoint): ${causeMessage}`);
+    } else if (isTemp || isAuth) {
+      // The parent handles both, so info level keeps them out of Sentry.
+      logger.info(`AI categorization batch failed (handled: ${isTemp ? 'temporary' : 'auth'}): ${causeMessage}`);
     } else {
-      logger.error({ message: 'AI categorization batch failed', error: error as Error });
+      logger.error({ message: 'AI categorization batch failed', error: cause as Error });
     }
 
     return {
       successful: [],
       failed: transactions.map((t) => t.id),
-      errors: [(error as Error).message],
+      errors: [isBlockedAddress ? CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE : causeMessage],
       isAuthError: isAuth,
       isTemporaryError: isTemp,
+      isModelNotFoundError: isModelNotFound,
+      isBlockedAddressError: isBlockedAddress,
     };
   }
 }
 
-/**
- * Apply categorization results to transactions
- * Groups by categoryId for efficient bulk updates
- */
+/** Apply categorization results, grouped by categoryId for bulk updates */
 async function applyCategorizationResults({ results }: { results: CategorizationResult[] }): Promise<void> {
   if (results.length === 0) return;
 
   const now = new Date().toISOString();
 
-  // Group transaction IDs by categoryId
   const groupedByCategory = new Map<string, string[]>();
   for (const result of results) {
     if (!groupedByCategory.has(result.categoryId)) {
@@ -142,12 +170,9 @@ async function applyCategorizationResults({ results }: { results: Categorization
     groupedByCategory.get(result.categoryId)!.push(result.transactionId);
   }
 
-  // Bulk update per category (parallel). Update by id only — auth was
-  // already established by `getUncategorizedTransactions`, which joins
-  // `Accounts` to gate every id in this batch on the requesting user's
-  // account ownership. Adding a `userId` filter here would silently drop
-  // shared-account rows authored by a recipient on the owner's account
-  // (a row the JOIN correctly included as in-scope).
+  // Update by id only. `getUncategorizedTransactions` already gated every id on the
+  // requesting user's account ownership via its `Accounts` JOIN. Adding a `userId`
+  // filter here would drop shared-account rows a recipient authored on the owner's account.
   await Promise.all(
     Array.from(groupedByCategory.entries()).map(([categoryId, transactionIds]) =>
       Transactions.update(
@@ -160,8 +185,7 @@ async function applyCategorizationResults({ results }: { results: Categorization
         },
         {
           where: { id: transactionIds },
-          // Disable hooks to avoid unnecessary balance recalculations
-          // Category change doesn't affect balances
+          // A category change doesn't affect balances, so skip the recalculation hooks
           individualHooks: false,
         },
       ),
@@ -172,13 +196,9 @@ async function applyCategorizationResults({ results }: { results: Categorization
 /**
  * Get uncategorized transactions for a user.
  *
- * Scoped by `Account.userId` (account ownership), not `Transactions.userId`
- * (row creator), via the Accounts INNER JOIN. The intent of the AI
- * auto-categorize listener is "categorize rows in *my* accounts", and on
- * shared accounts the row's creator can be a recipient even though the
- * account belongs to the requesting user. Joining on Accounts expresses
- * that intent directly instead of leaning on the implicit emit-site
- * contract documented in `event-listeners.ts`.
+ * Scoped by `Account.userId` (account ownership) via the Accounts INNER JOIN, not
+ * `Transactions.userId` (row creator): on a shared account the creator can be a
+ * recipient while the account still belongs to the requesting user.
  */
 async function getUncategorizedTransactions({
   userId,
@@ -221,12 +241,11 @@ async function getUncategorizedTransactions({
 }
 
 /**
- * Categorize transactions using AI. Processes in batches of 200.
+ * Categorize transactions using AI. Processes in batches of BATCH_SIZE.
  *
- * Error handling:
- * - Temporary errors (429, 5xx): stop processing, return partial results
- * - Auth errors (401, 403): mark user's key invalid, fallback to server key and retry
- * - On success with user key: update lastValidatedAt
+ * Any error that would repeat on every batch (temporary, blocked address, model not
+ * served, unrecoverable auth) stops the run and returns partial results. Auth errors
+ * on a catalog provider retry once on the server key first.
  */
 export async function categorizeTransactions({
   userId,
@@ -235,12 +254,10 @@ export async function categorizeTransactions({
 }: {
   userId: number;
   transactionIds: string[];
-  /** Total transactions to process (for progress tracking). If not provided, uses transactionIds.length */
+  /** For progress tracking. Defaults to transactionIds.length */
   totalTransactionCount?: number;
 }): Promise<CategorizationBatchResult> {
   const totalCount = totalTransactionCount ?? transactionIds.length;
-  // Create AI client for categorization feature
-  // This handles user preferences, API key resolution, and server fallback
   let aiClient = await createAIClient({
     userId,
     feature: AI_FEATURE.categorization,
@@ -262,7 +279,6 @@ export async function categorizeTransactions({
     usingUserKey: aiClient.usingUserKey,
   });
 
-  // Get user's categories
   const categories = await getCategories({ userId });
   if (categories.length === 0) {
     logger.info(`User ${userId} has no categories, skipping categorization`);
@@ -273,7 +289,6 @@ export async function categorizeTransactions({
     };
   }
 
-  // Get uncategorized transactions
   const transactions = await getUncategorizedTransactions({ userId, transactionIds });
   if (transactions.length === 0) {
     logger.info(`No uncategorized transactions to process for user ${userId}`);
@@ -283,7 +298,6 @@ export async function categorizeTransactions({
     };
   }
 
-  // Fetch custom instructions only when using user's own key
   let customInstructions: string | undefined;
   if (aiClient.usingUserKey) {
     try {
@@ -301,17 +315,15 @@ export async function categorizeTransactions({
     errors: [],
   };
 
-  // Track token usage across all batches for analysis
   const totalTokenUsage = {
     inputTokens: 0,
     outputTokens: 0,
     batchCount: 0,
   };
 
-  // Track if we've already tried fallback (to avoid infinite loops)
+  // Guards against an infinite fallback loop
   let hasTriedFallback = false;
 
-  // Process in batches
   for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
     const batch = transactions.slice(i, i + BATCH_SIZE);
     logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(transactions.length / BATCH_SIZE)}`);
@@ -323,37 +335,81 @@ export async function categorizeTransactions({
       customInstructions,
     });
 
-    // Handle temporary errors (rate limit, server errors) - return early
+    // The guard's verdict holds for the whole run, so every remaining batch would be
+    // refused the same way.
+    if (batchResult.isBlockedAddressError) {
+      logger.info('Stopping AI categorization: custom endpoint address blocked', {
+        userId,
+        provider: aiClient.provider,
+        modelId: aiClient.modelId,
+      });
+
+      const remainingTransactions = transactions.slice(i);
+      allResults.failed.push(...remainingTransactions.map((t) => t.id));
+      allResults.errors!.push(CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE);
+      break;
+    }
+
+    // Every remaining batch would repeat the same doomed request. The endpoint itself
+    // works, so its stored status stays untouched and the server key is not used: it
+    // would quietly run a different model.
+    if (batchResult.isModelNotFoundError) {
+      const errorMessage = buildModelNotServedMessage({ modelId: aiClient.modelId });
+
+      logger.info(`Stopping AI categorization: ${errorMessage}`, {
+        userId,
+        provider: aiClient.provider,
+        modelId: aiClient.modelId,
+        usingUserKey: aiClient.usingUserKey,
+      });
+
+      const remainingTransactions = transactions.slice(i);
+      allResults.failed.push(...remainingTransactions.map((t) => t.id));
+      allResults.errors!.push(errorMessage);
+      break;
+    }
+
     if (batchResult.isTemporaryError) {
       logger.info('Temporary AI error, returning early without marking key invalid', {
         userId,
         provider: aiClient.provider,
         usingUserKey: aiClient.usingUserKey,
       });
-      // Return what we have so far, marking remaining as failed
       const remainingTransactions = transactions.slice(i);
       allResults.failed.push(...remainingTransactions.map((t) => t.id));
       allResults.errors!.push('AI provider temporarily unavailable. Please try again later.');
       break;
     }
 
-    // Handle auth errors with user's key - mark invalid and fallback to server
     if (batchResult.isAuthError && aiClient.usingUserKey && !hasTriedFallback) {
       const provider = aiClient.provider;
+      const errorMessage = authErrorMessage({ provider });
+      // The server key points at a cloud provider. A user who configured their own
+      // endpoint chose where their data may go, so falling back would send payees,
+      // amounts and notes to a provider they never picked.
+      const isUserOwnedEndpoint = provider === AI_PROVIDER.custom;
 
-      logger.warn('User API key auth error, marking invalid and trying server fallback', {
+      logger.info('User AI credentials rejected, marking invalid', {
         userId,
         provider,
+        willTryServerFallback: !isUserOwnedEndpoint,
       });
 
-      // Mark the user's key as invalid
       await markApiKeyInvalid({
         userId,
         provider,
-        errorMessage: INVALID_KEY_ERROR_MESSAGE,
+        customEndpointId: aiClient.customEndpointId,
+        errorMessage,
       });
 
-      // Try to get a new AI client (will now use server key if available)
+      if (isUserOwnedEndpoint) {
+        const remainingTransactions = transactions.slice(i);
+        allResults.failed.push(...remainingTransactions.map((t) => t.id));
+        allResults.errors!.push(errorMessage);
+        break;
+      }
+
+      // Re-resolve: the key is now flagged invalid, so this picks up the server key
       const fallbackClient = await createAIClient({
         userId,
         feature: AI_FEATURE.categorization,
@@ -374,19 +430,21 @@ export async function categorizeTransactions({
         continue;
       }
 
-      // If no fallback available, return with error
       allResults.failed.push(...batch.map((t) => t.id));
-      allResults.errors!.push(INVALID_KEY_ERROR_MESSAGE);
+      allResults.errors!.push(errorMessage);
       continue;
     }
 
-    // Apply successful categorizations immediately
     if (batchResult.successful.length > 0) {
       await applyCategorizationResults({ results: batchResult.successful });
 
-      // If using user's key and it succeeded, mark it as valid (update lastValidatedAt)
+      // Success on the user's own key refreshes lastValidatedAt
       if (aiClient.usingUserKey) {
-        await markApiKeyValid({ userId, provider: aiClient.provider });
+        await markApiKeyValid({
+          userId,
+          provider: aiClient.provider,
+          customEndpointId: aiClient.customEndpointId,
+        });
       }
     }
 
@@ -396,14 +454,12 @@ export async function categorizeTransactions({
       allResults.errors!.push(...batchResult.errors);
     }
 
-    // Accumulate token usage
     if (batchResult.tokenUsage) {
       totalTokenUsage.inputTokens += batchResult.tokenUsage.inputTokens;
       totalTokenUsage.outputTokens += batchResult.tokenUsage.outputTokens;
       totalTokenUsage.batchCount += 1;
     }
 
-    // Emit progress event after each batch
     sseManager.sendToUser({
       userId,
       event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
@@ -416,7 +472,6 @@ export async function categorizeTransactions({
     });
   }
 
-  // Log summary with token usage for batch size optimization analysis
   const totalTransactionsProcessed = allResults.successful.length + allResults.failed.length;
   const totalTokens = totalTokenUsage.inputTokens + totalTokenUsage.outputTokens;
   const avgTokensPerTransaction =
@@ -438,7 +493,6 @@ export async function categorizeTransactions({
     avgTokensPerTransaction,
   });
 
-  // Track analytics event
   if (allResults.successful.length > 0) {
     trackAiCategorization({
       userId,

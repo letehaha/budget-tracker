@@ -207,7 +207,7 @@ import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ApiErrorResponseError } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { AI_PROVIDER } from '@bt/shared/types';
+import { AIKeyProvider, AI_KEY_PROVIDERS, AI_PROVIDER } from '@bt/shared/types';
 import { AlertCircleIcon, CheckCircleIcon, ChevronDownIcon, KeyIcon, Loader2Icon, Trash2Icon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -223,7 +223,7 @@ interface ProviderConfigItem {
   apiKeyUrlLabel: string;
 }
 
-const PROVIDER_CONFIG = computed<Record<AI_PROVIDER, ProviderConfigItem>>(() => ({
+const PROVIDER_CONFIG = computed<Record<AIKeyProvider, ProviderConfigItem>>(() => ({
   [AI_PROVIDER.anthropic]: {
     label: t('settings.ai.apiKeyManager.providers.anthropic.label'),
     placeholder: t('settings.ai.apiKeyManager.providers.anthropic.placeholder'),
@@ -267,11 +267,11 @@ const {
 } = useAiSettings();
 
 const apiKeyInput = ref('');
-const selectedProvider = ref<AI_PROVIDER>(AI_PROVIDER.openai);
+const selectedProvider = ref<AIKeyProvider>(AI_PROVIDER.openai);
 const validationError = ref('');
 const deleteDialogState = reactive<{
   isOpen: boolean;
-  provider: AI_PROVIDER | null;
+  provider: AIKeyProvider | null;
   providerLabel: string;
 }>({
   isOpen: false,
@@ -281,9 +281,10 @@ const deleteDialogState = reactive<{
 
 const availableProvidersToAdd = computed(() => {
   const configuredSet = new Set(configuredProviders.value.map((p) => p.provider));
-  return Object.values(AI_PROVIDER)
-    .filter((p) => !configuredSet.has(p))
-    .map((p) => ({ value: p, label: PROVIDER_CONFIG.value[p].label }));
+  return AI_KEY_PROVIDERS.filter((p) => !configuredSet.has(p)).map((p) => ({
+    value: p,
+    label: PROVIDER_CONFIG.value[p].label,
+  }));
 });
 
 /** Sorted providers: default first, then alphabetically by label */
@@ -299,11 +300,11 @@ const sortedConfiguredProviders = computed(() => {
   });
 });
 
-const getProviderLabel = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.label ?? provider;
-const getProviderPlaceholder = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.placeholder ?? '';
-const getProviderDescription = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.description ?? '';
-const getProviderApiKeyUrl = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.apiKeyUrl ?? '';
-const getProviderApiKeyUrlLabel = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.apiKeyUrlLabel ?? '';
+const getProviderLabel = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.label ?? provider;
+const getProviderPlaceholder = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.placeholder ?? '';
+const getProviderDescription = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.description ?? '';
+const getProviderApiKeyUrl = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.apiKeyUrl ?? '';
+const getProviderApiKeyUrlLabel = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.apiKeyUrlLabel ?? '';
 
 const formatRelativeDate = (date: Date) => formatDistanceToNow(date, { addSuffix: true });
 
@@ -337,7 +338,7 @@ const handleSaveKey = async () => {
   }
 };
 
-const handleSetDefault = async (provider: AI_PROVIDER) => {
+const handleSetDefault = async (provider: AIKeyProvider) => {
   try {
     await setDefaultProvider({ provider });
     addSuccessNotification(
@@ -348,7 +349,7 @@ const handleSetDefault = async (provider: AI_PROVIDER) => {
   }
 };
 
-const openDeleteConfirmation = (provider: AI_PROVIDER) => {
+const openDeleteConfirmation = (provider: AIKeyProvider) => {
   deleteDialogState.provider = provider;
   deleteDialogState.providerLabel = getProviderLabel(provider);
   deleteDialogState.isOpen = true;

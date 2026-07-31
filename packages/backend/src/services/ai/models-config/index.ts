@@ -1,4 +1,4 @@
-import { AIModelInfo, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import { AIKeyProvider, AIModelInfo, AI_FEATURE, AI_PROVIDER, isCustomModelId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 
 import { AI_MODEL_ID } from './model-ids';
@@ -29,7 +29,7 @@ export function getDefaultModelForFeature({ feature }: { feature: AI_FEATURE }):
 /**
  * Get available models as an array, optionally filtered by provider
  */
-export function getAvailableModels({ provider }: { provider?: AI_PROVIDER } = {}): AIModelInfo[] {
+export function getAvailableModels({ provider }: { provider?: AIKeyProvider } = {}): AIModelInfo[] {
   const models = Object.values(AVAILABLE_MODELS);
   if (provider) {
     return models.filter((m) => m.provider === provider);
@@ -45,9 +45,11 @@ export function getModelInfo({ modelId }: { modelId: string }): AIModelInfo | nu
 }
 
 /**
- * Check if a model ID is valid
+ * Check if a model ID is valid. `custom/*` IDs name a model on the user's own endpoint,
+ * so there is nothing to check against the catalog: the endpoint decides at call time.
  */
 export function isValidModelId({ modelId }: { modelId: string }): boolean {
+  if (isCustomModelId({ modelId })) return true;
   return modelId in AVAILABLE_MODELS;
 }
 
@@ -66,16 +68,20 @@ export function isModelRecommendedForFeature({ modelId, feature }: { modelId: st
 }
 
 /**
- * Extract provider from a model ID (e.g., 'openai/gpt-5.6-terra' -> 'openai')
+ * Extract provider from a model ID (e.g., 'openai/gpt-5.6-terra' -> 'openai').
+ * `custom/*` IDs are never in the catalog and always belong to the user's own endpoint.
  */
 export function getProviderFromModelId({ modelId }: { modelId: string }): AI_PROVIDER | null {
+  if (isCustomModelId({ modelId })) return AI_PROVIDER.custom;
   const model = AVAILABLE_MODELS[modelId as AI_MODEL_ID];
   return model?.provider ?? null;
 }
 
-// RETIRED_MODELS values are typed AI_MODEL_ID, so a retired ID always maps
-// straight to a live one — a single lookup always resolves, no recursion.
-export function resolveLiveModelId({ modelId, feature }: { modelId: string; feature: AI_FEATURE }): AI_MODEL_ID {
+// RETIRED_MODELS values are typed AI_MODEL_ID, so a retired ID always maps straight to
+// a live one: one lookup, no recursion. `custom/*` IDs are user-authored names with no
+// catalog lifecycle, so they pass through.
+export function resolveLiveModelId({ modelId, feature }: { modelId: string; feature: AI_FEATURE }): string {
+  if (isCustomModelId({ modelId })) return modelId;
   if (modelId in AVAILABLE_MODELS) return modelId as AI_MODEL_ID;
 
   const replacement = RETIRED_MODELS[modelId];
@@ -94,14 +100,13 @@ export function resolveLiveModelId({ modelId, feature }: { modelId: string; feat
 
 /**
  * Get the first recommended model for a feature that belongs to one of the available providers.
- * Returns null if no recommended model is available for the given providers.
  */
 export function getFirstAvailableRecommendedModel({
   feature,
   availableProviders,
 }: {
   feature: AI_FEATURE;
-  availableProviders: AI_PROVIDER[];
+  availableProviders: AIKeyProvider[];
 }): AI_MODEL_ID | null {
   const recommendations = FEATURE_RECOMMENDATIONS[feature] ?? [];
   const providerSet = new Set(availableProviders);

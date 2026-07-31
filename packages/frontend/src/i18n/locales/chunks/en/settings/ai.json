@@ -6,7 +6,9 @@
       "tabs": {
         "features": "AI Features",
         "apiKeys": "API Keys",
-        "invalidKeysTooltip": "One or more API keys are invalid"
+        "invalidKeysTooltip": "One or more API keys are invalid",
+        "customEndpoints": "Custom endpoints",
+        "invalidEndpointsTooltip": "One or more custom endpoints are no longer working"
       },
       "apiKeyManager": {
         "title": "API Keys",
@@ -152,13 +154,119 @@
           "resetFailed": "Failed to reset model"
         },
         "addKeyHint": "Add your own API key to select from all available models.",
-        "addKeyHintLink": "Add API key →"
+        "addKeyHintLink": "Add API key →",
+        "customModel": {
+          "nameLabel": "Model name",
+          "applyButton": "Apply",
+          "hint": "Sent as-is to {baseUrl}.",
+          "endpointOption": "{endpoint} — {model}",
+          "unknownEndpoint": "Custom endpoint",
+          "missingModelName": "This endpoint has no model name configured — enter one first"
+        }
+      },
+      "customEndpoint": {
+        "title": "Custom endpoints",
+        "description": "Connect your own OpenAI-compatible servers and use their models for any AI feature.",
+        "loading": "Loading endpoints…",
+        "addButton": "Add endpoint",
+        "empty": {
+          "title": "No custom endpoints yet",
+          "description": "Connect an OpenAI-compatible server — a local Ollama, LM Studio, or a hosted gateway — to use its models for any AI feature."
+        },
+        "loadError": {
+          "title": "Couldn't load your endpoints",
+          "description": "Your saved endpoints are still there — we just couldn't fetch them right now. Check your connection and try again.",
+          "retry": "Try again"
+        },
+        "badges": {
+          "invalid": "Invalid"
+        },
+        "status": {
+          "model": "Model: {model}",
+          "validated": "Validated {timeAgo}",
+          "validatedNoDate": "Validated",
+          "failed": "Failed {timeAgo}",
+          "failedNoDate": "Failed"
+        },
+        "actions": {
+          "menuAriaLabel": "Endpoint actions"
+        },
+        "form": {
+          "titleAdd": "Add endpoint",
+          "titleEdit": "Edit endpoint",
+          "nameLabel": "Name",
+          "namePlaceholder": "Home Ollama",
+          "baseUrlLabel": "Base URL",
+          "baseUrlPlaceholder": "http://localhost:11434/v1",
+          "modelLabel": "Model name",
+          "modelPlaceholder": "llama3.2",
+          "apiKeyLabel": "API key (optional)",
+          "apiKeyPlaceholder": "Enter API key",
+          "apiKeySavedHint": "A key is saved. Leave blank to keep it.",
+          "apiKeyOptionalHint": "Leave blank if your endpoint needs no authentication.",
+          "removeApiKeyButton": "Remove saved key",
+          "saveButton": "Save",
+          "testButton": "Test connection",
+          "removeButton": "Remove"
+        },
+        "compatibilityHint": "The endpoint must be OpenAI-compatible. Works with Ollama, vLLM, OpenRouter, LM Studio, and any /v1 proxy.",
+        "test": {
+          "success": "Connection successful.",
+          "failed": "Could not reach the endpoint."
+        },
+        "notifications": {
+          "saveSuccess": "Custom endpoint saved",
+          "saveFailed": "Failed to save the custom endpoint",
+          "removeSuccess": "Custom endpoint removed",
+          "removeFailed": "Failed to remove the custom endpoint",
+          "removeKeySuccess": "Saved key removed",
+          "removeKeyFailed": "Failed to remove the saved key",
+          "removeKeyInvalid": "API key removed, but the endpoint failed validation without it: {reason}"
+        },
+        "removeDialog": {
+          "title": "Remove custom endpoint?",
+          "descriptionNamed": "\"{name}\" will be removed. Any feature using it falls back to another available model. This action cannot be undone.",
+          "confirm": "Remove"
+        },
+        "removeKeyDialog": {
+          "title": "Remove saved key?",
+          "description": "The endpoint is re-tested without a key. If it requires authentication, the change is rejected.",
+          "confirm": "Remove key"
+        },
+        "setupHelp": {
+          "trigger": "Where do I find these?",
+          "rule": "The Base URL is everything up to, but not including, {path}. For almost every provider that means it ends in {suffix}.",
+          "ruleCheck": "Quick check: opening {url} should return a JSON list of models.",
+          "apiKeyEmpty": "Leave empty.",
+          "lmStudio": {
+            "startServer": "Start the local server first (Developer tab → Start Server).",
+            "baseUrl": "The address LM Studio shows, plus {suffix}. For example {example}.",
+            "model": "The model's API identifier. It's shown in the Developer tab, or listed at {url}."
+          },
+          "ollama": {
+            "model": "The exact tag from {command}, for example {example}."
+          },
+          "openRouter": {
+            "model": "The full model id from their models page, for example {example}.",
+            "apiKeyRequired": "Required."
+          },
+          "other": {
+            "tabLabel": "Other",
+            "title": "{name} or any other OpenAI-compatible server",
+            "baseUrl": "The server address, plus {suffix}.",
+            "model": "Whatever {request} returns as the {field}.",
+            "apiKey": "Only if the server was set up to require one."
+          },
+          "localNetworkOnly": "A server running on your own computer ({ip} or {hostname}) only works when this app runs on your own machine or your own network. The hosted version can't reach it, because private addresses are blocked there.",
+          "dockerHost": "If you run this app in Docker on the same machine as the model server, use {dockerHost} instead of {ip}."
+        }
       },
       "customInstructions": {
         "title": "Custom Instructions",
         "description": "Provide context to help AI categorize your transactions. These instructions are included when categorizing transactions during bank sync and manual import.",
         "placeholder": "e.g., Transactions from 'Starbucks' should be 'Coffee'. My freelance income comes from 'Acme Corp'.",
         "requiresApiKey": "Add a personal API key to use custom instructions.",
+        "requiresOwnCredentials": "Add your own API key or a custom endpoint to use custom instructions.",
         "save": "Save",
         "saved": "Saved!",
         "saveFailed": "Failed to save custom instructions. Please try again."

@@ -1,9 +1,9 @@
 import { AI_FEATURE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { getDefaultModelForFeature, getModelInfo, getProviderFromModelId } from '@services/ai';
-import { hasAiApiKey } from '@services/user-settings/ai-api-key';
 import { setFeatureConfig } from '@services/user-settings/ai-feature-settings';
 import { z } from 'zod';
+
+import { buildFeatureStatusPayload } from './build-feature-status-payload';
 
 const schema = z.object({
   params: z.object({
@@ -17,18 +17,7 @@ export const resetFeatureConfigController = createController(schema, async ({ us
 
   await setFeatureConfig({ userId, feature, modelId: null });
 
-  const modelId = getDefaultModelForFeature({ feature });
-  const modelInfo = getModelInfo({ modelId });
-  const provider = getProviderFromModelId({ modelId });
-  const usingUserKey = provider ? await hasAiApiKey({ userId, provider }) : false;
-
   return {
-    data: {
-      feature,
-      isConfigured: false,
-      modelId,
-      modelName: modelInfo?.name ?? modelId,
-      usingUserKey,
-    },
+    data: await buildFeatureStatusPayload({ userId, feature, config: null }),
   };
 });

@@ -1,11 +1,10 @@
 /**
  * AI extraction for investment transactions.
- * Mirrors statement-parser's ai-extraction.service: build a system prompt,
- * call the resolved model, parse the CSV response, return typed rows.
+ * Mirrors statement-parser's ai-extraction.service.
  */
 import { AI_FEATURE } from '@bt/shared/types';
 import { logger } from '@js/utils';
-import { createAIClient } from '@services/ai';
+import { buildModelNotServedMessage, createAIClient, isModelNotFoundError, unwrapRetryError } from '@services/ai';
 import { generateText } from 'ai';
 
 import {
@@ -40,8 +39,8 @@ type AIExtractionResultType =
 
 /**
  * Call the AI to extract structured transaction rows from arbitrary text.
- * Errors are returned as `{ success: false, error }` rather than thrown so the
- * controller can surface a typed error code without try/catch ceremony.
+ * Errors come back as `{ success: false, error }` instead of thrown, so the
+ * controller gets a typed error code without try/catch.
  */
 export async function extractInvestmentTransactionsWithAI({
   userId,
@@ -95,10 +94,28 @@ export async function extractInvestmentTransactionsWithAI({
       },
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const cause = unwrapRetryError({ error });
+    const errorMessage = cause instanceof Error ? cause.message : 'Unknown error';
+
+    // The user's configuration to fix, so it stays out of the error log.
+    if (isModelNotFoundError({ error: cause })) {
+      logger.info('[Investment Txn Parser] Configured AI model is not served by the endpoint', {
+        modelId: aiClient.modelId,
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'AI_ERROR',
+          message: buildModelNotServedMessage({ modelId: aiClient.modelId }),
+          details: errorMessage,
+        },
+      };
+    }
+
     logger.error({
       message: '[Investment Txn Parser] AI extraction failed',
-      error: error as Error,
+      error: cause as Error,
     });
 
     if (errorMessage.toLowerCase().includes('rate') || errorMessage.toLowerCase().includes('429')) {

@@ -12,24 +12,18 @@
     <TextareaField
       v-model="localInstructions"
       :placeholder="$t('settings.ai.customInstructions.placeholder')"
-      :disabled="!hasAnyApiKey"
+      :disabled="!hasOwnCredentials"
       :maxlength="MAX_CHARS"
       rows="4"
     />
 
     <!-- Disabled state warning -->
-    <div
-      v-if="!hasAnyApiKey"
-      class="mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-900 dark:bg-amber-950"
-    >
-      <AlertTriangleIcon class="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-      <p class="text-xs text-amber-700 dark:text-amber-300">
-        {{ $t('settings.ai.customInstructions.requiresApiKey') }}
-      </p>
-    </div>
+    <Callout v-if="!hasOwnCredentials" variant="warning" class="mt-2 text-xs" icon-size-class="size-3.5">
+      <p>{{ $t('settings.ai.customInstructions.requiresOwnCredentials') }}</p>
+    </Callout>
 
     <!-- Save button -->
-    <div v-if="hasAnyApiKey" class="mt-3 flex items-center gap-3">
+    <div v-if="hasOwnCredentials" class="mt-3 flex items-center gap-3">
       <Button size="sm" :disabled="!hasChanges || isSaving" @click="handleSave">
         <Loader2Icon v-if="isSaving" class="mr-1.5 size-3.5 animate-spin" />
         {{ $t('settings.ai.customInstructions.save') }}
@@ -52,10 +46,11 @@
 <script setup lang="ts">
 import { TextareaField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH } from '@bt/shared/types';
-import { AlertTriangleIcon, Loader2Icon, MessageSquareTextIcon } from '@lucide/vue';
+import { Loader2Icon, MessageSquareTextIcon } from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -64,7 +59,7 @@ const MAX_CHARS = AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH;
 const { t } = useI18n();
 const { addErrorNotification } = useNotificationCenter();
 const {
-  hasAnyApiKey,
+  hasOwnCredentials,
   customInstructions,
   setCustomInstructions,
   isSettingCustomInstructions: isSaving,

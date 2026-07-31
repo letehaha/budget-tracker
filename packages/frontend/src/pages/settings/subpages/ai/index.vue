@@ -19,6 +19,13 @@
             >
               <span class="bg-destructive ml-1 inline-block size-2.5 animate-pulse rounded-full" />
             </DesktopOnlyTooltip>
+
+            <DesktopOnlyTooltip
+              v-if="item.value === ROUTES_NAMES.settingsAiEndpoints && hasInvalidEndpoints"
+              :content="$t('settings.ai.tabs.invalidEndpointsTooltip')"
+            >
+              <span class="bg-destructive ml-1 inline-block size-2.5 animate-pulse rounded-full" />
+            </DesktopOnlyTooltip>
           </template>
         </RouterTabs>
 
@@ -33,9 +40,10 @@ import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { RouterTabs, type RouterTabItem } from '@/components/lib/ui/router-tabs';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
+import { useAiCustomEndpoints } from '@/composable/data-queries/use-ai-custom-endpoints';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
-import { KeyIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
+import { KeyIcon, Loader2Icon, PlugZapIcon, SparklesIcon } from '@lucide/vue';
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -49,8 +57,10 @@ onMounted(() => {
 
 const { t } = useI18n();
 const { isLoading, configuredProviders } = useAiSettings();
+const { customEndpoints } = useAiCustomEndpoints();
 
 const hasInvalidKeys = computed(() => configuredProviders.value.some((p) => p.status === 'invalid'));
+const hasInvalidEndpoints = computed(() => customEndpoints.value.some((e) => e.status === 'invalid'));
 
 const tabs = computed<RouterTabItem[]>(() => [
   {
@@ -62,6 +72,11 @@ const tabs = computed<RouterTabItem[]>(() => [
     value: ROUTES_NAMES.settingsAiKeys,
     label: t('settings.ai.tabs.apiKeys'),
     icon: KeyIcon,
+  },
+  {
+    value: ROUTES_NAMES.settingsAiEndpoints,
+    label: t('settings.ai.tabs.customEndpoints'),
+    icon: PlugZapIcon,
   },
 ]);
 </script>

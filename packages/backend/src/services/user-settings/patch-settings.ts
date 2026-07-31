@@ -6,21 +6,21 @@ import { withTransaction } from '../common/with-transaction';
 import { getOrCreateUserSettings } from './get-or-create-user-settings';
 
 /**
- * Applies a partial settings update: only the keys present in `patch` change,
- * everything else stays as stored. This is what clients should use for slice
- * updates (e.g. `ui.transactionsTable.mobileView`) — sending the whole
- * settings object via the full update endpoint loses concurrent writes from
- * other tabs or in-flight mutations.
- *
- * The merged result is validated against `ZodSettingsSchema`, so a patch can
- * never leave invalid settings behind.
+ * Applies a partial settings update: only keys present in `patch` change. Use it
+ * for slice updates like `ui.transactionsTable.mobileView`; the full update
+ * endpoint sends the whole object and loses concurrent writes from other tabs.
+ * The merged result is validated against `ZodSettingsSchema`.
  */
 export const patchUserSettings = withTransaction(
   async ({ userId, patch }: { userId: number; patch: SettingsPatchSchema }): Promise<SettingsSchema> => {
-    // Onboarding has its own endpoint with dedicated merge semantics.
-    // `ZodSettingsPatchSchema` already strips the key; this guards direct
-    // service callers the same way the full update service does.
-    const { onboarding: _onboarding, ...patchWithoutOnboarding } = patch as Record<string, unknown>;
+    // Onboarding and AI custom endpoints are owned by their own endpoints, which
+    // apply merge semantics and validation this wholesale merge cannot.
+    const { onboarding: _onboarding, ai, ...patchRest } = patch as Record<string, unknown>;
+    const safePatch: Record<string, unknown> = { ...patchRest };
+    if (ai && typeof ai === 'object') {
+      const { customEndpoints: _customEndpoints, ...aiRest } = ai as Record<string, unknown>;
+      safePatch.ai = aiRest;
+    }
 
     // Ensure the row exists (race-safe), then serialize the read-modify-write:
     // FOR UPDATE when it already existed, or exclusive-by-being-uncommitted
@@ -29,11 +29,10 @@ export const patchUserSettings = withTransaction(
     const [existing] = await getOrCreateUserSettings({ userId, lock: true });
 
     const base = existing.settings as Record<string, unknown>;
-    // Deep-merge patch into stored settings (empty target keeps `base` unmutated):
-    // lodash recurses objects, replaces primitives/null, skips `undefined` (so an
-    // absent key never erases). The customizer replaces arrays wholesale — a patch
-    // array is always the full desired list, never an element-wise merge.
-    const merged = mergeWith({}, base, patchWithoutOnboarding, (_current, incoming) =>
+    // Empty target keeps `base` unmutated. lodash recurses objects, replaces
+    // primitives/null and skips `undefined`, so an absent key never erases. The
+    // customizer replaces arrays wholesale: a patch array is the full list.
+    const merged = mergeWith({}, base, safePatch, (_current, incoming) =>
       Array.isArray(incoming) ? incoming : undefined,
     );
 

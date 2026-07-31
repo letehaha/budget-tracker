@@ -44,6 +44,14 @@ services:
       redis: { condition: service_healthy }
       currency-rates-api: { condition: service_healthy }
     env_file: .env
+    environment:
+      # Hardcoded, not read from .env: every stack started from this file is by
+      # definition self-hosted, and `environment:` outranks `env_file:` so a
+      # stray value in .env cannot turn it off. Unlocks the behaviours a
+      # self-hosted instance is allowed: a custom AI endpoint may point at a
+      # server on the operator's own network, and a restored backup backfills
+      # historical prices for its securities.
+      IS_SELF_HOST: 'true'
     healthcheck:
       # BusyBox wget ships in the node:alpine image. `--spider` returns non-zero
       # on any non-2xx status, so this flips healthy only once /health answers.
@@ -75,6 +83,9 @@ services:
     depends_on:
       backend: { condition: service_healthy }
     environment:
+      # Hardcoded for the same reason as on the backend: the SPA needs to know
+      # it is running self-hosted so its copy matches what the backend allows.
+      IS_SELF_HOST: 'true'
       # Empty API_HTTP => same-origin mode: the SPA calls relative /api/v1 and
       # nginx inside this container proxies /api/ to BACKEND_URL. Set it to an
       # absolute API URL only if you serve the API from a separate origin.

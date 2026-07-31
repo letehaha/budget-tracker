@@ -1,4 +1,4 @@
-import { AI_PROVIDER } from '@bt/shared/types';
+import { AI_KEY_PROVIDERS } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { setAiApiKey } from '@services/user-settings/ai-api-key';
 import { z } from 'zod';
@@ -6,7 +6,8 @@ import { z } from 'zod';
 const schema = z.object({
   body: z.object({
     apiKey: z.string().min(1).max(2056),
-    provider: z.nativeEnum(AI_PROVIDER),
+    // `custom` is not a key provider — it has its own /settings/ai/custom-endpoints routes
+    provider: z.enum(AI_KEY_PROVIDERS),
   }),
 });
 
