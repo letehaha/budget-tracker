@@ -92,6 +92,43 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
       expect(tx!.accountId).toBe(account.id);
       expect(tx!.amount).toBe(10);
     });
+
+    it('marks the period paid, creates an income tx, and generates the next upcoming period for recurring income', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub = await helpers.createSubscription({
+        name: 'Paycheck',
+        transactionType: TRANSACTION_TYPES.income,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: futureDate({ monthsAhead: 1, day: 1 }),
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+        accountId: account.id,
+        categoryId: global.DEFAULT_CATEGORY_ID,
+        expectedAmount: 2500,
+        expectedCurrencyCode: global.BASE_CURRENCY.code,
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const upcomingPeriod = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(upcomingPeriod).toBeDefined();
+
+      const period = await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: upcomingPeriod!.id,
+        createTransaction: true,
+        raw: true,
+      });
+
+      expect(period.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
+      expect(period.transactionAutoCreated).toBe(true);
+      expect(period.transactionId).toBeTruthy();
+
+      const tx = await helpers.getTransactionById({ id: period.transactionId!, raw: true });
+      expect(tx).not.toBeNull();
+      expect(tx!.transactionType).toBe(TRANSACTION_TYPES.income);
+      expect(tx!.accountId).toBe(account.id);
+      expect(tx!.amount).toBe(2500);
+    });
   });
 
   describe('Cross-currency invariant', () => {

@@ -4,6 +4,7 @@ import type {
   SubscriptionModel,
   SubscriptionPeriodModel,
   TransactionModel,
+  TRANSACTION_TYPES,
 } from '@bt/shared/types';
 
 /** Minimal open-period shape the list exposes for the "Due in N days" chip + quick pay. */
@@ -139,6 +140,7 @@ interface UpcomingPayment {
   logoDomain: string | null;
   expectedAmount: number;
   expectedCurrencyCode: string | null;
+  transactionType: TRANSACTION_TYPES;
   nextPaymentDate: string | null;
   frequency: string;
   categoryName: string | null;

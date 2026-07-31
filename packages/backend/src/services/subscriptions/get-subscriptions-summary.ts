@@ -82,7 +82,7 @@ const getSubscriptionsSummaryImpl = async ({
 
   const subscriptions = await Subscriptions.findAll({
     where,
-    attributes: ['id', 'expectedAmount', 'expectedCurrencyCode', 'frequency'],
+    attributes: ['id', 'expectedAmount', 'expectedCurrencyCode', 'frequency', 'transactionType'],
   });
 
   // A user with no base currency row cannot have subscription amounts converted
@@ -100,6 +100,9 @@ const getSubscriptionsSummaryImpl = async ({
   const unconnectedCurrencies = new Set<string>();
 
   for (const sub of subscriptions) {
+    if (sub.transactionType === TRANSACTION_TYPES.income) {
+      continue;
+    }
     try {
       const refAmount = await calculateRefAmount({
         amount: sub.expectedAmount!,

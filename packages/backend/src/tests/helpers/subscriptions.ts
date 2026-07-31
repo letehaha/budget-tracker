@@ -3,6 +3,7 @@ import {
   SUBSCRIPTION_CANDIDATE_STATUS,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
   SubscriptionModel,
 } from '@bt/shared/types';
 import type { createSubscription as apiCreateSubscription } from '@services/subscriptions/create-subscription';
@@ -30,6 +31,7 @@ import { makeRequest } from './common';
 interface CreateSubscriptionPayload {
   name: string;
   type?: SUBSCRIPTION_TYPES;
+  transactionType?: TRANSACTION_TYPES;
   expectedAmount?: number | null;
   expectedCurrencyCode?: string | null;
   frequency: SUBSCRIPTION_FREQUENCIES;
@@ -50,6 +52,7 @@ interface CreateSubscriptionPayload {
 interface UpdateSubscriptionPayload {
   name?: string;
   type?: SUBSCRIPTION_TYPES;
+  transactionType?: TRANSACTION_TYPES;
   expectedAmount?: number | null;
   expectedCurrencyCode?: string | null;
   frequency?: SUBSCRIPTION_FREQUENCIES;
