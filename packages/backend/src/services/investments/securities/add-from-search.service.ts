@@ -6,7 +6,6 @@ import { withTransaction } from '@services/common/with-transaction';
 
 import { dataProviderFactory } from '../data-providers';
 import { toProviderSymbol } from '../data-providers/base-provider';
-import { ProviderHttpError } from '../data-providers/errors';
 import { addOrUpdateFromProvider } from '../securities-manage';
 import { findSecurityByIdentity } from './identity';
 
@@ -84,26 +83,13 @@ const addSecurityFromSearchImpl = async ({
     } catch (error) {
       // The immediate price fetch is optional and best-effort: the security was
       // created successfully and the daily price-sync cron backfills its price on
-      // the next run.
-      //
-      // 402 Payment Required is a known, expected failure mode for non-US-exchange
-      // tickers on free-tier provider plans (e.g. FMP). It's not actionable – keep
-      // it visible in Loki via info, but don't page Sentry on every occurrence.
-      //
-      // Leaf providers wrap their thrown errors via base-provider.formatProviderError,
-      // which returns a plain Error with the original attached as `cause`. Unwrap one
-      // level to recover the ProviderHttpError so the paywall check still matches.
-      const httpError =
-        error instanceof ProviderHttpError
-          ? error
-          : error instanceof Error && error.cause instanceof ProviderHttpError
-            ? error.cause
-            : null;
-      const isExpectedPaywall = httpError?.status === 402;
-      const severity = isExpectedPaywall ? 'info' : 'warn';
+      // the next run. Any failure here (free-tier 402 paywalls on non-US tickers,
+      // provider hiccups, unlisted symbols) is therefore self-healing and not
+      // actionable — keep it visible in Loki via info, but never page Sentry.
+      // Persistent provider breakage surfaces through the daily sync instead.
       const routedVia =
         priceQuerySymbol !== searchResult.providerSymbol ? ` (routed via priceSourceSymbol=${priceQuerySymbol})` : '';
-      logger[severity](
+      logger.info(
         `Failed to fetch latest price for ${searchResult.symbol}${routedVia} (will be backfilled by daily sync)`,
         {
           error: error instanceof Error ? error.message : String(error),

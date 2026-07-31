@@ -854,7 +854,11 @@ export class SimplefinProvider extends BaseBankDataProvider {
     const legacy = accountSet.errors ?? [];
 
     for (const err of structured) {
-      logger.warn(`[SimpleFIN] Bridge error ${err.code}: ${err.msg}`);
+      // `*.auth` means the user must re-link the connection — expected churn,
+      // already surfaced by the ForbiddenError below and the re-auth badge, so
+      // it stays out of Sentry. Anything else is unclassified bridge trouble.
+      const log = err.code.endsWith('.auth') ? logger.info : logger.warn;
+      log(`[SimpleFIN] Bridge error ${err.code}: ${err.msg}`);
     }
     for (const msg of legacy) {
       logger.warn(`[SimpleFIN] Bridge warning: ${msg}`);

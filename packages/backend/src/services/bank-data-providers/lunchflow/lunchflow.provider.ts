@@ -387,8 +387,9 @@ export class LunchFlowProvider extends BaseBankDataProvider {
           const balanceMoney = Money.fromDecimal(balanceResponse.balance.amount);
           await writeBankBalanceWithHistory({ account, balance: balanceMoney });
         } catch (error) {
+          // Info-only: transactions are already synced; next sync retries the balance.
           const errorMsg = error instanceof Error ? error.message : String(error);
-          logger.warn(`[LunchFlow] Failed to update balance for account ${account.id}: ${errorMsg}`);
+          logger.info(`[LunchFlow] Failed to update balance for account ${account.id}: ${errorMsg}`);
         }
 
         return { transactionIds: createdTransactionIds };

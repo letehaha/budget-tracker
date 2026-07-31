@@ -139,47 +139,53 @@ export class MonobankApiClient {
       const status = error.response?.status;
       const errorDescription = error.response?.data?.errorDescription;
 
-      // `message:` in winston extras gets spread on top of the log record and
-      // would overwrite the message field — keep raw axios text under a
-      // different key so the prefix survives. `responseBody` carries whatever
-      // Monobank actually returned, which is the only way to tell a revoked
-      // token from an anti-fraud block / IP block / unknown-body 403.
-      logger.error(
-        { message: `[MonobankApiClient] ${method} failed`, error: error as Error },
-        {
-          status,
-          errorDescription,
-          axiosMessage: error.message,
-          axiosCode: error.code,
-          url: error.config?.url,
-          httpMethod: error.config?.method,
-          responseBody: error.response?.data,
-          responseHeaders: error.response?.headers,
-        },
-      );
+      // `responseBody` carries whatever Monobank actually returned, which is
+      // the only way to tell a revoked token from an anti-fraud block /
+      // IP block / unknown-body 403.
+      const responseDetails = {
+        status,
+        errorDescription,
+        axiosMessage: error.message,
+        axiosCode: error.code,
+        url: error.config?.url,
+        httpMethod: error.config?.method,
+        responseBody: error.response?.data,
+        responseHeaders: error.response?.headers,
+      };
 
-      // Handle specific error cases with proper error types
+      // Handle specific error cases with proper error types. A revoked/mistyped
+      // token and a rate-limit are expected user/provider outcomes surfaced to
+      // the caller as typed 4xx errors, so they log at info and stay out of
+      // Sentry; everything else logs at a Sentry-visible level below.
       if (status === 403 && isGeoBlockResponseBody(error.response?.data)) {
-        logger.warn(`[MonobankApiClient] Geo-blocked (VPN / non-UA IP) in ${method}`);
+        logger.warn(`[MonobankApiClient] Geo-blocked (VPN / non-UA IP) in ${method}`, responseDetails);
         // Dev runs locally — surface the actionable "disable VPN" hint.
         // Prod runs on a VPS the end-user can't reconfigure, so a "we know,
-        // contact support" message is more honest. Sentry still gets the
-        // rich error via the logger.error above either way.
+        // contact support" message is more honest. The warn above keeps
+        // Sentry visibility, since in prod a geo-block means our server's IP
+        // got blocked.
         const geoBlockedKey =
           process.env.NODE_ENV === 'production'
             ? 'bankDataProviders.monobank.geoBlockedProduction'
             : 'bankDataProviders.monobank.geoBlocked';
         throw new MonobankGeoBlockedError({ message: t({ key: geoBlockedKey }) });
       } else if (errorDescription === "Unknown 'X-Token'") {
-        logger.warn(`[MonobankApiClient] Invalid API token used in ${method}`);
+        logger.info(`[MonobankApiClient] Invalid API token used in ${method}`, responseDetails);
         throw new ForbiddenError({ message: t({ key: 'bankDataProviders.monobank.invalidApiToken' }) });
       } else if (status === 429) {
-        logger.warn(`[MonobankApiClient] Rate limit exceeded in ${method}`);
+        logger.info(`[MonobankApiClient] Rate limit exceeded in ${method}`, responseDetails);
         throw new TooManyRequests({
           message: t({ key: 'bankDataProviders.monobank.rateLimitExceeded' }),
           details: { provider: 'monobank' },
         });
-      } else if (status && status >= 400) {
+      }
+
+      // `message:` in winston extras gets spread on top of the log record and
+      // would overwrite the message field — raw axios text lives under
+      // `axiosMessage` in the details so the prefix survives.
+      logger.error({ message: `[MonobankApiClient] ${method} failed`, error: error as Error }, responseDetails);
+
+      if (status && status >= 400) {
         throw new BadRequestError({
           message:
             errorDescription ||
