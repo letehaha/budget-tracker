@@ -31,6 +31,7 @@ import {
   SUBSCRIPTION_MATCH_SOURCE,
   SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
   type SubscriptionModel,
   type SubscriptionPeriodModel,
   type TransactionModel,
@@ -558,8 +559,11 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
     <div class="border-border mb-6 grid grid-cols-2 gap-4 rounded-lg border p-4 sm:grid-cols-3 lg:grid-cols-5">
       <div>
         <p class="text-muted-foreground text-xs font-medium uppercase">{{ $t('planned.subscriptions.amount') }}</p>
-        <p class="mt-1 text-sm font-medium">
-          {{
+        <p
+          class="mt-1 text-sm font-medium"
+          :class="{ 'text-success-text': subscription.transactionType === TRANSACTION_TYPES.income }"
+        >
+          {{ subscription.transactionType === TRANSACTION_TYPES.income && subscription.expectedAmount ? '+' : '' }}{{
             subscription.expectedAmount && subscription.expectedCurrencyCode
               ? formatAmountByCurrencyCode(subscription.expectedAmount, subscription.expectedCurrencyCode)
               : '–'

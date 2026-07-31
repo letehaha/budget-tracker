@@ -18,7 +18,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
-import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
+import { SUBSCRIPTION_PERIOD_STATUSES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 import { CheckIcon, ExternalLinkIcon, RepeatIcon } from '@lucide/vue';
@@ -227,8 +227,11 @@ function openSubscriptionsList() {
             <p class="truncate text-sm font-medium">{{ payment.subscriptionName }}</p>
             <p class="text-muted-foreground text-xs">{{ formatNextDate({ dateStr: payment.nextPaymentDate }) }}</p>
           </div>
-          <span class="text-amount text-sm">
-            {{
+          <span
+            class="text-amount text-sm"
+            :class="{ 'text-success-text font-medium': payment.transactionType === TRANSACTION_TYPES.income }"
+          >
+            {{ payment.transactionType === TRANSACTION_TYPES.income ? '+' : '' }}{{
               payment.expectedCurrencyCode
                 ? formatAmountByCurrencyCode(payment.expectedAmount, payment.expectedCurrencyCode)
                 : formatBaseCurrency(payment.expectedAmount)
@@ -265,8 +268,12 @@ function openSubscriptionsList() {
             </p>
           </div>
 
-          <span v-if="sub.expectedAmount && sub.expectedCurrencyCode" class="shrink-0 text-sm font-medium">
-            {{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
+          <span
+            v-if="sub.expectedAmount && sub.expectedCurrencyCode"
+            class="shrink-0 text-sm font-medium"
+            :class="{ 'text-success-text': sub.transactionType === TRANSACTION_TYPES.income }"
+          >
+            {{ sub.transactionType === TRANSACTION_TYPES.income ? '+' : '' }}{{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
           </span>
 
           <DesktopOnlyTooltip :content="$t('widgets.subscriptionsOverview.payAction')">

@@ -25,11 +25,12 @@ import {
   type RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
   type SubscriptionMatchingRule,
   type SubscriptionModel,
   type RecordId,
 } from '@bt/shared/types';
-import { ChevronDownIcon, CreditCardIcon, ReceiptIcon, RepeatIcon } from '@lucide/vue';
+import { ChevronDownIcon, CreditCardIcon, ReceiptIcon, RepeatIcon, ArrowDownIcon, ArrowUpIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -54,6 +55,7 @@ const emit = defineEmits<{
     payload: Partial<Omit<SubscriptionModel, 'id' | 'userId' | 'createdAt' | 'updatedAt'>> & {
       name: string;
       type: SUBSCRIPTION_TYPES;
+      transactionType: TRANSACTION_TYPES;
       frequency: SUBSCRIPTION_FREQUENCIES;
       startDate: string;
       isActive: boolean;
@@ -114,6 +116,7 @@ const toggleRemindBefore = ({ preset }: { preset: RemindBeforePreset }) => {
 interface FormState {
   name: string;
   type: SUBSCRIPTION_TYPES;
+  transactionType: TRANSACTION_TYPES;
   expectedAmount: number | null;
   expectedCurrencyCode: string;
   frequency: SUBSCRIPTION_FREQUENCIES;
@@ -140,6 +143,7 @@ const getInitialState = (): FormState => {
     return {
       name: props.initialValues.name ?? '',
       type: props.initialValues.type ?? SUBSCRIPTION_TYPES.subscription,
+      transactionType: props.initialValues.transactionType ?? TRANSACTION_TYPES.expense,
       expectedAmount: props.initialValues.expectedAmount ?? null,
       expectedCurrencyCode: props.initialValues.expectedCurrencyCode ?? '',
       frequency: props.initialValues.frequency ?? SUBSCRIPTION_FREQUENCIES.monthly,
@@ -160,6 +164,7 @@ const getInitialState = (): FormState => {
   return {
     name: '',
     type: SUBSCRIPTION_TYPES.subscription,
+    transactionType: TRANSACTION_TYPES.expense,
     expectedAmount: null,
     expectedCurrencyCode: baseCurrency.value?.currencyCode ?? '',
     frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -227,6 +232,25 @@ const handleAutoRecordToggle = ({ value }: { value: boolean }) => {
   }
   form.value.autoRecord = value;
 };
+
+const transactionTypeOptions = computed(() => [
+  {
+    value: TRANSACTION_TYPES.expense,
+    label: t('planned.subscriptions.form.transactionTypeExpense'),
+    desc: t('planned.subscriptions.form.transactionTypeExpenseDesc'),
+    icon: ArrowUpIcon,
+  },
+  {
+    value: TRANSACTION_TYPES.income,
+    label: t('planned.subscriptions.form.transactionTypeIncome'),
+    desc: t('planned.subscriptions.form.transactionTypeIncomeDesc'),
+    icon: ArrowDownIcon,
+  },
+]);
+
+const selectedTransactionTypeOption = computed(
+  () => transactionTypeOptions.value.find((opt) => opt.value === form.value.transactionType) ?? null,
+);
 
 const typeOptions = computed(() => [
   {
@@ -381,6 +405,7 @@ const handleSubmit = () => {
   const payload = {
     name: form.value.name,
     type: form.value.type,
+    transactionType: form.value.transactionType,
     expectedAmount: form.value.expectedAmount || null,
     // Currency is meaningless without an amount and the API rejects one without the
     // other, so drop the (auto-prefilled) currency when no amount is entered.
@@ -449,6 +474,33 @@ const handleSubmit = () => {
         size-class="size-10 rounded-lg"
         class="mt-[21px]"
       />
+    </div>
+
+    <!-- Transaction Type (Expense vs Income) -->
+    <div>
+      <SelectField
+        :model-value="selectedTransactionTypeOption"
+        :values="transactionTypeOptions"
+        label-key="label"
+        value-key="value"
+        :label="$t('planned.subscriptions.form.transactionTypeLabel')"
+        @update:model-value="(v: any) => v && (form.transactionType = v.value)"
+      >
+        <template #item="{ item }">
+          <div class="flex items-start gap-2.5 py-0.5">
+            <span
+              class="border-input bg-muted/40 text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-md border"
+            >
+              <component :is="item.icon" class="h-4 w-4" />
+            </span>
+            <div class="flex min-w-0 flex-col gap-0.5">
+              <span class="text-sm leading-tight font-medium">{{ item.label }}</span>
+              <span class="text-muted-foreground text-xs leading-snug">{{ item.desc }}</span>
+            </div>
+          </div>
+        </template>
+      </SelectField>
+      <p v-if="selectedTransactionTypeOption" class="text-muted-foreground mt-1.5 text-xs">{{ selectedTransactionTypeOption.desc }}</p>
     </div>
 
     <!-- Type: SelectField with rich items (icon + title + description). Trigger

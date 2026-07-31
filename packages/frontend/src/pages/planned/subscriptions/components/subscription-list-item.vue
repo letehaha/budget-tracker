@@ -12,7 +12,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable/formatters';
 import { cn } from '@/lib/utils';
-import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
+import { SUBSCRIPTION_PERIOD_STATUSES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 import { CheckIcon, CirclePauseIcon, MoreHorizontalIcon, RepeatIcon, Trash2Icon } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
@@ -128,7 +128,12 @@ function dueChipClass({
     <div
       class="text-muted-foreground col-span-2 row-start-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm @[600px]:col-span-1 @[600px]:row-auto @[600px]:shrink-0 @[600px]:flex-nowrap"
     >
-      <span v-if="formatAmount()" class="text-foreground font-medium">{{ formatAmount() }}</span>
+      <span
+        v-if="formatAmount()"
+        :class="cn('font-medium', subscription.transactionType === TRANSACTION_TYPES.income ? 'text-success-text' : 'text-foreground')"
+      >
+        {{ subscription.transactionType === TRANSACTION_TYPES.income ? '+' : '' }}{{ formatAmount() }}
+      </span>
       <span class="flex items-center gap-1">
         <RepeatIcon class="size-3.5 shrink-0" />
         {{ formatFrequency({ frequency: subscription.frequency, t }) }}
