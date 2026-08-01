@@ -1,5 +1,4 @@
 import { AI_FEATURE, AI_PROVIDER, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES } from '@bt/shared/types';
-import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import Accounts from '@models/accounts.model';
@@ -8,19 +7,18 @@ import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
 import {
   AIClientResult,
+  type AiCallFailureKind,
   CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE,
+  aiCallGuards,
   buildModelNotServedMessage,
+  classifyAiCallFailure,
   createAIClient,
   describeMissingAiConfiguration,
-  isAuthError,
-  isCustomEndpointDown,
-  isModelNotFoundError,
-  isTemporaryError,
   markCustomEndpointUnreachable,
-  unwrapRetryError,
 } from '@services/ai';
 import { sseManager } from '@services/common/sse';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
+import { markCustomEndpointInvalid, markCustomEndpointValid } from '@services/user-settings/ai-custom-endpoint';
 import { getCustomInstructions } from '@services/user-settings/ai-custom-instructions';
 import { generateText } from 'ai';
 
@@ -42,14 +40,12 @@ const INVALID_KEY_ERROR_MESSAGE =
 const CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE =
   'Your custom AI endpoint rejected the request. Please verify its URL, model name, and API key in AI settings.';
 
-/** Shown when the outbound guard refuses the endpoint's address mid-run */
 const CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE =
   'Your custom AI endpoint address was rejected. Please point it at a publicly reachable address in AI settings.';
 
-/** Credentials advice only fits a catalog provider; a custom endpoint gets its own wording. */
-function authErrorMessage({ provider }: { provider: AI_PROVIDER }): string {
-  return provider === AI_PROVIDER.custom ? CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE : INVALID_KEY_ERROR_MESSAGE;
-}
+const RATE_LIMITED_ERROR_MESSAGE = 'AI provider rate limit reached. Please try again in a few minutes.';
+
+const TEMPORARY_ERROR_MESSAGE = 'AI provider temporarily unavailable. Please try again later.';
 
 // Batch size of 500 provides ~9k tokens per batch (average case, with short
 // alias ids). Well within safe limits for AI models while providing good
@@ -57,17 +53,37 @@ function authErrorMessage({ provider }: { provider: AI_PROVIDER }): string {
 const BATCH_SIZE = 500;
 
 interface CategorizeBatchResult extends CategorizationBatchResult {
-  isAuthError?: boolean;
-  isTemporaryError?: boolean;
-  /** True if the endpoint answered but does not serve the configured model */
-  isModelNotFoundError?: boolean;
-  /** True if the user's own endpoint did not answer. Catalog providers report the same failure as temporary. */
-  isCustomEndpointDown?: boolean;
-  isBlockedAddressError?: boolean;
+  /** How the AI call failed, when it did. Anything but `unknown` repeats on the next batch. */
+  failureKind?: AiCallFailureKind;
   tokenUsage?: {
     inputTokens: number;
     outputTokens: number;
   };
+}
+
+function buildStopReason({
+  failureKind,
+  aiClient,
+}: {
+  failureKind: Exclude<AiCallFailureKind, 'unknown'>;
+  aiClient: AIClientResult;
+}): string {
+  switch (failureKind) {
+    case 'blocked-address':
+      return CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE;
+    case 'model-not-found':
+      return buildModelNotServedMessage({ modelId: aiClient.modelId });
+    case 'endpoint-down':
+      return CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE;
+    case 'rate-limited':
+      return RATE_LIMITED_ERROR_MESSAGE;
+    case 'temporary':
+      return TEMPORARY_ERROR_MESSAGE;
+    case 'auth':
+      return aiClient.provider === AI_PROVIDER.custom
+        ? CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE
+        : INVALID_KEY_ERROR_MESSAGE;
+  }
 }
 
 /**
@@ -85,8 +101,6 @@ async function categorizeBatch({
   customInstructions?: string;
 }): Promise<CategorizeBatchResult> {
   const categoryList = buildCategoryList(categories);
-  // The model sees "t1"/"c1" aliases instead of UUIDs — a UUID is ~20 tokens,
-  // and each transaction carries one in the prompt plus two in the response.
   const shortIds = assignShortIds({ transactions, categories: categoryList });
 
   const systemPrompt = buildSystemPrompt({ customInstructions });
@@ -96,10 +110,15 @@ async function categorizeBatch({
   });
 
   try {
+    // A hung or trickling endpoint must abort instead of pinning a worker slot forever.
+    const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
+
     const { text, usage } = await generateText({
       model: aiClient.model,
       system: systemPrompt,
       prompt: userMessage,
+      abortSignal,
+      maxRetries,
     });
 
     const inputTokens = usage?.inputTokens ?? 0;
@@ -122,7 +141,6 @@ async function categorizeBatch({
       validTransactionIds: new Set(shortIds.transactionIdByAlias.keys()),
     });
 
-    // Translate the model's alias pairs back to real UUIDs
     const results = aliasResults.map((result) => ({
       transactionId: shortIds.transactionIdByAlias.get(result.transactionId)!,
       categoryId: shortIds.categoryIdByAlias.get(result.categoryId)!,
@@ -140,49 +158,29 @@ async function categorizeBatch({
       },
     };
   } catch (error) {
-    const cause = unwrapRetryError({ error });
-    const causeMessage = cause instanceof Error ? cause.message : String(cause);
+    const { kind, cause } = classifyAiCallFailure({ error });
 
-    // A blocked address is the user's endpoint config, not a provider failure.
-    const isBlockedAddress = cause instanceof ValidationError;
-    // Checked before the other two, which would swallow it: `isTemporaryError` accepts
-    // anything the SDK flagged retryable, `isAuthError` matches substrings in the message.
-    const isModelNotFound = !isBlockedAddress && isModelNotFoundError({ error: cause });
-    // A dead endpoint answers nothing, or answers with an error page carrying a status code
-    // the other classifiers would read as a verdict on the model or the key.
-    const isEndpointDown = !isBlockedAddress && !isModelNotFound && isCustomEndpointDown({ error: cause, aiClient });
-    const isTemp = !isBlockedAddress && !isModelNotFound && isTemporaryError(cause);
-    const isAuth = !isBlockedAddress && !isModelNotFound && isAuthError(cause);
+    // Only a custom endpoint can be down in a way the user can fix, so a catalog
+    // provider that answers with nothing is downgraded to a temporary failure.
+    const failureKind =
+      kind === 'endpoint-down' && aiClient.provider !== AI_PROVIDER.custom ? ('temporary' as const) : kind;
 
-    if (isBlockedAddress) {
-      logger.info(`AI categorization batch failed (custom endpoint address blocked): ${causeMessage}`);
-    } else if (isModelNotFound) {
-      // The user picked a model the endpoint does not have: their config, not our bug
-      logger.info(`AI categorization batch failed (model not served by endpoint): ${causeMessage}`);
-    } else if (isEndpointDown) {
-      // Whatever is on the other end is down or is not an API: the user's to fix, not ours
-      logger.info(`AI categorization batch failed (endpoint did not answer as an API): ${causeMessage}`);
-    } else if (isTemp || isAuth) {
-      // The parent handles both, so info level keeps them out of Sentry.
-      logger.info(`AI categorization batch failed (handled: ${isTemp ? 'temporary' : 'auth'}): ${causeMessage}`);
+    if (failureKind === 'unknown') {
+      logger.error({ message: 'AI categorization batch failed', error: cause });
     } else {
-      logger.error({ message: 'AI categorization batch failed', error: cause as Error });
+      // Expected user config or provider state, handled by the caller, so info keeps it out of Sentry.
+      logger.info(`AI categorization batch failed (${failureKind}): ${cause.message}`);
     }
 
     return {
       successful: [],
       failed: transactions.map((t) => t.id),
-      errors: [isBlockedAddress ? CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE : causeMessage],
-      isAuthError: isAuth,
-      isTemporaryError: isTemp,
-      isModelNotFoundError: isModelNotFound,
-      isCustomEndpointDown: isEndpointDown,
-      isBlockedAddressError: isBlockedAddress,
+      errors: [failureKind === 'blocked-address' ? CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE : cause.message],
+      failureKind,
     };
   }
 }
 
-/** Apply categorization results, grouped by categoryId for bulk updates */
 async function applyCategorizationResults({ results }: { results: CategorizationResult[] }): Promise<void> {
   if (results.length === 0) return;
 
@@ -267,11 +265,10 @@ async function getUncategorizedTransactions({
 }
 
 /**
- * Categorize transactions using AI. Processes in batches of BATCH_SIZE.
- *
- * Any error that would repeat on every batch (temporary, blocked address, model not
- * served, unrecoverable auth) stops the run and returns partial results. Auth errors
- * on a catalog provider retry once on the server key first.
+ * Categorize transactions using AI, in batches of BATCH_SIZE. The first classified
+ * failure stops the run and returns partial results with `stopReason` set. An auth
+ * failure on a catalog user key retries once on the server key; a custom endpoint
+ * never falls back.
  */
 export async function categorizeTransactions({
   userId,
@@ -283,7 +280,6 @@ export async function categorizeTransactions({
   transactionIds: string[];
   /** For progress tracking. Defaults to transactionIds.length */
   totalTransactionCount?: number;
-  /** Called at every batch boundary; the worker mirrors it into the BullMQ job's progress blob */
   onProgress?: (progress: CategorizationProgress) => void | Promise<void>;
 }): Promise<CategorizationBatchResult> {
   const totalCount = totalTransactionCount ?? transactionIds.length;
@@ -293,13 +289,15 @@ export async function categorizeTransactions({
   });
 
   if (!aiClient) {
-    // Info, not warn: this is routinely the user's own state (no key configured, or their
-    // endpoints are flagged down), and warn would report every such run to Sentry.
+    // Routinely the user's own state (no key configured, endpoints flagged down), and
+    // warn would report every such run to Sentry.
     logger.info('No AI provider available for categorization', { userId });
+    const missingConfigurationMessage = await describeMissingAiConfiguration({ userId });
     return {
       successful: [],
       failed: transactionIds,
-      errors: [await describeMissingAiConfiguration({ userId })],
+      errors: [missingConfigurationMessage],
+      stopReason: missingConfigurationMessage,
     };
   }
 
@@ -317,6 +315,7 @@ export async function categorizeTransactions({
       successful: [],
       failed: transactionIds,
       errors: ['No categories configured'],
+      stopReason: 'No categories configured',
     };
   }
 
@@ -352,8 +351,6 @@ export async function categorizeTransactions({
     batchCount: 0,
   };
 
-  // Fans current counters out to live clients (SSE) and to the caller's progress
-  // sink (the BullMQ job blob the status endpoint serves after a page reload).
   const reportProcessing = async () => {
     const progress: CategorizationProgress = {
       processedCount: allResults.successful.length + allResults.failed.length,
@@ -365,8 +362,7 @@ export async function categorizeTransactions({
       event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
       data: { status: 'processing' as const, ...progress },
     });
-    // Progress is cosmetic — a failing sink (e.g. a Redis hiccup on the job's
-    // progress blob) must not abort the run and discard finished batches.
+    // Progress is cosmetic, so a failing sink must not abort the run and discard finished batches.
     try {
       await onProgress?.(progress);
     } catch (error) {
@@ -384,10 +380,8 @@ export async function categorizeTransactions({
     const batch = transactions.slice(i, i + BATCH_SIZE);
     logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(transactions.length / BATCH_SIZE)}`);
 
-    // The run's only progress report site, placed before the LLM call: a single
-    // batch can run for minutes on a slow model, and without this the UI would
-    // sit on "queued" that whole time. Counters cover the batches finished so
-    // far; the worker's terminal SSE event carries the final ones.
+    // Reported before the LLM call: a single batch can run for minutes on a slow
+    // model, and the UI would otherwise sit on "queued" that whole time.
     await reportProcessing();
 
     const batchResult = await categorizeBatch({
@@ -397,97 +391,22 @@ export async function categorizeTransactions({
       customInstructions,
     });
 
-    // The guard's verdict holds for the whole run, so every remaining batch would be
-    // refused the same way.
-    if (batchResult.isBlockedAddressError) {
-      logger.info('Stopping AI categorization: custom endpoint address blocked', {
-        userId,
-        provider: aiClient.provider,
-        modelId: aiClient.modelId,
-      });
-
-      const remainingTransactions = transactions.slice(i);
-      allResults.failed.push(...remainingTransactions.map((t) => t.id));
-      allResults.errors!.push(CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE);
-      break;
-    }
-
-    // Every remaining batch would repeat the same doomed request. The endpoint itself
-    // works, so its stored status stays untouched and the server key is not used: it
-    // would quietly run a different model.
-    if (batchResult.isModelNotFoundError) {
-      const errorMessage = buildModelNotServedMessage({ modelId: aiClient.modelId });
-
-      logger.info(`Stopping AI categorization: ${errorMessage}`, {
-        userId,
-        provider: aiClient.provider,
-        modelId: aiClient.modelId,
-        usingUserKey: aiClient.usingUserKey,
-      });
-
-      const remainingTransactions = transactions.slice(i);
-      allResults.failed.push(...remainingTransactions.map((t) => t.id));
-      allResults.errors!.push(errorMessage);
-      break;
-    }
-
-    // An endpoint the user hosts stays down until they do something about it, so every
-    // remaining batch would fail the same way. The stored status is what tells them, and
-    // re-testing it in AI settings clears it again.
-    if (batchResult.isCustomEndpointDown) {
-      logger.info('Stopping AI categorization: custom endpoint did not answer', {
-        userId,
-        provider: aiClient.provider,
-        modelId: aiClient.modelId,
-      });
-
-      await markCustomEndpointUnreachable({ userId, aiClient });
-
-      const remainingTransactions = transactions.slice(i);
-      allResults.failed.push(...remainingTransactions.map((t) => t.id));
-      allResults.errors!.push(CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE);
-      break;
-    }
-
-    if (batchResult.isTemporaryError) {
-      logger.info('Temporary AI error, returning early without marking key invalid', {
-        userId,
-        provider: aiClient.provider,
-        usingUserKey: aiClient.usingUserKey,
-      });
-      const remainingTransactions = transactions.slice(i);
-      allResults.failed.push(...remainingTransactions.map((t) => t.id));
-      allResults.errors!.push('AI provider temporarily unavailable. Please try again later.');
-      break;
-    }
-
-    if (batchResult.isAuthError && aiClient.usingUserKey && !hasTriedFallback) {
-      const provider = aiClient.provider;
-      const errorMessage = authErrorMessage({ provider });
-      // The server key points at a cloud provider. A user who configured their own
-      // endpoint chose where their data may go, so falling back would send payees,
-      // amounts and notes to a provider they never picked.
-      const isUserOwnedEndpoint = provider === AI_PROVIDER.custom;
-
-      logger.info('User AI credentials rejected, marking invalid', {
-        userId,
-        provider,
-        willTryServerFallback: !isUserOwnedEndpoint,
-      });
+    // Auth on a catalog user key gets one shot at the server key. A user who
+    // configured their own endpoint chose where their data may go, so falling
+    // back would send payees, amounts and notes to a provider they never picked.
+    if (
+      batchResult.failureKind === 'auth' &&
+      aiClient.usingUserKey &&
+      aiClient.provider !== AI_PROVIDER.custom &&
+      !hasTriedFallback
+    ) {
+      logger.info('User AI credentials rejected, marking invalid', { userId, provider: aiClient.provider });
 
       await markApiKeyInvalid({
         userId,
-        provider,
-        customEndpointId: aiClient.customEndpointId,
-        errorMessage,
+        provider: aiClient.provider,
+        errorMessage: INVALID_KEY_ERROR_MESSAGE,
       });
-
-      if (isUserOwnedEndpoint) {
-        const remainingTransactions = transactions.slice(i);
-        allResults.failed.push(...remainingTransactions.map((t) => t.id));
-        allResults.errors!.push(errorMessage);
-        break;
-      }
 
       // Re-resolve: the key is now flagged invalid, so this picks up the server key
       const fallbackClient = await createAIClient({
@@ -509,22 +428,52 @@ export async function categorizeTransactions({
         i -= BATCH_SIZE;
         continue;
       }
+      // No server key either: fall through to the stop block below
+    }
 
-      allResults.failed.push(...batch.map((t) => t.id));
-      allResults.errors!.push(errorMessage);
-      continue;
+    // A classified failure holds for the whole run (the endpoint stays down, the model
+    // stays missing), so the first one stops it. Unclassified ones may be batch-specific.
+    if (batchResult.failureKind && batchResult.failureKind !== 'unknown') {
+      const stopReason = buildStopReason({ failureKind: batchResult.failureKind, aiClient });
+
+      logger.info(`Stopping AI categorization (${batchResult.failureKind}): ${stopReason}`, {
+        userId,
+        provider: aiClient.provider,
+        modelId: aiClient.modelId,
+        usingUserKey: aiClient.usingUserKey,
+      });
+
+      if (batchResult.failureKind === 'endpoint-down') {
+        await markCustomEndpointUnreachable({ userId, aiClient });
+      } else if (
+        batchResult.failureKind === 'auth' &&
+        aiClient.provider === AI_PROVIDER.custom &&
+        aiClient.customEndpointId
+      ) {
+        await markCustomEndpointInvalid({
+          userId,
+          endpointId: aiClient.customEndpointId,
+          errorMessage: stopReason,
+        });
+      }
+
+      allResults.failed.push(...transactions.slice(i).map((t) => t.id));
+      allResults.errors!.push(stopReason);
+      allResults.stopReason = stopReason;
+      break;
     }
 
     if (batchResult.successful.length > 0) {
       await applyCategorizationResults({ results: batchResult.successful });
 
-      // Success on the user's own key refreshes lastValidatedAt
       if (aiClient.usingUserKey) {
-        await markApiKeyValid({
-          userId,
-          provider: aiClient.provider,
-          customEndpointId: aiClient.customEndpointId,
-        });
+        if (aiClient.provider === AI_PROVIDER.custom) {
+          if (aiClient.customEndpointId) {
+            await markCustomEndpointValid({ userId, endpointId: aiClient.customEndpointId });
+          }
+        } else {
+          await markApiKeyValid({ userId, provider: aiClient.provider });
+        }
       }
     }
 

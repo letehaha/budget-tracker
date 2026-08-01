@@ -1,7 +1,5 @@
 <template>
-  <div class="flex flex-col gap-6">
-    <CustomEndpointManager />
-  </div>
+  <CustomEndpointManager />
 </template>
 
 <script setup lang="ts">

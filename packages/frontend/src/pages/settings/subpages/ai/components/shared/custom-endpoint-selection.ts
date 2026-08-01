@@ -1,8 +1,8 @@
-import { AIFeatureStatus, AI_CUSTOM_MODEL_PREFIX, isCustomModelId } from '@bt/shared/types';
+import { AIFeatureStatus, isCustomModelId } from '@bt/shared/types';
 
 /**
- * Prefix of the sentinel `<option>` value carrying an endpoint id. A UUID never
- * contains a colon, so the id slices back off unambiguously.
+ * Marks an `<option>` value as an endpoint id rather than a catalog model id. Any string
+ * no catalog model id can start with works.
  */
 export const CUSTOM_ENDPOINT_OPTION_PREFIX = '__custom-endpoint__:';
 
@@ -13,20 +13,17 @@ export const encodeCustomEndpointOption = ({ endpointId }: { endpointId: string 
 export const decodeCustomEndpointOption = ({ value }: { value: string }): string | null =>
   value.startsWith(CUSTOM_ENDPOINT_OPTION_PREFIX) ? value.slice(CUSTOM_ENDPOINT_OPTION_PREFIX.length) : null;
 
-export const buildCustomModelId = ({ modelName }: { modelName: string }): string =>
-  `${AI_CUSTOM_MODEL_PREFIX}${modelName}`;
+/**
+ * `<select>` value for what the user picked. A feature with no config of its own selects
+ * nothing: the status names a fallback endpoint, and preselecting it would claim the user
+ * chose it.
+ */
+export const readStoredSelectValue = ({ status }: { status: AIFeatureStatus }): string => {
+  const endpointId =
+    status.isConfigured && isCustomModelId({ modelId: status.modelId }) ? (status.customEndpointId ?? null) : null;
 
-/** Endpoint backing a saved feature config, or `null` when it uses a catalog model. */
-export const readCustomEndpointId = ({ status }: { status: AIFeatureStatus }): string | null =>
-  isCustomModelId({ modelId: status.modelId }) ? (status.customEndpointId ?? null) : null;
-
-export const resolveSelectValue = ({
-  selectedEndpointId,
-  modelId,
-}: {
-  selectedEndpointId: string | null;
-  modelId: string;
-}): string => (selectedEndpointId ? encodeCustomEndpointOption({ endpointId: selectedEndpointId }) : modelId);
+  return endpointId ? encodeCustomEndpointOption({ endpointId }) : status.modelId;
+};
 
 export const resolveCustomModelName = ({
   endpointDefaultModel,

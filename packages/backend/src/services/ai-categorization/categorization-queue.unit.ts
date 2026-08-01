@@ -16,8 +16,6 @@ jest.mock('bullmq', () => ({
   })),
 }));
 
-// `@root/redis-client` is already stubbed globally in setupUnitTests.ts.
-
 // Mock the categorization service to avoid DB dependencies
 jest.mock('./categorization-service', () => ({
   categorizeTransactions: jest.fn(),
@@ -61,8 +59,7 @@ describe('categorization-queue', () => {
       const second = await queueCategorizationJob({ userId: 123, transactionIds: [generateRandomRecordId()] });
 
       expect(second).not.toBe(first);
-      // A plain SET (no NX) is the contract: the pointer must track the newest
-      // run even while an older one is still in flight.
+      // Plain SET (no NX): the pointer must track the newest run even while an older one is in flight.
       expect(redisSetMock).toHaveBeenLastCalledWith('ai-categorization-last-job-123', second, 'EX', 24 * 3600);
     });
 

@@ -32,10 +32,6 @@ const nonDev =
     return middleware(req, res, next);
   };
 
-/**
- * Sends the 429 shape shared by a real limit hit and a fail-closed error, so
- * callers see one contract either way.
- */
 const respondTooManyRequests = ({
   res,
   maxAttempts,
@@ -65,7 +61,6 @@ const respondTooManyRequests = ({
   return errorHandler(res, error);
 };
 
-/** Creates a rate limiting middleware. */
 const createRateLimit = (options: RateLimitOptions) => {
   const { windowSeconds, maxAttempts = 1, keyGenerator, failClosed = false } = options;
 
@@ -157,9 +152,8 @@ export const csvImportRateLimit = createRateLimit({
 });
 
 /**
- * Per-user rate limit (5 attempts per 15 minutes), skipped in local dev. Shared by the
- * export/backup/restore endpoints, which each materialize or rewrite the user's full data
- * on the API thread. The key prefix keeps each endpoint's budget independent.
+ * Per-user limit shared by the export/backup/restore endpoints. The prefix keeps each
+ * endpoint's budget independent.
  */
 const perUserNonDevRateLimit = ({ prefix }: { prefix: string }) =>
   nonDev(
@@ -225,9 +219,8 @@ export const aiCustomEndpointTestRateLimit = createRateLimit({
 
 /**
  * Applies the probe budget to a feature-config write only when the body carries a `custom/*`
- * model, the only case that dials the user's endpoint. A catalog model is saved without any
- * outbound call, so switching between two of them must never be throttled. Runs ahead of
- * schema validation, so the body is still unvalidated input here.
+ * model, the only case that dials the user's endpoint. Runs ahead of schema validation, so
+ * the body is still unvalidated input here.
  */
 export const aiCustomModelProbeRateLimit = (req: Request, res: Response, next: NextFunction) => {
   const modelId = (req.body as { modelId?: unknown } | undefined)?.modelId;

@@ -4,7 +4,7 @@ import { buildFailedRunStatus, parseProgressCounters } from './categorization-pr
 
 describe('parseProgressCounters', () => {
   it('reads counters from the worker-written blob', () => {
-    expect(parseProgressCounters({ processedCount: 7, totalCount: 10, failedCount: 2 })).toEqual({
+    expect(parseProgressCounters({ progress: { processedCount: 7, totalCount: 10, failedCount: 2 } })).toEqual({
       processedCount: 7,
       failedCount: 2,
     });
@@ -15,7 +15,7 @@ describe('parseProgressCounters', () => {
     ['null', null],
     ['a partial blob with wrong value types', { processedCount: 'lots', failedCount: undefined }],
   ])('falls back to zeros for %s', (_label, progress) => {
-    expect(parseProgressCounters(progress)).toEqual({ processedCount: 0, failedCount: 0 });
+    expect(parseProgressCounters({ progress })).toEqual({ processedCount: 0, failedCount: 0 });
   });
 });
 
@@ -45,5 +45,21 @@ describe('buildFailedRunStatus', () => {
       totalCount: 5,
       failedCount: 1,
     });
+  });
+
+  it('carries the failure cause through when the worker knows it', () => {
+    expect(
+      buildFailedRunStatus({ progress: 0, totalCount: 5, errorMessage: 'job stalled more than allowable limit' }),
+    ).toEqual({
+      status: 'failed',
+      processedCount: 0,
+      totalCount: 5,
+      failedCount: 5,
+      errorMessage: 'job stalled more than allowable limit',
+    });
+  });
+
+  it('omits errorMessage entirely when there is no cause to report', () => {
+    expect(buildFailedRunStatus({ progress: 0, totalCount: 1 })).not.toHaveProperty('errorMessage');
   });
 });

@@ -52,19 +52,16 @@ export function getModelInfo({ modelId }: { modelId: string }): AIModelInfo | nu
   return AVAILABLE_MODELS[modelId as AI_MODEL_ID] ?? null;
 }
 
-/** Context window assumed for a catalog model that declares none. */
 const DEFAULT_CONTEXT_WINDOW = 100_000;
 
 /**
- * What a cost estimate can say about the model that will answer. A `custom/*` model runs
- * on the user's own endpoint, so the catalog holds neither its price nor its context
- * window and both have to reach the screen as unknown rather than as a made-up zero.
+ * The catalog holds neither a price nor a context window for a `custom/*` model, so both
+ * have to reach the screen as unknown rather than as a made-up zero.
  */
 type ModelCostProfile =
   | { isCustom: true; name: string }
   | { isCustom: false; name: string; contextWindow: number; pricing: AIModelPricing | null };
 
-/** Null when the ID belongs to no catalog and is not a custom model either. */
 export function getModelCostProfile({ modelId }: { modelId: string }): ModelCostProfile | null {
   if (isCustomModelId({ modelId })) {
     return { isCustom: true, name: getModelNameFromModelId({ modelId }) };
@@ -81,7 +78,10 @@ export function getModelCostProfile({ modelId }: { modelId: string }): ModelCost
   };
 }
 
-/** Null when the model has no price anyone here can look up. */
+/**
+ * Null means "unknown", never "free": a genuinely free model declares an explicit zero
+ * price and still computes to 0.
+ */
 export function estimateModelCostUsd({
   profile,
   inputTokens,
@@ -92,7 +92,7 @@ export function estimateModelCostUsd({
   outputTokens: number;
 }): number | null {
   if (profile.isCustom) return null;
-  if (!profile.pricing) return 0;
+  if (!profile.pricing) return null;
 
   const inputCost = (inputTokens / 1_000_000) * profile.pricing.inputPerMillion;
   const outputCost = (outputTokens / 1_000_000) * profile.pricing.outputPerMillion;
@@ -100,10 +100,7 @@ export function estimateModelCostUsd({
   return inputCost + outputCost;
 }
 
-/**
- * Check if a model ID is valid. `custom/*` IDs name a model on the user's own endpoint,
- * so there is nothing to check against the catalog: the endpoint decides at call time.
- */
+/** A `custom/*` ID has nothing to check against the catalog, so the endpoint decides at call time. */
 export function isValidModelId({ modelId }: { modelId: string }): boolean {
   if (isCustomModelId({ modelId })) return true;
   return modelId in AVAILABLE_MODELS;
@@ -124,8 +121,7 @@ export function isModelRecommendedForFeature({ modelId, feature }: { modelId: st
 }
 
 /**
- * Extract provider from a model ID (e.g., 'openai/gpt-5.6-terra' -> 'openai').
- * `custom/*` IDs are never in the catalog and always belong to the user's own endpoint.
+ * Extract provider from a model ID (e.g., 'openai/gpt-5.6-terra' -> 'openai')
  */
 export function getProviderFromModelId({ modelId }: { modelId: string }): AI_PROVIDER | null {
   if (isCustomModelId({ modelId })) return AI_PROVIDER.custom;
@@ -133,9 +129,9 @@ export function getProviderFromModelId({ modelId }: { modelId: string }): AI_PRO
   return model?.provider ?? null;
 }
 
-// RETIRED_MODELS values are typed AI_MODEL_ID, so a retired ID always maps straight to
-// a live one: one lookup, no recursion. `custom/*` IDs are user-authored names with no
-// catalog lifecycle, so they pass through.
+// RETIRED_MODELS values are typed AI_MODEL_ID, so a retired ID always maps straight to a
+// live one: one lookup, no recursion. `custom/*` names have no catalog lifecycle, so they
+// pass through.
 export function resolveLiveModelId({ modelId, feature }: { modelId: string; feature: AI_FEATURE }): string {
   if (isCustomModelId({ modelId })) return modelId;
   if (modelId in AVAILABLE_MODELS) return modelId as AI_MODEL_ID;

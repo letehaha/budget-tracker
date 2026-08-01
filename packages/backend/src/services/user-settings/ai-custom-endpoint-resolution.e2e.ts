@@ -1,8 +1,11 @@
 import { AI_FEATURE, AI_PROVIDER, BANK_PROVIDER_TYPE, isCustomModelId } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
 import { logger } from '@js/utils/logger';
 import UserSettings from '@models/user-settings.model';
+import { redisClient } from '@root/redis-client';
+import { buildLastCategorizationJobPointerKey } from '@services/ai-categorization/categorization-queue';
 import * as helpers from '@tests/helpers';
+import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import {
   FIRST_ENDPOINT_NAME,
   SECOND_ENDPOINT_MODEL,
@@ -27,14 +30,6 @@ import {
 } from '@tests/mocks/openai-compatible/mock-api';
 import { HttpResponse, http } from 'msw';
 
-/**
- * Which endpoint (if any) answers an AI run, end to end.
- *
- * The AI flow has no endpoint of its own — a bank sync emits the event the
- * categorization listener picks up, so every case here drives resolution the
- * way production does and measures the outcome on the endpoint mocks.
- */
-
 const SECOND_CUSTOM_MODEL_ID = `custom/${SECOND_ENDPOINT_MODEL}`;
 const FIRST_CUSTOM_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
 
@@ -44,14 +39,8 @@ const KEYLESS_CATALOG_MODEL_ID = 'anthropic/claude-haiku-4-5';
 /** Matches every Gemini generate call, so a case can prove the server key was never dialled. */
 const GEMINI_API_URL_REGEX = /generativelanguage\.googleapis\.com/;
 
-/**
- * Server keys the resolution ladder can reach for. Each case opts into the one
- * it needs, so all of them start unset.
- */
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
-
-/** Covers the sync request, the 4s categorization debounce and the queued job. */
-const CATEGORIZATION_RUN_MS = 7000;
+/** Covers the sync request plus the 4s debounce before the job is enqueued. */
+const CATEGORIZATION_ENQUEUE_TIMEOUT_MS = 20_000;
 const CATEGORIZATION_TEST_TIMEOUT_MS = 40_000;
 
 /** Puts an endpoint in the failed state without spending a run or a probe on it. */
@@ -83,10 +72,7 @@ async function markStoredEndpointInvalid({
   await settings.save();
 }
 
-/**
- * First column of every row in one block of the categorization prompt — the
- * transaction ids and the category ids the run is allowed to pair up.
- */
+/** First column of every row in one block of the categorization prompt. */
 function promptRowIds({ prompt, header }: { prompt: string; header: string }): string[] {
   const lines = prompt.split('\n');
   const headerIndex = lines.indexOf(header);
@@ -103,9 +89,8 @@ function promptRowIds({ prompt, header }: { prompt: string; header: string }): s
 }
 
 /**
- * Endpoint that categorizes for real: it pairs every transaction in the prompt
- * with the first category, which is what makes the run report success and
- * refresh the endpoint's stored status.
+ * Pairs every transaction in the prompt with the first category, so the run reports
+ * success and refreshes the endpoint's stored status.
  */
 function getCategorizingEndpointMock({ baseUrl, onCall }: { baseUrl: string; onCall?: () => void }) {
   return http.post(`${baseUrl}/chat/completions`, async ({ request }) => {
@@ -129,10 +114,16 @@ function getCategorizingEndpointMock({ baseUrl, onCall }: { baseUrl: string; onC
 }
 
 /**
- * Syncs a Monobank account over HTTP and waits for the categorization the sync
- * triggers, so the assertions run against a completed AI attempt.
+ * Returns once the sync-triggered categorization has finished. Waits on two positive signals
+ * rather than a fixed sleep: cases here assert zero outbound calls, and a sleep that elapsed
+ * before the job ran would pass those assertions vacuously.
  */
 async function runCategorizationOverHttp({ transactionCount = 2 }: { transactionCount?: number } = {}) {
+  const userId = await getTestUserId();
+  const pointerKey = buildLastCategorizationJobPointerKey({ userId });
+  // A pointer left over from an earlier case would satisfy the enqueue wait instantly.
+  await redisClient.del(pointerKey);
+
   const { connectionId } = await helpers.bankDataProviders.connectProvider({
     providerType: BANK_PROVIDER_TYPE.MONOBANK,
     credentials: { apiToken: VALID_MONOBANK_TOKEN },
@@ -158,43 +149,21 @@ async function runCategorizationOverHttp({ transactionCount = 2 }: { transaction
     raw: true,
   });
 
-  await helpers.sleep(CATEGORIZATION_RUN_MS);
+  const enqueueDeadline = Date.now() + CATEGORIZATION_ENQUEUE_TIMEOUT_MS;
+  while ((await redisClient.get(pointerKey)) === null) {
+    if (Date.now() > enqueueDeadline) {
+      throw new Error(`AI categorization job was never enqueued within ${CATEGORIZATION_ENQUEUE_TIMEOUT_MS}ms`);
+    }
+    await helpers.sleep(100);
+  }
+
+  await helpers.waitForCategorizationStatus({
+    predicate: (status) => status.status === 'idle' || status.status === 'failed',
+  });
 }
 
 describe('AI custom endpoint resolution', () => {
-  let selfHostFlagBeforeTest: string | undefined;
-  const serverKeysBeforeTest = new Map<string, string | undefined>();
-
-  beforeEach(() => {
-    selfHostFlagBeforeTest = process.env.IS_SELF_HOST;
-
-    // The mock endpoints live on hosts that never resolve, so the outbound guard
-    // has to be out of the picture for every case here.
-    process.env.IS_SELF_HOST = 'true';
-
-    for (const envVar of SERVER_KEY_ENV_VARS) {
-      serverKeysBeforeTest.set(envVar, process.env[envVar]);
-      delete process.env[envVar];
-    }
-  });
-
-  afterEach(() => {
-    if (selfHostFlagBeforeTest === undefined) {
-      delete process.env.IS_SELF_HOST;
-    } else {
-      process.env.IS_SELF_HOST = selfHostFlagBeforeTest;
-    }
-
-    for (const envVar of SERVER_KEY_ENV_VARS) {
-      const keyBeforeTest = serverKeysBeforeTest.get(envVar);
-
-      if (keyBeforeTest === undefined) {
-        delete process.env[envVar];
-      } else {
-        process.env[envVar] = keyBeforeTest;
-      }
-    }
-  });
+  useSelfHostWithoutServerAiKeys();
 
   describe('Resolution order', () => {
     it(
@@ -347,7 +316,6 @@ describe('AI custom endpoint resolution', () => {
 
         const [stored] = await readStoredEndpoints({ userId });
         expect(stored?.status).toBe('invalid');
-        // The stored reason names the endpoint rather than API-key credits
         expect(stored?.lastError).toMatch(/endpoint/i);
         expect(stored?.invalidatedAt).toEqual(expect.any(String));
       },
@@ -361,7 +329,6 @@ describe('AI custom endpoint resolution', () => {
         const created = await createFirstEndpoint();
         expect(created.status).toBe('valid');
 
-        // The tunnel the endpoint was reached through closed between saving it and this run
         global.mswMockServer.use(...getCustomEndpointWebPageMocks({ baseUrl: CUSTOM_ENDPOINT_BASE_URL }));
 
         const errorSpy = jest.spyOn(logger, 'error');
@@ -371,12 +338,11 @@ describe('AI custom endpoint resolution', () => {
 
           const [stored] = await readStoredEndpoints({ userId });
           expect(stored?.status).toBe('invalid');
-          // The 404 says nothing about the model, so the stored reason must not either
           expect(stored?.lastError).toMatch(/did not respond/i);
           expect(stored?.lastError).not.toContain(CUSTOM_ENDPOINT_MODEL);
           expect(stored?.invalidatedAt).toEqual(expect.any(String));
 
-          // A server the user has to bring back up is their state, not a bug worth reporting
+          // A server the user has to bring back up is their state, so it must stay out of the error log
           expect(errorSpy).not.toHaveBeenCalledWith(
             expect.objectContaining({ message: 'AI categorization batch failed' }),
           );
@@ -432,23 +398,20 @@ describe('AI custom endpoint resolution', () => {
         try {
           await runCategorizationOverHttp();
 
-          // One outbound attempt for the whole run: the batch loop stops on the
-          // first model-not-found answer instead of repeating the same request.
+          // The batch loop stops on the first model-not-found answer instead of repeating the request
           expect(endpointCalls).toBe(1);
 
-          // The endpoint is reachable and its key works, so its status must survive
           const [stored] = await readStoredEndpoints({ userId });
           expect(stored?.status).toBe('valid');
           expect(stored?.lastError).toBeUndefined();
           expect(stored?.invalidatedAt).toBeUndefined();
 
-          // The run reports the model to fix, not a generic failure
           const stopLine = infoSpy.mock.calls.find(([message]) => message.startsWith('Stopping AI categorization'));
           expect(stopLine?.[0]).toContain(CUSTOM_ENDPOINT_MODEL);
           expect(stopLine?.[0]).toContain('AI settings');
           expect(stopLine?.[1]).toEqual(expect.objectContaining({ modelId: FIRST_CUSTOM_MODEL_ID }));
 
-          // A wrong model name is the user's configuration, so it must not be logged as a bug
+          // A wrong model name is the user's configuration, so it must stay out of the error log
           expect(errorSpy).not.toHaveBeenCalledWith(
             expect.objectContaining({ message: 'AI categorization batch failed' }),
           );
@@ -501,7 +464,6 @@ describe('AI custom endpoint resolution', () => {
       const categorization = features.find((feature) => feature.feature === AI_FEATURE.categorization);
 
       expect(categorization?.isConfigured).toBe(false);
-      // Every field names the endpoint, so the screen cannot show one model and label it with another
       expect(categorization?.modelId).toBe(FIRST_CUSTOM_MODEL_ID);
       expect(categorization?.modelName).toBe(CUSTOM_ENDPOINT_MODEL);
       expect(categorization?.customEndpointId).toBe(endpoint.id);
@@ -513,15 +475,12 @@ describe('AI custom endpoint resolution', () => {
       const userId = await getTestUserId();
       const endpoint = await createFirstEndpoint();
 
-      // The model picker offers catalog models only for providers the user has a
-      // key for, but the route itself accepts the pick without one.
       const saved = await helpers.setAiFeatureConfig({
         feature: AI_FEATURE.categorization,
         modelId: KEYLESS_CATALOG_MODEL_ID,
         raw: true,
       });
 
-      // Neither key exists, so the run lands on the endpoint and the response says so
       expect(saved.isConfigured).toBe(true);
       expect(saved.modelId).toBe(FIRST_CUSTOM_MODEL_ID);
       expect(saved.modelName).toBe(CUSTOM_ENDPOINT_MODEL);
@@ -535,7 +494,6 @@ describe('AI custom endpoint resolution', () => {
       expect(config.endpointName).toBe(FIRST_ENDPOINT_NAME);
       expect(config.usingUserKey).toBe(true);
 
-      // Only the display follows the run — the pick itself is untouched
       expect(await readStoredFeatureConfigs({ userId })).toEqual([
         { feature: AI_FEATURE.categorization, modelId: KEYLESS_CATALOG_MODEL_ID },
       ]);
@@ -549,7 +507,6 @@ describe('AI custom endpoint resolution', () => {
 
       const config = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.categorization, raw: true });
 
-      // The server key answers before the endpoint is ever considered
       expect(config.modelId).toBe(KEYLESS_CATALOG_MODEL_ID);
       expect(config.customEndpointId).toBeUndefined();
       expect(config.endpointName).toBeUndefined();
@@ -557,8 +514,6 @@ describe('AI custom endpoint resolution', () => {
       expect(config.modelName).not.toBe(CUSTOM_ENDPOINT_MODEL);
     });
 
-    // The run refuses to serve the feature from the server key while the user owns
-    // endpoints, so naming a catalog model here would promise something nothing runs.
     it('keeps naming the endpoint when it is flagged invalid', async () => {
       const userId = await getTestUserId();
       const first = await createFirstEndpoint();
@@ -572,7 +527,6 @@ describe('AI custom endpoint resolution', () => {
       expect(categorization?.customEndpointId).toBe(first.id);
       expect(categorization?.endpointName).toBe(FIRST_ENDPOINT_NAME);
       expect(categorization?.modelName).toBe(CUSTOM_ENDPOINT_MODEL);
-      // The server key exists but must not be what pays here — the endpoint is the answer
       expect(categorization?.usingUserKey).toBe(true);
     });
   });

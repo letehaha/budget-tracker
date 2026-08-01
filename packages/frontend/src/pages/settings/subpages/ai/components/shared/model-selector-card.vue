@@ -94,7 +94,6 @@
             <label class="mb-1.5 block text-sm font-medium">{{ $t('settings.ai.modelSelector.modelLabel') }}</label>
             <div class="relative">
               <select
-                :key="selectRenderKey"
                 :value="selectValue"
                 class="bg-background w-full appearance-none rounded-md border py-2 pr-9 pl-3"
                 :disabled="isUpdating"
@@ -137,32 +136,32 @@
           </Button>
         </div>
 
-        <!-- Free-text model name served by the selected endpoint -->
-        <div v-if="selectedCustomEndpoint" class="mt-3">
-          <!-- Label above the row so the apply error can grow without moving the Apply button. -->
-          <label class="mb-1.5 block text-sm font-medium">
-            {{ $t('settings.ai.modelSelector.customModel.nameLabel') }}
-          </label>
-          <div class="flex flex-col gap-3 @sm/feature-header:flex-row @sm/feature-header:items-start">
-            <!-- Model ids in the rejection message have no spaces to wrap on. -->
-            <div class="min-w-0 flex-1 [&_p]:break-words">
-              <InputField
-                v-model="customModelName"
-                :maxlength="AI_CUSTOM_MODEL_NAME_MAX_LENGTH"
-                :placeholder="selectedCustomEndpoint.defaultModel"
-                :error-message="applyModelError ?? undefined"
-              />
-            </div>
-            <!-- Applying probes the endpoint for the typed model, so it can run for several seconds -->
-            <Button variant="outline" :disabled="!canApplyCustomModel" @click="handleApplyCustomModel">
-              <Loader2Icon v-if="isUpdating" class="size-4 animate-spin" />
-              {{ $t('settings.ai.modelSelector.customModel.applyButton') }}
-            </Button>
-          </div>
-          <p class="text-muted-foreground mt-1.5 text-xs">
-            {{ $t('settings.ai.modelSelector.customModel.hint', { baseUrl: selectedCustomEndpoint.baseUrl }) }}
-          </p>
-        </div>
+        <CustomModelField
+          v-if="selectedCustomEndpoint"
+          v-model="customModelName"
+          class="mt-3"
+          :endpoint="selectedCustomEndpoint"
+          :saved-model-name="savedCustomModelName"
+          :is-applying="isUpdating"
+          :error-message="applyModelError"
+          @apply="handleApplyCustomModel"
+        />
+
+        <!-- The select still names the endpoint from the feature status, so it looks fine
+        while the endpoint list is missing and the model name cannot be edited. -->
+        <p v-else-if="selectedCustomEndpointId && isCustomEndpointsError" class="text-destructive-text mt-3 text-xs">
+          {{ $t('settings.ai.modelSelector.customModel.endpointsLoadError') }}
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            class="h-auto p-0 text-xs"
+            :disabled="isFetchingCustomEndpoints"
+            @click="refetchCustomEndpoints()"
+          >
+            {{ $t('settings.ai.customEndpoint.loadError.retry') }}
+          </Button>
+        </p>
 
         <!-- Add API key hint for model selection -->
         <p v-if="!featureStatus.usingUserKey" class="text-warning-text mt-2 text-xs">
@@ -192,15 +191,9 @@
         </div>
 
         <!-- Server-provided rate limiting warning -->
-        <div
-          v-if="!featureStatus.usingUserKey"
-          class="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950"
-        >
-          <AlertTriangleIcon class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p class="text-xs text-amber-700 dark:text-amber-300">
-            {{ $t('settings.ai.modelSelector.rateLimitWarning') }}
-          </p>
-        </div>
+        <Callout v-if="!featureStatus.usingUserKey" variant="warning" class="mt-3 text-xs" icon-size-class="size-3.5">
+          {{ $t('settings.ai.modelSelector.rateLimitWarning') }}
+        </Callout>
 
         <!-- Slot for feature-specific content after the card (e.g., "How it works") -->
         <slot name="after-card" />
@@ -211,13 +204,13 @@
 
 <script setup lang="ts">
 import { getAIFeatureDisplayInfo } from '@/common/const';
-import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
-import { useAiCustomEndpoints } from '@/composable/data-queries/use-ai-custom-endpoints';
+import { useAiCustomEndpointsList } from '@/composable/data-queries/use-ai-custom-endpoints';
 import { type ModelGroup } from '@/composable/data-queries/use-feature-models';
 import { extractApiErrorMessage } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
@@ -228,33 +221,23 @@ import {
   AIModelCostTier,
   AIModelInfoWithRecommendation,
   AIModelPricing,
-  AI_CUSTOM_MODEL_NAME_MAX_LENGTH,
   AI_FEATURE,
   AI_PROVIDER,
+  buildCustomModelId,
   isCustomModelId,
 } from '@bt/shared/types';
-import {
-  AlertTriangleIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  FileTextIcon,
-  InfoIcon,
-  LineChartIcon,
-  Loader2Icon,
-  TagIcon,
-} from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { ChevronDownIcon, ChevronRightIcon, FileTextIcon, InfoIcon, LineChartIcon, TagIcon } from '@lucide/vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import {
   buildCustomEndpointOptions,
-  buildCustomModelId,
   decodeCustomEndpointOption,
   encodeCustomEndpointOption,
-  readCustomEndpointId,
+  readStoredSelectValue,
   resolveCustomModelName,
-  resolveSelectValue,
 } from './custom-endpoint-selection';
+import CustomModelField from './custom-model-field.vue';
 
 const props = defineProps<{
   featureStatus: AIFeatureStatus;
@@ -300,32 +283,39 @@ const {
   isResettingFeatureConfig: isResetting,
 } = useAiSettings();
 
-const { customEndpoints } = useAiCustomEndpoints();
+const { customEndpoints, isCustomEndpointsError, isFetchingCustomEndpoints, refetchCustomEndpoints } =
+  useAiCustomEndpointsList();
 
-const selectedCustomEndpointId = ref<string | null>(readCustomEndpointId({ status: props.featureStatus }));
+/**
+ * What the `<select>` shows. Owned here rather than derived from the props, so a pick the
+ * server refuses can be moved back.
+ */
+const selectValue = ref(readStoredSelectValue({ status: props.featureStatus }));
+
 const customModelName = ref(
   isCustomModelId({ modelId: props.featureStatus.modelId }) ? props.featureStatus.modelName : '',
 );
 
-/**
- * Why the endpoint refused the typed model. Shown under the field it is about, not in
- * a toast that covers the page and then disappears.
- */
+/** Why the endpoint refused the typed model. Shown under the field it is about. */
 const applyModelError = ref<string | null>(null);
 
-// Bumping the key re-mounts the `<select>`, which resets the DOM value after a rejected
-// pick: the browser keeps the user's choice when the bound value did not change.
-const selectRenderKey = ref(0);
+/** Endpoint the selection points at, or `null` while it names a catalog model. */
+const selectedCustomEndpointId = computed(() => decodeCustomEndpointOption({ value: selectValue.value }));
 
-const restoreStoredSelection = () => {
-  selectedCustomEndpointId.value = readCustomEndpointId({ status: props.featureStatus });
-  selectRenderKey.value += 1;
+/**
+ * Puts the dropdown back on the stored pick. The optimistic value has to render first:
+ * set and unset within one tick and `selectValue` never changes, so the browser keeps
+ * showing the refused choice.
+ */
+const restoreStoredSelection = async () => {
+  await nextTick();
+  selectValue.value = readStoredSelectValue({ status: props.featureStatus });
 };
 
 watch(
   () => props.featureStatus,
   (status) => {
-    selectedCustomEndpointId.value = readCustomEndpointId({ status });
+    selectValue.value = readStoredSelectValue({ status });
     if (isCustomModelId({ modelId: status.modelId })) {
       customModelName.value = status.modelName;
     }
@@ -362,20 +352,6 @@ const customEndpointOptions = computed(() =>
     fallbackEndpointName:
       props.featureStatus.endpointName ?? t('settings.ai.modelSelector.customModel.unknownEndpoint'),
   }),
-);
-
-const selectValue = computed(() =>
-  resolveSelectValue({
-    selectedEndpointId: selectedCustomEndpointId.value,
-    modelId: props.featureStatus.modelId,
-  }),
-);
-
-const canApplyCustomModel = computed(
-  () =>
-    !isUpdating.value &&
-    Boolean(customModelName.value.trim()) &&
-    buildCustomModelId({ modelName: customModelName.value.trim() }) !== props.featureStatus.modelId,
 );
 
 const userProviders = computed(() => new Set<AIKeyProvider>(configuredProviders.value.map((p) => p.provider)));
@@ -446,32 +422,33 @@ const formatPricePer100 = (pricing: AIModelPricing | undefined): string | null =
 
 const formattedPrice = computed(() => formatPricePer100(selectedModel.value?.pricing));
 
+/** Saves the pick and returns why the server refused it, or `null` once it is stored. */
 const handleModelChange = async ({
   modelId,
   customEndpointId,
-  reportError = (message: string) => addErrorNotification(message),
 }: {
   modelId: string;
   customEndpointId?: string;
-  /** Where the failure is surfaced. Defaults to a toast; the Apply flow shows it inline. */
-  reportError?: (message: string) => void;
-}) => {
+}): Promise<string | null> => {
   try {
     await setFeatureConfig({ feature: props.featureStatus.feature, modelId, customEndpointId });
     applyModelError.value = null;
     addSuccessNotification(t('settings.ai.modelSelector.notifications.updateSuccess'));
+    return null;
   } catch (error) {
-    reportError(extractApiErrorMessage(error) ?? t('settings.ai.modelSelector.notifications.updateFailed'));
-    // The dropdown was moved optimistically; put it back on whatever is stored
-    restoreStoredSelection();
+    await restoreStoredSelection();
+    return extractApiErrorMessage(error) ?? t('settings.ai.modelSelector.notifications.updateFailed');
   }
 };
 
 const handleSelectChange = async (value: string) => {
+  // Moved before the request so the dropdown answers the click; a refusal moves it back.
+  selectValue.value = value;
+
   const endpointId = decodeCustomEndpointOption({ value });
   if (endpointId === null) {
-    selectedCustomEndpointId.value = null;
-    await handleModelChange({ modelId: value });
+    const failure = await handleModelChange({ modelId: value });
+    if (failure) addErrorNotification(failure);
     return;
   }
 
@@ -484,25 +461,22 @@ const handleSelectChange = async (value: string) => {
   });
   if (!modelName) {
     addErrorNotification(t('settings.ai.modelSelector.customModel.missingModelName'));
-    restoreStoredSelection();
+    await restoreStoredSelection();
     return;
   }
 
-  selectedCustomEndpointId.value = endpointId;
   customModelName.value = modelName;
-  await handleModelChange({ modelId: buildCustomModelId({ modelName }), customEndpointId: endpointId });
+  const failure = await handleModelChange({ modelId: buildCustomModelId({ modelName }), customEndpointId: endpointId });
+  if (failure) addErrorNotification(failure);
 };
 
-const handleApplyCustomModel = async () => {
+const handleApplyCustomModel = async ({ modelName }: { modelName: string }) => {
   const endpointId = selectedCustomEndpointId.value;
-  if (!canApplyCustomModel.value || !endpointId) return;
+  if (!endpointId) return;
 
-  await handleModelChange({
-    modelId: buildCustomModelId({ modelName: customModelName.value.trim() }),
+  applyModelError.value = await handleModelChange({
+    modelId: buildCustomModelId({ modelName }),
     customEndpointId: endpointId,
-    reportError: (message) => {
-      applyModelError.value = message;
-    },
   });
 };
 

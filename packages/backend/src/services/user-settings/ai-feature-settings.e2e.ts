@@ -1,8 +1,9 @@
 import { AIFeatureConfig, AI_FEATURE, API_ERROR_CODES } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import UserSettings, { DEFAULT_SETTINGS } from '@models/user-settings.model';
 import { RateLimitService } from '@services/common/rate-limit.service';
 import * as helpers from '@tests/helpers';
+import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import { makeRequest } from '@tests/helpers/common';
 import {
   createFirstEndpoint,
@@ -64,6 +65,8 @@ async function readStoredModelId({ userId, feature }: { userId: number; feature:
 }
 
 describe('AI feature settings – lazy upgrade of retired model IDs', () => {
+  useSelfHostWithoutServerAiKeys();
+
   describe('GET /user/settings/ai/features', () => {
     it('rewrites a retired model in the response and persists the upgrade', async () => {
       const userId = await getTestUserId();
@@ -158,22 +161,7 @@ describe('PUT /user/settings/ai/features/:feature – custom model probe', () =>
   const SERVED_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
   const UNSERVED_MODEL_ID = `custom/${CUSTOM_ENDPOINT_UNKNOWN_MODEL}`;
 
-  let selfHostFlagBeforeTest: string | undefined;
-
-  // The mock endpoint's hostname never resolves, so the outbound URL guard has to
-  // stand down for the probe to reach msw.
-  beforeEach(() => {
-    selfHostFlagBeforeTest = process.env.IS_SELF_HOST;
-    process.env.IS_SELF_HOST = 'true';
-  });
-
-  afterEach(() => {
-    if (selfHostFlagBeforeTest === undefined) {
-      delete process.env.IS_SELF_HOST;
-    } else {
-      process.env.IS_SELF_HOST = selfHostFlagBeforeTest;
-    }
-  });
+  useSelfHostWithoutServerAiKeys();
 
   /** An endpoint that publishes a `/models` catalogue, so the list decides the verdict. */
   async function createListingEndpoint() {
@@ -333,9 +321,6 @@ describe('PUT /user/settings/ai/features/:feature – custom model probe', () =>
     expect(config.isConfigured).toBe(true);
     expect(endpointCalls).toBe(0);
 
-    // The response names whatever would answer a call, which is the saved
-    // endpoint while no key backs the catalog model, so the stored row is what
-    // proves the pick landed.
     expect(await readStoredConfig({ userId, feature: AI_FEATURE.categorization })).toEqual({
       feature: AI_FEATURE.categorization,
       modelId: LIVE_REPLACEMENT_ID,

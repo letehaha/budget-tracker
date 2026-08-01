@@ -4,11 +4,6 @@ import * as helpers from '@tests/helpers';
 import { createFirstEndpoint, getTestUserId, seedApiKey, setAiFeatureConfig } from '@tests/helpers/user-settings';
 import { CUSTOM_ENDPOINT_MODEL } from '@tests/mocks/openai-compatible/mock-api';
 
-/**
- * What the investment estimate route reports for the model that will answer. The estimate
- * itself makes no AI call, so every case here is decided purely by the resolution ladder.
- */
-
 const CUSTOM_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
 
 /** Catalog default for investment parsing, so a seeded Google key is enough to reach it. */
@@ -35,8 +30,7 @@ describe('Investment transactions parser cost estimation', () => {
   beforeEach(() => {
     selfHostFlagBeforeTest = process.env.IS_SELF_HOST;
 
-    // The mock endpoint lives on a host that never resolves, so the outbound guard
-    // has to be out of the picture for the endpoint to be saveable.
+    // The mock endpoint's host never resolves, so the outbound guard has to be off to save it.
     process.env.IS_SELF_HOST = 'true';
 
     for (const envVar of SERVER_KEY_ENV_VARS) {
@@ -81,10 +75,7 @@ describe('Investment transactions parser cost estimation', () => {
     expect(estimate.modelName).toBe(CUSTOM_ENDPOINT_MODEL);
     expect(estimate.usingUserKey).toBe(true);
     expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
-
-    // Whoever runs the endpoint sets the price and the context window, so neither is knowable here
     expect(estimate.estimatedCostUsd).toBeNull();
-    expect(estimate.tokenLimit).toBeUndefined();
   });
 
   it('prices a catalog model from the catalog', async () => {
@@ -98,6 +89,5 @@ describe('Investment transactions parser cost estimation', () => {
 
     expect(estimate.modelId).toBe(CATALOG_MODEL_ID);
     expect(estimate.estimatedCostUsd).toBeGreaterThan(0);
-    expect(estimate.tokenLimit?.maxInputTokens).toBeGreaterThan(0);
   });
 });

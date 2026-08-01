@@ -125,14 +125,10 @@ import { useI18n } from 'vue-i18n';
 import EndpointSetupHelp from './endpoint-setup-help.vue';
 
 const props = defineProps<{
-  open: boolean;
-  /** Absent while the dialog collects a brand-new endpoint. */
   endpoint?: AICustomEndpointInfo | null;
 }>();
 
-const emit = defineEmits<{
-  (e: 'update:open', value: boolean): void;
-}>();
+const isOpen = defineModel<boolean>('open', { default: false });
 
 const { t } = useI18n();
 const { addSuccessNotification, addWarningNotification } = useNotificationCenter();
@@ -145,11 +141,6 @@ const {
   testCustomEndpointConnection,
   isTestingCustomEndpoint,
 } = useAiCustomEndpoints();
-
-const isOpen = computed({
-  get: () => props.open,
-  set: (value) => emit('update:open', value),
-});
 
 const form = reactive({
   name: '',
@@ -170,7 +161,7 @@ const resetFeedback = () => {
 
 // Seeded on open only, so a refetch from inside the dialog never overwrites what the user is typing.
 watch(
-  () => props.open,
+  isOpen,
   (open) => {
     if (!open) return;
     const info = props.endpoint;
@@ -235,8 +226,6 @@ const handleTest = async () => {
   const savedEndpoint = props.endpoint;
 
   try {
-    // A saved endpoint may leave connection fields blank and let the server fill
-    // them from what it stored; a new one must send both.
     const result = await testCustomEndpointConnection(
       savedEndpoint
         ? {
@@ -268,14 +257,9 @@ const confirmRemoveApiKey = async () => {
   resetFeedback();
 
   try {
-    // `apiKey: null` drops the stored key; the endpoint is revalidated without it
-    const updated = await updateCustomEndpoint({
-      id: props.endpoint.id,
-      name: form.name.trim() || props.endpoint.name,
-      baseUrl: form.baseUrl.trim() || props.endpoint.baseUrl,
-      defaultModel: form.defaultModel.trim() || props.endpoint.defaultModel,
-      apiKey: null,
-    });
+    // Only `apiKey: null` is sent: omitted fields keep their stored values, and the
+    // form may hold edits the user has not saved yet.
+    const updated = await updateCustomEndpoint({ id: props.endpoint.id, apiKey: null });
     form.apiKey = '';
 
     // The key is dropped even if the endpoint stops answering without it, so a 200 can come back invalid.

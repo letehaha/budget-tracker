@@ -1,6 +1,3 @@
-// The verdict this file produces is what a user is told about their own endpoint,
-// so a misfire either hides a real problem or blames the wrong thing.
-
 import { i18nextReady, t } from '@i18n/index';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
 import { ValidationError } from '@js/errors';
@@ -70,8 +67,8 @@ describe('validateCustomEndpoint', () => {
 
   beforeEach(() => {
     selfHostFlagBeforeTest = process.env.IS_SELF_HOST;
-    // Self-host mode stands the outbound guard down, so `createGuardedFetch` hands
-    // back the stub below instead of resolving a hostname that does not exist.
+    // Self-host mode stands the outbound guard down, so the stub below answers instead of a
+    // hostname that never resolves.
     process.env.IS_SELF_HOST = 'true';
     fetchBeforeTest = globalThis.fetch;
     generateCalls = 0;
@@ -105,10 +102,7 @@ describe('validateCustomEndpoint', () => {
     });
   }
 
-  /**
-   * Answers `/models` with `onModelList` and counts every `/chat/completions` post,
-   * so a test can prove whether the generate probe ran at all.
-   */
+  /** Counts every `/chat/completions` post, so a test can prove whether the generate probe ran. */
   function stubEndpoint({
     onModelList,
     onGenerate = () => completionResponse(),
@@ -143,8 +137,6 @@ describe('validateCustomEndpoint', () => {
     expect(generateCalls).toBe(0);
   });
 
-  // The server may answer a generate call with whatever model it has loaded, so the
-  // list is the only thing that can tell a typo apart from a served model.
   it('rejects a model the endpoint does not list and names what it offers', async () => {
     stubEndpoint({ onModelList: () => listOf({ modelIds: ['qwen2.5', 'mistral'] }) });
 
@@ -227,8 +219,6 @@ describe('validateCustomEndpoint', () => {
     expect(generateCalls).toBe(1);
   });
 
-  // A busy aggregator or an Ollama loading a model can be slow to list and still
-  // serve a completion, so the list deadline must not decide the endpoint is dead.
   it('falls back to the generate probe when the list request times out', async () => {
     stubEndpoint({
       onModelList: () => {
@@ -242,8 +232,7 @@ describe('validateCustomEndpoint', () => {
     expect(generateCalls).toBe(1);
   });
 
-  // Reachable and authenticated, just busy: rejecting here would make a working
-  // endpoint unsaveable, so the verdict is left to real usage.
+  // Rejecting here would make a working endpoint unsaveable.
   it('accepts the endpoint when the generate probe hits a rate limit', async () => {
     stubEndpoint({
       onModelList: () => jsonResponse({ body: { error: 'not found' }, status: 404 }),
@@ -271,8 +260,6 @@ describe('validateCustomEndpoint', () => {
     expect(generateCalls).toBe(1);
   });
 
-  // A tunnel whose agent is gone answers 404 with a web page on every path, including
-  // `/chat/completions`. Blaming the model there sends the user editing a correct name.
   it('reports a server answering with a web page instead of blaming the model', async () => {
     const offlinePage = () =>
       new Response('<html><body>The endpoint is offline (ERR_NGROK_3200)</body></html>', {
@@ -289,9 +276,8 @@ describe('validateCustomEndpoint', () => {
     expect(generateCalls).toBe(1);
   });
 
-  // Cloudflare Access or basic auth answers 401 with its own page before the API ever
-  // sees the request. "Check your API key" would send the user rotating a key the server
-  // never judged — the verdict has to point at the URL and the gate instead.
+  // Cloudflare Access or basic auth answers 401 with its own page before the API ever sees
+  // the request, so "check your API key" would send the user rotating a fine key.
   it('reports an HTML 401 as a non-API answer, not a rejected key', async () => {
     const gatePage = () =>
       new Response('<html><body>Sign in to continue</body></html>', {

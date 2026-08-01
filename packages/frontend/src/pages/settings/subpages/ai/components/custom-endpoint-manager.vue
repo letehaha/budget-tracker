@@ -18,7 +18,7 @@
     </div>
 
     <!-- Ahead of the empty state: a failed fetch would otherwise say "no endpoints yet"
-    and invite re-adding endpoints that are still saved. -->
+    and invite re-adding ones that are still saved. -->
     <div
       v-else-if="isCustomEndpointsError"
       class="flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center"
@@ -73,12 +73,17 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
+import { useNotificationCenter } from '@/components/notification-center';
 import { useAiCustomEndpoints } from '@/composable/data-queries/use-ai-custom-endpoints';
 import { Loader2Icon, PlugZapIcon, PlusIcon, RotateCwIcon, TriangleAlertIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import CustomEndpointDialog from './custom-endpoint-dialog.vue';
 import CustomEndpointRow from './custom-endpoint-row.vue';
+
+const { t } = useI18n();
+const { addInfoNotification } = useNotificationCenter();
 
 const {
   customEndpoints,
@@ -97,10 +102,12 @@ const editedEndpoint = computed(
   () => customEndpoints.value.find((endpoint) => endpoint.id === editedEndpointId.value) ?? null,
 );
 
-// An endpoint deleted elsewhere would leave the dialog editing nothing, and saving would create a duplicate.
+// An endpoint deleted elsewhere leaves the dialog editing nothing, and saving would create a
+// duplicate. Closing it needs a reason, or it reads as the form losing the user's work.
 watch(editedEndpoint, (endpoint) => {
   if (isDialogOpen.value && editedEndpointId.value && !endpoint) {
     isDialogOpen.value = false;
+    addInfoNotification(t('settings.ai.customEndpoint.notifications.editedEndpointGone'));
   }
 });
 

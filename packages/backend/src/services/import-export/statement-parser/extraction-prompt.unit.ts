@@ -38,8 +38,6 @@ describe('parseAIResponse', () => {
   });
 
   describe('date formats', () => {
-    // Statements exported from finance apps carry ISO timestamps, and the model copies
-    // the sub-second part straight through.
     it('keeps a row whose timestamp has fractional seconds', () => {
       const result = parse({ rows: ['2026-06-16 18:17:19.587,Zona;Clips BYD,Sebastian,250,E,,90'] });
 
@@ -79,9 +77,6 @@ describe('parseAIResponse', () => {
   });
 
   describe('rows with a column too many', () => {
-    // The model sometimes emits an extra column in the middle. Reading by position from
-    // the left then lands `amount` on an empty cell, which used to parse as 0 and only
-    // blew up later, at import validation.
     it('realigns an 8-column row from its trailing columns', () => {
       const result = parse({ rows: ['2026-06-14 12:49:08.364,Queseria Fama,,Queseria Fama,1115,E,,80'] });
 
@@ -140,10 +135,8 @@ describe('parseAIResponse', () => {
       expect(result?.droppedRowCount).toBe(1);
     });
 
-    // Locale number formats are normalised on the way in — see parse-decimal-amount.unit.ts
-    // for the full matrix. A comma only survives to that point when the model quoted the
-    // field, as the format tells it to; left unquoted it is a column break and nothing
-    // downstream can tell "1,234.56" from two cells holding "1" and "234.56".
+    // A comma reaches the amount parser only when the model quoted the field. Unquoted it
+    // is a column break, and nothing downstream can tell "1,234.56" from two cells.
     it.each([
       ['a whole number', '250', 250],
       ['two decimals', '250.50', 250.5],
@@ -175,6 +168,26 @@ describe('parseAIResponse', () => {
       expect(result?.droppedRowCount).toBe(1);
     });
 
+    it.each([
+      ['a US grouping', '"1,234.56"', 1234.56],
+      ['a European grouping', '"1.234,56"', 1234.56],
+      ['a decimal comma', '"5000,25"', 5000.25],
+      ['a negative balance (overdrawn account)', '-1250.75', -1250.75],
+    ])('keeps a balance written as %s without dropping the row', (_label, balanceStr, expected) => {
+      const result = parse({ rows: [`2026-06-16,Shop,Shop,250,E,${balanceStr},90`] });
+
+      expect(result?.droppedRowCount).toBe(0);
+      expect(result?.transactions[0]?.balance).toBe(expected);
+    });
+
+    it('keeps the row but drops the balance when the balance is unreadable', () => {
+      const result = parse({ rows: ['2026-06-16,Shop,Shop,250,E,n/a,90'] });
+
+      expect(result?.droppedRowCount).toBe(0);
+      expect(result?.transactions[0]?.amount).toBe(250);
+      expect(result?.transactions[0]?.balance).toBeUndefined();
+    });
+
     it('drops a negative amount — direction is the type column, not the sign', () => {
       const result = parse({
         rows: ['2026-06-16,Real one,Shop,250,E,,90', '2026-06-16,Broken,Shop,-40,E,,90'],
@@ -186,8 +199,8 @@ describe('parseAIResponse', () => {
   });
 
   describe('the statement this parser was fixed for', () => {
-    // Every row the model produced for a Uruguayan multi-account export: timestamps with
-    // milliseconds throughout and an extra column on the rows where it filled in a payee.
+    // A Uruguayan multi-account export: milliseconds on every timestamp, and an extra
+    // column on the rows where the model filled in a payee.
     const ROWS = [
       '2026-06-16 18:17:19.587,Zona;Clips BYD,Sebastian,250,E,,90',
       '2026-06-16 17:44:03,Transferencia efectiva,,,640,E,,80',
@@ -228,9 +241,8 @@ describe('parseAIResponse', () => {
   });
 
   describe('a response no transaction can be read from', () => {
-    // A local model can leave the amount column out of every row. Nothing is
-    // recoverable, but the caller still needs to tell the user that rows were seen
-    // and rejected rather than that the file was unreadable.
+    // A local model can leave the amount out of every row. Nothing is recoverable, but the
+    // caller still has to tell the user that rows were seen and rejected.
     const ROWS_WITHOUT_AMOUNTS = [
       '2026-06-16 18:17:19,Clips BYD;Recompensas;Sebastián,,E,,100',
       '2026-06-16 17:44:03,Transferir, retirar;Efectivo,,,,E,,100',

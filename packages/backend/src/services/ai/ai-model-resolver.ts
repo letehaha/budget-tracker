@@ -1,47 +1,40 @@
-import { AI_CUSTOM_MODEL_PREFIX, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import { AIKeyProvider, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 
-import { getAiApiKey } from '../user-settings/ai-api-key';
-import { getCustomEndpointById } from '../user-settings/ai-custom-endpoint';
+import { decryptStoredApiKey, getStoredAiSettings } from '../user-settings/ai-api-key';
+import { markCustomEndpointInvalid, readEndpointCredentials } from '../user-settings/ai-custom-endpoint';
 import { getFeatureConfig } from '../user-settings/ai-feature-settings';
-import { resolveFallbackCustomEndpoint } from './custom-endpoint-fallback';
-import { getDefaultModelForFeature, getProviderFromModelId } from './models-config';
+import { CUSTOM_ENDPOINT_STORED_KEY_UNREADABLE_ERROR_MESSAGE } from './custom-endpoint-failure';
+import { getProviderFromModelId } from './models-config';
+import { getServerApiKey, pickResolutionStep } from './resolution-ladder';
 
-interface AIConfigResolution {
-  provider: AI_PROVIDER;
+interface CatalogConfigResolution {
+  provider: AIKeyProvider;
   /** `provider/model` format */
   modelId: string;
-  /** Null only for a custom endpoint that needs no auth */
-  apiKey: string | null;
-  /** Endpoint root, set only for `AI_PROVIDER.custom` */
-  baseUrl?: string;
-  /** Which custom endpoint answered, set only for `AI_PROVIDER.custom` */
-  customEndpointId?: string;
+  apiKey: string;
   usingUserKey: boolean;
 }
 
-function getServerApiKey({ provider }: { provider: AI_PROVIDER }): string | null {
-  switch (provider) {
-    case AI_PROVIDER.google:
-      return process.env.GEMINI_API_KEY || null;
-    case AI_PROVIDER.openai:
-      return process.env.OPENAI_API_KEY || null;
-    case AI_PROVIDER.anthropic:
-      return process.env.ANTHROPIC_API_KEY || null;
-    case AI_PROVIDER.groq:
-      return process.env.GROQ_API_KEY || null;
-    default:
-      return null;
-  }
+interface CustomConfigResolution {
+  provider: AI_PROVIDER.custom;
+  modelId: string;
+  /** Null when the endpoint needs no auth */
+  apiKey: string | null;
+  baseUrl: string;
+  customEndpointId: string;
+  usingUserKey: true;
 }
 
+type AIConfigResolution = CatalogConfigResolution | CustomConfigResolution;
+
 /**
- * Resolves the AI configuration for a user and feature. Priority: the user's explicit
- * feature config, then the feature default on the user's own key, then their first
- * custom endpoint not flagged invalid, then the feature default on the server key.
- * Returns null when none of those yield credentials, and also when the user owns
- * endpoints but all of them are down — the server key would move their data to a
- * provider they never picked.
+ * Materializes the credentials for the picked resolution step. A credential that fails to
+ * materialize (an undecryptable stored key) is excluded and the walk re-runs, so one broken
+ * secret never dead-ends a step another credential could serve.
+ *
+ * Returns null when nothing yields credentials, and also when the user owns endpoints and
+ * all of them are down, even with a server key available.
  */
 export async function resolveAIConfiguration({
   userId,
@@ -50,145 +43,102 @@ export async function resolveAIConfiguration({
   userId: number;
   feature: AI_FEATURE;
 }): Promise<AIConfigResolution | null> {
-  // 1. Check for user's explicit feature configuration
-  const featureConfig = await getFeatureConfig({ userId, feature });
+  const config = await getFeatureConfig({ userId, feature });
+  const aiSettings = await getStoredAiSettings({ userId });
+  const endpoints = aiSettings?.customEndpoints ?? [];
+  const storedKeyProviders = (aiSettings?.apiKeys ?? []).map((key) => key.provider);
 
-  if (featureConfig) {
-    const provider = getProviderFromModelId({ modelId: featureConfig.modelId });
+  if (config && !getProviderFromModelId({ modelId: config.modelId })) {
+    logger.warn('Unknown model ID in user feature config', { userId, feature, modelId: config.modelId });
+  }
 
-    // A null provider means the ID isn't in the model catalog at all.
-    if (!provider) {
-      logger.warn('Unknown model ID in user feature config', {
+  const excludedEndpointIds = new Set<string>();
+  const unreadableKeyProviders = new Set<AIKeyProvider>();
+
+  // Every pass either returns or grows one of the exclusion sets, so the walk ends.
+  const maxPasses = endpoints.length + storedKeyProviders.length + 2;
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    const step = pickResolutionStep({
+      feature,
+      config,
+      keyProviders: new Set(storedKeyProviders.filter((provider) => !unreadableKeyProviders.has(provider))),
+      endpoints,
+      excludedEndpointIds,
+    });
+
+    if (pass === 0 && config && step.kind !== 'configured-custom' && step.kind !== 'configured-catalog') {
+      // Reachable by deleting the endpoint or key the config relies on: user state, not a bug.
+      logger.info('Stored AI feature config cannot answer, falling back', {
         userId,
         feature,
-        modelId: featureConfig.modelId,
+        modelId: config.modelId,
+        customEndpointId: config.customEndpointId,
       });
-      // Fall through to defaults
-    } else if (provider === AI_PROVIDER.custom) {
-      const configuredEndpoint = featureConfig.customEndpointId
-        ? await getCustomEndpointById({ userId, endpointId: featureConfig.customEndpointId })
-        : null;
+    }
 
-      if (configuredEndpoint) {
+    switch (step.kind) {
+      case 'configured-custom':
+      case 'fallback-endpoint': {
+        const credentials = readEndpointCredentials({ endpoint: step.endpoint, userId });
+
+        if (credentials.hasApiKey && credentials.apiKey === null) {
+          // Dialling keyless would surface as an auth failure blaming a key the user never
+          // touched, so flag the endpoint with copy that sends them to re-enter the key.
+          await markCustomEndpointInvalid({
+            userId,
+            endpointId: step.endpoint.id,
+            errorMessage: CUSTOM_ENDPOINT_STORED_KEY_UNREADABLE_ERROR_MESSAGE,
+          });
+          excludedEndpointIds.add(step.endpoint.id);
+          continue;
+        }
+
         return {
           provider: AI_PROVIDER.custom,
-          modelId: featureConfig.modelId,
-          apiKey: configuredEndpoint.apiKey,
-          baseUrl: configuredEndpoint.baseUrl,
-          customEndpointId: configuredEndpoint.id,
+          modelId: step.modelId,
+          apiKey: credentials.apiKey,
+          baseUrl: credentials.baseUrl,
+          customEndpointId: step.endpoint.id,
           usingUserKey: true,
         };
       }
 
-      // Reachable by deleting the endpoint in another tab: user state, not a bug.
-      logger.info('Feature config points at a custom model but its endpoint is missing', {
-        userId,
-        feature,
-        modelId: featureConfig.modelId,
-        customEndpointId: featureConfig.customEndpointId,
-      });
-      // Fall through to defaults
-    } else {
-      const userApiKey = await getAiApiKey({ userId, provider });
-      if (userApiKey) {
-        return {
-          provider,
-          modelId: featureConfig.modelId,
-          apiKey: userApiKey,
-          usingUserKey: true,
-        };
+      case 'configured-catalog':
+      case 'default-catalog': {
+        if (!step.usingUserKey) {
+          const serverApiKey = getServerApiKey({ provider: step.provider });
+          if (!serverApiKey) {
+            logger.error('Server AI key vanished between pick and use', { feature, provider: step.provider });
+            return null;
+          }
+          return { provider: step.provider, modelId: step.modelId, apiKey: serverApiKey, usingUserKey: false };
+        }
+
+        const apiKey = decryptStoredApiKey({ aiSettings, provider: step.provider, userId });
+        if (apiKey === null) {
+          unreadableKeyProviders.add(step.provider);
+          continue;
+        }
+        return { provider: step.provider, modelId: step.modelId, apiKey, usingUserKey: true };
       }
 
-      const serverApiKey = getServerApiKey({ provider });
-      if (serverApiKey) {
-        return {
-          provider,
-          modelId: featureConfig.modelId,
-          apiKey: serverApiKey,
-          usingUserKey: false,
-        };
-      }
+      case 'all-endpoints-down':
+        // Serving from the server key would send the user's transactions to a cloud
+        // provider they never chose.
+        logger.info('Every custom AI endpoint is flagged invalid, leaving the feature unserved', { userId, feature });
+        return null;
 
-      logger.warn('No API key available for user-configured model', {
-        userId,
-        feature,
-        provider,
-      });
-      // Fall through to try default provider
+      case 'unserved':
+        if (step.reason === 'invalid-default') {
+          logger.error('Invalid default model ID configuration', { feature });
+        } else {
+          logger.info('No API key available for AI feature', { userId, feature });
+        }
+        return null;
     }
   }
 
-  // 2. Feature default with the user's own key
-  const defaultModelId = getDefaultModelForFeature({ feature });
-  const defaultProvider = getProviderFromModelId({ modelId: defaultModelId });
-
-  if (!defaultProvider) {
-    logger.error('Invalid default model ID configuration', {
-      feature,
-      modelId: defaultModelId,
-    });
-    return null;
-  }
-
-  const userApiKeyForDefault = await getAiApiKey({ userId, provider: defaultProvider });
-  if (userApiKeyForDefault) {
-    return {
-      provider: defaultProvider,
-      modelId: defaultModelId,
-      apiKey: userApiKeyForDefault,
-      usingUserKey: true,
-    };
-  }
-
-  // 3. The user's own endpoint, before falling back to server credentials
-  const fallbackEndpointInfo = await resolveFallbackCustomEndpoint({ userId });
-  if (fallbackEndpointInfo.dialable) {
-    const fallbackEndpoint = await getCustomEndpointById({ userId, endpointId: fallbackEndpointInfo.dialable.id });
-
-    if (fallbackEndpoint) {
-      return {
-        provider: AI_PROVIDER.custom,
-        modelId: `${AI_CUSTOM_MODEL_PREFIX}${fallbackEndpoint.defaultModel}`,
-        apiKey: fallbackEndpoint.apiKey,
-        baseUrl: fallbackEndpoint.baseUrl,
-        customEndpointId: fallbackEndpoint.id,
-        usingUserKey: true,
-      };
-    }
-
-    // Reachable by deleting the endpoint between the two reads: user state, not a bug.
-    logger.info('Fallback custom endpoint went away before its credentials could be read', {
-      userId,
-      feature,
-      customEndpointId: fallbackEndpointInfo.dialable.id,
-    });
-    // Fall through to the server key
-  } else if (fallbackEndpointInfo.first) {
-    // The user runs their own endpoints and every one of them is flagged down. The server
-    // key points at a cloud provider, so serving the feature from it would send their
-    // transactions somewhere they never chose. The feature waits until they fix one.
-    logger.info('Every custom AI endpoint is flagged invalid, leaving the feature unserved', {
-      userId,
-      feature,
-    });
-    return null;
-  }
-
-  // 4. Server API key for the default provider
-  const serverApiKey = getServerApiKey({ provider: defaultProvider });
-  if (!serverApiKey) {
-    logger.warn('No API key available for AI feature', {
-      userId,
-      feature,
-      provider: defaultProvider,
-    });
-    return null;
-  }
-
-  return {
-    provider: defaultProvider,
-    modelId: defaultModelId,
-    apiKey: serverApiKey,
-    usingUserKey: false,
-  };
+  logger.error('AI configuration resolution did not settle', { userId, feature });
+  return null;
 }

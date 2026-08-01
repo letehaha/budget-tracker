@@ -2,13 +2,16 @@
   <div class="rounded-lg border p-3" :class="{ 'border-destructive/50 bg-destructive/5': isEndpointInvalid }">
     <div class="flex items-start gap-3">
       <Loader2Icon v-if="isTestingCustomEndpoint" class="text-muted-foreground mt-0.5 size-5 shrink-0 animate-spin" />
-      <DesktopOnlyTooltip v-else :content="statusText">
-        <TriangleAlertIcon v-if="isEndpointInvalid" class="text-destructive-text mt-0.5 size-5 shrink-0" />
-        <CheckCircleIcon v-else class="text-success-text mt-0.5 size-5 shrink-0" />
-      </DesktopOnlyTooltip>
+      <CredentialStatus
+        v-else
+        icon-only
+        :status="endpoint.status"
+        :last-validated-at="endpoint.lastValidatedAt"
+        :invalidated-at="endpoint.invalidatedAt"
+      />
 
-      <!-- Narrow: name / base URL / model stacked. Wide: name and model share a line,
-      `w-full` pushes the base URL onto its own. -->
+      <!-- Wide layout: name and model share a line, and `w-full` on the base URL pushes it
+      onto its own. -->
       <div
         class="flex min-w-0 flex-1 flex-col gap-0.5 @md/ai-endpoints:flex-row @md/ai-endpoints:flex-wrap @md/ai-endpoints:items-baseline @md/ai-endpoints:gap-x-3"
       >
@@ -20,7 +23,7 @@
             v-if="isEndpointInvalid"
             class="bg-destructive/10 text-destructive-text shrink-0 rounded-full px-2 py-0.5 text-xs"
           >
-            {{ $t('settings.ai.customEndpoint.badges.invalid') }}
+            {{ $t('settings.ai.credentialStatus.invalidBadge') }}
           </span>
         </div>
 
@@ -68,7 +71,7 @@
             {{ $t('settings.ai.customEndpoint.form.testButton') }}
           </Button>
 
-          <div class="bg-border my-1 h-px" />
+          <Separator class="my-1" />
 
           <Button
             variant="ghost"
@@ -84,8 +87,6 @@
       </ResponsiveMenu>
     </div>
 
-    <!-- The endpoint stays saved while it is down, so the row carries the way back: what
-    went wrong, and one button to try it again once the server is back. -->
     <div v-if="isEndpointInvalid" class="mt-2 space-y-2">
       <p v-if="endpoint.lastError" class="text-destructive-text text-xs break-words">
         {{ endpoint.lastError }}
@@ -115,24 +116,17 @@
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveMenu from '@/components/common/responsive-menu.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Separator } from '@/components/lib/ui/separator';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiCustomEndpoints } from '@/composable/data-queries/use-ai-custom-endpoints';
-import { useDateLocale } from '@/composable/use-date-locale';
 import { extractApiErrorMessage } from '@/js/errors';
 import { AICustomEndpointInfo } from '@bt/shared/types';
-import {
-  CheckCircleIcon,
-  Loader2Icon,
-  MoreVerticalIcon,
-  PencilIcon,
-  PlugZapIcon,
-  RotateCwIcon,
-  Trash2Icon,
-  TriangleAlertIcon,
-} from '@lucide/vue';
+import { Loader2Icon, MoreVerticalIcon, PencilIcon, PlugZapIcon, RotateCwIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import CredentialStatus from './shared/credential-status.vue';
 
 const props = defineProps<{
   endpoint: AICustomEndpointInfo;
@@ -143,7 +137,6 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { formatDistanceToNow } = useDateLocale();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
 const {
@@ -162,28 +155,6 @@ const isBusy = computed(() => isRemovingCustomEndpoint.value || isTestingCustomE
 
 const modelLabel = computed(() => t('settings.ai.customEndpoint.status.model', { model: props.endpoint.defaultModel }));
 
-// Endpoints stored before status tracking carry no timestamps, and JSONB dates are unvalidated.
-const statusDate = computed(() => {
-  const info = props.endpoint;
-  const isoDate = isEndpointInvalid.value ? (info.invalidatedAt ?? info.lastValidatedAt) : info.lastValidatedAt;
-  if (!isoDate) return null;
-  const date = new Date(isoDate);
-  return Number.isNaN(date.getTime()) ? null : date;
-});
-
-const statusText = computed(() => {
-  if (!statusDate.value) {
-    return isEndpointInvalid.value
-      ? t('settings.ai.customEndpoint.status.failedNoDate')
-      : t('settings.ai.customEndpoint.status.validatedNoDate');
-  }
-
-  const timeAgo = formatDistanceToNow(statusDate.value, { addSuffix: true });
-  return isEndpointInvalid.value
-    ? t('settings.ai.customEndpoint.status.failed', { timeAgo })
-    : t('settings.ai.customEndpoint.status.validated', { timeAgo });
-});
-
 const handleEdit = ({ close }: { close: () => void }) => {
   close();
   emit('edit');
@@ -196,7 +167,6 @@ const handleRemove = ({ close }: { close: () => void }) => {
 
 const runConnectionTest = async () => {
   try {
-    // Everything the probe needs is already stored, so the id alone is sent.
     const result = await testCustomEndpointConnection({ endpointId: props.endpoint.id });
     if (result.isValid) {
       addSuccessNotification(t('settings.ai.customEndpoint.test.success'));

@@ -4,15 +4,15 @@ import * as helpers from '@tests/helpers';
 import { createFirstEndpoint, getTestUserId, seedApiKey, setAiFeatureConfig } from '@tests/helpers/user-settings';
 import { CUSTOM_ENDPOINT_MODEL } from '@tests/mocks/openai-compatible/mock-api';
 
-/**
- * What the estimate route reports for the model that will answer. The estimate itself
- * makes no AI call, so every case here is decided purely by the resolution ladder.
- */
+// The estimate makes no AI call, so every case here is decided by the model resolution ladder.
 
 const CUSTOM_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
 
 /** Catalog default for statement parsing, so a seeded Google key is enough to reach it. */
 const CATALOG_MODEL_ID = 'google/gemini-3.6-flash';
+
+/** Catalog model priced at 0/0, a known free price that must never read as unknown. */
+const FREE_CATALOG_MODEL_ID = 'google/gemma-4-31b-it';
 
 /** Server keys let the ladder answer without user credentials, so every case starts without them. */
 const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
@@ -35,8 +35,7 @@ describe('Statement parser cost estimation', () => {
   beforeEach(() => {
     selfHostFlagBeforeTest = process.env.IS_SELF_HOST;
 
-    // The mock endpoint lives on a host that never resolves, so the outbound guard
-    // has to be out of the picture for the endpoint to be saveable.
+    // The mock endpoint's host never resolves, so the outbound guard has to be off to save it.
     process.env.IS_SELF_HOST = 'true';
 
     for (const envVar of SERVER_KEY_ENV_VARS) {
@@ -79,10 +78,7 @@ describe('Statement parser cost estimation', () => {
     expect(estimate.usingUserKey).toBe(true);
     expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
     expect(estimate.estimatedOutputTokens).toBeGreaterThan(0);
-
-    // Whoever runs the endpoint sets the price and the context window, so neither is knowable here
     expect(estimate.estimatedCostUsd).toBeNull();
-    expect(estimate.tokenLimit).toBeUndefined();
   });
 
   it('estimates against the fallback custom endpoint when the feature has no config', async () => {
@@ -103,7 +99,17 @@ describe('Statement parser cost estimation', () => {
 
     expect(estimate.modelId).toBe(CATALOG_MODEL_ID);
     expect(estimate.estimatedCostUsd).toBeGreaterThan(0);
-    expect(estimate.tokenLimit?.maxInputTokens).toBeGreaterThan(0);
-    expect(estimate.tokenLimit?.exceedsLimit).toBe(false);
+  });
+
+  it('prices a free catalog model at $0, not at "unknown"', async () => {
+    const userId = await getTestUserId();
+    await seedApiKey({ userId, provider: AI_PROVIDER.google });
+    await setAiFeatureConfig({ feature: AI_FEATURE.statementParsing, modelId: FREE_CATALOG_MODEL_ID, raw: true });
+
+    const estimate = await helpers.statementEstimateCost({ payload: { fileBase64: statementBase64() }, raw: true });
+
+    expect(estimate.modelId).toBe(FREE_CATALOG_MODEL_ID);
+    expect(estimate.estimatedCostUsd).toBe(0);
+    expect(estimate.estimatedCostUsd).not.toBeNull();
   });
 });

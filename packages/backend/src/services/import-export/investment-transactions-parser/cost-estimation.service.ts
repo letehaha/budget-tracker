@@ -4,8 +4,8 @@
  * shape, but token counts come from the same tokeniser.
  */
 import { AI_FEATURE, type StatementCostEstimate, type StatementFileType } from '@bt/shared/types';
-import { describeMissingAiConfiguration, resolveAIConfiguration } from '@services/ai';
-import { estimateModelCostUsd, getModelCostProfile } from '@services/ai/models-config';
+import { estimateModelCostUsd } from '@services/ai/models-config';
+import { resolveEstimationPrelude, resolveTokenLimit } from '@services/import-export/core/cost-estimation';
 import { estimateTokenCount } from '@services/import-export/statement-parser/text-extractor';
 
 import { createTextExtractionPrompt, getSystemPrompt } from './extraction-prompt';
@@ -39,33 +39,13 @@ export async function estimateInvestmentExtractionCost({
   pageCount,
   fileType,
 }: CostEstimationParams): Promise<CostEstimationResultType> {
-  const aiConfig = await resolveAIConfiguration({
-    userId,
-    feature: AI_FEATURE.investmentTransactionsParsing,
-  });
+  const prelude = await resolveEstimationPrelude({ userId, feature: AI_FEATURE.investmentTransactionsParsing });
 
-  if (!aiConfig) {
-    return {
-      success: false,
-      error: {
-        code: 'NO_AI_CONFIGURED',
-        // Estimation runs before extraction in the wizard, so this is the first message a
-        // user with a down endpoint sees — it has to name the endpoint, not "add a key".
-        message: await describeMissingAiConfiguration({ userId }),
-      },
-    };
+  if (!prelude.ok) {
+    return { success: false, error: prelude.error };
   }
 
-  const modelProfile = getModelCostProfile({ modelId: aiConfig.modelId });
-  if (!modelProfile) {
-    return {
-      success: false,
-      error: {
-        code: 'NO_AI_CONFIGURED',
-        message: `Model ${aiConfig.modelId} not found in configuration`,
-      },
-    };
-  }
+  const { aiConfig, modelProfile } = prelude;
 
   const systemPrompt = getSystemPrompt();
   const systemPromptTokens = estimateTokenCount({ text: systemPrompt });
@@ -75,31 +55,17 @@ export async function estimateInvestmentExtractionCost({
   const estimatedTransactions = pageCount * ((MIN_TRANSACTIONS_PER_PAGE + MAX_TRANSACTIONS_PER_PAGE) / 2);
   const estimatedOutputTokens = Math.ceil(estimatedTransactions * TOKENS_PER_TRANSACTION);
 
-  const estimatedCostUsd = estimateModelCostUsd({
-    profile: modelProfile,
-    inputTokens: estimatedInputTokens,
-    outputTokens: estimatedOutputTokens,
-  });
+  const tokenLimit = resolveTokenLimit({ modelProfile, estimatedInputTokens });
 
-  // A custom endpoint never declares how much input its model takes, so there is no limit
-  // to hold the file against and the estimate ships without one.
-  let tokenLimit: StatementCostEstimate['tokenLimit'];
-
-  if (!modelProfile.isCustom) {
-    const maxInputTokens = Math.floor(modelProfile.contextWindow / 3);
-
-    if (estimatedInputTokens > maxInputTokens) {
-      return {
-        success: false,
-        error: {
-          code: 'TOKEN_LIMIT_EXCEEDED',
-          message: `File too large. Estimated ${estimatedInputTokens.toLocaleString()} tokens vs limit ${maxInputTokens.toLocaleString()} (model ${modelProfile.name}).`,
-          details: `Split the upload into smaller files or use a model with a larger context window.`,
-        },
-      };
-    }
-
-    tokenLimit = { maxInputTokens, exceedsLimit: false };
+  if (tokenLimit.exceeded) {
+    return {
+      success: false,
+      error: {
+        code: 'TOKEN_LIMIT_EXCEEDED',
+        message: `File too large. Estimated ${estimatedInputTokens.toLocaleString()} tokens vs limit ${tokenLimit.maxInputTokens.toLocaleString()} (model ${tokenLimit.modelName}).`,
+        details: `Split the upload into smaller files or use a model with a larger context window.`,
+      },
+    };
   }
 
   return {
@@ -107,7 +73,11 @@ export async function estimateInvestmentExtractionCost({
     estimate: {
       estimatedInputTokens,
       estimatedOutputTokens,
-      estimatedCostUsd,
+      estimatedCostUsd: estimateModelCostUsd({
+        profile: modelProfile,
+        inputTokens: estimatedInputTokens,
+        outputTokens: estimatedOutputTokens,
+      }),
       modelId: aiConfig.modelId,
       modelName: modelProfile.name,
       usingUserKey: aiConfig.usingUserKey,
@@ -117,7 +87,6 @@ export async function estimateInvestmentExtractionCost({
         pageCount,
       },
       fileType,
-      tokenLimit,
     },
   };
 }

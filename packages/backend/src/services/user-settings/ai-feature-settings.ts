@@ -82,10 +82,9 @@ export const getAllFeatureConfigs = withTransaction(
 );
 
 /**
- * Validates a `custom/*` pick before storing: name length, endpoint ownership,
- * and a live probe that the endpoint serves that model name. Without the probe a
- * one-character typo saves cleanly and then fails on every AI call, where a
- * model-not-found answer is indistinguishable from any other server error.
+ * Validates a `custom/*` pick before storing. The live probe is the point: without it a typo
+ * in the model name saves cleanly and then fails on every AI call, where model-not-found is
+ * indistinguishable from any other server error.
  */
 async function assertCustomModelIsServed({
   userId,
@@ -125,7 +124,6 @@ async function assertCustomModelIsServed({
   }
 }
 
-/** Read-modify-write of the stored feature configs, with no outbound work inside. */
 const storeFeatureConfig = withTransaction(
   async ({
     userId,
@@ -138,7 +136,7 @@ const storeFeatureConfig = withTransaction(
     modelId: string | null;
     customEndpointId?: string;
   }): Promise<AIFeatureConfig | null> => {
-    const [userSettings] = await getOrCreateUserSettings({ userId });
+    const [userSettings] = await getOrCreateUserSettings({ userId, lock: true });
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
     const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
@@ -148,8 +146,6 @@ const storeFeatureConfig = withTransaction(
 
     let newConfig: AIFeatureConfig | null = null;
 
-    // The endpoint link is stored only for custom models. A catalog model is
-    // served by a provider key instead.
     if (modelId) {
       const liveModelId = resolveLiveModelId({ modelId, feature });
       newConfig = isCustomModelId({ modelId })
@@ -173,12 +169,8 @@ const storeFeatureConfig = withTransaction(
 );
 
 /**
- * Set feature config. Pass null modelId to clear (falls back to default).
- * Catalog IDs run through `resolveLiveModelId`; `custom/*` IDs are stored
- * verbatim and must name a saved endpoint via `customEndpointId`.
- *
- * A custom pick is probed before the transaction opens so the live LLM call does
- * not pin a database connection. A catalog pick makes no outbound call.
+ * Pass null modelId to clear, so the feature falls back to its default. A `custom/*` pick is
+ * probed before the transaction opens so the live LLM call does not pin a database connection.
  */
 export const setFeatureConfig = async ({
   userId,

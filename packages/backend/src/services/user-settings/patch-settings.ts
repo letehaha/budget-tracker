@@ -1,26 +1,19 @@
 import { ValidationError } from '@js/errors';
-import { type SettingsPatchSchema, type SettingsSchema, ZodSettingsSchema } from '@models/user-settings.model';
-import mergeWith from 'lodash/mergeWith';
+import { type SettingsPatchSchema, ZodSettingsSchema } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
 import { getOrCreateUserSettings } from './get-or-create-user-settings';
+import { type RedactedSettingsSchema, redactKeyMaterial } from './redact-key-material';
+import { mergeIntoStoredSettings, stripServiceOwnedSlices } from './service-owned-slices';
 
 /**
- * Applies a partial settings update: only keys present in `patch` change. Use it
- * for slice updates like `ui.transactionsTable.mobileView`; the full update
- * endpoint sends the whole object and loses concurrent writes from other tabs.
- * The merged result is validated against `ZodSettingsSchema`.
+ * Applies a partial settings update: only keys present in `patch` change. Prefer it over the
+ * full update endpoint, which sends the whole object and loses concurrent writes from other
+ * tabs.
  */
 export const patchUserSettings = withTransaction(
-  async ({ userId, patch }: { userId: number; patch: SettingsPatchSchema }): Promise<SettingsSchema> => {
-    // Onboarding and AI custom endpoints are owned by their own endpoints, which
-    // apply merge semantics and validation this wholesale merge cannot.
-    const { onboarding: _onboarding, ai, ...patchRest } = patch as Record<string, unknown>;
-    const safePatch: Record<string, unknown> = { ...patchRest };
-    if (ai && typeof ai === 'object') {
-      const { customEndpoints: _customEndpoints, ...aiRest } = ai as Record<string, unknown>;
-      safePatch.ai = aiRest;
-    }
+  async ({ userId, patch }: { userId: number; patch: SettingsPatchSchema }): Promise<RedactedSettingsSchema> => {
+    const safePatch = stripServiceOwnedSlices({ settings: patch });
 
     // Ensure the row exists (race-safe), then serialize the read-modify-write:
     // FOR UPDATE when it already existed, or exclusive-by-being-uncommitted
@@ -28,13 +21,7 @@ export const patchUserSettings = withTransaction(
     // UPDATE can't help the first write for a fresh user — no row to lock yet.
     const [existing] = await getOrCreateUserSettings({ userId, lock: true });
 
-    const base = existing.settings as Record<string, unknown>;
-    // Empty target keeps `base` unmutated. lodash recurses objects, replaces
-    // primitives/null and skips `undefined`, so an absent key never erases. The
-    // customizer replaces arrays wholesale: a patch array is the full list.
-    const merged = mergeWith({}, base, safePatch, (_current, incoming) =>
-      Array.isArray(incoming) ? incoming : undefined,
-    );
+    const merged = mergeIntoStoredSettings({ stored: existing.settings, incoming: safePatch });
 
     const parsed = ZodSettingsSchema.safeParse(merged);
     if (!parsed.success) {
@@ -48,6 +35,6 @@ export const patchUserSettings = withTransaction(
     existing.changed('settings', true);
     await existing.save();
 
-    return existing.settings;
+    return redactKeyMaterial({ settings: existing.settings });
   },
 );

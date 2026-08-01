@@ -1,6 +1,6 @@
-// These rewrites happen behind the user's back when a key or an endpoint is
-// removed, so a mistake either silently moves a feature onto a model the user
-// never picked or throws away a config that was still valid.
+// These rewrites happen behind the user's back when a key or an endpoint is removed, so a
+// mistake either moves a feature onto a model the user never picked or throws away a config
+// that was still valid.
 
 import { AIFeatureConfig, AI_FEATURE, AI_MODEL_ID, AI_PROVIDER } from '@bt/shared/types';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -42,7 +42,7 @@ describe('migrateFeatureConfigsOnCustomEndpointRemoval', () => {
     });
 
     expect(result).toEqual([{ feature: AI_FEATURE.categorization, modelId: AI_MODEL_ID['openai/gpt-5.4-nano'] }]);
-    // The replacement is a catalog model, so the link to the gone endpoint must not survive
+    // `toEqual` above ignores an explicit `undefined`, so assert the key itself is gone.
     expect(result[0]).not.toHaveProperty('customEndpointId');
   });
 

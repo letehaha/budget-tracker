@@ -15,8 +15,8 @@ import net from 'node:net';
 type FetchInput = Parameters<typeof globalThis.fetch>[0];
 type FetchInit = Parameters<typeof globalThis.fetch>[1];
 
-// Local development points at LLMs on the developer's own machine (same opt-out the
-// rate-limit middleware makes). Tests run with NODE_ENV=test, so the guard stays on there.
+// Local development points at LLMs on the developer's own machine. Tests run with
+// NODE_ENV=test, so the guard stays on there.
 function isGuardBypassed(): boolean {
   return isSelfHost() || process.env.NODE_ENV === 'development';
 }
@@ -32,13 +32,10 @@ export function isPublicIpAddress({ ip }: { ip: string }): boolean {
   return address.range() === 'unicast';
 }
 
-/** DNS codes that mean the name does not exist — a typo the user can fix. */
+/** DNS codes that mean the name does not exist, so the user can fix the typo. */
 const UNKNOWN_HOSTNAME_DNS_CODES = new Set(['ENOTFOUND', 'ENODATA']);
 
-/**
- * Throws ValidationError unless the URL can only reach a public internet host.
- * Resolves silently on self-hosted instances.
- */
+/** Throws ValidationError unless the URL can only reach a public internet host. */
 export async function assertSafeOutboundUrl({ url }: { url: string }): Promise<void> {
   if (isGuardBypassed()) return;
 
@@ -105,12 +102,9 @@ export async function assertSafeOutboundUrl({ url }: { url: string }): Promise<v
 }
 
 /**
- * fetch-compatible wrapper for the AI SDK's `fetch` option. Re-checks the target on
- * every request and refuses redirects, so a 302 cannot bounce into the internal network.
- *
- * Re-resolving per request narrows the DNS-rebinding window but does not close it: the
- * socket layer resolves the name again after our check, so a record that flips between
- * the two lookups still gets through.
+ * Re-checks the target on every request and refuses redirects, so a 302 cannot bounce into
+ * the internal network. DNS rebinding still gets through: the socket layer resolves the
+ * name again after this check.
  */
 export function createGuardedFetch(): typeof globalThis.fetch {
   if (isGuardBypassed()) return globalThis.fetch;

@@ -4,12 +4,10 @@ import { describe, expect, it } from 'vitest';
 import {
   CUSTOM_ENDPOINT_OPTION_PREFIX,
   buildCustomEndpointOptions,
-  buildCustomModelId,
   decodeCustomEndpointOption,
   encodeCustomEndpointOption,
-  readCustomEndpointId,
+  readStoredSelectValue,
   resolveCustomModelName,
-  resolveSelectValue,
 } from './custom-endpoint-selection';
 
 const ENDPOINT_UUID = '3f1c9a2e-8b47-4d63-9d51-6c0f2a7e5b90';
@@ -17,12 +15,14 @@ const ENDPOINT_UUID = '3f1c9a2e-8b47-4d63-9d51-6c0f2a7e5b90';
 const buildStatus = ({
   modelId,
   customEndpointId,
+  isConfigured = true,
 }: {
   modelId: string;
   customEndpointId?: string;
+  isConfigured?: boolean;
 }): AIFeatureStatus => ({
   feature: AI_FEATURE.categorization,
-  isConfigured: true,
+  isConfigured,
   modelId,
   modelName: 'Some model',
   usingUserKey: true,
@@ -43,44 +43,40 @@ describe('custom endpoint select value', () => {
     expect(decodeCustomEndpointOption({ value: '' })).toBeNull();
   });
 
-  it('slices on the prefix colon, which a UUID can never contain', () => {
-    // The sentinel is only unambiguous while endpoint ids stay colon-free.
-    expect(CUSTOM_ENDPOINT_OPTION_PREFIX.endsWith(':')).toBe(true);
-    expect(ENDPOINT_UUID).not.toContain(':');
-    expect(decodeCustomEndpointOption({ value: encodeCustomEndpointOption({ endpointId: ENDPOINT_UUID }) })).toBe(
-      ENDPOINT_UUID,
-    );
-  });
+  it('slices the prefix by length, so the id itself may contain anything', () => {
+    const awkwardId = `weird:id:${CUSTOM_ENDPOINT_OPTION_PREFIX}`;
 
-  it('shows the sentinel for an endpoint and the raw model id otherwise', () => {
-    expect(resolveSelectValue({ selectedEndpointId: ENDPOINT_UUID, modelId: 'custom/llama-3.1' })).toBe(
-      `${CUSTOM_ENDPOINT_OPTION_PREFIX}${ENDPOINT_UUID}`,
+    expect(decodeCustomEndpointOption({ value: encodeCustomEndpointOption({ endpointId: awkwardId }) })).toBe(
+      awkwardId,
     );
-    expect(resolveSelectValue({ selectedEndpointId: null, modelId: 'openai/gpt-4o-mini' })).toBe('openai/gpt-4o-mini');
   });
 });
 
-describe('buildCustomModelId', () => {
-  it('prefixes the free-text name', () => {
-    expect(buildCustomModelId({ modelName: 'llama-3.1' })).toBe(`${AI_CUSTOM_MODEL_PREFIX}llama-3.1`);
-  });
-});
-
-describe('readCustomEndpointId', () => {
-  it('returns the endpoint id for a custom model', () => {
+describe('readStoredSelectValue', () => {
+  it('selects the endpoint a saved config points at', () => {
     const status = buildStatus({ modelId: 'custom/llama-3.1', customEndpointId: ENDPOINT_UUID });
 
-    expect(readCustomEndpointId({ status })).toBe(ENDPOINT_UUID);
+    expect(readStoredSelectValue({ status })).toBe(`${CUSTOM_ENDPOINT_OPTION_PREFIX}${ENDPOINT_UUID}`);
   });
 
-  it('returns null for a catalog model even when an endpoint id lingers', () => {
+  it('selects the model id for a catalog model even when an endpoint id lingers', () => {
     const status = buildStatus({ modelId: 'openai/gpt-4o-mini', customEndpointId: ENDPOINT_UUID });
 
-    expect(readCustomEndpointId({ status })).toBeNull();
+    expect(readStoredSelectValue({ status })).toBe('openai/gpt-4o-mini');
   });
 
-  it('returns null for a custom model with no endpoint id', () => {
-    expect(readCustomEndpointId({ status: buildStatus({ modelId: 'custom/llama-3.1' }) })).toBeNull();
+  it('leaves an endpoint the user never picked unselected', () => {
+    const status = buildStatus({
+      modelId: 'custom/llama-3.1',
+      customEndpointId: ENDPOINT_UUID,
+      isConfigured: false,
+    });
+
+    expect(readStoredSelectValue({ status })).toBe('custom/llama-3.1');
+  });
+
+  it('falls back to the model id for a custom model with no endpoint id', () => {
+    expect(readStoredSelectValue({ status: buildStatus({ modelId: 'custom/llama-3.1' }) })).toBe('custom/llama-3.1');
   });
 });
 

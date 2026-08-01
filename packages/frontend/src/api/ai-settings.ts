@@ -117,7 +117,6 @@ export const getCustomEndpoints = async (): Promise<AICustomEndpointInfo[]> => {
   return api.get('/user/settings/ai/custom-endpoints');
 };
 
-/** Backend validates the connection before saving and rejects a duplicate `name`. */
 export const createCustomEndpoint = async ({
   name,
   baseUrl,
@@ -132,10 +131,7 @@ export const createCustomEndpoint = async ({
   return api.post('/user/settings/ai/custom-endpoints', { name, baseUrl, defaultModel, apiKey });
 };
 
-/**
- * Partial update. Omitted fields keep their stored values. `apiKey`: omit to keep
- * the stored key, `null` to remove it, a string to replace it.
- */
+/** Partial update. `apiKey` omitted keeps the stored key, `null` removes it, a string replaces it. */
 export const updateCustomEndpoint = async ({
   id,
   name,
@@ -152,12 +148,10 @@ export const updateCustomEndpoint = async ({
   return api.put(`/user/settings/ai/custom-endpoints/${id}`, { name, baseUrl, defaultModel, apiKey });
 };
 
-/** Backend remaps or drops the feature configs bound to this endpoint. */
 export const deleteCustomEndpoint = async ({ id }: { id: string }): Promise<{ success: boolean }> => {
   return api.delete(`/user/settings/ai/custom-endpoints/${id}`);
 };
 
-/** Either name a saved endpoint or supply a full connection. The backend rejects anything else. */
 type TestCustomEndpointPayload =
   | {
       /** Omitted fields fall back to this endpoint's stored values, including its key. */
@@ -172,7 +166,6 @@ type TestCustomEndpointPayload =
       apiKey?: string;
     };
 
-/** Probes an endpoint without persisting anything. */
 export const testCustomEndpoint = async (payload: TestCustomEndpointPayload): Promise<TestCustomEndpointResponse> => {
   return api.post('/user/settings/ai/custom-endpoints/test', payload);
 };

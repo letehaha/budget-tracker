@@ -2,27 +2,27 @@ import { type SettingsSchema } from '@models/user-settings.model';
 
 import { withTransaction } from '../common/with-transaction';
 import { getOrCreateUserSettings } from './get-or-create-user-settings';
+import { type RedactedSettingsSchema, redactKeyMaterial } from './redact-key-material';
+import { mergeIntoStoredSettings, stripServiceOwnedSlices } from './service-owned-slices';
+
+type IncomingSettings = Omit<SettingsSchema, 'ai'> & {
+  ai?: Omit<NonNullable<SettingsSchema['ai']>, 'apiKeys' | 'customEndpoints'>;
+};
 
 export const updateUserSettings = withTransaction(
-  async ({ userId, settings }: { userId: number; settings: SettingsSchema }): Promise<SettingsSchema> => {
-    const [existingSettings, created] = await getOrCreateUserSettings({ userId, defaults: settings });
+  async ({ userId, settings }: { userId: number; settings: IncomingSettings }): Promise<RedactedSettingsSchema> => {
+    // Stripped before `defaults` too: the first write seeds the new row straight from this
+    // payload, with no stored settings to merge against.
+    const incoming = stripServiceOwnedSlices({ settings }) as SettingsSchema;
+
+    const [existingSettings, created] = await getOrCreateUserSettings({ userId, defaults: incoming });
 
     if (!created) {
-      // Extract onboarding from incoming settings to prevent overwriting.
-      // Onboarding has its own dedicated endpoint (/user/settings/onboarding),
-      // so we should preserve the existing onboarding state to avoid race conditions
-      // where stale frontend data overwrites settings updated via other endpoints.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { onboarding: _incomingOnboarding, ...settingsWithoutOnboarding } = settings;
-
-      existingSettings.settings = {
-        ...existingSettings.settings,
-        ...settingsWithoutOnboarding,
-      };
+      existingSettings.settings = mergeIntoStoredSettings({ stored: existingSettings.settings, incoming });
       existingSettings.changed('settings', true);
       await existingSettings.save();
     }
 
-    return existingSettings.settings;
+    return redactKeyMaterial({ settings: existingSettings.settings });
   },
 );

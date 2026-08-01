@@ -11,22 +11,37 @@ import { AICustomEndpointInfo } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';
 
-/**
- * The user's own OpenAI-compatible endpoints. Writes also invalidate the feature
- * statuses, because the backend remaps configs pointing at a removed endpoint.
- */
-export const useAiCustomEndpoints = () => {
-  const queryClient = useQueryClient();
-
+/** Query-only: screens that just read the list must not instantiate the mutation observers. */
+export const useAiCustomEndpointsList = () => {
   const customEndpointsQuery = useQuery<AICustomEndpointInfo[], Error>({
     queryKey: [...VUE_QUERY_CACHE_KEYS.aiCustomEndpoints],
     queryFn: getCustomEndpoints,
     staleTime: Infinity,
   });
 
+  return {
+    customEndpoints: computed(() => customEndpointsQuery.data.value ?? []),
+    isLoadingCustomEndpoints: customEndpointsQuery.isLoading,
+    // A failed fetch also yields an empty list, so consumers need the error flag
+    // to tell "you have none" apart from "we could not load yours".
+    isCustomEndpointsError: customEndpointsQuery.isError,
+    isFetchingCustomEndpoints: customEndpointsQuery.isFetching,
+    refetchCustomEndpoints: customEndpointsQuery.refetch,
+  };
+};
+
+/**
+ * Writes must also invalidate the cached user settings: that cache embeds the AI config,
+ * and other settings screens write it back wholesale.
+ */
+export const useAiCustomEndpoints = () => {
+  const queryClient = useQueryClient();
+  const endpointsList = useAiCustomEndpointsList();
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.aiCustomEndpoints });
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.aiFeaturesStatus });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.userSettings });
   };
 
   const createMutation = useMutation({
@@ -51,21 +66,13 @@ export const useAiCustomEndpoints = () => {
 
   const testMutation = useMutation({
     mutationFn: testCustomEndpointRequest,
-    // Testing a saved endpoint's stored settings records the verdict server-side, so the
-    // cached rows are stale whatever the outcome — including thrown requests.
+    // A test records its verdict server-side, so the cached rows go stale whatever
+    // the outcome, including a thrown request.
     onSettled: invalidate,
   });
 
-  const customEndpoints = computed(() => customEndpointsQuery.data.value ?? []);
-
   return {
-    customEndpoints,
-    isLoadingCustomEndpoints: customEndpointsQuery.isLoading,
-    // A failed fetch also yields an empty list, so consumers need the error flag
-    // to tell "you have none" apart from "we could not load yours".
-    isCustomEndpointsError: customEndpointsQuery.isError,
-    isFetchingCustomEndpoints: customEndpointsQuery.isFetching,
-    refetchCustomEndpoints: customEndpointsQuery.refetch,
+    ...endpointsList,
     invalidateCustomEndpoints: invalidate,
 
     createCustomEndpoint: createMutation.mutateAsync,

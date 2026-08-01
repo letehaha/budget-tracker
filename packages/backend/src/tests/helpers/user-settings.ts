@@ -3,7 +3,6 @@ import {
   AIFeatureStatus,
   AIKeyProvider,
   AI_FEATURE,
-  AI_PROVIDER,
   WipeDataSharedResources,
 } from '@bt/shared/types';
 import { encryptToken } from '@common/utils/encryption';
@@ -113,29 +112,29 @@ export async function wipeUserData({
   });
 }
 
-// AI API Key helpers
+// AI API Key helpers. `provider` stays `AIKeyProvider`: a test proving the route refuses
+// `custom` casts at its own call site instead of widening this type.
 
 interface AiApiKeyInfo {
-  provider: AI_PROVIDER;
+  provider: AIKeyProvider;
   createdAt: string;
 }
 
 export async function getAiApiKeyStatus<R extends boolean | undefined = undefined>({ raw }: { raw?: R } = {}) {
-  return makeRequest<{ hasApiKey: boolean; providers: AiApiKeyInfo[]; defaultProvider: AI_PROVIDER | null }, R>({
+  return makeRequest<{ hasApiKey: boolean; providers: AiApiKeyInfo[]; defaultProvider: AIKeyProvider | null }, R>({
     method: 'get',
     url: '/user/settings/ai/api-keys',
     raw,
   });
 }
 
-/** `provider` is typed wide enough to pass `custom`, which the route must refuse. */
 export async function setAiApiKey<R extends boolean | undefined = undefined>({
   apiKey,
   provider,
   raw,
 }: {
   apiKey: string;
-  provider: AI_PROVIDER;
+  provider: AIKeyProvider;
   raw?: R;
 }) {
   return makeRequest<{ success: boolean }, R>({
@@ -150,7 +149,7 @@ export async function deleteAiApiKey<R extends boolean | undefined = undefined>(
   provider,
   raw,
 }: {
-  provider: AI_PROVIDER;
+  provider: AIKeyProvider;
   raw?: R;
 }) {
   return makeRequest<{ success: boolean }, R>({
@@ -165,7 +164,7 @@ export async function setDefaultAiProvider<R extends boolean | undefined = undef
   provider,
   raw,
 }: {
-  provider: AI_PROVIDER;
+  provider: AIKeyProvider;
   raw?: R;
 }) {
   return makeRequest<{ success: boolean }, R>({
@@ -216,9 +215,8 @@ export async function createAiCustomEndpoint<R extends boolean | undefined = und
 }
 
 /**
- * Every field is optional and keeps its stored value when omitted. `apiKey`
- * follows the endpoint's own semantics: omit it to keep the stored key, pass
- * null to remove it, pass a string to replace it.
+ * Omitted fields keep their stored value. For `apiKey`: omit it to keep the stored key,
+ * pass null to remove it, pass a string to replace it.
  */
 export async function updateAiCustomEndpoint<R extends boolean | undefined = undefined>({
   id,
@@ -348,7 +346,7 @@ export async function setCustomInstructions<R extends boolean | undefined = unde
   });
 }
 
-// AI settings fixtures — shared setup and stored-state reads for the AI e2e suites
+// AI settings fixtures: shared setup and stored-state reads for the AI e2e suites
 
 /** The seeded user every e2e case authenticates as. */
 export async function getTestUserId(): Promise<number> {
@@ -358,9 +356,8 @@ export async function getTestUserId(): Promise<number> {
 }
 
 /**
- * Writes an API key straight into settings so tests that need "a provider the
- * user still has credentials for" don't have to pass real key validation — the
- * HTTP route checks the key against the live provider.
+ * Writes an API key straight into settings, bypassing the HTTP route, which validates the
+ * key against the live provider.
  */
 export async function seedApiKey({ userId, provider }: { userId: number; provider: AIKeyProvider }): Promise<void> {
   const [settings] = await UserSettings.findOrCreate({
@@ -402,7 +399,7 @@ export const FIRST_ENDPOINT_NAME = 'Home Ollama';
 export const SECOND_ENDPOINT_NAME = 'Studio vLLM';
 export const SECOND_ENDPOINT_MODEL = 'qwen2.5';
 
-/** Both saved endpoints answer through msw. The caller picks self-host vs. cloud mode first. */
+/** Both endpoints answer through msw. The caller picks self-host or cloud mode first. */
 export async function createFirstEndpoint({ apiKey }: { apiKey?: string | null } = {}) {
   return createAiCustomEndpoint({
     name: FIRST_ENDPOINT_NAME,

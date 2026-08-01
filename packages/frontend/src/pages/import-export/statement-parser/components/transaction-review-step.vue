@@ -7,6 +7,11 @@
     </div>
 
     <template v-else>
+      <!-- A failed check and a clean statement both show zero duplicates, so say which one it is. -->
+      <Callout v-if="store.duplicateDetectionError" variant="warning">
+        {{ $t('pages.statementParser.transactionReview.duplicateCheckFailed') }}
+      </Callout>
+
       <!-- Summary Stats -->
       <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
         <div class="flex items-center gap-2">
@@ -53,7 +58,7 @@
           </div>
         </div>
 
-        <ScrollArea class="max-h-80 rounded-lg border">
+        <ScrollArea class="max-h-80 rounded-lg border" viewport-class="max-h-80" with-horizontal-scrollbar>
           <div class="min-w-max">
             <div
               v-for="(item, index) in timelineItems"
@@ -186,6 +191,7 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from '@lucide/vue';

@@ -4,13 +4,9 @@ import { afterEach, beforeEach } from '@jest/globals';
 const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
 
 /**
- * Registers hooks that run every test in the suite as a self-hosted instance with no
- * server-side AI keys, restoring the environment afterwards. Two things at once, because
- * custom-endpoint suites need both: the mock endpoints live on hosts that never resolve,
- * so the outbound guard must stand down (self-host), and a server key would answer the
- * feature from the resolver's ladder before the endpoint under test is ever dialled.
- *
- * Call inside a `describe`, before the tests.
+ * Self-host stands the outbound URL guard down, which the mock endpoints need because they
+ * live on hosts that never resolve. An ambient server key would answer the feature before
+ * the endpoint under test is ever dialled.
  */
 export function useSelfHostWithoutServerAiKeys(): void {
   let selfHostFlagBeforeTest: string | undefined;

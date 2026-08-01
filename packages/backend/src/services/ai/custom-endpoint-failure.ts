@@ -1,52 +1,40 @@
-// Every AI feature that can run on a user-owned endpoint reports a dead one the same way,
-// so the endpoint's status means one thing wherever it was last dialled from.
+// Shared by every AI feature so a dead user endpoint gets the same status and message.
 
 import { AI_PROVIDER } from '@bt/shared/types';
 
-import { markApiKeyInvalid } from '../user-settings/ai-api-key';
+import { getCustomEndpointInfos, markCustomEndpointInvalid } from '../user-settings/ai-custom-endpoint';
 import type { AIClientResult } from './ai-client-factory';
-import { isConnectionError, isNonApiResponseError, unwrapRetryError } from './ai-error-classifiers';
-import { resolveFallbackCustomEndpoint } from './custom-endpoint-fallback';
 
-/** Reaches the user through job error lists and parser results rather than an HTTP response, so it stays English. */
+/** Not translated: it surfaces in job error lists, where no request locale is available. */
 export const CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE =
   'Your custom AI endpoint did not respond. Check that the server is running and reachable, then reconnect it in AI settings.';
+
+/**
+ * Stored when the endpoint's key ciphertext fails to decrypt (an APPLICATION_JWT_SECRET
+ * rotation). The endpoint itself may be perfectly healthy, so the copy points at the key.
+ */
+export const CUSTOM_ENDPOINT_STORED_KEY_UNREADABLE_ERROR_MESSAGE =
+  'The API key stored for this AI endpoint can no longer be read. Re-enter the key in AI settings.';
 
 /** Nothing in the ladder yielded credentials: no key, no endpoint, no server key. */
 const NO_AI_CONFIGURED_ERROR_MESSAGE = 'No AI provider configured. Please add an API key in settings.';
 
 /**
- * True when the user's own endpoint did not answer, or answered with something that is not
- * an API: the server is off, the tunnel to it closed, or the base URL now points elsewhere.
- * Catalog providers are excluded — one dropped connection to a cloud provider is a bad
- * minute, not a broken configuration the user can fix.
- */
-export function isCustomEndpointDown({ error, aiClient }: { error: unknown; aiClient: AIClientResult }): boolean {
-  if (aiClient.provider !== AI_PROVIDER.custom) return false;
-
-  const cause = unwrapRetryError({ error });
-
-  return isConnectionError({ error: cause }) || isNonApiResponseError({ error: cause });
-}
-
-/**
- * Why a feature could not be served, for the callers that only learn `createAIClient`
- * returned null. A user whose every endpoint is flagged down owns credentials, so telling
- * them to add an API key would send them to the wrong screen.
+ * A user whose every endpoint is flagged down does own credentials, so telling them to add
+ * an API key would send them to the wrong screen.
  */
 export async function describeMissingAiConfiguration({ userId }: { userId: number }): Promise<string> {
-  const { dialable, first } = await resolveFallbackCustomEndpoint({ userId });
+  const endpoints = await getCustomEndpointInfos({ userId });
+  const dialable = endpoints.find((endpoint) => endpoint.status !== 'invalid');
+  const first = endpoints[0];
 
   if (!dialable && first) {
-    // The stored error names what actually went wrong (server gone, key rejected,
-    // model missing); the generic unreachable text only covers legacy rows without one.
     return first.lastError ?? CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE;
   }
 
   return NO_AI_CONFIGURED_ERROR_MESSAGE;
 }
 
-/** Flags the endpoint after it failed to answer, so AI settings shows it as down with a way back. */
 export async function markCustomEndpointUnreachable({
   userId,
   aiClient,
@@ -56,10 +44,9 @@ export async function markCustomEndpointUnreachable({
 }): Promise<void> {
   if (aiClient.provider !== AI_PROVIDER.custom) return;
 
-  await markApiKeyInvalid({
+  await markCustomEndpointInvalid({
     userId,
-    provider: aiClient.provider,
-    customEndpointId: aiClient.customEndpointId,
+    endpointId: aiClient.customEndpointId,
     errorMessage: CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE,
   });
 }

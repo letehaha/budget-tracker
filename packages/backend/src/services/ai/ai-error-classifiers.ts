@@ -1,16 +1,16 @@
 import { getModelNameFromModelId } from '@bt/shared/types';
+import { ValidationError } from '@js/errors';
 import { APICallError, RetryError } from 'ai';
 
-// Shared classifiers for AI SDK failures, so every feature reports the same cause
-// for the same error.
+// Shared classifiers for AI SDK failures, so every feature reports the same cause for the
+// same error. `classifyAiCallFailure` is the entry point.
 
 /** Markers an OpenAI-compatible server puts in a 400/422 body when it does not serve the model. */
 const MODEL_NOT_FOUND_MARKERS = ['model_not_found', 'not found', 'does not exist', 'unknown model'];
 
 /**
- * Returns the failure underneath a RetryError. The SDK hides the error that actually
- * ended the call inside it, so classifying the outer error misreads a blocked address
- * or a rejected key. Anything that is not a RetryError is returned untouched.
+ * The SDK hides the error that actually ended the call inside a RetryError, so classifying
+ * the outer error misreads a blocked address or a rejected key.
  */
 export function unwrapRetryError({ error }: { error: unknown }): unknown {
   let current = error;
@@ -22,7 +22,6 @@ export function unwrapRetryError({ error }: { error: unknown }): unknown {
   return current;
 }
 
-/** The request hit its deadline, or the caller went away, before an answer arrived. */
 export function isAbortError({ error }: { error: unknown }): boolean {
   const cause = unwrapRetryError({ error });
   if (!(cause instanceof Error)) return false;
@@ -32,8 +31,7 @@ export function isAbortError({ error }: { error: unknown }): boolean {
 /**
  * True when the request never reached an HTTP server: DNS failure, connection refused,
  * TLS failure or socket timeout. The AI SDK wraps these as an APICallError with no
- * statusCode and `isRetryable: true`, so check this before `isTemporaryError`. A raw
- * `fetch` rejects with a TypeError instead, or an abort-named DOMException on a deadline.
+ * statusCode and `isRetryable: true`, so check this before `isTemporaryError`.
  */
 export function isConnectionError({ error }: { error: unknown }): boolean {
   const cause = unwrapRetryError({ error });
@@ -52,29 +50,31 @@ export function isConnectionError({ error }: { error: unknown }): boolean {
 }
 
 /**
- * Whether the failure body reads like an API answer. An OpenAI-compatible server describes
- * every refusal in JSON, so a web page or an empty body means something else answered — a
- * tunnel with nothing behind it, a reverse proxy, or a base URL pointing at a plain website.
- * A missing body carries no evidence either way and is left to the status code.
+ * An OpenAI-compatible server describes every refusal in JSON, so a web page or an empty
+ * body means something else answered. A missing (`undefined`) body carries no evidence
+ * either way and counts as an API answer.
  */
-function answeredAsApi({ error }: { error: APICallError }): boolean {
-  if (error.responseBody === undefined) return true;
+export function bodyReadsAsApiAnswer({ body }: { body: string | undefined }): boolean {
+  if (body === undefined) return true;
 
-  const body = error.responseBody.trim();
-  if (!body) return false;
+  const trimmed = body.trim();
+  if (!trimmed) return false;
 
   try {
-    JSON.parse(body);
+    JSON.parse(trimmed);
     return true;
   } catch {
     return false;
   }
 }
 
+function answeredAsApi({ error }: { error: APICallError }): boolean {
+  return bodyReadsAsApiAnswer({ body: error.responseBody });
+}
+
 /**
- * True when something answered over HTTP but not as an OpenAI-compatible API. Every other
- * classifier reads such an answer as a verdict on the model or the key, so this one runs
- * first and points the user at the URL and the server instead.
+ * True when something answered over HTTP but not as an OpenAI-compatible API: the URL, or a
+ * proxy in front of it, is wrong rather than the model or the key.
  */
 export function isNonApiResponseError({ error }: { error: unknown }): boolean {
   const cause = unwrapRetryError({ error });
@@ -82,14 +82,13 @@ export function isNonApiResponseError({ error }: { error: unknown }): boolean {
   if (!(cause instanceof APICallError)) return false;
   // No status means nothing answered, which `isConnectionError` already covers.
   if (cause.statusCode === undefined) return false;
-  // A 429 is a rate limiter in front of a working API — Cloudflare and nginx answer it
-  // with their own page — so it stays a temporary error rather than a broken endpoint.
+  // Cloudflare and nginx answer a rate limit with their own HTML page, so a non-JSON 429
+  // is still a limiter in front of a working API.
   if (cause.statusCode === 429) return false;
 
   return !answeredAsApi({ error: cause });
 }
 
-/** The HTTP status the endpoint answered with, or undefined when the request never got one. */
 export function getHttpStatus({ error }: { error: unknown }): number | undefined {
   const cause = unwrapRetryError({ error });
 
@@ -98,9 +97,8 @@ export function getHttpStatus({ error }: { error: unknown }): number | undefined
 
 /**
  * True when the endpoint answered but does not serve the requested model: a 404, or a
- * 400/422 whose body names the model as missing (what Ollama and vLLM return for an
- * unpulled model). A 400/422 that only repeats the model name is not enough: names like
- * "v1" or "chat" appear in unrelated error text.
+ * 400/422 whose body names the model as missing. Matching the model name itself is not
+ * enough, because names like "v1" or "chat" appear in unrelated error text.
  */
 export function isModelNotFoundError({ error }: { error: unknown }): boolean {
   const cause = unwrapRetryError({ error });
@@ -118,4 +116,90 @@ export function isModelNotFoundError({ error }: { error: unknown }): boolean {
 /** Reaches the user through job error lists rather than an HTTP response, so it stays English. */
 export function buildModelNotServedMessage({ modelId }: { modelId: string }): string {
   return `The AI model "${getModelNameFromModelId({ modelId })}" is not available on the configured AI endpoint. Please update the model name in AI settings.`;
+}
+
+/**
+ * Transient failure that must not mark the key invalid: rate limits (429), server errors
+ * (5xx), timeouts (no statusCode, but the SDK flags them retryable), and retry exhaustion.
+ */
+export function isTemporaryError({ error }: { error: unknown }): boolean {
+  if (error instanceof RetryError) {
+    return error.lastError ? isTemporaryError({ error: error.lastError }) : true;
+  }
+  if (error instanceof APICallError) {
+    const status = error.statusCode;
+    if (status === 429 || (status && status >= 500) || error.isRetryable) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function isAuthError({ error }: { error: unknown }): boolean {
+  if (error instanceof APICallError) {
+    const status = error.statusCode;
+    return status === 401 || status === 403;
+  }
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('invalid api key') ||
+      message.includes('unauthorized') ||
+      message.includes('authentication') ||
+      message.includes('api key not valid') ||
+      message.includes('incorrect api key')
+    );
+  }
+  return false;
+}
+
+export type AiCallFailureKind =
+  | 'blocked-address'
+  | 'endpoint-down'
+  | 'model-not-found'
+  | 'auth'
+  | 'rate-limited'
+  | 'temporary'
+  | 'unknown';
+
+interface AiCallFailure {
+  kind: AiCallFailureKind;
+  /** The failure underneath any RetryError wrapper. */
+  cause: Error;
+  /** Null when the request never got a status. */
+  httpStatus: number | null;
+}
+
+/**
+ * One verdict for a failed AI call. The precedence is load-bearing: blocked-address >
+ * endpoint-down > model-not-found > auth > rate-limited > temporary > unknown, because the
+ * broad predicates swallow the specific ones. `isTemporaryError` accepts anything the SDK
+ * flagged retryable and `isAuthError` matches substrings in the message.
+ */
+export function classifyAiCallFailure({ error }: { error: unknown }): AiCallFailure {
+  const unwrapped = unwrapRetryError({ error });
+  const cause = unwrapped instanceof Error ? unwrapped : new Error(String(unwrapped));
+  const httpStatus = getHttpStatus({ error: unwrapped }) ?? null;
+
+  // The outbound URL guard rejects with a ValidationError: the user's endpoint address,
+  // not a provider failure.
+  if (unwrapped instanceof ValidationError) {
+    return { kind: 'blocked-address', cause, httpStatus };
+  }
+  if (isConnectionError({ error: unwrapped }) || isNonApiResponseError({ error: unwrapped })) {
+    return { kind: 'endpoint-down', cause, httpStatus };
+  }
+  if (isModelNotFoundError({ error: unwrapped })) {
+    return { kind: 'model-not-found', cause, httpStatus };
+  }
+  if (isAuthError({ error: unwrapped })) {
+    return { kind: 'auth', cause, httpStatus };
+  }
+  if (httpStatus === 429) {
+    return { kind: 'rate-limited', cause, httpStatus };
+  }
+  if (isTemporaryError({ error: unwrapped })) {
+    return { kind: 'temporary', cause, httpStatus };
+  }
+  return { kind: 'unknown', cause, httpStatus };
 }

@@ -1,16 +1,16 @@
-// The classifiers decide what a user is told about their own endpoint, so a
-// misfire either hides a real problem or blames the wrong thing.
-
 import { describe, expect, it } from '@jest/globals';
 import { ValidationError } from '@js/errors';
 import { APICallError, RetryError } from 'ai';
 
 import {
   buildModelNotServedMessage,
+  classifyAiCallFailure,
   getHttpStatus,
+  isAuthError,
   isConnectionError,
   isModelNotFoundError,
   isNonApiResponseError,
+  isTemporaryError,
   unwrapRetryError,
 } from './ai-error-classifiers';
 
@@ -67,8 +67,8 @@ describe('unwrapRetryError', () => {
     expect(unwrapRetryError({ error })).toBe(error);
   });
 
-  // The guard can refuse the second attempt of a call whose first attempt was a
-  // retryable network failure, which is how a rebound DNS record surfaces.
+  // A rebound DNS record surfaces this way: the first attempt is a retryable network
+  // failure and the guard refuses the second.
   it('exposes a blocked-address rejection the SDK retried over', () => {
     const blocked = new ValidationError({ message: 'blocked' });
     const error = buildRetryError({ errors: [new TypeError('fetch failed'), blocked] });
@@ -90,8 +90,7 @@ describe('isConnectionError', () => {
     expect(isConnectionError({ error: new TypeError(message) })).toBe(true);
   });
 
-  // AbortSignal.timeout rejects with a DOMException named TimeoutError; an
-  // explicit abort uses AbortError. Both mean no answer arrived.
+  // AbortSignal.timeout rejects with a TimeoutError, an explicit abort with an AbortError.
   it.each(['TimeoutError', 'AbortError'])('treats a %s abort as unreachable', (name) => {
     const error = Object.assign(new Error('The operation was aborted'), { name });
     expect(isConnectionError({ error })).toBe(true);
@@ -122,8 +121,6 @@ describe('isNonApiResponseError', () => {
     expect(isNonApiResponseError({ error: buildApiCallError({ statusCode: 502, responseBody: '' }) })).toBe(true);
   });
 
-  // Cloudflare and nginx answer rate limits with their own page, so a non-JSON 429 is a
-  // limiter in front of a working API — a temporary error, not a broken endpoint.
   it.each(['', HTML_ERROR_PAGE])('does not treat a 429 with body %p as a non-API answer', (responseBody) => {
     expect(isNonApiResponseError({ error: buildApiCallError({ statusCode: 429, responseBody }) })).toBe(false);
   });
@@ -137,12 +134,10 @@ describe('isNonApiResponseError', () => {
     expect(isNonApiResponseError({ error })).toBe(false);
   });
 
-  // Nothing answered, so there is no response to judge — that is a connection failure.
   it('returns false when the request never reached a server', () => {
     expect(isNonApiResponseError({ error: buildApiCallError({ isRetryable: true }) })).toBe(false);
   });
 
-  // An absent body (unlike an empty one) carries no evidence either way.
   it('returns false when the failure carries no body at all to judge', () => {
     expect(isNonApiResponseError({ error: buildApiCallError({ statusCode: 404 }) })).toBe(false);
   });
@@ -173,7 +168,6 @@ describe('isModelNotFoundError', () => {
     expect(isModelNotFoundError({ error: buildApiCallError({ statusCode: 404 }) })).toBe(true);
   });
 
-  // An offline tunnel answers 404 for every path, including one no model was ever asked of
   it('does not treat a 404 web page as a missing model', () => {
     const error = buildApiCallError({ statusCode: 404, responseBody: HTML_ERROR_PAGE });
 
@@ -194,8 +188,6 @@ describe('isModelNotFoundError', () => {
     expect(isModelNotFoundError({ error })).toBe(true);
   });
 
-  // A user may name their model "v1" or "chat", which appears in plenty of
-  // unrelated error text — the model name alone must never be the signal.
   it('does not treat a 400 that merely echoes the request path as a missing model', () => {
     const error = buildApiCallError({ statusCode: 400, message: 'Invalid request body sent to /v1/chat/completions' });
     expect(isModelNotFoundError({ error })).toBe(false);
@@ -219,5 +211,116 @@ describe('isModelNotFoundError', () => {
 describe('buildModelNotServedMessage', () => {
   it('names the model without its provider prefix', () => {
     expect(buildModelNotServedMessage({ modelId: 'custom/llama3.2' })).toContain('"llama3.2"');
+  });
+});
+
+describe('isTemporaryError', () => {
+  it('returns true for a 429 rate-limit APICallError', () => {
+    expect(isTemporaryError({ error: buildApiCallError({ statusCode: 429 }) })).toBe(true);
+  });
+
+  it('returns false for a 401 APICallError (auth error, not temporary)', () => {
+    const error = buildApiCallError({ statusCode: 401 });
+    expect(isTemporaryError({ error })).toBe(false);
+    expect(isAuthError({ error })).toBe(true);
+  });
+
+  it('returns true for an isRetryable APICallError with no statusCode (connection/header timeout)', () => {
+    expect(isTemporaryError({ error: buildApiCallError({ isRetryable: true }) })).toBe(true);
+  });
+
+  it('returns true for a RetryError wrapping a header-timeout APICallError', () => {
+    const timeoutError = buildApiCallError({ isRetryable: true });
+    expect(isTemporaryError({ error: buildRetryError({ errors: [timeoutError] }) })).toBe(true);
+  });
+
+  it('returns false for a RetryError wrapping a 401 APICallError', () => {
+    const authError = buildApiCallError({ statusCode: 401 });
+    expect(isTemporaryError({ error: buildRetryError({ errors: [authError] }) })).toBe(false);
+  });
+
+  it('returns false for an unrelated plain error', () => {
+    expect(isTemporaryError({ error: new Error('boom') })).toBe(false);
+  });
+});
+
+describe('isAuthError', () => {
+  it.each([401, 403])('returns true for a %d APICallError', (statusCode) => {
+    expect(isAuthError({ error: buildApiCallError({ statusCode }) })).toBe(true);
+  });
+
+  it('ignores auth-sounding text when the SDK carries a non-auth status', () => {
+    expect(isAuthError({ error: buildApiCallError({ statusCode: 429, message: 'invalid api key' }) })).toBe(false);
+  });
+
+  it('falls back to the message when no status code is available', () => {
+    expect(isAuthError({ error: new Error('Unauthorized: token rejected') })).toBe(true);
+    expect(isAuthError({ error: new Error('boom') })).toBe(false);
+  });
+});
+
+// A reshuffle of this precedence silently changes which endpoints get flagged dead and
+// which keys get blamed.
+describe('classifyAiCallFailure', () => {
+  it('reports a blocked address first, even when the SDK retried over it', () => {
+    const blocked = new ValidationError({ message: 'blocked' });
+    const error = buildRetryError({ errors: [new TypeError('fetch failed'), blocked] });
+
+    expect(classifyAiCallFailure({ error })).toEqual({ kind: 'blocked-address', cause: blocked, httpStatus: null });
+  });
+
+  it('reports a connection failure as endpoint-down', () => {
+    const { kind, httpStatus } = classifyAiCallFailure({ error: new TypeError('fetch failed') });
+
+    expect(kind).toBe('endpoint-down');
+    expect(httpStatus).toBeNull();
+  });
+
+  it('reads an HTML 404 as endpoint-down, not model-not-found', () => {
+    const error = buildApiCallError({ statusCode: 404, responseBody: HTML_ERROR_PAGE });
+
+    expect(classifyAiCallFailure({ error })).toMatchObject({ kind: 'endpoint-down', httpStatus: 404 });
+  });
+
+  it('reads a JSON 404 as model-not-found', () => {
+    const error = buildApiCallError({ statusCode: 404, responseBody: JSON.stringify({ error: 'no such model' }) });
+
+    expect(classifyAiCallFailure({ error })).toMatchObject({ kind: 'model-not-found', httpStatus: 404 });
+  });
+
+  it('reads a JSON 401 as auth', () => {
+    const error = buildApiCallError({ statusCode: 401, responseBody: JSON.stringify({ error: 'bad key' }) });
+
+    expect(classifyAiCallFailure({ error })).toMatchObject({ kind: 'auth', httpStatus: 401 });
+  });
+
+  // isTemporaryError accepts a 429 too, so rate-limited has to win for callers to back off.
+  it('reads a JSON 429 as rate-limited, not temporary', () => {
+    const error = buildApiCallError({ statusCode: 429, responseBody: JSON.stringify({ error: 'slow down' }) });
+
+    expect(classifyAiCallFailure({ error })).toMatchObject({ kind: 'rate-limited', httpStatus: 429 });
+  });
+
+  it('reads a JSON 503 as temporary', () => {
+    const error = buildApiCallError({ statusCode: 503, responseBody: JSON.stringify({ error: 'overloaded' }) });
+
+    expect(classifyAiCallFailure({ error })).toMatchObject({ kind: 'temporary', httpStatus: 503 });
+  });
+
+  it('unwraps a RetryError and reports the underlying cause', () => {
+    const cause = buildApiCallError({ statusCode: 401, responseBody: JSON.stringify({ error: 'bad key' }) });
+    const result = classifyAiCallFailure({ error: buildRetryError({ errors: [cause] }) });
+
+    expect(result.kind).toBe('auth');
+    expect(result.cause).toBe(cause);
+  });
+
+  it('falls back to unknown and wraps a non-Error cause', () => {
+    const result = classifyAiCallFailure({ error: 'string failure' });
+
+    expect(result.kind).toBe('unknown');
+    expect(result.cause).toBeInstanceOf(Error);
+    expect(result.cause.message).toBe('string failure');
+    expect(result.httpStatus).toBeNull();
   });
 });

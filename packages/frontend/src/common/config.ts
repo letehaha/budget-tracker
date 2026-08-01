@@ -6,9 +6,9 @@
  * empty string still wins: an empty `apiHttp` selects same-origin (relative
  * `/api/v1`) mode.
  *
- * Getters are lazy: read `config.x` inside a function to see `vi.stubEnv` changes
- * made after import. Constants derived from `config` at module level (e.g.
- * `API_HTTP` in `api-base-url.ts`) freeze at first import.
+ * Getters are lazy, so read `config.x` inside a function to see `vi.stubEnv`
+ * changes made after import. Module-level constants derived from `config` freeze
+ * at first import.
  */
 
 /** Shape of `window.__APP_CONFIG__`. Keys use runtime env-var names, no `VITE_` prefix. */
@@ -40,10 +40,9 @@ export const config = {
     return runtime().API_VER ?? import.meta.env.VITE_APP_API_VER ?? '/api/v1';
   },
   /**
-   * Only the exact string `'true'` is on, mirroring the backend. No
-   * `import.meta.env` fallback: hosted and self-hosted run the same image, and a
-   * `VITE_` var is inlined at build time, so one bundle could not answer
-   * differently for the two.
+   * No `import.meta.env` fallback: hosted and self-hosted share one image, and a
+   * `VITE_` var is inlined at build time, so one bundle cannot answer differently
+   * for the two.
    */
   get isSelfHost(): boolean {
     return runtime().IS_SELF_HOST === 'true';

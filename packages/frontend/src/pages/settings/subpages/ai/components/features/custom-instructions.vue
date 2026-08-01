@@ -17,15 +17,23 @@
       rows="4"
     />
 
+    <Callout v-if="credentialsUnknown" variant="destructive" class="mt-2 text-xs" icon-size-class="size-3.5">
+      <p>{{ $t('settings.ai.customInstructions.credentialsCheckFailed') }}</p>
+      <Button variant="ghost" size="sm" class="mt-2" :disabled="isRefetchingCredentials" @click="refetchCredentials()">
+        <Loader2Icon v-if="isRefetchingCredentials" class="size-3.5 animate-spin" />
+        {{ $t('settings.ai.customInstructions.retryCredentialsCheck') }}
+      </Button>
+    </Callout>
+
     <!-- Disabled state warning -->
-    <Callout v-if="!hasOwnCredentials" variant="warning" class="mt-2 text-xs" icon-size-class="size-3.5">
+    <Callout v-else-if="!hasOwnCredentials" variant="warning" class="mt-2 text-xs" icon-size-class="size-3.5">
       <p>{{ $t('settings.ai.customInstructions.requiresOwnCredentials') }}</p>
     </Callout>
 
     <!-- Save button -->
     <div v-if="hasOwnCredentials" class="mt-3 flex items-center gap-3">
       <Button size="sm" :disabled="!hasChanges || isSaving" @click="handleSave">
-        <Loader2Icon v-if="isSaving" class="mr-1.5 size-3.5 animate-spin" />
+        <Loader2Icon v-if="isSaving" class="size-3.5 animate-spin" />
         {{ $t('settings.ai.customInstructions.save') }}
       </Button>
 
@@ -60,6 +68,9 @@ const { t } = useI18n();
 const { addErrorNotification } = useNotificationCenter();
 const {
   hasOwnCredentials,
+  credentialsUnknown,
+  isRefetchingCredentials,
+  refetchCredentials,
   customInstructions,
   setCustomInstructions,
   isSettingCustomInstructions: isSaving,

@@ -1,4 +1,5 @@
 import {
+  AIKeyProvider,
   AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH,
   AI_CUSTOM_MODEL_NAME_MAX_LENGTH,
   AI_FEATURE,
@@ -52,15 +53,11 @@ const CATALOG_MODEL_ID = 'anthropic/claude-haiku-4-5';
 const CUSTOM_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
 const SECOND_CUSTOM_MODEL_ID = `custom/${SECOND_ENDPOINT_MODEL}`;
 
-/** Counts the generate probes the server sends to one endpoint. */
 function countEndpointProbes({ baseUrl = CUSTOM_ENDPOINT_BASE_URL }: { baseUrl?: string } = {}) {
   return createCallsCounter(global.mswMockServer, `${baseUrl}/chat/completions`);
 }
 
-/**
- * Replaces one endpoint's ciphertext with something `decryptToken` cannot read,
- * the state a key encrypted under a different APPLICATION_JWT_SECRET ends up in.
- */
+/** Puts the key in the state `decryptToken` fails on: encrypted under a different APPLICATION_JWT_SECRET. */
 async function corruptStoredKey({ userId, endpointId }: { userId: number; endpointId: string }): Promise<void> {
   const settings = await UserSettings.findOne({ where: { userId } });
   if (!settings) throw new Error('Test user has no settings row');
@@ -80,10 +77,19 @@ async function corruptStoredKey({ userId, endpointId }: { userId: number; endpoi
 }
 
 describe('AI custom endpoints', () => {
+  // Feature-status responses consult server-side AI keys, so an ambient key in the
+  // local environment would flip which model the assertions here see answering.
+  const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+  const serverKeysBeforeTest = new Map<string, string | undefined>();
   let selfHostFlagBeforeTest: string | undefined;
 
   beforeEach(() => {
     selfHostFlagBeforeTest = process.env.IS_SELF_HOST;
+
+    for (const envVar of SERVER_KEY_ENV_VARS) {
+      serverKeysBeforeTest.set(envVar, process.env[envVar]);
+      delete process.env[envVar];
+    }
   });
 
   afterEach(() => {
@@ -92,9 +98,19 @@ describe('AI custom endpoints', () => {
     } else {
       process.env.IS_SELF_HOST = selfHostFlagBeforeTest;
     }
+
+    for (const envVar of SERVER_KEY_ENV_VARS) {
+      const keyBeforeTest = serverKeysBeforeTest.get(envVar);
+
+      if (keyBeforeTest === undefined) {
+        delete process.env[envVar];
+      } else {
+        process.env[envVar] = keyBeforeTest;
+      }
+    }
   });
 
-  /** The outbound URL guard is a no-op here — the operator owns the network. */
+  /** Self-host stands the outbound URL guard down, which the mock endpoint hosts need. */
   function runAsSelfHost() {
     process.env.IS_SELF_HOST = 'true';
   }
@@ -254,7 +270,6 @@ describe('AI custom endpoints', () => {
       expect(response.statusCode).toBe(422);
     });
 
-    // 500 characters is the schema ceiling for the URL
     it('rejects a base URL longer than the allowed maximum', async () => {
       runAsSelfHost();
 
@@ -384,7 +399,6 @@ describe('AI custom endpoints', () => {
       expect(await helpers.getAiCustomEndpoints({ raw: true })).toEqual([]);
     }, 30_000);
 
-    // 5 is the documented per-user cap; the 6th must be refused whatever it points at
     it('refuses an endpoint beyond the per-user cap and keeps the stored ones', async () => {
       runAsSelfHost();
 
@@ -424,8 +438,6 @@ describe('AI custom endpoints', () => {
       expect(probes.count).toBe(0);
     });
 
-    // A server can answer a generate call with whatever model it has loaded, so a
-    // name missing from its own list is the only reliable way to catch a typo
     it('rejects a model missing from the endpoint model list and says what it offers', async () => {
       runAsSelfHost();
 
@@ -555,7 +567,7 @@ describe('AI custom endpoints', () => {
       runAsSelfHost();
       const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
 
-      // Only the stored key gets a 200 from here on, so a passing update proves it was sent
+      // Only the stored key gets a 200, so a passing update proves it was sent
       global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY }));
 
       const updated = await helpers.updateAiCustomEndpoint({
@@ -585,7 +597,6 @@ describe('AI custom endpoints', () => {
       const userId = await getTestUserId();
       const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
 
-      // Without that key the endpoint answers 401, so the keyless revalidation fails
       global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY }));
 
       const updated = await helpers.updateAiCustomEndpoint({ id: created.id, apiKey: null, raw: true });
@@ -979,9 +990,6 @@ describe('AI custom endpoints', () => {
         raw: true,
       });
 
-      // The response names whatever would answer a call, which is the saved
-      // endpoint while no key backs the catalog model. The stored row is where
-      // the smuggled endpoint id would have to show up.
       const stored = (await readStoredFeatureConfigs({ userId })).find(
         (config) => config.feature === AI_FEATURE.statementParsing,
       );
@@ -1076,7 +1084,6 @@ describe('AI custom endpoints', () => {
       runAsSelfHost();
       const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
 
-      // Only the saved key gets a 200, so a valid result proves all three saved fields were used
       global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY }));
 
       const result = await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
@@ -1104,7 +1111,6 @@ describe('AI custom endpoints', () => {
       const first = await createFirstEndpoint();
       const second = await createSecondEndpoint();
 
-      // Only the first endpoint's URL fails from here on, so the two ids must give opposite results
       global.mswMockServer.use(getCustomEndpointAuthErrorMock({ baseUrl: CUSTOM_ENDPOINT_BASE_URL }));
 
       const onSecond = await helpers.testAiCustomEndpoint({ endpointId: second.id, raw: true });
@@ -1114,8 +1120,7 @@ describe('AI custom endpoints', () => {
       expect(onFirst.isValid).toBe(false);
     });
 
-    // A closed tunnel answers 404 with its own error page on every path. Reading that as
-    // a verdict on the model sends the user editing a model name that was never wrong.
+    // A closed tunnel answers 404 with its own error page on every path, model probe included.
     it('blames the server, not the model, when a web page answers instead of the API', async () => {
       runAsSelfHost();
       global.mswMockServer.use(...getCustomEndpointWebPageMocks());
@@ -1152,8 +1157,8 @@ describe('AI custom endpoints', () => {
       global.mswMockServer.use(getCustomEndpointOfflineMock());
       await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
 
-      // Shadows the offline override above instead of resetting every runtime handler,
-      // which would silently drop overrides other parts of the test rely on.
+      // Shadows the offline override instead of resetting every runtime handler,
+      // which would drop overrides other parts of the test rely on.
       global.mswMockServer.use(getCustomEndpointSuccessMock());
       const result = await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
 
@@ -1165,8 +1170,6 @@ describe('AI custom endpoints', () => {
       expect(stored!.invalidatedAt).toBeUndefined();
     });
 
-    // The request tried a combination the user has not saved, so it says nothing
-    // about the stored one.
     it('leaves the stored status alone when the test overrides a saved field', async () => {
       runAsSelfHost();
       const created = await createFirstEndpoint();
@@ -1203,7 +1206,6 @@ describe('AI custom endpoints', () => {
   });
 
   describe('Outbound probe rate limit', () => {
-    /** The counter lives in Redis, which the global setup wipes between tests. */
     async function burnProbeBudget({ attempts }: { attempts: number }) {
       const userId = await getTestUserId();
       await RateLimitService.resetRateLimit(`ai-custom-endpoint-test:user:${userId}`);
@@ -1232,7 +1234,6 @@ describe('AI custom endpoints', () => {
       expect(errorBody.response?.code).toBe(API_ERROR_CODES.tooManyRequests);
     }, 30_000);
 
-    // Create, update and test all dial a user-supplied URL, so one budget covers all three
     it('counts connection tests against create and update as well', async () => {
       runAsSelfHost();
       await burnProbeBudget({ attempts: 15 });
@@ -1282,24 +1283,24 @@ describe('AI custom endpoints', () => {
     });
   });
 
-  // A custom endpoint carries a base URL plus an optional key, so it is stored
-  // and edited through its own routes and never as an API key entry.
   describe('`custom` is refused by the API key routes', () => {
+    const customAsKeyProvider = AI_PROVIDER.custom as unknown as AIKeyProvider;
+
     it('rejects a key set for custom', async () => {
-      const response = await helpers.setAiApiKey({ provider: AI_PROVIDER.custom, apiKey: 'sk-not-a-provider-key' });
+      const response = await helpers.setAiApiKey({ provider: customAsKeyProvider, apiKey: 'sk-not-a-provider-key' });
 
       expect(response.statusCode).toBe(422);
       expect((await helpers.getAiApiKeyStatus({ raw: true })).hasApiKey).toBe(false);
     });
 
     it('rejects a key delete for custom', async () => {
-      const response = await helpers.deleteAiApiKey({ provider: AI_PROVIDER.custom });
+      const response = await helpers.deleteAiApiKey({ provider: customAsKeyProvider });
 
       expect(response.statusCode).toBe(422);
     });
 
     it('rejects custom as the default provider', async () => {
-      const response = await helpers.setDefaultAiProvider({ provider: AI_PROVIDER.custom });
+      const response = await helpers.setDefaultAiProvider({ provider: customAsKeyProvider });
 
       expect(response.statusCode).toBe(422);
       expect((await helpers.getAiApiKeyStatus({ raw: true })).defaultProvider).toBeUndefined();

@@ -3,7 +3,13 @@ import { decryptToken, encryptToken } from '@common/utils/encryption';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
+import UserSettings, {
+  DEFAULT_SETTINGS,
+  MAX_CUSTOM_ENDPOINTS,
+  SettingsSchema,
+  StoredAiSettings,
+  StoredCustomEndpoint,
+} from '@models/user-settings.model';
 import { randomUUID } from 'node:crypto';
 
 import { validateCustomEndpoint } from '../ai/custom-endpoint-validation';
@@ -11,13 +17,9 @@ import { withTransaction } from '../common/with-transaction';
 import { getOrCreateUserSettings } from './get-or-create-user-settings';
 import { migrateFeatureConfigsOnCustomEndpointRemoval } from './migrate-feature-configs';
 
-type StoredAiSettings = NonNullable<SettingsSchema['ai']>;
-type StoredCustomEndpoint = NonNullable<StoredAiSettings['customEndpoints']>[number];
-
 /**
- * Connection details ready to hand to the AI SDK. `apiKey` is decrypted.
- * `hasApiKey` with a null `apiKey` means the stored ciphertext could not be read.
- * Dialling in that state looks like an authentication failure, so the two cases stay distinct.
+ * Connection details ready to hand to the AI SDK, with `apiKey` decrypted. `hasApiKey` true
+ * alongside a null `apiKey` means the stored ciphertext could not be read.
  */
 interface CustomEndpointCredentials {
   id: string;
@@ -29,9 +31,6 @@ interface CustomEndpointCredentials {
 }
 
 const EMPTY_AI_SETTINGS: StoredAiSettings = { apiKeys: [], featureConfigs: [] };
-
-/** Cap per user: each entry is a URL the server dials, and the whole list lives in one settings row. */
-const MAX_CUSTOM_ENDPOINTS = 5;
 
 /** Trims and drops trailing slashes so `/v1/` and `/v1` store the same value. */
 function normalizeBaseUrl({ baseUrl }: { baseUrl: string }): string {
@@ -79,8 +78,8 @@ function decryptOrNull({
   try {
     return decryptToken(keyEncrypted);
   } catch (error) {
-    // Ciphertext written under a different APPLICATION_JWT_SECRET, or a mangled
-    // settings blob. The user cannot cause or fix either one.
+    // Ciphertext written under a different APPLICATION_JWT_SECRET, or a mangled settings
+    // blob. The user cannot cause or fix either one.
     logger.error(
       { message: 'Stored custom AI endpoint key could not be decrypted', error: error as Error },
       { userId, endpointId },
@@ -115,7 +114,7 @@ function toEndpointInfo({ endpoint }: { endpoint: StoredCustomEndpoint }): AICus
   };
 }
 
-function toCredentials({
+export function readEndpointCredentials({
   endpoint,
   userId,
 }: {
@@ -132,42 +131,10 @@ function toCredentials({
   };
 }
 
-/** An entry missing an id, name, base URL or model can't be dialled, so it never surfaces. */
-function filterUsableEndpoints({
-  endpoints,
-  userId,
-}: {
-  endpoints: StoredCustomEndpoint[];
-  userId: number;
-}): StoredCustomEndpoint[] {
-  const usable = endpoints.filter((endpoint) =>
-    Boolean(endpoint.id && endpoint.name && endpoint.baseUrl && endpoint.defaultModel),
-  );
-
-  if (usable.length !== endpoints.length) {
-    const dropped = endpoints.filter((endpoint) => !usable.includes(endpoint));
-
-    logger.error('Malformed custom AI endpoint entries hidden from the user', {
-      userId,
-      dropped: dropped.length,
-      ids: dropped.map((endpoint) => endpoint.id).filter(Boolean),
-    });
-  }
-
-  return usable;
-}
-
-/** Every stored entry, malformed ones included: an entry hidden from the UI still takes a slot and a name. */
-async function readAllStoredEndpoints({ userId }: { userId: number }): Promise<StoredCustomEndpoint[]> {
+async function readStoredEndpoints({ userId }: { userId: number }): Promise<StoredCustomEndpoint[]> {
   const userSettings = await UserSettings.findOne({ where: { userId }, attributes: ['settings'] });
 
   return userSettings?.settings?.ai?.customEndpoints ?? [];
-}
-
-async function readStoredEndpoints({ userId }: { userId: number }): Promise<StoredCustomEndpoint[]> {
-  const endpoints = await readAllStoredEndpoints({ userId });
-
-  return filterUsableEndpoints({ endpoints, userId });
 }
 
 function assertNameAvailable({
@@ -180,9 +147,8 @@ function assertNameAvailable({
   ignoreId?: string;
 }): void {
   const wanted = name.toLowerCase();
-  // The list can hold malformed entries, so id or name may be missing.
   const taken = endpoints.some(
-    (endpoint) => endpoint.name?.toLowerCase() === wanted && (ignoreId === undefined || endpoint.id !== ignoreId),
+    (endpoint) => endpoint.name.toLowerCase() === wanted && (ignoreId === undefined || endpoint.id !== ignoreId),
   );
 
   if (taken) {
@@ -208,13 +174,12 @@ function normalizeName({ name }: { name: string }): string {
   return normalized;
 }
 
-/** All of the user's endpoints, in saved order. Never carries key material. */
+/** Never carries key material. */
 export const getCustomEndpointInfos = async ({ userId }: { userId: number }): Promise<AICustomEndpointInfo[]> => {
   const endpoints = await readStoredEndpoints({ userId });
   return endpoints.map((endpoint) => toEndpointInfo({ endpoint }));
 };
 
-/** Connection details for one endpoint, with the API key decrypted. */
 export const getCustomEndpointById = async ({
   userId,
   endpointId,
@@ -225,21 +190,7 @@ export const getCustomEndpointById = async ({
   const endpoints = await readStoredEndpoints({ userId });
   const endpoint = endpoints.find((candidate) => candidate.id === endpointId);
 
-  return endpoint ? toCredentials({ endpoint, userId }) : null;
-};
-
-/** Endpoint details safe to return over the API. Null when the id is unknown. */
-export const getCustomEndpointInfoById = async ({
-  userId,
-  endpointId,
-}: {
-  userId: number;
-  endpointId: string;
-}): Promise<AICustomEndpointInfo | null> => {
-  const endpoints = await readStoredEndpoints({ userId });
-  const endpoint = endpoints.find((candidate) => candidate.id === endpointId);
-
-  return endpoint ? toEndpointInfo({ endpoint }) : null;
+  return endpoint ? readEndpointCredentials({ endpoint, userId }) : null;
 };
 
 /** Writes a proven endpoint, re-checking the cap and the name against the locked row. */
@@ -291,9 +242,8 @@ const storeNewCustomEndpoint = withTransaction(
 );
 
 /**
- * Add an OpenAI-compatible endpoint only after a real call proves the base URL, model
- * and key work, so a stored endpoint is always one that responded. The probe runs
- * before the transaction opens so a live LLM call does not pin a database connection.
+ * Stores the endpoint only after a live call proves the base URL, model and key work. The
+ * probe runs before the transaction opens so it does not pin a database connection.
  */
 export const createCustomEndpoint = async ({
   userId,
@@ -317,7 +267,7 @@ export const createCustomEndpoint = async ({
   }
 
   // Fast fail before spending an outbound call on a request that cannot be saved.
-  const storedEndpoints = await readAllStoredEndpoints({ userId });
+  const storedEndpoints = await readStoredEndpoints({ userId });
   assertWithinEndpointCap({ endpoints: storedEndpoints });
   assertNameAvailable({ endpoints: storedEndpoints, name: normalizedName });
 
@@ -342,7 +292,6 @@ export const createCustomEndpoint = async ({
   });
 };
 
-/** Applies an already-decided set of fields to one endpoint under the locked row. */
 const storeUpdatedCustomEndpoint = withTransaction(
   async ({
     userId,
@@ -357,8 +306,7 @@ const storeUpdatedCustomEndpoint = withTransaction(
     const { currentSettings, currentAiSettings, existingEndpoints } = deriveAiSettingsState({
       settings: userSettings?.settings,
     });
-    const usableEndpoints = filterUsableEndpoints({ endpoints: existingEndpoints, userId });
-    const existing = usableEndpoints.find((candidate) => candidate.id === endpointId);
+    const existing = existingEndpoints.find((candidate) => candidate.id === endpointId);
 
     if (!userSettings || !existing) {
       throw new NotFoundError({ message: t({ key: 'ai.customEndpointNotFound' }) });
@@ -384,11 +332,9 @@ const storeUpdatedCustomEndpoint = withTransaction(
 );
 
 /**
- * Update one endpoint in place. Omitted fields keep their stored value; `apiKey` is
- * `undefined` to keep the key, `null` to remove it, a string to replace it.
- * Removing a key is the one change that survives a failed check: it is stored keyless
- * and flagged invalid, because an endpoint that demands a key would reject every
- * attempt to clear it.
+ * Removing a key is the one change that survives a failed check: it is stored keyless and
+ * flagged invalid, because an endpoint that demands a key would reject every attempt to clear
+ * it. Every other field is only stored once the new combination answers.
  */
 export const updateCustomEndpoint = async ({
   userId,
@@ -405,10 +351,8 @@ export const updateCustomEndpoint = async ({
   defaultModel?: string;
   apiKey?: string | null;
 }): Promise<AICustomEndpointInfo> => {
-  const storedEndpoints = await readAllStoredEndpoints({ userId });
-  const existing = filterUsableEndpoints({ endpoints: storedEndpoints, userId }).find(
-    (candidate) => candidate.id === endpointId,
-  );
+  const storedEndpoints = await readStoredEndpoints({ userId });
+  const existing = storedEndpoints.find((candidate) => candidate.id === endpointId);
 
   if (!existing) {
     throw new NotFoundError({ message: t({ key: 'ai.customEndpointNotFound' }) });
@@ -484,11 +428,6 @@ export const updateCustomEndpoint = async ({
   });
 };
 
-/**
- * Remove one endpoint. Feature configs bound to it move to a recommended model from a
- * provider the user still has a key for, or are dropped so the feature falls back to the
- * server default. Configs on the user's other endpoints stay.
- */
 export const deleteCustomEndpoint = withTransaction(
   async ({ userId, endpointId }: { userId: number; endpointId: string }): Promise<void> => {
     const userSettings = await UserSettings.findOne({ where: { userId }, lock: true });
@@ -523,14 +462,9 @@ export const deleteCustomEndpoint = withTransaction(
 );
 
 /**
- * Try a base URL / model / key trio. With `endpointId` the saved endpoint fills the gaps,
- * so the UI can re-test a stored configuration (including its stored key) without
- * resending secrets.
- *
- * Re-testing a stored configuration unchanged is the one case whose verdict is recorded:
- * it is the same call the endpoint answers during real use, so the result is what the
- * endpoint's status means. Any request that overrides a saved field tried a combination
- * the user has not saved and leaves the status alone.
+ * Only an unmodified re-test of a saved endpoint records its verdict on the stored status,
+ * because that is the same call real use makes. A request overriding any saved field tried a
+ * combination the user never saved, so it leaves the status alone.
  */
 export const testCustomEndpointConnection = async ({
   userId,
@@ -599,8 +533,6 @@ const patchEndpointStatus = async ({
   endpointId: string;
   patch: Partial<StoredCustomEndpoint>;
 }): Promise<void> => {
-  // FOR UPDATE: the whole settings blob is rewritten here, so a concurrent status
-  // patch or settings save must serialize behind this one.
   const userSettings = await UserSettings.findOne({ where: { userId }, lock: true });
   if (!userSettings) {
     logger.info('Skipping custom AI endpoint status patch: the user has no settings row', { userId, endpointId });
@@ -627,7 +559,6 @@ const patchEndpointStatus = async ({
   });
 };
 
-/** Flag one endpoint as broken after a failed AI call. Mirrors `markApiKeyInvalid` for stored provider keys. */
 export const markCustomEndpointInvalid = withTransaction(
   async ({
     userId,
@@ -650,7 +581,6 @@ export const markCustomEndpointInvalid = withTransaction(
   },
 );
 
-/** Clear a previous error after a successful AI call. */
 export const markCustomEndpointValid = withTransaction(
   async ({ userId, endpointId }: { userId: number; endpointId: string }): Promise<void> => {
     await patchEndpointStatus({

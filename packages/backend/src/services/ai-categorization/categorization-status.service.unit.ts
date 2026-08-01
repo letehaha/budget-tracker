@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 // (`@root/redis-client` is already stubbed globally in setupUnitTests.ts.)
 jest.mock('./categorization-queue', () => ({
   __esModule: true,
-  buildLastCategorizationJobPointerKey: (userId: number) => `ai-categorization-last-job-${userId}`,
+  buildLastCategorizationJobPointerKey: ({ userId }: { userId: number }) => `ai-categorization-last-job-${userId}`,
   categorizationQueue: { getJob: jest.fn() },
 }));
 
@@ -14,31 +14,47 @@ import { redisClient } from '@root/redis-client';
 
 import { categorizationQueue } from './categorization-queue';
 import { getCategorizationStatus } from './categorization-status.service';
+import { buildTerminalOutcomeKey } from './categorization-terminal-outcome';
 /* eslint-enable import/first */
 
 type AsyncMock = jest.Mock<(...args: never[]) => Promise<unknown>>;
 
 const redisGetMock = jest.mocked(redisClient.get) as unknown as AsyncMock;
+const redisDelMock = jest.mocked(redisClient.del) as unknown as AsyncMock;
 const getJobMock = jest.mocked(categorizationQueue.getJob) as unknown as AsyncMock;
 
 const USER_ID = 42;
 const JOB_ID = 'categorization-42-1234';
+const POINTER_KEY = `ai-categorization-last-job-${USER_ID}`;
+const OUTCOME_KEY = buildTerminalOutcomeKey({ userId: USER_ID });
 const IDLE = { status: 'idle' };
+
+/** Per-key redis stub: the pointer and the terminal-outcome record share `redisClient.get`. */
+function mockRedisKeys({ pointer, outcome }: { pointer: string | null; outcome: object | null }) {
+  redisGetMock.mockImplementation((async (key: string) => {
+    if (key === POINTER_KEY) return pointer;
+    if (key === OUTCOME_KEY) return outcome ? JSON.stringify(outcome) : null;
+    return null;
+  }) as never);
+}
 
 function mockJob({
   userId = USER_ID,
   transactionCount = 5,
   state = 'active',
   progress = {} as unknown,
+  failedReason,
 }: {
   userId?: number;
   transactionCount?: number;
   state?: string;
   progress?: unknown;
+  failedReason?: string;
 } = {}) {
   getJobMock.mockResolvedValue({
     data: { userId, transactionIds: Array.from({ length: transactionCount }, (_, i) => `tx-${i}`) },
     progress,
+    failedReason,
     getState: jest.fn<() => Promise<string>>().mockResolvedValue(state),
   });
 }
@@ -46,17 +62,18 @@ function mockJob({
 describe('getCategorizationStatus state mapping', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    redisGetMock.mockResolvedValue(JOB_ID);
+    mockRedisKeys({ pointer: JOB_ID, outcome: null });
+    redisDelMock.mockResolvedValue(1);
   });
 
   it('returns idle when no pointer exists', async () => {
-    redisGetMock.mockResolvedValue(null);
+    mockRedisKeys({ pointer: null, outcome: null });
 
     await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(IDLE);
     expect(getJobMock).not.toHaveBeenCalled();
   });
 
-  it('returns idle when the pointer resolves to no job (run finished, job removed)', async () => {
+  it('returns idle when the pointer resolves to no job and no terminal outcome was recorded', async () => {
     getJobMock.mockResolvedValue(null);
 
     await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(IDLE);
@@ -67,8 +84,7 @@ describe('getCategorizationStatus state mapping', () => {
     mockJob({ userId: USER_ID + 1 });
 
     await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(IDLE);
-    // A per-user pointer resolving to a foreign job is our bug — it must reach
-    // Sentry, not vanish behind the safe idle fallback.
+    // A foreign job on a per-user pointer is our bug, so it must reach Sentry.
     expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
     loggerErrorSpy.mockRestore();
   });
@@ -96,8 +112,8 @@ describe('getCategorizationStatus state mapping', () => {
     });
   });
 
-  it.each(['waiting', 'delayed', 'prioritized'])('maps a %s job to queued', async (state) => {
-    mockJob({ state });
+  it.each(['waiting', 'prioritized'])('maps a %s job to queued', async (state) => {
+    mockJob({ state, progress: 0 });
 
     await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual({
       status: 'queued',
@@ -107,31 +123,71 @@ describe('getCategorizationStatus state mapping', () => {
     });
   });
 
-  it('maps a failed job with a progress blob to failed, counting unprocessed transactions as failed', async () => {
-    mockJob({ state: 'failed', progress: { processedCount: 2, totalCount: 5, failedCount: 1 } });
+  it('keeps the progress counters through a retry backoff instead of resetting to zero', async () => {
+    // `delayed` = attempt failed, retry pending; the blob still holds the finished batches.
+    mockJob({ state: 'delayed', progress: { processedCount: 500, failedCount: 3 } });
 
     await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual({
+      status: 'queued',
+      processedCount: 500,
+      totalCount: 5,
+      failedCount: 3,
+    });
+  });
+
+  describe('terminal outcomes (consume-on-read)', () => {
+    const FAILED_OUTCOME = {
       status: 'failed',
       processedCount: 2,
       totalCount: 5,
       failedCount: 4,
+      errorMessage: 'job stalled more than allowable limit',
+    };
+
+    it('serves the recorded outcome once when the finished job is already gone', async () => {
+      mockRedisKeys({ pointer: JOB_ID, outcome: FAILED_OUTCOME });
+      getJobMock.mockResolvedValue(null);
+
+      await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(FAILED_OUTCOME);
+      expect(redisDelMock).toHaveBeenCalledWith(OUTCOME_KEY);
     });
-  });
 
-  it('maps a failed job without a progress blob to failed with everything failed', async () => {
-    mockJob({ state: 'failed', progress: 0 });
+    it('serves a completed-with-cause outcome for an early-stopped run', async () => {
+      const stoppedOutcome = {
+        status: 'completed',
+        processedCount: 5,
+        totalCount: 5,
+        failedCount: 5,
+        errorMessage: 'Your custom AI endpoint did not respond.',
+      };
+      mockRedisKeys({ pointer: JOB_ID, outcome: stoppedOutcome });
+      getJobMock.mockResolvedValue(null);
 
-    await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual({
-      status: 'failed',
-      processedCount: 0,
-      totalCount: 5,
-      failedCount: 5,
+      await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(stoppedOutcome);
     });
-  });
 
-  it('maps a completed job to idle (removeOnComplete normally deletes it first)', async () => {
-    mockJob({ state: 'completed' });
+    it('serves the recorded outcome once while the failed job still lingers in the queue', async () => {
+      mockRedisKeys({ pointer: JOB_ID, outcome: FAILED_OUTCOME });
+      mockJob({ state: 'failed', progress: { processedCount: 2, failedCount: 1 } });
 
-    await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(IDLE);
+      await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(FAILED_OUTCOME);
+    });
+
+    it('settles a lingering failed job to idle after the outcome was consumed', async () => {
+      mockJob({ state: 'failed', progress: { processedCount: 2, failedCount: 1 } });
+
+      await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(IDLE);
+    });
+
+    it('returns idle for a malformed outcome record instead of throwing', async () => {
+      redisGetMock.mockImplementation((async (key: string) => {
+        if (key === POINTER_KEY) return JOB_ID;
+        if (key === OUTCOME_KEY) return 'not-json{';
+        return null;
+      }) as never);
+      getJobMock.mockResolvedValue(null);
+
+      await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual(IDLE);
+    });
   });
 });

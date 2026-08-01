@@ -43,8 +43,7 @@ describe('parseDecimalAmount', () => {
       expect(parseDecimalAmount({ raw })).toBe(expected);
     });
 
-    // 1,234 is 1234 to a US bank and 1.234 to a European one. Nothing in the token says
-    // which, and inventing an amount that is wrong by 1000x is worse than skipping a row.
+    // Guessing here would be wrong by 1000x, which is worse than skipping the row.
     it.each([
       ['a comma before three digits', '1,234'],
       ['a dot before three digits', '1.234'],

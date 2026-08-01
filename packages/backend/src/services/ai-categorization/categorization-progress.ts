@@ -1,12 +1,14 @@
 import { CategorizationProgress } from './types';
 
 /**
- * The job's progress blob is untyped on the BullMQ side (default is the number
- * 0); fall back to zeros when it's not the counters shape the worker writes.
+ * BullMQ's progress blob is untyped and defaults to the number 0, so anything
+ * that isn't the counters shape the worker writes reads as zeros.
  */
-export function parseProgressCounters(
-  progress: unknown,
-): Pick<CategorizationProgress, 'processedCount' | 'failedCount'> {
+export function parseProgressCounters({
+  progress,
+}: {
+  progress: unknown;
+}): Pick<CategorizationProgress, 'processedCount' | 'failedCount'> {
   const raw = (typeof progress === 'object' && progress !== null ? progress : {}) as Partial<CategorizationProgress>;
   return {
     processedCount: typeof raw.processedCount === 'number' ? raw.processedCount : 0,
@@ -15,25 +17,31 @@ export function parseProgressCounters(
 }
 
 /**
- * Single projection of a failed run, shared by the worker's terminal SSE event
- * and the status endpoint so a live tab and a reloaded tab see the same
- * counters. A terminal failure means the processor threw, but batches finished
- * before the throw did commit — surface the blob's counters and count
- * everything that never ran as failed.
+ * A failed run still committed the batches that finished before the throw, so
+ * the blob's counters stand and only the remainder counts as failed.
  */
-export function buildFailedRunStatus({ progress, totalCount }: { progress: unknown; totalCount: number }): {
+export function buildFailedRunStatus({
+  progress,
+  totalCount,
+  errorMessage,
+}: {
+  progress: unknown;
+  totalCount: number;
+  errorMessage?: string;
+}): {
   status: 'failed';
   processedCount: number;
   totalCount: number;
   failedCount: number;
+  errorMessage?: string;
 } {
-  const { processedCount, failedCount } = parseProgressCounters(progress);
+  const { processedCount, failedCount } = parseProgressCounters({ progress });
   return {
     status: 'failed',
     processedCount,
     totalCount,
-    // Math.max keeps a counter bug (processedCount running past totalCount)
-    // from turning the "never ran" remainder negative.
+    // Math.max stops an overcounted processedCount from making the remainder negative.
     failedCount: failedCount + Math.max(0, totalCount - processedCount),
+    ...(errorMessage ? { errorMessage } : {}),
   };
 }

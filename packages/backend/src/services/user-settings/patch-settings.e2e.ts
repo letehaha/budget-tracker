@@ -6,13 +6,10 @@ import * as helpers from '@tests/helpers';
 import { getTestUserId, readStoredEndpoints } from '@tests/helpers/user-settings';
 
 const SEEDED_ENDPOINT_NAME = 'Home Ollama';
-/** Link-local metadata address — the outbound URL guard rejects it. */
+/** Link-local metadata address that the outbound URL guard rejects. */
 const SMUGGLED_BASE_URL = 'http://169.254.169.254';
 
-/**
- * Writes an endpoint straight into settings so the test starts from the state a
- * successful create through the dedicated route would leave behind.
- */
+/** Writes an endpoint straight into settings, the state a create through the dedicated route leaves behind. */
 async function seedCustomEndpoint({ userId }: { userId: number }): Promise<void> {
   const [settings] = await UserSettings.findOrCreate({
     where: { userId },
@@ -41,10 +38,6 @@ async function seedCustomEndpoint({ userId }: { userId: number }): Promise<void>
   await settings.save();
 }
 
-/**
- * Shaped like a stored endpoint, but with a base URL the outbound guard rejects
- * and an id the delete route can never match.
- */
 function buildSmuggledEndpoint() {
   const now = new Date().toISOString();
 

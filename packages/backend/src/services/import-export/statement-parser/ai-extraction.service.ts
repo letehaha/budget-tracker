@@ -9,11 +9,8 @@ import type {
 } from '@bt/shared/types';
 import { AI_FEATURE } from '@bt/shared/types';
 import { logger } from '@js/utils';
-import { createAIClient, describeMissingAiConfiguration, unwrapRetryError } from '@services/ai';
-import {
-  type AIExtractionError,
-  classifyAiExtractionFailure,
-} from '@services/import-export/core/ai-extraction-failure';
+import { aiCallGuards, createAIClient, describeMissingAiConfiguration } from '@services/ai';
+import { type AIExtractionError, resolveAiExtractionFailure } from '@services/import-export/core/ai-extraction-failure';
 import { generateText } from 'ai';
 
 import { STATEMENT_EXTRACTION_SYSTEM_PROMPT, createTextExtractionPrompt, parseAIResponse } from './extraction-prompt';
@@ -57,11 +54,14 @@ export async function extractTransactionsWithAI({
   try {
     logger.info('[Statement Parser] Starting AI extraction', { modelId: aiClient.modelId, textLength: text.length });
 
-    // Generate extraction using AI
+    const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
+
     const { text: responseText, usage } = await generateText({
       model: aiClient.model,
       system: STATEMENT_EXTRACTION_SYSTEM_PROMPT,
       prompt: createTextExtractionPrompt({ text }),
+      abortSignal,
+      maxRetries,
     });
 
     logger.info('[Statement Parser] AI answered', { responseLength: responseText.length, usage });
@@ -81,8 +81,6 @@ export async function extractTransactionsWithAI({
     }
 
     if (parsed.transactions.length === 0) {
-      // Rows that were all rejected mean the model answered badly, not that the file is
-      // wrong — worth saying, because the fix is to run it again or pick a better model.
       if (parsed.droppedRowCount > 0) {
         return {
           success: false,
@@ -136,21 +134,8 @@ export async function extractTransactionsWithAI({
       },
     };
   } catch (error) {
-    const userFacing = await classifyAiExtractionFailure({ userId, aiClient, error, logPrefix: '[Statement Parser]' });
-    if (userFacing) {
-      return { success: false, error: userFacing };
-    }
+    const failure = await resolveAiExtractionFailure({ userId, aiClient, error, logPrefix: '[Statement Parser]' });
 
-    const cause = unwrapRetryError({ error });
-    logger.error({ message: '[Statement Parser] AI extraction failed', error: cause as Error });
-
-    return {
-      success: false,
-      error: {
-        code: 'AI_ERROR',
-        message: 'AI extraction failed',
-        details: cause instanceof Error ? cause.message : 'Unknown error',
-      },
-    };
+    return { success: false, error: failure.error };
   }
 }

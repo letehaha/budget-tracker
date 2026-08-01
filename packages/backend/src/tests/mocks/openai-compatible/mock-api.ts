@@ -1,25 +1,14 @@
 import { HttpResponse, http } from 'msw';
 
 /**
- * Stand-in for a user-supplied OpenAI-compatible endpoint (Ollama, vLLM, LiteLLM).
- * msw answers these in-process, so the hostname never has to resolve.
- *
- * Two paths are handled: `<baseUrl>/chat/completions`, which the AI SDK's
- * `openai.chat()` model posts to, and `<baseUrl>/models`, which validation reads
- * to check a model name against what the server actually serves. A request to any
- * other path stays unhandled and fails, which is what should happen if the client
- * stops targeting those paths.
- *
- * `CUSTOM_ENDPOINT_BASE_URL`, `CUSTOM_ENDPOINT_LOOPBACK_BASE_URL` and
- * `CUSTOM_ENDPOINT_OFFLINE_BASE_URL` answer 404 on `/models`, standing in for the
- * many OpenAI-compatible servers that do not implement the route — validation
- * falls back to the generate probe for them.
+ * Stand-in for a user-supplied OpenAI-compatible endpoint (Ollama, vLLM, LiteLLM). msw
+ * answers these in-process, so the hostname never has to resolve.
  */
 
 /** Public-looking host, so the outbound URL guard is not what a test is measuring. */
 export const CUSTOM_ENDPOINT_BASE_URL = 'http://custom-llm.test/v1';
 
-/** Loopback base URL — blocked by the guard in cloud mode, reachable in self-host mode. */
+/** Blocked by the guard in cloud mode, reachable in self-host mode. */
 export const CUSTOM_ENDPOINT_LOOPBACK_BASE_URL = 'http://127.0.0.1:11434/v1';
 
 /** Base URL whose handler fails the connection itself, standing in for a host that is down. */
@@ -112,15 +101,14 @@ function modelListResponse({ modelIds }: { modelIds: string[] }) {
   });
 }
 
-/** What a server without the route answers, so the caller has to probe some other way. */
+/** What a server that does not implement `/models` answers. */
 function routeNotFoundResponse() {
   return HttpResponse.json({ error: { message: 'Unexpected endpoint or method' } }, { status: 404 });
 }
 
 /**
  * Succeeds unless the request carries `INVALID_CUSTOM_ENDPOINT_API_KEY` or asks for
- * `CUSTOM_ENDPOINT_UNKNOWN_MODEL`, so most tests drive the outcome through the
- * request payload instead of registering an override.
+ * `CUSTOM_ENDPOINT_UNKNOWN_MODEL`, so most tests need no override at all.
  */
 async function defaultResolver({ request }: { request: Request }) {
   if (bearerToken({ request }) === INVALID_CUSTOM_ENDPOINT_API_KEY) {
@@ -149,7 +137,6 @@ export const openAiCompatibleHandlers = [
   http.post(chatCompletionsUrl({ baseUrl: CUSTOM_ENDPOINT_LOOPBACK_BASE_URL }), ({ request }) =>
     defaultResolver({ request }),
   ),
-  // A transport-level failure, the way an unroutable or refused host behaves
   http.post(chatCompletionsUrl({ baseUrl: CUSTOM_ENDPOINT_OFFLINE_BASE_URL }), () => HttpResponse.error()),
 
   http.get(modelsUrl({ baseUrl: CUSTOM_ENDPOINT_BASE_URL }), () => routeNotFoundResponse()),
@@ -164,11 +151,6 @@ export const openAiCompatibleHandlers = [
   ),
 ];
 
-/**
- * Always-succeeding override.
- *
- * Usage: `global.mswMockServer.use(getCustomEndpointSuccessMock())`
- */
 export const getCustomEndpointSuccessMock = ({ baseUrl = CUSTOM_ENDPOINT_BASE_URL }: { baseUrl?: string } = {}) =>
   http.post(chatCompletionsUrl({ baseUrl }), async ({ request }) =>
     completionResponse({ model: await requestedModel({ request }) }),
@@ -178,18 +160,13 @@ export const getCustomEndpointSuccessMock = ({ baseUrl = CUSTOM_ENDPOINT_BASE_UR
 export const getCustomEndpointAuthErrorMock = ({ baseUrl = CUSTOM_ENDPOINT_BASE_URL }: { baseUrl?: string } = {}) =>
   http.post(chatCompletionsUrl({ baseUrl }), () => authErrorResponse());
 
-/**
- * Fails the connection itself, whatever the request carries. Lets a test take a
- * base URL that answered a moment ago — a saved endpoint, say — offline.
- */
+/** Fails the connection itself, so a test can take a base URL that answered a moment ago offline. */
 export const getCustomEndpointOfflineMock = ({ baseUrl = CUSTOM_ENDPOINT_BASE_URL }: { baseUrl?: string } = {}) =>
   http.post(chatCompletionsUrl({ baseUrl }), () => HttpResponse.error());
 
 /**
- * Answers every path with a web page instead of an API answer — a closed tunnel's 404,
- * or (with `status`) an auth gate's 401. Reading it as a verdict on the model or the
- * key is the mistake this stands in for. Returns one handler per path, so spread it:
- * `use(...getCustomEndpointWebPageMocks())`.
+ * Answers every path with a web page instead of an API answer: a closed tunnel's 404, or
+ * with `status` an auth gate's 401. Returns one handler per path, so spread it.
  */
 export const getCustomEndpointWebPageMocks = ({
   baseUrl = CUSTOM_ENDPOINT_BASE_URL,
@@ -204,9 +181,8 @@ function offlineTunnelPage({ status }: { status: number }) {
 }
 
 /**
- * Always answers 404, whatever model the request asks for — the way Ollama and
- * vLLM answer for a model that was never pulled. `onCall` reports every request,
- * so a test can count the outbound attempts one run makes.
+ * Always answers 404, the way Ollama and vLLM answer for a model that was never pulled.
+ * `onCall` fires per request, so a test can count the outbound attempts a run makes.
  */
 export const getCustomEndpointModelNotFoundMock = ({
   onCall,
@@ -217,10 +193,7 @@ export const getCustomEndpointModelNotFoundMock = ({
     return modelNotFoundResponse({ model: await requestedModel({ request }) });
   });
 
-/**
- * Succeeds and reports every probe through `onCall`, so a test can prove whether
- * the server issued an outbound request at all.
- */
+/** Succeeds and fires `onCall`, so a test can prove the server issued an outbound request. */
 export const getCustomEndpointCallCountingMock = ({
   onCall,
   baseUrl = CUSTOM_ENDPOINT_BASE_URL,
@@ -233,10 +206,7 @@ export const getCustomEndpointCallCountingMock = ({
     return completionResponse({ model: await requestedModel({ request }) });
   });
 
-/**
- * Succeeds only for the exact bearer token given, so a test can prove which key
- * the server actually sent (a stored one vs. one supplied in the request).
- */
+/** Succeeds only for the exact bearer token given, so a test can prove which key was sent. */
 export const getCustomEndpointRequireKeyMock = ({
   apiKey,
   baseUrl = CUSTOM_ENDPOINT_BASE_URL,
@@ -249,10 +219,7 @@ export const getCustomEndpointRequireKeyMock = ({
     return completionResponse({ model: await requestedModel({ request }) });
   });
 
-/**
- * Gives a base URL a `/models` catalogue of exactly `modelIds`, so a test can put
- * a server behind it that serves something other than the model being asked for.
- */
+/** Gives a base URL a `/models` catalogue of exactly `modelIds`. */
 export const getCustomEndpointModelListMock = ({
   modelIds,
   baseUrl = CUSTOM_ENDPOINT_LISTING_BASE_URL,

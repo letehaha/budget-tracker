@@ -4,18 +4,12 @@ import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import { createFirstEndpoint, errorMessage, getTestUserId, readStoredEndpoints } from '@tests/helpers/user-settings';
 import {
   CUSTOM_ENDPOINT_MODEL,
+  getCustomEndpointAuthErrorMock,
   getCustomEndpointCallCountingMock,
   getCustomEndpointModelNotFoundMock,
   getCustomEndpointOfflineMock,
   getCustomEndpointWebPageMocks,
 } from '@tests/mocks/openai-compatible/mock-api';
-
-/**
- * What the extract route tells a user whose own AI endpoint cannot answer, and what it
- * leaves behind on the endpoint: a message naming the server (never the model), and an
- * `invalid` status in AI settings with a way back. A flagged endpoint also fences the
- * route off entirely — extraction must not quietly move to a server-side cloud key.
- */
 
 const STATEMENT_CSV = ['date;description;amount', '2026-06-01;Grocery store;-42.10', '2026-06-02;Salary;2500.00'].join(
   '\n',
@@ -54,6 +48,21 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
     expect(stored?.status).toBe('invalid');
   });
 
+  it('names the rejection and flags the endpoint when it answers 401', async () => {
+    const userId = await getTestUserId();
+    await createFirstEndpoint();
+    global.mswMockServer.use(getCustomEndpointAuthErrorMock());
+
+    const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
+
+    expect(errorMessage({ response })).toMatch(/rejected the request/i);
+    expect(errorMessage({ response })).toContain('AI settings');
+
+    const [stored] = await readStoredEndpoints({ userId });
+    expect(stored?.status).toBe('invalid');
+    expect(stored?.lastError).toMatch(/rejected the request/i);
+  });
+
   it('names the model and leaves the endpoint alone when the model is not served', async () => {
     const userId = await getTestUserId();
     await createFirstEndpoint();
@@ -64,7 +73,6 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
     expect(errorMessage({ response })).toContain(CUSTOM_ENDPOINT_MODEL);
     expect(errorMessage({ response })).toContain('AI settings');
 
-    // The endpoint is reachable and its key works, so its status must survive
     const [stored] = await readStoredEndpoints({ userId });
     expect(stored?.status).toBe('valid');
   });
@@ -80,9 +88,8 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
     const [stored] = await readStoredEndpoints({ userId });
     expect(stored?.status).toBe('invalid');
 
-    // The endpoint would now answer again, and a server key exists. If the second call
-    // reached either of them the refusal is broken — the endpoint counter proves the
-    // flagged server was not dialled, and success there would change the message.
+    // The endpoint would answer now and a server key exists, so the counter below proves
+    // neither of them was dialled.
     let endpointCalls = 0;
     global.mswMockServer.use(
       getCustomEndpointCallCountingMock({
@@ -95,7 +102,6 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
 
     const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
 
-    // Naming the down endpoint, not "add an API key": they have credentials, one server is off
     expect(errorMessage({ response })).toMatch(/did not respond/i);
     expect(endpointCalls).toBe(0);
   });

@@ -71,8 +71,6 @@ describe('useAiCategorizationEvents.initialize', () => {
   });
 
   it('re-syncs from the server when the SSE connection is re-established', async () => {
-    // Events sent while disconnected are gone for good — a reconnect must
-    // refetch the snapshot or a run that ended meanwhile spins forever.
     subscribeToSSE.mockResolvedValueOnce(undefined);
     await useAiCategorizationEvents().initialize();
     hydrateFromServer.mockClear();
@@ -84,8 +82,8 @@ describe('useAiCategorizationEvents.initialize', () => {
   });
 
   it('registers the reconnect watcher once across repeated initialize() calls', async () => {
-    // A failed first init leaves isInitialized false, so a later login tick
-    // calls initialize() again — that retry must not stack a second watcher.
+    // A failed first init leaves isInitialized false, so a later login tick retries.
+    // That retry must not stack a second watcher.
     subscribeToSSE.mockRejectedValueOnce(new Error('SSE connection error'));
     await useAiCategorizationEvents().initialize();
 

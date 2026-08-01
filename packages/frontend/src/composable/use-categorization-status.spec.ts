@@ -44,7 +44,7 @@ import { useCategorizationStatus } from './use-categorization-status';
 
 describe('useCategorizationStatus.hydrateFromServer', () => {
   beforeEach(() => {
-    // Module-level shared state persists between tests — start each one clean.
+    // Module-level shared state persists between tests, so start each one clean.
     useCategorizationStatus().reset();
     vi.clearAllMocks();
   });
@@ -83,21 +83,69 @@ describe('useCategorizationStatus.hydrateFromServer', () => {
     expect(composable.categorizationStatus.value?.status).toBe('queued');
   });
 
-  it.each([
-    { status: 'idle' } as const,
-    // The server reports `failed` for up to an hour after a run; a fresh tab
-    // already loaded post-run data, so it must stay silent instead of toasting
-    // the stale failure on every reload.
-    { status: 'failed', processedCount: 0, totalCount: 5, failedCount: 5 } as const,
-  ])('restores nothing and stays silent on a fresh tab ($status response)', async (payload) => {
-    getAiCategorizationStatus.mockResolvedValueOnce(payload);
+  it('shows nothing but refetches on the first snapshot of a session (idle response)', async () => {
+    // The first snapshot lands after the page's queries resolved, so a run that
+    // ended in that window left them stale.
+    getAiCategorizationStatus.mockResolvedValueOnce({ status: 'idle' });
 
     const composable = useCategorizationStatus();
     await composable.hydrateFromServer();
 
     expect(composable.categorizationStatus.value).toBeNull();
-    expect(invalidateQueries).not.toHaveBeenCalled();
     expect(addNotification).not.toHaveBeenCalled();
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactionChange'] });
+  });
+
+  it('stops refetching on later idle snapshots of the same session', async () => {
+    getAiCategorizationStatus.mockResolvedValueOnce({ status: 'idle' }).mockResolvedValueOnce({ status: 'idle' });
+
+    const composable = useCategorizationStatus();
+    await composable.hydrateFromServer();
+    invalidateQueries.mockClear();
+
+    // A reconnect on a tab that has been idle throughout: nothing can have changed.
+    await composable.hydrateFromServer();
+
+    expect(invalidateQueries).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed run to a tab that never saw it start', async () => {
+    // The server hands a failure to the first client that asks and then forgets it,
+    // so a reloaded tab has to consume it.
+    getAiCategorizationStatus.mockResolvedValueOnce({
+      status: 'failed',
+      processedCount: 0,
+      totalCount: 5,
+      failedCount: 5,
+      errorMessage: 'Your custom AI endpoint did not respond.',
+    });
+
+    const composable = useCategorizationStatus();
+    await composable.hydrateFromServer();
+
+    expect(composable.categorizationStatus.value?.status).toBe('failed');
+    expect(composable.justCompleted.value).toBe(true);
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactionChange'] });
+    expect(addNotification).toHaveBeenCalledWith({
+      text: 'Your custom AI endpoint did not respond.',
+      type: 'error',
+    });
+  });
+
+  it('reports a completed run to a tab that reloaded before the terminal event', async () => {
+    getAiCategorizationStatus.mockResolvedValueOnce({
+      status: 'completed',
+      processedCount: 8,
+      totalCount: 8,
+      failedCount: 2,
+    });
+
+    const composable = useCategorizationStatus();
+    await composable.hydrateFromServer();
+
+    expect(composable.justCompleted.value).toBe(true);
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactionChange'] });
+    expect(addNotification).toHaveBeenCalledWith({ text: 'header.categorization.completed', type: 'success' });
   });
 
   it('keeps a status a live SSE event delivered while the fetch was in flight', async () => {
@@ -110,8 +158,8 @@ describe('useCategorizationStatus.hydrateFromServer', () => {
     };
 
     getAiCategorizationStatus.mockImplementationOnce(async () => {
-      // An SSE event lands while the snapshot request is still in flight — the
-      // snapshot the server built is now stale and must lose.
+      // An SSE event lands while the snapshot request is in flight, so the snapshot
+      // the server built is already stale and must lose.
       composable.categorizationStatus.value = liveStatus;
       return { status: 'processing', processedCount: 500, totalCount: 1500, failedCount: 0 };
     });
@@ -154,8 +202,8 @@ describe('useCategorizationStatus.hydrateFromServer', () => {
       failedCount: 0,
     };
 
-    // The run ended while this tab was disconnected — its terminal SSE event
-    // is gone for good, so the snapshot is the only thing that can clear it.
+    // The run ended while this tab was disconnected, so its terminal SSE event is
+    // gone and only the snapshot can clear the indicator.
     getAiCategorizationStatus.mockResolvedValueOnce({ status: 'idle' });
     await composable.hydrateFromServer();
 
@@ -164,7 +212,7 @@ describe('useCategorizationStatus.hydrateFromServer', () => {
     expect(addNotification).not.toHaveBeenCalled();
   });
 
-  it('clears a stale run, refetches and shows the failure toast when the server reports failed', async () => {
+  it('refetches and shows the failure toast when the server reports failed', async () => {
     const composable = useCategorizationStatus();
     composable.categorizationStatus.value = {
       status: 'processing',
@@ -173,9 +221,8 @@ describe('useCategorizationStatus.hydrateFromServer', () => {
       failedCount: 0,
     };
 
-    // The run failed while this tab was disconnected — the terminal SSE event
-    // is gone for good, so the snapshot must deliver the same error toast the
-    // live path would have shown.
+    // The failure arrived while this tab was disconnected, so the snapshot has to
+    // deliver the same error toast the live path would have shown.
     getAiCategorizationStatus.mockResolvedValueOnce({
       status: 'failed',
       processedCount: 500,
@@ -184,7 +231,7 @@ describe('useCategorizationStatus.hydrateFromServer', () => {
     });
     await composable.hydrateFromServer();
 
-    expect(composable.categorizationStatus.value).toBeNull();
+    expect(composable.categorizationStatus.value?.status).toBe('failed');
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactionChange'] });
     expect(addNotification).toHaveBeenCalledWith({ text: 'header.categorization.failed', type: 'error' });
   });
@@ -219,7 +266,7 @@ describe('useCategorizationStatus.hydrateFromServer', () => {
 describe('useCategorizationStatus live SSE completion', () => {
   beforeEach(() => {
     const composable = useCategorizationStatus();
-    // Module-level shared state persists between tests — start each one clean, and
+    // Module-level shared state persists between tests, so start each one clean and
     // unsubscribe so every test's subscribeToSSE registers a fresh handler.
     composable.unsubscribeFromSSE();
     composable.reset();
@@ -227,20 +274,23 @@ describe('useCategorizationStatus live SSE completion', () => {
     vi.clearAllMocks();
   });
 
-  async function subscribeMidRun() {
+  async function subscribe() {
     const composable = useCategorizationStatus();
     await composable.subscribeToSSE();
-    const deliver = sse.handlers.at(-1)!;
-    // The completion branch only fires for a run the tab was already watching
-    deliver({ status: 'processing', processedCount: 0, totalCount: 10, failedCount: 0 });
-    return { composable, deliver };
+    return { composable, deliver: sse.handlers.at(-1)! };
+  }
+
+  async function subscribeMidRun() {
+    const subscription = await subscribe();
+    subscription.deliver({ status: 'processing', processedCount: 0, totalCount: 10, failedCount: 0 });
+    return subscription;
   }
 
   it('toasts the run-level reason when a run completes with nothing categorized', async () => {
     const { deliver } = await subscribeMidRun();
 
-    // A run whose provider died mid-way still ends as `completed` — every transaction
-    // failed, and the payload's errorMessage is the only trace of why.
+    // A run whose provider died mid-way still ends as `completed`, and the payload's
+    // errorMessage is the only trace of why.
     deliver({
       status: 'completed',
       processedCount: 10,
@@ -270,5 +320,27 @@ describe('useCategorizationStatus live SSE completion', () => {
 
     expect(addNotification).toHaveBeenCalledWith({ text: 'header.categorization.completed', type: 'success' });
     expect(addNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles the ending on a tab that opened after the run started', async () => {
+    // A tab that connects mid-run holds no prior status, so the outcome has to be
+    // read off the event itself or the header stays pinned on a finished run.
+    const { composable, deliver } = await subscribe();
+
+    deliver({ status: 'completed', processedCount: 10, totalCount: 10, failedCount: 0 });
+
+    expect(composable.justCompleted.value).toBe(true);
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactionChange'] });
+    expect(addNotification).toHaveBeenCalledWith({ text: 'header.categorization.completed', type: 'success' });
+  });
+
+  it('handles a run ending only once when the server repeats the terminal event', async () => {
+    const { deliver } = await subscribeMidRun();
+
+    deliver({ status: 'completed', processedCount: 10, totalCount: 10, failedCount: 0 });
+    deliver({ status: 'completed', processedCount: 10, totalCount: 10, failedCount: 0 });
+
+    expect(addNotification).toHaveBeenCalledTimes(1);
+    expect(invalidateQueries).toHaveBeenCalledTimes(1);
   });
 });

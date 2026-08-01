@@ -1,14 +1,9 @@
 /**
  * AI extraction for investment transactions.
- * Mirrors statement-parser's ai-extraction.service.
  */
 import { AI_FEATURE } from '@bt/shared/types';
-import { logger } from '@js/utils';
-import { createAIClient, describeMissingAiConfiguration, unwrapRetryError } from '@services/ai';
-import {
-  type AIExtractionError,
-  classifyAiExtractionFailure,
-} from '@services/import-export/core/ai-extraction-failure';
+import { aiCallGuards, createAIClient, describeMissingAiConfiguration } from '@services/ai';
+import { type AIExtractionError, resolveAiExtractionFailure } from '@services/import-export/core/ai-extraction-failure';
 import { generateText } from 'ai';
 
 import {
@@ -37,8 +32,6 @@ type AIExtractionResultType =
 
 /**
  * Call the AI to extract structured transaction rows from arbitrary text.
- * Errors come back as `{ success: false, error }` instead of thrown, so the
- * controller gets a typed error code without try/catch.
  */
 export async function extractInvestmentTransactionsWithAI({
   userId,
@@ -61,10 +54,15 @@ export async function extractInvestmentTransactionsWithAI({
 
   try {
     const systemPrompt = getSystemPrompt();
+
+    const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
+
     const { text: responseText, usage } = await generateText({
       model: aiClient.model,
       system: systemPrompt,
       prompt: createTextExtractionPrompt({ text }),
+      abortSignal,
+      maxRetries,
     });
 
     const { rows, droppedRowCount } = parseAIResponse({ response: responseText });
@@ -92,29 +90,13 @@ export async function extractInvestmentTransactionsWithAI({
       },
     };
   } catch (error) {
-    const userFacing = await classifyAiExtractionFailure({
+    const failure = await resolveAiExtractionFailure({
       userId,
       aiClient,
       error,
       logPrefix: '[Investment Txn Parser]',
     });
-    if (userFacing) {
-      return { success: false, error: userFacing };
-    }
 
-    const cause = unwrapRetryError({ error });
-    logger.error({
-      message: '[Investment Txn Parser] AI extraction failed',
-      error: cause as Error,
-    });
-
-    return {
-      success: false,
-      error: {
-        code: 'AI_ERROR',
-        message: 'AI extraction failed',
-        details: cause instanceof Error ? cause.message : 'Unknown error',
-      },
-    };
+    return { success: false, error: failure.error };
   }
 }

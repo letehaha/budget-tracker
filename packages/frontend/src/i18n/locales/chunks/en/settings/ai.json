@@ -14,12 +14,7 @@
         "title": "API Keys",
         "description": "Add your own API keys to use specific providers",
         "badges": {
-          "default": "Default",
-          "invalid": "Invalid"
-        },
-        "status": {
-          "failed": "Failed {timeAgo}",
-          "validated": "Validated {timeAgo}"
+          "default": "Default"
         },
         "buttons": {
           "setDefault": "Set as Default"
@@ -71,6 +66,11 @@
           "removeSuccess": "{provider} API key removed",
           "removeFailed": "Failed to remove API key"
         }
+      },
+      "credentialStatus": {
+        "validated": "Validated {timeAgo}",
+        "failed": "Failed {timeAgo}",
+        "invalidBadge": "Invalid"
       },
       "features": {
         "title": "AI Features",
@@ -161,7 +161,8 @@
           "hint": "Sent as-is to {baseUrl}.",
           "endpointOption": "{endpoint} — {model}",
           "unknownEndpoint": "Custom endpoint",
-          "missingModelName": "This endpoint has no model name configured — enter one first"
+          "missingModelName": "This endpoint has no model name configured — enter one first",
+          "endpointsLoadError": "Your endpoints could not be loaded, so the model name can't be edited right now."
         }
       },
       "customEndpoint": {
@@ -178,15 +179,8 @@
           "description": "Your saved endpoints are still there — we just couldn't fetch them right now. Check your connection and try again.",
           "retry": "Try again"
         },
-        "badges": {
-          "invalid": "Invalid"
-        },
         "status": {
-          "model": "Model: {model}",
-          "validated": "Validated {timeAgo}",
-          "validatedNoDate": "Validated",
-          "failed": "Failed {timeAgo}",
-          "failedNoDate": "Failed"
+          "model": "Model: {model}"
         },
         "actions": {
           "menuAriaLabel": "Endpoint actions",
@@ -222,7 +216,8 @@
           "removeFailed": "Failed to remove the custom endpoint",
           "removeKeySuccess": "Saved key removed",
           "removeKeyFailed": "Failed to remove the saved key",
-          "removeKeyInvalid": "API key removed, but the endpoint failed validation without it: {reason}"
+          "removeKeyInvalid": "API key removed, but the endpoint failed validation without it: {reason}",
+          "editedEndpointGone": "This endpoint was removed, so the editor was closed."
         },
         "removeDialog": {
           "title": "Remove custom endpoint?",
@@ -268,6 +263,8 @@
         "placeholder": "e.g., Transactions from 'Starbucks' should be 'Coffee'. My freelance income comes from 'Acme Corp'.",
         "requiresApiKey": "Add a personal API key to use custom instructions.",
         "requiresOwnCredentials": "Add your own API key or a custom endpoint to use custom instructions.",
+        "credentialsCheckFailed": "We couldn't check whether you have your own AI credentials. Try again to unlock custom instructions.",
+        "retryCredentialsCheck": "Try again",
         "save": "Save",
         "saved": "Saved!",
         "saveFailed": "Failed to save custom instructions. Please try again."

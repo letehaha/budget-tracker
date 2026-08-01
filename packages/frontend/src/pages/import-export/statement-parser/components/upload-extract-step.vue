@@ -48,15 +48,8 @@
           <p class="text-muted-foreground text-sm">
             {{ $t('pages.statementParser.uploadExtract.estimatedCostLabel') }}
           </p>
-          <!-- A custom endpoint publishes no prices, so there is a label instead of a number -->
-          <p v-if="store.costEstimate.estimatedCostUsd === null" class="font-medium">
-            {{ $t('pages.statementParser.uploadExtract.costSetByEndpoint') }}
-          </p>
-          <p v-else class="font-medium">
-            ${{ store.costEstimate.estimatedCostUsd.toFixed(4) }}
-            <span v-if="store.costEstimate.usingUserKey" class="text-muted-foreground text-sm">
-              {{ $t('pages.statementParser.uploadExtract.yourApiKey') }}
-            </span>
+          <p class="font-medium">
+            <AiEstimatedCost :estimate="store.costEstimate" />
           </p>
         </div>
         <div class="bg-muted rounded-lg p-3">
@@ -129,6 +122,10 @@
         </p>
       </div>
 
+      <Callout v-if="droppedRowCount > 0" variant="warning">
+        {{ $t('pages.statementParser.droppedRowsWarning', { count: droppedRowCount }) }}
+      </Callout>
+
       <p class="text-muted-foreground text-center text-sm">
         {{ $t('pages.statementParser.uploadExtract.continueMessage') }}
       </p>
@@ -137,6 +134,7 @@
 </template>
 
 <script setup lang="ts">
+import AiEstimatedCost from '@/components/common/ai-estimated-cost.vue';
 import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
 import { FileDropzone } from '@/components/common/dropzone';
 import { Button } from '@/components/lib/ui/button';
@@ -155,6 +153,8 @@ const store = useStatementParserStore();
 const fileError = ref<string | null>(null);
 const extractionStatus = ref('Extracting...');
 const extractionProgress = ref(0);
+
+const droppedRowCount = computed(() => store.extractionResult?.droppedRowCount ?? 0);
 
 // Validation runs async, so we keep the dropzone reflecting the store's
 // authoritative file (only updated after validation passes). The setter

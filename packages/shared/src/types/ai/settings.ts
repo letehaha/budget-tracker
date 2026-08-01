@@ -1,7 +1,6 @@
 import { AI_FEATURE, AI_PROVIDER } from '../enums';
 import type { Equals, Expect } from '../type-testing';
 
-/** Model capability types for display in UI */
 export type AIModelCapability =
   | 'text-generation'
   | 'structured-output'
@@ -10,10 +9,8 @@ export type AIModelCapability =
   | 'fast-inference'
   | 'agents';
 
-/** Cost tier for model pricing indication */
 export type AIModelCostTier = 'free' | 'low' | 'medium' | 'high';
 
-/** Pricing info for a model (per 1M tokens) */
 export interface AIModelPricing {
   /** Cost per 1M input tokens in USD */
   inputPerMillion: number;
@@ -26,10 +23,6 @@ export interface AIModelInfo {
   /** Full model ID in 'provider/model' format: 'openai/gpt-5.6-terra' */
   id: string;
   name: string;
-  /**
-   * The catalog holds only first-party models, so `AI_PROVIDER.custom` never
-   * appears here.
-   */
   provider: AIKeyProvider;
   description: string;
   /** Maximum context window in tokens */
@@ -40,7 +33,6 @@ export interface AIModelInfo {
   pricing?: AIModelPricing;
 }
 
-/** Model info with a recommendation flag for the feature that was queried. */
 export interface AIModelInfoWithRecommendation extends AIModelInfo {
   recommendedForFeature?: boolean;
 }
@@ -51,17 +43,16 @@ export interface AIFeatureConfig {
   /** Model ID in 'provider/model' format: 'openai/gpt-5.6-terra' */
   modelId: string;
   /**
-   * Set for `custom/*` model IDs, absent for catalog models. Separate from
-   * `modelId` because a custom model name may itself contain slashes.
+   * Present exactly when `modelId` is a `custom/*` ID. Kept separate from `modelId` because a
+   * custom model name may itself contain slashes.
    */
   customEndpointId?: string;
 }
 
 /**
- * Providers whose credentials are a plain API key in
- * `UserSettings.settings.ai.apiKeys`. `AI_PROVIDER.custom` is deliberately
- * absent: it stores a base URL plus an optional key under `customEndpoints`, so
- * it must never appear in key CRUD, provider pickers or `defaultProvider`.
+ * Providers whose credentials are a plain API key in `UserSettings.settings.ai.apiKeys`.
+ * `AI_PROVIDER.custom` is absent because it stores a base URL under `customEndpoints`, so it
+ * must never appear in key CRUD, provider pickers or `defaultProvider`.
  */
 export type AIKeyProvider = Exclude<AI_PROVIDER, AI_PROVIDER.custom>;
 
@@ -73,10 +64,8 @@ export const AI_KEY_PROVIDERS = [
 ] as const satisfies readonly AIKeyProvider[];
 
 /**
- * `satisfies` only proves every listed member is a key provider, not that every
- * key provider is listed. This pins both directions, so a new non-custom
- * `AI_PROVIDER` member is a type error until `AI_KEY_PROVIDERS` covers it.
- * Exported only so it isn't flagged as unused; nothing should import it.
+ * Pins `AI_KEY_PROVIDERS` to list every key provider, which the `satisfies` above alone does
+ * not. Exported only so the assertion isn't flagged as unused.
  */
 export type AiKeyProvidersAreExhaustive = Expect<Equals<(typeof AI_KEY_PROVIDERS)[number], AIKeyProvider>>;
 
@@ -108,22 +97,25 @@ export interface AICustomEndpointInfo {
   invalidatedAt?: string;
 }
 
-/** Feature status for UI display - returned via API */
+/**
+ * Gate UI preselection on `isConfigured`, never on `customEndpointId` being present.
+ * Every other field describes the model that would answer a call right now, which can
+ * differ from the user's stored pick.
+ */
 export interface AIFeatureStatus {
   feature: AI_FEATURE;
   /** Whether user has custom config (false = using default) */
   isConfigured: boolean;
-  /** Current model ID ('provider/model' format), or default if not configured */
+  /** Model ID in 'provider/model' format */
   modelId: string;
   modelName: string;
-  /** Whether user has their own API key for this model's provider */
+  /** Whether the user's own credentials (API key or custom endpoint) pay for the call */
   usingUserKey: boolean;
-  /** Set only for `custom/*` model IDs */
+  /** Set only when a `custom/*` model answers; names the endpoint serving it */
   customEndpointId?: string;
   endpointName?: string;
 }
 
-/** Feature display info for UI - defined in frontend */
 export interface AIFeatureDisplayInfo {
   name: string;
   description: string;
@@ -138,18 +130,18 @@ export const AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH = 2000;
  */
 export const AI_CUSTOM_MODEL_PREFIX = 'custom/';
 
-/** Maximum character length of the free-text model name after the prefix */
 export const AI_CUSTOM_MODEL_NAME_MAX_LENGTH = 200;
 
-/** Maximum character length of a custom endpoint's user-facing name */
 export const AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH = 50;
 
-/** True when a model ID points at the user's custom endpoint, not the built-in catalog */
 export function isCustomModelId({ modelId }: { modelId: string }): boolean {
   return modelId.startsWith(AI_CUSTOM_MODEL_PREFIX);
 }
 
-/** Returns just the model name from a combined model ID */
+export function buildCustomModelId({ modelName }: { modelName: string }): string {
+  return `${AI_CUSTOM_MODEL_PREFIX}${modelName}`;
+}
+
 export function getModelNameFromModelId({ modelId }: { modelId: string }): string {
   const parts = modelId.split('/');
   return parts.length > 1 ? parts.slice(1).join('/') : modelId;

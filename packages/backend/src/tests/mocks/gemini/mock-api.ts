@@ -69,7 +69,9 @@ export function createGeminiMock(options: MockCategorizationOptions = {}) {
     if (modelMismatch) return modelMismatch;
 
     const url = new URL(request.url);
-    const apiKey = url.searchParams.get('key');
+    // The SDK sends the key as the `x-goog-api-key` header; the REST API also
+    // accepts a `?key=` query param, so honour both transports.
+    const apiKey = request.headers.get('x-goog-api-key') ?? url.searchParams.get('key');
 
     // Check for invalid API key
     if (apiKey === INVALID_GEMINI_API_KEY) {

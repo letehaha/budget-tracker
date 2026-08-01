@@ -1,14 +1,14 @@
-import { AI_CUSTOM_MODEL_NAME_MAX_LENGTH } from '@bt/shared/types';
+import { AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH, AI_CUSTOM_MODEL_NAME_MAX_LENGTH } from '@bt/shared/types';
 import { z } from 'zod';
 
-// Shared by the endpoint routes. Each route decides required/optional/nullable
-// itself, so these are exported bare.
+// Bare field constraints. Each caller decides required/optional/nullable itself.
 
-/** Endpoint root, e.g. `https://ollama.home.lan/v1` */
-export const baseUrlField = z.string().url().max(500);
+/** User-facing endpoint label, unique per user */
+export const nameField = z.string().min(1).max(AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH);
 
-/** Free-text model name, passed to the endpoint verbatim */
+/** Endpoint root, e.g. `https://ollama.home.lan/v1`. */
+export const baseUrlField = z.url({ protocol: /^https?$/ }).max(500);
+
 export const defaultModelField = z.string().min(1).max(AI_CUSTOM_MODEL_NAME_MAX_LENGTH);
 
-/** Credential the endpoint expects, if it needs one at all */
 export const apiKeyField = z.string().min(1).max(500);

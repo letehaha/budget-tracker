@@ -105,9 +105,8 @@ describe('isPublicIpAddress', () => {
     },
   );
 
-  // inet_aton shorthand ("127.1", "2130706433") is not a canonical literal, so
-  // the classifier rejects the string instead of decoding it. Callers hand it a
-  // URL hostname, which the URL parser has already expanded to a dotted quad.
+  // Shorthand is rejected outright rather than decoded. Callers hand this a URL hostname,
+  // which the URL parser has already expanded to a dotted quad.
   it.each(['127.1', '2130706433', '0177.0.0.1', '0x7f.0.0.1'])('treats IPv4 shorthand %p as not public', (ip) => {
     expect(isPublicIpAddress({ ip })).toBe(false);
   });
@@ -207,8 +206,6 @@ describe('assertSafeOutboundUrl', () => {
     expect(loggerErrorSpy).not.toHaveBeenCalled();
   });
 
-  // A resolver that is failing rather than answering "no such name" says nothing
-  // about the address, so the user gets a retry message and we get a log line.
   it.each(['EAI_AGAIN', 'ESERVFAIL', 'ETIMEDOUT', 'EMFILE', undefined])(
     'reports a lookup failure (%s) as unverifiable and logs it',
     async (code) => {

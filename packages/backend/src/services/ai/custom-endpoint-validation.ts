@@ -1,4 +1,4 @@
-import { AI_CUSTOM_MODEL_PREFIX, AI_PROVIDER } from '@bt/shared/types';
+import { AI_PROVIDER, buildCustomModelId } from '@bt/shared/types';
 import { assertSafeOutboundUrl, createGuardedFetch } from '@common/utils/url-guard';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
@@ -7,35 +7,34 @@ import { generateText } from 'ai';
 
 import { createAIClientWithConfig } from './ai-client-factory';
 import {
+  bodyReadsAsApiAnswer,
   getHttpStatus,
   isAbortError,
+  isAuthError,
   isConnectionError,
   isModelNotFoundError,
   isNonApiResponseError,
+  isTemporaryError,
   unwrapRetryError,
 } from './ai-error-classifiers';
-import { VALIDATION_PROMPT, isAuthError, isTemporaryError } from './api-key-validation';
+import { VALIDATION_PROMPT } from './api-key-validation';
 
 interface APIKeyValidationResult {
   isValid: boolean;
   error?: string;
 }
 
-/** Ceiling for the whole probe. Stops an endpoint that connects then trickles data slowly from holding the request open. */
+/** Keeps an endpoint that connects and then trickles data from holding the request open. */
 const VALIDATION_TIMEOUT_MS = 15_000;
 
-/**
- * Ceiling for the model-list read. `/models` is a static lookup, so a server silent this long
- * will not return a list. Hitting it is not a verdict: the generate probe takes over.
- */
+/** `/models` is a static lookup, so a server silent this long will not return a list. */
 const MODEL_LIST_TIMEOUT_MS = 5_000;
 
-/** How many of the endpoint's own model ids get quoted back when the requested one is missing. */
 const MAX_LISTED_MODELS_IN_ERROR = 5;
 
 /**
- * What `GET <baseUrl>/models` told us. `unusable` covers every answer that is not a readable
- * list (404, non-JSON body, unrecognised shape, empty list) and is not a verdict on the endpoint.
+ * `unusable` covers every answer that is not a readable list (404, non-JSON body,
+ * unrecognised shape, empty list) and is no verdict on the endpoint.
  */
 type ServedModelsOutcome =
   | { kind: 'listed'; modelIds: string[] }
@@ -55,7 +54,6 @@ export function readModelIds({ body }: { body: unknown }): string[] {
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
 }
 
-/** Reads the endpoint's own model catalogue, classifying anything unreadable as `unusable`. */
 async function fetchServedModels({
   baseUrl,
   apiKey,
@@ -94,13 +92,10 @@ async function fetchServedModels({
   }
 
   if (response.status === 401 || response.status === 403) {
-    // Only a JSON answer is the API's own verdict on the key. An HTML 401 is a gate in
-    // front of the server (Cloudflare Access, basic auth) — not a verdict, so the generate
-    // probe takes over and reports it as a non-API answer.
+    // Only a JSON answer is the API's own verdict on the key. An HTML 401 is a gate in front
+    // of the server (Cloudflare Access, basic auth), so the generate probe takes over.
     const body = await response.text().catch(() => '');
-    try {
-      JSON.parse(body);
-    } catch {
+    if (!bodyReadsAsApiAnswer({ body })) {
       return { kind: 'unusable' };
     }
     return { kind: 'authFailed', status: response.status };
@@ -123,8 +118,8 @@ async function fetchServedModels({
 }
 
 /**
- * Ids worth showing next to a rejected model name. Prefix matches come first: a truncated or
- * mistyped name is the usual cause. Aggregators list hundreds, hence the cap and remainder count.
+ * Prefix matches come first, because a truncated or mistyped name is the usual cause.
+ * Aggregators list hundreds of ids, hence the cap and the remainder count.
  */
 export function pickListedModelsToShow({ modelName, modelIds }: { modelName: string; modelIds: string[] }): {
   shown: string[];
@@ -143,7 +138,6 @@ export function pickListedModelsToShow({ modelName, modelIds }: { modelName: str
   };
 }
 
-/** Names the rejected model and the ids the endpoint actually offers. */
 function buildModelNotListedMessage({ modelName, modelIds }: { modelName: string; modelIds: string[] }): string {
   const { shown, remaining } = pickListedModelsToShow({ modelName, modelIds });
   const parts = [...shown];
@@ -159,16 +153,10 @@ function buildModelNotListedMessage({ modelName, modelIds }: { modelName: string
 }
 
 /**
- * Validates a user-supplied OpenAI-compatible endpoint.
- *
- * A readable `/models` catalogue decides the verdict. LM Studio answers a chat completion with
- * whatever model is loaded and ignores the `model` field, so a generate call there accepts a
- * mistyped name. An exact match in the list is enough on its own: reading the list already proved
- * the endpoint reachable and the key accepted, and a listed-but-unloaded model triggers a
- * just-in-time load that outlasts the generate deadline. Servers without `/models` fall through
- * to the generate probe.
- *
- * The outbound guard runs here; the guarded fetch inside the client re-checks per request.
+ * A readable `/models` catalogue decides the verdict on its own, because LM Studio ignores
+ * the `model` field and answers a chat completion with whatever it has loaded, so a generate
+ * probe there accepts a mistyped name. Servers without `/models` fall through to the
+ * generate probe.
  */
 export async function validateCustomEndpoint({
   baseUrl,
@@ -205,7 +193,7 @@ export async function validateCustomEndpoint({
   try {
     const model = createAIClientWithConfig({
       provider: AI_PROVIDER.custom,
-      modelId: `${AI_CUSTOM_MODEL_PREFIX}${modelName}`,
+      modelId: buildCustomModelId({ modelName }),
       apiKey,
       baseUrl,
     });
@@ -214,8 +202,8 @@ export async function validateCustomEndpoint({
       model,
       prompt: VALIDATION_PROMPT,
       maxOutputTokens: 5,
-      // First response is the verdict, and the SDK's retry backoff would make the user wait out
-      // sleeps on a 429.
+      // The first response is the verdict, and the SDK's retry backoff would make the user
+      // sit through sleeps on a 429.
       maxRetries: 0,
       abortSignal: AbortSignal.timeout(VALIDATION_TIMEOUT_MS),
     });
@@ -234,9 +222,8 @@ export async function validateCustomEndpoint({
       return { isValid: false, error: t({ key: 'ai.customEndpointUnreachable' }) };
     }
 
-    // Ahead of the auth, model and rate-limit checks: an error page carries a status code
-    // that would otherwise be read as a verdict the server never gave — an HTML 401 is a
-    // gate in front of the server (Cloudflare Access, basic auth), not the API judging the key.
+    // Runs ahead of the auth, model and rate-limit checks. An error page carries a status
+    // code those would read as a verdict the server never gave.
     if (isNonApiResponseError({ error: cause })) {
       const status = getHttpStatus({ error: cause });
       logger.info('Custom AI endpoint answered with something other than an API response', {
@@ -248,7 +235,7 @@ export async function validateCustomEndpoint({
       return { isValid: false, error: t({ key: 'ai.customEndpointNotApiResponse', variables: { status } }) };
     }
 
-    if (isAuthError(cause)) {
+    if (isAuthError({ error: cause })) {
       logger.info('Custom AI endpoint rejected the API key', { baseUrl, modelName, error: cause });
       return { isValid: false, error: t({ key: 'ai.customEndpointAuthFailed' }) };
     }
@@ -258,7 +245,7 @@ export async function validateCustomEndpoint({
       return { isValid: false, error: t({ key: 'ai.customEndpointModelNotFound', variables: { model: modelName } }) };
     }
 
-    if (isTemporaryError(cause)) {
+    if (isTemporaryError({ error: cause })) {
       // Reachable and authenticated, just busy. Logged because this is the one path that stores
       // `valid` without proof.
       logger.info('Custom AI endpoint accepted despite a temporary error', { baseUrl, modelName, error: cause });

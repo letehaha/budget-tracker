@@ -2,45 +2,37 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createGroq } from '@ai-sdk/groq';
 import { createOpenAI } from '@ai-sdk/openai';
-import { AI_FEATURE, AI_PROVIDER, getModelNameFromModelId } from '@bt/shared/types';
+import { AIKeyProvider, AI_FEATURE, AI_PROVIDER, getModelNameFromModelId } from '@bt/shared/types';
 import { createGuardedFetch } from '@common/utils/url-guard';
 import type { LanguageModel } from 'ai';
 
 import { resolveAIConfiguration } from './ai-model-resolver';
 
-export interface AIClientResult {
+interface AIClientBase {
   model: LanguageModel;
-  provider: AI_PROVIDER;
   /** `provider/model` format */
   modelId: string;
-  /** Which custom endpoint serves the model, set only for `AI_PROVIDER.custom` */
-  customEndpointId?: string;
   usingUserKey: boolean;
 }
 
-/**
- * Create a provider-specific model instance using Vercel AI SDK.
- * `baseUrl` only applies to `AI_PROVIDER.custom`, whose endpoint the user supplies.
- */
-function createProviderModel({
-  provider,
-  modelId,
-  apiKey,
-  baseUrl,
-}: {
-  provider: AI_PROVIDER;
-  modelId: string;
-  apiKey: string | null;
-  baseUrl?: string;
-}): LanguageModel {
-  const modelName = getModelNameFromModelId({ modelId });
+export type AIClientResult =
+  | (AIClientBase & { provider: AIKeyProvider })
+  | (AIClientBase & { provider: AI_PROVIDER.custom; customEndpointId: string; usingUserKey: true });
 
-  if (provider === AI_PROVIDER.custom) {
+/** `baseUrl` is required on the custom arm so a user-endpoint client can never dial the provider's public API. */
+type ProviderModelSpec =
+  | { provider: AIKeyProvider; modelId: string; apiKey: string }
+  | { provider: AI_PROVIDER.custom; modelId: string; apiKey: string | null; baseUrl: string };
+
+function createProviderModel(spec: ProviderModelSpec): LanguageModel {
+  const modelName = getModelNameFromModelId({ modelId: spec.modelId });
+
+  if (spec.provider === AI_PROVIDER.custom) {
     const custom = createOpenAI({
-      // Ollama and vLLM accept any bearer token; the placeholder also stops the
-      // SDK from falling back to the server's OPENAI_API_KEY env var.
-      apiKey: apiKey || 'no-key-required',
-      baseURL: baseUrl,
+      // Ollama and vLLM accept any bearer token, and the placeholder stops the SDK from
+      // falling back to the server's OPENAI_API_KEY env var.
+      apiKey: spec.apiKey || 'no-key-required',
+      baseURL: spec.baseUrl,
       fetch: createGuardedFetch(),
     });
     // .chat() targets /chat/completions. The default responses-API path is not
@@ -48,9 +40,7 @@ function createProviderModel({
     return custom.chat(modelName);
   }
 
-  if (!apiKey) {
-    throw new Error(`Missing API key for AI provider: ${provider}`);
-  }
+  const { provider, apiKey } = spec;
 
   switch (provider) {
     case AI_PROVIDER.openai: {
@@ -78,7 +68,6 @@ function createProviderModel({
 
 /**
  * Creates a configured AI model instance for a given feature and user.
- * `resolveAIConfiguration` owns the resolution order.
  * Returns null when neither an API key nor a custom endpoint is available.
  */
 export async function createAIClient({
@@ -94,18 +83,20 @@ export async function createAIClient({
     return null;
   }
 
-  const model = createProviderModel({
-    provider: resolution.provider,
-    modelId: resolution.modelId,
-    apiKey: resolution.apiKey,
-    baseUrl: resolution.baseUrl,
-  });
+  if (resolution.provider === AI_PROVIDER.custom) {
+    return {
+      model: createProviderModel(resolution),
+      provider: resolution.provider,
+      modelId: resolution.modelId,
+      customEndpointId: resolution.customEndpointId,
+      usingUserKey: resolution.usingUserKey,
+    };
+  }
 
   return {
-    model,
+    model: createProviderModel(resolution),
     provider: resolution.provider,
     modelId: resolution.modelId,
-    customEndpointId: resolution.customEndpointId,
     usingUserKey: resolution.usingUserKey,
   };
 }
@@ -113,16 +104,6 @@ export async function createAIClient({
 /**
  * Create an AI client with explicit configuration (for validation/testing)
  */
-export function createAIClientWithConfig({
-  provider,
-  modelId,
-  apiKey,
-  baseUrl,
-}: {
-  provider: AI_PROVIDER;
-  modelId: string;
-  apiKey: string | null;
-  baseUrl?: string;
-}): LanguageModel {
-  return createProviderModel({ provider, modelId, apiKey, baseUrl });
+export function createAIClientWithConfig(spec: ProviderModelSpec): LanguageModel {
+  return createProviderModel(spec);
 }

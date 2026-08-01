@@ -1,10 +1,5 @@
 <template>
-  <!--
-    The four states are mutually exclusive: the summary and its Import button must never
-    share the screen with a failure and its own buttons.
-  -->
   <div class="@container/import-step space-y-6">
-    <!-- Importing -->
     <div v-if="store.isImporting" class="flex flex-col items-center justify-center gap-3 py-16 text-center">
       <Loader2Icon class="text-primary size-10 animate-spin" />
       <div>
@@ -15,7 +10,6 @@
       </div>
     </div>
 
-    <!-- Done -->
     <template v-else-if="store.importResult">
       <div class="flex flex-col items-center gap-3 text-center">
         <div
@@ -65,7 +59,7 @@
         <h3 class="text-destructive-text text-sm font-semibold">
           {{ $t('pages.statementParser.importResults.errorsTitle') }}
         </h3>
-        <ScrollArea class="border-border/60 max-h-48 rounded-lg border">
+        <ScrollArea class="border-border/60 max-h-48 rounded-lg border" viewport-class="max-h-48">
           <table class="w-full text-sm">
             <thead class="bg-muted/60">
               <tr>
@@ -91,11 +85,11 @@
         </ScrollArea>
       </div>
 
-      <p class="text-muted-foreground text-xs">
-        {{ $t('pages.statementParser.importResults.batchIdLabel') }}
-        <span class="font-mono">{{ store.importResult.batchId }}</span>
-        — {{ $t('pages.statementParser.importResults.batchIdDescription') }}
-      </p>
+      <i18n-t keypath="pages.statementParser.importResults.batchIdNote" tag="p" class="text-muted-foreground text-xs">
+        <template #batchId>
+          <span class="font-mono">{{ store.importResult.batchId }}</span>
+        </template>
+      </i18n-t>
 
       <div class="flex flex-col gap-2 @sm/import-step:flex-row">
         <Button variant="outline" class="flex-1" @click="store.reset()">
@@ -107,8 +101,8 @@
       </div>
     </template>
 
-    <!-- Ready, and the same screen after a failed attempt: the summary stays so the user
-         can still see what they were importing, and only the actions change. -->
+    <!-- Ready, and the same screen after a failed attempt: the summary stays and only the
+         actions change. -->
     <template v-else>
       <div>
         <h3 class="text-lg font-semibold">{{ $t('pages.statementParser.importResults.readyTitle') }}</h3>
@@ -143,10 +137,9 @@
         </div>
       </div>
 
-      <!-- Rows the model produced that could not be read. Without this the count above
-           silently under-reports the uploaded file. -->
+      <!-- Without this the count above silently under-reports the uploaded file. -->
       <Callout v-if="droppedRowCount > 0" variant="warning">
-        {{ $t('pages.statementParser.importResults.droppedRowsWarning', { count: droppedRowCount }) }}
+        {{ $t('pages.statementParser.droppedRowsWarning', { count: droppedRowCount }) }}
       </Callout>
 
       <Callout
@@ -155,7 +148,7 @@
         :title="$t('pages.statementParser.importResults.failedTitle')"
       >
         <p>{{ $t('pages.statementParser.importResults.failedDescription') }}</p>
-        <ScrollArea class="border-destructive-text/25 mt-2 max-h-32 rounded-md border">
+        <ScrollArea class="border-destructive/50 mt-2 max-h-32 rounded-md border" viewport-class="max-h-32">
           <p class="px-3 py-2 font-mono text-xs break-words whitespace-pre-wrap">{{ store.importError }}</p>
         </ScrollArea>
       </Callout>

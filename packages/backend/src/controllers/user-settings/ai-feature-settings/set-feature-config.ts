@@ -2,6 +2,7 @@ import { AI_CUSTOM_MODEL_PREFIX, AI_FEATURE, AI_CUSTOM_MODEL_NAME_MAX_LENGTH } f
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
 import { isRetiredModelId, isValidModelId } from '@services/ai';
+import { getStoredAiSettings } from '@services/user-settings/ai-api-key';
 import { setFeatureConfig } from '@services/user-settings/ai-feature-settings';
 import { z } from 'zod';
 
@@ -12,7 +13,6 @@ const schema = z.object({
     feature: z.nativeEnum(AI_FEATURE),
   }),
   body: z.object({
-    // Fits a catalog ID and 'custom/' + the longest allowed free-text model name
     modelId: z
       .string()
       .min(1)
@@ -28,8 +28,6 @@ export const setFeatureConfigController = createController(schema, async ({ user
   const { modelId, customEndpointId } = body;
 
   // Retired aliases accepted; service upgrades + persists the live ID.
-  // `custom/*` IDs pass `isValidModelId` and are checked against the user's
-  // saved endpoints inside `setFeatureConfig`.
   if (!isValidModelId({ modelId }) && !isRetiredModelId({ modelId })) {
     throw new ValidationError({
       message: `Invalid model ID: ${modelId}`,
@@ -37,8 +35,9 @@ export const setFeatureConfigController = createController(schema, async ({ user
   }
 
   const savedConfig = await setFeatureConfig({ userId, feature, modelId, customEndpointId });
+  const aiSettings = await getStoredAiSettings({ userId });
 
   return {
-    data: await buildFeatureStatusPayload({ userId, feature, config: savedConfig }),
+    data: buildFeatureStatusPayload({ feature, config: savedConfig, aiSettings }),
   };
 });

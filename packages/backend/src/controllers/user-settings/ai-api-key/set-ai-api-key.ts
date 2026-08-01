@@ -6,7 +6,6 @@ import { z } from 'zod';
 const schema = z.object({
   body: z.object({
     apiKey: z.string().min(1).max(2056),
-    // `custom` is not a key provider — it has its own /settings/ai/custom-endpoints routes
     provider: z.enum(AI_KEY_PROVIDERS),
   }),
 });

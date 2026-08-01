@@ -242,8 +242,8 @@ export function expectCsvImportCompleted(
 // ============================================
 
 /**
- * The route also answers 200 with `{ success: false, error }` for a file it cannot read or
- * one too large for the model, so callers after those shapes need `raw: false`.
+ * The route answers 200 with `{ success: false, error }` for a file it cannot read or one
+ * too large for the model, so callers checking those shapes need `raw: false`.
  */
 export function statementEstimateCost<R extends boolean | undefined = false>({
   payload,

@@ -15,10 +15,6 @@ export async function getAiCategorizationStatus<R extends boolean | undefined = 
   });
 }
 
-/**
- * Poll the categorization status endpoint until `predicate` matches.
- * Throws with the last observed status when the timeout elapses.
- */
 export async function waitForCategorizationStatus({
   predicate,
   timeoutMs = 20000,

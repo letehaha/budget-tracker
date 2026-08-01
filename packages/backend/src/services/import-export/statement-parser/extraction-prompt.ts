@@ -3,7 +3,8 @@
  * Uses CSV format to minimize output tokens
  * Supports PDF, CSV, and TXT input files
  */
-import { parseDecimalAmount } from '@common/utils/parse-decimal-amount';
+import { logger } from '@js/utils';
+import { parseDecimalAmount } from '@services/import-export/core/parse/parse-decimal-amount';
 
 /**
  * System prompt for statement extraction - CSV format for token efficiency
@@ -101,11 +102,6 @@ interface AIExtractionOutput {
     } | null;
     currencyCode?: string | null;
   };
-  /**
-   * Lines the model emitted that no transaction could be read from. Surfaced to the
-   * user, because otherwise a statement comes back with fewer rows than it had and
-   * nothing on screen says so.
-   */
   droppedRowCount: number;
 }
 
@@ -116,18 +112,12 @@ const EXPECTED_FIELD_COUNT = 7;
 const MINIMUM_FIELD_COUNT = 5;
 
 /**
- * `YYYY-MM-DD`, optionally followed by a time. The prompt asks for a space separator and
- * whole seconds, but statements exported from finance apps carry full ISO timestamps and
- * the model copies parts of them through, so the separator, the fractional seconds and a
- * zone designator are all optional here.
+ * The prompt asks for `YYYY-MM-DD HH:MM:SS`, but the model copies full ISO timestamps out
+ * of app exports, so the `T` separator, fractional seconds and a zone are all tolerated.
  */
 const DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}:\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
 
-/**
- * The stored form: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM:SS`. Sub-second precision is dropped
- * and a zone designator is taken off the wall clock rather than shifted onto it, matching
- * how the import reads a date back.
- */
+/** Drops sub-second precision and any zone designator, so the wall clock stands as the statement wrote it. */
 function normalizeDate({ date }: { date: string }): string | null {
   const match = DATE_PATTERN.exec(date);
   if (!match) return null;
@@ -146,12 +136,8 @@ interface TransactionFields {
 }
 
 /**
- * Which cell holds what. A row of the expected width is read left to right. A wider row
- * has picked up a column the format has no place for — seen on rows where the model fills
- * in a payee — and reading it left to right lands `amount` on the wrong cell. The last
- * four columns are the ones the row can be trusted to end with, so a wide row is read
- * from its tail instead and everything between the date and that tail becomes the
- * description and merchant.
+ * A wide row is read from its last four columns: it has picked up a column the format has
+ * no place for, and reading it left to right lands `amount` on the wrong cell.
  */
 function readTransactionFields({ fields }: { fields: string[] }): TransactionFields | null {
   if (fields.length < MINIMUM_FIELD_COUNT) return null;
@@ -181,6 +167,15 @@ function readTransactionFields({ fields }: { fields: string[] }): TransactionFie
     balanceStr: fields[tailStart + 2] || '',
     confidenceStr: fields[tailStart + 3] || '',
   };
+}
+
+/** `parseDecimalAmount` rejects signed input, and a balance can be negative when the account is overdrawn. */
+function parseBalance({ raw }: { raw: string }): number | null {
+  const isNegative = raw.startsWith('-');
+  const magnitude = parseDecimalAmount({ raw: isNegative ? raw.slice(1) : raw });
+
+  if (magnitude === null) return null;
+  return isNegative ? -magnitude : magnitude;
 }
 
 /**
@@ -231,7 +226,7 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
     const lines = csvContent.split('\n').filter((line) => line.trim());
 
     if (lines.length < 1) {
-      console.error('[Statement Parser] CSV parsing: No lines found');
+      logger.info('[Statement Parser] CSV parsing: no lines found in the AI response');
       return null;
     }
 
@@ -252,14 +247,15 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
 
     // Parse transactions (remaining lines)
     const transactions: AIExtractionOutput['transactions'] = [];
-    let droppedRowCount = 0;
+    // Counted per reason rather than logged per row, because a big statement from a bad
+    // model drops hundreds of rows and a line each would flood the log.
+    const droppedByReason = { tooFewColumns: 0, unreadableDate: 0, unusableAmount: 0 };
 
     for (let i = 1; i < lines.length; i++) {
       const parsedFields = readTransactionFields({ fields: parseCSVLine({ line: lines[i]! }) });
 
       if (!parsedFields) {
-        console.warn(`[Statement Parser] CSV parsing: Skipping invalid line ${i + 1}: ${lines[i]}`);
-        droppedRowCount += 1;
+        droppedByReason.tooFewColumns += 1;
         continue;
       }
 
@@ -267,22 +263,20 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
 
       const date = normalizeDate({ date: parsedFields.date });
       if (!date) {
-        console.warn(`[Statement Parser] CSV parsing: Invalid date format on line ${i + 1}: ${parsedFields.date}`);
-        droppedRowCount += 1;
+        droppedByReason.unreadableDate += 1;
         continue;
       }
 
-      // A zero amount is no more importable than a negative one — the import rejects both,
-      // and letting one through here only moves the failure to the end of the flow.
+      // The import rejects zero as well as negative, so letting either through here only
+      // moves the failure to the end of the flow.
       const amount = parseDecimalAmount({ raw: amountStr });
       if (amount === null || amount <= 0) {
-        console.warn(`[Statement Parser] CSV parsing: Invalid amount on line ${i + 1}: ${amountStr}`);
-        droppedRowCount += 1;
+        droppedByReason.unusableAmount += 1;
         continue;
       }
 
       const type = typeChar.toUpperCase() === 'I' ? 'income' : 'expense';
-      const balance = balanceStr ? parseFloat(balanceStr) : null;
+      const balance = balanceStr ? parseBalance({ raw: balanceStr }) : null;
       const confidence = Math.min(100, Math.max(0, parseInt(confidenceStr, 10) || 80)) / 100;
 
       transactions.push({
@@ -291,20 +285,25 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
         merchant: merchant || undefined,
         amount,
         type,
-        balance: balance !== null && !isNaN(balance) ? balance : undefined,
+        balance: balance ?? undefined,
         confidence,
       });
     }
 
-    // A response whose every row is unusable still gets returned: the caller can tell the
-    // user how many rows the model produced, which "could not parse the response" cannot.
-    console.log(
-      `[Statement Parser] CSV parsing: Extracted ${transactions.length} transactions, dropped ${droppedRowCount}`,
+    const droppedRowCount =
+      droppedByReason.tooFewColumns + droppedByReason.unreadableDate + droppedByReason.unusableAmount;
+
+    logger.info(
+      `[Statement Parser] CSV parsing: extracted ${transactions.length} transactions, dropped ${droppedRowCount}`,
+      droppedRowCount > 0 ? droppedByReason : undefined,
     );
 
     return { transactions, metadata, droppedRowCount };
   } catch (error) {
-    console.error('[Statement Parser] CSV parsing error:', error);
+    logger.error({
+      message: '[Statement Parser] CSV parsing error',
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
     return null;
   }
 }

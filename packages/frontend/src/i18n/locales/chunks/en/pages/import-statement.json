@@ -35,8 +35,6 @@
         "tryAgain": "Try Again",
         "modelLabel": "Model",
         "estimatedCostLabel": "Estimated Cost",
-        "yourApiKey": "(your API key)",
-        "costSetByEndpoint": "Set by your endpoint",
         "estimatedTokensLabel": "Estimated Tokens",
         "extractButton": "Extract Transactions",
         "progressMessage": "This may take 30-60 seconds depending on the document size",
@@ -132,15 +130,16 @@
         "toggleWillSkip": "will skip.",
         "backButton": "Back",
         "continueButton": "Continue to Import",
-        "transactionCount": "({count} transactions)"
+        "transactionCount": "({count} transactions)",
+        "duplicateCheckFailed": "We couldn't check this statement against your existing transactions, so the duplicate count below is unavailable. Review the list before importing."
       },
+      "droppedRowsWarning": "{count} line from the AI response couldn't be read and was skipped. The imported count below may be lower than what's in your file. | {count} lines from the AI response couldn't be read and were skipped. The imported count below may be lower than what's in your file.",
       "importResults": {
         "readyTitle": "Ready to Import",
         "readyDescription": "Review the summary below and click \"Import Transactions\" to proceed.",
         "accountLabel": "Account:",
         "toImportLabel": "Transactions to import:",
         "toSkipLabel": "Transactions to skip:",
-        "droppedRowsWarning": "{count} line from the AI response couldn't be read and was skipped. The imported count below may be lower than what's in your file. | {count} lines from the AI response couldn't be read and were skipped. The imported count below may be lower than what's in your file.",
         "backButton": "Back",
         "importButton": "Import {count} Transactions",
         "importingTitle": "Importing Transactions",
@@ -157,8 +156,7 @@
         "errorsTitle": "Import Errors",
         "transactionNumberHeader": "Transaction #",
         "errorHeader": "Error",
-        "batchIdLabel": "Import Batch ID:",
-        "batchIdDescription": "You can use this ID to find and manage all imported transactions.",
+        "batchIdNote": "Import Batch ID: {batchId}. You can use this ID to find and manage all imported transactions.",
         "viewTransactionsButton": "View Transactions",
         "startNewImportButton": "Start New Import"
       }

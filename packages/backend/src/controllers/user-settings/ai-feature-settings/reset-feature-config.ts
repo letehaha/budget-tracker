@@ -1,5 +1,6 @@
 import { AI_FEATURE } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
+import { getStoredAiSettings } from '@services/user-settings/ai-api-key';
 import { setFeatureConfig } from '@services/user-settings/ai-feature-settings';
 import { z } from 'zod';
 
@@ -16,8 +17,9 @@ export const resetFeatureConfigController = createController(schema, async ({ us
   const { feature } = params;
 
   await setFeatureConfig({ userId, feature, modelId: null });
+  const aiSettings = await getStoredAiSettings({ userId });
 
   return {
-    data: await buildFeatureStatusPayload({ userId, feature, config: null }),
+    data: buildFeatureStatusPayload({ feature, config: null, aiSettings }),
   };
 });

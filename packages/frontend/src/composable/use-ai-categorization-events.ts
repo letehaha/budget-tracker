@@ -37,14 +37,13 @@ export function useAiCategorizationEvents() {
       // no-op: reconnect is handled by the SSE library
     }
 
-    // Snapshot runs even when the subscribe attempt failed pre-open: the SSE
-    // library keeps retrying in the background, and a reloaded page should
-    // show an in-flight run either way. Errors are swallowed inside.
+    // Runs even when the subscribe attempt failed: the SSE library keeps retrying,
+    // and a reloaded page should show an in-flight run either way.
     await hydrateFromServer();
 
-    // Events sent while disconnected are gone for good, so every re-established
-    // connection re-syncs from the snapshot endpoint. Registered after the
-    // initial connect: it only fires on real reconnects.
+    // Events sent while disconnected are gone for good, so every reconnect re-syncs
+    // from the snapshot. Registered after the initial connect so it only fires on
+    // real reconnects.
     if (!stopReconnectWatch) {
       stopReconnectWatch = watch(isConnected, (connected) => {
         if (connected) hydrateFromServer();
@@ -56,8 +55,8 @@ export function useAiCategorizationEvents() {
     unsubscribeFromSSE();
     stopReconnectWatch?.();
     stopReconnectWatch = null;
-    // Wipe the shared status so the next login in this tab (possibly a
-    // different user) starts empty instead of showing the previous user's run.
+    // Wipe the shared status so the next login in this tab, possibly a different
+    // user, does not see the previous user's run.
     reset();
     isInitialized = false;
   };

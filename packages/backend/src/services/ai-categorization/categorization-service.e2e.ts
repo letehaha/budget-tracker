@@ -153,9 +153,8 @@ describe('AI Categorization Service E2E', () => {
 
       expect(transactions.length).toBe(MOCK_TRANSACTION_COUNT);
 
-      // No AI-sourced metadata may appear. Sync-time MCC rules run before AI
-      // and legitimately stamp `mcc_rule` when a random mock MCC hits a mapping,
-      // so only the `ai` source would prove a run happened.
+      // Sync-time MCC rules run before AI and legitimately stamp `mcc_rule` when a
+      // random mock MCC hits a mapping, so only the `ai` source proves a run happened.
       for (const tx of transactions) {
         expect(tx.categorizationMeta?.source).not.toBe(CATEGORIZATION_SOURCE.ai);
       }
@@ -225,8 +224,6 @@ describe('AI Categorization Service E2E', () => {
 
       expect(transactions.length).toBe(MOCK_TRANSACTION_COUNT);
 
-      // No AI-sourced metadata may appear (the AI call failed). Sync-time MCC
-      // rules may still have stamped `mcc_rule` on random mock MCCs.
       for (const tx of transactions) {
         expect(tx.categorizationMeta?.source).not.toBe(CATEGORIZATION_SOURCE.ai);
       }
@@ -293,8 +290,6 @@ describe('AI Categorization Service E2E', () => {
 
       expect(transactions.length).toBe(MOCK_TRANSACTION_COUNT);
 
-      // No AI-sourced metadata may appear (auth failed). Sync-time MCC rules
-      // may still have stamped `mcc_rule` on random mock MCCs.
       for (const tx of transactions) {
         expect(tx.categorizationMeta?.source).not.toBe(CATEGORIZATION_SOURCE.ai);
       }

@@ -3,13 +3,11 @@ import { logger } from '@js/utils/logger';
 
 import { getFirstAvailableRecommendedModel, getProviderFromModelId } from '../ai/models-config';
 
-/** What made the configs invalid, carried into the log line so a rewrite can be traced back. */
 type MigrationTrigger = 'apiKeyRemoved' | 'customEndpointRemoved';
 
 /**
- * Points a config at the first recommended model served by `remainingProviders`, or
- * null when none serves one. The replacement is always a catalog model, so the rebuilt
- * config carries no `customEndpointId`.
+ * Null when no remaining provider serves a recommended model. The replacement is always a
+ * catalog model, so the rebuilt config carries no `customEndpointId`.
  */
 function remapToRecommendedModel({
   config,
@@ -29,10 +27,8 @@ function remapToRecommendedModel({
 }
 
 /**
- * Configs matched by `isInvalidated` are remapped to a recommended model still served
- * by `remainingProviders`, or dropped so the feature falls back to the server default.
- * Every rewrite is logged because the user never picked the replacement; a null
- * `newModelId` in the log line means the config was dropped.
+ * An invalidated config with no replacement is dropped, so the feature falls back to the
+ * server default. Rewrites are logged because the user never picked the replacement.
  */
 function migrateFeatureConfigs({
   featureConfigs,

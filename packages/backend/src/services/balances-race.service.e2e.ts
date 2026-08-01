@@ -70,10 +70,10 @@ describe('Balances (accountId, date) race regression', () => {
       raw: true,
     });
 
-    // Balance rows are bucketed by the UTC date of the transaction, so these
-    // days are built in UTC to keep the assertion keys aligned in any local
-    // timezone. The day must not be the 1st — there the first-of-month seed row
-    // and the tx-date row are one and the same row, so the race can't happen.
+    // Balance rows are bucketed by the UTC date of the transaction, so these days are built
+    // in UTC to keep the assertion keys aligned in any local timezone. The day must not be
+    // the 1st, where the first-of-month seed row and the tx-date row are the same row and
+    // the race cannot happen.
     const now = new Date();
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth();

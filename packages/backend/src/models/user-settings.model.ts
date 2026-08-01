@@ -1,16 +1,22 @@
 import { SUPPORTED_LOCALES } from '@bt/shared/i18n/locales';
 import {
-  AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH,
+  AICustomEndpointInfo,
   AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH,
   AI_FEATURE,
   AI_KEY_PROVIDERS,
   NOTIFICATION_TYPES,
   RecordId,
   endpointsTypes,
+  isCustomModelId,
 } from '@bt/shared/types';
 import type { Equals, Expect } from '@bt/shared/types';
 import { dateRange, withDateOrder } from '@common/lib/zod/custom-types';
 import { IdColumn } from '@common/types/id-column';
+import {
+  baseUrlField,
+  defaultModelField,
+  nameField,
+} from '@controllers/user-settings/ai-custom-endpoint/endpoint-field-schemas';
 import { Table, Column, Model, ForeignKey, DataType, BelongsTo, Index } from 'sequelize-typescript';
 import { z } from 'zod';
 
@@ -18,8 +24,6 @@ import Users from './users.model';
 
 const ZodAiApiKeyStatusSchema = z.enum(['valid', 'invalid']);
 
-// `custom` is excluded on purpose: custom endpoints store a base URL under
-// `customEndpoints`, never an entry in `apiKeys`.
 const ZodAiApiKeySchema = z.object({
   provider: z.enum(AI_KEY_PROVIDERS),
   keyEncrypted: z.string(),
@@ -30,20 +34,35 @@ const ZodAiApiKeySchema = z.object({
   invalidatedAt: z.string().datetime().optional(),
 });
 
-const ZodAiFeatureConfigSchema = z.object({
-  feature: z.nativeEnum(AI_FEATURE),
-  modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-5.6-terra'
-  // Which entry of `customEndpoints` serves the model. Only set for 'custom/*' IDs.
-  customEndpointId: z.string().optional(),
-});
+const ZodAiFeatureConfigSchema = z
+  .object({
+    feature: z.nativeEnum(AI_FEATURE),
+    modelId: z.string(), // Format: 'provider/model', e.g., 'openai/gpt-5.6-terra'
+    customEndpointId: z.string().optional(),
+  })
+  .superRefine((config, ctx) => {
+    // A 'custom/*' model without its endpoint id is permanently undialable, and an endpoint id
+    // on a catalog model is dead weight. Rejecting both here keeps either out of storage.
+    if (isCustomModelId({ modelId: config.modelId }) !== Boolean(config.customEndpointId)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['customEndpointId'],
+        message: 'customEndpointId must be set exactly when modelId is a custom/* ID',
+      });
+    }
+  });
 
-// One of the user's own OpenAI-compatible endpoints. `name` is unique per user.
+/** Cap per user: each entry is a URL the server dials, and the whole list lives in one settings row. */
+export const MAX_CUSTOM_ENDPOINTS = 5;
+
+// One of the user's own OpenAI-compatible endpoints. Field constraints are shared with the
+// create/update routes so a restored row can't be shaped differently from a created one.
 const ZodAiCustomEndpointSchema = z.object({
   id: z.string(),
-  name: z.string().max(AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH),
-  baseUrl: z.string(),
+  name: nameField,
+  baseUrl: baseUrlField,
   keyEncrypted: z.string().optional(),
-  defaultModel: z.string(),
+  defaultModel: defaultModelField,
   createdAt: z.string().datetime(),
   status: ZodAiApiKeyStatusSchema,
   lastValidatedAt: z.string().datetime(),
@@ -51,15 +70,16 @@ const ZodAiCustomEndpointSchema = z.object({
   invalidatedAt: z.string().datetime().optional(),
 });
 
+export type StoredCustomEndpoint = z.infer<typeof ZodAiCustomEndpointSchema>;
+
 const ZodAiSettingsSchema = z.object({
   apiKeys: z.array(ZodAiApiKeySchema).default([]),
   defaultProvider: z.enum(AI_KEY_PROVIDERS).optional(),
   featureConfigs: z.array(ZodAiFeatureConfigSchema).default([]),
   customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
-  customEndpoints: z.array(ZodAiCustomEndpointSchema).optional(),
+  customEndpoints: z.array(ZodAiCustomEndpointSchema).max(MAX_CUSTOM_ENDPOINTS).optional(),
 });
 
-// Notification preferences per notification type.
 const ZodNotificationPreferencesSchema = z.object({
   enabled: z.boolean().default(true),
   types: z.object({
@@ -142,20 +162,15 @@ const ZodSidebarSectionsSchema = z.object({
 // dropped client-side on read, so stale entries are harmless.
 const ZodTransactionsTableSettingsSchema = z.object({
   visibleColumns: z.array(z.string()).default([]),
-  /** Full column order, visible and hidden alike. */
   columnOrder: z.array(z.string()).default([]),
   mobileView: z.enum(['list', 'table']).optional(),
   desktopView: z.enum(['list', 'table']).optional(),
-  /**
-   * Filters the user added to the transactions filter bar on top of the always-visible
-   * ones. Plain strings for the same reason as column ids.
-   */
+  /** Filters added on top of the always-visible ones. Plain strings, like column ids. */
   extraFilters: z.array(z.string()).optional(),
 });
 
 const ZodInvestmentTransactionsTableSettingsSchema = z.object({
   visibleColumns: z.array(z.string()).default([]),
-  /** Full column order, visible and hidden alike. */
   columnOrder: z.array(z.string()).default([]),
 });
 
@@ -179,16 +194,16 @@ const ZodSubscriptionsSettingsSchema = z.object({
   defaultAutoRecord: z.boolean().optional(),
 });
 
-// Data-import defaults. `recalculateAccountBalance` seeds the "update account balances from
-// imported transactions" checkbox in the import wizards. The execute request still carries
-// the chosen value as `recalculateBalance`, and that wire field wins.
+// Data-import defaults. `recalculateAccountBalance` only seeds the "update account balances
+// from imported transactions" checkbox; the execute request's `recalculateBalance` is what
+// actually applies.
 const ZodImportSettingsSchema = z.object({
   recalculateAccountBalance: z.boolean().optional(),
 });
 
-// A saved Pivot Report "view": the config a user pinned to reopen the same cross-tab later,
-// persisted in the settings JSONB with no dedicated table. Reuses the `dateRange()` +
-// `withDateOrder()` pairing so a saved view can't store a range the live report would 400 on.
+// A saved Pivot Report "view", persisted in the settings JSONB with no dedicated table.
+// Reuses `dateRange()` + `withDateOrder()` so a saved view can't hold a range the live
+// report would 400 on.
 const ZodSavedPivotViewConfigSchema = withDateOrder(
   z.object({
     // Enum members come from the shared pivot tuples so a persisted view can never accept a
@@ -225,9 +240,9 @@ export const ZodSettingsSchema = z.object({
   subscriptions: ZodSubscriptionsSettingsSchema.optional(),
   import: ZodImportSettingsSchema.optional(),
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
-  // When true, both sync-time Payee extraction and the post-sync note backfill fall back to
-  // the transaction description/note when the provider's merchant field is empty. Off by
-  // default: Monobank's `counterName` is empty for most card purchases, so it's an opt-in.
+  // When true, Payee extraction falls back to the transaction description/note when the
+  // provider's merchant field is empty. Off by default because Monobank's `counterName` is
+  // empty for most card purchases, so it has to be an opt-in.
   payeeExtractionUsesDescription: z.boolean().optional(),
   // Header "Support" (donation) button. Visible when unset; users opt out in Appearance settings.
   showSupportButton: z.boolean().optional(),
@@ -238,14 +253,12 @@ export const ZodSettingsSchema = z.object({
 
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
 
+export type StoredAiSettings = NonNullable<SettingsSchema['ai']>;
+
 /**
- * Partial settings update (PATCH): every field optional and **no defaults**. Zod's
- * `.partial()` still injects defaults for absent keys, and the deep-merge would then clobber
- * stored arrays with empty ones. Arrays stay non-partial – the merge replaces them wholesale.
- *
- * `onboarding` and `ai.customEndpoints` are absent on purpose: their own endpoints enforce
- * invariants (outbound URL guard, unique names, live probe, key encryption) that a wholesale
- * replace cannot. Zod drops unknown keys, so sending either one here is a no-op.
+ * Partial settings update (PATCH): every field optional and no defaults. Zod's `.partial()`
+ * still injects defaults for absent keys, and the deep merge would then clobber stored arrays
+ * with empty ones. Arrays stay non-partial because the merge replaces them wholesale.
  */
 export const ZodSettingsPatchSchema = z.object({
   locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN, SUPPORTED_LOCALES.SPANISH]).optional(),
@@ -255,7 +268,6 @@ export const ZodSettingsPatchSchema = z.object({
       defaultProvider: z.enum(AI_KEY_PROVIDERS).optional(),
       featureConfigs: z.array(ZodAiFeatureConfigSchema).optional(),
       customInstructions: z.string().max(AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH).optional(),
-      // `customEndpoints` belongs to /user/settings/ai/custom-endpoints only.
     })
     .optional(),
   notifications: z
@@ -336,18 +348,15 @@ type DeepPartial<T> = {
       : T[K];
 };
 
-/** The slice of settings the generic PATCH endpoint owns – everything except the
- * keys served by their own endpoints. */
 type PatchableSettings = Omit<SettingsSchema, 'onboarding' | 'ai'> & {
   ai?: Omit<NonNullable<SettingsSchema['ai']>, 'customEndpoints'>;
 };
 
 /**
  * Compile-time drift guard: `ZodSettingsPatchSchema` must infer exactly the deep-partial of
- * `PatchableSettings`. Without it, a field added to `ZodSettingsSchema` but not mirrored in
- * the patch schema would be silently stripped from incoming patches.
+ * `PatchableSettings`, so a new settings field can't be silently stripped from patches.
  *
- * @public exported only so the assertion isn't flagged as unused – nothing should import it.
+ * @public exported only so the assertion isn't flagged as unused.
  */
 export type SettingsPatchSchemaIsInSync = Expect<Equals<SettingsPatchSchema, DeepPartial<PatchableSettings>>>;
 
@@ -355,7 +364,7 @@ export type SettingsPatchSchemaIsInSync = Expect<Equals<SettingsPatchSchema, Dee
  * Compile-time drift guard: the persisted saved-pivot-view schema must infer exactly the shared
  * `SavedPivotView` contract the frontend also builds against.
  *
- * @public exported only so the assertion isn't flagged as unused – nothing should import it.
+ * @public exported only so the assertion isn't flagged as unused.
  */
 export type SavedPivotViewSchemaIsInSync = Expect<
   Equals<z.infer<typeof ZodSavedPivotViewSchema>, endpointsTypes.SavedPivotView>
@@ -365,10 +374,20 @@ export type SavedPivotViewSchemaIsInSync = Expect<
  * Compile-time drift guard: the sidebar-sections schema must infer exactly the shared
  * `SidebarSectionsConfig` contract the frontend also reads.
  *
- * @public exported only so the assertion isn't flagged as unused – nothing should import it.
+ * @public exported only so the assertion isn't flagged as unused.
  */
 export type SidebarSectionsSchemaIsInSync = Expect<
   Equals<z.infer<typeof ZodSidebarSectionsSchema>, endpointsTypes.SidebarSectionsConfig>
+>;
+
+/**
+ * Compile-time drift guard: a stored custom endpoint and the `AICustomEndpointInfo` the API
+ * returns declare the same fields apart from how the key is represented.
+ *
+ * @public exported only so the assertion isn't flagged as unused.
+ */
+export type AiCustomEndpointSchemaIsInSync = Expect<
+  Equals<Omit<StoredCustomEndpoint, 'keyEncrypted'>, Omit<AICustomEndpointInfo, 'hasApiKey'>>
 >;
 
 export const DEFAULT_SETTINGS: SettingsSchema = {

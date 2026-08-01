@@ -6,6 +6,7 @@ import { Job, Queue, Worker } from 'bullmq';
 import { SSE_EVENT_TYPES, sseManager } from '../common/sse';
 import { buildFailedRunStatus } from './categorization-progress';
 import { categorizeTransactions } from './categorization-service';
+import { writeTerminalOutcome } from './categorization-terminal-outcome';
 
 interface CategorizationJobData extends SentryTraceData {
   userId: number;
@@ -22,12 +23,9 @@ const connection = {
   retryStrategy: (times: number) => Math.min(times * 100, 3000), // Exponential backoff, max 3s
 };
 
-/**
- * Per-user pointer to the most recent categorization job. The status endpoint
- * resolves it to the live BullMQ job so a reloaded page can rehydrate the
- * header progress indicator that SSE alone would have lost.
- */
-export const buildLastCategorizationJobPointerKey = (userId: number): string => `ai-categorization-last-job-${userId}`;
+/** Per-user pointer to the most recent job, so the status endpoint can find it after a page reload. */
+export const buildLastCategorizationJobPointerKey = ({ userId }: { userId: number }): string =>
+  `ai-categorization-last-job-${userId}`;
 
 // Namespace queue by Jest worker ID in test environment
 const queueName =
@@ -82,9 +80,7 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
           userId,
           transactionIds,
           totalTransactionCount: transactionIds.length,
-          // Mirror batch-boundary counters into the job's progress blob so the
-          // status endpoint can serve them to a freshly reloaded page. The
-          // service guards the call — a Redis hiccup here must not kill the run.
+          // Mirror batch counters into the job's progress blob for the status endpoint.
           onProgress: (progress) => job.updateProgress(progress),
         });
 
@@ -95,10 +91,8 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
         return {
           successful: result.successful.length,
           failed: result.failed.length,
-          // The service's first error names the cause of a stopped run (endpoint down,
-          // model missing) — the terminal SSE event is the only channel it reaches
-          // the user through, since counters alone read as a silent no-op.
-          errorMessage: result.errors?.[0],
+          // Only the curated `stopReason` may reach a client; `result.errors` can carry raw provider text.
+          errorMessage: result.stopReason,
         };
       },
     });
@@ -111,40 +105,65 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
 );
 
 // Worker event listeners
-categorizationWorker.on('completed', (job, result) => {
+categorizationWorker.on('completed', async (job, result) => {
   logger.info(`[AI Categorization Worker] Job ${job.id} completed: ${JSON.stringify(result)}`);
 
-  // Notify connected clients via SSE
   const { userId, transactionIds } = job.data;
 
-  // Send progress event with completed status
+  const terminalPayload = {
+    status: 'completed' as const,
+    processedCount: result.successful + result.failed,
+    totalCount: transactionIds.length,
+    failedCount: result.failed,
+    errorMessage: result.errorMessage,
+  };
+
+  // A stopped run still completes, and `removeOnComplete` deletes the job at once,
+  // so persist the cause for a page that reloads after it.
+  if (result.errorMessage) {
+    await writeTerminalOutcome({ userId, outcome: terminalPayload });
+  }
+
   sseManager.sendToUser({
     userId,
     event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
-    data: {
-      status: 'completed' as const,
-      processedCount: result.successful + result.failed,
-      totalCount: transactionIds.length,
-      failedCount: result.failed,
-      errorMessage: result.errorMessage,
-    },
+    data: terminalPayload,
   });
 });
 
-categorizationWorker.on('failed', (job, err) => {
-  logger.error({ message: `[AI Categorization Worker] Job ${job?.id} failed`, error: err });
-
-  // Send failed progress event. Built from the job's progress blob via the
-  // same projection the status endpoint uses, so a live tab and a reloaded
-  // tab agree on the counters of a failed run.
-  if (job) {
-    const { userId, transactionIds } = job.data;
-    sseManager.sendToUser({
-      userId,
-      event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
-      data: buildFailedRunStatus({ progress: job.progress, totalCount: transactionIds.length }),
-    });
+categorizationWorker.on('failed', async (job, err) => {
+  if (!job) {
+    logger.error({ message: '[AI Categorization Worker] Job failed', error: err });
+    return;
   }
+
+  // BullMQ fires `failed` per attempt. Until the retry budget is spent the run is
+  // only paused (state `delayed`), so a terminal broadcast here would lie.
+  const isTerminal = job.attemptsMade >= (job.opts.attempts ?? 1);
+  if (!isTerminal) {
+    logger.info(
+      `[AI Categorization Worker] Job ${job.id} attempt ${job.attemptsMade} failed, retrying: ${err.message}`,
+    );
+    return;
+  }
+
+  logger.error({ message: `[AI Categorization Worker] Job ${job.id} failed`, error: err });
+
+  const { userId, transactionIds } = job.data;
+
+  const terminalPayload = buildFailedRunStatus({
+    progress: job.progress,
+    totalCount: transactionIds.length,
+    errorMessage: err.message,
+  });
+
+  await writeTerminalOutcome({ userId, outcome: terminalPayload });
+
+  sseManager.sendToUser({
+    userId,
+    event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
+    data: terminalPayload,
+  });
 });
 
 categorizationWorker.on('error', (err) => {
@@ -182,12 +201,10 @@ export async function queueCategorizationJob({
     },
   });
 
-  // Best-effort: the pointer only feeds page-reload rehydration, so a failed
-  // write must not fail the enqueue — live SSE updates still work without it.
-  // Last-writer-wins: overlapping runs for one user are possible (the sync
-  // debounce makes them rare) and the pointer intentionally tracks the newest.
+  // Best effort: a failed pointer write must not fail the enqueue, live SSE still works.
+  // Last writer wins, so overlapping runs for one user leave the newest one pointed at.
   await redisClient
-    .set(buildLastCategorizationJobPointerKey(userId), jobId, 'EX', 24 * 3600)
+    .set(buildLastCategorizationJobPointerKey({ userId }), jobId, 'EX', 24 * 3600)
     .catch((error: unknown) => {
       logger.error({
         message: `[AI Categorization] Failed to write last-job pointer for user ${userId}`,

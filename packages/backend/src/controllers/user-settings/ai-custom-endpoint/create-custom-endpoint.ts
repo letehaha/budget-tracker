@@ -1,13 +1,12 @@
-import { AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { createCustomEndpoint } from '@services/user-settings/ai-custom-endpoint';
 import { z } from 'zod';
 
-import { apiKeyField, baseUrlField, defaultModelField } from './endpoint-field-schemas';
+import { apiKeyField, baseUrlField, defaultModelField, nameField } from './endpoint-field-schemas';
 
 const schema = z.object({
   body: z.object({
-    name: z.string().min(1).max(AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH),
+    name: nameField,
     baseUrl: baseUrlField,
     defaultModel: defaultModelField,
     // Omitted or null means the endpoint needs no authentication

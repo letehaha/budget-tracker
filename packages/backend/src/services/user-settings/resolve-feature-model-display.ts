@@ -1,17 +1,14 @@
 import {
-  AICustomEndpointInfo,
   AIFeatureConfig,
-  AI_CUSTOM_MODEL_PREFIX,
   AI_FEATURE,
-  AI_PROVIDER,
+  buildCustomModelId,
   getModelNameFromModelId,
   isCustomModelId,
 } from '@bt/shared/types';
+import type { StoredAiSettings } from '@models/user-settings.model';
 
-import { resolveFallbackCustomEndpoint } from '../ai/custom-endpoint-fallback';
-import { getDefaultModelForFeature, getModelInfo, getProviderFromModelId } from '../ai/models-config';
-import { hasAiApiKey } from './ai-api-key';
-import { getCustomEndpointInfoById } from './ai-custom-endpoint';
+import { getDefaultModelForFeature, getModelInfo } from '../ai/models-config';
+import { pickResolutionStep, type LadderEndpoint } from '../ai/resolution-ladder';
 
 interface FeatureModelDisplay {
   modelId: string;
@@ -21,25 +18,6 @@ interface FeatureModelDisplay {
   /** Set together with a `custom/*` `modelId` */
   customEndpointId?: string;
   endpointName?: string;
-}
-
-/**
- * Reads the same env vars as `resolveAIConfiguration`, so a server-key run can be
- * told apart from a fallback to the user's own endpoint.
- */
-function hasServerApiKey({ provider }: { provider: AI_PROVIDER }): boolean {
-  switch (provider) {
-    case AI_PROVIDER.google:
-      return Boolean(process.env.GEMINI_API_KEY);
-    case AI_PROVIDER.openai:
-      return Boolean(process.env.OPENAI_API_KEY);
-    case AI_PROVIDER.anthropic:
-      return Boolean(process.env.ANTHROPIC_API_KEY);
-    case AI_PROVIDER.groq:
-      return Boolean(process.env.GROQ_API_KEY);
-    case AI_PROVIDER.custom:
-      return false;
-  }
 }
 
 /** A custom model has no catalog entry, so its label is the free-text name itself. */
@@ -55,14 +33,14 @@ function describeModel({ modelId, usingUserKey }: { modelId: string; usingUserKe
 
 function describeEndpointModel({
   endpoint,
-  modelName,
+  modelId,
 }: {
-  endpoint: AICustomEndpointInfo;
-  modelName: string;
+  endpoint: LadderEndpoint;
+  modelId: string;
 }): FeatureModelDisplay {
   return {
-    modelId: `${AI_CUSTOM_MODEL_PREFIX}${modelName}`,
-    modelName,
+    modelId,
+    modelName: getModelNameFromModelId({ modelId }),
     usingUserKey: true,
     customEndpointId: endpoint.id,
     endpointName: endpoint.name,
@@ -70,78 +48,51 @@ function describeEndpointModel({
 }
 
 /**
- * The configured model when it can still answer: a custom model whose endpoint is
- * saved, or a catalog model backed by the user's key or the server's. Null when there
- * are no credentials, so both the call and the screen fall back to the defaults.
+ * Display-only projection of the same `pickResolutionStep` walk the runtime uses, so the
+ * screen cannot name a model the run would not pick. Credential failures stay invisible
+ * here: an undecryptable stored key surfaces only when the request is made.
  */
-async function resolveConfiguredModel({
-  userId,
-  config,
-}: {
-  userId: number;
-  config: AIFeatureConfig;
-}): Promise<FeatureModelDisplay | null> {
-  const { modelId, customEndpointId } = config;
-
-  if (isCustomModelId({ modelId })) {
-    const endpoint = customEndpointId
-      ? await getCustomEndpointInfoById({ userId, endpointId: customEndpointId })
-      : null;
-
-    return endpoint ? describeEndpointModel({ endpoint, modelName: getModelNameFromModelId({ modelId }) }) : null;
-  }
-
-  // No provider means the ID is in no catalog, so nothing can serve it
-  const provider = getProviderFromModelId({ modelId });
-  if (!provider) return null;
-
-  if (await hasAiApiKey({ userId, provider })) {
-    return describeModel({ modelId, usingUserKey: true });
-  }
-
-  if (hasServerApiKey({ provider })) {
-    return describeModel({ modelId, usingUserKey: false });
-  }
-
-  return null;
-}
-
-/**
- * What the AI settings screens show for one feature: which model answers, how it is
- * labelled, and whose credentials pay for it. A feature with no usable key is answered
- * by the user's own endpoint, config or not, and every field then names that endpoint.
- */
-export async function resolveFeatureModelDisplay({
-  userId,
+export function resolveFeatureModelDisplay({
   feature,
   config,
+  aiSettings,
 }: {
-  userId: number;
   feature: AI_FEATURE;
-  /** The feature's stored config, null when it has none of its own */
   config: AIFeatureConfig | null;
-}): Promise<FeatureModelDisplay> {
-  if (config) {
-    const configuredModel = await resolveConfiguredModel({ userId, config });
-    if (configuredModel) return configuredModel;
+  aiSettings: StoredAiSettings | null;
+}): FeatureModelDisplay {
+  const step = pickResolutionStep({
+    feature,
+    config,
+    keyProviders: new Set((aiSettings?.apiKeys ?? []).map((key) => key.provider)),
+    endpoints: aiSettings?.customEndpoints ?? [],
+  });
+
+  switch (step.kind) {
+    case 'configured-custom':
+      return describeEndpointModel({ endpoint: step.endpoint, modelId: step.modelId });
+
+    case 'configured-catalog':
+    case 'default-catalog':
+      return describeModel({ modelId: step.modelId, usingUserKey: step.usingUserKey });
+
+    case 'fallback-endpoint':
+      return describeEndpointModel({ endpoint: step.endpoint, modelId: step.modelId });
+
+    // A flagged endpoint still names the feature: the run refuses to move to the server
+    // key behind the user's back, so the endpoint is the only thing that could answer.
+    case 'all-endpoints-down':
+      return describeEndpointModel({
+        endpoint: step.endpoint,
+        modelId: buildCustomModelId({ modelName: step.endpoint.defaultModel }),
+      });
+
+    // No credentials anywhere: nothing runs, so the screen keeps naming the user's own
+    // pick (or the feature default) rather than inventing a different model.
+    case 'unserved':
+      return describeModel({
+        modelId: config?.modelId ?? getDefaultModelForFeature({ feature }),
+        usingUserKey: false,
+      });
   }
-
-  const defaultModelId = getDefaultModelForFeature({ feature });
-  const configuredModelId = config?.modelId ?? defaultModelId;
-  const defaultProvider = getProviderFromModelId({ modelId: defaultModelId });
-
-  if (defaultProvider && (await hasAiApiKey({ userId, provider: defaultProvider }))) {
-    return describeModel({ modelId: configuredModelId, usingUserKey: true });
-  }
-
-  // A flagged endpoint still names the feature: the run refuses to move to the server key
-  // behind the user's back, so the endpoint is the only thing that could answer.
-  const { dialable, first } = await resolveFallbackCustomEndpoint({ userId });
-  const fallbackEndpoint = dialable ?? first;
-  if (fallbackEndpoint) {
-    return describeEndpointModel({ endpoint: fallbackEndpoint, modelName: fallbackEndpoint.defaultModel });
-  }
-
-  // Server key, or no credentials anywhere: the pick is named either way
-  return describeModel({ modelId: configuredModelId, usingUserKey: false });
 }
