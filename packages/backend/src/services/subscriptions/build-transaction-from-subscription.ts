@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
@@ -110,7 +110,7 @@ export async function buildTransactionFromSubscription({
     userId: subscription.userId,
     accountId: subscription.accountId,
     amount: amountMoney,
-    transactionType: subscription.transactionType ?? TRANSACTION_TYPES.expense,
+    transactionType: subscription.transactionType,
     paymentType: PAYMENT_TYPES.bankTransfer,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     accountType: ACCOUNT_TYPES.system,
