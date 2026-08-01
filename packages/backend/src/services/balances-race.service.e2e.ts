@@ -4,7 +4,7 @@ import { describe, expect, it } from '@jest/globals';
 import { connection } from '@models/index';
 import * as helpers from '@tests/helpers';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
-import { startOfDay, startOfMonth, subDays, subMonths } from 'date-fns';
+import { startOfDay, subDays } from 'date-fns';
 import { v7 as uuidv7 } from 'uuid';
 
 // Regression suite for the (accountId, date) unique-index race fixed in
@@ -70,7 +70,15 @@ describe('Balances (accountId, date) race regression', () => {
       raw: true,
     });
 
-    const priorMonthDate = subMonths(startOfDay(new Date()), 1);
+    // Balance rows are bucketed by the UTC date of the transaction, so these
+    // days are built in UTC to keep the assertion keys aligned in any local
+    // timezone. The day must not be the 1st — there the first-of-month seed row
+    // and the tx-date row are one and the same row, so the race can't happen.
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth();
+    const txDate = new Date(Date.UTC(year, month - 1, 15, 12));
+    const priorMonthDate = new Date(Date.UTC(year, month - 2, 15, 12));
     const priorTx = await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
         accountId: account.id,
@@ -81,7 +89,7 @@ describe('Balances (accountId, date) race regression', () => {
     });
     expect(priorTx.statusCode).toEqual(200);
 
-    const todayIso = startOfDay(new Date()).toISOString();
+    const txDateIso = txDate.toISOString();
     const results = await Promise.all(
       Array.from({ length: txCount }, () =>
         helpers.createTransaction({
@@ -89,7 +97,7 @@ describe('Balances (accountId, date) race regression', () => {
             accountId: account.id,
             amount: expenseAmount,
             transactionType: TRANSACTION_TYPES.expense,
-            time: todayIso,
+            time: txDateIso,
           }),
         }),
       ),
@@ -104,15 +112,15 @@ describe('Balances (accountId, date) race regression', () => {
       }),
     );
 
-    const firstOfMonthKey = startOfMonth(new Date()).toISOString().slice(0, 10);
+    const firstOfMonthKey = new Date(Date.UTC(year, month - 1, 1, 12)).toISOString().slice(0, 10);
     const firstOfMonthRows = history.filter((row) => row.date === firstOfMonthKey);
     expect(firstOfMonthRows.length).toBe(1);
     expect(firstOfMonthRows[0].amount).toBe(initialBalance - priorMonthExpense);
 
-    const todayKey = startOfDay(new Date()).toISOString().slice(0, 10);
-    const todayRows = history.filter((row) => row.date === todayKey);
-    expect(todayRows.length).toBe(1);
-    expect(todayRows[0].amount).toBe(initialBalance - priorMonthExpense - txCount * expenseAmount);
+    const txDateKey = txDate.toISOString().slice(0, 10);
+    const txDateRows = history.filter((row) => row.date === txDateKey);
+    expect(txDateRows.length).toBe(1);
+    expect(txDateRows[0].amount).toBe(initialBalance - priorMonthExpense - txCount * expenseAmount);
   });
 
   // Catch sites #2 + #3 — back-dating into the `!latestBalancePrior` branch.
