@@ -4,7 +4,7 @@
 import type { StatementCostEstimate, StatementFileType } from '@bt/shared/types';
 import { AI_FEATURE } from '@bt/shared/types';
 import { resolveAIConfiguration } from '@services/ai';
-import { getModelInfo } from '@services/ai/models-config';
+import { estimateModelCostUsd, getModelCostProfile } from '@services/ai/models-config';
 
 import { STATEMENT_EXTRACTION_SYSTEM_PROMPT, createTextExtractionPrompt } from './extraction-prompt';
 import { estimateTokenCount } from './text-extractor';
@@ -17,9 +17,6 @@ const MIN_TRANSACTIONS_PER_PAGE = 5;
 
 /** Estimated maximum transactions per page */
 const MAX_TRANSACTIONS_PER_PAGE = 30;
-
-/** Default context window if model info is unavailable */
-const DEFAULT_CONTEXT_WINDOW = 100_000;
 
 interface CostEstimationParams {
   userId: number;
@@ -64,9 +61,9 @@ export async function estimateExtractionCost({
   }
 
   // Get model info for pricing and context window
-  const modelInfo = getModelInfo({ modelId: aiConfig.modelId });
+  const modelProfile = getModelCostProfile({ modelId: aiConfig.modelId });
 
-  if (!modelInfo) {
+  if (!modelProfile) {
     return {
       success: false,
       error: {
@@ -87,29 +84,33 @@ export async function estimateExtractionCost({
   const metadataTokens = 100; // For metadata CSV structure
   const estimatedOutputTokens = estimatedTransactions * TOKENS_PER_TRANSACTION + metadataTokens;
 
-  // Calculate token limit (model context / 3)
-  const contextWindow = modelInfo.contextWindow || DEFAULT_CONTEXT_WINDOW;
-  const maxInputTokens = Math.floor(contextWindow / 3);
-  const exceedsLimit = estimatedInputTokens > maxInputTokens;
+  const estimatedCostUsd = estimateModelCostUsd({
+    profile: modelProfile,
+    inputTokens: estimatedInputTokens,
+    outputTokens: estimatedOutputTokens,
+  });
 
-  // Calculate estimated cost
-  let estimatedCostUsd = 0;
-  if (modelInfo.pricing) {
-    const inputCost = (estimatedInputTokens / 1_000_000) * modelInfo.pricing.inputPerMillion;
-    const outputCost = (estimatedOutputTokens / 1_000_000) * modelInfo.pricing.outputPerMillion;
-    estimatedCostUsd = inputCost + outputCost;
-  }
+  // A custom endpoint never declares how much input its model takes, so there is no limit
+  // to hold the file against and the estimate ships without one.
+  let tokenLimit: StatementCostEstimate['tokenLimit'];
 
-  // Return error if file exceeds token limit
-  if (exceedsLimit) {
-    return {
-      success: false,
-      error: {
-        code: 'TOKEN_LIMIT_EXCEEDED',
-        message: `File is too large for the selected model. Estimated ${estimatedInputTokens.toLocaleString()} tokens, but the limit is ${maxInputTokens.toLocaleString()} tokens (${modelInfo.name} context: ${contextWindow.toLocaleString()}).`,
-        details: `Please use a smaller file or split your statement into multiple parts. Recommended: statements with up to ~${Math.floor(maxInputTokens / 100)} transactions.`,
-      },
-    };
+  if (!modelProfile.isCustom) {
+    // Calculate token limit (model context / 3)
+    const maxInputTokens = Math.floor(modelProfile.contextWindow / 3);
+
+    // Return error if file exceeds token limit
+    if (estimatedInputTokens > maxInputTokens) {
+      return {
+        success: false,
+        error: {
+          code: 'TOKEN_LIMIT_EXCEEDED',
+          message: `File is too large for the selected model. Estimated ${estimatedInputTokens.toLocaleString()} tokens, but the limit is ${maxInputTokens.toLocaleString()} tokens (${modelProfile.name} context: ${modelProfile.contextWindow.toLocaleString()}).`,
+          details: `Please use a smaller file or split your statement into multiple parts. Recommended: statements with up to ~${Math.floor(maxInputTokens / 100)} transactions.`,
+        },
+      };
+    }
+
+    tokenLimit = { maxInputTokens, exceedsLimit: false };
   }
 
   return {
@@ -119,7 +120,7 @@ export async function estimateExtractionCost({
       estimatedOutputTokens,
       estimatedCostUsd,
       modelId: aiConfig.modelId,
-      modelName: modelInfo.name,
+      modelName: modelProfile.name,
       usingUserKey: aiConfig.usingUserKey,
       textExtraction: {
         success: true,
@@ -127,10 +128,7 @@ export async function estimateExtractionCost({
         pageCount,
       },
       fileType,
-      tokenLimit: {
-        maxInputTokens,
-        exceedsLimit,
-      },
+      tokenLimit,
     },
   };
 }

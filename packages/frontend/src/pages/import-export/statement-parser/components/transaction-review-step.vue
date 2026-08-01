@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-6">
     <!-- Loading State -->
-    <div v-if="store.isDetectingDuplicates" class="flex items-center justify-center py-8">
-      <Loader2Icon class="text-primary mr-2 size-6 animate-spin" />
+    <div v-if="store.isDetectingDuplicates" class="flex items-center justify-center gap-2 py-8">
+      <Loader2Icon class="text-primary size-6 animate-spin" />
       <span>{{ $t('pages.statementParser.transactionReview.checkingDuplicates') }}</span>
     </div>
 
@@ -15,17 +15,17 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="text-muted-foreground">{{ $t('pages.statementParser.transactionReview.duplicatesLabel') }}</span>
-          <span class="font-semibold text-yellow-600">{{ store.importSummary.duplicates }}</span>
+          <span class="text-warning-text font-semibold">{{ store.importSummary.duplicates }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-muted-foreground">{{ $t('pages.statementParser.transactionReview.willImportLabel') }}</span>
-          <span class="font-semibold text-green-600">{{ store.importSummary.toImport }}</span>
+          <span class="text-app-income-color font-semibold">{{ store.importSummary.toImport }}</span>
         </div>
         <div v-if="existingTransactionsCount > 0" class="flex items-center gap-2">
           <span class="text-muted-foreground">{{
             $t('pages.statementParser.transactionReview.alreadyInAccountLabel')
           }}</span>
-          <span class="font-semibold text-gray-500">{{ existingTransactionsCount }}</span>
+          <span class="text-muted-foreground font-semibold">{{ existingTransactionsCount }}</span>
         </div>
       </div>
 
@@ -35,17 +35,17 @@
           <h3 class="text-sm font-medium">{{ $t('pages.statementParser.transactionReview.timelineTitle') }}</h3>
           <div class="flex items-center gap-3 text-xs">
             <div class="flex items-center gap-1">
-              <div class="size-2 rounded-full bg-green-500/20 ring-1 ring-green-500"></div>
+              <div class="bg-success/30 ring-success-text size-2 rounded-full ring-1"></div>
               <span class="text-muted-foreground">{{ $t('pages.statementParser.transactionReview.legendNew') }}</span>
             </div>
             <div class="flex items-center gap-1">
-              <div class="size-2 rounded-full bg-yellow-500/20 ring-1 ring-yellow-500"></div>
+              <div class="bg-warning/30 ring-warning size-2 rounded-full ring-1"></div>
               <span class="text-muted-foreground">{{
                 $t('pages.statementParser.transactionReview.legendDuplicate')
               }}</span>
             </div>
             <div class="flex items-center gap-1">
-              <div class="size-2 rounded-full bg-gray-500/20 ring-1 ring-gray-500"></div>
+              <div class="bg-muted ring-border size-2 rounded-full ring-1"></div>
               <span class="text-muted-foreground">{{
                 $t('pages.statementParser.transactionReview.legendExisting')
               }}</span>
@@ -53,16 +53,16 @@
           </div>
         </div>
 
-        <div class="max-h-80 overflow-auto rounded-lg border">
+        <ScrollArea class="max-h-80 rounded-lg border">
           <div class="min-w-max">
             <div
               v-for="(item, index) in timelineItems"
               :key="`${item.type}-${index}`"
               class="border-b last:border-b-0"
               :class="[
-                item.type === 'new' && !item.isExcluded && 'bg-green-500/5',
-                item.type === 'duplicate' && !item.isOverridden && 'bg-yellow-500/5',
-                item.type === 'duplicate' && item.isOverridden && 'bg-green-500/5',
+                item.type === 'new' && !item.isExcluded && 'bg-success/10',
+                item.type === 'duplicate' && !item.isOverridden && 'bg-warning/10',
+                item.type === 'duplicate' && item.isOverridden && 'bg-success/10',
                 item.type === 'existing' && 'bg-muted/50',
                 item.isExcluded && 'opacity-50',
                 item.type !== 'existing' && 'hover:bg-muted/30 cursor-pointer',
@@ -74,10 +74,10 @@
                 <div
                   class="size-2 shrink-0 rounded-full ring-1"
                   :class="{
-                    'ring-success-text bg-green-500/20':
+                    'ring-success-text bg-success/30':
                       item.type === 'new' || (item.type === 'duplicate' && item.isOverridden),
-                    'bg-yellow-500/20 ring-yellow-500': item.type === 'duplicate' && !item.isOverridden,
-                    'bg-gray-500/20 ring-gray-500': item.type === 'existing',
+                    'bg-warning/30 ring-warning': item.type === 'duplicate' && !item.isOverridden,
+                    'bg-muted ring-border': item.type === 'existing',
                   }"
                 ></div>
 
@@ -101,19 +101,19 @@
                 <!-- Status Badge -->
                 <span
                   v-if="item.type === 'duplicate' && !item.isOverridden"
-                  class="shrink-0 rounded bg-yellow-500/20 px-1 py-0.5 text-xs text-yellow-700"
+                  class="bg-warning/20 text-warning-text shrink-0 rounded px-1 py-0.5 text-xs"
                 >
                   {{ $t('pages.statementParser.transactionReview.statusDup') }}
                 </span>
                 <span
                   v-else-if="item.type === 'duplicate' && item.isOverridden"
-                  class="text-success-text shrink-0 rounded bg-green-500/20 px-1 py-0.5 text-xs"
+                  class="text-success-text bg-success/30 shrink-0 rounded px-1 py-0.5 text-xs"
                 >
                   {{ $t('pages.statementParser.transactionReview.statusImport') }}
                 </span>
                 <span
                   v-else-if="item.type === 'existing'"
-                  class="shrink-0 rounded bg-gray-500/20 px-1 py-0.5 text-xs text-gray-600"
+                  class="bg-muted text-muted-foreground shrink-0 rounded px-1 py-0.5 text-xs"
                 >
                   {{ $t('pages.statementParser.transactionReview.statusExists') }}
                 </span>
@@ -126,18 +126,18 @@
                 <!-- Action Icon -->
                 <div class="w-6 shrink-0 text-center">
                   <template v-if="item.type === 'new'">
-                    <CheckCircleIcon v-if="!item.isExcluded" class="inline size-4 text-green-600" />
+                    <CheckCircleIcon v-if="!item.isExcluded" class="text-success-text inline size-4" />
                     <XCircleIcon v-else class="text-muted-foreground inline size-4" />
                   </template>
                   <template v-else-if="item.type === 'duplicate'">
-                    <CheckCircleIcon v-if="item.isOverridden" class="inline size-4 text-green-600" />
+                    <CheckCircleIcon v-if="item.isOverridden" class="text-success-text inline size-4" />
                     <BanIcon v-else class="text-muted-foreground inline size-4" />
                   </template>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </ScrollArea>
       </div>
 
       <!-- Duplicate Action Info -->
@@ -158,7 +158,7 @@
         </p>
         <p class="text-muted-foreground mt-1">
           {{ $t('pages.statementParser.transactionReview.toggleInfo') }}
-          <CheckCircleIcon class="inline size-4 text-green-600" />
+          <CheckCircleIcon class="text-success-text inline size-4" />
           {{ $t('pages.statementParser.transactionReview.toggleWillImport') }}
           <BanIcon class="text-muted-foreground inline size-4" />
           {{ $t('pages.statementParser.transactionReview.toggleWillSkip') }}
@@ -168,7 +168,7 @@
       <!-- Navigation Buttons -->
       <div class="flex gap-3">
         <Button variant="outline" @click="handleBack">
-          <ArrowLeftIcon class="mr-2 size-4" />
+          <ArrowLeftIcon class="size-4" />
           {{ $t('pages.statementParser.transactionReview.backButton') }}
         </Button>
         <Button class="flex-1" @click="handleProceed" :disabled="store.importSummary.toImport === 0">
@@ -186,6 +186,7 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from '@lucide/vue';
 import { computed } from 'vue';

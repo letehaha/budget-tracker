@@ -279,7 +279,13 @@ onBeforeUnmount(() => abortExtract());
         <div v-if="costEstimate" class="border-border/60 bg-muted/30 grid gap-2 rounded-lg border p-4 text-sm">
           <div class="flex items-center justify-between">
             <span class="text-muted-foreground">{{ $t('investmentsImport.upload.estimatedCost') }}</span>
-            <span class="text-base font-semibold tabular-nums">${{ costEstimate.estimatedCostUsd.toFixed(4) }}</span>
+            <!-- A custom endpoint publishes no prices, so there is a label instead of a number -->
+            <span v-if="costEstimate.estimatedCostUsd === null" class="text-base font-semibold">
+              {{ $t('investmentsImport.upload.costSetByEndpoint') }}
+            </span>
+            <span v-else class="text-base font-semibold tabular-nums">
+              ${{ costEstimate.estimatedCostUsd.toFixed(4) }}
+            </span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-muted-foreground">{{ $t('investmentsImport.upload.model') }}</span>

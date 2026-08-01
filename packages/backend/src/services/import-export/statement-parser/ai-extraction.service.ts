@@ -84,6 +84,19 @@ export async function extractTransactionsWithAI({
     }
 
     if (parsed.transactions.length === 0) {
+      // Rows that were all rejected mean the model answered badly, not that the file is
+      // wrong — worth saying, because the fix is to run it again or pick a better model.
+      if (parsed.droppedRowCount > 0) {
+        return {
+          success: false,
+          error: {
+            code: 'EXTRACTION_FAILED',
+            message: `The model returned ${parsed.droppedRowCount} row(s), but none of them had both a readable date and a positive amount. Try extracting again, or switch to a different model.`,
+            details: responseText.slice(0, 500),
+          },
+        };
+      }
+
       return {
         success: false,
         error: {
@@ -122,6 +135,7 @@ export async function extractTransactionsWithAI({
           input: usage?.inputTokens ?? 0,
           output: usage?.outputTokens ?? 0,
         },
+        droppedRowCount: parsed.droppedRowCount,
       },
     };
   } catch (error) {

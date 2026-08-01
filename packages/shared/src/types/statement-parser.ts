@@ -65,6 +65,12 @@ export interface StatementExtractionResult {
     input: number;
     output: number;
   };
+  /**
+   * Lines the model emitted that no transaction could be read from. Shown to the user,
+   * because otherwise a statement comes back with fewer rows than it had and nothing
+   * on screen says so.
+   */
+  droppedRowCount: number;
 }
 
 /**
@@ -75,8 +81,11 @@ export interface StatementCostEstimate {
   estimatedInputTokens: number;
   /** Estimated output tokens (based on expected transactions) */
   estimatedOutputTokens: number;
-  /** Estimated cost in USD */
-  estimatedCostUsd: number;
+  /**
+   * Estimated cost in USD. Null when the price is not knowable — a custom endpoint is
+   * billed (or not) by whoever runs it, and no catalog can say what that costs.
+   */
+  estimatedCostUsd: number | null;
   /** Model that will be used */
   modelId: string;
   /** Model display name */
@@ -94,7 +103,7 @@ export interface StatementCostEstimate {
   };
   /** Detected file type */
   fileType: StatementFileType;
-  /** Token limit info */
+  /** Token limit info. Absent when the model's context window is unknown */
   tokenLimit?: {
     /** Maximum allowed input tokens (model context / 3) */
     maxInputTokens: number;

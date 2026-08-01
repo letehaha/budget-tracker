@@ -16,11 +16,11 @@
     <div v-if="store.uploadedFile && !store.costEstimate && !store.estimateError" class="flex justify-center">
       <Button @click="handleEstimate" :disabled="store.isEstimating">
         <template v-if="store.isEstimating">
-          <Loader2Icon class="mr-2 size-4 animate-spin" />
+          <Loader2Icon class="size-4 animate-spin" />
           {{ extractionStatus }}
         </template>
         <template v-else>
-          <CalculatorIcon class="mr-2 size-4" />
+          <CalculatorIcon class="size-4" />
           {{ $t('pages.statementParser.uploadExtract.analyzeButton') }}
         </template>
       </Button>
@@ -48,7 +48,11 @@
           <p class="text-muted-foreground text-sm">
             {{ $t('pages.statementParser.uploadExtract.estimatedCostLabel') }}
           </p>
-          <p class="font-medium">
+          <!-- A custom endpoint publishes no prices, so there is a label instead of a number -->
+          <p v-if="store.costEstimate.estimatedCostUsd === null" class="font-medium">
+            {{ $t('pages.statementParser.uploadExtract.costSetByEndpoint') }}
+          </p>
+          <p v-else class="font-medium">
             ${{ store.costEstimate.estimatedCostUsd.toFixed(4) }}
             <span v-if="store.costEstimate.usingUserKey" class="text-muted-foreground text-sm">
               {{ $t('pages.statementParser.uploadExtract.yourApiKey') }}
@@ -73,11 +77,11 @@
       <div class="flex items-center gap-3">
         <Button class="flex-1" :disabled="store.isExtracting" @click="handleExtract">
           <template v-if="store.isExtracting">
-            <Loader2Icon class="mr-2 size-4 animate-spin" />
+            <Loader2Icon class="size-4 animate-spin" />
             {{ extractionStatus }}
           </template>
           <template v-else>
-            <SparklesIcon class="mr-2 size-4" />
+            <SparklesIcon class="size-4" />
             {{ $t('pages.statementParser.uploadExtract.extractButton') }}
           </template>
         </Button>

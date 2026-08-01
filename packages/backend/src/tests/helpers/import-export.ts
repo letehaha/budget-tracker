@@ -15,6 +15,7 @@ import type {
   ExtractedTransaction,
   ParseBudgetBakersWalletResponse,
   ParseYnabResponse,
+  StatementCostEstimate,
   StatementDetectDuplicatesResponse,
   StatementExecuteImportResponse,
   TagMappingConfig,
@@ -233,6 +234,29 @@ export function expectCsvImportCompleted(
     const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
     throw new Error(`Expected completed CSV import, got status="${progress.status}".${detail}`);
   }
+}
+
+// ============================================
+// Statement Parser - Estimate Cost Endpoint
+// ============================================
+
+/**
+ * The route also answers 200 with `{ success: false, error }` for a file it cannot read or
+ * one too large for the model, so callers after those shapes need `raw: false`.
+ */
+export function statementEstimateCost<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: { fileBase64: string };
+  raw?: R;
+}): UtilizeReturnType<() => StatementCostEstimate, R> {
+  return makeRequest<StatementCostEstimate, R>({
+    method: 'post',
+    url: '/import/text-source/estimate-cost',
+    payload,
+    raw,
+  });
 }
 
 // ============================================

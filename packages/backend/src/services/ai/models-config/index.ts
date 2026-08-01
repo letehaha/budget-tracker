@@ -1,4 +1,12 @@
-import { AIKeyProvider, AIModelInfo, AI_FEATURE, AI_PROVIDER, isCustomModelId } from '@bt/shared/types';
+import {
+  AIKeyProvider,
+  AIModelInfo,
+  AIModelPricing,
+  AI_FEATURE,
+  AI_PROVIDER,
+  getModelNameFromModelId,
+  isCustomModelId,
+} from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 
 import { AI_MODEL_ID } from './model-ids';
@@ -42,6 +50,54 @@ export function getAvailableModels({ provider }: { provider?: AIKeyProvider } = 
  */
 export function getModelInfo({ modelId }: { modelId: string }): AIModelInfo | null {
   return AVAILABLE_MODELS[modelId as AI_MODEL_ID] ?? null;
+}
+
+/** Context window assumed for a catalog model that declares none. */
+const DEFAULT_CONTEXT_WINDOW = 100_000;
+
+/**
+ * What a cost estimate can say about the model that will answer. A `custom/*` model runs
+ * on the user's own endpoint, so the catalog holds neither its price nor its context
+ * window and both have to reach the screen as unknown rather than as a made-up zero.
+ */
+type ModelCostProfile =
+  | { isCustom: true; name: string }
+  | { isCustom: false; name: string; contextWindow: number; pricing: AIModelPricing | null };
+
+/** Null when the ID belongs to no catalog and is not a custom model either. */
+export function getModelCostProfile({ modelId }: { modelId: string }): ModelCostProfile | null {
+  if (isCustomModelId({ modelId })) {
+    return { isCustom: true, name: getModelNameFromModelId({ modelId }) };
+  }
+
+  const modelInfo = getModelInfo({ modelId });
+  if (!modelInfo) return null;
+
+  return {
+    isCustom: false,
+    name: modelInfo.name,
+    contextWindow: modelInfo.contextWindow || DEFAULT_CONTEXT_WINDOW,
+    pricing: modelInfo.pricing ?? null,
+  };
+}
+
+/** Null when the model has no price anyone here can look up. */
+export function estimateModelCostUsd({
+  profile,
+  inputTokens,
+  outputTokens,
+}: {
+  profile: ModelCostProfile;
+  inputTokens: number;
+  outputTokens: number;
+}): number | null {
+  if (profile.isCustom) return null;
+  if (!profile.pricing) return 0;
+
+  const inputCost = (inputTokens / 1_000_000) * profile.pricing.inputPerMillion;
+  const outputCost = (outputTokens / 1_000_000) * profile.pricing.outputPerMillion;
+
+  return inputCost + outputCost;
 }
 
 /**

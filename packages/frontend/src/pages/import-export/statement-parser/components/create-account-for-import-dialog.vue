@@ -41,7 +41,7 @@
         <p v-if="props.defaultCurrency" class="text-muted-foreground mt-1 text-xs">
           {{ t('pages.statementParser.createAccountDialog.currencyLocked', { currency: props.defaultCurrency }) }}
         </p>
-        <p v-if="props.defaultCurrency && !isCurrencyLinked" class="mt-1 text-xs text-yellow-600">
+        <p v-if="props.defaultCurrency && !isCurrencyLinked" class="text-warning-text mt-1 text-xs">
           {{ t('pages.statementParser.createAccountDialog.currencyWillBeAdded', { currency: props.defaultCurrency }) }}
         </p>
       </div>
