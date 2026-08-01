@@ -66,7 +66,7 @@ export const subscriptionReminderEmailWorker = new Worker<SubscriptionReminderEm
         // expectedAmount is already decimal (converted by caller before queuing)
         const amountDisplay = expectedAmount != null && currencyCode ? `${expectedAmount} ${currencyCode}` : null;
 
-        const deepLink = `${appUrl}/planned/subscriptions/${subscriptionId}`;
+        const deepLink = `${appUrl}/planned/recurring-payments/${subscriptionId}`;
 
         const html = buildEmailHtml({ subscriptionName, dueDate, amountDisplay, deepLink });
 
