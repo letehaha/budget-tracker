@@ -477,30 +477,39 @@ const handleSubmit = () => {
     </div>
 
     <!-- Transaction Type (Expense vs Income) -->
-    <div>
-      <SelectField
-        :model-value="selectedTransactionTypeOption"
-        :values="transactionTypeOptions"
-        label-key="label"
-        value-key="value"
-        :label="$t('planned.subscriptions.form.transactionTypeLabel')"
-        @update:model-value="(v: any) => v && (form.transactionType = v.value)"
-      >
-        <template #item="{ item }">
-          <div class="flex items-start gap-2.5 py-0.5">
-            <span
-              class="border-input bg-muted/40 text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-md border"
-            >
-              <component :is="item.icon" class="h-4 w-4" />
-            </span>
-            <div class="flex min-w-0 flex-col gap-0.5">
-              <span class="text-sm leading-tight font-medium">{{ item.label }}</span>
-              <span class="text-muted-foreground text-xs leading-snug">{{ item.desc }}</span>
-            </div>
-          </div>
-        </template>
-      </SelectField>
-      <p v-if="selectedTransactionTypeOption" class="text-muted-foreground mt-1.5 text-xs">{{ selectedTransactionTypeOption.desc }}</p>
+    <div class="flex flex-col gap-2">
+      <span class="text-foreground text-sm font-medium">{{ $t('planned.subscriptions.form.transactionTypeLabel') }}</span>
+      <div class="bg-muted/50 border-border/50 flex w-full rounded-lg border p-1">
+        <button
+          type="button"
+          :class="[
+            'flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            form.transactionType === TRANSACTION_TYPES.expense
+              ? 'bg-app-expense-color/15 text-app-expense-color shadow-sm font-semibold'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          ]"
+          @click="form.transactionType = TRANSACTION_TYPES.expense"
+        >
+          <ArrowUpIcon class="size-4" />
+          {{ t('planned.subscriptions.form.transactionTypeExpense') }}
+        </button>
+        <button
+          type="button"
+          :class="[
+            'flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            form.transactionType === TRANSACTION_TYPES.income
+              ? 'bg-app-income-color/15 text-app-income-color shadow-sm font-semibold'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          ]"
+          @click="form.transactionType = TRANSACTION_TYPES.income"
+        >
+          <ArrowDownIcon class="size-4" />
+          {{ t('planned.subscriptions.form.transactionTypeIncome') }}
+        </button>
+      </div>
+      <p v-if="selectedTransactionTypeOption" class="text-muted-foreground mt-0.5 text-xs leading-snug">
+        {{ selectedTransactionTypeOption.desc }}
+      </p>
     </div>
 
     <!-- Type: SelectField with rich items (icon + title + description). Trigger
