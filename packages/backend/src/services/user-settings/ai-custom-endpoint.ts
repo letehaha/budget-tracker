@@ -523,9 +523,14 @@ export const deleteCustomEndpoint = withTransaction(
 );
 
 /**
- * Try a base URL / model / key trio without persisting anything. With `endpointId` the
- * saved endpoint fills the gaps, so the UI can re-test a stored configuration
- * (including its stored key) without resending secrets.
+ * Try a base URL / model / key trio. With `endpointId` the saved endpoint fills the gaps,
+ * so the UI can re-test a stored configuration (including its stored key) without
+ * resending secrets.
+ *
+ * Re-testing a stored configuration unchanged is the one case whose verdict is recorded:
+ * it is the same call the endpoint answers during real use, so the result is what the
+ * endpoint's status means. Any request that overrides a saved field tried a combination
+ * the user has not saved and leaves the status alone.
  */
 export const testCustomEndpointConnection = async ({
   userId,
@@ -562,11 +567,27 @@ export const testCustomEndpointConnection = async ({
     throw new ValidationError({ message: t({ key: 'ai.customEndpointMissingFields' }) });
   }
 
-  return validateCustomEndpoint({
+  const result = await validateCustomEndpoint({
     baseUrl: effectiveBaseUrl,
     modelName: effectiveModel,
     apiKey: effectiveApiKey,
   });
+
+  const overrodeStoredField = baseUrl !== undefined || defaultModel !== undefined || apiKey !== undefined;
+
+  if (saved && !overrodeStoredField) {
+    if (result.isValid) {
+      await markCustomEndpointValid({ userId, endpointId: saved.id });
+    } else {
+      await markCustomEndpointInvalid({
+        userId,
+        endpointId: saved.id,
+        errorMessage: result.error ?? t({ key: 'ai.customEndpointValidationFailed' }),
+      });
+    }
+  }
+
+  return result;
 };
 
 const patchEndpointStatus = async ({

@@ -3,7 +3,7 @@
  */
 import type { StatementCostEstimate, StatementFileType } from '@bt/shared/types';
 import { AI_FEATURE } from '@bt/shared/types';
-import { resolveAIConfiguration } from '@services/ai';
+import { describeMissingAiConfiguration, resolveAIConfiguration } from '@services/ai';
 import { estimateModelCostUsd, getModelCostProfile } from '@services/ai/models-config';
 
 import { STATEMENT_EXTRACTION_SYSTEM_PROMPT, createTextExtractionPrompt } from './extraction-prompt';
@@ -55,7 +55,9 @@ export async function estimateExtractionCost({
       success: false,
       error: {
         code: 'NO_AI_CONFIGURED',
-        message: 'No AI provider configured. Please add an API key in settings.',
+        // Estimation runs before extraction in the wizard, so this is the first message a
+        // user with a down endpoint sees — it has to name the endpoint, not "add a key".
+        message: await describeMissingAiConfiguration({ userId }),
       },
     };
   }

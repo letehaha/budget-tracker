@@ -186,6 +186,24 @@ export const getCustomEndpointOfflineMock = ({ baseUrl = CUSTOM_ENDPOINT_BASE_UR
   http.post(chatCompletionsUrl({ baseUrl }), () => HttpResponse.error());
 
 /**
+ * Answers every path with a web page instead of an API answer — a closed tunnel's 404,
+ * or (with `status`) an auth gate's 401. Reading it as a verdict on the model or the
+ * key is the mistake this stands in for. Returns one handler per path, so spread it:
+ * `use(...getCustomEndpointWebPageMocks())`.
+ */
+export const getCustomEndpointWebPageMocks = ({
+  baseUrl = CUSTOM_ENDPOINT_BASE_URL,
+  status = 404,
+}: { baseUrl?: string; status?: number } = {}) => [
+  http.post(chatCompletionsUrl({ baseUrl }), () => offlineTunnelPage({ status })),
+  http.get(modelsUrl({ baseUrl }), () => offlineTunnelPage({ status })),
+];
+
+function offlineTunnelPage({ status }: { status: number }) {
+  return HttpResponse.html('<html><body>The endpoint is offline (ERR_NGROK_3200)</body></html>', { status });
+}
+
+/**
  * Always answers 404, whatever model the request asks for — the way Ollama and
  * vLLM answer for a model that was never pulled. `onCall` reports every request,
  * so a test can count the outbound attempts one run makes.

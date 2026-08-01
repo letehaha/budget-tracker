@@ -18,6 +18,7 @@ import type {
   StatementCostEstimate,
   StatementDetectDuplicatesResponse,
   StatementExecuteImportResponse,
+  StatementExtractionResult,
   TagMappingConfig,
   YnabAccountMapping,
   YnabImportProgress,
@@ -254,6 +255,26 @@ export function statementEstimateCost<R extends boolean | undefined = false>({
   return makeRequest<StatementCostEstimate, R>({
     method: 'post',
     url: '/import/text-source/estimate-cost',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// Statement Parser - Extract Endpoint
+// ============================================
+
+/** Runs the real AI extraction, so callers must have an endpoint or key the mocks answer for. */
+export function statementExtract<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: { fileBase64: string };
+  raw?: R;
+}): UtilizeReturnType<() => StatementExtractionResult, R> {
+  return makeRequest<StatementExtractionResult, R>({
+    method: 'post',
+    url: '/import/text-source/extract',
     payload,
     raw,
   });

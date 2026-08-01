@@ -327,6 +327,7 @@
     "customEndpointModelNotFound": "The endpoint does not serve a model named \"{{model}}\".",
     "customEndpointModelNotListed": "The endpoint does not serve \"{{model}}\". Models it offers: {{available}}.",
     "customEndpointMoreModels": "and {{count}} more",
+    "customEndpointNotApiResponse": "The server at this URL answered with HTTP {{status}} instead of an OpenAI-compatible response. Check that the server is running and that the base URL is correct — it usually ends with /v1.",
     "customEndpointValidationFailed": "The endpoint did not return a usable response. Check the base URL, model name and API key.",
     "customEndpointMissingFields": "A base URL and a model name are required.",
     "customEndpointNameTaken": "You already have an endpoint with this name.",

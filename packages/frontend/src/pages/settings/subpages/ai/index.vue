@@ -17,14 +17,14 @@
               v-if="item.value === ROUTES_NAMES.settingsAiKeys && hasInvalidKeys"
               :content="$t('settings.ai.tabs.invalidKeysTooltip')"
             >
-              <span class="bg-destructive ml-1 inline-block size-2.5 animate-pulse rounded-full" />
+              <TriangleAlertIcon class="text-destructive-text ml-1 size-4" />
             </DesktopOnlyTooltip>
 
             <DesktopOnlyTooltip
               v-if="item.value === ROUTES_NAMES.settingsAiEndpoints && hasInvalidEndpoints"
               :content="$t('settings.ai.tabs.invalidEndpointsTooltip')"
             >
-              <span class="bg-destructive ml-1 inline-block size-2.5 animate-pulse rounded-full" />
+              <TriangleAlertIcon class="text-destructive-text ml-1 size-4" />
             </DesktopOnlyTooltip>
           </template>
         </RouterTabs>
@@ -43,7 +43,7 @@ import { useAiSettings } from '@/composable/data-queries/ai-settings';
 import { useAiCustomEndpoints } from '@/composable/data-queries/use-ai-custom-endpoints';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
-import { KeyIcon, Loader2Icon, PlugZapIcon, SparklesIcon } from '@lucide/vue';
+import { KeyIcon, Loader2Icon, PlugZapIcon, SparklesIcon, TriangleAlertIcon } from '@lucide/vue';
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 

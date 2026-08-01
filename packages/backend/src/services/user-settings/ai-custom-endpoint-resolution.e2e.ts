@@ -14,6 +14,7 @@ import {
   seedApiKey,
 } from '@tests/helpers/user-settings';
 import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
+import { createCallsCounter } from '@tests/mocks/helpers';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import {
   CUSTOM_ENDPOINT_BASE_URL,
@@ -22,6 +23,7 @@ import {
   getCustomEndpointAuthErrorMock,
   getCustomEndpointCallCountingMock,
   getCustomEndpointModelNotFoundMock,
+  getCustomEndpointWebPageMocks,
 } from '@tests/mocks/openai-compatible/mock-api';
 import { HttpResponse, http } from 'msw';
 
@@ -39,6 +41,9 @@ const FIRST_CUSTOM_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
 /** Live catalog model on a provider no case here holds a key for. */
 const KEYLESS_CATALOG_MODEL_ID = 'anthropic/claude-haiku-4-5';
 
+/** Matches every Gemini generate call, so a case can prove the server key was never dialled. */
+const GEMINI_API_URL_REGEX = /generativelanguage\.googleapis\.com/;
+
 /**
  * Server keys the resolution ladder can reach for. Each case opts into the one
  * it needs, so all of them start unset.
@@ -49,7 +54,7 @@ const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_
 const CATEGORIZATION_RUN_MS = 7000;
 const CATEGORIZATION_TEST_TIMEOUT_MS = 40_000;
 
-/** No route stores a failed status, so a broken endpoint is seeded straight into settings. */
+/** Puts an endpoint in the failed state without spending a run or a probe on it. */
 async function markStoredEndpointInvalid({
   userId,
   endpointId,
@@ -286,8 +291,10 @@ describe('AI custom endpoint resolution', () => {
       CATEGORIZATION_TEST_TIMEOUT_MS,
     );
 
+    // A user running their own endpoints chose where their transactions may go, so a run
+    // must not quietly move to the server's cloud key while their servers are down.
     it(
-      'dials no endpoint at all when every one of them is flagged invalid',
+      'runs nothing at all when every endpoint is flagged invalid, server key or not',
       async () => {
         const userId = await getTestUserId();
         const first = await createFirstEndpoint();
@@ -295,9 +302,9 @@ describe('AI custom endpoint resolution', () => {
         await markStoredEndpointInvalid({ userId, endpointId: first.id });
         await markStoredEndpointInvalid({ userId, endpointId: second.id });
 
-        // With no usable endpoint the run belongs to the server key instead
         process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
 
+        const geminiCalls = createCallsCounter(global.mswMockServer, GEMINI_API_URL_REGEX);
         let firstEndpointCalls = 0;
         let secondEndpointCalls = 0;
         global.mswMockServer.use(
@@ -320,6 +327,7 @@ describe('AI custom endpoint resolution', () => {
 
         expect(firstEndpointCalls).toBe(0);
         expect(secondEndpointCalls).toBe(0);
+        expect(geminiCalls.count).toBe(0);
       },
       CATEGORIZATION_TEST_TIMEOUT_MS,
     );
@@ -342,6 +350,39 @@ describe('AI custom endpoint resolution', () => {
         // The stored reason names the endpoint rather than API-key credits
         expect(stored?.lastError).toMatch(/endpoint/i);
         expect(stored?.invalidatedAt).toEqual(expect.any(String));
+      },
+      CATEGORIZATION_TEST_TIMEOUT_MS,
+    );
+
+    it(
+      'flags the endpoint invalid when a web page answers instead of the API',
+      async () => {
+        const userId = await getTestUserId();
+        const created = await createFirstEndpoint();
+        expect(created.status).toBe('valid');
+
+        // The tunnel the endpoint was reached through closed between saving it and this run
+        global.mswMockServer.use(...getCustomEndpointWebPageMocks({ baseUrl: CUSTOM_ENDPOINT_BASE_URL }));
+
+        const errorSpy = jest.spyOn(logger, 'error');
+
+        try {
+          await runCategorizationOverHttp();
+
+          const [stored] = await readStoredEndpoints({ userId });
+          expect(stored?.status).toBe('invalid');
+          // The 404 says nothing about the model, so the stored reason must not either
+          expect(stored?.lastError).toMatch(/did not respond/i);
+          expect(stored?.lastError).not.toContain(CUSTOM_ENDPOINT_MODEL);
+          expect(stored?.invalidatedAt).toEqual(expect.any(String));
+
+          // A server the user has to bring back up is their state, not a bug worth reporting
+          expect(errorSpy).not.toHaveBeenCalledWith(
+            expect.objectContaining({ message: 'AI categorization batch failed' }),
+          );
+        } finally {
+          errorSpy.mockRestore();
+        }
       },
       CATEGORIZATION_TEST_TIMEOUT_MS,
     );
@@ -516,19 +557,23 @@ describe('AI custom endpoint resolution', () => {
       expect(config.modelName).not.toBe(CUSTOM_ENDPOINT_MODEL);
     });
 
-    it('reports the server catalog model when the only endpoint is flagged invalid', async () => {
+    // The run refuses to serve the feature from the server key while the user owns
+    // endpoints, so naming a catalog model here would promise something nothing runs.
+    it('keeps naming the endpoint when it is flagged invalid', async () => {
       const userId = await getTestUserId();
       const first = await createFirstEndpoint();
+      process.env.ANTHROPIC_API_KEY = 'server-side-anthropic-key';
       await markStoredEndpointInvalid({ userId, endpointId: first.id });
 
       const { features } = await helpers.getAiFeaturesStatus({ raw: true });
       const categorization = features.find((feature) => feature.feature === AI_FEATURE.categorization);
 
-      expect(isCustomModelId({ modelId: categorization!.modelId })).toBe(false);
-      expect(categorization?.customEndpointId).toBeUndefined();
-      expect(categorization?.endpointName).toBeUndefined();
-      expect(categorization?.usingUserKey).toBe(false);
-      expect(categorization?.modelName).not.toBe(CUSTOM_ENDPOINT_MODEL);
+      expect(isCustomModelId({ modelId: categorization!.modelId })).toBe(true);
+      expect(categorization?.customEndpointId).toBe(first.id);
+      expect(categorization?.endpointName).toBe(FIRST_ENDPOINT_NAME);
+      expect(categorization?.modelName).toBe(CUSTOM_ENDPOINT_MODEL);
+      // The server key exists but must not be what pays here — the endpoint is the answer
+      expect(categorization?.usingUserKey).toBe(true);
     });
   });
 });

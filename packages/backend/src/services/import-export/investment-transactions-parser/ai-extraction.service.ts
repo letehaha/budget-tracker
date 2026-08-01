@@ -4,7 +4,11 @@
  */
 import { AI_FEATURE } from '@bt/shared/types';
 import { logger } from '@js/utils';
-import { buildModelNotServedMessage, createAIClient, isModelNotFoundError, unwrapRetryError } from '@services/ai';
+import { createAIClient, describeMissingAiConfiguration, unwrapRetryError } from '@services/ai';
+import {
+  type AIExtractionError,
+  classifyAiExtractionFailure,
+} from '@services/import-export/core/ai-extraction-failure';
 import { generateText } from 'ai';
 
 import {
@@ -17,12 +21,6 @@ import {
 interface AIExtractionParams {
   userId: number;
   text: string;
-}
-
-interface AIExtractionError {
-  code: 'NO_AI_CONFIGURED' | 'AI_ERROR' | 'EXTRACTION_FAILED' | 'NO_TRANSACTIONS_FOUND' | 'RATE_LIMITED';
-  message: string;
-  details?: string;
 }
 
 interface AIExtractionResult {
@@ -56,7 +54,7 @@ export async function extractInvestmentTransactionsWithAI({
       success: false,
       error: {
         code: 'NO_AI_CONFIGURED',
-        message: 'No AI provider configured. Please add an API key in settings.',
+        message: await describeMissingAiConfiguration({ userId }),
       },
     };
   }
@@ -94,47 +92,28 @@ export async function extractInvestmentTransactionsWithAI({
       },
     };
   } catch (error) {
-    const cause = unwrapRetryError({ error });
-    const errorMessage = cause instanceof Error ? cause.message : 'Unknown error';
-
-    // The user's configuration to fix, so it stays out of the error log.
-    if (isModelNotFoundError({ error: cause })) {
-      logger.info('[Investment Txn Parser] Configured AI model is not served by the endpoint', {
-        modelId: aiClient.modelId,
-      });
-
-      return {
-        success: false,
-        error: {
-          code: 'AI_ERROR',
-          message: buildModelNotServedMessage({ modelId: aiClient.modelId }),
-          details: errorMessage,
-        },
-      };
+    const userFacing = await classifyAiExtractionFailure({
+      userId,
+      aiClient,
+      error,
+      logPrefix: '[Investment Txn Parser]',
+    });
+    if (userFacing) {
+      return { success: false, error: userFacing };
     }
 
+    const cause = unwrapRetryError({ error });
     logger.error({
       message: '[Investment Txn Parser] AI extraction failed',
       error: cause as Error,
     });
-
-    if (errorMessage.toLowerCase().includes('rate') || errorMessage.toLowerCase().includes('429')) {
-      return {
-        success: false,
-        error: {
-          code: 'RATE_LIMITED',
-          message: 'AI provider rate limit reached. Please try again in a few minutes.',
-          details: errorMessage,
-        },
-      };
-    }
 
     return {
       success: false,
       error: {
         code: 'AI_ERROR',
         message: 'AI extraction failed',
-        details: errorMessage,
+        details: cause instanceof Error ? cause.message : 'Unknown error',
       },
     };
   }

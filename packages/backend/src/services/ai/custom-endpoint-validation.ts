@@ -6,7 +6,14 @@ import { logger } from '@js/utils/logger';
 import { generateText } from 'ai';
 
 import { createAIClientWithConfig } from './ai-client-factory';
-import { isAbortError, isConnectionError, isModelNotFoundError, unwrapRetryError } from './ai-error-classifiers';
+import {
+  getHttpStatus,
+  isAbortError,
+  isConnectionError,
+  isModelNotFoundError,
+  isNonApiResponseError,
+  unwrapRetryError,
+} from './ai-error-classifiers';
 import { VALIDATION_PROMPT, isAuthError, isTemporaryError } from './api-key-validation';
 
 interface APIKeyValidationResult {
@@ -87,6 +94,15 @@ async function fetchServedModels({
   }
 
   if (response.status === 401 || response.status === 403) {
+    // Only a JSON answer is the API's own verdict on the key. An HTML 401 is a gate in
+    // front of the server (Cloudflare Access, basic auth) — not a verdict, so the generate
+    // probe takes over and reports it as a non-API answer.
+    const body = await response.text().catch(() => '');
+    try {
+      JSON.parse(body);
+    } catch {
+      return { kind: 'unusable' };
+    }
     return { kind: 'authFailed', status: response.status };
   }
 
@@ -216,6 +232,20 @@ export async function validateCustomEndpoint({
     if (isConnectionError({ error: cause })) {
       logger.info('Custom AI endpoint unreachable', { baseUrl, modelName, error: cause });
       return { isValid: false, error: t({ key: 'ai.customEndpointUnreachable' }) };
+    }
+
+    // Ahead of the auth, model and rate-limit checks: an error page carries a status code
+    // that would otherwise be read as a verdict the server never gave — an HTML 401 is a
+    // gate in front of the server (Cloudflare Access, basic auth), not the API judging the key.
+    if (isNonApiResponseError({ error: cause })) {
+      const status = getHttpStatus({ error: cause });
+      logger.info('Custom AI endpoint answered with something other than an API response', {
+        baseUrl,
+        modelName,
+        status,
+        error: cause,
+      });
+      return { isValid: false, error: t({ key: 'ai.customEndpointNotApiResponse', variables: { status } }) };
     }
 
     if (isAuthError(cause)) {

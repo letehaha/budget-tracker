@@ -33,6 +33,8 @@ export interface AiCategorizationProgressPayload {
   processedCount: number;
   totalCount: number;
   failedCount: number;
+  /** Why transactions failed, when the run itself knows (e.g. the user's AI endpoint is down). */
+  errorMessage?: string;
 }
 
 /**

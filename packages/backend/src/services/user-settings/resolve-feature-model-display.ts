@@ -109,8 +109,7 @@ async function resolveConfiguredModel({
 /**
  * What the AI settings screens show for one feature: which model answers, how it is
  * labelled, and whose credentials pay for it. A feature with no usable key is answered
- * by the user's first dialable endpoint, config or not, and every field then names that
- * endpoint.
+ * by the user's own endpoint, config or not, and every field then names that endpoint.
  */
 export async function resolveFeatureModelDisplay({
   userId,
@@ -135,7 +134,10 @@ export async function resolveFeatureModelDisplay({
     return describeModel({ modelId: configuredModelId, usingUserKey: true });
   }
 
-  const fallbackEndpoint = await resolveFallbackCustomEndpoint({ userId });
+  // A flagged endpoint still names the feature: the run refuses to move to the server key
+  // behind the user's back, so the endpoint is the only thing that could answer.
+  const { dialable, first } = await resolveFallbackCustomEndpoint({ userId });
+  const fallbackEndpoint = dialable ?? first;
   if (fallbackEndpoint) {
     return describeEndpointModel({ endpoint: fallbackEndpoint, modelName: fallbackEndpoint.defaultModel });
   }

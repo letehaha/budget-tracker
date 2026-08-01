@@ -271,6 +271,60 @@ describe('validateCustomEndpoint', () => {
     expect(generateCalls).toBe(1);
   });
 
+  // A tunnel whose agent is gone answers 404 with a web page on every path, including
+  // `/chat/completions`. Blaming the model there sends the user editing a correct name.
+  it('reports a server answering with a web page instead of blaming the model', async () => {
+    const offlinePage = () =>
+      new Response('<html><body>The endpoint is offline (ERR_NGROK_3200)</body></html>', {
+        status: 404,
+        headers: { 'content-type': 'text/html' },
+      });
+    stubEndpoint({ onModelList: offlinePage, onGenerate: offlinePage });
+
+    const result = await validateCustomEndpoint({ baseUrl: BASE_URL, modelName: MODEL, apiKey: null });
+
+    expect(result.isValid).toBe(false);
+    expect(result.error).toBe(t({ key: 'ai.customEndpointNotApiResponse', variables: { status: 404 } }));
+    expect(result.error).not.toContain(MODEL);
+    expect(generateCalls).toBe(1);
+  });
+
+  // Cloudflare Access or basic auth answers 401 with its own page before the API ever
+  // sees the request. "Check your API key" would send the user rotating a key the server
+  // never judged — the verdict has to point at the URL and the gate instead.
+  it('reports an HTML 401 as a non-API answer, not a rejected key', async () => {
+    const gatePage = () =>
+      new Response('<html><body>Sign in to continue</body></html>', {
+        status: 401,
+        headers: { 'content-type': 'text/html' },
+      });
+    stubEndpoint({ onModelList: gatePage, onGenerate: gatePage });
+
+    const result = await validateCustomEndpoint({ baseUrl: BASE_URL, modelName: MODEL, apiKey: null });
+
+    expect(result.isValid).toBe(false);
+    expect(result.error).toBe(t({ key: 'ai.customEndpointNotApiResponse', variables: { status: 401 } }));
+    expect(result.error).not.toBe(t({ key: 'ai.customEndpointAuthFailed' }));
+    // The HTML 401 on `/models` is not a verdict either, so the generate probe must run
+    expect(generateCalls).toBe(1);
+  });
+
+  it('still reports an auth failure when the API itself answers the probe with a JSON 401', async () => {
+    stubEndpoint({
+      onModelList: () => jsonResponse({ body: { error: 'not found' }, status: 404 }),
+      onGenerate: () =>
+        jsonResponse({
+          body: { error: { message: 'Incorrect API key provided', code: 'invalid_api_key' } },
+          status: 401,
+        }),
+    });
+
+    const result = await validateCustomEndpoint({ baseUrl: BASE_URL, modelName: MODEL, apiKey: 'wrong-key' });
+
+    expect(result.isValid).toBe(false);
+    expect(result.error).toBe(t({ key: 'ai.customEndpointAuthFailed' }));
+  });
+
   it('sends the API key with the list request only when there is one', async () => {
     const authorizationHeaders: (string | null)[] = [];
     globalThis.fetch = (async (input: Parameters<typeof globalThis.fetch>[0], init?: RequestInit) => {

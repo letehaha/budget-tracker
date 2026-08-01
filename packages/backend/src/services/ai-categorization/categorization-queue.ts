@@ -95,6 +95,10 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
         return {
           successful: result.successful.length,
           failed: result.failed.length,
+          // The service's first error names the cause of a stopped run (endpoint down,
+          // model missing) — the terminal SSE event is the only channel it reaches
+          // the user through, since counters alone read as a silent no-op.
+          errorMessage: result.errors?.[0],
         };
       },
     });
@@ -122,6 +126,7 @@ categorizationWorker.on('completed', (job, result) => {
       processedCount: result.successful + result.failed,
       totalCount: transactionIds.length,
       failedCount: result.failed,
+      errorMessage: result.errorMessage,
     },
   });
 });

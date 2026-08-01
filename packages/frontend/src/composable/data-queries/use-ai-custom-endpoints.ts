@@ -51,6 +51,9 @@ export const useAiCustomEndpoints = () => {
 
   const testMutation = useMutation({
     mutationFn: testCustomEndpointRequest,
+    // Testing a saved endpoint's stored settings records the verdict server-side, so the
+    // cached rows are stale whatever the outcome — including thrown requests.
+    onSettled: invalidate,
   });
 
   const customEndpoints = computed(() => customEndpointsQuery.data.value ?? []);

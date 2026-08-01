@@ -39,7 +39,9 @@ function getServerApiKey({ provider }: { provider: AI_PROVIDER }): string | null
  * Resolves the AI configuration for a user and feature. Priority: the user's explicit
  * feature config, then the feature default on the user's own key, then their first
  * custom endpoint not flagged invalid, then the feature default on the server key.
- * Returns null when none of those yield credentials.
+ * Returns null when none of those yield credentials, and also when the user owns
+ * endpoints but all of them are down — the server key would move their data to a
+ * provider they never picked.
  */
 export async function resolveAIConfiguration({
   userId,
@@ -140,8 +142,8 @@ export async function resolveAIConfiguration({
 
   // 3. The user's own endpoint, before falling back to server credentials
   const fallbackEndpointInfo = await resolveFallbackCustomEndpoint({ userId });
-  if (fallbackEndpointInfo) {
-    const fallbackEndpoint = await getCustomEndpointById({ userId, endpointId: fallbackEndpointInfo.id });
+  if (fallbackEndpointInfo.dialable) {
+    const fallbackEndpoint = await getCustomEndpointById({ userId, endpointId: fallbackEndpointInfo.dialable.id });
 
     if (fallbackEndpoint) {
       return {
@@ -158,9 +160,18 @@ export async function resolveAIConfiguration({
     logger.info('Fallback custom endpoint went away before its credentials could be read', {
       userId,
       feature,
-      customEndpointId: fallbackEndpointInfo.id,
+      customEndpointId: fallbackEndpointInfo.dialable.id,
     });
     // Fall through to the server key
+  } else if (fallbackEndpointInfo.first) {
+    // The user runs their own endpoints and every one of them is flagged down. The server
+    // key points at a cloud provider, so serving the feature from it would send their
+    // transactions somewhere they never chose. The feature waits until they fix one.
+    logger.info('Every custom AI endpoint is flagged invalid, leaving the feature unserved', {
+      userId,
+      feature,
+    });
+    return null;
   }
 
   // 4. Server API key for the default provider

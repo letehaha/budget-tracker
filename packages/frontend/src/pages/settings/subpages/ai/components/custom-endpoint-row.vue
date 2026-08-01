@@ -3,7 +3,7 @@
     <div class="flex items-start gap-3">
       <Loader2Icon v-if="isTestingCustomEndpoint" class="text-muted-foreground mt-0.5 size-5 shrink-0 animate-spin" />
       <DesktopOnlyTooltip v-else :content="statusText">
-        <AlertCircleIcon v-if="isEndpointInvalid" class="text-destructive-text mt-0.5 size-5 shrink-0" />
+        <TriangleAlertIcon v-if="isEndpointInvalid" class="text-destructive-text mt-0.5 size-5 shrink-0" />
         <CheckCircleIcon v-else class="text-success-text mt-0.5 size-5 shrink-0" />
       </DesktopOnlyTooltip>
 
@@ -84,9 +84,18 @@
       </ResponsiveMenu>
     </div>
 
-    <p v-if="isEndpointInvalid && endpoint.lastError" class="text-destructive-text mt-2 text-xs break-words">
-      {{ endpoint.lastError }}
-    </p>
+    <!-- The endpoint stays saved while it is down, so the row carries the way back: what
+    went wrong, and one button to try it again once the server is back. -->
+    <div v-if="isEndpointInvalid" class="mt-2 space-y-2">
+      <p v-if="endpoint.lastError" class="text-destructive-text text-xs break-words">
+        {{ endpoint.lastError }}
+      </p>
+
+      <Button variant="outline" size="sm" :disabled="isBusy" @click="runConnectionTest">
+        <RotateCwIcon class="size-4" :class="{ 'animate-spin': isTestingCustomEndpoint }" />
+        {{ $t('settings.ai.customEndpoint.actions.reconnect') }}
+      </Button>
+    </div>
 
     <ResponsiveAlertDialog
       v-model:open="isRemoveDialogOpen"
@@ -113,13 +122,14 @@ import { useDateLocale } from '@/composable/use-date-locale';
 import { extractApiErrorMessage } from '@/js/errors';
 import { AICustomEndpointInfo } from '@bt/shared/types';
 import {
-  AlertCircleIcon,
   CheckCircleIcon,
   Loader2Icon,
   MoreVerticalIcon,
   PencilIcon,
   PlugZapIcon,
+  RotateCwIcon,
   Trash2Icon,
+  TriangleAlertIcon,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -184,9 +194,7 @@ const handleRemove = ({ close }: { close: () => void }) => {
   isRemoveDialogOpen.value = true;
 };
 
-const handleTest = async ({ close }: { close: () => void }) => {
-  close();
-
+const runConnectionTest = async () => {
   try {
     // Everything the probe needs is already stored, so the id alone is sent.
     const result = await testCustomEndpointConnection({ endpointId: props.endpoint.id });
@@ -198,6 +206,11 @@ const handleTest = async ({ close }: { close: () => void }) => {
   } catch (error) {
     addErrorNotification(extractApiErrorMessage(error) ?? t('settings.ai.customEndpoint.test.failed'));
   }
+};
+
+const handleTest = async ({ close }: { close: () => void }) => {
+  close();
+  await runConnectionTest();
 };
 
 const confirmRemoveEndpoint = async () => {

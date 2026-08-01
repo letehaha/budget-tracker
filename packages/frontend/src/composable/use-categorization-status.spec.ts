@@ -4,13 +4,23 @@ const getAiCategorizationStatus = vi.fn();
 const invalidateQueries = vi.fn();
 const addNotification = vi.fn();
 
+// Captures the handler `subscribeToSSE` registers, so a test can play a live event.
+const sse = vi.hoisted(() => ({ handlers: [] as Array<(data: unknown) => void> }));
+
 vi.mock('@/api/ai-categorization', () => ({
   getAiCategorizationStatus: (...args: unknown[]) => getAiCategorizationStatus(...args),
 }));
 
 vi.mock('./use-sse', () => ({
   SSE_EVENT_TYPES: { AI_CATEGORIZATION_PROGRESS: 'ai_categorization_progress' },
-  useSSE: () => ({ connect: vi.fn(), on: vi.fn(() => () => {}), isConnected: { value: true } }),
+  useSSE: () => ({
+    connect: vi.fn(),
+    on: vi.fn((_event: string, handler: (data: unknown) => void) => {
+      sse.handlers.push(handler);
+      return () => {};
+    }),
+    isConnected: { value: true },
+  }),
 }));
 
 vi.mock('@/common/const', () => ({
@@ -203,5 +213,62 @@ describe('useCategorizationStatus.hydrateFromServer', () => {
     expect(composable.categorizationStatus.value).toBeNull();
     expect(consoleError).toHaveBeenCalledTimes(1);
     consoleError.mockRestore();
+  });
+});
+
+describe('useCategorizationStatus live SSE completion', () => {
+  beforeEach(() => {
+    const composable = useCategorizationStatus();
+    // Module-level shared state persists between tests — start each one clean, and
+    // unsubscribe so every test's subscribeToSSE registers a fresh handler.
+    composable.unsubscribeFromSSE();
+    composable.reset();
+    sse.handlers.length = 0;
+    vi.clearAllMocks();
+  });
+
+  async function subscribeMidRun() {
+    const composable = useCategorizationStatus();
+    await composable.subscribeToSSE();
+    const deliver = sse.handlers.at(-1)!;
+    // The completion branch only fires for a run the tab was already watching
+    deliver({ status: 'processing', processedCount: 0, totalCount: 10, failedCount: 0 });
+    return { composable, deliver };
+  }
+
+  it('toasts the run-level reason when a run completes with nothing categorized', async () => {
+    const { deliver } = await subscribeMidRun();
+
+    // A run whose provider died mid-way still ends as `completed` — every transaction
+    // failed, and the payload's errorMessage is the only trace of why.
+    deliver({
+      status: 'completed',
+      processedCount: 10,
+      totalCount: 10,
+      failedCount: 10,
+      errorMessage: 'Your custom AI endpoint did not respond.',
+    });
+
+    expect(addNotification).toHaveBeenCalledWith({
+      text: 'Your custom AI endpoint did not respond.',
+      type: 'error',
+    });
+  });
+
+  it('falls back to the generic failure text when the payload carries no reason', async () => {
+    const { deliver } = await subscribeMidRun();
+
+    deliver({ status: 'completed', processedCount: 10, totalCount: 10, failedCount: 10 });
+
+    expect(addNotification).toHaveBeenCalledWith({ text: 'header.categorization.failed', type: 'error' });
+  });
+
+  it('keeps the success toast when at least one transaction was categorized', async () => {
+    const { deliver } = await subscribeMidRun();
+
+    deliver({ status: 'completed', processedCount: 10, totalCount: 10, failedCount: 4 });
+
+    expect(addNotification).toHaveBeenCalledWith({ text: 'header.categorization.completed', type: 'success' });
+    expect(addNotification).toHaveBeenCalledTimes(1);
   });
 });

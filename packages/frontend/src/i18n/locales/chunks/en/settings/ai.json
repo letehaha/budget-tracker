@@ -189,7 +189,8 @@
           "failedNoDate": "Failed"
         },
         "actions": {
-          "menuAriaLabel": "Endpoint actions"
+          "menuAriaLabel": "Endpoint actions",
+          "reconnect": "Reconnect"
         },
         "form": {
           "titleAdd": "Add endpoint",

@@ -80,9 +80,12 @@ export function useCategorizationStatus() {
             text: t('header.categorization.completed', { count: categorizedCount }),
             type: NotificationType.success,
           });
-        } else if (data.status === 'failed') {
+        } else if (data.status === 'failed' || data.failedCount > 0) {
+          // A run whose every transaction failed still ends as `completed`, and the payload's
+          // errorMessage carries the reason (e.g. the user's AI endpoint is down) — without
+          // this branch such a run would end in silence.
           addNotification({
-            text: t('header.categorization.failed'),
+            text: data.errorMessage ?? t('header.categorization.failed'),
             type: NotificationType.error,
           });
         }

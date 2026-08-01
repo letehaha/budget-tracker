@@ -7,19 +7,26 @@ import { APICallError, RetryError } from 'ai';
 
 import {
   buildModelNotServedMessage,
+  getHttpStatus,
   isConnectionError,
   isModelNotFoundError,
+  isNonApiResponseError,
   unwrapRetryError,
 } from './ai-error-classifiers';
+
+/** What a tunnel with nothing behind it, or a plain web server, answers with. */
+const HTML_ERROR_PAGE = '<html><body>The endpoint is offline (ERR_NGROK_3200)</body></html>';
 
 function buildApiCallError({
   statusCode,
   isRetryable,
   message = 'api call failed',
+  responseBody,
 }: {
   statusCode?: number;
   isRetryable?: boolean;
   message?: string;
+  responseBody?: string;
 }): APICallError {
   return new APICallError({
     message,
@@ -27,6 +34,7 @@ function buildApiCallError({
     requestBodyValues: {},
     statusCode,
     isRetryable,
+    responseBody,
   });
 }
 
@@ -103,9 +111,73 @@ describe('isConnectionError', () => {
   });
 });
 
+describe('isNonApiResponseError', () => {
+  it('treats an HTML error page as a non-API answer', () => {
+    const error = buildApiCallError({ statusCode: 404, responseBody: HTML_ERROR_PAGE });
+
+    expect(isNonApiResponseError({ error })).toBe(true);
+  });
+
+  it('treats an answer with an empty body as a non-API answer', () => {
+    expect(isNonApiResponseError({ error: buildApiCallError({ statusCode: 502, responseBody: '' }) })).toBe(true);
+  });
+
+  // Cloudflare and nginx answer rate limits with their own page, so a non-JSON 429 is a
+  // limiter in front of a working API — a temporary error, not a broken endpoint.
+  it.each(['', HTML_ERROR_PAGE])('does not treat a 429 with body %p as a non-API answer', (responseBody) => {
+    expect(isNonApiResponseError({ error: buildApiCallError({ statusCode: 429, responseBody }) })).toBe(false);
+  });
+
+  it('treats a JSON error body as an API answer', () => {
+    const error = buildApiCallError({
+      statusCode: 404,
+      responseBody: JSON.stringify({ error: { message: 'model not found', code: 'model_not_found' } }),
+    });
+
+    expect(isNonApiResponseError({ error })).toBe(false);
+  });
+
+  // Nothing answered, so there is no response to judge — that is a connection failure.
+  it('returns false when the request never reached a server', () => {
+    expect(isNonApiResponseError({ error: buildApiCallError({ isRetryable: true }) })).toBe(false);
+  });
+
+  // An absent body (unlike an empty one) carries no evidence either way.
+  it('returns false when the failure carries no body at all to judge', () => {
+    expect(isNonApiResponseError({ error: buildApiCallError({ statusCode: 404 }) })).toBe(false);
+  });
+
+  it('unwraps a RetryError to classify its last cause', () => {
+    const error = buildRetryError({ errors: [buildApiCallError({ statusCode: 404, responseBody: HTML_ERROR_PAGE })] });
+
+    expect(isNonApiResponseError({ error })).toBe(true);
+  });
+
+  it('returns false for an error the SDK did not raise', () => {
+    expect(isNonApiResponseError({ error: new Error('boom') })).toBe(false);
+  });
+});
+
+describe('getHttpStatus', () => {
+  it('reports the status the endpoint answered with', () => {
+    expect(getHttpStatus({ error: buildApiCallError({ statusCode: 503 }) })).toBe(503);
+  });
+
+  it('reports nothing for an error that never got an answer', () => {
+    expect(getHttpStatus({ error: new TypeError('fetch failed') })).toBeUndefined();
+  });
+});
+
 describe('isModelNotFoundError', () => {
   it('treats any 404 as a missing model', () => {
     expect(isModelNotFoundError({ error: buildApiCallError({ statusCode: 404 }) })).toBe(true);
+  });
+
+  // An offline tunnel answers 404 for every path, including one no model was ever asked of
+  it('does not treat a 404 web page as a missing model', () => {
+    const error = buildApiCallError({ statusCode: 404, responseBody: HTML_ERROR_PAGE });
+
+    expect(isModelNotFoundError({ error })).toBe(false);
   });
 
   it.each([

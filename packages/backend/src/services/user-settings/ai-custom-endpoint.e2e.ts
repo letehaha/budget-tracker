@@ -39,8 +39,10 @@ import {
   getCustomEndpointModelListAuthErrorMock,
   getCustomEndpointModelListMock,
   getCustomEndpointModelNotFoundMock,
+  getCustomEndpointOfflineMock,
   getCustomEndpointRequireKeyMock,
   getCustomEndpointSuccessMock,
+  getCustomEndpointWebPageMocks,
 } from '@tests/mocks/openai-compatible/mock-api';
 import request from 'supertest';
 
@@ -1110,6 +1112,77 @@ describe('AI custom endpoints', () => {
 
       expect(onSecond.isValid).toBe(true);
       expect(onFirst.isValid).toBe(false);
+    });
+
+    // A closed tunnel answers 404 with its own error page on every path. Reading that as
+    // a verdict on the model sends the user editing a model name that was never wrong.
+    it('blames the server, not the model, when a web page answers instead of the API', async () => {
+      runAsSelfHost();
+      global.mswMockServer.use(...getCustomEndpointWebPageMocks());
+
+      const result = await helpers.testAiCustomEndpoint({
+        baseUrl: CUSTOM_ENDPOINT_BASE_URL,
+        defaultModel: CUSTOM_ENDPOINT_MODEL,
+        raw: true,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain('404');
+      expect(result.error).not.toContain(CUSTOM_ENDPOINT_MODEL);
+    });
+
+    it('marks a saved endpoint invalid when re-testing its stored settings fails', async () => {
+      runAsSelfHost();
+      const created = await createFirstEndpoint();
+      global.mswMockServer.use(getCustomEndpointOfflineMock());
+
+      const result = await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
+
+      expect(result.isValid).toBe(false);
+
+      const [stored] = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(stored!.status).toBe('invalid');
+      expect(stored!.lastError).toBe(result.error);
+      expect(stored!.invalidatedAt).toEqual(expect.any(String));
+    });
+
+    it('clears the invalid state once the endpoint answers again', async () => {
+      runAsSelfHost();
+      const created = await createFirstEndpoint();
+      global.mswMockServer.use(getCustomEndpointOfflineMock());
+      await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
+
+      // Shadows the offline override above instead of resetting every runtime handler,
+      // which would silently drop overrides other parts of the test rely on.
+      global.mswMockServer.use(getCustomEndpointSuccessMock());
+      const result = await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
+
+      expect(result.isValid).toBe(true);
+
+      const [stored] = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(stored!.status).toBe('valid');
+      expect(stored!.lastError).toBeUndefined();
+      expect(stored!.invalidatedAt).toBeUndefined();
+    });
+
+    // The request tried a combination the user has not saved, so it says nothing
+    // about the stored one.
+    it('leaves the stored status alone when the test overrides a saved field', async () => {
+      runAsSelfHost();
+      const created = await createFirstEndpoint();
+      global.mswMockServer.use(getCustomEndpointAuthErrorMock());
+
+      const result = await helpers.testAiCustomEndpoint({
+        endpointId: created.id,
+        apiKey: INVALID_CUSTOM_ENDPOINT_API_KEY,
+        raw: true,
+      });
+
+      expect(result.isValid).toBe(false);
+
+      const [stored] = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(stored!.status).toBe('valid');
+      expect(stored!.lastError).toBeUndefined();
     });
 
     it('returns 404 for an unknown endpoint id', async () => {

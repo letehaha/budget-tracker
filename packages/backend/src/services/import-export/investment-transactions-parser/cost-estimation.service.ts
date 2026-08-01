@@ -4,7 +4,7 @@
  * shape, but token counts come from the same tokeniser.
  */
 import { AI_FEATURE, type StatementCostEstimate, type StatementFileType } from '@bt/shared/types';
-import { resolveAIConfiguration } from '@services/ai';
+import { describeMissingAiConfiguration, resolveAIConfiguration } from '@services/ai';
 import { estimateModelCostUsd, getModelCostProfile } from '@services/ai/models-config';
 import { estimateTokenCount } from '@services/import-export/statement-parser/text-extractor';
 
@@ -49,7 +49,9 @@ export async function estimateInvestmentExtractionCost({
       success: false,
       error: {
         code: 'NO_AI_CONFIGURED',
-        message: 'No AI provider configured. Please add an API key in settings.',
+        // Estimation runs before extraction in the wizard, so this is the first message a
+        // user with a down endpoint sees — it has to name the endpoint, not "add a key".
+        message: await describeMissingAiConfiguration({ userId }),
       },
     };
   }
