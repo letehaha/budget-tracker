@@ -27,6 +27,7 @@ import {
   CategorizationResult,
   TransactionForCategorization,
 } from './types';
+import { assignShortIds } from './utils/assign-short-ids';
 import { buildCategoryList } from './utils/build-category-list';
 import { parseCategorizationResponse } from './utils/parse-response';
 
@@ -46,8 +47,9 @@ function authErrorMessage({ provider }: { provider: AI_PROVIDER }): string {
   return provider === AI_PROVIDER.custom ? CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE : INVALID_KEY_ERROR_MESSAGE;
 }
 
-// Batch size of 500 provides ~17.5k tokens per batch (average case)
-// Well within safe limits for AI models while providing good progress feedback
+// Batch size of 500 provides ~9k tokens per batch (average case, with short
+// alias ids). Well within safe limits for AI models while providing good
+// progress feedback
 const BATCH_SIZE = 500;
 
 interface CategorizeBatchResult extends CategorizationBatchResult {
@@ -77,11 +79,14 @@ async function categorizeBatch({
   customInstructions?: string;
 }): Promise<CategorizeBatchResult> {
   const categoryList = buildCategoryList(categories);
+  // The model sees "t1"/"c1" aliases instead of UUIDs — a UUID is ~20 tokens,
+  // and each transaction carries one in the prompt plus two in the response.
+  const shortIds = assignShortIds({ transactions, categories: categoryList });
 
   const systemPrompt = buildSystemPrompt({ customInstructions });
   const userMessage = buildUserMessage({
-    transactions,
-    categories: categoryList,
+    transactions: shortIds.aliasedTransactions,
+    categories: shortIds.aliasedCategories,
   });
 
   try {
@@ -105,14 +110,17 @@ async function categorizeBatch({
       tokensPerTransaction,
     });
 
-    const validCategoryIds = new Set(categories.map((c) => c.id));
-    const validTransactionIds = new Set(transactions.map((t) => t.id));
-
-    const results = parseCategorizationResponse({
+    const aliasResults = parseCategorizationResponse({
       response: text,
-      validCategoryIds,
-      validTransactionIds,
+      validCategoryIds: new Set(shortIds.categoryIdByAlias.keys()),
+      validTransactionIds: new Set(shortIds.transactionIdByAlias.keys()),
     });
+
+    // Translate the model's alias pairs back to real UUIDs
+    const results = aliasResults.map((result) => ({
+      transactionId: shortIds.transactionIdByAlias.get(result.transactionId)!,
+      categoryId: shortIds.categoryIdByAlias.get(result.categoryId)!,
+    }));
 
     const successfulIds = new Set(results.map((r) => r.transactionId));
     const failed = transactions.filter((t) => !successfulIds.has(t.id)).map((t) => t.id);
