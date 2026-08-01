@@ -1,7 +1,7 @@
 import { CATEGORIZATION_SOURCE, SUBSCRIPTION_LINK_STATUS, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
 import type { RecordId } from '@bt/shared/types';
 import { t } from '@i18n/index';
-import { ConflictError, NotFoundError } from '@js/errors';
+import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
@@ -27,6 +27,13 @@ export const linkTransactionsToSubscription = withTransaction(
 
     if (txs.length !== transactionIds.length) {
       throw new NotFoundError({ message: t({ key: 'subscriptions.transactionsNotFoundOrNotBelongToUser' }) });
+    }
+
+    const typeMismatches = txs.filter((tx) => tx.transactionType !== subscription.transactionType);
+    if (typeMismatches.length > 0) {
+      throw new ValidationError({
+        message: 'Cannot link transactions with a different type than the recurring payment',
+      });
     }
 
     // Check for existing links (active or previously unlinked)
