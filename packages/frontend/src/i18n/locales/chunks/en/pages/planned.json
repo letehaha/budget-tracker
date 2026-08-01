@@ -6,12 +6,12 @@
     "subscriptions": {
       "notFound": "Subscription not found",
       "notFoundDescription": "We couldn't find this subscription. It may have been deleted or you might not have access to it.",
-      "title": "Recurring Charges",
-      "description": "Track recurring charges and bills",
-      "addSubscription": "Add Recurring Charge",
-      "backToList": "Back to recurring charges",
-      "createTitle": "Create Recurring Charge",
-      "editTitle": "Edit Recurring Charge",
+      "title": "Recurring Payments",
+      "description": "Track recurring payments, bills, and income",
+      "addSubscription": "Add Recurring Payment",
+      "backToList": "Back to recurring payments",
+      "createTitle": "Create Recurring Payment",
+      "editTitle": "Edit Recurring Payment",
       "typeSubscription": "Subscription",
       "typeBill": "Bill",
       "typeInstallment": "Installment",
@@ -167,12 +167,12 @@
       "linkSuccess": "Transactions linked successfully",
       "linkError": "Failed to link transactions",
       "emptyState": {
-        "title": "No recurring charges yet",
+        "title": "No recurring payments yet",
         "description": "Add your first recurring charge or bill to start tracking recurring payments"
       },
       "sort": {
         "label": "Sort",
-        "ariaLabel": "Sort recurring charges",
+        "ariaLabel": "Sort recurring payments",
         "dueDate": "Due date · soonest",
         "amount": "Amount · high to low",
         "name": "Name · A–Z",

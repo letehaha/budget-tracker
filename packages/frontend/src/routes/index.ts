@@ -166,12 +166,12 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/planned'] as I18nChunkName[] },
         children: [
           {
-            path: 'subscriptions',
+            path: 'recurring-payments',
             name: ROUTES_NAMES.plannedSubscriptions,
             component: () => import('@/pages/planned/subscriptions/index.vue'),
           },
           {
-            path: 'subscriptions/:id',
+            path: 'recurring-payments/:id',
             name: ROUTES_NAMES.plannedSubscriptionDetails,
             component: () => import('@/pages/planned/subscriptions/subscription-details.vue'),
           },
