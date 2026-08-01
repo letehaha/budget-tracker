@@ -18,7 +18,8 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
-import { SUBSCRIPTION_PERIOD_STATUSES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
+import { getTransactionTypePrefix, getTransactionTypeStyles } from '@/pages/planned/subscriptions/utils';
 import { useQuery } from '@tanstack/vue-query';
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 import { CheckIcon, ExternalLinkIcon, RepeatIcon } from '@lucide/vue';
@@ -229,9 +230,9 @@ function openSubscriptionsList() {
           </div>
           <span
             class="text-amount text-sm"
-            :class="{ 'text-success-text font-medium': payment.transactionType === TRANSACTION_TYPES.income }"
+            :class="getTransactionTypeStyles(payment.transactionType, '')"
           >
-            {{ payment.transactionType === TRANSACTION_TYPES.income ? '+' : '' }}{{
+            {{ getTransactionTypePrefix(payment.transactionType) }}{{
               payment.expectedCurrencyCode
                 ? formatAmountByCurrencyCode(payment.expectedAmount, payment.expectedCurrencyCode)
                 : formatBaseCurrency(payment.expectedAmount)
@@ -271,9 +272,9 @@ function openSubscriptionsList() {
           <span
             v-if="sub.expectedAmount && sub.expectedCurrencyCode"
             class="shrink-0 text-sm font-medium"
-            :class="{ 'text-success-text': sub.transactionType === TRANSACTION_TYPES.income }"
+            :class="getTransactionTypeStyles(sub.transactionType, '')"
           >
-            {{ sub.transactionType === TRANSACTION_TYPES.income ? '+' : '' }}{{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
+            {{ getTransactionTypePrefix(sub.transactionType) }}{{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
           </span>
 
           <DesktopOnlyTooltip :content="$t('widgets.subscriptionsOverview.payAction')">

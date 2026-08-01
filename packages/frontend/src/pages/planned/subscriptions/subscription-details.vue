@@ -61,7 +61,7 @@ import BrandLogo from '@/components/common/brand-logo.vue';
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
-import { formatFrequency, formatMatchSource } from './utils';
+import { formatFrequency, formatMatchSource, getTransactionTypePrefix, getTransactionTypeStyles } from './utils';
 
 const ManageTransactionDialogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
@@ -561,9 +561,9 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
         <p class="text-muted-foreground text-xs font-medium uppercase">{{ $t('planned.subscriptions.amount') }}</p>
         <p
           class="mt-1 text-sm font-medium"
-          :class="{ 'text-success-text': subscription.transactionType === TRANSACTION_TYPES.income }"
+          :class="getTransactionTypeStyles(subscription.transactionType, '')"
         >
-          {{ subscription.transactionType === TRANSACTION_TYPES.income && subscription.expectedAmount ? '+' : '' }}{{
+          {{ getTransactionTypePrefix(subscription.transactionType) }}{{
             subscription.expectedAmount && subscription.expectedCurrencyCode
               ? formatAmountByCurrencyCode(subscription.expectedAmount, subscription.expectedCurrencyCode)
               : '–'

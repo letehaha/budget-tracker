@@ -12,14 +12,14 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable/formatters';
 import { cn } from '@/lib/utils';
-import { SUBSCRIPTION_PERIOD_STATUSES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 import { CheckIcon, CirclePauseIcon, MoreHorizontalIcon, RepeatIcon, Trash2Icon } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 import LinkedTransactionsBadge from './linked-transactions-badge.vue';
 import SubscriptionTypeBadge from './subscription-type-badge.vue';
-import { formatFrequency } from '../utils';
+import { formatFrequency, getTransactionTypePrefix, getTransactionTypeStyles } from '../utils';
 
 const props = defineProps<{
   subscription: SubscriptionListItem;
@@ -130,9 +130,9 @@ function dueChipClass({
     >
       <span
         v-if="formatAmount()"
-        :class="cn('font-medium', subscription.transactionType === TRANSACTION_TYPES.income ? 'text-success-text' : 'text-foreground')"
+        :class="cn('font-medium', getTransactionTypeStyles(subscription.transactionType))"
       >
-        {{ subscription.transactionType === TRANSACTION_TYPES.income ? '+' : '' }}{{ formatAmount() }}
+        {{ getTransactionTypePrefix(subscription.transactionType) }}{{ formatAmount() }}
       </span>
       <span class="flex items-center gap-1">
         <RepeatIcon class="size-3.5 shrink-0" />
