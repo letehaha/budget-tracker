@@ -39,6 +39,11 @@ export const matchTransactionToSubscriptions = withTransaction(
     const candidates: { subscription: Subscriptions; score: number }[] = [];
 
     for (const subscription of subscriptions) {
+      // If subscription has a different transactionType than the transaction, skip
+      if (subscription.transactionType !== transaction.transactionType) {
+        continue;
+      }
+
       // If subscription is scoped to an account, skip if transaction is from a different account
       if (subscription.accountId && subscription.accountId !== transaction.accountId) {
         continue;

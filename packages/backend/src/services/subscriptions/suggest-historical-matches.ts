@@ -53,6 +53,7 @@ export const suggestHistoricalMatches = async ({
   const baseWhere: WhereOptions = {
     userId,
     time: { [Op.gte]: cutoffDate },
+    transactionType: subscription.transactionType,
     ...(sqlConditions.length > 0 && { [Op.and]: sqlConditions }),
     ...(excludedIds.length > 0 && { id: { [Op.notIn]: excludedIds } }),
     ...(subscription.accountId && { accountId: subscription.accountId }),

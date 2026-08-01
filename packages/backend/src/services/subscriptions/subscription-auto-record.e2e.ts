@@ -1,4 +1,4 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_PERIOD_STATUSES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_PERIOD_STATUSES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
@@ -25,6 +25,7 @@ async function createAutoRecordSubscription({
   currencyCode,
   periodDueDate = todayStr,
   periodStatus,
+  transactionType,
 }: {
   name: string;
   accountId: string;
@@ -32,10 +33,12 @@ async function createAutoRecordSubscription({
   currencyCode?: string;
   periodDueDate?: string;
   periodStatus?: SUBSCRIPTION_PERIOD_STATUSES;
+  transactionType?: TRANSACTION_TYPES;
 }) {
   const sub = await helpers.createSubscription({
     name,
     type: SUBSCRIPTION_TYPES.subscription,
+    transactionType,
     frequency: SUBSCRIPTION_FREQUENCIES.monthly,
     startDate: todayStr,
     dueDate: todayStr,
@@ -85,6 +88,30 @@ describe('Subscription auto-record cron', () => {
 
       const txCount = await countTransactionsForAccount({ accountId: account.id });
       expect(txCount).toBe(1);
+    });
+
+    it('books an income transaction and marks the period paid for a due upcoming income period', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const sub = await createAutoRecordSubscription({
+        name: 'Auto Paycheck',
+        accountId: account.id,
+        transactionType: TRANSACTION_TYPES.income,
+      });
+
+      const result = await processAutoRecordPeriods();
+
+      expect(result.booked).toBe(1);
+      expect(result.failed).toBe(0);
+
+      const { periods } = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
+      const paid = periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.paid);
+      expect(paid).toBeDefined();
+
+      const tx = await helpers.getTransactionById({ id: paid!.transactionId!, raw: true });
+      expect(tx).not.toBeNull();
+      expect(tx!.transactionType).toBe(TRANSACTION_TYPES.income);
+      expect(tx!.amount).toBe(12.5);
     });
 
     it('ensures the next upcoming period after booking the current one', async () => {
