@@ -105,7 +105,13 @@ function dueChipClass({
   >
     <!-- Name + type badge + status -->
     <div class="col-start-1 row-start-1 flex min-w-0 items-center gap-2">
-      <BrandLogo :domain="subscription.logoDomain" :name="subscription.name" class="size-5 shrink-0" />
+      <BrandLogo
+        :domain="subscription.logoDomain"
+        :initials="subscription.logoInitials"
+        :color="subscription.logoColor"
+        :name="subscription.name"
+        class="size-5 shrink-0"
+      />
       <h3 class="min-w-0 truncate font-medium">{{ subscription.name }}</h3>
       <SubscriptionTypeBadge :type="subscription.type" class="shrink-0" />
       <span

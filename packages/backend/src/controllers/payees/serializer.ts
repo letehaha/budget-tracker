@@ -13,6 +13,8 @@ export function serializePayee(payee: Payees): PayeeModel {
     categorizationMode: payee.categorizationMode,
     logoDomain: payee.logoDomain,
     logoSource: payee.logoSource,
+    logoInitials: payee.logoInitials,
+    logoColor: payee.logoColor,
     defaultTagIds: (payee.defaultTags ?? []).map((tag) => tag.id),
     createdAt: payee.createdAt,
     updatedAt: payee.updatedAt,

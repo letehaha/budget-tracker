@@ -455,6 +455,10 @@
     "notFound": "Payee not found",
     "renameCollision": "Another payee already uses this name – merge them instead"
   },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "A brand logo and custom letters can't be set at the same time.",
+    "colorRequiresInitials": "A monogram color requires monogram letters."
+  },
   "venture": {
     "dealNotFound": "Venture deal not found",
     "eventNotFound": "Venture event not found"

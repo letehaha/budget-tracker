@@ -122,7 +122,7 @@ describe('Payee PATCH logoDomain', () => {
       expect(updated.logoSource).toBe('manual');
     });
 
-    it('accepts null logoDomain and stamps logoSource as manual (explicit no-logo)', async () => {
+    it('treats null logoDomain as a no-op when no logo is stored (resolver keeps ownership)', async () => {
       const payee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'Netflix' }),
         raw: true,
@@ -135,7 +135,10 @@ describe('Payee PATCH logoDomain', () => {
       });
 
       expect(updated.logoDomain).toBeNull();
-      expect(updated.logoSource).toBe('manual');
+      // Nothing stored changed, so no 'manual' stamp – the background resolver
+      // stays free to fill this logo in later. (logoSource may already be
+      // 'auto' here if the create-time resolution negative-resolved first.)
+      expect(updated.logoSource).not.toBe('manual');
     });
 
     it('leaves logo fields untouched when logoDomain is not included in the payload', async () => {
@@ -436,5 +439,311 @@ describe('Payee logo auto-resolution', () => {
     const reResolved = await helpers.getPayeeById({ id: payee.id, raw: true });
     expect(reResolved.logoSource).toBe('auto');
     expect(reResolved.logoDomain).toBe('slack.com');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Custom monogram (logoInitials + logoColor) – the alternative to a brand logo
+// ---------------------------------------------------------------------------
+
+describe('Payee monogram', () => {
+  describe('POST /payees', () => {
+    it('creates with logoInitials + logoColor and stamps logoSource as manual', async () => {
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Local Bakery', logoInitials: 'LB', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      expect(created.logoInitials).toBe('LB');
+      expect(created.logoColor).toBe('#7355be');
+      expect(created.logoDomain).toBeNull();
+      expect(created.logoSource).toBe('manual');
+
+      const fetched = await helpers.getPayeeById({ id: created.id, raw: true });
+      expect(fetched.logoInitials).toBe('LB');
+      expect(fetched.logoColor).toBe('#7355be');
+      expect(fetched.logoDomain).toBeNull();
+      expect(fetched.logoSource).toBe('manual');
+    });
+
+    it('normalizes logoColor to lowercase', async () => {
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Upper Hex', logoInitials: 'UH', logoColor: '#7355BE' }),
+        raw: true,
+      });
+
+      expect(created.logoColor).toBe('#7355be');
+    });
+
+    it('accepts a single ZWJ emoji as one grapheme', async () => {
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Family Fund', logoInitials: '👨‍👩‍👧' }),
+        raw: true,
+      });
+
+      expect(created.logoInitials).toBe('👨‍👩‍👧');
+      expect(created.logoColor).toBeNull();
+    });
+
+    it('accepts two family ZWJ emoji whose UTF-16 length exceeds 16', async () => {
+      // Each family emoji is 7 code points (11 UTF-16 units); two of them are 2
+      // graphemes / 14 code points, which fits VARCHAR(16) – Postgres counts
+      // code points, so a UTF-16-based length cap would wrongly reject this.
+      const initials = '👨‍👩‍👧‍👦👨‍👩‍👧‍👦';
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Two Families', logoInitials: initials }),
+        raw: true,
+      });
+
+      expect(created.logoInitials).toBe(initials);
+
+      const fetched = await helpers.getPayeeById({ id: created.id, raw: true });
+      expect(fetched.logoInitials).toBe(initials);
+    });
+
+    it('keeps the monogram even when a matching BrandLogos cache entry exists', async () => {
+      // A cache entry the resolver WOULD pick up – the manual stamp must win.
+      await BrandLogos.create({
+        normalizedName: 'dropbox',
+        domain: 'dropbox.com',
+        brandName: 'Dropbox',
+        source: 'seed',
+      });
+
+      const created = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Dropbox', logoInitials: 'DB' }),
+        raw: true,
+      });
+
+      // Give the post-commit worker a window to (wrongly) clobber the monogram.
+      await until(
+        async () => {
+          const fetched = await helpers.getPayeeById({ id: created.id, raw: true });
+          return fetched.logoSource === 'manual' && fetched.logoInitials === 'DB';
+        },
+        { timeout: 3_000, interval: 200 },
+      );
+
+      const after = await helpers.getPayeeById({ id: created.id, raw: true });
+      expect(after.logoInitials).toBe('DB');
+      expect(after.logoDomain).toBeNull();
+    });
+
+    it('returns 422 when logoDomain and logoInitials are both set', async () => {
+      const res = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Both Logos', logoDomain: 'netflix.com', logoInitials: 'NF' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 for whitespace-only logoInitials', async () => {
+      const res = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Blank Initials', logoInitials: '   ' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 for three graphemes', async () => {
+      const res = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Too Many Letters', logoInitials: 'ABC' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 for a malformed logoColor', async () => {
+      const res = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Bad Color', logoInitials: 'BC', logoColor: 'violet' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 when logoColor is sent without logoInitials', async () => {
+      const res = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Color Only', logoColor: '#7355be' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('PATCH /payees/:id', () => {
+    it('sets a monogram and clears an existing logoDomain', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Corner Shop', logoDomain: 'shop.example' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updatePayee({
+        id: payee.id,
+        payload: { logoInitials: 'CS', logoColor: '#22c55e' },
+        raw: true,
+      });
+
+      expect(updated.logoInitials).toBe('CS');
+      expect(updated.logoColor).toBe('#22c55e');
+      expect(updated.logoDomain).toBeNull();
+      expect(updated.logoSource).toBe('manual');
+    });
+
+    it('clears the monogram when a brand domain is picked', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Switcheroo', logoInitials: 'SW', logoColor: '#ef4444' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updatePayee({
+        id: payee.id,
+        payload: { logoDomain: 'netflix.com' },
+        raw: true,
+      });
+
+      expect(updated.logoDomain).toBe('netflix.com');
+      expect(updated.logoInitials).toBeNull();
+      expect(updated.logoColor).toBeNull();
+      expect(updated.logoSource).toBe('manual');
+    });
+
+    it('clears initials and color when logoInitials is null, keeping logoSource manual', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Clear Me', logoInitials: 'CM', logoColor: '#ef4444' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updatePayee({
+        id: payee.id,
+        payload: { logoInitials: null },
+        raw: true,
+      });
+
+      expect(updated.logoInitials).toBeNull();
+      expect(updated.logoColor).toBeNull();
+      expect(updated.logoSource).toBe('manual');
+    });
+
+    it('keeps the monogram when logoDomain is explicitly cleared', async () => {
+      // Domain and initials are asymmetric on purpose: setting a domain evicts
+      // the monogram, but clearing the (already null) domain must not touch it.
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Mono Survives', logoInitials: 'MS', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updatePayee({
+        id: payee.id,
+        payload: { logoDomain: null },
+        raw: true,
+      });
+
+      expect(updated.logoDomain).toBeNull();
+      expect(updated.logoInitials).toBe('MS');
+      expect(updated.logoColor).toBe('#7355be');
+    });
+
+    it('updates logoColor alone when the payee already has initials', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Recolor', logoInitials: 'RC', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updatePayee({
+        id: payee.id,
+        payload: { logoColor: '#0ea5e9' },
+        raw: true,
+      });
+
+      expect(updated.logoColor).toBe('#0ea5e9');
+      expect(updated.logoInitials).toBe('RC');
+    });
+
+    it('leaves the monogram untouched when the payload omits the logo keys', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Keep Mono', logoInitials: 'KM', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updatePayee({
+        id: payee.id,
+        payload: { name: 'Keep Mono Renamed' },
+        raw: true,
+      });
+
+      expect(updated.logoInitials).toBe('KM');
+      expect(updated.logoColor).toBe('#7355be');
+      expect(updated.logoSource).toBe('manual');
+    });
+
+    it('returns 422 when logoColor is sent for a payee without initials', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'No Initials Yet' }),
+        raw: true,
+      });
+
+      const res = await helpers.updatePayee({
+        id: payee.id,
+        payload: { logoColor: '#7355be' },
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 when the payload carries both logoDomain and logoInitials', async () => {
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Both On Update' }),
+        raw: true,
+      });
+
+      const res = await helpers.updatePayee({
+        id: payee.id,
+        payload: { logoDomain: 'netflix.com', logoInitials: 'NF' },
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('POST /payees/:id/reset-logo', () => {
+    it('clears initials and color and lets auto-resolution re-run', async () => {
+      await BrandLogos.create({
+        normalizedName: 'twilio',
+        domain: 'twilio.com',
+        brandName: 'Twilio',
+        source: 'seed',
+      });
+
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Twilio', logoInitials: 'TW', logoColor: '#7355be' }),
+        raw: true,
+      });
+      expect(payee.logoSource).toBe('manual');
+
+      const reset = await helpers.resetPayeeLogo({ id: payee.id, raw: true });
+      expect(reset.logoInitials).toBeNull();
+      expect(reset.logoColor).toBeNull();
+      expect(reset.logoDomain).toBeNull();
+      expect(reset.logoSource).toBeNull();
+
+      await until(
+        async () => {
+          const fetched = await helpers.getPayeeById({ id: payee.id, raw: true });
+          return fetched.logoSource === 'auto';
+        },
+        { timeout: 10_000, interval: 200 },
+      );
+
+      const reResolved = await helpers.getPayeeById({ id: payee.id, raw: true });
+      expect(reResolved.logoDomain).toBe('twilio.com');
+      expect(reResolved.logoInitials).toBeNull();
+    });
   });
 });

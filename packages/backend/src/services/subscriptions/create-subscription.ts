@@ -1,4 +1,5 @@
 import {
+  type EntityLogoPayload,
   RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
@@ -8,7 +9,7 @@ import {
 import { Money, centsToApiDecimalOrNull } from '@common/types/money';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
-import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
+import { enqueueLogoResolutionAfterCommit, resolveManualLogoFields } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 
@@ -21,7 +22,7 @@ import {
 import { assertInstallmentScheduleComplete } from './installments';
 import { resolveOpenPeriodStatus } from './resolve-period-status';
 
-interface CreateSubscriptionParams {
+interface CreateSubscriptionParams extends EntityLogoPayload {
   userId: number;
   name: string;
   type?: SUBSCRIPTION_TYPES;
@@ -40,13 +41,6 @@ interface CreateSubscriptionParams {
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
   autoRecord?: boolean;
-  /**
-   * When present (including null), the new subscription is stamped with this
-   * logo domain and `logoSource: 'manual'` so the background resolver treats it
-   * as authoritative and never overwrites it. When absent (undefined), the logo
-   * fields stay unset and the post-commit resolver auto-resolves them.
-   */
-  logoDomain?: string | null;
 }
 
 export const createSubscription = withTransaction(
@@ -61,6 +55,8 @@ export const createSubscription = withTransaction(
     notes = null,
     dueDate = null,
     logoDomain,
+    logoInitials,
+    logoColor,
     ...rest
   }: CreateSubscriptionParams) => {
     if (accountId) {
@@ -122,9 +118,10 @@ export const createSubscription = withTransaction(
       dueDate,
       anchorDay,
       ...rest,
-      // A supplied domain (even null) is a manual override; `logoSource: 'manual'`
-      // makes the resolver treat it as authoritative.
-      ...(logoDomain !== undefined ? { logoDomain, logoSource: 'manual' as const } : {}),
+      // A supplied logo value is a manual override (`logoSource: 'manual'` makes
+      // the resolver treat it as authoritative); null keys on create change
+      // nothing, so they resolve to no writes and the resolver stays in charge.
+      ...resolveManualLogoFields({ input: { logoDomain, logoInitials, logoColor } }),
     });
 
     // When a dueDate is provided, create the first period so the subscription

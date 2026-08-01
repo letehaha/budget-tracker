@@ -194,8 +194,10 @@ export function serializePivotReport(result: PivotReportResultCents): endpointsT
       id: row.id,
       label: row.label,
       color: row.color,
-      // Only the payee dimension sets logoDomain; keep it off every other dimension's rows.
+      // Only the payee dimension sets the logo fields; keep them off every other dimension's rows.
       ...(row.logoDomain !== undefined ? { logoDomain: row.logoDomain } : {}),
+      ...(row.logoInitials !== undefined ? { logoInitials: row.logoInitials } : {}),
+      ...(row.logoColor !== undefined ? { logoColor: row.logoColor } : {}),
       parentId: row.parentId,
       kind: row.kind,
       values: decimalizeValues(row.values),

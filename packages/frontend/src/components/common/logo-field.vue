@@ -1,31 +1,42 @@
 <script setup lang="ts">
 import BrandLogo from '@/components/common/brand-logo.vue';
+import { type LogoSelection, toLogoDisplayProps } from '@/components/common/logo-selection';
 import LogoSearch from '@/components/common/logo-search.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Popover from '@/components/lib/ui/popover';
 import { cn } from '@/lib/utils';
 import { ChevronDownIcon, XIcon } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
-  /** Selected logo domain. null = let the backend auto-resolve from the name. */
-  modelValue: string | null;
+  /** Chosen brand or monogram. null = let the backend auto-resolve from the name. */
+  modelValue: LogoSelection | null;
   /** Entity name – drives the monogram preview and seeds the search query. */
   nameForSearch: string;
   disabled?: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string | null): void;
+  (e: 'update:modelValue', value: LogoSelection | null): void;
 }>();
 
 const { t } = useI18n({ useScope: 'global' });
 
 const isOpen = ref(false);
 
-function handlePick(domain: string) {
-  emit('update:modelValue', domain);
+const logoDisplay = computed(() => toLogoDisplayProps({ selection: props.modelValue }));
+
+const triggerLabel = computed(() => {
+  const selection = props.modelValue;
+  if (!selection) return t('common.logo.autoLabel');
+  return selection.kind === 'brand'
+    ? selection.domain
+    : t('common.logo.lettersSelectedLabel', { letters: selection.initials });
+});
+
+function handleSelect(selection: LogoSelection) {
+  emit('update:modelValue', selection);
   isOpen.value = false;
 }
 
@@ -43,12 +54,12 @@ function clearSelection() {
         :class="cn('border-input bg-input-background h-10 w-full justify-start gap-2 px-3 py-2 text-sm font-normal')"
         data-test="logo-field"
       >
-        <BrandLogo :domain="modelValue" :name="nameForSearch" class="size-6" />
+        <BrandLogo v-bind="logoDisplay" :name="nameForSearch" class="size-6" />
         <span
           class="min-w-0 flex-1 truncate text-left"
           :class="modelValue ? 'text-foreground' : 'text-muted-foreground'"
         >
-          {{ modelValue || $t('common.logo.autoLabel') }}
+          {{ triggerLabel }}
         </span>
         <Button
           v-if="modelValue && !disabled"
@@ -66,7 +77,7 @@ function clearSelection() {
     </Popover.PopoverTrigger>
 
     <Popover.PopoverContent class="w-(--reka-popover-trigger-width) p-0" align="start" :side-offset="4">
-      <LogoSearch :model-value="modelValue" :name-for-search="nameForSearch" @update:model-value="handlePick" />
+      <LogoSearch :selection="modelValue" :name-for-search="nameForSearch" @select="handleSelect" />
     </Popover.PopoverContent>
   </Popover.Popover>
 </template>

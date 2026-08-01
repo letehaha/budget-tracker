@@ -1,4 +1,5 @@
 import {
+  EntityLogoPayload,
   RemindBeforePreset,
   SUBSCRIPTION_CANDIDATE_STATUS,
   SUBSCRIPTION_FREQUENCIES,
@@ -28,7 +29,7 @@ import type { unlinkTransactionsFromSubscription as apiUnlinkTransactions } from
 
 import { makeRequest } from './common';
 
-interface CreateSubscriptionPayload {
+interface CreateSubscriptionPayload extends EntityLogoPayload {
   name: string;
   type?: SUBSCRIPTION_TYPES;
   transactionType?: TRANSACTION_TYPES;
@@ -46,10 +47,9 @@ interface CreateSubscriptionPayload {
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
   autoRecord?: boolean;
-  logoDomain?: string | null;
 }
 
-interface UpdateSubscriptionPayload {
+interface UpdateSubscriptionPayload extends EntityLogoPayload {
   name?: string;
   type?: SUBSCRIPTION_TYPES;
   transactionType?: TRANSACTION_TYPES;
@@ -68,7 +68,6 @@ interface UpdateSubscriptionPayload {
   remindBefore?: RemindBeforePreset[];
   notifyEmail?: boolean;
   autoRecord?: boolean;
-  logoDomain?: string | null;
 }
 
 export async function createSubscription<R extends boolean | undefined = undefined>({

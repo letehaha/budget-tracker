@@ -306,10 +306,11 @@ const calculatePortfolioBalanceHistory = async ({
     });
   }
 
-  // Holdings carried at cost basis for lack of a price silently understate market value on
-  // those days; log which securities and days so the degraded valuation is visible.
+  // Holdings without a price fall back to cost basis, understating market value.
+  // Info-only: price gaps can be permanent (delisted tickers, provider history
+  // caps), so a per-request Sentry event would repeat forever.
   if (unpricedSecurityIds.size > 0) {
-    logger.error('Combined balance history valued holdings at cost basis for unpriced days', {
+    logger.info('Combined balance history valued holdings at cost basis for unpriced days', {
       userId,
       baseCurrency: userBaseCurrency.currencyCode,
       dateRange: { from: minDate, to: maxDate },

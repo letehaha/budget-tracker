@@ -1,5 +1,6 @@
 import { api } from '@/api/_api';
 import type {
+  EntityLogoFields,
   RemindBeforePreset,
   SubscriptionModel,
   SubscriptionPeriodModel,
@@ -107,6 +108,10 @@ export const toggleSubscriptionActive = async ({
   return api.patch(`/subscriptions/${id}/toggle-active`, { isActive });
 };
 
+export const resetSubscriptionLogo = async ({ id }: { id: string }): Promise<SubscriptionModel> => {
+  return api.post(`/subscriptions/${id}/reset-logo`, {});
+};
+
 export const linkTransactionsToSubscription = async ({
   id,
   transactionIds,
@@ -133,11 +138,9 @@ export const loadSuggestedMatches = async ({ id }: { id: string }): Promise<Tran
   return api.get(`/subscriptions/${id}/suggest-matches`);
 };
 
-interface UpcomingPayment {
+interface UpcomingPayment extends EntityLogoFields {
   subscriptionId: string;
   subscriptionName: string;
-  /** Resolved brand domain for the logo, or null to fall back to a monogram. */
-  logoDomain: string | null;
   expectedAmount: number;
   expectedCurrencyCode: string | null;
   transactionType: TRANSACTION_TYPES;

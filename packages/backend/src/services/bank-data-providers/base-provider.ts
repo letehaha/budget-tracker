@@ -149,7 +149,9 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
       if (failures >= AUTH_FAILURE_DEACTIVATION_THRESHOLD) {
         connection.isActive = false;
         metadata.deactivationReason = DEACTIVATION_REASON.AUTH_FAILURE;
-        logger.warn(
+        // Designed response to a user's credentials going stale, surfaced by
+        // the connection-status badge — not a fault worth a Sentry event.
+        logger.info(
           `[${this.metadata.name}] Connection ${connectionId} deactivated after ${failures} consecutive auth failures`,
         );
       }

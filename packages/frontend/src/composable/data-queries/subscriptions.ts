@@ -1,6 +1,6 @@
-import { type SubscriptionListItem, loadSubscriptions } from '@/api/subscriptions';
+import { type SubscriptionListItem, loadSubscriptions, resetSubscriptionLogo } from '@/api/subscriptions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { useQuery } from '@tanstack/vue-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 
 type SubscriptionsListFilter = {
@@ -44,4 +44,22 @@ export const useSubscriptionsList = ({
   const list = computed<SubscriptionListItem[]>(() => query.data.value ?? []);
 
   return { ...query, list };
+};
+
+/**
+ * Clears a manual logo override via the dedicated reset endpoint, which also nulls
+ * logoSource and re-enqueues automatic resolution. A regular update carrying null
+ * logo fields would instead stamp the row as manual and pin the logo off forever.
+ */
+export const useResetSubscriptionLogo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => resetSubscriptionLogo({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionDetails });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
+    },
+  });
 };

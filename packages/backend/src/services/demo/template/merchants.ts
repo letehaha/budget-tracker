@@ -9,9 +9,12 @@
  * - `categoryKey` is the payee's default category, making payee-driven
  *   categorization visible in the demo.
  */
+import { DEMO_CONFIG } from '../demo-config';
+
 export interface DemoMerchant {
   name: string;
-  domain: string;
+  /** Absent for fictional companies, which render as letter monograms instead of a logo. */
+  domain?: string;
   /** Subcategory key in `parent/child` form, matching `subcategoryMapKey`. */
   categoryKey: string;
 }
@@ -111,13 +114,56 @@ export const DEMO_MERCHANTS = {
   ],
 } satisfies Record<string, DemoMerchant[]>;
 
+/**
+ * Payees the generator names outside the spending vocabulary: employers,
+ * landlords, utilities, banks. Referenced by key in `generate.ts` rather than
+ * as string literals, so a renamed entry cannot drift from the seeded payee
+ * and leave transactions with an unresolvable `merchantName`.
+ *
+ * Fictional companies carry no `domain`.
+ */
+export const INSTITUTIONAL_MERCHANTS = {
+  employer: { name: 'Acme Corp', categoryKey: 'income/wage-invoices' },
+  freelanceClient: { name: 'Northwind Studio', categoryKey: 'income/freelance' },
+  brokerage: { name: 'Vanguard', domain: 'vanguard.com', categoryKey: 'income/interests-dividends' },
+  landlord: { name: 'Redwood Property Management', categoryKey: 'housing/rent' },
+  utility: { name: 'Pacific Energy', categoryKey: 'housing/energy-utilities' },
+  internet: { name: 'Comcast', domain: 'xfinity.com', categoryKey: 'communication/internet' },
+  mobile: { name: 'Verizon', domain: 'verizon.com', categoryKey: 'communication/phone-cell-phone' },
+  bank: { name: 'First National Bank', categoryKey: 'financial-expenses/charges-fees' },
+  carInsurance: { name: 'Geico', domain: 'geico.com', categoryKey: 'vehicle/vehicle-insurance' },
+  carService: { name: 'Midas', domain: 'midas.com', categoryKey: 'vehicle/vehicle-maintenance' },
+} satisfies Record<string, DemoMerchant>;
+
 /** Every merchant across all buckets, deduplicated by name. */
-export function allDemoMerchants(): DemoMerchant[] {
+function allDemoMerchants(): DemoMerchant[] {
   const byName = new Map<string, DemoMerchant>();
   for (const bucket of Object.values(DEMO_MERCHANTS)) {
     for (const merchant of bucket) {
       byName.set(merchant.name, merchant);
     }
+  }
+  return [...byName.values()];
+}
+
+/**
+ * Every name the template can put in `merchantName`, deduplicated: spending
+ * vocabulary, institutional payees, and subscription services. The payee
+ * seeder must create exactly this set for every template reference to resolve.
+ */
+export function allDemoPayeeMerchants(): DemoMerchant[] {
+  const byName = new Map<string, DemoMerchant>();
+  const all = [
+    ...allDemoMerchants(),
+    ...Object.values<DemoMerchant>(INSTITUTIONAL_MERCHANTS),
+    ...DEMO_CONFIG.subscriptions.map((subscription) => ({
+      name: subscription.name,
+      domain: subscription.logoDomain,
+      categoryKey: subscription.categoryKey,
+    })),
+  ];
+  for (const merchant of all) {
+    byName.set(merchant.name, merchant);
   }
   return [...byName.values()];
 }

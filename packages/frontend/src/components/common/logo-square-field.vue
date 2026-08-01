@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import BrandLogo from '@/components/common/brand-logo.vue';
+import { type LogoSelection, toLogoDisplayProps } from '@/components/common/logo-selection';
 import LogoSearch from '@/components/common/logo-search.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { cn } from '@/lib/utils';
 import { PencilIcon, RotateCcwIcon } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
-defineProps<{
-  /** Selected logo domain. null = let backend auto-resolve from the name. */
-  modelValue: string | null;
+const props = defineProps<{
+  /** Chosen brand or monogram. null = let the backend auto-resolve from the name. */
+  modelValue: LogoSelection | null;
   /** Entity name – drives the monogram preview and seeds the search query. */
   nameForSearch: string;
   disabled?: boolean;
@@ -18,13 +19,15 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string | null): void;
+  (e: 'update:modelValue', value: LogoSelection | null): void;
 }>();
 
 const isOpen = ref(false);
 
-function handlePick(domain: string) {
-  emit('update:modelValue', domain);
+const logoDisplay = computed(() => toLogoDisplayProps({ selection: props.modelValue }));
+
+function handleSelect(selection: LogoSelection) {
+  emit('update:modelValue', selection);
   isOpen.value = false;
 }
 
@@ -36,7 +39,7 @@ function handleReset() {
 
 <template>
   <div class="group relative shrink-0">
-    <BrandLogo :domain="modelValue" :name="nameForSearch" :class="cn('size-10 text-base', sizeClass)" />
+    <BrandLogo v-bind="logoDisplay" :name="nameForSearch" :class="cn('size-10 text-base', sizeClass)" />
     <Button
       type="button"
       variant="ghost"
@@ -62,7 +65,7 @@ function handleReset() {
       <template #default>
         <div class="flex flex-col gap-4">
           <div class="border-input min-h-86 flex-1 overflow-hidden rounded-md border">
-            <LogoSearch :model-value="modelValue" :name-for-search="nameForSearch" @update:model-value="handlePick" />
+            <LogoSearch :selection="modelValue" :name-for-search="nameForSearch" @select="handleSelect" />
           </div>
 
           <div class="flex items-center justify-between gap-2 border-t pt-2">

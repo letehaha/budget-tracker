@@ -22,7 +22,6 @@ import {
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_LINK_STATUS,
   SUBSCRIPTION_MATCH_SOURCE,
-  SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
   SubscriptionPeriodStatus,
   TRANSACTION_TRANSFER_NATURE,
@@ -557,7 +556,33 @@ export interface SubscriptionMatchingRules {
   rules: SubscriptionMatchingRule[];
 }
 
-export interface SubscriptionModel {
+/**
+ * Denormalized logo config shared by every logo-bearing entity (payees,
+ * subscriptions). A brand domain and custom monogram letters are mutually
+ * exclusive – `resolveManualLogoFields` enforces that on every write path.
+ */
+export interface EntityLogoFields {
+  /** Resolved brand domain used to fetch the logo (e.g. "netflix.com"). Null
+   *  when the brand resolver has not matched the entity, or when the user
+   *  explicitly cleared the logo (paired with logoSource 'manual'). */
+  logoDomain: string | null;
+  /** 1-2 graphemes rendered as a monogram in place of a brand image. Mutually
+   *  exclusive with logoDomain. Null when no custom monogram is set. */
+  logoInitials: string | null;
+  /** '#rrggbb' lowercase background for logoInitials. Null renders the initials
+   *  on the app's default monogram color. */
+  logoColor: string | null;
+}
+
+/** Write-path shape of the logo fields: absent key = leave the stored column
+ *  untouched, null = clear. A key that actually changes stored state stamps
+ *  logoSource 'manual' so the background resolver treats the user's choice as
+ *  authoritative; a no-op payload (clearing what is already clear, re-stating
+ *  stored values) leaves ownership with the resolver, as does omitting all keys.
+ *  `resolveManualLogoFields` implements this on every write path. */
+export type EntityLogoPayload = Partial<EntityLogoFields>;
+
+export interface SubscriptionModel extends EntityLogoFields {
   id: RecordId;
   userId: number;
   name: string;
@@ -594,10 +619,6 @@ export interface SubscriptionModel {
   /** JSONB array of RemindBeforePreset strings. Empty array means no advance notifications. */
   remindBefore: RemindBeforePreset[];
   notifyEmail: boolean;
-  /** Resolved brand domain used to fetch the logo (e.g. "netflix.com"). Null
-   *  when the brand resolver has not yet matched this subscription, or when the
-   *  user explicitly cleared the logo (paired with logoSource 'manual'). */
-  logoDomain: string | null;
   /** How logoDomain was resolved – see LogoResolutionState. 'manual' can pair
    *  with a null logoDomain (user explicitly cleared the logo); null only before
    *  the subscription has been through a resolution pass. */
@@ -750,7 +771,7 @@ export interface PayeeNameConflictDetails {
   };
 }
 
-export interface PayeeModel {
+export interface PayeeModel extends EntityLogoFields {
   id: RecordId;
   userId: number;
   name: string;
@@ -765,9 +786,6 @@ export interface PayeeModel {
    * means no tag rule.
    */
   defaultTagIds: RecordId[];
-  /** Resolved brand domain used to fetch the logo (e.g. "amazon.com"). Null
-   *  when the brand resolver has not yet matched this Payee. */
-  logoDomain: string | null;
   /** How logoDomain was resolved – see LogoResolutionState. 'manual' can pair
    *  with a null logoDomain (user explicitly cleared the logo); null only before
    *  the Payee has been through a resolution pass. */
@@ -784,10 +802,9 @@ export interface PayeeModel {
  * the full payee set with no stats and no pagination, so any payee resolves
  * regardless of how many the user has.
  */
-export interface PayeeLookupItem {
+export interface PayeeLookupItem extends EntityLogoFields {
   id: RecordId;
   name: string;
-  logoDomain: string | null;
 }
 
 /**

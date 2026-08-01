@@ -793,8 +793,9 @@ describe('Subscriptions', () => {
         // 6 income transactions across last 6 complete months, $600 each
         // → $3600 total, $600/month average
         for (let monthsAgo = 1; monthsAgo <= 6; monthsAgo++) {
-          const date = new Date();
-          date.setMonth(date.getMonth() - monthsAgo);
+          // subMonths clamps month-end (Jul 31 → Jun 30); a raw setMonth would
+          // roll over into the current month and fall out of the lookback window.
+          const date = subMonths(new Date(), monthsAgo);
           date.setDate(15);
           await helpers.createTransaction({
             payload: helpers.buildTransactionPayload({
@@ -827,8 +828,7 @@ describe('Subscriptions', () => {
         const account = await helpers.createAccount({ raw: true });
 
         // Income only in the most recent complete month: $900
-        const recent = new Date();
-        recent.setMonth(recent.getMonth() - 1);
+        const recent = subMonths(new Date(), 1);
         recent.setDate(10);
         await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
@@ -871,8 +871,7 @@ describe('Subscriptions', () => {
         });
 
         // 10 months ago — outside lookback window, should NOT count
-        const old = new Date();
-        old.setMonth(old.getMonth() - 10);
+        const old = subMonths(new Date(), 10);
         await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
@@ -884,8 +883,7 @@ describe('Subscriptions', () => {
         });
 
         // 2 months ago — counts. $300, divided by 6 → $50/month
-        const recent = new Date();
-        recent.setMonth(recent.getMonth() - 2);
+        const recent = subMonths(new Date(), 2);
         recent.setDate(10);
         await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
