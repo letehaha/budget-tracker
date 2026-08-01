@@ -113,7 +113,11 @@ const { data: allSubscriptions, isFetching: isSubscriptionsFetching } = useSubsc
 
 const isFetching = computed(() => isSummaryFetching.value || isUpcomingFetching.value || isSubscriptionsFetching.value);
 const isInitialLoading = computed(() => isFetching.value && !summary.value);
-const isEmpty = computed(() => !summary.value || summary.value.activeCount === 0);
+const totalActiveCount = computed(() => {
+  if (!summary.value) return 0;
+  return summary.value.activeCount.expense + summary.value.activeCount.income;
+});
+const isEmpty = computed(() => !summary.value || totalActiveCount.value === 0);
 
 const { displayValue: animatedMonthlyCost } = useAnimatedNumber({
   value: computed(() => summary.value?.estimatedMonthlyCost ?? 0),
@@ -201,7 +205,7 @@ function openSubscriptionsList() {
 
     <template v-else>
       <!-- Monthly total -->
-      <div v-if="summary && summary.activeCount > 0" class="mb-4">
+      <div v-if="summary && totalActiveCount > 0" class="mb-4">
         <p class="flex flex-wrap items-baseline gap-x-2 text-2xl font-bold tracking-tight">
           {{ formatBaseCurrency(animatedMonthlyCost) }}
           <span v-if="summary.percentOfIncome !== null" :class="[percentOfIncomeColorClass, 'text-sm font-normal']">
@@ -209,7 +213,7 @@ function openSubscriptionsList() {
           </span>
         </p>
         <p class="text-muted-foreground mt-1 text-xs">
-          {{ t('dashboard.widgets.subscriptions.activeSummary', { count: summary.activeCount }) }} &middot; ~{{
+          {{ t('dashboard.widgets.subscriptions.activeSummary', { count: totalActiveCount }) }} &middot; ~{{
             formatBaseCurrency(summary.projectedYearlyCost)
           }}{{ t('dashboard.widgets.subscriptions.perYear') }}
         </p>

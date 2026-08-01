@@ -164,7 +164,8 @@ export const DEFAULT_INCOME_LOOKBACK_MONTHS: IncomeLookbackMonths = 6;
 interface SubscriptionsSummary {
   estimatedMonthlyCost: number;
   projectedYearlyCost: number;
-  activeCount: number;
+  expectedMonthlyIncome: number;
+  activeCount: { expense: number; income: number };
   currencyCode: string;
   averageMonthlyIncome: number;
   percentOfIncome: number | null;

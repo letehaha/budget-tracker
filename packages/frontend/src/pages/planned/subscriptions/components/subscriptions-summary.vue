@@ -35,7 +35,7 @@ useCurrencyNotConnectedNotification({ error });
 
 const activeLabel = computed(() => {
   if (!summary.value) return '';
-  const count = summary.value.activeCount;
+  const count = summary.value.activeCount.expense;
   if (props.activeFilter === 'subscription') {
     return t('planned.subscriptions.summary.acrossSubscriptions', { count }, count);
   }
@@ -57,7 +57,7 @@ const activeLabel = computed(() => {
 
   <!-- Summary content -->
   <div
-    v-else-if="summary && summary.activeCount > 0"
+    v-else-if="summary && summary.activeCount.expense > 0"
     :class="[
       'bg-card border-border rounded-lg border px-3 py-2.5 transition-opacity sm:p-4',
       isPlaceholderData && 'opacity-50',
