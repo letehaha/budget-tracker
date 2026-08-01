@@ -36,6 +36,20 @@ export interface AiCategorizationProgressPayload {
 }
 
 /**
+ * Response of GET /user/ai/categorization/status.
+ *
+ * Never 404s: the frontend calls it on boot to rehydrate the header progress
+ * indicator after a reload, so "no job" is a 200 `idle`.
+ *
+ * `completed` is deliberately absent: the endpoint collapses finished runs to
+ * `idle` (completed jobs are removed from the queue atomically with the state
+ * flip), so only live SSE events ever carry `completed`.
+ */
+export type AiCategorizationStatus =
+  | { status: 'idle' }
+  | (Omit<AiCategorizationProgressPayload, 'status'> & { status: 'queued' | 'processing' | 'failed' });
+
+/**
  * Account sync status for SYNC_STATUS_CHANGED event
  */
 export interface SyncAccountStatus {

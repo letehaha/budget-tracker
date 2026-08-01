@@ -21,7 +21,12 @@ import { getCustomInstructions } from '@services/user-settings/ai-custom-instruc
 import { generateText } from 'ai';
 
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
-import { CategorizationBatchResult, CategorizationResult, TransactionForCategorization } from './types';
+import {
+  CategorizationBatchResult,
+  CategorizationProgress,
+  CategorizationResult,
+  TransactionForCategorization,
+} from './types';
 import { buildCategoryList } from './utils/build-category-list';
 import { parseCategorizationResponse } from './utils/parse-response';
 
@@ -251,11 +256,14 @@ export async function categorizeTransactions({
   userId,
   transactionIds,
   totalTransactionCount,
+  onProgress,
 }: {
   userId: number;
   transactionIds: string[];
   /** For progress tracking. Defaults to transactionIds.length */
   totalTransactionCount?: number;
+  /** Called at every batch boundary; the worker mirrors it into the BullMQ job's progress blob */
+  onProgress?: (progress: CategorizationProgress) => void | Promise<void>;
 }): Promise<CategorizationBatchResult> {
   const totalCount = totalTransactionCount ?? transactionIds.length;
   let aiClient = await createAIClient({
@@ -321,12 +329,43 @@ export async function categorizeTransactions({
     batchCount: 0,
   };
 
+  // Fans current counters out to live clients (SSE) and to the caller's progress
+  // sink (the BullMQ job blob the status endpoint serves after a page reload).
+  const reportProcessing = async () => {
+    const progress: CategorizationProgress = {
+      processedCount: allResults.successful.length + allResults.failed.length,
+      totalCount,
+      failedCount: allResults.failed.length,
+    };
+    sseManager.sendToUser({
+      userId,
+      event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
+      data: { status: 'processing' as const, ...progress },
+    });
+    // Progress is cosmetic — a failing sink (e.g. a Redis hiccup on the job's
+    // progress blob) must not abort the run and discard finished batches.
+    try {
+      await onProgress?.(progress);
+    } catch (error) {
+      logger.error({
+        message: `[AI Categorization] Failed to report progress for user ${userId}`,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+  };
+
   // Guards against an infinite fallback loop
   let hasTriedFallback = false;
 
   for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
     const batch = transactions.slice(i, i + BATCH_SIZE);
     logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(transactions.length / BATCH_SIZE)}`);
+
+    // The run's only progress report site, placed before the LLM call: a single
+    // batch can run for minutes on a slow model, and without this the UI would
+    // sit on "queued" that whole time. Counters cover the batches finished so
+    // far; the worker's terminal SSE event carries the final ones.
+    await reportProcessing();
 
     const batchResult = await categorizeBatch({
       aiClient,
@@ -459,17 +498,6 @@ export async function categorizeTransactions({
       totalTokenUsage.outputTokens += batchResult.tokenUsage.outputTokens;
       totalTokenUsage.batchCount += 1;
     }
-
-    sseManager.sendToUser({
-      userId,
-      event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
-      data: {
-        status: 'processing' as const,
-        processedCount: allResults.successful.length + allResults.failed.length,
-        totalCount,
-        failedCount: allResults.failed.length,
-      },
-    });
   }
 
   const totalTransactionsProcessed = allResults.successful.length + allResults.failed.length;

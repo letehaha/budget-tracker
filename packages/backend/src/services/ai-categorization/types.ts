@@ -1,3 +1,4 @@
+import type { AiCategorizationProgressPayload } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 
 /**
@@ -29,6 +30,12 @@ export interface CategorizationResult {
   transactionId: string;
   categoryId: string;
 }
+
+/**
+ * Batch-boundary progress counters, fanned out over SSE for live clients and
+ * into the BullMQ job's progress blob for the status endpoint.
+ */
+export type CategorizationProgress = Omit<AiCategorizationProgressPayload, 'status'>;
 
 /**
  * Result of a categorization batch

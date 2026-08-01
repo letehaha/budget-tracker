@@ -1,3 +1,4 @@
+import { categorizationStatusController } from '@controllers/ai-categorization/categorization-status.controller';
 import { activeRestoreStatusController } from '@controllers/backup/active-restore-status.controller';
 import { exportBackupController } from '@controllers/backup/export-backup.controller';
 import { restoreBackupController } from '@controllers/backup/restore-backup.controller';
@@ -311,6 +312,14 @@ router.put(
   authenticateSession,
   validateEndpoint(setCustomInstructionsController.schema),
   setCustomInstructionsController.handler,
+);
+
+// AI Categorization
+router.get(
+  '/ai/categorization/status',
+  authenticateSession,
+  validateEndpoint(categorizationStatusController.schema),
+  categorizationStatusController.handler,
 );
 
 // AI Models

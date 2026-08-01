@@ -1,8 +1,10 @@
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
+import { redisClient } from '@root/redis-client';
 import { Job, Queue, Worker } from 'bullmq';
 
 import { SSE_EVENT_TYPES, sseManager } from '../common/sse';
+import { buildFailedRunStatus } from './categorization-progress';
 import { categorizeTransactions } from './categorization-service';
 
 interface CategorizationJobData extends SentryTraceData {
@@ -19,6 +21,13 @@ const connection = {
   keepAlive: 10000, // Send TCP keepalive to prevent idle disconnection
   retryStrategy: (times: number) => Math.min(times * 100, 3000), // Exponential backoff, max 3s
 };
+
+/**
+ * Per-user pointer to the most recent categorization job. The status endpoint
+ * resolves it to the live BullMQ job so a reloaded page can rehydrate the
+ * header progress indicator that SSE alone would have lost.
+ */
+export const buildLastCategorizationJobPointerKey = (userId: number): string => `ai-categorization-last-job-${userId}`;
 
 // Namespace queue by Jest worker ID in test environment
 const queueName =
@@ -73,6 +82,10 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
           userId,
           transactionIds,
           totalTransactionCount: transactionIds.length,
+          // Mirror batch-boundary counters into the job's progress blob so the
+          // status endpoint can serve them to a freshly reloaded page. The
+          // service guards the call — a Redis hiccup here must not kill the run.
+          onProgress: (progress) => job.updateProgress(progress),
         });
 
         if (result.failed.length > 0) {
@@ -116,18 +129,15 @@ categorizationWorker.on('completed', (job, result) => {
 categorizationWorker.on('failed', (job, err) => {
   logger.error({ message: `[AI Categorization Worker] Job ${job?.id} failed`, error: err });
 
-  // Send failed progress event
+  // Send failed progress event. Built from the job's progress blob via the
+  // same projection the status endpoint uses, so a live tab and a reloaded
+  // tab agree on the counters of a failed run.
   if (job) {
     const { userId, transactionIds } = job.data;
     sseManager.sendToUser({
       userId,
       event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
-      data: {
-        status: 'failed' as const,
-        processedCount: 0,
-        totalCount: transactionIds.length,
-        failedCount: transactionIds.length,
-      },
+      data: buildFailedRunStatus({ progress: job.progress, totalCount: transactionIds.length }),
     });
   }
 });
@@ -166,6 +176,19 @@ export async function queueCategorizationJob({
       await categorizationQueue.add(jobId, { ...data, ...traceData }, { jobId });
     },
   });
+
+  // Best-effort: the pointer only feeds page-reload rehydration, so a failed
+  // write must not fail the enqueue — live SSE updates still work without it.
+  // Last-writer-wins: overlapping runs for one user are possible (the sync
+  // debounce makes them rare) and the pointer intentionally tracks the newest.
+  await redisClient
+    .set(buildLastCategorizationJobPointerKey(userId), jobId, 'EX', 24 * 3600)
+    .catch((error: unknown) => {
+      logger.error({
+        message: `[AI Categorization] Failed to write last-job pointer for user ${userId}`,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+    });
 
   // Send queued event to notify frontend that categorization is scheduled
   sseManager.sendToUser({

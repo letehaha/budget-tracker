@@ -1,4 +1,4 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { BANK_PROVIDER_TYPE, CATEGORIZATION_SOURCE } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
@@ -153,9 +153,11 @@ describe('AI Categorization Service E2E', () => {
 
       expect(transactions.length).toBe(MOCK_TRANSACTION_COUNT);
 
-      // Transactions should NOT have AI categorization metadata
+      // No AI-sourced metadata may appear. Sync-time MCC rules run before AI
+      // and legitimately stamp `mcc_rule` when a random mock MCC hits a mapping,
+      // so only the `ai` source would prove a run happened.
       for (const tx of transactions) {
-        expect(tx.categorizationMeta).toBeNull();
+        expect(tx.categorizationMeta?.source).not.toBe(CATEGORIZATION_SOURCE.ai);
       }
     });
 
@@ -223,9 +225,10 @@ describe('AI Categorization Service E2E', () => {
 
       expect(transactions.length).toBe(MOCK_TRANSACTION_COUNT);
 
-      // Transactions should NOT have AI categorization metadata (due to error)
+      // No AI-sourced metadata may appear (the AI call failed). Sync-time MCC
+      // rules may still have stamped `mcc_rule` on random mock MCCs.
       for (const tx of transactions) {
-        expect(tx.categorizationMeta).toBeNull();
+        expect(tx.categorizationMeta?.source).not.toBe(CATEGORIZATION_SOURCE.ai);
       }
     });
 
@@ -290,9 +293,10 @@ describe('AI Categorization Service E2E', () => {
 
       expect(transactions.length).toBe(MOCK_TRANSACTION_COUNT);
 
-      // Transactions should NOT have AI categorization (auth failed)
+      // No AI-sourced metadata may appear (auth failed). Sync-time MCC rules
+      // may still have stamped `mcc_rule` on random mock MCCs.
       for (const tx of transactions) {
-        expect(tx.categorizationMeta).toBeNull();
+        expect(tx.categorizationMeta?.source).not.toBe(CATEGORIZATION_SOURCE.ai);
       }
     });
   });
