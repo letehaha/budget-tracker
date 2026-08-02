@@ -1,11 +1,11 @@
-import { AI_PROVIDER } from '@bt/shared/types';
+import { AI_KEY_PROVIDERS } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { setAiApiKey } from '@services/user-settings/ai-api-key';
 import { z } from 'zod';
 
 const schema = z.object({
   body: z.object({
-    provider: z.nativeEnum(AI_PROVIDER),
+    provider: z.enum(AI_KEY_PROVIDERS),
   }),
 });
 

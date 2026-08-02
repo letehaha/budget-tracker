@@ -6,4 +6,5 @@ export {
   logoResolutionQueue,
   logoResolutionWorker,
 } from './logo-resolution-queue';
+export { resolveManualLogoFields } from './manual-logo-fields';
 export { seedBrandLogos } from './seed-brand-logos';

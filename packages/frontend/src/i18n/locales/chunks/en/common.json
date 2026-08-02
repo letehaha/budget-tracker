@@ -178,16 +178,28 @@
       "reload": "Reload"
     },
     "logo": {
+      "tabs": {
+        "brand": "Brand",
+        "letters": "Letters"
+      },
       "searchPlaceholder": "Brand name or domain",
       "searchHint": "Type a brand name, or a domain like amazon.com",
       "noResults": "No matching brands found.",
+      "noResultsLettersHint": "Use letters instead",
       "useDomainDirectly": "Use {domain}",
       "autoLabel": "Automatic (from name)",
       "domainHint": "To find the exact brand, type the company's website domain (e.g. amazon.com) – that always matches the right logo.",
       "searchError": "Couldn't load logos – try again",
       "editAriaLabel": "Edit logo",
       "dialogTitle": "Change logo",
-      "resetToAuto": "Reset to automatic"
+      "resetToAuto": "Reset to automatic",
+      "lettersLabel": "Letters (1–2)",
+      "lettersPlaceholder": "AB",
+      "colorLabel": "Color",
+      "colorSwatchAriaLabel": "Use color {color}",
+      "customColorAriaLabel": "Pick a custom color",
+      "applyLetters": "Apply",
+      "lettersSelectedLabel": "Letters “{letters}”"
     }
   },
   "accountGroups": {
@@ -360,6 +372,12 @@
           }
         }
       }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(your API key)",
+      "setByEndpoint": "Set by your endpoint"
     }
   }
 }

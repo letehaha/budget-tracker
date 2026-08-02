@@ -6,7 +6,9 @@
       "tabs": {
         "features": "Funciones de IA",
         "apiKeys": "Claves de API",
-        "invalidKeysTooltip": "Una o más claves de API no son válidas"
+        "invalidKeysTooltip": "Una o más claves de API no son válidas",
+        "customEndpoints": "Endpoints personalizados",
+        "invalidEndpointsTooltip": "Uno o más endpoints personalizados ya no funcionan"
       },
       "apiKeyManager": {
         "title": "Claves de API",
@@ -152,7 +154,16 @@
           "resetFailed": "Error al restablecer el modelo"
         },
         "addKeyHint": "Añada su propia clave de API para seleccionar entre todos los modelos disponibles.",
-        "addKeyHintLink": "Añadir clave de API →"
+        "addKeyHintLink": "Añadir clave de API →",
+        "customModel": {
+          "nameLabel": "Nombre del modelo",
+          "applyButton": "Aplicar",
+          "hint": "Se envía tal cual a {baseUrl}.",
+          "endpointOption": "{endpoint} — {model}",
+          "unknownEndpoint": "Endpoint personalizado",
+          "missingModelName": "Este endpoint no tiene un nombre de modelo configurado — introduzca uno primero",
+          "endpointsLoadError": "No se pudieron cargar sus endpoints, por lo que el nombre del modelo no se puede editar en este momento."
+        }
       },
       "customInstructions": {
         "title": "Instrucciones personalizadas",
@@ -161,7 +172,107 @@
         "requiresApiKey": "Añada una clave de API personal para usar instrucciones personalizadas.",
         "save": "Guardar",
         "saved": "¡Guardado!",
-        "saveFailed": "Error al guardar las instrucciones personalizadas. Inténtelo de nuevo."
+        "saveFailed": "Error al guardar las instrucciones personalizadas. Inténtelo de nuevo.",
+        "requiresOwnCredentials": "Añada su propia clave de API o un endpoint personalizado para usar instrucciones personalizadas.",
+        "credentialsCheckFailed": "No pudimos comprobar si tiene sus propias credenciales de IA. Inténtelo de nuevo para desbloquear las instrucciones personalizadas.",
+        "retryCredentialsCheck": "Intentar de nuevo"
+      },
+      "credentialStatus": {
+        "validated": "Validado {timeAgo}",
+        "failed": "Error {timeAgo}",
+        "invalidBadge": "No válido"
+      },
+      "customEndpoint": {
+        "title": "Endpoints personalizados",
+        "description": "Conecte sus propios servidores compatibles con OpenAI y use sus modelos para cualquier función de IA.",
+        "loading": "Cargando endpoints…",
+        "addButton": "Añadir endpoint",
+        "empty": {
+          "title": "Aún no hay endpoints personalizados",
+          "description": "Conecte un servidor compatible con OpenAI — un Ollama local, LM Studio o una pasarela alojada — para usar sus modelos en cualquier función de IA."
+        },
+        "loadError": {
+          "title": "No se pudieron cargar sus endpoints",
+          "description": "Sus endpoints guardados siguen ahí — simplemente no pudimos obtenerlos en este momento. Verifique su conexión e inténtelo de nuevo.",
+          "retry": "Intentar de nuevo"
+        },
+        "status": {
+          "model": "Modelo: {model}"
+        },
+        "actions": {
+          "menuAriaLabel": "Acciones del endpoint",
+          "reconnect": "Reconectar"
+        },
+        "form": {
+          "titleAdd": "Añadir endpoint",
+          "titleEdit": "Editar endpoint",
+          "nameLabel": "Nombre",
+          "namePlaceholder": "Home Ollama",
+          "baseUrlLabel": "URL base",
+          "baseUrlPlaceholder": "http://localhost:11434/v1",
+          "modelLabel": "Nombre del modelo",
+          "modelPlaceholder": "llama3.2",
+          "apiKeyLabel": "Clave de API (opcional)",
+          "apiKeyPlaceholder": "Introduzca la clave de API",
+          "apiKeySavedHint": "Hay una clave guardada. Déjelo en blanco para conservarla.",
+          "apiKeyOptionalHint": "Déjelo en blanco si su endpoint no requiere autenticación.",
+          "removeApiKeyButton": "Eliminar clave guardada",
+          "saveButton": "Guardar",
+          "testButton": "Probar conexión",
+          "removeButton": "Eliminar"
+        },
+        "compatibilityHint": "El endpoint debe ser compatible con OpenAI. Funciona con Ollama, vLLM, OpenRouter, LM Studio y cualquier proxy /v1.",
+        "test": {
+          "success": "Conexión correcta.",
+          "failed": "No se pudo conectar con el endpoint."
+        },
+        "notifications": {
+          "saveSuccess": "Endpoint personalizado guardado",
+          "saveFailed": "Error al guardar el endpoint personalizado",
+          "removeSuccess": "Endpoint personalizado eliminado",
+          "removeFailed": "Error al eliminar el endpoint personalizado",
+          "removeKeySuccess": "Clave guardada eliminada",
+          "removeKeyFailed": "Error al eliminar la clave guardada",
+          "removeKeyInvalid": "Se eliminó la clave de API, pero el endpoint no superó la validación sin ella: {reason}",
+          "editedEndpointGone": "Este endpoint fue eliminado, por lo que el editor se cerró."
+        },
+        "removeDialog": {
+          "title": "¿Eliminar endpoint personalizado?",
+          "descriptionNamed": "\"{name}\" se eliminará. Cualquier función que lo use pasará a otro modelo disponible. Esta acción no se puede deshacer.",
+          "confirm": "Eliminar"
+        },
+        "removeKeyDialog": {
+          "title": "¿Eliminar clave guardada?",
+          "description": "El endpoint se vuelve a probar sin la clave. Si requiere autenticación, el cambio se rechaza.",
+          "confirm": "Eliminar clave"
+        },
+        "setupHelp": {
+          "trigger": "¿Dónde encuentro esto?",
+          "rule": "La URL base es todo hasta, pero sin incluir, {path}. En casi todos los proveedores, eso significa que termina en {suffix}.",
+          "ruleCheck": "Comprobación rápida: al abrir {url} debería obtener una lista JSON de modelos.",
+          "apiKeyEmpty": "Déjelo vacío.",
+          "lmStudio": {
+            "startServer": "Primero inicie el servidor local (pestaña Developer → Start Server).",
+            "baseUrl": "La dirección que muestra LM Studio, más {suffix}. Por ejemplo {example}.",
+            "model": "El identificador de API del modelo. Se muestra en la pestaña Developer, o aparece en {url}."
+          },
+          "ollama": {
+            "model": "La etiqueta exacta de {command}, por ejemplo {example}."
+          },
+          "openRouter": {
+            "model": "El id completo del modelo de su página de modelos, por ejemplo {example}.",
+            "apiKeyRequired": "Obligatorio."
+          },
+          "other": {
+            "tabLabel": "Otro",
+            "title": "{name} o cualquier otro servidor compatible con OpenAI",
+            "baseUrl": "La dirección del servidor, más {suffix}.",
+            "model": "Lo que {request} devuelva como {field}.",
+            "apiKey": "Solo si el servidor se configuró para exigir una."
+          },
+          "localNetworkOnly": "Un servidor que se ejecuta en su propio ordenador ({ip} o {hostname}) solo funciona cuando esta aplicación se ejecuta en su propia máquina o su propia red. La versión alojada no puede acceder a él, porque ahí las direcciones privadas están bloqueadas.",
+          "dockerHost": "Si ejecuta esta aplicación en Docker en la misma máquina que el servidor del modelo, use {dockerHost} en lugar de {ip}."
+        }
       }
     }
   }

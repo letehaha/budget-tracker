@@ -3,6 +3,8 @@
  * Uses CSV format to minimize output tokens
  * Supports PDF, CSV, and TXT input files
  */
+import { logger } from '@js/utils';
+import { parseDecimalAmount } from '@services/import-export/core/parse/parse-decimal-amount';
 
 /**
  * System prompt for statement extraction - CSV format for token efficiency
@@ -23,15 +25,24 @@ date,description,merchant,amount,type,balance,confidence
 RULES:
 1. Output ONLY CSV data - no headers, no markdown, no explanations
 2. First line is ALWAYS metadata
-3. Amount is ALWAYS positive number
-4. Date format: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS (include time if available in the statement)
-5. Type: E for expense, I for income
-6. Confidence: number 0-100 (integer)
-7. Empty value = field not available (just leave empty between commas)
-8. If a field contains commas, wrap it in double quotes
-9. Include ALL transactions from the statement
-10. If time is available for a transaction, ALWAYS include it - this data is valuable
-11. merchant: the counterparty / merchant name when separately identifiable
+3. Whatever the source looks like, every transaction line you write has the 7 fields
+   above, in that order. Never merge two of them into one, never add an eighth.
+4. amount is REQUIRED on every line and must be a plain positive number: digits, at most
+   one dot for the decimal point, nothing else. Convert the statement's own convention
+   into that one - 1,234.56 and 1.234,56 and 1 234,56 are all the same amount, and all of
+   them are written 1234.56. Decide which convention the statement uses by looking at the
+   whole document, not one number. Never emit a currency symbol, a thousands separator or
+   a decimal comma. A line without a usable amount will be discarded.
+5. The output separator is a COMMA, whatever the source uses. Never join several source
+   columns into one output field with the source's own separator.
+6. Date format: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS (include time if available in the statement)
+7. Type: E for expense, I for income
+8. Confidence: number 0-100 (integer)
+9. Empty value = field not available (just leave empty between commas)
+10. If a field contains commas, wrap the WHOLE field in double quotes
+11. Include ALL transactions from the statement
+12. If time is available for a transaction, ALWAYS include it - this data is valuable
+13. merchant: the counterparty / merchant name when separately identifiable
     (e.g. "AMAZON", "Spotify", "UBER TRIP"). Leave EMPTY when no clear merchant
     exists — internal transfers, fees, interest, salary, etc. Do NOT duplicate
     the description if no real merchant is identifiable.
@@ -45,7 +56,16 @@ PrivatBank,1234,2025-01-01,2025-01-31,UAH
 2025-01-15 14:32:10,Grocery store purchase ATB #123,ATB,250.50,E,,95
 2025-01-16 09:15:00,"Payment, utilities",,1200.00,E,5000.00,90
 2025-01-18,Spotify subscription,Spotify,9.99,E,,95
-2025-01-20,Salary deposit,,50000.00,I,55000.00,98`;
+2025-01-20,Salary deposit,,50000.00,I,55000.00,98
+
+When the source is itself tabular (a CSV/TSV export, a statement table), its columns are
+rarely the 7 above. Map them; do not copy the source layout. A source row with more
+columns than the output has:
+  <account> | <category> | <currency> | <amount> | <debit/credit> | <method> | <payee> | <timestamp>
+becomes one line that keeps the amount and drops what does not map:
+  2025-03-04 12:49:08,Groceries,Fresh Market,1115.00,E,,90
+Never emit a line that carries the source's separator or loses the amount, like:
+  2025-03-04 12:49:08,Groceries|Card|Fresh Market,E,,90`;
 
 /**
  * User prompt template for text-based extraction
@@ -82,6 +102,80 @@ interface AIExtractionOutput {
     } | null;
     currencyCode?: string | null;
   };
+  droppedRowCount: number;
+}
+
+/** Columns the prompt asks for: date, description, merchant, amount, type, balance, confidence. */
+const EXPECTED_FIELD_COUNT = 7;
+
+/** Enough to read a transaction: date, description, merchant, amount, type. */
+const MINIMUM_FIELD_COUNT = 5;
+
+/**
+ * The prompt asks for `YYYY-MM-DD HH:MM:SS`, but the model copies full ISO timestamps out
+ * of app exports, so the `T` separator, fractional seconds and a zone are all tolerated.
+ */
+const DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}:\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+
+/** Drops sub-second precision and any zone designator, so the wall clock stands as the statement wrote it. */
+function normalizeDate({ date }: { date: string }): string | null {
+  const match = DATE_PATTERN.exec(date);
+  if (!match) return null;
+
+  return match[2] ? `${match[1]} ${match[2]}` : match[1]!;
+}
+
+interface TransactionFields {
+  date: string;
+  description: string;
+  merchant: string;
+  amountStr: string;
+  typeChar: string;
+  balanceStr: string;
+  confidenceStr: string;
+}
+
+/**
+ * A wide row is read from its last four columns: it has picked up a column the format has
+ * no place for, and reading it left to right lands `amount` on the wrong cell.
+ */
+function readTransactionFields({ fields }: { fields: string[] }): TransactionFields | null {
+  if (fields.length < MINIMUM_FIELD_COUNT) return null;
+
+  if (fields.length <= EXPECTED_FIELD_COUNT) {
+    return {
+      date: fields[0] || '',
+      description: fields[1] || '',
+      merchant: fields[2] || '',
+      amountStr: fields[3] || '',
+      typeChar: fields[4] || '',
+      balanceStr: fields[5] || '',
+      confidenceStr: fields[6] || '',
+    };
+  }
+
+  const tailStart = fields.length - 4;
+  const middle = fields.slice(1, tailStart).filter(Boolean);
+
+  return {
+    date: fields[0] || '',
+    description: middle[0] || '',
+    // Anything past the description is the model's own extra column plus the merchant
+    merchant: middle.length > 1 ? middle[middle.length - 1]! : '',
+    amountStr: fields[tailStart] || '',
+    typeChar: fields[tailStart + 1] || '',
+    balanceStr: fields[tailStart + 2] || '',
+    confidenceStr: fields[tailStart + 3] || '',
+  };
+}
+
+/** `parseDecimalAmount` rejects signed input, and a balance can be negative when the account is overdrawn. */
+function parseBalance({ raw }: { raw: string }): number | null {
+  const isNegative = raw.startsWith('-');
+  const magnitude = parseDecimalAmount({ raw: isNegative ? raw.slice(1) : raw });
+
+  if (magnitude === null) return null;
+  return isNegative ? -magnitude : magnitude;
 }
 
 /**
@@ -132,7 +226,7 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
     const lines = csvContent.split('\n').filter((line) => line.trim());
 
     if (lines.length < 1) {
-      console.error('[Statement Parser] CSV parsing: No lines found');
+      logger.info('[Statement Parser] CSV parsing: no lines found in the AI response');
       return null;
     }
 
@@ -153,38 +247,36 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
 
     // Parse transactions (remaining lines)
     const transactions: AIExtractionOutput['transactions'] = [];
+    // Counted per reason rather than logged per row, because a big statement from a bad
+    // model drops hundreds of rows and a line each would flood the log.
+    const droppedByReason = { tooFewColumns: 0, unreadableDate: 0, unusableAmount: 0 };
 
     for (let i = 1; i < lines.length; i++) {
-      const fields = parseCSVLine({ line: lines[i]! });
+      const parsedFields = readTransactionFields({ fields: parseCSVLine({ line: lines[i]! }) });
 
-      // Minimum 5 fields: date, description, merchant (may be empty), amount, type.
-      if (fields.length < 5) {
-        console.warn(`[Statement Parser] CSV parsing: Skipping invalid line ${i + 1}: ${lines[i]}`);
+      if (!parsedFields) {
+        droppedByReason.tooFewColumns += 1;
         continue;
       }
 
-      const date = fields[0] || '';
-      const description = fields[1] || '';
-      const merchant = fields[2] || '';
-      const amountStr = fields[3] || '0';
-      const typeChar = fields[4]?.toUpperCase() || 'E';
-      const balanceStr = fields[5] || '';
-      const confidenceStr = fields[6] || '80';
+      const { description, merchant, amountStr, typeChar, balanceStr, confidenceStr } = parsedFields;
 
-      // Validate date format: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS
-      if (!/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/.test(date)) {
-        console.warn(`[Statement Parser] CSV parsing: Invalid date format on line ${i + 1}: ${date}`);
+      const date = normalizeDate({ date: parsedFields.date });
+      if (!date) {
+        droppedByReason.unreadableDate += 1;
         continue;
       }
 
-      const amount = parseFloat(amountStr);
-      if (isNaN(amount) || amount < 0) {
-        console.warn(`[Statement Parser] CSV parsing: Invalid amount on line ${i + 1}: ${amountStr}`);
+      // The import rejects zero as well as negative, so letting either through here only
+      // moves the failure to the end of the flow.
+      const amount = parseDecimalAmount({ raw: amountStr });
+      if (amount === null || amount <= 0) {
+        droppedByReason.unusableAmount += 1;
         continue;
       }
 
-      const type = typeChar === 'I' ? 'income' : 'expense';
-      const balance = balanceStr ? parseFloat(balanceStr) : null;
+      const type = typeChar.toUpperCase() === 'I' ? 'income' : 'expense';
+      const balance = balanceStr ? parseBalance({ raw: balanceStr }) : null;
       const confidence = Math.min(100, Math.max(0, parseInt(confidenceStr, 10) || 80)) / 100;
 
       transactions.push({
@@ -193,21 +285,25 @@ export function parseAIResponse({ response }: { response: string }): AIExtractio
         merchant: merchant || undefined,
         amount,
         type,
-        balance: balance !== null && !isNaN(balance) ? balance : undefined,
+        balance: balance ?? undefined,
         confidence,
       });
     }
 
-    if (transactions.length === 0) {
-      console.error('[Statement Parser] CSV parsing: No valid transactions found');
-      return null;
-    }
+    const droppedRowCount =
+      droppedByReason.tooFewColumns + droppedByReason.unreadableDate + droppedByReason.unusableAmount;
 
-    console.log(`[Statement Parser] CSV parsing: Extracted ${transactions.length} transactions`);
+    logger.info(
+      `[Statement Parser] CSV parsing: extracted ${transactions.length} transactions, dropped ${droppedRowCount}`,
+      droppedRowCount > 0 ? droppedByReason : undefined,
+    );
 
-    return { transactions, metadata };
+    return { transactions, metadata, droppedRowCount };
   } catch (error) {
-    console.error('[Statement Parser] CSV parsing error:', error);
+    logger.error({
+      message: '[Statement Parser] CSV parsing error',
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
     return null;
   }
 }

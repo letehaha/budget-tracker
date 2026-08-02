@@ -4,7 +4,7 @@ import { addDays, eachDayOfInterval, endOfMonth, isWeekend, setDate, startOfMont
 
 import { DEMO_CONFIG, type DemoAccountKey } from '../demo-config';
 import { rateForDayOffset } from './fx';
-import { DEMO_MERCHANTS, type DemoMerchant } from './merchants';
+import { DEMO_MERCHANTS, INSTITUTIONAL_MERCHANTS, type DemoMerchant } from './merchants';
 import type {
   DemoTemplate,
   DemoTemplateGroup,
@@ -35,17 +35,22 @@ function daysBetween({ from, to }: { from: Date; to: Date }): number {
   return Math.max(0, Math.floor((to.getTime() - from.getTime()) / MS_PER_DAY));
 }
 
+const pick = <T>(items: readonly T[]): T => faker.helpers.arrayElement(items);
+const cents = ({ min, max }: { min: number; max: number }) => faker.number.int({ min, max });
+
 /**
  * Builds the template for one demo dataset.
  *
  * Seeded faker keeps every demo user's history identical, so budget limits can
  * be derived from the data and screenshots stay stable.
  */
-export function generateDemoTemplate(): DemoTemplate {
+export function generateDemoTemplate({ generatedAt = new Date() }: { generatedAt?: Date } = {}): DemoTemplate {
   faker.seed(12345);
 
-  const generatedAt = new Date();
-  const startDate = subMonths(generatedAt, DEMO_CONFIG.historyMonths);
+  // Anchored to a month boundary so the oldest month is whole. Starting
+  // mid-month keeps that month's bills but drops the payday on the 1st, which
+  // overdraws checking for the rest of the history.
+  const startDate = startOfMonth(subMonths(generatedAt, DEMO_CONFIG.historyMonths));
 
   const transactions: DemoTemplateTransaction[] = [];
   const splits: DemoTemplateSplit[] = [];
@@ -58,9 +63,6 @@ export function generateDemoTemplate(): DemoTemplate {
     refCounter += 1;
     return `${prefix}-${refCounter}`;
   };
-
-  const pick = <T>(items: readonly T[]): T => faker.helpers.arrayElement(items);
-  const cents = ({ min, max }: { min: number; max: number }) => faker.number.int({ min, max });
 
   /**
    * Euro charged to the travel card and not yet paid off.
@@ -193,7 +195,7 @@ export function generateDemoTemplate(): DemoTemplate {
       amount: cents({ min: 520000, max: 580000 }),
       transactionType: TRANSACTION_TYPES.income,
       note: 'Acme Corp payroll',
-      merchantName: 'Acme Corp',
+      merchantName: INSTITUTIONAL_MERCHANTS.employer.name,
       paymentType: PAYMENT_TYPES.bankTransfer,
       window: 'earlyMorning',
     });
@@ -207,7 +209,7 @@ export function generateDemoTemplate(): DemoTemplate {
         amount: cents({ min: 60000, max: 240000 }),
         transactionType: TRANSACTION_TYPES.income,
         note: 'Freelance invoice',
-        merchantName: 'Northwind Studio',
+        merchantName: INSTITUTIONAL_MERCHANTS.freelanceClient.name,
         paymentType: PAYMENT_TYPES.bankTransfer,
         window: 'businessHours',
       });
@@ -220,7 +222,7 @@ export function generateDemoTemplate(): DemoTemplate {
         amount: cents({ min: 8000, max: 26000 }),
         transactionType: TRANSACTION_TYPES.income,
         note: 'Quarterly dividend',
-        merchantName: 'Vanguard',
+        merchantName: INSTITUTIONAL_MERCHANTS.brokerage.name,
         paymentType: PAYMENT_TYPES.bankTransfer,
         window: 'businessHours',
       });
@@ -234,7 +236,7 @@ export function generateDemoTemplate(): DemoTemplate {
         amount: cents({ min: 300000, max: 600000 }),
         transactionType: TRANSACTION_TYPES.income,
         note: 'Annual bonus',
-        merchantName: 'Acme Corp',
+        merchantName: INSTITUTIONAL_MERCHANTS.employer.name,
         paymentType: PAYMENT_TYPES.bankTransfer,
         window: 'businessHours',
       });
@@ -258,7 +260,7 @@ export function generateDemoTemplate(): DemoTemplate {
       amount: 140000,
       transactionType: TRANSACTION_TYPES.expense,
       note: 'Monthly rent',
-      merchantName: 'Redwood Property Management',
+      merchantName: INSTITUTIONAL_MERCHANTS.landlord.name,
       paymentType: PAYMENT_TYPES.bankTransfer,
       tagKeys: ['must'],
       window: 'morning',
@@ -270,7 +272,7 @@ export function generateDemoTemplate(): DemoTemplate {
       amount: cents({ min: 8000, max: 18000 }),
       transactionType: TRANSACTION_TYPES.expense,
       note: 'Electricity and gas',
-      merchantName: 'Pacific Energy',
+      merchantName: INSTITUTIONAL_MERCHANTS.utility.name,
       paymentType: PAYMENT_TYPES.bankTransfer,
       tagKeys: ['must'],
       window: 'businessHours',
@@ -282,7 +284,7 @@ export function generateDemoTemplate(): DemoTemplate {
       amount: 6500,
       transactionType: TRANSACTION_TYPES.expense,
       note: 'Home internet',
-      merchantName: 'Comcast',
+      merchantName: INSTITUTIONAL_MERCHANTS.internet.name,
       paymentType: PAYMENT_TYPES.bankTransfer,
       tagKeys: ['must'],
       window: 'businessHours',
@@ -294,7 +296,7 @@ export function generateDemoTemplate(): DemoTemplate {
       amount: 4500,
       transactionType: TRANSACTION_TYPES.expense,
       note: 'Mobile plan',
-      merchantName: 'Verizon',
+      merchantName: INSTITUTIONAL_MERCHANTS.mobile.name,
       paymentType: PAYMENT_TYPES.debitCard,
       tagKeys: ['must'],
       window: 'businessHours',
@@ -316,7 +318,7 @@ export function generateDemoTemplate(): DemoTemplate {
       amount: 1200,
       transactionType: TRANSACTION_TYPES.expense,
       note: 'Account maintenance fee',
-      merchantName: 'First National Bank',
+      merchantName: INSTITUTIONAL_MERCHANTS.bank.name,
       paymentType: PAYMENT_TYPES.bankTransfer,
       tagKeys: ['must'],
       window: 'earlyMorning',
@@ -331,7 +333,7 @@ export function generateDemoTemplate(): DemoTemplate {
         amount: cents({ min: 32000, max: 38000 }),
         transactionType: TRANSACTION_TYPES.expense,
         note: 'Auto insurance premium',
-        merchantName: 'Geico',
+        merchantName: INSTITUTIONAL_MERCHANTS.carInsurance.name,
         paymentType: PAYMENT_TYPES.bankTransfer,
         tagKeys: ['must'],
         window: 'businessHours',
@@ -635,7 +637,7 @@ export function generateDemoTemplate(): DemoTemplate {
           amount: cents({ min: 8000, max: 65000 }),
           transactionType: TRANSACTION_TYPES.expense,
           note: 'Vehicle service',
-          merchantName: 'Midas',
+          merchantName: INSTITUTIONAL_MERCHANTS.carService.name,
           paymentType: PAYMENT_TYPES.debitCard,
           tagKeys: ['need'],
           window: 'morning',

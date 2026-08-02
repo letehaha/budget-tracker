@@ -78,7 +78,8 @@
       "invalidData": "Data split tidak valid",
       "splitNotFound": "Split tidak ditemukan",
       "cannotDeleteWithRefunds": "Tidak dapat menghapus split yang memiliki refund yang menargetkannya",
-      "cannotReduceBelowRefunded": "Split ini memiliki refund sebesar {{refundsText}}. Anda tidak dapat menguranginya di bawah jumlah yang sudah direfund. Untuk mengurangi lebih lanjut, lepaskan tautan refund terlebih dahulu."
+      "cannotReduceBelowRefunded": "Split ini memiliki refund sebesar {{refundsText}}. Anda tidak dapat menguranginya di bawah jumlah yang sudah direfund. Untuk mengurangi lebih lanjut, lepaskan tautan refund terlebih dahulu.",
+      "duplicateCategory": "Setiap split harus menggunakan kategori yang berbeda"
     }
   },
   "budgets": {
@@ -311,7 +312,22 @@
   },
   "ai": {
     "apiKeyValidationFailed": "Validasi kunci API gagal",
-    "noApiKeyForProvider": "Tidak ada kunci API yang dikonfigurasi untuk provider: {{provider}}"
+    "noApiKeyForProvider": "Tidak ada kunci API yang dikonfigurasi untuk provider: {{provider}}",
+    "customEndpointUnreachable": "Tidak dapat menjangkau endpoint. Periksa URL dasar dan pastikan server berjalan serta dapat diakses dari internet.",
+    "customEndpointAuthFailed": "Endpoint menolak kunci API. Pastikan kunci sudah benar dan memiliki izin yang diperlukan.",
+    "customEndpointModelNotFound": "Endpoint tidak menyediakan model bernama \"{{model}}\".",
+    "customEndpointModelNotListed": "Endpoint tidak menyediakan \"{{model}}\". Model yang tersedia: {{available}}.",
+    "customEndpointMoreModels": "dan {{count}} lainnya",
+    "customEndpointNotApiResponse": "Server di URL ini merespons dengan HTTP {{status}}, bukan respons yang kompatibel dengan OpenAI. Pastikan server berjalan dan URL dasar sudah benar — biasanya berakhir dengan /v1.",
+    "customEndpointValidationFailed": "Endpoint tidak mengembalikan respons yang dapat digunakan. Periksa URL dasar, nama model, dan kunci API.",
+    "customEndpointMissingFields": "URL dasar dan nama model wajib diisi.",
+    "customEndpointNameTaken": "Anda sudah memiliki endpoint dengan nama ini.",
+    "customEndpointNameInvalidLength": "Nama endpoint harus antara 1 hingga 50 karakter.",
+    "customEndpointNotFound": "Endpoint kustom tidak ditemukan.",
+    "customEndpointIdRequired": "Pilih endpoint kustom mana yang menyediakan model ini.",
+    "customModelNameInvalidLength": "Nama model harus antara 1 hingga 200 karakter.",
+    "customEndpointLimitReached": "Anda dapat menyimpan hingga {{max}} endpoint kustom. Hapus salah satu sebelum menambahkan yang baru.",
+    "customEndpointStoredKeyUnreadable": "Kunci API tersimpan untuk endpoint ini tidak dapat dibaca lagi. Silakan masukkan kembali."
   },
   "middleware": {
     "tooManyRequests": "Terlalu banyak permintaan. Silakan coba lagi nanti."
@@ -460,5 +476,21 @@
   },
   "vehicles": {
     "notFound": "Kendaraan tidak ditemukan"
+  },
+  "urlGuard": {
+    "invalidUrl": "Ini bukan URL yang valid.",
+    "unsupportedProtocol": "Hanya URL http:// dan https:// yang diizinkan.",
+    "credentialsInUrlNotAllowed": "URL tidak boleh berisi nama pengguna atau kata sandi. Gunakan kolom kunci API sebagai gantinya.",
+    "privateAddressBlocked": "{{host}} mengarah ke alamat jaringan privat atau yang dicadangkan, yang tidak diizinkan.",
+    "hostnameNotResolvable": "{{host}} tidak dapat di-resolve. Periksa alamat untuk kesalahan ketik.",
+    "redirectNotAllowed": "Endpoint merespons dengan pengalihan (redirect). Masukkan URL akhir sebagai gantinya.",
+    "hostnameLookupUnavailable": "Kami tidak dapat memverifikasi {{host}} saat ini. Silakan coba lagi sesaat lagi."
+  },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "Logo merek dan huruf khusus tidak dapat diatur secara bersamaan.",
+    "colorRequiresInitials": "Warna monogram memerlukan huruf monogram."
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": "Rentang tanggal dan granularitas ini menghasilkan terlalu banyak titik data. Pilih granularitas yang lebih kasar atau rentang yang lebih pendek."
   }
 }

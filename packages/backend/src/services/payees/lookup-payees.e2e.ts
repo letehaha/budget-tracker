@@ -3,7 +3,7 @@ import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
 describe('GET /payees/lookup (getPayeesLookup)', () => {
-  it('returns all payees as a minimal {id, name, logoDomain} projection with no stats', async () => {
+  it('returns all payees as a minimal {id, name, logo fields} projection with no stats', async () => {
     const withLogo = await helpers.createPayee({
       payload: helpers.buildPayeePayload({ name: 'Aaa Lookup', logoDomain: 'stripe.com' }),
       raw: true,
@@ -16,20 +16,28 @@ describe('GET /payees/lookup (getPayeesLookup)', () => {
       payload: helpers.buildPayeePayload({ name: 'Ccc Lookup' }),
       raw: true,
     });
+    const withMonogram = await helpers.createPayee({
+      payload: helpers.buildPayeePayload({ name: 'Ddd Lookup', logoInitials: 'DL', logoColor: '#7355be' }),
+      raw: true,
+    });
 
     const lookup = await helpers.lookupPayees({ raw: true });
 
-    // Fresh user, so lookup returns exactly the three created payees, ordered by name.
-    expect(lookup.map((p) => p.name)).toEqual(['Aaa Lookup', 'Bbb Lookup', 'Ccc Lookup']);
+    // Fresh user, so lookup returns exactly the four created payees, ordered by name.
+    expect(lookup.map((p) => p.name)).toEqual(['Aaa Lookup', 'Bbb Lookup', 'Ccc Lookup', 'Ddd Lookup']);
 
     for (const item of lookup) {
-      expect(Object.keys(item).toSorted()).toEqual(['id', 'logoDomain', 'name']);
+      expect(Object.keys(item).toSorted()).toEqual(['id', 'logoColor', 'logoDomain', 'logoInitials', 'name']);
       expect(item).not.toHaveProperty('stats');
     }
 
     expect(lookup.find((p) => p.id === withLogo.id)?.logoDomain).toBe('stripe.com');
     expect(lookup.find((p) => p.id === explicitNoLogo.id)?.logoDomain).toBeNull();
     expect(lookup.find((p) => p.id === defaultLogo.id)).toBeDefined();
+
+    const monogramItem = lookup.find((p) => p.id === withMonogram.id);
+    expect(monogramItem?.logoInitials).toBe('DL');
+    expect(monogramItem?.logoColor).toBe('#7355be');
   });
 
   it('returns an empty array for a fresh user with no payees', async () => {

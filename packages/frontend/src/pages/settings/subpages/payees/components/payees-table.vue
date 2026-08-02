@@ -101,6 +101,8 @@
                 <div class="flex items-center gap-2">
                   <BrandLogo
                     :domain="list[virtualRow.index]!.logoDomain ?? null"
+                    :initials="list[virtualRow.index]!.logoInitials ?? null"
+                    :color="list[virtualRow.index]!.logoColor ?? null"
                     :name="list[virtualRow.index]!.name"
                     class="size-7 shrink-0"
                   />
@@ -143,6 +145,8 @@
                 <div class="flex min-w-0 items-center gap-2">
                   <BrandLogo
                     :domain="list[virtualRow.index]!.logoDomain ?? null"
+                    :initials="list[virtualRow.index]!.logoInitials ?? null"
+                    :color="list[virtualRow.index]!.logoColor ?? null"
                     :name="list[virtualRow.index]!.name"
                     class="size-7 shrink-0"
                   />

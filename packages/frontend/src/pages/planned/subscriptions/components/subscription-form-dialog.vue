@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Label } from '@/components/lib/ui/label';
 import { Switch } from '@/components/lib/ui/switch';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
+import { useResetSubscriptionLogo } from '@/composable/data-queries/subscriptions';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrencyName, useFormatCurrency } from '@/composable/formatters';
@@ -34,6 +35,7 @@ import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { type LogoSelection, toLogoPayload, toLogoSelection } from '@/components/common/logo-selection';
 import LogoSquareField from '@/components/common/logo-square-field.vue';
 
 import MatchingRulesBuilder from './matching-rules-builder.vue';
@@ -43,11 +45,22 @@ const props = defineProps<{
   formId?: string;
 }>();
 
-// Snapshot of the logo at open time. The submit payload includes `logoDomain`
-// only when it differs from this, so an untouched subscription keeps its
-// auto-resolved logo (the key is omitted, leaving the resolver in charge) while
-// a user pick or clear is sent as a manual override.
-const initialLogoDomain = props.initialValues?.logoDomain ?? null;
+// Snapshot of the logo at open time. The submit payload carries logo fields
+// only when the selection differs from this, so an untouched subscription keeps
+// its auto-resolved logo (the keys are omitted, leaving the resolver in charge)
+// while a user pick is sent as a manual override. Clearing an existing logo on
+// edit routes through the reset-logo endpoint instead (see handleSubmit).
+const initialLogo = toLogoSelection({
+  logoDomain: props.initialValues?.logoDomain,
+  logoInitials: props.initialValues?.logoInitials,
+  logoColor: props.initialValues?.logoColor,
+});
+
+// Structural identity of a selection, so an untouched picker sends nothing.
+const logoSelectionKey = (selection: LogoSelection | null) => {
+  if (!selection) return 'none';
+  return selection.kind === 'brand' ? `brand:${selection.domain}` : `monogram:${selection.initials}:${selection.color}`;
+};
 
 const emit = defineEmits<{
   submit: [
@@ -127,8 +140,8 @@ interface FormState {
   categoryId: string | null;
   matchingRules: SubscriptionMatchingRule[];
   notes: string;
-  /** Manually chosen logo domain. null = let the backend auto-resolve from the name. */
-  logoDomain: string | null;
+  /** Manually chosen brand or monogram. null = let the backend auto-resolve from the name. */
+  logo: LogoSelection | null;
   /** When true, the hourly cron books the expense at 00:00 UTC of the due date and
    *  marks the period paid. Mutually exclusive with matchingRules (the backend rejects
    *  both being set simultaneously). */
@@ -153,7 +166,7 @@ const getInitialState = (): FormState => {
       categoryId: props.initialValues.categoryId ?? null,
       matchingRules: props.initialValues.matchingRules?.rules ?? [],
       notes: props.initialValues.notes ?? '',
-      logoDomain: props.initialValues.logoDomain ?? null,
+      logo: initialLogo,
       autoRecord: props.initialValues.autoRecord ?? false,
     };
   }
@@ -173,7 +186,7 @@ const getInitialState = (): FormState => {
     categoryId: null,
     matchingRules: [],
     notes: '',
-    logoDomain: null,
+    logo: null,
     // Seed from the user's preference; they can override per subscription.
     autoRecord: userSettings.value?.subscriptions?.defaultAutoRecord ?? false,
   };
@@ -373,10 +386,29 @@ const saveRules = () => {
   isRulesDialogOpen.value = false;
 };
 
-const handleSubmit = () => {
+const resetLogoMutation = useResetSubscriptionLogo();
+
+const handleSubmit = async () => {
   if (!isFormValid()) return;
 
   formError.value = null;
+
+  const logoChanged = logoSelectionKey(form.value.logo) !== logoSelectionKey(initialLogo);
+  // Clearing a previously set logo on edit means "back to automatic". That must go
+  // through the dedicated reset endpoint: an update carrying null logo fields would
+  // stamp the subscription as a manual override and the auto-resolver would skip it
+  // forever. The reset runs before the update so a reset failure aborts the save.
+  const editedId = props.initialValues?.id;
+  const isLogoReset = !!editedId && logoChanged && !form.value.logo;
+
+  if (isLogoReset && editedId) {
+    try {
+      await resetLogoMutation.mutateAsync({ id: editedId });
+    } catch {
+      formError.value = t('planned.subscriptions.updateError');
+      return;
+    }
+  }
 
   const payload = {
     name: form.value.name,
@@ -415,7 +447,9 @@ const handleSubmit = () => {
     autoRecord: form.value.autoRecord,
     isActive: props.initialValues?.isActive ?? true,
     notes: form.value.notes || null,
-    ...(form.value.logoDomain !== initialLogoDomain ? { logoDomain: form.value.logoDomain } : {}),
+    // Logo keys are omitted both for an untouched picker and for a reset — sending
+    // them would turn either into a manual override.
+    ...(logoChanged && !isLogoReset ? toLogoPayload({ selection: form.value.logo }) : {}),
   };
 
   emit('submit', payload);
@@ -444,7 +478,7 @@ const handleSubmit = () => {
         />
       </div>
       <LogoSquareField
-        v-model="form.logoDomain"
+        v-model="form.logo"
         :name-for-search="form.name"
         size-class="size-10 rounded-lg"
         class="mt-[21px]"

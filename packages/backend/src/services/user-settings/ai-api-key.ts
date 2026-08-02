@@ -1,66 +1,56 @@
-import { AIApiKeyStatus, AIFeatureConfig, AI_PROVIDER } from '@bt/shared/types';
+import { AIApiKeyInfo, AIApiKeyStatus, AIKeyProvider, AI_PROVIDER } from '@bt/shared/types';
 import { decryptToken, encryptToken } from '@common/utils/encryption';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
-import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
-import { getFirstAvailableRecommendedModel, getProviderFromModelId, validateApiKey } from '@services/ai';
+import { logger } from '@js/utils/logger';
+import UserSettings, { DEFAULT_SETTINGS, SettingsSchema, StoredAiSettings } from '@models/user-settings.model';
+import { validateApiKey } from '@services/ai';
 
 import { withTransaction } from '../common/with-transaction';
 import { getOrCreateUserSettings } from './get-or-create-user-settings';
+import { migrateFeatureConfigsOnProviderRemoval } from './migrate-feature-configs';
 
-interface AiApiKeyInfo {
-  provider: AI_PROVIDER;
-  createdAt: string;
-  status: AIApiKeyStatus;
-  lastValidatedAt: string;
-  lastError?: string;
-  invalidatedAt?: string;
+export const getStoredAiSettings = async ({ userId }: { userId: number }): Promise<StoredAiSettings | null> => {
+  const userSettings = await UserSettings.findOne({
+    where: { userId },
+    attributes: ['settings'],
+  });
+
+  return userSettings?.settings?.ai ?? null;
+};
+
+/** Null when no key is stored for the provider or the ciphertext cannot be read. */
+export function decryptStoredApiKey({
+  aiSettings,
+  provider,
+  userId,
+}: {
+  aiSettings: StoredAiSettings | null;
+  provider: AIKeyProvider;
+  userId: number;
+}): string | null {
+  const keyEntry = aiSettings?.apiKeys?.find((k) => k.provider === provider);
+
+  if (!keyEntry?.keyEncrypted) {
+    return null;
+  }
+
+  try {
+    return decryptToken(keyEntry.keyEncrypted);
+  } catch (error) {
+    // Ciphertext written under a different APPLICATION_JWT_SECRET, or a mangled settings
+    // blob. The user cannot cause or fix either one.
+    logger.error(
+      { message: 'Stored AI provider key could not be decrypted', error: error as Error },
+      { userId, provider },
+    );
+    return null;
+  }
 }
 
 /**
- * Get the decrypted AI API key for a user.
- * If provider is specified, returns the key for that provider.
- * Otherwise, returns the key for the default provider (or the first available).
- * Returns null if no key is set.
- */
-export const getAiApiKey = withTransaction(
-  async ({ userId, provider }: { userId: number; provider?: AI_PROVIDER }): Promise<string | null> => {
-    const userSettings = await UserSettings.findOne({
-      where: { userId },
-      attributes: ['settings'],
-    });
-
-    const aiSettings = userSettings?.settings?.ai;
-    if (!aiSettings?.apiKeys?.length) {
-      return null;
-    }
-
-    // Find the key for the requested provider, default provider, or first available
-    const targetProvider = provider ?? aiSettings.defaultProvider ?? aiSettings.apiKeys[0]?.provider;
-    const keyEntry = aiSettings.apiKeys.find((k) => k.provider === targetProvider);
-
-    if (!keyEntry?.keyEncrypted) {
-      return null;
-    }
-
-    try {
-      return decryptToken(keyEntry.keyEncrypted);
-    } catch {
-      // If decryption fails (e.g., key was corrupted), return null
-      return null;
-    }
-  },
-);
-
-/**
- * Set the AI API key for a user and specific provider (stores encrypted).
- * Pass null as apiKey to remove the key for the provider.
- *
- * When setting a new key, validates it first by making a test API call.
- * Throws ValidationError if the key doesn't work.
- *
- * When removing a key, updates any feature configs that were using that provider
- * to use the first recommended model from another available provider.
+ * Pass null to remove the key. A new key is validated with a live test call before it is
+ * stored; removing one repoints feature configs that used it onto another available provider.
  */
 export const setAiApiKey = withTransaction(
   async ({
@@ -70,9 +60,8 @@ export const setAiApiKey = withTransaction(
   }: {
     userId: number;
     apiKey: string | null;
-    provider: AI_PROVIDER;
+    provider: AIKeyProvider;
   }): Promise<void> => {
-    // If adding a new key, validate it first
     if (apiKey) {
       const validationResult = await validateApiKey({ provider, apiKey });
       if (!validationResult.isValid) {
@@ -82,16 +71,16 @@ export const setAiApiKey = withTransaction(
       }
     }
 
-    const [userSettings] = await getOrCreateUserSettings({ userId });
+    // FOR UPDATE: the whole settings blob is rewritten below, so a concurrent
+    // endpoint-status patch must serialize behind this write or it gets lost.
+    const [userSettings] = await getOrCreateUserSettings({ userId, lock: true });
 
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
     const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
     let apiKeys = [...(currentAiSettings.apiKeys ?? [])];
 
-    // Remove existing key for this provider
     apiKeys = apiKeys.filter((k) => k.provider !== provider);
 
-    // Add new key if provided
     if (apiKey) {
       const now = new Date().toISOString();
       apiKeys.push({
@@ -109,7 +98,6 @@ export const setAiApiKey = withTransaction(
     if (apiKeys.length === 0) {
       defaultProvider = undefined;
     } else if (!defaultProvider || !apiKeys.some((k) => k.provider === defaultProvider)) {
-      // Set default to first available if current default was removed
       defaultProvider = apiKeys[0]?.provider;
     }
 
@@ -137,57 +125,11 @@ export const setAiApiKey = withTransaction(
   },
 );
 
-/**
- * Migrate feature configs when a provider is removed.
- * Updates configs that were using the removed provider to use another available provider.
- * If no providers remain, clears all feature configs.
- */
-function migrateFeatureConfigsOnProviderRemoval({
-  featureConfigs,
-  removedProvider,
-  remainingProviders,
-}: {
-  featureConfigs: AIFeatureConfig[];
-  removedProvider: AI_PROVIDER;
-  remainingProviders: AI_PROVIDER[];
-}): AIFeatureConfig[] {
-  // If no providers remain, clear all feature configs
-  if (remainingProviders.length === 0) {
-    return [];
-  }
-
-  return featureConfigs
-    .map((config) => {
-      const configProvider = getProviderFromModelId({ modelId: config.modelId });
-
-      // Only update configs that were using the removed provider
-      if (configProvider !== removedProvider) {
-        return config;
-      }
-
-      // Find a new recommended model from remaining providers
-      const newModelId = getFirstAvailableRecommendedModel({
-        feature: config.feature,
-        availableProviders: remainingProviders,
-      });
-
-      // If no recommended model found, remove this config (will use server default)
-      if (!newModelId) {
-        return null;
-      }
-
-      return { ...config, modelId: newModelId };
-    })
-    .filter((config): config is AIFeatureConfig => config !== null);
-}
-
-/**
- * Set the default AI provider for a user.
- */
 export const setDefaultAiProvider = withTransaction(
-  async ({ userId, provider }: { userId: number; provider: AI_PROVIDER }): Promise<void> => {
+  async ({ userId, provider }: { userId: number; provider: AIKeyProvider }): Promise<void> => {
     const userSettings = await UserSettings.findOne({
       where: { userId },
+      lock: true,
     });
 
     if (!userSettings) {
@@ -197,7 +139,6 @@ export const setDefaultAiProvider = withTransaction(
     const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
     const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
 
-    // Verify the provider has a key configured
     const hasProvider = currentAiSettings.apiKeys?.some((k) => k.provider === provider);
     if (!hasProvider) {
       throw new Error(t({ key: 'ai.noApiKeyForProvider', variables: { provider } }));
@@ -215,10 +156,6 @@ export const setDefaultAiProvider = withTransaction(
   },
 );
 
-/**
- * Check if a user has an AI API key configured.
- * If provider is specified, checks for that specific provider.
- */
 export const hasAiApiKey = withTransaction(
   async ({ userId, provider }: { userId: number; provider?: AI_PROVIDER }): Promise<boolean> => {
     const userSettings = await UserSettings.findOne({
@@ -239,17 +176,14 @@ export const hasAiApiKey = withTransaction(
   },
 );
 
-/**
- * Get information about configured AI API keys (without the actual keys).
- */
 export const getAiApiKeyInfo = withTransaction(
   async ({
     userId,
   }: {
     userId: number;
   }): Promise<{
-    providers: AiApiKeyInfo[];
-    defaultProvider?: AI_PROVIDER;
+    providers: AIApiKeyInfo[];
+    defaultProvider?: AIKeyProvider;
   }> => {
     const userSettings = await UserSettings.findOne({
       where: { userId },
@@ -275,12 +209,10 @@ export const getAiApiKeyInfo = withTransaction(
   },
 );
 
-/**
- * Remove all AI API keys for a user.
- */
 export const removeAllAiApiKeys = withTransaction(async ({ userId }: { userId: number }): Promise<void> => {
   const userSettings = await UserSettings.findOne({
     where: { userId },
+    lock: true,
   });
 
   if (!userSettings) {
@@ -289,23 +221,21 @@ export const removeAllAiApiKeys = withTransaction(async ({ userId }: { userId: n
 
   const currentSettings: SettingsSchema = userSettings.settings ?? DEFAULT_SETTINGS;
 
+  const currentAiSettings = currentSettings.ai ?? { apiKeys: [], featureConfigs: [] };
+
   userSettings.settings = {
     ...currentSettings,
     ai: {
+      // Only key material goes; feature configs, instructions and endpoints are preferences.
+      ...currentAiSettings,
       apiKeys: [],
       defaultProvider: undefined,
-      // Preserve feature configs so user preferences persist when they add new keys
-      featureConfigs: currentSettings.ai?.featureConfigs ?? [],
     },
   };
 
   await userSettings.save();
 });
 
-/**
- * Mark an API key as invalid after a failed AI call.
- * Used when an auth error occurs during actual AI usage.
- */
 export const markApiKeyInvalid = withTransaction(
   async ({
     userId,
@@ -313,11 +243,12 @@ export const markApiKeyInvalid = withTransaction(
     errorMessage,
   }: {
     userId: number;
-    provider: AI_PROVIDER;
+    provider: AIKeyProvider;
     errorMessage: string;
   }): Promise<void> => {
     const userSettings = await UserSettings.findOne({
       where: { userId },
+      lock: true,
     });
 
     if (!userSettings) {
@@ -351,14 +282,11 @@ export const markApiKeyInvalid = withTransaction(
   },
 );
 
-/**
- * Mark an API key as valid after a successful AI call.
- * Updates the lastValidatedAt timestamp and clears any previous error.
- */
 export const markApiKeyValid = withTransaction(
-  async ({ userId, provider }: { userId: number; provider: AI_PROVIDER }): Promise<void> => {
+  async ({ userId, provider }: { userId: number; provider: AIKeyProvider }): Promise<void> => {
     const userSettings = await UserSettings.findOne({
       where: { userId },
+      lock: true,
     });
 
     if (!userSettings) {

@@ -3,14 +3,16 @@ import { logger } from '@js/utils/logger';
 import Payees from '@models/payees.model';
 import { normalizePayeeName } from '@services/payees/normalize-name';
 
-import { allDemoMerchants } from './template/merchants';
+import { allDemoPayeeMerchants } from './template/merchants';
 
 /**
- * Inserts one Payee per demo merchant so generated transactions carry a real
- * `payeeId` instead of a note string. Goes through `Payees.bulkCreate`, not
- * `createPayee`: `createPayee` queues a brand-logo lookup job per row, and
- * the domain is already known here. `logoSource: 'manual'` marks the row
- * authoritative, so the resolver skips it.
+ * Inserts one Payee per demo merchant — spending vocabulary, institutional
+ * payees, and subscription services, since the template names all three in
+ * `merchantName` — so generated transactions carry a real `payeeId` instead
+ * of a note string. Goes through `Payees.bulkCreate`, not `createPayee`:
+ * `createPayee` queues a brand-logo lookup job per row, and the domain (or
+ * its deliberate absence, for fictional companies) is already known here.
+ * `logoSource: 'manual'` marks the row authoritative, so the resolver skips it.
  */
 export async function seedPayees({
   userId,
@@ -20,7 +22,7 @@ export async function seedPayees({
   /** Maps a category key to its id. Subcategory keys look like `food/groceries`. */
   categoryMap: Map<string, string>;
 }): Promise<Map<string, string>> {
-  const merchants = allDemoMerchants();
+  const merchants = allDemoPayeeMerchants();
 
   const rows: {
     userId: number;
@@ -28,7 +30,7 @@ export async function seedPayees({
     normalizedName: string;
     defaultCategoryId: RecordId | null;
     categorizationMode: CATEGORIZATION_MODE;
-    logoDomain: string;
+    logoDomain: string | null;
     logoSource: 'manual';
   }[] = [];
 
@@ -49,7 +51,7 @@ export async function seedPayees({
       normalizedName,
       defaultCategoryId: (categoryMap.get(merchant.categoryKey) ?? null) as RecordId | null,
       categorizationMode: CATEGORIZATION_MODE.enforce,
-      logoDomain: merchant.domain,
+      logoDomain: merchant.domain ?? null,
       logoSource: 'manual',
     });
   }

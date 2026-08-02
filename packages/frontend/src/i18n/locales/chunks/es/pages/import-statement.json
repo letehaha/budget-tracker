@@ -89,7 +89,9 @@
         "createNew": "Crear nueva",
         "back": "Atrás",
         "importTransactions": "Importar transacciones",
-        "checkForDuplicates": "Verificar duplicados"
+        "checkForDuplicates": "Verificar duplicados",
+        "yourCurrenciesGroup": "Sus monedas",
+        "allCurrenciesGroup": "Todas las monedas"
       },
       "createAccountDialog": {
         "title": "Crear cuenta para la importación",
@@ -129,7 +131,8 @@
         "toggleWillSkip": "se omitirá.",
         "backButton": "Atrás",
         "continueButton": "Continuar a la importación",
-        "transactionCount": "({count} transacciones)"
+        "transactionCount": "({count} transacciones)",
+        "duplicateCheckFailed": "No pudimos comparar este extracto con sus transacciones existentes, por lo que el recuento de duplicados que aparece abajo no está disponible. Revise la lista antes de importar."
       },
       "importResults": {
         "readyTitle": "Listo para importar",
@@ -156,8 +159,11 @@
         "batchIdLabel": "ID de lote de importación:",
         "batchIdDescription": "Puede usar este ID para encontrar y gestionar todas las transacciones importadas.",
         "viewTransactionsButton": "Ver transacciones",
-        "startNewImportButton": "Iniciar nueva importación"
-      }
+        "startNewImportButton": "Iniciar nueva importación",
+        "failedDescription": "No se importó nada. Los detalles que aparecen abajo provienen del servidor.",
+        "batchIdNote": "ID de lote de importación: {batchId}. Puede usar este ID para encontrar y gestionar todas las transacciones importadas."
+      },
+      "droppedRowsWarning": "{count} línea de la respuesta de la IA no se pudo leer y fue omitida. El número de transacciones importadas que aparece abajo puede ser menor que el de su archivo. | {count} líneas de la respuesta de la IA no se pudieron leer y fueron omitidas. El número de transacciones importadas que aparece abajo puede ser menor que el de su archivo."
     }
   }
 }

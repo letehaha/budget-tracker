@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { estimateInvestmentImportCost, extractInvestmentTransactions } from '@/api/investment-transactions-import';
 import type { StatementCostEstimateFailure } from '@/api/import-export';
+import AiEstimatedCost from '@/components/common/ai-estimated-cost.vue';
 import { FileDropzone } from '@/components/common/dropzone';
 import { TextareaField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
@@ -279,7 +280,9 @@ onBeforeUnmount(() => abortExtract());
         <div v-if="costEstimate" class="border-border/60 bg-muted/30 grid gap-2 rounded-lg border p-4 text-sm">
           <div class="flex items-center justify-between">
             <span class="text-muted-foreground">{{ $t('investmentsImport.upload.estimatedCost') }}</span>
-            <span class="text-base font-semibold tabular-nums">${{ costEstimate.estimatedCostUsd.toFixed(4) }}</span>
+            <span class="text-base font-semibold tabular-nums">
+              <AiEstimatedCost :estimate="costEstimate" />
+            </span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-muted-foreground">{{ $t('investmentsImport.upload.model') }}</span>
@@ -298,12 +301,12 @@ onBeforeUnmount(() => abortExtract());
           :disabled="!isReadyToExtract || estimate.isPending.value || extract.isPending.value"
           @click="estimate.mutate()"
         >
-          <Loader2Icon v-if="estimate.isPending.value" class="mr-1 size-4 animate-spin" />
+          <Loader2Icon v-if="estimate.isPending.value" class="size-4 animate-spin" />
           {{ $t('investmentsImport.upload.estimateButton') }}
         </Button>
         <Button :disabled="!isReadyToExtract || extract.isPending.value" @click="extract.mutate()">
-          <Loader2Icon v-if="extract.isPending.value" class="mr-1 size-4 animate-spin" />
-          <SparklesIcon v-else class="mr-1 size-4" />
+          <Loader2Icon v-if="extract.isPending.value" class="size-4 animate-spin" />
+          <SparklesIcon v-else class="size-4" />
           {{
             extract.isPending.value
               ? $t('investmentsImport.upload.extracting')
@@ -330,8 +333,8 @@ onBeforeUnmount(() => abortExtract());
         class="border-border/60 bg-muted/20 flex flex-col gap-2 border-t px-5 py-3 sm:flex-row sm:items-center sm:justify-end"
       >
         <Button :disabled="!isReadyToExtract || parseCsv.isPending.value" @click="parseCsv.mutate()">
-          <Loader2Icon v-if="parseCsv.isPending.value" class="mr-1 size-4 animate-spin" />
-          <FileSpreadsheetIcon v-else class="mr-1 size-4" />
+          <Loader2Icon v-if="parseCsv.isPending.value" class="size-4 animate-spin" />
+          <FileSpreadsheetIcon v-else class="size-4" />
           {{
             parseCsv.isPending.value
               ? $t('investmentsImport.upload.parsingCsv')

@@ -18,6 +18,8 @@ import { AI_FEATURE } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed } from 'vue';
 
+import { useAiCustomEndpointsList } from './use-ai-custom-endpoints';
+
 const QUERY_KEYS = {
   apiKeyStatus: VUE_QUERY_CACHE_KEYS.aiApiKeyStatus,
   featuresStatus: VUE_QUERY_CACHE_KEYS.aiFeaturesStatus,
@@ -26,6 +28,8 @@ const QUERY_KEYS = {
 
 export const useAiSettings = () => {
   const queryClient = useQueryClient();
+  const { customEndpoints, isCustomEndpointsError, isFetchingCustomEndpoints, refetchCustomEndpoints } =
+    useAiCustomEndpointsList();
 
   // ===== Queries =====
 
@@ -49,7 +53,6 @@ export const useAiSettings = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.apiKeyStatus });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.featuresStatus });
 
-      // Mark onboarding task as complete
       const onboardingStore = useOnboardingStore();
       onboardingStore.completeTask('configure-ai');
     },
@@ -105,6 +108,15 @@ export const useAiSettings = () => {
 
   const hasAnyApiKey = computed(() => apiKeyStatusQuery.data.value?.hasApiKey ?? false);
 
+  /** A custom endpoint counts as a credential on its own, since a local model needs no API key. */
+  const hasOwnCredentials = computed(() => hasAnyApiKey.value || customEndpoints.value.length > 0);
+
+  /**
+   * `false` from `hasOwnCredentials` means nothing here: the endpoint list failed to load.
+   * Screens gating on credentials must show a retry, not a "no credentials" state.
+   */
+  const credentialsUnknown = computed(() => isCustomEndpointsError.value && !hasOwnCredentials.value);
+
   const defaultProvider = computed(() => apiKeyStatusQuery.data.value?.defaultProvider);
 
   const customInstructions = computed(() => customInstructionsQuery.data.value?.instructions ?? null);
@@ -115,12 +127,6 @@ export const useAiSettings = () => {
     return featuresStatus.value.find((f) => f.feature === feature);
   };
 
-  // ===== Invalidation =====
-
-  const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
-  };
-
   return {
     // Query states
     isLoadingApiKeys: apiKeyStatusQuery.isLoading,
@@ -129,7 +135,10 @@ export const useAiSettings = () => {
 
     // Data
     configuredProviders,
-    hasAnyApiKey,
+    hasOwnCredentials,
+    credentialsUnknown,
+    isRefetchingCredentials: isFetchingCustomEndpoints,
+    refetchCredentials: refetchCustomEndpoints,
     defaultProvider,
     customInstructions,
     featuresStatus,
@@ -155,12 +164,5 @@ export const useAiSettings = () => {
     // Custom instructions mutations
     setCustomInstructions: setCustomInstructionsMutation.mutateAsync,
     isSettingCustomInstructions: setCustomInstructionsMutation.isPending,
-
-    // Invalidation
-    invalidateAll,
-
-    // Raw queries for advanced usage
-    apiKeyStatusQuery,
-    featuresStatusQuery,
   };
 };

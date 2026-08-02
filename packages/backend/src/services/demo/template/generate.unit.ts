@@ -1,7 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 
 import { generateDemoTemplate } from './generate';
-import { allDemoMerchants } from './merchants';
+import { allDemoPayeeMerchants } from './merchants';
 import type { DemoTemplate, DemoTemplateTransaction } from './types';
 
 describe('generateDemoTemplate', () => {
@@ -22,8 +22,9 @@ describe('generateDemoTemplate', () => {
   it('keeps every row inside the history window', () => {
     for (const tx of template.transactions) {
       expect(tx.dayOffset).toBeGreaterThanOrEqual(0);
-      // 36 months of history, with slack for month-length variation.
-      expect(tx.dayOffset).toBeLessThanOrEqual(1120);
+      // 36 months of history, plus the current month-to-date because the window
+      // starts on a month boundary, plus slack for month-length variation.
+      expect(tx.dayOffset).toBeLessThanOrEqual(1160);
     }
   });
 
@@ -56,7 +57,7 @@ describe('generateDemoTemplate', () => {
       for (const legs of legsByKey.values()) {
         expect(legs).toHaveLength(2);
 
-        const types = legs.map((leg) => leg.transactionType).sort();
+        const types = legs.map((leg) => leg.transactionType).toSorted();
         expect(types).toEqual([TRANSACTION_TYPES.expense, TRANSACTION_TYPES.income]);
 
         // Both legs move on the same day and out of different accounts.
@@ -237,17 +238,19 @@ describe('generateDemoTemplate', () => {
     });
 
     it('names a real merchant on spending rows so payees are not empty', () => {
-      const known = new Set(allDemoMerchants().map((merchant) => merchant.name));
       const withMerchant = template.transactions.filter((tx) => tx.merchantName);
-
       expect(withMerchant.length).toBeGreaterThan(500);
-      for (const tx of template.transactions) {
-        if (tx.merchantName && tx.categoryKey !== 'other') {
-          // Recurring bills and subscriptions name a payee that is not in the
-          // shopping vocabulary, so only assert the vocabulary ones resolve.
-          if (known.has(tx.merchantName)) expect(known.has(tx.merchantName)).toBe(true);
-        }
-      }
+    });
+
+    it('only names merchants the payee seeder creates, so every merchantName resolves to a payeeId', () => {
+      const seeded = new Set(allDemoPayeeMerchants().map((merchant) => merchant.name));
+      const unresolved = new Set(
+        template.transactions
+          .filter((tx) => tx.merchantName && !seeded.has(tx.merchantName))
+          .map((tx) => tx.merchantName),
+      );
+
+      expect([...unresolved]).toEqual([]);
     });
 
     it('tags transactions, so tag filters return something', () => {

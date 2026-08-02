@@ -247,7 +247,7 @@ describe('GET /stats/pivot', () => {
     expect(result.grandTotal).toBe(65);
   });
 
-  it('payee dimension: surfaces each payee logoDomain (null when the payee has no logo)', async () => {
+  it('payee dimension: surfaces each payee logo (domain, monogram, or null)', async () => {
     const account = await helpers.createAccount({ raw: true });
     const withLogo = await helpers.createPayee({
       payload: helpers.buildPayeePayload({ name: uniqueName('Netflix'), logoDomain: 'netflix.com' }),
@@ -255,6 +255,14 @@ describe('GET /stats/pivot', () => {
     });
     const withoutLogo = await helpers.createPayee({
       payload: helpers.buildPayeePayload({ name: uniqueName('Corner Shop') }),
+      raw: true,
+    });
+    const withMonogram = await helpers.createPayee({
+      payload: helpers.buildPayeePayload({
+        name: uniqueName('Local Bakery'),
+        logoInitials: 'LB',
+        logoColor: '#7355be',
+      }),
       raw: true,
     });
 
@@ -282,6 +290,18 @@ describe('GET /stats/pivot', () => {
       },
       raw: true,
     });
+    await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 10,
+          transactionType: TRANSACTION_TYPES.expense,
+          payeeId: withMonogram.id,
+        }),
+        time: '2025-10-07T12:00:00.000Z',
+      },
+      raw: true,
+    });
 
     const result = await helpers.getPivotReport({
       from: '2025-10-01',
@@ -297,6 +317,12 @@ describe('GET /stats/pivot', () => {
 
     const plainRow = result.rows.find((row) => row.id === withoutLogo.id);
     expect(plainRow!.logoDomain).toBeNull();
+    expect(plainRow!.logoInitials).toBeNull();
+
+    const monogramRow = result.rows.find((row) => row.id === withMonogram.id);
+    expect(monogramRow!.logoInitials).toBe('LB');
+    expect(monogramRow!.logoColor).toBe('#7355be');
+    expect(monogramRow!.logoDomain).toBeNull();
 
     // The residual Unassigned bucket is not a real payee, so it carries no logoDomain field.
     const unassignedRow = result.rows.find((row) => row.id === 'unassigned');

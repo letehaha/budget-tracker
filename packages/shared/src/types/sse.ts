@@ -33,7 +33,20 @@ export interface AiCategorizationProgressPayload {
   processedCount: number;
   totalCount: number;
   failedCount: number;
+  /** Why transactions failed, when the run itself knows (e.g. the user's AI endpoint is down). */
+  errorMessage?: string;
 }
+
+/**
+ * Response of GET /user/ai/categorization/status. Never 404s: "no job" is a 200
+ * `idle`. A terminal status (`completed` / `failed`) is served exactly once per
+ * run, so later polls report `idle` rather than repeating it.
+ */
+export type AiCategorizationStatus =
+  | { status: 'idle' }
+  | (Omit<AiCategorizationProgressPayload, 'status'> & {
+      status: 'queued' | 'processing' | 'completed' | 'failed';
+    });
 
 /**
  * Account sync status for SYNC_STATUS_CHANGED event

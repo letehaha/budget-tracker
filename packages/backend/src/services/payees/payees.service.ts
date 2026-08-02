@@ -1,5 +1,6 @@
 import {
   CATEGORIZATION_MODE,
+  type EntityLogoPayload,
   type PayeeLookupItem,
   RESOURCE_TYPES,
   SHARE_PERMISSIONS,
@@ -14,7 +15,12 @@ import PayeeTags from '@models/payee-tags.model';
 import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import Transactions from '@models/transactions.model';
-import { applyCachedLogos, enqueueLogoResolution, enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
+import {
+  applyCachedLogos,
+  enqueueLogoResolution,
+  enqueueLogoResolutionAfterCommit,
+  resolveManualLogoFields,
+} from '@services/brand-logos';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { Op, QueryTypes } from 'sequelize';
 
@@ -231,7 +237,7 @@ export const listPayees = withTransaction(
 );
 
 /**
- * All of the user's payees as a minimal {id, name, logoDomain} projection,
+ * All of the user's payees as a minimal {id, name, logo fields} projection,
  * ordered by name. No stats and no limit, so the transaction table's
  * beneficiary column can resolve any payee id regardless of how many the
  * user has.
@@ -239,13 +245,15 @@ export const listPayees = withTransaction(
 export const getPayeesLookup = async ({ userId }: { userId: number }): Promise<PayeeLookupItem[]> => {
   const payees = await Payees.findAll({
     where: { userId },
-    attributes: ['id', 'name', 'logoDomain'],
+    attributes: ['id', 'name', 'logoDomain', 'logoInitials', 'logoColor'],
     order: [['name', 'ASC']],
   });
   return payees.map((payee) => ({
     id: payee.id,
     name: payee.name,
     logoDomain: payee.logoDomain,
+    logoInitials: payee.logoInitials,
+    logoColor: payee.logoColor,
   }));
 };
 
@@ -263,19 +271,12 @@ const addPayeeTags = async ({ payeeId, tagIds }: { payeeId: string; tagIds: stri
   );
 };
 
-interface CreatePayeeParams {
+interface CreatePayeeParams extends EntityLogoPayload {
   userId: number;
   name: string;
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
-  /**
-   * When present (including null), the new Payee is stamped with this logo
-   * domain and `logoSource: 'manual'` so the background resolver treats it as
-   * authoritative and never overwrites it. When absent (undefined), the logo
-   * fields stay unset and the post-commit resolver auto-resolves them.
-   */
-  logoDomain?: string | null;
 }
 
 export const createPayee = withTransaction(
@@ -286,6 +287,8 @@ export const createPayee = withTransaction(
     categorizationMode,
     defaultTagIds,
     logoDomain,
+    logoInitials,
+    logoColor,
   }: CreatePayeeParams): Promise<Payees> => {
     const { display, normalized } = parsePayeeName({ raw: name, emptyMessageKey: 'payees.nameRequired' });
 
@@ -317,9 +320,10 @@ export const createPayee = withTransaction(
       normalizedName: normalized,
       defaultCategoryId: defaultCategoryId ?? null,
       categorizationMode: categorizationMode ?? CATEGORIZATION_MODE.enforce,
-      // A supplied domain (even null) is a manual override; `logoSource: 'manual'`
-      // makes the resolver treat it as authoritative.
-      ...(logoDomain !== undefined ? { logoDomain, logoSource: 'manual' as const } : {}),
+      // A supplied logo value is a manual override (`logoSource: 'manual'` makes
+      // the resolver treat it as authoritative); null keys on create change
+      // nothing, so they resolve to no writes and the resolver stays in charge.
+      ...resolveManualLogoFields({ input: { logoDomain, logoInitials, logoColor } }),
     });
     await addPayeeTags({ payeeId: created.id, tagIds: defaultTagIds ?? [] });
     // Covers both the manual POST /payees route and the YNAB import loop.
@@ -348,7 +352,7 @@ export const getPayee = withTransaction(
   },
 );
 
-interface UpdatePayeeParams {
+interface UpdatePayeeParams extends EntityLogoPayload {
   userId: number;
   id: string;
   name?: string;
@@ -356,13 +360,6 @@ interface UpdatePayeeParams {
   categorizationMode?: CATEGORIZATION_MODE;
   /** Full replacement of the Payee's default-tag set; `[]` clears the rule. */
   defaultTagIds?: string[];
-  /**
-   * When present (including null), sets logoDomain to this value and stamps
-   * logoSource = 'manual' so the auto-resolver never overwrites the user's
-   * choice. null = user explicitly wants no logo, still treated as manual.
-   * When absent (undefined), both logo fields are left untouched.
-   */
-  logoDomain?: string | null;
 }
 
 /**
@@ -381,6 +378,8 @@ export const updatePayee = withTransaction(
     categorizationMode,
     defaultTagIds,
     logoDomain,
+    logoInitials,
+    logoColor,
   }: UpdatePayeeParams): Promise<Payees> => {
     const payee = await loadPayeeOrThrow({ userId, id });
 
@@ -435,12 +434,15 @@ export const updatePayee = withTransaction(
       }
     }
 
-    // Key present (even null) → user is making a manual override.
-    // Key absent (undefined) → leave logo fields untouched.
-    if (logoDomain !== undefined) {
-      payee.logoDomain = logoDomain;
-      payee.logoSource = 'manual';
-    }
+    // A logo key that changes a stored value → manual override. All keys absent,
+    // or a payload that just re-states the stored values → no writes, so the
+    // background resolver keeps ownership of the logo.
+    payee.set(
+      resolveManualLogoFields({
+        input: { logoDomain, logoInitials, logoColor },
+        stored: { logoDomain: payee.logoDomain, logoInitials: payee.logoInitials, logoColor: payee.logoColor },
+      }),
+    );
 
     await payee.save();
     return loadPayeeOrThrow({ userId, id });
@@ -454,7 +456,7 @@ interface ResetPayeeLogoParams {
 
 /**
  * Clears the manual logo override so the background resolver can re-run and
- * pick a new domain automatically. Sets both logo fields to null (logoSource
+ * pick a new domain automatically. Sets all four logo fields to null (logoSource
  * null signals the resolver that this Payee still needs a resolution pass),
  * then schedules resolution to run once the transaction commits rather than
  * waiting for the next lazy backfill. Enqueuing after commit is required: the
@@ -467,6 +469,8 @@ export const resetPayeeLogo = withTransaction(async ({ userId, id }: ResetPayeeL
   const payee = await loadPayeeOrThrow({ userId, id });
   payee.logoDomain = null;
   payee.logoSource = null;
+  payee.logoInitials = null;
+  payee.logoColor = null;
   await payee.save();
   enqueueLogoResolutionAfterCommit({ entity: 'payee', id });
   return loadPayeeOrThrow({ userId, id });

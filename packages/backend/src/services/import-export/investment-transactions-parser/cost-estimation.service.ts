@@ -4,8 +4,8 @@
  * shape, but token counts come from the same tokeniser.
  */
 import { AI_FEATURE, type StatementCostEstimate, type StatementFileType } from '@bt/shared/types';
-import { resolveAIConfiguration } from '@services/ai';
-import { getModelInfo } from '@services/ai/models-config';
+import { estimateModelCostUsd } from '@services/ai/models-config';
+import { resolveEstimationPrelude, resolveTokenLimit } from '@services/import-export/core/cost-estimation';
 import { estimateTokenCount } from '@services/import-export/statement-parser/text-extractor';
 
 import { createTextExtractionPrompt, getSystemPrompt } from './extraction-prompt';
@@ -15,7 +15,6 @@ import { createTextExtractionPrompt, getSystemPrompt } from './extraction-prompt
 const TOKENS_PER_TRANSACTION = 40;
 const MIN_TRANSACTIONS_PER_PAGE = 5;
 const MAX_TRANSACTIONS_PER_PAGE = 30;
-const DEFAULT_CONTEXT_WINDOW = 100_000;
 
 interface CostEstimationParams {
   userId: number;
@@ -40,31 +39,13 @@ export async function estimateInvestmentExtractionCost({
   pageCount,
   fileType,
 }: CostEstimationParams): Promise<CostEstimationResultType> {
-  const aiConfig = await resolveAIConfiguration({
-    userId,
-    feature: AI_FEATURE.investmentTransactionsParsing,
-  });
+  const prelude = await resolveEstimationPrelude({ userId, feature: AI_FEATURE.investmentTransactionsParsing });
 
-  if (!aiConfig) {
-    return {
-      success: false,
-      error: {
-        code: 'NO_AI_CONFIGURED',
-        message: 'No AI provider configured. Please add an API key in settings.',
-      },
-    };
+  if (!prelude.ok) {
+    return { success: false, error: prelude.error };
   }
 
-  const modelInfo = getModelInfo({ modelId: aiConfig.modelId });
-  if (!modelInfo) {
-    return {
-      success: false,
-      error: {
-        code: 'NO_AI_CONFIGURED',
-        message: `Model ${aiConfig.modelId} not found in configuration`,
-      },
-    };
-  }
+  const { aiConfig, modelProfile } = prelude;
 
   const systemPrompt = getSystemPrompt();
   const systemPromptTokens = estimateTokenCount({ text: systemPrompt });
@@ -74,23 +55,14 @@ export async function estimateInvestmentExtractionCost({
   const estimatedTransactions = pageCount * ((MIN_TRANSACTIONS_PER_PAGE + MAX_TRANSACTIONS_PER_PAGE) / 2);
   const estimatedOutputTokens = Math.ceil(estimatedTransactions * TOKENS_PER_TRANSACTION);
 
-  const contextWindow = modelInfo.contextWindow || DEFAULT_CONTEXT_WINDOW;
-  const maxInputTokens = Math.floor(contextWindow / 3);
-  const exceedsLimit = estimatedInputTokens > maxInputTokens;
+  const tokenLimit = resolveTokenLimit({ modelProfile, estimatedInputTokens });
 
-  let estimatedCostUsd = 0;
-  if (modelInfo.pricing) {
-    const inputCost = (estimatedInputTokens / 1_000_000) * modelInfo.pricing.inputPerMillion;
-    const outputCost = (estimatedOutputTokens / 1_000_000) * modelInfo.pricing.outputPerMillion;
-    estimatedCostUsd = inputCost + outputCost;
-  }
-
-  if (exceedsLimit) {
+  if (tokenLimit.exceeded) {
     return {
       success: false,
       error: {
         code: 'TOKEN_LIMIT_EXCEEDED',
-        message: `File too large. Estimated ${estimatedInputTokens.toLocaleString()} tokens vs limit ${maxInputTokens.toLocaleString()} (model ${modelInfo.name}).`,
+        message: `File too large. Estimated ${estimatedInputTokens.toLocaleString()} tokens vs limit ${tokenLimit.maxInputTokens.toLocaleString()} (model ${tokenLimit.modelName}).`,
         details: `Split the upload into smaller files or use a model with a larger context window.`,
       },
     };
@@ -101,9 +73,13 @@ export async function estimateInvestmentExtractionCost({
     estimate: {
       estimatedInputTokens,
       estimatedOutputTokens,
-      estimatedCostUsd,
+      estimatedCostUsd: estimateModelCostUsd({
+        profile: modelProfile,
+        inputTokens: estimatedInputTokens,
+        outputTokens: estimatedOutputTokens,
+      }),
       modelId: aiConfig.modelId,
-      modelName: modelInfo.name,
+      modelName: modelProfile.name,
       usingUserKey: aiConfig.usingUserKey,
       textExtraction: {
         success: true,
@@ -111,10 +87,6 @@ export async function estimateInvestmentExtractionCost({
         pageCount,
       },
       fileType,
-      tokenLimit: {
-        maxInputTokens,
-        exceedsLimit,
-      },
     },
   };
 }

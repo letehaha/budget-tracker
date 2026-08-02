@@ -192,6 +192,19 @@ describe('parseCategorizationResponse', () => {
     expect(result).toEqual([{ transactionId: TX2, categoryId: CAT2 }]);
   });
 
+  it('parses short alias ids (the format prompts actually use)', () => {
+    const result = parseCategorizationResponse({
+      response: 't1:c2\nt2:c1',
+      validCategoryIds: new Set(['c1', 'c2']),
+      validTransactionIds: new Set(['t1', 't2']),
+    });
+
+    expect(result).toEqual([
+      { transactionId: 't1', categoryId: 'c2' },
+      { transactionId: 't2', categoryId: 'c1' },
+    ]);
+  });
+
   it('handles large set of IDs', () => {
     const largeTxId = generateRandomRecordId();
     const largeCatId = generateRandomRecordId();

@@ -35,7 +35,6 @@
         "tryAgain": "Try Again",
         "modelLabel": "Model",
         "estimatedCostLabel": "Estimated Cost",
-        "yourApiKey": "(your API key)",
         "estimatedTokensLabel": "Estimated Tokens",
         "extractButton": "Extract Transactions",
         "progressMessage": "This may take 30-60 seconds depending on the document size",
@@ -86,6 +85,8 @@
         "currency": "Currency:",
         "currencyNotDetected": "Could not detect statement currency. Please select the currency manually:",
         "currencyMismatch": "The statement currency ({statementCurrency}) differs from the account currency ({accountCurrency}). Transactions will be imported using the account currency.",
+        "yourCurrenciesGroup": "Your currencies",
+        "allCurrenciesGroup": "All currencies",
         "createNew": "Create New",
         "back": "Back",
         "importTransactions": "Import Transactions",
@@ -129,8 +130,10 @@
         "toggleWillSkip": "will skip.",
         "backButton": "Back",
         "continueButton": "Continue to Import",
-        "transactionCount": "({count} transactions)"
+        "transactionCount": "({count} transactions)",
+        "duplicateCheckFailed": "We couldn't check this statement against your existing transactions, so the duplicate count below is unavailable. Review the list before importing."
       },
+      "droppedRowsWarning": "{count} line from the AI response couldn't be read and was skipped. The imported count below may be lower than what's in your file. | {count} lines from the AI response couldn't be read and were skipped. The imported count below may be lower than what's in your file.",
       "importResults": {
         "readyTitle": "Ready to Import",
         "readyDescription": "Review the summary below and click \"Import Transactions\" to proceed.",
@@ -142,7 +145,7 @@
         "importingTitle": "Importing Transactions",
         "importingDescription": "Please wait while we import your transactions...",
         "failedTitle": "Import Failed",
-        "startOverButton": "Start Over",
+        "failedDescription": "Nothing was imported. The details below come from the server.",
         "tryAgainButton": "Try Again",
         "completeTitle": "Import Complete!",
         "completeWithIssuesTitle": "Import Completed with Issues",
@@ -153,8 +156,7 @@
         "errorsTitle": "Import Errors",
         "transactionNumberHeader": "Transaction #",
         "errorHeader": "Error",
-        "batchIdLabel": "Import Batch ID:",
-        "batchIdDescription": "You can use this ID to find and manage all imported transactions.",
+        "batchIdNote": "Import Batch ID: {batchId}. You can use this ID to find and manage all imported transactions.",
         "viewTransactionsButton": "View Transactions",
         "startNewImportButton": "Start New Import"
       }

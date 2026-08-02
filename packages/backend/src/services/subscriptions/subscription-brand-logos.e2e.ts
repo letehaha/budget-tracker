@@ -9,7 +9,16 @@ import { getLogoDevSearchMock } from '@tests/mocks/logo-dev/mock-api';
 
 // A bill needs only a name/frequency/startDate (no amount), keeping these logo
 // tests focused on the logo fields.
-const buildBillPayload = (overrides: { name?: string; logoDomain?: string | null } = {}) => ({
+const buildBillPayload = (
+  overrides: {
+    name?: string;
+    logoDomain?: string | null;
+    logoInitials?: string | null;
+    logoColor?: string | null;
+    expectedAmount?: number;
+    expectedCurrencyCode?: string;
+  } = {},
+) => ({
   name: 'Rent',
   type: SUBSCRIPTION_TYPES.bill,
   frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -32,14 +41,16 @@ describe('Subscription POST logoDomain', () => {
     expect(created.logoSource).toBe('manual');
   });
 
-  it('accepts null logoDomain and stamps logoSource as manual (explicit no-logo)', async () => {
+  it('treats null logoDomain on create as a no-op (resolver keeps ownership)', async () => {
     const created = await helpers.createSubscription({
       ...buildBillPayload({ name: 'Rent', logoDomain: null }),
       raw: true,
     });
 
     expect(created.logoDomain).toBeNull();
-    expect(created.logoSource).toBe('manual');
+    // Nothing was stored to clear, so no 'manual' stamp – the background
+    // resolver stays free to fill this logo in later.
+    expect(created.logoSource).not.toBe('manual');
   });
 
   it('auto-resolves from the BrandLogos cache when logoDomain is omitted', async () => {
@@ -343,5 +354,279 @@ describe('Subscription read-path cache surfacing', () => {
     const item = list.find((s) => s.id === created.id);
     expect(item?.logoSource).toBe('auto');
     expect(item?.logoDomain).toBe('linear.app');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Custom monogram (logoInitials + logoColor) – the alternative to a brand logo
+// ---------------------------------------------------------------------------
+
+describe('Subscription monogram', () => {
+  describe('POST /subscriptions', () => {
+    it('creates with logoInitials + logoColor and stamps logoSource as manual', async () => {
+      const created = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Rent', logoInitials: 'RE', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      expect(created.logoInitials).toBe('RE');
+      expect(created.logoColor).toBe('#7355be');
+      expect(created.logoDomain).toBeNull();
+      expect(created.logoSource).toBe('manual');
+
+      const fetched = await helpers.getSubscriptionById({ id: created.id, raw: true });
+      expect(fetched.logoInitials).toBe('RE');
+      expect(fetched.logoColor).toBe('#7355be');
+      expect(fetched.logoDomain).toBeNull();
+      expect(fetched.logoSource).toBe('manual');
+    });
+
+    it('normalizes logoColor to lowercase', async () => {
+      const created = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Upper Hex', logoInitials: 'UH', logoColor: '#7355BE' }),
+        raw: true,
+      });
+
+      expect(created.logoColor).toBe('#7355be');
+    });
+
+    it('accepts two family ZWJ emoji whose UTF-16 length exceeds 16', async () => {
+      // Each family emoji is 7 code points (11 UTF-16 units); two of them are 2
+      // graphemes / 14 code points, which fits VARCHAR(16) – Postgres counts
+      // code points, so a UTF-16-based length cap would wrongly reject this.
+      const initials = '👨‍👩‍👧‍👦👨‍👩‍👧‍👦';
+      const created = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Two Families', logoInitials: initials }),
+        raw: true,
+      });
+
+      expect(created.logoInitials).toBe(initials);
+
+      const fetched = await helpers.getSubscriptionById({ id: created.id, raw: true });
+      expect(fetched.logoInitials).toBe(initials);
+    });
+
+    it('returns 422 when logoDomain and logoInitials are both set', async () => {
+      const res = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Both Logos', logoDomain: 'netflix.com', logoInitials: 'NF' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 for whitespace-only logoInitials', async () => {
+      const res = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Blank Initials', logoInitials: '   ' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 for three graphemes', async () => {
+      const res = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Too Many Letters', logoInitials: 'ABC' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 for a malformed logoColor', async () => {
+      const res = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Bad Color', logoInitials: 'BC', logoColor: 'violet' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 when logoColor is sent without logoInitials', async () => {
+      const res = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Color Only', logoColor: '#7355be' }),
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('PUT /subscriptions/:id', () => {
+    it('sets a monogram and clears an existing logoDomain', async () => {
+      const sub = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Corner Gym', logoDomain: 'gym.example' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updateSubscription({
+        id: sub.id,
+        logoInitials: 'CG',
+        logoColor: '#22c55e',
+        raw: true,
+      });
+
+      expect(updated.logoInitials).toBe('CG');
+      expect(updated.logoColor).toBe('#22c55e');
+      expect(updated.logoDomain).toBeNull();
+      expect(updated.logoSource).toBe('manual');
+    });
+
+    it('clears the monogram when a brand domain is picked', async () => {
+      const sub = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Switcheroo', logoInitials: 'SW', logoColor: '#ef4444' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updateSubscription({ id: sub.id, logoDomain: 'netflix.com', raw: true });
+
+      expect(updated.logoDomain).toBe('netflix.com');
+      expect(updated.logoInitials).toBeNull();
+      expect(updated.logoColor).toBeNull();
+      expect(updated.logoSource).toBe('manual');
+    });
+
+    it('clears initials and color when logoInitials is null, keeping logoSource manual', async () => {
+      const sub = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Clear Me', logoInitials: 'CM', logoColor: '#ef4444' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updateSubscription({ id: sub.id, logoInitials: null, raw: true });
+
+      expect(updated.logoInitials).toBeNull();
+      expect(updated.logoColor).toBeNull();
+      expect(updated.logoSource).toBe('manual');
+    });
+
+    it('keeps the monogram when logoDomain is explicitly cleared', async () => {
+      // Domain and initials are asymmetric on purpose: setting a domain evicts
+      // the monogram, but clearing the (already null) domain must not touch it.
+      const sub = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Mono Survives', logoInitials: 'MS', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updateSubscription({ id: sub.id, logoDomain: null, raw: true });
+
+      expect(updated.logoDomain).toBeNull();
+      expect(updated.logoInitials).toBe('MS');
+      expect(updated.logoColor).toBe('#7355be');
+    });
+
+    it('updates logoColor alone when the subscription already has initials', async () => {
+      const sub = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Recolor', logoInitials: 'RC', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updateSubscription({ id: sub.id, logoColor: '#0ea5e9', raw: true });
+
+      expect(updated.logoColor).toBe('#0ea5e9');
+      expect(updated.logoInitials).toBe('RC');
+    });
+
+    it('leaves the monogram untouched when the payload omits the logo keys', async () => {
+      const sub = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Keep Mono', logoInitials: 'KM', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      const updated = await helpers.updateSubscription({ id: sub.id, name: 'Keep Mono Renamed', raw: true });
+
+      expect(updated.logoInitials).toBe('KM');
+      expect(updated.logoColor).toBe('#7355be');
+      expect(updated.logoSource).toBe('manual');
+    });
+
+    it('returns 422 when logoColor is sent for a subscription without initials', async () => {
+      const sub = await helpers.createSubscription({ ...buildBillPayload({ name: 'No Initials Yet' }), raw: true });
+
+      const res = await helpers.updateSubscription({ id: sub.id, logoColor: '#7355be', raw: false });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('returns 422 when the payload carries both logoDomain and logoInitials', async () => {
+      const sub = await helpers.createSubscription({ ...buildBillPayload({ name: 'Both On Update' }), raw: true });
+
+      const res = await helpers.updateSubscription({
+        id: sub.id,
+        logoDomain: 'netflix.com',
+        logoInitials: 'NF',
+        raw: false,
+      });
+
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('read paths', () => {
+    it('returns the monogram fields on GET /subscriptions', async () => {
+      const created = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Listed Mono', logoInitials: 'LM', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      const list = await helpers.getSubscriptions({ raw: true });
+      const item = list.find((s) => s.id === created.id);
+
+      expect(item?.logoInitials).toBe('LM');
+      expect(item?.logoColor).toBe('#7355be');
+    });
+
+    it('returns the monogram fields on GET /subscriptions/upcoming', async () => {
+      const created = await helpers.createSubscription({
+        ...buildBillPayload({
+          name: 'Upcoming Mono',
+          logoInitials: 'UM',
+          logoColor: '#7355be',
+          expectedAmount: 12.5,
+          expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+        }),
+        raw: true,
+      });
+
+      const upcoming = await helpers.getUpcomingPayments({ raw: true });
+      const item = upcoming.find((payment) => payment.subscriptionId === created.id);
+
+      expect(item?.logoInitials).toBe('UM');
+      expect(item?.logoColor).toBe('#7355be');
+    });
+  });
+
+  describe('POST /subscriptions/:id/reset-logo', () => {
+    it('clears initials and color and lets auto-resolution re-run', async () => {
+      await BrandLogos.create({
+        normalizedName: 'twilio',
+        domain: 'twilio.com',
+        brandName: 'Twilio',
+        source: 'seed',
+      });
+
+      const sub = await helpers.createSubscription({
+        ...buildBillPayload({ name: 'Twilio', logoInitials: 'TW', logoColor: '#7355be' }),
+        raw: true,
+      });
+      expect(sub.logoSource).toBe('manual');
+
+      const reset = await helpers.resetSubscriptionLogo({ id: sub.id, raw: true });
+      expect(reset.logoInitials).toBeNull();
+      expect(reset.logoColor).toBeNull();
+      expect(reset.logoDomain).toBeNull();
+      expect(reset.logoSource).toBeNull();
+
+      await until(
+        async () => {
+          const fetched = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+          return fetched.logoSource === 'auto';
+        },
+        { timeout: 10_000, interval: 200 },
+      );
+
+      const reResolved = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(reResolved.logoDomain).toBe('twilio.com');
+      expect(reResolved.logoInitials).toBeNull();
+    });
   });
 });

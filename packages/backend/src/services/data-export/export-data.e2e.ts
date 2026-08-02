@@ -538,6 +538,38 @@ describe('Data export (POST /user/data-export)', () => {
     });
   });
 
+  describe('Portfolio transfers referencing a trashed portfolio', () => {
+    it('resolves the trashed portfolio name instead of emitting the unresolved sentinel', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const portfolio = await helpers.createPortfolio({ payload: { name: 'Trashed portfolio' }, raw: true });
+      await helpers.accountToPortfolioTransfer({
+        portfolioId: portfolio.id,
+        payload: {
+          accountId: account.id,
+          amount: '100',
+          date: new Date().toISOString().slice(0, 10),
+        },
+        raw: true,
+      });
+      // Soft delete: portfolio goes to the 30-day trash but the transfer row survives.
+      await helpers.deletePortfolio({ portfolioId: portfolio.id, raw: true });
+
+      const response = await helpers.exportData({ format: 'csv', groups: ['investments'] });
+      expect(response.statusCode).toBe(200);
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+
+      const transferRows = helpers.parseExportCsv({ buffer: archive.files.get('portfolio_transfers.csv')! });
+      expect(transferRows).toHaveLength(1);
+      expect(transferRows[0]?.FromAccount).toBe(account.name);
+      expect(transferRows[0]?.ToAccount).toBe('Trashed portfolio');
+
+      // portfolios.csv stays live-only: the trash is transient, so a trashed
+      // portfolio is named by historical rows but not listed as a portfolio.
+      const portfolioRows = helpers.parseExportCsv({ buffer: archive.files.get('portfolios.csv')! });
+      expect(portfolioRows.some((r) => r.Name === 'Trashed portfolio')).toBe(false);
+    });
+  });
+
   describe('Portfolios cash balances (per-currency)', () => {
     it('emits the packed CashBalances cell for CSV and a structured cashBalances array for JSON', async () => {
       // Portfolio is seeded via the public API; the export pipeline reads

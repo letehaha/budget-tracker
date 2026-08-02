@@ -196,7 +196,8 @@
         "amountMayBeSmaller": "Beberapa opsi mungkin lebih kecil dari jumlah refund Anda",
         "finalValidationWarning": "Validasi akhir akan menggunakan jumlah yang sudah dikonversi.",
         "mainCategoryLabel": "(utama)",
-        "linkRemovedOnTypeChange": "Tautan refund dihapus karena jenis transaksi berubah."
+        "linkRemovedOnTypeChange": "Tautan refund dihapus karena jenis transaksi berubah.",
+        "unlinkRefund": "Lepas tautan pengembalian dana"
       },
       "refundInfo": {
         "trigger": "Bagaimana caranya?",

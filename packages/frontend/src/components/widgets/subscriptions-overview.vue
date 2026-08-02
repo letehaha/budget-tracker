@@ -222,7 +222,13 @@ function openSubscriptionsList() {
           :to="{ name: ROUTES_NAMES.plannedSubscriptionDetails, params: { id: payment.subscriptionId } }"
           class="hover:bg-muted/50 flex items-center gap-3 rounded-md px-3 py-1.5 transition-colors"
         >
-          <BrandLogo :domain="payment.logoDomain" :name="payment.subscriptionName" class="size-5" />
+          <BrandLogo
+            :domain="payment.logoDomain"
+            :initials="payment.logoInitials"
+            :color="payment.logoColor"
+            :name="payment.subscriptionName"
+            class="size-5"
+          />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ payment.subscriptionName }}</p>
             <p class="text-muted-foreground text-xs">{{ formatNextDate({ dateStr: payment.nextPaymentDate }) }}</p>
@@ -256,7 +262,13 @@ function openSubscriptionsList() {
             {{ $t('widgets.subscriptionsOverview.overdueBadge') }}
           </span>
 
-          <BrandLogo :domain="sub.logoDomain" :name="sub.name" class="size-5 shrink-0" />
+          <BrandLogo
+            :domain="sub.logoDomain"
+            :initials="sub.logoInitials"
+            :color="sub.logoColor"
+            :name="sub.name"
+            class="size-5 shrink-0"
+          />
 
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ sub.name }}</p>

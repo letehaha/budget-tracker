@@ -34,8 +34,14 @@ export async function transformPortfolioTransfers({
     accountIds.size
       ? Accounts.findAll({ where: { userId, id: { [Op.in]: [...accountIds] } }, attributes: ['id', 'name'] })
       : Promise.resolve([] as Accounts[]),
+    // paranoid: false — transfers survive a portfolio soft-delete, so the name
+    // lookup must see trashed portfolios or historical rows degrade to sentinels.
     portfolioIds.size
-      ? Portfolios.findAll({ where: { userId, id: { [Op.in]: [...portfolioIds] } }, attributes: ['id', 'name'] })
+      ? Portfolios.findAll({
+          where: { userId, id: { [Op.in]: [...portfolioIds] } },
+          attributes: ['id', 'name'],
+          paranoid: false,
+        })
       : Promise.resolve([] as Portfolios[]),
   ]);
 

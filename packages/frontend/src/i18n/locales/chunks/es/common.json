@@ -187,7 +187,19 @@
       "searchError": "No se pudieron cargar los logotipos – intente de nuevo",
       "editAriaLabel": "Editar logo",
       "dialogTitle": "Cambiar logo",
-      "resetToAuto": "Restablecer a automático"
+      "resetToAuto": "Restablecer a automático",
+      "tabs": {
+        "brand": "Marca",
+        "letters": "Letras"
+      },
+      "noResultsLettersHint": "Usar letras en su lugar",
+      "lettersLabel": "Letras (1–2)",
+      "lettersPlaceholder": "AB",
+      "colorLabel": "Color",
+      "colorSwatchAriaLabel": "Usar color {color}",
+      "customColorAriaLabel": "Elegir un color personalizado",
+      "applyLetters": "Aplicar",
+      "lettersSelectedLabel": "Letras “{letters}”"
     }
   },
   "accountGroups": {
@@ -360,6 +372,12 @@
           }
         }
       }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(su clave de API)",
+      "setByEndpoint": "Definido por su endpoint"
     }
   }
 }
