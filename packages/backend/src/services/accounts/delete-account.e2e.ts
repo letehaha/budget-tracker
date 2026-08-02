@@ -1,4 +1,9 @@
-import { API_ERROR_CODES, TRANSACTION_TRANSFER_NATURE, type RecordId } from '@bt/shared/types';
+import {
+  API_ERROR_CODES,
+  SUBSCRIPTION_FREQUENCIES,
+  TRANSACTION_TRANSFER_NATURE,
+  type RecordId,
+} from '@bt/shared/types';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -199,6 +204,35 @@ describe('Delete Account', () => {
 
       const accountsAfter = await helpers.getAccounts();
       expect(accountsAfter.some((acc) => acc.id === sourceAccount.id)).toBe(true);
+    });
+  });
+
+  describe('Account deletion with subscriptions', () => {
+    it('deletes an account whose subscription has auto-record enabled', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const subscription = await helpers.createSubscription({
+        name: 'Auto-record Subscription',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: new Date().toISOString(),
+        accountId: account.id,
+        expectedAmount: 10,
+        expectedCurrencyCode: account.currencyCode,
+        autoRecord: true,
+        raw: true,
+      });
+
+      const response = await helpers.deleteAccount({ id: account.id, raw: false });
+      expect(response.statusCode).toBe(200);
+
+      const accountsAfter = await helpers.getAccounts();
+      expect(accountsAfter.some((acc) => acc.id === account.id)).toBe(false);
+
+      const updatedSubscription = await helpers.getSubscriptionById({
+        id: String(subscription.id),
+        raw: true,
+      });
+      expect(updatedSubscription.accountId ?? null).toBeNull();
     });
   });
 });

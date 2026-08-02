@@ -689,6 +689,49 @@ describe('Subscription Candidate Detection', () => {
       }
     });
 
+    it('skips sample transactions that were deleted after detection', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const txs = await createRecurringTransactions({
+        accountId: account.id,
+        note: 'VANISHING SERVICE',
+        amount: 9,
+        count: 4,
+        intervalDays: 30,
+      });
+
+      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
+      const candidate = detection.candidates.find((c) => c.suggestedName.includes('VANISHING'))!;
+      expect(candidate.sampleTransactionIds).toContain(txs[0]!.id);
+
+      const deletedTx = txs[0]!;
+      await helpers.deleteTransaction({ id: deletedTx.id });
+
+      const sub = await helpers.createSubscription({
+        name: 'Vanishing Service',
+        expectedAmount: 9,
+        expectedCurrencyCode: account.currencyCode,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const response = await helpers.acceptSubscriptionCandidate({
+        id: candidate.id,
+        subscriptionId: sub.id,
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const subDetail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const linkedTxIds = subDetail.transactions.map((t) => t.id);
+
+      expect(linkedTxIds).not.toContain(deletedTx.id);
+      for (const tx of txs.slice(1)) {
+        expect(linkedTxIds).toContain(tx.id);
+      }
+    });
+
     it('skips transactions that are already linked to another subscription', async () => {
       const account = await helpers.createAccount({ raw: true });
 

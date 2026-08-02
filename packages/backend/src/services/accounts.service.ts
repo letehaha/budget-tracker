@@ -36,6 +36,7 @@ import { Op } from 'sequelize';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { restampRefInitialBalance } from './accounts/restamp-ref-initial-balance';
+import { unlinkSubscriptionsFromAccount } from './accounts/unlink-subscriptions-from-account';
 import { withTransaction } from './common/with-transaction';
 
 type AccountWithRelinkStatus = Accounts.default & {
@@ -425,6 +426,11 @@ const deleteAccountByIdInTx = withTransaction(
     // about-to-be-cascaded leg on this account. Same transaction as the destroy, so a
     // failure rolls everything back together.
     await convertCrossUserTransfersForAccountIds({ accountIds: [id], ownerUserId: userId });
+
+    // The destroy cascades `Subscriptions.accountId` to NULL at the DB level, which trips
+    // the auto-record check constraint on any subscription still booking into this account.
+    // Clearing both columns first is the only way to satisfy it — the cascade can't.
+    await unlinkSubscriptionsFromAccount({ accountId: id });
 
     const affectedRows = await Accounts.deleteAccountById({ id, userId });
     if (affectedRows === 0) {
