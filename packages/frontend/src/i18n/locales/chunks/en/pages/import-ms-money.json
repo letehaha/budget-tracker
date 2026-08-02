@@ -109,7 +109,13 @@
           "rowPrefix": "Row {rowIndex}:",
           "viewTransactions": "View transactions",
           "importAnother": "Import another file"
-        }
+        },
+        "leaseExpired": {
+          "title": "Your uploaded file is no longer available",
+          "description": "The parsed copy of your Money file was released after a period of inactivity. Your mapping choices could not be kept, so the import needs to start from the upload step again.",
+          "action": "Start over"
+        },
+        "leaseResourceLabel": "Your uploaded file"
       }
     }
   }

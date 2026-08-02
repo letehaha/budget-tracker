@@ -10,7 +10,7 @@ import { createImportJobQueue } from '@services/import-export/core/queue/create-
 import { randomUUID } from 'node:crypto';
 
 import { executeMsMoneyImport } from './execute-import.service';
-import { assertMsMoneyUploadExists } from './upload-cache';
+import { holdMsMoneyUpload } from './upload-cache';
 
 interface MsMoneyImportJobData extends SentryTraceData {
   userId: number;
@@ -67,10 +67,10 @@ export async function queueMsMoneyImport({
   skipDuplicateIndices: number[];
   recalculateBalance?: boolean;
 }): Promise<string> {
-  // Check the upload before queuing anything: an id that is unknown, expired, or
-  // somebody else's is a 404 the user can act on, not a job that starts and then
-  // dies with the same message minutes later.
-  await assertMsMoneyUploadExists({ userId, uploadId });
+  // Claim the upload before queuing anything. It doubles as the existence check:
+  // an id that is unknown, expired, or somebody else's is a 404 the user can act
+  // on, not a job that starts and then dies with the same message minutes later.
+  await holdMsMoneyUpload({ userId, uploadId });
 
   // Hyphens only — a colon in a custom jobId makes BullMQ throw. Random suffix
   // (not a timestamp): two imports the same user fires within the same

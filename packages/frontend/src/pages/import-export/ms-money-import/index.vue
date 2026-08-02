@@ -12,13 +12,37 @@
         <ChevronLeftIcon class="size-4" />
         {{ $t('settings.dataManagement.import.back') }}
       </RouterLink>
-      <h2 class="mb-2 text-2xl font-semibold text-balance">
-        {{ $t('pages.importExport.msMoneyImport.pageTitle') }}
-      </h2>
+      <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2 class="text-2xl font-semibold text-balance">
+          {{ $t('pages.importExport.msMoneyImport.pageTitle') }}
+        </h2>
+
+        <ResourceLeaseBadge
+          v-if="isLeaseHeld"
+          :state="leaseState"
+          :formatted-remaining="formattedRemaining"
+          :ms-remaining="msRemaining"
+          :is-capped="isCapped"
+          :resource-label="$t('pages.importExport.msMoneyImport.leaseResourceLabel')"
+        />
+      </div>
       <p class="text-muted-foreground text-sm">
         {{ $t('pages.importExport.msMoneyImport.pageDescription') }}
       </p>
     </div>
+
+    <Callout
+      v-if="isLeaseHeld && isExpired"
+      variant="destructive"
+      role="alert"
+      class="mb-6"
+      :title="$t('pages.importExport.msMoneyImport.leaseExpired.title')"
+    >
+      <p>{{ $t('pages.importExport.msMoneyImport.leaseExpired.description') }}</p>
+      <Button variant="destructive" size="sm" class="mt-3" @click="store.reset()">
+        {{ $t('pages.importExport.msMoneyImport.leaseExpired.action') }}
+      </Button>
+    </Callout>
 
     <!-- Numbered stepper. Container-query driven so it reacts to the content width, not the
          viewport (sidebar). Shared with the other wizards via the common container identifier. -->
@@ -44,11 +68,16 @@
 </template>
 
 <script setup lang="ts">
+import ResourceLeaseBadge from '@/components/common/resource-lease-badge.vue';
+import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { Card, CardContent } from '@/components/lib/ui/card';
+import { useResourceLease } from '@/composable/use-resource-lease';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
 import { type MsMoneyImportStepKey, useImportMsMoneyStore } from '@/stores/import-ms-money';
 import { ChevronLeftIcon } from '@lucide/vue';
+import { storeToRefs } from 'pinia';
 import { computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 
@@ -74,6 +103,29 @@ const store = useImportMsMoneyStore();
 const stepperSteps = computed(() =>
   store.visibleSteps.map((step) => ({ key: step.key, labelKey: STEP_LABEL_KEYS[step.key] })),
 );
+
+/**
+ * Steps the wizard no longer reads the cached parse result on. Queueing the job
+ * pins the entry to its absolute cap server-side, so the import owns it from here
+ * and the client has nothing left to keep alive.
+ */
+const STEPS_WITHOUT_UPLOAD: readonly MsMoneyImportStepKey[] = ['execute', 'done'];
+
+const { lease } = storeToRefs(store);
+
+const isLeaseHeld = computed(() => store.uploadId !== null && !STEPS_WITHOUT_UPLOAD.includes(store.currentStepKey));
+
+const {
+  state: leaseState,
+  msRemaining,
+  formattedRemaining,
+  isExpired,
+  isCapped,
+} = useResourceLease({
+  lease,
+  refresh: () => store.refreshLease(),
+  enabled: isLeaseHeld,
+});
 
 /** The stepper only emits keys for reachable (completed) steps, all valid MsMoneyImportStepKeys. */
 function onNavigate(key: string) {

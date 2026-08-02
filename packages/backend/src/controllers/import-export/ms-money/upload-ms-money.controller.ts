@@ -49,8 +49,8 @@ export const uploadMsMoneyController = createController(z.object({}), async ({ u
   }
 
   const result = parseMsMoneyFile({ buffer: body, password: parsedPassword.data || null });
-  const { uploadId, expiresAt } = await storeMsMoneyUpload({ userId: user.id, result });
+  const { uploadId, lease } = await storeMsMoneyUpload({ userId: user.id, result });
 
-  const data: MsMoneyUploadResponse = { uploadId, result, expiresAt: expiresAt.toISOString() };
+  const data: MsMoneyUploadResponse = { uploadId, result, lease };
   return { data };
 });

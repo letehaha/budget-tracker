@@ -1,14 +1,16 @@
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
-import { asUser, provisionSecondUserWithBaseCurrency } from '@tests/helpers/share';
+import { asUser, provisionSecondUserWithBaseCurrency, withoutSession } from '@tests/helpers/share';
 import { randomUUID } from 'node:crypto';
 
 /**
- * Contract tests for the four Microsoft Money endpoints that need no `.mny`
- * file: rejected uploads, unknown upload ids, cross-user isolation and auth.
- * The import behaviour itself lives in `ms-money-execute-import.e2e.ts`, which
- * needs a real fixture and is skipped when none is present.
+ * Contract tests for the Microsoft Money endpoints that need no `.mny` file:
+ * rejected uploads, unknown upload ids, cross-user isolation and auth.
+ * The import behaviour itself lives in `ms-money-execute-import.e2e.ts` and the
+ * lease behaviour in `ms-money-upload-lease.e2e.ts`; both need a real fixture
+ * and skip themselves when none is present. Refreshing a lease is not an
+ * ms-money endpoint at all — it is covered in `resource-lease-registry.e2e.ts`.
  */
 
 /** A well-formed upload id that was never issued. */
@@ -16,9 +18,6 @@ const unknownUploadId = () => randomUUID();
 
 /** Minimal mapping — the requests below never get far enough to use it. */
 const someAccountMapping = { 'Some Account': { action: 'skip' as const } };
-
-/** An empty cookie string sends no session, so the endpoint must answer 401. */
-const withoutSession = <T>(fn: () => Promise<T>) => asUser({ cookies: '', fn });
 
 describe('Microsoft Money import endpoints', () => {
   describe('POST /import/ms-money/upload', () => {

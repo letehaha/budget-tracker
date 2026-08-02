@@ -23,6 +23,7 @@ import type {
   ImportJobStatus,
   ImportSummaryBase,
 } from './import-export';
+import type { ResourceLease } from './resource-lease';
 
 /** Largest `.mny` upload accepted, in bytes. Money files grow with history;
  *  50MB covers a very long-running file while staying well inside what the
@@ -33,10 +34,15 @@ export const MS_MONEY_MAX_FILE_BYTES = 50 * 1024 * 1024;
  *  exhaust memory building the preview. */
 export const MS_MONEY_MAX_ROWS = 100_000;
 
-/** How long a parsed upload stays retrievable before the sweeper deletes it.
- *  Long enough for a user to work through the wizard unhurried, short enough
- *  that abandoned uploads do not accumulate on disk. */
-export const MS_MONEY_UPLOAD_TTL_MS = 60 * 60 * 1000;
+/** How long a parsed upload survives without a refresh. The wizard refreshes the
+ *  lease while the user interacts, so this never has to cover a whole mapping
+ *  session — but a hidden tab sends no heartbeat, so it does have to cover
+ *  reading a statement in another tab partway through one. */
+export const MS_MONEY_UPLOAD_IDLE_TTL_MS = 30 * 60 * 1000;
+
+/** Ceiling on how long refreshing can keep an upload alive, so a wizard left
+ *  open indefinitely still releases the parse result. */
+export const MS_MONEY_UPLOAD_MAX_LIFETIME_MS = 4 * 60 * 60 * 1000;
 
 /**
  * Money's internal account-type codes (`ACCT.at`). Values are Microsoft's, not
@@ -218,8 +224,7 @@ export interface MsMoneyParseResult {
 export interface MsMoneyUploadResponse {
   uploadId: string;
   result: MsMoneyParseResult;
-  /** When the cached parse result expires (ISO instant). */
-  expiresAt: string;
+  lease: ResourceLease;
 }
 
 // ---------------------------------------------------------------------------

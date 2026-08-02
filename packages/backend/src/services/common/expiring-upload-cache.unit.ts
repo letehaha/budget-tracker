@@ -1,0 +1,231 @@
+import { afterAll, describe, expect, it } from '@jest/globals';
+import { NotFoundError } from '@js/errors';
+import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { createExpiringUploadCache } from './expiring-upload-cache';
+
+const MISSING_MESSAGE = 'It is gone. Start again.';
+
+const namespaces: string[] = [];
+
+/** Every cache gets its own temp directory so a leftover entry from one test —
+ *  or from a concurrently running suite — can never be seen by another. */
+const makeCache = ({ idleTtlMs, maxLifetimeMs }: { idleTtlMs: number; maxLifetimeMs: number }) => {
+  const namespace = `budget-tracker-expiring-upload-cache-test-${randomUUID()}`;
+  namespaces.push(namespace);
+
+  return {
+    namespace,
+    directory: join(tmpdir(), namespace),
+    cache: createExpiringUploadCache<{ label: string }>({
+      namespace,
+      idleTtlMs,
+      maxLifetimeMs,
+      missingMessage: MISSING_MESSAGE,
+    }),
+  };
+};
+
+const wait = ({ ms }: { ms: number }) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const msUntil = ({ iso }: { iso: string }) => new Date(iso).getTime() - Date.now();
+
+afterAll(async () => {
+  await Promise.all(namespaces.map((namespace) => fs.rm(join(tmpdir(), namespace), { recursive: true, force: true })));
+});
+
+describe('createExpiringUploadCache', () => {
+  it('reads back exactly what was stored, with a lease bounded by the absolute deadline', async () => {
+    const { cache } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    const { id, lease } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+
+    expect(await cache.read({ userId: 1, id })).toEqual({ label: 'stored' });
+    expect(msUntil({ iso: lease.expiresAt })).toBeGreaterThan(0);
+    expect(new Date(lease.expiresAt).getTime()).toBeLessThanOrEqual(new Date(lease.maxExpiresAt).getTime());
+    await expect(cache.assertExists({ userId: 1, id })).resolves.toBeUndefined();
+  });
+
+  it('reports the remaining time as a duration as well as an instant', async () => {
+    const { cache } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    const { lease } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+
+    // Whole window minus the round trip, so a client can count down without
+    // trusting its own clock to agree with the server's.
+    expect(lease.expiresInMs).toBeGreaterThan(59_000);
+    expect(lease.expiresInMs).toBeLessThanOrEqual(60_000);
+    expect(lease.maxExpiresInMs).toBeGreaterThan(239_000);
+    expect(lease.maxExpiresInMs).toBeLessThanOrEqual(240_000);
+  });
+
+  it('treats an entry past its expiry as missing', async () => {
+    const { cache } = makeCache({ idleTtlMs: 30, maxLifetimeMs: 240_000 });
+
+    const { id } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+    await wait({ ms: 80 });
+
+    await expect(cache.read({ userId: 1, id })).rejects.toThrow(NotFoundError);
+    await expect(cache.read({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
+  });
+
+  it('keeps an entry alive past its original expiry once refreshed', async () => {
+    const { cache } = makeCache({ idleTtlMs: 300, maxLifetimeMs: 240_000 });
+
+    const { id, lease } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+    await wait({ ms: 200 });
+
+    const refreshed = await cache.refresh({ userId: 1, id });
+    expect(new Date(refreshed.expiresAt).getTime()).toBeGreaterThan(new Date(lease.expiresAt).getTime());
+
+    // Past the original expiry, so this read only succeeds because of the refresh.
+    await wait({ ms: 200 });
+    expect(await cache.read({ userId: 1, id })).toEqual({ label: 'stored' });
+  });
+
+  it('never lets refreshing push the expiry past the absolute deadline', async () => {
+    const { cache } = makeCache({ idleTtlMs: 400, maxLifetimeMs: 500 });
+
+    const { id, lease } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+    const deadline = new Date(lease.maxExpiresAt).getTime();
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await wait({ ms: 60 });
+      const refreshed = await cache.refresh({ userId: 1, id });
+
+      expect(refreshed.maxExpiresAt).toBe(lease.maxExpiresAt);
+      expect(new Date(refreshed.expiresAt).getTime()).toBeLessThanOrEqual(deadline);
+    }
+
+    // By now `now + idleTtlMs` is well past the deadline, so the lease must be
+    // pinned to it rather than tracking the idle window.
+    const final = await cache.refresh({ userId: 1, id });
+    expect(final.expiresAt).toBe(final.maxExpiresAt);
+  });
+
+  it('refuses to refresh an id that never existed or has expired', async () => {
+    const { cache } = makeCache({ idleTtlMs: 30, maxLifetimeMs: 240_000 });
+
+    await expect(cache.refresh({ userId: 1, id: randomUUID() })).rejects.toThrow(MISSING_MESSAGE);
+
+    const { id } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+    await wait({ ms: 80 });
+
+    await expect(cache.refresh({ userId: 1, id })).rejects.toThrow(NotFoundError);
+  });
+
+  it('pins a held entry to its absolute deadline', async () => {
+    const { cache } = makeCache({ idleTtlMs: 300, maxLifetimeMs: 240_000 });
+
+    const { id, lease } = await cache.store({ userId: 1, payload: { label: 'queued' } });
+    const held = await cache.hold({ userId: 1, id });
+
+    expect(held.expiresAt).toBe(lease.maxExpiresAt);
+    expect(held.maxExpiresAt).toBe(lease.maxExpiresAt);
+
+    // Past the idle window, which nothing is refreshing any more.
+    await wait({ ms: 400 });
+    expect(await cache.read({ userId: 1, id })).toEqual({ label: 'queued' });
+  });
+
+  it('never lets holding push the entry past the absolute deadline', async () => {
+    const { cache } = makeCache({ idleTtlMs: 1_000, maxLifetimeMs: 500 });
+
+    const { id, lease } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+
+    const first = await cache.hold({ userId: 1, id });
+    await wait({ ms: 80 });
+    const second = await cache.hold({ userId: 1, id });
+
+    expect(second.maxExpiresAt).toBe(lease.maxExpiresAt);
+    expect(second.expiresAt).toBe(first.expiresAt);
+
+    // Holding buys the rest of the cap and nothing beyond it, however often it
+    // is called, so the entry still dies on schedule.
+    await wait({ ms: 600 });
+    await expect(cache.read({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
+  });
+
+  it('refuses to hold an id that never existed or has expired', async () => {
+    const { cache } = makeCache({ idleTtlMs: 30, maxLifetimeMs: 240_000 });
+
+    await expect(cache.hold({ userId: 1, id: randomUUID() })).rejects.toThrow(MISSING_MESSAGE);
+
+    const { id } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+    await wait({ ms: 80 });
+
+    await expect(cache.hold({ userId: 1, id })).rejects.toThrow(NotFoundError);
+  });
+
+  it('leaves no half-written file behind when a lease is rewritten', async () => {
+    const { cache, directory } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    const { id } = await cache.store({ userId: 1, payload: { label: 'stored' } });
+    await cache.refresh({ userId: 1, id });
+    await cache.hold({ userId: 1, id });
+
+    const remaining = await fs.readdir(directory);
+    expect(remaining.filter((entry) => entry.includes(id))).toHaveLength(2);
+  });
+
+  it('scopes every entry to the user who stored it', async () => {
+    const { cache } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    const { id } = await cache.store({ userId: 1, payload: { label: 'owner only' } });
+
+    await expect(cache.read({ userId: 2, id })).rejects.toThrow(MISSING_MESSAGE);
+    await expect(cache.assertExists({ userId: 2, id })).rejects.toThrow(MISSING_MESSAGE);
+    await expect(cache.refresh({ userId: 2, id })).rejects.toThrow(MISSING_MESSAGE);
+    await expect(cache.hold({ userId: 2, id })).rejects.toThrow(MISSING_MESSAGE);
+
+    // The owner's entry is untouched by the failed lookups.
+    expect(await cache.read({ userId: 1, id })).toEqual({ label: 'owner only' });
+  });
+
+  it('rejects an id that is not a plain uuid, without touching the filesystem', async () => {
+    // Nothing is stored first, so the cache directory does not exist yet. Any
+    // path this cache built from a malformed id would have to create it.
+    const { cache, directory } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    for (const id of ['../../etc/passwd', 'not-a-uuid', '', 'a/b', `${randomUUID()}.json`]) {
+      await expect(cache.read({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
+      await expect(cache.assertExists({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
+      await expect(cache.refresh({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
+      await expect(cache.hold({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
+      await expect(cache.remove({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
+    }
+
+    await expect(fs.stat(directory)).rejects.toThrow();
+  });
+
+  it('will not let a malformed id reach an entry belonging to somebody else', async () => {
+    const { cache, namespace } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    const { id } = await cache.store({ userId: 1, payload: { label: 'owner only' } });
+
+    // Ids shaped to climb back out of the cache directory and land on the real
+    // entry's file, which only the uuid guard stops.
+    for (const crafted of [`../${namespace}/1-${id}`, `../${namespace}/1-${id}.json`, `..%2F${namespace}%2F1-${id}`]) {
+      await expect(cache.read({ userId: 2, id: crafted })).rejects.toThrow(MISSING_MESSAGE);
+    }
+
+    expect(await cache.read({ userId: 1, id })).toEqual({ label: 'owner only' });
+  });
+
+  it('deletes expired entries from disk when a later store sweeps', async () => {
+    const { cache, directory } = makeCache({ idleTtlMs: 40, maxLifetimeMs: 240_000 });
+
+    const expired = await cache.store({ userId: 1, payload: { label: 'expired' } });
+    await wait({ ms: 90 });
+
+    // The sweep runs as part of storing, so this second entry is what triggers it.
+    const live = await cache.store({ userId: 1, payload: { label: 'live' } });
+
+    const remaining = await fs.readdir(directory);
+    expect(remaining.filter((entry) => entry.includes(expired.id))).toEqual([]);
+    expect(remaining.filter((entry) => entry.includes(live.id))).toHaveLength(2);
+  });
+});

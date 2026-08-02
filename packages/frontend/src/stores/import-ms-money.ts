@@ -4,6 +4,7 @@ import {
   getMsMoneyImportStatus,
   uploadMsMoneyFile,
 } from '@/api/import-ms-money';
+import { refreshResourceLease } from '@/api/resource-leases';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
 import { useRecalculateBalanceToggle } from '@/composable/use-recalculate-balance-toggle';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
@@ -15,6 +16,7 @@ import { useCategoriesStore } from '@/stores/categories/categories';
 import { useCurrenciesStore } from '@/stores/currencies';
 import { useTagsStore } from '@/stores/tags';
 import {
+  ResourceLeaseType,
   SSE_EVENT_TYPES,
   type CategoryMappingConfig,
   type CategoryMappingValue,
@@ -22,6 +24,7 @@ import {
   type MsMoneyAccountMapping,
   type MsMoneyImportProgress,
   type MsMoneyParseResult,
+  type ResourceLease,
 } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
@@ -86,8 +89,12 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
    * file. The file bytes are never held here.
    */
   const uploadId = ref<string | null>(null);
-  /** When the server drops the cached parse result. Steps after upload fail past this. */
-  const uploadExpiresAt = ref<string | null>(null);
+  /**
+   * Expiry of the cached parse result plus the ceiling refreshing cannot pass.
+   * Held here so the wizard shell can drive the heartbeat and write the renewed
+   * lease straight back.
+   */
+  const lease = ref<ResourceLease | null>(null);
   /** Name of the uploaded file, kept only so the wizard can show what is being imported. */
   const uploadedFileName = ref<string | null>(null);
   const parsedResult = ref<MsMoneyParseResult | null>(null);
@@ -410,7 +417,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
       const response = await uploadMsMoneyFile({ file, password });
 
       uploadId.value = response.uploadId;
-      uploadExpiresAt.value = response.expiresAt;
+      lease.value = response.lease;
       uploadedFileName.value = file.name;
       parsedResult.value = response.result;
 
@@ -434,6 +441,19 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     } finally {
       isUploading.value = false;
     }
+  }
+
+  /**
+   * Pushes the cached parse result's expiry back. Resolves to `null` when there
+   * is nothing cached, so the caller's heartbeat stops instead of polling for a
+   * resource that was never there.
+   */
+  async function refreshLease(): Promise<ResourceLease | null> {
+    if (!uploadId.value) return null;
+
+    const next = await refreshResourceLease({ type: ResourceLeaseType.msMoneyUpload, id: uploadId.value });
+    lease.value = next;
+    return next;
   }
 
   /**
@@ -522,7 +542,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
 
   function reset(): void {
     uploadId.value = null;
-    uploadExpiresAt.value = null;
+    lease.value = null;
     uploadedFileName.value = null;
     parsedResult.value = null;
     accountMapping.value = {};
@@ -543,7 +563,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
   return {
     // State
     uploadId,
-    uploadExpiresAt,
+    lease,
     uploadedFileName,
     parsedResult,
     accountMapping,
@@ -597,6 +617,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
 
     // Actions
     uploadFile,
+    refreshLease,
     detectDuplicates,
     execute,
     reset,
