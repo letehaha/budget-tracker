@@ -95,6 +95,24 @@ describe('Microsoft Money import endpoints', () => {
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
     });
+
+    // Balances persist as INTEGER cents, so a target past ±20,000,000 must fail
+    // request validation instead of the balance write at the end of the job. The
+    // body schema runs before the upload is looked up, so an id that was never
+    // issued still reaches the mapping and cannot answer 404 first.
+    it.each([{ currentBalance: 20_000_001 }, { currentBalance: -20_000_001 }])(
+      'returns 422 for a create-new balance beyond the integer-cents cap ($currentBalance)',
+      async ({ currentBalance }) => {
+        const response = await helpers.executeMsMoney({
+          payload: {
+            uploadId: unknownUploadId(),
+            accountMapping: { 'Some Account': { action: 'create-new', currencyCode: 'AUD', currentBalance } },
+          },
+        });
+
+        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      },
+    );
   });
 
   describe('GET /import/ms-money/status/:jobId', () => {

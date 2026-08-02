@@ -145,6 +145,16 @@ export function parseMsMoneyFile({
     });
   }
 
+  // Without these two the parser would return an empty result and no warnings,
+  // walking the user through a wizard that imports nothing.
+  const tableNames = new Set(reader.getTableNames());
+  if (!tableNames.has('ACCT') || !tableNames.has('TRN')) {
+    throw new ValidationError({
+      message:
+        'This Microsoft Money file is missing the account or transaction tables — it may be damaged or saved by an unsupported version.',
+    });
+  }
+
   const warnings: MsMoneyParseWarning[] = [];
   const addWarning = ({ code, message, count }: MsMoneyParseWarning) => {
     if (count > 0) warnings.push({ code, message, count });
@@ -164,9 +174,15 @@ export function parseMsMoneyFile({
   // --- accounts -------------------------------------------------------------
   const supported = new Set<number>(MS_MONEY_SUPPORTED_ACCOUNT_TYPES);
   const accountById = new Map<number, MsMoneyParseAccount>();
+  /** Every id in ACCT, so a transaction pointing at a missing account can be
+   *  told apart from one on an account this importer skipped. */
+  const knownAcctIds = new Set<number>();
   let unsupportedAccounts = 0;
+  let defaultedCurrencies = 0;
 
   for (const row of readTable<AcctRow>({ reader, name: 'ACCT', columns: ['hacct', 'szFull', 'at', 'hcrnc'] })) {
+    knownAcctIds.add(row.hacct);
+
     const name = row.szFull?.trim();
     if (!name) continue;
 
@@ -175,9 +191,12 @@ export function parseMsMoneyFile({
       continue;
     }
 
+    const currency = (row.hcrnc == null ? undefined : currencyById.get(row.hcrnc)) ?? null;
+    if (!currency) defaultedCurrencies += 1;
+
     accountById.set(row.hacct, {
       originalName: name,
-      currency: (row.hcrnc == null ? undefined : currencyById.get(row.hcrnc)) ?? 'USD',
+      currency: currency ?? 'USD',
       accountType: row.at as MsMoneyAccountType,
       transactionCount: 0,
       netImportedAmount: 0,
@@ -189,6 +208,12 @@ export function parseMsMoneyFile({
     message:
       'Investment and loan accounts were skipped. Investments belong to portfolios, and loans use a dedicated flow that does not accept imported transactions.',
     count: unsupportedAccounts,
+  });
+  addWarning({
+    code: 'account-currency-defaulted',
+    message:
+      'Some accounts carry no currency this file could resolve, so they are imported as US dollars. Change their currency after the import if that is wrong.',
+    count: defaultedCurrencies,
   });
 
   // --- lookups --------------------------------------------------------------
@@ -208,19 +233,13 @@ export function parseMsMoneyFile({
 
   // Split children are imported individually; their parents only hold the total.
   const splitParentIds = new Set<number>();
-  for (const row of readTable<{ htrnParent: number | null }>({
+  const splitChildIds = new Set<number>();
+  for (const row of readTable<{ htrn: number | null; htrnParent: number | null }>({
     reader,
     name: 'TRN_SPLIT',
     columns: ['htrn', 'htrnParent'],
   })) {
     if (row.htrnParent != null) splitParentIds.add(row.htrnParent);
-  }
-  const splitChildIds = new Set<number>();
-  for (const row of readTable<{ htrn: number | null }>({
-    reader,
-    name: 'TRN_SPLIT',
-    columns: ['htrn', 'htrnParent'],
-  })) {
     if (row.htrn != null) splitChildIds.add(row.htrn);
   }
 
@@ -244,9 +263,9 @@ export function parseMsMoneyFile({
       continue;
     }
     if (row.hacct == null || !accountById.has(row.hacct)) {
-      // Either the row belongs to an account we skipped, or Money kept a row
-      // pointing at an account that no longer exists in the file.
-      if (row.hacct == null) orphanRows += 1;
+      // A row on an account this importer skipped is already covered by the
+      // account-type warning, so only a reference ACCT cannot resolve is an orphan.
+      if (row.hacct == null || !knownAcctIds.has(row.hacct)) orphanRows += 1;
       continue;
     }
     eligible.push(row);
@@ -265,9 +284,20 @@ export function parseMsMoneyFile({
 
   const eligibleIds = new Set(eligible.map((row) => row.htrn));
 
+  // --- emitted rows ---------------------------------------------------------
+  // Transfers and transactions draw on one shared row budget, so a file made
+  // mostly of transfers cannot spend the whole allowance before the transaction
+  // loop starts.
+  const transactions: MsMoneyParseTransaction[] = [];
+  const transfers: MsMoneyParseTransfer[] = [];
+  const categoryCounts = new Map<string, number>();
+  const payeeCounts = new Map<string, number>();
+  let droppedForRowLimit = 0;
+  let datelessRows = 0;
+  const rowBudgetLeft = () => transactions.length + transfers.length < MS_MONEY_MAX_ROWS;
+
   // --- transfers ------------------------------------------------------------
   // Money links the two legs explicitly, so no amount/date matching is needed.
-  const transfers: MsMoneyParseTransfer[] = [];
   const consumedByTransfer = new Set<number>();
   const rowIndexById = new Map<number, number>();
   let nextRowIndex = 0;
@@ -306,9 +336,24 @@ export function parseMsMoneyFile({
     const sourceAccount = accountById.get(source.hacct!)!;
     const destinationAccount = accountById.get(destination.hacct!)!;
     const date = toIsoDate({ value: source.dt }) ?? toIsoDate({ value: destination.dt });
-    if (!date) continue;
+
+    // Claimed before the drop checks below, so a pair this loop gives up on is
+    // never re-counted as two loose rows by the transaction loop.
+    consumedByTransfer.add(source.htrn);
+    consumedByTransfer.add(destination.htrn);
+
+    if (!date) {
+      datelessRows += 1;
+      continue;
+    }
+    if (!rowBudgetLeft()) {
+      droppedForRowLimit += 1;
+      continue;
+    }
 
     const payeeId = source.lHpay ?? destination.lHpay;
+    const payeeName = payeeId != null && payeeId !== NO_PAYEE ? (payeeById.get(payeeId) ?? null) : null;
+
     transfers.push({
       sourceAccountName: sourceAccount.originalName,
       destinationAccountName: destinationAccount.originalName,
@@ -318,13 +363,12 @@ export function parseMsMoneyFile({
       sourceCurrency: sourceAccount.currency,
       destinationCurrency: destinationAccount.currency,
       note: source.mMemo?.trim() || destination.mMemo?.trim() || '',
-      payeeName: payeeId != null && payeeId !== NO_PAYEE ? (payeeById.get(payeeId) ?? null) : null,
+      payeeName,
       rowIndices: [claimRowIndex(source.htrn), claimRowIndex(destination.htrn)],
       sourceIds: [source.htrn, destination.htrn],
     });
 
-    consumedByTransfer.add(source.htrn);
-    consumedByTransfer.add(destination.htrn);
+    if (payeeName) payeeCounts.set(payeeName, (payeeCounts.get(payeeName) ?? 0) + 1);
 
     sourceAccount.transactionCount += 1;
     sourceAccount.netImportedAmount -= Math.abs(toDecimal({ value: source.amt }));
@@ -333,21 +377,19 @@ export function parseMsMoneyFile({
   }
 
   // --- remaining rows become transactions -----------------------------------
-  const transactions: MsMoneyParseTransaction[] = [];
-  const categoryCounts = new Map<string, number>();
-  const payeeCounts = new Map<string, number>();
-  let droppedForRowLimit = 0;
-
   for (const row of eligible) {
     if (consumedByTransfer.has(row.htrn)) continue;
 
-    if (transactions.length + transfers.length >= MS_MONEY_MAX_ROWS) {
+    if (!rowBudgetLeft()) {
       droppedForRowLimit += 1;
       continue;
     }
 
     const date = toIsoDate({ value: row.dt });
-    if (!date) continue;
+    if (!date) {
+      datelessRows += 1;
+      continue;
+    }
 
     const account = accountById.get(row.hacct!)!;
     const amount = toDecimal({ value: row.amt });
@@ -367,8 +409,7 @@ export function parseMsMoneyFile({
       payeeName,
       note: row.mMemo?.trim() ?? '',
       amount,
-      // Money gives a zero-amount row no sign, so it is treated as income —
-      // `-0 === 0` makes the sign unrecoverable and the direction has to be fixed.
+      // A zero-amount row carries no sign to read, so it lands on the income side.
       type: amount < 0 ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
       referenceNumber: row.szId?.trim() || null,
       reconciled: row.cs === CLEARED_STATE_RECONCILED,
@@ -400,6 +441,12 @@ export function parseMsMoneyFile({
     count: droppedForRowLimit,
   });
 
+  addWarning({
+    code: 'row-missing-date',
+    message: 'Some rows had no readable date and were skipped.',
+    count: datelessRows,
+  });
+
   // --- aggregates -----------------------------------------------------------
   const categories: MsMoneyParseCategory[] = [];
   for (const entry of categoryIndex.values()) {
@@ -420,7 +467,7 @@ export function parseMsMoneyFile({
   const dateRange = allDates.length ? { from: allDates[0]!, to: allDates[allDates.length - 1]! } : null;
 
   // Money has no single "base currency" field, so the most-used account
-  // currency stands in for it — it is shown as context, never used for maths.
+  // currency stands in for it. Never used for maths.
   const currencyUse = new Map<string, number>();
   for (const account of accounts) {
     currencyUse.set(account.currency, (currencyUse.get(account.currency) ?? 0) + account.transactionCount);

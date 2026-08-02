@@ -85,8 +85,8 @@ export interface MsMoneyParseAccount {
   accountType: MsMoneyAccountType;
   /** Rows belonging to this account, including transfer legs. Informational. */
   transactionCount: number;
-  /** Signed sum of this account's imported rows. Informational for the preview —
-   *  the execute step derives real balances from the created transactions. */
+  /** Signed sum of this account's imported rows. Never used to set a balance —
+   *  the execute step derives those from the transactions it creates. */
   netImportedAmount: number;
 }
 
@@ -123,7 +123,7 @@ export interface MsMoneyParsePayee {
 export interface MsMoneyParseTransaction {
   /** Stable index within this parse result. Duplicate-skip decisions reference it. */
   rowIndex: number;
-  /** Money's own transaction id (`TRN.htrn`), for support and traceability. */
+  /** Money's own transaction id (`TRN.htrn`). Unique across the parse result. */
   sourceId: number;
   /** ISO instant. Money stores a plain calendar date, anchored here to UTC midnight. */
   date: string;
@@ -134,8 +134,8 @@ export interface MsMoneyParseTransaction {
   note: string;
   /** Signed decimal in the account's currency. Negative = expense. */
   amount: number;
-  /** Direction as stated by the file. Carried explicitly because the sign of
-   *  `amount` cannot recover it for zero-amount rows (`-0 === 0`). */
+  /** Direction taken from the sign of `amount`: negative is an expense, zero and
+   *  positive are income. */
   type: TRANSACTION_TYPES;
   /** Money's check / reference number (`TRN.szId`), when present. */
   referenceNumber: string | null;
@@ -145,7 +145,7 @@ export interface MsMoneyParseTransaction {
    *  imported. Executed as `transfer_out_wallet`. */
   outOfWallet: boolean;
   /** True when this row came from a split — it is one line of a larger
-   *  transaction. Informational for the preview. */
+   *  transaction. */
   fromSplit: boolean;
 }
 
@@ -180,10 +180,15 @@ export interface MsMoneyParseWarning {
   code:
     /** An account was skipped because its type is out of scope (investment/loan). */
     | 'account-type-unsupported'
+    /** An account's currency was not in the file's currency table, so the import
+     *  falls back to USD for it. */
+    | 'account-currency-defaulted'
     /** A row was skipped because Money marks it void. */
     | 'void-row-skipped'
     /** A row referenced an account that no longer exists in the file. */
     | 'orphan-row-skipped'
+    /** A row was skipped because its date could not be read. */
+    | 'row-missing-date'
     /** A transfer leg's counterpart account is not being imported, so the leg
      *  imports as an out-of-wallet transaction instead. */
     | 'transfer-counterpart-not-imported'
@@ -196,6 +201,10 @@ export interface MsMoneyParseWarning {
   count: number;
 }
 
+/** Cipher variant a `.mny` file was written with. Money changed it twice, and
+ *  the decrypt path differs per variant. */
+export type MsMoneyEncryption = 'new-sha1' | 'new-md5' | 'legacy-jet';
+
 /** What the parser found, for rendering the preview step. */
 export interface MsMoneyParseResult {
   accounts: MsMoneyParseAccount[];
@@ -206,10 +215,10 @@ export interface MsMoneyParseResult {
   warnings: MsMoneyParseWarning[];
   /** ISO instant range covering every parsed row, or null when nothing parsed. */
   dateRange: { from: string; to: string } | null;
-  /** Money's base currency for the file, when it could be resolved. */
+  /** The most-used account currency in the file. Money has no base-currency
+   *  field, so this stands in for one; it is never used for maths. */
   baseCurrency: string | null;
-  /** Which encryption variant the file used. Surfaced for support diagnostics. */
-  encryption: 'new-sha1' | 'new-md5' | 'legacy-jet';
+  encryption: MsMoneyEncryption;
 }
 
 // ---------------------------------------------------------------------------

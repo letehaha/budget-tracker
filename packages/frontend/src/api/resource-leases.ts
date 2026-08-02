@@ -1,5 +1,16 @@
 import { api } from '@/api/_api';
-import type { RefreshResourceLeaseRequest, RefreshResourceLeaseResponse } from '@bt/shared/types';
+import {
+  RESOURCE_LEASE_REFRESH_INTERVAL_MS,
+  type RefreshResourceLeaseRequest,
+  type RefreshResourceLeaseResponse,
+} from '@bt/shared/types';
+
+/**
+ * Half a beat. A request that never settles (hung proxy, stalled response) must
+ * fail before the next beat is due — the caller's heartbeat waits on this promise,
+ * so without a deadline one bad request freezes it and the lease dies unnoticed.
+ */
+const REFRESH_TIMEOUT_MS = RESOURCE_LEASE_REFRESH_INTERVAL_MS / 2;
 
 /**
  * Extends the expiry of any leased server-side resource. Runs as a background
@@ -10,4 +21,4 @@ export const refreshResourceLease = async ({
   type,
   id,
 }: RefreshResourceLeaseRequest): Promise<RefreshResourceLeaseResponse> =>
-  api.post('/resource-leases/refresh', { type, id }, { silent: true });
+  api.post('/resource-leases/refresh', { type, id }, { silent: true, signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS) });

@@ -22,6 +22,7 @@ export const msMoneyUploadCache = createExpiringUploadCache<MsMoneyParseResult>(
   // or belongs to somebody else is not the user's problem — and not something to
   // tell an attacker probing ids.
   missingMessage: 'This Microsoft Money upload is no longer available. Please upload the file again.',
+  claimedMessage: 'An import for this file is already in progress.',
 });
 
 /** Cache one parse result and hand back the id later steps reference it by. */
@@ -37,15 +38,28 @@ export async function storeMsMoneyUpload({
 }
 
 /**
- * Pin an upload to its absolute deadline, for an import that has been handed to
- * the queue. The wizard stops refreshing once it queues, and the worker only
- * reads the parse result when the job starts — which, behind a backlog, can be
- * long after the idle window would have run out. Never loads the payload:
- * parsing a multi-megabyte entry twice would double the memory cost for nothing.
- * Throws the same `NotFoundError` as a read.
+ * Give an upload to one import job and pin it to its absolute deadline. The
+ * wizard stops refreshing once it queues, and the worker only reads the parse
+ * result when the job starts — which, behind a backlog, can be long after the
+ * idle window would have run out. The claim is exclusive, so a second submit
+ * cannot import the same ledger twice; `isClaimStale` decides whether the job
+ * already on the upload is dead and its claim may be taken over. Never loads the
+ * payload: parsing a multi-megabyte entry twice would double the memory cost for
+ * nothing. Throws `NotFoundError` when the upload is gone, `ConflictError` when
+ * it is claimed.
  */
-export function holdMsMoneyUpload({ userId, uploadId }: { userId: number; uploadId: string }): Promise<ResourceLease> {
-  return msMoneyUploadCache.hold({ userId, id: uploadId });
+export function claimMsMoneyUpload({
+  userId,
+  uploadId,
+  jobId,
+  isClaimStale,
+}: {
+  userId: number;
+  uploadId: string;
+  jobId: string;
+  isClaimStale: ({ jobId }: { jobId: string }) => Promise<boolean>;
+}): Promise<ResourceLease> {
+  return msMoneyUploadCache.claim({ userId, id: uploadId, jobId, isClaimStale });
 }
 
 /**

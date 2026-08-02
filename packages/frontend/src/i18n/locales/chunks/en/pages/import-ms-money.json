@@ -68,7 +68,9 @@
             "voidRowSkipped": "{count} void transaction(s) skipped",
             "orphanRowSkipped": "{count} transaction(s) skipped",
             "transferCounterpartNotImported": "{count} transfer leg(s) imported as out-of-wallet",
-            "rowLimitReached": "{count} transaction(s) over the limit were dropped"
+            "rowLimitReached": "{count} transaction(s) over the limit were dropped",
+            "accountCurrencyDefaulted": "{count} account(s) had no currency in the file, so USD was assumed — check the currency on the accounts step before continuing",
+            "rowMissingDate": "{count} transaction(s) with no readable date were skipped"
           },
           "duplicatesTitle": "{count} possible duplicate(s)",
           "duplicatesHint": "These already look like transactions you have. Un-check one to import it anyway.",

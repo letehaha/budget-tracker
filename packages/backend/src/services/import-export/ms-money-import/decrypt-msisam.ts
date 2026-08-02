@@ -11,6 +11,7 @@
  * The algorithm mirrors Jackcess's `MSISAMCryptCodecHandler` (Apache-2.0), the
  * de-facto reference implementation for this format.
  */
+import type { MsMoneyEncryption } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
 import crypto from 'node:crypto';
 
@@ -56,7 +57,7 @@ const HEADER_MASK = Buffer.from([
 ]);
 const HEADER_MASK_OFFSET = 0x18;
 
-export type MsMoneyEncryption = 'new-sha1' | 'new-md5' | 'legacy-jet';
+export type { MsMoneyEncryption };
 
 interface DecryptMsisamResult {
   /** Plaintext Jet4 database, ready for an MDB reader. */

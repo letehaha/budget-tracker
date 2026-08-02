@@ -1,5 +1,6 @@
 import { formatCountdown } from '@/common/utils/duration';
-import { isResourceMissingError } from '@/js/errors';
+import { AuthError, isResourceMissingError } from '@/js/errors';
+import { captureException } from '@/lib/sentry';
 import { RESOURCE_LEASE_IDLE_AFTER_MS, RESOURCE_LEASE_REFRESH_INTERVAL_MS, type ResourceLease } from '@bt/shared/types';
 import { type ComputedRef, type MaybeRefOrGetter, type Ref, computed, onScopeDispose, ref, toValue, watch } from 'vue';
 
@@ -75,6 +76,9 @@ export function useResourceLease({
   let refreshTimer: ReturnType<typeof setTimeout> | null = null;
   let tickTimer: ReturnType<typeof setInterval> | null = null;
   let isRefreshing = false;
+  /** True while refreshes are in a run of consecutive failures, so a sustained
+   *  outage reports to Sentry once instead of on every beat. */
+  let isRefreshFailing = false;
   let lastRefreshAt = Date.now();
   let isDisposed = false;
 
@@ -102,14 +106,24 @@ export function useResourceLease({
 
     try {
       const next = await refresh();
+      isRefreshFailing = false;
       if (next) {
         lease.value = next;
       } else {
         hasExpired.value = true;
       }
     } catch (error) {
-      // Anything else (offline, 5xx) is transient — the next beat retries.
-      if (isResourceMissingError(error)) hasExpired.value = true;
+      if (isResourceMissingError(error)) {
+        hasExpired.value = true;
+        return;
+      }
+      // A 401 already logs the user out globally — not a lease outage worth reporting.
+      if (error instanceof AuthError) return;
+      // Anything else (offline, 5xx, timeout) is transient — the next beat retries.
+      if (!isRefreshFailing) {
+        isRefreshFailing = true;
+        captureException({ error, context: { scope: 'resource-lease:refresh' } });
+      }
     } finally {
       isRefreshing = false;
       now.value = Date.now();

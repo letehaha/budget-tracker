@@ -15,7 +15,7 @@ export default {
     // mdb-reader (the Microsoft Money parser's Access reader) ships as pure ESM,
     // which Jest's CommonJS runtime cannot load. Compile it down instead of
     // stubbing it, so tests exercise the real reader.
-    '^.+\\.js$': '<rootDir>/src/tests/transformers/esm-to-cjs.js',
+    '[/\\\\]node_modules[/\\\\]mdb-reader[/\\\\].+\\.js$': '<rootDir>/src/tests/transformers/esm-to-cjs.js',
   },
   // Everything in node_modules stays untransformed except the ESM-only packages
   // listed here, which would otherwise fail to parse.

@@ -153,7 +153,9 @@ describeWithFixtures('parseMsMoneyFile', () => {
         result.transactions.map((tx) => tx.categoryName).filter((name): name is string => name !== null),
       );
       const usedPayees = new Set(
-        result.transactions.map((tx) => tx.payeeName).filter((name): name is string => name !== null),
+        [...result.transactions, ...result.transfers]
+          .map((row) => row.payeeName)
+          .filter((name): name is string => name !== null),
       );
 
       expect(result.categories.map((category) => category.fullName).toSorted()).toEqual([...usedCategories].toSorted());

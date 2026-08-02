@@ -10,7 +10,7 @@ import { createImportJobQueue } from '@services/import-export/core/queue/create-
 import { randomUUID } from 'node:crypto';
 
 import { executeMsMoneyImport } from './execute-import.service';
-import { holdMsMoneyUpload } from './upload-cache';
+import { claimMsMoneyUpload } from './upload-cache';
 
 interface MsMoneyImportJobData extends SentryTraceData {
   userId: number;
@@ -51,6 +51,14 @@ const {
 
 export { msMoneyImportQueue, msMoneyImportWorker };
 
+/** A job still owns the upload it claimed unless the queue has no record of it
+ *  (the `add` never landed) or it has already failed — either way a fresh
+ *  attempt may take the upload back. */
+const isImportJobDead = async ({ userId, jobId }: { userId: number; jobId: string }): Promise<boolean> => {
+  const progress = await getMsMoneyImportProgress({ userId, jobId });
+  return progress === null || progress.status === 'failed';
+};
+
 /** Public entry point — controller calls this to enqueue an import. */
 export async function queueMsMoneyImport({
   userId,
@@ -67,16 +75,22 @@ export async function queueMsMoneyImport({
   skipDuplicateIndices: number[];
   recalculateBalance?: boolean;
 }): Promise<string> {
-  // Claim the upload before queuing anything. It doubles as the existence check:
-  // an id that is unknown, expired, or somebody else's is a 404 the user can act
-  // on, not a job that starts and then dies with the same message minutes later.
-  await holdMsMoneyUpload({ userId, uploadId });
-
   // Hyphens only — a colon in a custom jobId makes BullMQ throw. Random suffix
   // (not a timestamp): two imports the same user fires within the same
   // millisecond would otherwise collide on one id, and BullMQ silently drops the
   // second `add` for a duplicate jobId — losing that import with no error.
   const jobId = `ms-money-import-${userId}-${randomUUID()}`;
+
+  // Claiming first doubles as the existence check — an unknown, expired or
+  // foreign id is a 404 the user can act on, not a job that dies minutes later
+  // with the same message — and is what stops a second submit importing twice.
+  await claimMsMoneyUpload({
+    userId,
+    uploadId,
+    jobId,
+    isClaimStale: ({ jobId: claimedBy }) => isImportJobDead({ userId, jobId: claimedBy }),
+  });
+
   const data: MsMoneyImportJobData = {
     userId,
     uploadId,

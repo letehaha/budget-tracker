@@ -176,6 +176,16 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
   });
   const progress = jobProgress.progress;
 
+  // Covers the gap between the execute POST being sent and the watchdog being
+  // armed (progress is still null at that point).
+  const isEnqueuing = ref(false);
+
+  /** True while the import job is enqueuing or in flight (queued/running). Drives
+   *  the review-step button's busy state and blocks a second `execute()`. */
+  const isExecuting = computed(
+    () => isEnqueuing.value || progress.value?.status === 'queued' || progress.value?.status === 'running',
+  );
+
   // ---- Balance recalculation toggle ----
 
   // Resolve-step checkbox backed by the persisted `import.recalculateAccountBalance`
@@ -421,14 +431,9 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
       uploadedFileName.value = file.name;
       parsedResult.value = response.result;
 
-      // Start both mappings empty and let `prepareResolveStep`'s auto-match make the
-      // initial decisions: every account/category whose name exactly matches an
-      // existing one links to it, and the rest fall back to create-new (accounts
-      // carrying their detected currency, via the `toCreate` factory). Seeding to
-      // create-new here is the abolished alternative — auto-match runs with
-      // `overwrite: false` and skips rows that already hold a decision, so a
-      // pre-seed would pin every row at create-new until the user manually clicked
-      // "Map exact matches".
+      // Left empty so `prepareResolveStep`'s auto-match decides each row. Seeding
+      // create-new here is the abolished alternative: auto-match runs with
+      // `overwrite: false`, so a pre-seed would pin every row at create-new.
       accountMapping.value = {};
       categoryMapping.value = {};
 
@@ -499,6 +504,10 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
   }
 
   async function execute(): Promise<void> {
+    // The completed `review` step stays clickable while the job runs, so the Import
+    // button can be reached a second time; a second enqueue imports everything twice.
+    if (isExecuting.value) return;
+
     if (!uploadId.value) {
       // The cached parse result is gone — the job cannot be started. Surface a
       // real error and send the user back to re-upload rather than silently
@@ -509,6 +518,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     }
     jobProgress.setExecuteError(null);
 
+    isEnqueuing.value = true;
     let response: Awaited<ReturnType<typeof executeMsMoneyImport>>;
     try {
       response = await executeMsMoneyImport({
@@ -523,6 +533,8 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
       // complete) so they can correct the input and retry.
       jobProgress.setExecuteError(err instanceof Error ? err.message : 'Unknown error');
       return;
+    } finally {
+      isEnqueuing.value = false;
     }
 
     // Job accepted: remember the balance-recalculation choice for the next
@@ -556,6 +568,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     isUploading.value = false;
     isDetectingDuplicates.value = false;
     detectError.value = null;
+    isEnqueuing.value = false;
     jobProgress.setExecuteError(null);
     jobProgress.stop();
   }
@@ -580,6 +593,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     executeError,
 
     // Getters
+    isExecuting,
     visibleSteps,
     accountResolvedCount,
     categoryResolvedCount,

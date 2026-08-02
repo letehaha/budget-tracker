@@ -10,9 +10,9 @@ const ACTIVITY_EVENTS: (keyof DocumentEventMap)[] = ['pointerdown', 'keydown', '
 
 interface UseUserActivityReturn {
   /** True while the user interacted within `idleAfterMs` and the tab is visible. */
-  isActive: Ref<boolean>;
+  isActive: Readonly<Ref<boolean>>;
   /** Timestamp (ms) of the last real interaction. */
-  lastActiveAt: Ref<number>;
+  lastActiveAt: Readonly<Ref<number>>;
 }
 
 /**

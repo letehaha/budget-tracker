@@ -1,5 +1,4 @@
 import type { MsMoneyUploadResponse } from '@bt/shared/types';
-import { MS_MONEY_MAX_FILE_BYTES } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { ValidationError } from '@js/errors';
 import { parseMsMoneyFile, storeMsMoneyUpload } from '@services/import-export/ms-money-import';
@@ -15,8 +14,6 @@ const PASSWORD_HEADER = 'x-file-password';
 // Money's own password field is short. The cap stops a bloated header from
 // reaching the key derivation. An empty value means "no password set".
 const passwordHeaderSchema = z.string().max(255).optional();
-
-const MAX_FILE_MB = MS_MONEY_MAX_FILE_BYTES / (1024 * 1024);
 
 /**
  * Accepts one `.mny` file as a raw binary body, parses it, and caches the parse
@@ -34,12 +31,6 @@ export const uploadMsMoneyController = createController(z.object({}), async ({ u
   // octet-stream payload at all.
   if (!Buffer.isBuffer(body) || body.length === 0) {
     throw new ValidationError({ message: 'No file was uploaded. Send the .mny file as the raw request body.' });
-  }
-
-  // The route's raw parser caps the body as well, but answers with Express's own
-  // error page. Restating the rule here keeps the response in the API envelope.
-  if (body.length > MS_MONEY_MAX_FILE_BYTES) {
-    throw new ValidationError({ message: `File is too large. The maximum .mny size is ${MAX_FILE_MB}MB.` });
   }
 
   const rawPassword = req.headers[PASSWORD_HEADER];

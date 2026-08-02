@@ -4,6 +4,7 @@
  * what will be imported, what the parser had to leave out (warnings), and lets
  * the user un-mark detected duplicates.
  */
+import { formatShortDate } from '@/common/utils/date';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import { StatCard } from '@/components/lib/ui/stat-card';
@@ -11,8 +12,7 @@ import DuplicatesTable from '@/pages/import-export/components/review-duplicates-
 import { useImportMsMoneyStore } from '@/stores/import-ms-money';
 import type { MsMoneyParseWarning } from '@bt/shared/types';
 import { ChevronLeftIcon, ChevronRightIcon, LoaderCircleIcon } from '@lucide/vue';
-import { format, parseISO } from 'date-fns';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -27,6 +27,8 @@ const WARNING_LABEL_KEYS: Record<MsMoneyParseWarning['code'], string> = {
   'transfer-counterpart-not-imported':
     'pages.importExport.msMoneyImport.review.warnings.transferCounterpartNotImported',
   'row-limit-reached': 'pages.importExport.msMoneyImport.review.warnings.rowLimitReached',
+  'account-currency-defaulted': 'pages.importExport.msMoneyImport.review.warnings.accountCurrencyDefaulted',
+  'row-missing-date': 'pages.importExport.msMoneyImport.review.warnings.rowMissingDate',
 };
 
 function warningLabel(warning: MsMoneyParseWarning): string {
@@ -69,21 +71,16 @@ const willImportCount = computed(() =>
 const dateRangeLabel = computed(() => {
   const range = store.parsedResult?.dateRange;
   if (!range) return null;
-  return `${format(parseISO(range.from), 'dd MMM yyyy')} — ${format(parseISO(range.to), 'dd MMM yyyy')}`;
+  return `${formatShortDate(range.from)} — ${formatShortDate(range.to)}`;
 });
 
 // ---- Execute ----
 
-const isExecuting = ref(false);
-
 async function handleImport() {
-  isExecuting.value = true;
   try {
     await store.execute();
   } catch {
     // Error captured in store.executeError and shown via Callout.
-  } finally {
-    isExecuting.value = false;
   }
 }
 </script>
@@ -188,8 +185,8 @@ async function handleImport() {
           {{ $t('pages.importExport.msMoneyImport.review.back') }}
         </UiButton>
 
-        <UiButton :disabled="isExecuting" @click="handleImport">
-          <template v-if="isExecuting">
+        <UiButton :disabled="store.isExecuting" @click="handleImport">
+          <template v-if="store.isExecuting">
             <LoaderCircleIcon class="size-4 animate-spin" />
             {{ $t('pages.importExport.msMoneyImport.review.importing') }}
           </template>

@@ -170,13 +170,24 @@ export async function executeMsMoneyImport({
   }
 
   // Phase 2: accounts. One concern the shared resolver does not cover is handled
-  // here first, before any rows are written: the link-existing currency match (a
-  // UAH Money account cannot post to a USD app account). This loop validates
-  // every link-existing mapping (ownership + currency) with Money-specific
-  // messages and tallies `accountsLinked`; the actual id resolution and
-  // new-account creation is then delegated to `createAccountsIfNeeded`.
+  // here first, before any rows are written: the mapping's currency must agree
+  // with the currency the parser read from the file, whether the account is
+  // linked (a UAH Money account cannot post to a USD app account) or created (the
+  // client sends the currency back, so it is not authoritative). This loop also
+  // checks link-existing ownership and tallies `accountsLinked`; the actual id
+  // resolution and new-account creation is then delegated to
+  // `createAccountsIfNeeded`.
   for (const account of importableAccounts) {
     const mapping = accountMapping[account.originalName]!;
+
+    if (mapping.action === 'create-new') {
+      if (mapping.currencyCode !== account.currency) {
+        throw new ValidationError({
+          message: `Account "${account.originalName}" (${account.currency}) cannot be created as "${mapping.currencyCode}" — a new account must use the currency from the file.`,
+        });
+      }
+      continue;
+    }
     if (mapping.action !== 'link-existing') continue;
 
     const existing = await Accounts.getAccountById({ userId, id: mapping.accountId });
@@ -231,19 +242,18 @@ export async function executeMsMoneyImport({
   });
   summary.categoriesCreated = categoriesCreated;
 
-  // Phase 4: resolve every distinct non-empty payee (ordinary rows and
-  // out-of-wallet legs) to a Payee id via the shared resolver — canonicalized
-  // through the user's payee namespace, reused by canonical name or alias, else
-  // inserted. `payeesCreated` counts genuine inserts only. Scans
-  // `transactionsToWrite` (post-skip), so a payee confined to a skipped-duplicate
-  // row creates no orphan Payee. Each id is passed explicitly to
-  // `createTransaction` in Phase 5 (raw name kept as `rawMerchantName`), so no
-  // merchant re-extraction runs there.
+  // Phase 4: resolve every distinct non-empty payee (ordinary rows,
+  // out-of-wallet legs and transfers) to a Payee id via the shared resolver —
+  // canonicalized through the user's payee namespace, reused by canonical name or
+  // alias, else inserted. `payeesCreated` counts genuine inserts only. Scans the
+  // post-skip row set, so a payee confined to a skipped-duplicate row creates no
+  // orphan Payee. Each id is passed explicitly to `createTransaction` below (raw
+  // name kept as `rawMerchantName`), so no merchant re-extraction runs there.
   const payeeNames = Array.from(
     new Set(
-      transactionsToWrite
-        .map((tx) => tx.payeeName)
-        .filter((name): name is string => name != null && name.trim() !== ''),
+      [...transactionsToWrite.map((tx) => tx.payeeName), ...transfersToWrite.map((xfer) => xfer.payeeName)].filter(
+        (name): name is string => name != null && name.trim() !== '',
+      ),
     ),
   );
   const { payeeNameToId, payeesCreated } = await createPayeesIfNeeded({ userId, payeeNames });
@@ -275,9 +285,6 @@ export async function executeMsMoneyImport({
       const accountId = accountIdByName.get(tx.accountName);
       if (!accountId) throw new ValidationError({ message: `Unknown account "${tx.accountName}"` });
 
-      // Direction comes from the parsed `type`, not the sign of `amount`: a
-      // zero-amount row has no sign (`-0 === 0`) yet still has a real
-      // expense/income direction the user expects to keep.
       const transactionType = tx.type;
       const amount = Money.fromDecimal(Math.abs(tx.amount));
 
@@ -373,6 +380,9 @@ export async function executeMsMoneyImport({
         });
       }
 
+      // Money records one payee for the pair, so it lands on the source leg.
+      const payeeId = xfer.payeeName ? payeeNameToId.get(xfer.payeeName) : undefined;
+
       const [, destinationLeg] = await createTransaction({
         userId,
         accountId: sourceAccountId,
@@ -386,6 +396,8 @@ export async function executeMsMoneyImport({
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
         destinationAccountId,
         destinationAmount: Money.fromDecimal(xfer.destinationAmount),
+        payeeId,
+        rawMerchantName: xfer.payeeName || null,
         externalData: { importDetails },
       });
 

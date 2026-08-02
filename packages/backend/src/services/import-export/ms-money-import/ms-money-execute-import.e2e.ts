@@ -42,6 +42,20 @@ const FIXTURE_CURRENCY = 'AUD';
 /** Amount of the out-of-wallet row on "Stocks and Shares (Cash)", dated 2003-08-02. */
 const OUT_OF_WALLET_AMOUNT = 178;
 
+/**
+ * Two of the file's 11 categories, picked because their rows are identifiable by
+ * amount alone — 578 and 55 appear on no other row and on no transfer. One is
+ * pointed at a category the user already owns, the other is left out of the
+ * mapping, so the full-import test covers all three mapping branches at once.
+ */
+const CATEGORY_LINKED = 'Household:Mortgage';
+const CATEGORY_LINKED_AMOUNT = 578;
+const CATEGORY_LINKED_ROWS = 6;
+const CATEGORY_OMITTED = 'Leisure & Entertainment:Health Club';
+const CATEGORY_OMITTED_AMOUNT = 55;
+const CATEGORY_OMITTED_ROWS = 6;
+const CATEGORY_OMITTED_LEAF_NAME = 'Health Club';
+
 const fixturesAvailable = msMoneyFixturesAvailable();
 if (!fixturesAvailable) {
   console.warn(`[ms-money] Skipping the execute-import suite. ${MS_MONEY_FIXTURES_MISSING_MESSAGE}`);
@@ -91,17 +105,30 @@ describeWithFixture('Microsoft Money import execution', () => {
   /**
    * Full import: one existing account linked, the other two created. Covers the
    * summary counts, the created accounts, the landed transactions with their
-   * category and payee, and the linked transfer pairs.
+   * category and payee, the three category-mapping branches, and the linked
+   * transfer pairs.
    *
    * Gets a longer timeout than the 15s default: it writes 82 rows through the
    * real transaction service, which lands near that limit on a busy machine.
    */
   it('imports the whole file: counts, created accounts, landed rows, linked transfers', async () => {
     const { account: linked } = await createAudAccount({ name: 'Existing AUD current' });
+    const existingCategory = await helpers.addCustomCategory({
+      name: 'Existing mortgage category',
+      color: '#123456',
+      raw: true,
+    });
     const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
 
     expect(upload.result.accounts).toHaveLength(3);
     expect(upload.result.baseCurrency).toBe(FIXTURE_CURRENCY);
+
+    const categoryMapping = createNewCategoryMapping({ categories: upload.result.categories });
+    // Fail fast if the fixture stops carrying these two: a silent no-op here
+    // would leave the two branches below untested.
+    expect(Object.keys(categoryMapping)).toEqual(expect.arrayContaining([CATEGORY_LINKED, CATEGORY_OMITTED]));
+    categoryMapping[CATEGORY_LINKED] = { action: 'link-existing', categoryId: existingCategory.id };
+    delete categoryMapping[CATEGORY_OMITTED];
 
     const progress = await runImport({
       uploadId: upload.uploadId,
@@ -110,7 +137,7 @@ describeWithFixture('Microsoft Money import execution', () => {
         [ACCOUNT_CREDIT_CARD]: { action: 'create-new', currencyCode: FIXTURE_CURRENCY, currentBalance: null },
         [ACCOUNT_STOCKS]: { action: 'create-new', currencyCode: FIXTURE_CURRENCY, currentBalance: null },
       },
-      categoryMapping: createNewCategoryMapping({ categories: upload.result.categories }),
+      categoryMapping,
     });
     expectMsMoneyCompleted(progress);
     const { summary } = progress;
@@ -124,9 +151,10 @@ describeWithFixture('Microsoft Money import execution', () => {
     expect(summary.transfersImported).toBe(7);
     expect(summary.duplicatesSkipped).toBe(0);
     expect(summary.payeesCreated).toBe(10);
-    // Each of the 11 leaves is created under its group, and the file's 6 groups
-    // are created too unless a same-named seeded default is reused.
-    expect(summary.categoriesCreated).toBeGreaterThanOrEqual(11);
+    // 9 of the 11 leaves are created under their group — one is linked to an
+    // existing category, one is left out of the mapping — plus the groups those
+    // leaves need, unless a same-named seeded default is reused.
+    expect(summary.categoriesCreated).toBeGreaterThanOrEqual(9);
 
     // --- The two mapped accounts were created, the linked one was not duplicated ---
     const accounts = await helpers.getAccounts();
@@ -154,6 +182,18 @@ describeWithFixture('Microsoft Money import execution', () => {
     expect(councilTax).toBeDefined();
     const bills = categories.find((c) => c.id === councilTax!.parentId);
     expect(bills?.name).toBe('Bills');
+
+    // --- A linked category is reused, not duplicated ---
+    const linkedCategoryRows = transactions.filter((t) => Number(t.amount) === CATEGORY_LINKED_AMOUNT);
+    expect(linkedCategoryRows).toHaveLength(CATEGORY_LINKED_ROWS);
+    expect(linkedCategoryRows.every((t) => t.categoryId === existingCategory.id)).toBe(true);
+    expect(categories.filter((c) => c.name === existingCategory.name)).toHaveLength(1);
+
+    // --- A category left out of the mapping imports its rows bare ---
+    const unmappedCategoryRows = transactions.filter((t) => Number(t.amount) === CATEGORY_OMITTED_AMOUNT);
+    expect(unmappedCategoryRows).toHaveLength(CATEGORY_OMITTED_ROWS);
+    expect(unmappedCategoryRows.filter((t) => t.categoryId != null)).toEqual([]);
+    expect(categories.filter((c) => c.name === CATEGORY_OMITTED_LEAF_NAME)).toHaveLength(0);
 
     // --- The out-of-wallet leg has no counterpart account ---
     const outOfWalletLegs = transactions.filter(
@@ -366,6 +406,52 @@ describeWithFixture('Microsoft Money import execution', () => {
         isNewAccount: false,
       });
     });
+
+    /**
+     * A created account ends on the balance the user entered, not on the net of
+     * the rows that landed on it — the difference is absorbed into
+     * `initialBalance` without an adjustment transaction. Both Woodgrove
+     * accounts are skipped so the created account gets the single
+     * out-of-wallet expense and nothing else.
+     */
+    it('forces the entered target balance on an account it creates', async () => {
+      const targetBalance = 1234.56;
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+
+      const progress = await runImport({
+        uploadId: upload.uploadId,
+        accountMapping: {
+          [ACCOUNT_CURRENT]: { action: 'skip' },
+          [ACCOUNT_CREDIT_CARD]: { action: 'skip' },
+          [ACCOUNT_STOCKS]: {
+            action: 'create-new',
+            currencyCode: FIXTURE_CURRENCY,
+            currentBalance: targetBalance,
+          },
+        },
+      });
+      expectMsMoneyCompleted(progress);
+      expect(progress.summary.errors).toHaveLength(0);
+      expect(progress.summary.accountsCreated).toBe(1);
+      expect(progress.summary.outOfWalletImported).toBe(1);
+
+      const accounts = await helpers.getAccounts();
+      const stocks = accounts.find((a) => a.name === ACCOUNT_STOCKS)!;
+      expect(Number(stocks.currentBalance)).toBe(targetBalance);
+
+      // A created account carries no balanceBefore/delta — there is no
+      // pre-import balance to compare against.
+      expect(progress.summary.accountBalanceChanges).toEqual([
+        {
+          accountId: stocks.id,
+          accountName: ACCOUNT_STOCKS,
+          balanceAfter: targetBalance,
+          movedCount: 1,
+          historicalCount: 0,
+          isNewAccount: true,
+        },
+      ]);
+    });
   });
 
   describe('upload errors', () => {
@@ -468,5 +554,59 @@ describeWithFixture('Microsoft Money import execution', () => {
 
     const transactions = await helpers.getTransactions({ limit: 500, raw: true });
     expect(transactions.filter((t) => t.accountId === wrongCurrency.id)).toHaveLength(0);
+  });
+
+  /**
+   * The client sends the new account's currency back in the mapping, so it is
+   * not authoritative. A value disagreeing with the file would post every
+   * imported amount in the wrong unit, so the job refuses before creating it.
+   */
+  it('fails the job when a create-new mapping states a currency the file does not', async () => {
+    const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+
+    const progress = await runImport({
+      uploadId: upload.uploadId,
+      accountMapping: {
+        [ACCOUNT_CURRENT]: { action: 'skip' },
+        [ACCOUNT_CREDIT_CARD]: { action: 'skip' },
+        [ACCOUNT_STOCKS]: { action: 'create-new', currencyCode: 'USD', currentBalance: null },
+      },
+    });
+
+    expect(progress.status).toBe('failed');
+    if (progress.status !== 'failed') throw new Error('unreachable');
+    expect(progress.error).toMatch(/must use the currency from the file/i);
+
+    const accounts = await helpers.getAccounts();
+    expect(accounts.filter((a) => a.name === ACCOUNT_STOCKS)).toHaveLength(0);
+    const transactions = await helpers.getTransactions({ limit: 500, raw: true });
+    expect(transactions).toHaveLength(0);
+  });
+
+  /**
+   * Queueing an import claims the upload exclusively, so a user who submits the
+   * wizard twice cannot import the same ledger into their accounts twice. The
+   * second submit is refused while the first job still owns the upload.
+   */
+  it('refuses a second execute while the first import still holds the upload', async () => {
+    const { account } = await createAudAccount({ name: 'Exclusive AUD' });
+    const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+    const accountMapping = onlyStocksMapping({ accountId: account.id });
+
+    const { jobId } = await helpers.executeMsMoney({
+      payload: { uploadId: upload.uploadId, accountMapping },
+      raw: true,
+    });
+
+    const second = await helpers.executeMsMoney({ payload: { uploadId: upload.uploadId, accountMapping } });
+    expect(second.statusCode).toBe(ERROR_CODES.ConflictError);
+
+    const progress = await waitForMsMoneyCompletion({ jobId });
+    expectMsMoneyCompleted(progress);
+    expect(progress.summary.outOfWalletImported).toBe(1);
+
+    // The refused submit wrote nothing of its own: the row exists once.
+    const transactions = await helpers.getTransactions({ limit: 500, raw: true });
+    expect(transactions.filter((t) => t.accountId === account.id)).toHaveLength(1);
   });
 });

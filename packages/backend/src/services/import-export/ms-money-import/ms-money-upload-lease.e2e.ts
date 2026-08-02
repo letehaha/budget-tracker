@@ -109,6 +109,10 @@ describeWithFixture('Microsoft Money upload lease', () => {
         payload: { uploadId: upload.uploadId, accountMapping },
         raw: true,
       });
+      // The linked account was created for this test and holds no transactions,
+      // so nothing can match. Pinning the value keeps the equality check below
+      // from passing on a stably-wrong result.
+      expect(before.duplicates).toEqual([]);
 
       await refreshLease({ uploadId: upload.uploadId, raw: true });
 
