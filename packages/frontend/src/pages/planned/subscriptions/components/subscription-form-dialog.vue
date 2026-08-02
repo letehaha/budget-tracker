@@ -10,6 +10,7 @@ import { Callout } from '@/components/lib/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { Label } from '@/components/lib/ui/label';
 import { Switch } from '@/components/lib/ui/switch';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useResetSubscriptionLogo } from '@/composable/data-queries/subscriptions';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
@@ -229,6 +230,10 @@ const selectedFrequency = computed(() => {
 });
 
 const isInstallment = computed(() => form.value.type === SUBSCRIPTION_TYPES.installment);
+
+// Transaction type is immutable once a subscription exists — the backend ignores
+// edits to it, so the selector is locked on edit to avoid implying it's changable.
+const isEditingSubscription = computed(() => !!props.initialValues);
 
 // autoRecord is mutually exclusive with matching rules. When the user turns the
 // toggle ON while rules exist, we auto-clear the rules and show a brief callout
@@ -512,34 +517,52 @@ const handleSubmit = async () => {
 
     <!-- Transaction Type (Expense vs Income) -->
     <div class="flex flex-col gap-2">
-      <span class="text-foreground text-sm font-medium">{{ $t('planned.subscriptions.form.transactionTypeLabel') }}</span>
+      <span class="text-foreground text-sm font-medium">{{
+        $t('planned.subscriptions.form.transactionTypeLabel')
+      }}</span>
       <div class="bg-muted/50 border-border/50 flex w-full rounded-lg border p-1">
-        <button
-          type="button"
-          :class="[
-            'flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            form.transactionType === TRANSACTION_TYPES.expense
-              ? 'bg-app-expense-color/15 text-app-expense-color shadow-sm font-semibold'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-          ]"
-          @click="form.transactionType = TRANSACTION_TYPES.expense"
+        <DesktopOnlyTooltip
+          :content="$t('planned.subscriptions.form.transactionTypeLockedTooltip')"
+          :disabled="!isEditingSubscription || form.transactionType === TRANSACTION_TYPES.expense"
         >
-          <ArrowUpIcon class="size-4" />
-          {{ t('planned.subscriptions.form.transactionTypeExpense') }}
-        </button>
-        <button
-          type="button"
-          :class="[
-            'flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            form.transactionType === TRANSACTION_TYPES.income
-              ? 'bg-app-income-color/15 text-app-income-color shadow-sm font-semibold'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-          ]"
-          @click="form.transactionType = TRANSACTION_TYPES.income"
+          <span class="inline-flex w-full flex-1">
+            <button
+              type="button"
+              :disabled="isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.expense"
+              :class="[
+                'focus-visible:ring-ring flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                form.transactionType === TRANSACTION_TYPES.expense
+                  ? 'bg-app-expense-color/15 text-app-expense-color font-semibold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+              ]"
+              @click="form.transactionType = TRANSACTION_TYPES.expense"
+            >
+              <ArrowUpIcon class="size-4" />
+              {{ t('planned.subscriptions.form.transactionTypeExpense') }}
+            </button>
+          </span>
+        </DesktopOnlyTooltip>
+        <DesktopOnlyTooltip
+          :content="$t('planned.subscriptions.form.transactionTypeLockedTooltip')"
+          :disabled="!isEditingSubscription || form.transactionType === TRANSACTION_TYPES.income"
         >
-          <ArrowDownIcon class="size-4" />
-          {{ t('planned.subscriptions.form.transactionTypeIncome') }}
-        </button>
+          <span class="inline-flex w-full flex-1">
+            <button
+              type="button"
+              :disabled="isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.income"
+              :class="[
+                'focus-visible:ring-ring flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                form.transactionType === TRANSACTION_TYPES.income
+                  ? 'bg-app-income-color/15 text-app-income-color font-semibold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+              ]"
+              @click="form.transactionType = TRANSACTION_TYPES.income"
+            >
+              <ArrowDownIcon class="size-4" />
+              {{ t('planned.subscriptions.form.transactionTypeIncome') }}
+            </button>
+          </span>
+        </DesktopOnlyTooltip>
       </div>
       <p v-if="selectedTransactionTypeOption" class="text-muted-foreground mt-0.5 text-xs leading-snug">
         {{ selectedTransactionTypeOption.desc }}
