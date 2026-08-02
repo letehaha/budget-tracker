@@ -3,6 +3,7 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ConflictError } from '@js/errors';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
+import Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
@@ -41,6 +42,17 @@ export const resolveCandidate = withTransaction(
       const sampleTxIds = candidate.sampleTransactionIds ?? [];
 
       if (sampleTxIds.length > 0) {
+        // `sampleTransactionIds` is a snapshot taken at detection time. Any of those
+        // transactions may have been deleted since (directly, or cascaded from an
+        // account delete), so link only the ones that still exist.
+        const existing = await Transactions.findAll({
+          where: { id: { [Op.in]: sampleTxIds }, userId },
+          attributes: ['id'],
+          raw: true,
+        });
+        const existingTxIdSet = new Set(existing.map((tx) => tx.id));
+        const existingTxIds = sampleTxIds.filter((id) => existingTxIdSet.has(id));
+
         const alreadyLinked = await SubscriptionTransactions.findAll({
           where: {
             transactionId: { [Op.in]: sampleTxIds },
@@ -51,7 +63,7 @@ export const resolveCandidate = withTransaction(
         });
 
         const alreadyLinkedSet = new Set(alreadyLinked.map((l) => l.transactionId));
-        const newTxIds = sampleTxIds.filter((id) => !alreadyLinkedSet.has(id));
+        const newTxIds = existingTxIds.filter((id) => !alreadyLinkedSet.has(id));
 
         if (newTxIds.length > 0) {
           await SubscriptionTransactions.bulkCreate(

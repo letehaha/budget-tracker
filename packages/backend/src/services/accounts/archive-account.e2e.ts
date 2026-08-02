@@ -214,6 +214,37 @@ describe('Account archiving (PUT /accounts/:id)', () => {
         });
         expect(updatedSubscription.accountId ?? null).toBeNull();
       });
+
+      it('turns auto-record off when unlinking, since auto-record requires an account', async () => {
+        const account = await helpers.createAccount({
+          payload: helpers.buildAccountPayload(),
+          raw: true,
+        });
+
+        const subscription = await helpers.createSubscription({
+          name: 'Auto-record Subscription',
+          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+          startDate: new Date().toISOString(),
+          accountId: account.id,
+          expectedAmount: 10,
+          expectedCurrencyCode: account.currencyCode,
+          autoRecord: true,
+          raw: true,
+        });
+
+        const response = await helpers.updateAccount({
+          id: account.id,
+          payload: { status: ACCOUNT_STATUSES.archived },
+        });
+
+        expect(response.statusCode).toBe(200);
+
+        const updatedSubscription = await helpers.getSubscriptionById({
+          id: String(subscription.id),
+          raw: true,
+        });
+        expect(updatedSubscription.accountId ?? null).toBeNull();
+      });
     });
 
     describe('Idempotent archiving', () => {
