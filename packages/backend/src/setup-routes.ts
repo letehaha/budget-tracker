@@ -21,6 +21,7 @@ import exchangeRatesRoutes from './routes/exchange-rates';
 import githubRoutes from './routes/github.route';
 import budgetBakersWalletImportRoutes from './routes/import-export/budget-bakers-wallet.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
+import msMoneyImportRoutes from './routes/import-export/ms-money.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import ynabImportRoutes from './routes/import-export/ynab.route';
 import investmentsRoutes from './routes/investments.route';
@@ -191,6 +192,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/import`, statementParserRoutes);
   app.use(`${API_PREFIX}/import`, ynabImportRoutes);
   app.use(`${API_PREFIX}/import`, budgetBakersWalletImportRoutes);
+  app.use(`${API_PREFIX}/import`, msMoneyImportRoutes);
   app.use(`${API_PREFIX}/sse`, sseRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
   app.use(`${API_PREFIX}/github`, githubRoutes);

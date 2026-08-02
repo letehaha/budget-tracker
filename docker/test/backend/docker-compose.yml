@@ -64,9 +64,14 @@ services:
       - NODE_ENV=test
       # so package `config` will look into the correct place
       - NODE_CONFIG_DIR=./packages/backend/config
-      # Enable experimental ESM support for Jest (required for better-auth)
-      # Increase heap size to 4GB to prevent OOM during large test suites
-      - NODE_OPTIONS=--experimental-vm-modules --max-old-space-size=4096
+      # Jest runs everything as CommonJS here. With --experimental-vm-modules it
+      # instead refuses to require any package marked "type": "module" —
+      # mdb-reader, behind the Microsoft Money importer — before the transform
+      # that would compile it down ever runs. The ESM-only packages the suite
+      # touches are either mocked (better-auth, the MCP SDK) or transformed
+      # (see transformIgnorePatterns in jest.config.base.ts).
+      # Heap is raised to 4GB to prevent OOM during large test suites.
+      - NODE_OPTIONS=--max-old-space-size=4096
       # Pass host CI flag through so setupIntegrationTests.ts enables
       # in-process test retries only on CI (unset locally)
       - CI

@@ -35,6 +35,7 @@ export enum ImportSource {
   csv = 'csv',
   statementParser = 'statement-parser',
   budgetBakersWallet = 'budget-bakers-wallet',
+  msMoney = 'ms-money',
 }
 
 /**

@@ -48,7 +48,7 @@ type AnalyticsEvent =
   // Import funnel (import_completed tracked on backend)
   | {
       event: 'import_opened';
-      properties: { import_type: 'csv' | 'statement_parser' | 'ynab' | 'budget-bakers-wallet' };
+      properties: { import_type: 'csv' | 'statement_parser' | 'ynab' | 'budget-bakers-wallet' | 'ms-money' };
     }
   // AI features (ai_categorization_completed tracked on backend)
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }

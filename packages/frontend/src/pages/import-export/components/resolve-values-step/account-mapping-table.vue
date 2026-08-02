@@ -1,3 +1,10 @@
+<script lang="ts">
+/** Every account decision this table can render. `skip` is offered only when
+ *  the parent opts in via `allowSkip`, so importers whose wire type has no skip
+ *  action can ignore it. */
+export type AccountAction = 'create-new' | 'link-existing' | 'skip';
+</script>
+
 <script setup lang="ts">
 /**
  * AccountMappingTable — shared, prop-driven table for reconciling a list of
@@ -18,7 +25,12 @@
 import SelectField from '@/components/fields/select-field.vue';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
-import type { AccountModel, AccountMappingValue, BudgetBakersWalletAccountMappingValue } from '@bt/shared/types';
+import type {
+  AccountModel,
+  AccountMappingValue,
+  BudgetBakersWalletAccountMappingValue,
+  MsMoneyAccountMappingValue,
+} from '@bt/shared/types';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vue';
@@ -33,19 +45,20 @@ interface SourceItem {
 }
 
 /**
- * Read-only view of a single account mapping decision. Both CSV's
- * `AccountMappingValue` and BudgetBakers Wallet's `BudgetBakersWalletAccountMappingValue` are
- * structurally assignable to this — extra fields on the `create-new` variants
- * (`currentBalance` on both, BudgetBakers Wallet's `currencyCode`) are tolerated.
+ * Read-only view of a single account mapping decision. CSV's
+ * `AccountMappingValue`, BudgetBakers Wallet's and MS Money's account mapping
+ * values are all structurally assignable to this — extra fields on the
+ * `create-new` variants (`currentBalance`, `currencyCode`) are tolerated.
  */
-type AccountMappingView = { action: 'create-new' | 'link-existing'; accountId?: string };
+type AccountMappingView = { action: AccountAction; accountId?: string };
 
-// Compile-time guard: both source union types must remain assignable to
-// AccountMappingView so a future change to either type surfaces here rather
+// Compile-time guard: every source union type must remain assignable to
+// AccountMappingView so a future change to any of them surfaces here rather
 // than silently breaking the component at runtime.
 type _AssertAccountMappingViewCompat = [
   AccountMappingValue extends AccountMappingView ? true : never,
   BudgetBakersWalletAccountMappingValue extends AccountMappingView ? true : never,
+  MsMoneyAccountMappingValue extends AccountMappingView ? true : never,
 ];
 
 const props = defineProps<{
@@ -58,10 +71,16 @@ const props = defineProps<{
   resolvedLabel: string;
   /** Bulk-action buttons the parent builds with i18n labels + store handlers. */
   quickActions: QuickAction[];
+  /**
+   * Adds a "skip" choice to the action picker. Only importers whose wire type
+   * carries a `skip` account action turn this on; the rest must not offer a
+   * decision the backend would reject.
+   */
+  allowSkip?: boolean;
 }>();
 
 const emit = defineEmits<{
-  'set-action': [payload: { name: string; action: 'create-new' | 'link-existing' }];
+  'set-action': [payload: { name: string; action: AccountAction }];
   'set-target': [payload: { name: string; accountId: string }];
 }>();
 
@@ -72,9 +91,10 @@ interface OptionItem<V extends string = string> {
   value: V;
 }
 
-const linkOrCreateOptions = computed<OptionItem<'create-new' | 'link-existing'>[]>(() => [
+const actionOptions = computed<OptionItem<AccountAction>[]>(() => [
   { label: t('importShared.action.createNew'), value: 'create-new' },
   { label: t('importShared.action.linkExisting'), value: 'link-existing' },
+  ...(props.allowSkip ? [{ label: t('importShared.action.skip'), value: 'skip' as const }] : []),
 ]);
 
 // ---- Columns (status 36px, name 1fr, currency 80px, action 160px, target 1fr) ----
@@ -89,13 +109,15 @@ const columns = computed<MappingTableColumn[]>(() => [
 
 // ---- Status derivation ----
 
-type ResolveRowStatus = 'auto-matched' | 'will-create' | 'needs-attention';
+type ResolveRowStatus = 'auto-matched' | 'will-create' | 'needs-attention' | 'skipped';
 
-/** create-new ⇒ will-create; link-existing with a target ⇒ auto-matched; otherwise needs-attention. */
+/** create-new ⇒ will-create; skip ⇒ skipped; link-existing with a target ⇒
+ *  auto-matched; otherwise needs-attention. */
 function getStatus(name: string): ResolveRowStatus {
   const m = props.mapping[name];
   if (!m) return 'needs-attention';
   if (m.action === 'create-new') return 'will-create';
+  if (m.action === 'skip') return 'skipped';
   if (m.action === 'link-existing') return m.accountId ? 'auto-matched' : 'needs-attention';
   return 'needs-attention';
 }
@@ -126,10 +148,10 @@ function isAccountAlreadyMapped({ accountId, currentName }: { accountId: string;
   return mappedTo !== undefined && mappedTo !== currentName;
 }
 
-function getActionOption(name: string): OptionItem<'create-new' | 'link-existing'> | null {
+function getActionOption(name: string): OptionItem<AccountAction> | null {
   const m = props.mapping[name];
   if (!m) return null;
-  return linkOrCreateOptions.value.find((o) => o.value === m.action) ?? null;
+  return actionOptions.value.find((o) => o.value === m.action) ?? null;
 }
 
 function getSelectOptions(currency: string): OptionItem[] {
@@ -149,7 +171,7 @@ function getSelectValue(name: string): OptionItem | null {
 
 // ---- Emit handlers ----
 
-function onActionChange({ name, option }: { name: string; option: OptionItem<'create-new' | 'link-existing'> | null }) {
+function onActionChange({ name, option }: { name: string; option: OptionItem<AccountAction> | null }) {
   if (!option) return;
   emit('set-action', { name, action: option.value });
 }
@@ -192,7 +214,7 @@ function onTargetChange({ name, option }: { name: string; option: OptionItem | n
       <template #cell:action="{ item }">
         <SelectField
           :model-value="getActionOption(item.name)"
-          :values="linkOrCreateOptions"
+          :values="actionOptions"
           class="w-full"
           :placeholder="$t('importShared.selectAction')"
           @update:model-value="onActionChange({ name: item.name, option: $event })"
@@ -228,6 +250,10 @@ function onTargetChange({ name, option }: { name: string; option: OptionItem | n
             </span>
           </slot>
         </template>
+
+        <span v-else-if="mapping[item.name]?.action === 'skip'" class="text-muted-foreground text-sm">
+          {{ $t('importShared.account.willSkip') }}
+        </span>
 
         <span v-else class="text-muted-foreground text-sm">—</span>
       </template>

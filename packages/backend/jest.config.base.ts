@@ -12,7 +12,14 @@ export default {
         tsconfig: '<rootDir>/tsconfig.json',
       },
     ],
+    // mdb-reader (the Microsoft Money parser's Access reader) ships as pure ESM,
+    // which Jest's CommonJS runtime cannot load. Compile it down instead of
+    // stubbing it, so tests exercise the real reader.
+    '^.+\\.js$': '<rootDir>/src/tests/transformers/esm-to-cjs.js',
   },
+  // Everything in node_modules stays untransformed except the ESM-only packages
+  // listed here, which would otherwise fail to parse.
+  transformIgnorePatterns: ['/node_modules/(?!mdb-reader/)'],
   moduleNameMapper: {
     // Mock better-auth ESM modules with our CommonJS compatible versions
     '^better-auth$': '<rootDir>/src/tests/mocks/better-auth/index.ts',

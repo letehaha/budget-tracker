@@ -22,8 +22,9 @@ interface ApiRequestConfig {
     'Content-Type': string;
     [SESSION_ID_HEADER_KEY]: string;
     'Accept-Language': string;
+    [header: string]: string;
   };
-  body?: string;
+  body?: BodyInit;
   credentials: RequestCredentials;
   signal?: AbortSignal;
 }
@@ -34,6 +35,15 @@ interface ApiCall {
   query?: Record<string, string>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: Record<string | number, any>;
+  /**
+   * Body sent to `fetch` verbatim, without JSON encoding. Used for binary
+   * uploads (a `File`/`Blob`) that must not be copied into a string first —
+   * a multi-megabyte file would otherwise be held in memory twice.
+   * Takes precedence over `data`.
+   */
+  rawBody?: BodyInit;
+  /** Request headers merged over the defaults (Content-Type, session, locale). */
+  headers?: Record<string, string>;
   options?: {
     needRaw?: boolean;
     /** When true, suppresses error toast notifications for failed requests */
@@ -88,6 +98,31 @@ class ApiCaller {
       endpoint,
       options,
       data,
+    });
+  }
+
+  /**
+   * POSTs a body straight to the endpoint with no JSON encoding — for binary
+   * uploads. Pass the matching `Content-Type` in `headers`; anything else there
+   * is merged over the defaults too.
+   */
+  postRaw({
+    endpoint,
+    body,
+    headers,
+    options = {},
+  }: {
+    endpoint: ApiCall['endpoint'];
+    body: BodyInit;
+    headers?: Record<string, string>;
+    options?: ApiCall['options'];
+  }) {
+    return this._call({
+      method: 'POST',
+      endpoint,
+      options,
+      rawBody: body,
+      headers,
     });
   }
 
@@ -165,12 +200,15 @@ class ApiCaller {
         'Content-Type': 'application/json',
         'X-Session-ID': window.sessionStorage?.getItem(SESSION_ID_KEY) || '',
         'Accept-Language': getCurrentLocale(), // Send current locale to backend
+        ...opts.headers,
       },
       // Include credentials (cookies) for session-based authentication
       credentials: 'include',
     };
 
-    if (opts.data) {
+    if (opts.rawBody !== undefined) {
+      config.body = opts.rawBody;
+    } else if (opts.data) {
       config.body = JSON.stringify(opts.data);
     }
 

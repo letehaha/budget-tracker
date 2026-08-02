@@ -15,6 +15,7 @@ export * from './api';
 export * from './import-export';
 export * from './ynab-import';
 export * from './budget-bakers-wallet-import';
+export * from './ms-money-import';
 export * from './data-export';
 export * from './backup';
 export * from './statement-parser';

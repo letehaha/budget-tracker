@@ -2,7 +2,8 @@
   "importShared": {
     "action": {
       "createNew": "Create new",
-      "linkExisting": "Link to existing"
+      "linkExisting": "Link to existing",
+      "skip": "Skip"
     },
     "selectAction": "Select action",
     "resolvedCounterWord": "resolved",
@@ -16,7 +17,8 @@
       "selectTarget": "Select account",
       "noMatchingCurrency": "No account with currency {currency}",
       "willCreate": "Will create {name} ({currency})",
-      "empty": "No accounts to map"
+      "empty": "No accounts to map",
+      "willSkip": "Will not be imported"
     },
     "category": {
       "selectTarget": "Select category",

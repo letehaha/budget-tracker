@@ -14,6 +14,7 @@ import {
 } from '@services/bank-data-providers/sync/sync-status-tracker';
 import { budgetBakersWalletImportQueue } from '@services/import-export/budget-bakers-wallet-import';
 import { csvImportQueue } from '@services/import-export/csv-import/csv-import-queue';
+import { msMoneyImportQueue } from '@services/import-export/ms-money-import';
 import { ynabImportQueue } from '@services/import-export/ynab-import';
 import { Queue } from 'bullmq';
 
@@ -28,9 +29,9 @@ const REDISCOVERY_RETRY_DELAY_MS = IS_TEST ? 100 : 2000;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Typed as the base `Queue` so the three importers' distinct generic data types
+// Typed as the base `Queue` so the importers' distinct generic data types
 // collapse to one callable `getJobs` signature.
-const importQueues: Queue[] = [csvImportQueue, ynabImportQueue, budgetBakersWalletImportQueue];
+const importQueues: Queue[] = [csvImportQueue, ynabImportQueue, budgetBakersWalletImportQueue, msMoneyImportQueue];
 
 /** Import workers write transactions row-by-row; an active job for this user could
  *  commit rows against the old base. Count active jobs across every importer. */

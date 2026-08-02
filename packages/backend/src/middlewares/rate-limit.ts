@@ -188,6 +188,15 @@ export const backupRateLimit = perUserNonDevRateLimit({ prefix: 'backup' });
 export const backupRestoreRateLimit = perUserNonDevRateLimit({ prefix: 'backup-restore' });
 
 /**
+ * Microsoft Money upload rate limit. The upload buffers a file of up to 50MB and
+ * decrypts and parses it synchronously on the API thread, so it is far heavier
+ * than the id-and-mapping steps that follow it and must not share their
+ * permissive budget. Runs before the body is read, so a blocked caller never
+ * gets to send the bytes.
+ */
+export const msMoneyUploadRateLimit = perUserNonDevRateLimit({ prefix: 'ms-money-upload' });
+
+/**
  * Share-invitation send rate limit (per owner, 30 sends per 24h in prod, 5 in test).
  * Closes the email-bombing gap the per-resource pending cap and the per-invitee resend
  * limit miss. The threshold is read at module load so the test-env override is the single

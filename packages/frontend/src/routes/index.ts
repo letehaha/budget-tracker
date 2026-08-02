@@ -364,6 +364,18 @@ const routes: RouteRecordRaw[] = [
             },
           },
           {
+            path: 'data-management/import/ms-money',
+            name: ROUTES_NAMES.importMsMoney,
+            component: () => import('@/pages/import-export/ms-money-import/index.vue'),
+            meta: {
+              i18nChunks: [
+                'pages/import-ms-money',
+                'pages/import-shared',
+                'settings/data-management',
+              ] as I18nChunkName[],
+            },
+          },
+          {
             path: 'appearance',
             name: ROUTES_NAMES.settingsAppearance,
             component: () => import('@/pages/settings/subpages/appearance/index.vue'),

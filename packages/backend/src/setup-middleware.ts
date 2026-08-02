@@ -112,6 +112,11 @@ export function setupMiddleware(app: Express) {
   // this middleware runs before route mounting, so req.path contains full path
   const rawBodyPaths = [`${API_PREFIX}/webhooks/github`];
 
+  // Binary uploads: the body is a file, not JSON, and the route mounts its own
+  // `express.raw` parser. Running the JSON parser here first would buffer a
+  // multi-megabyte body a second time for nothing.
+  const binaryUploadPaths = [`${API_PREFIX}/import/ms-money/upload`];
+
   // Body parser with conditional limits
   app.use((req, res, next) => {
     // Skip body parsing for better-auth routes – toNodeHandler reads the raw
@@ -123,6 +128,10 @@ export function setupMiddleware(app: Express) {
       return next();
     }
 
+    if (binaryUploadPaths.includes(req.path)) {
+      return next();
+    }
+
     // Paths that need larger payloads
     const largePaths = {
       '1mb': [
@@ -130,6 +139,10 @@ export function setupMiddleware(app: Express) {
         // A manual categorization run can carry up to AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN
         // transaction ids, which is ~200KB of UUIDs.
         `${API_PREFIX}/user/ai/categorization/trigger`,
+        // A Money file can hold 100k transactions, so the duplicate row indices
+        // the user chooses to skip outgrow the default limit on a big import.
+        `${API_PREFIX}/import/ms-money/detect-duplicates`,
+        `${API_PREFIX}/import/ms-money/execute`,
       ],
       '10mb': [
         `${API_PREFIX}/import/csv/parse`,
