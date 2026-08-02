@@ -131,14 +131,23 @@ export function setupMiddleware(app: Express) {
         `${API_PREFIX}/import/csv/extract-unique-values`,
         `${API_PREFIX}/import/csv/detect-duplicates`,
         `${API_PREFIX}/import/csv/execute`,
-        // Statement parser endpoints need 10MB for base64 encoded files (max 10MB = ~13.3MB base64)
+        // Statement parser endpoints carry base64 encoded files on the way in
+        // (max 10MB file = ~13.3MB base64) and the full extracted transactions
+        // array on the way back out.
         `${API_PREFIX}/import/text-source/estimate-cost`,
         `${API_PREFIX}/import/text-source/extract`,
+        `${API_PREFIX}/import/text-source/detect-duplicates`,
+        `${API_PREFIX}/import/text-source/execute`,
         // Investment import execute carries full per-holding tx arrays – easily multi-MB for large CSVs.
         `${API_PREFIX}/investments/transactions-import/execute`,
         // YNAB register CSVs are sent inline as JSON-encoded text on both parse and execute.
         `${API_PREFIX}/import/ynab/parse`,
         `${API_PREFIX}/import/ynab/execute`,
+        // Budget Bakers Wallet sends the whole CSV inline as `fileContent` on
+        // every step of the flow.
+        `${API_PREFIX}/import/budget-bakers-wallet/parse`,
+        `${API_PREFIX}/import/budget-bakers-wallet/detect-duplicates`,
+        `${API_PREFIX}/import/budget-bakers-wallet/execute`,
       ],
       // Backup restore carries the whole backup zip as a base64 JSON string; the
       // base64 envelope inflates ~4/3, so a ~40MB zip needs this ceiling.
