@@ -398,6 +398,11 @@ const routes: RouteRecordRaw[] = [
                 name: ROUTES_NAMES.settingsAiKeys,
                 component: () => import('@/pages/settings/subpages/ai/pages/keys.vue'),
               },
+              {
+                path: 'endpoints',
+                name: ROUTES_NAMES.settingsAiEndpoints,
+                component: () => import('@/pages/settings/subpages/ai/pages/endpoints.vue'),
+              },
             ],
           },
           {

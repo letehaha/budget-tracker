@@ -49,7 +49,7 @@ export function rejectIfWrongModel({ request, expectedModel }: { request: Reques
 }
 
 interface MockCategorizationOptions {
-  /** Map of transactionId to categoryId for the mock response */
+  /** Map of transaction ordinal to category ordinal (1-based, prompt order), emitted as "t1:c2" alias pairs */
   categorizations?: Record<number, number>;
   /** If true, returns an error response */
   shouldFail?: boolean;
@@ -59,7 +59,7 @@ interface MockCategorizationOptions {
 
 /**
  * Creates a mock response for the Gemini generateContent API
- * Returns categorization in the format "transactionId:categoryId" per line
+ * Returns categorization in the short-alias format "t<n>:c<n>" per line
  */
 export function createGeminiMock(options: MockCategorizationOptions = {}) {
   const { categorizations = {}, shouldFail = false, errorStatus = 500 } = options;
@@ -69,7 +69,9 @@ export function createGeminiMock(options: MockCategorizationOptions = {}) {
     if (modelMismatch) return modelMismatch;
 
     const url = new URL(request.url);
-    const apiKey = url.searchParams.get('key');
+    // The SDK sends the key as the `x-goog-api-key` header; the REST API also
+    // accepts a `?key=` query param, so honour both transports.
+    const apiKey = request.headers.get('x-goog-api-key') ?? url.searchParams.get('key');
 
     // Check for invalid API key
     if (apiKey === INVALID_GEMINI_API_KEY) {
@@ -101,7 +103,7 @@ export function createGeminiMock(options: MockCategorizationOptions = {}) {
 
     // Build response text from categorizations map
     const responseText = Object.entries(categorizations)
-      .map(([txId, catId]) => `${txId}:${catId}`)
+      .map(([txOrdinal, catOrdinal]) => `t${txOrdinal}:c${catOrdinal}`)
       .join('\n');
 
     return HttpResponse.json({

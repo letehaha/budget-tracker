@@ -17,9 +17,11 @@ OUTPUT FORMAT:
 Return one line per categorized transaction in this exact format:
 transactionId:categoryId
 
+Transaction ids look like "t1", "t2"; category ids look like "c1", "c2". Copy them exactly as given.
+
 Example:
-550e8400-e29b-41d4-a716-446655440000:6ba7b810-9dad-11d1-80b4-00c04fd430c8
-6ba7b811-9dad-11d1-80b4-00c04fd430c8:6ba7b812-9dad-11d1-80b4-00c04fd430c8
+t1:c4
+t2:c12
 
 Do not include any explanations, headers, or additional text.`;
 

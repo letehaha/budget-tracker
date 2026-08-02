@@ -65,6 +65,8 @@ export interface StatementExtractionResult {
     input: number;
     output: number;
   };
+  /** Lines the model emitted that no transaction could be read from. */
+  droppedRowCount: number;
 }
 
 /**
@@ -75,8 +77,12 @@ export interface StatementCostEstimate {
   estimatedInputTokens: number;
   /** Estimated output tokens (based on expected transactions) */
   estimatedOutputTokens: number;
-  /** Estimated cost in USD */
-  estimatedCostUsd: number;
+  /**
+   * Estimated cost in USD. Null when nobody can look the price up: a custom endpoint is
+   * billed by whoever runs it, and some catalog models publish no pricing. A free model
+   * is a known price of 0.
+   */
+  estimatedCostUsd: number | null;
   /** Model that will be used */
   modelId: string;
   /** Model display name */
@@ -94,13 +100,6 @@ export interface StatementCostEstimate {
   };
   /** Detected file type */
   fileType: StatementFileType;
-  /** Token limit info */
-  tokenLimit?: {
-    /** Maximum allowed input tokens (model context / 3) */
-    maxInputTokens: number;
-    /** Whether the file exceeds the limit */
-    exceedsLimit: boolean;
-  };
 }
 
 /**

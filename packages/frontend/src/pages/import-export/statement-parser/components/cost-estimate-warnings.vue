@@ -78,8 +78,4 @@ const tokenWarningDescription = computed(() => {
       return '';
   }
 });
-
-const hasWarnings = computed(() => tokenWarningLevel.value !== null || !props.usingUserKey);
-
-defineExpose({ hasWarnings });
 </script>

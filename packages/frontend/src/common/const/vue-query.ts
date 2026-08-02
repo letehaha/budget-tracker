@@ -194,6 +194,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   aiApiKeyStatus: ['ai-settings', 'api-keys'] as const,
   aiFeaturesStatus: ['ai-settings', 'features'] as const,
   aiCustomInstructions: ['ai-settings', 'custom-instructions'] as const,
+  aiCustomEndpoints: ['ai-settings', 'custom-endpoints'] as const,
 
   // sharing
   shareInvitationsSent: ['share', 'invitations-sent'] as const,

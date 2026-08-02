@@ -17,9 +17,9 @@ jest.mock('ai', () => ({
 
 import { AI_PROVIDER } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
-import { APICallError, RetryError, generateText } from 'ai';
+import { APICallError, generateText } from 'ai';
 
-import { isAuthError, isTemporaryError, validateApiKey } from './api-key-validation';
+import { validateApiKey } from './api-key-validation';
 
 const generateTextMock = generateText as unknown as jest.Mock<() => Promise<unknown>>;
 
@@ -34,44 +34,6 @@ function buildApiCallError({ statusCode, isRetryable }: { statusCode?: number; i
     isRetryable,
   });
 }
-
-function buildRetryError({ lastError }: { lastError: unknown }): RetryError {
-  return new RetryError({
-    message: 'Failed after 3 attempts',
-    reason: 'maxRetriesExceeded',
-    errors: [lastError],
-  });
-}
-
-describe('isTemporaryError', () => {
-  it('returns true for a 429 rate-limit APICallError', () => {
-    expect(isTemporaryError(buildApiCallError({ statusCode: 429 }))).toBe(true);
-  });
-
-  it('returns false for a 401 APICallError (auth error, not temporary)', () => {
-    const error = buildApiCallError({ statusCode: 401 });
-    expect(isTemporaryError(error)).toBe(false);
-    expect(isAuthError(error)).toBe(true);
-  });
-
-  it('returns true for an isRetryable APICallError with no statusCode (connection/header timeout)', () => {
-    expect(isTemporaryError(buildApiCallError({ isRetryable: true }))).toBe(true);
-  });
-
-  it('returns true for a RetryError wrapping a header-timeout APICallError', () => {
-    const timeoutError = buildApiCallError({ isRetryable: true });
-    expect(isTemporaryError(buildRetryError({ lastError: timeoutError }))).toBe(true);
-  });
-
-  it('returns false for a RetryError wrapping a 401 APICallError', () => {
-    const authError = buildApiCallError({ statusCode: 401 });
-    expect(isTemporaryError(buildRetryError({ lastError: authError }))).toBe(false);
-  });
-
-  it('returns false for an unrelated plain error', () => {
-    expect(isTemporaryError(new Error('boom'))).toBe(false);
-  });
-});
 
 describe('validateApiKey', () => {
   beforeEach(() => {

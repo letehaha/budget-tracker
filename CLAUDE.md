@@ -1,10 +1,5 @@
 # Project Rules & Conventions
 
-## Communication Style
-
-- **Default to caveman mode** for all user-facing text in this project. Follow the conventions in `.claude/skills/caveman/SKILL.md` (or the `caveman` skill description) – drop articles/filler/pleasantries, keep technical accuracy. Apply to chat replies, status updates, and end-of-turn summaries. Do NOT apply to code, comments, commit messages, PR descriptions, or file content.
-- Switch to normal English only when the user explicitly asks (e.g. "normal mode", "stop caveman", "full sentences").
-
 - **Backend work**: Read `.claude/docs/backend-conventions.md` before writing backend code
 - **Frontend work**: Read `.claude/skills/frontend-rules/SKILL.md` before writing frontend code
 
@@ -139,5 +134,3 @@ Other instructions:
 15. **Dev server ports live in `.env.development.local`**
     - If the project root contains a `.env.development.local` file, the frontend and backend ports for the running dev servers are defined there (e.g. `VITE_PORT`, `APPLICATION_PORT`). Use those values when constructing URLs or hitting local endpoints.
     - Worktrees may use different ports than the main checkout – always read the worktree's own `.env.development.local`, do not assume the defaults from memory or other checkouts.
-
-Always use the caveman skill

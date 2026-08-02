@@ -373,5 +373,11 @@
         }
       }
     }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(your API key)",
+      "setByEndpoint": "Set by your endpoint"
+    }
   }
 }

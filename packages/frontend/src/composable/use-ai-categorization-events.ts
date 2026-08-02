@@ -1,8 +1,11 @@
+import { watch } from 'vue';
+
 import { useCategorizationStatus } from './use-categorization-status';
 import { useSSE } from './use-sse';
 
 // Track if already initialized (global singleton)
 let isInitialized = false;
+let stopReconnectWatch: (() => void) | null = null;
 
 /**
  * Initialize AI categorization event handling via SSE.
@@ -16,7 +19,7 @@ let isInitialized = false;
  */
 export function useAiCategorizationEvents() {
   const { isConnected } = useSSE();
-  const { subscribeToSSE, unsubscribeFromSSE } = useCategorizationStatus();
+  const { subscribeToSSE, unsubscribeFromSSE, hydrateFromServer, reset } = useCategorizationStatus();
 
   const initialize = async () => {
     if (isInitialized) return;
@@ -33,10 +36,28 @@ export function useAiCategorizationEvents() {
     } catch {
       // no-op: reconnect is handled by the SSE library
     }
+
+    // Runs even when the subscribe attempt failed: the SSE library keeps retrying,
+    // and a reloaded page should show an in-flight run either way.
+    await hydrateFromServer();
+
+    // Events sent while disconnected are gone for good, so every reconnect re-syncs
+    // from the snapshot. Registered after the initial connect so it only fires on
+    // real reconnects.
+    if (!stopReconnectWatch) {
+      stopReconnectWatch = watch(isConnected, (connected) => {
+        if (connected) hydrateFromServer();
+      });
+    }
   };
 
   const cleanup = () => {
     unsubscribeFromSSE();
+    stopReconnectWatch?.();
+    stopReconnectWatch = null;
+    // Wipe the shared status so the next login in this tab, possibly a different
+    // user, does not see the previous user's run.
+    reset();
     isInitialized = false;
   };
 

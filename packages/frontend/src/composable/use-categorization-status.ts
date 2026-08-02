@@ -1,5 +1,7 @@
+import { getAiCategorizationStatus } from '@/api/ai-categorization';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
+import type { AiCategorizationStatus } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -10,9 +12,21 @@ import { type AiCategorizationProgressPayload, SSE_EVENT_TYPES, useSSE } from '.
 const categorizationStatus = ref<AiCategorizationProgressPayload | null>(null);
 const justCompleted = ref(false);
 
+const TERMINAL_STATUS_DISPLAY_MS = 5000;
+
+// Bumped by reset() so a snapshot fetched under a previous login can never apply
+// after logout. `categorizationStatus` alone cannot tell: an idle tab and a reset
+// tab both hold `null`.
+let sessionEpoch = 0;
+
+let hasSnapshotThisSession = false;
+
 // SSE subscription state
 let sseUnsubscribe: (() => void) | null = null;
 let isSSESubscribed = false;
+
+const isRunOver = (status: AiCategorizationProgressPayload['status'] | undefined) =>
+  status === 'completed' || status === 'failed';
 
 /**
  * Composable for tracking AI categorization progress.
@@ -42,6 +56,47 @@ export function useCategorizationStatus() {
     return justCompleted.value && !isCategorizing.value;
   });
 
+  const finishRun = ({
+    status,
+    processedCount,
+    failedCount,
+    errorMessage,
+  }: {
+    status: 'completed' | 'failed';
+    processedCount: number;
+    failedCount: number;
+    errorMessage?: string;
+  }) => {
+    justCompleted.value = true;
+
+    queryClient.invalidateQueries({
+      queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
+    });
+
+    const categorizedCount = processedCount - failedCount;
+    if (status === 'completed' && categorizedCount > 0) {
+      addNotification({
+        text: t('header.categorization.completed', { count: categorizedCount }),
+        type: NotificationType.success,
+      });
+    } else if (status === 'failed' || failedCount > 0) {
+      // A run whose every transaction failed still ends as `completed`, so without
+      // the failedCount check it would end in silence.
+      addNotification({
+        text: errorMessage ?? t('header.categorization.failed'),
+        type: NotificationType.error,
+      });
+    }
+
+    setTimeout(() => {
+      justCompleted.value = false;
+      // A run that started inside the display window owns the indicator now.
+      if (isRunOver(categorizationStatus.value?.status)) {
+        categorizationStatus.value = null;
+      }
+    }, TERMINAL_STATUS_DISPLAY_MS);
+  };
+
   /**
    * Subscribe to SSE categorization progress events
    */
@@ -52,44 +107,90 @@ export function useCategorizationStatus() {
     await connect();
 
     sseUnsubscribe = on(SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS, (data) => {
-      const wasCategorizingBefore = isCategorizing.value;
+      // The ending is read off the event, never off what this tab saw earlier: a
+      // tab opened mid-run holds no prior status. The prior status only guards
+      // against handling the same ending twice.
+      const alreadyHandled = isRunOver(categorizationStatus.value?.status);
 
-      // Update status from SSE event
       categorizationStatus.value = data;
 
-      // Detect completion
-      if (wasCategorizingBefore && (data.status === 'completed' || data.status === 'failed')) {
-        justCompleted.value = true;
-
-        // Invalidate all transaction-related queries to refetch with new categories
-        queryClient.invalidateQueries({
-          queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
+      if (!alreadyHandled && (data.status === 'completed' || data.status === 'failed')) {
+        finishRun({
+          status: data.status,
+          processedCount: data.processedCount,
+          failedCount: data.failedCount,
+          errorMessage: data.errorMessage,
         });
-
-        // Show notification to user
-        const categorizedCount = data.processedCount - data.failedCount;
-        if (categorizedCount > 0) {
-          addNotification({
-            text: t('header.categorization.completed', { count: categorizedCount }),
-            type: NotificationType.success,
-          });
-        } else if (data.status === 'failed') {
-          addNotification({
-            text: t('header.categorization.failed'),
-            type: NotificationType.error,
-          });
-        }
-
-        // Clear success message after 5 seconds
-        setTimeout(() => {
-          justCompleted.value = false;
-          // Clear the status after showing completion
-          categorizationStatus.value = null;
-        }, 5000);
       }
     });
 
     isSSESubscribed = true;
+  };
+
+  /**
+   * Re-sync from the status endpoint. SSE only delivers events while the tab is
+   * open and connected, so a reload during a run, or a drop across its end, would
+   * otherwise leave the header wrong until the next login.
+   */
+  const hydrateFromServer = async () => {
+    const before = categorizationStatus.value;
+    const epoch = sessionEpoch;
+    const isFirstSnapshot = !hasSnapshotThisSession;
+
+    let status: AiCategorizationStatus;
+    try {
+      status = await getAiCategorizationStatus();
+    } catch (error) {
+      // Best-effort: SSE remains the live channel when the snapshot fetch fails.
+      console.error('[AI Categorization] Status snapshot fetch failed:', error);
+      return;
+    }
+
+    // A reset() during the fetch means this snapshot belongs to a previous login.
+    if (epoch !== sessionEpoch) return;
+    // A live SSE event that landed during the fetch is fresher than this snapshot.
+    if (categorizationStatus.value !== before) return;
+
+    hasSnapshotThisSession = true;
+
+    switch (status.status) {
+      case 'queued':
+      case 'processing':
+        categorizationStatus.value = status;
+        return;
+
+      // The server hands a terminal outcome to the first client that asks and then
+      // settles back to `idle`, so this snapshot is the only chance to show an
+      // ending whose SSE event never arrived.
+      case 'completed':
+      case 'failed':
+        categorizationStatus.value = status;
+        finishRun({
+          status: status.status,
+          processedCount: status.processedCount,
+          failedCount: status.failedCount,
+          errorMessage: status.errorMessage,
+        });
+        return;
+
+      case 'idle': {
+        const wasRunning = before?.status === 'queued' || before?.status === 'processing';
+        if (wasRunning) categorizationStatus.value = null;
+
+        // `idle` carries no counts, but a run that just ended still rewrote categories the
+        // open queries now hold stale. The session's first snapshot counts too: it lands
+        // after those queries resolved, so they can hold pre-categorization data.
+        if (wasRunning || isFirstSnapshot) {
+          queryClient.invalidateQueries({
+            queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
+          });
+        }
+        return;
+      }
+
+      default:
+        return status satisfies never;
+    }
   };
 
   /**
@@ -107,6 +208,8 @@ export function useCategorizationStatus() {
    * Reset categorization status
    */
   const reset = () => {
+    sessionEpoch += 1;
+    hasSnapshotThisSession = false;
     categorizationStatus.value = null;
     justCompleted.value = false;
   };
@@ -123,6 +226,7 @@ export function useCategorizationStatus() {
     // Methods
     subscribeToSSE,
     unsubscribeFromSSE,
+    hydrateFromServer,
     reset,
   };
 }
