@@ -230,6 +230,39 @@ describe('Subscriptions', () => {
       expect(detail.transactions[0]!.id).toBe(tx.id);
     });
 
+    it('prevents linking a transaction whose type differs from the subscription', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub = await helpers.createSubscription({
+        name: 'Expense Sub',
+        transactionType: TRANSACTION_TYPES.expense,
+        expectedAmount: 15,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2025-01-15T10:00:00Z',
+        }),
+        raw: true,
+      });
+
+      const res = await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+      });
+
+      expect(res.statusCode).toBe(422);
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(0);
+    });
+
     it('prevents linking a transaction to two subscriptions', async () => {
       const account = await helpers.createAccount({ raw: true });
       const sub1 = await helpers.createSubscription({

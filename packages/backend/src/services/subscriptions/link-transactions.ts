@@ -32,7 +32,7 @@ export const linkTransactionsToSubscription = withTransaction(
     const typeMismatches = txs.filter((tx) => tx.transactionType !== subscription.transactionType);
     if (typeMismatches.length > 0) {
       throw new ValidationError({
-        message: 'Cannot link transactions with a different type than the recurring payment',
+        message: t({ key: 'subscriptions.cannotLinkDifferentTransactionType' }),
       });
     }
 
