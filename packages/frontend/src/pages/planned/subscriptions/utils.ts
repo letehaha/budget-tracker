@@ -47,7 +47,7 @@ export const formatMatchSource = ({ source, t }: { source: string; t: ComposerTr
 
 export const getTransactionTypeStyles = (
   transactionType: string | undefined,
-  fallbackClass: string = 'text-foreground'
+  fallbackClass: string = 'text-foreground',
 ): string => {
   return transactionType === TRANSACTION_TYPES.income ? 'text-app-income-color font-medium' : fallbackClass;
 };
@@ -55,4 +55,3 @@ export const getTransactionTypeStyles = (
 export const getTransactionTypePrefix = (transactionType: string | undefined): string => {
   return transactionType === TRANSACTION_TYPES.income ? '+' : '';
 };
-

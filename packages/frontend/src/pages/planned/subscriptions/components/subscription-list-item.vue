@@ -134,10 +134,7 @@ function dueChipClass({
     <div
       class="text-muted-foreground col-span-2 row-start-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm @[600px]:col-span-1 @[600px]:row-auto @[600px]:shrink-0 @[600px]:flex-nowrap"
     >
-      <span
-        v-if="formatAmount()"
-        :class="cn('font-medium', getTransactionTypeStyles(subscription.transactionType))"
-      >
+      <span v-if="formatAmount()" :class="cn('font-medium', getTransactionTypeStyles(subscription.transactionType))">
         {{ getTransactionTypePrefix(subscription.transactionType) }}{{ formatAmount() }}
       </span>
       <span class="flex items-center gap-1">

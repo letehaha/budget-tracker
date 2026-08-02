@@ -565,11 +565,9 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
     <div class="border-border mb-6 grid grid-cols-2 gap-4 rounded-lg border p-4 sm:grid-cols-3 lg:grid-cols-5">
       <div>
         <p class="text-muted-foreground text-xs font-medium uppercase">{{ $t('planned.subscriptions.amount') }}</p>
-        <p
-          class="mt-1 text-sm font-medium"
-          :class="getTransactionTypeStyles(subscription.transactionType, '')"
-        >
-          {{ getTransactionTypePrefix(subscription.transactionType) }}{{
+        <p class="mt-1 text-sm font-medium" :class="getTransactionTypeStyles(subscription.transactionType, '')">
+          {{ getTransactionTypePrefix(subscription.transactionType)
+          }}{{
             subscription.expectedAmount && subscription.expectedCurrencyCode
               ? formatAmountByCurrencyCode(subscription.expectedAmount, subscription.expectedCurrencyCode)
               : '–'

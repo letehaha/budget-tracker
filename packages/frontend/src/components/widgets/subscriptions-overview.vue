@@ -238,11 +238,9 @@ function openSubscriptionsList() {
             <p class="truncate text-sm font-medium">{{ payment.subscriptionName }}</p>
             <p class="text-muted-foreground text-xs">{{ formatNextDate({ dateStr: payment.nextPaymentDate }) }}</p>
           </div>
-          <span
-            class="text-amount text-sm"
-            :class="getTransactionTypeStyles(payment.transactionType, '')"
-          >
-            {{ getTransactionTypePrefix(payment.transactionType) }}{{
+          <span class="text-amount text-sm" :class="getTransactionTypeStyles(payment.transactionType, '')">
+            {{ getTransactionTypePrefix(payment.transactionType)
+            }}{{
               payment.expectedCurrencyCode
                 ? formatAmountByCurrencyCode(payment.expectedAmount, payment.expectedCurrencyCode)
                 : formatBaseCurrency(payment.expectedAmount)
@@ -290,7 +288,8 @@ function openSubscriptionsList() {
             class="shrink-0 text-sm font-medium"
             :class="getTransactionTypeStyles(sub.transactionType, '')"
           >
-            {{ getTransactionTypePrefix(sub.transactionType) }}{{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
+            {{ getTransactionTypePrefix(sub.transactionType)
+            }}{{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
           </span>
 
           <DesktopOnlyTooltip :content="$t('widgets.subscriptionsOverview.payAction')">

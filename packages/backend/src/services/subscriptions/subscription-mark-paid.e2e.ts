@@ -879,7 +879,7 @@ describe('Issue #422: Additional Recurring Income E2E validation', () => {
 
   it('correctly calculates expectedMonthlyIncome and activeCount split in summary', async () => {
     const account = await helpers.createAccount({ raw: true });
-    
+
     // Create one expense subscription
     await helpers.createSubscription({
       name: 'Rent',
@@ -959,4 +959,3 @@ describe('Issue #422: Additional Recurring Income E2E validation', () => {
     expect(hasExpenseMatch).toBe(false);
   });
 });
-
