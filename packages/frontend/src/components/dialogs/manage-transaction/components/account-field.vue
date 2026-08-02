@@ -3,6 +3,7 @@
     <template v-if="isTransferTransaction && !isTransactionLinking">
       <form-row>
         <select-field
+          data-test="account-select-field"
           :label="$t('dialogs.manageTransaction.form.fromAccountLabel')"
           :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
           :values="accounts"
@@ -106,6 +107,7 @@
     <template v-else>
       <form-row>
         <select-field
+          data-test="account-select-field"
           :label="$t('dialogs.manageTransaction.form.accountLabel')"
           :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
           :values="accounts"
