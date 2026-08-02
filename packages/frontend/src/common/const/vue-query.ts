@@ -196,6 +196,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   aiCustomInstructions: ['ai-settings', 'custom-instructions'] as const,
   aiCustomEndpoints: ['ai-settings', 'custom-endpoints'] as const,
 
+  // A finished categorization run rewrites categories, so the transactionChange
+  // invalidation refreshes the candidate list and its total.
+  aiCategorizationCandidates: [transactionChange, 'ai-categorization-candidates'] as const,
+
   // sharing
   shareInvitationsSent: ['share', 'invitations-sent'] as const,
   shareInvitationsReceived: ['share', 'invitations-received'] as const,

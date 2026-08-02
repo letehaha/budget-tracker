@@ -624,7 +624,7 @@ function buildTransferCondition(filter: FILTER_OPERATION | undefined): Record<st
  * the related record (e.g. no payee assigned) at the bottom in both directions.
  * `time` + `id` act as stable tie-breakers so pagination never duplicates rows.
  */
-function buildOrderClause({
+export function buildOrderClause({
   sortBy,
   order,
 }: {

@@ -29,7 +29,8 @@
       "link": "Link",
       "loadMore": "Load more",
       "clear": "Clear",
-      "apply": "Apply"
+      "apply": "Apply",
+      "retry": "Try again"
     },
     "ui": {
       "close": "Close",

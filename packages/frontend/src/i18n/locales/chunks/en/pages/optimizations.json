@@ -2,10 +2,63 @@
   "optimizations": {
     "title": "Optimizations",
     "landingDescription": "Tools to help you organize and clean up your financial data.",
+    "backToOptimizations": "Back to optimizations",
     "cards": {
       "transfers": {
         "title": "Transfer matching",
         "description": "Find expense-income pairs that might be transfers between your accounts and link them automatically."
+      },
+      "aiCategorization": {
+        "title": "Categorize with AI",
+        "description": "Let AI sort transactions still sitting in your default category."
+      }
+    },
+    "aiCategorization": {
+      "title": "Categorize with AI",
+      "description": "Run AI over transactions that are still in your default category and let it pick a better one. You can always change a category afterwards.",
+      "count": {
+        "capNote": "One run covers the {limit} most recent. Run it again to work through the rest.",
+        "allDoneTitle": "Everything is categorized",
+        "allDoneDescription": "No transactions are sitting in your default category right now."
+      },
+      "bar": {
+        "uncategorizedCount": "{count} uncategorized",
+        "capChip": "{limit} per run"
+      },
+      "table": {
+        "selectionHint": "Select rows to categorize only those.",
+        "loadError": "Couldn't load the transactions waiting for categorization."
+      },
+      "setup": {
+        "title": "Run setup",
+        "model": "Model",
+        "notConfigured": "Not configured",
+        "endpoint": "Endpoint",
+        "limits": "Limits",
+        "limitsSharedKey": "3 runs per hour",
+        "limitsOwnCredentials": "Unlimited — runs on your own key",
+        "changeModel": "Change in AI settings",
+        "errorChip": "AI setup problem",
+        "loadError": "Couldn't load your AI setup."
+      },
+      "run": {
+        "button": "Categorize with AI (all)",
+        "categorizeSelected": "Categorize {count} selected",
+        "inProgress": "Categorizing…",
+        "progressLabel": "AI categorization progress",
+        "processed": "{processed} of {total} transactions processed"
+      },
+      "confirm": {
+        "title": "Categorize all uncategorized transactions?",
+        "description": "AI will look at {count} transaction that is still in your default category and pick a category for it. You can change it afterwards. | AI will look at {count} transactions that are still in your default category and pick a category for each one. You can change any of them afterwards.",
+        "action": "Categorize all"
+      },
+      "notifications": {
+        "started": "Categorizing {count} transaction with AI | Categorizing {count} transactions with AI",
+        "nothingToCategorize": "Everything is already categorized — nothing left for AI to do",
+        "alreadyRunning": "AI categorization is already running",
+        "rateLimited": "You've reached the manual categorization limit. Try again in {time}.",
+        "failed": "Could not start AI categorization"
       }
     },
     "transferSuggestions": {

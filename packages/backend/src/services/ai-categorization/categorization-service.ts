@@ -22,6 +22,8 @@ import { markCustomEndpointInvalid, markCustomEndpointValid } from '@services/us
 import { getCustomInstructions } from '@services/user-settings/ai-custom-instructions';
 import { generateText } from 'ai';
 
+import { type CandidateWhere, buildCandidateWhere } from './categorization-candidates';
+import { type CategorizationScope } from './categorization-scope';
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
 import {
   CategorizationBatchResult,
@@ -181,7 +183,13 @@ async function categorizeBatch({
   }
 }
 
-async function applyCategorizationResults({ results }: { results: CategorizationResult[] }): Promise<void> {
+async function applyCategorizationResults({
+  results,
+  candidateWhere,
+}: {
+  results: CategorizationResult[];
+  candidateWhere: CandidateWhere;
+}): Promise<void> {
   if (results.length === 0) return;
 
   const now = new Date().toISOString();
@@ -194,9 +202,10 @@ async function applyCategorizationResults({ results }: { results: Categorization
     groupedByCategory.get(result.categoryId)!.push(result.transactionId);
   }
 
-  // Update by id only. `getUncategorizedTransactions` already gated every id on the
-  // requesting user's account ownership via its `Accounts` JOIN. Adding a `userId`
-  // filter here would drop shared-account rows a recipient authored on the owner's account.
+  // Re-checks the predicate that selected these rows, which on `defaultCategoryOnly` leaves
+  // a row the user categorized by hand mid-run alone.
+  // No `userId` filter: the `Accounts` JOIN that produced these ids already gated ownership,
+  // and adding one would drop shared-account rows a recipient authored.
   await Promise.all(
     Array.from(groupedByCategory.entries()).map(([categoryId, transactionIds]) =>
       Transactions.update(
@@ -208,7 +217,7 @@ async function applyCategorizationResults({ results }: { results: Categorization
           },
         },
         {
-          where: { id: transactionIds },
+          where: { ...candidateWhere, id: transactionIds },
           // A category change doesn't affect balances, so skip the recalculation hooks
           individualHooks: false,
         },
@@ -218,25 +227,25 @@ async function applyCategorizationResults({ results }: { results: Categorization
 }
 
 /**
- * Get uncategorized transactions for a user.
+ * The rows this run is allowed to decide, per its `candidateWhere`. Not necessarily
+ * uncategorized: on the auto-path a `hint`-mode Payee rule leaves a real category behind
+ * for the AI to reconsider.
  *
  * Scoped by `Account.userId` (account ownership) via the Accounts INNER JOIN, not
  * `Transactions.userId` (row creator): on a shared account the creator can be a
  * recipient while the account still belongs to the requesting user.
  */
-async function getUncategorizedTransactions({
+async function selectCandidateTransactions({
   userId,
   transactionIds,
+  candidateWhere,
 }: {
   userId: number;
   transactionIds: string[];
+  candidateWhere: CandidateWhere;
 }): Promise<TransactionForCategorization[]> {
   const transactions = await Transactions.findAll({
-    where: {
-      id: transactionIds,
-      // Only get transactions that haven't been AI-categorized before
-      categorizationMeta: null,
-    },
+    where: { ...candidateWhere, id: transactionIds },
     include: [
       {
         model: Accounts,
@@ -273,11 +282,14 @@ async function getUncategorizedTransactions({
 export async function categorizeTransactions({
   userId,
   transactionIds,
+  scope,
   totalTransactionCount,
   onProgress,
 }: {
   userId: number;
   transactionIds: string[];
+  /** Which rows this run may touch. Selection and write-back both use it. */
+  scope: CategorizationScope;
   /** For progress tracking. Defaults to transactionIds.length */
   totalTransactionCount?: number;
   onProgress?: (progress: CategorizationProgress) => void | Promise<void>;
@@ -319,7 +331,16 @@ export async function categorizeTransactions({
     };
   }
 
-  const transactions = await getUncategorizedTransactions({ userId, transactionIds });
+  const candidateWhere = await buildCandidateWhere({ userId, scope });
+  if (!candidateWhere) {
+    logger.info(`User ${userId} has no default category, skipping categorization`);
+    return {
+      successful: [],
+      failed: [],
+    };
+  }
+
+  const transactions = await selectCandidateTransactions({ userId, transactionIds, candidateWhere });
   if (transactions.length === 0) {
     logger.info(`No uncategorized transactions to process for user ${userId}`);
     return {
@@ -464,7 +485,7 @@ export async function categorizeTransactions({
     }
 
     if (batchResult.successful.length > 0) {
-      await applyCategorizationResults({ results: batchResult.successful });
+      await applyCategorizationResults({ results: batchResult.successful, candidateWhere });
 
       if (aiClient.usingUserKey) {
         if (aiClient.provider === AI_PROVIDER.custom) {

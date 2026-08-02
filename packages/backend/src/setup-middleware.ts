@@ -125,7 +125,12 @@ export function setupMiddleware(app: Express) {
 
     // Paths that need larger payloads
     const largePaths = {
-      '1mb': [`${API_PREFIX}/investments/securities/prices/bulk-upload`],
+      '1mb': [
+        `${API_PREFIX}/investments/securities/prices/bulk-upload`,
+        // A manual categorization run can carry up to AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN
+        // transaction ids, which is ~200KB of UUIDs.
+        `${API_PREFIX}/user/ai/categorization/trigger`,
+      ],
       '10mb': [
         `${API_PREFIX}/import/csv/parse`,
         `${API_PREFIX}/import/csv/extract-unique-values`,

@@ -5,12 +5,15 @@ import { Job, Queue, Worker } from 'bullmq';
 
 import { SSE_EVENT_TYPES, sseManager } from '../common/sse';
 import { buildFailedRunStatus } from './categorization-progress';
+import { CATEGORIZATION_SCOPE, type CategorizationScope } from './categorization-scope';
 import { categorizeTransactions } from './categorization-service';
 import { writeTerminalOutcome } from './categorization-terminal-outcome';
 
 interface CategorizationJobData extends SentryTraceData {
   userId: number;
   transactionIds: string[];
+  /** Optional: jobs enqueued before this field existed are all auto-path runs. */
+  scope?: CategorizationScope;
 }
 
 // Redis connection configuration for BullMQ
@@ -71,6 +74,7 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
       job,
       fn: async () => {
         const { userId, transactionIds } = job.data;
+        const scope = job.data.scope ?? CATEGORIZATION_SCOPE.anyCategory;
 
         logger.info(
           `[AI Categorization Worker] Processing job for user ${userId}, ${transactionIds.length} transactions, attempt ${job.attemptsMade + 1}`,
@@ -79,6 +83,7 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
         const result = await categorizeTransactions({
           userId,
           transactionIds,
+          scope,
           totalTransactionCount: transactionIds.length,
           // Mirror batch counters into the job's progress blob for the status endpoint.
           onProgress: (progress) => job.updateProgress(progress),
@@ -174,15 +179,18 @@ categorizationWorker.on('error', (err) => {
 });
 
 /**
- * Queue transactions for AI categorization
- * This is the main entry point called after bank sync completes
+ * Queue transactions for AI categorization. `scope` travels with the job so the worker
+ * selects and writes back through the predicate its entry point intended, rather than
+ * rebuilding one of its own.
  */
 export async function queueCategorizationJob({
   userId,
   transactionIds,
+  scope,
 }: {
   userId: number;
   transactionIds: string[];
+  scope: CategorizationScope;
 }): Promise<string> {
   if (transactionIds.length === 0) {
     logger.info(`[AI Categorization] No transactions to categorize for user ${userId}`);
@@ -190,7 +198,7 @@ export async function queueCategorizationJob({
   }
 
   const jobId = `categorization-${userId}-${Date.now()}`;
-  const data = { userId, transactionIds };
+  const data = { userId, transactionIds, scope };
 
   await withQueuePublishSpan({
     queueName,

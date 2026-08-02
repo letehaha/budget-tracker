@@ -89,6 +89,7 @@
                   :has-next-page="hasNextPage"
                   :is-fetching-next-page="isFetchingNextPage"
                   :scroll-area-id="SCROLL_AREA_IDS.transactionsPage"
+                  :selection-scope-key="selectionScopeKey"
                   @fetch-next-page="fetchNextPage"
                 />
               </div>
@@ -102,29 +103,27 @@
            of the sidebar so it stays in the page's top-left corner. -->
       <div v-if="showDesktopListLayout" class="flex min-h-0 flex-1 gap-4">
         <Card class="flex w-87.5 shrink-0 flex-col gap-3 overflow-hidden p-4">
-          <div class="flex items-center justify-between gap-2">
-            <div class="bg-card flex items-center gap-0.5 rounded-md border p-0.5">
-              <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.list')">
-                <Button
-                  :variant="desktopView === 'list' ? 'secondary' : 'ghost'"
-                  size="icon-sm"
-                  :aria-label="$t('transactions.table.viewToggle.list')"
-                  @click="setDesktopView('list')"
-                >
-                  <ListIcon class="size-4" />
-                </Button>
-              </DesktopOnlyTooltip>
-              <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.table')">
-                <Button
-                  :variant="desktopView === 'table' ? 'secondary' : 'ghost'"
-                  size="icon-sm"
-                  :aria-label="$t('transactions.table.viewToggle.table')"
-                  @click="setDesktopView('table')"
-                >
-                  <Table2Icon class="size-4" />
-                </Button>
-              </DesktopOnlyTooltip>
-            </div>
+          <div class="bg-card flex items-center gap-0.5 self-start rounded-md border p-0.5">
+            <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.list')">
+              <Button
+                :variant="desktopView === 'list' ? 'secondary' : 'ghost'"
+                size="icon-sm"
+                :aria-label="$t('transactions.table.viewToggle.list')"
+                @click="setDesktopView('list')"
+              >
+                <ListIcon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+            <DesktopOnlyTooltip :content="$t('transactions.table.viewToggle.table')">
+              <Button
+                :variant="desktopView === 'table' ? 'secondary' : 'ghost'"
+                size="icon-sm"
+                :aria-label="$t('transactions.table.viewToggle.table')"
+                @click="setDesktopView('table')"
+              >
+                <Table2Icon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
           </div>
 
           <ScrollArea class="-mx-4 min-h-0 flex-1">
@@ -157,6 +156,7 @@
                   :has-next-page="hasNextPage"
                   :is-fetching-next-page="isFetchingNextPage"
                   :scroll-area-id="SCROLL_AREA_IDS.transactionsPage"
+                  :selection-scope-key="selectionScopeKey"
                   @fetch-next-page="fetchNextPage"
                 />
               </div>
@@ -307,6 +307,7 @@
               :is-fetching-next-page="isFetchingNextPage"
               :is-fetched="isFetched"
               :is-mobile-mode="isMobileMode"
+              :selection-scope-key="selectionScopeKey"
               @update:sorting="onSortingChange"
               @fetch-next-page="fetchNextPage"
               @reset-filters="resetFilters"
@@ -341,9 +342,9 @@ import type { TransactionsView } from '@/api/user-settings';
 import { trackNewlyActiveFilters } from './components/filter-analytics';
 import FiltersToolbar from './components/filters-toolbar.vue';
 import ColumnConfigPopover from '@/components/common/column-config-popover.vue';
-import { DEFAULT_SORTING, type TableSorting } from './components/table/columns';
-import TransactionsTable from './components/table/transactions-table.vue';
-import { useTableColumns } from './components/table/use-table-columns';
+import { DEFAULT_SORTING, type TableSorting } from '@/components/transactions-table/columns';
+import TransactionsTable from '@/components/transactions-table/transactions-table.vue';
+import { useTableColumns } from '@/components/transactions-table/use-table-columns';
 import { useTransactionsView } from './components/use-transactions-view';
 import UpcomingSection from './components/upcoming-section.vue';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
@@ -470,6 +471,8 @@ watch(filters, (next, previous) => {
 // Content filters dissolve groups in the list view – only date filters keep
 // groups visible.
 const contentFiltersActive = computed(() => isAnyGroupDissolvingFilterActive(appliedFilters.value));
+
+const selectionScopeKey = computed(() => JSON.stringify({ filters: appliedFilters.value, sorting: sorting.value }));
 
 const tableRef = ref<InstanceType<typeof TransactionsTable> | null>(null);
 

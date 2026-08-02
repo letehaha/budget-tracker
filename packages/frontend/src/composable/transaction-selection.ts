@@ -1,7 +1,7 @@
 import { useAccountsStore } from '@/stores';
 import { TransactionModel } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
-import { computed, ref, triggerRef } from 'vue';
+import { computed, ref, triggerRef, watch } from 'vue';
 
 import { useShiftMultiSelect } from './shift-multi-select';
 
@@ -48,9 +48,36 @@ interface UseTransactionSelectionOptions {
    * that silently no-ops on submit.
    */
   isExtraSelectable?: (tx: TransactionModel) => boolean;
+  /**
+   * Identity of the result set the rows come from — filters plus sorting. A new
+   * identity restarts the infinite query at page one, so the selection is
+   * cleared outright instead of pruned down to the rows that page still holds.
+   */
+  getScopeKey?: () => string | undefined;
 }
 
-export function useTransactionSelection({ getTransactions, isExtraSelectable }: UseTransactionSelectionOptions) {
+/**
+ * Selected ids that are no longer among the loaded rows. An empty `loadedIds`
+ * yields nothing on purpose: both views are infinite-scroll, so a momentarily
+ * empty list means a refetch is in flight, not that the user's selection is gone.
+ */
+export function getVanishedSelectedIds({
+  selectedIds,
+  loadedIds,
+}: {
+  selectedIds: Iterable<string>;
+  loadedIds: string[];
+}): string[] {
+  if (loadedIds.length === 0) return [];
+  const loaded = new Set(loadedIds);
+  return Array.from(selectedIds).filter((id) => !loaded.has(id));
+}
+
+export function useTransactionSelection({
+  getTransactions,
+  isExtraSelectable,
+  getScopeKey,
+}: UseTransactionSelectionOptions) {
   // Use ref with Set for better reactivity tracking
   const selectedIds = ref(new Set<string>());
 
@@ -111,6 +138,30 @@ export function useTransactionSelection({ getTransactions, isExtraSelectable }: 
   const getSelectedTransactionIds = (): string[] => {
     return Array.from(selectedIds.value);
   };
+
+  let observedScopeKey = getScopeKey?.();
+
+  watch(
+    () => ({ scopeKey: getScopeKey?.(), transactions: getTransactions() }),
+    ({ scopeKey, transactions }) => {
+      if (scopeKey !== observedScopeKey) {
+        observedScopeKey = scopeKey;
+        if (selectedIds.value.size > 0) clearSelection();
+        return;
+      }
+
+      if (selectedIds.value.size === 0) return;
+
+      const vanished = getVanishedSelectedIds({
+        selectedIds: selectedIds.value,
+        loadedIds: transactions.map((tx) => tx.id),
+      });
+      if (vanished.length === 0) return;
+
+      vanished.forEach((id) => selectedIds.value.delete(id));
+      triggerUpdate();
+    },
+  );
 
   return {
     selectedIds,

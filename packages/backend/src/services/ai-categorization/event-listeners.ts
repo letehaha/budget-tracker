@@ -2,6 +2,7 @@ import { logger } from '@js/utils/logger';
 import { DOMAIN_EVENTS, TransactionsSyncedPayload, eventBus } from '@services/common/event-bus';
 
 import { queueCategorizationJob } from './categorization-queue';
+import { CATEGORIZATION_SCOPE } from './categorization-scope';
 
 const DEBOUNCE_MS = 4000;
 
@@ -15,7 +16,7 @@ const debounceTimers = new Map<number, NodeJS.Timeout>();
  *
  * Scoping: `TRANSACTIONS_SYNCED` is emitted only by bank-data providers
  * today, but the listener doesn't lean on that to filter rows. The
- * row-selection query in `getUncategorizedTransactions` joins `Accounts`
+ * row-selection query in `selectCandidateTransactions` joins `Accounts`
  * and scopes by `Account.userId = payload.userId`, so AI categorization
  * runs against every uncategorized row on accounts the requesting user
  * *owns* — independent of who authored each row. That covers the case
@@ -76,7 +77,7 @@ async function flushPendingTransactions(userId: number): Promise<void> {
   }
 
   try {
-    await queueCategorizationJob({ userId, transactionIds });
+    await queueCategorizationJob({ userId, transactionIds, scope: CATEGORIZATION_SCOPE.anyCategory });
     logger.info(`Queued ${transactionIds.length} transactions for AI categorization (user ${userId}, debounced)`);
   } catch (error) {
     logger.error({
