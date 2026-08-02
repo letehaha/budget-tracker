@@ -187,7 +187,19 @@
       "searchError": "Tidak dapat memuat logo — coba lagi",
       "editAriaLabel": "Sunting logo",
       "dialogTitle": "Ganti logo",
-      "resetToAuto": "Kembalikan ke otomatis"
+      "resetToAuto": "Kembalikan ke otomatis",
+      "tabs": {
+        "brand": "Merek",
+        "letters": "Huruf"
+      },
+      "noResultsLettersHint": "Gunakan huruf sebagai gantinya",
+      "lettersLabel": "Huruf (1–2)",
+      "lettersPlaceholder": "AB",
+      "colorLabel": "Warna",
+      "colorSwatchAriaLabel": "Gunakan warna {color}",
+      "customColorAriaLabel": "Pilih warna khusus",
+      "applyLetters": "Terapkan",
+      "lettersSelectedLabel": "Huruf “{letters}”"
     }
   },
   "accountGroups": {
@@ -360,6 +372,12 @@
           }
         }
       }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(kunci API Anda)",
+      "setByEndpoint": "Ditetapkan oleh endpoint Anda"
     }
   }
 }

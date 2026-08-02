@@ -6,7 +6,9 @@
       "tabs": {
         "features": "Fitur AI",
         "apiKeys": "Kunci API",
-        "invalidKeysTooltip": "Satu atau lebih kunci API tidak valid"
+        "invalidKeysTooltip": "Satu atau lebih kunci API tidak valid",
+        "customEndpoints": "Endpoint kustom",
+        "invalidEndpointsTooltip": "Satu atau lebih endpoint kustom tidak lagi berfungsi"
       },
       "apiKeyManager": {
         "title": "Kunci API",
@@ -152,7 +154,16 @@
           "resetFailed": "Gagal mengembalikan model"
         },
         "addKeyHint": "Tambahkan kunci API Anda sendiri untuk memilih dari semua model yang tersedia.",
-        "addKeyHintLink": "Tambah Kunci API →"
+        "addKeyHintLink": "Tambah Kunci API →",
+        "customModel": {
+          "nameLabel": "Nama model",
+          "applyButton": "Terapkan",
+          "hint": "Dikirim apa adanya ke {baseUrl}.",
+          "endpointOption": "{endpoint} — {model}",
+          "unknownEndpoint": "Endpoint kustom",
+          "missingModelName": "Endpoint ini belum memiliki nama model yang dikonfigurasi — masukkan satu terlebih dahulu",
+          "endpointsLoadError": "Endpoint Anda tidak dapat dimuat, sehingga nama model tidak dapat diedit saat ini."
+        }
       },
       "customInstructions": {
         "title": "Instruksi Kustom",
@@ -161,7 +172,107 @@
         "requiresApiKey": "Tambahkan kunci API pribadi untuk menggunakan instruksi kustom.",
         "save": "Simpan",
         "saved": "Tersimpan!",
-        "saveFailed": "Gagal menyimpan instruksi kustom. Silakan coba lagi."
+        "saveFailed": "Gagal menyimpan instruksi kustom. Silakan coba lagi.",
+        "requiresOwnCredentials": "Tambahkan kunci API Anda sendiri atau endpoint kustom untuk menggunakan instruksi kustom.",
+        "credentialsCheckFailed": "Kami tidak dapat memeriksa apakah Anda memiliki kredensial AI sendiri. Coba lagi untuk membuka instruksi kustom.",
+        "retryCredentialsCheck": "Coba lagi"
+      },
+      "credentialStatus": {
+        "validated": "Tervalidasi {timeAgo}",
+        "failed": "Gagal {timeAgo}",
+        "invalidBadge": "Tidak Valid"
+      },
+      "customEndpoint": {
+        "title": "Endpoint kustom",
+        "description": "Hubungkan server yang kompatibel dengan OpenAI milik Anda sendiri dan gunakan modelnya untuk fitur AI apa pun.",
+        "loading": "Memuat endpoint…",
+        "addButton": "Tambah endpoint",
+        "empty": {
+          "title": "Belum ada endpoint kustom",
+          "description": "Hubungkan server yang kompatibel dengan OpenAI — Ollama lokal, LM Studio, atau gateway yang dihosting — untuk menggunakan modelnya untuk fitur AI apa pun."
+        },
+        "loadError": {
+          "title": "Tidak dapat memuat endpoint Anda",
+          "description": "Endpoint tersimpan Anda masih ada — kami hanya belum dapat mengambilnya saat ini. Periksa koneksi Anda dan coba lagi.",
+          "retry": "Coba lagi"
+        },
+        "status": {
+          "model": "Model: {model}"
+        },
+        "actions": {
+          "menuAriaLabel": "Tindakan endpoint",
+          "reconnect": "Sambungkan ulang"
+        },
+        "form": {
+          "titleAdd": "Tambah endpoint",
+          "titleEdit": "Sunting endpoint",
+          "nameLabel": "Nama",
+          "namePlaceholder": "Ollama Rumah",
+          "baseUrlLabel": "URL Dasar",
+          "baseUrlPlaceholder": "http://localhost:11434/v1",
+          "modelLabel": "Nama model",
+          "modelPlaceholder": "llama3.2",
+          "apiKeyLabel": "Kunci API (opsional)",
+          "apiKeyPlaceholder": "Masukkan kunci API",
+          "apiKeySavedHint": "Kunci sudah disimpan. Biarkan kosong untuk mempertahankannya.",
+          "apiKeyOptionalHint": "Biarkan kosong jika endpoint Anda tidak memerlukan autentikasi.",
+          "removeApiKeyButton": "Hapus kunci tersimpan",
+          "saveButton": "Simpan",
+          "testButton": "Uji koneksi",
+          "removeButton": "Hapus"
+        },
+        "compatibilityHint": "Endpoint harus kompatibel dengan OpenAI. Berfungsi dengan Ollama, vLLM, OpenRouter, LM Studio, dan proxy /v1 apa pun.",
+        "test": {
+          "success": "Koneksi berhasil.",
+          "failed": "Tidak dapat menjangkau endpoint."
+        },
+        "notifications": {
+          "saveSuccess": "Endpoint kustom disimpan",
+          "saveFailed": "Gagal menyimpan endpoint kustom",
+          "removeSuccess": "Endpoint kustom dihapus",
+          "removeFailed": "Gagal menghapus endpoint kustom",
+          "removeKeySuccess": "Kunci tersimpan dihapus",
+          "removeKeyFailed": "Gagal menghapus kunci tersimpan",
+          "removeKeyInvalid": "Kunci API dihapus, tetapi endpoint gagal validasi tanpanya: {reason}",
+          "editedEndpointGone": "Endpoint ini telah dihapus, sehingga editor ditutup."
+        },
+        "removeDialog": {
+          "title": "Hapus endpoint kustom?",
+          "descriptionNamed": "\"{name}\" akan dihapus. Fitur apa pun yang menggunakannya akan beralih ke model lain yang tersedia. Tindakan ini tidak dapat dibatalkan.",
+          "confirm": "Hapus"
+        },
+        "removeKeyDialog": {
+          "title": "Hapus kunci tersimpan?",
+          "description": "Endpoint akan diuji ulang tanpa kunci. Jika memerlukan autentikasi, perubahan akan ditolak.",
+          "confirm": "Hapus kunci"
+        },
+        "setupHelp": {
+          "trigger": "Di mana saya bisa menemukan ini?",
+          "rule": "URL Dasar adalah semua bagian sampai sebelum {path}, tanpa menyertakannya. Untuk hampir semua penyedia, itu berarti URL berakhir dengan {suffix}.",
+          "ruleCheck": "Periksa cepat: membuka {url} seharusnya mengembalikan daftar model dalam format JSON.",
+          "apiKeyEmpty": "Biarkan kosong.",
+          "lmStudio": {
+            "startServer": "Mulai server lokal terlebih dahulu (Developer tab → Start Server).",
+            "baseUrl": "Alamat yang ditampilkan LM Studio, ditambah {suffix}. Contohnya {example}.",
+            "model": "Identifier API model. Ditampilkan di Developer tab, atau tercantum di {url}."
+          },
+          "ollama": {
+            "model": "Tag persis dari {command}, contohnya {example}."
+          },
+          "openRouter": {
+            "model": "ID model lengkap dari halaman model mereka, contohnya {example}.",
+            "apiKeyRequired": "Wajib diisi."
+          },
+          "other": {
+            "tabLabel": "Lainnya",
+            "title": "{name} atau server lain yang kompatibel dengan OpenAI",
+            "baseUrl": "Alamat server, ditambah {suffix}.",
+            "model": "Apa pun yang dikembalikan {request} sebagai {field}.",
+            "apiKey": "Hanya jika server diatur untuk memerlukannya."
+          },
+          "localNetworkOnly": "Server yang berjalan di komputer Anda sendiri ({ip} atau {hostname}) hanya berfungsi jika aplikasi ini dijalankan di perangkat atau jaringan Anda sendiri. Versi yang dihosting tidak dapat menjangkaunya, karena alamat privat diblokir di sana.",
+          "dockerHost": "Jika Anda menjalankan aplikasi ini di Docker pada mesin yang sama dengan server model, gunakan {dockerHost} sebagai ganti {ip}."
+        }
       }
     }
   }

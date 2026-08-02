@@ -89,7 +89,9 @@
         "createNew": "Buat Baru",
         "back": "Kembali",
         "importTransactions": "Impor Transaksi",
-        "checkForDuplicates": "Periksa Duplikat"
+        "checkForDuplicates": "Periksa Duplikat",
+        "yourCurrenciesGroup": "Mata uang Anda",
+        "allCurrenciesGroup": "Semua mata uang"
       },
       "createAccountDialog": {
         "title": "Buat Akun untuk Impor",
@@ -129,7 +131,8 @@
         "toggleWillSkip": "akan dilewati.",
         "backButton": "Kembali",
         "continueButton": "Lanjut ke Impor",
-        "transactionCount": "({count} transaksi)"
+        "transactionCount": "({count} transaksi)",
+        "duplicateCheckFailed": "Kami tidak dapat memeriksa laporan ini terhadap transaksi Anda yang sudah ada, sehingga jumlah duplikat di bawah tidak tersedia. Tinjau daftar sebelum mengimpor."
       },
       "importResults": {
         "readyTitle": "Siap Diimpor",
@@ -156,8 +159,11 @@
         "batchIdLabel": "ID Batch Impor:",
         "batchIdDescription": "Anda dapat menggunakan ID ini untuk menemukan dan mengelola semua transaksi yang diimpor.",
         "viewTransactionsButton": "Lihat Transaksi",
-        "startNewImportButton": "Mulai Impor Baru"
-      }
+        "startNewImportButton": "Mulai Impor Baru",
+        "failedDescription": "Tidak ada yang diimpor. Detail di bawah berasal dari server.",
+        "batchIdNote": "ID Batch Impor: {batchId}. Anda dapat menggunakan ID ini untuk menemukan dan mengelola semua transaksi yang diimpor."
+      },
+      "droppedRowsWarning": "{count} baris dari respons AI tidak dapat dibaca dan dilewati. Jumlah yang diimpor di bawah mungkin lebih rendah dari yang ada di file Anda."
     }
   }
 }

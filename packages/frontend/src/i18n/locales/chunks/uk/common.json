@@ -187,7 +187,19 @@
       "searchError": "Не вдалося завантажити логотипи – спробуйте ще раз",
       "editAriaLabel": "Редагувати логотип",
       "dialogTitle": "Змінити логотип",
-      "resetToAuto": "Скинути на автоматичний"
+      "resetToAuto": "Скинути на автоматичний",
+      "tabs": {
+        "brand": "Бренд",
+        "letters": "Літери"
+      },
+      "noResultsLettersHint": "Використати літери натомість",
+      "lettersLabel": "Літери (1–2)",
+      "lettersPlaceholder": "АБ",
+      "colorLabel": "Колір",
+      "colorSwatchAriaLabel": "Використати колір {color}",
+      "customColorAriaLabel": "Вибрати власний колір",
+      "applyLetters": "Застосувати",
+      "lettersSelectedLabel": "Літери «{letters}»"
     }
   },
   "accountGroups": {
@@ -360,6 +372,12 @@
           }
         }
       }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(ваш API ключ)",
+      "setByEndpoint": "Визначається вашим ендпоінтом"
     }
   }
 }
