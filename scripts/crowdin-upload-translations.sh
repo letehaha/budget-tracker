@@ -22,10 +22,17 @@
 #   auto-approved (--auto-approve-imported) — they land green in Crowdin, not as
 #   unapproved blue suggestions needing a second pass in the editor.
 #
+# Source-identical translations:
+#   Crowdin drops any translation byte-identical to its source string unless
+#   --import-eq-suggestions is passed. Plenty of strings are legitimately identical
+#   in every language — brand names (Anthropic, Groq), units (SUV, CSV), input
+#   placeholders (sk-ant-..., {minutes}m) — and without the flag they stay
+#   permanently untranslated in Crowdin, pinning every language below 100%.
+#
 # Caveat — untranslated placeholders:
-#   In-repo locale files carry the English source text for every UNtranslated key.
-#   A blanket upload pushes that English text up as the translation for those keys,
-#   and auto-approval marks it approved. That is fine at release time when every
+#   In-repo locale files carry the English source text for every UNtranslated key,
+#   and --import-eq-suggestions means that text now uploads as an approved
+#   translation instead of being skipped. That is fine at release time when every
 #   locale is fully translated; for a partially-translated locale it would approve
 #   English-as-translation. Preview with --dryrun and scope with -l <code> first.
 #
@@ -72,4 +79,4 @@ fi
 export CROWDIN_PROJECT_ID CROWDIN_PERSONAL_TOKEN
 
 echo "Uploading local translations to Crowdin (project $CROWDIN_PROJECT_ID)..."
-exec crowdin upload translations --config "$CONFIG" --auto-approve-imported "$@"
+exec crowdin upload translations --config "$CONFIG" --auto-approve-imported --import-eq-suggestions "$@"
