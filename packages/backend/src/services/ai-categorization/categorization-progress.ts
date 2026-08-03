@@ -8,11 +8,12 @@ export function parseProgressCounters({
   progress,
 }: {
   progress: unknown;
-}): Pick<CategorizationProgress, 'processedCount' | 'failedCount'> {
+}): Required<Pick<CategorizationProgress, 'processedCount' | 'failedCount' | 'skippedCount'>> {
   const raw = (typeof progress === 'object' && progress !== null ? progress : {}) as Partial<CategorizationProgress>;
   return {
     processedCount: typeof raw.processedCount === 'number' ? raw.processedCount : 0,
     failedCount: typeof raw.failedCount === 'number' ? raw.failedCount : 0,
+    skippedCount: typeof raw.skippedCount === 'number' ? raw.skippedCount : 0,
   };
 }
 
@@ -33,15 +34,17 @@ export function buildFailedRunStatus({
   processedCount: number;
   totalCount: number;
   failedCount: number;
+  skippedCount: number;
   errorMessage?: string;
 } {
-  const { processedCount, failedCount } = parseProgressCounters({ progress });
+  const { processedCount, failedCount, skippedCount } = parseProgressCounters({ progress });
   return {
     status: 'failed',
     processedCount,
     totalCount,
     // Math.max stops an overcounted processedCount from making the remainder negative.
     failedCount: failedCount + Math.max(0, totalCount - processedCount),
+    skippedCount,
     ...(errorMessage ? { errorMessage } : {}),
   };
 }

@@ -29,7 +29,8 @@
       "link": "Link",
       "loadMore": "Load more",
       "clear": "Clear",
-      "apply": "Apply"
+      "apply": "Apply",
+      "retry": "Try again"
     },
     "ui": {
       "close": "Close",
@@ -176,6 +177,25 @@
       "title": "Update available",
       "description": "A new version is ready. Reload to get the latest improvements.",
       "reload": "Reload"
+    },
+    "resourceLease": {
+      "activeLabel": "Session active",
+      "expiredLabel": "Session expired",
+      "defaultResourceLabel": "This resource",
+      "activeTooltip": "{resource} is being kept on the server, and about {duration} of inactivity is allowed. Keep working and it stays available.",
+      "countingDownTooltip": "{resource} is released in {time} because you're inactive. Interact with the page to keep it.",
+      "cappedTooltip": "{resource} is released in {time}. The maximum session length has been reached, so this can no longer be extended.",
+      "expiredTooltip": "{resource} has been released from the server. Start again to continue.",
+      "status": {
+        "active": "{resource} is being kept available.",
+        "countingDown": "{resource} will be released soon.",
+        "expired": "{resource} has been released."
+      },
+      "duration": {
+        "seconds": "{count} second | {count} seconds",
+        "minutes": "{count} minute | {count} minutes",
+        "hours": "{count} hour | {count} hours"
+      }
     },
     "logo": {
       "tabs": {

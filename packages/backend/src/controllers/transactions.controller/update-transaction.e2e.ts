@@ -19,16 +19,19 @@ describe('Update transaction controller', () => {
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
-  it('should reject zero amount', async () => {
+  // Zero is a legitimate amount to edit a transaction down to — an imported
+  // Microsoft Money voided cheque lands at zero and must stay editable.
+  it('accepts a zero amount', async () => {
     const [baseTx] = await helpers.createTransaction({ raw: true });
 
-    const res = await helpers.updateTransaction({
+    const [updated] = await helpers.updateTransaction({
       id: baseTx.id,
       payload: { amount: 0 },
-      raw: false,
+      raw: true,
     });
 
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    expect(Number(updated.amount)).toBe(0);
+    expect(Number(updated.refAmount)).toBe(0);
   });
 
   it('should make basic updation', async () => {

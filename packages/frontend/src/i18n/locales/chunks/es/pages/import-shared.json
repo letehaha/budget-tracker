@@ -2,7 +2,8 @@
   "importShared": {
     "action": {
       "createNew": "Crear nuevo",
-      "linkExisting": "Vincular a existente"
+      "linkExisting": "Vincular a existente",
+      "skip": "Omitir"
     },
     "selectAction": "Seleccionar acción",
     "resolvedCounterWord": "resuelto",
@@ -16,7 +17,8 @@
       "selectTarget": "Seleccionar cuenta",
       "noMatchingCurrency": "Sin cuenta con moneda {currency}",
       "willCreate": "Se creará {name} ({currency})",
-      "empty": "Sin cuentas para asignar"
+      "empty": "Sin cuentas para asignar",
+      "willSkip": "No se importará"
     },
     "category": {
       "selectTarget": "Seleccionar categoría",
@@ -63,6 +65,14 @@
         "category": "Categoría"
       },
       "importAnywayAriaLabel": "Importar fila {row} de todas formas"
+    }
+  },
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "El trabajo de importación caducó o no se pudo encontrar.",
+        "lostContact": "Se perdió el contacto con el trabajo de importación."
+      }
     }
   }
 }

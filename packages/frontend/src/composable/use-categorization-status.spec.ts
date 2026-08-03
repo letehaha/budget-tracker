@@ -28,7 +28,7 @@ vi.mock('@/common/const', () => ({
 }));
 
 vi.mock('@/components/notification-center', () => ({
-  NotificationType: { success: 'success', error: 'error' },
+  NotificationType: { success: 'success', error: 'error', info: 'info' },
   useNotificationCenter: () => ({ addNotification }),
 }));
 
@@ -319,6 +319,29 @@ describe('useCategorizationStatus live SSE completion', () => {
     deliver({ status: 'completed', processedCount: 10, totalCount: 10, failedCount: 4 });
 
     expect(addNotification).toHaveBeenCalledWith({ text: 'header.categorization.completed', type: 'success' });
+    expect(addNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('mentions the skips alongside the success when the AI declined part of the run', async () => {
+    const { deliver } = await subscribeMidRun();
+
+    deliver({ status: 'completed', processedCount: 10, totalCount: 10, failedCount: 0, skippedCount: 3 });
+
+    expect(addNotification).toHaveBeenCalledWith({
+      text: 'header.categorization.completedWithSkipped',
+      type: 'success',
+    });
+    expect(addNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains an all-skipped run with an info toast instead of failure or silence', async () => {
+    const { deliver } = await subscribeMidRun();
+
+    // The model reviewed every row and declined them all (e.g. they are all
+    // transfers): nothing failed, so an error toast would be a lie.
+    deliver({ status: 'completed', processedCount: 10, totalCount: 10, failedCount: 0, skippedCount: 10 });
+
+    expect(addNotification).toHaveBeenCalledWith({ text: 'header.categorization.allSkipped', type: 'info' });
     expect(addNotification).toHaveBeenCalledTimes(1);
   });
 

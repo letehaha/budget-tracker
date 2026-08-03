@@ -40,6 +40,10 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   'POST /api/v1/notifications/read-all',
   'POST /api/v1/notifications/:id/read',
 
+  // Lease extension writes no financial data, and refusing it mid-wizard would
+  // drop the user's upload for nothing.
+  'POST /api/v1/resource-leases/refresh',
+
   // User profile / settings / AI settings / data-export — authenticated but touch no
   // monetary data; blocking them for the duration of a migration is user-hostile.
   'DELETE /api/v1/user/settings/ai/api-keys',
@@ -60,6 +64,10 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   'PUT /api/v1/user/settings/ai/features/:feature',
   'PUT /api/v1/user/settings/onboarding',
   'PUT /api/v1/user/update',
+
+  // AI categorization writes categoryId/categorizationMeta only, never ref amounts,
+  // so a base-currency migration and a run cannot corrupt each other.
+  'POST /api/v1/user/ai/categorization/trigger',
 
   // Admin-only investment price maintenance — these write GLOBAL SecurityPricing
   // reference data, not any user's ref amounts, so a per-user base-currency

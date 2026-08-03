@@ -230,6 +230,12 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
       },
       {
+        path: '/transactions/optimizations/ai-categorization',
+        name: ROUTES_NAMES.optimizationsAiCategorization,
+        component: () => import('@/pages/optimizations/ai-categorization/index.vue'),
+        meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),
@@ -343,7 +349,9 @@ const routes: RouteRecordRaw[] = [
             path: 'data-management/import/ynab',
             name: ROUTES_NAMES.importYnab,
             component: () => import('@/pages/import-export/ynab-import/index.vue'),
-            meta: { i18nChunks: ['pages/import-ynab', 'settings/data-management'] as I18nChunkName[] },
+            meta: {
+              i18nChunks: ['pages/import-ynab', 'pages/import-shared', 'settings/data-management'] as I18nChunkName[],
+            },
           },
           {
             path: 'data-management/import/budget-bakers-wallet',
@@ -352,6 +360,18 @@ const routes: RouteRecordRaw[] = [
             meta: {
               i18nChunks: [
                 'pages/import-budget-bakers-wallet',
+                'pages/import-shared',
+                'settings/data-management',
+              ] as I18nChunkName[],
+            },
+          },
+          {
+            path: 'data-management/import/ms-money',
+            name: ROUTES_NAMES.importMsMoney,
+            component: () => import('@/pages/import-export/ms-money-import/index.vue'),
+            meta: {
+              i18nChunks: [
+                'pages/import-ms-money',
                 'pages/import-shared',
                 'settings/data-management',
               ] as I18nChunkName[],

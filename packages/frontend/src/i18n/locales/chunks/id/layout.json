@@ -76,7 +76,9 @@
       "failed": "Kategorisasi gagal",
       "failedShort": "Gagal",
       "queued": "Menunggu untuk mulai...",
-      "transactions": "transaksi"
+      "transactions": "transaksi",
+      "completedWithSkipped": "Mengkategorisasi {count} transaksi ({skipped} dilewati)",
+      "allSkipped": "AI tidak dapat mengategorikan {count} transaksi dengan yakin"
     }
   },
   "themeSelector": {

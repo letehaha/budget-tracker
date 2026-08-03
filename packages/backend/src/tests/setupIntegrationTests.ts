@@ -20,6 +20,7 @@ import {
   budgetBakersWalletImportWorker,
 } from '@services/import-export/budget-bakers-wallet-import';
 import { csvImportQueue, csvImportWorker } from '@services/import-export/csv-import/csv-import-queue';
+import { msMoneyImportQueue, msMoneyImportWorker } from '@services/import-export/ms-money-import';
 import { ynabImportQueue, ynabImportWorker } from '@services/import-export/ynab-import';
 import {
   subscriptionReminderEmailQueue,
@@ -467,6 +468,8 @@ afterAll(async () => {
     await ynabImportQueue.close();
     await budgetBakersWalletImportWorker.close();
     await budgetBakersWalletImportQueue.close();
+    await msMoneyImportWorker.close();
+    await msMoneyImportQueue.close();
     await csvImportWorker.close();
     await csvImportQueue.close();
     await backupRestoreWorker.close();

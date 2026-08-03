@@ -7,19 +7,12 @@ import { serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
-// Amount fields now accept decimals (e.g., 100.50) - conversion to cents happens in controller
-const amountSchema = () => z.number().positive('Amount must be greater than 0').finite();
-
-const splitSchema = z.object({
-  categoryId: recordId(),
-  amount: amountSchema(), // decimal input
-  note: z.string().max(100, 'Split note must not exceed 100 characters').nullish(),
-});
+import { nonNegativeAmountSchema, positiveAmountSchema, splitSchema } from './schemas';
 
 const bodyZodSchema = z
   .object({
-    amount: amountSchema().optional(), // decimal input
-    destinationAmount: amountSchema().optional(), // decimal input
+    amount: nonNegativeAmountSchema().optional(),
+    destinationAmount: positiveAmountSchema().optional(),
     note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
     time: z.string().datetime({ message: 'Invalid ISO date string' }).optional(),
     transactionType: z.nativeEnum(TRANSACTION_TYPES).optional(),

@@ -90,13 +90,14 @@ describe('getCategorizationStatus state mapping', () => {
   });
 
   it('maps an active job with a progress blob to processing with its counters', async () => {
-    mockJob({ state: 'active', progress: { processedCount: 500, totalCount: 1500, failedCount: 2 } });
+    mockJob({ state: 'active', progress: { processedCount: 500, totalCount: 1500, failedCount: 2, skippedCount: 4 } });
 
     await expect(getCategorizationStatus({ userId: USER_ID })).resolves.toEqual({
       status: 'processing',
       processedCount: 500,
       totalCount: 5,
       failedCount: 2,
+      skippedCount: 4,
     });
   });
 
@@ -109,6 +110,7 @@ describe('getCategorizationStatus state mapping', () => {
       processedCount: 0,
       totalCount: 5,
       failedCount: 0,
+      skippedCount: 0,
     });
   });
 
@@ -120,6 +122,7 @@ describe('getCategorizationStatus state mapping', () => {
       processedCount: 0,
       totalCount: 5,
       failedCount: 0,
+      skippedCount: 0,
     });
   });
 
@@ -132,6 +135,7 @@ describe('getCategorizationStatus state mapping', () => {
       processedCount: 500,
       totalCount: 5,
       failedCount: 3,
+      skippedCount: 0,
     });
   });
 

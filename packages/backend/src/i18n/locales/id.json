@@ -327,7 +327,9 @@
     "customEndpointIdRequired": "Pilih endpoint kustom mana yang menyediakan model ini.",
     "customModelNameInvalidLength": "Nama model harus antara 1 hingga 200 karakter.",
     "customEndpointLimitReached": "Anda dapat menyimpan hingga {{max}} endpoint kustom. Hapus salah satu sebelum menambahkan yang baru.",
-    "customEndpointStoredKeyUnreadable": "Kunci API tersimpan untuk endpoint ini tidak dapat dibaca lagi. Silakan masukkan kembali."
+    "customEndpointStoredKeyUnreadable": "Kunci API tersimpan untuk endpoint ini tidak dapat dibaca lagi. Silakan masukkan kembali.",
+    "categorizationAlreadyRunning": "Kategorisasi AI sedang berjalan. Tunggu hingga selesai sebelum memulai proses lain.",
+    "categorizationRateLimited": "Anda telah memulai kategorisasi AI terlalu sering baru-baru ini. Silakan coba lagi nanti."
   },
   "middleware": {
     "tooManyRequests": "Terlalu banyak permintaan. Silakan coba lagi nanti."

@@ -88,6 +88,10 @@
           "clear": "Quitar rango de fechas"
         },
         "listDescription": "Descarga un zip para hojas de cálculo, impuestos o migración"
+      },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Importa un archivo .mny de Microsoft Money"
       }
     }
   }

@@ -34,6 +34,10 @@
         "cta": "Import from Wallet",
         "listDescription": "Multi-currency with automatic transfer pairing"
       },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Import a .mny file from Microsoft Money"
+      },
       "import": {
         "back": "Back to Import",
         "groups": {

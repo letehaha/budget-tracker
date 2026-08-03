@@ -6,6 +6,7 @@ import type {
 } from '@bt/shared/types';
 import {
   ACCOUNT_TYPES,
+  CATEGORIZATION_TRIGGER,
   ImportSource,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -16,7 +17,7 @@ import { ValidationError } from '@js/errors';
 import { trackImportCompleted } from '@js/utils/posthog';
 import * as Accounts from '@models/accounts.model';
 import * as Users from '@models/users.model';
-import { queueCategorizationJob } from '@services/ai-categorization';
+import { CATEGORIZATION_SCOPE, queueCategorizationJob } from '@services/ai-categorization';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -207,6 +208,8 @@ export async function executeImport(params: ExecuteImportParams): Promise<Statem
     await queueCategorizationJob({
       userId: params.userId,
       transactionIds: result.newTransactionIds,
+      scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.import,
     });
   }
 

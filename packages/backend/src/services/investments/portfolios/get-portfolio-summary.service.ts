@@ -152,21 +152,27 @@ const getPortfolioSummaryImpl = async ({
     };
   }
 
-  // Aggregate values using reference currency amounts (already converted)
+  // Aggregate everything in the user's base currency at `conversionDate`
   let totalCurrentValueInBase = Money.zero();
   let totalCostBasisInBase = Money.zero();
   let totalUnrealizedGainInBase = Money.zero();
   let totalRealizedGainInBase = Money.zero();
 
   for (const holding of holdings) {
-    // Use reference currency values (already converted to user's base currency)
     const marketValueInBase = Money.fromDecimal(holding.refMarketValue || '0');
-    const costBasisInBase = Money.fromDecimal(holding.refCostBasis || '0');
 
-    // Calculate unrealized gain in reference currency
+    // Cost basis is converted at the same date as the market value, so the unrealized
+    // gain reflects one FX rate instead of mixing today's rate with historical ones.
+    const costBasisInBase = await calculateRefAmount({
+      amount: Money.fromDecimal(holding.costBasis || '0'),
+      userId,
+      date: conversionDate,
+      baseCode: holding.currencyCode,
+      quoteCode: baseCurrencyCode,
+    });
+
     const unrealizedGainInBase = marketValueInBase.subtract(costBasisInBase);
 
-    // Convert realized gain to base currency (still needed as it's in original currency)
     const realizedGainInBase = await calculateRefAmount({
       amount: Money.fromDecimal(holding.realizedGainValue || '0'),
       userId,

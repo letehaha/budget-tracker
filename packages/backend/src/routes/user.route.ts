@@ -1,4 +1,7 @@
+import { categorizationCandidatesController } from '@controllers/ai-categorization/candidates.controller';
 import { categorizationStatusController } from '@controllers/ai-categorization/categorization-status.controller';
+import { categorizationHistoryController } from '@controllers/ai-categorization/history.controller';
+import { triggerCategorizationController } from '@controllers/ai-categorization/trigger-categorization.controller';
 import { activeRestoreStatusController } from '@controllers/backup/active-restore-status.controller';
 import { exportBackupController } from '@controllers/backup/export-backup.controller';
 import { restoreBackupController } from '@controllers/backup/restore-backup.controller';
@@ -320,6 +323,24 @@ router.get(
   authenticateSession,
   validateEndpoint(categorizationStatusController.schema),
   categorizationStatusController.handler,
+);
+router.get(
+  '/ai/categorization/candidates',
+  authenticateSession,
+  validateEndpoint(categorizationCandidatesController.schema),
+  categorizationCandidatesController.handler,
+);
+router.get(
+  '/ai/categorization/history',
+  authenticateSession,
+  validateEndpoint(categorizationHistoryController.schema),
+  categorizationHistoryController.handler,
+);
+router.post(
+  '/ai/categorization/trigger',
+  authenticateSession,
+  validateEndpoint(triggerCategorizationController.schema),
+  triggerCategorizationController.handler,
 );
 
 // AI Models

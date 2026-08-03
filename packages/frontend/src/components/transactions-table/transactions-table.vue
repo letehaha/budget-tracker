@@ -1,119 +1,129 @@
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <!-- Bulk actions bar: no vertical padding so both states stay exactly min-h tall (no jump on selection) -->
-    <div class="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 border-b px-3">
-      <span v-if="selectedCount > 0" class="text-sm whitespace-nowrap">
-        {{ $t('transactions.bulkEdit.selectedCount', { count: selectedCount }) }}
-      </span>
-      <span v-else class="text-muted-foreground text-sm">
-        {{ $t('transactions.table.hint') }}
-      </span>
+    <slot
+      name="toolbar"
+      :selected-count="selectedCount"
+      :get-selected-transaction-ids="getSelectedTransactionIds"
+      :clear-selection="clearSelection"
+      :is-bulk-loading="isBulkLoading"
+    >
+      <!-- Bulk actions bar: no vertical padding so both states stay exactly min-h tall (no jump on selection) -->
+      <div class="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 border-b px-3">
+        <span v-if="selectedCount > 0" class="text-sm whitespace-nowrap">
+          {{ $t('transactions.bulkEdit.selectedCount', { count: selectedCount }) }}
+        </span>
+        <span v-else class="text-muted-foreground text-sm">
+          {{ $t('transactions.table.hint') }}
+        </span>
 
-      <!-- Narrow layout: collapse the action buttons to icon-only so they fit
-           one row alongside "N selected" + Cancel. The Cancel control is always
-           an icon button (X) – the ghost text version reads as a stray label
-           rather than a button. -->
-      <div v-if="selectedCount > 0" class="flex flex-wrap items-center gap-2">
-        <DesktopOnlyTooltip :content="$t('transactions.bulkEdit.editButton')" :disabled="!isMobileMode">
-          <Button
-            variant="outline"
-            :size="isMobileMode ? 'icon-sm' : 'sm'"
-            :disabled="isBulkLoading"
-            :aria-label="isMobileMode ? $t('transactions.bulkEdit.editButton') : undefined"
-            @click="isBulkEditDialogOpen = true"
-          >
-            <PencilIcon class="size-4" />
-            <template v-if="!isMobileMode">
-              {{ $t('transactions.bulkEdit.editButton') }}
-            </template>
-          </Button>
-        </DesktopOnlyTooltip>
+        <!-- Narrow layout: collapse the action buttons to icon-only so they fit
+             one row alongside "N selected" + Cancel. The Cancel control is always
+             an icon button (X) – the ghost text version reads as a stray label
+             rather than a button. -->
+        <div v-if="selectedCount > 0" class="flex flex-wrap items-center gap-2">
+          <DesktopOnlyTooltip :content="$t('transactions.bulkEdit.editButton')" :disabled="!isMobileMode">
+            <Button
+              variant="outline"
+              :size="isMobileMode ? 'icon-sm' : 'sm'"
+              :disabled="isBulkLoading"
+              :aria-label="isMobileMode ? $t('transactions.bulkEdit.editButton') : undefined"
+              @click="isBulkEditDialogOpen = true"
+            >
+              <PencilIcon class="size-4" />
+              <template v-if="!isMobileMode">
+                {{ $t('transactions.bulkEdit.editButton') }}
+              </template>
+            </Button>
+          </DesktopOnlyTooltip>
 
-        <DropdownMenu>
-          <!-- Tooltip wraps the trigger (not nested inside) – reka-ui's as-child
-               can't merge a click handler through the tooltip's fragment root. -->
-          <DesktopOnlyTooltip
-            :content="$t('transactions.transactionGroups.bulkActions.groupButton')"
-            :disabled="!isMobileMode"
+          <DropdownMenu>
+            <!-- Tooltip wraps the trigger (not nested inside) – reka-ui's as-child
+                 can't merge a click handler through the tooltip's fragment root. -->
+            <DesktopOnlyTooltip
+              :content="$t('transactions.transactionGroups.bulkActions.groupButton')"
+              :disabled="!isMobileMode"
+            >
+              <span class="inline-flex">
+                <DropdownMenuTrigger as-child>
+                  <Button
+                    variant="outline"
+                    :size="isMobileMode ? 'icon-sm' : 'sm'"
+                    :disabled="isBulkLoading"
+                    :aria-label="
+                      isMobileMode ? $t('transactions.transactionGroups.bulkActions.groupButton') : undefined
+                    "
+                  >
+                    <GroupIcon class="size-4" />
+                    <template v-if="!isMobileMode">
+                      {{ $t('transactions.transactionGroups.bulkActions.groupButton') }}
+                    </template>
+                  </Button>
+                </DropdownMenuTrigger>
+              </span>
+            </DesktopOnlyTooltip>
+            <DropdownMenuContent align="end" class="min-w-48">
+              <DropdownMenuItem :disabled="selectedCount < 2" @select="isCreateGroupDialogOpen = true">
+                <PlusIcon class="mr-2 size-4" />
+                {{ $t('transactions.transactionGroups.bulkActions.createNewGroup') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem @select="isAddToGroupDialogOpen = true">
+                <ListPlusIcon class="mr-2 size-4" />
+                {{ $t('transactions.transactionGroups.bulkActions.addToExistingGroup') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <!-- Disabled-by-external-selection: ResponsiveTooltip so touch users can
+               tap the disabled button and read the reason as a popover (a regular
+               hover-only tooltip would never surface on mobile). -->
+          <ResponsiveTooltip
+            v-if="hasExternalSelected"
+            content-class-name="max-w-75"
+            :content="$t('transactions.bulkDelete.externalTooltip')"
           >
             <span class="inline-flex">
-              <DropdownMenuTrigger as-child>
-                <Button
-                  variant="outline"
-                  :size="isMobileMode ? 'icon-sm' : 'sm'"
-                  :disabled="isBulkLoading"
-                  :aria-label="isMobileMode ? $t('transactions.transactionGroups.bulkActions.groupButton') : undefined"
-                >
-                  <GroupIcon class="size-4" />
-                  <template v-if="!isMobileMode">
-                    {{ $t('transactions.transactionGroups.bulkActions.groupButton') }}
-                  </template>
-                </Button>
-              </DropdownMenuTrigger>
+              <Button
+                variant="soft-destructive"
+                :size="isMobileMode ? 'icon-sm' : 'sm'"
+                disabled
+                :aria-label="isMobileMode ? $t('transactions.bulkDelete.button') : undefined"
+              >
+                <Trash2Icon class="size-4" />
+                <template v-if="!isMobileMode">
+                  {{ $t('transactions.bulkDelete.button') }}
+                </template>
+              </Button>
             </span>
-          </DesktopOnlyTooltip>
-          <DropdownMenuContent align="end" class="min-w-48">
-            <DropdownMenuItem :disabled="selectedCount < 2" @select="isCreateGroupDialogOpen = true">
-              <PlusIcon class="mr-2 size-4" />
-              {{ $t('transactions.transactionGroups.bulkActions.createNewGroup') }}
-            </DropdownMenuItem>
-            <DropdownMenuItem @select="isAddToGroupDialogOpen = true">
-              <ListPlusIcon class="mr-2 size-4" />
-              {{ $t('transactions.transactionGroups.bulkActions.addToExistingGroup') }}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <!-- Disabled-by-external-selection: ResponsiveTooltip so touch users can
-             tap the disabled button and read the reason as a popover (a regular
-             hover-only tooltip would never surface on mobile). -->
-        <ResponsiveTooltip
-          v-if="hasExternalSelected"
-          content-class-name="max-w-75"
-          :content="$t('transactions.bulkDelete.externalTooltip')"
-        >
-          <span class="inline-flex">
+          </ResponsiveTooltip>
+          <DesktopOnlyTooltip v-else :content="$t('transactions.bulkDelete.button')" :disabled="!isMobileMode">
             <Button
               variant="soft-destructive"
               :size="isMobileMode ? 'icon-sm' : 'sm'"
-              disabled
+              :disabled="isBulkLoading"
               :aria-label="isMobileMode ? $t('transactions.bulkDelete.button') : undefined"
+              @click="isBulkDeleteDialogOpen = true"
             >
               <Trash2Icon class="size-4" />
               <template v-if="!isMobileMode">
                 {{ $t('transactions.bulkDelete.button') }}
               </template>
             </Button>
-          </span>
-        </ResponsiveTooltip>
-        <DesktopOnlyTooltip v-else :content="$t('transactions.bulkDelete.button')" :disabled="!isMobileMode">
-          <Button
-            variant="soft-destructive"
-            :size="isMobileMode ? 'icon-sm' : 'sm'"
-            :disabled="isBulkLoading"
-            :aria-label="isMobileMode ? $t('transactions.bulkDelete.button') : undefined"
-            @click="isBulkDeleteDialogOpen = true"
-          >
-            <Trash2Icon class="size-4" />
-            <template v-if="!isMobileMode">
-              {{ $t('transactions.bulkDelete.button') }}
-            </template>
-          </Button>
-        </DesktopOnlyTooltip>
+          </DesktopOnlyTooltip>
 
-        <DesktopOnlyTooltip :content="$t('transactions.bulkEdit.cancelSelection')">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            :disabled="isBulkLoading"
-            :aria-label="$t('transactions.bulkEdit.cancelSelection')"
-            @click="clearSelection"
-          >
-            <XIcon class="size-4" />
-          </Button>
-        </DesktopOnlyTooltip>
+          <DesktopOnlyTooltip :content="$t('transactions.bulkEdit.cancelSelection')">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              :disabled="isBulkLoading"
+              :aria-label="$t('transactions.bulkEdit.cancelSelection')"
+              @click="clearSelection"
+            >
+              <XIcon class="size-4" />
+            </Button>
+          </DesktopOnlyTooltip>
+        </div>
       </div>
-    </div>
+    </slot>
 
     <!-- Empty state -->
     <div
@@ -196,12 +206,14 @@
               @record-click="handleRecordClick"
               @selection-change="toggleTransaction"
             />
-            <tr v-else class="h-10">
-              <td :colspan="visibleColumns.length + 1" class="border-b px-3">
-                <div class="bg-muted h-4 w-full max-w-120 animate-pulse rounded" />
-              </td>
-            </tr>
+            <TableLoaderRow v-else :colspan="visibleColumns.length + 1" />
           </template>
+
+          <TableLoaderRow
+            v-for="index in initialSkeletonRowCount"
+            :key="`initial-skeleton-${index}`"
+            :colspan="visibleColumns.length + 1"
+          />
 
           <tr v-if="paddingBottom > 0" aria-hidden="true">
             <td :colspan="visibleColumns.length + 1" :style="{ height: `${paddingBottom}px` }" class="p-0" />
@@ -259,10 +271,12 @@ import {
 import { type ComputedRef, computed, defineAsyncComponent, ref, watchEffect } from 'vue';
 
 import { type ColumnDefinition, type TableSorting } from './columns';
+import TableLoaderRow from './table-loader-row.vue';
 import TransactionTableRow from './transaction-table-row.vue';
 
 const ROW_HEIGHT_PX = 40;
 const CHECKBOX_COLUMN_WIDTH_PX = 32;
+const INITIAL_SKELETON_ROW_COUNT = 10;
 
 const ManageTransactionDialogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
@@ -280,6 +294,7 @@ const props = defineProps<{
    * breakpoints unreliable here) — drives Drawer-vs-Dialog for the detail panel.
    */
   isMobileMode: boolean;
+  selectionScopeKey?: string;
 }>();
 
 const emit = defineEmits<{
@@ -300,6 +315,12 @@ const { displayTransactions } = useTransactionsDisplay({
   contentFiltersActive: () => true,
 }) as { displayTransactions: ComputedRef<TransactionModel[]> };
 
+// The virtualizer has nothing to render before the first fetch resolves, which
+// would leave a bare header row over empty space.
+const initialSkeletonRowCount = computed(() =>
+  !props.isFetched && displayTransactions.value.length === 0 ? INITIAL_SKELETON_ROW_COUNT : 0,
+);
+
 // Payee name + logo: transactions carry only payeeId; resolve from the full
 // payee lookup so any payee resolves, not just the truncated top-50 dropdown list.
 const { byId: payeeById } = usePayeeLookup();
@@ -308,9 +329,13 @@ const { byId: payeeById } = usePayeeLookup();
 const { isDialogVisible, dialogProps, isCompactDialog, handleRecordClick, closeDialog } = useManageTransactionDialog();
 
 // Selection, eligibility, bulk mutations and dialog state — shared with the list view.
-const bulkActions = useBulkTransactionActions({ getTransactions: () => displayTransactions.value });
+const bulkActions = useBulkTransactionActions({
+  getTransactions: () => displayTransactions.value,
+  getScopeKey: () => props.selectionScopeKey,
+});
 const {
   selectedCount,
+  getSelectedTransactionIds,
   isTransactionSelectable,
   isTransactionSelected,
   toggleTransaction,

@@ -276,6 +276,28 @@ export enum CATEGORIZATION_SOURCE {
   payeeRule = 'payee_rule',
 }
 
+/** What started an AI categorization run, as opposed to what categorized a row (`CATEGORIZATION_SOURCE`). */
+export enum CATEGORIZATION_TRIGGER {
+  manual = 'manual',
+  import = 'import',
+  sync = 'sync',
+}
+
+/**
+ * Why the AI declined to pick a category for a row it was shown. The row still gets the
+ * run's stamp so it leaves the candidate pool, but its category stays untouched.
+ */
+export enum CATEGORIZATION_SKIP_REASON {
+  /** Money moved between accounts or people (P2P), not a purchase. */
+  transfer = 'transfer',
+  /** Not enough information in the row to decide. */
+  unclear = 'unclear',
+  /** None of the offered categories applies. */
+  no_fit = 'no_fit',
+  /** The model returned no verdict for the row at all (e.g. answered in prose). */
+  unspecified = 'unspecified',
+}
+
 /**
  * How aggressively a Payee's `defaultCategoryId` overrides other categorization
  * sources.

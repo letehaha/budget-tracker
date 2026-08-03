@@ -76,7 +76,9 @@
       "failed": "La categorización ha fallado",
       "failedShort": "Error",
       "queued": "Esperando para comenzar...",
-      "transactions": "transacciones"
+      "transactions": "transacciones",
+      "completedWithSkipped": "Categorizada {count} transacción ({skipped} omitida) | Categorizadas {count} transacciones ({skipped} omitidas)",
+      "allSkipped": "La IA no pudo categorizar la transacción con confianza | La IA no pudo categorizar ninguna de las {count} transacciones con confianza"
     }
   },
   "themeSelector": {

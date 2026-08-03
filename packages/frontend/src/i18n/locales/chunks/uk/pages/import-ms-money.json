@@ -1,0 +1,138 @@
+{
+  "pages": {
+    "importExport": {
+      "msMoneyImport": {
+        "pageTitle": "Імпорт з Microsoft Money",
+        "pageDescription": "Перенесіть свої рахунки, категорії та транзакції з файлу .mny програми Microsoft Money.",
+        "stepper": {
+          "steps": {
+            "upload": "Завантажити",
+            "resolve": "Зіставити дані",
+            "review": "Перегляд",
+            "execute": "Імпорт",
+            "done": "Готово"
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "Завантажте свій файл Money",
+          "description": "Виберіть файл .mny, збережений на вашому комп'ютері програмою Microsoft Money.",
+          "maxSize": "Файл .mny, до 50 МБ",
+          "passwordLabel": "Пароль файлу (необов'язково)",
+          "passwordPlaceholder": "Введіть пароль файлу",
+          "passwordHint": "Залиште порожнім, якщо ви не встановлювали пароль у Microsoft Money.",
+          "parsing": "Читання файлу…",
+          "continue": "Продовжити",
+          "errors": {
+            "invalidFormatNamed": "\"{name}\" не є файлом .mny.",
+            "passwordUnsupportedChars": "Цей пароль містить символи, які ми не можемо надіслати. Спробуйте пароль без емодзі та нелатинських літер."
+          }
+        },
+        "errors": {
+          "uploadUnavailable": "Завантажений файл більше недоступний. Будь ласка, завантажте свій файл Money ще раз."
+        },
+        "resolve": {
+          "prepareFailed": "Не вдалося підготувати зіставлення рахунків і категорій. Перезавантажте сторінку і спробуйте ще раз.",
+          "accounts": {
+            "sectionTitle": "Рахунки",
+            "currentBalanceLabel": "Поточний баланс",
+            "currentBalancePlaceholder": "Залиште порожнім, щоб використати імпортовану суму",
+            "willCreateHint": "Буде створено в {currency}.",
+            "skippedNote": "{count} рахунків буде пропущено. Їхні транзакції — і будь-які перекази до них або з них — не будуть імпортовані."
+          },
+          "categories": {
+            "sectionTitle": "Категорії"
+          },
+          "quickActions": {
+            "mapExactMatches": "Зіставити точні збіги",
+            "createNewForUnmatched": "Створити нові для незіставлених",
+            "reset": "Скинути",
+            "tooltips": {
+              "mapExactMatchesAccounts": "Пов'язує кожен рахунок, назва якого точно збігається з наявним рахунком.",
+              "mapExactMatchesCategories": "Пов'язує кожну категорію, назва якої точно збігається з наявною категорією.",
+              "createNewForUnmatched": "Встановлює для кожного невирішеного рядка дію «Створити новий».",
+              "reset": "Очищає всі вибори і виконує зіставлення заново."
+            }
+          },
+          "footer": {
+            "back": "Назад",
+            "continue": "Продовжити"
+          }
+        },
+        "review": {
+          "transactions": "Транзакції",
+          "transfersDetected": "Перекази",
+          "outOfWallet": "Поза гаманцем",
+          "duplicatesSkipped": "Дублікатів пропущено",
+          "willImport": "Буде імпортовано",
+          "dateRange": "Діапазон дат: {from} — {to}",
+          "warningsTitle": "Дещо не потрапило до імпорту",
+          "warningsHint": "Ці рядки не будуть імпортовані.",
+          "warnings": {
+            "accountTypeUnsupported": "{count} рахунків пропущено",
+            "orphanRowSkipped": "{count} транзакцій пропущено",
+            "transferCounterpartNotImported": "{count} частин переказу імпортовано як операції поза гаманцем",
+            "rowLimitReached": "{count} транзакцій понад ліміт відхилено",
+            "accountCurrencyDefaulted": "{count} рахунків не мали валюти у файлі, тому було прийнято USD — перевірте валюту на кроці рахунків, перш ніж продовжити",
+            "rowMissingDate": "{count} транзакцій без розпізнаваної дати пропущено",
+            "accountNameMissing": "{count} рахунків не мали назви",
+            "accountNameDuplicated": "{count} рахунків мали однакову назву",
+            "rowAmountUnreadable": "{count} транзакцій без розпізнаваної суми пропущено",
+            "fileSchemaUnexpected": "Знайдено {count} несподіваних проблем зі структурою файлу"
+          },
+          "includeVoided": {
+            "label": "Імпортувати {count} анульованих транзакцій",
+            "hint": "Microsoft Money зберігає анульовані записи в реєстрі, але ніколи не застосовує їх до вашого балансу, тому вони імпортуються з нульовою сумою та позначаються тегом \"Void\" — зі збереженням дати, отримувача, категорії, примітки та номера чека."
+          },
+          "duplicatesTitle": "{count} можливих дублікатів",
+          "duplicatesHint": "Це вже схоже на наявні у вас транзакції. Зніміть позначку з рядка, щоб імпортувати його попри це.",
+          "back": "Назад",
+          "importing": "Початок імпорту…",
+          "importButton": "Імпортувати {count} транзакцій"
+        },
+        "execute": {
+          "starting": "Початок імпорту…",
+          "progressCount": "{processed} з {total}",
+          "failed": "Помилка імпорту.",
+          "partialImportNote": "Деякі транзакції вже могли бути імпортовані.",
+          "statusQueued": "В черзі",
+          "statusRunning": "Імпортування",
+          "statusCompleted": "Завершено",
+          "statusFailed": "Помилка"
+        },
+        "done": {
+          "successTitle": "Імпорт завершено",
+          "successDescription": "Усе з вашого файлу Money тепер у вашому обліковому записі.",
+          "partialTitle": "Імпортовано з {count} проблемами",
+          "partialDescription": "Більшість рядків успішно імпортовано. У списку нижче — ті, що ні.",
+          "emptyTitle": "Немає нового для імпорту",
+          "emptyDescription": "Кожен рядок був або пропущений, або вже є у вашому обліку, тому жодної транзакції не було створено.",
+          "allFailedTitle": "Нічого не імпортовано",
+          "allFailedDescription": "Жодної транзакції не вдалося створити. Перегляньте помилки нижче.",
+          "accountsCreated": "Рахунків створено",
+          "accountsLinked": "Рахунків прив'язано",
+          "accountsSkipped": "Рахунків пропущено",
+          "categoriesCreated": "Категорій створено",
+          "payeesCreated": "Отримувачів створено",
+          "transactionsImported": "Транзакцій імпортовано",
+          "transfersImported": "Переказів імпортовано",
+          "outOfWalletImported": "Перекази поза гаманцем",
+          "duplicatesSkipped": "Дублікатів пропущено",
+          "voidedImported": "Анульованих імпортовано",
+          "balanceWarningTitle": "Баланси рахунків можуть бути неузгодженими",
+          "balanceWarningBody": "Нам не вдалося встановити кінцевий баланс для кожного рахунку. Перевірте їх і за потреби скоригуйте.",
+          "errorsTitle": "{count} рядків не вдалося імпортувати",
+          "errorsOverflow": "…і ще {count}",
+          "rowPrefix": "Рядок {rowIndex}:",
+          "viewTransactions": "Переглянути транзакції",
+          "importAnother": "Імпортувати інший файл"
+        },
+        "leaseExpired": {
+          "title": "Ваш завантажений файл більше недоступний",
+          "description": "Розібрана копія вашого файлу Money була звільнена після періоду бездіяльності. Ваші вибори зіставлення не вдалося зберегти, тому імпорт потрібно почати заново з кроку завантаження.",
+          "action": "Почати спочатку"
+        },
+        "leaseResourceLabel": "Ваш завантажений файл"
+      }
+    }
+  }
+}

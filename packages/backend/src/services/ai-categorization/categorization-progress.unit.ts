@@ -4,9 +4,12 @@ import { buildFailedRunStatus, parseProgressCounters } from './categorization-pr
 
 describe('parseProgressCounters', () => {
   it('reads counters from the worker-written blob', () => {
-    expect(parseProgressCounters({ progress: { processedCount: 7, totalCount: 10, failedCount: 2 } })).toEqual({
+    expect(
+      parseProgressCounters({ progress: { processedCount: 7, totalCount: 10, failedCount: 2, skippedCount: 3 } }),
+    ).toEqual({
       processedCount: 7,
       failedCount: 2,
+      skippedCount: 3,
     });
   });
 
@@ -15,17 +18,20 @@ describe('parseProgressCounters', () => {
     ['null', null],
     ['a partial blob with wrong value types', { processedCount: 'lots', failedCount: undefined }],
   ])('falls back to zeros for %s', (_label, progress) => {
-    expect(parseProgressCounters({ progress })).toEqual({ processedCount: 0, failedCount: 0 });
+    expect(parseProgressCounters({ progress })).toEqual({ processedCount: 0, failedCount: 0, skippedCount: 0 });
   });
 });
 
 describe('buildFailedRunStatus', () => {
   it('counts everything that never ran as failed on top of the recorded failures', () => {
-    expect(buildFailedRunStatus({ progress: { processedCount: 2, failedCount: 1 }, totalCount: 5 })).toEqual({
+    expect(
+      buildFailedRunStatus({ progress: { processedCount: 2, failedCount: 1, skippedCount: 1 }, totalCount: 5 }),
+    ).toEqual({
       status: 'failed',
       processedCount: 2,
       totalCount: 5,
       failedCount: 4,
+      skippedCount: 1,
     });
   });
 
@@ -35,6 +41,7 @@ describe('buildFailedRunStatus', () => {
       processedCount: 0,
       totalCount: 5,
       failedCount: 5,
+      skippedCount: 0,
     });
   });
 
@@ -44,6 +51,7 @@ describe('buildFailedRunStatus', () => {
       processedCount: 9,
       totalCount: 5,
       failedCount: 1,
+      skippedCount: 0,
     });
   });
 
@@ -55,6 +63,7 @@ describe('buildFailedRunStatus', () => {
       processedCount: 0,
       totalCount: 5,
       failedCount: 5,
+      skippedCount: 0,
       errorMessage: 'job stalled more than allowable limit',
     });
   });
