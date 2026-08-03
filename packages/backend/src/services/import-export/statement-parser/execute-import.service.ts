@@ -6,6 +6,7 @@ import type {
 } from '@bt/shared/types';
 import {
   ACCOUNT_TYPES,
+  CATEGORIZATION_TRIGGER,
   ImportSource,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
@@ -208,6 +209,7 @@ export async function executeImport(params: ExecuteImportParams): Promise<Statem
       userId: params.userId,
       transactionIds: result.newTransactionIds,
       scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.import,
     });
   }
 

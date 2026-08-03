@@ -1,3 +1,4 @@
+import { CATEGORIZATION_TRIGGER } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { redisClient } from '@root/redis-client';
@@ -14,6 +15,8 @@ interface CategorizationJobData extends SentryTraceData {
   transactionIds: string[];
   /** Optional: jobs enqueued before this field existed are all auto-path runs. */
   scope?: CategorizationScope;
+  /** Optional for jobs enqueued before triggers were recorded; those stamp no trigger. */
+  trigger?: CATEGORIZATION_TRIGGER;
 }
 
 // Redis connection configuration for BullMQ
@@ -73,7 +76,7 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
       queueName,
       job,
       fn: async () => {
-        const { userId, transactionIds } = job.data;
+        const { userId, transactionIds, trigger } = job.data;
         const scope = job.data.scope ?? CATEGORIZATION_SCOPE.anyCategory;
 
         logger.info(
@@ -84,6 +87,7 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
           userId,
           transactionIds,
           scope,
+          trigger,
           totalTransactionCount: transactionIds.length,
           // Mirror batch counters into the job's progress blob for the status endpoint.
           onProgress: (progress) => job.updateProgress(progress),
@@ -95,6 +99,7 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
 
         return {
           successful: result.successful.length,
+          skipped: result.skipped.length,
           failed: result.failed.length,
           // Only the curated `stopReason` may reach a client; `result.errors` can carry raw provider text.
           errorMessage: result.stopReason,
@@ -117,9 +122,10 @@ categorizationWorker.on('completed', async (job, result) => {
 
   const terminalPayload = {
     status: 'completed' as const,
-    processedCount: result.successful + result.failed,
+    processedCount: result.successful + result.skipped + result.failed,
     totalCount: transactionIds.length,
     failedCount: result.failed,
+    skippedCount: result.skipped,
     errorMessage: result.errorMessage,
   };
 
@@ -187,10 +193,12 @@ export async function queueCategorizationJob({
   userId,
   transactionIds,
   scope,
+  trigger,
 }: {
   userId: number;
   transactionIds: string[];
   scope: CategorizationScope;
+  trigger: CATEGORIZATION_TRIGGER;
 }): Promise<string> {
   if (transactionIds.length === 0) {
     logger.info(`[AI Categorization] No transactions to categorize for user ${userId}`);
@@ -198,7 +206,7 @@ export async function queueCategorizationJob({
   }
 
   const jobId = `categorization-${userId}-${Date.now()}`;
-  const data = { userId, transactionIds, scope };
+  const data = { userId, transactionIds, scope, trigger };
 
   await withQueuePublishSpan({
     queueName,

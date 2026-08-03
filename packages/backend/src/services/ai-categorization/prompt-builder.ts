@@ -10,18 +10,25 @@ RULES:
 1. Only use category IDs from the provided list
 2. Consider the transaction note/description AND the payee column to determine the category. The payee column is the canonical merchant name when present (e.g. "Starbucks", "Amazon") — treat it as a strong signal; the note may add disambiguating context.
 3. If a category has a parentId, prefer using the more specific child category when appropriate
-4. If you cannot confidently determine a category, omit that transaction from your response
-5. Output ONLY the categorization results in the exact format specified, nothing else
+4. Every transaction MUST appear in your response exactly once. If you cannot confidently pick a category, answer "skip" with a reason code instead of leaving the transaction out.
+5. Output ONLY the results in the exact format specified, nothing else
 
 OUTPUT FORMAT:
-Return one line per categorized transaction in this exact format:
+Return one line per transaction, in one of these two exact formats:
 transactionId:categoryId
+transactionId:skip:reason
 
 Transaction ids look like "t1", "t2"; category ids look like "c1", "c2". Copy them exactly as given.
 
+Skip reason codes:
+- transfer — money moved between accounts or people (P2P), not a purchase
+- unclear — not enough information to decide
+- no_fit — no category in the list applies
+
 Example:
 t1:c4
-t2:c12
+t2:skip:transfer
+t3:c12
 
 Do not include any explanations, headers, or additional text.`;
 
@@ -87,5 +94,5 @@ ${categoriesText}
 TRANSACTIONS:
 ${transactionsText}
 
-Categorize each transaction using the categories above. Output only transactionId:categoryId pairs, one per line.`;
+Categorize each transaction using the categories above. Output one line per transaction: either transactionId:categoryId, or transactionId:skip:reason when you cannot decide.`;
 }

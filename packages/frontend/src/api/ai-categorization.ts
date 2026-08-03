@@ -1,6 +1,7 @@
 import { api } from '@/api/_api';
 import type {
   AiCategorizationCandidatesResponse,
+  AiCategorizationHistoryResponse,
   AiCategorizationStatus,
   AiCategorizationTriggerResponse,
   SORT_DIRECTIONS,
@@ -27,4 +28,12 @@ export const getAiCategorizationCandidates = async (params: {
   order?: SORT_DIRECTIONS;
 }): Promise<AiCategorizationCandidatesResponse> => {
   return api.get('/user/ai/categorization/candidates', params);
+};
+
+/** Past runs, newest first. Each item is one run, identified by its `categorizedAt` stamp. */
+export const getAiCategorizationHistory = async (params: {
+  limit?: number;
+  offset?: number;
+}): Promise<AiCategorizationHistoryResponse> => {
+  return api.get('/user/ai/categorization/history', params);
 };

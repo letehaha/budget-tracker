@@ -1,3 +1,4 @@
+import { CATEGORIZATION_TRIGGER } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { redisClient } from '@root/redis-client';
@@ -38,6 +39,7 @@ describe('categorization-queue', () => {
         userId: 1,
         transactionIds: [],
         scope: CATEGORIZATION_SCOPE.anyCategory,
+        trigger: CATEGORIZATION_TRIGGER.sync,
       });
 
       expect(result).toBe('');
@@ -50,6 +52,7 @@ describe('categorization-queue', () => {
         userId: 123,
         transactionIds: [generateRandomRecordId()],
         scope: CATEGORIZATION_SCOPE.anyCategory,
+        trigger: CATEGORIZATION_TRIGGER.sync,
       });
 
       expect(redisSetMock).toHaveBeenCalledWith('ai-categorization-last-job-123', jobId, 'EX', 24 * 3600);
@@ -60,6 +63,7 @@ describe('categorization-queue', () => {
         userId: 123,
         transactionIds: [generateRandomRecordId()],
         scope: CATEGORIZATION_SCOPE.anyCategory,
+        trigger: CATEGORIZATION_TRIGGER.sync,
       });
       // Job IDs are timestamp-based; a tick apart guarantees distinct IDs.
       await new Promise((resolve) => setTimeout(resolve, 5));
@@ -67,6 +71,7 @@ describe('categorization-queue', () => {
         userId: 123,
         transactionIds: [generateRandomRecordId()],
         scope: CATEGORIZATION_SCOPE.anyCategory,
+        trigger: CATEGORIZATION_TRIGGER.sync,
       });
 
       expect(second).not.toBe(first);
@@ -81,6 +86,7 @@ describe('categorization-queue', () => {
         userId: 123,
         transactionIds: [generateRandomRecordId()],
         scope: CATEGORIZATION_SCOPE.anyCategory,
+        trigger: CATEGORIZATION_TRIGGER.sync,
       });
 
       expect(jobId).toMatch(/^categorization-123-\d+$/);
@@ -91,14 +97,16 @@ describe('categorization-queue', () => {
       const userId = 123;
       const transactionIds = [generateRandomRecordId(), generateRandomRecordId(), generateRandomRecordId()];
       const scope = CATEGORIZATION_SCOPE.defaultCategoryOnly;
+      const trigger = CATEGORIZATION_TRIGGER.manual;
 
-      await queueCategorizationJob({ userId, transactionIds, scope });
+      await queueCategorizationJob({ userId, transactionIds, scope, trigger });
 
       // The scope rides along so the worker selects and writes back through the predicate
-      // the entry point intended.
+      // the entry point intended; the trigger rides along so the stamps can say what
+      // started the run.
       expect(categorizationQueue.add).toHaveBeenCalledWith(
         expect.stringContaining('categorization-123-'),
-        { userId, transactionIds, scope },
+        { userId, transactionIds, scope, trigger },
         expect.objectContaining({
           jobId: expect.stringContaining('categorization-123-'),
         }),
@@ -110,6 +118,7 @@ describe('categorization-queue', () => {
         userId: 456,
         transactionIds: [generateRandomRecordId(), generateRandomRecordId()],
         scope: CATEGORIZATION_SCOPE.anyCategory,
+        trigger: CATEGORIZATION_TRIGGER.sync,
       });
 
       expect(result).toMatch(/^categorization-456-\d+$/);
@@ -120,6 +129,7 @@ describe('categorization-queue', () => {
         userId: 1,
         transactionIds: [generateRandomRecordId()],
         scope: CATEGORIZATION_SCOPE.anyCategory,
+        trigger: CATEGORIZATION_TRIGGER.sync,
       });
 
       // Small delay to ensure different timestamp
@@ -129,6 +139,7 @@ describe('categorization-queue', () => {
         userId: 1,
         transactionIds: [generateRandomRecordId()],
         scope: CATEGORIZATION_SCOPE.anyCategory,
+        trigger: CATEGORIZATION_TRIGGER.sync,
       });
 
       expect(result1).not.toBe(result2);

@@ -1,4 +1,4 @@
-import { AI_FEATURE, type AiCategorizationTriggerResponse } from '@bt/shared/types';
+import { AI_FEATURE, CATEGORIZATION_TRIGGER, type AiCategorizationTriggerResponse } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ConflictError, TooManyRequests, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
@@ -128,6 +128,7 @@ async function runTrigger({
     userId,
     transactionIds: candidateIds,
     scope: CATEGORIZATION_SCOPE.defaultCategoryOnly,
+    trigger: CATEGORIZATION_TRIGGER.manual,
   });
 
   return { enqueued: true, totalCount: candidateIds.length };

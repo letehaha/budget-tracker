@@ -1,7 +1,6 @@
 import type { BackupRestoreSseProgress } from './backup';
 import type { BudgetBakersWalletImportProgress } from './budget-bakers-wallet-import';
 import type { BaseCurrencyChangeStatus } from './currencies';
-import type { TransactionModel } from './db-models';
 import type { CsvImportProgress } from './import-export';
 /**
  * Server-Sent Events (SSE) shared types
@@ -34,6 +33,11 @@ export interface AiCategorizationProgressPayload {
   processedCount: number;
   totalCount: number;
   failedCount: number;
+  /**
+   * Rows the AI saw but declined to categorize; they count into `processedCount`, not
+   * `failedCount`. Optional: statuses recorded before skips existed carry no field.
+   */
+  skippedCount?: number;
   /** Why transactions failed, when the run itself knows (e.g. the user's AI endpoint is down). */
   errorMessage?: string;
 }
@@ -48,33 +52,6 @@ export type AiCategorizationStatus =
   | (Omit<AiCategorizationProgressPayload, 'status'> & {
       status: 'queued' | 'processing' | 'completed' | 'failed';
     });
-
-/**
- * Cap on how many transactions one manual categorization trigger processes — the whole
- * id list is serialized into the queue payload, so it must stay bounded.
- */
-export const AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN = 5000;
-
-/**
- * Response of POST /user/ai/categorization/trigger. `enqueued: false` means there was
- * nothing left to categorize, which is a success rather than an error.
- */
-export interface AiCategorizationTriggerResponse {
-  enqueued: boolean;
-  totalCount: number;
-}
-
-/**
- * Response of GET /user/ai/categorization/candidates.
- *
- * `totalCount` is only filled on the first page (`offset === 0`) and is `null` on every later
- * one, so an infinite scroll doesn't pay for a COUNT per page. It is uncapped, so it can
- * exceed both `items.length` and what a single trigger processes.
- */
-export interface AiCategorizationCandidatesResponse<TTransaction = TransactionModel> {
-  items: TTransaction[];
-  totalCount: number | null;
-}
 
 /**
  * Account sync status for SYNC_STATUS_CHANGED event

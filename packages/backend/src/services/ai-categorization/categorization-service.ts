@@ -1,7 +1,13 @@
-import { AI_FEATURE, AI_PROVIDER, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES } from '@bt/shared/types';
+import {
+  AI_FEATURE,
+  AI_PROVIDER,
+  CATEGORIZATION_SKIP_REASON,
+  CATEGORIZATION_SOURCE,
+  type CATEGORIZATION_TRIGGER,
+  SSE_EVENT_TYPES,
+} from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
-import Accounts from '@models/accounts.model';
 import { getCategories } from '@models/categories.model';
 import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
@@ -22,13 +28,14 @@ import { markCustomEndpointInvalid, markCustomEndpointValid } from '@services/us
 import { getCustomInstructions } from '@services/user-settings/ai-custom-instructions';
 import { generateText } from 'ai';
 
-import { type CandidateWhere, buildCandidateWhere } from './categorization-candidates';
+import { type CandidateWhere, buildCandidateWhere, ownedAccountsInclude } from './categorization-candidates';
 import { type CategorizationScope } from './categorization-scope';
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
 import {
   CategorizationBatchResult,
   CategorizationProgress,
   CategorizationResult,
+  CategorizationSkip,
   TransactionForCategorization,
 } from './types';
 import { assignShortIds } from './utils/assign-short-ids';
@@ -115,7 +122,7 @@ async function categorizeBatch({
     // A hung or trickling endpoint must abort instead of pinning a worker slot forever.
     const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
 
-    const { text, usage } = await generateText({
+    const { text, usage, finishReason } = await generateText({
       model: aiClient.model,
       system: systemPrompt,
       prompt: userMessage,
@@ -137,22 +144,54 @@ async function categorizeBatch({
       tokensPerTransaction,
     });
 
-    const aliasResults = parseCategorizationResponse({
+    const parsed = parseCategorizationResponse({
       response: text,
       validCategoryIds: new Set(shortIds.categoryIdByAlias.keys()),
       validTransactionIds: new Set(shortIds.transactionIdByAlias.keys()),
     });
 
-    const results = aliasResults.map((result) => ({
+    const results = parsed.categorized.map((result) => ({
       transactionId: shortIds.transactionIdByAlias.get(result.transactionId)!,
       categoryId: shortIds.categoryIdByAlias.get(result.categoryId)!,
     }));
 
     const successfulIds = new Set(results.map((r) => r.transactionId));
-    const failed = transactions.filter((t) => !successfulIds.has(t.id)).map((t) => t.id);
+
+    // A category line and a skip line for the same row: the category wins.
+    const skipReasonById = new Map<string, CATEGORIZATION_SKIP_REASON>();
+    for (const skip of parsed.skipped) {
+      const transactionId = shortIds.transactionIdByAlias.get(skip.transactionId)!;
+      if (!successfulIds.has(transactionId)) skipReasonById.set(transactionId, skip.reason);
+    }
+
+    // Rows with no verdict at all: on a cleanly finished answer the model implicitly
+    // declined them (prose refusals land here wholesale). Any other finish — truncation,
+    // content filter, provider error, empty text — proves nothing about those rows, and
+    // the skip stamp is permanent, so they stay candidates for the next run instead.
+    const completedNormally = finishReason === 'stop' && text.trim().length > 0;
+    const failed: string[] = [];
+    for (const transaction of transactions) {
+      if (successfulIds.has(transaction.id) || skipReasonById.has(transaction.id)) continue;
+      if (completedNormally) {
+        skipReasonById.set(transaction.id, CATEGORIZATION_SKIP_REASON.unspecified);
+      } else {
+        failed.push(transaction.id);
+      }
+    }
+
+    if (completedNormally && results.length === 0 && parsed.skipped.length === 0) {
+      // Either a wholesale prose refusal or a model that ignores the answer format;
+      // the preview is the only way to tell which from logs.
+      logger.info('[AI Categorization] Batch finished with zero parseable verdicts', {
+        modelId: aiClient.modelId,
+        transactionCount: transactions.length,
+        responsePreview: text.slice(0, 300),
+      });
+    }
 
     return {
       successful: results,
+      skipped: Array.from(skipReasonById, ([transactionId, reason]) => ({ transactionId, reason })),
       failed,
       tokenUsage: {
         inputTokens,
@@ -176,6 +215,7 @@ async function categorizeBatch({
 
     return {
       successful: [],
+      skipped: [],
       failed: transactions.map((t) => t.id),
       errors: [failureKind === 'blocked-address' ? CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE : cause.message],
       failureKind,
@@ -186,13 +226,16 @@ async function categorizeBatch({
 async function applyCategorizationResults({
   results,
   candidateWhere,
+  categorizedAt,
+  trigger,
 }: {
   results: CategorizationResult[];
   candidateWhere: CandidateWhere;
+  /** Shared by every batch of the run, so the stamp identifies the run in the history list. */
+  categorizedAt: string;
+  trigger?: CATEGORIZATION_TRIGGER;
 }): Promise<void> {
   if (results.length === 0) return;
-
-  const now = new Date().toISOString();
 
   const groupedByCategory = new Map<string, string[]>();
   for (const result of results) {
@@ -213,7 +256,8 @@ async function applyCategorizationResults({
           categoryId,
           categorizationMeta: {
             source: CATEGORIZATION_SOURCE.ai,
-            categorizedAt: now,
+            categorizedAt,
+            ...(trigger && { trigger }),
           },
         },
         {
@@ -227,13 +271,55 @@ async function applyCategorizationResults({
 }
 
 /**
+ * Rows the AI declined get the run's stamp too — with `skipReason` and the category
+ * untouched — so later runs stop paying tokens for rows the model already refused to
+ * decide. Re-checks `candidateWhere` for the same mid-run-edit reason as above.
+ */
+async function applySkipStamps({
+  skips,
+  candidateWhere,
+  categorizedAt,
+  trigger,
+}: {
+  skips: CategorizationSkip[];
+  candidateWhere: CandidateWhere;
+  categorizedAt: string;
+  trigger?: CATEGORIZATION_TRIGGER;
+}): Promise<void> {
+  if (skips.length === 0) return;
+
+  const groupedByReason = new Map<CATEGORIZATION_SKIP_REASON, string[]>();
+  for (const skip of skips) {
+    if (!groupedByReason.has(skip.reason)) {
+      groupedByReason.set(skip.reason, []);
+    }
+    groupedByReason.get(skip.reason)!.push(skip.transactionId);
+  }
+
+  await Promise.all(
+    Array.from(groupedByReason.entries()).map(([skipReason, transactionIds]) =>
+      Transactions.update(
+        {
+          categorizationMeta: {
+            source: CATEGORIZATION_SOURCE.ai,
+            categorizedAt,
+            skipReason,
+            ...(trigger && { trigger }),
+          },
+        },
+        {
+          where: { ...candidateWhere, id: transactionIds },
+          individualHooks: false,
+        },
+      ),
+    ),
+  );
+}
+
+/**
  * The rows this run is allowed to decide, per its `candidateWhere`. Not necessarily
  * uncategorized: on the auto-path a `hint`-mode Payee rule leaves a real category behind
  * for the AI to reconsider.
- *
- * Scoped by `Account.userId` (account ownership) via the Accounts INNER JOIN, not
- * `Transactions.userId` (row creator): on a shared account the creator can be a
- * recipient while the account still belongs to the requesting user.
  */
 async function selectCandidateTransactions({
   userId,
@@ -247,12 +333,7 @@ async function selectCandidateTransactions({
   const transactions = await Transactions.findAll({
     where: { ...candidateWhere, id: transactionIds },
     include: [
-      {
-        model: Accounts,
-        where: { userId },
-        required: true,
-        attributes: ['name'],
-      },
+      ownedAccountsInclude({ userId, attributes: ['name'] }),
       {
         model: Payees,
         attributes: ['name'],
@@ -283,6 +364,7 @@ export async function categorizeTransactions({
   userId,
   transactionIds,
   scope,
+  trigger,
   totalTransactionCount,
   onProgress,
 }: {
@@ -290,6 +372,8 @@ export async function categorizeTransactions({
   transactionIds: string[];
   /** Which rows this run may touch. Selection and write-back both use it. */
   scope: CategorizationScope;
+  /** Recorded on every stamp so the history list can label what started the run. */
+  trigger?: CATEGORIZATION_TRIGGER;
   /** For progress tracking. Defaults to transactionIds.length */
   totalTransactionCount?: number;
   onProgress?: (progress: CategorizationProgress) => void | Promise<void>;
@@ -307,6 +391,7 @@ export async function categorizeTransactions({
     const missingConfigurationMessage = await describeMissingAiConfiguration({ userId });
     return {
       successful: [],
+      skipped: [],
       failed: transactionIds,
       errors: [missingConfigurationMessage],
       stopReason: missingConfigurationMessage,
@@ -325,6 +410,7 @@ export async function categorizeTransactions({
     logger.info(`User ${userId} has no categories, skipping categorization`);
     return {
       successful: [],
+      skipped: [],
       failed: transactionIds,
       errors: ['No categories configured'],
       stopReason: 'No categories configured',
@@ -336,6 +422,7 @@ export async function categorizeTransactions({
     logger.info(`User ${userId} has no default category, skipping categorization`);
     return {
       successful: [],
+      skipped: [],
       failed: [],
     };
   }
@@ -345,6 +432,7 @@ export async function categorizeTransactions({
     logger.info(`No uncategorized transactions to process for user ${userId}`);
     return {
       successful: [],
+      skipped: [],
       failed: [],
     };
   }
@@ -362,6 +450,7 @@ export async function categorizeTransactions({
 
   const allResults: CategorizationBatchResult = {
     successful: [],
+    skipped: [],
     failed: [],
     errors: [],
   };
@@ -374,9 +463,10 @@ export async function categorizeTransactions({
 
   const reportProcessing = async () => {
     const progress: CategorizationProgress = {
-      processedCount: allResults.successful.length + allResults.failed.length,
+      processedCount: allResults.successful.length + allResults.skipped.length + allResults.failed.length,
       totalCount,
       failedCount: allResults.failed.length,
+      skippedCount: allResults.skipped.length,
     };
     sseManager.sendToUser({
       userId,
@@ -396,6 +486,10 @@ export async function categorizeTransactions({
 
   // Guards against an infinite fallback loop
   let hasTriedFallback = false;
+
+  // One stamp for the whole run: the history list groups transactions by it, so a
+  // per-batch stamp would split a single run into several entries.
+  const categorizedAt = new Date().toISOString();
 
   for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
     const batch = transactions.slice(i, i + BATCH_SIZE);
@@ -485,8 +579,14 @@ export async function categorizeTransactions({
     }
 
     if (batchResult.successful.length > 0) {
-      await applyCategorizationResults({ results: batchResult.successful, candidateWhere });
+      await applyCategorizationResults({ results: batchResult.successful, candidateWhere, categorizedAt, trigger });
+    }
+    if (batchResult.skipped.length > 0) {
+      await applySkipStamps({ skips: batchResult.skipped, candidateWhere, categorizedAt, trigger });
+    }
 
+    // Skips prove the credentials work just as well as categorizations do.
+    if (batchResult.successful.length > 0 || batchResult.skipped.length > 0) {
       if (aiClient.usingUserKey) {
         if (aiClient.provider === AI_PROVIDER.custom) {
           if (aiClient.customEndpointId) {
@@ -499,6 +599,7 @@ export async function categorizeTransactions({
     }
 
     allResults.successful.push(...batchResult.successful);
+    allResults.skipped.push(...batchResult.skipped);
     allResults.failed.push(...batchResult.failed);
     if (batchResult.errors) {
       allResults.errors!.push(...batchResult.errors);
@@ -511,7 +612,8 @@ export async function categorizeTransactions({
     }
   }
 
-  const totalTransactionsProcessed = allResults.successful.length + allResults.failed.length;
+  const totalTransactionsProcessed =
+    allResults.successful.length + allResults.skipped.length + allResults.failed.length;
   const totalTokens = totalTokenUsage.inputTokens + totalTokenUsage.outputTokens;
   const avgTokensPerTransaction =
     totalTransactionsProcessed > 0 ? Math.round(totalTokens / totalTransactionsProcessed) : 0;
@@ -523,6 +625,7 @@ export async function categorizeTransactions({
     usingUserKey: aiClient.usingUserKey,
     transactionsProcessed: totalTransactionsProcessed,
     successfulCount: allResults.successful.length,
+    skippedCount: allResults.skipped.length,
     failedCount: allResults.failed.length,
     batchCount: totalTokenUsage.batchCount,
     batchSize: BATCH_SIZE,

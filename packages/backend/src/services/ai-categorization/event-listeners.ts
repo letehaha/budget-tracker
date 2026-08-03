@@ -1,3 +1,4 @@
+import { CATEGORIZATION_TRIGGER } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { DOMAIN_EVENTS, TransactionsSyncedPayload, eventBus } from '@services/common/event-bus';
 
@@ -14,16 +15,10 @@ const debounceTimers = new Map<number, NodeJS.Timeout>();
  * Register AI categorization event listeners.
  * Call this once on app startup.
  *
- * Scoping: `TRANSACTIONS_SYNCED` is emitted only by bank-data providers
- * today, but the listener doesn't lean on that to filter rows. The
- * row-selection query in `selectCandidateTransactions` joins `Accounts`
- * and scopes by `Account.userId = payload.userId`, so AI categorization
- * runs against every uncategorized row on accounts the requesting user
- * *owns* — independent of who authored each row. That covers the case
- * where a future emit site (e.g. a "re-categorize history" tool) sends
- * mixed-creator batches, or where a shared-account recipient authored
- * some of the rows. Manual API writes still don't trigger AI auto-fire
- * because none of those write paths emit this event.
+ * `TRANSACTIONS_SYNCED` is emitted only by bank-data providers today, but this listener
+ * doesn't rely on that: candidate selection already scopes by account ownership rather
+ * than event source or row author, so a future emitter or a shared-account recipient's
+ * rows are covered too. Manual API writes never emit this event, so they can't auto-fire AI categorization.
  */
 export function registerAiCategorizationListeners(): void {
   eventBus.on(DOMAIN_EVENTS.TRANSACTIONS_SYNCED, handleTransactionsSynced);
@@ -77,7 +72,12 @@ async function flushPendingTransactions(userId: number): Promise<void> {
   }
 
   try {
-    await queueCategorizationJob({ userId, transactionIds, scope: CATEGORIZATION_SCOPE.anyCategory });
+    await queueCategorizationJob({
+      userId,
+      transactionIds,
+      scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.sync,
+    });
     logger.info(`Queued ${transactionIds.length} transactions for AI categorization (user ${userId}, debounced)`);
   } catch (error) {
     logger.error({

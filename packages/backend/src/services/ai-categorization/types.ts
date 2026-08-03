@@ -1,4 +1,4 @@
-import type { AiCategorizationProgressPayload } from '@bt/shared/types';
+import type { AiCategorizationProgressPayload, CATEGORIZATION_SKIP_REASON } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 
 /**
@@ -31,9 +31,15 @@ export interface CategorizationResult {
   categoryId: string;
 }
 
+/** A row the AI saw but declined to categorize; it gets the run stamp with the reason, category untouched. */
+export interface CategorizationSkip {
+  transactionId: string;
+  reason: CATEGORIZATION_SKIP_REASON;
+}
+
 export type CategorizationProgress = Pick<
   AiCategorizationProgressPayload,
-  'processedCount' | 'totalCount' | 'failedCount'
+  'processedCount' | 'totalCount' | 'failedCount' | 'skippedCount'
 >;
 
 /**
@@ -41,7 +47,8 @@ export type CategorizationProgress = Pick<
  */
 export interface CategorizationBatchResult {
   successful: CategorizationResult[];
-  failed: string[]; // Transaction IDs that couldn't be categorized
+  skipped: CategorizationSkip[];
+  failed: string[]; // Transaction IDs the AI call never resolved (errors, truncation)
   /** Diagnostics only: may carry raw provider strings, so it never reaches the wire. */
   errors?: string[];
   /**

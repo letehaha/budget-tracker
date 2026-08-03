@@ -696,6 +696,7 @@ export const findWithFilters = async ({
   noteSearch,
   attributes,
   categorizationSource,
+  categorizedAt,
 }: {
   from: number;
   limit?: number;
@@ -747,6 +748,8 @@ export const findWithFilters = async ({
   noteSearch?: string[]; // array of keywords
   attributes?: (keyof Transactions)[];
   categorizationSource?: CATEGORIZATION_SOURCE;
+  /** Exact `categorizationMeta.categorizedAt` stamp, which identifies one categorization run. */
+  categorizedAt?: string;
 }) => {
   const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
 
@@ -1002,6 +1005,10 @@ export const findWithFilters = async ({
     whereClause['categorizationMeta.source'] = categorizationSource;
   }
 
+  if (categorizedAt) {
+    whereClause['categorizationMeta.categorizedAt'] = categorizedAt;
+  }
+
   const transactions = await Transactions.findAll({
     include: queryInclude,
     where: whereClause,
@@ -1163,6 +1170,7 @@ export const updateTransactions = (
     refundLinked?: boolean;
     payeeId?: string | null;
     payeeLocked?: boolean;
+    categorizationMeta?: CategorizationMeta | null;
   },
   where: Record<string, unknown> & { userId: number },
   {

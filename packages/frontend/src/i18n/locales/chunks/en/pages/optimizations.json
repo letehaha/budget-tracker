@@ -9,13 +9,17 @@
         "description": "Find expense-income pairs that might be transfers between your accounts and link them automatically."
       },
       "aiCategorization": {
-        "title": "Categorize with AI",
-        "description": "Let AI sort transactions still sitting in your default category."
+        "title": "AI categorization",
+        "description": "Let AI sort uncategorized transactions and review past runs."
       }
     },
     "aiCategorization": {
-      "title": "Categorize with AI",
+      "title": "AI categorization",
       "description": "Run AI over transactions that are still in your default category and let it pick a better one. You can always change a category afterwards.",
+      "tabs": {
+        "categorize": "Categorize",
+        "history": "History"
+      },
       "count": {
         "capNote": "One run covers the {limit} most recent. Run it again to work through the rest.",
         "allDoneTitle": "Everything is categorized",
@@ -28,6 +32,28 @@
       "table": {
         "selectionHint": "Select rows to categorize only those.",
         "loadError": "Couldn't load the transactions waiting for categorization."
+      },
+      "history": {
+        "emptyTitle": "No AI categorization runs yet",
+        "emptyDescription": "Once you run AI categorization, every run shows up here so you can review what it changed.",
+        "loadError": "Couldn't load the run history.",
+        "runLoadError": "Couldn't load this run's transactions.",
+        "backToRuns": "Back to all runs",
+        "runEmptyTitle": "Nothing left from this run",
+        "runEmptyDescription": "Every transaction this run categorized has since been re-categorized or deleted.",
+        "transactionCount": "{count} transaction | {count} transactions",
+        "trigger": {
+          "manual": "Manual",
+          "import": "Data import",
+          "sync": "Bank sync",
+          "unknown": "Unknown"
+        },
+        "triggerTooltip": {
+          "manual": "You started this run manually",
+          "import": "Started automatically after a data import",
+          "sync": "Started automatically after a bank sync",
+          "unknown": "This run's origin wasn't recorded"
+        }
       },
       "setup": {
         "title": "Run setup",

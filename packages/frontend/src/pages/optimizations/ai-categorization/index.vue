@@ -1,33 +1,48 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
-import { Card } from '@/components/lib/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
-import type { TableSorting } from '@/components/transactions-table/columns';
-import TransactionsTable from '@/components/transactions-table/transactions-table.vue';
-import { useTableColumns } from '@/components/transactions-table/use-table-columns';
 import { ROUTES_NAMES } from '@/routes';
-import { ArrowLeftIcon, CircleCheckIcon, SettingsIcon, TriangleAlertIcon } from '@lucide/vue';
+import { ArrowLeftIcon } from '@lucide/vue';
 import { useElementSize } from '@vueuse/core';
 import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
-import RunBar from './components/run-bar.vue';
-import { useCategorizationRun } from './use-categorization-run';
+import CategorizeTab from './components/categorize-tab.vue';
+import HistoryTab from './components/history-tab.vue';
 
-const run = useCategorizationRun();
-const {
-  sorting,
-  setSorting,
-  candidates,
-  candidatesUnavailable,
-  isCandidatesFetched,
-  hasNextPage,
-  isFetchingNextPage,
-  fetchNextPage,
-  refetchCandidates,
-  isEverythingCategorized,
-} = run;
+const TAB = { categorize: 'categorize', history: 'history' } as const;
 
-const { visibleColumns } = useTableColumns();
+const route = useRoute();
+const router = useRouter();
+
+// The query string is the single source of truth for both the tab and the
+// opened run, so a reload lands the user exactly where they were.
+const activeTab = computed(() => (route.query.tab === TAB.history ? TAB.history : TAB.categorize));
+const openedRunAt = computed(() => {
+  if (activeTab.value !== TAB.history) return null;
+  return typeof route.query.run === 'string' && route.query.run ? route.query.run : null;
+});
+
+const onTabChange = (value: string | number) => {
+  const tab = String(value) === TAB.history ? TAB.history : TAB.categorize;
+  if (tab === activeTab.value) return;
+  router.replace({ query: { ...route.query, tab, run: undefined } });
+};
+
+const openRun = ({ categorizedAt }: { categorizedAt: string }) => {
+  router.push({ query: { ...route.query, tab: TAB.history, run: categorizedAt } });
+};
+
+const closeRun = () => {
+  router.replace({ query: { ...route.query, run: undefined } });
+};
+
+// An inactive TabsContent stays in the DOM carrying only the `hidden` attribute,
+// and `display: flex` would beat it — an empty pane would then steal half the
+// column's height from the active one.
+const tabContentClass = ({ tab }: { tab: string }) =>
+  activeTab.value === tab ? 'mt-3 flex min-h-0 flex-1 flex-col' : undefined;
 
 // Narrow-layout flag comes from the page container: the sidebar eats ~300px, so
 // viewport width flips this at the wrong moment.
@@ -35,15 +50,6 @@ const MOBILE_MODE_MAX_WIDTH_PX = 672;
 const pageRef = ref<HTMLElement | null>(null);
 const { width: pageWidth } = useElementSize(pageRef);
 const isMobileMode = computed(() => pageWidth.value > 0 && pageWidth.value < MOBILE_MODE_MAX_WIDTH_PX);
-
-const selectionScopeKey = computed(() => `${sorting.value.sortBy}:${sorting.value.order}`);
-
-const tableRef = ref<InstanceType<typeof TransactionsTable> | null>(null);
-
-const onSortingChange = (value: TableSorting) => {
-  setSorting(value);
-  tableRef.value?.scrollToTop();
-};
 </script>
 
 <template>
@@ -68,56 +74,19 @@ const onSortingChange = (value: TableSorting) => {
       </h1>
     </div>
 
-    <Card class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div v-if="candidatesUnavailable" class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        <TriangleAlertIcon class="text-destructive-text size-8" />
-        <p class="text-destructive-text text-sm">{{ $t('optimizations.aiCategorization.table.loadError') }}</p>
-        <Button variant="outline" size="sm" @click="refetchCandidates()">{{ $t('common.actions.retry') }}</Button>
-      </div>
+    <Tabs :model-value="activeTab" class="flex min-h-0 flex-1 flex-col" @update:model-value="onTabChange">
+      <TabsList variant="underline" class="shrink-0">
+        <TabsTrigger :value="TAB.categorize">{{ $t('optimizations.aiCategorization.tabs.categorize') }}</TabsTrigger>
+        <TabsTrigger :value="TAB.history">{{ $t('optimizations.aiCategorization.tabs.history') }}</TabsTrigger>
+      </TabsList>
 
-      <div
-        v-else-if="isEverythingCategorized"
-        class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
-      >
-        <div class="bg-muted flex size-12 items-center justify-center rounded-full">
-          <CircleCheckIcon class="text-success-text size-6" />
-        </div>
-        <p class="font-medium">{{ $t('optimizations.aiCategorization.count.allDoneTitle') }}</p>
-        <p class="text-muted-foreground max-w-sm text-sm">
-          {{ $t('optimizations.aiCategorization.count.allDoneDescription') }}
-        </p>
-        <Button variant="outline" size="sm" as-child>
-          <RouterLink :to="{ name: ROUTES_NAMES.settingsAiFeatures }">
-            <SettingsIcon class="size-3.5" />
-            {{ $t('optimizations.aiCategorization.setup.changeModel') }}
-          </RouterLink>
-        </Button>
-      </div>
+      <TabsContent :value="TAB.categorize" :class="tabContentClass({ tab: TAB.categorize })">
+        <CategorizeTab :is-mobile-mode="isMobileMode" />
+      </TabsContent>
 
-      <TransactionsTable
-        v-else
-        ref="tableRef"
-        class="min-h-0 flex-1"
-        :transactions="candidates"
-        :visible-columns="visibleColumns"
-        :sorting="sorting"
-        :has-next-page="hasNextPage"
-        :is-fetching-next-page="isFetchingNextPage"
-        :is-fetched="isCandidatesFetched"
-        :is-mobile-mode="isMobileMode"
-        :selection-scope-key="selectionScopeKey"
-        @update:sorting="onSortingChange"
-        @fetch-next-page="fetchNextPage"
-      >
-        <template #toolbar="{ selectedCount, getSelectedTransactionIds, clearSelection }">
-          <RunBar
-            :run="run"
-            :selected-count="selectedCount"
-            :get-selected-transaction-ids="getSelectedTransactionIds"
-            @clear-selection="clearSelection"
-          />
-        </template>
-      </TransactionsTable>
-    </Card>
+      <TabsContent :value="TAB.history" :class="tabContentClass({ tab: TAB.history })">
+        <HistoryTab :is-mobile-mode="isMobileMode" :opened-run-at="openedRunAt" @open-run="openRun" @back="closeRun" />
+      </TabsContent>
+    </Tabs>
   </div>
 </template>

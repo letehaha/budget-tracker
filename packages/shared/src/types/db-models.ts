@@ -7,7 +7,9 @@ import {
   BUDGET_TYPES,
   CATEGORIZATION_MODE,
   LogoResolutionState,
+  CATEGORIZATION_SKIP_REASON,
   CATEGORIZATION_SOURCE,
+  CATEGORIZATION_TRIGGER,
   CATEGORY_TYPES,
   LOAN_TYPE,
   NotificationPriority,
@@ -204,6 +206,10 @@ export interface CategorizationMeta {
   payeeId?: RecordId;
   /** ISO timestamp when categorization was applied */
   categorizedAt?: string;
+  /** What started the AI run that wrote this stamp; only `source: ai` rows carry it */
+  trigger?: CATEGORIZATION_TRIGGER;
+  /** Present when the AI saw the row but declined to categorize it; the category was left untouched */
+  skipReason?: CATEGORIZATION_SKIP_REASON;
 }
 
 export interface TransactionSplitModel {

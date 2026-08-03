@@ -24,6 +24,21 @@ export type CandidateWhere = {
 type CandidateCriteria = Omit<FindOptions, 'include'> & { include: Includeable[] };
 
 /**
+ * Ownership gate shared by every ai-categorization query: the account must belong to the
+ * caller (`Account.userId`). Never filter by `Transactions.userId` instead — on a shared
+ * account the row's creator can be a recipient while the account is still the caller's.
+ */
+export function ownedAccountsInclude({
+  userId,
+  attributes = [],
+}: {
+  userId: number;
+  attributes?: string[];
+}): Includeable {
+  return { model: Accounts, where: { userId }, required: true, attributes };
+}
+
+/**
  * Single definition of "the AI may decide this row", per scope. The worker selects rows
  * with it and re-checks the very same predicate when writing results back, so a run can
  * never touch a row it did not select.
@@ -58,8 +73,6 @@ export async function buildCandidateWhere({
  * The user-facing side: the candidates list, its count and the manual trigger, all on the
  * `defaultCategoryOnly` scope so the rows shown can't drift from the rows a trigger processes.
  *
- * Scoped by account ownership (`Account.userId`), not `Transactions.userId`: on a shared
- * account the row's creator can be a recipient while the account is still the caller's.
  * `transactionIds` narrows this predicate instead of replacing it, so caller-supplied ids
  * can only reach rows that were already candidates. An empty list means unscoped.
  */
@@ -75,7 +88,7 @@ async function buildCandidateCriteria({
 
   return {
     where: transactionIds?.length ? { ...where, id: { [Op.in]: transactionIds } } : where,
-    include: [{ model: Accounts, where: { userId }, required: true, attributes: [] }],
+    include: [ownedAccountsInclude({ userId })],
   };
 }
 

@@ -7,7 +7,6 @@ import {
 } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import Transactions from '@models/transactions.model';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
 import * as helpers from '@tests/helpers';
@@ -130,7 +129,7 @@ describe('POST /user/ai/categorization/trigger', () => {
       process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
       global.mswMockServer.use(createGeminiMock({ categorizations: { 1: 1, 2: 1 } }));
 
-      await seedUncategorizedTransactions({ count: 2 });
+      const seededIds = await seedUncategorizedTransactions({ count: 2 });
 
       const response = await helpers.triggerAiCategorization();
       expect(response.statusCode).toBe(200);
@@ -138,11 +137,38 @@ describe('POST /user/ai/categorization/trigger', () => {
 
       await waitForRunToSettle();
 
-      const transactions = await Transactions.findAll({ attributes: ['id', 'categorizationMeta'] });
+      const transactions = await helpers.getTransactionsByIds({ ids: seededIds, raw: true });
       expect(transactions).toHaveLength(2);
       for (const transaction of transactions) {
         expect(transaction.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.ai);
       }
+    },
+    TEST_TIMEOUT_MS,
+  );
+
+  it(
+    'never overwrites a category the user set while the run was in flight',
+    async () => {
+      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
+      global.mswMockServer.use(geminiTextMock({ text: 't1:c1', delayMs: 3000 }));
+
+      const [transactionId] = await seedUncategorizedTransactions({ count: 1 });
+
+      const response = await helpers.triggerAiCategorization();
+      expect(response.statusCode).toBe(200);
+      expect(response.body.response).toEqual({ enqueued: true, totalCount: 1 });
+
+      // The mocked AI answer is still seconds away; the user corrects the row first.
+      // The write-back re-checks its candidate predicate, so the row must keep the
+      // manual category instead of being stamped by the AI verdict.
+      const category = await helpers.addCustomCategory({ name: `Rent ${Date.now()}`, color: '#654321', raw: true });
+      await helpers.updateTransaction({ id: transactionId!, payload: { categoryId: category.id }, raw: true });
+
+      await waitForRunToSettle();
+
+      const [row] = await helpers.getTransactionsByIds({ ids: [transactionId!], raw: true });
+      expect(row!.categoryId).toBe(category.id);
+      expect(row!.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.manual);
     },
     TEST_TIMEOUT_MS,
   );
@@ -207,9 +233,10 @@ describe('POST /user/ai/categorization/trigger', () => {
       process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
       global.mswMockServer.use(geminiTextMock());
 
-      await seedUncategorizedTransactions({ count: 2 });
-
+      // Fresh rows per attempt: a settled run stamps its candidates (skips included),
+      // so re-triggering on the same rows would report nothing to do instead.
       for (let attempt = 0; attempt < 3; attempt++) {
+        await seedUncategorizedTransactions({ count: 2 });
         const response = await helpers.triggerAiCategorization();
 
         expect(response.statusCode).toBe(200);
@@ -218,6 +245,8 @@ describe('POST /user/ai/categorization/trigger', () => {
         await waitForRunToSettle();
       }
 
+      // The rate limiter sits behind the candidate check, so the denied attempt needs rows too.
+      await seedUncategorizedTransactions({ count: 2 });
       const denied = await helpers.triggerAiCategorization();
       expect(denied.statusCode).toBe(429);
       expect(errorDetails({ response: denied })).toEqual(expect.objectContaining({ retryAfter: expect.any(Number) }));
@@ -237,9 +266,8 @@ describe('POST /user/ai/categorization/trigger', () => {
       });
       expect(keyResponse.statusCode).toBe(200);
 
-      await seedUncategorizedTransactions({ count: 2 });
-
       for (let attempt = 0; attempt < 5; attempt++) {
+        await seedUncategorizedTransactions({ count: 2 });
         const response = await helpers.triggerAiCategorization();
 
         expect(response.statusCode).toBe(200);
@@ -330,7 +358,6 @@ describe('POST /user/ai/categorization/trigger', () => {
       await seedUncategorizedTransactions({ count: 2 });
       const transferId = await seedTransferTransaction();
 
-      // Past the server-key budget of 3, so a consumed attempt would surface as a 429.
       for (let attempt = 0; attempt < 5; attempt++) {
         const response = await helpers.triggerAiCategorization({
           payload: { transactionIds: [transferId, generateRandomRecordId()] },

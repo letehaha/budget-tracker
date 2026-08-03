@@ -1,5 +1,6 @@
 import type {
   AiCategorizationCandidatesResponse,
+  AiCategorizationHistoryResponse,
   AiCategorizationStatus,
   AiCategorizationTriggerResponse,
   SORT_DIRECTIONS,
@@ -40,6 +41,24 @@ export async function getAiCategorizationCandidates<R extends boolean | undefine
   return makeRequest<AiCategorizationCandidatesResponse<TransactionApiResponse>, R>({
     method: 'get',
     url: '/user/ai/categorization/candidates',
+    payload,
+    raw,
+  });
+}
+
+export async function getAiCategorizationHistory<R extends boolean | undefined = undefined>({
+  raw,
+  payload,
+}: {
+  raw?: R;
+  payload?: {
+    limit?: number;
+    offset?: number;
+  };
+} = {}) {
+  return makeRequest<AiCategorizationHistoryResponse, R>({
+    method: 'get',
+    url: '/user/ai/categorization/history',
     payload,
     raw,
   });
