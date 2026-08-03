@@ -66,7 +66,9 @@ export const buildOptimisticTransaction = ({
   return updatedTransaction;
 };
 
-type TransactionPage = TransactionModel[];
+// A page is not always a transaction array: some queries page as
+// `{ items, totalCount }`, others hold rows that aren't transactions at all.
+type TransactionPage = TransactionModel[] | { items: TransactionModel[] } | unknown;
 type InfiniteTransactionData = InfiniteData<TransactionPage, unknown>;
 
 interface OptimisticUpdateContext {
@@ -117,7 +119,7 @@ export const applyOptimisticTransactionUpdate = ({
 
         return {
           ...oldData,
-          pages: oldData.pages.map((page) => page.map((tx) => (tx.id === transactionId ? updatedTransaction : tx))),
+          pages: oldData.pages.map((page) => replaceTransactionInPage({ page, transactionId, updatedTransaction })),
         };
       });
     }
@@ -155,6 +157,24 @@ export const rollbackOptimisticUpdate = ({
   }
 };
 
+function replaceTransactionInPage({
+  page,
+  transactionId,
+  updatedTransaction,
+}: {
+  page: TransactionPage;
+  transactionId: string;
+  updatedTransaction: TransactionModel;
+}): TransactionPage {
+  const swap = (tx: TransactionModel) => (tx.id === transactionId ? updatedTransaction : tx);
+
+  if (isTransactionArray(page)) return page.map(swap);
+
+  if (isItemsPage(page)) return { ...page, items: page.items.map(swap) };
+
+  return page;
+}
+
 // Type guards
 function isInfiniteQueryData(data: unknown): data is InfiniteTransactionData {
   return (
@@ -174,6 +194,15 @@ function isSingleTransaction(data: unknown): data is TransactionModel {
     'amount' in data &&
     'transactionType' in data &&
     !Array.isArray(data)
+  );
+}
+
+function isItemsPage(data: unknown): data is { items: TransactionModel[] } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'items' in data &&
+    isTransactionArray((data as { items: unknown }).items)
   );
 }
 
