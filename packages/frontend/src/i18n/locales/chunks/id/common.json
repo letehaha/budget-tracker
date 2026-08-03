@@ -178,9 +178,14 @@
       "reload": "Muat Ulang"
     },
     "logo": {
+      "tabs": {
+        "brand": "Merek",
+        "letters": "Huruf"
+      },
       "searchPlaceholder": "Nama merek atau domain",
       "searchHint": "Ketik nama merek, atau domain seperti amazon.com",
       "noResults": "Tidak ada merek yang cocok ditemukan.",
+      "noResultsLettersHint": "Gunakan huruf sebagai gantinya",
       "useDomainDirectly": "Gunakan {domain}",
       "autoLabel": "Otomatis (dari nama)",
       "domainHint": "Untuk menemukan merek yang tepat, ketik domain situs web perusahaan (mis. amazon.com) — itu selalu mencocokkan logo yang benar.",
@@ -188,13 +193,8 @@
       "editAriaLabel": "Sunting logo",
       "dialogTitle": "Ganti logo",
       "resetToAuto": "Kembalikan ke otomatis",
-      "tabs": {
-        "brand": "Merek",
-        "letters": "Huruf"
-      },
-      "noResultsLettersHint": "Gunakan huruf sebagai gantinya",
       "lettersLabel": "Huruf (1–2)",
-      "lettersPlaceholder": "AB",
+      "lettersPlaceholder": "",
       "colorLabel": "Warna",
       "colorSwatchAriaLabel": "Gunakan warna {color}",
       "customColorAriaLabel": "Pilih warna khusus",

@@ -178,9 +178,14 @@
       "reload": "Recargar"
     },
     "logo": {
+      "tabs": {
+        "brand": "Marca",
+        "letters": "Letras"
+      },
       "searchPlaceholder": "Nombre de marca o dominio",
       "searchHint": "Escriba un nombre de marca o un dominio como amazon.com",
       "noResults": "No se encontraron marcas coincidentes.",
+      "noResultsLettersHint": "Usar letras en su lugar",
       "useDomainDirectly": "Usar {domain}",
       "autoLabel": "Automático (desde el nombre)",
       "domainHint": "Para encontrar la marca exacta, escriba el dominio del sitio web de la empresa (p. ej. amazon.com) – eso siempre coincide con el logotipo correcto.",
@@ -188,14 +193,9 @@
       "editAriaLabel": "Editar logo",
       "dialogTitle": "Cambiar logo",
       "resetToAuto": "Restablecer a automático",
-      "tabs": {
-        "brand": "Marca",
-        "letters": "Letras"
-      },
-      "noResultsLettersHint": "Usar letras en su lugar",
       "lettersLabel": "Letras (1–2)",
-      "lettersPlaceholder": "AB",
-      "colorLabel": "Color",
+      "lettersPlaceholder": "",
+      "colorLabel": "",
       "colorSwatchAriaLabel": "Usar color {color}",
       "customColorAriaLabel": "Elegir un color personalizado",
       "applyLetters": "Aplicar",

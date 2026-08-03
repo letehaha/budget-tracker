@@ -35,7 +35,6 @@
         "tryAgain": "Coba Lagi",
         "modelLabel": "Model",
         "estimatedCostLabel": "Perkiraan Biaya",
-        "yourApiKey": "(kunci API Anda)",
         "estimatedTokensLabel": "Perkiraan Token",
         "extractButton": "Ekstrak Transaksi",
         "progressMessage": "Ini mungkin memakan waktu 30-60 detik tergantung ukuran dokumen",
@@ -86,12 +85,12 @@
         "currency": "Mata Uang:",
         "currencyNotDetected": "Tidak dapat mendeteksi mata uang laporan. Harap pilih mata uang secara manual:",
         "currencyMismatch": "Mata uang laporan ({statementCurrency}) berbeda dengan mata uang akun ({accountCurrency}). Transaksi akan diimpor menggunakan mata uang akun.",
+        "yourCurrenciesGroup": "Mata uang Anda",
+        "allCurrenciesGroup": "Semua mata uang",
         "createNew": "Buat Baru",
         "back": "Kembali",
         "importTransactions": "Impor Transaksi",
-        "checkForDuplicates": "Periksa Duplikat",
-        "yourCurrenciesGroup": "Mata uang Anda",
-        "allCurrenciesGroup": "Semua mata uang"
+        "checkForDuplicates": "Periksa Duplikat"
       },
       "createAccountDialog": {
         "title": "Buat Akun untuk Impor",
@@ -134,6 +133,7 @@
         "transactionCount": "({count} transaksi)",
         "duplicateCheckFailed": "Kami tidak dapat memeriksa laporan ini terhadap transaksi Anda yang sudah ada, sehingga jumlah duplikat di bawah tidak tersedia. Tinjau daftar sebelum mengimpor."
       },
+      "droppedRowsWarning": "{count} baris dari respons AI tidak dapat dibaca dan dilewati. Jumlah yang diimpor di bawah mungkin lebih rendah dari yang ada di file Anda.",
       "importResults": {
         "readyTitle": "Siap Diimpor",
         "readyDescription": "Tinjau ringkasan di bawah dan klik \"Impor Transaksi\" untuk melanjutkan.",
@@ -145,7 +145,7 @@
         "importingTitle": "Mengimpor Transaksi",
         "importingDescription": "Harap tunggu sementara kami mengimpor transaksi Anda...",
         "failedTitle": "Impor Gagal",
-        "startOverButton": "Mulai Ulang",
+        "failedDescription": "Tidak ada yang diimpor. Detail di bawah berasal dari server.",
         "tryAgainButton": "Coba Lagi",
         "completeTitle": "Impor Selesai!",
         "completeWithIssuesTitle": "Impor Selesai dengan Masalah",
@@ -156,14 +156,10 @@
         "errorsTitle": "Error Impor",
         "transactionNumberHeader": "Transaksi #",
         "errorHeader": "Kesalahan",
-        "batchIdLabel": "ID Batch Impor:",
-        "batchIdDescription": "Anda dapat menggunakan ID ini untuk menemukan dan mengelola semua transaksi yang diimpor.",
+        "batchIdNote": "ID Batch Impor: {batchId}. Anda dapat menggunakan ID ini untuk menemukan dan mengelola semua transaksi yang diimpor.",
         "viewTransactionsButton": "Lihat Transaksi",
-        "startNewImportButton": "Mulai Impor Baru",
-        "failedDescription": "Tidak ada yang diimpor. Detail di bawah berasal dari server.",
-        "batchIdNote": "ID Batch Impor: {batchId}. Anda dapat menggunakan ID ini untuk menemukan dan mengelola semua transaksi yang diimpor."
-      },
-      "droppedRowsWarning": "{count} baris dari respons AI tidak dapat dibaca dan dilewati. Jumlah yang diimpor di bawah mungkin lebih rendah dari yang ada di file Anda."
+        "startNewImportButton": "Mulai Impor Baru"
+      }
     }
   }
 }

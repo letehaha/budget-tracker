@@ -4,6 +4,7 @@
     "title": "Cuentas",
     "createAccount": "Crear cuenta",
     "createVehicle": "Añadir vehículo",
+    "actionsMenu": "Acciones de la cuenta",
     "bankIntegrations": "Integraciones bancarias",
     "sections": {
       "archived": "Archivadas",
@@ -19,15 +20,14 @@
       "connectBank": "Conectar cuenta bancaria",
       "createManual": "Crear cuenta manual"
     },
-    "sharedBy": "Compartida por {handle}",
-    "viaHousehold": "Compartida a través del hogar de {handle}",
-    "actionsMenu": "Acciones de la cuenta",
     "overview": {
       "totalBalance": "Saldo total",
       "assets": "Activos",
       "liabilities": "Pasivos",
       "vehicles": "Vehículos"
     },
+    "sharedBy": "Compartida por {handle}",
+    "viaHousehold": "Compartida a través del hogar de {handle}",
     "connect": "Conectar",
     "connectBank": "Conectar banco",
     "noBanksConnected": "Aún no hay bancos conectados — conecte uno para sincronizar los saldos automáticamente.",

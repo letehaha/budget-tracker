@@ -7,10 +7,10 @@
       "trendsComparison": "Perbandingan Tren",
       "investmentCalculator": "Kalkulator Investasi",
       "pivotReport": "Pivot",
-      "collapse": "Tutup",
       "netWorthDrivers": "Pendorong Kekayaan Bersih",
       "investmentContributions": "Kontribusi",
       "netWorthHistory": "Riwayat Kekayaan Bersih",
+      "collapse": "Tutup",
       "sections": {
         "investments": "Investasi"
       }
@@ -97,6 +97,7 @@
       "timeHorizon": "Cakrawala waktu (tahun)",
       "years": "Tahun",
       "annualReturn": "Pengembalian tahunan (%)",
+      "annualReturnPlaceholder": "Pilih prasetel",
       "annualInflation": "Inflasi tahunan (%)",
       "perMonth": "per bulan",
       "totalInvested": "Total diinvestasikan",
@@ -125,8 +126,7 @@
       "configure": "Konfigurasi",
       "hideInputs": "Sembunyikan",
       "portfolioReturnOption": "{name} (~{rate}%/tahun Anda)",
-      "portfolioNoHistoryOption": "{name} — riwayat tidak mencukupi",
-      "annualReturnPlaceholder": "Pilih prasetel"
+      "portfolioNoHistoryOption": "{name} — riwayat tidak mencukupi"
     },
     "portfolioFilter": {
       "all": "Semua portofolio",
@@ -304,7 +304,7 @@
       "averagePerPeriod": "Rata-rata per periode"
     },
     "chart": {
-      "total": "Total",
+      "total": "",
       "vsPrevious": "vs sebelumnya"
     },
     "states": {

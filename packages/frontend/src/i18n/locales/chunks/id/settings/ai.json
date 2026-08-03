@@ -14,12 +14,7 @@
         "title": "Kunci API",
         "description": "Tambahkan kunci API Anda sendiri untuk menggunakan penyedia tertentu",
         "badges": {
-          "default": "Bawaan",
-          "invalid": "Tidak Valid"
-        },
-        "status": {
-          "failed": "Gagal {timeAgo}",
-          "validated": "Tervalidasi {timeAgo}"
+          "default": "Bawaan"
         },
         "buttons": {
           "setDefault": "Jadikan Default"
@@ -71,6 +66,11 @@
           "removeSuccess": "Kunci API {provider} dihapus",
           "removeFailed": "Gagal menghapus kunci API"
         }
+      },
+      "credentialStatus": {
+        "validated": "Tervalidasi {timeAgo}",
+        "failed": "Gagal {timeAgo}",
+        "invalidBadge": "Tidak Valid"
       },
       "features": {
         "title": "Fitur AI",
@@ -159,28 +159,11 @@
           "nameLabel": "Nama model",
           "applyButton": "Terapkan",
           "hint": "Dikirim apa adanya ke {baseUrl}.",
-          "endpointOption": "{endpoint} — {model}",
+          "endpointOption": "",
           "unknownEndpoint": "Endpoint kustom",
           "missingModelName": "Endpoint ini belum memiliki nama model yang dikonfigurasi — masukkan satu terlebih dahulu",
           "endpointsLoadError": "Endpoint Anda tidak dapat dimuat, sehingga nama model tidak dapat diedit saat ini."
         }
-      },
-      "customInstructions": {
-        "title": "Instruksi Kustom",
-        "description": "Berikan konteks untuk membantu AI mengkategorikan transaksi Anda. Instruksi ini disertakan saat mengkategorikan transaksi selama sinkronisasi bank dan impor manual.",
-        "placeholder": "Mis: Transaksi dari 'Starbucks' harus 'Kopi'. Pemasukan lepas saya berasal dari 'Acme Corp'.",
-        "requiresApiKey": "Tambahkan kunci API pribadi untuk menggunakan instruksi kustom.",
-        "save": "Simpan",
-        "saved": "Tersimpan!",
-        "saveFailed": "Gagal menyimpan instruksi kustom. Silakan coba lagi.",
-        "requiresOwnCredentials": "Tambahkan kunci API Anda sendiri atau endpoint kustom untuk menggunakan instruksi kustom.",
-        "credentialsCheckFailed": "Kami tidak dapat memeriksa apakah Anda memiliki kredensial AI sendiri. Coba lagi untuk membuka instruksi kustom.",
-        "retryCredentialsCheck": "Coba lagi"
-      },
-      "credentialStatus": {
-        "validated": "Tervalidasi {timeAgo}",
-        "failed": "Gagal {timeAgo}",
-        "invalidBadge": "Tidak Valid"
       },
       "customEndpoint": {
         "title": "Endpoint kustom",
@@ -197,7 +180,7 @@
           "retry": "Coba lagi"
         },
         "status": {
-          "model": "Model: {model}"
+          "model": ""
         },
         "actions": {
           "menuAriaLabel": "Tindakan endpoint",
@@ -209,9 +192,9 @@
           "nameLabel": "Nama",
           "namePlaceholder": "Ollama Rumah",
           "baseUrlLabel": "URL Dasar",
-          "baseUrlPlaceholder": "http://localhost:11434/v1",
+          "baseUrlPlaceholder": "",
           "modelLabel": "Nama model",
-          "modelPlaceholder": "llama3.2",
+          "modelPlaceholder": "",
           "apiKeyLabel": "Kunci API (opsional)",
           "apiKeyPlaceholder": "Masukkan kunci API",
           "apiKeySavedHint": "Kunci sudah disimpan. Biarkan kosong untuk mempertahankannya.",
@@ -273,6 +256,18 @@
           "localNetworkOnly": "Server yang berjalan di komputer Anda sendiri ({ip} atau {hostname}) hanya berfungsi jika aplikasi ini dijalankan di perangkat atau jaringan Anda sendiri. Versi yang dihosting tidak dapat menjangkaunya, karena alamat privat diblokir di sana.",
           "dockerHost": "Jika Anda menjalankan aplikasi ini di Docker pada mesin yang sama dengan server model, gunakan {dockerHost} sebagai ganti {ip}."
         }
+      },
+      "customInstructions": {
+        "title": "Instruksi Kustom",
+        "description": "Berikan konteks untuk membantu AI mengkategorikan transaksi Anda. Instruksi ini disertakan saat mengkategorikan transaksi selama sinkronisasi bank dan impor manual.",
+        "placeholder": "Mis: Transaksi dari 'Starbucks' harus 'Kopi'. Pemasukan lepas saya berasal dari 'Acme Corp'.",
+        "requiresApiKey": "Tambahkan kunci API pribadi untuk menggunakan instruksi kustom.",
+        "requiresOwnCredentials": "Tambahkan kunci API Anda sendiri atau endpoint kustom untuk menggunakan instruksi kustom.",
+        "credentialsCheckFailed": "Kami tidak dapat memeriksa apakah Anda memiliki kredensial AI sendiri. Coba lagi untuk membuka instruksi kustom.",
+        "retryCredentialsCheck": "Coba lagi",
+        "save": "Simpan",
+        "saved": "Tersimpan!",
+        "saveFailed": "Gagal menyimpan instruksi kustom. Silakan coba lagi."
       }
     }
   }
