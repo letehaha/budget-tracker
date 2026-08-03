@@ -13,9 +13,9 @@ import {
   LayoutDashboardIcon,
   RepeatIcon,
   RocketIcon,
-  SparklesIcon,
   TrendingUpIcon,
   WalletIcon,
+  WrenchIcon,
 } from '@lucide/vue';
 import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -60,7 +60,8 @@ const isTransactionsRoute = computed(
     route.name === ROUTES_NAMES.transactions ||
     route.name === ROUTES_NAMES.transactionGroups ||
     route.name === ROUTES_NAMES.optimizations ||
-    route.name === ROUTES_NAMES.optimizationsTransfers,
+    route.name === ROUTES_NAMES.optimizationsTransfers ||
+    route.name === ROUTES_NAMES.optimizationsAiCategorization,
 );
 
 watch(
@@ -229,7 +230,7 @@ watch(
             :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
             size="sm"
           >
-            <SparklesIcon :class="[navIconBase, isActive && navIconActive]" />
+            <WrenchIcon :class="[navIconBase, isActive && navIconActive]" />
             <span>{{ $t('navigation.optimizations') }}</span>
           </ui-button>
         </router-link>

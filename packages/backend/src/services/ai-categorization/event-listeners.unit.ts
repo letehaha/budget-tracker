@@ -19,9 +19,11 @@ jest.mock('./categorization-queue', () => ({
   queueCategorizationJob: jest.fn().mockResolvedValue('test-job-id' as never),
 }));
 
+import { CATEGORIZATION_TRIGGER } from '@bt/shared/types';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 
 import { queueCategorizationJob } from './categorization-queue';
+import { CATEGORIZATION_SCOPE } from './categorization-scope';
 import { flushAllPendingCategorizationBuffers, registerAiCategorizationListeners } from './event-listeners';
 
 const mockedQueueCategorizationJob = queueCategorizationJob as jest.MockedFunction<typeof queueCategorizationJob>;
@@ -62,6 +64,8 @@ describe('event-listeners debounce', () => {
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
       userId: 1,
       transactionIds: [100, 101],
+      scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.sync,
     });
   });
 
@@ -99,6 +103,8 @@ describe('event-listeners debounce', () => {
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
       userId: 1,
       transactionIds: [100, 101, 200, 201, 202, 300],
+      scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.sync,
     });
   });
 
@@ -121,10 +127,14 @@ describe('event-listeners debounce', () => {
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
       userId: 1,
       transactionIds: [100],
+      scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.sync,
     });
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
       userId: 2,
       transactionIds: [200],
+      scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.sync,
     });
   });
 
@@ -153,6 +163,8 @@ describe('event-listeners debounce', () => {
     expect(mockedQueueCategorizationJob).toHaveBeenCalledWith({
       userId: 1,
       transactionIds: [100],
+      scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.sync,
     });
 
     // Late event (e.g., Monobank rate-limited account syncing later)
@@ -168,6 +180,8 @@ describe('event-listeners debounce', () => {
     expect(mockedQueueCategorizationJob).toHaveBeenLastCalledWith({
       userId: 1,
       transactionIds: [200, 201],
+      scope: CATEGORIZATION_SCOPE.anyCategory,
+      trigger: CATEGORIZATION_TRIGGER.sync,
     });
   });
 

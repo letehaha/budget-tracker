@@ -60,11 +60,13 @@ export function useCategorizationStatus() {
     status,
     processedCount,
     failedCount,
+    skippedCount,
     errorMessage,
   }: {
     status: 'completed' | 'failed';
     processedCount: number;
     failedCount: number;
+    skippedCount: number;
     errorMessage?: string;
   }) => {
     justCompleted.value = true;
@@ -73,10 +75,13 @@ export function useCategorizationStatus() {
       queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange],
     });
 
-    const categorizedCount = processedCount - failedCount;
+    const categorizedCount = processedCount - failedCount - skippedCount;
     if (status === 'completed' && categorizedCount > 0) {
       addNotification({
-        text: t('header.categorization.completed', { count: categorizedCount }),
+        text:
+          skippedCount > 0
+            ? t('header.categorization.completedWithSkipped', { count: categorizedCount, skipped: skippedCount })
+            : t('header.categorization.completed', { count: categorizedCount }),
         type: NotificationType.success,
       });
     } else if (status === 'failed' || failedCount > 0) {
@@ -85,6 +90,13 @@ export function useCategorizationStatus() {
       addNotification({
         text: errorMessage ?? t('header.categorization.failed'),
         type: NotificationType.error,
+      });
+    } else if (status === 'completed' && skippedCount > 0) {
+      // Nothing failed and nothing was categorized: the AI reviewed every row and
+      // declined them all, which deserves an explanation rather than silence.
+      addNotification({
+        text: t('header.categorization.allSkipped', { count: skippedCount }),
+        type: NotificationType.info,
       });
     }
 
@@ -119,6 +131,7 @@ export function useCategorizationStatus() {
           status: data.status,
           processedCount: data.processedCount,
           failedCount: data.failedCount,
+          skippedCount: data.skippedCount ?? 0,
           errorMessage: data.errorMessage,
         });
       }
@@ -169,6 +182,7 @@ export function useCategorizationStatus() {
           status: status.status,
           processedCount: status.processedCount,
           failedCount: status.failedCount,
+          skippedCount: status.skippedCount ?? 0,
           errorMessage: status.errorMessage,
         });
         return;

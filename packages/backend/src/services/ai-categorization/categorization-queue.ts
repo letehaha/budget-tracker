@@ -1,3 +1,4 @@
+import { CATEGORIZATION_TRIGGER } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { redisClient } from '@root/redis-client';
@@ -5,12 +6,17 @@ import { Job, Queue, Worker } from 'bullmq';
 
 import { SSE_EVENT_TYPES, sseManager } from '../common/sse';
 import { buildFailedRunStatus } from './categorization-progress';
+import { CATEGORIZATION_SCOPE, type CategorizationScope } from './categorization-scope';
 import { categorizeTransactions } from './categorization-service';
 import { writeTerminalOutcome } from './categorization-terminal-outcome';
 
 interface CategorizationJobData extends SentryTraceData {
   userId: number;
   transactionIds: string[];
+  /** Optional: jobs enqueued before this field existed are all auto-path runs. */
+  scope?: CategorizationScope;
+  /** Optional for jobs enqueued before triggers were recorded; those stamp no trigger. */
+  trigger?: CATEGORIZATION_TRIGGER;
 }
 
 // Redis connection configuration for BullMQ
@@ -70,7 +76,8 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
       queueName,
       job,
       fn: async () => {
-        const { userId, transactionIds } = job.data;
+        const { userId, transactionIds, trigger } = job.data;
+        const scope = job.data.scope ?? CATEGORIZATION_SCOPE.anyCategory;
 
         logger.info(
           `[AI Categorization Worker] Processing job for user ${userId}, ${transactionIds.length} transactions, attempt ${job.attemptsMade + 1}`,
@@ -79,6 +86,8 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
         const result = await categorizeTransactions({
           userId,
           transactionIds,
+          scope,
+          trigger,
           totalTransactionCount: transactionIds.length,
           // Mirror batch counters into the job's progress blob for the status endpoint.
           onProgress: (progress) => job.updateProgress(progress),
@@ -90,6 +99,7 @@ export const categorizationWorker = new Worker<CategorizationJobData>(
 
         return {
           successful: result.successful.length,
+          skipped: result.skipped.length,
           failed: result.failed.length,
           // Only the curated `stopReason` may reach a client; `result.errors` can carry raw provider text.
           errorMessage: result.stopReason,
@@ -112,9 +122,10 @@ categorizationWorker.on('completed', async (job, result) => {
 
   const terminalPayload = {
     status: 'completed' as const,
-    processedCount: result.successful + result.failed,
+    processedCount: result.successful + result.skipped + result.failed,
     totalCount: transactionIds.length,
     failedCount: result.failed,
+    skippedCount: result.skipped,
     errorMessage: result.errorMessage,
   };
 
@@ -174,15 +185,20 @@ categorizationWorker.on('error', (err) => {
 });
 
 /**
- * Queue transactions for AI categorization
- * This is the main entry point called after bank sync completes
+ * Queue transactions for AI categorization. `scope` travels with the job so the worker
+ * selects and writes back through the predicate its entry point intended, rather than
+ * rebuilding one of its own.
  */
 export async function queueCategorizationJob({
   userId,
   transactionIds,
+  scope,
+  trigger,
 }: {
   userId: number;
   transactionIds: string[];
+  scope: CategorizationScope;
+  trigger: CATEGORIZATION_TRIGGER;
 }): Promise<string> {
   if (transactionIds.length === 0) {
     logger.info(`[AI Categorization] No transactions to categorize for user ${userId}`);
@@ -190,7 +206,7 @@ export async function queueCategorizationJob({
   }
 
   const jobId = `categorization-${userId}-${Date.now()}`;
-  const data = { userId, transactionIds };
+  const data = { userId, transactionIds, scope, trigger };
 
   await withQueuePublishSpan({
     queueName,

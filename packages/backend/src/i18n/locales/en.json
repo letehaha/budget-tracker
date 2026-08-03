@@ -336,7 +336,9 @@
     "customEndpointIdRequired": "Select which custom endpoint serves this model.",
     "customModelNameInvalidLength": "The model name must be between 1 and 200 characters.",
     "customEndpointLimitReached": "You can store up to {{max}} custom endpoints. Remove one before adding another.",
-    "customEndpointStoredKeyUnreadable": "The saved API key for this endpoint can no longer be read. Please enter it again."
+    "customEndpointStoredKeyUnreadable": "The saved API key for this endpoint can no longer be read. Please enter it again.",
+    "categorizationAlreadyRunning": "AI categorization is already running. Wait for it to finish before starting another run.",
+    "categorizationRateLimited": "You've started AI categorization too many times recently. Please try again later."
   },
   "middleware": {
     "tooManyRequests": "Too many requests. Please try again later."

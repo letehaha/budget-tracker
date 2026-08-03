@@ -61,6 +61,10 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   'PUT /api/v1/user/settings/onboarding',
   'PUT /api/v1/user/update',
 
+  // AI categorization writes categoryId/categorizationMeta only, never ref amounts,
+  // so a base-currency migration and a run cannot corrupt each other.
+  'POST /api/v1/user/ai/categorization/trigger',
+
   // Admin-only investment price maintenance — these write GLOBAL SecurityPricing
   // reference data, not any user's ref amounts, so a per-user base-currency
   // migration has no bearing on them.

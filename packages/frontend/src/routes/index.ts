@@ -230,6 +230,12 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
       },
       {
+        path: '/transactions/optimizations/ai-categorization',
+        name: ROUTES_NAMES.optimizationsAiCategorization,
+        component: () => import('@/pages/optimizations/ai-categorization/index.vue'),
+        meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),

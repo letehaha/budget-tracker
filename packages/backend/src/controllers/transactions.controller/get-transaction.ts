@@ -88,6 +88,7 @@ const schema = z.object({
             return parseCommaSeparatedStrings(val);
           }),
         categorizationSource: z.nativeEnum(CATEGORIZATION_SOURCE).optional(),
+        categorizedAt: z.string().datetime().optional(),
       })
       .refine(
         (data) => {

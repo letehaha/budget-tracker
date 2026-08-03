@@ -19,9 +19,6 @@ const PERSIST_DEBOUNCE_MS = 1_000;
  * are dropped on read (a removed column must not break the table); known columns
  * missing from a stored order are appended in registry order so newly shipped
  * columns appear for existing users.
- *
- * Mirrors `pages/records/components/table/use-table-columns.ts` — kept separate
- * because the registry and persistence key differ.
  */
 export function useInvestmentTxTableColumns() {
   const { data: userSettings, patch: patchSettings } = useUserSettings();

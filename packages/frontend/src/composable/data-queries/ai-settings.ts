@@ -123,6 +123,14 @@ export const useAiSettings = () => {
 
   const featuresStatus = computed(() => featuresStatusQuery.data.value?.features ?? []);
 
+  /**
+   * An empty `featuresStatus` means nothing here: the request failed.
+   * Screens reading a feature's config must show a retry, not a "not configured" state.
+   */
+  const featuresUnknown = computed(
+    () => featuresStatusQuery.isError.value && featuresStatusQuery.data.value === undefined,
+  );
+
   const getFeatureStatus = (feature: AI_FEATURE) => {
     return featuresStatus.value.find((f) => f.feature === feature);
   };
@@ -131,6 +139,8 @@ export const useAiSettings = () => {
     // Query states
     isLoadingApiKeys: apiKeyStatusQuery.isLoading,
     isLoadingFeatures: featuresStatusQuery.isLoading,
+    /** No answer yet — unlike `isLoadingFeatures`, stays true while the query is paused. */
+    isFeaturesPending: featuresStatusQuery.isPending,
     isLoading: computed(() => apiKeyStatusQuery.isLoading.value || featuresStatusQuery.isLoading.value),
 
     // Data
@@ -142,6 +152,9 @@ export const useAiSettings = () => {
     defaultProvider,
     customInstructions,
     featuresStatus,
+    featuresUnknown,
+    isRefetchingFeatures: featuresStatusQuery.isFetching,
+    refetchFeatures: featuresStatusQuery.refetch,
     getFeatureStatus,
 
     // API Key mutations

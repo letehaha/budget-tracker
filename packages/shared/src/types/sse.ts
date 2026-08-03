@@ -33,6 +33,11 @@ export interface AiCategorizationProgressPayload {
   processedCount: number;
   totalCount: number;
   failedCount: number;
+  /**
+   * Rows the AI saw but declined to categorize; they count into `processedCount`, not
+   * `failedCount`. Optional: statuses recorded before skips existed carry no field.
+   */
+  skippedCount?: number;
   /** Why transactions failed, when the run itself knows (e.g. the user's AI endpoint is down). */
   errorMessage?: string;
 }

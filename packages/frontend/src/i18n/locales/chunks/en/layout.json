@@ -72,8 +72,10 @@
       "categorizing": "Categorizing...",
       "completed": "AI categorized {count} transaction | AI categorized {count} transactions",
       "completedShort": "Categorization complete",
+      "completedWithSkipped": "Categorized {count} transaction ({skipped} skipped) | Categorized {count} transactions ({skipped} skipped)",
       "failed": "Categorization failed",
       "failedShort": "Failed",
+      "allSkipped": "AI couldn't confidently categorize the transaction | AI couldn't confidently categorize any of the {count} transactions",
       "queued": "Waiting to start...",
       "transactions": "transactions"
     }
