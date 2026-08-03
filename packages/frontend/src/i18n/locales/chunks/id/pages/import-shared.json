@@ -2,7 +2,8 @@
   "importShared": {
     "action": {
       "createNew": "Buat baru",
-      "linkExisting": "Hubungkan ke yang sudah ada"
+      "linkExisting": "Hubungkan ke yang sudah ada",
+      "skip": "Lewati"
     },
     "selectAction": "Pilih tindakan",
     "resolvedCounterWord": "terselesaikan",
@@ -16,7 +17,8 @@
       "selectTarget": "Pilih akun",
       "noMatchingCurrency": "Tidak ada akun dengan mata uang {currency}",
       "willCreate": "Akan membuat {name} ({currency})",
-      "empty": "Tidak ada akun untuk dipetakan"
+      "empty": "Tidak ada akun untuk dipetakan",
+      "willSkip": "Tidak akan diimpor"
     },
     "category": {
       "selectTarget": "Pilih kategori",
@@ -63,6 +65,14 @@
         "category": "Kategori"
       },
       "importAnywayAriaLabel": "Tetap impor baris {row}"
+    }
+  },
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
+        "lostContact": "Kehilangan kontak dengan tugas impor."
+      }
     }
   }
 }

@@ -1,0 +1,138 @@
+{
+  "pages": {
+    "importExport": {
+      "msMoneyImport": {
+        "pageTitle": "Impor dari Microsoft Money",
+        "pageDescription": "Bawa akun, kategori, dan transaksi Anda dari file .mny Microsoft Money.",
+        "stepper": {
+          "steps": {
+            "upload": "Unggah",
+            "resolve": "Petakan data",
+            "review": "Tinjau",
+            "execute": "Impor",
+            "done": "Selesai"
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "Upload file Money Anda",
+          "description": "Pilih file .mny yang disimpan Microsoft Money di komputer Anda.",
+          "maxSize": "File .mny, hingga 50 MB",
+          "passwordLabel": "Kata sandi file (opsional)",
+          "passwordPlaceholder": "Masukkan kata sandi file",
+          "passwordHint": "Biarkan kosong kecuali Anda mengatur kata sandi di Microsoft Money.",
+          "parsing": "Membaca file…",
+          "continue": "Lanjutkan",
+          "errors": {
+            "invalidFormatNamed": "\"{name}\" bukan file .mny.",
+            "passwordUnsupportedChars": "Kata sandi ini berisi karakter yang tidak dapat kami kirim. Coba kata sandi tanpa emoji atau huruf non-Latin."
+          }
+        },
+        "errors": {
+          "uploadUnavailable": "File yang diunggah tidak lagi tersedia. Silakan upload file Money Anda lagi."
+        },
+        "resolve": {
+          "prepareFailed": "Tidak dapat menyiapkan pemetaan akun dan kategori. Muat ulang halaman dan coba lagi.",
+          "accounts": {
+            "sectionTitle": "Akun",
+            "currentBalanceLabel": "Saldo saat ini",
+            "currentBalancePlaceholder": "Kosongkan untuk menggunakan total impor",
+            "willCreateHint": "Akan dibuat dalam {currency}.",
+            "skippedNote": "{count} akun akan dilewati. Transaksinya — dan transfer apa pun ke atau dari akun tersebut — tidak akan diimpor."
+          },
+          "categories": {
+            "sectionTitle": "Kategori"
+          },
+          "quickActions": {
+            "mapExactMatches": "Petakan kecocokan persis",
+            "createNewForUnmatched": "Buat baru untuk yang tidak cocok",
+            "reset": "Setel ulang",
+            "tooltips": {
+              "mapExactMatchesAccounts": "Tautkan setiap akun yang namanya persis cocok dengan yang sudah Anda miliki.",
+              "mapExactMatchesCategories": "Tautkan setiap kategori yang namanya persis cocok dengan yang sudah Anda miliki.",
+              "createNewForUnmatched": "Atur setiap baris yang belum diputuskan ke \"buat baru\".",
+              "reset": "Hapus semua pilihan dan cocokkan lagi."
+            }
+          },
+          "footer": {
+            "back": "Kembali",
+            "continue": "Lanjutkan"
+          }
+        },
+        "review": {
+          "transactions": "Transaksi",
+          "transfersDetected": "Transfer",
+          "outOfWallet": "Di luar dompet",
+          "duplicatesSkipped": "Duplikat dilewati",
+          "willImport": "Akan diimpor",
+          "dateRange": "Rentang tanggal: {from} — {to}",
+          "warningsTitle": "Beberapa hal dilewati",
+          "warningsHint": "Baris ini bukan bagian dari impor.",
+          "warnings": {
+            "accountTypeUnsupported": "{count} akun dilewati",
+            "orphanRowSkipped": "{count} transaksi dilewati",
+            "transferCounterpartNotImported": "{count} sisi transfer diimpor sebagai di luar dompet",
+            "rowLimitReached": "{count} transaksi melebihi batas dihapus",
+            "accountCurrencyDefaulted": "{count} akun tidak memiliki mata uang dalam file, sehingga USD diasumsikan — periksa mata uang pada langkah akun sebelum melanjutkan",
+            "rowMissingDate": "{count} transaksi tanpa tanggal yang dapat dibaca dilewati",
+            "accountNameMissing": "{count} akun tidak memiliki nama",
+            "accountNameDuplicated": "{count} akun memiliki nama yang sama",
+            "rowAmountUnreadable": "{count} transaksi tanpa jumlah yang dapat dibaca dilewati",
+            "fileSchemaUnexpected": "{count} masalah struktur file yang tidak terduga ditemukan"
+          },
+          "includeVoided": {
+            "label": "Impor {count} transaksi yang dibatalkan",
+            "hint": "Microsoft Money menyimpan entri yang dibatalkan dalam register tetapi tidak pernah menerapkannya ke saldo Anda, sehingga entri ini diimpor dengan nilai nol dan diberi tag \"Void\" — dengan tetap menyimpan tanggal, penerima, kategori, memo, dan nomor ceknya."
+          },
+          "duplicatesTitle": "{count} kemungkinan duplikat",
+          "duplicatesHint": "Transaksi ini tampak seperti yang sudah Anda miliki. Hapus centang untuk tetap mengimpornya.",
+          "back": "Kembali",
+          "importing": "Memulai impor…",
+          "importButton": "Impor {count} transaksi"
+        },
+        "execute": {
+          "starting": "Memulai impor…",
+          "progressCount": "{processed} dari {total}",
+          "failed": "Impor gagal.",
+          "partialImportNote": "Beberapa transaksi mungkin sudah diimpor.",
+          "statusQueued": "Antrean",
+          "statusRunning": "Mengimpor",
+          "statusCompleted": "Selesai",
+          "statusFailed": "Gagal"
+        },
+        "done": {
+          "successTitle": "Impor selesai",
+          "successDescription": "Semua data dari file Money Anda kini ada di akun Anda.",
+          "partialTitle": "Diimpor dengan {count} masalah",
+          "partialDescription": "Sebagian besar baris berhasil diimpor. Daftar di bawah menunjukkan yang tidak.",
+          "emptyTitle": "Tidak ada yang baru untuk diimpor",
+          "emptyDescription": "Setiap baris dilewati atau sudah ada di buku besar Anda, sehingga tidak ada transaksi yang dibuat.",
+          "allFailedTitle": "Tidak ada yang diimpor",
+          "allFailedDescription": "Tidak ada transaksi yang dapat dibuat. Lihat error di bawah.",
+          "accountsCreated": "Akun dibuat",
+          "accountsLinked": "Akun ditautkan",
+          "accountsSkipped": "Akun dilewati",
+          "categoriesCreated": "Kategori dibuat",
+          "payeesCreated": "Penerima dibuat",
+          "transactionsImported": "Transaksi diimpor",
+          "transfersImported": "Transfer diimpor",
+          "outOfWalletImported": "Transfer di luar dompet",
+          "duplicatesSkipped": "Duplikat dilewati",
+          "voidedImported": "Transaksi dibatalkan diimpor",
+          "balanceWarningTitle": "Beberapa saldo mungkin tidak akurat",
+          "balanceWarningBody": "Kami tidak dapat mengatur saldo akhir pada setiap akun. Periksa dan sesuaikan jika diperlukan.",
+          "errorsTitle": "{count} baris tidak dapat diimpor",
+          "errorsOverflow": "…dan {count} lainnya",
+          "rowPrefix": "Baris {rowIndex}:",
+          "viewTransactions": "Lihat transaksi",
+          "importAnother": "Impor file lain"
+        },
+        "leaseExpired": {
+          "title": "File yang Anda unggah tidak lagi tersedia",
+          "description": "Salinan file Money Anda yang telah diproses dilepas setelah periode tidak aktif. Pilihan pemetaan Anda tidak dapat dipertahankan, sehingga impor perlu dimulai kembali dari langkah unggah.",
+          "action": "Mulai ulang"
+        },
+        "leaseResourceLabel": "File yang Anda unggah"
+      }
+    }
+  }
+}

@@ -327,7 +327,9 @@
     "customEndpointIdRequired": "Seleccione qué endpoint personalizado ofrece este modelo.",
     "customModelNameInvalidLength": "El nombre del modelo debe tener entre 1 y 200 caracteres.",
     "customEndpointLimitReached": "Puede almacenar hasta {{max}} endpoints personalizados. Elimine uno antes de añadir otro.",
-    "customEndpointStoredKeyUnreadable": "La clave de API guardada para este endpoint ya no se puede leer. Por favor, introdúzcala de nuevo."
+    "customEndpointStoredKeyUnreadable": "La clave de API guardada para este endpoint ya no se puede leer. Por favor, introdúzcala de nuevo.",
+    "categorizationAlreadyRunning": "La categorización con IA ya está en curso. Espere a que finalice antes de iniciar otra ejecución.",
+    "categorizationRateLimited": "Ha iniciado la categorización con IA demasiadas veces recientemente. Inténtelo de nuevo más tarde."
   },
   "middleware": {
     "tooManyRequests": "Demasiadas solicitudes. Por favor, inténtelo de nuevo más tarde."

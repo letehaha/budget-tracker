@@ -88,6 +88,10 @@
           "clear": "Очистити період"
         },
         "listDescription": "Завантажте zip для таблиць, податків або міграції"
+      },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Імпортуйте файл .mny з Microsoft Money"
       }
     }
   }

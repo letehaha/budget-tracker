@@ -6,6 +6,10 @@
       "transfers": {
         "title": "Pencocokan transfer",
         "description": "Temukan pasangan pengeluaran-pemasukan yang mungkin merupakan transfer antar akun Anda dan hubungkan secara otomatis."
+      },
+      "aiCategorization": {
+        "title": "Kategorisasi AI",
+        "description": "Biarkan AI mengurutkan transaksi yang belum dikategorikan dan tinjau proses sebelumnya."
       }
     },
     "transferSuggestions": {
@@ -47,6 +51,81 @@
         "linkError": "Gagal menghubungkan transaksi",
         "skipSuccess": "Saran diabaikan",
         "skipError": "Gagal mengabaikan saran"
+      }
+    },
+    "backToOptimizations": "Kembali ke optimasi",
+    "aiCategorization": {
+      "title": "Kategorisasi AI",
+      "description": "Jalankan AI pada transaksi yang masih berada di kategori bawaan Anda dan biarkan AI memilih kategori yang lebih sesuai. Anda selalu dapat mengubah kategori setelahnya.",
+      "tabs": {
+        "categorize": "Kategorikan",
+        "history": "Riwayat"
+      },
+      "count": {
+        "capNote": "Satu proses mencakup {limit} transaksi terbaru. Jalankan lagi untuk memproses sisanya.",
+        "allDoneTitle": "Semua sudah dikategorikan",
+        "allDoneDescription": "Tidak ada transaksi yang berada di kategori bawaan Anda saat ini."
+      },
+      "bar": {
+        "uncategorizedCount": "{count} belum dikategorikan",
+        "capChip": "{limit} per proses"
+      },
+      "table": {
+        "selectionHint": "Pilih baris untuk hanya mengkategorikan baris tersebut.",
+        "loadError": "Tidak dapat memuat transaksi yang menunggu kategorisasi."
+      },
+      "history": {
+        "emptyTitle": "Belum ada proses kategorisasi AI",
+        "emptyDescription": "Setelah Anda menjalankan kategorisasi AI, setiap proses akan muncul di sini agar Anda dapat meninjau perubahannya.",
+        "loadError": "Tidak dapat memuat riwayat proses.",
+        "runLoadError": "Tidak dapat memuat transaksi dari proses ini.",
+        "backToRuns": "Kembali ke semua proses",
+        "runEmptyTitle": "Tidak ada yang tersisa dari proses ini",
+        "runEmptyDescription": "Setiap transaksi yang dikategorikan oleh proses ini telah dikategorikan ulang atau dihapus.",
+        "transactionCount": "{count} transaksi",
+        "trigger": {
+          "manual": "Manual",
+          "import": "Impor data",
+          "sync": "Sinkronisasi bank",
+          "unknown": "Tidak diketahui"
+        },
+        "triggerTooltip": {
+          "manual": "Anda memulai proses ini secara manual",
+          "import": "Dimulai secara otomatis setelah impor data",
+          "sync": "Dimulai secara otomatis setelah sinkronisasi bank",
+          "unknown": "Asal proses ini tidak tercatat"
+        }
+      },
+      "setup": {
+        "title": "Pengaturan proses",
+        "model": "Model",
+        "notConfigured": "Belum dikonfigurasi",
+        "endpoint": "Endpoint",
+        "limits": "Batas",
+        "limitsSharedKey": "3 proses per jam",
+        "limitsOwnCredentials": "Tidak terbatas — berjalan dengan kunci Anda sendiri",
+        "changeModel": "Ubah di pengaturan AI",
+        "errorChip": "Masalah pengaturan AI",
+        "loadError": "Tidak dapat memuat pengaturan AI Anda."
+      },
+      "run": {
+        "button": "Kategorikan dengan AI (semua)",
+        "categorizeSelected": "Kategorikan {count} yang dipilih",
+        "inProgress": "Mengkategorikan…",
+        "progressLabel": "Progres kategorisasi AI",
+        "processed": "{processed} dari {total} transaksi diproses"
+      },
+      "confirm": {
+        "title": "Kategorikan semua transaksi yang belum dikategorikan?",
+        "description": "AI akan memeriksa {count} transaksi yang masih berada di kategori bawaan Anda dan memilih kategori untuk masing-masing. Anda dapat mengubahnya kapan saja setelahnya.",
+        "action": "Kategorikan semua"
+      },
+      "notifications": {
+        "started": "Mengkategorikan {count} transaksi dengan AI",
+        "nothingToCategorize": "Semua sudah dikategorikan — tidak ada lagi yang perlu dilakukan AI",
+        "alreadyRunning": "Kategorisasi AI sedang berjalan",
+        "rateLimited": "Anda telah mencapai batas kategorisasi manual. Coba lagi dalam {time}.",
+        "failed": "Tidak dapat memulai kategorisasi AI"
       }
     }
   }

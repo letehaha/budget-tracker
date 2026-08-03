@@ -2,7 +2,8 @@
   "importShared": {
     "action": {
       "createNew": "Створити новий",
-      "linkExisting": "Пов'язати з існуючим"
+      "linkExisting": "Пов'язати з існуючим",
+      "skip": "Пропустити"
     },
     "selectAction": "Виберіть дію",
     "resolvedCounterWord": "вирішено",
@@ -16,7 +17,8 @@
       "selectTarget": "Виберіть рахунок",
       "noMatchingCurrency": "Немає рахунка з валютою {currency}",
       "willCreate": "Буде створено {name} ({currency})",
-      "empty": "Немає рахунків для відображення"
+      "empty": "Немає рахунків для відображення",
+      "willSkip": "Не буде імпортовано"
     },
     "category": {
       "selectTarget": "Виберіть категорію",
@@ -63,6 +65,14 @@
         "category": "Категорія"
       },
       "importAnywayAriaLabel": "Імпортувати рядок {row} все одно"
+    }
+  },
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "Завдання імпорту застаріло або не знайдено.",
+        "lostContact": "Втрачено зв'язок із завданням імпорту."
+      }
     }
   }
 }

@@ -88,6 +88,10 @@
           "clear": "Hapus rentang tanggal"
         },
         "listDescription": "Unduh zip untuk spreadsheet, pajak, atau migrasi"
+      },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Impor file .mny dari Microsoft Money"
       }
     }
   }

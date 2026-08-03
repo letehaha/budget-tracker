@@ -6,6 +6,10 @@
       "transfers": {
         "title": "Asociación de transferencias",
         "description": "Encuentre pares de gastos e ingresos que podrían ser transferencias entre sus cuentas y asócielos automáticamente."
+      },
+      "aiCategorization": {
+        "title": "Categorización IA",
+        "description": "Deje que la IA clasifique las transacciones sin categorizar y revise ejecuciones anteriores."
       }
     },
     "transferSuggestions": {
@@ -47,6 +51,81 @@
         "linkError": "Error al vincular transacciones",
         "skipSuccess": "Sugerencia descartada",
         "skipError": "Error al omitir la sugerencia"
+      }
+    },
+    "backToOptimizations": "Volver a optimizaciones",
+    "aiCategorization": {
+      "title": "Categorización IA",
+      "description": "Ejecute la IA sobre las transacciones que siguen en su categoría predeterminada y deje que elija una mejor. Siempre podrá cambiar la categoría después.",
+      "tabs": {
+        "categorize": "Categorizar",
+        "history": "Historial"
+      },
+      "count": {
+        "capNote": "Una ejecución cubre las {limit} más recientes. Ejecútela de nuevo para procesar el resto.",
+        "allDoneTitle": "Todo está categorizado",
+        "allDoneDescription": "Ahora mismo no hay transacciones en su categoría predeterminada."
+      },
+      "bar": {
+        "uncategorizedCount": "{count} sin categorizar",
+        "capChip": "{limit} por ejecución"
+      },
+      "table": {
+        "selectionHint": "Seleccione filas para categorizar solo esas.",
+        "loadError": "No se pudieron cargar las transacciones pendientes de categorización."
+      },
+      "history": {
+        "emptyTitle": "Aún no hay ejecuciones de categorización con IA",
+        "emptyDescription": "En cuanto ejecute la categorización con IA, cada ejecución aparecerá aquí para que pueda revisar qué cambió.",
+        "loadError": "No se pudo cargar el historial de ejecuciones.",
+        "runLoadError": "No se pudieron cargar las transacciones de esta ejecución.",
+        "backToRuns": "Volver a todas las ejecuciones",
+        "runEmptyTitle": "No queda nada de esta ejecución",
+        "runEmptyDescription": "Todas las transacciones que categorizó esta ejecución se han vuelto a categorizar o se han eliminado desde entonces.",
+        "transactionCount": "{count} transacción | {count} transacciones",
+        "trigger": {
+          "manual": "Manual",
+          "import": "Importación de datos",
+          "sync": "Sincronización bancaria",
+          "unknown": "Desconocido"
+        },
+        "triggerTooltip": {
+          "manual": "Usted inició esta ejecución manualmente",
+          "import": "Se inició automáticamente tras una importación de datos",
+          "sync": "Se inició automáticamente tras una sincronización bancaria",
+          "unknown": "No se registró el origen de esta ejecución"
+        }
+      },
+      "setup": {
+        "title": "Configuración de la ejecución",
+        "model": "Modelo",
+        "notConfigured": "Sin configurar",
+        "endpoint": "Endpoint",
+        "limits": "Límites",
+        "limitsSharedKey": "3 ejecuciones por hora",
+        "limitsOwnCredentials": "Ilimitado — con su propia clave",
+        "changeModel": "Cambiar en ajustes de IA",
+        "errorChip": "Problema de configuración de IA",
+        "loadError": "No se pudo cargar su configuración de IA."
+      },
+      "run": {
+        "button": "Categorizar con IA (todas)",
+        "categorizeSelected": "Categorizar {count} seleccionadas",
+        "inProgress": "Categorizando…",
+        "progressLabel": "Progreso de la categorización con IA",
+        "processed": "{processed} de {total} transacciones procesadas"
+      },
+      "confirm": {
+        "title": "¿Categorizar todas las transacciones sin categorizar?",
+        "description": "La IA revisará {count} transacción que sigue en su categoría predeterminada y le asignará una categoría. Podrá cambiarla después. | La IA revisará {count} transacciones que siguen en su categoría predeterminada y le asignará una categoría a cada una. Podrá cambiar cualquiera de ellas después.",
+        "action": "Categorizar todas"
+      },
+      "notifications": {
+        "started": "Categorizando {count} transacción con IA | Categorizando {count} transacciones con IA",
+        "nothingToCategorize": "Todo está ya categorizado — no queda nada para que la IA haga",
+        "alreadyRunning": "La categorización con IA ya está en curso",
+        "rateLimited": "Ha alcanzado el límite de categorización manual. Inténtelo de nuevo en {time}.",
+        "failed": "No se pudo iniciar la categorización con IA"
       }
     }
   }
