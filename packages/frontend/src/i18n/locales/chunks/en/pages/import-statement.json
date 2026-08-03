@@ -43,6 +43,7 @@
         "fromLabel": "from",
         "inLabel": "in",
         "continueMessage": "Continue to select an account for these transactions.",
+        "continueButton": "Continue to Account",
         "tokenWarning": {
           "medium": {
             "title": "Large file detected",
