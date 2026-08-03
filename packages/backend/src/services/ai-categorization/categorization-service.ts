@@ -13,6 +13,7 @@ import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
 import {
   AIClientResult,
+  AI_MAX_OUTPUT_TOKENS,
   type AiCallFailureKind,
   CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE,
   aiCallGuards,
@@ -20,6 +21,7 @@ import {
   classifyAiCallFailure,
   createAIClient,
   describeMissingAiConfiguration,
+  hitOutputCeiling,
   markCustomEndpointUnreachable,
 } from '@services/ai';
 import { sseManager } from '@services/common/sse';
@@ -122,12 +124,18 @@ async function categorizeBatch({
     // A hung or trickling endpoint must abort instead of pinning a worker slot forever.
     const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
 
+    // A batch is up to BATCH_SIZE transactions and the model answers one line per
+    // transaction, which can outgrow a provider's default output cap. Anything the
+    // reply omits is already reported as `failed` below and retried, so a cut-off
+    // response costs a retry rather than miscategorising -- but the cap still has to
+    // be raised, or a large batch can never complete.
     const { text, usage, finishReason } = await generateText({
       model: aiClient.model,
       system: systemPrompt,
       prompt: userMessage,
       abortSignal,
       maxRetries,
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
     });
 
     const inputTokens = usage?.inputTokens ?? 0;
@@ -168,7 +176,13 @@ async function categorizeBatch({
     // declined them (prose refusals land here wholesale). Any other finish — truncation,
     // content filter, provider error, empty text — proves nothing about those rows, and
     // the skip stamp is permanent, so they stay candidates for the next run instead.
-    const completedNormally = finishReason === 'stop' && text.trim().length > 0;
+    //
+    // `finishReason` alone would miss the truncation case: a gateway that cuts a reply
+    // off at the output ceiling can still report `stop`, and that answer would then
+    // stamp every unanswered row as a permanent skip. `hitOutputCeiling` also treats
+    // spending the whole allowance as being cut off at it.
+    const completedNormally =
+      finishReason === 'stop' && text.trim().length > 0 && !hitOutputCeiling({ finishReason, usage });
     const failed: string[] = [];
     for (const transaction of transactions) {
       if (successfulIds.has(transaction.id) || skipReasonById.has(transaction.id)) continue;

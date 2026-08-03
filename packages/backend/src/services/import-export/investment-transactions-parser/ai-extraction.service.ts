@@ -2,7 +2,14 @@
  * AI extraction for investment transactions.
  */
 import { AI_FEATURE } from '@bt/shared/types';
-import { aiCallGuards, createAIClient, describeMissingAiConfiguration } from '@services/ai';
+import {
+  AI_MAX_OUTPUT_TOKENS,
+  AI_OUTPUT_TRUNCATED_MESSAGE,
+  aiCallGuards,
+  createAIClient,
+  describeMissingAiConfiguration,
+  hitOutputCeiling,
+} from '@services/ai';
 import { type AIExtractionError, resolveAiExtractionFailure } from '@services/import-export/core/ai-extraction-failure';
 import { generateText } from 'ai';
 
@@ -57,13 +64,30 @@ export async function extractInvestmentTransactionsWithAI({
 
     const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
 
-    const { text: responseText, usage } = await generateText({
+    const {
+      text: responseText,
+      usage,
+      finishReason,
+    } = await generateText({
       model: aiClient.model,
       system: systemPrompt,
       prompt: createTextExtractionPrompt({ text }),
       abortSignal,
       maxRetries,
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
     });
+
+    // Truncated rows parse as a complete-looking but short import, so refuse them.
+    if (hitOutputCeiling({ finishReason, usage })) {
+      return {
+        success: false,
+        error: {
+          code: 'OUTPUT_TRUNCATED',
+          message: AI_OUTPUT_TRUNCATED_MESSAGE,
+          details: `Generation stopped at the ${AI_MAX_OUTPUT_TOKENS}-token output limit (used ${usage?.outputTokens ?? 0}, finishReason: ${finishReason}).`,
+        },
+      };
+    }
 
     const { rows, droppedRowCount } = parseAIResponse({ response: responseText });
 
