@@ -20,7 +20,8 @@
     "lint": "oxlint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "knip": "npx knip",
-    "backfill:payee-logos": "cross-env NODE_ENV=production ts-node -r tsconfig-paths/register src/scripts/backfill-payee-logos.ts"
+    "backfill:payee-logos": "cross-env NODE_ENV=production ts-node -r tsconfig-paths/register src/scripts/backfill-payee-logos.ts",
+    "fixtures:ms-money": "ts-node -T scripts/fetch-ms-money-fixtures.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.1",
@@ -60,6 +61,7 @@
     "js-tiktoken": "^1.0.21",
     "jszip": "^3.10.1",
     "lodash": "^4.18.0",
+    "mdb-reader": "^3.2.0",
     "morgan": "^1.10.1",
     "pg": "8.11.5",
     "posthog-node": "^5.20.0",

@@ -40,6 +40,10 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   'POST /api/v1/notifications/read-all',
   'POST /api/v1/notifications/:id/read',
 
+  // Lease extension writes no financial data, and refusing it mid-wizard would
+  // drop the user's upload for nothing.
+  'POST /api/v1/resource-leases/refresh',
+
   // User profile / settings / AI settings / data-export — authenticated but touch no
   // monetary data; blocking them for the duration of a migration is user-hostile.
   'DELETE /api/v1/user/settings/ai/api-keys',

@@ -126,6 +126,31 @@ jobs:
           envkey_ADMIN_USERS: test1
           file_name: .env.test
           fail_on_empty: true # fail if any env variable is empty
+      # The .mny parser suites self-skip when these sample databases are absent, so a
+      # failed download must fail the job — otherwise their tests silently disappear
+      # behind a green check. Only test:unit reads them; lint and knip do not.
+      - name: Cache MS Money fixtures
+        if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task == 'test:unit'
+        uses: actions/cache@v4
+        with:
+          path: packages/backend/src/tests/fixtures/ms-money-import
+          key: ms-money-fixtures-${{ hashFiles('packages/backend/src/tests/fixtures/ms-money-fixtures.ts') }}
+          restore-keys: ms-money-fixtures-
+      - name: Download MS Money fixtures
+        if: needs.detect-changes.outputs.frontend-only != 'true' && matrix.task == 'test:unit'
+        run: |
+          for attempt in 1 2 3; do
+            echo "=== Attempt $attempt of 3 ==="
+            if npm run fixtures:ms-money -w packages/backend; then
+              exit 0
+            fi
+            if [ $attempt -lt 3 ]; then
+              echo "Download failed. Retrying in 10s..."
+              sleep 10
+            fi
+          done
+          echo "MS Money fixtures could not be downloaded after 3 attempts"
+          exit 1
       - name: Run ${{ matrix.task }}
         if: needs.detect-changes.outputs.frontend-only != 'true'
         run: npm run ${{ matrix.task }} -w packages/backend
@@ -177,6 +202,31 @@ jobs:
           envkey_ADMIN_USERS: test1
           file_name: .env.test
           fail_on_empty: true # fail if any env variable is empty
+      # The .mny import suites self-skip when these sample databases are absent, so a
+      # failed download must fail the job rather than silently drop their tests. The
+      # image build context is the repo root, so fixtures fetched here get copied in.
+      - name: Cache MS Money fixtures
+        if: needs.detect-changes.outputs.frontend-only != 'true'
+        uses: actions/cache@v4
+        with:
+          path: packages/backend/src/tests/fixtures/ms-money-import
+          key: ms-money-fixtures-${{ hashFiles('packages/backend/src/tests/fixtures/ms-money-fixtures.ts') }}
+          restore-keys: ms-money-fixtures-
+      - name: Download MS Money fixtures
+        if: needs.detect-changes.outputs.frontend-only != 'true'
+        run: |
+          for attempt in 1 2 3; do
+            echo "=== Attempt $attempt of 3 ==="
+            if npm run fixtures:ms-money -w packages/backend; then
+              exit 0
+            fi
+            if [ $attempt -lt 3 ]; then
+              echo "Download failed. Retrying in 10s..."
+              sleep 10
+            fi
+          done
+          echo "MS Money fixtures could not be downloaded after 3 attempts"
+          exit 1
       # The shard arg is forwarded by setup-e2e-tests.sh ("$@") into the jest
       # call, so each shard boots its own Docker env but runs only its slice
       # of the e2e suite. Retry stays inside the shard: a flaky shard re-runs

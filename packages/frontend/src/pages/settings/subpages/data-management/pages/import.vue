@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { ROUTES_NAMES } from '@/routes';
 import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
-import { FileSpreadsheetIcon, PlusIcon, SparklesIcon } from '@lucide/vue';
+import { DatabaseIcon, FileSpreadsheetIcon, PlusIcon, SparklesIcon } from '@lucide/vue';
 import { type Component } from 'vue';
 import { type RouteLocationRaw } from 'vue-router';
 
@@ -76,6 +76,9 @@ const groups: ImportGroup[] = [
     sources: [
       { id: 'ynab', iconSrc: YNAB_LOGO, to: { name: ROUTES_NAMES.importYnab } },
       { id: 'budget-bakers-wallet', iconSrc: BUDGETBAKERS_LOGO, to: { name: ROUTES_NAMES.importBudgetBakersWallet } },
+      // Microsoft Money is discontinued and has no brand asset we ship, so it
+      // uses a generic database icon — a `.mny` file is a database file.
+      { id: 'ms-money', icon: DatabaseIcon, to: { name: ROUTES_NAMES.importMsMoney } },
     ],
   },
 ];

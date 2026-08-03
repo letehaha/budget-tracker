@@ -188,6 +188,34 @@ export const backupRateLimit = perUserNonDevRateLimit({ prefix: 'backup' });
 export const backupRestoreRateLimit = perUserNonDevRateLimit({ prefix: 'backup-restore' });
 
 /**
+ * Microsoft Money upload rate limit. The upload buffers a file of up to 50MB and
+ * decrypts and parses it synchronously on the API thread, so it is far heavier
+ * than the id-and-mapping steps that follow it and must not share their
+ * permissive budget. Runs before the body is read, so a blocked caller never
+ * gets to send the bytes.
+ */
+export const msMoneyUploadRateLimit = perUserNonDevRateLimit({ prefix: 'ms-money-upload' });
+
+/**
+ * Resource-lease refresh rate limit (per user, 150 refreshes per 5 minutes).
+ *
+ * A refresh rewrites a few bytes of lease metadata, so the concern is call
+ * volume rather than cost per call. An active client refreshes every 30s, which
+ * is 10 per window — even several wizard tabs open at once stay an order of
+ * magnitude under the cap, while a scripted flood still trips it in seconds.
+ * Sharing the ordinary import budget instead would let a normal-length session
+ * lock the user out of the import steps themselves.
+ */
+export const resourceLeaseRefreshRateLimit = createRateLimit({
+  windowSeconds: 5 * 60,
+  maxAttempts: 150,
+  keyGenerator: (req: Request) => {
+    const user = req.user as Users;
+    return `resource-lease-refresh:user:${user.id}`;
+  },
+});
+
+/**
  * Share-invitation send rate limit (per owner, 30 sends per 24h in prod, 5 in test).
  * Closes the email-bombing gap the per-resource pending cap and the per-invitee resend
  * limit miss. The threshold is read at module load so the test-env override is the single

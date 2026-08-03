@@ -19,6 +19,7 @@ export * from './user';
 export * from './user-settings';
 export * from './budgets';
 export * from './import-export';
+export * from './resource-leases';
 export * from './notifications';
 export * from './webhooks';
 export * from './tags';

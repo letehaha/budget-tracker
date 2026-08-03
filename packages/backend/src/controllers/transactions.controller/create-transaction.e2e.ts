@@ -35,18 +35,24 @@ describe('Create transaction controller', () => {
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
-  it('should reject zero amount', async () => {
+  // A register entry that never moved money is a real transaction: Microsoft
+  // Money's voided cheques import at zero, and they have to stay editable.
+  it('accepts a zero amount', async () => {
     const account = await helpers.createAccount({ raw: true });
 
-    const res = await helpers.createTransaction({
+    const [transaction] = await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
         accountId: account.id,
         amount: 0,
       }),
-      raw: false,
+      raw: true,
     });
 
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    expect(Number(transaction.amount)).toBe(0);
+    expect(Number(transaction.refAmount)).toBe(0);
+
+    const account_ = await helpers.getAccount({ id: account.id, raw: true });
+    expect(Number(account_.currentBalance)).toBe(0);
   });
 
   it('should successfully create a transaction base currency', async () => {

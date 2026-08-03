@@ -12,7 +12,7 @@ import { useImportExportStore } from '@/stores/import-export';
 import { useTagsStore } from '@/stores/tags';
 import { useAccountsStore } from '@/stores/accounts';
 import type { TagMappingValue } from '@bt/shared/types';
-import AccountMappingTable from './account-mapping-table.vue';
+import AccountMappingTable, { type AccountAction } from './account-mapping-table.vue';
 import CategoryMappingTable from './category-mapping-table.vue';
 import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vue';
 import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon, LinkIcon, PlusIcon, SkipForwardIcon } from '@lucide/vue';
@@ -48,7 +48,8 @@ const tagActionOptions = computed<OptionItem<TagMappingValue['action']>[]>(() =>
 
 // ---- Account mapping (shared table) emit handlers ----
 
-function onAccountSetAction({ name, action }: { name: string; action: 'create-new' | 'link-existing' }) {
+function onAccountSetAction({ name, action }: { name: string; action: AccountAction }) {
+  if (action === 'skip') return;
   if (action === 'create-new') {
     // `currentBalance: null` = leave the created account at the imported rows'
     // net sum; the balance input below overwrites it when the user enters a value.
