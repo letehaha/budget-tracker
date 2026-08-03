@@ -3,8 +3,9 @@
  * Validates file content using magic bytes to prevent renamed/malicious files
  */
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const SUPPORTED_EXTENSIONS = ['.pdf', '.csv', '.txt'];
+/** Per-file ceiling. Each file is sent as its own request, so this is not a batch total. */
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const SUPPORTED_EXTENSIONS = ['.pdf', '.csv', '.txt'];
 
 // Magic bytes for file type detection
 const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46]; // %PDF
