@@ -10,7 +10,7 @@ import { Callout } from '@/components/lib/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { Label } from '@/components/lib/ui/label';
 import { Switch } from '@/components/lib/ui/switch';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useResetSubscriptionLogo } from '@/composable/data-queries/subscriptions';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
@@ -511,21 +511,29 @@ const handleSubmit = async () => {
         v-model="form.logo"
         :name-for-search="form.name"
         size-class="size-10 rounded-lg"
-        class="mt-[21px]"
+        class="mt-5.25"
       />
     </div>
 
     <!-- Transaction Type (Expense vs Income) -->
     <div class="flex flex-col gap-2">
-      <span class="text-foreground text-sm font-medium">{{
-        $t('planned.subscriptions.form.transactionTypeLabel')
-      }}</span>
+      <span class="text-foreground text-sm font-medium">
+        {{ $t('planned.subscriptions.form.transactionTypeLabel') }}
+      </span>
+
       <div class="bg-muted/50 border-border/50 flex w-full rounded-lg border p-1">
-        <DesktopOnlyTooltip
+        <ResponsiveTooltip
           :content="$t('planned.subscriptions.form.transactionTypeLockedTooltip')"
+          content-class-name="max-w-72"
           :disabled="!isEditingSubscription || form.transactionType === TRANSACTION_TYPES.expense"
         >
-          <span class="inline-flex w-full flex-1">
+          <!-- Disabled button swallows taps; making it inert lets the span act as the trigger -->
+          <span
+            :class="[
+              'inline-flex flex-1',
+              isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.expense && '*:pointer-events-none',
+            ]"
+          >
             <button
               type="button"
               :disabled="isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.expense"
@@ -541,12 +549,18 @@ const handleSubmit = async () => {
               {{ t('planned.subscriptions.form.transactionTypeExpense') }}
             </button>
           </span>
-        </DesktopOnlyTooltip>
-        <DesktopOnlyTooltip
+        </ResponsiveTooltip>
+        <ResponsiveTooltip
           :content="$t('planned.subscriptions.form.transactionTypeLockedTooltip')"
+          content-class-name="max-w-72"
           :disabled="!isEditingSubscription || form.transactionType === TRANSACTION_TYPES.income"
         >
-          <span class="inline-flex w-full flex-1">
+          <span
+            :class="[
+              'inline-flex w-full flex-1',
+              isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.income && '*:pointer-events-none',
+            ]"
+          >
             <button
               type="button"
               :disabled="isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.income"
@@ -562,7 +576,7 @@ const handleSubmit = async () => {
               {{ t('planned.subscriptions.form.transactionTypeIncome') }}
             </button>
           </span>
-        </DesktopOnlyTooltip>
+        </ResponsiveTooltip>
       </div>
       <p v-if="selectedTransactionTypeOption" class="text-muted-foreground mt-0.5 text-xs leading-snug">
         {{ selectedTransactionTypeOption.desc }}
