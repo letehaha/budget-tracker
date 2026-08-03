@@ -31,7 +31,7 @@ const localError = ref('');
  * A password travels in a request header, and header values are Latin-1 only —
  * anything outside that range makes fetch throw before the request is sent.
  */
-function isHeaderSafePassword(value: string): boolean {
+function isHeaderSafePassword({ value }: { value: string }): boolean {
   for (const character of value) {
     const code = character.codePointAt(0) ?? 0;
     if (code < 0x20 || code > 0xff) return false;
@@ -49,6 +49,13 @@ function validateFile({ name }: File): string | null {
 /** Server-side failure (bad file, wrong password), shown on the password field. */
 const uploadErrorMessage = computed(() => store.uploadError ?? undefined);
 
+/**
+ * Why a later step sent the user back here. `detectDuplicates` and `execute`
+ * bounce to this step when the cached parse result is gone, which without a
+ * message looks like the wizard silently restarted itself.
+ */
+const bounceReason = computed(() => (store.uploadId ? null : (store.detectError ?? store.executeError)));
+
 async function handleUpload() {
   const file = selectedFile.value;
   if (!file) return;
@@ -56,7 +63,7 @@ async function handleUpload() {
   localError.value = '';
 
   const trimmedPassword = password.value.trim();
-  if (trimmedPassword && !isHeaderSafePassword(trimmedPassword)) {
+  if (trimmedPassword && !isHeaderSafePassword({ value: trimmedPassword })) {
     localError.value = t('pages.importExport.msMoneyImport.fileUpload.errors.passwordUnsupportedChars');
     return;
   }
@@ -80,6 +87,10 @@ async function handleUpload() {
         {{ $t('pages.importExport.msMoneyImport.fileUpload.description') }}
       </p>
     </div>
+
+    <Callout v-if="bounceReason" variant="warning" class="mb-4" role="alert">
+      {{ bounceReason }}
+    </Callout>
 
     <FileDropzone
       v-model="selectedFile"

@@ -349,7 +349,9 @@ const routes: RouteRecordRaw[] = [
             path: 'data-management/import/ynab',
             name: ROUTES_NAMES.importYnab,
             component: () => import('@/pages/import-export/ynab-import/index.vue'),
-            meta: { i18nChunks: ['pages/import-ynab', 'settings/data-management'] as I18nChunkName[] },
+            meta: {
+              i18nChunks: ['pages/import-ynab', 'pages/import-shared', 'settings/data-management'] as I18nChunkName[],
+            },
           },
           {
             path: 'data-management/import/budget-bakers-wallet',

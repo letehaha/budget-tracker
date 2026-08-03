@@ -157,10 +157,6 @@
           "importButton": "Import {count} transactions",
           "importing": "Importing…"
         }
-      },
-      "progress": {
-        "jobExpired": "The import job expired or could not be found.",
-        "lostContact": "Lost contact with the import job."
       }
     }
   }

@@ -34,6 +34,13 @@ export const MS_MONEY_MAX_FILE_BYTES = 50 * 1024 * 1024;
  *  exhaust memory building the preview. */
 export const MS_MONEY_MAX_ROWS = 100_000;
 
+/**
+ * Tag attached to every voided row the import writes. A voided row lands at
+ * amount 0, which makes it indistinguishable from an ordinary zero row in the
+ * transactions list — the tag is what keeps it findable and filterable.
+ */
+export const MS_MONEY_VOID_TAG = { name: 'Void', color: '#64748B' } as const;
+
 /** How long a parsed upload survives without a refresh. The wizard refreshes the
  *  lease while the user interacts, so this never has to cover a whole mapping
  *  session — but a hidden tab sends no heartbeat, so it does have to cover
@@ -78,7 +85,10 @@ export const MS_MONEY_SUPPORTED_ACCOUNT_TYPES: readonly MsMoneyAccountType[] = [
 
 /** An importable account discovered in the file. */
 export interface MsMoneyParseAccount {
-  /** Money's account name (`ACCT.szFull`) — the join key in the mapping payload. */
+  /**
+   * Money's account name (`ACCT.szFull`) — the join key in the mapping payload.
+   * Unique per parse: blank names are synthesized (`Account {id}`) and collisions get a numeric suffix.
+   */
   originalName: string;
   /** ISO code resolved through Money's currency table. */
   currency: string;
@@ -142,11 +152,20 @@ export interface MsMoneyParseTransaction {
   /** True once the row was marked reconciled against a statement in Money. */
   reconciled: boolean;
   /** True when this is a transfer leg whose counterpart account is not being
-   *  imported. Executed as `transfer_out_wallet`. */
+   *  imported. Executed as `transfer_out_wallet`. Always false on voided rows. */
   outOfWallet: boolean;
   /** True when this row came from a split — it is one line of a larger
    *  transaction. */
   fromSplit: boolean;
+  /**
+   * True when Money marks the row void: the register entry is kept but never
+   * applied to the balance. `amount` is 0 on these, and they are left out of the
+   * import unless the user opts in via `includeVoidedTransactions`.
+   */
+  isVoid: boolean;
+  /** Signed amount the row carried in Money before it was voided. Null on
+   *  ordinary rows. */
+  voidedAmount: number | null;
 }
 
 /**
@@ -183,12 +202,26 @@ export interface MsMoneyParseWarning {
     /** An account's currency was not in the file's currency table, so the import
      *  falls back to USD for it. */
     | 'account-currency-defaulted'
-    /** A row was skipped because Money marks it void. */
-    | 'void-row-skipped'
+    /** An account carries no name in the file, so it is imported under a
+     *  generated `Account <id>` name. Everything downstream keys on the account
+     *  name, so a nameless account would otherwise take its rows with it. */
+    | 'account-name-missing'
+    /** Two or more accounts share one name in the file. The repeats are
+     *  suffixed (`"Savings (2)"`) so they do not merge into a single account. */
+    | 'account-name-duplicated'
     /** A row referenced an account that no longer exists in the file. */
     | 'orphan-row-skipped'
     /** A row was skipped because its date could not be read. */
     | 'row-missing-date'
+    /** A row was skipped because its amount could not be read. Such a row is
+     *  never imported at 0 — that would post a transaction moving nothing while
+     *  the balance it belongs to silently comes up short. */
+    | 'row-amount-unreadable'
+    /** The file does not hold a table or column the parser asked for. Money's
+     *  schema varies by version, and a missing table quietly empties a whole
+     *  part of the import (no `TRN_XFER` = no transfers), so the specific
+     *  tables and columns are named in `message`. */
+    | 'file-schema-unexpected'
     /** A transfer leg's counterpart account is not being imported, so the leg
      *  imports as an out-of-wallet transaction instead. */
     | 'transfer-counterpart-not-imported'
@@ -196,8 +229,8 @@ export interface MsMoneyParseWarning {
     | 'row-limit-reached';
   message: string;
   /** How many rows/accounts this warning covers. Warnings are aggregated by
-   *  code rather than emitted per row, so a file with 4,000 void rows produces
-   *  one warning, not 4,000. */
+   *  code rather than emitted per row, so a file with 4,000 orphaned rows
+   *  produces one warning, not 4,000. */
   count: number;
 }
 
@@ -284,6 +317,12 @@ export interface ExecuteMsMoneyRequest extends ImportExecuteRequestBase {
   categoryMapping: CategoryMappingConfig;
   /** Row indices the user confirmed as duplicates and wants to skip. */
   skipDuplicateIndices: number[];
+  /**
+   * When true, rows Money marks void are written as zero-amount transactions
+   * tagged {@link MS_MONEY_VOID_TAG}, preserving their date, payee, category,
+   * memo and cheque number. When false/absent they are left out entirely.
+   */
+  includeVoidedTransactions?: boolean;
 }
 
 export interface ExecuteMsMoneyResponse {
@@ -310,6 +349,15 @@ export interface MsMoneyImportSummary extends ImportSummaryBase {
   transfersImported: number;
   /** Transfer legs whose counterpart account was not imported. */
   outOfWalletImported: number;
+  /**
+   * Voided rows written as zero-amount transactions. Counted here instead of in
+   * `transactionsImported`, which stays a count of rows that moved money.
+   *
+   * Optional for the same reason as `accountBalanceChanges`: completed job
+   * results are retained and replayed verbatim to /status pollers, so summaries
+   * produced before this field existed do not carry it.
+   */
+  voidedImported?: number;
   duplicatesSkipped: number;
   errors: MsMoneyImportError[];
 }

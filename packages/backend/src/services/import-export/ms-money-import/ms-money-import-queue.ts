@@ -1,6 +1,5 @@
 import {
-  type CategoryMappingConfig,
-  type MsMoneyAccountMapping,
+  type ExecuteMsMoneyRequest,
   type MsMoneyImportProgress,
   type MsMoneyImportSummary,
   SSE_EVENT_TYPES,
@@ -12,19 +11,13 @@ import { randomUUID } from 'node:crypto';
 import { executeMsMoneyImport } from './execute-import.service';
 import { claimMsMoneyUpload } from './upload-cache';
 
-interface MsMoneyImportJobData extends SentryTraceData {
-  userId: number;
-  /** Id of the server-side cached parse result. A `.mny` file can be tens of
-   *  megabytes, so the job payload references it instead of carrying the bytes
-   *  through Redis. */
-  uploadId: string;
-  accountMapping: MsMoneyAccountMapping;
-  categoryMapping: CategoryMappingConfig;
-  skipDuplicateIndices: number[];
-  /** When true, rows dated on/after a linked account's pre-import boundary move
-   *  its current balance; when false/absent the pre-import balance is preserved. */
-  recalculateBalance?: boolean;
-}
+/** The request as the controller received it, plus the user it belongs to.
+ *  Derived from `ExecuteMsMoneyRequest` so a field added there cannot be left
+ *  out of the job payload. `uploadId` keeps the `.mny` bytes — tens of megabytes
+ *  — out of Redis: the job carries the id of the cached parse result instead. */
+type MsMoneyImportRequest = ExecuteMsMoneyRequest & { userId: number };
+
+type MsMoneyImportJobData = MsMoneyImportRequest & SentryTraceData;
 
 const {
   queue: msMoneyImportQueue,
@@ -36,13 +29,22 @@ const {
   sseEventType: SSE_EVENT_TYPES.MS_MONEY_IMPORT_PROGRESS,
   logLabel: 'MS Money Import',
   processJob: async ({ job, onProgress }) => {
-    const { userId, uploadId, accountMapping, categoryMapping, skipDuplicateIndices, recalculateBalance } = job.data;
+    const {
+      userId,
+      uploadId,
+      accountMapping,
+      categoryMapping,
+      skipDuplicateIndices,
+      includeVoidedTransactions,
+      recalculateBalance,
+    } = job.data;
     return executeMsMoneyImport({
       userId,
       uploadId,
       accountMapping,
       categoryMapping,
       skipDuplicateIndices,
+      includeVoidedTransactions,
       recalculateBalance,
       onProgress,
     });
@@ -60,21 +62,7 @@ const isImportJobDead = async ({ userId, jobId }: { userId: number; jobId: strin
 };
 
 /** Public entry point — controller calls this to enqueue an import. */
-export async function queueMsMoneyImport({
-  userId,
-  uploadId,
-  accountMapping,
-  categoryMapping,
-  skipDuplicateIndices,
-  recalculateBalance,
-}: {
-  userId: number;
-  uploadId: string;
-  accountMapping: MsMoneyAccountMapping;
-  categoryMapping: CategoryMappingConfig;
-  skipDuplicateIndices: number[];
-  recalculateBalance?: boolean;
-}): Promise<string> {
+export async function queueMsMoneyImport({ userId, ...request }: MsMoneyImportRequest): Promise<string> {
   // Hyphens only — a colon in a custom jobId makes BullMQ throw. Random suffix
   // (not a timestamp): two imports the same user fires within the same
   // millisecond would otherwise collide on one id, and BullMQ silently drops the
@@ -86,19 +74,12 @@ export async function queueMsMoneyImport({
   // with the same message — and is what stops a second submit importing twice.
   await claimMsMoneyUpload({
     userId,
-    uploadId,
+    uploadId: request.uploadId,
     jobId,
     isClaimStale: ({ jobId: claimedBy }) => isImportJobDead({ userId, jobId: claimedBy }),
   });
 
-  const data: MsMoneyImportJobData = {
-    userId,
-    uploadId,
-    accountMapping,
-    categoryMapping,
-    skipDuplicateIndices,
-    recalculateBalance,
-  };
+  const data: MsMoneyImportJobData = { userId, ...request };
 
   await enqueue({ userId, jobId, data });
 

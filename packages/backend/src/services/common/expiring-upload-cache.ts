@@ -2,6 +2,7 @@ import type { ResourceLease } from '@bt/shared/types';
 import { ConflictError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { randomUUID } from 'node:crypto';
+import type { Stats } from 'node:fs';
 import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -16,6 +17,10 @@ import { join } from 'node:path';
  * costs a few bytes regardless of how large the payload is. The meta is also the
  * only place expiry is read from, so there is no second source of truth to drift
  * out of step with it.
+ *
+ * Single process only: the files live in this node's own temp directory, so a
+ * second API replica or a worker running in its own container cannot see them
+ * and reports every entry as missing.
  */
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -26,6 +31,10 @@ const PAYLOAD_SUFFIX = '.json';
 /** Never `.json`, so a half-written meta cannot be read back as a payload or as
  *  a live entry by the sweeper. */
 const TEMP_SUFFIX = '.tmp';
+
+/** Floor on how often a sweep may walk the shared directory. It reads every
+ *  user's meta file, and expired entries cost nothing but disk until collected. */
+const SWEEP_MIN_INTERVAL_MS = 60_000;
 
 interface LeaseMeta {
   /** ISO instant the entry was stored, which fixes its absolute deadline. */
@@ -54,19 +63,14 @@ export interface ResourceLeaseRefresher {
 interface ExpiringUploadCache<TPayload> extends ResourceLeaseRefresher {
   store({ userId, payload }: { userId: number; payload: TPayload }): Promise<{ id: string; lease: ResourceLease }>;
   read({ userId, id }: { userId: number; id: string }): Promise<TPayload>;
-  /** Confirm an entry is live without loading its payload. */
-  assertExists({ userId, id }: { userId: number; id: string }): Promise<void>;
   /**
-   * Push the expiry straight to the absolute deadline, for work that has been
-   * handed to a background job: nobody is left to refresh it, and the job may
-   * not read the payload until it reaches the front of a backlog.
-   */
-  hold({ userId, id }: { userId: number; id: string }): Promise<ResourceLease>;
-  /**
-   * Pin the entry the way `hold` does and record the job it now belongs to, so
-   * work that must run once cannot be started twice against the same entry: a
-   * second claim is refused. `isClaimStale` is asked about the job already on
-   * the entry, and lets a retry take an entry back from a job that died.
+   * Push the expiry straight to the absolute deadline and record the job the
+   * entry now belongs to, so work that must run once cannot be started twice
+   * against the same entry: a second claim is refused. Pinning is what lets a
+   * queued job read the payload after the idle window would have run out —
+   * nobody is left refreshing once the client has handed the work over.
+   * `isClaimStale` is asked about the job already on the entry, and lets a retry
+   * take an entry back from a job that died.
    */
   claim({
     userId,
@@ -80,6 +84,9 @@ interface ExpiringUploadCache<TPayload> extends ResourceLeaseRefresher {
     isClaimStale?: ({ jobId }: { jobId: string }) => Promise<boolean>;
   }): Promise<ResourceLease>;
   remove({ userId, id }: { userId: number; id: string }): Promise<void>;
+  /** Awaitable sweep. `store` only ever fires it in the background and at most
+   *  once per `SWEEP_MIN_INTERVAL_MS`, so tests drive it from here instead. */
+  sweepExpired(): Promise<void>;
 }
 
 export function createExpiringUploadCache<TPayload>({
@@ -102,6 +109,8 @@ export function createExpiringUploadCache<TPayload>({
 }): ExpiringUploadCache<TPayload> {
   const directory = join(tmpdir(), namespace);
 
+  let lastSweepAtMs = 0;
+
   const missing = () => new NotFoundError({ message: missingMessage });
 
   /**
@@ -120,11 +129,36 @@ export function createExpiringUploadCache<TPayload>({
 
   const metaPath = ({ userId, id }: { userId: number; id: string }) => join(directory, `${userId}-${id}${META_SUFFIX}`);
 
+  /**
+   * Delete a file, treating one that is already gone as done. Any other errno
+   * means the file is still there: reporting that as a delete would leave an
+   * expired or corrupt entry on disk while every caller believes it is gone.
+   */
+  const deleteFile = async ({ path }: { path: string }): Promise<void> => {
+    try {
+      await unlink(path);
+    } catch (err) {
+      if (isMissingFileError({ error: err })) return;
+      logger.error({ message: `[${namespace}] Failed to delete ${path}`, error: err as Error });
+    }
+  };
+
+  /** The file's stats, or null when it is gone. A stat that failed for any other
+   *  reason is logged and treated as unknown, so the sweeper leaves it alone. */
+  const statFile = async ({ path }: { path: string }): Promise<Stats | null> => {
+    try {
+      return await stat(path);
+    } catch (err) {
+      if (!isMissingFileError({ error: err })) {
+        logger.error({ message: `[${namespace}] Failed to stat ${path}`, error: err as Error });
+      }
+      return null;
+    }
+  };
+
   const remove = async ({ userId, id }: { userId: number; id: string }): Promise<void> => {
     assertPlainId({ id });
-    await Promise.all(
-      [metaPath({ userId, id }), payloadPath({ userId, id })].map((path) => unlink(path).catch(() => undefined)),
-    );
+    await Promise.all([metaPath({ userId, id }), payloadPath({ userId, id })].map((path) => deleteFile({ path })));
   };
 
   const maxExpiresAtMs = ({ meta }: { meta: LeaseMeta }) => new Date(meta.createdAt).getTime() + maxLifetimeMs;
@@ -209,6 +243,36 @@ export function createExpiringUploadCache<TPayload>({
   };
 
   /**
+   * The shared body of every lease rewrite: load the live lease, let `next`
+   * decide the replacement, write it back. `next` returning null means the entry
+   * cannot be kept alive, which deletes it and reports it as missing.
+   */
+  const rewriteLease = async ({
+    userId,
+    id,
+    next,
+  }: {
+    userId: number;
+    id: string;
+    next: ({ meta }: { meta: LeaseMeta }) => Promise<LeaseMeta | null> | LeaseMeta | null;
+  }): Promise<ResourceLease> => {
+    assertPlainId({ id });
+
+    const meta = await loadLiveMeta({ userId, id });
+    if (!meta) throw missing();
+
+    const updated = await next({ meta });
+    if (!updated) {
+      await remove({ userId, id });
+      throw missing();
+    }
+
+    await writeMeta({ userId, id, meta: updated });
+
+    return toLease({ meta: updated });
+  };
+
+  /**
    * Delete entries whose lease has run out. Driven entirely by the meta files,
    * which stay small however large the payloads grow. A payload with no meta —
    * or a temp file a crashed meta write left behind — is a half-finished entry,
@@ -241,8 +305,8 @@ export function createExpiringUploadCache<TPayload>({
       if (meta && new Date(meta.expiresAt).getTime() > Date.now()) continue;
 
       const key = entry.slice(0, -META_SUFFIX.length);
-      await unlink(join(directory, entry)).catch(() => undefined);
-      await unlink(join(directory, `${key}${PAYLOAD_SUFFIX}`)).catch(() => undefined);
+      await deleteFile({ path: join(directory, entry) });
+      await deleteFile({ path: join(directory, `${key}${PAYLOAD_SUFFIX}`) });
     }
 
     if (unreadable) {
@@ -259,22 +323,32 @@ export function createExpiringUploadCache<TPayload>({
       }
 
       const path = join(directory, entry);
-      const stats = await stat(path).catch(() => null);
-      if (stats && stats.mtimeMs <= orphanCutoff) await unlink(path).catch(() => undefined);
+      const stats = await statFile({ path });
+      if (stats && stats.mtimeMs <= orphanCutoff) await deleteFile({ path });
     }
+  };
+
+  /**
+   * Fire a sweep without making the caller wait for it. It reads every user's
+   * meta file in the shared directory, so it is kept off the request path and
+   * held to one run per `SWEEP_MIN_INTERVAL_MS`; entries it misses are collected
+   * by the next run.
+   */
+  const sweepInBackground = (): void => {
+    const now = Date.now();
+    if (now - lastSweepAtMs < SWEEP_MIN_INTERVAL_MS) return;
+    lastSweepAtMs = now;
+
+    void sweepExpired().catch((err) => {
+      logger.error({ message: `[${namespace}] Failed to sweep expired entries`, error: err as Error });
+    });
   };
 
   return {
     async store({ userId, payload }) {
       await mkdir(directory, { recursive: true, mode: 0o700 });
 
-      // Best effort: a failed sweep only leaves entries on disk for another
-      // round, so it must never fail the request the user is waiting on.
-      try {
-        await sweepExpired();
-      } catch (err) {
-        logger.error({ message: `[${namespace}] Failed to sweep expired entries`, error: err as Error });
-      }
+      sweepInBackground();
 
       const id = randomUUID();
       const now = Date.now();
@@ -307,77 +381,55 @@ export function createExpiringUploadCache<TPayload>({
 
       try {
         return JSON.parse(raw) as TPayload;
-      } catch {
+      } catch (err) {
         // A truncated entry can never become readable, so drop it instead of
-        // leaving it to fail every retry until the sweeper catches up.
+        // leaving it to fail every retry until the sweeper catches up. Logged
+        // because the caller only sees the same message an expiry produces.
+        logger.error({ message: `[${namespace}] Failed to parse cached payload`, error: err as Error });
         await remove({ userId, id });
         throw missing();
       }
     },
 
-    async assertExists({ userId, id }) {
-      assertPlainId({ id });
-      if (!(await loadLiveMeta({ userId, id }))) throw missing();
+    refresh({ userId, id }) {
+      return rewriteLease({
+        userId,
+        id,
+        next: ({ meta }) => {
+          const now = Date.now();
+          const deadline = maxExpiresAtMs({ meta });
+          // Never move an expiry earlier. An entry pinned for a background job
+          // would otherwise be dragged back to the idle window by a client that
+          // is still heartbeating it, and die before the job got to read it.
+          const expiresAtMs = Math.min(Math.max(now + idleTtlMs, new Date(meta.expiresAt).getTime()), deadline);
+
+          return expiresAtMs <= now ? null : { ...meta, expiresAt: new Date(expiresAtMs).toISOString() };
+        },
+      });
     },
 
-    async refresh({ userId, id }) {
-      assertPlainId({ id });
+    claim({ userId, id, jobId, isClaimStale }) {
+      return rewriteLease({
+        userId,
+        id,
+        next: async ({ meta }) => {
+          const claimedBy = meta.claimedByJobId;
+          if (claimedBy && claimedBy !== jobId) {
+            const stale = (await isClaimStale?.({ jobId: claimedBy })) ?? false;
+            if (!stale) throw new ConflictError({ message: claimedMessage });
+          }
 
-      const meta = await loadLiveMeta({ userId, id });
-      if (!meta) throw missing();
-
-      const now = Date.now();
-      const deadline = maxExpiresAtMs({ meta });
-      // Never move an expiry earlier. An entry pinned for a background job would
-      // otherwise be dragged back to the idle window by a client that is still
-      // heartbeating it, and die before the job got to read it.
-      const expiresAtMs = Math.min(Math.max(now + idleTtlMs, new Date(meta.expiresAt).getTime()), deadline);
-
-      if (expiresAtMs <= now) {
-        await remove({ userId, id });
-        throw missing();
-      }
-
-      const refreshed: LeaseMeta = { ...meta, expiresAt: new Date(expiresAtMs).toISOString() };
-      await writeMeta({ userId, id, meta: refreshed });
-
-      return toLease({ meta: refreshed });
-    },
-
-    async hold({ userId, id }) {
-      assertPlainId({ id });
-
-      const meta = await loadLiveMeta({ userId, id });
-      if (!meta) throw missing();
-
-      const held: LeaseMeta = { ...meta, expiresAt: new Date(maxExpiresAtMs({ meta })).toISOString() };
-      await writeMeta({ userId, id, meta: held });
-
-      return toLease({ meta: held });
-    },
-
-    async claim({ userId, id, jobId, isClaimStale }) {
-      assertPlainId({ id });
-
-      const meta = await loadLiveMeta({ userId, id });
-      if (!meta) throw missing();
-
-      const claimedBy = meta.claimedByJobId;
-      if (claimedBy && claimedBy !== jobId) {
-        const stale = (await isClaimStale?.({ jobId: claimedBy })) ?? false;
-        if (!stale) throw new ConflictError({ message: claimedMessage });
-      }
-
-      const claimed: LeaseMeta = {
-        ...meta,
-        expiresAt: new Date(maxExpiresAtMs({ meta })).toISOString(),
-        claimedByJobId: jobId,
-      };
-      await writeMeta({ userId, id, meta: claimed });
-
-      return toLease({ meta: claimed });
+          return {
+            ...meta,
+            expiresAt: new Date(maxExpiresAtMs({ meta })).toISOString(),
+            claimedByJobId: jobId,
+          };
+        },
+      });
     },
 
     remove,
+
+    sweepExpired,
   };
 }

@@ -60,11 +60,6 @@ const categoryItems = computed(() => {
 
 // ---- Account action bridge ----
 
-/**
- * The shared table's action union carries `skip` for importers that opt in with
- * `allowSkip`. Wallet accounts have no skip action, so that value never arrives
- * and the rest passes straight through to the store.
- */
 function onAccountSetAction({ name, action }: { name: string; action: AccountAction }): void {
   if (action === 'skip') return;
   store.setAccountAction({ name, action });

@@ -9,6 +9,8 @@ import { csvImportRateLimit, msMoneyUploadRateLimit } from '@middlewares/rate-li
 import { validateEndpoint } from '@middlewares/validations';
 import express, { Router } from 'express';
 
+import { MS_MONEY_ROUTE_PATHS } from './ms-money-paths';
+
 const router = Router({});
 
 // A `.mny` file is a binary database, so it arrives as raw bytes and this route
@@ -16,7 +18,7 @@ const router = Router({});
 // The parser sits behind the auth and rate-limit guards so a rejected request is
 // answered before up to 50MB is buffered.
 router.post(
-  '/ms-money/upload',
+  MS_MONEY_ROUTE_PATHS.upload,
   authenticateSession,
   checkBaseCurrencyLock,
   msMoneyUploadRateLimit,
@@ -28,7 +30,7 @@ router.post(
 // Every step after the upload sends the upload id instead of the file, so these
 // bodies are small and share the ordinary import rate limit.
 router.post(
-  '/ms-money/detect-duplicates',
+  MS_MONEY_ROUTE_PATHS.detectDuplicates,
   authenticateSession,
   checkBaseCurrencyLock,
   csvImportRateLimit,
@@ -37,7 +39,7 @@ router.post(
 );
 
 router.post(
-  '/ms-money/execute',
+  MS_MONEY_ROUTE_PATHS.execute,
   authenticateSession,
   checkBaseCurrencyLock,
   csvImportRateLimit,
@@ -48,7 +50,7 @@ router.post(
 // No rate limit: the client polls this while an import runs, as the fallback for
 // a dropped SSE connection.
 router.get(
-  '/ms-money/status/:jobId',
+  MS_MONEY_ROUTE_PATHS.status,
   authenticateSession,
   validateEndpoint(msMoneyStatusController.schema),
   msMoneyStatusController.handler,

@@ -11,8 +11,6 @@ const ACTIVITY_EVENTS: (keyof DocumentEventMap)[] = ['pointerdown', 'keydown', '
 interface UseUserActivityReturn {
   /** True while the user interacted within `idleAfterMs` and the tab is visible. */
   isActive: Readonly<Ref<boolean>>;
-  /** Timestamp (ms) of the last real interaction. */
-  lastActiveAt: Readonly<Ref<number>>;
 }
 
 /**
@@ -21,6 +19,7 @@ interface UseUserActivityReturn {
  * stops driving anything that keys off activity — server-side leases especially.
  */
 export function useUserActivity({ idleAfterMs }: { idleAfterMs: MaybeRefOrGetter<number> }): UseUserActivityReturn {
+  /** Timestamp (ms) of the last real interaction; the idle window is measured from it. */
   const lastActiveAt = ref(Date.now());
   const isActive = ref(false);
 
@@ -70,5 +69,5 @@ export function useUserActivity({ idleAfterMs }: { idleAfterMs: MaybeRefOrGetter
 
   onScopeDispose(stopIdleTimer);
 
-  return { isActive, lastActiveAt };
+  return { isActive };
 }

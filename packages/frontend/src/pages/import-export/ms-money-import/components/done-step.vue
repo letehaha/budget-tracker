@@ -15,6 +15,13 @@
     >
       <p class="text-sm opacity-80">{{ $t('pages.importExport.msMoneyImport.done.partialDescription') }}</p>
     </Callout>
+    <Callout
+      v-else-if="importOutcome === 'empty'"
+      variant="info"
+      :title="$t('pages.importExport.msMoneyImport.done.emptyTitle')"
+    >
+      <p class="text-sm opacity-80">{{ $t('pages.importExport.msMoneyImport.done.emptyDescription') }}</p>
+    </Callout>
     <Callout v-else variant="warning" :title="$t('pages.importExport.msMoneyImport.done.allFailedTitle')">
       <p class="text-sm opacity-80">{{ $t('pages.importExport.msMoneyImport.done.allFailedDescription') }}</p>
     </Callout>
@@ -44,6 +51,11 @@
         v-if="summary.outOfWalletImported > 0"
         :label="$t('pages.importExport.msMoneyImport.done.outOfWalletImported')"
         :value="summary.outOfWalletImported"
+      />
+      <StatCard
+        v-if="(summary.voidedImported ?? 0) > 0"
+        :label="$t('pages.importExport.msMoneyImport.done.voidedImported')"
+        :value="summary.voidedImported ?? 0"
       />
       <StatCard
         v-if="summary.duplicatesSkipped > 0"
@@ -107,6 +119,7 @@ import { Callout } from '@/components/lib/ui/callout';
 import { StatCard } from '@/components/lib/ui/stat-card';
 import AccountBalanceChangesTable from '@/pages/import-export/components/account-balance-changes-table.vue';
 import BalanceDesyncCallout from '@/pages/import-export/components/balance-desync-callout.vue';
+import { deriveImportOutcome } from '@/pages/import-export/ms-money-import/utils/import-outcome';
 import { ROUTES_NAMES } from '@/routes';
 import { useImportMsMoneyStore } from '@/stores/import-ms-money';
 import { storeToRefs } from 'pinia';
@@ -121,25 +134,7 @@ const { progress } = storeToRefs(store);
 
 const summary = computed(() => (progress.value?.status === 'completed' ? progress.value.summary : null));
 
-/** Errors whose `code` indicates a post-import account balance restore failure. */
-const balanceDesyncErrors = computed(
-  () => summary.value?.errors.filter((e) => e.code === 'account-balance-desync') ?? [],
-);
-
-/**
- * Derives the visual outcome from summary counts rather than raw job status.
- * - 'success':  no errors (including no balance-desync errors), at least one row was imported
- * - 'partial':  some rows imported AND some errors (mixed result), or balance-desync errors present
- * - 'failure':  nothing was imported at all (every row failed or the file was empty with errors)
- */
-const importOutcome = computed(() => {
-  if (!summary.value) return 'failure';
-  const { transactionsImported, transfersImported, outOfWalletImported, errors } = summary.value;
-  const totalImported = transactionsImported + transfersImported + outOfWalletImported;
-  if (errors.length === 0 && balanceDesyncErrors.value.length === 0 && totalImported > 0) return 'success';
-  if (totalImported > 0) return 'partial';
-  return 'failure';
-});
+const importOutcome = computed(() => (summary.value ? deriveImportOutcome({ summary: summary.value }) : null));
 
 function goToTransactions() {
   store.reset();

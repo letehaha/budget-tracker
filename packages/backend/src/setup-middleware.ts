@@ -2,6 +2,7 @@ import { isPerfDebugEnabled, perfDebugMiddleware } from '@common/lib/perf/perf-d
 import { logger } from '@js/utils/logger';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
+import { MS_MONEY_FULL_PATHS } from '@routes/import-export/ms-money-paths';
 import cors from 'cors';
 import express, { Express, Request } from 'express';
 import morgan from 'morgan';
@@ -115,7 +116,7 @@ export function setupMiddleware(app: Express) {
   // Binary uploads: the body is a file, not JSON, and the route mounts its own
   // `express.raw` parser. Running the JSON parser here first would buffer a
   // multi-megabyte body a second time for nothing.
-  const binaryUploadPaths = [`${API_PREFIX}/import/ms-money/upload`];
+  const binaryUploadPaths: string[] = [MS_MONEY_FULL_PATHS.upload];
 
   // Body parser with conditional limits
   app.use((req, res, next) => {
@@ -133,7 +134,7 @@ export function setupMiddleware(app: Express) {
     }
 
     // Paths that need larger payloads
-    const largePaths = {
+    const largePaths: Record<string, string[]> = {
       '1mb': [
         `${API_PREFIX}/investments/securities/prices/bulk-upload`,
         // A manual categorization run can carry up to AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN
@@ -141,8 +142,8 @@ export function setupMiddleware(app: Express) {
         `${API_PREFIX}/user/ai/categorization/trigger`,
         // A Money file can hold 100k transactions, so the duplicate row indices
         // the user chooses to skip outgrow the default limit on a big import.
-        `${API_PREFIX}/import/ms-money/detect-duplicates`,
-        `${API_PREFIX}/import/ms-money/execute`,
+        MS_MONEY_FULL_PATHS.detectDuplicates,
+        MS_MONEY_FULL_PATHS.execute,
       ],
       '10mb': [
         `${API_PREFIX}/import/csv/parse`,

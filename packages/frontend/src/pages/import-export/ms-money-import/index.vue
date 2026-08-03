@@ -51,7 +51,7 @@
       :steps="stepperSteps"
       :current-step-key="store.currentStepKey"
       :completed-step-keys="store.completedStepKeys"
-      @navigate="onNavigate"
+      @navigate="(key) => onNavigate({ key })"
     />
 
     <!-- Active step panel -->
@@ -75,7 +75,12 @@ import { Card, CardContent } from '@/components/lib/ui/card';
 import { useResourceLease } from '@/composable/use-resource-lease';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes';
-import { type MsMoneyImportStepKey, useImportMsMoneyStore } from '@/stores/import-ms-money';
+import {
+  MS_MONEY_STEPS_WITHOUT_UPLOAD,
+  MS_MONEY_STEP_LABEL_KEYS,
+  toMsMoneyImportStepKey,
+  useImportMsMoneyStore,
+} from '@/stores/import-ms-money';
 import { ChevronLeftIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted } from 'vue';
@@ -88,32 +93,18 @@ import FileUploadStep from './components/file-upload-step.vue';
 import ResolveStep from './components/resolve-step.vue';
 import ReviewStep from './components/review-step.vue';
 
-/** i18n key for each step label. */
-const STEP_LABEL_KEYS: Record<MsMoneyImportStepKey, string> = {
-  upload: 'pages.importExport.msMoneyImport.stepper.steps.upload',
-  resolve: 'pages.importExport.msMoneyImport.stepper.steps.resolve',
-  review: 'pages.importExport.msMoneyImport.stepper.steps.review',
-  execute: 'pages.importExport.msMoneyImport.stepper.steps.execute',
-  done: 'pages.importExport.msMoneyImport.stepper.steps.done',
-};
-
 const store = useImportMsMoneyStore();
 
 /** Visible steps paired with their localized label keys for the shared stepper. */
 const stepperSteps = computed(() =>
-  store.visibleSteps.map((step) => ({ key: step.key, labelKey: STEP_LABEL_KEYS[step.key] })),
+  store.visibleSteps.map((step) => ({ key: step.key, labelKey: MS_MONEY_STEP_LABEL_KEYS[step.key] })),
 );
-
-/**
- * Steps the wizard no longer reads the cached parse result on. Queueing the job
- * pins the entry to its absolute cap server-side, so the import owns it from here
- * and the client has nothing left to keep alive.
- */
-const STEPS_WITHOUT_UPLOAD: readonly MsMoneyImportStepKey[] = ['execute', 'done'];
 
 const { lease } = storeToRefs(store);
 
-const isLeaseHeld = computed(() => store.uploadId !== null && !STEPS_WITHOUT_UPLOAD.includes(store.currentStepKey));
+const isLeaseHeld = computed(
+  () => store.uploadId !== null && !MS_MONEY_STEPS_WITHOUT_UPLOAD.includes(store.currentStepKey),
+);
 
 const {
   state: leaseState,
@@ -127,13 +118,16 @@ const {
   enabled: isLeaseHeld,
 });
 
-/** The stepper only emits keys for reachable (completed) steps, all valid MsMoneyImportStepKeys. */
-function onNavigate(key: string) {
-  store.goToStep(key as MsMoneyImportStepKey);
+function onNavigate({ key }: { key: string }) {
+  const stepKey = toMsMoneyImportStepKey({ key });
+  if (stepKey) store.goToStep(stepKey);
 }
 
 onMounted(() => {
-  store.reset();
+  // The store keeps tracking an enqueued job after this page unmounts. Resetting
+  // on top of one would drop the progress watchdog and hand the user a fresh
+  // upload form, letting the same ledger be imported a second time.
+  if (!store.hasActiveJob) store.reset();
   trackAnalyticsEvent({ event: 'import_opened', properties: { import_type: 'ms-money' } });
 });
 </script>

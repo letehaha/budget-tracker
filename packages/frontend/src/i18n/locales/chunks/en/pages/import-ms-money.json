@@ -27,7 +27,11 @@
             "passwordUnsupportedChars": "This password contains characters we can't send. Try a password without emoji or non-Latin letters."
           }
         },
+        "errors": {
+          "uploadUnavailable": "The uploaded file is no longer available. Please upload your Money file again."
+        },
         "resolve": {
+          "prepareFailed": "Could not prepare the account and category mapping. Reload the page and try again.",
           "accounts": {
             "sectionTitle": "Accounts",
             "currentBalanceLabel": "Current balance",
@@ -60,17 +64,24 @@
           "outOfWallet": "Out-of-wallet",
           "duplicatesSkipped": "Duplicates skipped",
           "willImport": "Will import",
-          "dateRange": "Transactions from {range}",
+          "dateRange": "Date range: {from} — {to}",
           "warningsTitle": "Some things were left out",
           "warningsHint": "These rows are not part of the import.",
           "warnings": {
             "accountTypeUnsupported": "{count} account(s) skipped",
-            "voidRowSkipped": "{count} void transaction(s) skipped",
             "orphanRowSkipped": "{count} transaction(s) skipped",
             "transferCounterpartNotImported": "{count} transfer leg(s) imported as out-of-wallet",
             "rowLimitReached": "{count} transaction(s) over the limit were dropped",
             "accountCurrencyDefaulted": "{count} account(s) had no currency in the file, so USD was assumed — check the currency on the accounts step before continuing",
-            "rowMissingDate": "{count} transaction(s) with no readable date were skipped"
+            "rowMissingDate": "{count} transaction(s) with no readable date were skipped",
+            "accountNameMissing": "{count} account(s) had no name",
+            "accountNameDuplicated": "{count} account(s) shared a name",
+            "rowAmountUnreadable": "{count} transaction(s) with no readable amount were skipped",
+            "fileSchemaUnexpected": "{count} unexpected file structure issue(s) found"
+          },
+          "includeVoided": {
+            "label": "Import {count} voided transaction(s)",
+            "hint": "Microsoft Money keeps voided entries in the register but never applies them to your balance, so they're imported at zero and tagged \"Void\" — keeping their date, payee, category, memo and cheque number."
           },
           "duplicatesTitle": "{count} possible duplicate(s)",
           "duplicatesHint": "These already look like transactions you have. Un-check one to import it anyway.",
@@ -93,6 +104,8 @@
           "successDescription": "Everything from your Money file is now in your account.",
           "partialTitle": "Imported with {count} issue(s)",
           "partialDescription": "Most rows landed. The list below shows what didn't.",
+          "emptyTitle": "Nothing new to import",
+          "emptyDescription": "Every row was either skipped or already in your ledger, so no transactions were created.",
           "allFailedTitle": "Nothing was imported",
           "allFailedDescription": "No transactions could be created. See the errors below.",
           "accountsCreated": "Accounts created",
@@ -104,6 +117,7 @@
           "transfersImported": "Transfers imported",
           "outOfWalletImported": "Out-of-wallet transfers",
           "duplicatesSkipped": "Duplicates skipped",
+          "voidedImported": "Voided imported",
           "balanceWarningTitle": "Some balances may be off",
           "balanceWarningBody": "We couldn't set the final balance on every account. Check them and adjust if needed.",
           "errorsTitle": "{count} row(s) could not be imported",

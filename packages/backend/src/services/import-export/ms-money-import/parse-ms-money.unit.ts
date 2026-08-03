@@ -1,7 +1,9 @@
 /**
  * Runs against real Microsoft Money sample databases. They are not committed —
- * see `src/tests/fixtures/ms-money-fixtures.ts`. Without them the whole file
- * skips, so a checkout that never ran `npm run fixtures:ms-money` stays green.
+ * see `src/tests/fixtures/ms-money-fixtures.ts`. Without them the fixture-backed
+ * suites skip, so a checkout that never ran `npm run fixtures:ms-money` stays
+ * green; the helper suites at the bottom cover shapes no sample file contains
+ * and run either way.
  *
  * money2005-pwd and sunset-sample-pwd are the only samples with a real ledger in
  * them; the other seven hold nothing this importer brings across, so they are
@@ -18,7 +20,8 @@ import {
   readMsMoneyFixture,
 } from '@tests/fixtures/ms-money-fixtures';
 
-import { parseMsMoneyFile } from './parse-ms-money.service';
+import type { AcctRow } from './parse-ms-money.service';
+import { buildAccountIndex, describeSchemaGaps, parseMsMoneyFile, readAmount } from './parse-ms-money.service';
 
 const hasFixtures = msMoneyFixturesAvailable();
 if (!hasFixtures) console.warn(`[parse-ms-money.unit] skipped. ${MS_MONEY_FIXTURES_MISSING_MESSAGE}`);
@@ -29,6 +32,9 @@ const parseFixture = ({ file, password }: { file: string; password?: string | nu
 
 const warningCount = ({ result, code }: { result: MsMoneyParseResult; code: string }): number =>
   result.warnings.find((warning) => warning.code === code)?.count ?? 0;
+
+const voidedRows = ({ result }: { result: MsMoneyParseResult }) => result.transactions.filter((tx) => tx.isVoid);
+const ordinaryRows = ({ result }: { result: MsMoneyParseResult }) => result.transactions.filter((tx) => !tx.isVoid);
 
 describeWithFixtures('parseMsMoneyFile', () => {
   describe('encryption variants', () => {
@@ -60,10 +66,13 @@ describeWithFixtures('parseMsMoneyFile', () => {
       const result = parse();
 
       expect(result.accounts).toHaveLength(3);
-      expect(result.transactions).toHaveLength(68);
+      expect(ordinaryRows({ result })).toHaveLength(68);
       expect(result.transfers).toHaveLength(7);
       expect(result.categories).toHaveLength(11);
-      expect(result.payees).toHaveLength(10);
+      // 11, not 10: two voided legs of a credit-card transfer name the card as
+      // their payee. Voided rows count towards categories and payees so a
+      // category only they use is still offered in the mapping step.
+      expect(result.payees).toHaveLength(11);
       expect(result.baseCurrency).toBe('AUD');
       expect(result.accounts.map((account) => account.originalName)).toEqual([
         'Stocks and Shares (Cash)',
@@ -73,11 +82,29 @@ describeWithFixtures('parseMsMoneyFile', () => {
       expect(result.accounts.every((account) => account.currency === 'AUD')).toBe(true);
     });
 
-    it('reports the void rows it skipped', () => {
+    it('emits voided rows at zero while keeping the amount they carried', () => {
+      const result = parse();
+      const voided = voidedRows({ result });
+
+      expect(voided.length).toBeGreaterThan(0);
+      expect(voided.every((tx) => tx.amount === 0)).toBe(true);
+      expect(voided.every((tx) => tx.voidedAmount !== null)).toBe(true);
+      expect(ordinaryRows({ result }).every((tx) => tx.voidedAmount === null)).toBe(true);
+
+      // Direction still reads from the amount Money kept on the row, so a voided
+      // payment does not flip to income once the amount is zeroed.
+      const voidedExpenses = voided.filter((tx) => tx.voidedAmount! < 0);
+      expect(voidedExpenses.length).toBeGreaterThan(0);
+      expect(voidedExpenses.every((tx) => tx.type === TRANSACTION_TYPES.expense)).toBe(true);
+    });
+
+    it('leaves voided rows out of the balance a voided pair would otherwise move', () => {
       const result = parse();
 
-      expect(warningCount({ result, code: 'void-row-skipped' })).toBe(28);
-      expect(result.warnings.find((warning) => warning.code === 'void-row-skipped')?.message).toContain('void');
+      // Both legs of a voided transfer are emitted as standalone rows, never as a
+      // transfer, and each contributes nothing to its account's net.
+      expect(voidedRows({ result }).every((tx) => tx.outOfWallet === false)).toBe(true);
+      expect(result.transfers.every((transfer) => transfer.sourceAmount > 0)).toBe(true);
     });
 
     it('covers the file date range with UTC-midnight instants', () => {
@@ -85,6 +112,10 @@ describeWithFixtures('parseMsMoneyFile', () => {
 
       expect(result.dateRange).toEqual({ from: '2003-08-02T00:00:00.000Z', to: '2004-12-02T00:00:00.000Z' });
       expect(result.transactions.every((tx) => tx.date.endsWith('T00:00:00.000Z'))).toBe(true);
+
+      // This file holds a voided row from 2000 that must stay out of the range —
+      // the execute step converts new-account balances at `from`.
+      expect(voidedRows({ result }).some((tx) => tx.date < result.dateRange!.from)).toBe(true);
     });
 
     it('carries the category path and payee through to a row', () => {
@@ -127,7 +158,7 @@ describeWithFixtures('parseMsMoneyFile', () => {
       const result = parse();
 
       expect(result.accounts).toHaveLength(10);
-      expect(result.transactions).toHaveLength(2441);
+      expect(ordinaryRows({ result })).toHaveLength(2441);
       expect(result.transfers).toHaveLength(601);
       expect(result.baseCurrency).toBe('USD');
       expect(result.dateRange).toEqual({ from: '2000-08-19T00:00:00.000Z', to: '2011-11-21T00:00:00.000Z' });
@@ -137,7 +168,6 @@ describeWithFixtures('parseMsMoneyFile', () => {
       const result = parse();
 
       expect(warningCount({ result, code: 'account-type-unsupported' })).toBe(9);
-      expect(warningCount({ result, code: 'void-row-skipped' })).toBe(45);
       expect(warningCount({ result, code: 'orphan-row-skipped' })).toBe(3);
       // Matches the rows actually emitted as out-of-wallet, so the number the
       // preview shows and the number of imported rows never disagree.
@@ -172,7 +202,9 @@ describeWithFixtures('parseMsMoneyFile', () => {
 
     it('imports split children individually and drops their parent rows', () => {
       const result = parse();
-      const splitRows = result.transactions.filter((tx) => tx.fromSplit);
+      // Voided children are all zeroed, so they would collapse into meaningless
+      // same-amount groups; the parent-leak check only makes sense on real amounts.
+      const splitRows = ordinaryRows({ result }).filter((tx) => tx.fromSplit);
 
       expect(splitRows.length).toBeGreaterThan(0);
 
@@ -190,7 +222,7 @@ describeWithFixtures('parseMsMoneyFile', () => {
       for (const [key, amounts] of multiChildGroups) {
         const [accountName, date] = key.split('|');
         const total = Number(amounts.reduce((sum, amount) => sum + amount, 0).toFixed(2));
-        const parentLike = result.transactions.filter(
+        const parentLike = ordinaryRows({ result }).filter(
           (tx) =>
             tx.accountName === accountName &&
             tx.date === date &&
@@ -260,7 +292,10 @@ describeWithFixtures('parseMsMoneyFile', () => {
       const result = parseFixture({ file, password });
 
       for (const tx of result.transactions) {
-        expect(tx.type).toBe(tx.amount < 0 ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income);
+        // A voided row is emitted at zero, so its direction comes from the
+        // amount Money kept on it rather than from `amount`.
+        const signedAmount = tx.isVoid ? tx.voidedAmount! : tx.amount;
+        expect(tx.type).toBe(signedAmount < 0 ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income);
       }
     });
 
@@ -272,11 +307,30 @@ describeWithFixtures('parseMsMoneyFile', () => {
       expect(result.accounts.every((account) => account.transactionCount > 0)).toBe(true);
     });
 
-    it.each(ledgers)('$file: the date range spans every row', ({ file, password }) => {
+    it.each(ledgers)('$file: no two accounts share a name', ({ file, password }) => {
+      const result = parseFixture({ file, password });
+      const names = result.accounts.map((account) => account.originalName);
+
+      // The mapping step is keyed by name, so a repeat would post two accounts'
+      // rows into one.
+      expect(new Set(names).size).toBe(names.length);
+    });
+
+    it.each(ledgers)('$file: every row carried an amount the parser could read', ({ file, password }) => {
+      const result = parseFixture({ file, password });
+
+      expect(warningCount({ result, code: 'row-amount-unreadable' })).toBe(0);
+      expect(result.transactions.every((tx) => Number.isFinite(tx.amount))).toBe(true);
+      expect(result.transfers.every((transfer) => Number.isFinite(transfer.sourceAmount))).toBe(true);
+    });
+
+    it.each(ledgers)('$file: the date range spans every row that moves money', ({ file, password }) => {
       const result = parseFixture({ file, password });
       const { from, to } = result.dateRange!;
 
-      for (const date of [...result.transactions.map((tx) => tx.date), ...result.transfers.map((t) => t.date)]) {
+      // Voided rows are deliberately outside it: the range doubles as the FX
+      // reference date for new-account balances, and a voided row moves nothing.
+      for (const date of [...ordinaryRows({ result }).map((tx) => tx.date), ...result.transfers.map((t) => t.date)]) {
         expect(date >= from).toBe(true);
         expect(date <= to).toBe(true);
       }
@@ -333,5 +387,115 @@ describeWithFixtures('parseMsMoneyFile', () => {
         'This Microsoft Money file could not be read',
       );
     });
+  });
+});
+
+describe('readAmount', () => {
+  it('reads the number and the decimal string the reader can hand back', () => {
+    expect(readAmount({ value: -12.34 })).toBe(-12.34);
+    expect(readAmount({ value: '-12.34' })).toBe(-12.34);
+    // Money writes real zero-amount rows, so zero is an amount, not a failure.
+    expect(readAmount({ value: 0 })).toBe(0);
+    expect(readAmount({ value: '0.00' })).toBe(0);
+  });
+
+  it('returns null for anything a transaction cannot be built from', () => {
+    expect(readAmount({ value: null })).toBeNull();
+    expect(readAmount({ value: undefined })).toBeNull();
+    expect(readAmount({ value: 'n/a' })).toBeNull();
+    expect(readAmount({ value: Number.NaN })).toBeNull();
+    expect(readAmount({ value: Number.POSITIVE_INFINITY })).toBeNull();
+    // An empty cell must not slip through as the 0 that `Number('')` produces.
+    expect(readAmount({ value: '' })).toBeNull();
+    expect(readAmount({ value: '   ' })).toBeNull();
+  });
+});
+
+describe('buildAccountIndex', () => {
+  const currencyById = new Map([[1, 'EUR']]);
+  const acctRow = (overrides: Partial<AcctRow> = {}): AcctRow => ({
+    hacct: 1,
+    szFull: 'Everyday',
+    at: MsMoneyAccountType.banking,
+    hcrnc: 1,
+    ...overrides,
+  });
+
+  it('names an account the file left blank, so its rows still reach the import', () => {
+    const { accountById, synthesizedNames } = buildAccountIndex({
+      rows: [acctRow({ hacct: 7, szFull: '   ' }), acctRow({ hacct: 8, szFull: null })],
+      currencyById,
+    });
+
+    expect(synthesizedNames).toBe(2);
+    expect(accountById.get(7)?.originalName).toBe('Account 7');
+    expect(accountById.get(8)?.originalName).toBe('Account 8');
+  });
+
+  it('numbers a repeated name so two accounts never collapse into one', () => {
+    const { accountById, duplicateNames } = buildAccountIndex({
+      rows: [
+        acctRow({ hacct: 1, szFull: 'Savings' }),
+        acctRow({ hacct: 2, szFull: '  Savings  ' }),
+        acctRow({ hacct: 3, szFull: 'Savings' }),
+      ],
+      currencyById,
+    });
+
+    expect(duplicateNames).toBe(2);
+    expect([...accountById.values()].map((account) => account.originalName)).toEqual([
+      'Savings',
+      'Savings (2)',
+      'Savings (3)',
+    ]);
+  });
+
+  it('steps over a suffix the file already uses itself', () => {
+    const { accountById } = buildAccountIndex({
+      rows: [
+        acctRow({ hacct: 1, szFull: 'Savings' }),
+        acctRow({ hacct: 2, szFull: 'Savings (2)' }),
+        acctRow({ hacct: 3, szFull: 'Savings' }),
+      ],
+      currencyById,
+    });
+
+    expect(accountById.get(3)?.originalName).toBe('Savings (3)');
+  });
+
+  it('skips unsupported types but keeps their ids, so their rows read as skipped rather than orphaned', () => {
+    const { accountById, knownAcctIds, unsupportedAccounts } = buildAccountIndex({
+      rows: [acctRow({ hacct: 4, at: MsMoneyAccountType.investment }), acctRow({ hacct: 5, at: null })],
+      currencyById,
+    });
+
+    expect(unsupportedAccounts).toBe(2);
+    expect(accountById.size).toBe(0);
+    expect(knownAcctIds).toEqual(new Set([4, 5]));
+  });
+
+  it('resolves the currency and falls back to US dollars when the file has none', () => {
+    const { accountById, defaultedCurrencies } = buildAccountIndex({
+      rows: [acctRow({ hacct: 1 }), acctRow({ hacct: 2, szFull: 'Cash', hcrnc: 42 })],
+      currencyById,
+    });
+
+    expect(defaultedCurrencies).toBe(1);
+    expect(accountById.get(1)?.currency).toBe('EUR');
+    expect(accountById.get(2)?.currency).toBe('USD');
+  });
+});
+
+describe('describeSchemaGaps', () => {
+  it('names the tables and columns the file does not hold', () => {
+    const message = describeSchemaGaps({
+      gaps: [
+        { table: 'TRN_XFER', tableMissing: true, missingColumns: [] },
+        { table: 'TRN', tableMissing: false, missingColumns: ['amt', 'grftt'] },
+      ],
+    });
+
+    expect(message).toContain('TRN_XFER (missing)');
+    expect(message).toContain('TRN (missing columns: amt, grftt)');
   });
 });

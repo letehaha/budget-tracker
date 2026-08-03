@@ -1,3 +1,4 @@
+import { MS_MONEY_MAX_FILE_BYTES } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -45,6 +46,20 @@ describe('Microsoft Money import endpoints', () => {
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
       expect(result.errorMessage).toMatch(/No file was uploaded/i);
     });
+
+    /**
+     * The route's own `express.raw` parser caps the body at
+     * `MS_MONEY_MAX_FILE_BYTES`. A body over the cap has to be refused by the
+     * parser with a 413 — the API host cannot buffer an unbounded upload, and
+     * the handler never sees the bytes.
+     */
+    it('rejects a body larger than the maximum file size', async () => {
+      const result = await helpers.uploadMsMoney({ file: Buffer.alloc(MS_MONEY_MAX_FILE_BYTES + 1) });
+
+      expect(result.statusCode).toBe(413);
+      // No upload id came back, so nothing was parsed or cached for it.
+      expect(result.response).toBeNull();
+    }, 30_000);
 
     it('rejects a body sent without the octet-stream content type', async () => {
       // Only `application/octet-stream` reaches the raw parser, so anything else

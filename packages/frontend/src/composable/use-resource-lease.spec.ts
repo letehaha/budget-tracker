@@ -1,10 +1,14 @@
 import { type ResourceLeaseState, useResourceLease } from '@/composable/use-resource-lease';
 import { ApiErrorResponseError } from '@/js/errors';
-import { API_ERROR_CODES, RESOURCE_LEASE_IDLE_AFTER_MS, type ResourceLease } from '@bt/shared/types';
+import {
+  API_ERROR_CODES,
+  RESOURCE_LEASE_IDLE_AFTER_MS,
+  RESOURCE_LEASE_REFRESH_INTERVAL_MS,
+  type ResourceLease,
+} from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type EffectScope, type Ref, effectScope, ref } from 'vue';
 
-const REFRESH_INTERVAL_MS = 30 * 1000;
 const IDLE_TTL_MS = 15 * 60 * 1000;
 const MAX_LIFETIME_MS = 4 * 60 * 60 * 1000;
 
@@ -92,14 +96,14 @@ describe('useResourceLease', () => {
     await vi.advanceTimersByTimeAsync(10_000);
     for (let i = 0; i < 20; i += 1) interact();
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS - 10_000 - 1);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS - 10_000 - 1);
     expect(refresh).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(1);
     expect(refresh).toHaveBeenCalledTimes(1);
 
     for (let i = 0; i < 20; i += 1) interact();
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS);
     expect(refresh).toHaveBeenCalledTimes(2);
   });
 
@@ -108,7 +112,7 @@ describe('useResourceLease', () => {
     const lease = ref<ResourceLease | null>(makeLease());
     setup({ lease, refresh });
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS * 6);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS * 6);
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
@@ -177,11 +181,11 @@ describe('useResourceLease', () => {
     const lease = ref<ResourceLease | null>(makeLease());
     const machine = setup({ lease, refresh });
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS);
     expect(machine.state.value).toBe<ResourceLeaseState>('expired');
     expect(machine.isExpired.value).toBe(true);
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS * 10);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS * 10);
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
@@ -190,7 +194,7 @@ describe('useResourceLease', () => {
     const lease = ref<ResourceLease | null>(makeLease());
     const machine = setup({ lease, refresh });
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS);
     expect(machine.state.value).toBe<ResourceLeaseState>('expired');
   });
 
@@ -201,10 +205,10 @@ describe('useResourceLease', () => {
     const lease = ref<ResourceLease | null>(makeLease());
     const machine = setup({ lease, refresh });
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS);
     expect(machine.state.value).toBe<ResourceLeaseState>('active');
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS);
     expect(refresh).toHaveBeenCalledTimes(2);
   });
 
@@ -214,7 +218,7 @@ describe('useResourceLease', () => {
     const machine = setup({ lease, refresh });
 
     const originalExpiresAt = lease.value!.expiresAt;
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS);
 
     expect(lease.value!.expiresAt).not.toBe(originalExpiresAt);
     expect(machine.msRemaining.value).toBe(IDLE_TTL_MS);
@@ -226,7 +230,7 @@ describe('useResourceLease', () => {
     const machine = setup({ lease, refresh, enabled: ref(false) });
 
     const remainingAtStart = machine.msRemaining.value;
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS * 4);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS * 4);
 
     expect(refresh).not.toHaveBeenCalled();
     expect(machine.msRemaining.value).toBe(remainingAtStart);
@@ -248,7 +252,7 @@ describe('useResourceLease', () => {
     const remainingAtStart = machine.msRemaining.value;
     scope.stop();
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS * 10);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS * 10);
     expect(refresh).not.toHaveBeenCalled();
     expect(machine.msRemaining.value).toBe(remainingAtStart);
   });
@@ -264,12 +268,12 @@ describe('useResourceLease', () => {
     const lease = ref<ResourceLease | null>(makeLease());
     setup({ lease, refresh });
 
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS);
     expect(refresh).toHaveBeenCalledTimes(1);
 
     scope.stop();
     settleRefresh(makeLease());
-    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS * 10);
+    await vi.advanceTimersByTimeAsync(RESOURCE_LEASE_REFRESH_INTERVAL_MS * 10);
 
     expect(refresh).toHaveBeenCalledTimes(1);
   });

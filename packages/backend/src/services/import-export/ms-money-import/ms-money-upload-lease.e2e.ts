@@ -2,7 +2,11 @@ import type { MsMoneyAccountMapping } from '@bt/shared/types';
 import { MS_MONEY_UPLOAD_IDLE_TTL_MS, MS_MONEY_UPLOAD_MAX_LIFETIME_MS, ResourceLeaseType } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import { MS_MONEY_FIXTURES_MISSING_MESSAGE, msMoneyFixturesAvailable } from '@tests/fixtures/ms-money-fixtures';
+import {
+  MS_MONEY_FIXTURES_MISSING_MESSAGE,
+  MS_MONEY_SAMPLE,
+  msMoneyFixturesAvailable,
+} from '@tests/fixtures/ms-money-fixtures';
 import * as helpers from '@tests/helpers';
 import { expectMsMoneyCompleted, waitForMsMoneyCompletion } from '@tests/helpers/import-export';
 import { asUser, provisionSecondUserWithBaseCurrency } from '@tests/helpers/share';
@@ -16,13 +20,8 @@ import { asUser, provisionSecondUserWithBaseCurrency } from '@tests/helpers/shar
  * fixture-free cases (unknown id, malformed id, unknown type, auth) live in
  * `resource-lease-registry.e2e.ts`.
  */
-const FIXTURE = 'money2005-pwd.mny';
-const FIXTURE_PASSWORD = '123@abc!';
-const FIXTURE_CURRENCY = 'AUD';
-
-const ACCOUNT_CURRENT = 'Woodgrove Bank Current';
-const ACCOUNT_CREDIT_CARD = 'Woodgrove Bank Credit Card';
-const ACCOUNT_STOCKS = 'Stocks and Shares (Cash)';
+const { file: FIXTURE, password: FIXTURE_PASSWORD, currency: FIXTURE_CURRENCY } = MS_MONEY_SAMPLE;
+const { current: ACCOUNT_CURRENT, creditCard: ACCOUNT_CREDIT_CARD, stocks: ACCOUNT_STOCKS } = MS_MONEY_SAMPLE.accounts;
 
 const fixturesAvailable = msMoneyFixturesAvailable();
 if (!fixturesAvailable) {

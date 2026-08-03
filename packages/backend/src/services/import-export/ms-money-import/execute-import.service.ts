@@ -4,6 +4,7 @@ import {
   type AccountMappingConfig,
   type CategoryMappingConfig,
   ImportSource,
+  MS_MONEY_VOID_TAG,
   type MsMoneyAccountMapping,
   type MsMoneyImportSummary,
   PAYMENT_TYPES,
@@ -12,7 +13,7 @@ import {
   type TransactionImportDetails,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { ValidationError } from '@js/errors';
+import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
@@ -20,10 +21,18 @@ import { partitionReconcileAccounts } from '@services/import-export/core/partiti
 import { startBalanceReconciliation } from '@services/import-export/core/reconcile-account-balances';
 import { createAccountsIfNeeded } from '@services/import-export/core/resolve/create-accounts-if-needed';
 import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
+import { createNamedTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
 import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { createTransaction } from '@services/transactions';
 import { v4 as uuidv4 } from 'uuid';
 
+import {
+  buildSuppressedFailuresEntry,
+  buildSystemicFailureMessage,
+  createImportFailureTally,
+  recordImportFailure,
+  recordImportSuccess,
+} from './import-error-collector';
 import { resolveMsMoneyCategories } from './resolve-ms-money-categories';
 import { deleteMsMoneyUpload, readMsMoneyUpload } from './upload-cache';
 
@@ -39,6 +48,9 @@ interface ExecuteMsMoneyImportParams {
   /** Row indices the user confirmed as duplicates against linked accounts. Those
    *  transactions are counted as `duplicatesSkipped` and never written. */
   skipDuplicateIndices: number[];
+  /** When true, rows Money marks void are written as zero-amount transactions
+   *  tagged "Void". When false/absent they are left out of the import. */
+  includeVoidedTransactions?: boolean;
   /** When true, rows dated on/after a linked account's pre-import boundary (day
    *  of its latest existing transaction) move that account's current balance;
    *  older rows are absorbed into `initialBalance`. When false/absent, every
@@ -76,6 +88,7 @@ export async function executeMsMoneyImport({
   accountMapping,
   categoryMapping,
   skipDuplicateIndices,
+  includeVoidedTransactions = false,
   recalculateBalance = false,
   onProgress,
 }: ExecuteMsMoneyImportParams): Promise<MsMoneyImportSummary> {
@@ -117,10 +130,14 @@ export async function executeMsMoneyImport({
     source: ImportSource.msMoney,
   };
 
-  // The wire type marks `accountBalanceChanges` optional only for retained job
-  // results produced before the field existed; this executor always emits it,
-  // so the local type re-requires it to keep the pushes below well-typed.
-  const summary: MsMoneyImportSummary & { accountBalanceChanges: AccountBalanceChange[] } = {
+  // The wire type marks `accountBalanceChanges` and `voidedImported` optional
+  // only for retained job results produced before those fields existed; this
+  // executor always emits both, so the local type re-requires them to keep the
+  // pushes and increments below well-typed.
+  const summary: MsMoneyImportSummary & {
+    accountBalanceChanges: AccountBalanceChange[];
+    voidedImported: number;
+  } = {
     accountsCreated: 0,
     accountsLinked: 0,
     accountsSkipped: skippedAccountNames.size,
@@ -129,6 +146,7 @@ export async function executeMsMoneyImport({
     transactionsImported: 0,
     transfersImported: 0,
     outOfWalletImported: 0,
+    voidedImported: 0,
     duplicatesSkipped: 0,
     errors: [],
     accountBalanceChanges: [],
@@ -138,7 +156,11 @@ export async function executeMsMoneyImport({
 
   // Rows and transfers that survive both filters — a skipped account removes
   // everything that touches it, and a confirmed duplicate removes the row.
-  const importableTransactions = parsed.transactions.filter((tx) => !skippedAccountNames.has(tx.accountName));
+  // Voided rows are dropped here unless the user opted in, so they fall out of
+  // the duplicate tally and the payee resolution too.
+  const importableTransactions = parsed.transactions.filter(
+    (tx) => !skippedAccountNames.has(tx.accountName) && (includeVoidedTransactions || !tx.isVoid),
+  );
   const transfersToWrite = parsed.transfers.filter(
     (xfer) => !skippedAccountNames.has(xfer.sourceAccountName) && !skippedAccountNames.has(xfer.destinationAccountName),
   );
@@ -259,6 +281,16 @@ export async function executeMsMoneyImport({
   const { payeeNameToId, payeesCreated } = await createPayeesIfNeeded({ userId, payeeNames });
   summary.payeesCreated = payeesCreated;
 
+  // Phase 4b: the "Void" tag, only when a voided row will actually be written.
+  // A voided row lands at amount 0, so without the tag it is indistinguishable
+  // from an ordinary zero row in the transactions list.
+  const hasVoidedRows = transactionsToWrite.some((tx) => tx.isVoid);
+  const voidTagId = hasVoidedRows
+    ? (await createNamedTagsIfNeeded({ userId, tags: [{ ...MS_MONEY_VOID_TAG }] })).tagIdByName.get(
+        MS_MONEY_VOID_TAG.name,
+      )
+    : undefined;
+
   let processedCount = 0;
   const tick = async () => {
     processedCount += 1;
@@ -273,6 +305,11 @@ export async function executeMsMoneyImport({
       logger.error({ message: '[MS Money import] Progress callback failed', error: err as Error });
     }
   };
+
+  // Failure bookkeeping shared by the row and transfer loops: caps how many
+  // errors the summary retains and how many reach the log, and detects a run of
+  // failures that means the import itself broke rather than the rows.
+  let failureTally = createImportFailureTally();
 
   // Phase 5: transactions (ordinary rows + unpaired transfer legs). Rows the
   // user confirmed as duplicates are counted and skipped without a tick.
@@ -304,7 +341,13 @@ export async function executeMsMoneyImport({
 
       // Money's check / reference number is worth keeping, but only where there
       // is no memo to overwrite.
-      const note = tx.note.trim() === '' && tx.referenceNumber ? tx.referenceNumber : tx.note;
+      const baseNote = tx.note.trim() === '' && tx.referenceNumber ? tx.referenceNumber : tx.note;
+      // A voided row is written at zero, so the amount Money kept on it would
+      // otherwise be lost entirely.
+      const note =
+        tx.isVoid && tx.voidedAmount
+          ? `${baseNote} (voided: ${Math.abs(tx.voidedAmount).toFixed(2)})`.trim()
+          : baseNote;
 
       await createTransaction({
         userId,
@@ -320,6 +363,7 @@ export async function executeMsMoneyImport({
         accountType: ACCOUNT_TYPES.system,
         transferNature,
         categoryId,
+        tagIds: tx.isVoid && voidTagId ? [voidTagId] : undefined,
         payeeId,
         rawMerchantName: tx.payeeName || null,
         externalData: { importDetails },
@@ -343,20 +387,36 @@ export async function executeMsMoneyImport({
         }),
       });
 
-      if (tx.outOfWallet) {
+      if (tx.isVoid) {
+        summary.voidedImported += 1;
+      } else if (tx.outOfWallet) {
         summary.outOfWalletImported += 1;
       } else {
         summary.transactionsImported += 1;
       }
+
+      failureTally = recordImportSuccess({ tally: failureTally });
     } catch (err) {
-      logger.error({
-        message: `[MS Money import] Failed to import transaction (row ${tx.rowIndex}, account "${tx.accountName}")`,
-        error: err as Error,
-      });
-      summary.errors.push({
-        rowIndex: tx.rowIndex,
-        error: err instanceof Error ? err.message : 'Unknown error',
-      });
+      const decision = recordImportFailure({ tally: failureTally, rowIndices: [tx.rowIndex] });
+      failureTally = decision.tally;
+
+      if (decision.shouldLog) {
+        logger.error({
+          message: `[MS Money import] Failed to import transaction (row ${tx.rowIndex}, account "${tx.accountName}")`,
+          error: err as Error,
+        });
+      }
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      for (const rowIndex of decision.retainedRowIndices) {
+        summary.errors.push({ rowIndex, error: message });
+      }
+
+      // Rows failing back to back point at the import (dead DB connection),
+      // not the data. Fail the job so the user retries rather than handing them
+      // a "completed" import whose rows mostly never landed.
+      if (decision.shouldAbort) {
+        throw new UnexpectedError({ message: buildSystemicFailureMessage({ lastError: err }) });
+      }
     }
     // Tick once per attempted row, regardless of success or failure, and OUTSIDE
     // the correctness try/catch: a progress/SSE error must not be recorded as a
@@ -432,22 +492,44 @@ export async function executeMsMoneyImport({
       });
 
       summary.transfersImported += 1;
+
+      failureTally = recordImportSuccess({ tally: failureTally });
     } catch (err) {
-      logger.error({
-        message: `[MS Money import] Failed to import transfer ("${xfer.sourceAccountName}" → "${xfer.destinationAccountName}", rows ${xfer.rowIndices.join(', ')})`,
-        error: err as Error,
-      });
-      const message = err instanceof Error ? err.message : 'Unknown error';
       // One error per leg so a user scanning by row index can find both halves of
       // the failed transfer, not just the expense leg.
-      for (const rowIndex of xfer.rowIndices) {
+      const decision = recordImportFailure({ tally: failureTally, rowIndices: xfer.rowIndices });
+      failureTally = decision.tally;
+
+      if (decision.shouldLog) {
+        logger.error({
+          message: `[MS Money import] Failed to import transfer ("${xfer.sourceAccountName}" → "${xfer.destinationAccountName}", rows ${xfer.rowIndices.join(', ')})`,
+          error: err as Error,
+        });
+      }
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      for (const rowIndex of decision.retainedRowIndices) {
         summary.errors.push({ rowIndex, error: message });
+      }
+
+      if (decision.shouldAbort) {
+        throw new UnexpectedError({ message: buildSystemicFailureMessage({ lastError: err }) });
       }
     }
     // Tick once per attempted transfer, regardless of success or failure, and
     // OUTSIDE the correctness try/catch: a progress/SSE error must not be
     // recorded as a fake import error nor abort the run.
     await tick();
+  }
+
+  // Close out the capped failure reporting before the account-level balance
+  // errors are appended: one entry standing in for every error the summary did
+  // not retain, and one log line for the failures that were not logged.
+  const suppressedFailuresEntry = buildSuppressedFailuresEntry({ tally: failureTally });
+  if (suppressedFailuresEntry) summary.errors.push(suppressedFailuresEntry);
+  if (failureTally.unloggedFailures > 0) {
+    logger.error({
+      message: `[MS Money import] ${failureTally.unloggedFailures} further row failures were not logged individually`,
+    });
   }
 
   // Phase 7: balance targeting. Must run AFTER all rows are written so the

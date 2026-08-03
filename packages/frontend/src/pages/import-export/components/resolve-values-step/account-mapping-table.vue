@@ -1,7 +1,5 @@
 <script lang="ts">
-/** Every account decision this table can render. `skip` is offered only when
- *  the parent opts in via `allowSkip`, so importers whose wire type has no skip
- *  action can ignore it. */
+/** Every account decision this table can render. */
 export type AccountAction = 'create-new' | 'link-existing' | 'skip';
 </script>
 

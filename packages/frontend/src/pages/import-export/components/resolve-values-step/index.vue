@@ -49,8 +49,6 @@ const tagActionOptions = computed<OptionItem<TagMappingValue['action']>[]>(() =>
 // ---- Account mapping (shared table) emit handlers ----
 
 function onAccountSetAction({ name, action }: { name: string; action: AccountAction }) {
-  // The table only offers "skip" to importers that opt in with `allowSkip`;
-  // the CSV account mapping has no skip action, so it can never arrive here.
   if (action === 'skip') return;
   if (action === 'create-new') {
     // `currentBalance: null` = leave the created account at the imported rows'

@@ -1,4 +1,12 @@
 {
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "The import job expired or could not be found.",
+        "lostContact": "Lost contact with the import job."
+      }
+    }
+  },
   "importShared": {
     "action": {
       "createNew": "Create new",

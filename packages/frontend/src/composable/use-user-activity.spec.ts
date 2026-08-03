@@ -64,15 +64,6 @@ describe('useUserActivity', () => {
     expect(activity.isActive.value).toBe(false);
   });
 
-  it('records when the last interaction happened', () => {
-    const activity = setup();
-    const startedAt = activity.lastActiveAt.value;
-
-    vi.advanceTimersByTime(500);
-    interact();
-    expect(activity.lastActiveAt.value).toBe(startedAt + 500);
-  });
-
   it('goes idle the moment the tab is hidden', () => {
     const activity = setup();
 

@@ -11,6 +11,7 @@
 import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
+import { captureException } from '@/lib/sentry';
 import RecalculateBalanceToggle from '@/pages/import-export/components/recalculate-balance-toggle.vue';
 import AccountMappingTable from '@/pages/import-export/components/resolve-values-step/account-mapping-table.vue';
 import CategoryMappingTable from '@/pages/import-export/components/resolve-values-step/category-mapping-table.vue';
@@ -58,7 +59,7 @@ const categoryItems = computed(() => {
 // ---- Current-balance input bridge ----
 
 /** Stored decimal balance for a create-new account, or null when unset. */
-function balanceInputValue(name: string): number | null {
+function balanceInputValue({ name }: { name: string }): number | null {
   const mapping = store.accountMapping[name];
   if (mapping?.action !== 'create-new') return null;
   return mapping.currentBalance;
@@ -118,8 +119,14 @@ const categoryQuickActions = computed<QuickAction[]>(() => [
 
 // ---- Mount: ensure link targets are loaded + auto-match ----
 
+/** Set when auto-matching threw, so the step says why every row is unresolved. */
+const prepareError = ref('');
+
 onMounted(() => {
-  store.prepareResolveStep();
+  store.prepareResolveStep().catch((error) => {
+    captureException({ error, context: { scope: 'import-ms-money:prepare-resolve-step' } });
+    prepareError.value = t('pages.importExport.msMoneyImport.resolve.prepareFailed');
+  });
 });
 
 // ---- Footer nav ----
@@ -140,6 +147,10 @@ async function handleContinue() {
 
 <template>
   <div class="flex flex-col gap-6">
+    <Callout v-if="prepareError" variant="destructive" role="alert">
+      <p>{{ prepareError }}</p>
+    </Callout>
+
     <!-- ==================== ACCOUNTS SECTION ==================== -->
     <AccountMappingTable
       :items="accountItems"
@@ -157,7 +168,7 @@ async function handleContinue() {
         <div class="flex flex-col gap-1">
           <InputField
             type="number"
-            :model-value="balanceInputValue(item.name)"
+            :model-value="balanceInputValue({ name: item.name })"
             :label="$t('pages.importExport.msMoneyImport.resolve.accounts.currentBalanceLabel')"
             :placeholder="$t('pages.importExport.msMoneyImport.resolve.accounts.currentBalancePlaceholder')"
             @update:model-value="(value) => onBalanceInput({ name: item.name, value })"

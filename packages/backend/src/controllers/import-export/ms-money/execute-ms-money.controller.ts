@@ -19,19 +19,30 @@ export const executeMsMoneyController = createController(
       // empty array means the user chose to import everything. Row indices are
       // non-negative integers, so reject fractional / negative noise at the edge.
       skipDuplicateIndices: z.array(z.number().int().nonnegative()),
+      // Rows Money marks void carry a real amount but never moved money. Opting
+      // in writes them as zero-amount transactions tagged "Void".
+      includeVoidedTransactions: z.boolean().optional(),
       // Shared balance-recalculation fields (`recalculateBalance`), tied to
       // `ImportExecuteRequestBase` by a drift guard in `../shared-schemas`.
       ...importExecuteRequestBaseSchema.shape,
     }),
   }),
   async ({ user, body }) => {
-    const { uploadId, accountMapping, categoryMapping, skipDuplicateIndices, recalculateBalance } = body;
+    const {
+      uploadId,
+      accountMapping,
+      categoryMapping,
+      skipDuplicateIndices,
+      includeVoidedTransactions,
+      recalculateBalance,
+    } = body;
     const jobId = await queueMsMoneyImport({
       userId: user.id,
       uploadId,
       accountMapping,
       categoryMapping,
       skipDuplicateIndices,
+      includeVoidedTransactions,
       recalculateBalance,
     });
     const data: ExecuteMsMoneyResponse = { jobId };

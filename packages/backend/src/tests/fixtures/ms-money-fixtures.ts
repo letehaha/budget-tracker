@@ -38,6 +38,23 @@ export const MS_MONEY_FIXTURES: readonly MsMoneyFixture[] = [
   { file: 'sunset-sample-pwd.mny', password: '123@abc!', encryption: 'new-sha1' },
 ];
 
+/**
+ * The one file the import suites drive end to end. It is singled out from the
+ * list above because those tests reference its accounts by name and assert
+ * against its contents.
+ */
+export const MS_MONEY_SAMPLE = {
+  file: 'money2005-pwd.mny',
+  password: '123@abc!',
+  /** Currency every account in the file uses. */
+  currency: 'AUD',
+  accounts: {
+    current: 'Woodgrove Bank Current',
+    creditCard: 'Woodgrove Bank Credit Card',
+    stocks: 'Stocks and Shares (Cash)',
+  },
+} as const;
+
 export const MS_MONEY_FIXTURES_MISSING_MESSAGE =
   'Microsoft Money fixtures are not downloaded. Run `npm run fixtures:ms-money` in packages/backend to fetch them.';
 

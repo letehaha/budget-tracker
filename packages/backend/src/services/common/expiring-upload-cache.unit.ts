@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from '@jest/globals';
-import { NotFoundError } from '@js/errors';
+import { ConflictError, NotFoundError } from '@js/errors';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -46,7 +46,6 @@ describe('createExpiringUploadCache', () => {
     expect(await cache.read({ userId: 1, id })).toEqual({ label: 'stored' });
     expect(msUntil({ iso: lease.expiresAt })).toBeGreaterThan(0);
     expect(new Date(lease.expiresAt).getTime()).toBeLessThanOrEqual(new Date(lease.maxExpiresAt).getTime());
-    await expect(cache.assertExists({ userId: 1, id })).resolves.toBeUndefined();
   });
 
   it('reports the remaining time as a duration as well as an instant', async () => {
@@ -117,47 +116,108 @@ describe('createExpiringUploadCache', () => {
     await expect(cache.refresh({ userId: 1, id })).rejects.toThrow(NotFoundError);
   });
 
-  it('pins a held entry to its absolute deadline', async () => {
+  it('pins a claimed entry to its absolute deadline', async () => {
     const { cache } = makeCache({ idleTtlMs: 300, maxLifetimeMs: 240_000 });
 
     const { id, lease } = await cache.store({ userId: 1, payload: { label: 'queued' } });
-    const held = await cache.hold({ userId: 1, id });
+    const claimed = await cache.claim({ userId: 1, id, jobId: 'job-1' });
 
-    expect(held.expiresAt).toBe(lease.maxExpiresAt);
-    expect(held.maxExpiresAt).toBe(lease.maxExpiresAt);
+    expect(claimed.expiresAt).toBe(lease.maxExpiresAt);
+    expect(claimed.maxExpiresAt).toBe(lease.maxExpiresAt);
 
-    // Past the idle window, which nothing is refreshing any more.
+    // Past the idle window, which nothing is refreshing once the work is queued.
     await wait({ ms: 400 });
     expect(await cache.read({ userId: 1, id })).toEqual({ label: 'queued' });
   });
 
-  it('never lets holding push the entry past the absolute deadline', async () => {
+  it('never lets claiming push the entry past the absolute deadline', async () => {
     const { cache } = makeCache({ idleTtlMs: 1_000, maxLifetimeMs: 500 });
 
     const { id, lease } = await cache.store({ userId: 1, payload: { label: 'stored' } });
 
-    const first = await cache.hold({ userId: 1, id });
+    const first = await cache.claim({ userId: 1, id, jobId: 'job-1' });
     await wait({ ms: 80 });
-    const second = await cache.hold({ userId: 1, id });
+    const second = await cache.claim({ userId: 1, id, jobId: 'job-1' });
 
     expect(second.maxExpiresAt).toBe(lease.maxExpiresAt);
     expect(second.expiresAt).toBe(first.expiresAt);
 
-    // Holding buys the rest of the cap and nothing beyond it, however often it
+    // Claiming buys the rest of the cap and nothing beyond it, however often it
     // is called, so the entry still dies on schedule.
     await wait({ ms: 600 });
     await expect(cache.read({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
   });
 
-  it('refuses to hold an id that never existed or has expired', async () => {
+  it('refuses a second job while the job holding the entry is alive', async () => {
+    const { cache } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    const { id } = await cache.store({ userId: 1, payload: { label: 'queued' } });
+    await cache.claim({ userId: 1, id, jobId: 'job-1' });
+
+    const asked: string[] = [];
+    const claimSecond = cache.claim({
+      userId: 1,
+      id,
+      jobId: 'job-2',
+      isClaimStale: async ({ jobId }) => {
+        asked.push(jobId);
+        return false;
+      },
+    });
+
+    await expect(claimSecond).rejects.toThrow(ConflictError);
+    // Staleness is asked about the job on the entry, not the one asking for it.
+    expect(asked).toEqual(['job-1']);
+    expect(await cache.read({ userId: 1, id })).toEqual({ label: 'queued' });
+  });
+
+  it('lets a retry take the entry back from a job that died', async () => {
+    const { cache } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    const { id, lease } = await cache.store({ userId: 1, payload: { label: 'queued' } });
+    await cache.claim({ userId: 1, id, jobId: 'job-1' });
+
+    const takenOver = await cache.claim({ userId: 1, id, jobId: 'job-2', isClaimStale: async () => true });
+    expect(takenOver.expiresAt).toBe(lease.maxExpiresAt);
+
+    // The takeover moved ownership, so the job that lost it is now the refused one.
+    await expect(cache.claim({ userId: 1, id, jobId: 'job-1', isClaimStale: async () => false })).rejects.toThrow(
+      ConflictError,
+    );
+  });
+
+  it('lets the job already holding the entry claim it again', async () => {
+    const { cache } = makeCache({ idleTtlMs: 60_000, maxLifetimeMs: 240_000 });
+
+    const { id } = await cache.store({ userId: 1, payload: { label: 'queued' } });
+    const first = await cache.claim({ userId: 1, id, jobId: 'job-1' });
+
+    let asked = false;
+    const second = await cache.claim({
+      userId: 1,
+      id,
+      jobId: 'job-1',
+      isClaimStale: async () => {
+        asked = true;
+        return false;
+      },
+    });
+
+    // Its own claim is never a conflict, so nothing has to be judged stale.
+    expect(asked).toBe(false);
+    expect(second.expiresAt).toBe(first.expiresAt);
+    expect(await cache.read({ userId: 1, id })).toEqual({ label: 'queued' });
+  });
+
+  it('refuses to claim an id that never existed or has expired', async () => {
     const { cache } = makeCache({ idleTtlMs: 30, maxLifetimeMs: 240_000 });
 
-    await expect(cache.hold({ userId: 1, id: randomUUID() })).rejects.toThrow(MISSING_MESSAGE);
+    await expect(cache.claim({ userId: 1, id: randomUUID(), jobId: 'job-1' })).rejects.toThrow(MISSING_MESSAGE);
 
     const { id } = await cache.store({ userId: 1, payload: { label: 'stored' } });
     await wait({ ms: 80 });
 
-    await expect(cache.hold({ userId: 1, id })).rejects.toThrow(NotFoundError);
+    await expect(cache.claim({ userId: 1, id, jobId: 'job-1' })).rejects.toThrow(NotFoundError);
   });
 
   it('leaves no half-written file behind when a lease is rewritten', async () => {
@@ -165,7 +225,7 @@ describe('createExpiringUploadCache', () => {
 
     const { id } = await cache.store({ userId: 1, payload: { label: 'stored' } });
     await cache.refresh({ userId: 1, id });
-    await cache.hold({ userId: 1, id });
+    await cache.claim({ userId: 1, id, jobId: 'job-1' });
 
     const remaining = await fs.readdir(directory);
     expect(remaining.filter((entry) => entry.includes(id))).toHaveLength(2);
@@ -177,9 +237,8 @@ describe('createExpiringUploadCache', () => {
     const { id } = await cache.store({ userId: 1, payload: { label: 'owner only' } });
 
     await expect(cache.read({ userId: 2, id })).rejects.toThrow(MISSING_MESSAGE);
-    await expect(cache.assertExists({ userId: 2, id })).rejects.toThrow(MISSING_MESSAGE);
     await expect(cache.refresh({ userId: 2, id })).rejects.toThrow(MISSING_MESSAGE);
-    await expect(cache.hold({ userId: 2, id })).rejects.toThrow(MISSING_MESSAGE);
+    await expect(cache.claim({ userId: 2, id, jobId: 'job-1' })).rejects.toThrow(MISSING_MESSAGE);
 
     // The owner's entry is untouched by the failed lookups.
     expect(await cache.read({ userId: 1, id })).toEqual({ label: 'owner only' });
@@ -192,9 +251,8 @@ describe('createExpiringUploadCache', () => {
 
     for (const id of ['../../etc/passwd', 'not-a-uuid', '', 'a/b', `${randomUUID()}.json`]) {
       await expect(cache.read({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
-      await expect(cache.assertExists({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
       await expect(cache.refresh({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
-      await expect(cache.hold({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
+      await expect(cache.claim({ userId: 1, id, jobId: 'job-1' })).rejects.toThrow(MISSING_MESSAGE);
       await expect(cache.remove({ userId: 1, id })).rejects.toThrow(MISSING_MESSAGE);
     }
 
@@ -215,14 +273,16 @@ describe('createExpiringUploadCache', () => {
     expect(await cache.read({ userId: 1, id })).toEqual({ label: 'owner only' });
   });
 
-  it('deletes expired entries from disk when a later store sweeps', async () => {
+  it('deletes expired entries from disk when it sweeps', async () => {
     const { cache, directory } = makeCache({ idleTtlMs: 40, maxLifetimeMs: 240_000 });
 
     const expired = await cache.store({ userId: 1, payload: { label: 'expired' } });
     await wait({ ms: 90 });
-
-    // The sweep runs as part of storing, so this second entry is what triggers it.
     const live = await cache.store({ userId: 1, payload: { label: 'live' } });
+
+    // `store` fires the sweep in the background and at most once a minute, so
+    // driving it here is what makes the assertions below deterministic.
+    await cache.sweepExpired();
 
     const remaining = await fs.readdir(directory);
     expect(remaining.filter((entry) => entry.includes(expired.id))).toEqual([]);

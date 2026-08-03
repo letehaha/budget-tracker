@@ -5,10 +5,12 @@ import {
   uploadMsMoneyFile,
 } from '@/api/import-ms-money';
 import { refreshResourceLease } from '@/api/resource-leases';
+import { getErrorMessage } from '@/common/utils/error-message';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
 import { useRecalculateBalanceToggle } from '@/composable/use-recalculate-balance-toggle';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
 import { useWizardSteps } from '@/composable/use-wizard-steps';
+import { i18n } from '@/i18n';
 import { captureException } from '@/lib/sentry';
 import { flattenCategories } from '@/pages/import-export/utils/flatten-categories';
 import { useAccountsStore } from '@/stores/accounts';
@@ -43,7 +45,27 @@ import { computed, ref } from 'vue';
 export type MsMoneyImportStepKey = 'upload' | 'resolve' | 'review' | 'execute' | 'done';
 
 /** Every step in canonical order. All are always visible. */
-const ALL_STEP_KEYS: readonly MsMoneyImportStepKey[] = ['upload', 'resolve', 'review', 'execute', 'done'];
+const MS_MONEY_STEP_KEYS: readonly MsMoneyImportStepKey[] = ['upload', 'resolve', 'review', 'execute', 'done'];
+
+/** i18n key rendering each step's label in the stepper. */
+export const MS_MONEY_STEP_LABEL_KEYS: Record<MsMoneyImportStepKey, string> = {
+  upload: 'pages.importExport.msMoneyImport.stepper.steps.upload',
+  resolve: 'pages.importExport.msMoneyImport.stepper.steps.resolve',
+  review: 'pages.importExport.msMoneyImport.stepper.steps.review',
+  execute: 'pages.importExport.msMoneyImport.stepper.steps.execute',
+  done: 'pages.importExport.msMoneyImport.stepper.steps.done',
+};
+
+/**
+ * Steps the client stops heartbeating the upload lease on. Enqueuing the job
+ * pins the lease to its absolute cap server-side, so refreshing it buys nothing.
+ */
+export const MS_MONEY_STEPS_WITHOUT_UPLOAD: readonly MsMoneyImportStepKey[] = ['execute', 'done'];
+
+/** Resolves an untyped key (a stepper emit) to a real wizard step, or null. */
+export function toMsMoneyImportStepKey({ key }: { key: string }): MsMoneyImportStepKey | null {
+  return MS_MONEY_STEP_KEYS.find((stepKey) => stepKey === key) ?? null;
+}
 
 /**
  * Store-internal form shape for one account decision. Wider than the wire type
@@ -78,7 +100,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     goBack,
     markStepCompleted,
     reset: resetSteps,
-  } = useWizardSteps<MsMoneyImportStepKey>({ stepKeys: ALL_STEP_KEYS });
+  } = useWizardSteps<MsMoneyImportStepKey>({ stepKeys: MS_MONEY_STEP_KEYS });
 
   // ---- Core upload state ----
 
@@ -95,8 +117,6 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
    * lease straight back.
    */
   const lease = ref<ResourceLease | null>(null);
-  /** Name of the uploaded file, kept only so the wizard can show what is being imported. */
-  const uploadedFileName = ref<string | null>(null);
   const parsedResult = ref<MsMoneyParseResult | null>(null);
 
   // ---- Account-mapping state ----
@@ -131,6 +151,16 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
   const skipDuplicateIndices = computed<number[]>(() =>
     duplicates.value.filter((d) => !unmarkedDuplicateIndices.value.has(d.rowIndex)).map((d) => d.rowIndex),
   );
+
+  // ---- Voided-row opt-in ----
+
+  /**
+   * Whether rows Money marks void are imported. Off by default: they never moved
+   * money, so leaving them out matches what Money itself shows. Turning it on
+   * writes them as zero-amount transactions tagged "Void", keeping their date,
+   * payee, category, memo and cheque number.
+   */
+  const includeVoidedTransactions = ref(false);
 
   // ---- Progress / execute state ----
 
@@ -185,6 +215,14 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
   const isExecuting = computed(
     () => isEnqueuing.value || progress.value?.status === 'queued' || progress.value?.status === 'running',
   );
+
+  /**
+   * True from the moment a job is enqueued until the user leaves the results
+   * behind with `reset()`. The wizard shell keys off this so remounting the page
+   * mid-import neither detaches the progress watchdog nor offers a fresh upload
+   * that would import the same ledger twice.
+   */
+  const hasActiveJob = computed(() => isExecuting.value || progress.value !== null);
 
   // ---- Balance recalculation toggle ----
 
@@ -412,6 +450,23 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     return wire;
   }
 
+  /**
+   * Projects the category mapping to the wire shape. A `link-existing` row with
+   * an empty `categoryId` is the unselected state `isResolveStepValid` gates on,
+   * so reaching submit with one is a programming error — throw instead of posting
+   * a category linked to nothing.
+   */
+  function toWireCategoryMapping(): CategoryMappingConfig {
+    const wire: CategoryMappingConfig = {};
+    for (const [name, value] of Object.entries(categoryMapping.value)) {
+      if (value.action === 'link-existing' && !value.categoryId) {
+        throw new Error(`Category "${name}" is set to link to an existing category but no target was selected.`);
+      }
+      wire[name] = value;
+    }
+    return wire;
+  }
+
   // ---- Async actions ----
 
   /**
@@ -422,13 +477,16 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
   async function uploadFile({ file, password }: { file: File; password?: string }): Promise<void> {
     isUploading.value = true;
     uploadError.value = null;
+    // A bounce back to this step leaves its reason on screen; a new upload
+    // replaces the whole run, so those messages must not follow it forward.
+    detectError.value = null;
+    jobProgress.setExecuteError(null);
 
     try {
       const response = await uploadMsMoneyFile({ file, password });
 
       uploadId.value = response.uploadId;
       lease.value = response.lease;
-      uploadedFileName.value = file.name;
       parsedResult.value = response.result;
 
       // Left empty so `prepareResolveStep`'s auto-match decides each row. Seeding
@@ -441,7 +499,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
       goToStep('resolve');
       await prepareResolveStep();
     } catch (err) {
-      uploadError.value = err instanceof Error ? err.message : 'Unknown error';
+      uploadError.value = getErrorMessage(err, i18n.global.t('errors.api.unexpectedError'));
       throw err;
     } finally {
       isUploading.value = false;
@@ -471,7 +529,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
       // The cached parse result is gone — there is nothing to detect against.
       // Surface a real error and send the user back to re-upload rather than
       // silently doing nothing.
-      detectError.value = 'The uploaded file is no longer available. Please upload your Money file again.';
+      detectError.value = i18n.global.t('pages.importExport.msMoneyImport.errors.uploadUnavailable');
       goToStep('upload');
       return;
     }
@@ -496,7 +554,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
       markStepCompleted('resolve');
       goToStep('review');
     } catch (err) {
-      detectError.value = err instanceof Error ? err.message : 'Unknown error';
+      detectError.value = getErrorMessage(err, i18n.global.t('errors.api.unexpectedError'));
       throw err;
     } finally {
       isDetectingDuplicates.value = false;
@@ -512,7 +570,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
       // The cached parse result is gone — the job cannot be started. Surface a
       // real error and send the user back to re-upload rather than silently
       // doing nothing when they click Import.
-      jobProgress.setExecuteError('The uploaded file is no longer available. Please upload your Money file again.');
+      jobProgress.setExecuteError(i18n.global.t('pages.importExport.msMoneyImport.errors.uploadUnavailable'));
       goToStep('upload');
       return;
     }
@@ -524,14 +582,15 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
       response = await executeMsMoneyImport({
         uploadId: uploadId.value,
         accountMapping: toWireAccountMapping(),
-        categoryMapping: categoryMapping.value,
+        categoryMapping: toWireCategoryMapping(),
         skipDuplicateIndices: skipDuplicateIndices.value,
+        includeVoidedTransactions: includeVoidedTransactions.value,
         recalculateBalance: recalculateBalance.value,
       });
     } catch (err) {
       // The call never started the job — keep the user on `review` (not marked
       // complete) so they can correct the input and retry.
-      jobProgress.setExecuteError(err instanceof Error ? err.message : 'Unknown error');
+      jobProgress.setExecuteError(getErrorMessage(err, i18n.global.t('errors.api.unexpectedError')));
       return;
     } finally {
       isEnqueuing.value = false;
@@ -555,12 +614,12 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
   function reset(): void {
     uploadId.value = null;
     lease.value = null;
-    uploadedFileName.value = null;
     parsedResult.value = null;
     accountMapping.value = {};
     categoryMapping.value = {};
     duplicates.value = [];
     unmarkedDuplicateIndices.value = new Set();
+    includeVoidedTransactions.value = false;
     resetRecalculateBalanceOverride();
     progress.value = null;
     resetSteps();
@@ -577,12 +636,12 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     // State
     uploadId,
     lease,
-    uploadedFileName,
     parsedResult,
     accountMapping,
     categoryMapping,
     duplicates,
     unmarkedDuplicateIndices,
+    includeVoidedTransactions,
     progress,
     currentStepKey,
     completedStepKeys,
@@ -594,6 +653,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
 
     // Getters
     isExecuting,
+    hasActiveJob,
     visibleSteps,
     accountResolvedCount,
     categoryResolvedCount,

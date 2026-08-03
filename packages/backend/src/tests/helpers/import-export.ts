@@ -657,6 +657,7 @@ interface ExecuteMsMoneyParams {
    *  Defaults to `{}` — every parsed category then imports without a category. */
   categoryMapping?: CategoryMappingConfig;
   skipDuplicateIndices?: number[];
+  includeVoidedTransactions?: boolean;
   recalculateBalance?: boolean;
 }
 
@@ -734,5 +735,18 @@ export function expectMsMoneyCompleted(
   if (progress.status !== 'completed') {
     const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
     throw new Error(`Expected completed Microsoft Money import, got status="${progress.status}".${detail}`);
+  }
+}
+
+/**
+ * The mirror of {@link expectMsMoneyCompleted} for the refusal cases: narrows to
+ * the `failed` branch so tests can read `error` directly, and fails the calling
+ * test when the worker finished any other way.
+ */
+export function expectMsMoneyFailed(
+  progress: MsMoneyImportProgress,
+): asserts progress is Extract<MsMoneyImportProgress, { status: 'failed' }> {
+  if (progress.status !== 'failed') {
+    throw new Error(`Expected failed Microsoft Money import, got status="${progress.status}".`);
   }
 }

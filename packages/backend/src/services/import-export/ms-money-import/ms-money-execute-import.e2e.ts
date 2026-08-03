@@ -1,14 +1,16 @@
-import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { MS_MONEY_VOID_TAG, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import type { CategoryMappingConfig, MsMoneyAccountMapping } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import {
   MS_MONEY_FIXTURES_MISSING_MESSAGE,
+  MS_MONEY_SAMPLE,
   msMoneyFixturesAvailable,
   readMsMoneyFixture,
 } from '@tests/fixtures/ms-money-fixtures';
 import * as helpers from '@tests/helpers';
-import { expectMsMoneyCompleted, waitForMsMoneyCompletion } from '@tests/helpers/import-export';
+import { expectMsMoneyCompleted, expectMsMoneyFailed, waitForMsMoneyCompletion } from '@tests/helpers/import-export';
 import { asUser, provisionSecondUserWithBaseCurrency } from '@tests/helpers/share';
 
 /**
@@ -28,16 +30,12 @@ import { asUser, provisionSecondUserWithBaseCurrency } from '@tests/helpers/shar
  *                                    so it imports as out-of-wallet (−178 AUD, 2003-08-02)
  *   Transfers: 7 × 100 AUD, Current → Credit Card, monthly through 2004
  *   Categories: 11 leaves across 6 groups (e.g. "Bills:Council Tax")
- *   Payees: 10
- *   Two investment/loan accounts and 28 void rows are reported as warnings and skipped.
+ *   Payees: 11 (one of them is named only by voided rows)
+ *   Two investment/loan accounts are reported as warnings and skipped. Voided
+ *   rows are parsed but left out unless `includeVoidedTransactions` is set.
  */
-const FIXTURE = 'money2005-pwd.mny';
-const FIXTURE_PASSWORD = '123@abc!';
-
-const ACCOUNT_CURRENT = 'Woodgrove Bank Current';
-const ACCOUNT_CREDIT_CARD = 'Woodgrove Bank Credit Card';
-const ACCOUNT_STOCKS = 'Stocks and Shares (Cash)';
-const FIXTURE_CURRENCY = 'AUD';
+const { file: FIXTURE, password: FIXTURE_PASSWORD, currency: FIXTURE_CURRENCY } = MS_MONEY_SAMPLE;
+const { current: ACCOUNT_CURRENT, creditCard: ACCOUNT_CREDIT_CARD, stocks: ACCOUNT_STOCKS } = MS_MONEY_SAMPLE.accounts;
 
 /** Amount of the out-of-wallet row on "Stocks and Shares (Cash)", dated 2003-08-02. */
 const OUT_OF_WALLET_AMOUNT = 178;
@@ -262,6 +260,119 @@ describeWithFixture('Microsoft Money import execution', () => {
     const transactions = await helpers.getTransactions({ limit: 500, raw: true });
     expect(transactions).toHaveLength(1);
     expect(transactions[0]!.accountId).toBe(stocks!.id);
+  });
+
+  /**
+   * Skipping every account is a legitimate decision, and it leaves the job with
+   * nothing to write. It must still settle as `completed` with a whole,
+   * zeroed-out summary — a run with no rows is the one that can report a total
+   * it never counted, or never report progress at all.
+   */
+  it('completes with zeroed counts when every account is mapped to skip', async () => {
+    const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+
+    const progress = await runImport({
+      uploadId: upload.uploadId,
+      accountMapping: {
+        [ACCOUNT_CURRENT]: { action: 'skip' },
+        [ACCOUNT_CREDIT_CARD]: { action: 'skip' },
+        [ACCOUNT_STOCKS]: { action: 'skip' },
+      },
+    });
+    expectMsMoneyCompleted(progress);
+
+    expect(progress.processedCount).toBe(0);
+    expect(progress.totalCount).toBe(0);
+    expect(progress.summary).toMatchObject({
+      accountsSkipped: 3,
+      accountsCreated: 0,
+      accountsLinked: 0,
+      categoriesCreated: 0,
+      payeesCreated: 0,
+      transactionsImported: 0,
+      transfersImported: 0,
+      outOfWalletImported: 0,
+      voidedImported: 0,
+      duplicatesSkipped: 0,
+      errors: [],
+    });
+    expect(progress.summary.accountBalanceChanges).toEqual([]);
+
+    const accountNames = (await helpers.getAccounts()).map((account) => account.name);
+    expect(accountNames).not.toContain(ACCOUNT_CURRENT);
+    expect(accountNames).not.toContain(ACCOUNT_CREDIT_CARD);
+    expect(accountNames).not.toContain(ACCOUNT_STOCKS);
+
+    const transactions = await helpers.getTransactions({ limit: 500, raw: true });
+    expect(transactions).toHaveLength(0);
+  });
+
+  /**
+   * Voided rows. Money keeps a voided entry in the register — payee, date, cheque
+   * number, the amount it was written for — but never applies it to the balance.
+   * They stay out of the import by default; opting in writes them at zero with
+   * the "Void" tag, so account balances are the same either way.
+   */
+  describe('voided rows', () => {
+    const allCreateNew = (): MsMoneyAccountMapping => ({
+      [ACCOUNT_CURRENT]: { action: 'create-new', currencyCode: FIXTURE_CURRENCY, currentBalance: null },
+      [ACCOUNT_CREDIT_CARD]: { action: 'create-new', currencyCode: FIXTURE_CURRENCY, currentBalance: null },
+      [ACCOUNT_STOCKS]: { action: 'create-new', currencyCode: FIXTURE_CURRENCY, currentBalance: null },
+    });
+
+    it('parses them but leaves them out unless asked', async () => {
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+      // Fail fast if the fixture stops carrying voided rows — the opt-in test
+      // below would otherwise pass by asserting nothing.
+      expect(upload.result.transactions.filter((tx) => tx.isVoid).length).toBeGreaterThan(0);
+
+      const progress = await runImport({ uploadId: upload.uploadId, accountMapping: allCreateNew() });
+      expectMsMoneyCompleted(progress);
+
+      expect(progress.summary.errors).toHaveLength(0);
+      expect(progress.summary.voidedImported).toBe(0);
+      expect(progress.summary.transactionsImported).toBe(67);
+
+      const transactions = await helpers.getTransactions({ limit: 500, raw: true });
+      expect(transactions.filter((tx) => Number(tx.amount) === 0)).toHaveLength(0);
+    });
+
+    it('imports them at zero with the Void tag when opted in', async () => {
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+      const voidedRows = upload.result.transactions.filter((tx) => tx.isVoid);
+
+      const progress = await runImport({
+        uploadId: upload.uploadId,
+        accountMapping: allCreateNew(),
+        includeVoidedTransactions: true,
+      });
+      expectMsMoneyCompleted(progress);
+
+      expect(progress.summary.errors).toHaveLength(0);
+      expect(progress.summary.voidedImported).toBe(voidedRows.length);
+      // The rows that do move money are untouched by the opt-in, so the balances
+      // this import produces are the same as without it.
+      expect(progress.summary.transactionsImported).toBe(67);
+      expect(progress.summary.transfersImported).toBe(7);
+      expect(progress.summary.outOfWalletImported).toBe(1);
+
+      const allTags = await helpers.getTags({ raw: true });
+      const voidTag = allTags.find((tag) => tag.name === MS_MONEY_VOID_TAG.name);
+      expect(voidTag).toBeDefined();
+
+      const transactions = await helpers.getTransactions({ limit: 500, includeTags: true, raw: true });
+      const zeroRows = transactions.filter((tx) => Number(tx.amount) === 0);
+      expect(zeroRows).toHaveLength(voidedRows.length);
+      for (const row of zeroRows) {
+        const tags = (row as unknown as { tags?: { id: string }[] }).tags;
+        expect(tags?.some((tag) => tag.id === voidTag!.id)).toBe(true);
+      }
+
+      // The amount Money kept on a voided row survives in the note, which is the
+      // only place it can live once the row itself is zeroed.
+      const withOriginalAmount = zeroRows.filter((tx) => /\(voided: \d+\.\d{2}\)/.test(tx.note ?? ''));
+      expect(withOriginalAmount.length).toBeGreaterThan(0);
+    });
   });
 
   /**
@@ -524,12 +635,74 @@ describeWithFixture('Microsoft Money import execution', () => {
       },
     });
 
-    expect(progress.status).toBe('failed');
-    if (progress.status !== 'failed') throw new Error('unreachable');
+    expectMsMoneyFailed(progress);
     expect(progress.error).toMatch(/Missing account mapping/i);
 
     const transactions = await helpers.getTransactions({ limit: 500, raw: true });
     expect(transactions).toHaveLength(0);
+  });
+
+  /**
+   * A `link-existing` mapping names an account id the client chose, so the
+   * worker resolves it against the importing user before writing anything. An id
+   * that is unknown or belongs to somebody else is the same refusal: the job
+   * fails and the message never says which of the two it was.
+   */
+  describe('link-existing ownership', () => {
+    it('fails the job when the linked account does not exist', async () => {
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+
+      const progress = await runImport({
+        uploadId: upload.uploadId,
+        accountMapping: onlyStocksMapping({ accountId: generateRandomRecordId() }),
+      });
+
+      expectMsMoneyFailed(progress);
+      expect(progress.error).toMatch(/does not exist or is not yours/i);
+      expect(progress.error).toContain(ACCOUNT_STOCKS);
+
+      const transactions = await helpers.getTransactions({ limit: 500, raw: true });
+      expect(transactions).toHaveLength(0);
+    });
+
+    /**
+     * The other user's account carries the file's own currency, so ownership is
+     * the only thing left that can refuse it — a pass here would mean one user's
+     * import writing rows into another user's ledger.
+     */
+    it('fails the job when the linked account belongs to another user', async () => {
+      const otherUser = await provisionSecondUserWithBaseCurrency();
+      const foreignAccount = await asUser({
+        cookies: otherUser.cookies,
+        fn: () =>
+          helpers.createAccount({
+            payload: helpers.buildAccountPayload({ currencyCode: FIXTURE_CURRENCY, name: 'Someone else AUD' }),
+            raw: true,
+          }),
+      });
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+
+      const progress = await runImport({
+        uploadId: upload.uploadId,
+        accountMapping: onlyStocksMapping({ accountId: foreignAccount.id }),
+      });
+
+      expectMsMoneyFailed(progress);
+      expect(progress.error).toMatch(/does not exist or is not yours/i);
+
+      // Nothing landed on either side of the boundary: not in the importing
+      // user's ledger, and not in the account the mapping pointed at.
+      const transactions = await helpers.getTransactions({ limit: 500, raw: true });
+      expect(transactions).toHaveLength(0);
+
+      await asUser({
+        cookies: otherUser.cookies,
+        fn: async () => {
+          const theirs = await helpers.getTransactions({ limit: 500, raw: true });
+          expect(theirs).toHaveLength(0);
+        },
+      });
+    });
   });
 
   /**
@@ -548,8 +721,7 @@ describeWithFixture('Microsoft Money import execution', () => {
       accountMapping: onlyStocksMapping({ accountId: wrongCurrency.id }),
     });
 
-    expect(progress.status).toBe('failed');
-    if (progress.status !== 'failed') throw new Error('unreachable');
+    expectMsMoneyFailed(progress);
     expect(progress.error).toMatch(/currencies must match/i);
 
     const transactions = await helpers.getTransactions({ limit: 500, raw: true });
@@ -573,8 +745,7 @@ describeWithFixture('Microsoft Money import execution', () => {
       },
     });
 
-    expect(progress.status).toBe('failed');
-    if (progress.status !== 'failed') throw new Error('unreachable');
+    expectMsMoneyFailed(progress);
     expect(progress.error).toMatch(/must use the currency from the file/i);
 
     const accounts = await helpers.getAccounts();
@@ -608,5 +779,54 @@ describeWithFixture('Microsoft Money import execution', () => {
     // The refused submit wrote nothing of its own: the row exists once.
     const transactions = await helpers.getTransactions({ limit: 500, raw: true });
     expect(transactions.filter((t) => t.accountId === account.id)).toHaveLength(1);
+  });
+
+  /**
+   * The claim an import takes on its upload is exclusive but not permanent: a job
+   * that already failed is dead, so the user can correct the mapping in the
+   * wizard and submit the same upload again without re-uploading the file.
+   */
+  it('lets a corrected mapping retake the upload after the first import failed', async () => {
+    const { account } = await createAudAccount({ name: 'Retry AUD' });
+    const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+
+    const failed = await runImport({
+      uploadId: upload.uploadId,
+      accountMapping: {
+        [ACCOUNT_CURRENT]: { action: 'skip' },
+        [ACCOUNT_CREDIT_CARD]: { action: 'skip' },
+      },
+    });
+    expectMsMoneyFailed(failed);
+    expect(failed.error).toMatch(/Missing account mapping/i);
+    expect(await helpers.getTransactions({ limit: 500, raw: true })).toHaveLength(0);
+
+    const retry = await helpers.executeMsMoney({
+      payload: { uploadId: upload.uploadId, accountMapping: onlyStocksMapping({ accountId: account.id }) },
+      raw: true,
+    });
+    expect(retry.jobId).toBeTruthy();
+    expect(retry.jobId).not.toBe(failed.jobId);
+
+    const progress = await waitForMsMoneyCompletion({ jobId: retry.jobId });
+    expectMsMoneyCompleted(progress);
+    expect(progress.summary.errors).toHaveLength(0);
+    expect(progress.summary.outOfWalletImported).toBe(1);
+    expect(progress.summary.accountsLinked).toBe(1);
+    expect(progress.summary.accountsSkipped).toBe(2);
+    expect(progress.processedCount).toBe(progress.totalCount);
+    expect(progress.totalCount).toBe(1);
+
+    // The retry wrote the row once — the failed attempt left nothing behind for
+    // it to duplicate.
+    const transactions = await helpers.getTransactions({ limit: 500, raw: true });
+    expect(transactions.filter((t) => t.accountId === account.id)).toHaveLength(1);
+
+    // The upload is consumed by the run that succeeded, so a third submit has
+    // nothing left to claim.
+    const third = await helpers.executeMsMoney({
+      payload: { uploadId: upload.uploadId, accountMapping: onlyStocksMapping({ accountId: account.id }) },
+    });
+    expect(third.statusCode).toBe(ERROR_CODES.NotFoundError);
   });
 });

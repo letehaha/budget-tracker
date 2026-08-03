@@ -7,6 +7,7 @@
 import { formatShortDate } from '@/common/utils/date';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { StatCard } from '@/components/lib/ui/stat-card';
 import DuplicatesTable from '@/pages/import-export/components/review-duplicates-step/duplicates-table.vue';
 import { useImportMsMoneyStore } from '@/stores/import-ms-money';
@@ -22,13 +23,16 @@ const store = useImportMsMoneyStore();
 /** Localized explanation per warning code, so users see why rows were left out. */
 const WARNING_LABEL_KEYS: Record<MsMoneyParseWarning['code'], string> = {
   'account-type-unsupported': 'pages.importExport.msMoneyImport.review.warnings.accountTypeUnsupported',
-  'void-row-skipped': 'pages.importExport.msMoneyImport.review.warnings.voidRowSkipped',
   'orphan-row-skipped': 'pages.importExport.msMoneyImport.review.warnings.orphanRowSkipped',
   'transfer-counterpart-not-imported':
     'pages.importExport.msMoneyImport.review.warnings.transferCounterpartNotImported',
   'row-limit-reached': 'pages.importExport.msMoneyImport.review.warnings.rowLimitReached',
   'account-currency-defaulted': 'pages.importExport.msMoneyImport.review.warnings.accountCurrencyDefaulted',
   'row-missing-date': 'pages.importExport.msMoneyImport.review.warnings.rowMissingDate',
+  'account-name-missing': 'pages.importExport.msMoneyImport.review.warnings.accountNameMissing',
+  'account-name-duplicated': 'pages.importExport.msMoneyImport.review.warnings.accountNameDuplicated',
+  'row-amount-unreadable': 'pages.importExport.msMoneyImport.review.warnings.rowAmountUnreadable',
+  'file-schema-unexpected': 'pages.importExport.msMoneyImport.review.warnings.fileSchemaUnexpected',
 };
 
 function warningLabel(warning: MsMoneyParseWarning): string {
@@ -41,7 +45,19 @@ function warningLabel(warning: MsMoneyParseWarning): string {
 const skippedAccounts = computed(() => new Set(store.skippedAccountNames));
 
 const includedTransactions = computed(() =>
-  (store.parsedResult?.transactions ?? []).filter((transaction) => !skippedAccounts.value.has(transaction.accountName)),
+  (store.parsedResult?.transactions ?? []).filter(
+    (transaction) =>
+      !skippedAccounts.value.has(transaction.accountName) && (store.includeVoidedTransactions || !transaction.isVoid),
+  ),
+);
+
+/** Voided rows that would actually land, i.e. excluding skipped accounts. Shown
+ *  next to the opt-in so the number matches what the import writes. */
+const includedVoidedCount = computed(
+  () =>
+    (store.parsedResult?.transactions ?? []).filter(
+      (transaction) => transaction.isVoid && !skippedAccounts.value.has(transaction.accountName),
+    ).length,
 );
 
 /** A transfer needs both of its accounts imported to stay a transfer. */
@@ -67,11 +83,14 @@ const willImportCount = computed(() =>
   Math.max(0, includedTransactions.value.length + includedTransfers.value.length - duplicatesSkippedCount.value),
 );
 
-/** Human date span of the parsed rows, or null when the file had no rows. */
-const dateRangeLabel = computed(() => {
+/**
+ * Formatted endpoints of the parsed rows' date span, or null when the file had
+ * no rows. Kept as two values so the message decides separator and order.
+ */
+const dateRange = computed(() => {
   const range = store.parsedResult?.dateRange;
   if (!range) return null;
-  return `${formatShortDate(range.from)} — ${formatShortDate(range.to)}`;
+  return { from: formatShortDate(range.from), to: formatShortDate(range.to) };
 });
 
 // ---- Execute ----
@@ -134,9 +153,28 @@ async function handleImport() {
         </div>
       </div>
 
-      <p v-if="dateRangeLabel" class="text-muted-foreground text-xs">
-        {{ $t('pages.importExport.msMoneyImport.review.dateRange', { range: dateRangeLabel }) }}
+      <p v-if="dateRange" class="text-muted-foreground text-xs">
+        {{ $t('pages.importExport.msMoneyImport.review.dateRange', { from: dateRange.from, to: dateRange.to }) }}
       </p>
+
+      <!-- Voided rows: opt in to keep them as zero-amount records -->
+      <div v-if="includedVoidedCount > 0" class="border-border overflow-hidden rounded-md border">
+        <label class="hover:bg-muted/50 flex cursor-pointer items-start gap-3 p-4 transition-colors">
+          <Checkbox
+            :model-value="store.includeVoidedTransactions"
+            class="mt-0.5"
+            @update:model-value="(value) => (store.includeVoidedTransactions = !!value)"
+          />
+          <span class="grid gap-0.5">
+            <span class="text-sm font-medium">
+              {{ $t('pages.importExport.msMoneyImport.review.includeVoided.label', { count: includedVoidedCount }) }}
+            </span>
+            <span class="text-muted-foreground text-xs">
+              {{ $t('pages.importExport.msMoneyImport.review.includeVoided.hint') }}
+            </span>
+          </span>
+        </label>
+      </div>
 
       <!-- Parse warnings: what the file contained that this import leaves out -->
       <Callout
