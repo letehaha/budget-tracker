@@ -34,6 +34,7 @@
         "fromLabel": "de",
         "inLabel": "en",
         "continueMessage": "Continúe para seleccionar una cuenta para estas transacciones.",
+        "continueButton": "Continuar a la cuenta",
         "tokenWarning": {
           "medium": {
             "title": "Archivo grande detectado",

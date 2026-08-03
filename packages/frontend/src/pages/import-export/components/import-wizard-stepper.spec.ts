@@ -84,3 +84,53 @@ describe('ImportWizardStepper — forward-jump guard', () => {
     expect(stepButton(wrapper, 'review').attributes('disabled')).toBeDefined();
   });
 });
+
+describe('ImportWizardStepper — resuming forward after stepping back', () => {
+  it('opens the step immediately ahead once the current one is completed', async () => {
+    // Advanced to Map, then stepped back to Upload. Map isn't in the completed set
+    // (a step is only marked on the way out), so it has to be reachable as the
+    // next open step or the user is stranded on Upload.
+    const wrapper = mountStepper({
+      currentStepKey: 'upload',
+      completedStepKeys: new Set(['upload']),
+    });
+
+    const mapButton = stepButton(wrapper, 'map');
+    expect(mapButton.attributes('disabled')).toBeUndefined();
+    await mapButton.trigger('click');
+    expect(wrapper.emitted('navigate')?.[0]).toEqual(['map']);
+  });
+
+  it('does not open the next step on a fresh run', () => {
+    // Nothing completed yet: Upload's own forward control is the only way on.
+    const wrapper = mountStepper({
+      currentStepKey: 'upload',
+      completedStepKeys: new Set(),
+    });
+
+    expect(stepButton(wrapper, 'map').attributes('disabled')).toBeDefined();
+  });
+
+  it('does not open a step two ahead of the current one', () => {
+    // Review must not be reachable by skipping over Map.
+    const wrapper = mountStepper({
+      currentStepKey: 'upload',
+      completedStepKeys: new Set(['upload']),
+    });
+
+    expect(stepButton(wrapper, 'review').attributes('disabled')).toBeDefined();
+  });
+
+  it('still refuses a forward jump into a step completed on an earlier run', () => {
+    // Upload and Map both completed and Review reached, then stepped back to
+    // Upload. Map is completed *and* ahead, so the existing guard applies and the
+    // re-validating advance stays in charge.
+    const wrapper = mountStepper({
+      currentStepKey: 'upload',
+      completedStepKeys: new Set(['upload', 'map']),
+    });
+
+    expect(stepButton(wrapper, 'map').attributes('disabled')).toBeDefined();
+    expect(stepButton(wrapper, 'review').attributes('disabled')).toBeDefined();
+  });
+});
