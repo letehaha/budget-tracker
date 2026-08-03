@@ -17,6 +17,9 @@
         <div class="flex items-center gap-2">
           <span class="text-muted-foreground">{{ $t('pages.statementParser.transactionReview.extractedLabel') }}</span>
           <span class="font-semibold">{{ store.importSummary.total }}</span>
+          <span v-if="showSources" class="text-muted-foreground">
+            {{ t('pages.statementParser.transactionReview.fromFiles', { count: store.importSummary.files }) }}
+          </span>
         </div>
         <div class="flex items-center gap-2">
           <span class="text-muted-foreground">{{ $t('pages.statementParser.transactionReview.duplicatesLabel') }}</span>
@@ -102,6 +105,15 @@
 
                 <!-- Description -->
                 <span class="max-w-75 min-w-0 flex-1 truncate text-xs">{{ item.description }}</span>
+
+                <!-- Source statement -->
+                <span
+                  v-if="showSources"
+                  class="text-muted-foreground w-32 shrink-0 truncate text-xs"
+                  :title="item.sourceFile"
+                >
+                  {{ item.sourceFile }}
+                </span>
 
                 <!-- Status Badge -->
                 <span
@@ -196,7 +208,9 @@ import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from '@lucide/vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const store = useStatementParserStore();
 
 // Count existing transactions that are not duplicates
@@ -214,13 +228,18 @@ interface TimelineItem {
   description: string;
   amount: number;
   txType: 'income' | 'expense';
+  /** Statement the row was extracted from. Unset for single-file imports and for existing rows. */
+  sourceFile?: string;
   existingNote?: string;
   isExcluded?: boolean;
   isOverridden?: boolean;
 }
 
+/** Attribution only earns its column space once the batch spans several statements. */
+const showSources = computed(() => store.importSummary.files > 1);
+
 const timelineItems = computed((): TimelineItem[] => {
-  if (!store.extractionResult) return [];
+  if (!store.mergedTransactions.length) return [];
 
   const items: TimelineItem[] = [];
   const duplicateMap = new Map(store.duplicates.map((d) => [d.transactionIndex, d]));
@@ -229,11 +248,15 @@ const timelineItems = computed((): TimelineItem[] => {
   // to avoid showing them twice (once as duplicate, once as existing)
   const duplicateExistingIds = new Set(store.duplicates.map((d) => d.existingTransaction.id));
 
-  // Add extracted transactions (new and duplicates)
-  store.extractionResult.transactions.forEach((tx, index) => {
+  // Add extracted transactions (new and duplicates). `index` is a position in the
+  // merged list — the same index space the store's duplicate/exclusion sets and
+  // the backend's `transactionIndex` use, so it can be passed straight through.
+  store.mergedTransactions.forEach((tx, index) => {
     const duplicate = duplicateMap.get(index);
     const isExcluded = store.excludedTransactionIndices.has(index);
     const isOverridden = store.overriddenDuplicateIndices.has(index);
+    // Only worth showing when the batch spans more than one statement.
+    const sourceFile = showSources.value ? store.transactionSources[index] : undefined;
 
     if (duplicate) {
       items.push({
@@ -243,6 +266,7 @@ const timelineItems = computed((): TimelineItem[] => {
         description: tx.description,
         amount: tx.amount,
         txType: tx.type,
+        sourceFile,
         existingNote: duplicate.existingTransaction.note,
         isOverridden,
       });
@@ -254,6 +278,7 @@ const timelineItems = computed((): TimelineItem[] => {
         description: tx.description,
         amount: tx.amount,
         txType: tx.type,
+        sourceFile,
         isExcluded,
       });
     }
