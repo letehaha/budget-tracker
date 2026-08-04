@@ -200,7 +200,8 @@
       "colorSwatchAriaLabel": "Usar color {color}",
       "customColorAriaLabel": "Elegir un color personalizado",
       "applyLetters": "Aplicar",
-      "lettersSelectedLabel": "Letras “{letters}”"
+      "lettersSelectedLabel": "Letras “{letters}”",
+      "remove": "Quitar logo"
     },
     "resourceLease": {
       "activeLabel": "Sesión activa",
@@ -241,6 +242,10 @@
     "unlink": {
       "success": "La cuenta ha sido quitada del grupo",
       "error": "Error al quitar la cuenta del grupo"
+    },
+    "update": {
+      "success": "El grupo ha sido actualizado",
+      "error": "Error al actualizar el grupo"
     }
   },
   "validation": {

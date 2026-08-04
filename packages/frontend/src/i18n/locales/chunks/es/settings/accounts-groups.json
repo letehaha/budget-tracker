@@ -58,6 +58,12 @@
           "unlinked": "La cuenta ha sido desvinculada",
           "deleted": "El grupo ha sido eliminado"
         }
+      },
+      "update": {
+        "label": "Nombre del grupo",
+        "placeholder": "Introduzca el nombre del grupo",
+        "saveButton": "Guardar",
+        "emptyNameError": "El nombre del grupo no puede estar vacío"
       }
     }
   }

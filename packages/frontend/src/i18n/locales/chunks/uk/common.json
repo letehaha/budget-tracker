@@ -200,7 +200,8 @@
       "colorSwatchAriaLabel": "Використати колір {color}",
       "customColorAriaLabel": "Вибрати власний колір",
       "applyLetters": "Застосувати",
-      "lettersSelectedLabel": "Літери «{letters}»"
+      "lettersSelectedLabel": "Літери «{letters}»",
+      "remove": "Видалити логотип"
     },
     "resourceLease": {
       "activeLabel": "Сесія активна",
@@ -241,6 +242,10 @@
     "unlink": {
       "success": "Рахунок видалено з групи",
       "error": "Не вдалося видалити рахунок з групи"
+    },
+    "update": {
+      "success": "Групу оновлено",
+      "error": "Не вдалося оновити групу"
     }
   },
   "validation": {

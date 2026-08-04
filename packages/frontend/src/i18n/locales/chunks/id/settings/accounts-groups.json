@@ -58,6 +58,12 @@
         "confirmTitle": "Hapus grup ini?",
         "description": "Grup akan dihapus. Akun di dalamnya tidak ikut dihapus — akun tersebut hanya berhenti dikelompokkan.",
         "affectedAccounts": "Akun berikut akan dihapus dari grup:"
+      },
+      "update": {
+        "label": "Nama grup",
+        "placeholder": "Masukkan nama grup",
+        "saveButton": "Simpan",
+        "emptyNameError": "Nama grup tidak boleh kosong"
       }
     }
   }
