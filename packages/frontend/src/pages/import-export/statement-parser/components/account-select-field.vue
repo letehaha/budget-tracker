@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AccountLogo from '@/components/common/account-logo.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
@@ -84,10 +85,13 @@ watch(isOpen, (open) => {
     <Select.SelectTrigger class="w-full">
       <Select.SelectValue :placeholder="placeholder ?? $t('pages.statementParser.selectAccount')">
         <template v-if="modelValue">
-          <span>{{ modelValue.name }}</span>
-          <span class="text-muted-foreground ml-1">({{ modelValue.currencyCode }})</span>
-          <span v-if="isNewAccount" class="text-primary ml-1">
-            {{ t('pages.statementParser.accountSelect.newlyCreated') }}
+          <span class="flex min-w-0 items-center gap-1.5">
+            <AccountLogo :account="modelValue" class="size-5 shrink-0" />
+            <span class="truncate">{{ modelValue.name }}</span>
+            <span class="text-muted-foreground shrink-0">({{ modelValue.currencyCode }})</span>
+            <span v-if="isNewAccount" class="text-primary shrink-0">
+              {{ t('pages.statementParser.accountSelect.newlyCreated') }}
+            </span>
           </span>
         </template>
         <template v-else>
@@ -121,17 +125,15 @@ watch(isOpen, (open) => {
         <Select.SelectLabel v-if="detectedCurrency" class="text-muted-foreground text-xs">
           {{ t('pages.statementParser.accountSelect.currencyAccounts', { currency: detectedCurrency }) }}
         </Select.SelectLabel>
-        <Select.SelectItem
-          v-for="account in selectableAccounts"
-          :key="account.id"
-          :value="String(account.id)"
-          class="flex flex-col items-start"
-        >
-          <span>
-            {{ account.name }}
-            <span class="text-muted-foreground ml-1">{{ account.currencyCode }}</span>
-            <span v-if="isNewAccount && modelValue?.id === account.id" class="text-primary ml-1">
-              {{ t('pages.statementParser.accountSelect.newlyCreated') }}
+        <Select.SelectItem v-for="account in selectableAccounts" :key="account.id" :value="String(account.id)">
+          <span class="flex min-w-0 items-center gap-2">
+            <AccountLogo :account="account" class="size-6 shrink-0" />
+            <span>
+              {{ account.name }}
+              <span class="text-muted-foreground ml-1">{{ account.currencyCode }}</span>
+              <span v-if="isNewAccount && modelValue?.id === account.id" class="text-primary ml-1">
+                {{ t('pages.statementParser.accountSelect.newlyCreated') }}
+              </span>
             </span>
           </span>
         </Select.SelectItem>
@@ -149,11 +151,13 @@ watch(isOpen, (open) => {
             :key="account.id"
             :value="String(account.id)"
             disabled
-            class="flex flex-col items-start"
           >
-            <span>
-              {{ account.name }}
-              <span class="text-muted-foreground ml-1">{{ account.currencyCode }}</span>
+            <span class="flex min-w-0 items-center gap-2">
+              <AccountLogo :account="account" class="size-6 shrink-0" />
+              <span>
+                {{ account.name }}
+                <span class="text-muted-foreground ml-1">{{ account.currencyCode }}</span>
+              </span>
             </span>
           </Select.SelectItem>
         </Select.SelectGroup>
@@ -174,11 +178,13 @@ watch(isOpen, (open) => {
             :key="account.id"
             :value="String(account.id)"
             disabled
-            class="flex flex-col items-start"
           >
-            <span>
-              {{ account.name }}
-              <span class="text-muted-foreground ml-1">{{ account.currencyCode }}</span>
+            <span class="flex min-w-0 items-center gap-2">
+              <AccountLogo :account="account" class="size-6 shrink-0" />
+              <span>
+                {{ account.name }}
+                <span class="text-muted-foreground ml-1">{{ account.currencyCode }}</span>
+              </span>
             </span>
           </Select.SelectItem>
         </Select.SelectGroup>

@@ -6,6 +6,7 @@
  */
 
 export * from './transactions.serializer';
+export * from './logo-fields.serializer';
 export * from './accounts.serializer';
 export * from './account-groups.serializer';
 export * from './budgets.serializer';

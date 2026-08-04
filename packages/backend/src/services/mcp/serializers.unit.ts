@@ -28,6 +28,9 @@ const fullAccount: AccountApiResponse = {
   excludeFromStats: false,
   bankDataProviderConnectionId: 'conn-1',
   bankProviderType: null,
+  logoDomain: null,
+  logoInitials: null,
+  logoColor: null,
   needsRelink: true,
   share: { isOwner: true } as AccountApiResponse['share'],
 };

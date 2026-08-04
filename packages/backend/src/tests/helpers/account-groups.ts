@@ -23,7 +23,8 @@ export async function updateAccountGroup<R extends boolean | undefined = undefin
 }: Omit<Parameters<typeof accountGroupService.updateAccountGroup>[0], 'userId'> & {
   raw?: R;
 }) {
-  return makeRequest<Awaited<ReturnType<typeof accountGroupService.updateAccountGroup>>, R>({
+  // The endpoint wraps the updated group in a single-element list.
+  return makeRequest<Awaited<ReturnType<typeof accountGroupService.updateAccountGroup>>[], R>({
     method: 'put',
     url: `/account-group/${groupId}`,
     payload,

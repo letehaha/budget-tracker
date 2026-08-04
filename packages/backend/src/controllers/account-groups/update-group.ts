@@ -1,4 +1,5 @@
 import { recordId } from '@common/lib/zod/custom-types';
+import { logoFieldsShape, refineLogoFields } from '@controllers/common/logo-fields.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as accountGroupService from '@services/account-groups';
 import { z } from 'zod';
@@ -10,17 +11,22 @@ export default createController(
       .object({
         name: z.string().min(1),
         parentGroupId: recordId().nullable().optional(),
+        // Absent key → no change; a present key is written as given (null clears
+        // it), and a brand domain and monogram letters evict each other.
+        ...logoFieldsShape,
       })
       .strict()
-      .partial(),
+      .partial()
+      .superRefine((data, ctx) => refineLogoFields({ data, ctx })),
   }),
   async ({ user, params, body }) => {
-    const data = await accountGroupService.updateAccountGroup({
+    const group = await accountGroupService.updateAccountGroup({
       groupId: params.groupId,
       userId: user.id,
       ...body,
     });
 
-    return { data };
+    // Clients read the updated group out of a single-element list.
+    return { data: [group] };
   },
 );

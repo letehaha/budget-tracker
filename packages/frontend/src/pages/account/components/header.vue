@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AccountLogo from '@/components/common/account-logo.vue';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ import { storeToRefs } from 'pinia';
 import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import AccountLogoPicker from './account-logo-picker.vue';
 import BalanceAdjustmentDialog from './balance-adjustment-dialog.vue';
 
 const props = defineProps<{
@@ -36,6 +38,7 @@ const accountsStore = useAccountsStore();
 const formEditingPopoverOpen = ref(false);
 const adjustmentDialogOpen = ref(false);
 const shareDialogOpen = ref(false);
+const logoPickerOpen = ref(false);
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { t } = useI18n();
 
@@ -114,31 +117,50 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
   <CardHeader>
     <div class="flex flex-col">
       <div class="flex w-full justify-between gap-4">
-        <!-- Account name — click to open rename popover (owner only) -->
-        <Popover.Popover v-if="isOwner" :open="formEditingPopoverOpen" @update:open="onPopoverOpenChange">
-          <Popover.PopoverTrigger as-child>
-            <button class="flex cursor-pointer text-xl transition-opacity hover:opacity-80">
-              {{ account.name }}
-            </button>
-          </Popover.PopoverTrigger>
-          <Popover.PopoverContent>
-            <form class="grid gap-6" @submit.prevent="updateAccount">
-              <InputField
-                v-model="accountNameForm.name"
-                :label="$t('pages.account.header.nameLabel')"
-                :placeholder="$t('pages.account.header.namePlaceholder')"
-                :error-message="getFieldErrorMessage('form.name')"
-                @blur="touchField('form.name')"
-              />
-
-              <Button type="submit" :disabled="accountNameForm.name === account.name || !accountNameForm.name.trim()">
-                {{ t('pages.account.header.save') }}
+        <div class="flex min-w-0 items-center gap-3">
+          <!-- Account logo — hover reveals the edit affordance (owner only) -->
+          <div v-if="isOwner" class="group relative shrink-0">
+            <AccountLogo :account="account" class="size-10" />
+            <Tooltip.DesktopOnlyTooltip :content="$t('pages.account.logo.change')">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="bg-background/80 hover:bg-background absolute inset-0 size-full rounded-lg opacity-0 backdrop-blur-sm transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+                :aria-label="$t('pages.account.logo.change')"
+                @click="logoPickerOpen = true"
+              >
+                <PencilIcon class="size-4" />
               </Button>
-            </form>
-          </Popover.PopoverContent>
-        </Popover.Popover>
-        <div v-else class="flex items-center gap-2 text-xl">
-          {{ account.name }}
+            </Tooltip.DesktopOnlyTooltip>
+          </div>
+          <AccountLogo v-else :account="account" class="size-10" />
+
+          <!-- Account name — click to open rename popover (owner only) -->
+          <Popover.Popover v-if="isOwner" :open="formEditingPopoverOpen" @update:open="onPopoverOpenChange">
+            <Popover.PopoverTrigger as-child>
+              <button class="flex min-w-0 cursor-pointer text-xl transition-opacity hover:opacity-80">
+                <span class="truncate">{{ account.name }}</span>
+              </button>
+            </Popover.PopoverTrigger>
+            <Popover.PopoverContent>
+              <form class="grid gap-6" @submit.prevent="updateAccount">
+                <InputField
+                  v-model="accountNameForm.name"
+                  :label="$t('pages.account.header.nameLabel')"
+                  :placeholder="$t('pages.account.header.namePlaceholder')"
+                  :error-message="getFieldErrorMessage('form.name')"
+                  @blur="touchField('form.name')"
+                />
+
+                <Button type="submit" :disabled="accountNameForm.name === account.name || !accountNameForm.name.trim()">
+                  {{ t('pages.account.header.save') }}
+                </Button>
+              </form>
+            </Popover.PopoverContent>
+          </Popover.Popover>
+          <div v-else class="flex min-w-0 items-center gap-2 text-xl">
+            <span class="truncate">{{ account.name }}</span>
+          </div>
         </div>
 
         <div class="flex gap-2">
@@ -238,5 +260,14 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
 
     <BalanceAdjustmentDialog v-if="adjustmentDialogOpen" :account="account" @close="adjustmentDialogOpen = false" />
     <ShareAccountDialog v-model:open="shareDialogOpen" :account="account" />
+    <AccountLogoPicker
+      v-if="isOwner"
+      v-model:open="logoPickerOpen"
+      :account-id="account.id"
+      :account-name="account.name"
+      :current-domain="account.logoDomain ?? null"
+      :current-initials="account.logoInitials ?? null"
+      :current-color="account.logoColor ?? null"
+    />
   </CardHeader>
 </template>

@@ -23,6 +23,7 @@
   },
   "accountGroups": {
     "groupNotFound": "Group not found",
+    "groupUpdateFailed": "Group update was not successful",
     "parentGroupNotExist": "Parent with such id does not exist.",
     "parentGroupDoesNotExist": "Parent group does not exists.",
     "operationNotAllowed": "Operation is not allowed",

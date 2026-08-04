@@ -25,6 +25,9 @@ const makeAccount = (overrides: Partial<AccountModel> = {}): AccountModel => ({
   userId: 1,
   status: ACCOUNT_STATUSES.active,
   excludeFromStats: false,
+  logoDomain: null,
+  logoInitials: null,
+  logoColor: null,
   ...overrides,
 });
 

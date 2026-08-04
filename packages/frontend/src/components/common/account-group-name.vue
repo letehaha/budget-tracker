@@ -1,19 +1,24 @@
 <script setup lang="ts">
 import { type AccountGroups } from '@/common/types/models';
 
-import BankConnectionLogo, { type BankConnectionLogoSize } from './bank-connection-logo.vue';
+import GroupLogo, { type GroupLogoRounding, type GroupLogoSize } from './group-logo.vue';
 
-defineProps<{
-  group: AccountGroups;
-  iconSize?: BankConnectionLogoSize;
-}>();
+withDefaults(
+  defineProps<{
+    group: AccountGroups;
+    iconSize?: GroupLogoSize;
+    iconRounded?: GroupLogoRounding;
+  }>(),
+  { iconSize: 'size-4', iconRounded: 'md' },
+);
 </script>
 
 <template>
   <span class="inline-flex items-center gap-2">
-    <BankConnectionLogo :connection-id="group.bankDataProviderConnectionId" :alt="group.name" :size="iconSize" />
-    <span class="truncate"
-      ><slot>{{ group.name }}</slot></span
-    >
+    <GroupLogo :group="group" :size="iconSize" :rounded="iconRounded" />
+
+    <span class="truncate">
+      <slot>{{ group.name }}</slot>
+    </span>
   </span>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AccountLogo from '@/components/common/account-logo.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -47,6 +48,7 @@ const needsReauth = computed(() => isAccountNeedingReauth(props.account));
               class="text-muted-foreground size-3.5 shrink-0"
             />
           </DesktopOnlyTooltip>
+          <AccountLogo :account="account" class="size-5 shrink-0 rounded-md" />
           <span class="truncate text-sm">{{ account.name }}</span>
           <ResponsiveTooltip
             v-if="needsReauth"

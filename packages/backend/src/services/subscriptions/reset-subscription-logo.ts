@@ -1,6 +1,6 @@
 import { centsToApiDecimalOrNull } from '@common/types/money';
 import Subscriptions from '@models/subscriptions.model';
-import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
+import { clearManualLogoFields, enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { withTransaction } from '@services/common/with-transaction';
 
 import { findSubscriptionOrThrow } from './helpers';
@@ -17,10 +17,7 @@ import { findSubscriptionOrThrow } from './helpers';
  */
 export const resetSubscriptionLogo = withTransaction(async ({ id, userId }: { id: string; userId: number }) => {
   const subscription = await findSubscriptionOrThrow({ id, userId });
-  subscription.logoDomain = null;
-  subscription.logoSource = null;
-  subscription.logoInitials = null;
-  subscription.logoColor = null;
+  clearManualLogoFields({ instance: subscription });
   await subscription.save();
   enqueueLogoResolutionAfterCommit({ entity: 'subscription', id });
 

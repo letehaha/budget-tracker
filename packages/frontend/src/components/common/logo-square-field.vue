@@ -9,18 +9,28 @@ import { PencilIcon, RotateCcwIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
-  /** Chosen brand or monogram. null = let the backend auto-resolve from the name. */
+  /** Chosen brand or monogram. null = nothing chosen; the fallback depends on the entity. */
   modelValue: LogoSelection | null;
   /** Entity name – drives the monogram preview and seeds the search query. */
   nameForSearch: string;
   disabled?: boolean;
   /** Visual size class applied to the square (Tailwind size-* utility). */
   sizeClass?: string;
+  /** Clear-button label. The default wording is only accurate for entities with auto-resolution. */
+  resetLabel?: string;
+  /** 'with-labeled-field' pushes the square down past a sibling field's caption so both line up on the input row. */
+  align?: 'default' | 'with-labeled-field';
 }>();
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: LogoSelection | null): void;
 }>();
+
+/** Empty-state tile for entities that never render BrandLogo's first-letter monogram. */
+defineSlots<{ placeholder?: () => unknown }>();
+
+/** Height of a FieldLabel caption: a 16px line box plus its 5px bottom margin. */
+const LABELED_FIELD_OFFSET = 'mt-[21px]';
 
 const isOpen = ref(false);
 
@@ -38,8 +48,9 @@ function handleReset() {
 </script>
 
 <template>
-  <div class="group relative shrink-0">
-    <BrandLogo v-bind="logoDisplay" :name="nameForSearch" :class="cn('size-10 text-base', sizeClass)" />
+  <div :class="cn('group relative shrink-0', align === 'with-labeled-field' && LABELED_FIELD_OFFSET)">
+    <slot v-if="!modelValue && $slots.placeholder" name="placeholder" />
+    <BrandLogo v-else v-bind="logoDisplay" :name="nameForSearch" :class="cn('size-10 text-base', sizeClass)" />
     <Button
       type="button"
       variant="ghost"
@@ -71,7 +82,7 @@ function handleReset() {
           <div class="flex items-center justify-between gap-2 border-t pt-2">
             <Button variant="ghost" size="sm" :disabled="!modelValue" @click="handleReset">
               <RotateCcwIcon class="size-4" />
-              {{ $t('common.logo.resetToAuto') }}
+              {{ resetLabel ?? $t('common.logo.resetToAuto') }}
             </Button>
             <Button variant="ghost" @click="isOpen = false">{{ $t('common.actions.cancel') }}</Button>
           </div>

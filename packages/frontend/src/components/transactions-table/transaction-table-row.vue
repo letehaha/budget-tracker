@@ -35,9 +35,15 @@
       <!-- Account -->
       <template v-else-if="column.id === TABLE_COLUMN.account">
         <div class="flex items-center gap-1.5">
+          <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
           <span class="max-w-36 truncate">{{ accountFrom?.name }}</span>
           <template v-if="isCommonTransfer">
             <ArrowRightIcon :size="13" class="shrink-0 opacity-60" />
+            <AccountLogo
+              v-if="transferDestinationAccount"
+              :account="transferDestinationAccount"
+              class="size-5 shrink-0"
+            />
             <span class="max-w-36 truncate">{{ transferDestinationName }}</span>
           </template>
           <template v-else-if="isOutOfWalletTransfer">
@@ -150,6 +156,7 @@
 </template>
 
 <script lang="ts" setup>
+import AccountLogo from '@/components/common/account-logo.vue';
 import BrandLogo from '@/components/common/brand-logo.vue';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
@@ -220,10 +227,12 @@ const portfolioName = computed(() => portfolioLinkData.value?.portfolioName ?? '
 
 const category = computed(() => categoriesMap.value[props.tx.categoryId]);
 const accountFrom = computed(() => accountsRecord.value[props.tx.accountId]);
-const transferDestinationName = computed(() => {
-  if (!oppositeTx.value) return t('transactions.transfer.hiddenAccount');
-  return accountsRecord.value[oppositeTx.value.accountId]?.name ?? t('transactions.transfer.hiddenAccount');
-});
+const transferDestinationAccount = computed(() =>
+  oppositeTx.value ? accountsRecord.value[oppositeTx.value.accountId] : undefined,
+);
+const transferDestinationName = computed(
+  () => transferDestinationAccount.value?.name ?? t('transactions.transfer.hiddenAccount'),
+);
 
 const formattedDate = computed(() => format(new Date(props.tx.time), 'd MMM y'));
 

@@ -17,10 +17,15 @@ import { DEMO_CONFIG, type DemoAccountKey } from './demo-config';
  * unhydrated, so the settings page renders every group at one level and names
  * its parent instead of nesting. Seeding a hierarchy would surface that edge.
  */
-const DEMO_ACCOUNT_GROUPS: { name: string; accountKeys: DemoAccountKey[] }[] = [
-  { name: 'Day-to-day', accountKeys: ['main_checking', 'cash'] },
-  { name: 'Travel', accountKeys: ['travel_card'] },
-  { name: 'Savings & Goals', accountKeys: ['savings'] },
+export const DEMO_ACCOUNT_GROUPS: {
+  name: string;
+  accountKeys: DemoAccountKey[];
+  logoInitials: string;
+  logoColor: string;
+}[] = [
+  { name: 'Day-to-day', accountKeys: ['main_checking', 'cash'], logoInitials: 'DD', logoColor: '#0ea5e9' },
+  { name: 'Travel', accountKeys: ['travel_card'], logoInitials: 'TR', logoColor: '#f59e0b' },
+  { name: 'Savings & Goals', accountKeys: ['savings'], logoInitials: 'SG', logoColor: '#22c55e' },
 ];
 
 export async function setupAccountGroups({ userId }: { userId: number }): Promise<void> {
@@ -42,7 +47,12 @@ export async function setupAccountGroups({ userId }: { userId: number }): Promis
 
     if (!members.length) continue;
 
-    const group = await createAccountGroup({ userId, name: groupConfig.name });
+    const group = await createAccountGroup({
+      userId,
+      name: groupConfig.name,
+      logoInitials: groupConfig.logoInitials,
+      logoColor: groupConfig.logoColor,
+    });
 
     for (const account of members) {
       await addAccountToGroup({ userId, accountId: account.id, groupId: group.id });
