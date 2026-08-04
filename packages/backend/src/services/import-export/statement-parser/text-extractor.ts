@@ -1,7 +1,7 @@
 /**
  * Text extraction from various file formats (PDF, CSV, TXT)
  */
-import type { StatementFileType } from '@bt/shared/types';
+import type { StatementFileType, StatementTextExtractionErrorCode } from '@bt/shared/types';
 import { type Tiktoken, getEncoding } from 'js-tiktoken';
 import { extractText, getDocumentProxy } from 'unpdf';
 
@@ -25,15 +25,41 @@ interface TextExtractionResult {
   pageCount?: number;
   fileType: StatementFileType;
   error?: string;
+  errorCode?: StatementTextExtractionErrorCode;
+}
+
+/** pdf.js `PasswordException` codes: a missing password vs. a rejected one. */
+const PDF_PASSWORD_NEEDED_CODE = 1;
+const PDF_PASSWORD_INCORRECT_CODE = 2;
+
+/**
+ * pdf.js signals encryption with a `PasswordException`, matched by name because
+ * the class lives inside the unpdf bundle and cannot be imported for `instanceof`.
+ */
+function classifyPdfError({ error }: { error: unknown }): StatementTextExtractionErrorCode {
+  const candidate = error as { name?: unknown; code?: unknown } | null | undefined;
+
+  if (candidate?.name === 'PasswordException') {
+    if (candidate.code === PDF_PASSWORD_NEEDED_CODE) return 'PASSWORD_REQUIRED';
+    if (candidate.code === PDF_PASSWORD_INCORRECT_CODE) return 'PASSWORD_INVALID';
+  }
+
+  return 'PARSE_FAILED';
 }
 
 /**
  * Extract text content from a PDF buffer
  */
-async function extractTextFromPDF({ buffer }: { buffer: Buffer }): Promise<TextExtractionResult> {
+async function extractTextFromPDF({
+  buffer,
+  password,
+}: {
+  buffer: Buffer;
+  password?: string;
+}): Promise<TextExtractionResult> {
   try {
     // Disable eval explicitly: hardens against malicious PDFs (CVE-2024-4367-class).
-    const pdf = await getDocumentProxy(new Uint8Array(buffer), { isEvalSupported: false });
+    const pdf = await getDocumentProxy(new Uint8Array(buffer), { isEvalSupported: false, password });
     const { text, totalPages } = await extractText(pdf, { mergePages: true });
 
     const trimmed = text.trim();
@@ -47,6 +73,7 @@ async function extractTextFromPDF({ buffer }: { buffer: Buffer }): Promise<TextE
         pageCount,
         fileType: 'pdf',
         error: 'PDF contains too little extractable text. It may be a scanned document.',
+        errorCode: 'NO_TEXT_CONTENT',
       };
     }
 
@@ -61,6 +88,7 @@ async function extractTextFromPDF({ buffer }: { buffer: Buffer }): Promise<TextE
       success: false,
       fileType: 'pdf',
       error: error instanceof Error ? error.message : 'Failed to parse PDF',
+      errorCode: classifyPdfError({ error }),
     };
   }
 }
@@ -85,6 +113,7 @@ function extractTextFromTextFile({
         pageCount: 1,
         fileType,
         error: 'File contains too little text to extract transactions.',
+        errorCode: 'NO_TEXT_CONTENT',
       };
     }
 
@@ -99,6 +128,7 @@ function extractTextFromTextFile({
       success: false,
       fileType,
       error: error instanceof Error ? error.message : 'Failed to read text file',
+      errorCode: 'PARSE_FAILED',
     };
   }
 }
@@ -110,13 +140,16 @@ function extractTextFromTextFile({
 export async function extractTextFromFile({
   buffer,
   fileType,
+  password,
 }: {
   buffer: Buffer;
   fileType: StatementFileType;
+  /** Document password, only meaningful for encrypted PDFs */
+  password?: string;
 }): Promise<TextExtractionResult> {
   switch (fileType) {
     case 'pdf':
-      return extractTextFromPDF({ buffer });
+      return extractTextFromPDF({ buffer, password });
     case 'csv':
     case 'txt':
       return extractTextFromTextFile({ buffer, fileType });

@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div class="@container/statement-upload space-y-6">
     <FileDropzone
       v-model="pickedFile"
       accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain"
@@ -28,7 +28,30 @@
 
     <Callout v-if="store.estimateError" variant="destructive">
       {{ store.estimateError }}
-      <Button variant="ghost" size="sm" class="mt-2" @click="handleEstimate">
+
+      <div
+        v-if="isPasswordRequired"
+        class="mt-3 flex flex-col gap-3 @sm/statement-upload:flex-row @sm/statement-upload:items-end"
+      >
+        <div class="flex-1">
+          <InputField
+            v-model="password"
+            type="password"
+            :label="$t('pages.statementParser.uploadExtract.pdfPasswordLabel')"
+            :placeholder="$t('pages.statementParser.uploadExtract.pdfPasswordPlaceholder')"
+            :disabled="store.isEstimating"
+            @keyup.enter.stop="handlePasswordSubmit"
+          />
+        </div>
+        <Button :disabled="!password || store.isEstimating" @click="handlePasswordSubmit">
+          <template v-if="store.isEstimating">
+            <Loader2Icon class="size-4 animate-spin" />
+          </template>
+          {{ $t('pages.statementParser.uploadExtract.pdfPasswordSubmit') }}
+        </Button>
+      </div>
+
+      <Button v-else variant="ghost" size="sm" class="mt-2" @click="handleEstimate">
         {{ $t('pages.statementParser.uploadExtract.tryAgain') }}
       </Button>
     </Callout>
@@ -137,6 +160,7 @@
 import AiEstimatedCost from '@/components/common/ai-estimated-cost.vue';
 import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
 import { FileDropzone } from '@/components/common/dropzone';
+import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { useStatementParserStore } from '@/stores/statement-parser';
@@ -153,8 +177,13 @@ const store = useStatementParserStore();
 const fileError = ref<string | null>(null);
 const extractionStatus = ref('Extracting...');
 const extractionProgress = ref(0);
+const password = ref('');
 
 const droppedRowCount = computed(() => store.extractionResult?.droppedRowCount ?? 0);
+
+const isPasswordRequired = computed(
+  () => store.estimateErrorCode === 'PASSWORD_REQUIRED' || store.estimateErrorCode === 'PASSWORD_INVALID',
+);
 
 // Validation runs async, so we keep the dropzone reflecting the store's
 // authoritative file (only updated after validation passes). The setter
@@ -162,6 +191,8 @@ const droppedRowCount = computed(() => store.extractionResult?.droppedRowCount ?
 const pickedFile = computed<File | null>({
   get: () => store.uploadedFile,
   set: (file) => {
+    password.value = '';
+
     if (file === null) {
       store.reset();
       fileError.value = null;
@@ -214,6 +245,13 @@ async function validateAndSetFile(file: File) {
 }
 
 async function handleEstimate() {
+  await store.estimateCost();
+}
+
+async function handlePasswordSubmit() {
+  if (!password.value) return;
+
+  store.setDocumentPassword({ password: password.value });
   await store.estimateCost();
 }
 

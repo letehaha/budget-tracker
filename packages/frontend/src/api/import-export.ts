@@ -8,8 +8,9 @@ import type {
   ExecuteImportResponse,
   ExtractUniqueValuesResponse,
   StatementCostEstimate,
+  StatementCostEstimateFailure,
+  StatementExtractRequest,
   StatementExtractionResult,
-  StatementFileType,
 } from '@bt/shared/types';
 
 interface ParseCsvRequest {
@@ -58,37 +59,12 @@ export const getCsvImportStatus = async ({ jobId }: { jobId: string }): Promise<
 
 // Statement Parser API (supports PDF, CSV, TXT)
 
-interface StatementCostEstimateRequest {
-  fileBase64: string;
-}
-
-export interface StatementCostEstimateFailure {
-  success: false;
-  textExtraction: {
-    success: false;
-    characterCount: number;
-    pageCount: number;
-    error?: string;
-  };
-  fileType: StatementFileType;
-  suggestion: string;
-  error?: {
-    code: string;
-    message: string;
-    details?: string;
-  };
-}
-
 export const estimateStatementCost = async (
-  payload: StatementCostEstimateRequest,
+  payload: StatementExtractRequest,
 ): Promise<StatementCostEstimate | StatementCostEstimateFailure> => {
   const result = await api.post('/import/text-source/estimate-cost', payload);
   return result;
 };
-
-interface StatementExtractRequest {
-  fileBase64: string;
-}
 
 export const extractStatementTransactions = async (
   payload: StatementExtractRequest,

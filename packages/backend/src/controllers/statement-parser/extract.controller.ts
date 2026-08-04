@@ -1,12 +1,15 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
-import { UnexpectedError } from '@js/errors';
+import { UnexpectedError, ValidationError } from '@js/errors';
 import {
   extractTextFromFile,
   extractTransactionsWithAI,
+  resolveTextExtractionSuggestion,
   validateFileBuffer,
 } from '@services/import-export/statement-parser';
 import { z } from 'zod';
+
+import { documentPasswordSchema } from './shared-schemas';
 
 /**
  * Extract transactions from a statement file using AI
@@ -19,11 +22,12 @@ export const extractController = createController(
     body: z.object({
       /** Base64 encoded file */
       fileBase64: z.string().min(1, t({ key: 'statementParser.fileContentRequired' })),
+      password: documentPasswordSchema,
     }),
   }),
   async ({ user, body }) => {
     try {
-      const { fileBase64 } = body;
+      const { fileBase64, password } = body;
 
       // Debug logging
       console.log('[Statement Parser] Extract - Base64 length:', fileBase64.length);
@@ -50,7 +54,7 @@ export const extractController = createController(
 
       // Extract text from file
       console.log('[Statement Parser] Extract - Starting text extraction...');
-      const textResult = await extractTextFromFile({ buffer: fileBuffer, fileType });
+      const textResult = await extractTextFromFile({ buffer: fileBuffer, fileType, password });
       console.log('[Statement Parser] Extract - Text extraction result:', {
         success: textResult.success,
         textLength: textResult.text?.length,
@@ -60,13 +64,15 @@ export const extractController = createController(
       });
 
       if (!textResult.success) {
-        throw new UnexpectedError({
-          message:
-            textResult.error ??
-            (fileType === 'pdf'
-              ? t({ key: 'statementParser.failedToExtractTextPdf' })
-              : t({ key: 'statementParser.failedToExtractText' })),
-        });
+        const message = resolveTextExtractionSuggestion({ fileType, errorCode: textResult.errorCode });
+
+        // A missing or wrong password is fixed by the user retyping it, so it must
+        // not read as a server fault (which would also page us through Sentry).
+        if (textResult.errorCode === 'PASSWORD_REQUIRED' || textResult.errorCode === 'PASSWORD_INVALID') {
+          throw new ValidationError({ message });
+        }
+
+        throw new UnexpectedError({ message });
       }
 
       // Extract transactions using AI

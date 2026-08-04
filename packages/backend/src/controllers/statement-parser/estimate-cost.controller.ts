@@ -1,12 +1,16 @@
+import type { StatementCostEstimateFailure } from '@bt/shared/types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { UnexpectedError } from '@js/errors';
 import {
   estimateExtractionCost,
   extractTextFromFile,
+  resolveTextExtractionSuggestion,
   validateFileBuffer,
 } from '@services/import-export/statement-parser';
 import { z } from 'zod';
+
+import { documentPasswordSchema } from './shared-schemas';
 
 /**
  * Estimate the cost of extracting transactions from a statement file
@@ -19,11 +23,12 @@ export const estimateCostController = createController(
     body: z.object({
       /** Base64 encoded file */
       fileBase64: z.string().min(1, t({ key: 'statementParser.fileContentRequired' })),
+      password: documentPasswordSchema,
     }),
   }),
   async ({ user, body }) => {
     try {
-      const { fileBase64 } = body;
+      const { fileBase64, password } = body;
 
       // Debug logging
       console.log('[Statement Parser] Base64 prefix:', fileBase64.substring(0, 50));
@@ -50,7 +55,7 @@ export const estimateCostController = createController(
       }
 
       // Extract text from file
-      const textResult = await extractTextFromFile({ buffer: fileBuffer, fileType });
+      const textResult = await extractTextFromFile({ buffer: fileBuffer, fileType, password });
 
       if (!textResult.success) {
         // Text extraction failed
@@ -62,13 +67,11 @@ export const estimateCostController = createController(
               characterCount: textResult.text?.length ?? 0,
               pageCount: textResult.pageCount ?? 1,
               error: textResult.error,
+              errorCode: textResult.errorCode,
             },
             fileType,
-            suggestion:
-              fileType === 'pdf'
-                ? t({ key: 'statementParser.textExtractionFailed' })
-                : t({ key: 'statementParser.failedToExtractText' }),
-          },
+            suggestion: resolveTextExtractionSuggestion({ fileType, errorCode: textResult.errorCode }),
+          } satisfies StatementCostEstimateFailure,
         };
       }
 
@@ -93,8 +96,8 @@ export const estimateCostController = createController(
                 pageCount: textResult.pageCount!,
               },
               fileType,
-              suggestion: costResult.error.details,
-            },
+              suggestion: costResult.error.details ?? costResult.error.message,
+            } satisfies StatementCostEstimateFailure,
           };
         }
 

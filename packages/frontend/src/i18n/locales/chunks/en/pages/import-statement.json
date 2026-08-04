@@ -69,7 +69,10 @@
           "almostDone": "Almost done..."
         },
         "tokenFormat": "{inputTokens}K input, ~{outputTokens}K output",
-        "fileSize": "{size} KB"
+        "fileSize": "{size} KB",
+        "pdfPasswordLabel": "PDF password",
+        "pdfPasswordPlaceholder": "Enter the document password",
+        "pdfPasswordSubmit": "Unlock and analyze"
       },
       "accountSelect": {
         "newlyCreated": "(newly created)",

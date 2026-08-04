@@ -286,8 +286,10 @@
     "invalidFile": "Invalid file",
     "textExtractionFailed": "Text extraction failed. The PDF may be a scanned document. Image-based extraction is not yet implemented.",
     "failedToExtractText": "Failed to extract text from file.",
-    "failedToExtractTextPdf": "Failed to extract text from PDF. It may be a scanned document.",
-    "fileContentRequired": "File content is required"
+    "fileContentRequired": "File content is required",
+    "pdfPasswordRequired": "This PDF is password-protected. Enter the document password to continue.",
+    "pdfPasswordInvalid": "The password you entered is incorrect. Check it and try again.",
+    "pdfParseFailed": "Could not read this PDF. The file may be corrupted or use an unsupported format."
   },
   "currencies": {
     "notSupportedForBaseCurrency": "Changing base currency to {{currency}} is not supported. Only these currencies are supported: {{supportedCurrencies}}.",
