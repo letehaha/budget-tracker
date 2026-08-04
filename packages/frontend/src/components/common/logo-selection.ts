@@ -30,6 +30,26 @@ export const toLogoPayload = ({ selection }: { selection: LogoSelection | null }
   return { logoInitials: selection.initials, logoColor: selection.color };
 };
 
+/**
+ * Maps a selection onto mutation fields, contributing no keys when nothing was
+ * picked. Present-null keys stamp logoSource 'manual', so an untouched picker
+ * has to stay out of the payload entirely rather than send explicit nulls.
+ */
+export const toOptionalLogoPayload = ({
+  selection,
+}: {
+  selection: LogoSelection | null | undefined;
+}): EntityLogoPayload => (selection ? toLogoPayload({ selection }) : {});
+
+/**
+ * Structural identity of a selection. Refetches rebuild the entity object, so
+ * comparing selections by reference would report spurious changes.
+ */
+export const logoSelectionKey = ({ selection }: { selection: LogoSelection | null }): string => {
+  if (!selection) return 'none';
+  return selection.kind === 'brand' ? `brand:${selection.domain}` : `monogram:${selection.initials}:${selection.color}`;
+};
+
 /** Splits a selection into the props BrandLogo renders. */
 export const toLogoDisplayProps = ({ selection }: { selection: LogoSelection | null }) => ({
   domain: selection?.kind === 'brand' ? selection.domain : null,

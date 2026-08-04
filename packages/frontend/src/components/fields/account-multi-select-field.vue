@@ -65,6 +65,7 @@
                 @click="toggleAccount(account)"
               >
                 <Checkbox :model-value="isSelected(account)" @click.stop @update:model-value="toggleAccount(account)" />
+                <AccountLogo :account="account" class="size-5 shrink-0" />
                 <span class="min-w-0 flex-1 truncate text-sm">{{ account.name }}</span>
                 <span class="text-muted-foreground shrink-0 text-xs">{{ account.currencyCode }}</span>
               </div>
@@ -87,6 +88,7 @@
               @click="toggleAccount(account)"
             >
               <Checkbox :model-value="isSelected(account)" @click.stop @update:model-value="toggleAccount(account)" />
+              <AccountLogo :account="account" class="size-5 shrink-0" />
               <span class="min-w-0 flex-1 truncate text-sm">{{ account.name }}</span>
               <span class="text-muted-foreground shrink-0 text-xs">{{ account.currencyCode }}</span>
             </div>
@@ -98,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import AccountLogo from '@/components/common/account-logo.vue';
 import MultiSelectField from '@/components/fields/multi-select-field.vue';
 import { Checkbox, type CheckedState } from '@/components/lib/ui/checkbox';
 import { Collapsible, CollapsibleContent } from '@/components/lib/ui/collapsible';

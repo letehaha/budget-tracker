@@ -213,6 +213,7 @@
       "editAriaLabel": "Edit logo",
       "dialogTitle": "Change logo",
       "resetToAuto": "Reset to automatic",
+      "remove": "Remove logo",
       "lettersLabel": "Letters (1–2)",
       "lettersPlaceholder": "AB",
       "colorLabel": "Color",
@@ -226,9 +227,9 @@
     "create": {
       "error": "Failed to create the group"
     },
-    "rename": {
-      "success": "Group has been renamed",
-      "error": "Failed to rename the group"
+    "update": {
+      "success": "Group updated",
+      "error": "Failed to update group"
     },
     "delete": {
       "success": "Group has been deleted",

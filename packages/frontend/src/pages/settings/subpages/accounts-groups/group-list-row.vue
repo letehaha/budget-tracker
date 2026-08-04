@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import BankConnectionLogo from '@/components/common/bank-connection-logo.vue';
+import GroupLogo from '@/components/common/group-logo.vue';
 import { Button } from '@/components/lib/ui/button';
 import GroupTotal from '@/components/sidebar/accounts-view/group-total.vue';
 import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { cn } from '@/lib/utils';
 import { goToConnectionDetails } from '@/routes/navigation';
-import { ChevronDownIcon, FolderIcon, LandmarkIcon, Settings2Icon } from '@lucide/vue';
+import { ChevronDownIcon, Settings2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import type { AccountGroupListItem } from './build-account-group-list';
 import DeleteGroup from './group-row/delete-group.vue';
+import EditGroupForm from './group-row/edit-group-form.vue';
 import GroupAccountRow from './group-row/group-account-row.vue';
-import RenameGroupForm from './group-row/rename-group-form.vue';
 
 const props = defineProps<{ item: AccountGroupListItem; expanded: boolean }>();
 
@@ -61,19 +61,7 @@ const subtitle = computed(() => {
       @click="emit('toggle')"
     >
       <div class="flex min-w-0 items-center gap-3">
-        <div class="bg-muted flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg">
-          <BankConnectionLogo
-            v-if="isBankLinked"
-            :connection-id="group.bankDataProviderConnectionId"
-            :alt="group.name"
-            size="size-5"
-          >
-            <template #fallback>
-              <LandmarkIcon class="text-muted-foreground size-4.5" aria-hidden="true" />
-            </template>
-          </BankConnectionLogo>
-          <FolderIcon v-else class="text-muted-foreground size-4.5" aria-hidden="true" />
-        </div>
+        <GroupLogo :group="group" size="size-9" variant="tile" />
 
         <div class="min-w-0">
           <div class="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -112,7 +100,7 @@ const subtitle = computed(() => {
     </button>
 
     <div v-if="expanded" class="border-border/60 bg-muted/20 border-t px-4 py-4">
-      <RenameGroupForm :group="group" />
+      <EditGroupForm :group="group" />
 
       <div class="bg-border/60 my-4 h-px w-full" />
 

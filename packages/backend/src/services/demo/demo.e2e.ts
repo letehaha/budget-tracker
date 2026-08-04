@@ -20,6 +20,7 @@ import Users from '@models/users.model';
 import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { clearMockSession, registerMockSession } from '@tests/mocks/better-auth';
 
+import { DEMO_ACCOUNT_GROUPS } from './seed-account-groups.service';
 import { allDemoPayeeMerchants } from './template/merchants';
 
 /**
@@ -232,6 +233,34 @@ describe('Demo Mode', () => {
       // Verify currencies on the cash accounts
       const currencyCodes = cashAccounts.map((a: { currencyId: number }) => a.currencyId);
       expect(currencyCodes.length).toBe(4);
+
+      // Every cash account ships with a logo: a brand domain for the bank-backed
+      // ones, a monogram for Cash. Expectations are literals — reading them from
+      // the config the seeder consumes passes even with the logo removed.
+      const seededLogos = (
+        cashAccounts as {
+          name: string;
+          logoDomain: string | null;
+          logoInitials: string | null;
+          logoColor: string | null;
+        }[]
+      ).map(({ name, logoDomain, logoInitials, logoColor }) => ({ name, logoDomain, logoInitials, logoColor }));
+
+      expect(seededLogos).toEqual(
+        expect.arrayContaining([
+          { name: 'Main Checking', logoDomain: 'chase.com', logoInitials: null, logoColor: null },
+          { name: 'Savings', logoDomain: 'ally.com', logoInitials: null, logoColor: null },
+          { name: 'Travel Card', logoDomain: 'revolut.com', logoInitials: null, logoColor: null },
+          { name: 'Cash', logoDomain: null, logoInitials: 'zł', logoColor: '#16a34a' },
+        ]),
+      );
+
+      // The seeder writes through the service, skipping the zod normalization the
+      // API applies, so an uppercase hex would reach the frontend unmatched by
+      // its lowercase preset swatches.
+      for (const { logoColor } of seededLogos) {
+        if (logoColor !== null) expect(logoColor).toMatch(/^#[0-9a-f]{6}$/);
+      }
     });
 
     it('seeds transactions spanning 2.5 years', async () => {
@@ -671,9 +700,27 @@ describe('Demo Mode', () => {
 
       expect(groups.length).toBeGreaterThanOrEqual(3);
 
-      const typedGroups = groups as { name: string; accounts: { id: string }[] }[];
+      const typedGroups = groups as {
+        name: string;
+        accounts: { id: string }[];
+        logoInitials: string | null;
+        logoColor: string | null;
+      }[];
       const populated = typedGroups.filter((group) => group.accounts.length > 0);
       expect(populated.length).toBeGreaterThanOrEqual(3);
+
+      // Each configured group is seeded with its exact monogram. Both logo fields
+      // are required in the config, so dropping one is a type error rather than a
+      // silently passing test.
+      expect(populated.map(({ name, logoInitials, logoColor }) => ({ name, logoInitials, logoColor }))).toEqual(
+        expect.arrayContaining(
+          DEMO_ACCOUNT_GROUPS.map(({ name, logoInitials, logoColor }) => ({ name, logoInitials, logoColor })),
+        ),
+      );
+
+      for (const group of populated) {
+        expect(group.logoColor).toMatch(/^#[0-9a-f]{6}$/);
+      }
 
       // Each of the 4 cash accounts lands in exactly one group.
       const groupedAccountIds = new Set(typedGroups.flatMap((group) => group.accounts.map((account) => account.id)));

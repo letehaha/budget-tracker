@@ -2,6 +2,9 @@
 import { createAccount } from '@/api';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const/account-categories-verbose';
+import AccountLogo from '@/components/common/account-logo.vue';
+import { type LogoSelection, toOptionalLogoPayload } from '@/components/common/logo-selection';
+import LogoSquareField from '@/components/common/logo-square-field.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -45,13 +48,24 @@ const form = reactive<{
   accountCategory: ACCOUNT_CATEGORIES;
   initialBalance: number;
   creditLimit: number;
+  /** Chosen brand or monogram. null = no logo; the account renders its account-type chip (accounts have no auto-resolution). */
+  logo: LogoSelection | null;
 }>({
   name: '',
   currencyCode: String(defaultCurrency.value),
   accountCategory: defaultAccountCategory,
   initialBalance: 0,
   creditLimit: 0,
+  logo: null,
 });
+
+const logoPlaceholderAccount = computed(() => ({
+  name: form.name,
+  logoDomain: null,
+  logoInitials: null,
+  logoColor: null,
+  accountCategory: form.accountCategory,
+}));
 
 const selectableAccountCategories = computed(() =>
   Object.entries(ACCOUNT_CATEGORIES_TRANSLATION_KEYS).filter(
@@ -71,6 +85,7 @@ const submit = async () => {
       accountCategory: form.accountCategory,
       creditLimit: form.creditLimit,
       initialBalance: form.initialBalance,
+      ...toOptionalLogoPayload({ selection: form.logo }),
     });
 
     trackAnalyticsEvent({
@@ -95,9 +110,9 @@ const submit = async () => {
     useOnboardingStore().completeTask('create-account');
 
     emit('created');
-  } catch {
+  } catch (error) {
     addNotification({
-      text: t('forms.createAccount.notifications.error'),
+      text: error instanceof Error ? error.message : t('forms.createAccount.notifications.error'),
       type: NotificationType.error,
     });
   }
@@ -106,11 +121,26 @@ const submit = async () => {
 
 <template>
   <form class="grid gap-6" @submit.prevent="submit">
-    <input-field
-      v-model="form.name"
-      :label="$t('forms.createAccount.nameLabel')"
-      :placeholder="$t('forms.createAccount.namePlaceholder')"
-    />
+    <div class="flex items-start gap-3">
+      <div class="min-w-0 flex-1">
+        <input-field
+          v-model="form.name"
+          :label="$t('forms.createAccount.nameLabel')"
+          :placeholder="$t('forms.createAccount.namePlaceholder')"
+        />
+      </div>
+      <LogoSquareField
+        v-model="form.logo"
+        :name-for-search="form.name"
+        :reset-label="$t('common.logo.remove')"
+        size-class="size-10 rounded-lg"
+        align="with-labeled-field"
+      >
+        <template #placeholder>
+          <AccountLogo :account="logoPlaceholderAccount" class="size-10 rounded-lg" />
+        </template>
+      </LogoSquareField>
+    </div>
 
     <div>
       <FieldLabel :label="$t('forms.createAccount.currencyLabel')">

@@ -1,5 +1,7 @@
 import * as api from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import type { LogoSelection } from '@/components/common/logo-selection';
+import LogoSquareField from '@/components/common/logo-square-field.vue';
 import * as Select from '@/components/lib/ui/select';
 import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { createTestingPinia } from '@pinia/testing';
@@ -101,6 +103,17 @@ const submitForm = async ({ wrapper }: { wrapper: Awaited<ReturnType<typeof moun
     const submitBtn = wrapper.find('button[type="submit"]');
     expect(submitBtn.attributes('disabled')).toBeUndefined();
   });
+};
+
+const pickLogo = async ({
+  wrapper,
+  selection,
+}: {
+  wrapper: Awaited<ReturnType<typeof mountComponent>>['wrapper'];
+  selection: LogoSelection;
+}) => {
+  wrapper.findComponent(LogoSquareField).vm.$emit('update:modelValue', selection);
+  await wrapper.vm.$nextTick();
 };
 
 const createAccountMock = vi.mocked(api.createAccount);
@@ -340,6 +353,52 @@ describe('CreateAccountForm', () => {
 
       // Clean up: resolve the pending promise to avoid unhandled rejection
       resolveCreateAccount!({} as Awaited<ReturnType<typeof api.createAccount>>);
+    });
+  });
+
+  describe('7. Logo picker shapes the payload', () => {
+    it('omits every logo key when the picker is untouched', async () => {
+      const { wrapper } = await mountComponent();
+
+      const nameInput = wrapper.find<HTMLInputElement>('input:not([type="number"])');
+      await nameInput.setValue('No Logo Account');
+
+      await submitForm({ wrapper });
+
+      const payload = createAccountMock.mock.calls[0]![0];
+      // Present-null keys would stamp logoSource 'manual' on every new account.
+      expect(payload).not.toHaveProperty('logoDomain');
+      expect(payload).not.toHaveProperty('logoInitials');
+      expect(payload).not.toHaveProperty('logoColor');
+    });
+
+    it('sends logoDomain when a brand is picked', async () => {
+      const { wrapper } = await mountComponent();
+
+      const nameInput = wrapper.find<HTMLInputElement>('input:not([type="number"])');
+      await nameInput.setValue('Monobank');
+      await pickLogo({ wrapper, selection: { kind: 'brand', domain: 'monobank.ua' } });
+
+      await submitForm({ wrapper });
+
+      const payload = createAccountMock.mock.calls[0]![0];
+      expect(payload).toEqual(expect.objectContaining({ logoDomain: 'monobank.ua' }));
+      expect(payload).not.toHaveProperty('logoInitials');
+      expect(payload).not.toHaveProperty('logoColor');
+    });
+
+    it('sends logoInitials and logoColor when a monogram is picked', async () => {
+      const { wrapper } = await mountComponent();
+
+      const nameInput = wrapper.find<HTMLInputElement>('input:not([type="number"])');
+      await nameInput.setValue('My Savings');
+      await pickLogo({ wrapper, selection: { kind: 'monogram', initials: 'MS', color: '#7355be' } });
+
+      await submitForm({ wrapper });
+
+      const payload = createAccountMock.mock.calls[0]![0];
+      expect(payload).toEqual(expect.objectContaining({ logoInitials: 'MS', logoColor: '#7355be' }));
+      expect(payload).not.toHaveProperty('logoDomain');
     });
   });
 });

@@ -5,6 +5,14 @@
       "notFound": "Account not found",
       "notFoundDescription": "The account you're looking for doesn't exist or has been deleted.",
       "goToAccounts": "Go to Accounts",
+      "logo": {
+        "change": "Change logo",
+        "dialogTitle": "Account logo",
+        "dialogDescription": "Search for a brand logo or pick custom letters.",
+        "updatedToast": "Account logo updated",
+        "resetToast": "Logo removed",
+        "error": "Failed to update account logo"
+      },
       "header": {
         "updateSuccess": "Account data changed successfully",
         "updateError": "An error occured while trying to update account",

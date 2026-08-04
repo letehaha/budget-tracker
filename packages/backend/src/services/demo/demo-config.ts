@@ -10,8 +10,7 @@ const EXCHANGE_RATES: { EUR: number; PLN: number; [currencyCode: string]: number
   PLN: 4.0,
 };
 
-/** One of the demo's cash accounts. `key` is the identity every other file addresses it by. */
-interface DemoAccountConfig {
+interface DemoAccountBase {
   key: string;
   name: string;
   currency: string;
@@ -19,6 +18,21 @@ interface DemoAccountConfig {
   initialBalance: number;
   creditLimit: number;
 }
+
+/**
+ * One of the demo's cash accounts. `key` is the identity every other file
+ * addresses it by. Logos follow the same convention as demo subscriptions:
+ * a real brand domain where one fits, a monogram where the account has no brand
+ * behind it. The three logo shapes are exclusive – a domain and initials fill
+ * the same slot, and a color with no initials to paint behind is rejected by
+ * the write path.
+ */
+export type DemoAccountConfig = DemoAccountBase &
+  (
+    | { logoDomain: string; logoInitials?: never; logoColor?: never }
+    | { logoDomain?: never; logoInitials: string; logoColor: string }
+    | { logoDomain?: never; logoInitials?: never; logoColor?: never }
+  );
 
 /**
  * The demo's accounts, currencies and FX, budgets and subscriptions.
@@ -41,6 +55,7 @@ export const DEMO_CONFIG = {
       type: ACCOUNT_CATEGORIES.currentAccount,
       initialBalance: 500000, // $5,000 in cents
       creditLimit: 0,
+      logoDomain: 'chase.com',
     },
     {
       key: 'savings',
@@ -49,6 +64,7 @@ export const DEMO_CONFIG = {
       type: ACCOUNT_CATEGORIES.saving,
       initialBalance: 1200000, // $12,000 in cents
       creditLimit: 0,
+      logoDomain: 'ally.com',
     },
     {
       key: 'travel_card',
@@ -57,6 +73,7 @@ export const DEMO_CONFIG = {
       type: ACCOUNT_CATEGORIES.creditCard,
       initialBalance: 0,
       creditLimit: 300000, // €3,000 limit
+      logoDomain: 'revolut.com',
     },
     {
       key: 'cash',
@@ -65,6 +82,8 @@ export const DEMO_CONFIG = {
       type: ACCOUNT_CATEGORIES.cash,
       initialBalance: 50000, // 500 PLN in cents
       creditLimit: 0,
+      logoInitials: 'zł',
+      logoColor: '#16a34a',
     },
   ] as const satisfies readonly DemoAccountConfig[],
   /**

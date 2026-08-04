@@ -11,16 +11,7 @@
             aria-hidden="true"
           />
 
-          <AccountGroupName
-            v-if="group.bankDataProviderConnectionId"
-            :group="group"
-            icon-size="size-7"
-            class="min-w-0 text-sm font-semibold"
-          />
-          <template v-else>
-            <FolderIcon class="text-muted-foreground size-5 shrink-0" aria-hidden="true" />
-            <span class="truncate text-sm font-semibold">{{ group.name }}</span>
-          </template>
+          <AccountGroupName :group="group" icon-size="size-7" icon-rounded="lg" class="min-w-0 text-sm font-semibold" />
         </CollapsibleTrigger>
 
         <AccountConnectionStatusBadge
@@ -74,7 +65,7 @@ import { collectGroupAccounts } from '@/components/sidebar/accounts-view/helpers
 import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { goToConnectionDetails } from '@/routes/navigation';
-import { ChevronRightIcon, FolderIcon, Settings2Icon } from '@lucide/vue';
+import { ChevronRightIcon, Settings2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 

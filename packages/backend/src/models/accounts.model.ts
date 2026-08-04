@@ -3,6 +3,7 @@ import {
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
   type AccountExternalData,
+  type EntityLogoPayload,
   RecordId,
 } from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
@@ -37,6 +38,9 @@ interface AccountsAttributes {
   status: ACCOUNT_STATUSES;
   excludeFromStats: boolean;
   bankDataProviderConnectionId?: string; // FK to BankDataProviderConnections
+  logoDomain: string | null;
+  logoInitials: string | null;
+  logoColor: string | null;
 }
 
 @Table({
@@ -141,6 +145,28 @@ export default class Accounts extends Model {
   })
   bankDataProviderConnectionId!: RecordId;
 
+  @Column({
+    type: DataType.STRING(253),
+    allowNull: true,
+  })
+  logoDomain!: string | null;
+
+  // 1-2 graphemes rendered as a monogram instead of a logo.dev image. 16 chars
+  // because one grapheme can span many code points; the count is enforced in Zod.
+  @Column({
+    type: DataType.STRING(16),
+    allowNull: true,
+  })
+  logoInitials!: string | null;
+
+  // '#rrggbb' lowercase, the monogram background. Only meaningful alongside
+  // logoInitials; null there falls back to the primary tint.
+  @Column({
+    type: DataType.STRING(7),
+    allowNull: true,
+  })
+  logoColor!: string | null;
+
   @AfterCreate
   static async updateAccountBalanceAfterCreate(instance: Accounts) {
     await Balances.handleAccountChange({ account: instance });
@@ -185,7 +211,7 @@ export const getAccountById = async ({
   return account;
 };
 
-export interface CreateAccountPayload {
+export interface CreateAccountPayload extends EntityLogoPayload {
   externalId?: AccountsAttributes['externalId'];
   externalData?: AccountsAttributes['externalData'];
   status?: AccountsAttributes['status'];
@@ -226,7 +252,7 @@ export const createAccount = async ({
   return account;
 };
 
-export interface UpdateAccountByIdPayload {
+export interface UpdateAccountByIdPayload extends EntityLogoPayload {
   id: AccountsAttributes['id'];
   userId: AccountsAttributes['userId'];
   externalId?: AccountsAttributes['externalId'];

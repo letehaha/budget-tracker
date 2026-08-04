@@ -36,13 +36,19 @@
                right); the still-loading opposite leg is a placeholder. -->
           <div class="mb-1 flex items-center gap-1.5">
             <div v-if="ownLegIsIncome" class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
-            <span v-else class="text-sm font-medium tracking-wide">
-              {{ accountFrom?.name }}
-            </span>
+            <template v-else>
+              <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
+              <span class="text-sm font-medium tracking-wide">
+                {{ accountFrom?.name }}
+              </span>
+            </template>
             <ArrowRight :size="14" class="opacity-60" />
-            <span v-if="ownLegIsIncome" class="text-sm font-medium tracking-wide">
-              {{ accountFrom?.name }}
-            </span>
+            <template v-if="ownLegIsIncome">
+              <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
+              <span class="text-sm font-medium tracking-wide">
+                {{ accountFrom?.name }}
+              </span>
+            </template>
             <div v-else class="h-4 w-20 animate-pulse rounded bg-white/10"></div>
           </div>
           <div class="flex items-center gap-3 text-sm">
@@ -56,14 +62,20 @@
         <template v-else-if="shouldShowGroupedTransfer">
           <!-- Grouped transfer: show account movement on top with better styling -->
           <div class="mb-1 flex items-center gap-1.5">
-            <span class="line-clamp-1 min-w-17 text-sm font-medium tracking-wide">
-              {{ transferFromAccount?.name }}
-            </span>
-            <ArrowRight :size="14" class="opacity-60" />
+            <div class="flex min-w-17 items-center gap-1.5">
+              <AccountLogo v-if="transferFromAccount" :account="transferFromAccount" class="size-5 shrink-0" />
+              <span class="line-clamp-1 text-sm font-medium tracking-wide">
+                {{ transferFromAccount?.name }}
+              </span>
+            </div>
+            <ArrowRight :size="14" class="shrink-0 opacity-60" />
             <HandCoinsIcon v-if="isLoanDestination" :size="14" class="text-app-transfer-color shrink-0" />
-            <span class="line-clamp-1 min-w-17 text-sm font-medium tracking-wide">
-              {{ transferToAccount?.name }}
-            </span>
+            <div class="flex min-w-17 items-center gap-1.5">
+              <AccountLogo v-if="transferToAccount" :account="transferToAccount" class="size-5 shrink-0" />
+              <span class="line-clamp-1 text-sm font-medium tracking-wide">
+                {{ transferToAccount?.name }}
+              </span>
+            </div>
           </div>
           <!-- Show both amounts on bottom with better spacing and typography -->
           <div class="flex items-center gap-3 text-sm">
@@ -74,6 +86,7 @@
         </template>
         <template v-else-if="isPortfolioLinked">
           <div class="flex items-center gap-1.5">
+            <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
             <span class="line-clamp-1 text-sm tracking-wider">
               {{ accountFrom?.name }}
             </span>
@@ -94,9 +107,13 @@
           </div>
         </template>
         <template v-else-if="isTransferTransaction">
-          <span class="text-sm tracking-wider whitespace-nowrap">
-            {{ accountMovement }}
-          </span>
+          <div class="flex items-center gap-1.5 text-sm tracking-wider">
+            <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
+            <span class="line-clamp-1">{{ transferFromLabel }}</span>
+            <span class="shrink-0">{{ transferSeparator }}</span>
+            <AccountLogo v-if="accountTo" :account="accountTo" class="size-5 shrink-0" />
+            <span class="line-clamp-1">{{ transferToLabel }}</span>
+          </div>
         </template>
         <template v-else>
           <div class="flex items-center gap-2">
@@ -147,6 +164,7 @@
 </template>
 
 <script lang="ts" setup>
+import AccountLogo from '@/components/common/account-logo.vue';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import DeletedBadge from '@/components/common/deleted-badge.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
@@ -275,19 +293,18 @@ const transferToAccount = computed(() =>
 
 const isLoanDestination = computed(() => transferToAccount.value?.accountCategory === ACCOUNT_CATEGORIES.loan);
 
-const accountMovement = computed(() => {
-  const separator = transaction.value.transactionType === TRANSACTION_TYPES.expense ? '=>' : '<=';
-
+const transferSeparator = computed(() =>
+  transaction.value.transactionType === TRANSACTION_TYPES.expense ? '=>' : '<=',
+);
+// Accounts can be undefined when hidden from the caller — e.g. a recipient viewing a
+// transfer on a shared account whose other side lives in an unshared private account of
+// the owner. Fall back to a labeled placeholder rather than rendering "undefined".
+const transferFromLabel = computed(() => accountFrom.value?.name ?? t('transactions.transfer.hiddenAccount'));
+const transferToLabel = computed(() => {
   if (transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
-    return `${accountFrom.value?.name} ${separator} Out of wallet`;
+    return t('common.outOfWallet');
   }
-  // accountTo can be undefined when the counterpart account is hidden from the caller —
-  // e.g. a recipient viewing a transfer on a shared account whose other side lives in an
-  // unshared private account of the owner. Fall back to a labeled placeholder rather than
-  // rendering the literal string "undefined".
-  const fromName = accountFrom.value?.name ?? t('transactions.transfer.hiddenAccount');
-  const toName = accountTo.value?.name ?? t('transactions.transfer.hiddenAccount');
-  return `${fromName} ${separator} ${toName}`;
+  return accountTo.value?.name ?? t('transactions.transfer.hiddenAccount');
 });
 
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');

@@ -15,8 +15,11 @@
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
+          <template #trigger="{ item, label }">
+            <AccountOptionRow :account="item" :label="label" variant="trigger" />
+          </template>
           <template #item="{ item, label }">
-            <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+            <AccountOptionRow :account="item" :label="label" />
           </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
@@ -51,8 +54,11 @@
           :model-value="toAccount"
           @update:model-value="updateToAccount"
         >
+          <template #trigger="{ item, label }">
+            <AccountOptionRow :account="item" :label="label" variant="trigger" />
+          </template>
           <template #item="{ item, label }">
-            <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+            <AccountOptionRow :account="item" :label="label" />
           </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
@@ -98,8 +104,11 @@
           :model-value="toAccount"
           @update:model-value="updateToAccount"
         >
+          <template #trigger="{ item, label }">
+            <AccountOptionRow :account="item" :label="label" variant="trigger" />
+          </template>
           <template #item="{ item, label }">
-            <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
+            <AccountOptionRow :account="item" :label="label" />
           </template>
         </select-field>
       </form-row>
@@ -119,8 +128,11 @@
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
+          <template #trigger="{ item, label }">
+            <AccountOptionRow :account="item" :label="label" variant="trigger" />
+          </template>
           <template #item="{ item, label }">
-            <span :class="{ 'text-muted-foreground': isAccountArchived(item) }">{{ label }}</span>
+            <AccountOptionRow :account="item" :label="label" archived-class="text-muted-foreground" />
           </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
@@ -159,7 +171,7 @@ import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
-import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
+import { getAccountDisplayLabel } from '@/common/utils/account-display';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES } from '@bt/shared/types';
 import { BriefcaseIcon, HandCoinsIcon, WalletIcon } from '@lucide/vue';
 import { type Component, computed } from 'vue';
@@ -167,6 +179,7 @@ import { useI18n } from 'vue-i18n';
 
 import { getAvailableTransferDestinationTypes } from '../helpers';
 import type { TransferDestinationType } from '../composables/transfer-form';
+import AccountOptionRow from './account-option-row.vue';
 import FormRow from './form-row.vue';
 
 const { t } = useI18n();

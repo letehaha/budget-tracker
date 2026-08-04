@@ -9,9 +9,7 @@
     "
   >
     <div class="flex min-w-0 items-center gap-3">
-      <div :class="cn('flex size-9 shrink-0 items-center justify-center rounded-lg', chipClass)" aria-hidden="true">
-        <component :is="iconComponent" class="size-[18px]" stroke-width="2" />
-      </div>
+      <AccountLogo :account="account" :category="category" class="size-9" />
       <div class="min-w-0">
         <div class="flex min-w-0 items-center gap-1.5">
           <DesktopOnlyTooltip
@@ -73,6 +71,7 @@
 
 <script setup lang="ts">
 import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const/account-categories-verbose';
+import AccountLogo from '@/components/common/account-logo.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
 import { useAccountAccess } from '@/composable/use-account-access';
@@ -80,7 +79,6 @@ import { useAccountDisplayBalance } from '@/composable/use-account-display-balan
 import { useSyncStatus } from '@/composable/use-sync-status';
 import { getCurrencyIcon } from '@/js/helpers/currencyImage';
 import { cn } from '@/lib/utils';
-import { getAccountTypeIcon, getAccountTypeTintedChipClass } from '@/pages/accounts/account-type-presentation';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useCurrenciesStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
@@ -107,8 +105,6 @@ const { isSharedWithCaller, isHouseholdGranted, ownerHandle } = useAccountAccess
 const { isAccountNeedingReauth } = useSyncStatus();
 
 const category = computed(() => props.categoryOverride ?? props.account.accountCategory);
-const chipClass = computed(() => getAccountTypeTintedChipClass({ category: category.value }));
-const iconComponent = computed(() => getAccountTypeIcon({ category: category.value }));
 
 const categoryLabel = computed(() => t(ACCOUNT_CATEGORIES_TRANSLATION_KEYS[category.value]));
 

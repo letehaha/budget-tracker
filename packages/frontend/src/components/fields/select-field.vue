@@ -150,7 +150,12 @@ watch(
       <Select.Select v-model="selectedKey" :disabled="disabled" @update:open="onOpenChange">
         <Select.SelectTrigger class="w-full" :aria-required="required || undefined">
           <Select.SelectValue :placeholder="placeholder ?? t('fields.select.selectOption')">
-            {{ displayItem ? getLabelFromValue(displayItem) : (placeholder ?? t('fields.select.selectOption')) }}
+            <template v-if="displayItem">
+              <slot name="trigger" :item="displayItem" :label="getLabelFromValue(displayItem)">
+                {{ getLabelFromValue(displayItem) }}
+              </slot>
+            </template>
+            <template v-else>{{ placeholder ?? t('fields.select.selectOption') }}</template>
           </Select.SelectValue>
           <!-- Clear button precedes SelectTrigger's built-in chevron; ml-auto pins it
                to the right edge so a long label still truncates instead of colliding. -->

@@ -29,7 +29,7 @@ import { createVentureEvent } from '@services/venture/events/create.service';
 import { createVenturePlatform } from '@services/venture/platforms/create.service';
 import { format, subMonths, subYears } from 'date-fns';
 
-import { DEMO_CONFIG, DEMO_TAGS, subcategoryMapKey } from './demo-config';
+import { DEMO_CONFIG, DEMO_TAGS, type DemoAccountConfig, subcategoryMapKey } from './demo-config';
 
 export async function setupCurrencies({ userId }: { userId: number }): Promise<void> {
   for (const currencyCode of DEMO_CONFIG.currencies) {
@@ -197,6 +197,8 @@ export async function createAccounts({ userId }: { userId: number }): Promise<Ac
   const accounts: Accounts[] = [];
 
   for (const accountConfig of DEMO_CONFIG.accounts) {
+    // Widen away the per-entry literal types so the optional logo keys exist.
+    const { logoDomain, logoInitials, logoColor }: DemoAccountConfig = accountConfig;
     const account = await accountsService.createAccount({
       userId,
       name: accountConfig.name,
@@ -205,6 +207,9 @@ export async function createAccounts({ userId }: { userId: number }): Promise<Ac
       initialBalance: Money.fromCents(accountConfig.initialBalance),
       creditLimit: Money.fromCents(accountConfig.creditLimit || 0),
       type: ACCOUNT_TYPES.system,
+      logoDomain,
+      logoInitials,
+      logoColor,
     });
     if (account) {
       accounts.push(account);
