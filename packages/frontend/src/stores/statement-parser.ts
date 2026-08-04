@@ -89,6 +89,8 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   // Step 5: Duplicate detection
   const isDetectingDuplicates = ref(false);
   const duplicates = ref<StatementDetectDuplicatesResponse['duplicates']>([]);
+  // A failed check leaves `duplicates` empty, which reads exactly like a clean statement.
+  const duplicateDetectionError = ref<string | null>(null);
   // Existing transactions in the account within the statement date range
   const existingTransactions = ref<TransactionModel[]>([]);
   // Set of transaction indices that user wants to import anyway (override duplicate detection)
@@ -249,6 +251,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
     // Reset duplicate detection when account changes
     duplicates.value = [];
+    duplicateDetectionError.value = null;
     overriddenDuplicateIndices.value = new Set();
   }
 
@@ -260,6 +263,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     selectedAccount.value = null;
     isNewAccount.value = false;
     duplicates.value = [];
+    duplicateDetectionError.value = null;
     overriddenDuplicateIndices.value = new Set();
   }
 
@@ -283,6 +287,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     if (!selectedAccount.value || !extractionResult.value) return;
 
     isDetectingDuplicates.value = true;
+    duplicateDetectionError.value = null;
     duplicates.value = [];
     existingTransactions.value = [];
 
@@ -313,8 +318,9 @@ export const useStatementParserStore = defineStore('statementParser', () => {
       // Mark duplicate review step as completed
       markStepCompleted('review');
     } catch (error) {
-      console.error('Failed to detect duplicates:', error);
-      // Continue anyway - duplicates detection is not critical
+      // A missing duplicate check does not block the import, so record the reason
+      // instead of throwing.
+      duplicateDetectionError.value = error instanceof Error ? error.message : 'Failed to check for duplicates';
     } finally {
       isDetectingDuplicates.value = false;
     }
@@ -390,6 +396,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     manualCurrency.value = null;
     isDetectingDuplicates.value = false;
     duplicates.value = [];
+    duplicateDetectionError.value = null;
     existingTransactions.value = [];
     overriddenDuplicateIndices.value = new Set();
     excludedTransactionIndices.value = new Set();
@@ -416,6 +423,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     manualCurrency,
     isDetectingDuplicates,
     duplicates,
+    duplicateDetectionError,
     existingTransactions,
     overriddenDuplicateIndices,
     excludedTransactionIndices,

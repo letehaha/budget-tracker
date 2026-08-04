@@ -1,4 +1,4 @@
-import { type APIRequestContext, expect, test } from '@playwright/test';
+import { type APIRequestContext, type Locator, type Page, expect, test } from '@playwright/test';
 
 import {
   acceptShareInvitation,
@@ -28,6 +28,23 @@ let recipientExclusiveCategoryName: string;
 let recipientOwnAcct: { id: string; name: string };
 
 test.describe.configure({ mode: 'serial' });
+
+// The account picker only mounts once the accounts store has resolved, so the generic
+// "first combobox in the dialog" would race the load and click the currency/category
+// field instead. Target the account field by its own hook and let Playwright wait.
+const openAccountPicker = async ({ dialog }: { dialog: Locator }) => {
+  const trigger = dialog.locator('[data-test="account-select-field"] button[role="combobox"]');
+  await expect(trigger).toBeVisible({ timeout: 15_000 });
+  await trigger.click();
+};
+
+const selectAccount = async ({ page, dialog, name }: { page: Page; dialog: Locator; name: string }) => {
+  await openAccountPicker({ dialog });
+  await page
+    .getByRole('option', { name: new RegExp(name, 'i') })
+    .first()
+    .click();
+};
 
 test.describe('Family sharing — recipient view', () => {
   test.beforeAll(async ({ playwright }) => {
@@ -205,7 +222,7 @@ test.describe('Family sharing — recipient view', () => {
     await expect(dialog).toBeVisible({ timeout: 10_000 });
 
     // Open the "from account" combobox.
-    await dialog.locator('button[role="combobox"]').first().click();
+    await openAccountPicker({ dialog });
 
     // Owner's truncated username appears alongside the account name.
     const truncatedHandle = `@${owner.name.slice(0, 12)}`;
@@ -226,11 +243,7 @@ test.describe('Family sharing — recipient view', () => {
     await expect(dialog).toBeVisible({ timeout: 10_000 });
 
     // Pick the shared (write/all) account.
-    await dialog.locator('button[role="combobox"]').first().click();
-    await page
-      .getByRole('option', { name: new RegExp(acctWriteAll.name, 'i') })
-      .first()
-      .click();
+    await selectAccount({ page, dialog, name: acctWriteAll.name });
 
     // Open the category picker — it should now show the owner's exclusive category.
     await dialog
@@ -255,11 +268,7 @@ test.describe('Family sharing — recipient view', () => {
     // The recipient's exclusive category must NOT show up — surfacing it would let the form
     // submit a categoryId the backend rejects with INVALID_CATEGORY (per S4 rule that
     // shared-account txs reference the owner's set).
-    await dialog.locator('button[role="combobox"]').first().click();
-    await page
-      .getByRole('option', { name: new RegExp(acctWriteAll.name, 'i') })
-      .first()
-      .click();
+    await selectAccount({ page, dialog, name: acctWriteAll.name });
 
     await dialog
       .getByLabel(/category/i)
@@ -278,11 +287,7 @@ test.describe('Family sharing — recipient view', () => {
     await expect(dialog).toBeVisible({ timeout: 10_000 });
 
     // Start on recipient's own account — recipient's category should appear.
-    await dialog.locator('button[role="combobox"]').first().click();
-    await page
-      .getByRole('option', { name: new RegExp(recipientOwnAcct.name, 'i') })
-      .first()
-      .click();
+    await selectAccount({ page, dialog, name: recipientOwnAcct.name });
 
     await dialog
       .getByLabel(/category/i)
@@ -296,11 +301,7 @@ test.describe('Family sharing — recipient view', () => {
 
     // Switch to the shared account; picker should now show the owner-exclusive category and
     // the shared-owner notice banner naming the owner.
-    await dialog.locator('button[role="combobox"]').first().click();
-    await page
-      .getByRole('option', { name: new RegExp(acctWriteAll.name, 'i') })
-      .first()
-      .click();
+    await selectAccount({ page, dialog, name: acctWriteAll.name });
 
     await dialog
       .getByLabel(/category/i)

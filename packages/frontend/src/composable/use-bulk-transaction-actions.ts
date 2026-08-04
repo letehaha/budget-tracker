@@ -25,12 +25,19 @@ export function isExternalTransaction({ tx, account }: { tx: TransactionModel; a
  * Pair it with `BulkActionDialogs`, which hosts the dialogs this state drives —
  * the views only keep their own toolbars (presentation genuinely differs).
  */
-export function useBulkTransactionActions({ getTransactions }: { getTransactions: () => TransactionModel[] }) {
+export function useBulkTransactionActions({
+  getTransactions,
+  getScopeKey,
+}: {
+  getTransactions: () => TransactionModel[];
+  getScopeKey?: () => string | undefined;
+}) {
   const { accountsRecord } = storeToRefs(useAccountsStore());
   const { isBulkSelectable, getUnselectableReason } = useBulkSelectability();
 
   const selection = useTransactionSelection({
     getTransactions,
+    getScopeKey,
     isExtraSelectable: isBulkSelectable,
   });
 

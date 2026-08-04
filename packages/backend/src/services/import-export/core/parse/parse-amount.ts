@@ -1,6 +1,9 @@
 /**
  * Parse amount string and return numeric value in cents (integer)
  * Supports various formats: 1234.56, 1,234.56, -1234.56, (1234.56)
+ *
+ * New code should use `parseDecimalAmount`, which rejects ambiguous tokens. This one always
+ * guesses: a lone comma is read as the decimal point, so `1,234` returns 123 cents.
  */
 export function parseAmount(amountStr: string): number | null {
   if (!amountStr) return null;

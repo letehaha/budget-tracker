@@ -1,8 +1,56 @@
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import { SettingsSchema } from '@models/user-settings.model';
+import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
 import * as helpers from '@tests/helpers';
+import { getTestUserId, readStoredEndpoints } from '@tests/helpers/user-settings';
+
+const SEEDED_ENDPOINT_NAME = 'Home Ollama';
+/** Link-local metadata address that the outbound URL guard rejects. */
+const SMUGGLED_BASE_URL = 'http://169.254.169.254';
+
+/** Writes an endpoint straight into settings, the state a create through the dedicated route leaves behind. */
+async function seedCustomEndpoint({ userId }: { userId: number }): Promise<void> {
+  const [settings] = await UserSettings.findOrCreate({
+    where: { userId },
+    defaults: { settings: DEFAULT_SETTINGS },
+  });
+
+  const now = new Date().toISOString();
+  settings.settings = {
+    ...settings.settings,
+    ai: {
+      ...(settings.settings.ai ?? { apiKeys: [], featureConfigs: [] }),
+      customEndpoints: [
+        {
+          id: generateRandomRecordId(),
+          name: SEEDED_ENDPOINT_NAME,
+          baseUrl: 'https://llm.example.com/v1',
+          defaultModel: 'llama3',
+          createdAt: now,
+          status: 'valid' as const,
+          lastValidatedAt: now,
+        },
+      ],
+    },
+  };
+
+  await settings.save();
+}
+
+function buildSmuggledEndpoint() {
+  const now = new Date().toISOString();
+
+  return {
+    id: 'smuggled-not-a-uuid',
+    name: 'Metadata',
+    baseUrl: SMUGGLED_BASE_URL,
+    defaultModel: 'gpt-4o-mini',
+    createdAt: now,
+    status: 'valid' as const,
+    lastValidatedAt: now,
+  };
+}
 
 describe('Patch user settings', () => {
   it('creates settings from defaults when the user has none stored yet', async () => {
@@ -183,5 +231,63 @@ describe('Patch user settings', () => {
       patch: { import: { recalculateAccountBalance: 'yes' } },
     });
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+  });
+
+  describe('ai.customEndpoints is not patchable here', () => {
+    it('drops a smuggled endpoint while still applying the rest of the patch', async () => {
+      const response = await helpers.patchUserSettings({
+        patch: {
+          includeCreditLimitInStats: true,
+          ai: { customEndpoints: [buildSmuggledEndpoint()] },
+        },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const patched = response.body.response;
+      expect(patched.includeCreditLimitInStats).toBe(true);
+      expect(patched.ai?.customEndpoints ?? []).toHaveLength(0);
+
+      const listed = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(listed).toHaveLength(0);
+
+      const stored = await readStoredEndpoints({ userId: await getTestUserId() });
+      expect(stored).toHaveLength(0);
+    });
+
+    it('keeps stored endpoints when a patch tries to replace the array', async () => {
+      const userId = await getTestUserId();
+      await seedCustomEndpoint({ userId });
+
+      const response = await helpers.patchUserSettings({
+        patch: { ai: { customEndpoints: [buildSmuggledEndpoint()] } },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const stored = await readStoredEndpoints({ userId });
+      expect(stored).toHaveLength(1);
+      expect(stored[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      expect(stored.some((endpoint) => endpoint.baseUrl === SMUGGLED_BASE_URL)).toBe(false);
+
+      const listed = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(listed).toHaveLength(1);
+      expect(listed[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+    });
+
+    it('still patches sibling ai keys and leaves stored endpoints alone', async () => {
+      const userId = await getTestUserId();
+      await seedCustomEndpoint({ userId });
+
+      const patched = await helpers.patchUserSettings({
+        raw: true,
+        patch: { ai: { customInstructions: 'Prefer concise answers' } },
+      });
+
+      expect(patched.ai?.customInstructions).toBe('Prefer concise answers');
+      expect(patched.ai?.customEndpoints).toHaveLength(1);
+
+      const stored = await readStoredEndpoints({ userId });
+      expect(stored).toHaveLength(1);
+      expect(stored[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+    });
   });
 });

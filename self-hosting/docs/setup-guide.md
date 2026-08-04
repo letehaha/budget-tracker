@@ -302,6 +302,13 @@ Let's Encrypt problems, and more – are covered in
   internally, so app and API share one origin and there is no CORS to manage.
   A separate API origin (`API_HTTP` + split-domain Traefik) remains possible
   but is opt-in.
+- **The stack knows it is self-hosted.** `docker-compose.yml` marks both
+  containers as a self-hosted install, with nothing for you to configure. Two
+  things follow from it: a custom AI endpoint may point at a model server on
+  your own network (the hosted service only allows public addresses), and
+  restoring a backup fetches your stocks' and crypto's past prices again so
+  charts cover their full history. See
+  [environment-reference.md](environment-reference.md#set-for-you).
 - **Runtime-configurable frontend image.** The published frontend image reads
   its config from env at container start (writing `window.__APP_CONFIG__` and
   rendering the CSP), so analytics keys, API target, and CSP hosts change with

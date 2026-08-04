@@ -39,6 +39,7 @@ export const ROUTES_NAMES = Object.freeze({
   transactionGroups: `${ROUTER_LAYOUTS.dashboard}.transaction-groups`,
   optimizations: `${ROUTER_LAYOUTS.dashboard}.optimizations`,
   optimizationsTransfers: `${ROUTER_LAYOUTS.dashboard}.optimizations.transfers`,
+  optimizationsAiCategorization: `${ROUTER_LAYOUTS.dashboard}.optimizations.ai-categorization`,
   settings: `${ROUTER_LAYOUTS.dashboard}.settings`,
   settingsCurrencies: `${ROUTER_LAYOUTS.dashboard}.settings.currencies`,
   settingsCategories: `${ROUTER_LAYOUTS.dashboard}.settings.categories`,
@@ -58,6 +59,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsAi: `${ROUTER_LAYOUTS.dashboard}.settings.ai`,
   settingsAiFeatures: `${ROUTER_LAYOUTS.dashboard}.settings.ai.features`,
   settingsAiKeys: `${ROUTER_LAYOUTS.dashboard}.settings.ai.keys`,
+  settingsAiEndpoints: `${ROUTER_LAYOUTS.dashboard}.settings.ai.endpoints`,
   settingsSecurity: `${ROUTER_LAYOUTS.dashboard}.settings.security`,
   settingsSecurityLoginMethods: `${ROUTER_LAYOUTS.dashboard}.settings.security.login-methods`,
   settingsSecuritySessions: `${ROUTER_LAYOUTS.dashboard}.settings.security.sessions`,
@@ -73,6 +75,7 @@ export const ROUTES_NAMES = Object.freeze({
   importStatement: `${ROUTER_LAYOUTS.dashboard}.import-statement`,
   importYnab: `${ROUTER_LAYOUTS.dashboard}.import-ynab`,
   importBudgetBakersWallet: `${ROUTER_LAYOUTS.dashboard}.import-budget-bakers-wallet`,
+  importMsMoney: `${ROUTER_LAYOUTS.dashboard}.import-ms-money`,
   notFound: `${ROUTER_LAYOUTS.dashboard}.not-found`,
 
   auth: ROUTER_LAYOUTS.auth,

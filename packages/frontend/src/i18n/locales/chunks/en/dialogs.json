@@ -134,7 +134,7 @@
         "noLoansExist": "No loans exist",
         "validation": {
           "required": "This field is required",
-          "minValue": "Amount must be greater than zero"
+          "minValue": "Amount must be 0 or greater"
         }
       },
       "refundRecordsList": {

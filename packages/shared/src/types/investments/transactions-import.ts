@@ -206,7 +206,9 @@ export interface InvestmentImportError {
     | 'AI_ERROR'
     | 'RATE_LIMITED'
     | 'TOKEN_LIMIT_EXCEEDED'
-    | 'NOT_IMPLEMENTED';
+    | 'NOT_IMPLEMENTED'
+    /** The model's reply was cut off at its output limit, so the rows are incomplete. */
+    | 'OUTPUT_TRUNCATED';
   message: string;
   details?: string;
 }

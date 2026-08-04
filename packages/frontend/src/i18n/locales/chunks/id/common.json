@@ -29,7 +29,8 @@
       "link": "Tautkan",
       "loadMore": "Muat lebih banyak",
       "clear": "Bersihkan",
-      "apply": "Terapkan"
+      "apply": "Terapkan",
+      "retry": "Coba lagi"
     },
     "ui": {
       "close": "Tutup",
@@ -187,7 +188,38 @@
       "searchError": "Tidak dapat memuat logo — coba lagi",
       "editAriaLabel": "Sunting logo",
       "dialogTitle": "Ganti logo",
-      "resetToAuto": "Kembalikan ke otomatis"
+      "resetToAuto": "Kembalikan ke otomatis",
+      "tabs": {
+        "brand": "Merek",
+        "letters": "Huruf"
+      },
+      "noResultsLettersHint": "Gunakan huruf sebagai gantinya",
+      "lettersLabel": "Huruf (1–2)",
+      "lettersPlaceholder": "AB",
+      "colorLabel": "Warna",
+      "colorSwatchAriaLabel": "Gunakan warna {color}",
+      "customColorAriaLabel": "Pilih warna khusus",
+      "applyLetters": "Terapkan",
+      "lettersSelectedLabel": "Huruf “{letters}”"
+    },
+    "resourceLease": {
+      "activeLabel": "Sesi aktif",
+      "expiredLabel": "Sesi kedaluwarsa",
+      "defaultResourceLabel": "Sumber daya ini",
+      "activeTooltip": "{resource} disimpan di server, dan ketidakaktifan sekitar {duration} masih diizinkan. Tetap gunakan agar tetap tersedia.",
+      "countingDownTooltip": "{resource} akan dilepas dalam {time} karena Anda tidak aktif. Berinteraksilah dengan halaman untuk mempertahankannya.",
+      "cappedTooltip": "{resource} akan dilepas dalam {time}. Batas maksimum durasi sesi telah tercapai, sehingga tidak dapat diperpanjang lagi.",
+      "expiredTooltip": "{resource} telah dilepas dari server. Mulai lagi untuk melanjutkan.",
+      "status": {
+        "active": "{resource} sedang dijaga agar tetap tersedia.",
+        "countingDown": "{resource} akan segera dilepas.",
+        "expired": "{resource} telah dilepas."
+      },
+      "duration": {
+        "seconds": "{count} detik",
+        "minutes": "{count} menit",
+        "hours": "{count} jam"
+      }
     }
   },
   "accountGroups": {
@@ -360,6 +392,12 @@
           }
         }
       }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(kunci API Anda)",
+      "setByEndpoint": "Ditetapkan oleh endpoint Anda"
     }
   }
 }

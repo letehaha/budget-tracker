@@ -1,8 +1,8 @@
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import Accounts from '@models/accounts.model';
-import Subscriptions from '@models/subscriptions.model';
 
 import { unlinkAccountFromBankConnection } from './unlink-from-bank-connection';
+import { unlinkSubscriptionsFromAccount } from './unlink-subscriptions-from-account';
 
 interface ArchiveAccountPayload {
   account: Accounts;
@@ -33,5 +33,5 @@ export const archiveAccount = async ({ account, userId }: ArchiveAccountPayload)
   await AccountGrouping.destroy({ where: { accountId } });
 
   // 3. Unlink subscriptions
-  await Subscriptions.update({ accountId: null }, { where: { accountId } });
+  await unlinkSubscriptionsFromAccount({ accountId });
 };

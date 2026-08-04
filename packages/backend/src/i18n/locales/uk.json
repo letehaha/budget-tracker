@@ -78,7 +78,8 @@
       "invalidData": "Недійсні дані розбиття",
       "splitNotFound": "Розбиття не знайдено",
       "cannotDeleteWithRefunds": "Не можна видалити розбиття, на яке є повернення",
-      "cannotReduceBelowRefunded": "Це розбиття має повернення на загальну суму {{refundsText}}. Ви не можете зменшити його нижче суми повернень. Щоб зменшити далі, спочатку від'єднайте повернення."
+      "cannotReduceBelowRefunded": "Це розбиття має повернення на загальну суму {{refundsText}}. Ви не можете зменшити його нижче суми повернень. Щоб зменшити далі, спочатку від'єднайте повернення.",
+      "duplicateCategory": "Кожне розбиття повинно використовувати іншу категорію"
     }
   },
   "budgets": {
@@ -311,7 +312,24 @@
   },
   "ai": {
     "apiKeyValidationFailed": "Перевірка API ключа не вдалася",
-    "noApiKeyForProvider": "API ключ не налаштовано для провайдера: {{provider}}"
+    "noApiKeyForProvider": "API ключ не налаштовано для провайдера: {{provider}}",
+    "customEndpointUnreachable": "Не вдалося з'єднатися з ендпоінтом. Перевірте базовий URL і переконайтеся, що сервер працює та доступний з інтернету.",
+    "customEndpointAuthFailed": "Ендпоінт відхилив API ключ. Перевірте, що ключ правильний і має необхідні дозволи.",
+    "customEndpointModelNotFound": "Ендпоінт не надає модель з назвою \"{{model}}\".",
+    "customEndpointModelNotListed": "Ендпоінт не надає \"{{model}}\". Доступні моделі: {{available}}.",
+    "customEndpointMoreModels": "та ще {{count}}",
+    "customEndpointNotApiResponse": "Сервер за цією URL-адресою відповів HTTP {{status}} замість відповіді, сумісної з OpenAI. Перевірте, що сервер працює і що базовий URL правильний — зазвичай він закінчується на /v1.",
+    "customEndpointValidationFailed": "Ендпоінт не повернув придатну відповідь. Перевірте базовий URL, назву моделі та API ключ.",
+    "customEndpointMissingFields": "Потрібні базовий URL та назва моделі.",
+    "customEndpointNameTaken": "У вас вже є ендпоінт з такою назвою.",
+    "customEndpointNameInvalidLength": "Назва ендпоінта повинна містити від 1 до 50 символів.",
+    "customEndpointNotFound": "Власний ендпоінт не знайдено.",
+    "customEndpointIdRequired": "Виберіть, який власний ендпоінт надає цю модель.",
+    "customModelNameInvalidLength": "Назва моделі повинна містити від 1 до 200 символів.",
+    "customEndpointLimitReached": "Ви можете зберегти до {{max}} власних ендпоінтів. Видаліть один перед додаванням нового.",
+    "customEndpointStoredKeyUnreadable": "Збережений API ключ для цього ендпоінта більше неможливо прочитати. Будь ласка, введіть його знову.",
+    "categorizationAlreadyRunning": "AI категоризація вже виконується. Зачекайте, поки вона завершиться, перш ніж почати новий запуск.",
+    "categorizationRateLimited": "Ви занадто часто запускали AI категоризацію нещодавно. Будь ласка, спробуйте пізніше."
   },
   "middleware": {
     "tooManyRequests": "Забагато запитів. Будь ласка, спробуйте пізніше."
@@ -460,5 +478,21 @@
   },
   "vehicles": {
     "notFound": "Транспортний засіб не знайдено"
+  },
+  "urlGuard": {
+    "invalidUrl": "Це недійсна URL-адреса.",
+    "unsupportedProtocol": "Дозволені лише URL-адреси http:// та https://.",
+    "credentialsInUrlNotAllowed": "URL-адреса не повинна містити ім'я користувача або пароль. Використайте поле API ключа замість цього.",
+    "privateAddressBlocked": "{{host}} вказує на приватну або зарезервовану мережеву адресу, що не дозволено.",
+    "hostnameNotResolvable": "Не вдалося визначити {{host}}. Перевірте адресу на наявність помилок.",
+    "redirectNotAllowed": "Ендпоінт відповів переспрямуванням. Введіть кінцеву URL-адресу замість цього.",
+    "hostnameLookupUnavailable": "Зараз не вдалося перевірити {{host}}. Будь ласка, спробуйте ще раз за мить."
+  },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "Логотип бренду та власні літери не можна встановити одночасно.",
+    "colorRequiresInitials": "Колір монограми потребує літер монограми."
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": "Цей діапазон дат і рівень деталізації дають забагато точок даних. Виберіть нижчий рівень деталізації або коротший діапазон."
   }
 }

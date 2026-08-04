@@ -43,6 +43,8 @@ export const loadTransactions = async ({
   excludedTagIds?: string[];
   payeeIds?: string[];
   categorizationSource?: string;
+  /** Exact `categorizationMeta.categorizedAt` stamp — pairs with `categorizationSource` to fetch one AI run. */
+  categorizedAt?: string;
   order?: SORT_DIRECTIONS;
   sortBy?: TRANSACTION_SORT_FIELD;
   excludeTransfer?: boolean;

@@ -1,39 +1,100 @@
-import { AI_FEATURE, CATEGORIZATION_SOURCE, SSE_EVENT_TYPES } from '@bt/shared/types';
+import {
+  AI_FEATURE,
+  AI_PROVIDER,
+  CATEGORIZATION_SKIP_REASON,
+  CATEGORIZATION_SOURCE,
+  type CATEGORIZATION_TRIGGER,
+  SSE_EVENT_TYPES,
+} from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
-import Accounts from '@models/accounts.model';
 import { getCategories } from '@models/categories.model';
 import Payees from '@models/payees.model';
 import Transactions from '@models/transactions.model';
-import { AIClientResult, createAIClient, isAuthError, isTemporaryError } from '@services/ai';
+import {
+  AIClientResult,
+  AI_MAX_OUTPUT_TOKENS,
+  type AiCallFailureKind,
+  CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE,
+  aiCallGuards,
+  buildModelNotServedMessage,
+  classifyAiCallFailure,
+  createAIClient,
+  describeMissingAiConfiguration,
+  hitOutputCeiling,
+  markCustomEndpointUnreachable,
+} from '@services/ai';
 import { sseManager } from '@services/common/sse';
 import { markApiKeyInvalid, markApiKeyValid } from '@services/user-settings/ai-api-key';
+import { markCustomEndpointInvalid, markCustomEndpointValid } from '@services/user-settings/ai-custom-endpoint';
 import { getCustomInstructions } from '@services/user-settings/ai-custom-instructions';
 import { generateText } from 'ai';
 
+import { type CandidateWhere, buildCandidateWhere, ownedAccountsInclude } from './categorization-candidates';
+import { type CategorizationScope } from './categorization-scope';
 import { buildSystemPrompt, buildUserMessage } from './prompt-builder';
-import { CategorizationBatchResult, CategorizationResult, TransactionForCategorization } from './types';
+import {
+  CategorizationBatchResult,
+  CategorizationProgress,
+  CategorizationResult,
+  CategorizationSkip,
+  TransactionForCategorization,
+} from './types';
+import { assignShortIds } from './utils/assign-short-ids';
 import { buildCategoryList } from './utils/build-category-list';
 import { parseCategorizationResponse } from './utils/parse-response';
 
-/** Error message shown to user when API key is invalid */
 const INVALID_KEY_ERROR_MESSAGE =
   'API key is not working. Please verify the key is correct, has sufficient credits, and has the required permissions.';
 
-// Batch size of 500 provides ~17.5k tokens per batch (average case)
-// Well within safe limits for AI models while providing good progress feedback
+/** A local endpoint often has no key at all, so credits and permissions are the wrong advice. */
+const CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE =
+  'Your custom AI endpoint rejected the request. Please verify its URL, model name, and API key in AI settings.';
+
+const CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE =
+  'Your custom AI endpoint address was rejected. Please point it at a publicly reachable address in AI settings.';
+
+const RATE_LIMITED_ERROR_MESSAGE = 'AI provider rate limit reached. Please try again in a few minutes.';
+
+const TEMPORARY_ERROR_MESSAGE = 'AI provider temporarily unavailable. Please try again later.';
+
+// Batch size of 500 provides ~9k tokens per batch (average case, with short
+// alias ids). Well within safe limits for AI models while providing good
+// progress feedback
 const BATCH_SIZE = 500;
 
 interface CategorizeBatchResult extends CategorizationBatchResult {
-  /** True if the error was an auth error (invalid key) */
-  isAuthError?: boolean;
-  /** True if the error was a temporary error (rate limit, server error) */
-  isTemporaryError?: boolean;
-  /** Token usage for this batch */
+  /** How the AI call failed, when it did. Anything but `unknown` repeats on the next batch. */
+  failureKind?: AiCallFailureKind;
   tokenUsage?: {
     inputTokens: number;
     outputTokens: number;
   };
+}
+
+function buildStopReason({
+  failureKind,
+  aiClient,
+}: {
+  failureKind: Exclude<AiCallFailureKind, 'unknown'>;
+  aiClient: AIClientResult;
+}): string {
+  switch (failureKind) {
+    case 'blocked-address':
+      return CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE;
+    case 'model-not-found':
+      return buildModelNotServedMessage({ modelId: aiClient.modelId });
+    case 'endpoint-down':
+      return CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE;
+    case 'rate-limited':
+      return RATE_LIMITED_ERROR_MESSAGE;
+    case 'temporary':
+      return TEMPORARY_ERROR_MESSAGE;
+    case 'auth':
+      return aiClient.provider === AI_PROVIDER.custom
+        ? CUSTOM_ENDPOINT_REJECTED_ERROR_MESSAGE
+        : INVALID_KEY_ERROR_MESSAGE;
+  }
 }
 
 /**
@@ -51,21 +112,32 @@ async function categorizeBatch({
   customInstructions?: string;
 }): Promise<CategorizeBatchResult> {
   const categoryList = buildCategoryList(categories);
+  const shortIds = assignShortIds({ transactions, categories: categoryList });
 
   const systemPrompt = buildSystemPrompt({ customInstructions });
   const userMessage = buildUserMessage({
-    transactions,
-    categories: categoryList,
+    transactions: shortIds.aliasedTransactions,
+    categories: shortIds.aliasedCategories,
   });
 
   try {
-    const { text, usage } = await generateText({
+    // A hung or trickling endpoint must abort instead of pinning a worker slot forever.
+    const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
+
+    // A batch is up to BATCH_SIZE transactions and the model answers one line per
+    // transaction, which can outgrow a provider's default output cap. Anything the
+    // reply omits is already reported as `failed` below and retried, so a cut-off
+    // response costs a retry rather than miscategorising -- but the cap still has to
+    // be raised, or a large batch can never complete.
+    const { text, usage, finishReason } = await generateText({
       model: aiClient.model,
       system: systemPrompt,
       prompt: userMessage,
+      abortSignal,
+      maxRetries,
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
     });
 
-    // Log detailed token usage for batch size analysis
     const inputTokens = usage?.inputTokens ?? 0;
     const outputTokens = usage?.outputTokens ?? 0;
     const totalTokens = inputTokens + outputTokens;
@@ -80,20 +152,60 @@ async function categorizeBatch({
       tokensPerTransaction,
     });
 
-    const validCategoryIds = new Set(categories.map((c) => c.id));
-    const validTransactionIds = new Set(transactions.map((t) => t.id));
-
-    const results = parseCategorizationResponse({
+    const parsed = parseCategorizationResponse({
       response: text,
-      validCategoryIds,
-      validTransactionIds,
+      validCategoryIds: new Set(shortIds.categoryIdByAlias.keys()),
+      validTransactionIds: new Set(shortIds.transactionIdByAlias.keys()),
     });
 
+    const results = parsed.categorized.map((result) => ({
+      transactionId: shortIds.transactionIdByAlias.get(result.transactionId)!,
+      categoryId: shortIds.categoryIdByAlias.get(result.categoryId)!,
+    }));
+
     const successfulIds = new Set(results.map((r) => r.transactionId));
-    const failed = transactions.filter((t) => !successfulIds.has(t.id)).map((t) => t.id);
+
+    // A category line and a skip line for the same row: the category wins.
+    const skipReasonById = new Map<string, CATEGORIZATION_SKIP_REASON>();
+    for (const skip of parsed.skipped) {
+      const transactionId = shortIds.transactionIdByAlias.get(skip.transactionId)!;
+      if (!successfulIds.has(transactionId)) skipReasonById.set(transactionId, skip.reason);
+    }
+
+    // Rows with no verdict at all: on a cleanly finished answer the model implicitly
+    // declined them (prose refusals land here wholesale). Any other finish — truncation,
+    // content filter, provider error, empty text — proves nothing about those rows, and
+    // the skip stamp is permanent, so they stay candidates for the next run instead.
+    //
+    // `finishReason` alone would miss the truncation case: a gateway that cuts a reply
+    // off at the output ceiling can still report `stop`, and that answer would then
+    // stamp every unanswered row as a permanent skip. `hitOutputCeiling` also treats
+    // spending the whole allowance as being cut off at it.
+    const completedNormally =
+      finishReason === 'stop' && text.trim().length > 0 && !hitOutputCeiling({ finishReason, usage });
+    const failed: string[] = [];
+    for (const transaction of transactions) {
+      if (successfulIds.has(transaction.id) || skipReasonById.has(transaction.id)) continue;
+      if (completedNormally) {
+        skipReasonById.set(transaction.id, CATEGORIZATION_SKIP_REASON.unspecified);
+      } else {
+        failed.push(transaction.id);
+      }
+    }
+
+    if (completedNormally && results.length === 0 && parsed.skipped.length === 0) {
+      // Either a wholesale prose refusal or a model that ignores the answer format;
+      // the preview is the only way to tell which from logs.
+      logger.info('[AI Categorization] Batch finished with zero parseable verdicts', {
+        modelId: aiClient.modelId,
+        transactionCount: transactions.length,
+        responsePreview: text.slice(0, 300),
+      });
+    }
 
     return {
       successful: results,
+      skipped: Array.from(skipReasonById, ([transactionId, reason]) => ({ transactionId, reason })),
       failed,
       tokenUsage: {
         inputTokens,
@@ -101,39 +213,44 @@ async function categorizeBatch({
       },
     };
   } catch (error) {
-    const isTemp = isTemporaryError(error);
-    const isAuth = isAuthError(error);
+    const { kind, cause } = classifyAiCallFailure({ error });
 
-    if (isTemp || isAuth) {
-      // Handled by parent: temporary errors return early, auth errors fall back to server key.
-      // Avoid Sentry noise for these expected paths.
-      logger.info(
-        `AI categorization batch failed (handled: ${isTemp ? 'temporary' : 'auth'}): ${(error as Error).message}`,
-      );
+    // Only a custom endpoint can be down in a way the user can fix, so a catalog
+    // provider that answers with nothing is downgraded to a temporary failure.
+    const failureKind =
+      kind === 'endpoint-down' && aiClient.provider !== AI_PROVIDER.custom ? ('temporary' as const) : kind;
+
+    if (failureKind === 'unknown') {
+      logger.error({ message: 'AI categorization batch failed', error: cause });
     } else {
-      logger.error({ message: 'AI categorization batch failed', error: error as Error });
+      // Expected user config or provider state, handled by the caller, so info keeps it out of Sentry.
+      logger.info(`AI categorization batch failed (${failureKind}): ${cause.message}`);
     }
 
     return {
       successful: [],
+      skipped: [],
       failed: transactions.map((t) => t.id),
-      errors: [(error as Error).message],
-      isAuthError: isAuth,
-      isTemporaryError: isTemp,
+      errors: [failureKind === 'blocked-address' ? CUSTOM_ENDPOINT_ADDRESS_BLOCKED_ERROR_MESSAGE : cause.message],
+      failureKind,
     };
   }
 }
 
-/**
- * Apply categorization results to transactions
- * Groups by categoryId for efficient bulk updates
- */
-async function applyCategorizationResults({ results }: { results: CategorizationResult[] }): Promise<void> {
+async function applyCategorizationResults({
+  results,
+  candidateWhere,
+  categorizedAt,
+  trigger,
+}: {
+  results: CategorizationResult[];
+  candidateWhere: CandidateWhere;
+  /** Shared by every batch of the run, so the stamp identifies the run in the history list. */
+  categorizedAt: string;
+  trigger?: CATEGORIZATION_TRIGGER;
+}): Promise<void> {
   if (results.length === 0) return;
 
-  const now = new Date().toISOString();
-
-  // Group transaction IDs by categoryId
   const groupedByCategory = new Map<string, string[]>();
   for (const result of results) {
     if (!groupedByCategory.has(result.categoryId)) {
@@ -142,12 +259,10 @@ async function applyCategorizationResults({ results }: { results: Categorization
     groupedByCategory.get(result.categoryId)!.push(result.transactionId);
   }
 
-  // Bulk update per category (parallel). Update by id only — auth was
-  // already established by `getUncategorizedTransactions`, which joins
-  // `Accounts` to gate every id in this batch on the requesting user's
-  // account ownership. Adding a `userId` filter here would silently drop
-  // shared-account rows authored by a recipient on the owner's account
-  // (a row the JOIN correctly included as in-scope).
+  // Re-checks the predicate that selected these rows, which on `defaultCategoryOnly` leaves
+  // a row the user categorized by hand mid-run alone.
+  // No `userId` filter: the `Accounts` JOIN that produced these ids already gated ownership,
+  // and adding one would drop shared-account rows a recipient authored.
   await Promise.all(
     Array.from(groupedByCategory.entries()).map(([categoryId, transactionIds]) =>
       Transactions.update(
@@ -155,13 +270,13 @@ async function applyCategorizationResults({ results }: { results: Categorization
           categoryId,
           categorizationMeta: {
             source: CATEGORIZATION_SOURCE.ai,
-            categorizedAt: now,
+            categorizedAt,
+            ...(trigger && { trigger }),
           },
         },
         {
-          where: { id: transactionIds },
-          // Disable hooks to avoid unnecessary balance recalculations
-          // Category change doesn't affect balances
+          where: { ...candidateWhere, id: transactionIds },
+          // A category change doesn't affect balances, so skip the recalculation hooks
           individualHooks: false,
         },
       ),
@@ -170,36 +285,69 @@ async function applyCategorizationResults({ results }: { results: Categorization
 }
 
 /**
- * Get uncategorized transactions for a user.
- *
- * Scoped by `Account.userId` (account ownership), not `Transactions.userId`
- * (row creator), via the Accounts INNER JOIN. The intent of the AI
- * auto-categorize listener is "categorize rows in *my* accounts", and on
- * shared accounts the row's creator can be a recipient even though the
- * account belongs to the requesting user. Joining on Accounts expresses
- * that intent directly instead of leaning on the implicit emit-site
- * contract documented in `event-listeners.ts`.
+ * Rows the AI declined get the run's stamp too — with `skipReason` and the category
+ * untouched — so later runs stop paying tokens for rows the model already refused to
+ * decide. Re-checks `candidateWhere` for the same mid-run-edit reason as above.
  */
-async function getUncategorizedTransactions({
+async function applySkipStamps({
+  skips,
+  candidateWhere,
+  categorizedAt,
+  trigger,
+}: {
+  skips: CategorizationSkip[];
+  candidateWhere: CandidateWhere;
+  categorizedAt: string;
+  trigger?: CATEGORIZATION_TRIGGER;
+}): Promise<void> {
+  if (skips.length === 0) return;
+
+  const groupedByReason = new Map<CATEGORIZATION_SKIP_REASON, string[]>();
+  for (const skip of skips) {
+    if (!groupedByReason.has(skip.reason)) {
+      groupedByReason.set(skip.reason, []);
+    }
+    groupedByReason.get(skip.reason)!.push(skip.transactionId);
+  }
+
+  await Promise.all(
+    Array.from(groupedByReason.entries()).map(([skipReason, transactionIds]) =>
+      Transactions.update(
+        {
+          categorizationMeta: {
+            source: CATEGORIZATION_SOURCE.ai,
+            categorizedAt,
+            skipReason,
+            ...(trigger && { trigger }),
+          },
+        },
+        {
+          where: { ...candidateWhere, id: transactionIds },
+          individualHooks: false,
+        },
+      ),
+    ),
+  );
+}
+
+/**
+ * The rows this run is allowed to decide, per its `candidateWhere`. Not necessarily
+ * uncategorized: on the auto-path a `hint`-mode Payee rule leaves a real category behind
+ * for the AI to reconsider.
+ */
+async function selectCandidateTransactions({
   userId,
   transactionIds,
+  candidateWhere,
 }: {
   userId: number;
   transactionIds: string[];
+  candidateWhere: CandidateWhere;
 }): Promise<TransactionForCategorization[]> {
   const transactions = await Transactions.findAll({
-    where: {
-      id: transactionIds,
-      // Only get transactions that haven't been AI-categorized before
-      categorizationMeta: null,
-    },
+    where: { ...candidateWhere, id: transactionIds },
     include: [
-      {
-        model: Accounts,
-        where: { userId },
-        required: true,
-        attributes: ['name'],
-      },
+      ownedAccountsInclude({ userId, attributes: ['name'] }),
       {
         model: Payees,
         attributes: ['name'],
@@ -221,37 +369,46 @@ async function getUncategorizedTransactions({
 }
 
 /**
- * Categorize transactions using AI. Processes in batches of 200.
- *
- * Error handling:
- * - Temporary errors (429, 5xx): stop processing, return partial results
- * - Auth errors (401, 403): mark user's key invalid, fallback to server key and retry
- * - On success with user key: update lastValidatedAt
+ * Categorize transactions using AI, in batches of BATCH_SIZE. The first classified
+ * failure stops the run and returns partial results with `stopReason` set. An auth
+ * failure on a catalog user key retries once on the server key; a custom endpoint
+ * never falls back.
  */
 export async function categorizeTransactions({
   userId,
   transactionIds,
+  scope,
+  trigger,
   totalTransactionCount,
+  onProgress,
 }: {
   userId: number;
   transactionIds: string[];
-  /** Total transactions to process (for progress tracking). If not provided, uses transactionIds.length */
+  /** Which rows this run may touch. Selection and write-back both use it. */
+  scope: CategorizationScope;
+  /** Recorded on every stamp so the history list can label what started the run. */
+  trigger?: CATEGORIZATION_TRIGGER;
+  /** For progress tracking. Defaults to transactionIds.length */
   totalTransactionCount?: number;
+  onProgress?: (progress: CategorizationProgress) => void | Promise<void>;
 }): Promise<CategorizationBatchResult> {
   const totalCount = totalTransactionCount ?? transactionIds.length;
-  // Create AI client for categorization feature
-  // This handles user preferences, API key resolution, and server fallback
   let aiClient = await createAIClient({
     userId,
     feature: AI_FEATURE.categorization,
   });
 
   if (!aiClient) {
-    logger.warn('No AI provider available for categorization', { userId });
+    // Routinely the user's own state (no key configured, endpoints flagged down), and
+    // warn would report every such run to Sentry.
+    logger.info('No AI provider available for categorization', { userId });
+    const missingConfigurationMessage = await describeMissingAiConfiguration({ userId });
     return {
       successful: [],
+      skipped: [],
       failed: transactionIds,
-      errors: ['No AI provider configured. Please add an API key or contact support.'],
+      errors: [missingConfigurationMessage],
+      stopReason: missingConfigurationMessage,
     };
   }
 
@@ -262,28 +419,38 @@ export async function categorizeTransactions({
     usingUserKey: aiClient.usingUserKey,
   });
 
-  // Get user's categories
   const categories = await getCategories({ userId });
   if (categories.length === 0) {
     logger.info(`User ${userId} has no categories, skipping categorization`);
     return {
       successful: [],
+      skipped: [],
       failed: transactionIds,
       errors: ['No categories configured'],
+      stopReason: 'No categories configured',
     };
   }
 
-  // Get uncategorized transactions
-  const transactions = await getUncategorizedTransactions({ userId, transactionIds });
-  if (transactions.length === 0) {
-    logger.info(`No uncategorized transactions to process for user ${userId}`);
+  const candidateWhere = await buildCandidateWhere({ userId, scope });
+  if (!candidateWhere) {
+    logger.info(`User ${userId} has no default category, skipping categorization`);
     return {
       successful: [],
+      skipped: [],
       failed: [],
     };
   }
 
-  // Fetch custom instructions only when using user's own key
+  const transactions = await selectCandidateTransactions({ userId, transactionIds, candidateWhere });
+  if (transactions.length === 0) {
+    logger.info(`No uncategorized transactions to process for user ${userId}`);
+    return {
+      successful: [],
+      skipped: [],
+      failed: [],
+    };
+  }
+
   let customInstructions: string | undefined;
   if (aiClient.usingUserKey) {
     try {
@@ -297,24 +464,54 @@ export async function categorizeTransactions({
 
   const allResults: CategorizationBatchResult = {
     successful: [],
+    skipped: [],
     failed: [],
     errors: [],
   };
 
-  // Track token usage across all batches for analysis
   const totalTokenUsage = {
     inputTokens: 0,
     outputTokens: 0,
     batchCount: 0,
   };
 
-  // Track if we've already tried fallback (to avoid infinite loops)
+  const reportProcessing = async () => {
+    const progress: CategorizationProgress = {
+      processedCount: allResults.successful.length + allResults.skipped.length + allResults.failed.length,
+      totalCount,
+      failedCount: allResults.failed.length,
+      skippedCount: allResults.skipped.length,
+    };
+    sseManager.sendToUser({
+      userId,
+      event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
+      data: { status: 'processing' as const, ...progress },
+    });
+    // Progress is cosmetic, so a failing sink must not abort the run and discard finished batches.
+    try {
+      await onProgress?.(progress);
+    } catch (error) {
+      logger.error({
+        message: `[AI Categorization] Failed to report progress for user ${userId}`,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+  };
+
+  // Guards against an infinite fallback loop
   let hasTriedFallback = false;
 
-  // Process in batches
+  // One stamp for the whole run: the history list groups transactions by it, so a
+  // per-batch stamp would split a single run into several entries.
+  const categorizedAt = new Date().toISOString();
+
   for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
     const batch = transactions.slice(i, i + BATCH_SIZE);
     logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(transactions.length / BATCH_SIZE)}`);
+
+    // Reported before the LLM call: a single batch can run for minutes on a slow
+    // model, and the UI would otherwise sit on "queued" that whole time.
+    await reportProcessing();
 
     const batchResult = await categorizeBatch({
       aiClient,
@@ -323,37 +520,24 @@ export async function categorizeTransactions({
       customInstructions,
     });
 
-    // Handle temporary errors (rate limit, server errors) - return early
-    if (batchResult.isTemporaryError) {
-      logger.info('Temporary AI error, returning early without marking key invalid', {
-        userId,
-        provider: aiClient.provider,
-        usingUserKey: aiClient.usingUserKey,
-      });
-      // Return what we have so far, marking remaining as failed
-      const remainingTransactions = transactions.slice(i);
-      allResults.failed.push(...remainingTransactions.map((t) => t.id));
-      allResults.errors!.push('AI provider temporarily unavailable. Please try again later.');
-      break;
-    }
+    // Auth on a catalog user key gets one shot at the server key. A user who
+    // configured their own endpoint chose where their data may go, so falling
+    // back would send payees, amounts and notes to a provider they never picked.
+    if (
+      batchResult.failureKind === 'auth' &&
+      aiClient.usingUserKey &&
+      aiClient.provider !== AI_PROVIDER.custom &&
+      !hasTriedFallback
+    ) {
+      logger.info('User AI credentials rejected, marking invalid', { userId, provider: aiClient.provider });
 
-    // Handle auth errors with user's key - mark invalid and fallback to server
-    if (batchResult.isAuthError && aiClient.usingUserKey && !hasTriedFallback) {
-      const provider = aiClient.provider;
-
-      logger.warn('User API key auth error, marking invalid and trying server fallback', {
-        userId,
-        provider,
-      });
-
-      // Mark the user's key as invalid
       await markApiKeyInvalid({
         userId,
-        provider,
+        provider: aiClient.provider,
         errorMessage: INVALID_KEY_ERROR_MESSAGE,
       });
 
-      // Try to get a new AI client (will now use server key if available)
+      // Re-resolve: the key is now flagged invalid, so this picks up the server key
       const fallbackClient = await createAIClient({
         userId,
         feature: AI_FEATURE.categorization,
@@ -373,51 +557,77 @@ export async function categorizeTransactions({
         i -= BATCH_SIZE;
         continue;
       }
-
-      // If no fallback available, return with error
-      allResults.failed.push(...batch.map((t) => t.id));
-      allResults.errors!.push(INVALID_KEY_ERROR_MESSAGE);
-      continue;
+      // No server key either: fall through to the stop block below
     }
 
-    // Apply successful categorizations immediately
-    if (batchResult.successful.length > 0) {
-      await applyCategorizationResults({ results: batchResult.successful });
+    // A classified failure holds for the whole run (the endpoint stays down, the model
+    // stays missing), so the first one stops it. Unclassified ones may be batch-specific.
+    if (batchResult.failureKind && batchResult.failureKind !== 'unknown') {
+      const stopReason = buildStopReason({ failureKind: batchResult.failureKind, aiClient });
 
-      // If using user's key and it succeeded, mark it as valid (update lastValidatedAt)
+      logger.info(`Stopping AI categorization (${batchResult.failureKind}): ${stopReason}`, {
+        userId,
+        provider: aiClient.provider,
+        modelId: aiClient.modelId,
+        usingUserKey: aiClient.usingUserKey,
+      });
+
+      if (batchResult.failureKind === 'endpoint-down') {
+        await markCustomEndpointUnreachable({ userId, aiClient });
+      } else if (
+        batchResult.failureKind === 'auth' &&
+        aiClient.provider === AI_PROVIDER.custom &&
+        aiClient.customEndpointId
+      ) {
+        await markCustomEndpointInvalid({
+          userId,
+          endpointId: aiClient.customEndpointId,
+          errorMessage: stopReason,
+        });
+      }
+
+      allResults.failed.push(...transactions.slice(i).map((t) => t.id));
+      allResults.errors!.push(stopReason);
+      allResults.stopReason = stopReason;
+      break;
+    }
+
+    if (batchResult.successful.length > 0) {
+      await applyCategorizationResults({ results: batchResult.successful, candidateWhere, categorizedAt, trigger });
+    }
+    if (batchResult.skipped.length > 0) {
+      await applySkipStamps({ skips: batchResult.skipped, candidateWhere, categorizedAt, trigger });
+    }
+
+    // Skips prove the credentials work just as well as categorizations do.
+    if (batchResult.successful.length > 0 || batchResult.skipped.length > 0) {
       if (aiClient.usingUserKey) {
-        await markApiKeyValid({ userId, provider: aiClient.provider });
+        if (aiClient.provider === AI_PROVIDER.custom) {
+          if (aiClient.customEndpointId) {
+            await markCustomEndpointValid({ userId, endpointId: aiClient.customEndpointId });
+          }
+        } else {
+          await markApiKeyValid({ userId, provider: aiClient.provider });
+        }
       }
     }
 
     allResults.successful.push(...batchResult.successful);
+    allResults.skipped.push(...batchResult.skipped);
     allResults.failed.push(...batchResult.failed);
     if (batchResult.errors) {
       allResults.errors!.push(...batchResult.errors);
     }
 
-    // Accumulate token usage
     if (batchResult.tokenUsage) {
       totalTokenUsage.inputTokens += batchResult.tokenUsage.inputTokens;
       totalTokenUsage.outputTokens += batchResult.tokenUsage.outputTokens;
       totalTokenUsage.batchCount += 1;
     }
-
-    // Emit progress event after each batch
-    sseManager.sendToUser({
-      userId,
-      event: SSE_EVENT_TYPES.AI_CATEGORIZATION_PROGRESS,
-      data: {
-        status: 'processing' as const,
-        processedCount: allResults.successful.length + allResults.failed.length,
-        totalCount,
-        failedCount: allResults.failed.length,
-      },
-    });
   }
 
-  // Log summary with token usage for batch size optimization analysis
-  const totalTransactionsProcessed = allResults.successful.length + allResults.failed.length;
+  const totalTransactionsProcessed =
+    allResults.successful.length + allResults.skipped.length + allResults.failed.length;
   const totalTokens = totalTokenUsage.inputTokens + totalTokenUsage.outputTokens;
   const avgTokensPerTransaction =
     totalTransactionsProcessed > 0 ? Math.round(totalTokens / totalTransactionsProcessed) : 0;
@@ -429,6 +639,7 @@ export async function categorizeTransactions({
     usingUserKey: aiClient.usingUserKey,
     transactionsProcessed: totalTransactionsProcessed,
     successfulCount: allResults.successful.length,
+    skippedCount: allResults.skipped.length,
     failedCount: allResults.failed.length,
     batchCount: totalTokenUsage.batchCount,
     batchSize: BATCH_SIZE,
@@ -438,7 +649,6 @@ export async function categorizeTransactions({
     avgTokensPerTransaction,
   });
 
-  // Track analytics event
   if (allResults.successful.length > 0) {
     trackAiCategorization({
       userId,

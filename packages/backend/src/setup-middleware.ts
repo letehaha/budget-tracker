@@ -2,6 +2,7 @@ import { isPerfDebugEnabled, perfDebugMiddleware } from '@common/lib/perf/perf-d
 import { logger } from '@js/utils/logger';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
+import { MS_MONEY_FULL_PATHS } from '@routes/import-export/ms-money-paths';
 import cors from 'cors';
 import express, { Express, Request } from 'express';
 import morgan from 'morgan';
@@ -112,6 +113,11 @@ export function setupMiddleware(app: Express) {
   // this middleware runs before route mounting, so req.path contains full path
   const rawBodyPaths = [`${API_PREFIX}/webhooks/github`];
 
+  // Binary uploads: the body is a file, not JSON, and the route mounts its own
+  // `express.raw` parser. Running the JSON parser here first would buffer a
+  // multi-megabyte body a second time for nothing.
+  const binaryUploadPaths: string[] = [MS_MONEY_FULL_PATHS.upload];
+
   // Body parser with conditional limits
   app.use((req, res, next) => {
     // Skip body parsing for better-auth routes – toNodeHandler reads the raw
@@ -123,22 +129,44 @@ export function setupMiddleware(app: Express) {
       return next();
     }
 
+    if (binaryUploadPaths.includes(req.path)) {
+      return next();
+    }
+
     // Paths that need larger payloads
-    const largePaths = {
-      '1mb': [`${API_PREFIX}/investments/securities/prices/bulk-upload`],
+    const largePaths: Record<string, string[]> = {
+      '1mb': [
+        `${API_PREFIX}/investments/securities/prices/bulk-upload`,
+        // A manual categorization run can carry up to AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN
+        // transaction ids, which is ~200KB of UUIDs.
+        `${API_PREFIX}/user/ai/categorization/trigger`,
+        // A Money file can hold 100k transactions, so the duplicate row indices
+        // the user chooses to skip outgrow the default limit on a big import.
+        MS_MONEY_FULL_PATHS.detectDuplicates,
+        MS_MONEY_FULL_PATHS.execute,
+      ],
       '10mb': [
         `${API_PREFIX}/import/csv/parse`,
         `${API_PREFIX}/import/csv/extract-unique-values`,
         `${API_PREFIX}/import/csv/detect-duplicates`,
         `${API_PREFIX}/import/csv/execute`,
-        // Statement parser endpoints need 10MB for base64 encoded files (max 10MB = ~13.3MB base64)
+        // Statement parser endpoints carry base64 encoded files on the way in
+        // (max 10MB file = ~13.3MB base64) and the full extracted transactions
+        // array on the way back out.
         `${API_PREFIX}/import/text-source/estimate-cost`,
         `${API_PREFIX}/import/text-source/extract`,
+        `${API_PREFIX}/import/text-source/detect-duplicates`,
+        `${API_PREFIX}/import/text-source/execute`,
         // Investment import execute carries full per-holding tx arrays – easily multi-MB for large CSVs.
         `${API_PREFIX}/investments/transactions-import/execute`,
         // YNAB register CSVs are sent inline as JSON-encoded text on both parse and execute.
         `${API_PREFIX}/import/ynab/parse`,
         `${API_PREFIX}/import/ynab/execute`,
+        // Budget Bakers Wallet sends the whole CSV inline as `fileContent` on
+        // every step of the flow.
+        `${API_PREFIX}/import/budget-bakers-wallet/parse`,
+        `${API_PREFIX}/import/budget-bakers-wallet/detect-duplicates`,
+        `${API_PREFIX}/import/budget-bakers-wallet/execute`,
       ],
       // Backup restore carries the whole backup zip as a base64 JSON string; the
       // base64 envelope inflates ~4/3, so a ~40MB zip needs this ceiling.

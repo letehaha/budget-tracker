@@ -1,13 +1,12 @@
 export { createAIClient, type AIClientResult } from './ai-client-factory';
-export { resolveAIConfiguration } from './ai-model-resolver';
-export { validateApiKey, isTemporaryError, isAuthError } from './api-key-validation';
+export { aiCallGuards } from './ai-call-guards';
+export { AI_MAX_OUTPUT_TOKENS, AI_OUTPUT_TRUNCATED_MESSAGE, hitOutputCeiling } from './ai-output-limit';
+export { buildModelNotServedMessage, classifyAiCallFailure, type AiCallFailureKind } from './ai-error-classifiers';
 export {
-  getDefaultModelForFeature,
-  getAvailableModels,
-  getModelInfo,
-  isValidModelId,
-  isRetiredModelId,
-  isModelRecommendedForFeature,
-  getProviderFromModelId,
-  getFirstAvailableRecommendedModel,
-} from './models-config';
+  CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE,
+  describeMissingAiConfiguration,
+  markCustomEndpointUnreachable,
+} from './custom-endpoint-failure';
+export { resolveAIConfiguration } from './ai-model-resolver';
+export { validateApiKey } from './api-key-validation';
+export { getAvailableModels, isValidModelId, isRetiredModelId, isModelRecommendedForFeature } from './models-config';

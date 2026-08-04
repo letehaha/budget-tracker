@@ -6,6 +6,7 @@ import { exchangeRatesHandlers } from './exchange-rates/use-mock-api';
 import { logoDevHandlers } from './logo-dev/mock-api';
 import { lunchflowHandlers } from './lunchflow/mock-api';
 import { monobankHandlers } from './monobank/mock-api';
+import { openAiCompatibleHandlers } from './openai-compatible/mock-api';
 import { simplefinHandlers } from './simplefin/mock-api';
 import { walutomatHandlers } from './walutomat/mock-api';
 
@@ -19,4 +20,5 @@ export const setupMswServer = () =>
     ...simplefinHandlers,
     ...anthropicHandlers,
     ...logoDevHandlers,
+    ...openAiCompatibleHandlers,
   );

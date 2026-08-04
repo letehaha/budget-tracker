@@ -1,4 +1,3 @@
-import { t } from '@i18n/index';
 import { z } from 'zod';
 
 // Code-point cap matching the VARCHAR(16) columns – Postgres counts code
@@ -32,24 +31,3 @@ export const logoColorSchema = z
   .regex(/^#[0-9a-fA-F]{6}$/, 'logoColor must be a #rrggbb hex color')
   .transform((value) => value.toLowerCase())
   .nullable();
-
-/**
- * A brand image and a monogram are two ways to fill the same slot, so a payload
- * asking for both is rejected instead of silently letting one win. Meant for a
- * body-level `.superRefine`.
- */
-export const refineLogoSelection = ({
-  data,
-  ctx,
-}: {
-  data: { logoDomain?: string | null; logoInitials?: string | null };
-  ctx: z.RefinementCtx;
-}): void => {
-  if (data.logoDomain != null && data.logoInitials != null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: t({ key: 'brandLogos.domainAndInitialsExclusive' }),
-      path: ['logoInitials'],
-    });
-  }
-};

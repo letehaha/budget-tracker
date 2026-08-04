@@ -13,6 +13,7 @@ import Tags from '@models/tags.model';
 import { deleteSplitsForTransaction } from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
+import { getUserDefaultCategory } from '@models/users.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { assertLoanEditAllowed } from '@services/loans/assert-loan-edit-allowed';
@@ -28,6 +29,7 @@ import { Op } from 'sequelize';
 import { withTransaction } from '../common/with-transaction';
 import { calcTransferTransactionRefAmount, createOppositeTransaction } from './create-transaction';
 import { getWritableTransactionById } from './get-by-id';
+import { buildManualCategorizationMeta } from './manual-categorization-meta';
 import { manageSplits } from './splits';
 import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
@@ -170,6 +172,15 @@ const makeBasicBaseTxUpdation = async (
     currencyCode: prevData.currencyCode,
     refundLinked: prevData.refundLinked,
   };
+
+  // Only a real category change restamps the row — re-sending the same category, or
+  // editing anything else, must keep whatever source already categorized it.
+  if (newData.categoryId !== undefined && newData.categoryId !== prevData.categoryId) {
+    baseTransactionUpdateParams.categorizationMeta = buildManualCategorizationMeta({
+      categoryId: newData.categoryId,
+      defaultCategoryId: await getUserDefaultCategory({ id: ctx.accountOwnerUserId }),
+    });
+  }
 
   // Manual Payee assign/clear from the UI also implicitly locks the row so
   // future provider syncs won't revert it. The controller can still pass

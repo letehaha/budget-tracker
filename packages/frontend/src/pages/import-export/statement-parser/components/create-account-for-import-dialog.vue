@@ -4,12 +4,27 @@
     <template #description>{{ t('pages.statementParser.createAccountDialog.description') }}</template>
 
     <form class="grid gap-6" @submit.prevent="handleSubmit">
-      <InputField
-        v-model="form.name"
-        :label="t('pages.statementParser.createAccountDialog.accountNameLabel')"
-        :placeholder="$t('pages.statementParser.accountNamePlaceholder')"
-        :error="errors.name"
-      />
+      <div class="flex items-start gap-3">
+        <div class="min-w-0 flex-1">
+          <InputField
+            v-model="form.name"
+            :label="t('pages.statementParser.createAccountDialog.accountNameLabel')"
+            :placeholder="$t('pages.statementParser.accountNamePlaceholder')"
+            :error="errors.name"
+          />
+        </div>
+        <LogoSquareField
+          v-model="form.logo"
+          :name-for-search="form.name"
+          :reset-label="$t('common.logo.remove')"
+          size-class="size-10 rounded-lg"
+          align="with-labeled-field"
+        >
+          <template #placeholder>
+            <AccountLogo :account="logoPlaceholderAccount" class="size-10 rounded-lg" />
+          </template>
+        </LogoSquareField>
+      </div>
 
       <!--
         Currency field is disabled when defaultCurrency is provided from statement.
@@ -41,7 +56,7 @@
         <p v-if="props.defaultCurrency" class="text-muted-foreground mt-1 text-xs">
           {{ t('pages.statementParser.createAccountDialog.currencyLocked', { currency: props.defaultCurrency }) }}
         </p>
-        <p v-if="props.defaultCurrency && !isCurrencyLinked" class="mt-1 text-xs text-yellow-600">
+        <p v-if="props.defaultCurrency && !isCurrencyLinked" class="text-warning-text mt-1 text-xs">
           {{ t('pages.statementParser.createAccountDialog.currencyWillBeAdded', { currency: props.defaultCurrency }) }}
         </p>
       </div>
@@ -65,6 +80,9 @@
 <script setup lang="ts">
 import { createAccount as apiCreateAccount } from '@/api';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import AccountLogo from '@/components/common/account-logo.vue';
+import { type LogoSelection, toOptionalLogoPayload } from '@/components/common/logo-selection';
+import LogoSquareField from '@/components/common/logo-square-field.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import FieldLabel from '@/components/fields/components/field-label.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -118,9 +136,14 @@ const getInitialCurrency = () => {
   return baseCurrency.value?.currencyCode || '';
 };
 
-const form = reactive({
+const form = reactive<{
+  name: string;
+  currencyCode: string;
+  logo: LogoSelection | null;
+}>({
   name: '',
   currencyCode: getInitialCurrency(),
+  logo: null,
 });
 
 const errors = reactive({
@@ -128,6 +151,14 @@ const errors = reactive({
 });
 
 const isLoading = ref(false);
+
+const logoPlaceholderAccount = computed(() => ({
+  name: form.name,
+  logoDomain: null,
+  logoInitials: null,
+  logoColor: null,
+  accountCategory: ACCOUNT_CATEGORIES.general,
+}));
 
 // Check if the selected currency is in the linked list
 const isCurrencyLinked = computed(() => {
@@ -143,6 +174,7 @@ watch(
       form.name = props.defaultName || '';
       // Always use the prop value when dialog opens
       form.currencyCode = props.defaultCurrency || baseCurrency.value?.currencyCode || '';
+      form.logo = null;
       errors.name = '';
     }
   },
@@ -184,6 +216,7 @@ async function handleSubmit() {
       accountCategory: ACCOUNT_CATEGORIES.general,
       initialBalance: 0,
       creditLimit: 0,
+      ...toOptionalLogoPayload({ selection: form.logo }),
     });
 
     await queryClient.invalidateQueries({

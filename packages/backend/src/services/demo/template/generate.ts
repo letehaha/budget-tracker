@@ -35,17 +35,22 @@ function daysBetween({ from, to }: { from: Date; to: Date }): number {
   return Math.max(0, Math.floor((to.getTime() - from.getTime()) / MS_PER_DAY));
 }
 
+const pick = <T>(items: readonly T[]): T => faker.helpers.arrayElement(items);
+const cents = ({ min, max }: { min: number; max: number }) => faker.number.int({ min, max });
+
 /**
  * Builds the template for one demo dataset.
  *
  * Seeded faker keeps every demo user's history identical, so budget limits can
  * be derived from the data and screenshots stay stable.
  */
-export function generateDemoTemplate(): DemoTemplate {
+export function generateDemoTemplate({ generatedAt = new Date() }: { generatedAt?: Date } = {}): DemoTemplate {
   faker.seed(12345);
 
-  const generatedAt = new Date();
-  const startDate = subMonths(generatedAt, DEMO_CONFIG.historyMonths);
+  // Anchored to a month boundary so the oldest month is whole. Starting
+  // mid-month keeps that month's bills but drops the payday on the 1st, which
+  // overdraws checking for the rest of the history.
+  const startDate = startOfMonth(subMonths(generatedAt, DEMO_CONFIG.historyMonths));
 
   const transactions: DemoTemplateTransaction[] = [];
   const splits: DemoTemplateSplit[] = [];
@@ -58,9 +63,6 @@ export function generateDemoTemplate(): DemoTemplate {
     refCounter += 1;
     return `${prefix}-${refCounter}`;
   };
-
-  const pick = <T>(items: readonly T[]): T => faker.helpers.arrayElement(items);
-  const cents = ({ min, max }: { min: number; max: number }) => faker.number.int({ min, max });
 
   /**
    * Euro charged to the travel card and not yet paid off.

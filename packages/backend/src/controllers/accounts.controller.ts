@@ -2,6 +2,7 @@ import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/
 import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { logoFieldsShape, refineLogoFields, refineLogoFieldsOnCreate } from '@controllers/common/logo-fields.schema';
 import { Unauthorized, ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
 import Accounts from '@models/accounts.model';
@@ -41,18 +42,33 @@ export const getAccountById = createController(
 
 export const createAccount = createController(
   z.object({
-    body: z.object({
-      accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).default(ACCOUNT_CATEGORIES.general),
-      currencyCode: currencyCode(),
-      name: z.string(),
-      type: z.nativeEnum(ACCOUNT_TYPES).default(ACCOUNT_TYPES.system),
-      // Amount fields now accept decimals - conversion to cents happens below
-      initialBalance: z.number().optional().default(0),
-      creditLimit: z.number().min(0).optional().default(0),
-    }),
+    body: z
+      .object({
+        accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).default(ACCOUNT_CATEGORIES.general),
+        currencyCode: currencyCode(),
+        name: z.string(),
+        type: z.nativeEnum(ACCOUNT_TYPES).default(ACCOUNT_TYPES.system),
+        // Amount fields now accept decimals - conversion to cents happens below
+        initialBalance: z.number().optional().default(0),
+        creditLimit: z.number().min(0).optional().default(0),
+        // Absent key → column stays null; a brand domain and monogram letters
+        // evict each other.
+        ...logoFieldsShape,
+      })
+      .superRefine((data, ctx) => refineLogoFieldsOnCreate({ data, ctx })),
   }),
   async ({ user, body }) => {
-    const { accountCategory, currencyCode: currency, name, type, initialBalance, creditLimit } = body;
+    const {
+      accountCategory,
+      currencyCode: currency,
+      name,
+      type,
+      initialBalance,
+      creditLimit,
+      logoDomain,
+      logoInitials,
+      logoColor,
+    } = body;
     const { id: userId } = user;
 
     if (type !== ACCOUNT_TYPES.system && process.env.NODE_ENV === 'production') {
@@ -70,6 +86,9 @@ export const createAccount = createController(
       creditLimit: Money.fromDecimal(creditLimit),
       initialBalance: Money.fromDecimal(initialBalance),
       userId,
+      logoDomain,
+      logoInitials,
+      logoColor,
     });
 
     // Serialize: convert cents to decimal for API response
@@ -82,20 +101,35 @@ export const updateAccount = createController(
     params: z.object({
       id: recordId(),
     }),
-    body: z.object({
-      accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).optional(),
-      name: z.string().optional(),
-      // Amount fields now accept decimals - conversion to cents happens below
-      creditLimit: z.number().min(0).optional(),
-      status: z.nativeEnum(ACCOUNT_STATUSES).optional(),
-      excludeFromStats: z.boolean().optional(),
-      currentBalance: z.number().optional(),
-    }),
+    body: z
+      .object({
+        accountCategory: z.nativeEnum(ACCOUNT_CATEGORIES).optional(),
+        name: z.string().optional(),
+        // Amount fields now accept decimals - conversion to cents happens below
+        creditLimit: z.number().min(0).optional(),
+        status: z.nativeEnum(ACCOUNT_STATUSES).optional(),
+        excludeFromStats: z.boolean().optional(),
+        currentBalance: z.number().optional(),
+        // Absent key → no change; a present key is written as given (null clears
+        // it), and a brand domain and monogram letters evict each other.
+        ...logoFieldsShape,
+      })
+      .superRefine((data, ctx) => refineLogoFields({ data, ctx })),
   }),
   async ({ user, params, body }) => {
     const { id } = params;
     const { id: userId } = user;
-    const { accountCategory, name, creditLimit, status, excludeFromStats, currentBalance } = body;
+    const {
+      accountCategory,
+      name,
+      creditLimit,
+      status,
+      excludeFromStats,
+      currentBalance,
+      logoDomain,
+      logoInitials,
+      logoColor,
+    } = body;
 
     const account = await findOrThrowNotFound({
       query: Accounts.findOne({ where: { id, userId } }),
@@ -133,6 +167,8 @@ export const updateAccount = createController(
     const result = await accountsService.updateAccount({
       id,
       userId,
+      // `removeUndefinedKeys` keeps nulls, so for the logo keys "absent = leave
+      // untouched, null = clear" survives intact.
       ...removeUndefinedKeys({
         status,
         excludeFromStats,
@@ -140,6 +176,9 @@ export const updateAccount = createController(
         currentBalance: currentBalance !== undefined ? Money.fromDecimal(currentBalance) : undefined,
         name,
         creditLimit: creditLimit !== undefined ? Money.fromDecimal(creditLimit) : undefined,
+        logoDomain,
+        logoInitials,
+        logoColor,
       }),
     });
 

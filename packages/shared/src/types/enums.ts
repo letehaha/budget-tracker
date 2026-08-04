@@ -276,6 +276,28 @@ export enum CATEGORIZATION_SOURCE {
   payeeRule = 'payee_rule',
 }
 
+/** What started an AI categorization run, as opposed to what categorized a row (`CATEGORIZATION_SOURCE`). */
+export enum CATEGORIZATION_TRIGGER {
+  manual = 'manual',
+  import = 'import',
+  sync = 'sync',
+}
+
+/**
+ * Why the AI declined to pick a category for a row it was shown. The row still gets the
+ * run's stamp so it leaves the candidate pool, but its category stays untouched.
+ */
+export enum CATEGORIZATION_SKIP_REASON {
+  /** Money moved between accounts or people (P2P), not a purchase. */
+  transfer = 'transfer',
+  /** Not enough information in the row to decide. */
+  unclear = 'unclear',
+  /** None of the offered categories applies. */
+  no_fit = 'no_fit',
+  /** The model returned no verdict for the row at all (e.g. answered in prose). */
+  unspecified = 'unspecified',
+}
+
 /**
  * How aggressively a Payee's `defaultCategoryId` overrides other categorization
  * sources.
@@ -320,13 +342,18 @@ export type LogoSource = 'auto' | 'manual';
 export type LogoResolutionState = LogoSource | null;
 
 /**
- * Supported AI providers for features like transaction categorization
+ * Supported AI providers for features like transaction categorization.
+ *
+ * `custom` is the user's own OpenAI-compatible endpoint (Ollama, vLLM, a proxy). It has no
+ * catalog models and no `apiKeys` entry, so use `AIKeyProvider` wherever a provider means an
+ * API-key slot.
  */
 export enum AI_PROVIDER {
   anthropic = 'anthropic',
   openai = 'openai',
   google = 'google',
   groq = 'groq',
+  custom = 'custom',
 }
 
 /**

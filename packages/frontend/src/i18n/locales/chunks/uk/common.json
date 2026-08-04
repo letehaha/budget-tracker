@@ -29,7 +29,8 @@
       "link": "Прив'язати",
       "loadMore": "Завантажити ще",
       "clear": "Очистити",
-      "apply": "Застосувати"
+      "apply": "Застосувати",
+      "retry": "Спробувати ще раз"
     },
     "ui": {
       "close": "Закрити",
@@ -187,7 +188,38 @@
       "searchError": "Не вдалося завантажити логотипи – спробуйте ще раз",
       "editAriaLabel": "Редагувати логотип",
       "dialogTitle": "Змінити логотип",
-      "resetToAuto": "Скинути на автоматичний"
+      "resetToAuto": "Скинути на автоматичний",
+      "tabs": {
+        "brand": "Бренд",
+        "letters": "Літери"
+      },
+      "noResultsLettersHint": "Використати літери натомість",
+      "lettersLabel": "Літери (1–2)",
+      "lettersPlaceholder": "АБ",
+      "colorLabel": "Колір",
+      "colorSwatchAriaLabel": "Використати колір {color}",
+      "customColorAriaLabel": "Вибрати власний колір",
+      "applyLetters": "Застосувати",
+      "lettersSelectedLabel": "Літери «{letters}»"
+    },
+    "resourceLease": {
+      "activeLabel": "Сесія активна",
+      "expiredLabel": "Сесія закінчилася",
+      "defaultResourceLabel": "Цей ресурс",
+      "activeTooltip": "{resource} зберігається на сервері, і допускається приблизно {duration} бездіяльності. Продовжуйте працювати, і він залишиться доступним.",
+      "countingDownTooltip": "{resource} буде звільнено через {time} через вашу бездіяльність. Взаємодійте зі сторінкою, щоб зберегти його.",
+      "cappedTooltip": "{resource} буде звільнено через {time}. Досягнуто максимальної тривалості сесії, тому продовжити її більше не можна.",
+      "expiredTooltip": "{resource} звільнено із сервера. Почніть спочатку, щоб продовжити.",
+      "status": {
+        "active": "{resource} залишається доступним.",
+        "countingDown": "{resource} незабаром буде звільнено.",
+        "expired": "{resource} звільнено."
+      },
+      "duration": {
+        "seconds": "{count} секунда | {count} секунди | {count} секунд",
+        "minutes": "{count} хвилина | {count} хвилини | {count} хвилин",
+        "hours": "{count} година | {count} години | {count} годин"
+      }
     }
   },
   "accountGroups": {
@@ -360,6 +392,12 @@
           }
         }
       }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(ваш API ключ)",
+      "setByEndpoint": "Визначається вашим ендпоінтом"
     }
   }
 }

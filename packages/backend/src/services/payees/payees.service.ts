@@ -17,6 +17,7 @@ import Tags from '@models/tags.model';
 import Transactions from '@models/transactions.model';
 import {
   applyCachedLogos,
+  clearManualLogoFields,
   enqueueLogoResolution,
   enqueueLogoResolutionAfterCommit,
   resolveManualLogoFields,
@@ -467,10 +468,7 @@ interface ResetPayeeLogoParams {
  */
 export const resetPayeeLogo = withTransaction(async ({ userId, id }: ResetPayeeLogoParams): Promise<Payees> => {
   const payee = await loadPayeeOrThrow({ userId, id });
-  payee.logoDomain = null;
-  payee.logoSource = null;
-  payee.logoInitials = null;
-  payee.logoColor = null;
+  clearManualLogoFields({ instance: payee });
   await payee.save();
   enqueueLogoResolutionAfterCommit({ entity: 'payee', id });
   return loadPayeeOrThrow({ userId, id });

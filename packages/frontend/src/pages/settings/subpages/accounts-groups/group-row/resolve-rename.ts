@@ -1,4 +1,9 @@
-type RenameOutcome = 'submit' | 'empty' | 'unchanged';
+export type RenameOutcome = 'submit' | 'empty' | 'unchanged';
+
+export interface RenameResolution {
+  outcome: RenameOutcome;
+  name: string;
+}
 
 /**
  * Decides what a rename draft is worth doing, and hands back the exact name the API
@@ -11,7 +16,7 @@ export const resolveRename = ({
 }: {
   draftName: string;
   currentName: string;
-}): { outcome: RenameOutcome; name: string } => {
+}): RenameResolution => {
   const name = draftName.trim();
 
   if (!name) return { outcome: 'empty', name };

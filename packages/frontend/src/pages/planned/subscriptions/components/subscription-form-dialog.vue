@@ -37,7 +37,12 @@ import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { type LogoSelection, toLogoPayload, toLogoSelection } from '@/components/common/logo-selection';
+import {
+  type LogoSelection,
+  logoSelectionKey,
+  toLogoPayload,
+  toLogoSelection,
+} from '@/components/common/logo-selection';
 import LogoSquareField from '@/components/common/logo-square-field.vue';
 
 import MatchingRulesBuilder from './matching-rules-builder.vue';
@@ -57,12 +62,6 @@ const initialLogo = toLogoSelection({
   logoInitials: props.initialValues?.logoInitials,
   logoColor: props.initialValues?.logoColor,
 });
-
-// Structural identity of a selection, so an untouched picker sends nothing.
-const logoSelectionKey = (selection: LogoSelection | null) => {
-  if (!selection) return 'none';
-  return selection.kind === 'brand' ? `brand:${selection.domain}` : `monogram:${selection.initials}:${selection.color}`;
-};
 
 const emit = defineEmits<{
   submit: [
@@ -422,7 +421,7 @@ const handleSubmit = async () => {
 
   formError.value = null;
 
-  const logoChanged = logoSelectionKey(form.value.logo) !== logoSelectionKey(initialLogo);
+  const logoChanged = logoSelectionKey({ selection: form.value.logo }) !== logoSelectionKey({ selection: initialLogo });
   // Clearing a previously set logo on edit means "back to automatic". That must go
   // through the dedicated reset endpoint: an update carrying null logo fields would
   // stamp the subscription as a manual override and the auto-resolver would skip it
@@ -511,7 +510,7 @@ const handleSubmit = async () => {
         v-model="form.logo"
         :name-for-search="form.name"
         size-class="size-10 rounded-lg"
-        class="mt-5.25"
+        align="with-labeled-field"
       />
     </div>
 

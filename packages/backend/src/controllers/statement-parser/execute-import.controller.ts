@@ -6,6 +6,8 @@ import { z } from 'zod';
 const extractedTransactionSchema = z.object({
   date: z.string(),
   description: z.string(),
+  /** Drives payee linking and payee-rule categorization; zod strips it from the body when unlisted. */
+  merchant: z.string().optional(),
   amount: z.number().positive(),
   type: z.enum(['income', 'expense']),
 });

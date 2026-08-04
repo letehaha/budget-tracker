@@ -15,47 +15,30 @@
         class="rounded-lg border p-3"
         :class="{ 'border-destructive/50 bg-destructive/5': providerInfo.status === 'invalid' }"
       >
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <!-- Status icon -->
-            <CheckCircleIcon v-if="providerInfo.status !== 'invalid'" class="size-5 text-green-600" />
-            <AlertCircleIcon v-else class="text-destructive-text size-5" />
-
-            <div>
-              <div class="font-medium">
-                {{ getProviderLabel(providerInfo.provider) }}
-                <span
-                  v-if="providerInfo.provider === defaultProvider"
-                  class="bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 text-xs"
-                >
-                  {{ $t('settings.ai.apiKeyManager.badges.default') }}
-                </span>
-                <span
-                  v-if="providerInfo.status === 'invalid'"
-                  class="bg-destructive/10 text-destructive-text ml-2 rounded-full px-2 py-0.5 text-xs"
-                >
-                  {{ $t('settings.ai.apiKeyManager.badges.invalid') }}
-                </span>
-              </div>
-              <div class="text-muted-foreground text-xs">
-                <template v-if="providerInfo.status === 'invalid'">
-                  {{
-                    $t('settings.ai.apiKeyManager.status.failed', {
-                      timeAgo: formatRelativeDate(new Date(providerInfo.invalidatedAt!)),
-                    })
-                  }}
-                </template>
-                <template v-else>
-                  {{
-                    $t('settings.ai.apiKeyManager.status.validated', {
-                      timeAgo: formatRelativeDate(new Date(providerInfo.lastValidatedAt)),
-                    })
-                  }}
-                </template>
-              </div>
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="font-medium">
+              {{ getProviderLabel(providerInfo.provider) }}
+              <span
+                v-if="providerInfo.provider === defaultProvider"
+                class="bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 text-xs"
+              >
+                {{ $t('settings.ai.apiKeyManager.badges.default') }}
+              </span>
+              <span
+                v-if="providerInfo.status === 'invalid'"
+                class="bg-destructive/10 text-destructive-text ml-2 rounded-full px-2 py-0.5 text-xs"
+              >
+                {{ $t('settings.ai.credentialStatus.invalidBadge') }}
+              </span>
             </div>
+            <CredentialStatus
+              :status="providerInfo.status"
+              :last-validated-at="providerInfo.lastValidatedAt"
+              :invalidated-at="providerInfo.invalidatedAt"
+            />
           </div>
-          <div class="flex gap-2">
+          <div class="flex shrink-0 gap-2">
             <Button
               v-if="providerInfo.provider !== defaultProvider && configuredProviders.length > 1"
               size="sm"
@@ -65,14 +48,17 @@
             >
               {{ $t('settings.ai.apiKeyManager.buttons.setDefault') }}
             </Button>
-            <Button
-              size="sm"
-              variant="ghost-destructive"
-              :disabled="isDeletingKey"
-              @click="openDeleteConfirmation(providerInfo.provider)"
-            >
-              <Trash2Icon class="size-4" />
-            </Button>
+            <DesktopOnlyTooltip :content="$t('settings.ai.apiKeyManager.deleteDialog.remove')">
+              <Button
+                size="sm"
+                variant="ghost-destructive"
+                :aria-label="$t('settings.ai.apiKeyManager.deleteDialog.remove')"
+                :disabled="isDeletingKey"
+                @click="openDeleteConfirmation(providerInfo.provider)"
+              >
+                <Trash2Icon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
           </div>
         </div>
 
@@ -118,7 +104,7 @@
       <!-- All providers configured state -->
       <template v-if="availableProvidersToAdd.length === 0">
         <div class="text-muted-foreground flex items-center gap-3">
-          <CheckCircleIcon class="size-5 text-green-600" />
+          <CheckCircleIcon class="text-success-text size-5" />
           <p class="text-sm">{{ $t('settings.ai.apiKeyManager.allConfigured') }}</p>
         </div>
       </template>
@@ -202,18 +188,19 @@ import {
   AlertDialogTitle,
 } from '@/components/lib/ui/alert-dialog';
 import { Button } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAiSettings } from '@/composable/data-queries/ai-settings';
-import { useDateLocale } from '@/composable/use-date-locale';
 import { ApiErrorResponseError } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { AI_PROVIDER } from '@bt/shared/types';
-import { AlertCircleIcon, CheckCircleIcon, ChevronDownIcon, KeyIcon, Loader2Icon, Trash2Icon } from '@lucide/vue';
+import { AIKeyProvider, AI_KEY_PROVIDERS, AI_PROVIDER } from '@bt/shared/types';
+import { CheckCircleIcon, ChevronDownIcon, KeyIcon, Loader2Icon, Trash2Icon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import CredentialStatus from './shared/credential-status.vue';
+
 const { t } = useI18n();
-const { formatDistanceToNow } = useDateLocale();
 
 interface ProviderConfigItem {
   label: string;
@@ -223,7 +210,7 @@ interface ProviderConfigItem {
   apiKeyUrlLabel: string;
 }
 
-const PROVIDER_CONFIG = computed<Record<AI_PROVIDER, ProviderConfigItem>>(() => ({
+const PROVIDER_CONFIG = computed<Record<AIKeyProvider, ProviderConfigItem>>(() => ({
   [AI_PROVIDER.anthropic]: {
     label: t('settings.ai.apiKeyManager.providers.anthropic.label'),
     placeholder: t('settings.ai.apiKeyManager.providers.anthropic.placeholder'),
@@ -267,11 +254,11 @@ const {
 } = useAiSettings();
 
 const apiKeyInput = ref('');
-const selectedProvider = ref<AI_PROVIDER>(AI_PROVIDER.openai);
+const selectedProvider = ref<AIKeyProvider>(AI_PROVIDER.openai);
 const validationError = ref('');
 const deleteDialogState = reactive<{
   isOpen: boolean;
-  provider: AI_PROVIDER | null;
+  provider: AIKeyProvider | null;
   providerLabel: string;
 }>({
   isOpen: false,
@@ -281,9 +268,10 @@ const deleteDialogState = reactive<{
 
 const availableProvidersToAdd = computed(() => {
   const configuredSet = new Set(configuredProviders.value.map((p) => p.provider));
-  return Object.values(AI_PROVIDER)
-    .filter((p) => !configuredSet.has(p))
-    .map((p) => ({ value: p, label: PROVIDER_CONFIG.value[p].label }));
+  return AI_KEY_PROVIDERS.filter((p) => !configuredSet.has(p)).map((p) => ({
+    value: p,
+    label: PROVIDER_CONFIG.value[p].label,
+  }));
 });
 
 /** Sorted providers: default first, then alphabetically by label */
@@ -299,13 +287,11 @@ const sortedConfiguredProviders = computed(() => {
   });
 });
 
-const getProviderLabel = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.label ?? provider;
-const getProviderPlaceholder = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.placeholder ?? '';
-const getProviderDescription = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.description ?? '';
-const getProviderApiKeyUrl = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.apiKeyUrl ?? '';
-const getProviderApiKeyUrlLabel = (provider: AI_PROVIDER) => PROVIDER_CONFIG.value[provider]?.apiKeyUrlLabel ?? '';
-
-const formatRelativeDate = (date: Date) => formatDistanceToNow(date, { addSuffix: true });
+const getProviderLabel = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.label ?? provider;
+const getProviderPlaceholder = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.placeholder ?? '';
+const getProviderDescription = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.description ?? '';
+const getProviderApiKeyUrl = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.apiKeyUrl ?? '';
+const getProviderApiKeyUrlLabel = (provider: AIKeyProvider) => PROVIDER_CONFIG.value[provider]?.apiKeyUrlLabel ?? '';
 
 const handleSaveKey = async () => {
   const trimmedKey = apiKeyInput.value.trim();
@@ -337,7 +323,7 @@ const handleSaveKey = async () => {
   }
 };
 
-const handleSetDefault = async (provider: AI_PROVIDER) => {
+const handleSetDefault = async (provider: AIKeyProvider) => {
   try {
     await setDefaultProvider({ provider });
     addSuccessNotification(
@@ -348,7 +334,7 @@ const handleSetDefault = async (provider: AI_PROVIDER) => {
   }
 };
 
-const openDeleteConfirmation = (provider: AI_PROVIDER) => {
+const openDeleteConfirmation = (provider: AIKeyProvider) => {
   deleteDialogState.provider = provider;
   deleteDialogState.providerLabel = getProviderLabel(provider);
   deleteDialogState.isOpen = true;

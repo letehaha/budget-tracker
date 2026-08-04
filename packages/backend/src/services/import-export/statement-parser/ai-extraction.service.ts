@@ -8,7 +8,16 @@ import type {
   StatementFileType,
 } from '@bt/shared/types';
 import { AI_FEATURE } from '@bt/shared/types';
-import { createAIClient } from '@services/ai';
+import { logger } from '@js/utils';
+import {
+  AI_MAX_OUTPUT_TOKENS,
+  AI_OUTPUT_TRUNCATED_MESSAGE,
+  aiCallGuards,
+  createAIClient,
+  describeMissingAiConfiguration,
+  hitOutputCeiling,
+} from '@services/ai';
+import { type AIExtractionError, resolveAiExtractionFailure } from '@services/import-export/core/ai-extraction-failure';
 import { generateText } from 'ai';
 
 import { STATEMENT_EXTRACTION_SYSTEM_PROMPT, createTextExtractionPrompt, parseAIResponse } from './extraction-prompt';
@@ -18,12 +27,6 @@ interface AIExtractionParams {
   text: string;
   pageCount: number;
   fileType: StatementFileType;
-}
-
-interface AIExtractionError {
-  code: 'NO_AI_CONFIGURED' | 'AI_ERROR' | 'EXTRACTION_FAILED' | 'NO_TRANSACTIONS_FOUND' | 'RATE_LIMITED';
-  message: string;
-  details?: string;
 }
 
 type AIExtractionResultType =
@@ -50,24 +53,44 @@ export async function extractTransactionsWithAI({
       success: false,
       error: {
         code: 'NO_AI_CONFIGURED',
-        message: 'No AI provider configured. Please add an API key in settings.',
+        message: await describeMissingAiConfiguration({ userId }),
       },
     };
   }
 
   try {
-    console.log('[Statement Parser] AI - Calling model:', aiClient.modelId);
-    console.log('[Statement Parser] AI - Text length:', text.length);
+    logger.info('[Statement Parser] Starting AI extraction', { modelId: aiClient.modelId, textLength: text.length });
 
-    // Generate extraction using AI
-    const { text: responseText, usage } = await generateText({
+    const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
+
+    const {
+      text: responseText,
+      usage,
+      finishReason,
+    } = await generateText({
       model: aiClient.model,
       system: STATEMENT_EXTRACTION_SYSTEM_PROMPT,
       prompt: createTextExtractionPrompt({ text }),
+      abortSignal,
+      maxRetries,
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
     });
 
-    console.log('[Statement Parser] AI - Response length:', responseText.length);
-    console.log('[Statement Parser] AI - Usage:', usage);
+    logger.info('[Statement Parser] AI answered', { responseLength: responseText.length, usage, finishReason });
+
+    // A truncated CSV still parses cleanly up to the cut, so without this the
+    // transactions that never arrived would look exactly like transactions the
+    // statement never had -- a wrong balance instead of an error.
+    if (hitOutputCeiling({ finishReason, usage })) {
+      return {
+        success: false,
+        error: {
+          code: 'OUTPUT_TRUNCATED',
+          message: AI_OUTPUT_TRUNCATED_MESSAGE,
+          details: `Generation stopped at the ${AI_MAX_OUTPUT_TOKENS}-token output limit (used ${usage?.outputTokens ?? 0}, finishReason: ${finishReason}).`,
+        },
+      };
+    }
 
     // Parse AI response
     const parsed = parseAIResponse({ response: responseText });
@@ -84,6 +107,17 @@ export async function extractTransactionsWithAI({
     }
 
     if (parsed.transactions.length === 0) {
+      if (parsed.droppedRowCount > 0) {
+        return {
+          success: false,
+          error: {
+            code: 'EXTRACTION_FAILED',
+            message: `The model returned ${parsed.droppedRowCount} row(s), but none of them had both a readable date and a positive amount. Try extracting again, or switch to a different model.`,
+            details: responseText.slice(0, 500),
+          },
+        };
+      }
+
       return {
         success: false,
         error: {
@@ -122,38 +156,12 @@ export async function extractTransactionsWithAI({
           input: usage?.inputTokens ?? 0,
           output: usage?.outputTokens ?? 0,
         },
+        droppedRowCount: parsed.droppedRowCount,
       },
     };
   } catch (error) {
-    // Log full error for debugging
-    console.error('[Statement Parser] AI - Error:', error);
+    const failure = await resolveAiExtractionFailure({ userId, aiClient, error, logPrefix: '[Statement Parser]' });
 
-    // Handle specific error types
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
-
-    console.error('[Statement Parser] AI - Error message:', errorMessage);
-    console.error('[Statement Parser] AI - Error stack:', errorStack);
-
-    // Check for rate limiting
-    if (errorMessage.toLowerCase().includes('rate') || errorMessage.toLowerCase().includes('429')) {
-      return {
-        success: false,
-        error: {
-          code: 'RATE_LIMITED',
-          message: 'AI provider rate limit reached. Please try again in a few minutes.',
-          details: errorMessage,
-        },
-      };
-    }
-
-    return {
-      success: false,
-      error: {
-        code: 'AI_ERROR',
-        message: 'AI extraction failed',
-        details: errorMessage,
-      },
-    };
+    return { success: false, error: failure.error };
   }
 }

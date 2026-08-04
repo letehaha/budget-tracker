@@ -13,6 +13,9 @@ set -eu
 
 API_HTTP="${API_HTTP:-}"
 API_VER="${API_VER:-/api/v1}"
+# Set only by the self-hosting compose file. Anything but the exact string
+# "true" — including unset, as on the hosted deployment — means not self-hosted.
+IS_SELF_HOST="${IS_SELF_HOST:-}"
 MCP_BASE_URL="${MCP_BASE_URL:-}"
 POSTHOG_KEY="${POSTHOG_KEY:-}"
 POSTHOG_HOST="${POSTHOG_HOST:-}"
@@ -64,6 +67,7 @@ cat > /app/config.js <<EOF
 window.__APP_CONFIG__ = {
   API_HTTP: "$(js_escape "$API_HTTP")",
   API_VER: "$(js_escape "$API_VER")",
+  IS_SELF_HOST: "$(js_escape "$IS_SELF_HOST")",
   MCP_BASE_URL: "$(js_escape "$MCP_BASE_URL")",
   POSTHOG_KEY: "$(js_escape "$POSTHOG_KEY")",
   POSTHOG_HOST: "$(js_escape "$POSTHOG_HOST")",

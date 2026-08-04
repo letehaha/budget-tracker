@@ -2,6 +2,7 @@ import type { BackupRestoreSseProgress } from './backup';
 import type { BudgetBakersWalletImportProgress } from './budget-bakers-wallet-import';
 import type { BaseCurrencyChangeStatus } from './currencies';
 import type { CsvImportProgress } from './import-export';
+import type { MsMoneyImportProgress } from './ms-money-import';
 /**
  * Server-Sent Events (SSE) shared types
  *
@@ -17,6 +18,7 @@ export const SSE_EVENT_TYPES = {
   SYNC_STATUS_CHANGED: 'bank_connections_sync_status_changed',
   YNAB_IMPORT_PROGRESS: 'ynab_import_progress',
   BUDGET_BAKERS_WALLET_IMPORT_PROGRESS: 'budget_bakers_wallet_import_progress',
+  MS_MONEY_IMPORT_PROGRESS: 'ms_money_import_progress',
   CSV_IMPORT_PROGRESS: 'csv_import_progress',
   BASE_CURRENCY_CHANGE_STATUS: 'base_currency_change_status',
   BACKUP_RESTORE_PROGRESS: 'backup_restore_progress',
@@ -33,7 +35,25 @@ export interface AiCategorizationProgressPayload {
   processedCount: number;
   totalCount: number;
   failedCount: number;
+  /**
+   * Rows the AI saw but declined to categorize; they count into `processedCount`, not
+   * `failedCount`. Optional: statuses recorded before skips existed carry no field.
+   */
+  skippedCount?: number;
+  /** Why transactions failed, when the run itself knows (e.g. the user's AI endpoint is down). */
+  errorMessage?: string;
 }
+
+/**
+ * Response of GET /user/ai/categorization/status. Never 404s: "no job" is a 200
+ * `idle`. A terminal status (`completed` / `failed`) is served exactly once per
+ * run, so later polls report `idle` rather than repeating it.
+ */
+export type AiCategorizationStatus =
+  | { status: 'idle' }
+  | (Omit<AiCategorizationProgressPayload, 'status'> & {
+      status: 'queued' | 'processing' | 'completed' | 'failed';
+    });
 
 /**
  * Account sync status for SYNC_STATUS_CHANGED event
@@ -100,6 +120,7 @@ export type SSEEventPayload =
   | SyncStatusChangedPayload
   | YnabImportProgress
   | BudgetBakersWalletImportProgress
+  | MsMoneyImportProgress
   | CsvImportProgress
   | BaseCurrencyChangeStatus
   | BackupRestoreSseProgress;
@@ -116,6 +137,7 @@ export interface SSEEventPayloadMap {
   [SSE_EVENT_TYPES.SYNC_STATUS_CHANGED]: SyncStatusChangedPayload;
   [SSE_EVENT_TYPES.YNAB_IMPORT_PROGRESS]: YnabImportProgress;
   [SSE_EVENT_TYPES.BUDGET_BAKERS_WALLET_IMPORT_PROGRESS]: BudgetBakersWalletImportProgress;
+  [SSE_EVENT_TYPES.MS_MONEY_IMPORT_PROGRESS]: MsMoneyImportProgress;
   [SSE_EVENT_TYPES.CSV_IMPORT_PROGRESS]: CsvImportProgress;
   [SSE_EVENT_TYPES.BASE_CURRENCY_CHANGE_STATUS]: BaseCurrencyChangeStatus;
   [SSE_EVENT_TYPES.BACKUP_RESTORE_PROGRESS]: BackupRestoreSseProgress;

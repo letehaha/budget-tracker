@@ -144,6 +144,10 @@ self-hosting/.env
 # Different kinds of data
 packages/backend/data
 
+# Microsoft Money sample databases for the .mny parser tests. Third-party files,
+# fetched on demand with `npm run fixtures:ms-money`.
+packages/backend/src/tests/fixtures/ms-money-import/
+
 dev-debug.log
 
 scripts/local/*

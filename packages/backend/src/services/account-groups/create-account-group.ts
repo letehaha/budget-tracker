@@ -1,6 +1,8 @@
+import type { EntityLogoPayload } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
+import { applyManualLogoPatch } from '@services/brand-logos';
 
 import { withTransaction } from '../common/with-transaction';
 
@@ -9,11 +11,14 @@ export const createAccountGroup = withTransaction(
     userId,
     name,
     parentGroupId,
+    logoDomain,
+    logoInitials,
+    logoColor,
   }: {
     userId: number;
     name: string;
     parentGroupId?: string | null;
-  }): Promise<AccountGroup> => {
+  } & EntityLogoPayload): Promise<AccountGroup> => {
     if (parentGroupId) {
       await findOrThrowNotFound({
         query: AccountGroup.findOne({ where: { id: parentGroupId, userId } }),
@@ -21,6 +26,11 @@ export const createAccountGroup = withTransaction(
       });
     }
 
-    return AccountGroup.create({ userId, name, parentGroupId });
+    return AccountGroup.create({
+      userId,
+      name,
+      parentGroupId,
+      ...applyManualLogoPatch({ patch: { logoDomain, logoInitials, logoColor } }),
+    });
   },
 );

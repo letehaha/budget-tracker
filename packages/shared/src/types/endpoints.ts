@@ -1,15 +1,21 @@
-import { AccountModel, CategoryModel, TransactionModel } from './db-models';
+import { AccountModel, CategoryModel, EntityLogoPayload, TransactionModel } from './db-models';
 import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, TRANSACTION_TYPES } from './enums';
 import { RecordId } from './record-id';
 
 export type BodyPayload = {
   [key: string | number]: string | number | boolean | undefined;
 };
+/** Index signature for bodies whose keys accept an explicit `null` (clear the
+ *  stored value) alongside "absent = leave alone". Separate from `BodyPayload`
+ *  so nulls stay rejected on every other endpoint. */
+export type NullableBodyPayload = {
+  [key: string | number]: string | number | boolean | null | undefined;
+};
 export type QueryPayload = {
   [key: string]: string | number | boolean | undefined;
 };
 
-export interface CreateAccountBody extends BodyPayload {
+export interface CreateAccountBody extends NullableBodyPayload, EntityLogoPayload {
   accountCategory: AccountModel['accountCategory'];
   currencyCode: AccountModel['currencyCode'];
   name: AccountModel['name'];
@@ -18,7 +24,7 @@ export interface CreateAccountBody extends BodyPayload {
   type?: AccountModel['type'];
 }
 
-export interface UpdateAccountBody extends BodyPayload {
+export interface UpdateAccountBody extends NullableBodyPayload, EntityLogoPayload {
   accountCategory?: AccountModel['accountCategory'];
   name?: AccountModel['name'];
   currentBalance?: AccountModel['currentBalance'];

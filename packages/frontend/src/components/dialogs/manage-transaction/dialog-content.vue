@@ -30,7 +30,7 @@ import {
   TRANSACTION_TYPES,
   type TransactionModel,
 } from '@bt/shared/types';
-import { helpers, minValue, required } from '@vuelidate/validators';
+import { helpers, minValue } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
@@ -595,6 +595,14 @@ const isTargetAmountRequired = computed(
     isCurrenciesDifferent.value,
 );
 
+/**
+ * Presence check for the amount fields. Vuelidate's `required` treats 0 as
+ * empty, and a zero amount is a real transaction here — an imported Microsoft
+ * Money voided cheque lands at 0 and must stay editable — so only a genuinely
+ * blank field counts as missing.
+ */
+const isAmountFilled = (value: unknown) => value !== null && value !== undefined && value !== '';
+
 // Wrap the entire structure in one computed so the rules lookup inside
 // `getFieldErrorMessage` (which uses lodash get on the original rules object)
 // resolves through `rules.value.form.amount` instead of failing on a nested
@@ -620,11 +628,11 @@ const validationRules = computed(() => {
   return {
     form: {
       amount: {
-        ...(isAmountRequired.value ? { required, minValue: minValue(0.01) } : {}),
+        ...(isAmountRequired.value ? { required: isAmountFilled, minValue: minValue(0) } : {}),
         ...(overpayOnAmount ? { notOverpay: loanOverpayRule } : {}),
       },
       targetAmount: {
-        ...(isTargetAmountRequired.value ? { required, minValue: minValue(0.01) } : {}),
+        ...(isTargetAmountRequired.value ? { required: isAmountFilled, minValue: minValue(0) } : {}),
         ...(overpayOnTarget ? { notOverpay: loanOverpayRule } : {}),
       },
     },

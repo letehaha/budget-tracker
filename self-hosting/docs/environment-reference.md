@@ -111,6 +111,22 @@ that events match the source maps uploaded alongside them. Setting it in `.env`
 after an image already exists only changes the runtime value — rebuild
 (`--build`) to move the source maps with it.
 
+## Set for you
+
+`IS_SELF_HOST` is written straight into `docker-compose.yml`, on both the
+backend and the frontend. There is nothing to put in `.env` — anything you set
+there is ignored. It marks the stack as yours rather than the hosted service,
+which turns on two things:
+
+- **A custom AI endpoint can point at a server on your own network.** On the
+  hosted service the app refuses private addresses (`localhost`, `192.168.x.x`,
+  and so on), because there they could only be someone probing the server it
+  runs on. On your own stack that restriction is lifted, so you can use a model
+  running on your machine or elsewhere on your LAN.
+- **Restoring a backup fills in price history.** After a restore, your stocks
+  and crypto get their past prices fetched again, so charts and past valuations
+  look right instead of starting from the restore date.
+
 ---
 
 Setup guide: [setup-guide.md](setup-guide.md) · Troubleshooting:

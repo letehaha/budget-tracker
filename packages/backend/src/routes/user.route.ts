@@ -1,3 +1,7 @@
+import { categorizationCandidatesController } from '@controllers/ai-categorization/candidates.controller';
+import { categorizationStatusController } from '@controllers/ai-categorization/categorization-status.controller';
+import { categorizationHistoryController } from '@controllers/ai-categorization/history.controller';
+import { triggerCategorizationController } from '@controllers/ai-categorization/trigger-categorization.controller';
 import { activeRestoreStatusController } from '@controllers/backup/active-restore-status.controller';
 import { exportBackupController } from '@controllers/backup/export-backup.controller';
 import { restoreBackupController } from '@controllers/backup/restore-backup.controller';
@@ -15,6 +19,13 @@ import {
   setAiApiKeyController,
   setDefaultAiProviderController,
 } from '@controllers/user-settings/ai-api-key';
+import {
+  createCustomEndpointController,
+  deleteCustomEndpointController,
+  getCustomEndpointsController,
+  testCustomEndpointController,
+  updateCustomEndpointController,
+} from '@controllers/user-settings/ai-custom-endpoint';
 import {
   getCustomInstructionsController,
   setCustomInstructionsController,
@@ -45,7 +56,13 @@ import {
 } from '@controllers/user.controller';
 import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
-import { backupRateLimit, backupRestoreRateLimit, dataExportRateLimit } from '@middlewares/rate-limit';
+import {
+  aiCustomEndpointTestRateLimit,
+  aiCustomModelProbeRateLimit,
+  backupRateLimit,
+  backupRestoreRateLimit,
+  dataExportRateLimit,
+} from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -224,6 +241,41 @@ router.delete(
   deleteAllAiApiKeys.handler,
 );
 
+// AI Custom OpenAI-compatible endpoints
+router.get(
+  '/settings/ai/custom-endpoints',
+  authenticateSession,
+  validateEndpoint(getCustomEndpointsController.schema),
+  getCustomEndpointsController.handler,
+);
+router.post(
+  '/settings/ai/custom-endpoints',
+  authenticateSession,
+  aiCustomEndpointTestRateLimit,
+  validateEndpoint(createCustomEndpointController.schema),
+  createCustomEndpointController.handler,
+);
+router.post(
+  '/settings/ai/custom-endpoints/test',
+  authenticateSession,
+  aiCustomEndpointTestRateLimit,
+  validateEndpoint(testCustomEndpointController.schema),
+  testCustomEndpointController.handler,
+);
+router.put(
+  '/settings/ai/custom-endpoints/:id',
+  authenticateSession,
+  aiCustomEndpointTestRateLimit,
+  validateEndpoint(updateCustomEndpointController.schema),
+  updateCustomEndpointController.handler,
+);
+router.delete(
+  '/settings/ai/custom-endpoints/:id',
+  authenticateSession,
+  validateEndpoint(deleteCustomEndpointController.schema),
+  deleteCustomEndpointController.handler,
+);
+
 // AI Feature configuration
 router.get(
   '/settings/ai/features',
@@ -240,6 +292,7 @@ router.get(
 router.put(
   '/settings/ai/features/:feature',
   authenticateSession,
+  aiCustomModelProbeRateLimit,
   validateEndpoint(setFeatureConfigController.schema),
   setFeatureConfigController.handler,
 );
@@ -262,6 +315,32 @@ router.put(
   authenticateSession,
   validateEndpoint(setCustomInstructionsController.schema),
   setCustomInstructionsController.handler,
+);
+
+// AI Categorization
+router.get(
+  '/ai/categorization/status',
+  authenticateSession,
+  validateEndpoint(categorizationStatusController.schema),
+  categorizationStatusController.handler,
+);
+router.get(
+  '/ai/categorization/candidates',
+  authenticateSession,
+  validateEndpoint(categorizationCandidatesController.schema),
+  categorizationCandidatesController.handler,
+);
+router.get(
+  '/ai/categorization/history',
+  authenticateSession,
+  validateEndpoint(categorizationHistoryController.schema),
+  categorizationHistoryController.handler,
+);
+router.post(
+  '/ai/categorization/trigger',
+  authenticateSession,
+  validateEndpoint(triggerCategorizationController.schema),
+  triggerCategorizationController.handler,
 );
 
 // AI Models

@@ -57,6 +57,12 @@ export async function asUser<T>({ cookies, fn }: { cookies: string; fn: () => Pr
   }
 }
 
+/** Run `fn` with an empty cookie string, so the request carries no session at all
+ *  and the endpoint under test must answer 401. */
+export function withoutSession<T>(fn: () => Promise<T>): Promise<T> {
+  return asUser({ cookies: '', fn });
+}
+
 /**
  * Set the active user's base currency. Call inside `asUser` when configuring a second
  * user during test setup.

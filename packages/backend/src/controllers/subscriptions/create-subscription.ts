@@ -7,8 +7,7 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { currencyCode, dateBound, recordId, withDateOrder } from '@common/lib/zod/custom-types';
-import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
-import { logoColorSchema, logoInitialsSchema, refineLogoSelection } from '@controllers/common/logo-initials.schema';
+import { logoFieldsShape, refineLogoFields } from '@controllers/common/logo-fields.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import * as subscriptionsService from '@services/subscriptions';
@@ -51,15 +50,12 @@ const schema = z.object({
         remindBefore: z.array(z.enum(remindBeforePresetValues)).max(MAX_REMIND_BEFORE_PRESETS).optional(),
         notifyEmail: z.boolean().optional(),
         autoRecord: z.boolean().optional(),
-        // Present key (even null) → manual override on the new subscription; absent
-        // key → leave the logo unset so the background resolver auto-resolves it.
-        logoDomain: logoDomainSchema.optional(),
-        // Monogram letters + background, the alternative to a brand domain.
-        logoInitials: logoInitialsSchema.optional(),
-        logoColor: logoColorSchema.optional(),
+        // A key that sets a value stamps logoSource 'manual' on the new subscription;
+        // absent keys leave the logo unset for the background resolver to fill in.
+        ...logoFieldsShape,
       })
       .superRefine((data, ctx) => {
-        refineLogoSelection({ data, ctx });
+        refineLogoFields({ data, ctx });
 
         const hasAmount = data.expectedAmount != null;
         const hasCurrency = data.expectedCurrencyCode != null;

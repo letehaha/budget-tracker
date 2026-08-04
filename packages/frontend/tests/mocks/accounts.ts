@@ -31,6 +31,9 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     externalId: undefined,
     status: ACCOUNT_STATUSES.active,
     excludeFromStats: false,
+    logoDomain: null,
+    logoInitials: null,
+    logoColor: null,
     needsRelink: false,
   },
   {
@@ -49,6 +52,9 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     externalId: undefined,
     status: ACCOUNT_STATUSES.active,
     excludeFromStats: false,
+    logoDomain: null,
+    logoInitials: null,
+    logoColor: null,
     needsRelink: false,
   },
   {
@@ -67,6 +73,9 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     externalId: undefined,
     status: ACCOUNT_STATUSES.active,
     excludeFromStats: false,
+    logoDomain: null,
+    logoInitials: null,
+    logoColor: null,
     needsRelink: false,
   },
   {
@@ -85,6 +94,9 @@ export const ACCOUNTS: AccountWithRelinkStatus[] = [
     externalId: undefined,
     status: ACCOUNT_STATUSES.active,
     excludeFromStats: false,
+    logoDomain: null,
+    logoInitials: null,
+    logoColor: null,
     needsRelink: false,
   },
 ];

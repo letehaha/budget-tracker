@@ -11,13 +11,14 @@ import {
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
+import { CustomError, ERROR_CODES, NotFoundError, UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
+import { applyManualLogoPatch } from '@services/brand-logos';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import {
@@ -36,6 +37,7 @@ import { Op } from 'sequelize';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { restampRefInitialBalance } from './accounts/restamp-ref-initial-balance';
+import { unlinkSubscriptionsFromAccount } from './accounts/unlink-subscriptions-from-account';
 import { withTransaction } from './common/with-transaction';
 
 type AccountWithRelinkStatus = Accounts.default & {
@@ -181,7 +183,9 @@ export const getAccountById = withTransaction(
 
     // Fall through to shared lookup; returns null if the caller has no accepted share.
     const shared = await getSharedAccountById({ userId: payload.userId, id: payload.id });
-    if (shared) await attachBankProviderTypes([shared]);
+    if (shared) {
+      await attachBankProviderTypes([shared]);
+    }
     return shared;
   },
 );
@@ -191,7 +195,8 @@ export const createAccount = withTransaction(
     payload: Omit<Accounts.CreateAccountPayload, 'refCreditLimit' | 'refInitialBalance'>,
   ): Promise<Accounts.default | null> => {
     try {
-      const { userId, accountCategory, creditLimit, currencyCode, initialBalance } = payload;
+      const { logoDomain, logoInitials, logoColor, ...rest } = payload;
+      const { userId, accountCategory, creditLimit, currencyCode, initialBalance } = rest;
 
       if (accountCategory && isDedicatedFlowAccountCategory(accountCategory)) {
         throw new ValidationError({
@@ -219,12 +224,17 @@ export const createAccount = withTransaction(
         date: new Date(),
       });
 
-      return Accounts.createAccount({
-        ...payload,
+      return await Accounts.createAccount({
+        ...rest,
         refCreditLimit,
         refInitialBalance,
+        ...applyManualLogoPatch({ patch: { logoDomain, logoInitials, logoColor } }),
       });
     } catch (e) {
+      // A 4xx is the caller's mistake, not a failure of account creation, so it
+      // must not be logged at error severity.
+      if (e instanceof CustomError && e.httpCode < ERROR_CODES.UnexpectedError) throw e;
+
       logger.error(
         { message: 'Failed to create account', error: e as Error },
         { code: 'ACCOUNT_CREATE_FAILED', userId: payload.userId, currencyCode: payload.currencyCode },
@@ -239,6 +249,9 @@ export const updateAccount = withTransaction(
     id,
     externalId,
     loanBalanceCorrection,
+    logoDomain,
+    logoInitials,
+    logoColor,
     ...payload
   }: Accounts.UpdateAccountByIdPayload &
     (Pick<Accounts.UpdateAccountByIdPayload, 'id'> | Pick<Accounts.UpdateAccountByIdPayload, 'externalId'>) & {
@@ -337,6 +350,15 @@ export const updateAccount = withTransaction(
       });
     }
 
+    const logoPatch = applyManualLogoPatch({
+      patch: { logoDomain, logoInitials, logoColor },
+      stored: {
+        logoDomain: accountData.logoDomain,
+        logoInitials: accountData.logoInitials,
+        logoColor: accountData.logoColor,
+      },
+    });
+
     // `refInitialBalance` is intentionally NOT written here: the ref side of the
     // opening balance is owned by `restampRefInitialBalance` (boundary-date rate),
     // which runs below and cascades its diff into the Balances history.
@@ -344,6 +366,7 @@ export const updateAccount = withTransaction(
       id,
       externalId,
       ...payload,
+      ...logoPatch,
       initialBalance,
       refCurrentBalance,
       ...(adjustedRefCreditLimit !== undefined ? { refCreditLimit: adjustedRefCreditLimit } : {}),
@@ -425,6 +448,11 @@ const deleteAccountByIdInTx = withTransaction(
     // about-to-be-cascaded leg on this account. Same transaction as the destroy, so a
     // failure rolls everything back together.
     await convertCrossUserTransfersForAccountIds({ accountIds: [id], ownerUserId: userId });
+
+    // The destroy cascades `Subscriptions.accountId` to NULL at the DB level, which trips
+    // the auto-record check constraint on any subscription still booking into this account.
+    // Clearing both columns first is the only way to satisfy it — the cascade can't.
+    await unlinkSubscriptionsFromAccount({ accountId: id });
 
     const affectedRows = await Accounts.deleteAccountById({ id, userId });
     if (affectedRows === 0) {

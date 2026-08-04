@@ -7,7 +7,9 @@ import {
   BUDGET_TYPES,
   CATEGORIZATION_MODE,
   LogoResolutionState,
+  CATEGORIZATION_SKIP_REASON,
   CATEGORIZATION_SOURCE,
+  CATEGORIZATION_TRIGGER,
   CATEGORY_TYPES,
   LOAN_TYPE,
   NotificationPriority,
@@ -112,7 +114,7 @@ export interface ResourceShareInfo {
   accessSource: AccessSource;
 }
 
-export interface AccountModel {
+export interface AccountModel extends EntityLogoFields {
   type: ACCOUNT_TYPES;
   id: RecordId;
   name: string;
@@ -146,7 +148,7 @@ export interface AccountModel {
  * The single source of truth for both the backend serializer's return type and
  * the frontend loan/account response shapes, so the two can't drift.
  */
-export interface AccountApiResponse {
+export interface AccountApiResponse extends EntityLogoFields {
   id: string;
   name: string;
   initialBalance: number;
@@ -170,6 +172,22 @@ export interface AccountApiResponse {
   needsRelink?: boolean;
   /** Present on user-facing list/detail responses; absent on internal serializations. */
   share?: ResourceShareInfo;
+}
+
+/**
+ * Serialized account-group wire shape (DB → API), with nested accounts already
+ * serialized and child groups nested the same way. The single source of truth
+ * for both the backend serializer's return type and the frontend group type, so
+ * the two can't drift.
+ */
+export interface AccountGroupApiResponse extends EntityLogoFields {
+  id: string;
+  name: string;
+  userId: number;
+  parentGroupId: string | null;
+  bankDataProviderConnectionId: string | null;
+  accounts: AccountApiResponse[];
+  childGroups: AccountGroupApiResponse[];
 }
 
 /**
@@ -204,6 +222,10 @@ export interface CategorizationMeta {
   payeeId?: RecordId;
   /** ISO timestamp when categorization was applied */
   categorizedAt?: string;
+  /** What started the AI run that wrote this stamp; only `source: ai` rows carry it */
+  trigger?: CATEGORIZATION_TRIGGER;
+  /** Present when the AI saw the row but declined to categorize it; the category was left untouched */
+  skipReason?: CATEGORIZATION_SKIP_REASON;
 }
 
 export interface TransactionSplitModel {
@@ -558,13 +580,14 @@ export interface SubscriptionMatchingRules {
 
 /**
  * Denormalized logo config shared by every logo-bearing entity (payees,
- * subscriptions). A brand domain and custom monogram letters are mutually
- * exclusive – `resolveManualLogoFields` enforces that on every write path.
+ * subscriptions, accounts, account groups). A brand domain and custom monogram
+ * letters are mutually exclusive – every write path evicts one when the other
+ * is set.
  */
 export interface EntityLogoFields {
   /** Resolved brand domain used to fetch the logo (e.g. "netflix.com"). Null
-   *  when the brand resolver has not matched the entity, or when the user
-   *  explicitly cleared the logo (paired with logoSource 'manual'). */
+   *  when no logo is set, or when the brand resolver has not matched the
+   *  entity. */
   logoDomain: string | null;
   /** 1-2 graphemes rendered as a monogram in place of a brand image. Mutually
    *  exclusive with logoDomain. Null when no custom monogram is set. */
@@ -575,12 +598,15 @@ export interface EntityLogoFields {
 }
 
 /** Write-path shape of the logo fields: absent key = leave the stored column
- *  untouched, null = clear. A key that actually changes stored state stamps
- *  logoSource 'manual' so the background resolver treats the user's choice as
- *  authoritative; a no-op payload (clearing what is already clear, re-stating
- *  stored values) leaves ownership with the resolver, as does omitting all keys.
- *  `resolveManualLogoFields` implements this on every write path. */
+ *  untouched, null = clear it. */
 export type EntityLogoPayload = Partial<EntityLogoFields>;
+
+/** Logo columns a write path may set on an entity a background resolver also
+ *  writes (payees, subscriptions): the payload keys plus the ownership stamp
+ *  that keeps the resolver off a user-picked logo. */
+export interface ManualLogoWrite extends EntityLogoPayload {
+  logoSource?: Extract<LogoResolutionState, 'manual'>;
+}
 
 export interface SubscriptionModel extends EntityLogoFields {
   id: RecordId;

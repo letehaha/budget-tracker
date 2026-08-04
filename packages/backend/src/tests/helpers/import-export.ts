@@ -7,22 +7,33 @@ import type {
   CsvImportProgress,
   DetectBudgetBakersWalletDuplicatesResponse,
   DetectDuplicatesResponse,
+  DetectMsMoneyDuplicatesResponse,
   ExecuteBudgetBakersWalletResponse,
   ExecuteImportResponse,
+  ExecuteMsMoneyResponse,
   ExecuteYnabResponse,
   ExtractUniqueValuesResponse,
   ExtractedMetadata,
   ExtractedTransaction,
+  MsMoneyAccountMapping,
+  MsMoneyImportProgress,
+  MsMoneyUploadResponse,
   ParseBudgetBakersWalletResponse,
   ParseYnabResponse,
+  StatementCostEstimate,
   StatementDetectDuplicatesResponse,
   StatementExecuteImportResponse,
+  StatementExtractionResult,
   TagMappingConfig,
   YnabAccountMapping,
   YnabImportProgress,
 } from '@bt/shared/types';
+import { app } from '@root/app';
+import { API_PREFIX } from '@root/config';
+import { readMsMoneyFixture } from '@tests/fixtures/ms-money-fixtures';
 import fs from 'fs';
 import path from 'path';
+import request from 'supertest';
 
 import { type UtilizeReturnType, makeRequest } from './common';
 
@@ -233,6 +244,49 @@ export function expectCsvImportCompleted(
     const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
     throw new Error(`Expected completed CSV import, got status="${progress.status}".${detail}`);
   }
+}
+
+// ============================================
+// Statement Parser - Estimate Cost Endpoint
+// ============================================
+
+/**
+ * The route answers 200 with `{ success: false, error }` for a file it cannot read or one
+ * too large for the model, so callers checking those shapes need `raw: false`.
+ */
+export function statementEstimateCost<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: { fileBase64: string };
+  raw?: R;
+}): UtilizeReturnType<() => StatementCostEstimate, R> {
+  return makeRequest<StatementCostEstimate, R>({
+    method: 'post',
+    url: '/import/text-source/estimate-cost',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// Statement Parser - Extract Endpoint
+// ============================================
+
+/** Runs the real AI extraction, so callers must have an endpoint or key the mocks answer for. */
+export function statementExtract<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: { fileBase64: string };
+  raw?: R;
+}): UtilizeReturnType<() => StatementExtractionResult, R> {
+  return makeRequest<StatementExtractionResult, R>({
+    method: 'post',
+    url: '/import/text-source/extract',
+    payload,
+    raw,
+  });
 }
 
 // ============================================
@@ -506,5 +560,193 @@ export function expectCompleted(
   if (progress.status !== 'completed') {
     const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
     throw new Error(`Expected completed import, got status="${progress.status}".${detail}`);
+  }
+}
+
+// ============================================
+// Microsoft Money Import - Upload Endpoint
+// ============================================
+
+export interface UploadMsMoneyResult {
+  statusCode: number;
+  /** Present on success. */
+  response: MsMoneyUploadResponse | null;
+  /** Error message from the API envelope, when the request failed. */
+  errorMessage: string | null;
+}
+
+/**
+ * POST /import/ms-money/upload. Bypasses `makeRequest` because the body is the
+ * file's raw bytes rather than JSON, and the password rides on a header.
+ * Uses the ambient auth cookies, so it composes with `asUser`.
+ */
+export async function uploadMsMoney({
+  file,
+  password,
+  contentType = 'application/octet-stream',
+}: {
+  file: Buffer;
+  password?: string;
+  contentType?: string;
+}): Promise<UploadMsMoneyResult> {
+  const base = request(app).post(`${API_PREFIX}/import/ms-money/upload`).set('Content-Type', contentType);
+  if (global.APP_AUTH_COOKIES) base.set('Cookie', global.APP_AUTH_COOKIES);
+  if (password !== undefined) base.set('x-file-password', password);
+
+  const result = await base.send(file);
+  const body = result.body as { response?: MsMoneyUploadResponse & { message?: string } };
+
+  return {
+    statusCode: result.status,
+    response: result.status === 200 ? ((body.response ?? null) as MsMoneyUploadResponse | null) : null,
+    errorMessage: result.status === 200 ? null : (body.response?.message ?? null),
+  };
+}
+
+/**
+ * Upload a `.mny` fixture and fail loudly when it does not parse — the mapping
+ * steps need the `uploadId`, and a silent null there surfaces as a confusing 404
+ * later.
+ */
+export async function uploadMsMoneyFixture({
+  file,
+  password,
+}: {
+  file: string;
+  password?: string;
+}): Promise<MsMoneyUploadResponse> {
+  const result = await uploadMsMoney({ file: readMsMoneyFixture({ file }), password });
+  if (!result.response) {
+    throw new Error(`Upload of ${file} failed with ${result.statusCode}: ${result.errorMessage}`);
+  }
+  return result.response;
+}
+
+// ============================================
+// Microsoft Money Import - Detect Duplicates Endpoint
+// ============================================
+
+interface DetectMsMoneyDuplicatesParams {
+  uploadId: string;
+  accountMapping: MsMoneyAccountMapping;
+}
+
+export function detectMsMoneyDuplicates<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: DetectMsMoneyDuplicatesParams;
+  raw?: R;
+}): UtilizeReturnType<() => DetectMsMoneyDuplicatesResponse, R> {
+  return makeRequest<DetectMsMoneyDuplicatesResponse, R>({
+    method: 'post',
+    url: '/import/ms-money/detect-duplicates',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// Microsoft Money Import - Execute Endpoint
+// ============================================
+
+interface ExecuteMsMoneyParams {
+  uploadId: string;
+  accountMapping: MsMoneyAccountMapping;
+  /** Per-category decision keyed by the parser's `fullName` ("Bills:Water").
+   *  Defaults to `{}` — every parsed category then imports without a category. */
+  categoryMapping?: CategoryMappingConfig;
+  skipDuplicateIndices?: number[];
+  includeVoidedTransactions?: boolean;
+  recalculateBalance?: boolean;
+}
+
+export function executeMsMoney<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: ExecuteMsMoneyParams;
+  raw?: R;
+}): UtilizeReturnType<() => ExecuteMsMoneyResponse, R> {
+  // `?? []` / `?? {}` guard against a caller passing the field as `undefined`,
+  // which would otherwise overwrite the safe default and fail Zod validation.
+  const { skipDuplicateIndices, categoryMapping, ...rest } = payload;
+  return makeRequest<ExecuteMsMoneyResponse, R>({
+    method: 'post',
+    url: '/import/ms-money/execute',
+    payload: {
+      ...rest,
+      skipDuplicateIndices: skipDuplicateIndices ?? [],
+      categoryMapping: categoryMapping ?? {},
+    },
+    raw,
+  });
+}
+
+// ============================================
+// Microsoft Money Import - Status Endpoint
+// ============================================
+
+export function getMsMoneyImportStatus<R extends boolean | undefined = false>({
+  jobId,
+  raw,
+}: {
+  jobId: string;
+  raw?: R;
+}): UtilizeReturnType<() => MsMoneyImportProgress, R> {
+  return makeRequest<MsMoneyImportProgress, R>({
+    method: 'get',
+    url: `/import/ms-money/status/${jobId}`,
+    raw,
+  });
+}
+
+/**
+ * Poll GET /import/ms-money/status/:jobId every 100 ms until the job leaves the
+ * running/queued states or the timeout elapses. The BullMQ worker is async, so
+ * the execute response only carries `jobId` — callers must poll for the result.
+ */
+export async function waitForMsMoneyCompletion({
+  jobId,
+  timeoutMs = 60_000,
+}: {
+  jobId: string;
+  timeoutMs?: number;
+}): Promise<MsMoneyImportProgress> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const progress = await getMsMoneyImportStatus({ jobId, raw: true });
+    if (progress.status === 'completed' || progress.status === 'failed') {
+      return progress;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Microsoft Money import job ${jobId} did not finish within ${timeoutMs}ms`);
+}
+
+/**
+ * Narrow terminal progress to the `completed` branch so tests can read `summary`
+ * directly. Throws (failing the calling test) when the worker finished with
+ * `status:'failed'`, surfacing the error string for quick debugging.
+ */
+export function expectMsMoneyCompleted(
+  progress: MsMoneyImportProgress,
+): asserts progress is Extract<MsMoneyImportProgress, { status: 'completed' }> {
+  if (progress.status !== 'completed') {
+    const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
+    throw new Error(`Expected completed Microsoft Money import, got status="${progress.status}".${detail}`);
+  }
+}
+
+/**
+ * The mirror of {@link expectMsMoneyCompleted} for the refusal cases: narrows to
+ * the `failed` branch so tests can read `error` directly, and fails the calling
+ * test when the worker finished any other way.
+ */
+export function expectMsMoneyFailed(
+  progress: MsMoneyImportProgress,
+): asserts progress is Extract<MsMoneyImportProgress, { status: 'failed' }> {
+  if (progress.status !== 'failed') {
+    throw new Error(`Expected failed Microsoft Money import, got status="${progress.status}".`);
   }
 }

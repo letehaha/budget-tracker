@@ -9,6 +9,8 @@ import { centsToApiDecimal } from '@common/types/money';
 import type Accounts from '@models/accounts.model';
 import type { AccountShareContext } from '@services/sharing/get-shared-accounts.service';
 
+import { serializeLogoFields } from './logo-fields.serializer';
+
 // The account wire shape lives in @bt/shared/types so the frontend consumes the
 // same source instead of hand-copying it. Re-exported here so existing backend
 // importers keep their `accounts.serializer` import path.
@@ -52,6 +54,7 @@ export function serializeAccount(
     excludeFromStats: account.excludeFromStats,
     bankDataProviderConnectionId: isRecipient ? null : (account.bankDataProviderConnectionId ?? null),
     bankProviderType: account._bankProviderType ?? null,
+    ...serializeLogoFields({ entity: account }),
   };
 
   if (account.needsRelink !== undefined) {

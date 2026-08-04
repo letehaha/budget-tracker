@@ -29,7 +29,8 @@
       "link": "Vincular",
       "loadMore": "Cargar más",
       "clear": "Limpiar",
-      "apply": "Aplicar"
+      "apply": "Aplicar",
+      "retry": "Reintentar"
     },
     "ui": {
       "close": "Cerrar",
@@ -187,7 +188,38 @@
       "searchError": "No se pudieron cargar los logotipos – intente de nuevo",
       "editAriaLabel": "Editar logo",
       "dialogTitle": "Cambiar logo",
-      "resetToAuto": "Restablecer a automático"
+      "resetToAuto": "Restablecer a automático",
+      "tabs": {
+        "brand": "Marca",
+        "letters": "Letras"
+      },
+      "noResultsLettersHint": "Usar letras en su lugar",
+      "lettersLabel": "Letras (1–2)",
+      "lettersPlaceholder": "AB",
+      "colorLabel": "Color",
+      "colorSwatchAriaLabel": "Usar color {color}",
+      "customColorAriaLabel": "Elegir un color personalizado",
+      "applyLetters": "Aplicar",
+      "lettersSelectedLabel": "Letras “{letters}”"
+    },
+    "resourceLease": {
+      "activeLabel": "Sesión activa",
+      "expiredLabel": "Sesión expirada",
+      "defaultResourceLabel": "Este recurso",
+      "activeTooltip": "{resource} se mantiene en el servidor, y se permite aproximadamente {duration} de inactividad. Siga trabajando y seguirá disponible.",
+      "countingDownTooltip": "{resource} se liberará en {time} por inactividad. Interactúe con la página para conservarlo.",
+      "cappedTooltip": "{resource} se liberará en {time}. Se ha alcanzado la duración máxima de la sesión, por lo que ya no se puede prolongar.",
+      "expiredTooltip": "{resource} se ha liberado del servidor. Vuelva a empezar para continuar.",
+      "status": {
+        "active": "{resource} se mantiene disponible.",
+        "countingDown": "{resource} se liberará pronto.",
+        "expired": "{resource} se ha liberado."
+      },
+      "duration": {
+        "seconds": "{count} segundo | {count} segundos",
+        "minutes": "{count} minuto | {count} minutos",
+        "hours": "{count} hora | {count} horas"
+      }
     }
   },
   "accountGroups": {
@@ -360,6 +392,12 @@
           }
         }
       }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(su clave de API)",
+      "setByEndpoint": "Definido por su endpoint"
     }
   }
 }

@@ -40,6 +40,7 @@ const props = withDefaults(
     enableBulkEdit?: boolean;
     /** When true, content filters are active — groups dissolve and individual transactions show */
     contentFiltersActive?: boolean;
+    selectionScopeKey?: string;
   }>(),
   {
     isTransactionRecord: false,
@@ -96,6 +97,7 @@ watch(listContainerRef, (el) => {
 // Selection, eligibility, bulk mutations and dialog state — shared with the table view.
 const bulkActions = useBulkTransactionActions({
   getTransactions: () => displayTransactions.value.filter((item): item is TransactionModel => !isGroupRow(item)),
+  getScopeKey: () => props.selectionScopeKey,
 });
 const {
   selectedCount,

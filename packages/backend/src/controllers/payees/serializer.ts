@@ -1,6 +1,7 @@
 import { PayeeAliasModel, PayeeModel, PayeeStats, RecordId } from '@bt/shared/types';
 import { centsToApiDecimal } from '@common/types/money';
 import Payees from '@models/payees.model';
+import { serializeLogoFields } from '@root/serializers/logo-fields.serializer';
 import type { PayeeStatsRow } from '@services/payees/payee-stats';
 
 export function serializePayee(payee: Payees): PayeeModel {
@@ -11,10 +12,8 @@ export function serializePayee(payee: Payees): PayeeModel {
     normalizedName: payee.normalizedName,
     defaultCategoryId: payee.defaultCategoryId,
     categorizationMode: payee.categorizationMode,
-    logoDomain: payee.logoDomain,
+    ...serializeLogoFields({ entity: payee }),
     logoSource: payee.logoSource,
-    logoInitials: payee.logoInitials,
-    logoColor: payee.logoColor,
     defaultTagIds: (payee.defaultTags ?? []).map((tag) => tag.id),
     createdAt: payee.createdAt,
     updatedAt: payee.updatedAt,

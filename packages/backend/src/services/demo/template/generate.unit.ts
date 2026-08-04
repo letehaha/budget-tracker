@@ -22,8 +22,9 @@ describe('generateDemoTemplate', () => {
   it('keeps every row inside the history window', () => {
     for (const tx of template.transactions) {
       expect(tx.dayOffset).toBeGreaterThanOrEqual(0);
-      // 36 months of history, with slack for month-length variation.
-      expect(tx.dayOffset).toBeLessThanOrEqual(1120);
+      // 36 months of history, plus the current month-to-date because the window
+      // starts on a month boundary, plus slack for month-length variation.
+      expect(tx.dayOffset).toBeLessThanOrEqual(1160);
     }
   });
 
@@ -56,7 +57,7 @@ describe('generateDemoTemplate', () => {
       for (const legs of legsByKey.values()) {
         expect(legs).toHaveLength(2);
 
-        const types = legs.map((leg) => leg.transactionType).sort();
+        const types = legs.map((leg) => leg.transactionType).toSorted();
         expect(types).toEqual([TRANSACTION_TYPES.expense, TRANSACTION_TYPES.income]);
 
         // Both legs move on the same day and out of different accounts.

@@ -6,10 +6,12 @@ import Categories from '@models/categories.model';
 import Payees from '@models/payees.model';
 import Tags from '@models/tags.model';
 import * as Transactions from '@models/transactions.model';
+import { getUserDefaultCategory } from '@models/users.model';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
+import { buildManualCategorizationMeta } from './manual-categorization-meta';
 
 interface BulkUpdateParams {
   userId: number;
@@ -91,7 +93,7 @@ export const bulkUpdate = withTransaction(
         id: { [Op.in]: transactionIds },
         userId,
       },
-      attributes: ['id', 'transferNature', 'accountId'],
+      attributes: ['id', 'transferNature', 'accountId', 'categoryId'],
     });
 
     if (transactions.length === 0) {
@@ -102,9 +104,14 @@ export const bulkUpdate = withTransaction(
 
     // Filter out transfer transactions - they cannot have category updated
     // But they CAN have tags and notes updated
-    const nonTransferIds = transactions
-      .filter((tx) => tx.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer)
-      .map((tx) => tx.id);
+    const nonTransfers = transactions.filter((tx) => tx.transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer);
+    const nonTransferIds = nonTransfers.map((tx) => tx.id);
+
+    // Rows already sitting in the target category are left untouched, so a bulk edit
+    // that only widens a selection can't restamp what it didn't change.
+    const categoryChangedIds = hasCategory
+      ? nonTransfers.filter((tx) => tx.categoryId !== categoryId).map((tx) => tx.id)
+      : [];
 
     const allTransactionIds = transactions.map((tx) => tx.id);
 
@@ -165,6 +172,22 @@ export const bulkUpdate = withTransaction(
           { individualHooks: false },
         );
       }
+    }
+
+    if (categoryChangedIds.length > 0) {
+      await Transactions.updateTransactions(
+        {
+          categorizationMeta: buildManualCategorizationMeta({
+            categoryId: categoryId!,
+            defaultCategoryId: await getUserDefaultCategory({ id: userId }),
+          }),
+        },
+        {
+          userId,
+          id: { [Op.in]: categoryChangedIds },
+        },
+        { individualHooks: false },
+      );
     }
 
     // Stamp Payee + lock it on every eligible row. Mirrors single-tx update:

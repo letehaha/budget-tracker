@@ -50,6 +50,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/import-statement': () => import('./locales/chunks/en/pages/import-statement.json'),
     'pages/import-ynab': () => import('./locales/chunks/en/pages/import-ynab.json'),
     'pages/import-budget-bakers-wallet': () => import('./locales/chunks/en/pages/import-budget-bakers-wallet.json'),
+    'pages/import-ms-money': () => import('./locales/chunks/en/pages/import-ms-money.json'),
     'pages/investments-import': () => import('./locales/chunks/en/pages/investments-import.json'),
     'pages/planned': () => import('./locales/chunks/en/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/en/pages/optimizations.json'),
