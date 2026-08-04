@@ -205,6 +205,22 @@ const routes: RouteRecordRaw[] = [
           params: { id: to.params.id },
         }),
       },
+      // Backward-compat redirects for the old /planned/subscriptions URLs, so links
+      // already sent (e.g. payment reminder emails) still resolve after the rename
+      // to /planned/recurring-payments.
+      {
+        path: '/planned/subscriptions',
+        name: ROUTES_NAMES.subscriptions,
+        redirect: { name: ROUTES_NAMES.plannedSubscriptions },
+      },
+      {
+        path: '/planned/subscriptions/:id',
+        name: ROUTES_NAMES.subscriptionDetails,
+        redirect: (to) => ({
+          name: ROUTES_NAMES.plannedSubscriptionDetails,
+          params: { id: to.params.id },
+        }),
+      },
       {
         path: '/transactions',
         name: ROUTES_NAMES.transactions,
