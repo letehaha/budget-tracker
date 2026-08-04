@@ -27,7 +27,8 @@
     "parentGroupDoesNotExist": "Grup induk tidak ada.",
     "operationNotAllowed": "Operasi tidak diizinkan",
     "accountNotFound": "Akun dengan id tersebut tidak ditemukan.",
-    "accountGroupNotFound": "Grup akun dengan id tersebut tidak ditemukan."
+    "accountGroupNotFound": "Grup akun dengan id tersebut tidak ditemukan.",
+    "groupUpdateFailed": "Pembaruan grup tidak berhasil"
   },
   "transactions": {
     "notFound": "Transaksi tidak ditemukan",

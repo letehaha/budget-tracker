@@ -256,6 +256,14 @@
           "cancelSuccess": "Undangan dibatalkan.",
           "cancelError": "Tidak dapat membatalkan undangan."
         }
+      },
+      "logo": {
+        "change": "Ganti logo",
+        "dialogTitle": "Logo akun",
+        "dialogDescription": "Cari logo merek atau pilih huruf khusus.",
+        "updatedToast": "Logo akun diperbarui",
+        "resetToast": "Logo dihapus",
+        "error": "Gagal memperbarui logo akun"
       }
     },
     "vehicleDetails": {
