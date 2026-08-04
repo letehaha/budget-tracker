@@ -27,7 +27,8 @@
     "parentGroupDoesNotExist": "El grupo padre no existe.",
     "operationNotAllowed": "La operación no está permitida",
     "accountNotFound": "Cuenta con ese id no encontrada.",
-    "accountGroupNotFound": "Grupo de cuentas con ese id no encontrado."
+    "accountGroupNotFound": "Grupo de cuentas con ese id no encontrado.",
+    "groupUpdateFailed": "No se pudo actualizar el grupo"
   },
   "transactions": {
     "notFound": "Transacción no encontrada",

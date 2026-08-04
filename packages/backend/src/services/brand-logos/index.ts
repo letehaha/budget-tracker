@@ -1,5 +1,7 @@
 export { applyCachedLogos } from './apply-cached-logos.service';
+export { applyManualLogoPatch } from './apply-manual-logo-patch';
 export { searchBrands, type BrandSearchResult } from './brand-logo-provider';
+export { clearManualLogoFields } from './clear-manual-logo-fields';
 export {
   enqueueLogoResolution,
   enqueueLogoResolutionAfterCommit,

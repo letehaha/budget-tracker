@@ -56,6 +56,28 @@ export default class AccountGroup extends Model {
   })
   bankDataProviderConnectionId!: RecordId | null;
 
+  @Column({
+    type: DataType.STRING(253),
+    allowNull: true,
+  })
+  logoDomain!: string | null;
+
+  // 1-2 graphemes rendered as a monogram instead of a logo.dev image. 16 chars
+  // because one grapheme can span many code points; the count is enforced in Zod.
+  @Column({
+    type: DataType.STRING(16),
+    allowNull: true,
+  })
+  logoInitials!: string | null;
+
+  // '#rrggbb' lowercase, the monogram background. Only meaningful alongside
+  // logoInitials; null there falls back to the primary tint.
+  @Column({
+    type: DataType.STRING(7),
+    allowNull: true,
+  })
+  logoColor!: string | null;
+
   @BelongsTo(() => Users)
   user!: Users;
 

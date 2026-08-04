@@ -27,7 +27,8 @@
     "parentGroupDoesNotExist": "Батьківська група не існує.",
     "operationNotAllowed": "Операція не дозволена",
     "accountNotFound": "Рахунок з таким id не знайдено.",
-    "accountGroupNotFound": "Групу рахунків з таким id не знайдено."
+    "accountGroupNotFound": "Групу рахунків з таким id не знайдено.",
+    "groupUpdateFailed": "Не вдалося оновити групу"
   },
   "transactions": {
     "notFound": "Транзакція не знайдена",

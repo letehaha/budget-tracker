@@ -1,7 +1,6 @@
 import { CATEGORIZATION_MODE } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
-import { logoDomainSchema } from '@controllers/common/logo-domain.schema';
-import { logoColorSchema, logoInitialsSchema, refineLogoSelection } from '@controllers/common/logo-initials.schema';
+import { logoFieldsShape, refineLogoFields } from '@controllers/common/logo-fields.schema';
 import { createController } from '@controllers/helpers/controller-factory';
 import * as payeesService from '@services/payees';
 import { z } from 'zod';
@@ -15,14 +14,11 @@ const schema = z.object({
       defaultCategoryId: recordId().nullable().optional(),
       categorizationMode: z.nativeEnum(CATEGORIZATION_MODE).optional(),
       defaultTagIds: z.array(recordId()).optional(),
-      // Present key (even null) → manual override on the new Payee; absent key →
-      // leave the logo unset so the background resolver auto-resolves it.
-      logoDomain: logoDomainSchema.optional(),
-      // Monogram letters + background, the alternative to a brand domain.
-      logoInitials: logoInitialsSchema.optional(),
-      logoColor: logoColorSchema.optional(),
+      // A key that sets a value stamps logoSource 'manual' on the new Payee;
+      // absent keys leave the logo unset for the background resolver to fill in.
+      ...logoFieldsShape,
     })
-    .superRefine((data, ctx) => refineLogoSelection({ data, ctx })),
+    .superRefine((data, ctx) => refineLogoFields({ data, ctx })),
 });
 
 export default createController(schema, async ({ user, body }) => {

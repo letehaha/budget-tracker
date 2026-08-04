@@ -1,15 +1,14 @@
 <script setup lang="ts">
+import AccountLogo from '@/components/common/account-logo.vue';
 import { Button } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
 import { useUnlinkAccountFromGroup } from '@/composable/data-queries/account-groups';
 import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
-import { cn } from '@/lib/utils';
-import { getAccountTypeIcon, getAccountTypeTintedChipClass } from '@/pages/accounts/account-type-presentation';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
 import { UngroupIcon } from '@lucide/vue';
-import { computed, toRef } from 'vue';
+import { toRef } from 'vue';
 import { RouterLink } from 'vue-router';
 
 const props = defineProps<{ account: AccountModel; groupId: string }>();
@@ -18,17 +17,12 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 
-const chipClass = computed(() => getAccountTypeTintedChipClass({ category: props.account.accountCategory }));
-const iconComponent = computed(() => getAccountTypeIcon({ category: props.account.accountCategory }));
-
 const { mutate: unlink, isPending } = useUnlinkAccountFromGroup();
 </script>
 
 <template>
   <div class="flex items-center gap-3 px-3 py-2">
-    <div :class="cn('flex size-8 shrink-0 items-center justify-center rounded-lg', chipClass)" aria-hidden="true">
-      <component :is="iconComponent" class="size-4" stroke-width="2" />
-    </div>
+    <AccountLogo :account="account" class="size-8" />
 
     <RouterLink
       :to="{ name: ROUTES_NAMES.account, params: { id: account.id } }"

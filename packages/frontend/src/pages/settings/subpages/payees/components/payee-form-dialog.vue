@@ -77,7 +77,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import LogoField from '@/components/common/logo-field.vue';
-import { type LogoSelection, toLogoPayload } from '@/components/common/logo-selection';
+import { type LogoSelection, toOptionalLogoPayload } from '@/components/common/logo-selection';
 
 interface Props {
   open: boolean;
@@ -206,9 +206,8 @@ async function handleSave() {
         name: form.name,
         defaultCategoryId: form.category?.id ?? null,
         categorizationMode: form.categorizationMode.value,
-        // Omit the logo fields when nothing was picked so the new payee keeps
-        // auto-resolving; a selection stamps a manual override.
-        ...(form.logo ? toLogoPayload({ selection: form.logo }) : {}),
+        // No selection omits the logo keys so the new payee keeps auto-resolving.
+        ...toOptionalLogoPayload({ selection: form.logo }),
       });
       addSuccessNotification(t('payees.toasts.created'));
     }

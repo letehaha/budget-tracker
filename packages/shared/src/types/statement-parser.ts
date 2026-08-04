@@ -123,7 +123,9 @@ export interface StatementExtractError {
     | 'NO_TRANSACTIONS_FOUND'
     | 'AI_ERROR'
     | 'RATE_LIMITED'
-    | 'TOKEN_LIMIT_EXCEEDED';
+    | 'TOKEN_LIMIT_EXCEEDED'
+    /** The model's reply was cut off at its output limit, so the rows are incomplete. */
+    | 'OUTPUT_TRUNCATED';
   /** Human-readable error message */
   message: string;
   /** Additional details */

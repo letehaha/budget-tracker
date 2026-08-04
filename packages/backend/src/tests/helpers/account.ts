@@ -2,13 +2,13 @@ import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
+  type AccountApiResponse,
   type Decimal,
   type TransactionModel,
   type endpointsTypes,
 } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import Currencies from '@models/currencies.model';
-import { updateAccount as apiUpdateAccount } from '@root/services/accounts.service';
 import { Response } from 'express';
 
 import { makeRequest } from './common';
@@ -65,10 +65,15 @@ type UpdateAccountPayload = Partial<BuildAccountPayload> & {
   excludeFromStats?: boolean;
 };
 
-export function updateAccount<
-  T = Awaited<ReturnType<typeof apiUpdateAccount>>,
-  R extends boolean | undefined = undefined,
->({ id, payload = {}, raw }: { id: string; payload?: UpdateAccountPayload; raw?: R }) {
+export function updateAccount<T = AccountApiResponse, R extends boolean | undefined = undefined>({
+  id,
+  payload = {},
+  raw,
+}: {
+  id: string;
+  payload?: UpdateAccountPayload;
+  raw?: R;
+}) {
   return makeRequest<T, R>({
     method: 'put',
     url: `/accounts/${id}`,

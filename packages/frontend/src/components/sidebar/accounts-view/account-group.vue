@@ -6,7 +6,7 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { useSyncStatus } from '@/composable/use-sync-status';
-import { AlertTriangleIcon, ChevronRightIcon, FolderIcon } from '@lucide/vue';
+import { AlertTriangleIcon, ChevronRightIcon } from '@lucide/vue';
 import { computed, inject } from 'vue';
 
 import AccountGroupsList from './account-groups-list.vue';
@@ -43,7 +43,6 @@ const groupTotal = computed(() => sumBaseBalance({ accounts: collectGroupAccount
       <Button variant="ghost" as="div" size="default" class="w-full px-2">
         <div class="flex w-full items-center gap-2">
           <ChevronRightIcon :class="['size-4 shrink-0 transition-transform duration-200', { 'rotate-90': isOpen }]" />
-          <FolderIcon v-if="!group.bankDataProviderConnectionId" class="text-muted-foreground size-4 shrink-0" />
           <AccountGroupName :group="group" class="min-w-0 text-sm" />
           <ResponsiveTooltip
             v-if="needsReauth"

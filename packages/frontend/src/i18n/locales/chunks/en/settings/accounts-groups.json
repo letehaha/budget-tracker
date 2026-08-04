@@ -23,10 +23,11 @@
         "inParent": "in {name}",
         "manageConnection": "Manage connection"
       },
-      "rename": {
+      "update": {
         "label": "Group name",
         "placeholder": "Enter group name",
-        "saveButton": "Save"
+        "saveButton": "Save",
+        "emptyNameError": "Group name can't be empty"
       },
       "accounts": {
         "heading": "Accounts in this group",

@@ -10,7 +10,7 @@ import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AccountGroups } from '@/common/types/models';
 import { useNotificationCenter } from '@/components/notification-center';
 import { extractApiErrorMessage, isApiErrorWithCode } from '@/js/errors';
-import { API_ERROR_CODES } from '@bt/shared/types';
+import { API_ERROR_CODES, type EntityLogoPayload } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { MaybeRefOrGetter, Ref, toValue } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -90,16 +90,17 @@ const useAccountGroupMutation = <TVariables = void>({
 
 export const useCreateAccountGroup = ({ onSuccess }: { onSuccess?: () => void } = {}) =>
   useAccountGroupMutation({
-    mutationFn: ({ name }: { name: string }) => createAccountsGroup({ name }),
+    mutationFn: (payload: { name: string } & EntityLogoPayload) => createAccountsGroup(payload),
     errorKey: 'accountGroups.create.error',
     onSuccess,
   });
 
-export const useRenameAccountGroup = ({ groupId }: { groupId: MaybeRefOrGetter<string> }) =>
+export const useUpdateAccountGroup = ({ groupId }: { groupId: MaybeRefOrGetter<string> }) =>
   useAccountGroupMutation({
-    mutationFn: ({ name }: { name: string }) => updateAccountGroup({ groupId: toValue(groupId), updates: { name } }),
-    successKey: 'accountGroups.rename.success',
-    errorKey: 'accountGroups.rename.error',
+    mutationFn: (updates: { name?: string } & EntityLogoPayload) =>
+      updateAccountGroup({ groupId: toValue(groupId), updates }),
+    successKey: 'accountGroups.update.success',
+    errorKey: 'accountGroups.update.error',
   });
 
 export const useDeleteAccountGroup = ({

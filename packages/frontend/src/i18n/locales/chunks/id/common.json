@@ -200,7 +200,8 @@
       "colorSwatchAriaLabel": "Gunakan warna {color}",
       "customColorAriaLabel": "Pilih warna khusus",
       "applyLetters": "Terapkan",
-      "lettersSelectedLabel": "Huruf “{letters}”"
+      "lettersSelectedLabel": "Huruf “{letters}”",
+      "remove": "Hapus logo"
     },
     "resourceLease": {
       "activeLabel": "Sesi aktif",
@@ -241,6 +242,10 @@
     "unlink": {
       "success": "Akun telah dihapus dari grup",
       "error": "Gagal menghapus akun dari grup"
+    },
+    "update": {
+      "success": "Grup diperbarui",
+      "error": "Gagal memperbarui grup"
     }
   },
   "validation": {
