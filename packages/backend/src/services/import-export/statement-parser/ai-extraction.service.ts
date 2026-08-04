@@ -9,7 +9,14 @@ import type {
 } from '@bt/shared/types';
 import { AI_FEATURE } from '@bt/shared/types';
 import { logger } from '@js/utils';
-import { aiCallGuards, createAIClient, describeMissingAiConfiguration } from '@services/ai';
+import {
+  AI_MAX_OUTPUT_TOKENS,
+  AI_OUTPUT_TRUNCATED_MESSAGE,
+  aiCallGuards,
+  createAIClient,
+  describeMissingAiConfiguration,
+  hitOutputCeiling,
+} from '@services/ai';
 import { type AIExtractionError, resolveAiExtractionFailure } from '@services/import-export/core/ai-extraction-failure';
 import { generateText } from 'ai';
 
@@ -56,15 +63,34 @@ export async function extractTransactionsWithAI({
 
     const { abortSignal, maxRetries } = aiCallGuards({ provider: aiClient.provider });
 
-    const { text: responseText, usage } = await generateText({
+    const {
+      text: responseText,
+      usage,
+      finishReason,
+    } = await generateText({
       model: aiClient.model,
       system: STATEMENT_EXTRACTION_SYSTEM_PROMPT,
       prompt: createTextExtractionPrompt({ text }),
       abortSignal,
       maxRetries,
+      maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
     });
 
-    logger.info('[Statement Parser] AI answered', { responseLength: responseText.length, usage });
+    logger.info('[Statement Parser] AI answered', { responseLength: responseText.length, usage, finishReason });
+
+    // A truncated CSV still parses cleanly up to the cut, so without this the
+    // transactions that never arrived would look exactly like transactions the
+    // statement never had -- a wrong balance instead of an error.
+    if (hitOutputCeiling({ finishReason, usage })) {
+      return {
+        success: false,
+        error: {
+          code: 'OUTPUT_TRUNCATED',
+          message: AI_OUTPUT_TRUNCATED_MESSAGE,
+          details: `Generation stopped at the ${AI_MAX_OUTPUT_TOKENS}-token output limit (used ${usage?.outputTokens ?? 0}, finishReason: ${finishReason}).`,
+        },
+      };
+    }
 
     // Parse AI response
     const parsed = parseAIResponse({ response: responseText });

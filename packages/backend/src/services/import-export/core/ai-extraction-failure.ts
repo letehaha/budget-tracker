@@ -11,7 +11,13 @@ import { markApiKeyInvalid } from '@services/user-settings/ai-api-key';
 import { markCustomEndpointInvalid } from '@services/user-settings/ai-custom-endpoint';
 
 export interface AIExtractionError {
-  code: 'NO_AI_CONFIGURED' | 'AI_ERROR' | 'EXTRACTION_FAILED' | 'NO_TRANSACTIONS_FOUND' | 'RATE_LIMITED';
+  code:
+    | 'NO_AI_CONFIGURED'
+    | 'AI_ERROR'
+    | 'EXTRACTION_FAILED'
+    | 'NO_TRANSACTIONS_FOUND'
+    | 'RATE_LIMITED'
+    | 'OUTPUT_TRUNCATED';
   message: string;
   details?: string;
 }

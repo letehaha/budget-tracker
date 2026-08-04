@@ -1,5 +1,6 @@
 export { createAIClient, type AIClientResult } from './ai-client-factory';
 export { aiCallGuards } from './ai-call-guards';
+export { AI_MAX_OUTPUT_TOKENS, AI_OUTPUT_TRUNCATED_MESSAGE, hitOutputCeiling } from './ai-output-limit';
 export { buildModelNotServedMessage, classifyAiCallFailure, type AiCallFailureKind } from './ai-error-classifiers';
 export {
   CUSTOM_ENDPOINT_UNREACHABLE_ERROR_MESSAGE,
