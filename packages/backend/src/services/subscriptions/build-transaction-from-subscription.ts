@@ -12,8 +12,9 @@ import { convertSubscriptionAmountToAccountCurrency } from './convert-subscripti
 /**
  * Translates a subscription into the params for `createTransaction`.
  *
- * Subscription payments book an expense against the subscription's stored
- * account. The transfer-related fields are fixed: `transferNature` is
+ * The booked direction (expense or income) comes from the subscription's own
+ * `transactionType`, against its stored account. The transfer-related fields
+ * are fixed: `transferNature` is
  * `not_transfer` and `accountType` is `system` (the manage-transaction HTTP
  * path's default for omitted accountType). `paymentType` is `bankTransfer` —
  * the closest neutral match for "I paid a recurring bill".
