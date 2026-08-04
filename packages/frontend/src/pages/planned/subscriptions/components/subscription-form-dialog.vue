@@ -68,7 +68,8 @@ const emit = defineEmits<{
     payload: Partial<Omit<SubscriptionModel, 'id' | 'userId' | 'createdAt' | 'updatedAt'>> & {
       name: string;
       type: SUBSCRIPTION_TYPES;
-      transactionType: TRANSACTION_TYPES;
+      /** Create-only: the update endpoint has no such field, so an edit omits it. */
+      transactionType?: TRANSACTION_TYPES;
       frequency: SUBSCRIPTION_FREQUENCIES;
       startDate: string;
       isActive: boolean;
@@ -441,7 +442,9 @@ const handleSubmit = async () => {
   const payload = {
     name: form.value.name,
     type: form.value.type,
-    transactionType: form.value.transactionType,
+    // Transaction type is fixed at creation, so an edit sends nothing: the update
+    // endpoint's schema has no such field and would silently strip it anyway.
+    ...(isEditingSubscription.value ? {} : { transactionType: form.value.transactionType }),
     expectedAmount: form.value.expectedAmount || null,
     // Currency is meaningless without an amount and the API rejects one without the
     // other, so drop the (auto-prefilled) currency when no amount is entered.
