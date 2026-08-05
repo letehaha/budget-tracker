@@ -2,6 +2,7 @@
  * AI extraction for investment transactions.
  */
 import { AI_FEATURE } from '@bt/shared/types';
+import { logger } from '@js/utils';
 import {
   AI_MAX_OUTPUT_TOKENS,
   AI_OUTPUT_TRUNCATED_MESSAGE,
@@ -50,6 +51,8 @@ export async function extractInvestmentTransactionsWithAI({
   });
 
   if (!aiClient) {
+    logger.info('[Investment Txn Parser] AI extraction returned failure', { code: 'NO_AI_CONFIGURED', userId });
+
     return {
       success: false,
       error: {
@@ -79,6 +82,14 @@ export async function extractInvestmentTransactionsWithAI({
 
     // Truncated rows parse as a complete-looking but short import, so refuse them.
     if (hitOutputCeiling({ finishReason, usage })) {
+      logger.info('[Investment Txn Parser] AI extraction returned failure', {
+        code: 'OUTPUT_TRUNCATED',
+        userId,
+        outputTokens: usage?.outputTokens ?? 0,
+        maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+        finishReason,
+      });
+
       return {
         success: false,
         error: {
@@ -92,6 +103,13 @@ export async function extractInvestmentTransactionsWithAI({
     const { rows, droppedRowCount } = parseAIResponse({ response: responseText });
 
     if (rows.length === 0) {
+      logger.info('[Investment Txn Parser] AI extraction returned failure', {
+        code: 'NO_TRANSACTIONS_FOUND',
+        userId,
+        textLength: text.length,
+        droppedRowCount,
+      });
+
       return {
         success: false,
         error: {

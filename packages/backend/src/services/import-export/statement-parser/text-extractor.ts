@@ -2,6 +2,7 @@
  * Text extraction from various file formats (PDF, CSV, TXT)
  */
 import type { StatementFileType, StatementTextExtractionErrorCode } from '@bt/shared/types';
+import { logger } from '@js/utils';
 import { type Tiktoken, getEncoding } from 'js-tiktoken';
 import { extractText, getDocumentProxy } from 'unpdf';
 
@@ -67,6 +68,13 @@ async function extractTextFromPDF({
 
     if (!trimmed || trimmed.length < 50) {
       // Very little text extracted - likely a scanned/image PDF
+      logger.info('Text extraction failed', {
+        errorCode: 'NO_TEXT_CONTENT',
+        fileType: 'pdf',
+        pageCount,
+        characterCount: trimmed.length,
+      });
+
       return {
         success: false,
         text: trimmed,
@@ -84,11 +92,20 @@ async function extractTextFromPDF({
       fileType: 'pdf',
     };
   } catch (error) {
+    const errorCode = classifyPdfError({ error });
+
+    logger.info('Text extraction failed', {
+      errorCode,
+      fileType: 'pdf',
+      sizeBytes: buffer.length,
+      passwordProvided: Boolean(password),
+    });
+
     return {
       success: false,
       fileType: 'pdf',
       error: error instanceof Error ? error.message : 'Failed to parse PDF',
-      errorCode: classifyPdfError({ error }),
+      errorCode,
     };
   }
 }
@@ -107,6 +124,12 @@ function extractTextFromTextFile({
     const text = buffer.toString('utf8').trim();
 
     if (!text || text.length < 10) {
+      logger.info('Text extraction failed', {
+        errorCode: 'NO_TEXT_CONTENT',
+        fileType,
+        characterCount: text.length,
+      });
+
       return {
         success: false,
         text,
@@ -124,6 +147,8 @@ function extractTextFromTextFile({
       fileType,
     };
   } catch (error) {
+    logger.info('Text extraction failed', { errorCode: 'PARSE_FAILED', fileType, sizeBytes: buffer.length });
+
     return {
       success: false,
       fileType,
@@ -154,6 +179,8 @@ export async function extractTextFromFile({
     case 'txt':
       return extractTextFromTextFile({ buffer, fileType });
     default:
+      logger.info('Text extraction failed', { errorCode: 'UNSUPPORTED_FILE_TYPE', fileType, sizeBytes: buffer.length });
+
       return {
         success: false,
         fileType,
