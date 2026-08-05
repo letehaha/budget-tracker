@@ -47,6 +47,7 @@ import { generateState, validatePrivateKey, validateState } from './jwt-utils';
 import {
   CreditDebitIndicator,
   EnableBankingAccount,
+  EnableBankingBalance,
   EnableBankingConnectionParams,
   EnableBankingCredentials,
   EnableBankingMetadata,
@@ -55,6 +56,17 @@ import {
   PSUType,
   StartAuthorizationResponse,
 } from './types';
+
+function balancesForLog({ balances }: { balances: EnableBankingBalance[] }) {
+  // Raw ASPSP records can miss fields the type declares required; `?? null` keeps
+  // the gap visible in the logged JSON instead of dropping the key.
+  return balances.map((b) => ({
+    balance_type: b.balance_type,
+    amount: b.balance_amount?.amount ?? null,
+    currency: b.balance_amount?.currency ?? null,
+    reference_date: b.reference_date ?? null,
+  }));
+}
 
 /**
  * Enable Banking provider implementation
@@ -533,6 +545,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             balances.find((b) => b.balance_type === 'OPAV') || // Opening Available
             balances[0];
 
+          logger.info('[balance-diag] Enable Banking fetchAccounts balances', {
+            connectionId,
+            userId: connection.userId,
+            selectedType: primaryBalance?.balance_type ?? null,
+            balances: balancesForLog({ balances }),
+          });
+
           // Convert balance from string to system amount (cents as integer)
           const balanceFloat = primaryBalance?.balance_amount ? parseFloat(primaryBalance.balance_amount.amount) : 0;
           const balanceSystemAmount = Money.fromDecimal(balanceFloat).toCents();
@@ -910,6 +929,12 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       balances.find((b) => b.balance_type === 'ITBD') ||
       balances.find((b) => b.balance_type === 'CLAV') ||
       balances[0];
+
+    logger.info('[balance-diag] Enable Banking fetchBalance balances', {
+      connectionId,
+      selectedType: balance?.balance_type ?? null,
+      balances: balancesForLog({ balances }),
+    });
 
     if (!balance) {
       throw new NotFoundError({ message: t({ key: 'bankDataProviders.enableBanking.noBalanceInfo' }) });
