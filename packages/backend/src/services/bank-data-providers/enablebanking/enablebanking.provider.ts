@@ -25,48 +25,52 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
-import crypto from 'crypto';
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { EnableBankingApiClient, isAspspDateRangeRejection } from './api-client';
-
-/**
- * Initial-sync lookback schedule. PSD2 cap unknown per bank, no API to query,
- * so try widest first then shrink on rejection.
- *   1095d ≈ 3y – German banks
- *   730d  = 2y – BNP Paribas Fortis BE
- *   365d  = 1y – Swedbank, Baltic ASPSPs
- *   90d   = PSD2 baseline (unattended access)
- */
-const INITIAL_SYNC_FALLBACK_DAYS = [1095, 730, 365, 90] as const;
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-import { generateState, validatePrivateKey, validateState } from './jwt-utils';
 import {
   CreditDebitIndicator,
   EnableBankingAccount,
-  EnableBankingBalance,
   EnableBankingConnectionParams,
   EnableBankingCredentials,
   EnableBankingMetadata,
-  EnableBankingTransaction,
   OAuthCallbackParams,
   PSUType,
   StartAuthorizationResponse,
+  TransactionStatus,
 } from './types';
+import { balancesForLog } from './utils/balances';
+import { filterIbanCompatible, pickNearestByDate } from './utils/candidate-selection';
+import { calculateConsentValidUntil } from './utils/consent';
+import {
+  FINGERPRINT_WINDOW_DAYS,
+  INITIAL_SYNC_FALLBACK_DAYS,
+  MS_PER_DAY,
+  PENDING_UPGRADE_WINDOW_DAYS,
+} from './utils/constants';
+import { generateState, validatePrivateKey, validateState } from './utils/jwt-utils';
+import { type EditMergeSkipReason, hasManualStamp, planEditMerge } from './utils/plan-edit-merge';
+import { generateTransactionHash, getTransactionDateString } from './utils/transaction-hash';
+import {
+  cleanMerchantName,
+  deriveNoteFromRaw,
+  getCounterpartyIban,
+  getEntryReference,
+  getRawTransaction,
+  getRawTransactionStatus,
+  hasSettledStatus,
+  isBookedCanonical,
+  isPendingOrphan,
+  syncGeneratedNote,
+  toEditMergeSide,
+  whereNoEntryReference,
+  withoutUndefinedValues,
+} from './utils/transaction-metadata';
 
-function balancesForLog({ balances }: { balances: EnableBankingBalance[] }) {
-  // Raw ASPSP records can miss fields the type declares required; `?? null` keeps
-  // the gap visible in the logged JSON instead of dropping the key.
-  return balances.map((b) => ({
-    balance_type: b.balance_type,
-    amount: b.balance_amount?.amount ?? null,
-    currency: b.balance_amount?.currency ?? null,
-    reference_date: b.reference_date ?? null,
-  }));
-}
+type ReconcileSkipReason = EditMergeSkipReason | 'dependent_rows' | 'categorization_conflict';
 
 /**
  * Enable Banking provider implementation
@@ -127,7 +131,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Calculate consent validity period
     const consentValidFrom = new Date();
-    const consentValidUntil = this.calculateConsentValidUntil(maxConsentValidity);
+    const consentValidUntil = calculateConsentValidUntil({ bankMaxConsentValidity: maxConsentValidity });
 
     // Start authorization flow
     const authResponse = await this.startAuthorizationFlow(
@@ -227,7 +231,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Calculate consent validity - consent is now active after successful OAuth
     const consentValidFrom = new Date();
-    const consentValidUntil = this.calculateConsentValidUntil(metadata.bankMaxConsentValidity);
+    const consentValidUntil = calculateConsentValidUntil({ bankMaxConsentValidity: metadata.bankMaxConsentValidity });
 
     // Update metadata with account summaries and consent dates
     // Store all accounts including those without uid (blocked/closed accounts)
@@ -406,7 +410,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // Calculate consent validity period for the API request
     // The actual consent dates will be set in handleOAuthCallback() after OAuth completes
-    const consentValidUntil = this.calculateConsentValidUntil(expiredMetadata.bankMaxConsentValidity);
+    const consentValidUntil = calculateConsentValidUntil({
+      bankMaxConsentValidity: expiredMetadata.bankMaxConsentValidity,
+    });
 
     // Create API client with existing credentials
     const apiClient = new EnableBankingApiClient(credentials);
@@ -629,10 +635,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
       // Generate unique hash from transaction data
       // Use stable externalId (identification_hash) for hashing, not session-specific uid
-      const uniqueId = this.generateTransactionHash({ tx, accountExternalId: hashId });
+      const uniqueId = generateTransactionHash({ tx, accountExternalId: hashId });
 
       // Get the transaction date using priority-based selection
-      const transactionDateString = this.getTransactionDateString(tx);
+      const transactionDateString = getTransactionDateString({ tx });
       const transactionDate = transactionDateString ? new Date(transactionDateString) : new Date();
 
       return {
@@ -640,7 +646,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         amount: amountSystemAmount,
         currency: tx.transaction_amount.currency,
         date: transactionDate,
-        description: tx.remittance_information?.join(' ') || 'Transaction',
+        description: deriveNoteFromRaw({ rawTransaction: tx }),
         merchantName,
         metadata: {
           // Parsed/extracted fields for easy access
@@ -754,44 +760,113 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // will have the correct end-of-day balance in balance_after_transaction.
           // This is important for Balances.handleTransactionChange() which uses the
           // balance from the last-processed transaction for each date.
-          providerTransactions.sort((a, b) => a.date.getTime() - b.date.getTime());
+          // Within one date PDNG comes first: when a batch carries both copies of the
+          // same purchase, the pending row must already exist for the booked copy to
+          // upgrade it, otherwise both land as separate rows.
+          const pendingFirstRank = (tx: ProviderTransaction) =>
+            getRawTransactionStatus({ externalData: tx.metadata }) === TransactionStatus.PDNG ? 0 : 1;
+          providerTransactions.sort(
+            (a, b) => a.date.getTime() - b.date.getTime() || pendingFirstRank(a) - pendingFirstRank(b),
+          );
 
           // Process each transaction and collect created/updated transaction IDs
           const createdTransactionIds: string[] = [];
           let updatedCount = 0;
+          // Tier 4 costs one extra query per unmatched row, and on an initial 3-year
+          // sync every row is unmatched. Flips to true as soon as this run stores a
+          // pending row so a same-batch booked copy can still upgrade it.
+          let accountHasPendingRows = await this.accountHasPendingRows({ accountId: account.id });
+          let pendingWithEntryReferenceCount = 0;
+          let stalePendingIgnoredCount = 0;
           const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
 
           for (const tx of providerTransactions) {
             await checkpoint();
 
-            // Match an existing tx using a tiered strategy that survives hash drift:
-            //   1. by entry_reference (ASPSP-promised stable id, may appear later)
-            //   2. by current originalId (the legacy hash)
-            //   3. by ±2-day fingerprint (amount + counterparty IBAN), as a final
-            //      fallback for ASPSPs that never populate entry_reference and
-            //      shift the date used in the hash between syncs
             const existingTx = await this.findExistingTransactionForSync({
               accountId: account.id,
               tx,
+              accountHasPendingRows,
             });
 
+            const incomingStatus = getRawTransactionStatus({ externalData: tx.metadata });
+
             if (existingTx) {
+              const existingMeta = existingTx.externalData as typeof tx.metadata;
+              const storedStatus = getRawTransactionStatus({ externalData: existingMeta });
+              // A stored PDNG row that already carries an entryReference counts as
+              // booked here on purpose: it is frozen against pending re-sends, while
+              // tier 1 still matches it and its BOOK copy upgrades it normally.
+              const storedIsBooked =
+                storedStatus === TransactionStatus.BOOK || getEntryReference({ tx: existingTx }) !== null;
+
+              // Some ASPSPs keep re-sending the pending entry for days after booking.
+              // Writing it back would trade booked identity, dates and remittance for
+              // stale pending data, so the stored row wins outright.
+              if (storedIsBooked && incomingStatus === TransactionStatus.PDNG) {
+                stalePendingIgnoredCount++;
+                logger.info(
+                  `Enable Banking sync: account ${account.id} ignored stale PDNG payload (hash ${tx.externalId}) for booked tx ${existingTx.id}`,
+                );
+                continue;
+              }
+
               // Re-anchor originalId when matched by a non-hash path so subsequent
               // syncs hit the canonical hash directly and don't pay the fallback cost.
-              const updates: Partial<{ originalId: string; time: Date; externalData: typeof tx.metadata }> = {};
+              const updates: Partial<{
+                originalId: string;
+                time: Date;
+                note: string;
+                externalData: typeof tx.metadata;
+              }> = {};
               if (existingTx.originalId !== tx.externalId) {
                 updates.originalId = tx.externalId;
               }
               // Backfill bookingDate / refresh metadata when the bank populates
               // fields after the initial sync.
-              const existingMeta = existingTx.externalData as typeof tx.metadata;
-              const bookingDateAppeared = !existingMeta?.bookingDate && tx.metadata?.bookingDate;
-              if (bookingDateAppeared) {
+              const bookingDateAppeared = !existingMeta?.bookingDate && Boolean(tx.metadata?.bookingDate);
+              // A stored PDNG row must leave the pending pool the moment its booked
+              // copy arrives, whichever tier matched it. While it still reads PDNG,
+              // findExistingTransactionForSync can merge an unrelated same-amount
+              // purchase into it.
+              const pendingBecameBooked =
+                incomingStatus === TransactionStatus.BOOK && storedStatus === TransactionStatus.PDNG;
+              // Read before the merge below overwrites the stored payload.
+              const storedSyncNote = syncGeneratedNote({ tx: existingTx });
+              if ((bookingDateAppeared || pendingBecameBooked) && existingTx.time.getTime() !== tx.date.getTime()) {
                 updates.time = tx.date;
-                updates.externalData = tx.metadata;
-              } else if (updates.originalId) {
-                // Even without a date change, refresh metadata so entryReference is persisted.
-                updates.externalData = { ...existingMeta, ...tx.metadata };
+              }
+              if (bookingDateAppeared || updates.originalId || pendingBecameBooked) {
+                // Merge, never replace: create-time keys the incoming payload omits
+                // (merchantName, which payee extraction reads) must survive.
+                const mergedExternalData = {
+                  ...existingMeta,
+                  ...withoutUndefinedValues({ source: tx.metadata ?? {} }),
+                };
+                if (pendingBecameBooked) {
+                  if (updates.originalId && existingTx.originalId) {
+                    // The pending entry often keeps arriving after its booked copy;
+                    // tier 2 resolves that stale payload back to this row through here.
+                    mergedExternalData.pendingHash = existingTx.originalId;
+                  }
+                  if (tx.metadata?.balanceAfter === undefined) {
+                    // The stored value is the pending-time available balance. Keeping it
+                    // would make the Balances hook write it as the booked day's total.
+                    delete mergedExternalData.balanceAfter;
+                  }
+                  const incomingMerchant = cleanMerchantName({ merchantName: tx.merchantName });
+                  if (incomingMerchant && !existingMeta?.merchantName) {
+                    mergedExternalData.merchantName = incomingMerchant;
+                  }
+                }
+                updates.externalData = mergedExternalData;
+              }
+              if (pendingBecameBooked && storedSyncNote !== null && existingTx.note === storedSyncNote) {
+                // The pending payload's remittance text is a placeholder at many banks.
+                // Only refresh it while the note is still exactly what sync wrote.
+                const incomingRaw = getRawTransaction({ externalData: tx.metadata });
+                const incomingNote = incomingRaw ? deriveNoteFromRaw({ rawTransaction: incomingRaw }) : tx.description;
+                if (incomingNote !== storedSyncNote) updates.note = incomingNote;
               }
 
               if (Object.keys(updates).length > 0) {
@@ -806,13 +881,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
             const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
 
-            // `merchantName` here is the debtor/creditor name lifted from the raw
-            // Enable Banking payload (or the literal 'Unknown' sentinel when both
-            // sides were absent – which is NOT a real merchant string). Forward
-            // the cleaned value into `externalData.merchantName` for audit and
-            // historical Payee-promotion scans, and as `rawMerchantName` for
-            // the per-row extraction pipeline.
-            const merchantNameClean = tx.merchantName && tx.merchantName !== 'Unknown' ? tx.merchantName.trim() : '';
+            // Forwarded into `externalData.merchantName` for audit and historical
+            // Payee-promotion scans, and as `rawMerchantName` for the per-row
+            // extraction pipeline.
+            const merchantNameClean = cleanMerchantName({ merchantName: tx.merchantName });
 
             // TODO: consider creating transactions in batch?
             // Create transaction using service (handles all required fields)
@@ -838,12 +910,27 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             });
 
             createdTransactionIds.push(createdTx.id);
+
+            if (incomingStatus === TransactionStatus.PDNG) {
+              accountHasPendingRows = true;
+              if (getRawTransaction({ externalData: tx.metadata })?.entry_reference != null) {
+                pendingWithEntryReferenceCount++;
+              }
+            }
           }
 
           // Log sync stats
-          if (createdTransactionIds.length > 0 || updatedCount > 0) {
+          if (createdTransactionIds.length > 0 || updatedCount > 0 || stalePendingIgnoredCount > 0) {
             logger.info(
-              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated for account ${account.id}`,
+              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated, ${stalePendingIgnoredCount} stale pending ignored for account ${account.id}`,
+            );
+          }
+
+          if (pendingWithEntryReferenceCount > 0) {
+            // The pending-upgrade tier only considers rows without an entry reference,
+            // so this bank's pending rows can never be adopted by their booked copy.
+            logger.info(
+              `Enable Banking sync: account ${account.id} stored ${pendingWithEntryReferenceCount} PDNG row(s) carrying an entry_reference; pending upgrade cannot see them`,
             );
           }
 
@@ -1037,15 +1124,6 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   }
 
   /**
-   * Calculate consent validity end date based on bank's maximum
-   */
-  private calculateConsentValidUntil(bankMaxConsentValidity: number | undefined = 90 * 24 * 60 * 60): Date {
-    const consentValiditySeconds = bankMaxConsentValidity;
-
-    return new Date(Date.now() + consentValiditySeconds * 1000);
-  }
-
-  /**
    * Type guard for connection parameters
    */
   private isValidConnectionParams(credentials: unknown): credentials is EnableBankingConnectionParams {
@@ -1207,9 +1285,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     let migratedCount = 0;
 
     for (const tx of transactions) {
-      const rawTransaction = (tx.externalData as Record<string, unknown>)?.rawTransaction as
-        | EnableBankingTransaction
-        | undefined;
+      const rawTransaction = getRawTransaction({ externalData: tx.externalData });
 
       if (!rawTransaction) {
         logger.info(`Transaction ${tx.id} has no rawTransaction in externalData, skipping migration`);
@@ -1217,15 +1293,28 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       }
 
       // Calculate new hash using the new externalId (identification_hash)
-      const newOriginalId = this.generateTransactionHash({
+      const newOriginalId = generateTransactionHash({
         tx: rawTransaction,
         accountExternalId: newExternalId,
       });
 
-      // Update if hash changed
+      const updates: { originalId?: string; externalData?: Transactions['externalData'] } = {};
       if (tx.originalId !== newOriginalId) {
-        await tx.update({ originalId: newOriginalId });
-        migratedCount++;
+        updates.originalId = newOriginalId;
+      }
+
+      const externalData = tx.externalData as Record<string, unknown> | null;
+      if (externalData && externalData.pendingHash !== undefined) {
+        // pendingHash was derived from the old account externalId and the pending-era
+        // payload is gone, so it can never be recomputed or matched again.
+        const withoutPendingHash = { ...externalData };
+        delete withoutPendingHash.pendingHash;
+        updates.externalData = withoutPendingHash;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await tx.update(updates);
+        if (updates.originalId) migratedCount++;
       }
     }
 
@@ -1244,9 +1333,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
   private async findExistingTransactionForSync({
     accountId,
     tx,
+    accountHasPendingRows,
   }: {
     accountId: string;
     tx: ProviderTransaction;
+    accountHasPendingRows: boolean;
   }): Promise<Transactions | null> {
     const entryReference = tx.metadata?.entryReference as string | undefined;
 
@@ -1264,70 +1355,142 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     // (2) originalId: the legacy hash. Catches the steady state where the bank
     // consistently returns the same fields (or no entry_reference at all).
+    // `pendingHash` is the hash a row carried while it was pending, kept so a
+    // pending entry the ASPSP re-sends after booking still lands on the same row.
     const byOriginalId = await Transactions.findOne({
-      where: { accountId, originalId: tx.externalId },
+      where: {
+        accountId,
+        [Op.or]: [
+          { originalId: tx.externalId },
+          Sequelize.where(Sequelize.literal(`"externalData"->>'pendingHash'`), tx.externalId),
+        ],
+      },
     });
     if (byOriginalId) return byOriginalId;
 
-    // (3) ±2-day fingerprint fallback. Final safety net for ASPSPs that never
-    // populate entry_reference and shift the date used in the hash between
-    // syncs, OR for the moment a previously entry_reference-less tx finally
-    // gets one. Gated to require matching counterparty IBAN so recurring
-    // same-amount payments to different parties don't collapse.
-    //
-    // Crucially, match only against rows whose stored entryReference is null:
-    //   - if a row already has entry_reference X, step (1) would have caught
-    //     it when the incoming ref matches; if refs differ, the rows are
-    //     genuinely different and must not be collapsed.
-    //   - if a row has no entry_reference, it's an orphan from before #1
-    //     landed (or from an ASPSP that never returns one), and the
-    //     fingerprint is the only signal we have.
     const isExpense = tx.metadata?.isExpense === true;
+    const transactionType = isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
     const counterpartyIban = isExpense
       ? (tx.metadata?.creditorAccount as string | undefined)
       : (tx.metadata?.debtorAccount as string | undefined);
+    const fingerprintBase = {
+      accountId,
+      amount: Math.abs(tx.amount),
+      currencyCode: tx.currency,
+      transactionType,
+    };
 
-    if (!counterpartyIban) return null;
+    // (3) IBAN fingerprint. Safety net for ASPSPs that never populate
+    // entry_reference and shift the date used in the hash between syncs, and for
+    // the sync where an entry_reference-less row finally gets one. Requires a
+    // matching counterparty IBAN so recurring same-amount payments to different
+    // parties don't collapse, and only considers rows with no stored
+    // entryReference – a row carrying a different one is a different transaction.
+    if (counterpartyIban) {
+      const byFingerprint = await Transactions.findOne({
+        where: {
+          ...fingerprintBase,
+          time: {
+            [Op.between]: [subDays(tx.date, FINGERPRINT_WINDOW_DAYS), addDays(tx.date, FINGERPRINT_WINDOW_DAYS)],
+          },
+          [Op.and]: [
+            Sequelize.where(
+              Sequelize.literal(`"externalData"->>'${isExpense ? 'creditorAccount' : 'debtorAccount'}'`),
+              counterpartyIban,
+            ),
+            whereNoEntryReference(),
+          ],
+        },
+      });
+      if (byFingerprint) return byFingerprint;
+    }
 
-    const fingerprintConditions: ReturnType<typeof Sequelize.where>[] = [
-      Sequelize.where(
-        Sequelize.literal(`"externalData"->>'${isExpense ? 'creditorAccount' : 'debtorAccount'}'`),
-        counterpartyIban,
-      ),
-      // Only consider rows that have no entryReference yet – anything with
-      // one already would have been handled by step (1).
-      Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), { [Op.is]: null as unknown as null }),
-    ];
+    // (4) Pending upgrade. A card purchase first arrives as PDNG with no
+    // entry_reference and is re-issued as BOOK with a fresh reference and
+    // different remittance text, so no earlier tier sees it. Safety comes from
+    // the PDNG-only candidate pool, exact amount/currency/type equality, the
+    // conditional IBAN gate below, and the caller flipping the matched row to BOOK.
+    if (!accountHasPendingRows) return null;
+    if (getRawTransactionStatus({ externalData: tx.metadata }) !== TransactionStatus.BOOK) return null;
 
-    return Transactions.findOne({
+    const pendingCandidates = await Transactions.findAll({
       where: {
-        accountId,
-        amount: Math.abs(tx.amount),
-        currencyCode: tx.currency,
-        transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
-        time: { [Op.between]: [subDays(tx.date, 2), addDays(tx.date, 2)] },
-        [Op.and]: fingerprintConditions,
+        ...fingerprintBase,
+        // A row the user made load-bearing must not have its time and identity
+        // re-stamped by a heuristic; the booked copy lands as its own row instead.
+        transferId: { [Op.is]: null },
+        refundLinked: false,
+        time: {
+          [Op.between]: [subDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS), addDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS)],
+        },
+        [Op.and]: [
+          Sequelize.where(Sequelize.literal(`"externalData"->'rawTransaction'->>'status'`), TransactionStatus.PDNG),
+          whereNoEntryReference(),
+        ],
       },
     });
+
+    const ibanCompatible = filterIbanCompatible({
+      candidates: pendingCandidates,
+      counterpartyIban: counterpartyIban ?? null,
+    });
+    if (pendingCandidates.length > 0 && ibanCompatible.length === 0) {
+      logger.info(
+        `Enable Banking pending upgrade: account ${accountId} dropped ${pendingCandidates.length} candidate(s) – iban_mismatch`,
+      );
+      return null;
+    }
+
+    const pendingMatch = pickNearestByDate({ candidates: ibanCompatible, date: tx.date });
+    if (!pendingMatch) return null;
+
+    const dayDistance = Math.abs(pendingMatch.time.getTime() - tx.date.getTime()) / MS_PER_DAY;
+    logger.info(
+      `Enable Banking pending upgrade: account ${accountId} matched tx ${pendingMatch.id} at ${dayDistance.toFixed(1)}d, IBAN gate ${counterpartyIban ? 'enforced' : 'not applicable'}`,
+    );
+    return pendingMatch;
+  }
+
+  /** Whether tier 4 has anything to look at. Cheap enough to run once per sync. */
+  private async accountHasPendingRows({ accountId }: { accountId: string }): Promise<boolean> {
+    const count = await Transactions.count({
+      where: {
+        accountId,
+        [Op.and]: [
+          Sequelize.where(Sequelize.literal(`"externalData"->'rawTransaction'->>'status'`), TransactionStatus.PDNG),
+        ],
+      },
+    });
+    return count > 0;
   }
 
   /**
-   * One-time reconciliation: find pre-existing duplicate pairs (one row with
-   * entryReference, one without) within ±2 days and delete the orphan.
+   * One-time reconciliation of duplicate pairs that predate the live-sync
+   * matcher. Two passes per (amount, currency, type) bucket:
    *
-   * Conservative: only collapses when (a) both rows share the same
-   * counterparty IBAN – mirroring the live-sync gate in
-   * findExistingTransactionForSync so different-party same-amount payments
-   * don't get merged – and (b) the orphan has no dependent rows and no
-   * user-edited scalars (note / categoryId / paymentType) that diverge from
-   * the canonical. Returns counts for observability and idempotency
-   * assertions.
+   *   a) booked row + leftover PDNG row within ±5 days, booked at or after
+   *      pending. When the booked row has a counterparty IBAN the pending row
+   *      must carry the same one; when it has none (card purchases) no IBAN
+   *      filtering happens. User edits on the pending copy move to the survivor.
+   *   b) row with entryReference + row without, within ±2 days and sharing a
+   *      counterparty IBAN.
+   *
+   * Pass (b) is the stricter one: it pairs rows on circumstantial IBAN evidence
+   * alone, so any scalar divergence aborts the merge, whereas pass (a) has the
+   * explicit PDNG→BOOK signal and can migrate user edits instead. Pass (b) also
+   * compares against canonicals as pass (a) left them, so an edit pass (a) just
+   * migrated can block a later strict merge.
+   *
+   * Both passes refuse to delete an orphan with dependent rows. `mergedCount` and
+   * `skippedCount` are the row-level outcomes callers and tests assert on;
+   * `consideredPairs` and `unresolvedCount` are diagnostics only, and
+   * `unresolvedCount` counts rejected pairs, so one row can add several.
    */
   async reconcileDuplicateTransactionsForAccount({
     accountId,
   }: {
     accountId: string;
-  }): Promise<{ mergedCount: number; skippedCount: number }> {
+  }): Promise<{ mergedCount: number; skippedCount: number; consideredPairs: number; unresolvedCount: number }> {
     const account = await this.getSystemAccount(accountId);
     const allTxs = await Transactions.findAll({
       where: { accountId: account.id },
@@ -1347,18 +1510,126 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
     let mergedCount = 0;
     let skippedCount = 0;
+    let consideredPairs = 0;
+    let unresolvedCount = 0;
+    // The account owner's default category. On a shared account another member's
+    // default reads as a deliberate category, which only makes the merge more
+    // conservative – it never deletes more.
+    const defaultCategoryId = await getUserDefaultCategory({ id: account.userId });
+    const now = new Date();
+    const logSkip = ({ orphanId, reason }: { orphanId: RecordId; reason: ReconcileSkipReason }) => {
+      logger.info(`Reconcile: skipping orphan tx ${orphanId} (account ${account.id}) – ${reason}`);
+    };
+    // Each check is seven COUNT queries and the same pending row is offered to every
+    // booked row in its bucket; nothing inside this run can change the answer.
+    const dependentRowsByTxId = new Map<RecordId, boolean>();
+    const hasDependentRowsMemoized = async ({ tx }: { tx: Transactions }): Promise<boolean> => {
+      const cached = dependentRowsByTxId.get(tx.id);
+      if (cached !== undefined) return cached;
+      const result = await this.hasDependentRows({ tx });
+      dependentRowsByTxId.set(tx.id, result);
+      return result;
+    };
 
     for (const candidates of buckets.values()) {
       if (candidates.length < 2) continue;
 
-      const canonicalRows = candidates.filter(
-        (c) => ((c.externalData as Record<string, unknown> | null)?.entryReference ?? null) !== null,
-      );
-      const orphanRows = candidates.filter(
-        (c) => ((c.externalData as Record<string, unknown> | null)?.entryReference ?? null) === null,
-      );
+      const pendingRows = candidates.filter((c) => isPendingOrphan({ tx: c }));
+      const bookedRows = candidates.filter((c) => isBookedCanonical({ tx: c }));
 
-      if (canonicalRows.length === 0 || orphanRows.length === 0) continue;
+      // Nearest-first over every plausible pair, so the closest booked/pending
+      // couple wins regardless of iteration order. Deletes are irreversible, so
+      // only pairs whose direction is provably consistent (booked at or after
+      // pending) are accepted; that misses the occasional pair whose pending
+      // value_date estimate postdated the booking, which is the cheaper mistake.
+      const pairs: { booked: Transactions; pending: Transactions; distance: number }[] = [];
+      for (const booked of bookedRows) {
+        const ibanCompatible = filterIbanCompatible({
+          candidates: pendingRows,
+          counterpartyIban: getCounterpartyIban({ tx: booked }),
+        });
+        unresolvedCount += pendingRows.length - ibanCompatible.length;
+        for (const pending of ibanCompatible) {
+          const distance = booked.time.getTime() - pending.time.getTime();
+          if (distance < 0 || distance > PENDING_UPGRADE_WINDOW_DAYS * MS_PER_DAY) {
+            unresolvedCount++;
+            continue;
+          }
+          pairs.push({ booked, pending, distance });
+        }
+      }
+      pairs.sort(
+        (a, b) =>
+          a.distance - b.distance || a.booked.id.localeCompare(b.booked.id) || a.pending.id.localeCompare(b.pending.id),
+      );
+      consideredPairs += pairs.length;
+
+      const pairedBooked = new Set<RecordId>();
+      const mergedPending = new Set<RecordId>();
+      // A skipped pair must leave both sides free for other pairs, but pass (b)
+      // still has to keep its hands off anything pass (a) looked at and rejected.
+      const skipTouchedPending = new Set<RecordId>();
+
+      for (const { booked, pending } of pairs) {
+        if (pairedBooked.has(booked.id) || mergedPending.has(pending.id)) {
+          unresolvedCount++;
+          continue;
+        }
+
+        const plan = planEditMerge({
+          orphan: toEditMergeSide({ tx: pending }),
+          canonical: toEditMergeSide({ tx: booked }),
+          orphanSyncNote: syncGeneratedNote({ tx: pending }),
+          canonicalSyncNote: syncGeneratedNote({ tx: booked }),
+          defaultCategoryId,
+          now,
+        });
+        if (plan.action === 'skip') {
+          logSkip({ orphanId: pending.id, reason: plan.reason });
+          skipTouchedPending.add(pending.id);
+          continue;
+        }
+        if (await hasDependentRowsMemoized({ tx: pending })) {
+          logSkip({ orphanId: pending.id, reason: 'dependent_rows' });
+          skipTouchedPending.add(pending.id);
+          continue;
+        }
+
+        const survivorUpdates: typeof plan.valuesToMove & { externalData?: Transactions['externalData'] } = {
+          ...plan.valuesToMove,
+        };
+        const bookedExternalData = booked.externalData as Record<string, unknown> | null;
+        // The pending row's hash is the anchor tier 2 needs when the ASPSP re-sends the
+        // PDNG payload; without it that payload recreates the duplicate just merged away.
+        if (pending.originalId && bookedExternalData?.pendingHash === undefined) {
+          survivorUpdates.externalData = { ...bookedExternalData, pendingHash: pending.originalId };
+        }
+        if (Object.keys(survivorUpdates).length > 0) {
+          await booked.update(survivorUpdates);
+        }
+        await pending.destroy();
+        pairedBooked.add(booked.id);
+        mergedPending.add(pending.id);
+        mergedCount++;
+      }
+
+      for (const pendingId of skipTouchedPending) {
+        if (!mergedPending.has(pendingId)) skippedCount++;
+      }
+
+      const canonicalRows = candidates.filter(
+        (c) => getEntryReference({ tx: c }) !== null && hasSettledStatus({ tx: c }),
+      );
+      // Pass (a) survivors stay out of pass (b). The case that motivates it: a booked
+      // row with no entryReference of its own re-enters as an orphan, and pass (b)
+      // would destroy it together with the edits pass (a) migrated onto it.
+      const orphanRows = candidates.filter(
+        (c) =>
+          !mergedPending.has(c.id) &&
+          !skipTouchedPending.has(c.id) &&
+          !pairedBooked.has(c.id) &&
+          getEntryReference({ tx: c }) === null,
+      );
 
       for (const orphan of orphanRows) {
         // IBAN gate: require both rows to share the same counterparty IBAN.
@@ -1366,23 +1637,27 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         // uses debtorAccount. If the orphan has no IBAN (e.g. a manual entry
         // that happens to share amount/currency/type with a bank row), skip –
         // same rule findExistingTransactionForSync applies for live syncs.
-        const orphanIban = this.getCounterpartyIban(orphan);
-        if (!orphanIban) continue;
+        const orphanIban = getCounterpartyIban({ tx: orphan });
+        if (!orphanIban) {
+          unresolvedCount++;
+          continue;
+        }
 
         const canonical = canonicalRows.find(
           (c) =>
             c.id !== orphan.id &&
-            Math.abs(c.time.getTime() - orphan.time.getTime()) <= 2 * 24 * 60 * 60 * 1000 &&
-            this.getCounterpartyIban(c) === orphanIban,
+            Math.abs(c.time.getTime() - orphan.time.getTime()) <= FINGERPRINT_WINDOW_DAYS * MS_PER_DAY &&
+            getCounterpartyIban({ tx: c }) === orphanIban,
         );
-        if (!canonical) continue;
+        if (!canonical) {
+          unresolvedCount++;
+          continue;
+        }
 
-        const safeToDelete = await this.orphanIsSafeToDelete({ orphan, canonical });
-        if (!safeToDelete) {
+        const blocker = await this.findOrphanDeletionBlocker({ orphan, canonical });
+        if (blocker) {
+          logSkip({ orphanId: orphan.id, reason: blocker });
           skippedCount++;
-          logger.info(
-            `Reconcile: skipping orphan tx ${orphan.id} (account ${account.id}) – has dependent rows or divergent user edits`,
-          );
           continue;
         }
 
@@ -1391,46 +1666,52 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       }
     }
 
-    if (mergedCount > 0 || skippedCount > 0) {
-      logger.info(`Reconcile complete for account ${account.id}: merged=${mergedCount} skipped=${skippedCount}`);
-    }
+    logger.info(
+      `Reconcile complete for account ${account.id}: merged=${mergedCount} skipped=${skippedCount} consideredPairs=${consideredPairs} unresolved=${unresolvedCount}`,
+    );
 
-    return { mergedCount, skippedCount };
-  }
-
-  private getCounterpartyIban(tx: Transactions): string | null {
-    const externalData = tx.externalData as Record<string, unknown> | null;
-    if (!externalData) return null;
-    const field = tx.transactionType === TRANSACTION_TYPES.expense ? 'creditorAccount' : 'debtorAccount';
-    const iban = externalData[field];
-    return typeof iban === 'string' && iban.length > 0 ? iban : null;
+    return { mergedCount, skippedCount, consideredPairs, unresolvedCount };
   }
 
   /**
-   * Conservative safety check used by reconciliation. Refuses deletion when
-   *   - dependent rows exist (splits, tags, refunds, transferId, group
-   *     membership, etc.), OR
-   *   - the orphan has user-mutable scalars (note, categoryId, paymentType)
-   *     that diverge from the canonical – those values would be silently lost
-   *     on destroy(), which is strictly worse than leaving a duplicate behind.
+   * Conservative gate for reconcile pass (b). Names what would be silently lost
+   * by destroying the orphan – dependent rows (transferId, refundLinked, splits,
+   * tags, refunds, budgets, subscriptions, group membership) or a user-mutable
+   * scalar that diverges from the canonical. Returns null when the orphan is safe
+   * to delete.
+   *
+   * `planEditMerge` is the lenient sibling used by pass (a); pass (b) is
+   * deliberately stricter because its pairing evidence is only circumstantial.
    */
-  private async orphanIsSafeToDelete({
+  private async findOrphanDeletionBlocker({
     orphan,
     canonical,
   }: {
     orphan: Transactions;
     canonical: Transactions;
-  }): Promise<boolean> {
-    if (orphan.transferId) return false;
-    if (orphan.refundLinked) return false;
-
-    // User-edited scalar divergence check. Treat null/empty note as "not set"
-    // on either side so a sync-default empty note doesn't block merging.
+  }): Promise<ReconcileSkipReason | null> {
     const orphanNote = orphan.note ?? '';
     const canonicalNote = canonical.note ?? '';
-    if (orphanNote !== canonicalNote && orphanNote !== '') return false;
-    if (orphan.categoryId !== canonical.categoryId) return false;
-    if (orphan.paymentType !== canonical.paymentType) return false;
+    if (orphanNote !== canonicalNote && orphanNote !== '') return 'note_conflict';
+    if (orphan.categoryId !== canonical.categoryId) return 'category_conflict';
+    // Same category, but only the orphan proves a human picked it. Deleting it
+    // would put the survivor back in the AI-categorization queue.
+    if (
+      hasManualStamp({ meta: orphan.categorizationMeta }) &&
+      !hasManualStamp({ meta: canonical.categorizationMeta })
+    ) {
+      return 'categorization_conflict';
+    }
+    if (orphan.paymentType !== canonical.paymentType) return 'payment_type_conflict';
+    // payeeLocked marks a Payee the user assigned or cleared by hand.
+    if (orphan.payeeLocked && orphan.payeeId !== canonical.payeeId) return 'payee_conflict';
+
+    return (await this.hasDependentRows({ tx: orphan })) ? 'dependent_rows' : null;
+  }
+
+  private async hasDependentRows({ tx }: { tx: Transactions }): Promise<boolean> {
+    if (tx.transferId) return true;
+    if (tx.refundLinked) return true;
 
     // Loaded lazily to avoid a circular import wave at module load.
     const TransactionTags = (await import('@models/transaction-tags.model')).default;
@@ -1440,96 +1721,17 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const SubscriptionTransactions = (await import('@models/subscription-transactions.model')).default;
     const TransactionGroupItems = (await import('@models/transaction-group-items.model')).default;
 
-    const orphanId = orphan.id;
-    const [tagCount, splitCount, refundFromCount, refundToCount, budgetCount, subCount, groupCount] = await Promise.all(
-      [
-        TransactionTags.count({ where: { transactionId: orphanId } }),
-        TransactionSplits.count({ where: { transactionId: orphanId } }),
-        RefundTransactions.count({ where: { originalTxId: orphanId } }),
-        RefundTransactions.count({ where: { refundTxId: orphanId } }),
-        BudgetTransactions.count({ where: { transactionId: orphanId } }),
-        SubscriptionTransactions.count({ where: { transactionId: orphanId } }),
-        TransactionGroupItems.count({ where: { transactionId: orphanId } }),
-      ],
-    );
+    const transactionId = tx.id;
+    const counts = await Promise.all([
+      TransactionTags.count({ where: { transactionId } }),
+      TransactionSplits.count({ where: { transactionId } }),
+      RefundTransactions.count({ where: { originalTxId: transactionId } }),
+      RefundTransactions.count({ where: { refundTxId: transactionId } }),
+      BudgetTransactions.count({ where: { transactionId } }),
+      SubscriptionTransactions.count({ where: { transactionId } }),
+      TransactionGroupItems.count({ where: { transactionId } }),
+    ]);
 
-    return (
-      tagCount === 0 &&
-      splitCount === 0 &&
-      refundFromCount === 0 &&
-      refundToCount === 0 &&
-      budgetCount === 0 &&
-      subCount === 0 &&
-      groupCount === 0
-    );
-  }
-
-  /**
-   * Generate a unique hash for a transaction.
-   * Uses entry_reference if available (unique and immutable per account per ASPSP),
-   * otherwise falls back to a combination of transaction attributes.
-   *
-   * IMPORTANT: accountExternalId is included because entry_reference is only unique
-   * per account, not globally unique across all accounts.
-   *
-   * Note: Dates ARE included in the fallback hash because having two genuinely
-   * different transactions with identical attributes (same amount, accounts,
-   * description) is more common than Enable Banking returning the same transaction
-   * with progressively populated date fields without an entry_reference.
-   */
-  private generateTransactionHash({
-    tx,
-    accountExternalId,
-  }: {
-    tx: EnableBankingTransaction;
-    accountExternalId: string;
-  }): string {
-    // If entry_reference is available, it's the most reliable unique identifier
-    // per Enable Banking docs: "unique and immutable for accounts with the same identification hashes"
-    // Include accountExternalId since entry_reference is only unique per account
-    if (tx.entry_reference) {
-      return crypto
-        .createHash('sha256')
-        .update(JSON.stringify({ account: accountExternalId, entry_ref: tx.entry_reference }))
-        .digest('hex');
-    }
-
-    // Fall back to combination of transaction attributes
-    // Including dates for better uniqueness - two identical transactions on different days should be distinct
-    const hashData = {
-      // Account identifier - ensures global uniqueness
-      account_external_id: accountExternalId,
-      // Required fields - always present
-      amount: tx.transaction_amount.amount,
-      currency: tx.transaction_amount.currency,
-      credit_debit_indicator: tx.credit_debit_indicator,
-      // Date field - use priority-based selection for hash stability
-      // This ensures hash stays stable when lower-priority dates are added later
-      date: this.getTransactionDateString(tx),
-      // Account identifiers (debtor/creditor)
-      debtor_account: tx.debtor_account?.iban,
-      creditor_account: tx.creditor_account?.iban,
-    };
-
-    return crypto.createHash('sha256').update(JSON.stringify(hashData)).digest('hex');
-  }
-
-  /**
-   * Get the transaction date as a string using priority-based selection.
-   * Used for both hash generation and display date.
-   *
-   * Priority: transaction_date > value_date > booking_date
-   *
-   * In real-world banking flow, dates typically follow this chronological order:
-   * transaction_date < value_date < booking_date
-   * (e.g., card swipe on Jan 15 → funds move Jan 16 → bank books it Jan 17)
-   *
-   * By selecting in priority order (transaction_date first), we:
-   * 1. Get the earliest/most accurate date of when the transaction occurred
-   * 2. Ensure hash stability - if transaction_date exists, we always use it,
-   *    even if booking_date is added in a subsequent sync
-   */
-  private getTransactionDateString(tx: EnableBankingTransaction): string | null {
-    return tx.transaction_date || tx.value_date || tx.booking_date || null;
+    return counts.some((count) => count > 0);
   }
 }

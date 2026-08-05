@@ -1,0 +1,122 @@
+import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { Op, Sequelize } from 'sequelize';
+
+import { type EnableBankingTransaction, TransactionStatus } from '../types';
+import type { EditMergeSide } from './plan-edit-merge';
+
+/**
+ * The stored-row fields these helpers read, declared structurally so unit tests
+ * can pass plain objects instead of model instances.
+ */
+interface StoredRow {
+  externalData: Record<string, unknown> | null;
+}
+
+export interface CounterpartyRow extends StoredRow {
+  transactionType: TRANSACTION_TYPES;
+}
+
+/** Matches rows that carry no bank-assigned entry reference yet. */
+export function whereNoEntryReference() {
+  return Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), { [Op.is]: null as unknown as null });
+}
+
+/** The note the sync path writes for a raw Enable Banking payload. */
+export function deriveNoteFromRaw({ rawTransaction }: { rawTransaction: EnableBankingTransaction }): string {
+  return rawTransaction.remittance_information?.join(' ') || 'Transaction';
+}
+
+/**
+ * Counterparty name for Payee extraction. `'Unknown'` is the literal sentinel
+ * fetchTransactions writes when both debtor and creditor names were absent, so
+ * it must never reach the merchant fields.
+ */
+export function cleanMerchantName({ merchantName }: { merchantName: string | undefined }): string {
+  return merchantName && merchantName !== 'Unknown' ? merchantName.trim() : '';
+}
+
+/** Spreading raw metadata would carry `key: undefined` in and drop the stored value on serialization. */
+export function withoutUndefinedValues<T extends Record<string, unknown>>({ source }: { source: T }): T {
+  return Object.fromEntries(Object.entries(source).filter(([, value]) => value !== undefined)) as T;
+}
+
+/** The raw ASPSP payload sync stored alongside a row, or null for non-synced rows. */
+export function getRawTransaction({
+  externalData,
+}: {
+  externalData: Record<string, unknown> | null | undefined;
+}): EnableBankingTransaction | null {
+  return (externalData?.rawTransaction as EnableBankingTransaction | undefined) ?? null;
+}
+
+export function getRawTransactionStatus({
+  externalData,
+}: {
+  externalData: Record<string, unknown> | null | undefined;
+}): TransactionStatus | null {
+  return getRawTransaction({ externalData })?.status ?? null;
+}
+
+/**
+ * Kept in step with the SQL predicate `"externalData"->>'entryReference' IS NULL`,
+ * which treats any JSON value as present. A corrupt non-string must not read as
+ * "has no reference" here while the query says otherwise.
+ */
+export function getEntryReference({ tx }: { tx: StoredRow }): string | null {
+  const entryReference = tx.externalData?.entryReference;
+  if (entryReference === null || entryReference === undefined) return null;
+  return typeof entryReference === 'string' ? entryReference : String(entryReference);
+}
+
+export function getCounterpartyIban({ tx }: { tx: CounterpartyRow }): string | null {
+  const { externalData } = tx;
+  if (!externalData) return null;
+  const field = tx.transactionType === TRANSACTION_TYPES.expense ? 'creditorAccount' : 'debtorAccount';
+  const iban = externalData[field];
+  return typeof iban === 'string' && iban.length > 0 ? iban : null;
+}
+
+export function isPendingOrphan({ tx }: { tx: StoredRow }): boolean {
+  return (
+    getRawTransactionStatus({ externalData: tx.externalData }) === TransactionStatus.PDNG &&
+    getEntryReference({ tx }) === null
+  );
+}
+
+/**
+ * Rows reconcile may keep as the survivor. ASPSPs also send CNCL, RJCT, SCHD and
+ * HOLD, which this enum doesn't model — a cancelled row must never be the one a
+ * real transaction is merged into and deleted for. Null = no stored payload.
+ */
+export function hasSettledStatus({ tx }: { tx: StoredRow }): boolean {
+  const status = getRawTransactionStatus({ externalData: tx.externalData });
+  return status === null || status === TransactionStatus.BOOK || status === TransactionStatus.OTHR;
+}
+
+/** A row a pending copy may be folded into. PDNG never qualifies, whatever else it carries. */
+export function isBookedCanonical({ tx }: { tx: StoredRow }): boolean {
+  if (!hasSettledStatus({ tx })) return false;
+  return (
+    getRawTransactionStatus({ externalData: tx.externalData }) === TransactionStatus.BOOK ||
+    getEntryReference({ tx }) !== null
+  );
+}
+
+/** The note the sync path derives from the stored raw payload, or null for non-synced rows. */
+export function syncGeneratedNote({ tx }: { tx: StoredRow }): string | null {
+  const rawTransaction = getRawTransaction({ externalData: tx.externalData });
+  if (!rawTransaction) return null;
+  return deriveNoteFromRaw({ rawTransaction });
+}
+
+/** Projects a stored row onto the scalars the reconcile merge policy reads. */
+export function toEditMergeSide({ tx }: { tx: EditMergeSide }): EditMergeSide {
+  return {
+    note: tx.note ?? null,
+    categoryId: tx.categoryId,
+    paymentType: tx.paymentType,
+    payeeId: tx.payeeId,
+    payeeLocked: tx.payeeLocked,
+    categorizationMeta: tx.categorizationMeta,
+  };
+}

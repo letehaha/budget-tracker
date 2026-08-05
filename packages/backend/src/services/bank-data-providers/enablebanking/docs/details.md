@@ -102,10 +102,10 @@ POST /bank-data-providers/enablebanking/callback
 - **No queue system** - synchronous, direct fetching
 - Determines date range:
   - Existing account: from most recent transaction to now
-  - New account: last 3 years (1095 days)
+  - New account: negotiates the lookback with the bank — 1095 days first, then 730, 365 and 90 as the ASPSP rejects each window
 - Automatic pagination via `continuation_key`
 - Generates unique `externalId` via SHA256 hash of transaction fields
-- Checks for duplicates using hashed `externalId`
+- Matches an incoming payload against stored rows with the four-tier matcher (entry_reference → originalId/pendingHash → IBAN fingerprint → pending upgrade); see `../../docs/architecture.md`
 - Saves new transactions to database
 - Updates account balance after sync
 
@@ -137,17 +137,19 @@ POST /bank-data-providers/enablebanking/callback
 
 ### Transaction Deduplication
 
-SHA256 hash generated from:
+When the payload carries an `entry_reference`, the hash is SHA256 of the account external id plus that reference — nothing else.
 
-- `booking_date`
+Otherwise SHA256 is generated from:
+
+- account external id (`identification_hash`)
 - `transaction_amount.amount`
 - `transaction_amount.currency`
-- `entry_reference`
+- `credit_debit_indicator`
+- one date, picked by priority: `transaction_date` > `value_date` > `booking_date`
 - `debtor_account.iban`
 - `creditor_account.iban`
-- `remittance_information`
 
-Ensures stable IDs even when bank's `transaction_id` is missing or changes.
+Remittance text is not hashed — banks rewrite it between the pending and booked copies. Ensures stable IDs even when bank's `transaction_id` is missing or changes.
 
 ### File Structure
 
@@ -156,7 +158,21 @@ enablebanking/
 ├── api-client.ts              # HTTP client, API calls, error handling
 ├── aspsp.service.ts           # Bank/country listing utilities
 ├── enablebanking.provider.ts  # Core business logic, data mapping
-├── jwt-utils.ts               # JWT generation, key validation
+├── utils/
+│   ├── balances.ts                # Balance payload shaping for logs
+│   ├── candidate-selection.ts     # IBAN gate + nearest-date pick
+│   ├── candidate-selection.unit.ts # Unit tests for candidate selection
+│   ├── consent.ts                 # Consent validity end date
+│   ├── constants.ts               # Lookback schedule + match window sizes
+│   ├── jwt-utils.ts               # JWT generation, key validation
+│   ├── plan-edit-merge.ts         # Pure edit-preservation policy for reconcile
+│   ├── plan-edit-merge.unit.ts    # Unit tests for the merge policy
+│   ├── transaction-hash.ts        # Transaction hashing + date priority
+│   ├── transaction-hash.unit.ts   # Unit tests for hashing
+│   ├── transaction-metadata.ts    # Stored-row externalData accessors/predicates
+│   └── transaction-metadata.unit.ts # Unit tests for the accessors
+├── enablebanking-dedup.e2e.ts # E2E: matcher tiers + reconciliation
+├── enablebanking-flow.e2e.ts  # E2E: connect → sync flow
 ├── types.ts                   # TypeScript interfaces
 └── docs/
     └── details.md            # This file

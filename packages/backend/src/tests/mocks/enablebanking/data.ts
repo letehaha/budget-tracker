@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import type { TransactionStatus } from '@services/bank-data-providers/enablebanking/types/enums';
 
 /**
  * Mock Enable Banking test data
@@ -67,6 +68,9 @@ export const MOCK_IDENTIFICATION_HASH_3 = 'aGFzaF9hY2NvdW50XzM='; // hash_accoun
 
 // Second session ID for reconnection
 export const MOCK_SESSION_ID_RECONNECTED = 'session_reconnected_abc123';
+
+// Stand-in counterparty IBAN for fixed transactions that don't name one.
+const DEFAULT_COUNTERPARTY_IBAN = 'FI0000000000000000';
 
 /**
  * Generate mock ASPSP (bank) data
@@ -255,11 +259,14 @@ export interface FixedTransaction {
   transactionDate?: string;
   /**
    * Optional override for the counterparty IBAN (creditor IBAN if expense, debtor IBAN if income).
-   * Defaults to a fixed placeholder. Use a stable per-tx value to make fingerprint matches work.
+   * Defaults to a fixed placeholder. Use a stable per-tx value to make fingerprint matches work,
+   * or `null` to omit the counterparty account entirely the way card purchases do.
    */
-  counterpartyIban?: string;
+  counterpartyIban?: string | null;
   /** Optional override for remittance_information lines. */
   remittanceInformation?: string[];
+  /** Enable Banking transaction status. Defaults to BOOK; use PDNG for pending card authorisations. */
+  status?: `${TransactionStatus}`;
 }
 
 let mockTransactionConfig: MockTransactionConfig = {
@@ -292,7 +299,7 @@ export const getMockedTransactions = (accountId: string, count: number = 10) => 
   // If fixed transactions are configured, use those
   if (mockTransactionConfig.fixedTransactions) {
     return mockTransactionConfig.fixedTransactions.map((ft, idx) => {
-      const counterpartyIban = ft.counterpartyIban || 'FI0000000000000000';
+      const counterpartyIban = ft.counterpartyIban === null ? null : ft.counterpartyIban || DEFAULT_COUNTERPARTY_IBAN;
       const ownIban = getMockedAccountDetails(accountId).account_id.iban;
       const tx: Record<string, unknown> = {
         transaction_id: `tx_${accountId}_${ft.entryReference || `idx${idx}`}`,
@@ -303,16 +310,17 @@ export const getMockedTransactions = (accountId: string, count: number = 10) => 
         credit_debit_indicator: ft.isExpense ? 'DBIT' : 'CRDT',
         remittance_information: ft.remittanceInformation || ['Test transaction'],
         debtor: { name: ft.isExpense ? 'John Doe' : 'Test Company' },
-        debtor_account: {
-          iban: ft.isExpense ? ownIban : counterpartyIban,
-        },
         creditor: { name: ft.isExpense ? 'Test Company' : 'John Doe' },
-        creditor_account: {
-          iban: ft.isExpense ? counterpartyIban : ownIban,
-        },
         balance_after_transaction: { amount: '1000.00', currency: ft.currency },
-        status: 'BOOK',
+        status: ft.status || 'BOOK',
       };
+
+      const ownAccountField = ft.isExpense ? 'debtor_account' : 'creditor_account';
+      const counterpartyField = ft.isExpense ? 'creditor_account' : 'debtor_account';
+      tx[ownAccountField] = { iban: ownIban };
+      if (counterpartyIban) {
+        tx[counterpartyField] = { iban: counterpartyIban };
+      }
 
       // Only set entry_reference when provided — simulates ASPSPs that omit it.
       if (ft.entryReference !== undefined) {
