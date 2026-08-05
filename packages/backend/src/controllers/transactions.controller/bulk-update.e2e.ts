@@ -3,6 +3,10 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { startOfMonth, subMonths } from 'date-fns';
+
+const middayUtcIso = ({ month, day }: { month: Date; day: number }) =>
+  new Date(Date.UTC(month.getFullYear(), month.getMonth(), day, 12)).toISOString();
 
 describe('Bulk update transactions controller', () => {
   describe('category updates', () => {
@@ -121,6 +125,61 @@ describe('Bulk update transactions controller', () => {
       // Verify updatedAt was changed
       expect(new Date(updatedTx1!.updatedAt).getTime()).toBeGreaterThan(new Date(originalUpdatedAt1).getTime());
       expect(new Date(updatedTx2!.updatedAt).getTime()).toBeGreaterThan(new Date(originalUpdatedAt2).getTime());
+    });
+
+    it('adds tags when the affected month has no first-of-month balance row yet', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const tag = await helpers.createTag({ payload: helpers.buildTagPayload(), raw: true });
+
+      const currentMonth = startOfMonth(new Date());
+      const targetMonth = subMonths(currentMonth, 2);
+      const olderMonth = subMonths(currentMonth, 3);
+
+      // Creating the target month's transactions first leaves that month without a
+      // 1st-of-month balance row: there is nothing older to seed it from. The older
+      // transaction added afterwards supplies that missing predecessor, so the next
+      // write to the target month has to create the 1st-of-month row.
+      const targetMonthTxIds: string[] = [];
+      for (const day of [15, 16, 17, 18, 19, 20]) {
+        const [tx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            time: middayUtcIso({ month: targetMonth, day }),
+          }),
+          raw: true,
+        });
+        targetMonthTxIds.push(tx.id);
+      }
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          time: middayUtcIso({ month: olderMonth, day: 10 }),
+        }),
+        raw: true,
+      });
+
+      const balancesBefore = await helpers.getBalanceHistory({ accountId: account.id, raw: true });
+
+      const response = await helpers.bulkUpdateTransactions({
+        payload: {
+          transactionIds: targetMonthTxIds,
+          tagIds: [tag.id],
+          tagMode: 'add',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.response.updatedCount).toBe(targetMonthTxIds.length);
+
+      // A tag edit carries no money, so every day already present in the history
+      // must keep its amount.
+      const balancesAfter = await helpers.getBalanceHistory({ accountId: account.id, raw: true });
+      const amountByDateAfter = new Map(balancesAfter.map((entry) => [String(entry.date), entry.amount]));
+
+      for (const entry of balancesBefore) {
+        expect(amountByDateAfter.get(String(entry.date))).toBe(entry.amount);
+      }
     });
 
     it('should replace tags on transactions and update updatedAt', async () => {

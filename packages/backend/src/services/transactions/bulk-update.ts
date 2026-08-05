@@ -231,14 +231,12 @@ export const bulkUpdate = withTransaction(
         }
       }
 
-      // Bump updatedAt for all affected transactions so UI can detect changes
-      // (tag changes only modify junction table, not the transaction itself)
-      // Use instance-level save() to properly trigger Sequelize's timestamp update
-      await Promise.all(
-        fullTransactions.map((tx) => {
-          tx.changed('updatedAt', true);
-          return tx.save({ silent: false });
-        }),
+      // Tag edits only touch the junction table, so the rows themselves need an
+      // explicit timestamp bump for clients to detect the change.
+      await Transactions.updateTransactions(
+        { updatedAt: new Date() },
+        { userId, id: { [Op.in]: allTransactionIds } },
+        { individualHooks: false },
       );
 
       // Emit event for real-time reminders check (only for add/replace modes)

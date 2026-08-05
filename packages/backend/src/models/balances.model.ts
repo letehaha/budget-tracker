@@ -11,6 +11,7 @@ import { MoneyField } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils';
 import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
+import { runInSavepoint } from '@services/common/run-in-savepoint';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
 import { Op, UniqueConstraintError } from 'sequelize';
@@ -314,7 +315,7 @@ export default class Balances extends Model {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
     const firstDayOfMonth = startOfMonth(new Date(date));
-    let firstDayBalance = await this.findOne({
+    const firstDayBalance = await this.findOne({
       where: {
         accountId,
         date: firstDayOfMonth,
@@ -335,11 +336,13 @@ export default class Balances extends Model {
 
       if (latestBalancePrior) {
         try {
-          firstDayBalance = await this.create({
-            accountId,
-            date: firstDayOfMonth,
-            amount: latestBalancePrior.amount,
-          });
+          await runInSavepoint(() =>
+            this.create({
+              accountId,
+              date: firstDayOfMonth,
+              amount: latestBalancePrior.amount,
+            }),
+          );
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           // Seed row computed from the same `latestBalancePrior` by every
@@ -389,11 +392,13 @@ export default class Balances extends Model {
         // (1) Firstly we now need to create one more record that will represent the
         // balance before that transaction
         try {
-          await this.create({
-            accountId,
-            date: subDays(new Date(date), 1),
-            amount: account!.refInitialBalance,
-          });
+          await runInSavepoint(() =>
+            this.create({
+              accountId,
+              date: subDays(new Date(date), 1),
+              amount: account!.refInitialBalance,
+            }),
+          );
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           // Seed row computed from the same `refInitialBalance` by every
@@ -402,22 +407,26 @@ export default class Balances extends Model {
 
         // (2) Then we create a record for that transaction
         try {
-          await this.create({
-            accountId,
-            date,
-            amount: account!.refInitialBalance.add(amount),
-          });
+          await runInSavepoint(() =>
+            this.create({
+              accountId,
+              date,
+              amount: account!.refInitialBalance.add(amount),
+            }),
+          );
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           await this.applyIncrementAtSql({ accountId, date, delta: amount });
         }
       } else {
         try {
-          balanceForTxDate = await this.create({
-            accountId,
-            date,
-            amount: latestBalancePrior.amount.add(amount),
-          });
+          balanceForTxDate = await runInSavepoint(() =>
+            this.create({
+              accountId,
+              date,
+              amount: latestBalancePrior.amount.add(amount),
+            }),
+          );
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           await this.applyIncrementAtSql({ accountId, date, delta: amount });
