@@ -57,7 +57,8 @@
     "vue": "3.5.34",
     "vue-draggable-plus": "^0.6.1",
     "vue-i18n": "^11.2.8",
-    "vue-router": "5.0.7"
+    "vue-router": "5.0.7",
+    "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",

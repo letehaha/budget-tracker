@@ -1,4 +1,7 @@
-import { Ref, ref } from 'vue';
+import { toast } from 'vue-sonner';
+
+import { findLiveToast, pulseToast } from './toast-pulse';
+import { registerToast, unregisterToast } from './toast-timers';
 
 export enum NotificationType {
   warning,
@@ -11,23 +14,36 @@ type NotificationID = number | string;
 interface Notification {
   id?: NotificationID;
   text: string;
+  description?: string;
   type?: NotificationType;
   visibilityTime?: number;
-  /**
-   * Persistent notifications never auto-hide — they stay until the user
-   * dismisses them via the close button. Use for actionable errors the user
-   * must not miss (e.g. "connect currency X"), not for routine toasts.
-   */
+  /** Never auto-hides. Use for actionable errors the user must not miss. */
   persistent?: boolean;
 }
 
-let idCounter = 0;
-const notifications: Ref<Notification[]> = ref([]);
-const notificationIds: Record<NotificationID, unknown> = {};
+const DEFAULT_VISIBILITY_TIME = 4000;
+
+const TOAST_BY_TYPE = {
+  [NotificationType.warning]: toast.warning,
+  [NotificationType.error]: toast.error,
+  [NotificationType.success]: toast.success,
+  [NotificationType.info]: toast.info,
+};
+
+/**
+ * Sonner keeps a dismissed toast's id bound to the dying card for ~500ms: a raise under that id is
+ * swallowed and corrupts the stack's height bookkeeping. So the caller-facing id is only a lookup
+ * key, and the id sonner sees is minted fresh for every raise that is not replacing a live toast.
+ */
+const activeSonnerIds = new Map<NotificationID, NotificationID>();
+let sonnerIdCounter = 0;
+
+const releaseActiveId = ({ baseId, sonnerId }: { baseId: NotificationID; sonnerId: NotificationID }) => {
+  if (activeSonnerIds.get(baseId) === sonnerId) activeSonnerIds.delete(baseId);
+};
 
 export const useNotificationCenter = (): {
-  notifications: Ref<Notification[]>;
-  addNotification: (notification: Notification) => NotificationID | void;
+  addNotification: (notification: Notification) => NotificationID;
   removeNotification: (id?: NotificationID) => void;
   addSuccessNotification: (message: string) => void;
   addWarningNotification: (message: string) => void;
@@ -35,34 +51,59 @@ export const useNotificationCenter = (): {
   addInfoNotification: (message: string) => void;
 } => {
   const removeNotification = (id?: NotificationID) => {
-    notifications.value = notifications.value.filter((item) => item.id !== id);
-    // Free the id on every removal path (auto-hide AND manual dismiss) so a
-    // fixed-id notification can be raised again later.
-    if (id !== undefined) delete notificationIds[id];
+    // Any falsy id reaches sonner's dismiss-everything branch and clears the whole stack.
+    if (!id) return;
+
+    const sonnerId = activeSonnerIds.get(id) ?? id;
+
+    releaseActiveId({ baseId: id, sonnerId });
+    unregisterToast({ id: sonnerId });
+    toast.dismiss(sonnerId);
   };
 
-  const addNotification = (notification: Notification): NotificationID | void => {
-    const id = notification.id ?? idCounter++;
+  // Deriving the id from type + text + description keeps identical notifications down to a single
+  // visible toast, since a raise under a live toast's id replaces it in place.
+  // Sonner's countdown only pauses and resumes, so it gets Infinity and `toast-timers` owns dismissal.
+  const addNotification = ({
+    id,
+    text,
+    description,
+    type = NotificationType.info,
+    visibilityTime,
+    persistent,
+  }: Notification): NotificationID => {
+    const baseId = id || `${type}:${text}:${description ?? ''}`;
+    const activeId = activeSonnerIds.get(baseId);
+    const sonnerId = activeId ?? `${baseId}#${sonnerIdCounter++}`;
 
-    if (notificationIds[id]) {
-      return undefined;
-    }
+    // Replacing a live toast leaves the screen unchanged, so the pulse is the only sign it happened.
+    // A raise that mints an id lands as a new card with its own entry animation.
+    const replacedToastEl = activeId === undefined ? null : findLiveToast({ id: String(baseId) });
 
-    notificationIds[id] = id;
+    activeSonnerIds.set(baseId, sonnerId);
 
-    notifications.value.push({
-      type: NotificationType.info,
-      ...notification,
-      id,
+    TOAST_BY_TYPE[type](text, {
+      id: sonnerId,
+      testId: String(baseId),
+      description,
+      duration: Infinity,
+      onDismiss: () => {
+        releaseActiveId({ baseId, sonnerId });
+        unregisterToast({ id: sonnerId });
+      },
     });
 
-    if (!notification.persistent) {
-      setTimeout(() => {
-        removeNotification(id);
-      }, notification.visibilityTime ?? 4000);
-    }
+    if (replacedToastEl) pulseToast({ element: replacedToastEl });
 
-    return id;
+    if (persistent) unregisterToast({ id: sonnerId });
+    else
+      registerToast({
+        id: sonnerId,
+        durationMs: visibilityTime ?? DEFAULT_VISIBILITY_TIME,
+        onExpire: () => releaseActiveId({ baseId, sonnerId }),
+      });
+
+    return baseId;
   };
 
   const addSuccessNotification = (message: string) => {
@@ -94,7 +135,6 @@ export const useNotificationCenter = (): {
   };
 
   return {
-    notifications,
     addNotification,
     removeNotification,
 
