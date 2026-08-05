@@ -283,6 +283,19 @@ export const setMockTransactionConfig = (config: Partial<MockTransactionConfig>)
 };
 
 /**
+ * Query params of the most recent GET /transactions call. The mock returns its
+ * fixtures regardless of the range, so this is the only way a test can assert
+ * which window the provider actually asked the bank for.
+ */
+let lastTransactionsQuery: { dateFrom: string | null; dateTo: string | null } | null = null;
+
+export const recordTransactionsQuery = ({ dateFrom, dateTo }: { dateFrom: string | null; dateTo: string | null }) => {
+  lastTransactionsQuery = { dateFrom, dateTo };
+};
+
+export const getLastTransactionsQuery = () => lastTransactionsQuery;
+
+/**
  * Reset mock transaction configuration to defaults.
  */
 export const resetMockTransactionConfig = () => {
@@ -290,6 +303,7 @@ export const resetMockTransactionConfig = () => {
     partialDates: false,
     fixedTransactions: null,
   };
+  lastTransactionsQuery = null;
 };
 
 /**

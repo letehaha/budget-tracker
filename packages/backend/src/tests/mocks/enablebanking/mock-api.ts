@@ -13,6 +13,7 @@ import {
   getMockedAccountBalances,
   getMockedAccountDetails,
   getMockedTransactions,
+  recordTransactionsQuery,
 } from './data';
 
 /**
@@ -285,6 +286,11 @@ const getTransactionsHandler = http.get(
 
     const { accountId } = params as { accountId: string };
     const url = new URL(request.url);
+
+    recordTransactionsQuery({
+      dateFrom: url.searchParams.get('date_from'),
+      dateTo: url.searchParams.get('date_to'),
+    });
 
     // Parse pagination parameters
     const continuation_key = url.searchParams.get('continuation_key');

@@ -1382,4 +1382,49 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       expect((await readExternalData({ id: heldTx.id })).rawTransaction?.status).toBe('BOOK');
     });
   });
+
+  // ==========================================================================
+  // #7 — the window the incremental sync asks the bank for
+  // ==========================================================================
+  describe('#7 incremental fetch window', () => {
+    it('never asks the bank for a date_from in the future', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          currency: 'EUR',
+          isExpense: true,
+          amount: '30.00',
+          bookingDate: '2026-01-15',
+          remittanceInformation: ['GROCERIES'],
+          entryReference: 'window_anchor_ref',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const syncedTx = (await listTransactions({ accountId }))[0]!;
+
+      // A planned expense the user entered on their bank account. The anchor is
+      // MAX(time) over every row, so this alone pushes it past today.
+      const future = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
+      await helpers.createTransaction({
+        payload: {
+          amount: 20,
+          accountId,
+          categoryId: syncedTx.categoryId,
+          time: future.toISOString(),
+          note: 'PLANNED RENT',
+          transactionType: TRANSACTION_TYPES.expense,
+          paymentType: PAYMENT_TYPES.bankTransfer,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        },
+        raw: true,
+      });
+
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const requested = helpers.enablebanking.lastTransactionsQuery();
+      const today = new Date().toISOString().split('T')[0]!;
+      expect(requested).not.toBeNull();
+      expect(requested!.dateFrom).toBe(today);
+      expect(requested!.dateFrom! <= requested!.dateTo!).toBe(true);
+    });
+  });
 });

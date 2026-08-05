@@ -760,11 +760,14 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
           // Incremental: `from` anchored to last tx – bank lookback can't be exceeded.
           // Initial: no anchor, must negotiate window with bank.
+          // Anchor capped at `to`: it is a MAX over every row on the account, so one
+          // future-dated entry – a planned expense the user typed in, or a value_date
+          // past today – would ask for a date_from the bank rejects on every sync.
           const providerTransactions = latestTransaction
             ? await this.fetchTransactions(
                 connectionId,
                 apiUid,
-                { from: new Date(latestTransaction.time), to },
+                { from: new Date(Math.min(latestTransaction.time.getTime(), to.getTime())), to },
                 account.externalId,
               )
             : await this.fetchInitialTransactionsWithShrinkingWindow({
