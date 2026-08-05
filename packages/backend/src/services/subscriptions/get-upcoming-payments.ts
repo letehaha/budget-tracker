@@ -69,6 +69,7 @@ export const getUpcomingPayments = async ({ userId, limit = 5, type }: GetUpcomi
         logoColor: plain.logoColor ?? null,
         expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
         expectedCurrencyCode: plain.expectedCurrencyCode,
+        transactionType: plain.transactionType,
         nextPaymentDate,
         frequency: plain.frequency,
         categoryName: plain.category?.name ?? null,

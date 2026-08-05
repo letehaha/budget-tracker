@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { UnexpectedError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
@@ -12,8 +12,9 @@ import { convertSubscriptionAmountToAccountCurrency } from './convert-subscripti
 /**
  * Translates a subscription into the params for `createTransaction`.
  *
- * Subscription payments book an expense against the subscription's stored
- * account. The transfer-related fields are fixed: `transferNature` is
+ * The booked direction (expense or income) comes from the subscription's own
+ * `transactionType`, against its stored account. The transfer-related fields
+ * are fixed: `transferNature` is
  * `not_transfer` and `accountType` is `system` (the manage-transaction HTTP
  * path's default for omitted accountType). `paymentType` is `bankTransfer` —
  * the closest neutral match for "I paid a recurring bill".
@@ -110,7 +111,7 @@ export async function buildTransactionFromSubscription({
     userId: subscription.userId,
     accountId: subscription.accountId,
     amount: amountMoney,
-    transactionType: TRANSACTION_TYPES.expense,
+    transactionType: subscription.transactionType,
     paymentType: PAYMENT_TYPES.bankTransfer,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     accountType: ACCOUNT_TYPES.system,

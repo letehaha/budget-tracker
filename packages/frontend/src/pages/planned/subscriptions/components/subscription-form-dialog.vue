@@ -10,6 +10,7 @@ import { Callout } from '@/components/lib/ui/callout';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
 import { Label } from '@/components/lib/ui/label';
 import { Switch } from '@/components/lib/ui/switch';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useResetSubscriptionLogo } from '@/composable/data-queries/subscriptions';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
@@ -26,11 +27,12 @@ import {
   type RemindBeforePreset,
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
   type SubscriptionMatchingRule,
   type SubscriptionModel,
   type RecordId,
 } from '@bt/shared/types';
-import { ChevronDownIcon, CreditCardIcon, ReceiptIcon, RepeatIcon } from '@lucide/vue';
+import { ChevronDownIcon, CreditCardIcon, ReceiptIcon, RepeatIcon, ArrowDownIcon, ArrowUpIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -66,6 +68,8 @@ const emit = defineEmits<{
     payload: Partial<Omit<SubscriptionModel, 'id' | 'userId' | 'createdAt' | 'updatedAt'>> & {
       name: string;
       type: SUBSCRIPTION_TYPES;
+      /** Create-only: the update endpoint has no such field, so an edit omits it. */
+      transactionType?: TRANSACTION_TYPES;
       frequency: SUBSCRIPTION_FREQUENCIES;
       startDate: string;
       isActive: boolean;
@@ -126,6 +130,7 @@ const toggleRemindBefore = ({ preset }: { preset: RemindBeforePreset }) => {
 interface FormState {
   name: string;
   type: SUBSCRIPTION_TYPES;
+  transactionType: TRANSACTION_TYPES;
   expectedAmount: number | null;
   expectedCurrencyCode: string;
   frequency: SUBSCRIPTION_FREQUENCIES;
@@ -152,6 +157,7 @@ const getInitialState = (): FormState => {
     return {
       name: props.initialValues.name ?? '',
       type: props.initialValues.type ?? SUBSCRIPTION_TYPES.subscription,
+      transactionType: props.initialValues.transactionType ?? TRANSACTION_TYPES.expense,
       expectedAmount: props.initialValues.expectedAmount ?? null,
       expectedCurrencyCode: props.initialValues.expectedCurrencyCode ?? '',
       frequency: props.initialValues.frequency ?? SUBSCRIPTION_FREQUENCIES.monthly,
@@ -172,6 +178,7 @@ const getInitialState = (): FormState => {
   return {
     name: '',
     type: SUBSCRIPTION_TYPES.subscription,
+    transactionType: TRANSACTION_TYPES.expense,
     expectedAmount: null,
     expectedCurrencyCode: baseCurrency.value?.currencyCode ?? '',
     frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -224,6 +231,10 @@ const selectedFrequency = computed(() => {
 
 const isInstallment = computed(() => form.value.type === SUBSCRIPTION_TYPES.installment);
 
+// Transaction type is immutable once a subscription exists — the backend ignores
+// edits to it, so the selector is locked on edit to avoid implying it's changable.
+const isEditingSubscription = computed(() => !!props.initialValues);
+
 // autoRecord is mutually exclusive with matching rules. When the user turns the
 // toggle ON while rules exist, we auto-clear the rules and show a brief callout
 // instead of blocking the action (clears are recoverable via the dialog re-open).
@@ -239,6 +250,25 @@ const handleAutoRecordToggle = ({ value }: { value: boolean }) => {
   }
   form.value.autoRecord = value;
 };
+
+const transactionTypeOptions = computed(() => [
+  {
+    value: TRANSACTION_TYPES.expense,
+    label: t('planned.subscriptions.form.transactionTypeExpense'),
+    desc: t('planned.subscriptions.form.transactionTypeExpenseDesc'),
+    icon: ArrowUpIcon,
+  },
+  {
+    value: TRANSACTION_TYPES.income,
+    label: t('planned.subscriptions.form.transactionTypeIncome'),
+    desc: t('planned.subscriptions.form.transactionTypeIncomeDesc'),
+    icon: ArrowDownIcon,
+  },
+]);
+
+const selectedTransactionTypeOption = computed(
+  () => transactionTypeOptions.value.find((opt) => opt.value === form.value.transactionType) ?? null,
+);
 
 const typeOptions = computed(() => [
   {
@@ -412,6 +442,9 @@ const handleSubmit = async () => {
   const payload = {
     name: form.value.name,
     type: form.value.type,
+    // Transaction type is fixed at creation, so an edit sends nothing: the update
+    // endpoint's schema has no such field and would silently strip it anyway.
+    ...(isEditingSubscription.value ? {} : { transactionType: form.value.transactionType }),
     expectedAmount: form.value.expectedAmount || null,
     // Currency is meaningless without an amount and the API rejects one without the
     // other, so drop the (auto-prefilled) currency when no amount is entered.
@@ -482,6 +515,74 @@ const handleSubmit = async () => {
         size-class="size-10 rounded-lg"
         align="with-labeled-field"
       />
+    </div>
+
+    <!-- Transaction Type (Expense vs Income) -->
+    <div class="flex flex-col gap-2">
+      <span class="text-foreground text-sm font-medium">
+        {{ $t('planned.subscriptions.form.transactionTypeLabel') }}
+      </span>
+
+      <div class="bg-muted/50 border-border/50 flex w-full rounded-lg border p-1">
+        <ResponsiveTooltip
+          :content="$t('planned.subscriptions.form.transactionTypeLockedTooltip')"
+          content-class-name="max-w-72"
+          :disabled="!isEditingSubscription || form.transactionType === TRANSACTION_TYPES.expense"
+        >
+          <!-- Disabled button swallows taps; making it inert lets the span act as the trigger -->
+          <span
+            :class="[
+              'inline-flex flex-1',
+              isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.expense && '*:pointer-events-none',
+            ]"
+          >
+            <button
+              type="button"
+              :disabled="isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.expense"
+              :class="[
+                'focus-visible:ring-ring flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                form.transactionType === TRANSACTION_TYPES.expense
+                  ? 'bg-app-expense-color/15 text-app-expense-color font-semibold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+              ]"
+              @click="form.transactionType = TRANSACTION_TYPES.expense"
+            >
+              <ArrowUpIcon class="size-4" />
+              {{ t('planned.subscriptions.form.transactionTypeExpense') }}
+            </button>
+          </span>
+        </ResponsiveTooltip>
+        <ResponsiveTooltip
+          :content="$t('planned.subscriptions.form.transactionTypeLockedTooltip')"
+          content-class-name="max-w-72"
+          :disabled="!isEditingSubscription || form.transactionType === TRANSACTION_TYPES.income"
+        >
+          <span
+            :class="[
+              'inline-flex w-full flex-1',
+              isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.income && '*:pointer-events-none',
+            ]"
+          >
+            <button
+              type="button"
+              :disabled="isEditingSubscription && form.transactionType !== TRANSACTION_TYPES.income"
+              :class="[
+                'focus-visible:ring-ring flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+                form.transactionType === TRANSACTION_TYPES.income
+                  ? 'bg-app-income-color/15 text-app-income-color font-semibold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+              ]"
+              @click="form.transactionType = TRANSACTION_TYPES.income"
+            >
+              <ArrowDownIcon class="size-4" />
+              {{ t('planned.subscriptions.form.transactionTypeIncome') }}
+            </button>
+          </span>
+        </ResponsiveTooltip>
+      </div>
+      <p v-if="selectedTransactionTypeOption" class="text-muted-foreground mt-0.5 text-xs leading-snug">
+        {{ selectedTransactionTypeOption.desc }}
+      </p>
     </div>
 
     <!-- Type: SelectField with rich items (icon + title + description). Trigger

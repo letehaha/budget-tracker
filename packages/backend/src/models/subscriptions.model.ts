@@ -1,6 +1,7 @@
 import {
   SUBSCRIPTION_FREQUENCIES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
   SubscriptionMatchingRules,
   RemindBeforePreset,
   LogoResolutionState,
@@ -48,6 +49,13 @@ export default class Subscriptions extends Model {
     defaultValue: SUBSCRIPTION_TYPES.subscription,
   })
   type!: SUBSCRIPTION_TYPES;
+
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: false,
+    defaultValue: TRANSACTION_TYPES.expense,
+  })
+  transactionType!: TRANSACTION_TYPES;
 
   @MoneyField({ storage: 'cents', allowNull: true })
   declare expectedAmount: Money | null;

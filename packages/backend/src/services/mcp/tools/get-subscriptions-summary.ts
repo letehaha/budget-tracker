@@ -11,7 +11,7 @@ export function registerGetSubscriptionsSummary(server: McpServer) {
     'get_subscriptions_summary',
     {
       description:
-        'Aggregate cost summary across all active subscriptions with an expected amount. Returns estimated monthly cost, projected yearly cost, count of active subscriptions, average monthly income over the last 6 complete months, and percent of income spent on subscriptions (all monetary values in the user base currency). Useful for "how much am I spending on subscriptions per month?" or "what share of my income goes to subscriptions?"',
+        'Aggregate summary across all active subscriptions with an expected amount, split by direction. Returns estimated monthly cost and projected yearly cost from expense subscriptions, expected monthly income from income subscriptions, active counts as { expense, income }, the user\'s average monthly income over the last 6 complete months (observed from transaction history, separate from subscription-based expected income), and percent of that income spent on subscriptions (all monetary values in the user base currency). Useful for "how much am I spending on subscriptions per month?", "how much recurring income do I have?", or "what share of my income goes to subscriptions?"',
       inputSchema: {
         type: z
           .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])

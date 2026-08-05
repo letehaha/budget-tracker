@@ -61,7 +61,16 @@ export function slimTransactionsForMcp(txs: TransactionApiResponse[]) {
  */
 export type SubscriptionDetailForMcp = Pick<
   Subscriptions,
-  'id' | 'name' | 'type' | 'frequency' | 'startDate' | 'endDate' | 'isActive' | 'notes' | 'expectedCurrencyCode'
+  | 'id'
+  | 'name'
+  | 'type'
+  | 'frequency'
+  | 'startDate'
+  | 'endDate'
+  | 'isActive'
+  | 'notes'
+  | 'expectedCurrencyCode'
+  | 'transactionType'
 > & {
   expectedAmount: number | null;
   nextExpectedDate: Date | string | null;
@@ -84,6 +93,7 @@ export function slimSubscriptionDetailForMcp(sub: SubscriptionDetailForMcp) {
     id: sub.id,
     name: sub.name,
     type: sub.type,
+    transactionType: sub.transactionType,
     expectedAmount: sub.expectedAmount,
     expectedCurrencyCode: sub.expectedCurrencyCode,
     frequency: sub.frequency,

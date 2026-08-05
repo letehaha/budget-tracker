@@ -1,4 +1,4 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES } from '@bt/shared/types';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -30,6 +30,10 @@ export function registerCreateSubscription(server: McpServer) {
           .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])
           .optional()
           .describe('Type: "subscription" (default), "bill", or "installment"'),
+        transactionType: z
+          .enum([TRANSACTION_TYPES.expense, TRANSACTION_TYPES.income])
+          .optional()
+          .describe('Transaction type: "expense" (default) or "income"'),
         expectedAmount: z
           .number()
           .nullable()
@@ -69,6 +73,7 @@ export function registerCreateSubscription(server: McpServer) {
         frequency: args.frequency,
         startDate: args.startDate,
         type: args.type,
+        transactionType: args.transactionType,
         expectedAmount: args.expectedAmount,
         expectedCurrencyCode: args.expectedCurrencyCode,
         endDate: args.endDate,

@@ -15,6 +15,7 @@ withDefaults(
     content?: string;
     contentClassName?: string;
     delayDuration?: number;
+    disabled?: boolean;
   }>(),
   { delayDuration: 300 },
 );
@@ -27,8 +28,10 @@ withDefaults(
     </slot>
   </UseTemplate>
 
+  <slot v-if="disabled" />
+
   <!-- Touch devices: Popover (tap to open) -->
-  <template v-if="isTouch">
+  <template v-else-if="isTouch">
     <Popover.Popover>
       <Popover.PopoverTrigger as-child :class="$attrs.class">
         <slot />

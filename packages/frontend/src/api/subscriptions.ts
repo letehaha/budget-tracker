@@ -5,6 +5,7 @@ import type {
   SubscriptionModel,
   SubscriptionPeriodModel,
   TransactionModel,
+  TRANSACTION_TYPES,
 } from '@bt/shared/types';
 
 /** Minimal open-period shape the list exposes for the "Due in N days" chip + quick pay. */
@@ -142,6 +143,7 @@ interface UpcomingPayment extends EntityLogoFields {
   subscriptionName: string;
   expectedAmount: number;
   expectedCurrencyCode: string | null;
+  transactionType: TRANSACTION_TYPES;
   nextPaymentDate: string | null;
   frequency: string;
   categoryName: string | null;
@@ -165,7 +167,8 @@ export const DEFAULT_INCOME_LOOKBACK_MONTHS: IncomeLookbackMonths = 6;
 interface SubscriptionsSummary {
   estimatedMonthlyCost: number;
   projectedYearlyCost: number;
-  activeCount: number;
+  expectedMonthlyIncome: number;
+  activeCount: { expense: number; income: number };
   currencyCode: string;
   averageMonthlyIncome: number;
   percentOfIncome: number | null;

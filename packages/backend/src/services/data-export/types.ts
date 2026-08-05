@@ -126,6 +126,7 @@ export interface SubscriptionRow {
   category: string;
   account: string;
   active: boolean;
+  transactionType: string;
   linkedTransactionsCount: number;
 }
 

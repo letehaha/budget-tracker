@@ -92,6 +92,43 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
       expect(tx!.accountId).toBe(account.id);
       expect(tx!.amount).toBe(10);
     });
+
+    it('marks the period paid, creates an income tx, and generates the next upcoming period for recurring income', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub = await helpers.createSubscription({
+        name: 'Paycheck',
+        transactionType: TRANSACTION_TYPES.income,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: futureDate({ monthsAhead: 1, day: 1 }),
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+        accountId: account.id,
+        categoryId: global.DEFAULT_CATEGORY_ID,
+        expectedAmount: 2500,
+        expectedCurrencyCode: global.BASE_CURRENCY.code,
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const upcomingPeriod = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(upcomingPeriod).toBeDefined();
+
+      const period = await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: upcomingPeriod!.id,
+        createTransaction: true,
+        raw: true,
+      });
+
+      expect(period.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
+      expect(period.transactionAutoCreated).toBe(true);
+      expect(period.transactionId).toBeTruthy();
+
+      const tx = await helpers.getTransactionById({ id: period.transactionId!, raw: true });
+      expect(tx).not.toBeNull();
+      expect(tx!.transactionType).toBe(TRANSACTION_TYPES.income);
+      expect(tx!.accountId).toBe(account.id);
+      expect(tx!.amount).toBe(2500);
+    });
   });
 
   describe('Cross-currency invariant', () => {
@@ -807,5 +844,118 @@ describe('Cross-currency pay when the billed currency is unconnected', () => {
     expect(preview.expectedAmount).toBe(100);
     // Best-effort: an unresolved rate degrades to null rather than a 4xx/5xx.
     expect(preview.convertedAmount).toBeNull();
+  });
+});
+
+describe('Issue #422: Additional Recurring Income E2E validation', () => {
+  it('prevents updating transactionType on an existing subscription', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const sub = await helpers.createSubscription({
+      name: 'Salary',
+      transactionType: TRANSACTION_TYPES.income,
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      accountId: account.id,
+      categoryId: global.DEFAULT_CATEGORY_ID,
+      expectedAmount: 3000,
+      expectedCurrencyCode: global.BASE_CURRENCY.code,
+      raw: true,
+    });
+
+    expect(sub.transactionType).toBe(TRANSACTION_TYPES.income);
+
+    // Attempt to update transactionType to expense (will be ignored or rejected by validation)
+    await helpers.updateSubscription({
+      id: sub.id,
+      name: 'Salary Updated',
+      transactionType: TRANSACTION_TYPES.expense,
+    } as any);
+
+    const updated = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    expect(updated.name).toBe('Salary Updated');
+    expect(updated.transactionType).toBe(TRANSACTION_TYPES.income); // Still income!
+  });
+
+  it('correctly calculates expectedMonthlyIncome and activeCount split in summary', async () => {
+    const account = await helpers.createAccount({ raw: true });
+
+    // Create one expense subscription
+    await helpers.createSubscription({
+      name: 'Rent',
+      transactionType: TRANSACTION_TYPES.expense,
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      accountId: account.id,
+      categoryId: global.DEFAULT_CATEGORY_ID,
+      expectedAmount: 1000,
+      expectedCurrencyCode: global.BASE_CURRENCY.code,
+      raw: true,
+    });
+
+    // Create one income subscription
+    await helpers.createSubscription({
+      name: 'Paycheck',
+      transactionType: TRANSACTION_TYPES.income,
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      accountId: account.id,
+      categoryId: global.DEFAULT_CATEGORY_ID,
+      expectedAmount: 2500,
+      expectedCurrencyCode: global.BASE_CURRENCY.code,
+      raw: true,
+    });
+
+    const summary = await helpers.getSubscriptionsSummary({ raw: true });
+
+    expect(summary.estimatedMonthlyCost).toBe(1000);
+    expect(summary.projectedYearlyCost).toBe(12000);
+    expect(summary.expectedMonthlyIncome).toBe(2500);
+    expect(summary.activeCount.expense).toBe(1);
+    expect(summary.activeCount.income).toBe(1);
+  });
+
+  it('enforces matching rules match by correct transaction type direction', async () => {
+    const account = await helpers.createAccount({ raw: true });
+
+    // Create an income subscription with matching rule "note contains Salary"
+    const subIncome = await helpers.createSubscription({
+      name: 'Salary Match',
+      transactionType: TRANSACTION_TYPES.income,
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      accountId: account.id,
+      categoryId: global.DEFAULT_CATEGORY_ID,
+      expectedAmount: 2000,
+      expectedCurrencyCode: global.BASE_CURRENCY.code,
+      matchingRules: {
+        rules: [{ field: 'note', operator: 'contains_any', value: ['Salary'] }],
+      },
+      raw: true,
+    });
+
+    // Create an expense transaction with note containing "Salary"
+    const txExpense = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({ accountId: account.id }),
+        accountId: account.id,
+        amount: 2000,
+        transactionType: TRANSACTION_TYPES.expense,
+        note: 'Salary payment (mistake)',
+      },
+      raw: true,
+    });
+
+    const suggestions = await helpers.getSuggestedMatches({
+      id: subIncome.id,
+      raw: true,
+    });
+
+    // Should NOT suggest the expense transaction because the subscription is income!
+    const hasExpenseMatch = suggestions.some((s) => s.id === txExpense[0].id);
+    expect(hasExpenseMatch).toBe(false);
   });
 });

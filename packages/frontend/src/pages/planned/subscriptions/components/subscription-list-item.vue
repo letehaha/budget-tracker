@@ -19,7 +19,7 @@ import { useI18n } from 'vue-i18n';
 
 import LinkedTransactionsBadge from './linked-transactions-badge.vue';
 import SubscriptionTypeBadge from './subscription-type-badge.vue';
-import { formatFrequency } from '../utils';
+import { formatFrequency, getTransactionTypePrefix, getTransactionTypeStyles } from '../utils';
 
 const props = defineProps<{
   subscription: SubscriptionListItem;
@@ -134,7 +134,9 @@ function dueChipClass({
     <div
       class="text-muted-foreground col-span-2 row-start-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm @[600px]:col-span-1 @[600px]:row-auto @[600px]:shrink-0 @[600px]:flex-nowrap"
     >
-      <span v-if="formatAmount()" class="text-foreground font-medium">{{ formatAmount() }}</span>
+      <span v-if="formatAmount()" :class="cn('font-medium', getTransactionTypeStyles(subscription.transactionType))">
+        {{ getTransactionTypePrefix(subscription.transactionType) }}{{ formatAmount() }}
+      </span>
       <span class="flex items-center gap-1">
         <RepeatIcon class="size-3.5 shrink-0" />
         {{ formatFrequency({ frequency: subscription.frequency, t }) }}
