@@ -123,6 +123,10 @@ const { displayValue: animatedMonthlyCost } = useAnimatedNumber({
   value: computed(() => summary.value?.estimatedMonthlyCost ?? 0),
 });
 
+const { displayValue: animatedMonthlyIncome } = useAnimatedNumber({
+  value: computed(() => summary.value?.expectedMonthlyIncome ?? 0),
+});
+
 const formatNextDate = ({ dateStr }: { dateStr: string | null }) => {
   if (!dateStr) return '';
   return formatDistanceToNow(parseISO(dateStr), { addSuffix: true });
@@ -206,17 +210,40 @@ function openSubscriptionsList() {
     <template v-else>
       <!-- Monthly total -->
       <div v-if="summary && totalActiveCount > 0" class="mb-4">
-        <p class="flex flex-wrap items-baseline gap-x-2 text-2xl font-bold tracking-tight">
-          {{ formatBaseCurrency(animatedMonthlyCost) }}
-          <span v-if="summary.percentOfIncome !== null" :class="[percentOfIncomeColorClass, 'text-sm font-normal']">
-            {{ $t('dashboard.widgets.subscriptions.percentOfIncome', { percent: summary.percentOfIncome }) }}
-          </span>
-        </p>
-        <p class="text-muted-foreground mt-1 text-xs">
-          {{ t('dashboard.widgets.subscriptions.activeSummary', { count: totalActiveCount }) }} &middot; ~{{
-            formatBaseCurrency(summary.projectedYearlyCost)
-          }}{{ t('dashboard.widgets.subscriptions.perYear') }}
-        </p>
+        <template v-if="summary.activeCount.expense > 0">
+          <p class="flex flex-wrap items-baseline gap-x-2 text-2xl font-bold tracking-tight">
+            {{ formatBaseCurrency(animatedMonthlyCost) }}
+            <span v-if="summary.percentOfIncome !== null" :class="[percentOfIncomeColorClass, 'text-sm font-normal']">
+              {{ $t('dashboard.widgets.subscriptions.percentOfIncome', { percent: summary.percentOfIncome }) }}
+            </span>
+          </p>
+          <p class="text-muted-foreground mt-1 text-xs">
+            {{ t('dashboard.widgets.subscriptions.activeSummary', { count: summary.activeCount.expense }) }} &middot;
+            ~{{ formatBaseCurrency(summary.projectedYearlyCost) }}{{ t('dashboard.widgets.subscriptions.perYear') }}
+          </p>
+          <i18n-t
+            v-if="summary.activeCount.income > 0"
+            keypath="dashboard.widgets.subscriptions.incomeSummary"
+            tag="p"
+            class="text-muted-foreground mt-1 text-xs"
+          >
+            <template #amount>
+              <span class="text-app-income-color font-medium">
+                +{{ formatBaseCurrency(summary.expectedMonthlyIncome) }}
+              </span>
+            </template>
+            <template #count>{{ summary.activeCount.income }}</template>
+          </i18n-t>
+        </template>
+
+        <template v-else>
+          <p class="text-app-income-color text-2xl font-bold tracking-tight">
+            +{{ formatBaseCurrency(animatedMonthlyIncome) }}
+          </p>
+          <p class="text-muted-foreground mt-1 text-xs">
+            {{ t('dashboard.widgets.subscriptions.activeSummary', { count: summary.activeCount.income }) }}
+          </p>
+        </template>
       </div>
 
       <!-- Upcoming payments list (original) -->

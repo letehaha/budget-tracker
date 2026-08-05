@@ -184,12 +184,16 @@
         "filterSubscriptions": "Subscriptions",
         "filterBills": "Bills",
         "filterInstallments": "Installments",
+        "spendingLabel": "Monthly spending",
         "monthlyCost": "~{amount}/mo",
+        "incomeLabel": "Expected income",
+        "monthlyIncome": "~{amount}/mo",
         "yearlyProjected": "{amount} projected",
         "perYear": "{amount}/yr",
         "acrossSubscriptions": "across {count} active subscription | across {count} active subscriptions",
         "acrossBills": "across {count} active bill | across {count} active bills",
-        "acrossAll": "across {count} active subscriptions & bills"
+        "acrossAll": "across {count} active subscriptions & bills",
+        "acrossIncome": "across {count} active income payment | across {count} active income payments"
       },
       "candidates": {
         "discover": "Discover",

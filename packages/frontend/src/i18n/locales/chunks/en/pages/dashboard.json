@@ -90,6 +90,7 @@
         "configTypeInstallments": "Installments",
         "activeSummary": "{count} active",
         "perYear": " per year",
+        "incomeSummary": "{count} active · {amount}/month income",
         "percentOfIncome": "{percent}% of avg income",
         "settings": {
           "title": "Settings",
