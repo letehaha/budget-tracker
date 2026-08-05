@@ -63,10 +63,14 @@ import {
   getRawTransactionStatus,
   hasSettledStatus,
   isBookedCanonical,
+  isNonLedgerStatus,
   isPendingOrphan,
+  isPreBookingStatus,
+  isRevokedStatus,
   syncGeneratedNote,
   toEditMergeSide,
   whereNoEntryReference,
+  wherePreBookingStatus,
   withoutUndefinedValues,
 } from './utils/transaction-metadata';
 
@@ -627,7 +631,22 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       date_to: dateRange?.to?.toISOString().split('T')[0],
     });
 
-    return transactions.map((tx) => {
+    // Cancelled, rejected and scheduled payments are not spendable money and must
+    // never reach the ledger. CNCL/RJCT still travel on, because the sync matcher
+    // needs them to remove a row stored while the payment was still pending.
+    const excludedByStatus = new Map<TransactionStatus, number>();
+    const importable = transactions.filter((tx) => {
+      if (!isNonLedgerStatus({ status: tx.status })) return true;
+      excludedByStatus.set(tx.status, (excludedByStatus.get(tx.status) ?? 0) + 1);
+      return isRevokedStatus({ status: tx.status });
+    });
+
+    if (excludedByStatus.size > 0) {
+      const breakdown = [...excludedByStatus].map(([status, count]) => `${status}=${count}`).join(' ');
+      logger.info(`Enable Banking fetch: ${breakdown} payload(s) excluded from the ledger`, { connectionId });
+    }
+
+    return importable.map((tx) => {
       const isExpense = tx.credit_debit_indicator === CreditDebitIndicator.DBIT;
       const amountFloat = parseFloat(tx.transaction_amount.amount);
       const amountSystemAmount = Money.fromDecimal(amountFloat).toCents();
@@ -760,11 +779,12 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // will have the correct end-of-day balance in balance_after_transaction.
           // This is important for Balances.handleTransactionChange() which uses the
           // balance from the last-processed transaction for each date.
-          // Within one date PDNG comes first: when a batch carries both copies of the
-          // same purchase, the pending row must already exist for the booked copy to
-          // upgrade it, otherwise both land as separate rows.
+          // Within one date pre-booking rows come first: when a batch carries both
+          // copies of the same purchase, the pending row must already exist for the
+          // booked copy to upgrade it, otherwise both land as separate rows. It also
+          // puts a cancellation after the payload that stored the row it removes.
           const pendingFirstRank = (tx: ProviderTransaction) =>
-            getRawTransactionStatus({ externalData: tx.metadata }) === TransactionStatus.PDNG ? 0 : 1;
+            isPreBookingStatus({ status: getRawTransactionStatus({ externalData: tx.metadata }) }) ? 0 : 1;
           providerTransactions.sort(
             (a, b) => a.date.getTime() - b.date.getTime() || pendingFirstRank(a) - pendingFirstRank(b),
           );
@@ -778,6 +798,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           let accountHasPendingRows = await this.accountHasPendingRows({ accountId: account.id });
           let pendingWithEntryReferenceCount = 0;
           let stalePendingIgnoredCount = 0;
+          let revokedRemovedCount = 0;
+          let revokedKeptCount = 0;
           const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
 
           for (const tx of providerTransactions) {
@@ -791,11 +813,33 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
             const incomingStatus = getRawTransactionStatus({ externalData: tx.metadata });
 
+            // A cancellation or rejection is the end of the payment: the row stored
+            // while it was still pending has to go, and nothing about the payload may
+            // be written back. A row the user made load-bearing is kept instead —
+            // losing their splits, tags or transfer is worse than an extra row.
+            if (isRevokedStatus({ status: incomingStatus })) {
+              const storedStatus = getRawTransactionStatus({ externalData: existingTx?.externalData });
+              if (existingTx && isPreBookingStatus({ status: storedStatus })) {
+                if (await this.hasDependentRows({ tx: existingTx })) {
+                  revokedKeptCount++;
+                  logger.info(
+                    `Enable Banking sync: account ${account.id} kept ${incomingStatus} tx ${existingTx.id} – dependent_rows`,
+                  );
+                } else {
+                  const createdIndex = createdTransactionIds.indexOf(existingTx.id);
+                  if (createdIndex !== -1) createdTransactionIds.splice(createdIndex, 1);
+                  await existingTx.destroy();
+                  revokedRemovedCount++;
+                }
+              }
+              continue;
+            }
+
             if (existingTx) {
               const existingMeta = existingTx.externalData as typeof tx.metadata;
               const storedStatus = getRawTransactionStatus({ externalData: existingMeta });
-              // A stored PDNG row that already carries an entryReference counts as
-              // booked here on purpose: it is frozen against pending re-sends, while
+              // A stored pre-booking row that already carries an entryReference counts
+              // as booked here on purpose: it is frozen against pending re-sends, while
               // tier 1 still matches it and its BOOK copy upgrades it normally.
               const storedIsBooked =
                 storedStatus === TransactionStatus.BOOK || getEntryReference({ tx: existingTx }) !== null;
@@ -803,10 +847,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
               // Some ASPSPs keep re-sending the pending entry for days after booking.
               // Writing it back would trade booked identity, dates and remittance for
               // stale pending data, so the stored row wins outright.
-              if (storedIsBooked && incomingStatus === TransactionStatus.PDNG) {
+              if (storedIsBooked && isPreBookingStatus({ status: incomingStatus })) {
                 stalePendingIgnoredCount++;
                 logger.info(
-                  `Enable Banking sync: account ${account.id} ignored stale PDNG payload (hash ${tx.externalId}) for booked tx ${existingTx.id}`,
+                  `Enable Banking sync: account ${account.id} ignored stale ${incomingStatus} payload (hash ${tx.externalId}) for booked tx ${existingTx.id}`,
                 );
                 continue;
               }
@@ -825,12 +869,12 @@ export class EnableBankingProvider extends BaseBankDataProvider {
               // Backfill bookingDate / refresh metadata when the bank populates
               // fields after the initial sync.
               const bookingDateAppeared = !existingMeta?.bookingDate && Boolean(tx.metadata?.bookingDate);
-              // A stored PDNG row must leave the pending pool the moment its booked
-              // copy arrives, whichever tier matched it. While it still reads PDNG,
-              // findExistingTransactionForSync can merge an unrelated same-amount
-              // purchase into it.
+              // A stored pre-booking row must leave the pending pool the moment its
+              // booked copy arrives, whichever tier matched it. While it still reads
+              // PDNG or HOLD, findExistingTransactionForSync can merge an unrelated
+              // same-amount purchase into it.
               const pendingBecameBooked =
-                incomingStatus === TransactionStatus.BOOK && storedStatus === TransactionStatus.PDNG;
+                incomingStatus === TransactionStatus.BOOK && isPreBookingStatus({ status: storedStatus });
               // Read before the merge below overwrites the stored payload.
               const storedSyncNote = syncGeneratedNote({ tx: existingTx });
               if ((bookingDateAppeared || pendingBecameBooked) && existingTx.time.getTime() !== tx.date.getTime()) {
@@ -911,7 +955,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
             createdTransactionIds.push(createdTx.id);
 
-            if (incomingStatus === TransactionStatus.PDNG) {
+            if (isPreBookingStatus({ status: incomingStatus })) {
               accountHasPendingRows = true;
               if (getRawTransaction({ externalData: tx.metadata })?.entry_reference != null) {
                 pendingWithEntryReferenceCount++;
@@ -920,9 +964,15 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           }
 
           // Log sync stats
-          if (createdTransactionIds.length > 0 || updatedCount > 0 || stalePendingIgnoredCount > 0) {
+          if (
+            createdTransactionIds.length > 0 ||
+            updatedCount > 0 ||
+            stalePendingIgnoredCount > 0 ||
+            revokedRemovedCount > 0 ||
+            revokedKeptCount > 0
+          ) {
             logger.info(
-              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated, ${stalePendingIgnoredCount} stale pending ignored for account ${account.id}`,
+              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated, ${stalePendingIgnoredCount} stale pending ignored, ${revokedRemovedCount} revoked removed, ${revokedKeptCount} revoked kept for account ${account.id}`,
             );
           }
 
@@ -930,7 +980,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             // The pending-upgrade tier only considers rows without an entry reference,
             // so this bank's pending rows can never be adopted by their booked copy.
             logger.info(
-              `Enable Banking sync: account ${account.id} stored ${pendingWithEntryReferenceCount} PDNG row(s) carrying an entry_reference; pending upgrade cannot see them`,
+              `Enable Banking sync: account ${account.id} stored ${pendingWithEntryReferenceCount} pre-booking row(s) carrying an entry_reference; pending upgrade cannot see them`,
             );
           }
 
@@ -1405,10 +1455,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       if (byFingerprint) return byFingerprint;
     }
 
-    // (4) Pending upgrade. A card purchase first arrives as PDNG with no
+    // (4) Pending upgrade. A card purchase first arrives as PDNG or HOLD with no
     // entry_reference and is re-issued as BOOK with a fresh reference and
     // different remittance text, so no earlier tier sees it. Safety comes from
-    // the PDNG-only candidate pool, exact amount/currency/type equality, the
+    // the pre-booking-only candidate pool, exact amount/currency/type equality, the
     // conditional IBAN gate below, and the caller flipping the matched row to BOOK.
     if (!accountHasPendingRows) return null;
     if (getRawTransactionStatus({ externalData: tx.metadata }) !== TransactionStatus.BOOK) return null;
@@ -1423,10 +1473,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         time: {
           [Op.between]: [subDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS), addDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS)],
         },
-        [Op.and]: [
-          Sequelize.where(Sequelize.literal(`"externalData"->'rawTransaction'->>'status'`), TransactionStatus.PDNG),
-          whereNoEntryReference(),
-        ],
+        [Op.and]: [wherePreBookingStatus(), whereNoEntryReference()],
       },
     });
 
@@ -1456,9 +1503,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const count = await Transactions.count({
       where: {
         accountId,
-        [Op.and]: [
-          Sequelize.where(Sequelize.literal(`"externalData"->'rawTransaction'->>'status'`), TransactionStatus.PDNG),
-        ],
+        [Op.and]: [wherePreBookingStatus()],
       },
     });
     return count > 0;
@@ -1468,7 +1513,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    * One-time reconciliation of duplicate pairs that predate the live-sync
    * matcher. Two passes per (amount, currency, type) bucket:
    *
-   *   a) booked row + leftover PDNG row within ±5 days, booked at or after
+   *   a) booked row + leftover pre-booking row within ±5 days, booked at or after
    *      pending. When the booked row has a counterparty IBAN the pending row
    *      must carry the same one; when it has none (card purchases) no IBAN
    *      filtering happens. User edits on the pending copy move to the survivor.
@@ -1477,7 +1522,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
    *
    * Pass (b) is the stricter one: it pairs rows on circumstantial IBAN evidence
    * alone, so any scalar divergence aborts the merge, whereas pass (a) has the
-   * explicit PDNG→BOOK signal and can migrate user edits instead. Pass (b) also
+   * explicit pre-booking→BOOK signal and can migrate user edits instead. Pass (b) also
    * compares against canonicals as pass (a) left them, so an edit pass (a) just
    * migrated can block a later strict merge.
    *

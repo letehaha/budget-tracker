@@ -11,7 +11,10 @@ import {
   getRawTransactionStatus,
   hasSettledStatus,
   isBookedCanonical,
+  isNonLedgerStatus,
   isPendingOrphan,
+  isPreBookingStatus,
+  isRevokedStatus,
   syncGeneratedNote,
   toEditMergeSide,
   withoutUndefinedValues,
@@ -28,8 +31,43 @@ function rawTx(overrides: Partial<EnableBankingTransaction> = {}): EnableBanking
   };
 }
 
-/** Statuses the Enable Banking API documents but the local enum doesn't model. */
-const UNMODELLED_STATUSES = ['CNCL', 'RJCT', 'SCHD', 'HOLD'] as unknown as TransactionStatus[];
+const ALL_STATUSES = Object.values(TransactionStatus);
+
+/** Every status that is not accounted money: not yet, or never will be. */
+const UNSETTLED_STATUSES = ALL_STATUSES.filter(
+  (status) => status !== TransactionStatus.BOOK && status !== TransactionStatus.OTHR,
+);
+
+/** Asserts a status predicate over the full documented set, plus the no-payload case. */
+function expectAccepts({
+  predicate,
+  accepted,
+}: {
+  predicate: (args: { status: TransactionStatus | null }) => boolean;
+  accepted: TransactionStatus[];
+}) {
+  for (const status of ALL_STATUSES) {
+    expect({ status, matched: predicate({ status }) }).toEqual({ status, matched: accepted.includes(status) });
+  }
+  expect(predicate({ status: null })).toBe(false);
+}
+
+describe('status predicates', () => {
+  it('isPreBookingStatus accepts only the two statuses that later book', () => {
+    expectAccepts({ predicate: isPreBookingStatus, accepted: [TransactionStatus.PDNG, TransactionStatus.HOLD] });
+  });
+
+  it('isRevokedStatus accepts only the two the ASPSP abandoned', () => {
+    expectAccepts({ predicate: isRevokedStatus, accepted: [TransactionStatus.CNCL, TransactionStatus.RJCT] });
+  });
+
+  it('isNonLedgerStatus also covers the not-yet-executed one', () => {
+    expectAccepts({
+      predicate: isNonLedgerStatus,
+      accepted: [TransactionStatus.CNCL, TransactionStatus.RJCT, TransactionStatus.SCHD],
+    });
+  });
+});
 
 describe('deriveNoteFromRaw', () => {
   it('joins the remittance lines with a space', () => {
@@ -138,10 +176,10 @@ describe('getCounterpartyIban', () => {
 });
 
 describe('isPendingOrphan', () => {
-  it('accepts a pending row that carries no entry reference', () => {
-    const externalData = { rawTransaction: rawTx({ status: TransactionStatus.PDNG }) };
-
-    expect(isPendingOrphan({ tx: { externalData } })).toBe(true);
+  it('accepts a pending or held row that carries no entry reference', () => {
+    for (const status of [TransactionStatus.PDNG, TransactionStatus.HOLD]) {
+      expect(isPendingOrphan({ tx: { externalData: { rawTransaction: rawTx({ status }) } } })).toBe(true);
+    }
   });
 
   it('rejects a pending row that already carries an entry reference', () => {
@@ -150,8 +188,11 @@ describe('isPendingOrphan', () => {
     expect(isPendingOrphan({ tx: { externalData } })).toBe(false);
   });
 
-  it('rejects booked rows and rows with no stored payload', () => {
+  it('rejects booked, cancelled and rows with no stored payload', () => {
     expect(isPendingOrphan({ tx: { externalData: { rawTransaction: rawTx() } } })).toBe(false);
+    expect(
+      isPendingOrphan({ tx: { externalData: { rawTransaction: rawTx({ status: TransactionStatus.CNCL }) } } }),
+    ).toBe(false);
     expect(isPendingOrphan({ tx: { externalData: {} } })).toBe(false);
     expect(isPendingOrphan({ tx: { externalData: null } })).toBe(false);
   });
@@ -167,13 +208,12 @@ describe('hasSettledStatus', () => {
     expect(hasSettledStatus({ tx: { externalData: null } })).toBe(true);
   });
 
-  it('rejects pending and every status the enum does not model', () => {
-    expect(
-      hasSettledStatus({ tx: { externalData: { rawTransaction: rawTx({ status: TransactionStatus.PDNG }) } } }),
-    ).toBe(false);
-
-    for (const status of UNMODELLED_STATUSES) {
-      expect(hasSettledStatus({ tx: { externalData: { rawTransaction: rawTx({ status }) } } })).toBe(false);
+  it('rejects every status that is not accounted money', () => {
+    for (const status of UNSETTLED_STATUSES) {
+      expect({
+        status,
+        settled: hasSettledStatus({ tx: { externalData: { rawTransaction: rawTx({ status }) } } }),
+      }).toEqual({ status, settled: false });
     }
   });
 });
@@ -183,17 +223,11 @@ describe('isBookedCanonical', () => {
     expect(isBookedCanonical({ tx: { externalData: { rawTransaction: rawTx() } } })).toBe(true);
   });
 
-  it('never accepts a pending row, whatever else it carries', () => {
-    const externalData = { rawTransaction: rawTx({ status: TransactionStatus.PDNG }), entryReference: 'ref-1' };
-
-    expect(isBookedCanonical({ tx: { externalData } })).toBe(false);
-  });
-
-  it('never accepts a cancelled, rejected, scheduled or held row that carries an entry reference', () => {
-    for (const status of UNMODELLED_STATUSES) {
+  it('never accepts an unsettled row, whatever else it carries', () => {
+    for (const status of UNSETTLED_STATUSES) {
       const externalData = { rawTransaction: rawTx({ status }), entryReference: 'ref-1' };
 
-      expect(isBookedCanonical({ tx: { externalData } })).toBe(false);
+      expect({ status, canonical: isBookedCanonical({ tx: { externalData } }) }).toEqual({ status, canonical: false });
     }
   });
 

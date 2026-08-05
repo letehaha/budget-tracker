@@ -76,24 +76,50 @@ export function getCounterpartyIban({ tx }: { tx: CounterpartyRow }): string | n
   return typeof iban === 'string' && iban.length > 0 ? iban : null;
 }
 
+/** Reserved money the ASPSP has not accounted yet. Both statuses turn into BOOK later. */
+const PRE_BOOKING_STATUSES = [TransactionStatus.PDNG, TransactionStatus.HOLD];
+
+/** The ASPSP abandoned a payment it had already reported. */
+const REVOKED_STATUSES = [TransactionStatus.CNCL, TransactionStatus.RJCT];
+
+export function isPreBookingStatus({ status }: { status: TransactionStatus | null }): boolean {
+  return status !== null && PRE_BOOKING_STATUSES.includes(status);
+}
+
+export function isRevokedStatus({ status }: { status: TransactionStatus | null }): boolean {
+  return status !== null && REVOKED_STATUSES.includes(status);
+}
+
+/** Payloads that must never become a ledger row: abandoned, or not executed yet. */
+export function isNonLedgerStatus({ status }: { status: TransactionStatus | null }): boolean {
+  return isRevokedStatus({ status }) || status === TransactionStatus.SCHD;
+}
+
+/** SQL twin of `isPreBookingStatus`, read off the stored raw payload. */
+export function wherePreBookingStatus() {
+  return Sequelize.where(Sequelize.literal(`"externalData"->'rawTransaction'->>'status'`), {
+    [Op.in]: PRE_BOOKING_STATUSES,
+  });
+}
+
 export function isPendingOrphan({ tx }: { tx: StoredRow }): boolean {
   return (
-    getRawTransactionStatus({ externalData: tx.externalData }) === TransactionStatus.PDNG &&
+    isPreBookingStatus({ status: getRawTransactionStatus({ externalData: tx.externalData }) }) &&
     getEntryReference({ tx }) === null
   );
 }
 
 /**
- * Rows reconcile may keep as the survivor. ASPSPs also send CNCL, RJCT, SCHD and
- * HOLD, which this enum doesn't model — a cancelled row must never be the one a
- * real transaction is merged into and deleted for. Null = no stored payload.
+ * Rows reconcile may keep as the survivor. A cancelled, rejected, scheduled or
+ * held row must never be the one a real transaction is merged into and deleted
+ * for. Null = no stored payload.
  */
 export function hasSettledStatus({ tx }: { tx: StoredRow }): boolean {
   const status = getRawTransactionStatus({ externalData: tx.externalData });
   return status === null || status === TransactionStatus.BOOK || status === TransactionStatus.OTHR;
 }
 
-/** A row a pending copy may be folded into. PDNG never qualifies, whatever else it carries. */
+/** A row a pending copy may be folded into. Pre-booking never qualifies, whatever else it carries. */
 export function isBookedCanonical({ tx }: { tx: StoredRow }): boolean {
   if (!hasSettledStatus({ tx })) return false;
   return (

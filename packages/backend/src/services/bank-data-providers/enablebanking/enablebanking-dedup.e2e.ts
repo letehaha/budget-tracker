@@ -1182,4 +1182,204 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       expect((await listTransactions({ accountId })).length).toBe(2);
     });
   });
+
+  // ==========================================================================
+  // #6 — cancelled / rejected / scheduled payloads, and HOLD as pre-booking
+  // ==========================================================================
+  describe('#6 terminal and future statuses', () => {
+    const CARD = { currency: 'EUR', isExpense: true, counterpartyIban: null } as const;
+
+    /**
+     * `writeBankBalanceWithHistory` re-pins `currentBalance` to the bank's figure at
+     * the end of every sync, so these assertions pin that removing a row leaves the
+     * account on that figure — they cannot observe a per-row cents delta.
+     */
+    function readBalance({ accountId }: { accountId: RecordId }) {
+      return helpers.getAccount({ id: accountId, raw: true }).then((a) => Number(a.currentBalance));
+    }
+
+    it('never creates a ledger row for a cancelled, rejected or scheduled payload', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        { ...CARD, status: 'CNCL', amount: '11.00', bookingDate: '2025-11-01', remittanceInformation: ['CANCELLED'] },
+        { ...CARD, status: 'RJCT', amount: '12.00', bookingDate: '2025-11-02', remittanceInformation: ['REJECTED'] },
+        { ...CARD, status: 'SCHD', amount: '13.00', bookingDate: '2025-11-03', remittanceInformation: ['SCHEDULED'] },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      expect(await listTransactions({ accountId })).toEqual([]);
+
+      // The same batch on a second sync must stay just as inert.
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+      expect(await listTransactions({ accountId })).toEqual([]);
+    });
+
+    it('removes a stored pending row when the bank cancels it', async () => {
+      const payload: FixedTransaction = {
+        ...CARD,
+        status: 'PDNG',
+        amount: '23.00',
+        transactionDate: '2025-11-05',
+        remittanceInformation: ['CANCELLED LATER'],
+      };
+      helpers.enablebanking.setFixedTransactions([payload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const pendingRows = await listTransactions({ accountId });
+      expect(pendingRows.length).toBe(1);
+      const pendingTx = pendingRows[0]!;
+      const balanceWithPending = await readBalance({ accountId });
+
+      helpers.enablebanking.setFixedTransactions([{ ...payload, status: 'CNCL' }]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect(await listTransactions({ accountId })).toEqual([]);
+      expect(await Transactions.findByPk(pendingTx.id)).toBeNull();
+      expect(await readBalance({ accountId })).toBe(balanceWithPending);
+    });
+
+    it('removes a stored pending row when the bank rejects it', async () => {
+      const payload: FixedTransaction = {
+        ...CARD,
+        status: 'PDNG',
+        amount: '24.00',
+        transactionDate: '2025-11-08',
+        remittanceInformation: ['REJECTED LATER'],
+      };
+      helpers.enablebanking.setFixedTransactions([payload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const pendingTx = (await listTransactions({ accountId }))[0]!;
+      const balanceWithPending = await readBalance({ accountId });
+
+      helpers.enablebanking.setFixedTransactions([{ ...payload, status: 'RJCT' }]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect(await Transactions.findByPk(pendingTx.id)).toBeNull();
+      expect(await readBalance({ accountId })).toBe(balanceWithPending);
+    });
+
+    it('keeps a cancelled pending row that carries dependent data', async () => {
+      const payload: FixedTransaction = {
+        ...CARD,
+        status: 'PDNG',
+        amount: '26.00',
+        transactionDate: '2025-11-12',
+        remittanceInformation: ['TAGGED PENDING'],
+      };
+      helpers.enablebanking.setFixedTransactions([payload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const pendingTx = (await listTransactions({ accountId }))[0]!;
+      const tag = await helpers.createTag({
+        payload: { name: `cancel-protect-${Date.now()}`, color: '#3b82f6' },
+        raw: true,
+      });
+      await helpers.addTransactionsToTag({ tagId: tag.id, transactionIds: [pendingTx.id] });
+      const balanceWithPending = await readBalance({ accountId });
+
+      helpers.enablebanking.setFixedTransactions([{ ...payload, status: 'CNCL' }]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(pendingTx.id);
+      // The cancelled payload must not be merged onto the row it failed to remove.
+      expect((await readExternalData({ id: pendingTx.id })).rawTransaction?.status).toBe('PDNG');
+      expect(await readBalance({ accountId })).toBe(balanceWithPending);
+    });
+
+    it('leaves a settled row alone when a cancellation matches it', async () => {
+      const payload: FixedTransaction = {
+        ...CARD,
+        status: 'BOOK',
+        amount: '28.00',
+        bookingDate: '2025-11-15',
+        entryReference: 'booked_then_cancelled',
+        remittanceInformation: ['BOOKED PURCHASE'],
+      };
+      helpers.enablebanking.setFixedTransactions([payload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const bookedTx = (await listTransactions({ accountId }))[0]!;
+
+      helpers.enablebanking.setFixedTransactions([{ ...payload, status: 'CNCL' }]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(bookedTx.id);
+      expect((await readExternalData({ id: bookedTx.id })).rawTransaction?.status).toBe('BOOK');
+    });
+
+    it('upgrades a stored HOLD row in place when it books', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD,
+          status: 'HOLD',
+          amount: '29.00',
+          transactionDate: '2025-12-01',
+          remittanceInformation: ['HOLD AUTHORISATION'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const heldRows = await listTransactions({ accountId });
+      expect(heldRows.length).toBe(1);
+      const heldTx = heldRows[0]!;
+      expect((await readExternalData({ id: heldTx.id })).rawTransaction?.status).toBe('HOLD');
+
+      // Fresh reference, different text and a date two days on: only the
+      // pre-booking candidate pool can connect this to the held row.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD,
+          status: 'BOOK',
+          amount: '29.00',
+          bookingDate: '2025-12-03',
+          entryReference: 'hold_booked_ref',
+          remittanceInformation: ['HOLD SETTLED'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(heldTx.id);
+      const externalData = await readExternalData({ id: heldTx.id });
+      expect(externalData.rawTransaction?.status).toBe('BOOK');
+      expect(externalData.entryReference).toBe('hold_booked_ref');
+    });
+
+    it('does not let a re-sent HOLD payload overwrite the booked row it became', async () => {
+      const holdPayload: FixedTransaction = {
+        ...CARD,
+        status: 'HOLD',
+        amount: '32.00',
+        transactionDate: '2025-12-10',
+        remittanceInformation: ['HOLD RESENT'],
+      };
+      helpers.enablebanking.setFixedTransactions([holdPayload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const heldTx = (await listTransactions({ accountId }))[0]!;
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD,
+          status: 'BOOK',
+          amount: '32.00',
+          bookingDate: '2025-12-11',
+          entryReference: 'hold_resent_ref',
+          remittanceInformation: ['HOLD RESENT BOOKED'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      helpers.enablebanking.setFixedTransactions([holdPayload]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(heldTx.id);
+      expect(finalRows[0]!.note).toBe('HOLD RESENT BOOKED');
+      expect((await readExternalData({ id: heldTx.id })).rawTransaction?.status).toBe('BOOK');
+    });
+  });
 });

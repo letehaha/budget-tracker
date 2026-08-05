@@ -240,15 +240,17 @@ Fetch all transactions (paginated on continuation_key until the ASPSP
 stops returning one; an initial sync also negotiates the lookback window
 by retrying 1095 → 730 → 365 → 90 days on date-range rejections)
        ↓
-Sort by date ascending, PDNG before BOOK within the same date so a
-same-batch booked copy finds its pending row already stored
+Sort by date ascending, pre-booking (PDNG/HOLD) before BOOK within the
+same date so a same-batch booked copy finds its pending row already stored
        ↓
 For each transaction:
   • Generate deterministic externalId (SHA256 hash)
   • Match against existing rows with the four-tier matcher (see below)
-  • Matched, stored booked + incoming PDNG → no writes (stale re-send)
+  • CNCL/RJCT → delete the matched pre-booking row (kept when it has
+    dependent rows); never creates one. SCHD never reaches this loop
+  • Matched, stored booked + incoming pre-booking → no writes (stale re-send)
   • Matched → re-anchor originalId, merge externalData (pendingHash +
-    merchantName backfill), flip PDNG → BOOK, re-stamp time when the
+    merchantName backfill), flip pre-booking → BOOK, re-stamp time when the
     flip changed it, refresh the note while it is still sync-generated
   • Unmatched → create Transaction record
        ↓
@@ -262,7 +264,7 @@ Set status = COMPLETED
 1. **entry_reference** — the ASPSP promises it is unique and immutable per account
 2. **originalId** — the stored hash; the steady state when the bank returns stable fields. It also matches `externalData.pendingHash`, the hash a row carried during its pending life, so a `PDNG` payload the ASPSP re-sends after booking resolves back onto the booked row instead of creating a duplicate
 3. **IBAN fingerprint** — same amount/currency/type within ±2 days, same counterparty IBAN, and only against rows that carry no stored entry_reference
-4. **Pending upgrade** — a booked payload adopts a stored `PDNG` row with the same amount/currency/type within ±5 days. The IBAN gate is conditional: when the incoming booked payload carries a counterparty IBAN the candidate must carry the same one (an IBAN-less candidate is rejected), and when it carries none — the card-purchase case — no IBAN filtering happens. The candidate pool also excludes rows with an entry_reference, a `transferId`, or `refundLinked`. The whole tier is skipped when a single pre-sync count says the account holds no `PDNG` rows at all; that pre-check re-arms mid-run as soon as this run stores a `PDNG` row
+4. **Pending upgrade** — a booked payload adopts a stored `PDNG`/`HOLD` row with the same amount/currency/type within ±5 days. The IBAN gate is conditional: when the incoming booked payload carries a counterparty IBAN the candidate must carry the same one (an IBAN-less candidate is rejected), and when it carries none — the card-purchase case — no IBAN filtering happens. The candidate pool also excludes rows with an entry_reference, a `transferId`, or `refundLinked`. The whole tier is skipped when a single pre-sync count says the account holds no pre-booking rows at all; that pre-check re-arms mid-run as soon as this run stores one
 
 Tier 3 runs before tier 4 because IBAN equality is the stronger signal — an incoming transfer must not consume an unrelated IBAN-less card pending.
 
@@ -496,7 +498,7 @@ If secondary dedup finds a match, it restores `originalId` so future syncs use t
 
 **Reconciliation of pre-existing duplicates:** `POST /connections/:id/reconcile-duplicates` runs `reconcileDuplicateTransactionsForAccount`, which buckets an account's transactions by (amount, currency, transactionType) and makes two passes:
 
-- **Pass (a)** pairs booked rows with leftover `PDNG` rows, nearest-first. The directional window accepts a booked row dated at or after its pending copy, up to 5 days later. The same conditional IBAN gate as tier 4 applies: a booked row with a counterparty IBAN only pairs with a pending row carrying that exact IBAN; a booked row without one is not IBAN-filtered. One booked row adopts at most one pending row. User edits on the pending copy (note, category + its `categorizationMeta` stamp, paymentType, locked payee) migrate onto the survivor; divergent edits on both sides skip the pair, and a skipped pair leaves both rows free to pair with someone else. A moved category always arrives with a manual stamp — synthesized when the pending row only had the legacy null-stamp signal — so the next AI run leaves it alone, and an orphan-only manual stamp moves even when both sides already share the category. The survivor also inherits the pending row's hash as `externalData.pendingHash`, so a re-sent `PDNG` payload resolves through tier 2 instead of recreating the duplicate. Any pending row pass (a) touched — merged or skipped — is excluded from pass (b), as is any booked row that received a merge.
+- **Pass (a)** pairs booked rows with leftover pre-booking rows, nearest-first. The directional window accepts a booked row dated at or after its pending copy, up to 5 days later. The same conditional IBAN gate as tier 4 applies: a booked row with a counterparty IBAN only pairs with a pending row carrying that exact IBAN; a booked row without one is not IBAN-filtered. One booked row adopts at most one pending row. User edits on the pending copy (note, category + its `categorizationMeta` stamp, paymentType, locked payee) migrate onto the survivor; divergent edits on both sides skip the pair, and a skipped pair leaves both rows free to pair with someone else. A moved category always arrives with a manual stamp — synthesized when the pending row only had the legacy null-stamp signal — so the next AI run leaves it alone, and an orphan-only manual stamp moves even when both sides already share the category. The survivor also inherits the pending row's hash as `externalData.pendingHash`, so a re-sent `PDNG` payload resolves through tier 2 instead of recreating the duplicate. Any pending row pass (a) touched — merged or skipped — is excluded from pass (b), as is any booked row that received a merge.
 - **Pass (b)** pairs a row that has an `entry_reference` with one that has none, within ±2 days and sharing a counterparty IBAN. It is stricter than pass (a) — the pairing evidence is circumstantial, so any scalar divergence aborts the merge instead of migrating. It compares against canonicals as pass (a) left them, so an edit pass (a) just migrated can block a later strict merge.
 
 Both passes refuse to delete an orphan that has dependent rows (`transferId`, `refundLinked`, splits, tags, refunds in either direction, budgets, subscriptions, group membership), and both are idempotent. The endpoint returns `{ mergedCount, skippedCount, consideredPairs, unresolvedCount }` — `consideredPairs` counts pass-(a) pairs that survived the IBAN gate and the directional window, and `unresolvedCount` counts pairs and rows that produced neither a merge nor a skip (IBAN drops, direction rejects, already-taken members, orphans with no partner).
