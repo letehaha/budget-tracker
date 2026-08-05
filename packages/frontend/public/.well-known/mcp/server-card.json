@@ -200,7 +200,7 @@
     },
     {
       "name": "create_subscription",
-      "description": "Create a new subscription or recurring bill. Requires finance:write scope."
+      "description": "Create a new subscription, recurring bill, or installment plan — an expense by default, or a recurring income (e.g. salary) via transactionType. Requires finance:write scope."
     },
     {
       "name": "update_subscription",
@@ -240,7 +240,7 @@
     },
     {
       "name": "get_subscriptions_summary",
-      "description": "Aggregate estimated monthly and projected yearly cost across all active subscriptions in the user's base currency."
+      "description": "Aggregate summary across all active subscriptions, split by direction: estimated monthly and projected yearly cost from expense subscriptions, expected monthly income from income subscriptions, and active counts as { expense, income }, all in the user's base currency."
     },
     {
       "name": "create_transaction",
