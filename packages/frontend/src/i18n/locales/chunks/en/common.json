@@ -253,6 +253,8 @@
     "title": "Notifications",
     "markAllAsRead": "Mark all as read",
     "empty": "No notifications yet",
+    "containerAriaLabel": "Notifications",
+    "closeToast": "Close notification",
     "viewOnGitHub": "View on GitHub",
     "newVersion": "New version {version}",
     "newRelease": "New release",

@@ -4,7 +4,7 @@
 
     <base-currency-change-overlay />
     <restore-in-progress-overlay />
-    <notifications-center />
+    <notification-toaster />
     <update-available-banner />
   </main>
 </template>
@@ -13,7 +13,7 @@
 import BaseCurrencyChangeOverlay from '@/components/common/base-currency-change-overlay.vue';
 import RestoreInProgressOverlay from '@/components/common/restore-in-progress-overlay.vue';
 import UpdateAvailableBanner from '@/components/common/update-available-banner.vue';
-import NotificationsCenter from '@/components/notification-center/notifications-center.vue';
+import NotificationToaster from '@/components/notification-center/notification-toaster.vue';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useAiCategorizationEvents } from '@/composable/use-ai-categorization-events';
 import { useSSE } from '@/composable/use-sse';
