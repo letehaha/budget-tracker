@@ -18,6 +18,8 @@ import {
   assertAutoRecordConsistent,
   validateAccountOwnership,
   validateCategoryOwnership,
+  validatePayeeOwnership,
+  validateTagsOwnership,
 } from './helpers';
 import { assertInstallmentScheduleComplete } from './installments';
 import { resolveOpenPeriodStatus } from './resolve-period-status';
@@ -34,6 +36,8 @@ interface CreateSubscriptionParams extends EntityLogoPayload {
   endDate?: string | null;
   accountId?: string | null;
   categoryId?: string | null;
+  payeeId?: string | null;
+  tagIds?: string[];
   matchingRules?: SubscriptionMatchingRules;
   notes?: string | null;
   dueDate?: string | null;
@@ -48,6 +52,8 @@ export const createSubscription = withTransaction(
     userId,
     accountId = null,
     categoryId = null,
+    payeeId = null,
+    tagIds = [],
     matchingRules = { rules: [] },
     expectedAmount = null,
     expectedCurrencyCode = null,
@@ -66,6 +72,13 @@ export const createSubscription = withTransaction(
     if (categoryId) {
       await validateCategoryOwnership({ categoryId, userId });
     }
+
+    if (payeeId) {
+      await validatePayeeOwnership({ payeeId, userId });
+    }
+
+    const uniqueTagIds = [...new Set(tagIds)];
+    await validateTagsOwnership({ tagIds: uniqueTagIds, userId });
 
     // Enforce the installment invariant here too (not just in the controller) so MCP
     // callers, which reach the service directly, fail cleanly rather than on the DB CHECK.
@@ -110,6 +123,7 @@ export const createSubscription = withTransaction(
       userId,
       accountId,
       categoryId,
+      payeeId,
       matchingRules,
       expectedAmount: expectedAmountMoney,
       expectedCurrencyCode,
@@ -123,6 +137,10 @@ export const createSubscription = withTransaction(
       // nothing, so they resolve to no writes and the resolver stays in charge.
       ...resolveManualLogoFields({ input: { logoDomain, logoInitials, logoColor } }),
     });
+
+    if (uniqueTagIds.length > 0) {
+      await subscription.$set('tags', uniqueTagIds);
+    }
 
     // When a dueDate is provided, create the first period so the subscription
     // immediately has a trackable payment target. A past dueDate is born overdue
@@ -146,6 +164,7 @@ export const createSubscription = withTransaction(
     return {
       ...plain,
       expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
+      tagIds: uniqueTagIds,
     };
   },
 );

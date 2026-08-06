@@ -3,7 +3,9 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
+import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
+import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
@@ -17,8 +19,9 @@ import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrencyName, useFormatCurrency } from '@/composable/formatters';
 import { helpers, required } from '@/js/helpers/validators';
+import { captureException } from '@/lib/sentry';
 import { cn } from '@/lib/utils';
-import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
+import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore } from '@/stores';
 import {
   type CurrencyModel,
   MAX_REMIND_BEFORE_PRESETS,
@@ -89,6 +92,10 @@ const currenciesStore = useCurrenciesStore();
 const { data: userSettings } = useUserSettings();
 const { formattedCategories } = storeToRefs(categoriesStore);
 const { baseCurrency } = storeToRefs(currenciesStore);
+
+useTagsStore()
+  .loadTags()
+  .catch((error) => captureException({ error, context: { scope: 'subscription-form-dialog:load-tags' } }));
 const { currencies } = usePrioritizedCurrencies();
 const { formatCurrencyLabel } = useCurrencyName();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
@@ -142,6 +149,8 @@ interface FormState {
   endDate: Date | null;
   accountId: string | null;
   categoryId: string | null;
+  payeeId: string | null;
+  tagIds: string[];
   matchingRules: SubscriptionMatchingRule[];
   notes: string;
   /** Manually chosen brand or monogram. null = let the backend auto-resolve from the name. */
@@ -169,6 +178,8 @@ const getInitialState = (): FormState => {
       endDate: props.initialValues.endDate ? new Date(props.initialValues.endDate) : null,
       accountId: props.initialValues.accountId ?? null,
       categoryId: props.initialValues.categoryId ?? null,
+      payeeId: props.initialValues.payeeId ?? null,
+      tagIds: props.initialValues.tagIds ?? [],
       matchingRules: props.initialValues.matchingRules?.rules ?? [],
       notes: props.initialValues.notes ?? '',
       logo: initialLogo,
@@ -190,6 +201,8 @@ const getInitialState = (): FormState => {
     endDate: null,
     accountId: null,
     categoryId: null,
+    payeeId: null,
+    tagIds: [],
     matchingRules: [],
     notes: '',
     logo: null,
@@ -389,7 +402,16 @@ const isSubmitDisabled = computed(() => {
 // section stays open whenever installment is the chosen type.
 const hasExtraValues = computed(() => {
   const f = form.value;
-  return !!(f.accountId || f.categoryId || f.notes || f.endDate || f.matchingRules.length || f.autoRecord);
+  return !!(
+    f.accountId ||
+    f.categoryId ||
+    f.payeeId ||
+    f.tagIds.length ||
+    f.notes ||
+    f.endDate ||
+    f.matchingRules.length ||
+    f.autoRecord
+  );
 });
 const isExtraOpen = ref(!!props.initialValues && hasExtraValues.value);
 const isScheduleOpen = ref(isInstallment.value || !!form.value.dueDate);
@@ -458,6 +480,8 @@ const handleSubmit = async () => {
     endDate: form.value.endDate ? form.value.endDate.toISOString().split('T')[0]! : null,
     accountId: (form.value.accountId || null) as RecordId | null,
     categoryId: (form.value.categoryId || null) as RecordId | null,
+    payeeId: (form.value.payeeId || null) as RecordId | null,
+    tagIds: form.value.tagIds as RecordId[],
     // autoRecord and matchingRules are mutually exclusive: when autoRecord is on
     // the backend rejects a non-empty rules array, so we always send [] in that case.
     matchingRules: {
@@ -813,6 +837,24 @@ const handleSubmit = async () => {
             :placeholder="$t('planned.subscriptions.form.categoryPlaceholder')"
             @update:model-value="(v: any) => (form.categoryId = v?.id ?? null)"
           />
+
+          <div class="grid gap-1.5">
+            <PayeeSelectField
+              v-model="form.payeeId"
+              :label="$t('planned.subscriptions.form.payeeLabel')"
+              :placeholder="$t('planned.subscriptions.form.payeePlaceholder')"
+            />
+            <p class="text-muted-foreground text-xs">{{ $t('planned.subscriptions.form.payeeHint') }}</p>
+          </div>
+
+          <div class="grid gap-1.5">
+            <TagSelectField
+              v-model="form.tagIds"
+              :label="$t('planned.subscriptions.form.tagsLabel')"
+              :placeholder="$t('planned.subscriptions.form.tagsPlaceholder')"
+            />
+            <p class="text-muted-foreground text-xs">{{ $t('planned.subscriptions.form.tagsHint') }}</p>
+          </div>
 
           <!-- Dates -->
           <div class="grid grid-cols-2 gap-3">

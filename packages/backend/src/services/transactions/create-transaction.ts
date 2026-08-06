@@ -31,7 +31,9 @@ import {
 } from '@services/sharing/auth/authorize-account-write.service';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
+import { matchTransactionToSubscriptions } from '@services/subscriptions/matching-engine';
 import { getUserSettings } from '@services/user-settings/get-user-settings';
+import { DatabaseError } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
 import { runInSavepoint } from '../common/run-in-savepoint';
@@ -539,14 +541,19 @@ export const createTransaction = withTransaction(
         eventBus.emit(DOMAIN_EVENTS.TRANSACTIONS_TAGGED, { tagIds, userId });
       }
 
-      // Try to match the transaction to a subscription (non-critical)
       if (!isTwoLegTransfer(transferNature)) {
         try {
-          const { matchTransactionToSubscriptions } = await import('@services/subscriptions');
           await matchTransactionToSubscriptions({ transaction: baseTransaction!, userId });
         } catch (error) {
+          // Never swallow DatabaseError here: it has already aborted this
+          // transaction, so COMMIT would silently ROLLBACK behind a 200.
+          // Any other failure is non-critical, the transaction still exists.
+          if (error instanceof DatabaseError) {
+            throw error;
+          }
+
           logger.error({
-            message: 'Failed to match transaction to subscriptions',
+            message: `Failed to match transaction ${baseTransaction!.id} to subscriptions`,
             error: error as Error,
           });
         }

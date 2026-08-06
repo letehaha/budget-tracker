@@ -8,6 +8,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
+import { stampSubscriptionPayeeAndTags } from './stamp-payee-and-tags';
 
 interface ResolveCandidateParams {
   userId: number;
@@ -73,6 +74,8 @@ export const resolveCandidate = withTransaction(
               matchSource: SUBSCRIPTION_MATCH_SOURCE.manual,
             })),
           );
+
+          await stampSubscriptionPayeeAndTags({ subscription, transactionIds: newTxIds });
         }
       }
     }

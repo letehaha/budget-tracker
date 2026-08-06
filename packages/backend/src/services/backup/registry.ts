@@ -32,6 +32,7 @@ import ShareInvitations from '@models/share-invitations.model';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import SubscriptionPeriodNotifications from '@models/subscription-period-notifications.model';
 import SubscriptionPeriods from '@models/subscription-periods.model';
+import SubscriptionTags from '@models/subscription-tags.model';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
 import TagReminders from '@models/tag-reminders.model';
@@ -418,6 +419,13 @@ export const BACKUP_TABLES: readonly BackupTableDef[] = [
   {
     fileName: 'subscription-transactions',
     model: SubscriptionTransactions,
+    tier: 5,
+    scope: { strategy: 'viaParent', fk: 'subscriptionId', parent: 'subscriptions' },
+    restoreMode: 'insert',
+  },
+  {
+    fileName: 'subscription-tags',
+    model: SubscriptionTags,
     tier: 5,
     scope: { strategy: 'viaParent', fk: 'subscriptionId', parent: 'subscriptions' },
     restoreMode: 'insert',
