@@ -32,6 +32,10 @@ if (isGrafanaConfigured && GRAFANA_LOKI_HOST && GRAFANA_LOKI_AUTH && GRAFANA_LOK
       json: true,
       replaceTimestamp: true,
       level: 'debug',
+      // winston-loki requeues failed batches with no size cap, so an extended
+      // Loki outage grows the heap without bound (prod OOM risk). Dropping the
+      // failed batch is fine: the Console transport keeps every line in docker logs.
+      clearOnError: true,
       onConnectionError: (error) => console.log('onConnectionError', error),
     }),
   );
