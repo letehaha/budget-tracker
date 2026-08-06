@@ -229,15 +229,13 @@ export const bulkUpdate = withTransaction(
             await tx.$add('tags', tagIds);
             break;
         }
-      }
 
-      // Tag edits only touch the junction table, so the rows themselves need an
-      // explicit timestamp bump for clients to detect the change.
-      await Transactions.updateTransactions(
-        { updatedAt: new Date() },
-        { userId, id: { [Op.in]: allTransactionIds } },
-        { individualHooks: false },
-      );
+        // Tag edits only touch the junction table, so the row needs an explicit
+        // timestamp bump for clients to detect the change. It has to be an instance
+        // save — Sequelize silently skips a bulk update whose only value is `updatedAt`.
+        tx.changed('updatedAt', true);
+        await tx.save();
+      }
 
       // Emit event for real-time reminders check (only for add/replace modes)
       if (tagIds.length > 0 && tagMode !== 'remove') {

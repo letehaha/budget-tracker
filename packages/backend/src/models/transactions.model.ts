@@ -1176,7 +1176,6 @@ export const updateTransactions = (
     payeeId?: string | null;
     payeeLocked?: boolean;
     categorizationMeta?: CategorizationMeta | null;
-    updatedAt?: Date;
   },
   where: Record<string, unknown> & { userId: number },
   {
