@@ -4,6 +4,7 @@ import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const'
 import type { AccountGroups } from '@/common/types/models';
 import { ensureChunkLoaded } from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
+import { useUserStore } from '@/stores/user';
 import type { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
@@ -58,6 +59,12 @@ export function useSyncStatus() {
   const queryClient = useQueryClient();
   const { connect, disconnect, on, isConnected } = useSSE();
   const { isLoggedIn } = storeToRefs(useAuthStore());
+  const { isDemo } = storeToRefs(useUserStore());
+
+  // Every bank-sync endpoint is behind `blockDemoUsers`, so a demo session can only
+  // ever collect 403s here. Gate the whole composable instead of letting the query
+  // and the header's auto-check fire and fail.
+  const syncEnabled = computed(() => isLoggedIn.value && !isDemo.value);
 
   // Provider names show up in the always-visible header popover regardless of
   // which page the user is on, but live in the integrations route chunk –
@@ -71,7 +78,7 @@ export function useSyncStatus() {
   const statusQuery = useQuery({
     queryKey: VUE_QUERY_CACHE_KEYS.bankSyncStatus,
     queryFn: bankDataProvidersApi.getSyncStatus,
-    enabled: isLoggedIn,
+    enabled: syncEnabled,
     staleTime: SYNC_STATUS_STALE_TIME_MS,
     // SSE already pushes live updates, so a focus-triggered refetch is redundant.
     refetchOnWindowFocus: false,
@@ -304,6 +311,7 @@ export function useSyncStatus() {
    * when confirmation is required (and not skipped) so the caller can prompt.
    */
   const triggerSync = async (skipConfirmation = false): Promise<boolean> => {
+    if (!syncEnabled.value) return false;
     if (!skipConfirmation && needsConfirmation.value) {
       return false;
     }
@@ -323,6 +331,7 @@ export function useSyncStatus() {
    * it without double-syncing.
    */
   const watchSync = async () => {
+    if (!syncEnabled.value) return;
     try {
       await ensureSSEConnected();
       await statusQuery.refetch();
@@ -337,6 +346,7 @@ export function useSyncStatus() {
    * dedupe, so the guard keeps a second caller from firing a duplicate request.
    */
   const checkAndAutoSync = async () => {
+    if (!syncEnabled.value) return null;
     if (checkSyncMutation.isPending.value) return null;
     try {
       return await checkSyncMutation.mutateAsync();
