@@ -32,6 +32,7 @@ import TransactionGroupItems from '@models/transaction-group-items.model';
 import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
+import { hasBalanceRelevantChange } from '@models/transactions-balance-relevance';
 import Users from '@models/users.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
 import { Op, Includeable, Order, WhereOptions, literal } from 'sequelize';
@@ -439,6 +440,10 @@ export default class Transactions extends Model {
     const newData: Transactions = (instance as any).dataValues;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prevData: Transactions = (instance as any)._previousDataValues;
+
+    // Must run while the money fields are still raw cents — the conversion below
+    // replaces them with Money instances, which no longer compare by value.
+    if (!hasBalanceRelevantChange({ next: newData, prev: prevData })) return;
 
     // dataValues/previousDataValues are raw DB values (cents integers), not Money.
     // Convert in-place so downstream code that expects Money objects works correctly.

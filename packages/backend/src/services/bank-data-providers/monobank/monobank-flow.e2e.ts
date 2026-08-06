@@ -1,6 +1,7 @@
 import { ACCOUNT_STATUSES, API_ERROR_CODES, API_RESPONSE_STATUS, BANK_PROVIDER_TYPE, asCents } from '@bt/shared/types';
 import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { Money } from '@common/types/money';
+import { t } from '@i18n/index';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
@@ -1230,6 +1231,71 @@ describe('Monobank Data Provider E2E', () => {
       // we must NOT tell them the credentials are invalid.
       expect(result.status).not.toEqual(ERROR_CODES.Forbidden);
       expect(result.status).toBeGreaterThanOrEqual(400);
+    });
+  });
+
+  describe('Stale external account id', () => {
+    it('sync: should fail without retrying and surface a reconnect message', async () => {
+      const { connectionId } = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId,
+        raw: true,
+      });
+
+      global.mswMockServer.use(getMonobankTransactionsMock({ response: [] }));
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [externalAccounts[0]!.externalId],
+        raw: true,
+      });
+      const accountId = syncedAccounts[0]!.id;
+
+      // Let the connect-time auto-sync drain so its jobs can't be mistaken for
+      // the one this test enqueues below.
+      await helpers.sleep(2000);
+
+      // Monobank's response once the stored external id no longer belongs to
+      // the token's client — the card was closed, or the user reconnected under
+      // a different Monobank account.
+      let statementCalls = 0;
+      global.mswMockServer.use(
+        http.get(MONOBANK_URLS_MOCK.personalStatement, () => {
+          statementCalls += 1;
+          return HttpResponse.json({ errorDescription: "invalid 'account'" }, { status: 400 });
+        }),
+      );
+
+      const syncResult = await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId,
+        accountId,
+        raw: true,
+      });
+
+      const jobResult = await helpers.bankDataProviders.waitForSyncJobsToComplete({
+        connectionId,
+        jobGroupId: syncResult.jobGroupId!,
+        timeoutMs: 15000,
+      });
+
+      // The batch settles as failed rather than sitting delayed awaiting a
+      // second attempt, and Monobank is asked exactly once.
+      expect(jobResult.status).toBe('failed');
+      expect(jobResult.totalBatches).toBe(1);
+      expect(jobResult.failedBatches).toBe(1);
+      expect(statementCalls).toBe(1);
+
+      const raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+      const syncStatus = JSON.parse(raw!);
+
+      expect(syncStatus.status).toBe(SyncStatus.FAILED);
+      expect(syncStatus.error).toBe(t({ key: 'bankDataProviders.monobank.accountReconnectRequired' }));
+      expect(syncStatus.error).not.toContain("invalid 'account'");
     });
   });
 });

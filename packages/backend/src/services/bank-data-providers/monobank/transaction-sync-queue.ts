@@ -26,7 +26,7 @@ import IORedis from 'ioredis';
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
-import { MonobankApiClient, MonobankGeoBlockedError } from './api-client';
+import { MonobankAccountNotFoundError, MonobankApiClient, MonobankGeoBlockedError } from './api-client';
 
 interface TransactionSyncJobData extends SentryTraceData {
   userId: number;
@@ -279,11 +279,12 @@ function buildJobProcessor(queueName: string) {
             userId,
           });
 
-          // Geo-block / VPN rejection from Monobank's edge won't clear up
-          // by retrying 60s later from the same server. Mark unrecoverable
-          // so BullMQ stops the retry cascade and we don't burn the
-          // per-token rate-limit slot for the next genuine request.
-          if (error instanceof MonobankGeoBlockedError) {
+          // Neither a geo-block from Monobank's edge nor an account id Monobank
+          // no longer recognises clears up by retrying 60s later — the server's
+          // IP and the stored external id are both unchanged between attempts.
+          // Mark unrecoverable so BullMQ stops the retry cascade and we don't
+          // burn the per-token rate-limit slot for the next genuine request.
+          if (error instanceof MonobankGeoBlockedError || error instanceof MonobankAccountNotFoundError) {
             throw new UnrecoverableError((error as Error).message);
           }
 

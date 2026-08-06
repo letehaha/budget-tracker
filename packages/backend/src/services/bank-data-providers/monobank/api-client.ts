@@ -3,11 +3,13 @@ import {
   ExternalMonobankTransactionResponse,
 } from '@bt/shared/types/external-services';
 import { t } from '@i18n/index';
-import { BadRequestError, ForbiddenError, TooManyRequests } from '@js/errors';
+import { BadRequestError, ForbiddenError, NotFoundError, TooManyRequests } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
 import { logger } from '@js/utils/logger';
 import axios, { AxiosInstance } from 'axios';
 import crypto from 'crypto';
+
+import { isGeoBlockResponseBody, isUnknownAccountResponse } from './error-signatures';
 
 /**
  * Marker thrown when Monobank's edge (AWS ELB) rejects the request with a
@@ -19,11 +21,13 @@ export class MonobankGeoBlockedError extends ForbiddenError {
   public readonly isGeoBlocked = true as const;
 }
 
-const GEO_BLOCK_RESPONSE_PATTERNS = [/Change your IP/i, /Змініть IP/i];
-
-function isGeoBlockResponseBody(body: unknown): boolean {
-  if (typeof body !== 'string') return false;
-  return GEO_BLOCK_RESPONSE_PATTERNS.some((pattern) => pattern.test(body));
+/**
+ * Marker thrown when Monobank does not recognise the stored external account
+ * id. The worker skips the retry: the id is stale until the user reconnects,
+ * so a second attempt 60s later only burns the token's rate-limit slot.
+ */
+export class MonobankAccountNotFoundError extends NotFoundError {
+  public readonly isAccountNotFound = true as const;
 }
 
 /**
@@ -172,6 +176,11 @@ export class MonobankApiClient {
       } else if (errorDescription === "Unknown 'X-Token'") {
         logger.info(`[MonobankApiClient] Invalid API token used in ${method}`, responseDetails);
         throw new ForbiddenError({ message: t({ key: 'bankDataProviders.monobank.invalidApiToken' }) });
+      } else if (isUnknownAccountResponse({ status, errorDescription })) {
+        logger.info(`[MonobankApiClient] Unknown external account id in ${method}`, responseDetails);
+        throw new MonobankAccountNotFoundError({
+          message: t({ key: 'bankDataProviders.monobank.accountReconnectRequired' }),
+        });
       } else if (status === 429) {
         logger.info(`[MonobankApiClient] Rate limit exceeded in ${method}`, responseDetails);
         throw new TooManyRequests({
