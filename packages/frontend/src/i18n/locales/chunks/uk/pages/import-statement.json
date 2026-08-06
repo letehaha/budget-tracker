@@ -70,7 +70,10 @@
           "almostDone": "Майже готово..."
         },
         "tokenFormat": "{inputTokens}K входу, ~{outputTokens}K виходу",
-        "fileSize": "{size} КБ"
+        "fileSize": "{size} КБ",
+        "pdfPasswordLabel": "Пароль PDF",
+        "pdfPasswordPlaceholder": "Введіть пароль документа",
+        "pdfPasswordSubmit": "Розблокувати та аналізувати"
       },
       "accountSelect": {
         "newlyCreated": "(щойно створено)",

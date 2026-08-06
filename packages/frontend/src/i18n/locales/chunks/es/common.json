@@ -266,7 +266,9 @@
     },
     "share": {
       "sendFailedHint": "Abra el panel de compartir para reenviar."
-    }
+    },
+    "containerAriaLabel": "Notificaciones",
+    "closeToast": "Cerrar notificación"
   },
   "currencyNames": {
     "UAH": "Grivna ucraniana",

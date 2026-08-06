@@ -112,7 +112,13 @@
           "requiresAccount": "Pencatatan otomatis memerlukan akun.",
           "requiresAmount": "Pencatatan otomatis memerlukan jumlah dan mata uang.",
           "conflictsMatching": "Aturan pencocokan yang ada telah dihapus — pencatatan otomatis dan aturan pencocokan tidak dapat digunakan bersama."
-        }
+        },
+        "transactionTypeLabel": "Jenis transaksi",
+        "transactionTypeExpense": "Pengeluaran",
+        "transactionTypeIncome": "Pemasukan",
+        "transactionTypeExpenseDesc": "Arus kas keluar berulang",
+        "transactionTypeIncomeDesc": "Gaji, retainer, atau setoran terjadwal yang berulang",
+        "transactionTypeLockedTooltip": "Jenis transaksi tidak dapat diubah setelah pembayaran berulang dibuat"
       },
       "progress": {
         "title": "Progres cicilan",
@@ -183,7 +189,11 @@
         "perYear": "{amount}/thn",
         "acrossSubscriptions": "di {count} langganan aktif | di {count} langganan aktif",
         "acrossBills": "di {count} tagihan aktif | di {count} tagihan aktif",
-        "acrossAll": "di {count} langganan & tagihan aktif"
+        "acrossAll": "di {count} langganan & tagihan aktif",
+        "spendingLabel": "Pengeluaran bulanan",
+        "incomeLabel": "Pemasukan yang diharapkan",
+        "monthlyIncome": "~{amount}/bln",
+        "acrossIncome": "di {count} pembayaran pemasukan aktif"
       },
       "candidates": {
         "discover": "Temukan",

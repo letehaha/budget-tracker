@@ -266,7 +266,9 @@
     },
     "share": {
       "sendFailedHint": "Buka panel berbagi untuk mengirim ulang."
-    }
+    },
+    "containerAriaLabel": "Notifikasi",
+    "closeToast": "Tutup notifikasi"
   },
   "currencyNames": {
     "UAH": "Hryvnia Ukraina",

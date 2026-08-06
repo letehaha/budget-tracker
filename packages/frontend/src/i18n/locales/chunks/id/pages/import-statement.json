@@ -70,7 +70,10 @@
           "almostDone": "Hampir selesai..."
         },
         "tokenFormat": "{inputTokens}K masukan, ~{outputTokens}K keluaran",
-        "fileSize": "{size} KB"
+        "fileSize": "{size} KB",
+        "pdfPasswordLabel": "Kata sandi PDF",
+        "pdfPasswordPlaceholder": "Masukkan kata sandi dokumen",
+        "pdfPasswordSubmit": "Buka Kunci dan Analisis"
       },
       "accountSelect": {
         "newlyCreated": "(baru dibuat)",

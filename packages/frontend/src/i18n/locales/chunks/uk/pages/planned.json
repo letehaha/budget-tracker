@@ -112,7 +112,13 @@
           "requiresAccount": "Для автозапису потрібен рахунок.",
           "requiresAmount": "Для автозапису потрібна сума та валюта.",
           "conflictsMatching": "Існуючі правила зіставлення були очищені — автозапис і правила зіставлення не можна використовувати одночасно."
-        }
+        },
+        "transactionTypeLabel": "Тип транзакції",
+        "transactionTypeExpense": "Видатки",
+        "transactionTypeIncome": "Дохід",
+        "transactionTypeExpenseDesc": "Регулярний вихідний платіж",
+        "transactionTypeIncomeDesc": "Регулярна зарплата, гонорар або запланований дохід",
+        "transactionTypeLockedTooltip": "Тип транзакції не можна змінити після створення регулярного платежу"
       },
       "progress": {
         "title": "Прогрес розстрочки",
@@ -183,7 +189,11 @@
         "perYear": "{amount}/рік",
         "acrossSubscriptions": "серед {count} активної підписки | серед {count} активних підписок",
         "acrossBills": "серед {count} активного рахунку | серед {count} активних рахунків",
-        "acrossAll": "серед {count} активних підписок і рахунків"
+        "acrossAll": "серед {count} активних підписок і рахунків",
+        "spendingLabel": "Витрати за місяць",
+        "incomeLabel": "Очікуваний дохід",
+        "monthlyIncome": "~{amount}/міс",
+        "acrossIncome": "серед {count} активного платежу з доходом | серед {count} активних платежів з доходом | серед {count} активних платежів з доходом"
       },
       "candidates": {
         "discover": "Знайти",

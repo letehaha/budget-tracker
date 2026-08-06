@@ -211,7 +211,8 @@
       "webhookNotImplemented": "handleWebhook belum diimplementasikan untuk Monobank",
       "unknownCurrencyCode": "Kode mata uang tidak dikenal: {{numericCode}}",
       "geoBlocked": "Monobank memblokir permintaan dari IP server ini. Nonaktifkan VPN atau gunakan alamat IP Ukraina.",
-      "geoBlockedProduction": "Sinkronisasi Monobank untuk sementara tidak tersedia. Kami telah diberitahu dan sedang menanganinya. Hubungi dukungan jika ini mendesak."
+      "geoBlockedProduction": "Sinkronisasi Monobank untuk sementara tidak tersedia. Kami telah diberitahu dan sedang menanganinya. Hubungi dukungan jika ini mendesak.",
+      "accountReconnectRequired": "Akun ini tidak lagi tersedia di Monobank. Silakan hubungkan kembali koneksi Monobank Anda untuk melanjutkan sinkronisasi."
     },
     "enableBanking": {
       "invalidCredentialsFormat": "Format kredensial tidak valid untuk Enable Banking",
@@ -277,7 +278,10 @@
     "textExtractionFailed": "Ekstraksi teks gagal. PDF mungkin merupakan dokumen hasil pindaian. Ekstraksi berbasis gambar belum diimplementasikan.",
     "failedToExtractText": "Gagal mengekstrak teks dari file.",
     "failedToExtractTextPdf": "Gagal mengekstrak teks dari PDF. Mungkin merupakan dokumen hasil pindaian.",
-    "fileContentRequired": "Konten file diperlukan"
+    "fileContentRequired": "Konten file diperlukan",
+    "pdfPasswordRequired": "PDF ini dilindungi kata sandi. Masukkan kata sandi dokumen untuk melanjutkan.",
+    "pdfPasswordInvalid": "Kata sandi yang Anda masukkan salah. Periksa kembali dan coba lagi.",
+    "pdfParseFailed": "Tidak dapat membaca PDF ini. File mungkin rusak atau menggunakan format yang tidak didukung."
   },
   "currencies": {
     "notSupportedForBaseCurrency": "Mengubah mata uang dasar menjadi {{currency}} tidak didukung. Hanya mata uang ini yang didukung: {{supportedCurrencies}}.",
@@ -454,7 +458,8 @@
         "requiresAmountField": "Perekaman otomatis memerlukan expectedAmount dan expectedCurrencyCode.",
         "excludesMatchingField": "Perekaman otomatis dan aturan pencocokan bersifat mutually exclusive."
       }
-    }
+    },
+    "cannotLinkDifferentTransactionType": "Tidak dapat menautkan transaksi dengan jenis yang berbeda dari pembayaran berulang"
   },
   "payees": {
     "aliasNameRequired": "Nama alias wajib diisi",
