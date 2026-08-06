@@ -229,6 +229,9 @@ export default class Subscriptions extends Model {
   @BelongsTo(() => Categories)
   category!: Categories;
 
+  @BelongsTo(() => Payees)
+  payee!: Payees;
+
   @BelongsToMany(() => Tags, {
     through: () => SubscriptionTags,
     foreignKey: 'subscriptionId',
