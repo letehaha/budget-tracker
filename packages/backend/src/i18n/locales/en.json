@@ -217,6 +217,7 @@
       "invalidApiToken": "Invalid Monobank API token",
       "rateLimitExceeded": "Monobank API rate limit exceeded. Please try again in a minute.",
       "accountNotFound": "Account {{accountExternalId}} not found in Monobank",
+      "accountReconnectRequired": "This account is no longer available at Monobank. Please reconnect your Monobank connection to resume syncing.",
       "webhookNotImplemented": "handleWebhook not yet implemented for Monobank",
       "unknownCurrencyCode": "Unknown currency code: {{numericCode}}",
       "geoBlocked": "Monobank is blocking requests from this server's IP. Disable VPN or use a Ukrainian IP address.",
