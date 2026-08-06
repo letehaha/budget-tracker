@@ -122,4 +122,48 @@ describe('computeNextExpectedDate', () => {
       expect(result).toBe('2025-07-01');
     });
   });
+
+  describe('future startDate', () => {
+    it('returns the startDate itself when it is in the future', () => {
+      const result = computeNextExpectedDate({
+        startDate: '2025-06-18T00:00:00Z',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      });
+      expect(result).toBe('2025-06-18');
+    });
+
+    it('returns the startDate itself when it is today', () => {
+      const result = computeNextExpectedDate({
+        startDate: '2025-06-15T00:00:00Z',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      });
+      expect(result).toBe('2025-06-15');
+    });
+
+    it('returns the future startDate regardless of frequency', () => {
+      const result = computeNextExpectedDate({
+        startDate: '2025-06-18T00:00:00Z',
+        frequency: SUBSCRIPTION_FREQUENCIES.weekly,
+      });
+      expect(result).toBe('2025-06-18');
+    });
+
+    it('returns the future startDate when all transaction times are null', () => {
+      const result = computeNextExpectedDate({
+        startDate: '2025-07-01T00:00:00Z',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        transactions: [{ time: undefined }, { time: undefined }],
+      });
+      expect(result).toBe('2025-07-01');
+    });
+
+    it('advances from the transaction date when one exists, ignoring the future startDate', () => {
+      const result = computeNextExpectedDate({
+        startDate: '2025-06-18T00:00:00Z',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        transactions: [{ time: '2025-05-20T00:00:00Z' }],
+      });
+      expect(result).toBe('2025-06-20');
+    });
+  });
 });
