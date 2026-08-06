@@ -69,12 +69,20 @@ export enum CreditDebitIndicator {
  * https://enablebanking.com/docs/api/reference/#transactionstatus
  */
 export enum TransactionStatus {
-  /** Booked/accounted transaction */
+  /** Accounted transaction (ISO20022 Closing Booked) */
   BOOK = 'BOOK',
-  /** Pending transaction */
-  PDNG = 'PDNG',
-  /** Other transaction status */
+  /** Cancelled transaction */
+  CNCL = 'CNCL',
+  /** Account hold */
+  HOLD = 'HOLD',
+  /** Transaction with unknown status or not fitting the other options */
   OTHR = 'OTHR',
+  /** Instant Balance Transaction (ISO20022 Expected) */
+  PDNG = 'PDNG',
+  /** Rejected transaction */
+  RJCT = 'RJCT',
+  /** Scheduled transaction */
+  SCHD = 'SCHD',
 }
 
 /**

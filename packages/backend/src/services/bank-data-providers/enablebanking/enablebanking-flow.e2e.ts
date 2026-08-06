@@ -17,6 +17,7 @@ import {
   getAllMockAccountUIDs,
   getMockedAccountDetails,
 } from '@tests/mocks/enablebanking/data';
+import { AED_PER_USD, EUR_PER_USD } from '@tests/mocks/exchange-rates/data';
 import { HttpResponse, http } from 'msw';
 
 /**
@@ -1734,6 +1735,224 @@ describe('Enable Banking Data Provider E2E', () => {
       // On the same day, the existing record is updated (not a new one created)
       expect(accountBalancesAfter.length).toBeGreaterThanOrEqual(balanceCountBefore);
       expect(accountBalancesAfter.length).toBeGreaterThanOrEqual(1);
+    });
+
+    describe('closing balance of a booking day', () => {
+      // Relative so the fixtures never straddle a month or year boundary.
+      const utcDaysAgo = (days: number) => {
+        const now = new Date();
+        return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days))
+          .toISOString()
+          .slice(0, 10);
+      };
+
+      const BOOKING_DATE = utcDaysAgo(20);
+
+      // getExchangeRate pivots through USD and truncates the rate to 5 decimals.
+      const EUR_TO_AED = Math.trunc((AED_PER_USD / EUR_PER_USD) * 100_000) / 100_000;
+      const CLOSING_BALANCE_EUR = -50;
+
+      // One bank day, settled as four rows the ASPSP displays on four earlier
+      // dates. The ladder runs 5000.00 → 4000.00 → 2000.00 → 2500.00 → -50.00.
+      //
+      // The display dates are chosen so the closing row is neither the first nor
+      // the last of the day in display order, and so ladder order and display
+      // order disagree throughout: picking the earliest row, the latest row, or
+      // whatever the database happens to return first all give a wrong answer.
+      // The +500.00 credit makes an inverted income sign break the chain rather
+      // than pass quietly.
+      const ladderTransactions: FixedTransaction[] = [
+        {
+          entryReference: 'ladder_closing',
+          amount: '2550.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: BOOKING_DATE,
+          transactionDate: utcDaysAgo(22),
+          balanceAfter: '-50.00',
+        },
+        {
+          entryReference: 'ladder_credit',
+          amount: '500.00',
+          currency: 'EUR',
+          isExpense: false,
+          bookingDate: BOOKING_DATE,
+          transactionDate: utcDaysAgo(21),
+          balanceAfter: '2500.00',
+        },
+        {
+          entryReference: 'ladder_middle',
+          amount: '2000.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: BOOKING_DATE,
+          transactionDate: utcDaysAgo(23),
+          balanceAfter: '2000.00',
+        },
+        {
+          entryReference: 'ladder_opening',
+          amount: '1000.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: BOOKING_DATE,
+          transactionDate: utcDaysAgo(24),
+          balanceAfter: '4000.00',
+        },
+      ];
+
+      // `date` is typed as a Date but the endpoint serializes it as 'yyyy-MM-dd'.
+      const bookingDayCents = ({ balances }: { balances: { date: Date | string; amount: number }[] }) => {
+        const row = balances.find((balance) => String(balance.date) === BOOKING_DATE);
+        return row ? Math.round(row.amount * 100) : null;
+      };
+
+      const connectAccountWithLadder = async ({
+        transactions = ladderTransactions,
+      }: { transactions?: FixedTransaction[] } = {}) => {
+        helpers.enablebanking.setFixedTransactions(transactions);
+
+        const connectResult = await helpers.bankDataProviders.connectProvider({
+          providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+          credentials: helpers.enablebanking.mockCredentials(),
+          raw: true,
+        });
+
+        const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+
+        await helpers.makeRequest({
+          method: 'post',
+          url: '/bank-data-providers/enablebanking/oauth-callback',
+          payload: { connectionId: connectResult.connectionId, code: helpers.enablebanking.mockAuthCode, state },
+        });
+
+        const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+          connectionId: connectResult.connectionId,
+          accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+          raw: true,
+        });
+
+        const accountId = syncedAccounts[0]!.id;
+
+        return {
+          accountId,
+          connectionId: connectResult.connectionId,
+          ...(await readLadderState({ accountId })),
+        };
+      };
+
+      const readLadderState = async ({ accountId }: { accountId: string }) => {
+        const balanceHistory = await helpers.getBalanceHistory({
+          from: utcDaysAgo(30),
+          to: utcDaysAgo(10),
+          raw: true,
+        });
+        const storedTransactions = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+
+        return {
+          balances: balanceHistory.filter((balance) => balance.accountId === accountId),
+          storedTransactions,
+        };
+      };
+
+      it('files the whole ladder on the booking date, not on each display date', async () => {
+        const { balances, storedTransactions } = await connectAccountWithLadder();
+
+        expect(storedTransactions).toHaveLength(4);
+        expect(balances.map((balance) => balance.date)).toEqual([BOOKING_DATE]);
+      });
+
+      it('stores the balance of the row that closes the day, converted to base currency', async () => {
+        const { balances } = await connectAccountWithLadder();
+
+        // Pinned to the value, not the sign: every other row of the day converts to
+        // a different figure, and so does an unconverted, inverted or cents-scaled
+        // reading of the right one.
+        expect(bookingDayCents({ balances })).toEqualRefValue(CLOSING_BALANCE_EUR * EUR_TO_AED * 100);
+      });
+
+      it('leaves the day blank when its ladder does not resolve', async () => {
+        // Two rows on the same balance: the day cannot be walked, and a day whose
+        // close is unknown is left for the chart to carry forward rather than
+        // filled with whichever row happened to be written last.
+        const { balances, storedTransactions } = await connectAccountWithLadder({
+          transactions: [
+            { ...ladderTransactions[0]!, entryReference: 'tie_a', balanceAfter: '4000.00', amount: '1000.00' },
+            { ...ladderTransactions[1]!, entryReference: 'tie_b', balanceAfter: '4000.00', amount: '1000.00' },
+          ],
+        });
+
+        // Both rows landed, so a blank day is a refusal to guess rather than a sync
+        // that stored nothing.
+        expect(storedTransactions).toHaveLength(2);
+        expect(bookingDayCents({ balances })).toBeNull();
+      });
+
+      it('leaves the day blank when a booked row carries no balance at all', async () => {
+        // The remaining rows still chain, but a rung is missing, so what looks like
+        // the day's close may be a mid-day row.
+        const { balances, storedTransactions } = await connectAccountWithLadder({
+          transactions: [
+            ...ladderTransactions,
+            {
+              entryReference: 'ladder_unstamped',
+              amount: '30.00',
+              currency: 'EUR',
+              isExpense: true,
+              bookingDate: BOOKING_DATE,
+              transactionDate: utcDaysAgo(22),
+              balanceAfter: null,
+            },
+          ],
+        });
+
+        expect(storedTransactions).toHaveLength(5);
+        expect(bookingDayCents({ balances })).toBeNull();
+      });
+
+      it('ignores a pending row, whose balance is available rather than booked', async () => {
+        const { balances, storedTransactions } = await connectAccountWithLadder({
+          transactions: [
+            ...ladderTransactions,
+            {
+              entryReference: 'ladder_pending',
+              amount: '900.00',
+              currency: 'EUR',
+              isExpense: true,
+              bookingDate: BOOKING_DATE,
+              transactionDate: utcDaysAgo(20),
+              balanceAfter: '9999.00',
+              status: 'PDNG',
+            },
+          ],
+        });
+
+        // The pending row is stored; it just has no say in the booked ladder. Were
+        // it counted, the day would gain a second candidate and resolve to nothing.
+        expect(storedTransactions).toHaveLength(5);
+        expect(bookingDayCents({ balances })).toEqualRefValue(CLOSING_BALANCE_EUR * EUR_TO_AED * 100);
+      });
+
+      it('resolves a booking day whose rows arrive across two syncs', async () => {
+        // The pass reads each day back from storage rather than from the batch, so
+        // a day that was incomplete on the first sync settles on the second.
+        const { accountId, connectionId } = await connectAccountWithLadder({
+          transactions: ladderTransactions.slice(2),
+        });
+
+        helpers.enablebanking.setFixedTransactions(ladderTransactions);
+
+        await helpers.makeRequest({
+          method: 'post',
+          url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+          payload: { accountId },
+          raw: true,
+        });
+
+        const { balances, storedTransactions } = await readLadderState({ accountId });
+
+        expect(storedTransactions).toHaveLength(4);
+        expect(bookingDayCents({ balances })).toEqualRefValue(CLOSING_BALANCE_EUR * EUR_TO_AED * 100);
+      });
     });
   });
 

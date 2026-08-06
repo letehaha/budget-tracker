@@ -1,4 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
+import {
+  ENCRYPTED_STATEMENT_PASSWORD,
+  STATEMENT_PDF_FIXTURES,
+  readStatementPdfFixture,
+} from '@tests/fixtures/statement-parser-fixtures';
 import * as helpers from '@tests/helpers';
 import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import { createFirstEndpoint, errorMessage, getTestUserId, readStoredEndpoints } from '@tests/helpers/user-settings';
@@ -6,6 +11,7 @@ import {
   CUSTOM_ENDPOINT_MODEL,
   getCustomEndpointAuthErrorMock,
   getCustomEndpointCallCountingMock,
+  getCustomEndpointContentMock,
   getCustomEndpointModelNotFoundMock,
   getCustomEndpointOfflineMock,
   getCustomEndpointWebPageMocks,
@@ -110,5 +116,55 @@ describe('Statement parser AI extraction against a dead endpoint', () => {
     const response = await helpers.statementExtract({ payload: { fileBase64: STATEMENT_FILE_BASE64 } });
 
     expect(errorMessage({ response })).toMatch(/no ai provider configured/i);
+  });
+});
+
+/** First line is the metadata row, the rest are transactions, per the extraction prompt. */
+const AI_CSV_REPLY = [
+  'Testbanken,4321,2026-06-01,2026-06-30,SEK',
+  '2026-06-01,Card purchase,LIDL STOCKHOLM,42.10,E,1000.00,95',
+].join('\n');
+
+function encryptedPdfBase64(): string {
+  return readStatementPdfFixture({ file: STATEMENT_PDF_FIXTURES.encrypted }).toString('base64');
+}
+
+describe('Statement parser extraction of an encrypted PDF', () => {
+  useSelfHostWithoutServerAiKeys();
+
+  // Retyping the password fixes this, so it must not answer as a server fault.
+  it('answers 422 and names the password when the PDF is encrypted and none was sent', async () => {
+    await createFirstEndpoint();
+
+    const response = await helpers.statementExtract({ payload: { fileBase64: encryptedPdfBase64() } });
+
+    expect(response.statusCode).toBe(422);
+    expect(errorMessage({ response })).toMatch(/password/i);
+  });
+
+  it('answers 422 for a rejected password', async () => {
+    await createFirstEndpoint();
+
+    const response = await helpers.statementExtract({
+      payload: { fileBase64: encryptedPdfBase64(), password: 'not-the-password' },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(errorMessage({ response })).toMatch(/password/i);
+  });
+
+  it('extracts the statement once the correct password is supplied', async () => {
+    await createFirstEndpoint();
+    global.mswMockServer.use(getCustomEndpointContentMock({ content: AI_CSV_REPLY }));
+
+    const result = await helpers.statementExtract({
+      payload: { fileBase64: encryptedPdfBase64(), password: ENCRYPTED_STATEMENT_PASSWORD },
+      raw: true,
+    });
+
+    expect(result.fileType).toBe('pdf');
+    expect(result.metadata.currencyCode).toBe('SEK');
+    expect(result.transactions).toHaveLength(1);
+    expect(result.transactions[0]).toMatchObject({ amount: 42.1, type: 'expense', merchant: 'LIDL STOCKHOLM' });
   });
 });

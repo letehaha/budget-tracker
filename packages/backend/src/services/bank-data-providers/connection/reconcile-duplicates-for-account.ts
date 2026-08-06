@@ -9,10 +9,14 @@ import { EnableBankingProvider } from '../enablebanking/enablebanking.provider';
 import { bankProviderRegistry } from '../registry';
 
 /**
- * One-time reconciliation: deletes orphan duplicates (rows without
- * entryReference where a sibling row with entryReference exists for the same
- * fingerprint within ±2 days). Only enable_banking is supported today —
- * other providers don't have this hash-drift class of bug.
+ * One-time reconciliation of duplicates the live matcher can no longer catch.
+ * The provider first pairs each booked row with a leftover pending copy (±5 days,
+ * booked at or after pending, IBAN-gated, user edits migrated via planEditMerge),
+ * then runs the stricter pass that deletes rows without entryReference when a
+ * sibling carrying one exists for the same fingerprint within ±2 days. Returns
+ * { mergedCount, skippedCount, consideredPairs, unresolvedCount }. Only
+ * enable_banking is supported today — other providers don't have this hash-drift
+ * class of bug.
  */
 export const reconcileDuplicatesForAccount = withTransaction(
   async ({ connectionId, userId, accountId }: { connectionId: string; userId: number; accountId: string }) => {

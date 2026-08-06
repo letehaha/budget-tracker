@@ -1,5 +1,11 @@
+import type { StatementFileType, StatementTextExtractionFailure } from '@bt/shared/types';
 import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import {
+  ENCRYPTED_STATEMENT_PASSWORD,
+  STATEMENT_PDF_FIXTURES,
+  readStatementPdfFixture,
+} from '@tests/fixtures/statement-parser-fixtures';
 import * as helpers from '@tests/helpers';
 import { createFirstEndpoint, getTestUserId, seedApiKey, setAiFeatureConfig } from '@tests/helpers/user-settings';
 import { CUSTOM_ENDPOINT_MODEL } from '@tests/mocks/openai-compatible/mock-api';
@@ -26,6 +32,28 @@ const STATEMENT_CSV = [
 
 function statementBase64(): string {
   return Buffer.from(STATEMENT_CSV, 'utf-8').toString('base64');
+}
+
+function pdfFixtureBase64({ file }: { file: string }): string {
+  return readStatementPdfFixture({ file }).toString('base64');
+}
+
+/** Shape the endpoint answers 200 with when no text could be read from the file. */
+interface EstimateFailureResponse {
+  success: false;
+  textExtraction: StatementTextExtractionFailure;
+  fileType: StatementFileType;
+  suggestion: string;
+}
+
+async function estimateFailure({ file, password }: { file: string; password?: string }) {
+  const response = await helpers.statementEstimateCost({
+    payload: { fileBase64: pdfFixtureBase64({ file }), password },
+  });
+
+  expect(response.statusCode).toBe(200);
+
+  return response.body.response as unknown as EstimateFailureResponse;
 }
 
 describe('Statement parser cost estimation', () => {
@@ -111,5 +139,53 @@ describe('Statement parser cost estimation', () => {
     expect(estimate.modelId).toBe(FREE_CATALOG_MODEL_ID);
     expect(estimate.estimatedCostUsd).toBe(0);
     expect(estimate.estimatedCostUsd).not.toBeNull();
+  });
+
+  // An encrypted PDF and a scanned one both yield zero text, and the fix for one
+  // (type the password) is useless for the other, so the codes must stay distinct.
+  describe('PDFs no text can be read from', () => {
+    it('asks for a password when the PDF is encrypted', async () => {
+      const failure = await estimateFailure({ file: STATEMENT_PDF_FIXTURES.encrypted });
+
+      expect(failure.success).toBe(false);
+      expect(failure.textExtraction.success).toBe(false);
+      expect(failure.textExtraction.errorCode).toBe('PASSWORD_REQUIRED');
+      expect(failure.fileType).toBe('pdf');
+    });
+
+    it('reports a rejected password separately from a missing one', async () => {
+      const failure = await estimateFailure({
+        file: STATEMENT_PDF_FIXTURES.encrypted,
+        password: 'not-the-password',
+      });
+
+      expect(failure.success).toBe(false);
+      expect(failure.textExtraction.errorCode).toBe('PASSWORD_INVALID');
+    });
+
+    it('estimates normally once the correct password is supplied', async () => {
+      const userId = await getTestUserId();
+      await seedApiKey({ userId, provider: AI_PROVIDER.google });
+
+      const estimate = await helpers.statementEstimateCost({
+        payload: {
+          fileBase64: pdfFixtureBase64({ file: STATEMENT_PDF_FIXTURES.encrypted }),
+          password: ENCRYPTED_STATEMENT_PASSWORD,
+        },
+        raw: true,
+      });
+
+      expect(estimate.textExtraction.success).toBe(true);
+      expect(estimate.textExtraction.characterCount).toBeGreaterThan(0);
+      expect(estimate.modelId).toBe(CATALOG_MODEL_ID);
+      expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
+    });
+
+    it('reports a PDF without a text layer as empty, not as protected', async () => {
+      const failure = await estimateFailure({ file: STATEMENT_PDF_FIXTURES.noTextLayer });
+
+      expect(failure.success).toBe(false);
+      expect(failure.textExtraction.errorCode).toBe('NO_TEXT_CONTENT');
+    });
   });
 });

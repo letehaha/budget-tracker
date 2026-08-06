@@ -258,7 +258,7 @@ export function statementEstimateCost<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  payload: { fileBase64: string };
+  payload: { fileBase64: string; password?: string };
   raw?: R;
 }): UtilizeReturnType<() => StatementCostEstimate, R> {
   return makeRequest<StatementCostEstimate, R>({
@@ -278,7 +278,7 @@ export function statementExtract<R extends boolean | undefined = false>({
   payload,
   raw,
 }: {
-  payload: { fileBase64: string };
+  payload: { fileBase64: string; password?: string };
   raw?: R;
 }): UtilizeReturnType<() => StatementExtractionResult, R> {
   return makeRequest<StatementExtractionResult, R>({

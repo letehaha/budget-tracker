@@ -1,5 +1,4 @@
 import {
-  type StatementCostEstimateFailure,
   type StatementDetectDuplicatesResponse,
   type StatementExecuteImportResponse,
   detectStatementDuplicates,
@@ -10,7 +9,13 @@ import {
 import { loadTransactions } from '@/api/transactions';
 import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import type { AccountModel, StatementCostEstimate, StatementExtractionResult } from '@bt/shared/types';
+import type {
+  AccountModel,
+  StatementCostEstimate,
+  StatementCostEstimateFailure,
+  StatementExtractionResult,
+  StatementTextExtractionErrorCode,
+} from '@bt/shared/types';
 import type { TransactionModel } from '@bt/shared/types/db-models';
 import { useQueryClient } from '@tanstack/vue-query';
 import { defineStore } from 'pinia';
@@ -70,11 +75,15 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   // Step 1: File upload
   const uploadedFile = ref<File | null>(null);
   const fileBase64 = ref<string | null>(null);
+  // Password for the current file, kept for both the estimate and the extraction.
+  const documentPassword = ref<string | null>(null);
 
   // Step 2: Cost estimate
   const isEstimating = ref(false);
   const costEstimate = ref<StatementCostEstimate | null>(null);
   const estimateError = ref<string | null>(null);
+  // Lets the upload step ask for a password instead of only showing the message.
+  const estimateErrorCode = ref<StatementTextExtractionErrorCode | null>(null);
 
   // Step 3: Extraction
   const isExtracting = ref(false);
@@ -182,6 +191,12 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   // Actions
   async function setFile({ file }: { file: File }) {
     uploadedFile.value = file;
+    documentPassword.value = null;
+    estimateErrorCode.value = null;
+    estimateError.value = null;
+    costEstimate.value = null;
+    extractionResult.value = null;
+    extractionError.value = null;
 
     // Read file as base64
     return new Promise<void>((resolve) => {
@@ -196,19 +211,28 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     });
   }
 
+  function setDocumentPassword({ password }: { password: string | null }) {
+    documentPassword.value = password;
+  }
+
   async function estimateCost() {
     if (!fileBase64.value) return;
 
     isEstimating.value = true;
     estimateError.value = null;
+    estimateErrorCode.value = null;
     costEstimate.value = null;
 
     try {
-      const result = await estimateStatementCost({ fileBase64: fileBase64.value });
+      const result = await estimateStatementCost({
+        fileBase64: fileBase64.value,
+        password: documentPassword.value ?? undefined,
+      });
 
       if ('success' in result && (result as StatementCostEstimateFailure).success === false) {
         const failure = result as StatementCostEstimateFailure;
         estimateError.value = failure.error?.message || failure.suggestion || 'Failed to analyze file';
+        estimateErrorCode.value = failure.textExtraction.success ? null : (failure.textExtraction.errorCode ?? null);
       } else {
         costEstimate.value = result as StatementCostEstimate;
       }
@@ -227,7 +251,10 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     extractionResult.value = null;
 
     try {
-      const result = await extractStatementTransactions({ fileBase64: fileBase64.value });
+      const result = await extractStatementTransactions({
+        fileBase64: fileBase64.value,
+        password: documentPassword.value ?? undefined,
+      });
       extractionResult.value = result;
 
       trackAnalyticsEvent({
@@ -385,9 +412,11 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     resetSteps();
     uploadedFile.value = null;
     fileBase64.value = null;
+    documentPassword.value = null;
     isEstimating.value = false;
     costEstimate.value = null;
     estimateError.value = null;
+    estimateErrorCode.value = null;
     isExtracting.value = false;
     extractionResult.value = null;
     extractionError.value = null;
@@ -415,6 +444,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     isEstimating,
     costEstimate,
     estimateError,
+    estimateErrorCode,
     isExtracting,
     extractionResult,
     extractionError,
@@ -446,6 +476,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
     // Actions
     setFile,
+    setDocumentPassword,
     estimateCost,
     extract,
     selectAccount,

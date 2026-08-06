@@ -49,6 +49,8 @@ export async function extractTransactionsWithAI({
   });
 
   if (!aiClient) {
+    logger.info('[Statement Parser] AI extraction returned failure', { code: 'NO_AI_CONFIGURED', userId });
+
     return {
       success: false,
       error: {
@@ -82,6 +84,14 @@ export async function extractTransactionsWithAI({
     // transactions that never arrived would look exactly like transactions the
     // statement never had -- a wrong balance instead of an error.
     if (hitOutputCeiling({ finishReason, usage })) {
+      logger.info('[Statement Parser] AI extraction returned failure', {
+        code: 'OUTPUT_TRUNCATED',
+        userId,
+        outputTokens: usage?.outputTokens ?? 0,
+        maxOutputTokens: AI_MAX_OUTPUT_TOKENS,
+        finishReason,
+      });
+
       return {
         success: false,
         error: {
@@ -96,6 +106,13 @@ export async function extractTransactionsWithAI({
     const parsed = parseAIResponse({ response: responseText });
 
     if (!parsed) {
+      logger.info('[Statement Parser] AI extraction returned failure', {
+        code: 'EXTRACTION_FAILED',
+        userId,
+        reason: 'unparseable-response',
+        responseLength: responseText.length,
+      });
+
       return {
         success: false,
         error: {
@@ -108,6 +125,13 @@ export async function extractTransactionsWithAI({
 
     if (parsed.transactions.length === 0) {
       if (parsed.droppedRowCount > 0) {
+        logger.info('[Statement Parser] AI extraction returned failure', {
+          code: 'EXTRACTION_FAILED',
+          userId,
+          reason: 'all-rows-dropped',
+          droppedRowCount: parsed.droppedRowCount,
+        });
+
         return {
           success: false,
           error: {
@@ -117,6 +141,14 @@ export async function extractTransactionsWithAI({
           },
         };
       }
+
+      logger.info('[Statement Parser] AI extraction returned failure', {
+        code: 'NO_TRANSACTIONS_FOUND',
+        userId,
+        textLength: text.length,
+        pageCount,
+        fileType,
+      });
 
       return {
         success: false,

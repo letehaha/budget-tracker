@@ -37,7 +37,7 @@ const copyToClipboard = async ({ value }: { value: string }) => {
     "
     @click="copyToClipboard({ value })"
   >
-    <span class="truncate font-mono text-sm">
+    <span class="truncate font-mono text-sm" :title="value">
       {{ value }}
     </span>
     <CheckIcon v-if="isCopied" class="text-success-text size-4" />

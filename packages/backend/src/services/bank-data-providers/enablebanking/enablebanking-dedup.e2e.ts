@@ -11,7 +11,7 @@ import { FixedTransaction, MOCK_IDENTIFICATION_HASH_1 } from '@tests/mocks/enabl
  * Background: Enable Banking re-sends historical transactions on every sync.
  * Hash-based duplicate detection breaks when fields used in the hash mutate
  * across syncs (entry_reference appearing later, transaction_date being added,
- * etc.). These tests pin down the contract for three improvements:
+ * etc.). These tests pin down the contract for four improvements:
  *
  *  1. Lookup by entry_reference: when a tx initially has no entry_reference
  *     and the bank populates it later, the existing row is matched (not duped)
@@ -23,6 +23,10 @@ import { FixedTransaction, MOCK_IDENTIFICATION_HASH_1 } from '@tests/mocks/enabl
  *
  *  4. Reconciliation: an explicit endpoint cleans up duplicate pairs that
  *     already exist in the DB from before #1 was deployed.
+ *
+ *  5. Pending upgrade: a card purchase first arrives as PDNG and is re-issued
+ *     as BOOK with a fresh entry_reference and different text, so the stored
+ *     pending row is upgraded in place instead of gaining a booked twin.
  */
 describe('Enable Banking dedup improvements (E2E)', () => {
   beforeEach(() => {
@@ -65,6 +69,27 @@ describe('Enable Banking dedup improvements (E2E)', () => {
     };
   }
 
+  function listTransactions({ accountId }: { accountId: RecordId }) {
+    return helpers.getTransactions({ accountIds: [accountId], raw: true });
+  }
+
+  /** externalData isn't exposed via the API — read it directly from the DB. */
+  async function readExternalData({ id }: { id: RecordId }) {
+    const row = await Transactions.findByPk(id);
+    return (row!.externalData ?? {}) as {
+      entryReference?: string | null;
+      rawTransaction?: { status?: string };
+    };
+  }
+
+  /** Reconcile gates on category equality, so several tests need a second category. */
+  async function findCategoryOtherThan({ categoryId }: { categoryId: RecordId }): Promise<RecordId> {
+    const categories = (await helpers.getCategoriesList()) as { id: RecordId }[];
+    const other = categories.find((c) => c.id !== categoryId);
+    if (!other) throw new Error('Expected the test user to have more than one category');
+    return other.id;
+  }
+
   // ==========================================================================
   // #1 — Lookup by entry_reference when it appears in a later sync
   // ==========================================================================
@@ -84,27 +109,21 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       helpers.enablebanking.setFixedTransactions([{ ...sharedAttributes }]);
       const { connectionId, accountId } = await setupConnectionWithAccount();
 
-      const txAfterFirstSync = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const txAfterFirstSync = await listTransactions({ accountId });
       expect(txAfterFirstSync.length).toBe(1);
       const initialTx = txAfterFirstSync[0]!;
-      // externalData isn't exposed via the API — read it directly from the DB.
-      const initialTxRow = await Transactions.findByPk(initialTx.id, { raw: true });
-      expect((initialTxRow!.externalData as { entryReference?: string } | null)?.entryReference ?? null).toBeNull();
+      expect((await readExternalData({ id: initialTx.id })).entryReference ?? null).toBeNull();
       const initialOriginalId = initialTx.originalId;
 
       // Sync 2: same logical tx, now WITH entry_reference (uses canonical hash)
       helpers.enablebanking.setFixedTransactions([{ ...sharedAttributes, entryReference: 'ref_appeared_later_001' }]);
       await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
 
-      const txAfterSecondSync = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const txAfterSecondSync = await listTransactions({ accountId });
       expect(txAfterSecondSync.length).toBe(1);
       // Same DB row — not a duplicate
       expect(txAfterSecondSync[0]!.id).toBe(initialTx.id);
-      // entryReference is now persisted — externalData isn't exposed via the API, read from the DB.
-      const secondSyncRow = await Transactions.findByPk(txAfterSecondSync[0]!.id, { raw: true });
-      expect((secondSyncRow!.externalData as { entryReference?: string } | null)?.entryReference).toBe(
-        'ref_appeared_later_001',
-      );
+      expect((await readExternalData({ id: txAfterSecondSync[0]!.id })).entryReference).toBe('ref_appeared_later_001');
       // originalId is re-anchored to canonical entry_reference hash
       expect(txAfterSecondSync[0]!.originalId).not.toBe(initialOriginalId);
     });
@@ -135,7 +154,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
 
       for (let i = 0; i < 4; i++) {
         await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
-        const txs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+        const txs = await listTransactions({ accountId });
         expect(txs.length).toBe(1);
       }
     });
@@ -162,7 +181,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       ]);
       const { accountId } = await setupConnectionWithAccount();
 
-      const txs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const txs = await listTransactions({ accountId });
       expect(txs.length).toBe(2);
     });
   });
@@ -184,7 +203,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         },
       ]);
       const { connectionId, accountId } = await setupConnectionWithAccount();
-      const txAfterFirstSync = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const txAfterFirstSync = await listTransactions({ accountId });
       expect(txAfterFirstSync.length).toBe(1);
 
       // Sync 2: transaction_date now also populated (a different date ~1 day earlier).
@@ -203,7 +222,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       ]);
       await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
 
-      const txAfterSecondSync = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const txAfterSecondSync = await listTransactions({ accountId });
       expect(txAfterSecondSync.length).toBe(1);
     });
 
@@ -218,7 +237,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         },
       ]);
       const { connectionId, accountId } = await setupConnectionWithAccount();
-      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(1);
+      expect((await listTransactions({ accountId })).length).toBe(1);
 
       // A genuinely different transaction with the same amount/counterparty
       // but more than two weeks away — must NOT be matched by the fuzzy fallback.
@@ -240,7 +259,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       ]);
       await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
 
-      const txs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const txs = await listTransactions({ accountId });
       expect(txs.length).toBe(2);
     });
 
@@ -275,7 +294,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       ]);
       await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
 
-      const txs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const txs = await listTransactions({ accountId });
       expect(txs.length).toBe(2);
     });
   });
@@ -285,58 +304,38 @@ describe('Enable Banking dedup improvements (E2E)', () => {
   // ==========================================================================
   describe('#4 reconciliation of existing duplicates', () => {
     /**
-     * Helper: insert an orphan that mimics a pre-#1 sync row — a transaction
-     * created via POST /transactions then patched directly on the model so its
-     * `externalData` carries the counterparty IBAN that a real sync would have
-     * stored. The reconcile path's IBAN gate matches on `creditorAccount`
-     * (expense) / `debtorAccount` (income), so orphans without one are skipped
-     * by design.
-     *
-     * Defaults `categoryId` to whatever an existing tx on the same account
-     * already has — pre-#1 orphans came from the same sync path as the
-     * canonical and shared its default category. Tests that want a divergent
-     * category override this explicitly.
+     * Fabricates the kind of duplicate reconcile exists to clean up: a plain
+     * expense created via the API, then patched on the model because the API
+     * can't set the counterparty IBAN that reconcile's gate reads. Its category
+     * mirrors the synced row so reconcile sees an unedited duplicate.
      */
     async function insertManualOrphan({
       accountId,
       amount,
       time,
-      isExpense = true,
       counterpartyIban,
-      categoryId,
     }: {
       accountId: RecordId;
       amount: number;
       time: string;
-      isExpense?: boolean;
       counterpartyIban?: string;
-      categoryId?: RecordId;
     }) {
-      let resolvedCategoryId = categoryId;
-      if (resolvedCategoryId === undefined) {
-        const existing = await helpers.getTransactions({ accountIds: [accountId], raw: true });
-        if (existing.length > 0) {
-          resolvedCategoryId = existing[0]!.categoryId;
-        } else {
-          const userCategory = (await helpers.getCategoriesList()) as { id: RecordId }[];
-          resolvedCategoryId = userCategory[0]!.id;
-        }
-      }
+      const categoryId = (await listTransactions({ accountId }))[0]!.categoryId;
+
       const [tx] = await helpers.createTransaction({
         payload: {
           amount,
           accountId,
           time,
-          categoryId: resolvedCategoryId,
-          transactionType: isExpense ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
+          categoryId,
+          transactionType: TRANSACTION_TYPES.expense,
           paymentType: PAYMENT_TYPES.bankTransfer,
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         },
         raw: true,
       });
       if (counterpartyIban) {
-        const externalData = isExpense ? { creditorAccount: counterpartyIban } : { debtorAccount: counterpartyIban };
-        await Transactions.update({ externalData }, { where: { id: tx.id } });
+        await Transactions.update({ externalData: { creditorAccount: counterpartyIban } }, { where: { id: tx.id } });
       }
       return tx;
     }
@@ -355,38 +354,32 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       ]);
       const { connectionId, accountId } = await setupConnectionWithAccount();
 
-      const txsAfterSync = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const txsAfterSync = await listTransactions({ accountId });
       expect(txsAfterSync.length).toBe(1);
       const canonicalTx = txsAfterSync[0]!;
-      // externalData isn't exposed via the API — read it directly from the DB.
-      const canonicalTxRow = await Transactions.findByPk(canonicalTx.id, { raw: true });
-      expect((canonicalTxRow!.externalData as { entryReference?: string } | null)?.entryReference).toBe(
-        'canonical_ref_001',
-      );
+      expect((await readExternalData({ id: canonicalTx.id })).entryReference).toBe('canonical_ref_001');
 
-      // Step 2: simulate a pre-#1 orphan — same fingerprint, no entry_reference,
-      // but with the same counterparty IBAN that the canonical row stored.
+      // Step 2: an orphan with the same fingerprint and IBAN but no entry_reference.
       const orphan = await insertManualOrphan({
         accountId,
         amount: 50.0,
         time: new Date('2024-09-10').toISOString(),
         counterpartyIban: 'FI9999999999999999',
       });
-      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
+      expect((await listTransactions({ accountId })).length).toBe(2);
 
       // Step 3: trigger reconciliation
-      const reconcileResult = (await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
-        payload: { accountId },
+      const reconcileResult = await helpers.bankDataProviders.reconcileDuplicates({
+        connectionId,
+        accountId,
         raw: true,
-      })) as { mergedCount: number; skippedCount: number };
+      });
 
       expect(reconcileResult.mergedCount).toBe(1);
       expect(reconcileResult.skippedCount).toBe(0);
 
       // Step 4: only the canonical row remains
-      const finalTxs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const finalTxs = await listTransactions({ accountId });
       expect(finalTxs.length).toBe(1);
       expect(finalTxs[0]!.id).toBe(canonicalTx.id);
       expect(finalTxs.find((t: { id: string }) => t.id === orphan.id)).toBeUndefined();
@@ -421,17 +414,16 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         transactionIds: [orphan.id],
       });
 
-      const reconcileResult = (await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
-        payload: { accountId },
+      const reconcileResult = await helpers.bankDataProviders.reconcileDuplicates({
+        connectionId,
+        accountId,
         raw: true,
-      })) as { mergedCount: number; skippedCount: number };
+      });
 
       expect(reconcileResult.mergedCount).toBe(0);
       expect(reconcileResult.skippedCount).toBe(1);
 
-      const finalTxs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const finalTxs = await listTransactions({ accountId });
       expect(finalTxs.length).toBe(2); // orphan was preserved
     });
 
@@ -454,24 +446,14 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         counterpartyIban: 'FI2020202020202020',
       });
 
-      const r1 = (await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
-        payload: { accountId },
-        raw: true,
-      })) as { mergedCount: number; skippedCount: number };
+      const r1 = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
       expect(r1.mergedCount).toBe(1);
 
-      const r2 = (await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
-        payload: { accountId },
-        raw: true,
-      })) as { mergedCount: number; skippedCount: number };
+      const r2 = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
       expect(r2.mergedCount).toBe(0);
       expect(r2.skippedCount).toBe(0);
 
-      const finalTxs = await helpers.getTransactions({ accountIds: [accountId], raw: true });
+      const finalTxs = await listTransactions({ accountId });
       expect(finalTxs.length).toBe(1);
     });
 
@@ -497,18 +479,13 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         time: new Date('2024-12-01').toISOString(),
       });
 
-      const result = (await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
-        payload: { accountId },
-        raw: true,
-      })) as { mergedCount: number; skippedCount: number };
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
 
       expect(result.mergedCount).toBe(0);
       // The IBAN gate short-circuits before the safety check, so the orphan
       // is not even counted as a candidate — it is simply ignored.
       expect(result.skippedCount).toBe(0);
-      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
+      expect((await listTransactions({ accountId })).length).toBe(2);
     });
 
     it('does not merge an orphan whose counterparty IBAN differs from the canonical', async () => {
@@ -531,16 +508,11 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         counterpartyIban: 'FI5050505050505050',
       });
 
-      const result = (await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
-        payload: { accountId },
-        raw: true,
-      })) as { mergedCount: number; skippedCount: number };
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
 
       expect(result.mergedCount).toBe(0);
       expect(result.skippedCount).toBe(0);
-      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
+      expect((await listTransactions({ accountId })).length).toBe(2);
     });
 
     it('does not merge an orphan whose user-edited note diverges from the canonical', async () => {
@@ -568,16 +540,11 @@ describe('Enable Banking dedup improvements (E2E)', () => {
         payload: { note: 'Coffee with Tom' },
       });
 
-      const result = (await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
-        payload: { accountId },
-        raw: true,
-      })) as { mergedCount: number; skippedCount: number };
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
 
       expect(result.mergedCount).toBe(0);
       expect(result.skippedCount).toBe(1);
-      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
+      expect((await listTransactions({ accountId })).length).toBe(2);
     });
 
     it('does not merge an orphan whose user-edited categoryId diverges from the canonical', async () => {
@@ -593,13 +560,8 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       ]);
       const { connectionId, accountId } = await setupConnectionWithAccount();
 
-      const canonicalRows = await helpers.getTransactions({ accountIds: [accountId], raw: true });
-      const canonicalCategoryId = canonicalRows[0]!.categoryId;
-
-      // Pick a user-defined category that is different from the canonical's.
-      const userCategories = (await helpers.getCategoriesList()) as { id: RecordId }[];
-      const otherCategory = userCategories.find((c) => c.id !== canonicalCategoryId);
-      expect(otherCategory).toBeDefined();
+      const canonicalRows = await listTransactions({ accountId });
+      const otherCategoryId = await findCategoryOtherThan({ categoryId: canonicalRows[0]!.categoryId });
 
       const orphan = await insertManualOrphan({
         accountId,
@@ -609,19 +571,860 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       });
       await helpers.updateTransaction({
         id: orphan.id,
-        payload: { categoryId: otherCategory!.id },
+        payload: { categoryId: otherCategoryId },
       });
 
-      const result = (await helpers.makeRequest({
-        method: 'post',
-        url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
-        payload: { accountId },
-        raw: true,
-      })) as { mergedCount: number; skippedCount: number };
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
 
       expect(result.mergedCount).toBe(0);
       expect(result.skippedCount).toBe(1);
-      expect((await helpers.getTransactions({ accountIds: [accountId], raw: true })).length).toBe(2);
+      expect((await listTransactions({ accountId })).length).toBe(2);
+    });
+  });
+
+  // ==========================================================================
+  // #5 — pending (PDNG) rows upgraded in place by their booked re-issue
+  // ==========================================================================
+  describe('#5 pending → booked', () => {
+    /** Card purchases carry no counterparty IBAN, so the pending tier is their only match path. */
+    const CARD_PENDING = { currency: 'EUR', isExpense: true, counterpartyIban: null, status: 'PDNG' } as const;
+    const CARD_BOOKED = { currency: 'EUR', isExpense: true, counterpartyIban: null, status: 'BOOK' } as const;
+
+    /**
+     * Fabricates a pending row sitting next to its already-booked twin. Live sync
+     * prevents that shape, so it has to be built by hand — and it is exactly the
+     * pollution reconcile exists to clean up. The API doesn't expose externalData,
+     * so the PDNG payload is written straight onto the model after creating the row.
+     */
+    async function insertPendingOrphan({
+      accountId,
+      amount,
+      time,
+      categoryId,
+      remittanceInformation,
+      note,
+    }: {
+      accountId: RecordId;
+      amount: number;
+      time: string;
+      categoryId: RecordId;
+      remittanceInformation: string[];
+      note?: string;
+    }) {
+      const [tx] = await helpers.createTransaction({
+        payload: {
+          amount,
+          accountId,
+          time,
+          categoryId,
+          note: note ?? remittanceInformation.join(' '),
+          transactionType: TRANSACTION_TYPES.expense,
+          paymentType: PAYMENT_TYPES.bankTransfer,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        },
+        raw: true,
+      });
+      await Transactions.update(
+        {
+          externalData: {
+            isExpense: true,
+            rawTransaction: { status: 'PDNG', remittance_information: remittanceInformation },
+          },
+        },
+        { where: { id: tx.id } },
+      );
+      return tx;
+    }
+
+    it('upgrades the stored pending row in place when the bank re-issues it as booked', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '18.40',
+          transactionDate: '2025-01-10',
+          remittanceInformation: ['CARD PURCHASE PENDING'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const afterPendingSync = await listTransactions({ accountId });
+      expect(afterPendingSync.length).toBe(1);
+      const pendingTx = afterPendingSync[0]!;
+      expect((await readExternalData({ id: pendingTx.id })).rawTransaction?.status).toBe('PDNG');
+
+      // The user categorizes and annotates the row days before the bank books it.
+      const userCategoryId = await findCategoryOtherThan({ categoryId: pendingTx.categoryId });
+      await helpers.updateTransaction({
+        id: pendingTx.id,
+        payload: { note: 'Lunch with Ann', categoryId: userCategoryId },
+      });
+
+      // Booked re-issue: fresh entry_reference, different text, and no
+      // transaction_date so the date jumps to booking_date three days later.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '18.40',
+          bookingDate: '2025-01-13',
+          remittanceInformation: ['CARD PURCHASE COFFEE HOUSE'],
+          entryReference: 'booked_ref_001',
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const afterBookedSync = await listTransactions({ accountId });
+      expect(afterBookedSync.length).toBe(1);
+      const upgraded = afterBookedSync[0]!;
+      expect(upgraded.id).toBe(pendingTx.id);
+      expect(upgraded.note).toBe('Lunch with Ann');
+      expect(upgraded.categoryId).toBe(userCategoryId);
+      expect(upgraded.originalId).not.toBe(pendingTx.originalId);
+      // The pending row sat on transaction_date; booking_date appearing must move it.
+      expect(new Date(upgraded.time).toISOString().slice(0, 10)).toBe('2025-01-13');
+      expect(new Date(upgraded.time).getTime()).not.toBe(new Date(pendingTx.time).getTime());
+
+      const externalData = await readExternalData({ id: upgraded.id });
+      expect(externalData.rawTransaction?.status).toBe('BOOK');
+      expect(externalData.entryReference).toBe('booked_ref_001');
+    });
+
+    it('pairs a booked re-issue with its nearest pending row, not the first candidate', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        { ...CARD_PENDING, amount: '25.00', transactionDate: '2025-02-03', remittanceInformation: ['PENDING EARLY'] },
+        { ...CARD_PENDING, amount: '25.00', transactionDate: '2025-02-05', remittanceInformation: ['PENDING LATE'] },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const pendingRows = await listTransactions({ accountId });
+      expect(pendingRows.length).toBe(2);
+      const pendingEarly = pendingRows.find((t) => t.note === 'PENDING EARLY')!;
+      const pendingLate = pendingRows.find((t) => t.note === 'PENDING LATE')!;
+      expect(pendingEarly).toBeDefined();
+      expect(pendingLate).toBeDefined();
+
+      // A single booked re-issue, one day from the later pending row and three
+      // from the earlier one. Taking the first candidate would pick the wrong row.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '25.00',
+          bookingDate: '2025-02-06',
+          entryReference: 'booked_late',
+          remittanceInformation: ['BOOKED LATE'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const afterFirstBooked = await listTransactions({ accountId });
+      expect(afterFirstBooked.length).toBe(2);
+      const upgradedLate = await readExternalData({ id: pendingLate.id });
+      expect(upgradedLate.rawTransaction?.status).toBe('BOOK');
+      expect(upgradedLate.entryReference).toBe('booked_late');
+      expect(afterFirstBooked.find((t) => t.id === pendingLate.id)!.note).toBe('BOOKED LATE');
+
+      const untouchedEarly = await readExternalData({ id: pendingEarly.id });
+      expect(untouchedEarly.rawTransaction?.status).toBe('PDNG');
+      expect(untouchedEarly.entryReference ?? null).toBeNull();
+
+      // The earlier pending row is only consumed once its own booked copy lands.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '25.00',
+          bookingDate: '2025-02-03',
+          entryReference: 'booked_early',
+          remittanceInformation: ['BOOKED EARLY'],
+        },
+        {
+          ...CARD_BOOKED,
+          amount: '25.00',
+          bookingDate: '2025-02-06',
+          entryReference: 'booked_late',
+          remittanceInformation: ['BOOKED LATE'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(2);
+      const upgradedEarly = await readExternalData({ id: pendingEarly.id });
+      expect(upgradedEarly.rawTransaction?.status).toBe('BOOK');
+      expect(upgradedEarly.entryReference).toBe('booked_early');
+    });
+
+    it('collapses a pending and a booked copy that arrive in the same batch', async () => {
+      // The booked copy is listed first: the sync has to process the pending one
+      // ahead of it, or the pending copy lands as a second row.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '14.20',
+          bookingDate: '2025-09-02',
+          remittanceInformation: ['SAME BATCH BOOKED'],
+          entryReference: 'same_batch_ref',
+        },
+        {
+          ...CARD_PENDING,
+          amount: '14.20',
+          transactionDate: '2025-09-02',
+          remittanceInformation: ['SAME BATCH PENDING'],
+        },
+      ]);
+      const { accountId } = await setupConnectionWithAccount();
+
+      const rows = await listTransactions({ accountId });
+      expect(rows.length).toBe(1);
+      expect(rows[0]!.note).toBe('SAME BATCH BOOKED');
+      const externalData = await readExternalData({ id: rows[0]!.id });
+      expect(externalData.rawTransaction?.status).toBe('BOOK');
+      expect(externalData.entryReference).toBe('same_batch_ref');
+    });
+
+    it('ignores a pending payload the bank keeps re-sending after the row was booked', async () => {
+      const pendingPayload: FixedTransaction = {
+        ...CARD_PENDING,
+        amount: '21.00',
+        transactionDate: '2025-10-05',
+        remittanceInformation: ['RESENT PENDING'],
+      };
+      helpers.enablebanking.setFixedTransactions([pendingPayload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const afterPendingSync = await listTransactions({ accountId });
+      expect(afterPendingSync.length).toBe(1);
+      const pendingTx = afterPendingSync[0]!;
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '21.00',
+          bookingDate: '2025-10-06',
+          remittanceInformation: ['RESENT BOOKED'],
+          entryReference: 'resent_booked_ref',
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+      expect((await listTransactions({ accountId })).length).toBe(1);
+
+      // Banks keep serving the pending copy for days after booking it. It must
+      // resolve back to the upgraded row instead of re-creating the pending one.
+      helpers.enablebanking.setFixedTransactions([pendingPayload]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(pendingTx.id);
+      expect(finalRows[0]!.note).toBe('RESENT BOOKED');
+      const externalData = await readExternalData({ id: pendingTx.id });
+      expect(externalData.rawTransaction?.status).toBe('BOOK');
+      expect(externalData.entryReference).toBe('resent_booked_ref');
+    });
+
+    it('does not let a booked transfer carrying a counterparty IBAN consume an IBAN-less pending row', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '31.00',
+          transactionDate: '2025-03-03',
+          remittanceInformation: ['CARD PURCHASE PENDING'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const afterPendingSync = await listTransactions({ accountId });
+      expect(afterPendingSync.length).toBe(1);
+      const pendingTx = afterPendingSync[0]!;
+
+      // A SEPA transfer that only coincides in amount, currency and direction.
+      // Its counterparty IBAN is evidence it is not the card purchase.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '31.00',
+          currency: 'EUR',
+          isExpense: true,
+          status: 'BOOK',
+          bookingDate: '2025-03-04',
+          counterpartyIban: 'FI1212121212121212',
+          entryReference: 'sepa_booked_ref',
+          remittanceInformation: ['SEPA TRANSFER BOOKED'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(2);
+      const stillPending = finalRows.find((t) => t.id === pendingTx.id)!;
+      expect(stillPending).toBeDefined();
+      expect(stillPending.originalId).toBe(pendingTx.originalId);
+      expect((await readExternalData({ id: pendingTx.id })).rawTransaction?.status).toBe('PDNG');
+    });
+
+    it('reconcile keeps an IBAN-less pending row next to a booked row that carries an IBAN', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '37.00',
+          currency: 'EUR',
+          isExpense: true,
+          status: 'BOOK',
+          bookingDate: '2025-03-21',
+          counterpartyIban: 'FI1313131313131313',
+          entryReference: 'sepa_reconcile_ref',
+          remittanceInformation: ['SEPA TRANSFER BOOKED'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const canonicalRows = await listTransactions({ accountId });
+      expect(canonicalRows.length).toBe(1);
+      const canonical = canonicalRows[0]!;
+
+      const orphan = await insertPendingOrphan({
+        accountId,
+        amount: 37,
+        time: new Date('2025-03-20').toISOString(),
+        categoryId: canonical.categoryId,
+        remittanceInformation: ['CARD PURCHASE PENDING'],
+      });
+
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
+      expect(result.mergedCount).toBe(0);
+
+      const finalTxs = await listTransactions({ accountId });
+      expect(finalTxs.length).toBe(2);
+      expect(finalTxs.find((t) => t.id === canonical.id)).toBeDefined();
+      expect(finalTxs.find((t) => t.id === orphan.id)).toBeDefined();
+    });
+
+    it('leaves the upgraded row untouched when the same booked payload is synced again', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '33.00',
+          transactionDate: '2025-03-11',
+          remittanceInformation: ['PENDING IDEMPOTENT'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '33.00',
+          bookingDate: '2025-03-12',
+          remittanceInformation: ['BOOKED IDEMPOTENT'],
+          entryReference: 'idempotent_booked_ref',
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const afterFirstBookedSync = await listTransactions({ accountId });
+      expect(afterFirstBookedSync.length).toBe(1);
+      const upgraded = afterFirstBookedSync[0]!;
+      // The row still carried the sync-generated pending text, so the upgrade
+      // replaces it with the booked one.
+      expect(upgraded.note).toBe('BOOKED IDEMPOTENT');
+
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const afterSecondBookedSync = await listTransactions({ accountId });
+      expect(afterSecondBookedSync.length).toBe(1);
+      expect(afterSecondBookedSync[0]!.id).toBe(upgraded.id);
+      expect(afterSecondBookedSync[0]!.originalId).toBe(upgraded.originalId);
+      expect(afterSecondBookedSync[0]!.note).toBe('BOOKED IDEMPOTENT');
+      expect((await readExternalData({ id: upgraded.id })).entryReference).toBe('idempotent_booked_ref');
+    });
+
+    it('keeps both rows when the amount changes between pending and booked', async () => {
+      // Known limitation: exact-amount equality is a match precondition, so tips,
+      // fuel pre-authorisations and FX settlements still leave a duplicate behind.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '50.00',
+          transactionDate: '2025-04-01',
+          remittanceInformation: ['RESTAURANT PENDING'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      expect((await listTransactions({ accountId })).length).toBe(1);
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '55.00',
+          bookingDate: '2025-04-02',
+          remittanceInformation: ['RESTAURANT BOOKED'],
+          entryReference: 'tip_added_ref',
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect((await listTransactions({ accountId })).length).toBe(2);
+    });
+
+    it('reconcile collapses an existing pending/booked pair and moves the pending row edits onto the booked one', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '40.00',
+          bookingDate: '2025-05-10',
+          remittanceInformation: ['CARD PURCHASE BOOKED'],
+          entryReference: 'reconcile_booked_ref',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const canonicalRows = await listTransactions({ accountId });
+      expect(canonicalRows.length).toBe(1);
+      const canonical = canonicalRows[0]!;
+
+      const userCategoryId = await findCategoryOtherThan({ categoryId: canonical.categoryId });
+
+      const balanceWithCanonicalOnly = Number((await helpers.getAccount({ id: accountId, raw: true })).currentBalance);
+
+      await insertPendingOrphan({
+        accountId,
+        amount: 40,
+        time: new Date('2025-05-08').toISOString(),
+        categoryId: userCategoryId,
+        remittanceInformation: ['CARD PURCHASE PENDING'],
+        note: 'Dinner with Ann',
+      });
+      expect((await listTransactions({ accountId })).length).toBe(2);
+      expect(Number((await helpers.getAccount({ id: accountId, raw: true })).currentBalance)).toBe(
+        balanceWithCanonicalOnly - 40,
+      );
+
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
+      expect(result.mergedCount).toBe(1);
+      expect(result.skippedCount).toBe(0);
+
+      const finalTxs = await listTransactions({ accountId });
+      expect(finalTxs.length).toBe(1);
+      expect(finalTxs[0]!.id).toBe(canonical.id);
+      expect(finalTxs[0]!.note).toBe('Dinner with Ann');
+      expect(finalTxs[0]!.categoryId).toBe(userCategoryId);
+      // Deleting the duplicate must credit its amount back, or the account drifts
+      // by the orphan's amount every time reconcile runs.
+      expect(Number((await helpers.getAccount({ id: accountId, raw: true })).currentBalance)).toBe(
+        balanceWithCanonicalOnly,
+      );
+    });
+
+    it('reconcile does not let a cancelled row act as the survivor for a real pending one', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '55.00',
+          bookingDate: '2025-07-10',
+          remittanceInformation: ['UNRELATED BOOKED'],
+          entryReference: 'cancelled_guard_unrelated',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const categoryId = (await listTransactions({ accountId }))[0]!.categoryId;
+
+      // A cancelled authorisation the bank still returns, reference and all. Live
+      // sync can't produce this shape, so the payload is written onto the row.
+      const [cancelled] = await helpers.createTransaction({
+        payload: {
+          amount: 60,
+          accountId,
+          categoryId,
+          time: new Date('2025-07-20').toISOString(),
+          note: 'CARD PURCHASE',
+          transactionType: TRANSACTION_TYPES.expense,
+          paymentType: PAYMENT_TYPES.bankTransfer,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        },
+        raw: true,
+      });
+      await Transactions.update(
+        {
+          externalData: {
+            isExpense: true,
+            entryReference: 'cancelled_guard_ref',
+            rawTransaction: { status: 'CNCL', remittance_information: ['CARD PURCHASE'] },
+          },
+        },
+        { where: { id: cancelled.id } },
+      );
+
+      // Same amount, same category, same note, two days earlier — every merge gate
+      // passes, so only the status keeps this row alive.
+      const pending = await insertPendingOrphan({
+        accountId,
+        amount: 60,
+        categoryId,
+        time: new Date('2025-07-18').toISOString(),
+        remittanceInformation: ['CARD PURCHASE'],
+      });
+
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
+
+      expect(result.mergedCount).toBe(0);
+      const remainingIds = (await listTransactions({ accountId })).map((tx) => tx.id);
+      expect(remainingIds).toContain(pending.id);
+      expect(remainingIds).toContain(cancelled.id);
+    });
+
+    it('reconcile skips a pending duplicate that carries dependent data', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '45.00',
+          bookingDate: '2025-06-10',
+          remittanceInformation: ['TAGGED PURCHASE BOOKED'],
+          entryReference: 'reconcile_tagged_ref',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const canonicalRows = await listTransactions({ accountId });
+      const canonical = canonicalRows[0]!;
+
+      const orphan = await insertPendingOrphan({
+        accountId,
+        amount: 45,
+        time: new Date('2025-06-09').toISOString(),
+        categoryId: canonical.categoryId,
+        remittanceInformation: ['TAGGED PURCHASE PENDING'],
+      });
+
+      const tag = await helpers.createTag({
+        payload: { name: `pending-protect-${Date.now()}`, color: '#3b82f6' },
+        raw: true,
+      });
+      await helpers.addTransactionsToTag({ tagId: tag.id, transactionIds: [orphan.id] });
+
+      const result = await helpers.bankDataProviders.reconcileDuplicates({ connectionId, accountId, raw: true });
+      expect(result.mergedCount).toBe(0);
+      expect(result.skippedCount).toBe(1);
+
+      const finalTxs = await listTransactions({ accountId });
+      expect(finalTxs.length).toBe(2);
+    });
+
+    it('flips a stored pending row to booked even when the fallback hash is unchanged', async () => {
+      // A pending row that already carries booking_date: the booked re-issue keeps
+      // every hashed field, so tier (2) matches with nothing else to update. Only
+      // the status refresh distinguishes it from a no-op sync.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '27.00',
+          bookingDate: '2025-07-04',
+          remittanceInformation: ['SUPERMARKET'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const afterPendingSync = await listTransactions({ accountId });
+      expect(afterPendingSync.length).toBe(1);
+      const pendingTx = afterPendingSync[0]!;
+      expect((await readExternalData({ id: pendingTx.id })).rawTransaction?.status).toBe('PDNG');
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '27.00',
+          bookingDate: '2025-07-04',
+          remittanceInformation: ['SUPERMARKET'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const afterBookedSync = await listTransactions({ accountId });
+      expect(afterBookedSync.length).toBe(1);
+      expect(afterBookedSync[0]!.id).toBe(pendingTx.id);
+      expect((await readExternalData({ id: pendingTx.id })).rawTransaction?.status).toBe('BOOK');
+
+      // An unrelated purchase of the same amount two days later. It only stays its
+      // own row because the first row left the pending pool.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '27.00',
+          bookingDate: '2025-07-06',
+          remittanceInformation: ['PHARMACY'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect((await listTransactions({ accountId })).length).toBe(2);
+    });
+
+    it('does not upgrade a pending row from an OTHR re-issue', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '19.00',
+          transactionDate: '2025-08-05',
+          remittanceInformation: ['OTHR PENDING'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      expect((await listTransactions({ accountId })).length).toBe(1);
+
+      // OTHR is neither booked nor pending — only BOOK is allowed to consume a
+      // pending row, so this stays a separate transaction.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          status: 'OTHR',
+          amount: '19.00',
+          transactionDate: '2025-08-06',
+          remittanceInformation: ['OTHR REISSUE'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect((await listTransactions({ accountId })).length).toBe(2);
+    });
+  });
+
+  // ==========================================================================
+  // #6 — cancelled / rejected / scheduled payloads, and HOLD as pre-booking
+  // ==========================================================================
+  describe('#6 terminal and future statuses', () => {
+    const CARD = { currency: 'EUR', isExpense: true, counterpartyIban: null } as const;
+
+    /**
+     * `writeBankBalanceWithHistory` re-pins `currentBalance` to the bank's figure at
+     * the end of every sync, so these assertions pin that removing a row leaves the
+     * account on that figure — they cannot observe a per-row cents delta.
+     */
+    function readBalance({ accountId }: { accountId: RecordId }) {
+      return helpers.getAccount({ id: accountId, raw: true }).then((a) => Number(a.currentBalance));
+    }
+
+    it('never creates a ledger row for a cancelled, rejected or scheduled payload', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        { ...CARD, status: 'CNCL', amount: '11.00', bookingDate: '2025-11-01', remittanceInformation: ['CANCELLED'] },
+        { ...CARD, status: 'RJCT', amount: '12.00', bookingDate: '2025-11-02', remittanceInformation: ['REJECTED'] },
+        { ...CARD, status: 'SCHD', amount: '13.00', bookingDate: '2025-11-03', remittanceInformation: ['SCHEDULED'] },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      expect(await listTransactions({ accountId })).toEqual([]);
+
+      // The same batch on a second sync must stay just as inert.
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+      expect(await listTransactions({ accountId })).toEqual([]);
+    });
+
+    it('removes a stored pending row when the bank cancels it', async () => {
+      const payload: FixedTransaction = {
+        ...CARD,
+        status: 'PDNG',
+        amount: '23.00',
+        transactionDate: '2025-11-05',
+        remittanceInformation: ['CANCELLED LATER'],
+      };
+      helpers.enablebanking.setFixedTransactions([payload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const pendingRows = await listTransactions({ accountId });
+      expect(pendingRows.length).toBe(1);
+      const pendingTx = pendingRows[0]!;
+      const balanceWithPending = await readBalance({ accountId });
+
+      helpers.enablebanking.setFixedTransactions([{ ...payload, status: 'CNCL' }]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect(await listTransactions({ accountId })).toEqual([]);
+      expect(await Transactions.findByPk(pendingTx.id)).toBeNull();
+      expect(await readBalance({ accountId })).toBe(balanceWithPending);
+    });
+
+    it('removes a stored pending row when the bank rejects it', async () => {
+      const payload: FixedTransaction = {
+        ...CARD,
+        status: 'PDNG',
+        amount: '24.00',
+        transactionDate: '2025-11-08',
+        remittanceInformation: ['REJECTED LATER'],
+      };
+      helpers.enablebanking.setFixedTransactions([payload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const pendingTx = (await listTransactions({ accountId }))[0]!;
+      const balanceWithPending = await readBalance({ accountId });
+
+      helpers.enablebanking.setFixedTransactions([{ ...payload, status: 'RJCT' }]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect(await Transactions.findByPk(pendingTx.id)).toBeNull();
+      expect(await readBalance({ accountId })).toBe(balanceWithPending);
+    });
+
+    it('keeps a cancelled pending row that carries dependent data', async () => {
+      const payload: FixedTransaction = {
+        ...CARD,
+        status: 'PDNG',
+        amount: '26.00',
+        transactionDate: '2025-11-12',
+        remittanceInformation: ['TAGGED PENDING'],
+      };
+      helpers.enablebanking.setFixedTransactions([payload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const pendingTx = (await listTransactions({ accountId }))[0]!;
+      const tag = await helpers.createTag({
+        payload: { name: `cancel-protect-${Date.now()}`, color: '#3b82f6' },
+        raw: true,
+      });
+      await helpers.addTransactionsToTag({ tagId: tag.id, transactionIds: [pendingTx.id] });
+      const balanceWithPending = await readBalance({ accountId });
+
+      helpers.enablebanking.setFixedTransactions([{ ...payload, status: 'CNCL' }]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(pendingTx.id);
+      // The cancelled payload must not be merged onto the row it failed to remove.
+      expect((await readExternalData({ id: pendingTx.id })).rawTransaction?.status).toBe('PDNG');
+      expect(await readBalance({ accountId })).toBe(balanceWithPending);
+    });
+
+    it('leaves a settled row alone when a cancellation matches it', async () => {
+      const payload: FixedTransaction = {
+        ...CARD,
+        status: 'BOOK',
+        amount: '28.00',
+        bookingDate: '2025-11-15',
+        entryReference: 'booked_then_cancelled',
+        remittanceInformation: ['BOOKED PURCHASE'],
+      };
+      helpers.enablebanking.setFixedTransactions([payload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const bookedTx = (await listTransactions({ accountId }))[0]!;
+
+      helpers.enablebanking.setFixedTransactions([{ ...payload, status: 'CNCL' }]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(bookedTx.id);
+      expect((await readExternalData({ id: bookedTx.id })).rawTransaction?.status).toBe('BOOK');
+    });
+
+    it('upgrades a stored HOLD row in place when it books', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD,
+          status: 'HOLD',
+          amount: '29.00',
+          transactionDate: '2025-12-01',
+          remittanceInformation: ['HOLD AUTHORISATION'],
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const heldRows = await listTransactions({ accountId });
+      expect(heldRows.length).toBe(1);
+      const heldTx = heldRows[0]!;
+      expect((await readExternalData({ id: heldTx.id })).rawTransaction?.status).toBe('HOLD');
+
+      // Fresh reference, different text and a date two days on: only the
+      // pre-booking candidate pool can connect this to the held row.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD,
+          status: 'BOOK',
+          amount: '29.00',
+          bookingDate: '2025-12-03',
+          entryReference: 'hold_booked_ref',
+          remittanceInformation: ['HOLD SETTLED'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(heldTx.id);
+      const externalData = await readExternalData({ id: heldTx.id });
+      expect(externalData.rawTransaction?.status).toBe('BOOK');
+      expect(externalData.entryReference).toBe('hold_booked_ref');
+    });
+
+    it('does not let a re-sent HOLD payload overwrite the booked row it became', async () => {
+      const holdPayload: FixedTransaction = {
+        ...CARD,
+        status: 'HOLD',
+        amount: '32.00',
+        transactionDate: '2025-12-10',
+        remittanceInformation: ['HOLD RESENT'],
+      };
+      helpers.enablebanking.setFixedTransactions([holdPayload]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const heldTx = (await listTransactions({ accountId }))[0]!;
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD,
+          status: 'BOOK',
+          amount: '32.00',
+          bookingDate: '2025-12-11',
+          entryReference: 'hold_resent_ref',
+          remittanceInformation: ['HOLD RESENT BOOKED'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      helpers.enablebanking.setFixedTransactions([holdPayload]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(1);
+      expect(finalRows[0]!.id).toBe(heldTx.id);
+      expect(finalRows[0]!.note).toBe('HOLD RESENT BOOKED');
+      expect((await readExternalData({ id: heldTx.id })).rawTransaction?.status).toBe('BOOK');
+    });
+  });
+
+  // ==========================================================================
+  // #7 — the window the incremental sync asks the bank for
+  // ==========================================================================
+  describe('#7 incremental fetch window', () => {
+    it('never asks the bank for a date_from in the future', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          currency: 'EUR',
+          isExpense: true,
+          amount: '30.00',
+          bookingDate: '2026-01-15',
+          remittanceInformation: ['GROCERIES'],
+          entryReference: 'window_anchor_ref',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const syncedTx = (await listTransactions({ accountId }))[0]!;
+
+      // A planned expense the user entered on their bank account. The anchor is
+      // MAX(time) over every row, so this alone pushes it past today.
+      const future = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
+      await helpers.createTransaction({
+        payload: {
+          amount: 20,
+          accountId,
+          categoryId: syncedTx.categoryId,
+          time: future.toISOString(),
+          note: 'PLANNED RENT',
+          transactionType: TRANSACTION_TYPES.expense,
+          paymentType: PAYMENT_TYPES.bankTransfer,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        },
+        raw: true,
+      });
+
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const requested = helpers.enablebanking.lastTransactionsQuery();
+      const today = new Date().toISOString().split('T')[0]!;
+      expect(requested).not.toBeNull();
+      expect(requested!.dateFrom).toBe(today);
+      expect(requested!.dateFrom! <= requested!.dateTo!).toBe(true);
     });
   });
 });

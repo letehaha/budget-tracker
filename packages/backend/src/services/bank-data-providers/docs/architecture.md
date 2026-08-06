@@ -236,22 +236,42 @@ EnableBankingProvider.syncTransactions()
        ↓
 Set status = SYNCING
        ↓
-Fetch all transactions in one API call
+Fetch all transactions (paginated on continuation_key until the ASPSP
+stops returning one; an initial sync also negotiates the lookback window
+by retrying 1095 → 730 → 365 → 90 days on date-range rejections)
+       ↓
+Sort by date ascending, pre-booking (PDNG/HOLD) before BOOK within the
+same date so a same-batch booked copy finds its pending row already stored
        ↓
 For each transaction:
   • Generate deterministic externalId (SHA256 hash)
-  • Check duplicates by originalId
-  • Create Transaction record
+  • Match against existing rows with the four-tier matcher (see below)
+  • CNCL/RJCT → delete the matched pre-booking row (kept when it has
+    dependent rows); never creates one. SCHD never reaches this loop
+  • Matched, stored booked + incoming pre-booking → no writes (stale re-send)
+  • Matched → re-anchor originalId, merge externalData (pendingHash +
+    merchantName backfill), flip pre-booking → BOOK, re-stamp time when the
+    flip changed it, refresh the note while it is still sync-generated
+  • Unmatched → create Transaction record
        ↓
 Update account balance
        ↓
 Set status = COMPLETED
 ```
 
+**Four-tier match** (`findExistingTransactionForSync`), strongest evidence first:
+
+1. **entry_reference** — the ASPSP promises it is unique and immutable per account
+2. **originalId** — the stored hash; the steady state when the bank returns stable fields. It also matches `externalData.pendingHash`, the hash a row carried during its pending life, so a `PDNG` payload the ASPSP re-sends after booking resolves back onto the booked row instead of creating a duplicate
+3. **IBAN fingerprint** — same amount/currency/type within ±2 days, same counterparty IBAN, and only against rows that carry no stored entry_reference
+4. **Pending upgrade** — a booked payload adopts a stored `PDNG`/`HOLD` row with the same amount/currency/type within ±5 days. The IBAN gate is conditional: when the incoming booked payload carries a counterparty IBAN the candidate must carry the same one (an IBAN-less candidate is rejected), and when it carries none — the card-purchase case — no IBAN filtering happens. The candidate pool also excludes rows with an entry_reference, a `transferId`, or `refundLinked`. The whole tier is skipped when a single pre-sync count says the account holds no pre-booking rows at all; that pre-check re-arms mid-run as soon as this run stores one
+
+Tier 3 runs before tier 4 because IBAN equality is the stronger signal — an incoming transfer must not consume an unrelated IBAN-less card pending.
+
 **Why direct?**
 
 - Enable Banking has generous rate limits
-- Single request returns all data
+- Pagination runs inside one sync call and finishes fast
 - Completes within HTTP timeout
 
 ### LunchFlow: Direct Sync (Post-Fetch Filtering)
@@ -372,9 +392,11 @@ This is the per-account unlink/relink flow (distinct from full provider disconne
        ↓
 4. Transaction sync runs
        ↓
-   Two-tier deduplication prevents duplicates:
+   Two-tier deduplication prevents duplicates (LunchFlow, SimpleFIN, Walutomat):
      Primary: check by originalId (fast path)
      Secondary: check externalData.originalSource.originalId (covers unlink→relink)
+     Enable Banking has no originalSource check — its four-tier matcher
+     re-anchors originalId from entry_reference / IBAN evidence instead
        ↓
    Date-based filtering (all providers):
      Find latest existing transaction date → skip older API transactions
@@ -385,7 +407,7 @@ This is the per-account unlink/relink flow (distinct from full provider disconne
 
 ### Why Two-Tier Dedup?
 
-When an account is unlinked, `originalId` is set to `null` on all transactions. The original value is preserved in `externalData.originalSource.originalId`. On relink + sync:
+When an account is unlinked, `originalId` is set to `null` on all transactions. The original value is preserved in `externalData.originalSource.originalId`. On relink + sync (LunchFlow, SimpleFIN, Walutomat):
 
 1. **Primary dedup** (by `originalId`) won't match — the field is null
 2. **Secondary dedup** checks `externalData.originalSource.originalId` via JSONB query
@@ -462,15 +484,24 @@ transactionType: isExpense ? 'expense' : 'income',
 Each provider generates a unique `externalId` for transactions:
 
 - **Monobank:** Uses API-provided `id`
-- **Enable Banking:** SHA256 hash of transaction data (booking_date, amount, currency, references)
+- **Enable Banking:** when the payload carries an `entry_reference`, SHA256 of `{ accountExternalId, entry_reference }`. Otherwise SHA256 over accountExternalId, amount, currency, credit_debit_indicator, one date (priority `transaction_date` > `value_date` > `booking_date`) and the debtor/creditor IBANs. Remittance text is deliberately not hashed
 - **LunchFlow:** Uses API-provided `id` (pending transactions with null IDs are filtered out)
 
-**Two-tier dedup** (applies to all providers during sync):
+**Two-tier dedup** (LunchFlow, SimpleFIN and Walutomat):
 
 1. **Primary:** Check `originalId` column — fast, covers normal re-sync
 2. **Secondary:** Check `externalData.originalSource.originalId` via JSONB query — covers unlink→relink flow where `originalId` was cleared to null but the value was preserved in `externalData`
 
 If secondary dedup finds a match, it restores `originalId` so future syncs use the fast primary path.
+
+**Enable Banking implements no `originalSource` check.** It relies on its own four-tier matcher instead (entry_reference → originalId hash → IBAN fingerprint → pending upgrade, see Flow 3). It exists because some ASPSPs populate `entry_reference` only on later syncs, shift the date that feeds the hash, and re-issue a `PDNG` card purchase as a `BOOK` row with a fresh reference and different remittance text — each of which would otherwise produce a duplicate.
+
+**Reconciliation of pre-existing duplicates:** `POST /connections/:id/reconcile-duplicates` runs `reconcileDuplicateTransactionsForAccount`, which buckets an account's transactions by (amount, currency, transactionType) and makes two passes:
+
+- **Pass (a)** pairs booked rows with leftover pre-booking rows, nearest-first. The directional window accepts a booked row dated at or after its pending copy, up to 5 days later. The same conditional IBAN gate as tier 4 applies: a booked row with a counterparty IBAN only pairs with a pending row carrying that exact IBAN; a booked row without one is not IBAN-filtered. One booked row adopts at most one pending row. User edits on the pending copy (note, category + its `categorizationMeta` stamp, paymentType, locked payee) migrate onto the survivor; divergent edits on both sides skip the pair, and a skipped pair leaves both rows free to pair with someone else. A moved category always arrives with a manual stamp — synthesized when the pending row only had the legacy null-stamp signal — so the next AI run leaves it alone, and an orphan-only manual stamp moves even when both sides already share the category. The survivor also inherits the pending row's hash as `externalData.pendingHash`, so a re-sent `PDNG` payload resolves through tier 2 instead of recreating the duplicate. Any pending row pass (a) touched — merged or skipped — is excluded from pass (b), as is any booked row that received a merge.
+- **Pass (b)** pairs a row that has an `entry_reference` with one that has none, within ±2 days and sharing a counterparty IBAN. It is stricter than pass (a) — the pairing evidence is circumstantial, so any scalar divergence aborts the merge instead of migrating. It compares against canonicals as pass (a) left them, so an edit pass (a) just migrated can block a later strict merge.
+
+Both passes refuse to delete an orphan that has dependent rows (`transferId`, `refundLinked`, splits, tags, refunds in either direction, budgets, subscriptions, group membership), and both are idempotent. The endpoint returns `{ mergedCount, skippedCount, consideredPairs, unresolvedCount }` — `consideredPairs` counts pass-(a) pairs that survived the IBAN gate and the directional window, and `unresolvedCount` counts pairs and rows that produced neither a merge nor a skip (IBAN drops, direction rejects, already-taken members, orphans with no partner).
 
 ### Enable Banking Reconnection
 
@@ -502,6 +533,7 @@ bank-data-providers/
 │   ├── list-external-accounts.ts # Stage 1: list accounts
 │   ├── connect-selected-accounts.ts # Stage 2: create accounts
 │   ├── sync-transactions-for-account.ts
+│   ├── reconcile-duplicates-for-account.ts
 │   ├── disconnect-provider.ts
 │   └── get-connection-details.ts
 ├── sync/
@@ -519,9 +551,23 @@ bank-data-providers/
 ├── enablebanking/
 │   ├── enablebanking.provider.ts # Provider implementation
 │   ├── api-client.ts             # HTTP client + JWT
-│   ├── jwt-utils.ts              # JWT generation
 │   ├── aspsp.service.ts          # Bank listing
 │   ├── types.ts
+│   ├── utils/
+│   │   ├── jwt-utils.ts              # JWT generation
+│   │   ├── plan-edit-merge.ts        # Pure edit-preservation policy for reconcile
+│   │   ├── plan-edit-merge.unit.ts   # Unit tests for the merge policy
+│   │   ├── constants.ts              # Lookback schedule + match window sizes
+│   │   ├── transaction-metadata.ts   # Stored-row externalData accessors/predicates
+│   │   ├── transaction-metadata.unit.ts # Unit tests for the accessors
+│   │   ├── transaction-hash.ts       # Transaction hashing + date priority
+│   │   ├── transaction-hash.unit.ts  # Unit tests for hashing
+│   │   ├── candidate-selection.ts    # IBAN gate + nearest-date pick
+│   │   ├── candidate-selection.unit.ts # Unit tests for candidate selection
+│   │   ├── consent.ts                # Consent validity end date
+│   │   └── balances.ts               # Balance payload shaping for logs
+│   ├── enablebanking-dedup.e2e.ts # E2E: matcher tiers + reconciliation
+│   ├── enablebanking-flow.e2e.ts # E2E: connect → sync flow
 │   └── docs/details.md
 ├── lunchflow/
 │   ├── lunchflow.provider.ts     # Provider implementation
@@ -548,6 +594,7 @@ bank-data-providers/
 | `/connections/:id/available-accounts`     | GET    | List accounts for selection                 |
 | `/connections/:id/sync-selected-accounts` | POST   | Create accounts + sync                      |
 | `/connections/:id/sync-transactions`      | POST   | Sync single account                         |
+| `/connections/:id/reconcile-duplicates`   | POST   | Collapse pre-existing duplicate pairs       |
 | `/sync/trigger`                           | POST   | Trigger full sync                           |
 | `/sync/status`                            | GET    | Get all sync statuses                       |
 | `/enablebanking/oauth-callback`           | POST   | OAuth completion                            |

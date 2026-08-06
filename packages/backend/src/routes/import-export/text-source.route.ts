@@ -16,7 +16,7 @@ const router = Router({});
  * POST /import/text-source/estimate-cost
  *
  * Supports PDF, CSV, and TXT files
- * Body: { fileBase64: string }
+ * Body: { fileBase64: string, password?: string }
  * Returns: StatementCostEstimate
  */
 router.post(
@@ -32,7 +32,7 @@ router.post(
  * POST /import/text-source/extract
  *
  * Supports PDF, CSV, and TXT files
- * Body: { fileBase64: string }
+ * Body: { fileBase64: string, password?: string }
  * Returns: StatementExtractionResult
  */
 router.post(

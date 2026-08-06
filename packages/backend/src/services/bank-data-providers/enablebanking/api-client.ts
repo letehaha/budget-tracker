@@ -9,7 +9,6 @@ import { BadGateway, BadRequestError, ForbiddenError, ValidationError } from '@j
 import { logger } from '@js/utils/logger';
 import axios, { AxiosInstance } from 'axios';
 
-import { generateJWT } from './jwt-utils';
 import {
   ASPSP,
   ASPSPsResponse,
@@ -24,6 +23,7 @@ import {
   TransactionsQuery,
   HalTransactions,
 } from './types';
+import { generateJWT } from './utils/jwt-utils';
 
 /**
  * PSU (Payment Service User) context headers

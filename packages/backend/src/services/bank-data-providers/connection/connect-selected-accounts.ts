@@ -248,6 +248,22 @@ export const connectSelectedAccounts = async ({
   const connection = await BankDataProviderConnections.findByPk(connectionId);
   const provider = connection ? bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE) : null;
 
+  // Logging post-commit keeps rolled-back link attempts from emitting phantom
+  // account ids, and covers re-linked accounts, which keep their prior balance.
+  for (const account of createdAccounts) {
+    logger.info('[balance-diag] Bank account linked', {
+      provider: connection?.providerType ?? null,
+      connectionId,
+      accountId: account.id,
+      userId,
+      accountType: account.type,
+      currency: account.currencyCode,
+      initialBalanceCents: account.initialBalance?.toCents() ?? null,
+      currentBalanceCents: account.currentBalance?.toCents() ?? null,
+      refCurrentBalanceCents: account.refCurrentBalance?.toCents() ?? null,
+    });
+  }
+
   const syncErrors: Error[] = [];
 
   if (provider && typeof provider.syncConnectionAccounts === 'function') {

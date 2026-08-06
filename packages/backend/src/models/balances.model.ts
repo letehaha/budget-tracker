@@ -10,7 +10,6 @@ import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils';
-import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
 import { runInSavepoint } from '@services/common/run-in-savepoint';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
@@ -239,29 +238,13 @@ export default class Balances extends Model {
       }
 
       case ACCOUNT_TYPES.enableBanking: {
-        // Per-tx backfill layer. `balance_after_transaction` is optional in the
-        // EnableBanking API – when the ASPSP populates it, convert to base
-        // currency and upsert the day's `Balances` row (transactions sorted by
-        // booking_date so the last for a date wins). The end-of-sync
-        // `writeBankBalanceWithHistory` call then overwrites today's row with
-        // the bank's authoritative balance.
-        const externalData = data.externalData as { balanceAfter?: AmountType } | undefined;
-        const balanceAfter = externalData?.balanceAfter;
-
-        if (balanceAfter) {
-          const balanceDecimal = parseFloat(balanceAfter.amount);
-          const exchangeRateData = await getExchangeRate({
-            userId: data.userId,
-            date,
-            baseCode: data.currencyCode,
-            quoteCode: data.refCurrencyCode,
-          });
-          const refBalance = Money.fromDecimal(roundHalfToEven(balanceDecimal * exchangeRateData.rate * 100) / 100);
-
-          await this.updateAccountBalance({ accountId, date, refBalance });
-        }
-        // No `balanceAfter` from the ASPSP → in-between days stay empty for
-        // this tx. The end-of-sync authoritative write still fills today.
+        // No per-tx write. `balance_after_transaction` is a running book balance,
+        // so which row of a booking day closes it can only be decided with the
+        // whole day in hand – `reconcileDailyClosingBalances` does that at the end
+        // of each sync and owns these rows outright. Writing per transaction here
+        // would leave an arbitrary mid-day figure standing on any day that pass
+        // declines to resolve, where no row at all is the honest answer and the
+        // chart carries the previous day forward.
         break;
       }
 

@@ -94,10 +94,7 @@
                         <span class="font-semibold">{{
                           t('pages.integrations.instructionsDialog.step1.steps.redirectUrls')
                         }}</span>
-                        <ClickToCopy
-                          class="w-auto max-w-68.75 min-w-auto sm:max-w-125"
-                          value="https://moneymatter.app/bank-callback https://moneymatter.app/bank-callback"
-                        />
+                        <ClickToCopy class="w-auto max-w-68.75 min-w-auto sm:max-w-125" :value="callbackUrl" />
                       </div>
                       <div class="flex flex-wrap gap-1">
                         <span class="font-semibold">{{
@@ -331,6 +328,7 @@ import {
   DialogTitle,
 } from '@/components/lib/ui/dialog';
 import { ChevronDownIcon, InfoIcon, TriangleAlertIcon } from '@lucide/vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -342,4 +340,6 @@ defineProps<{
 defineEmits<{
   'update:open': [value: boolean];
 }>();
+
+const callbackUrl = computed(() => `${window.location.origin}/bank-callback`);
 </script>

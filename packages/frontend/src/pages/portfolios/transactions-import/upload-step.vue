@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { estimateInvestmentImportCost, extractInvestmentTransactions } from '@/api/investment-transactions-import';
-import type { StatementCostEstimateFailure } from '@/api/import-export';
 import AiEstimatedCost from '@/components/common/ai-estimated-cost.vue';
 import { FileDropzone } from '@/components/common/dropzone';
 import { TextareaField } from '@/components/fields';
@@ -10,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/lib/ui/tabs';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
 import { getApiErrorMessage } from '@/js/errors';
 import type { InvestmentImportExtractionResult, InvestmentImportHolding } from '@bt/shared/types/investments';
-import type { StatementCostEstimate } from '@bt/shared/types';
+import type { StatementCostEstimate, StatementCostEstimateFailure } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
 import { ClipboardIcon, FileSpreadsheetIcon, FileTextIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';

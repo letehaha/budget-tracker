@@ -1,7 +1,11 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { UnexpectedError } from '@js/errors';
 import { estimateInvestmentExtractionCost } from '@services/import-export/investment-transactions-parser';
-import { extractTextFromFile, validateFileBuffer } from '@services/import-export/statement-parser';
+import {
+  extractTextFromFile,
+  resolveTextExtractionSuggestion,
+  validateFileBuffer,
+} from '@services/import-export/statement-parser';
 import { z } from 'zod';
 
 /**
@@ -41,9 +45,13 @@ export const estimateCostController = createController(
             characterCount: textResult.text?.length ?? 0,
             pageCount: textResult.pageCount ?? 1,
             error: textResult.error,
+            errorCode: textResult.errorCode,
           },
           fileType: validation.fileType,
-          suggestion: 'Could not extract text from the file. Try a different format.',
+          suggestion: resolveTextExtractionSuggestion({
+            fileType: validation.fileType,
+            errorCode: textResult.errorCode,
+          }),
         },
       };
     }
