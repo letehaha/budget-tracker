@@ -9,10 +9,12 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
+import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
+import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
@@ -25,6 +27,7 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
+import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
@@ -32,6 +35,7 @@ import { encryptCredentials } from '../utils/credential-encryption';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { EnableBankingApiClient, isAspspDateRangeRejection } from './api-client';
 import {
+  AmountType,
   CreditDebitIndicator,
   EnableBankingAccount,
   EnableBankingConnectionParams,
@@ -51,12 +55,14 @@ import {
   MS_PER_DAY,
   PENDING_UPGRADE_WINDOW_DAYS,
 } from './utils/constants';
+import { type ClosingBalanceRow, findClosingRowId } from './utils/daily-closing-balance';
 import { generateState, validatePrivateKey, validateState } from './utils/jwt-utils';
 import { type EditMergeSkipReason, hasManualStamp, planEditMerge } from './utils/plan-edit-merge';
 import { generateTransactionHash, getTransactionDateString } from './utils/transaction-hash';
 import {
   cleanMerchantName,
   deriveNoteFromRaw,
+  getBookingDate,
   getCounterpartyIban,
   getEntryReference,
   getRawTransaction,
@@ -67,6 +73,7 @@ import {
   isPendingOrphan,
   isPreBookingStatus,
   isRevokedStatus,
+  parseBookingDay,
   syncGeneratedNote,
   toEditMergeSide,
   whereNoEntryReference,
@@ -987,6 +994,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             );
           }
 
+          // Runs before the authoritative write below so today's row ends up
+          // holding the bank's own balance rather than a re-derived one.
+          await this.reconcileDailyClosingBalances({ account, providerTransactions });
+
           // Always update account balance from bank when syncing
           // This ensures balance stays accurate even if no new transactions were found
           const balance = await this.fetchBalance(connectionId, apiUid);
@@ -997,6 +1008,141 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       });
     } catch (error) {
       return this.handleProviderError({ error, connectionId });
+    }
+  }
+
+  /**
+   * Re-derives the closing balance of every booking day this batch touched.
+   *
+   * The per-transaction hook can only see one row, so it leaves each day holding
+   * whichever of its rows was written last. Here the whole day is in hand and the
+   * row that actually closes it can be identified from the ladder itself. Reads
+   * the day back from storage rather than from the batch, so a day split across
+   * two syncs is still judged on all of its rows.
+   *
+   * Days whose ladder does not resolve keep the value already stored.
+   */
+  private async reconcileDailyClosingBalances({
+    account,
+    providerTransactions,
+  }: {
+    account: Accounts;
+    providerTransactions: ProviderTransaction[];
+  }): Promise<void> {
+    const bookingDates = [
+      ...new Set(
+        providerTransactions
+          .map((tx) => getBookingDate({ externalData: tx.metadata }))
+          .filter((bookingDate): bookingDate is string => bookingDate !== null),
+      ),
+    ];
+    if (bookingDates.length === 0) return;
+
+    const storedRows = await Transactions.findAll({
+      where: {
+        accountId: account.id,
+        [Op.and]: [
+          Sequelize.where(Sequelize.literal(`"externalData"->>'bookingDate'`), {
+            [Op.in]: bookingDates,
+          }),
+        ],
+      },
+    });
+
+    const rowsByBookingDate = new Map<string, Transactions[]>();
+    for (const row of storedRows) {
+      const bookingDate = getBookingDate({ externalData: row.externalData });
+      if (!bookingDate) continue;
+      const dayRows = rowsByBookingDate.get(bookingDate);
+      if (dayRows) dayRows.push(row);
+      else rowsByBookingDate.set(bookingDate, [row]);
+    }
+
+    let unresolvedDays = 0;
+    let ratelessDays = 0;
+
+    // Ascending, so concurrent syncs of one account take the same `Balances` rows
+    // in the same order. Map iteration would follow whatever order Postgres
+    // returned, and these row locks are held until the sync transaction commits.
+    for (const bookingDate of [...rowsByBookingDate.keys()].sort()) {
+      const dayRows = rowsByBookingDate.get(bookingDate)!;
+      const ladder: ClosingBalanceRow[] = [];
+      const rowsById = new Map<string, Transactions>();
+      let dayHasUnusableRow = false;
+
+      for (const row of dayRows) {
+        // A pre-booking row reports available funds, a ladder of its own, so its
+        // absence from this one is not a hole in the day.
+        if (isPreBookingStatus({ status: getRawTransactionStatus({ externalData: row.externalData }) })) continue;
+
+        const balanceAfter = (row.externalData as { balanceAfter?: AmountType } | null)?.balanceAfter;
+        const balanceDecimal = balanceAfter ? Number.parseFloat(balanceAfter.amount) : Number.NaN;
+
+        // A booked row the ladder cannot use is a missing rung, and a day with a
+        // hole in it has no determinable close: the rows either side of the hole
+        // no longer rule each other out, so a mid-day row can end up looking like
+        // the day's last.
+        if (!balanceAfter || balanceAfter.currency !== row.currencyCode || !Number.isFinite(balanceDecimal)) {
+          dayHasUnusableRow = true;
+          break;
+        }
+
+        const signedCents =
+          row.transactionType === TRANSACTION_TYPES.income ? row.amount.toCents() : -row.amount.toCents();
+
+        ladder.push({
+          id: row.id,
+          balanceAfterCents: Math.round(balanceDecimal * 100),
+          deltaCents: signedCents,
+        });
+        rowsById.set(row.id, row);
+      }
+
+      const closingRowId = dayHasUnusableRow ? null : findClosingRowId({ rows: ladder });
+      if (closingRowId === null) {
+        if (ladder.length > 0 || dayHasUnusableRow) unresolvedDays++;
+        continue;
+      }
+
+      const date = parseBookingDay({ bookingDate });
+      if (!date) continue;
+
+      const closingRow = rowsById.get(closingRowId)!;
+      const closingBalance = (closingRow.externalData as { balanceAfter?: AmountType } | null)!.balanceAfter!;
+
+      let refBalance: Money;
+      try {
+        const exchangeRateData = await getExchangeRate({
+          userId: closingRow.userId,
+          date,
+          baseCode: closingRow.currencyCode,
+          quoteCode: closingRow.refCurrencyCode,
+        });
+        refBalance = Money.fromDecimal(
+          roundHalfToEven(Number.parseFloat(closingBalance.amount) * exchangeRateData.rate * 100) / 100,
+        );
+      } catch {
+        // A day with no rate on record is one day of chart, and this pass runs
+        // late enough that throwing would discard every transaction the sync just
+        // stored. Scoped to the lookup on purpose: a failed write must still
+        // propagate, or the aborted transaction surfaces later as nonsense.
+        ratelessDays++;
+        continue;
+      }
+
+      await Balances.updateAccountBalance({ accountId: account.id, date, refBalance });
+    }
+
+    if (unresolvedDays > 0) {
+      logger.info(
+        `Enable Banking sync: account ${account.id} left ${unresolvedDays} booking day(s) without a balance; the day's ladder did not resolve to a single closing row`,
+      );
+    }
+
+    if (ratelessDays > 0) {
+      logger.info(
+        `Enable Banking sync: account ${account.id} left ${ratelessDays} booking day(s) without a balance; no exchange rate on record for that day`,
+      );
     }
   }
 

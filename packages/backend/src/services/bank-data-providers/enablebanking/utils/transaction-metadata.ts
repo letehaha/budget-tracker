@@ -1,4 +1,5 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { startOfDay } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
 import { type EnableBankingTransaction, TransactionStatus } from '../types';
@@ -66,6 +67,25 @@ export function getEntryReference({ tx }: { tx: StoredRow }): string | null {
   const entryReference = tx.externalData?.entryReference;
   if (entryReference === null || entryReference === undefined) return null;
   return typeof entryReference === 'string' ? entryReference : String(entryReference);
+}
+
+export function getBookingDate({
+  externalData,
+}: {
+  externalData: Record<string, unknown> | null | undefined;
+}): string | null {
+  const bookingDate = externalData?.bookingDate;
+  return typeof bookingDate === 'string' && bookingDate.length > 0 ? bookingDate : null;
+}
+
+/**
+ * A booking date as a day key, or null when the stored value does not parse.
+ * Mirrors how `time` itself is built from a date-only string, so a row's booking
+ * key and its display key land on the same day whatever the server's timezone.
+ */
+export function parseBookingDay({ bookingDate }: { bookingDate: string }): Date | null {
+  const parsed = new Date(bookingDate);
+  return Number.isNaN(parsed.getTime()) ? null : startOfDay(parsed);
 }
 
 export function getCounterpartyIban({ tx }: { tx: CounterpartyRow }): string | null {

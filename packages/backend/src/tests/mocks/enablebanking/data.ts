@@ -267,6 +267,12 @@ export interface FixedTransaction {
   remittanceInformation?: string[];
   /** Enable Banking transaction status. Defaults to BOOK; use PDNG for pending card authorisations. */
   status?: `${TransactionStatus}`;
+  /**
+   * The bank's running balance after this transaction. Defaults to a fixed
+   * placeholder; pass `null` for ASPSPs that omit it. Set a per-tx value to build
+   * a day's balance ladder.
+   */
+  balanceAfter?: string | null;
 }
 
 let mockTransactionConfig: MockTransactionConfig = {
@@ -325,9 +331,12 @@ export const getMockedTransactions = (accountId: string, count: number = 10) => 
         remittance_information: ft.remittanceInformation || ['Test transaction'],
         debtor: { name: ft.isExpense ? 'John Doe' : 'Test Company' },
         creditor: { name: ft.isExpense ? 'Test Company' : 'John Doe' },
-        balance_after_transaction: { amount: '1000.00', currency: ft.currency },
         status: ft.status || 'BOOK',
       };
+
+      if (ft.balanceAfter !== null) {
+        tx.balance_after_transaction = { amount: ft.balanceAfter ?? '1000.00', currency: ft.currency };
+      }
 
       const ownAccountField = ft.isExpense ? 'debtor_account' : 'creditor_account';
       const counterpartyField = ft.isExpense ? 'creditor_account' : 'debtor_account';
