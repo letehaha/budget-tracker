@@ -82,7 +82,7 @@ const getSubscriptionsSummaryImpl = async ({
 
   const subscriptions = await Subscriptions.findAll({
     where,
-    attributes: ['id', 'expectedAmount', 'expectedCurrencyCode', 'frequency'],
+    attributes: ['id', 'expectedAmount', 'expectedCurrencyCode', 'frequency', 'transactionType'],
   });
 
   // A user with no base currency row cannot have subscription amounts converted
@@ -96,10 +96,20 @@ const getSubscriptionsSummaryImpl = async ({
 
   const baseCurrencyCode = userCurrency.currency.code;
 
-  let totalMonthly = Money.zero();
+  let totalMonthlyCost = Money.zero();
+  let totalMonthlyIncome = Money.zero();
+  let activeExpenseCount = 0;
+  let activeIncomeCount = 0;
   const unconnectedCurrencies = new Set<string>();
 
   for (const sub of subscriptions) {
+    const isIncome = sub.transactionType === TRANSACTION_TYPES.income;
+    if (isIncome) {
+      activeIncomeCount++;
+    } else {
+      activeExpenseCount++;
+    }
+
     try {
       const refAmount = await calculateRefAmount({
         amount: sub.expectedAmount!,
@@ -110,7 +120,12 @@ const getSubscriptionsSummaryImpl = async ({
       });
 
       const multiplier = MONTHLY_MULTIPLIERS[sub.frequency] ?? 1;
-      totalMonthly = totalMonthly.add(refAmount.multiply(multiplier));
+      const monthlyAmount = refAmount.multiply(multiplier);
+      if (isIncome) {
+        totalMonthlyIncome = totalMonthlyIncome.add(monthlyAmount);
+      } else {
+        totalMonthlyCost = totalMonthlyCost.add(monthlyAmount);
+      }
     } catch (e) {
       // A currency the user never connected is user-fixable: collect every
       // offending code and fail the request with an actionable error below,
@@ -136,18 +151,20 @@ const getSubscriptionsSummaryImpl = async ({
     });
   }
 
-  const monthlyMoney = totalMonthly.round();
-  const yearlyMoney = monthlyMoney.multiply(12);
+  const monthlyCostMoney = totalMonthlyCost.round();
+  const yearlyCostMoney = monthlyCostMoney.multiply(12);
+  const monthlyIncomeMoney = totalMonthlyIncome.round();
 
   const averageMonthlyIncomeMoney = await getAverageMonthlyIncome({ userId, lookbackMonths });
   const averageMonthlyIncome = averageMonthlyIncomeMoney.toNumber();
   const percentOfIncome =
-    averageMonthlyIncome > 0 ? Math.round((monthlyMoney.toNumber() / averageMonthlyIncome) * 1000) / 10 : null;
+    averageMonthlyIncome > 0 ? Math.round((monthlyCostMoney.toNumber() / averageMonthlyIncome) * 1000) / 10 : null;
 
   return {
-    estimatedMonthlyCost: monthlyMoney.toNumber(),
-    projectedYearlyCost: yearlyMoney.toNumber(),
-    activeCount: subscriptions.length,
+    estimatedMonthlyCost: monthlyCostMoney.toNumber(),
+    projectedYearlyCost: yearlyCostMoney.toNumber(),
+    expectedMonthlyIncome: monthlyIncomeMoney.toNumber(),
+    activeCount: { expense: activeExpenseCount, income: activeIncomeCount },
     currencyCode: baseCurrencyCode,
     averageMonthlyIncome,
     percentOfIncome,

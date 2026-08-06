@@ -10,6 +10,41 @@ import type { Cents } from './money';
 export type StatementFileType = 'pdf' | 'csv' | 'txt';
 
 /**
+ * Why text extraction produced nothing usable. The UI branches on this: a
+ * protected PDF needs a password prompt, a scanned one needs a different file.
+ */
+export type StatementTextExtractionErrorCode =
+  | 'PASSWORD_REQUIRED'
+  | 'PASSWORD_INVALID'
+  | 'NO_TEXT_CONTENT'
+  | 'PARSE_FAILED';
+
+/**
+ * `textExtraction` block of the estimate response when no text could be read.
+ */
+export interface StatementTextExtractionFailure {
+  success: false;
+  /** Characters that were extracted before the attempt was judged a failure */
+  characterCount: number;
+  /** Number of pages (for PDF) or 1 */
+  pageCount: number;
+  /** Raw parser message, for diagnostics */
+  error?: string;
+  errorCode?: StatementTextExtractionErrorCode;
+}
+
+/**
+ * `textExtraction` block of the estimate response when the text was read fine.
+ */
+export interface StatementTextExtractionSuccess {
+  success: true;
+  /** Extracted text character count */
+  characterCount: number;
+  /** Number of pages (for PDF) or 1 */
+  pageCount: number;
+}
+
+/**
  * Single extracted transaction from statement
  */
 export interface ExtractedTransaction {
@@ -103,11 +138,30 @@ export interface StatementCostEstimate {
 }
 
 /**
+ * What the estimate endpoint answers 200 with when it produced no estimate.
+ * `textExtraction` may still report success: a file whose text was read fine can
+ * still be too large for the model's context window.
+ */
+export interface StatementCostEstimateFailure {
+  success: false;
+  textExtraction: StatementTextExtractionFailure | StatementTextExtractionSuccess;
+  fileType: StatementFileType;
+  suggestion: string;
+  error?: {
+    code: string;
+    message: string;
+    details?: string;
+  };
+}
+
+/**
  * Request for statement extraction
  */
 export interface StatementExtractRequest {
   /** Base64 encoded file content */
   fileBase64: string;
+  /** Document password, for encrypted PDFs */
+  password?: string;
 }
 
 /**

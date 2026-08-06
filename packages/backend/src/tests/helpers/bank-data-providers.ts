@@ -4,6 +4,7 @@ import { ListExternalAccountsResponseData } from '@controllers/bank-data-provide
 import * as connectProviderService from '@services/bank-data-providers/connection/connect-provider';
 import * as getConnectionDetailsService from '@services/bank-data-providers/connection/get-connection-details';
 import * as listUserConnectionsService from '@services/bank-data-providers/connection/list-user-connections';
+import * as reconcileDuplicatesService from '@services/bank-data-providers/connection/reconcile-duplicates-for-account';
 import { listSupportedProviders } from '@services/bank-data-providers/list-supported-providers.service';
 
 import { MakeRequestReturn, UtilizeReturnType, makeRequest } from './common';
@@ -169,6 +170,25 @@ export function loadTransactionsForPeriod<R extends boolean | undefined = false>
   });
 }
 
+export function reconcileDuplicates<R extends boolean | undefined = false>({
+  connectionId,
+  accountId,
+  raw,
+}: {
+  connectionId: string;
+  accountId: string;
+  raw?: R;
+}): UtilizeReturnType<typeof reconcileDuplicatesService.reconcileDuplicatesForAccount, R> {
+  return makeRequest<Awaited<ReturnType<typeof reconcileDuplicatesService.reconcileDuplicatesForAccount>>, R>({
+    method: 'post',
+    url: `/bank-data-providers/connections/${connectionId}/reconcile-duplicates`,
+    payload: {
+      accountId,
+    },
+    raw,
+  });
+}
+
 export function getSyncJobProgress<R extends boolean | undefined = false>({
   connectionId,
   jobGroupId,
@@ -298,6 +318,7 @@ export default {
   connectSelectedAccounts,
   syncTransactionsForAccount,
   loadTransactionsForPeriod,
+  reconcileDuplicates,
   getSyncJobProgress,
   waitForSyncJobsToComplete,
 };

@@ -5,6 +5,12 @@ jest.mock('unpdf', () => ({
   extractText: jest.fn(),
 }));
 
+import {
+  ENCRYPTED_STATEMENT_MERCHANT,
+  ENCRYPTED_STATEMENT_PASSWORD,
+  STATEMENT_PDF_FIXTURES,
+  readStatementPdfFixture,
+} from '@tests/fixtures/statement-parser-fixtures';
 import { extractText, getDocumentProxy } from 'unpdf';
 
 import { estimateTokenCount, extractTextFromFile } from './text-extractor';
@@ -16,6 +22,10 @@ const FAKE_PDF_PROXY = { numPages: 3 } as unknown as Awaited<ReturnType<typeof g
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // clearAllMocks drops calls but keeps implementations, so without an explicit reset
+  // the real-unpdf block below would keep parsing for every test declared after it.
+  mockedGetDocumentProxy.mockReset();
+  mockedExtractText.mockReset();
   mockedGetDocumentProxy.mockResolvedValue(FAKE_PDF_PROXY);
 });
 
@@ -108,6 +118,15 @@ describe('extractTextFromFile', () => {
       expect(options).toEqual({ isEvalSupported: false });
     });
 
+    it('forwards the document password to getDocumentProxy', async () => {
+      mockedExtractText.mockResolvedValue({ text: longText, totalPages: 1 });
+
+      await extractTextFromFile({ buffer: Buffer.from('%PDF-1.4 fake'), fileType: 'pdf', password: 'hunter2' });
+
+      const [, options] = mockedGetDocumentProxy.mock.calls[0]!;
+      expect(options).toEqual({ isEvalSupported: false, password: 'hunter2' });
+    });
+
     it('calls extractText with mergePages: true', async () => {
       mockedExtractText.mockResolvedValue({ text: longText, totalPages: 1 });
 
@@ -129,6 +148,7 @@ describe('extractTextFromFile', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/scanned document/i);
+      expect(result.errorCode).toBe('NO_TEXT_CONTENT');
       expect(result.text).toBe('tiny');
       expect(result.pageCount).toBe(2);
     });
@@ -156,6 +176,7 @@ describe('extractTextFromFile', () => {
         success: false,
         fileType: 'pdf',
         error: 'corrupt PDF',
+        errorCode: 'PARSE_FAILED',
       });
     });
 
@@ -170,6 +191,75 @@ describe('extractTextFromFile', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to parse PDF');
     });
+  });
+
+  // The classification under test is pdf.js's own, so these run the real parser
+  // over committed fixtures instead of the module mock used above.
+  describe('pdf fixtures parsed by the real unpdf', () => {
+    const REAL_PDFJS_TIMEOUT_MS = 15_000;
+
+    beforeEach(() => {
+      const actualUnpdf = jest.requireActual<typeof import('unpdf')>('unpdf');
+      mockedGetDocumentProxy.mockImplementation(actualUnpdf.getDocumentProxy);
+      mockedExtractText.mockImplementation(actualUnpdf.extractText);
+    });
+
+    it(
+      'reports PASSWORD_REQUIRED for an encrypted PDF opened without a password',
+      async () => {
+        const buffer = readStatementPdfFixture({ file: STATEMENT_PDF_FIXTURES.encrypted });
+
+        const result = await extractTextFromFile({ buffer, fileType: 'pdf' });
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('PASSWORD_REQUIRED');
+      },
+      REAL_PDFJS_TIMEOUT_MS,
+    );
+
+    it(
+      'reports PASSWORD_INVALID for an encrypted PDF opened with the wrong password',
+      async () => {
+        const buffer = readStatementPdfFixture({ file: STATEMENT_PDF_FIXTURES.encrypted });
+
+        const result = await extractTextFromFile({ buffer, fileType: 'pdf', password: 'not-the-password' });
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('PASSWORD_INVALID');
+      },
+      REAL_PDFJS_TIMEOUT_MS,
+    );
+
+    it(
+      'extracts the statement text when the correct password is given',
+      async () => {
+        const buffer = readStatementPdfFixture({ file: STATEMENT_PDF_FIXTURES.encrypted });
+
+        const result = await extractTextFromFile({
+          buffer,
+          fileType: 'pdf',
+          password: ENCRYPTED_STATEMENT_PASSWORD,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.errorCode).toBeUndefined();
+        expect(result.text).toContain(ENCRYPTED_STATEMENT_MERCHANT);
+      },
+      REAL_PDFJS_TIMEOUT_MS,
+    );
+
+    it(
+      'reports NO_TEXT_CONTENT for a PDF page that carries no text',
+      async () => {
+        const buffer = readStatementPdfFixture({ file: STATEMENT_PDF_FIXTURES.noTextLayer });
+
+        const result = await extractTextFromFile({ buffer, fileType: 'pdf' });
+
+        expect(result.success).toBe(false);
+        expect(result.errorCode).toBe('NO_TEXT_CONTENT');
+      },
+      REAL_PDFJS_TIMEOUT_MS,
+    );
   });
 
   describe('unsupported file types', () => {

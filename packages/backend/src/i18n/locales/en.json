@@ -217,6 +217,7 @@
       "invalidApiToken": "Invalid Monobank API token",
       "rateLimitExceeded": "Monobank API rate limit exceeded. Please try again in a minute.",
       "accountNotFound": "Account {{accountExternalId}} not found in Monobank",
+      "accountReconnectRequired": "This account is no longer available at Monobank. Please reconnect your Monobank connection to resume syncing.",
       "webhookNotImplemented": "handleWebhook not yet implemented for Monobank",
       "unknownCurrencyCode": "Unknown currency code: {{numericCode}}",
       "geoBlocked": "Monobank is blocking requests from this server's IP. Disable VPN or use a Ukrainian IP address.",
@@ -285,8 +286,10 @@
     "invalidFile": "Invalid file",
     "textExtractionFailed": "Text extraction failed. The PDF may be a scanned document. Image-based extraction is not yet implemented.",
     "failedToExtractText": "Failed to extract text from file.",
-    "failedToExtractTextPdf": "Failed to extract text from PDF. It may be a scanned document.",
-    "fileContentRequired": "File content is required"
+    "fileContentRequired": "File content is required",
+    "pdfPasswordRequired": "This PDF is password-protected. Enter the document password to continue.",
+    "pdfPasswordInvalid": "The password you entered is incorrect. Check it and try again.",
+    "pdfParseFailed": "Could not read this PDF. The file may be corrupted or use an unsupported format."
   },
   "currencies": {
     "notSupportedForBaseCurrency": "Changing base currency to {{currency}} is not supported. Only these currencies are supported: {{supportedCurrencies}}.",
@@ -452,6 +455,7 @@
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "One or more transactions not found or do not belong to user.",
+    "cannotLinkDifferentTransactionType": "Cannot link transactions with a different type than the recurring payment",
     "summaryCurrencyNotConnected": "Subscriptions summary can't be calculated: currency {{currencyCodes}} is not connected to your account. Connect it in Settings → Currencies.",
     "summaryBaseCurrencyNotSet": "Base currency is not set. Set a default currency in your settings to view the subscriptions summary.",
     "validation": {

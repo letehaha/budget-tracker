@@ -1,4 +1,4 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_MATCH_SOURCE } from '@bt/shared/types';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_MATCH_SOURCE, TRANSACTION_TYPES } from '@bt/shared/types';
 import type { ComposerTranslation } from 'vue-i18n';
 
 export const formatFrequency = ({
@@ -43,4 +43,15 @@ export const formatMatchSource = ({ source, t }: { source: string; t: ComposerTr
     [SUBSCRIPTION_MATCH_SOURCE.ai]: t('planned.subscriptions.matchSource.ai'),
   };
   return map[source] || source;
+};
+
+export const getTransactionTypeStyles = (
+  transactionType: string | undefined,
+  fallbackClass: string = 'text-foreground',
+): string => {
+  return transactionType === TRANSACTION_TYPES.income ? 'text-app-income-color font-medium' : fallbackClass;
+};
+
+export const getTransactionTypePrefix = (transactionType: string | undefined): string => {
+  return transactionType === TRANSACTION_TYPES.income ? '+' : '';
 };

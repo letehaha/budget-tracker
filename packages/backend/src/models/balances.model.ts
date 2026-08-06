@@ -10,7 +10,7 @@ import { Money } from '@common/types/money';
 import { MoneyField } from '@common/types/money-column';
 import { roundHalfToEven } from '@common/utils/round-half-to-even';
 import { logger } from '@js/utils';
-import type { AmountType } from '@root/services/bank-data-providers/enablebanking';
+import { runInSavepoint } from '@services/common/run-in-savepoint';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { subDays, startOfMonth, startOfDay } from 'date-fns';
 import { Op, UniqueConstraintError } from 'sequelize';
@@ -238,29 +238,13 @@ export default class Balances extends Model {
       }
 
       case ACCOUNT_TYPES.enableBanking: {
-        // Per-tx backfill layer. `balance_after_transaction` is optional in the
-        // EnableBanking API – when the ASPSP populates it, convert to base
-        // currency and upsert the day's `Balances` row (transactions sorted by
-        // booking_date so the last for a date wins). The end-of-sync
-        // `writeBankBalanceWithHistory` call then overwrites today's row with
-        // the bank's authoritative balance.
-        const externalData = data.externalData as { balanceAfter?: AmountType } | undefined;
-        const balanceAfter = externalData?.balanceAfter;
-
-        if (balanceAfter) {
-          const balanceDecimal = parseFloat(balanceAfter.amount);
-          const exchangeRateData = await getExchangeRate({
-            userId: data.userId,
-            date,
-            baseCode: data.currencyCode,
-            quoteCode: data.refCurrencyCode,
-          });
-          const refBalance = Money.fromDecimal(roundHalfToEven(balanceDecimal * exchangeRateData.rate * 100) / 100);
-
-          await this.updateAccountBalance({ accountId, date, refBalance });
-        }
-        // No `balanceAfter` from the ASPSP → in-between days stay empty for
-        // this tx. The end-of-sync authoritative write still fills today.
+        // No per-tx write. `balance_after_transaction` is a running book balance,
+        // so which row of a booking day closes it can only be decided with the
+        // whole day in hand – `reconcileDailyClosingBalances` does that at the end
+        // of each sync and owns these rows outright. Writing per transaction here
+        // would leave an arbitrary mid-day figure standing on any day that pass
+        // declines to resolve, where no row at all is the honest answer and the
+        // chart carries the previous day forward.
         break;
       }
 
@@ -314,7 +298,7 @@ export default class Balances extends Model {
     // If there's no record for the 1st of the month, create it based on the closest record prior it
     // so it's easier to calculate stats for the period
     const firstDayOfMonth = startOfMonth(new Date(date));
-    let firstDayBalance = await this.findOne({
+    const firstDayBalance = await this.findOne({
       where: {
         accountId,
         date: firstDayOfMonth,
@@ -335,11 +319,13 @@ export default class Balances extends Model {
 
       if (latestBalancePrior) {
         try {
-          firstDayBalance = await this.create({
-            accountId,
-            date: firstDayOfMonth,
-            amount: latestBalancePrior.amount,
-          });
+          await runInSavepoint(() =>
+            this.create({
+              accountId,
+              date: firstDayOfMonth,
+              amount: latestBalancePrior.amount,
+            }),
+          );
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           // Seed row computed from the same `latestBalancePrior` by every
@@ -389,11 +375,13 @@ export default class Balances extends Model {
         // (1) Firstly we now need to create one more record that will represent the
         // balance before that transaction
         try {
-          await this.create({
-            accountId,
-            date: subDays(new Date(date), 1),
-            amount: account!.refInitialBalance,
-          });
+          await runInSavepoint(() =>
+            this.create({
+              accountId,
+              date: subDays(new Date(date), 1),
+              amount: account!.refInitialBalance,
+            }),
+          );
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           // Seed row computed from the same `refInitialBalance` by every
@@ -402,22 +390,26 @@ export default class Balances extends Model {
 
         // (2) Then we create a record for that transaction
         try {
-          await this.create({
-            accountId,
-            date,
-            amount: account!.refInitialBalance.add(amount),
-          });
+          await runInSavepoint(() =>
+            this.create({
+              accountId,
+              date,
+              amount: account!.refInitialBalance.add(amount),
+            }),
+          );
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           await this.applyIncrementAtSql({ accountId, date, delta: amount });
         }
       } else {
         try {
-          balanceForTxDate = await this.create({
-            accountId,
-            date,
-            amount: latestBalancePrior.amount.add(amount),
-          });
+          balanceForTxDate = await runInSavepoint(() =>
+            this.create({
+              accountId,
+              date,
+              amount: latestBalancePrior.amount.add(amount),
+            }),
+          );
         } catch (err) {
           if (!(err instanceof UniqueConstraintError)) throw err;
           await this.applyIncrementAtSql({ accountId, date, delta: amount });

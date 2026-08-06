@@ -230,6 +230,39 @@ describe('Subscriptions', () => {
       expect(detail.transactions[0]!.id).toBe(tx.id);
     });
 
+    it('prevents linking a transaction whose type differs from the subscription', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const sub = await helpers.createSubscription({
+        name: 'Expense Sub',
+        transactionType: TRANSACTION_TYPES.expense,
+        expectedAmount: 15,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2025-01-15T10:00:00Z',
+        }),
+        raw: true,
+      });
+
+      const res = await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+      });
+
+      expect(res.statusCode).toBe(422);
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(detail.transactions.length).toBe(0);
+    });
+
     it('prevents linking a transaction to two subscriptions', async () => {
       const account = await helpers.createAccount({ raw: true });
       const sub1 = await helpers.createSubscription({
@@ -548,7 +581,7 @@ describe('Subscriptions', () => {
 
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
 
-        expect(summary.activeCount).toBe(1);
+        expect(summary.activeCount).toEqual({ expense: 1, income: 0 });
         expect(summary.estimatedMonthlyCost).toBe(15);
         expect(summary.projectedYearlyCost).toBe(180);
         expect(summary.currencyCode).toBe(global.BASE_CURRENCY_CODE);
@@ -557,7 +590,7 @@ describe('Subscriptions', () => {
       it('returns zeros when no active subscriptions exist', async () => {
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
 
-        expect(summary.activeCount).toBe(0);
+        expect(summary.activeCount).toEqual({ expense: 0, income: 0 });
         expect(summary.estimatedMonthlyCost).toBe(0);
         expect(summary.projectedYearlyCost).toBe(0);
       });
@@ -588,21 +621,21 @@ describe('Subscriptions', () => {
         });
 
         const all = await helpers.getSubscriptionsSummary({ raw: true });
-        expect(all.activeCount).toBe(2);
+        expect(all.activeCount).toEqual({ expense: 2, income: 0 });
         expect(all.estimatedMonthlyCost).toBe(115);
 
         const subsOnly = await helpers.getSubscriptionsSummary({
           type: SUBSCRIPTION_TYPES.subscription,
           raw: true,
         });
-        expect(subsOnly.activeCount).toBe(1);
+        expect(subsOnly.activeCount).toEqual({ expense: 1, income: 0 });
         expect(subsOnly.estimatedMonthlyCost).toBe(15);
 
         const billsOnly = await helpers.getSubscriptionsSummary({
           type: SUBSCRIPTION_TYPES.bill,
           raw: true,
         });
-        expect(billsOnly.activeCount).toBe(1);
+        expect(billsOnly.activeCount).toEqual({ expense: 1, income: 0 });
         expect(billsOnly.estimatedMonthlyCost).toBe(100);
       });
 
@@ -619,7 +652,7 @@ describe('Subscriptions', () => {
         await helpers.toggleSubscriptionActive({ id: sub.id, isActive: false, raw: true });
 
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
-        expect(summary.activeCount).toBe(0);
+        expect(summary.activeCount).toEqual({ expense: 0, income: 0 });
         expect(summary.estimatedMonthlyCost).toBe(0);
       });
 
@@ -632,7 +665,7 @@ describe('Subscriptions', () => {
         });
 
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
-        expect(summary.activeCount).toBe(0);
+        expect(summary.activeCount).toEqual({ expense: 0, income: 0 });
         expect(summary.estimatedMonthlyCost).toBe(0);
       });
 
@@ -647,7 +680,7 @@ describe('Subscriptions', () => {
         });
 
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
-        expect(summary.activeCount).toBe(1);
+        expect(summary.activeCount).toEqual({ expense: 1, income: 0 });
         // $120/year → $10/month
         expect(summary.estimatedMonthlyCost).toBe(10);
         expect(summary.projectedYearlyCost).toBe(120);
@@ -682,7 +715,7 @@ describe('Subscriptions', () => {
         expect(userCurrencies.map((c) => c.currencyCode)).toContain('UAH');
 
         const summary = await helpers.getSubscriptionsSummary({ raw: true });
-        expect(summary.activeCount).toBe(1);
+        expect(summary.activeCount).toEqual({ expense: 1, income: 0 });
         expect(summary.estimatedMonthlyCost).toBeGreaterThan(0);
       });
 
@@ -766,7 +799,7 @@ describe('Subscriptions', () => {
 
         // With base === subscription currency, no conversion is needed and the
         // monthly cost equals the expected amount.
-        expect(summary.activeCount).toBe(1);
+        expect(summary.activeCount).toEqual({ expense: 1, income: 0 });
         expect(summary.estimatedMonthlyCost).toBe(15);
         expect(summary.currencyCode).toBe('EUR');
       });

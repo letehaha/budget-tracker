@@ -19,6 +19,7 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
 import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
+import { getTransactionTypePrefix, getTransactionTypeStyles } from '@/pages/planned/subscriptions/utils';
 import { useQuery } from '@tanstack/vue-query';
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 import { CheckIcon, ExternalLinkIcon, RepeatIcon } from '@lucide/vue';
@@ -112,10 +113,18 @@ const { data: allSubscriptions, isFetching: isSubscriptionsFetching } = useSubsc
 
 const isFetching = computed(() => isSummaryFetching.value || isUpcomingFetching.value || isSubscriptionsFetching.value);
 const isInitialLoading = computed(() => isFetching.value && !summary.value);
-const isEmpty = computed(() => !summary.value || summary.value.activeCount === 0);
+const totalActiveCount = computed(() => {
+  if (!summary.value) return 0;
+  return summary.value.activeCount.expense + summary.value.activeCount.income;
+});
+const isEmpty = computed(() => !summary.value || totalActiveCount.value === 0);
 
 const { displayValue: animatedMonthlyCost } = useAnimatedNumber({
   value: computed(() => summary.value?.estimatedMonthlyCost ?? 0),
+});
+
+const { displayValue: animatedMonthlyIncome } = useAnimatedNumber({
+  value: computed(() => summary.value?.expectedMonthlyIncome ?? 0),
 });
 
 const formatNextDate = ({ dateStr }: { dateStr: string | null }) => {
@@ -200,18 +209,41 @@ function openSubscriptionsList() {
 
     <template v-else>
       <!-- Monthly total -->
-      <div v-if="summary && summary.activeCount > 0" class="mb-4">
-        <p class="flex flex-wrap items-baseline gap-x-2 text-2xl font-bold tracking-tight">
-          {{ formatBaseCurrency(animatedMonthlyCost) }}
-          <span v-if="summary.percentOfIncome !== null" :class="[percentOfIncomeColorClass, 'text-sm font-normal']">
-            {{ $t('dashboard.widgets.subscriptions.percentOfIncome', { percent: summary.percentOfIncome }) }}
-          </span>
-        </p>
-        <p class="text-muted-foreground mt-1 text-xs">
-          {{ t('dashboard.widgets.subscriptions.activeSummary', { count: summary.activeCount }) }} &middot; ~{{
-            formatBaseCurrency(summary.projectedYearlyCost)
-          }}{{ t('dashboard.widgets.subscriptions.perYear') }}
-        </p>
+      <div v-if="summary && totalActiveCount > 0" class="mb-4">
+        <template v-if="summary.activeCount.expense > 0">
+          <p class="flex flex-wrap items-baseline gap-x-2 text-2xl font-bold tracking-tight">
+            {{ formatBaseCurrency(animatedMonthlyCost) }}
+            <span v-if="summary.percentOfIncome !== null" :class="[percentOfIncomeColorClass, 'text-sm font-normal']">
+              {{ $t('dashboard.widgets.subscriptions.percentOfIncome', { percent: summary.percentOfIncome }) }}
+            </span>
+          </p>
+          <p class="text-muted-foreground mt-1 text-xs">
+            {{ t('dashboard.widgets.subscriptions.activeSummary', { count: summary.activeCount.expense }) }} &middot;
+            ~{{ formatBaseCurrency(summary.projectedYearlyCost) }}{{ t('dashboard.widgets.subscriptions.perYear') }}
+          </p>
+          <i18n-t
+            v-if="summary.activeCount.income > 0"
+            keypath="dashboard.widgets.subscriptions.incomeSummary"
+            tag="p"
+            class="text-muted-foreground mt-1 text-xs"
+          >
+            <template #amount>
+              <span class="text-app-income-color font-medium">
+                +{{ formatBaseCurrency(summary.expectedMonthlyIncome) }}
+              </span>
+            </template>
+            <template #count>{{ summary.activeCount.income }}</template>
+          </i18n-t>
+        </template>
+
+        <template v-else>
+          <p class="text-app-income-color text-2xl font-bold tracking-tight">
+            +{{ formatBaseCurrency(animatedMonthlyIncome) }}
+          </p>
+          <p class="text-muted-foreground mt-1 text-xs">
+            {{ t('dashboard.widgets.subscriptions.activeSummary', { count: summary.activeCount.income }) }}
+          </p>
+        </template>
       </div>
 
       <!-- Upcoming payments list (original) -->
@@ -233,8 +265,9 @@ function openSubscriptionsList() {
             <p class="truncate text-sm font-medium">{{ payment.subscriptionName }}</p>
             <p class="text-muted-foreground text-xs">{{ formatNextDate({ dateStr: payment.nextPaymentDate }) }}</p>
           </div>
-          <span class="text-amount text-sm">
-            {{
+          <span class="text-amount text-sm" :class="getTransactionTypeStyles(payment.transactionType, '')">
+            {{ getTransactionTypePrefix(payment.transactionType)
+            }}{{
               payment.expectedCurrencyCode
                 ? formatAmountByCurrencyCode(payment.expectedAmount, payment.expectedCurrencyCode)
                 : formatBaseCurrency(payment.expectedAmount)
@@ -277,8 +310,13 @@ function openSubscriptionsList() {
             </p>
           </div>
 
-          <span v-if="sub.expectedAmount && sub.expectedCurrencyCode" class="shrink-0 text-sm font-medium">
-            {{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
+          <span
+            v-if="sub.expectedAmount && sub.expectedCurrencyCode"
+            class="shrink-0 text-sm font-medium"
+            :class="getTransactionTypeStyles(sub.transactionType, '')"
+          >
+            {{ getTransactionTypePrefix(sub.transactionType)
+            }}{{ formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode) }}
           </span>
 
           <DesktopOnlyTooltip :content="$t('widgets.subscriptionsOverview.payAction')">

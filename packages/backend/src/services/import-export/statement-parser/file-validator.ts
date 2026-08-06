@@ -3,6 +3,7 @@
  * Supports PDF, CSV, and TXT files
  */
 import type { StatementFileType } from '@bt/shared/types';
+import { logger } from '@js/utils';
 
 /** Maximum file size (10MB) */
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -23,8 +24,6 @@ interface FileValidationResult {
     code: 'INVALID_FILE' | 'FILE_TOO_LARGE' | 'UNSUPPORTED_TYPE';
     message: string;
   };
-  /** If PDF was extracted from a signed container */
-  extractedFromSigned?: boolean;
 }
 
 /**
@@ -50,14 +49,14 @@ function extractPdfFromPkcs7({ buffer }: { buffer: Buffer }): Buffer | null {
             endPos++;
           }
 
-          console.log(`[Statement Parser] Found PDF in PKCS#7: start=${i}, end=${endPos}, size=${endPos - i}`);
+          logger.info('[Statement Parser] PDF found in PKCS#7 container', { start: i, end: endPos, size: endPos - i });
           return buffer.subarray(i, endPos);
         }
       }
 
       // If no %%EOF found, try to extract from %PDF to end
       // This is a fallback - some PDFs might have malformed endings
-      console.log('[Statement Parser] Warning: No %%EOF found, extracting from %PDF to end of buffer');
+      logger.info('[Statement Parser] No %%EOF marker, extracting from %PDF to end of buffer');
       return buffer.subarray(i);
     }
   }
@@ -143,6 +142,12 @@ function detectFileType({ buffer }: { buffer: Buffer }): StatementFileType | nul
 export function validateFileBuffer({ buffer }: { buffer: Buffer }): FileValidationResult {
   // Check file size
   if (buffer.length > MAX_FILE_SIZE_BYTES) {
+    logger.info('Import file validation failed', {
+      code: 'FILE_TOO_LARGE',
+      sizeBytes: buffer.length,
+      maxBytes: MAX_FILE_SIZE_BYTES,
+    });
+
     return {
       valid: false,
       error: {
@@ -154,6 +159,8 @@ export function validateFileBuffer({ buffer }: { buffer: Buffer }): FileValidati
 
   // Check minimum size
   if (buffer.length < 10) {
+    logger.info('Import file validation failed', { code: 'INVALID_FILE', sizeBytes: buffer.length });
+
     return {
       valid: false,
       error: {
@@ -175,19 +182,18 @@ export function validateFileBuffer({ buffer }: { buffer: Buffer }): FileValidati
 
   // Check for PKCS#7 signed document (might contain PDF)
   if (buffer[0] === PKCS7_MAGIC_BYTE_START) {
-    console.log('[Statement Parser] Detected PKCS#7 signed document, attempting to extract PDF...');
+    logger.info('[Statement Parser] PKCS#7 signed document detected, extracting PDF');
 
     const extractedPdf = extractPdfFromPkcs7({ buffer });
 
     if (extractedPdf) {
       const extractedHeader = extractedPdf.subarray(0, 4);
       if (extractedHeader.equals(PDF_MAGIC_BYTES)) {
-        console.log('[Statement Parser] Successfully extracted PDF from PKCS#7 container');
+        logger.info('[Statement Parser] PDF extracted from PKCS#7 container');
         return {
           valid: true,
           fileType: 'pdf',
           fileBuffer: extractedPdf,
-          extractedFromSigned: true,
         };
       }
     }
@@ -203,6 +209,8 @@ export function validateFileBuffer({ buffer }: { buffer: Buffer }): FileValidati
       fileBuffer: buffer,
     };
   }
+
+  logger.info('Import file validation failed', { code: 'UNSUPPORTED_TYPE', sizeBytes: buffer.length });
 
   return {
     valid: false,

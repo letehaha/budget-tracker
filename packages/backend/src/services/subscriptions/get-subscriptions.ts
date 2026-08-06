@@ -49,6 +49,7 @@ interface SubscriptionBase extends Pick<
   | 'categoryId'
   | 'matchingRules'
   | 'isActive'
+  | 'transactionType'
   | 'completedAt'
   | 'maxOccurrences'
   | 'notes'

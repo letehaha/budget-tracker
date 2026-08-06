@@ -157,7 +157,11 @@ export function setupMiddleware(app: Express) {
         `${API_PREFIX}/import/text-source/extract`,
         `${API_PREFIX}/import/text-source/detect-duplicates`,
         `${API_PREFIX}/import/text-source/execute`,
-        // Investment import execute carries full per-holding tx arrays – easily multi-MB for large CSVs.
+        // Investment import: estimate-cost and extract carry the base64 encoded
+        // file on the way in, execute carries the full per-holding transaction
+        // arrays – all easily multi-MB for large broker exports.
+        `${API_PREFIX}/investments/transactions-import/estimate-cost`,
+        `${API_PREFIX}/investments/transactions-import/extract`,
         `${API_PREFIX}/investments/transactions-import/execute`,
         // YNAB register CSVs are sent inline as JSON-encoded text on both parse and execute.
         `${API_PREFIX}/import/ynab/parse`,

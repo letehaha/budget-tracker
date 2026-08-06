@@ -18,6 +18,8 @@ export const ROUTES_NAMES = Object.freeze({
   plannedBudgetDetails: `${ROUTER_LAYOUTS.dashboard}.planned.budget-details`,
   budgets: `${ROUTER_LAYOUTS.dashboard}.budgets`,
   budgetsInfo: `${ROUTER_LAYOUTS.dashboard}.budgets.info`,
+  subscriptions: `${ROUTER_LAYOUTS.dashboard}.subscriptions`,
+  subscriptionDetails: `${ROUTER_LAYOUTS.dashboard}.subscription-details`,
   analytics: `${ROUTER_LAYOUTS.dashboard}.analytics`,
   analyticsCashFlow: `${ROUTER_LAYOUTS.dashboard}.analytics.cash-flow`,
   analyticsNetWorthHistory: `${ROUTER_LAYOUTS.dashboard}.analytics.net-worth-history`,

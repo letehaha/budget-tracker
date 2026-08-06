@@ -50,7 +50,7 @@ async function requestedModel({ request }: { request: Request }): Promise<string
 }
 
 /** Chat-completion payload shaped the way `@ai-sdk/openai`'s chat model parses it. */
-function completionResponse({ model }: { model: string }) {
+function completionResponse({ model, content = 'ok' }: { model: string; content?: string }) {
   return HttpResponse.json({
     id: 'chatcmpl-custom-endpoint-test',
     object: 'chat.completion',
@@ -59,7 +59,7 @@ function completionResponse({ model }: { model: string }) {
     choices: [
       {
         index: 0,
-        message: { role: 'assistant', content: 'ok' },
+        message: { role: 'assistant', content },
         finish_reason: 'stop',
       },
     ],
@@ -154,6 +154,18 @@ export const openAiCompatibleHandlers = [
 export const getCustomEndpointSuccessMock = ({ baseUrl = CUSTOM_ENDPOINT_BASE_URL }: { baseUrl?: string } = {}) =>
   http.post(chatCompletionsUrl({ baseUrl }), async ({ request }) =>
     completionResponse({ model: await requestedModel({ request }) }),
+  );
+
+/** Answers with `content` verbatim, for tests whose subject is how the reply is parsed. */
+export const getCustomEndpointContentMock = ({
+  content,
+  baseUrl = CUSTOM_ENDPOINT_BASE_URL,
+}: {
+  content: string;
+  baseUrl?: string;
+}) =>
+  http.post(chatCompletionsUrl({ baseUrl }), async ({ request }) =>
+    completionResponse({ model: await requestedModel({ request }), content }),
   );
 
 /** Always answers 401, whatever key the request carries. */

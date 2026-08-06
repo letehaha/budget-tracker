@@ -613,6 +613,7 @@ export interface SubscriptionModel extends EntityLogoFields {
   userId: number;
   name: string;
   type: SUBSCRIPTION_TYPES;
+  transactionType: TRANSACTION_TYPES;
   /** Expected billed amount as a decimal (e.g. 9.99). Persisted as cents internally. */
   expectedAmount: number | null;
   expectedCurrencyCode: string | null;

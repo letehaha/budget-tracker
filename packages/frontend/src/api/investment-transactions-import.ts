@@ -6,9 +6,8 @@ import type {
   InvestmentImportExtractRequest,
   InvestmentImportExtractionResult,
   StatementCostEstimate,
+  StatementCostEstimateFailure,
 } from '@bt/shared/types';
-
-import type { StatementCostEstimateFailure } from './import-export';
 
 export const estimateInvestmentImportCost = async (
   payload: InvestmentImportEstimateCostRequest,

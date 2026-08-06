@@ -1,4 +1,5 @@
 import { Money } from '@common/types/money';
+import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -35,6 +36,30 @@ export async function writeBankBalanceWithHistory({
     userId: account.userId,
     date: today,
     baseCode: account.currencyCode,
+  });
+
+  // Sync-created transactions update the account's DB balance behind the caller's
+  // instance, so read the current DB value separately instead of mutating that instance.
+  const committed = await Accounts.findByPk(account.id, { attributes: ['id', 'currentBalance'] });
+
+  const previousCents = committed?.currentBalance?.toCents() ?? null;
+  const newCents = balance.toCents();
+  const signFlipped =
+    previousCents !== null && previousCents !== 0 && newCents !== 0 && previousCents > 0 !== newCents > 0;
+
+  // Providers hand us balances with unverified signs; this log makes a wrong
+  // sign traceable in production logs.
+  logger.info('[balance-diag] Bank balance write', {
+    accountId: account.id,
+    userId: account.userId,
+    accountType: account.type,
+    connectionId: account.bankDataProviderConnectionId ?? null,
+    currency: account.currencyCode,
+    previousCents,
+    newCents,
+    refCents: refBalance.toCents(),
+    signFlipped,
+    newIsNegative: newCents < 0,
   });
 
   await account.update({

@@ -8,6 +8,7 @@ import {
   MOCK_ENABLE_BANKING_APP_ID,
   MOCK_ENABLE_BANKING_PRIVATE_KEY,
   getMockedASPSPData,
+  getLastTransactionsQuery,
   resetMockTransactionConfig,
   setMockTransactionConfig,
 } from '@tests/mocks/enablebanking/data';
@@ -127,6 +128,9 @@ const resetTransactionConfig = () => {
   resetMockTransactionConfig();
 };
 
+/** Date range of the most recent transactions request, for asserting the window we asked the bank for. */
+const lastTransactionsQuery = () => getLastTransactionsQuery();
+
 export default {
   listCountries,
   listBanks,
@@ -138,6 +142,7 @@ export default {
   resetSessionCounter,
   setFixedTransactions,
   resetTransactionConfig,
+  lastTransactionsQuery,
   // Export mock constants for direct use in tests
   mockAppId: MOCK_ENABLE_BANKING_APP_ID,
   mockPrivateKey: MOCK_ENABLE_BANKING_PRIVATE_KEY,

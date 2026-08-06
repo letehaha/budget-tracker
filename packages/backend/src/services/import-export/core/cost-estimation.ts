@@ -1,4 +1,5 @@
 import { AI_FEATURE } from '@bt/shared/types';
+import { logger } from '@js/utils';
 import { describeMissingAiConfiguration, resolveAIConfiguration } from '@services/ai';
 import { getModelCostProfile } from '@services/ai/models-config';
 
@@ -24,6 +25,13 @@ export async function resolveEstimationPrelude({
   const aiConfig = await resolveAIConfiguration({ userId, feature });
 
   if (!aiConfig) {
+    logger.info('Cost estimation prelude failed', {
+      code: 'NO_AI_CONFIGURED',
+      reason: 'no-ai-config',
+      userId,
+      feature,
+    });
+
     return {
       ok: false,
       error: {
@@ -36,6 +44,14 @@ export async function resolveEstimationPrelude({
   const modelProfile = getModelCostProfile({ modelId: aiConfig.modelId });
 
   if (!modelProfile) {
+    logger.info('Cost estimation prelude failed', {
+      code: 'NO_AI_CONFIGURED',
+      reason: 'model-not-in-catalog',
+      userId,
+      feature,
+      modelId: aiConfig.modelId,
+    });
+
     return {
       ok: false,
       error: {

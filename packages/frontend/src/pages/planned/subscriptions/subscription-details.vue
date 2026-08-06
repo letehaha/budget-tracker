@@ -31,6 +31,7 @@ import {
   SUBSCRIPTION_MATCH_SOURCE,
   SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
   type SubscriptionModel,
   type SubscriptionPeriodModel,
   type TransactionModel,
@@ -60,7 +61,7 @@ import BrandLogo from '@/components/common/brand-logo.vue';
 import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
-import { formatFrequency, formatMatchSource } from './utils';
+import { formatFrequency, formatMatchSource, getTransactionTypePrefix, getTransactionTypeStyles } from './utils';
 
 const ManageTransactionDialogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
@@ -564,8 +565,9 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
     <div class="border-border mb-6 grid grid-cols-2 gap-4 rounded-lg border p-4 sm:grid-cols-3 lg:grid-cols-5">
       <div>
         <p class="text-muted-foreground text-xs font-medium uppercase">{{ $t('planned.subscriptions.amount') }}</p>
-        <p class="mt-1 text-sm font-medium">
-          {{
+        <p class="mt-1 text-sm font-medium" :class="getTransactionTypeStyles(subscription.transactionType, '')">
+          {{ getTransactionTypePrefix(subscription.transactionType)
+          }}{{
             subscription.expectedAmount && subscription.expectedCurrencyCode
               ? formatAmountByCurrencyCode(subscription.expectedAmount, subscription.expectedCurrencyCode)
               : '–'

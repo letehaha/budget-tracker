@@ -6,4 +6,5 @@
 export { extractTransactionsWithAI } from './ai-extraction.service';
 export { estimateExtractionCost } from './cost-estimation.service';
 export { validateFileBuffer } from './file-validator';
+export { resolveTextExtractionSuggestion } from './text-extraction-suggestion';
 export { extractTextFromFile } from './text-extractor';

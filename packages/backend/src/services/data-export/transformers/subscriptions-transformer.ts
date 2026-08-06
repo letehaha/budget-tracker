@@ -62,6 +62,7 @@ export async function transformSubscriptions({ userId }: { userId: number }): Pr
           })
         : '',
       active: sub.isActive,
+      transactionType: sub.transactionType,
       linkedTransactionsCount: linkedCountById.get(sub.id) ?? 0,
     };
   });
