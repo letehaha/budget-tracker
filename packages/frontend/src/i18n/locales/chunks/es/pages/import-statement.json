@@ -70,7 +70,10 @@
           "almostDone": "Casi listo..."
         },
         "tokenFormat": "{inputTokens}K entrada, ~{outputTokens}K salida",
-        "fileSize": "{size} KB"
+        "fileSize": "{size} KB",
+        "pdfPasswordLabel": "Contraseña del PDF",
+        "pdfPasswordPlaceholder": "Introduzca la contraseña del documento",
+        "pdfPasswordSubmit": "Desbloquear y analizar"
       },
       "accountSelect": {
         "newlyCreated": "(recién creada)",

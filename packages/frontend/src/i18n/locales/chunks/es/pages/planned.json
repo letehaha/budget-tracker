@@ -112,7 +112,13 @@
           "requiresAccount": "El registro automático necesita una cuenta.",
           "requiresAmount": "El registro automático necesita un importe y una moneda.",
           "conflictsMatching": "Las reglas de coincidencia existentes fueron eliminadas — el registro automático y las reglas de coincidencia no pueden usarse juntos."
-        }
+        },
+        "transactionTypeLabel": "Tipo de transacción",
+        "transactionTypeExpense": "Gasto",
+        "transactionTypeIncome": "Ingreso",
+        "transactionTypeExpenseDesc": "Salida de efectivo recurrente",
+        "transactionTypeIncomeDesc": "Nómina recurrente, honorario fijo o depósito programado",
+        "transactionTypeLockedTooltip": "El tipo de transacción no se puede cambiar después de crear la suscripción"
       },
       "progress": {
         "title": "Progreso de cuotas",
@@ -183,7 +189,11 @@
         "perYear": "{amount}/año",
         "acrossSubscriptions": "entre {count} suscripción activa | entre {count} suscripciones activas",
         "acrossBills": "entre {count} factura activa | entre {count} facturas activas",
-        "acrossAll": "entre {count} suscripciones y facturas activas"
+        "acrossAll": "entre {count} suscripciones y facturas activas",
+        "spendingLabel": "Gasto mensual",
+        "incomeLabel": "Ingreso esperado",
+        "monthlyIncome": "~{amount}/mes",
+        "acrossIncome": "entre {count} ingreso activo | entre {count} ingresos activos"
       },
       "candidates": {
         "discover": "Descubrir",

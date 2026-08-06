@@ -112,7 +112,8 @@
             "6": "6 bulan terakhir",
             "12": "12 bulan terakhir"
           }
-        }
+        },
+        "incomeSummary": "{count} aktif · {amount}/bln pemasukan"
       },
       "categoryTracker": {
         "title": "Pantauan Kategori",

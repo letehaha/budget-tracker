@@ -211,7 +211,8 @@
       "webhookNotImplemented": "handleWebhook ще не реалізовано для Monobank",
       "unknownCurrencyCode": "Невідомий код валюти: {{numericCode}}",
       "geoBlocked": "Monobank блокує запити з IP-адреси цього сервера. Вимкніть VPN або використайте українську IP-адресу.",
-      "geoBlockedProduction": "Синхронізація Monobank тимчасово недоступна. Ми отримали сповіщення і працюємо над виправленням. Зверніться до підтримки, якщо це терміново."
+      "geoBlockedProduction": "Синхронізація Monobank тимчасово недоступна. Ми отримали сповіщення і працюємо над виправленням. Зверніться до підтримки, якщо це терміново.",
+      "accountReconnectRequired": "Цей рахунок більше не доступний у Monobank. Будь ласка, повторно підключіть з'єднання з Monobank, щоб відновити синхронізацію."
     },
     "enableBanking": {
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Enable Banking",
@@ -277,7 +278,10 @@
     "textExtractionFailed": "Не вдалося витягнути текст. PDF може бути сканованим документом. Витягнення з зображень ще не реалізовано.",
     "failedToExtractText": "Не вдалося витягнути текст з файлу.",
     "failedToExtractTextPdf": "Не вдалося витягнути текст з PDF. Можливо, це сканований документ.",
-    "fileContentRequired": "Вміст файлу обов'язковий"
+    "fileContentRequired": "Вміст файлу обов'язковий",
+    "pdfPasswordRequired": "Цей PDF захищено паролем. Введіть пароль документа, щоб продовжити.",
+    "pdfPasswordInvalid": "Введений пароль неправильний. Перевірте його та спробуйте ще раз.",
+    "pdfParseFailed": "Не вдалося прочитати цей PDF. Можливо, файл пошкоджено або використано непідтримуваний формат."
   },
   "currencies": {
     "notSupportedForBaseCurrency": "Зміна базової валюти на {{currency}} не підтримується. Підтримуються лише такі валюти: {{supportedCurrencies}}.",
@@ -454,7 +458,8 @@
         "requiresAmountField": "Автоматичне записування потребує expectedAmount та expectedCurrencyCode.",
         "excludesMatchingField": "Автоматичне записування та правила зіставлення є взаємовиключними."
       }
-    }
+    },
+    "cannotLinkDifferentTransactionType": "Неможливо прив'язати транзакції з типом, відмінним від типу регулярного платежу"
   },
   "payees": {
     "aliasNameRequired": "Назва псевдоніма обов'язкова",
