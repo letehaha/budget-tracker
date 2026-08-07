@@ -3,7 +3,7 @@ import { ApiErrorResponseError, AuthError, UnexpectedError } from '@/js/errors';
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { QueryClient, type QueryKey } from '@tanstack/vue-query';
 
-import { persistedImmutableQueryFn, persistedQueryFn } from './query-persister';
+import { persistedImmutableQueryFn, persistedQueryFn, removePersistedQuery } from './query-persister';
 
 // Client-terminal codes: the caller cannot fix by retrying (auth/permission
 // gaps, missing resources, malformed requests). Transient codes like
@@ -94,3 +94,13 @@ if (persistedImmutableQueryFn) {
     queryClient.setQueryDefaults(queryKey, { persister: persistedImmutableQueryFn });
   }
 }
+
+/**
+ * Use instead of `invalidateQueries` for any key listed above. Invalidating alone leaves
+ * the disk snapshot behind, and once the in-memory entry is garbage-collected the next
+ * fetch restores that pre-mutation snapshot instead of refetching.
+ */
+export const invalidatePersistedQuery = async ({ queryKey }: { queryKey: QueryKey }): Promise<void> => {
+  await removePersistedQuery({ queryKey });
+  await queryClient.invalidateQueries({ queryKey });
+};
