@@ -34,7 +34,8 @@ interface GetInvestmentContributionsParams {
  * same-portfolio currency exchange counts as nothing. Market growth, dividends and
  * buys/sells are cash<->holdings moves inside a portfolio (InvestmentTransactions,
  * never a PortfolioTransfer), so they are excluded by construction rather than by
- * subtraction — the number is "money you added", never "money that grew".
+ * subtraction — the number is "money you added", never "money that grew". A transfer
+ * flagged `isAdjustment` is excluded too: it restates a balance rather than funding one.
  *
  * `savingsNet` rides alongside as the user-wide income-minus-expense per bucket for
  * the "share of savings" card, deliberately unscoped by `portfolioIds`.
@@ -65,11 +66,14 @@ export const getInvestmentContributions = async ({
       // Only the scoped portfolios' boundary-crossing transfers. Skipped whole when
       // no portfolio is in scope — an `Op.in []` matches nothing yet still round-trips.
       // `refAmount` keeps its Money getter (no `raw`), and `date` is DATEONLY so the
-      // string `Op.between` is an exact inclusive day range.
+      // string `Op.between` is an exact inclusive day range. Adjustments are dropped
+      // here: they reconcile recorded cash to reality, so counting them would read a
+      // correction as money the user contributed.
       scopeIds.length > 0
         ? PortfolioTransfers.findAll({
             where: {
               userId,
+              isAdjustment: false,
               date: { [Op.between]: [from, to] },
               [Op.or]: [{ fromPortfolioId: { [Op.in]: scopeIds } }, { toPortfolioId: { [Op.in]: scopeIds } }],
             },

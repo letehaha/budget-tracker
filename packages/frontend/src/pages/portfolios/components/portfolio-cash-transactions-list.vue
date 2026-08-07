@@ -2,7 +2,7 @@
   <div>
     <!-- Loading -->
     <div v-if="isLoading" class="space-y-3">
-      <div v-for="i in 3" :key="i" class="flex items-center justify-between py-2">
+      <div v-for="i in SKELETON_ROWS" :key="i" class="flex items-center justify-between py-2">
         <div class="space-y-1.5">
           <div class="bg-muted h-4 w-24 animate-pulse rounded" />
           <div class="bg-muted h-3 w-16 animate-pulse rounded" />
@@ -12,58 +12,110 @@
     </div>
 
     <!-- Empty state -->
-    <p v-else-if="!transfers?.length" class="text-muted-foreground py-4 text-center text-sm">
-      {{ $t('portfolioDetail.cashBalances.cashTransactions.emptyState') }}
-    </p>
+    <div v-else-if="!rows.length" class="flex flex-col items-center gap-2 py-8 text-center">
+      <div class="bg-muted text-muted-foreground flex size-10 items-center justify-center rounded-full">
+        <ArrowRightLeftIcon class="size-5" />
+      </div>
+      <p class="text-sm font-medium">{{ $t('portfolioDetail.cashBalances.cashTransactions.emptyState') }}</p>
+      <p class="text-muted-foreground max-w-xs text-xs">
+        {{ $t('portfolioDetail.cashBalances.cashTransactions.emptyStateDescription') }}
+      </p>
+    </div>
 
     <!-- Transfers list -->
     <div v-else class="divide-y">
       <div
-        v-for="transfer in transfers"
+        v-for="{ transfer, dp } in rows"
         :key="transfer.id"
         class="flex items-center justify-between py-3 first:pt-0 last:pb-0"
       >
-        <template v-for="(dp, _) in [getTransferDisplayProps(transfer)]" :key="_">
-          <div class="flex items-center gap-3">
-            <div class="flex size-8 items-center justify-center rounded-full" :class="dp.iconContainerClass">
-              <component :is="dp.icon" class="size-4" />
-            </div>
-            <div>
-              <p class="text-sm font-medium">{{ dp.label }}</p>
-              <p class="text-muted-foreground text-xs">
-                {{ formatDate(transfer.date) }}
-                <span v-if="transfer.description"> &middot; {{ transfer.description }}</span>
-              </p>
-            </div>
+        <div class="flex items-center gap-3">
+          <div class="flex size-8 items-center justify-center rounded-full" :class="dp.iconContainerClass">
+            <component :is="dp.icon" class="size-4" />
+          </div>
+          <div>
+            <p class="flex items-center gap-2 text-sm font-medium">
+              {{ dp.label }}
+              <span
+                v-if="transfer.isAdjustment"
+                class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium tracking-wide uppercase"
+              >
+                {{ $t('portfolioDetail.cashBalances.cashTransactions.adjustmentBadge') }}
+              </span>
+            </p>
+            <p class="text-muted-foreground text-xs">
+              {{ formatDate(transfer.date) }}
+              <span v-if="transfer.description"> &middot; {{ transfer.description }}</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div v-if="dp.type === 'exchange' && transfer.toCurrencyCode && transfer.toAmount" class="text-right">
+            <p class="text-app-expense-color text-sm font-semibold">
+              -{{ formatAmountByCurrencyCode(Number(transfer.amount), transfer.currencyCode) }}
+            </p>
+            <p class="text-app-income-color text-sm font-semibold">
+              +{{ formatAmountByCurrencyCode(Number(transfer.toAmount), transfer.toCurrencyCode) }}
+            </p>
+          </div>
+          <div v-else class="text-right">
+            <p class="text-sm font-semibold" :class="dp.amountClass">
+              {{ dp.amountPrefix }}{{ formatAmountByCurrencyCode(Number(transfer.amount), transfer.currencyCode) }}
+            </p>
           </div>
 
-          <div class="flex items-center gap-3">
-            <div v-if="dp.type === 'exchange' && transfer.toCurrencyCode && transfer.toAmount" class="text-right">
-              <p class="text-app-expense-color text-sm font-semibold">
-                -{{ formatAmountByCurrencyCode(Number(transfer.amount), transfer.currencyCode) }}
-              </p>
-              <p class="text-app-income-color text-sm font-semibold">
-                +{{ formatAmountByCurrencyCode(Number(transfer.toAmount), transfer.toCurrencyCode) }}
-              </p>
-            </div>
-            <div v-else class="text-right">
-              <p class="text-sm font-semibold" :class="dp.amountClass">
-                {{ dp.amountPrefix }}{{ formatAmountByCurrencyCode(Number(transfer.amount), transfer.currencyCode) }}
-              </p>
-            </div>
+          <template v-if="!isMobile">
+            <DesktopOnlyTooltip :content="$t('portfolioDetail.cashBalances.cashTransactions.edit')">
+              <UiButton
+                variant="ghost"
+                size="icon-sm"
+                :aria-label="$t('portfolioDetail.cashBalances.cashTransactions.edit')"
+                @click="openEditDialog(transfer)"
+              >
+                <PencilIcon class="size-3.5" />
+              </UiButton>
+            </DesktopOnlyTooltip>
 
-            <UiButton
-              variant="ghost-destructive"
-              size="icon-sm"
-              :disabled="deleteMutation.isPending.value"
-              @click="openDeleteDialog(transfer)"
-            >
-              <Trash2Icon class="size-3.5" />
-            </UiButton>
-          </div>
-        </template>
+            <DesktopOnlyTooltip :content="$t('portfolioDetail.actions.delete')">
+              <UiButton
+                variant="ghost-destructive"
+                size="icon-sm"
+                :disabled="deleteMutation.isPending.value"
+                :aria-label="$t('portfolioDetail.actions.delete')"
+                @click="openDeleteDialog(transfer)"
+              >
+                <Trash2Icon class="size-3.5" />
+              </UiButton>
+            </DesktopOnlyTooltip>
+          </template>
+
+          <DropdownMenu v-else>
+            <DropdownMenuTrigger as-child>
+              <UiButton
+                variant="ghost"
+                size="icon-sm"
+                :aria-label="$t('portfolioDetail.cashBalances.cashTransactions.rowActions')"
+              >
+                <EllipsisVerticalIcon class="size-4" />
+              </UiButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem @click="openEditDialog(transfer)">
+                <PencilIcon class="mr-2 size-4" />
+                {{ $t('portfolioDetail.cashBalances.cashTransactions.edit') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem :disabled="deleteMutation.isPending.value" @click="openDeleteDialog(transfer)">
+                <Trash2Icon class="text-destructive-text mr-2 size-4" />
+                {{ $t('portfolioDetail.actions.delete') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
+    <EditCashTransactionDialog v-model:open="isEditDialogOpen" :portfolio-id="portfolioId" :transfer="transferToEdit" />
+
     <!-- Delete confirmation dialog -->
     <ResponsiveAlertDialog
       v-model:open="isDeleteDialogOpen"
@@ -98,27 +150,60 @@
 </template>
 
 <script setup lang="ts">
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/common/dropdown-menu';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useDeletePortfolioTransfer, usePortfolioTransfers } from '@/composable/data-queries/portfolio-transfers';
 import { useFormatCurrency } from '@/composable/formatters';
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import EditCashTransactionDialog from '@/pages/portfolios/components/edit-cash-transaction-dialog.vue';
 import type { PortfolioModel } from '@bt/shared/types';
 import type { PortfolioTransferModel } from '@bt/shared/types/investments';
 import { format } from 'date-fns';
-import { ArrowDownIcon, ArrowUpIcon, RefreshCwIcon, Trash2Icon } from '@lucide/vue';
-import { ref, toRef } from 'vue';
+import {
+  ArrowDownIcon,
+  ArrowRightLeftIcon,
+  ArrowUpIcon,
+  EllipsisVerticalIcon,
+  PencilIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+} from '@lucide/vue';
+import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+const SKELETON_ROWS = 3;
 
 const props = defineProps<{ portfolioId: string; portfolio: PortfolioModel }>();
 const portfolioId = toRef(props, 'portfolioId');
 
 const { t } = useI18n();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
+// Row actions collapse into a dropdown on phones, matching the Cash Balances header.
+const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
 const { data: transfers, isLoading } = usePortfolioTransfers(portfolioId);
 const deleteMutation = useDeletePortfolioTransfer();
+
+const rows = computed(() =>
+  (transfers.value ?? []).map((transfer) => ({ transfer, dp: getTransferDisplayProps(transfer) })),
+);
+
+const isEditDialogOpen = ref(false);
+const transferToEdit = ref<PortfolioTransferModel | null>(null);
+
+const openEditDialog = (transfer: PortfolioTransferModel) => {
+  transferToEdit.value = transfer;
+  isEditDialogOpen.value = true;
+};
 
 const linkedTxAction = ref<'keep' | 'delete'>('keep');
 const isDeleteDialogOpen = ref(false);

@@ -8,6 +8,7 @@ import {
   getTransactionPortfolioLink,
   linkTransactionToPortfolio,
   portfolioToAccountTransfer,
+  setTransferAdjustment,
   unlinkTransactionFromPortfolio,
 } from '@/api/portfolios';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
@@ -82,6 +83,20 @@ export const useDeletePortfolioTransfer = () => {
   return useMutation({
     mutationFn: (params: { portfolioId: string; transferId: string; deleteLinkedTransaction?: boolean }) =>
       deletePortfolioTransfer(params),
+    onSuccess: () => invalidateTransferRelatedQueries(queryClient),
+  });
+};
+
+/**
+ * Re-classifies a transfer as a balance correction or back into a real
+ * contribution. Only the flag moves, so the portfolio balance is untouched and
+ * the shared invalidation is enough to refresh the contributions analytics.
+ */
+export const useSetTransferAdjustment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: Parameters<typeof setTransferAdjustment>[0]) => setTransferAdjustment(params),
     onSuccess: () => invalidateTransferRelatedQueries(queryClient),
   });
 };

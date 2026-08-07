@@ -6,6 +6,7 @@ import SelectField from '@/components/fields/select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import * as AlertDialog from '@/components/lib/ui/alert-dialog';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { Separator } from '@/components/lib/ui/separator';
 import { NotificationType, useNotificationCenter } from '@/components/notification-center';
@@ -95,11 +96,13 @@ const directForm = reactive<{
   selectedCurrency: UserCurrencyModel | null;
   date: Date;
   description: string;
+  isAdjustment: boolean;
 }>({
   amount: '',
   selectedCurrency: null,
   date: new Date(),
   description: '',
+  isAdjustment: false,
 });
 
 // Transfer mode form
@@ -222,6 +225,7 @@ const resetDirectForm = () => {
   directForm.selectedCurrency = null;
   directForm.date = new Date();
   directForm.description = '';
+  directForm.isAdjustment = false;
   resetDirectValidation();
 };
 
@@ -292,6 +296,7 @@ const onSubmit = async () => {
         currencyCode: directForm.selectedCurrency!.currencyCode,
         date: directForm.date.toISOString().split('T')[0]!,
         description: directForm.description || undefined,
+        isAdjustment: directForm.isAdjustment,
       });
 
       addNotification({
@@ -455,6 +460,22 @@ const accountLabel = computed(() =>
           :placeholder="$t('forms.directCashTransaction.descriptionPlaceholder')"
           :disabled="isAnyMutationPending || disabled"
         />
+
+        <label class="flex cursor-pointer items-start gap-3">
+          <Checkbox
+            v-model="directForm.isAdjustment"
+            :disabled="isAnyMutationPending || disabled"
+            class="mt-0.5 shrink-0"
+          />
+          <span class="grid gap-1">
+            <span class="text-sm leading-none font-medium">
+              {{ $t('forms.directCashTransaction.adjustmentLabel') }}
+            </span>
+            <span class="text-muted-foreground text-xs">
+              {{ $t('forms.directCashTransaction.adjustmentHint') }}
+            </span>
+          </span>
+        </label>
       </template>
 
       <!-- ─── Transfer mode ─── -->

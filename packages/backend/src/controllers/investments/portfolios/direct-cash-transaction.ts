@@ -15,6 +15,7 @@ const schema = z.object({
     currencyCode: currencyCode(),
     date: dateString(),
     description: z.string().nullable().optional(),
+    isAdjustment: z.boolean().optional(),
   }),
 });
 
@@ -27,6 +28,7 @@ export default createController(schema, async ({ user, params, body }) => {
     currencyCode: body.currencyCode,
     date: body.date,
     description: body.description || null,
+    isAdjustment: body.isAdjustment ?? false,
   });
 
   return { data: serializeTransferResponse({ transfer }) };

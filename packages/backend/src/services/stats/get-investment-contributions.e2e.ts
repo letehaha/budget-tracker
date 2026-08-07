@@ -271,6 +271,109 @@ describe('GET /stats/investment-contributions', () => {
     expect(buckets[0]!.total).toBe(1000);
   });
 
+  describe('adjustments', () => {
+    it('excludes a deposit created as an adjustment', async () => {
+      const portfolio = await createNamedPortfolio({ name: 'Reconciled' });
+      await deposit({ portfolioId: portfolio.id, amount: '500', date: '2026-01-10' });
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '9000',
+          currencyCode: global.BASE_CURRENCY_CODE,
+          date: '2026-01-20',
+          isAdjustment: true,
+        },
+        raw: true,
+      });
+
+      const { buckets } = await helpers.getInvestmentContributions({ ...RANGE, raw: true });
+
+      expect(buckets[0]!.total).toBe(500);
+      expect(buckets[0]!.byPortfolio).toEqual([{ portfolioId: portfolio.id, amount: 500 }]);
+    });
+
+    it('still moves portfolio cash for an adjustment it excludes from contributions', async () => {
+      const portfolio = await createNamedPortfolio({ name: 'CashMoves' });
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '9000',
+          currencyCode: global.BASE_CURRENCY_CODE,
+          date: '2026-01-20',
+          isAdjustment: true,
+        },
+        raw: true,
+      });
+
+      const [balance] = await helpers.getPortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode: global.BASE_CURRENCY_CODE,
+        raw: true,
+      });
+
+      // The correction is not a contribution, but the money is genuinely there.
+      expect(balance!.totalCash).toBeNumericEqual(9000);
+    });
+
+    it('drops an existing deposit from contributions once it is flagged as an adjustment', async () => {
+      const portfolio = await createNamedPortfolio({ name: 'Reclassified' });
+      const transfer = await deposit({ portfolioId: portfolio.id, amount: '700', date: '2026-01-12' });
+
+      const before = await helpers.getInvestmentContributions({ ...RANGE, raw: true });
+      expect(before.buckets[0]!.total).toBe(700);
+
+      await helpers.setTransferAdjustment({
+        portfolioId: portfolio.id,
+        transferId: transfer.id,
+        payload: { isAdjustment: true },
+        raw: true,
+      });
+
+      const after = await helpers.getInvestmentContributions({ ...RANGE, raw: true });
+      expect(after.buckets[0]!.total).toBe(0);
+      expect(after.buckets[0]!.byPortfolio).toEqual([]);
+    });
+
+    it('restores an adjustment to a contribution when the flag is cleared', async () => {
+      const portfolio = await createNamedPortfolio({ name: 'Restored' });
+      const transfer = await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: {
+          type: 'deposit',
+          amount: '400',
+          currencyCode: global.BASE_CURRENCY_CODE,
+          date: '2026-01-18',
+          isAdjustment: true,
+        },
+        raw: true,
+      });
+
+      await helpers.setTransferAdjustment({
+        portfolioId: portfolio.id,
+        transferId: transfer.id,
+        payload: { isAdjustment: false },
+        raw: true,
+      });
+
+      const { buckets } = await helpers.getInvestmentContributions({ ...RANGE, raw: true });
+      expect(buckets[0]!.total).toBe(400);
+    });
+
+    it('returns 404 for a transfer that does not exist', async () => {
+      const portfolio = await createNamedPortfolio({ name: 'Missing' });
+
+      const response = await helpers.setTransferAdjustment({
+        portfolioId: portfolio.id,
+        transferId: generateRandomRecordId(),
+        payload: { isAdjustment: true },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
   describe('validation', () => {
     it('rejects an unknown granularity', async () => {
       const response = await helpers.makeRequest({

@@ -23,6 +23,7 @@ import listPortfolioTransfersController from '@controllers/investments/portfolio
 import listPortfoliosController from '@controllers/investments/portfolios/list-portfolios';
 import portfolioToAccountTransferController from '@controllers/investments/portfolios/portfolio-to-account-transfer';
 import restorePortfolioController from '@controllers/investments/portfolios/restore-portfolio';
+import setTransferAdjustmentController from '@controllers/investments/portfolios/set-transfer-adjustment';
 import updatePortfolioController from '@controllers/investments/portfolios/update-portfolio';
 import updatePortfolioBalanceController from '@controllers/investments/portfolios/update-portfolio-balance';
 import getPricesController from '@controllers/investments/prices/get-prices.controller';
@@ -133,6 +134,13 @@ router.get(
   '/portfolios/:id/transfers',
   validateEndpoint(listPortfolioTransfersController.schema),
   listPortfolioTransfersController.handler,
+);
+
+router.patch(
+  '/portfolios/:id/transfers/:transferId/adjustment',
+  checkBaseCurrencyLock,
+  validateEndpoint(setTransferAdjustmentController.schema),
+  setTransferAdjustmentController.handler,
 );
 
 router.delete(

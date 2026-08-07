@@ -8,6 +8,7 @@ import {
   linkTransactionToPortfolio as _linkTransactionToPortfolio,
   listPortfolioTransfers as _listPortfolioTransfers,
   portfolioToAccountTransfer as _portfolioToAccountTransfer,
+  setTransferAdjustment as _setTransferAdjustment,
   unlinkTransactionFromPortfolio as _unlinkTransactionFromPortfolio,
 } from '@services/investments/portfolios/transfers';
 
@@ -161,12 +162,32 @@ export async function directCashTransaction<R extends boolean | undefined = fals
     currencyCode: string;
     date: string;
     description?: string | null;
+    isAdjustment?: boolean;
   };
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _directCashTransaction>>, R>({
     method: 'post',
     url: `/investments/portfolios/${portfolioId}/cash-transaction`,
+    payload,
+    raw,
+  });
+}
+
+export async function setTransferAdjustment<R extends boolean | undefined = false>({
+  portfolioId,
+  transferId,
+  payload,
+  raw,
+}: {
+  portfolioId: string;
+  transferId: string;
+  payload: { isAdjustment: boolean };
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof _setTransferAdjustment>>, R>({
+    method: 'patch',
+    url: `/investments/portfolios/${portfolioId}/transfers/${transferId}/adjustment`,
     payload,
     raw,
   });
