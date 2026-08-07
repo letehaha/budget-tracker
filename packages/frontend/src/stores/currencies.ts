@@ -1,6 +1,6 @@
 import { getAllCurrencies, loadUserBaseCurrency, loadUserCurrencies } from '@/api/currencies';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
-import { queryClient } from '@/lib/query-client';
+import { invalidatePersistedQuery, queryClient } from '@/lib/query-client';
 import { CurrencyModel, UserCurrencyModel } from '@bt/shared/types';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -39,16 +39,16 @@ export const useCurrenciesStore = defineStore('currencies', () => {
   );
 
   // Both fetches run through the vue-query cache (staleTime Infinity) so they dedupe on
-  // init and can be persisted/invalidated by key. `force` marks the cached entries stale
-  // first, so post-mutation reloads pull fresh data instead of returning the cache.
+  // init and can be persisted/invalidated by key. `force` drops the cached entries first,
+  // so post-mutation reloads pull fresh data instead of returning the cache.
   //
   // `fetchQuery`, not `ensureQueryData` – the latter short-circuits on present data
   // and would hand back the entry `force` just invalidated, making the flag inert.
   const loadCurrencies = async ({ force = false }: { force?: boolean } = {}) => {
     if (force) {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.userCurrencies }),
-        queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.allCurrencies }),
+        invalidatePersistedQuery({ queryKey: VUE_QUERY_CACHE_KEYS.userCurrencies }),
+        invalidatePersistedQuery({ queryKey: VUE_QUERY_CACHE_KEYS.allCurrencies }),
       ]);
     }
 
@@ -74,7 +74,7 @@ export const useCurrenciesStore = defineStore('currencies', () => {
 
   const loadBaseCurrency = async ({ force = false }: { force?: boolean } = {}) => {
     if (force) {
-      await queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.baseCurrency });
+      await invalidatePersistedQuery({ queryKey: VUE_QUERY_CACHE_KEYS.baseCurrency });
     }
 
     const result = await queryClient.fetchQuery({
