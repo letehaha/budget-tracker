@@ -46,7 +46,19 @@
         "deleteConfirm": "Hapus transaksi kas ini?",
         "linkedTransactionNote": "Transfer ini memiliki transaksi akun terkait. Apa yang ingin Anda lakukan?",
         "keepLinkedTransaction": "Pertahankan transaksi akun. Detail transaksi asli akan dipulihkan.",
-        "deleteLinkedTransaction": "Juga hapus transaksi akun terkait"
+        "deleteLinkedTransaction": "Juga hapus transaksi akun terkait",
+        "adjustmentBadge": "Penyesuaian",
+        "markedAsAdjustment": "Ditandai sebagai koreksi saldo",
+        "markedAsContribution": "Ditandai sebagai kontribusi nyata",
+        "adjustmentError": "Gagal memperbarui transfer ini",
+        "rowActions": "Tindakan transaksi",
+        "emptyStateDescription": "Setoran, penarikan, dan transfer untuk portofolio ini akan muncul di sini.",
+        "edit": "Sunting",
+        "editDialog": {
+          "title": "Sunting transaksi kas",
+          "description": "Ubah cara transaksi ini diperlakukan dalam laporan.",
+          "save": "Simpan perubahan"
+        }
       },
       "buysSells": {
         "emptyState": "Tidak ada transaksi beli/jual",

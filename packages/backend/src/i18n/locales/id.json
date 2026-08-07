@@ -449,6 +449,8 @@
     "transactionsNotFoundOrNotBelongToUser": "Satu atau lebih transaksi tidak ditemukan atau bukan milik pengguna.",
     "summaryCurrencyNotConnected": "Ringkasan langganan tidak dapat dihitung: mata uang {{currencyCodes}} tidak terhubung ke akun Anda. Hubungkan di Pengaturan → Mata Uang.",
     "summaryBaseCurrencyNotSet": "Mata uang dasar belum diatur. Atur mata uang bawaan di pengaturan Anda untuk melihat ringkasan langganan.",
+    "payeeNotFoundOrNotBelongToUser": "Penerima tidak ditemukan atau bukan milik pengguna.",
+    "tagsNotFoundOrNotBelongToUser": "Satu atau lebih tag tidak ditemukan atau bukan milik pengguna.",
     "validation": {
       "autoRecord": {
         "requiresAccount": "Perekaman otomatis memerlukan akun agar transaksi yang dicatat memiliki tempat tujuan.",

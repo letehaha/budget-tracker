@@ -164,6 +164,8 @@
       "currencyPlaceholder": "Оберіть валюту",
       "dateLabel": "Дата",
       "descriptionLabel": "Опис",
+      "adjustmentLabel": "Це коригування балансу",
+      "adjustmentHint": "Грошовий баланс усе одно зміниться, але це не враховуватиметься як внесені вами гроші у звіті «Інвестиційні внески».",
       "descriptionPlaceholder": "Необов'язковий опис",
       "cancelButton": "Скасувати",
       "submitButton": "Підтвердити",

@@ -164,6 +164,8 @@
       "currencyPlaceholder": "Seleccionar moneda",
       "dateLabel": "Fecha",
       "descriptionLabel": "Descripción",
+      "adjustmentLabel": "Esto es una corrección de saldo",
+      "adjustmentHint": "El saldo en efectivo cambia igualmente, pero esto no contará como dinero aportado en el informe de Aportaciones de inversión.",
       "descriptionPlaceholder": "Descripción opcional",
       "cancelButton": "Cancelar",
       "submitButton": "Enviar",

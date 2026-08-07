@@ -164,6 +164,8 @@
       "currencyPlaceholder": "Pilih mata uang",
       "dateLabel": "Tanggal",
       "descriptionLabel": "Deskripsi",
+      "adjustmentLabel": "Ini adalah koreksi saldo",
+      "adjustmentHint": "Saldo kas tetap berubah, tetapi ini tidak akan dihitung sebagai uang yang Anda kontribusikan dalam laporan Kontribusi Investasi.",
       "descriptionPlaceholder": "Deskripsi opsional",
       "cancelButton": "Batal",
       "submitButton": "Kirim",

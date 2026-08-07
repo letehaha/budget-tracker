@@ -46,7 +46,19 @@
         "deleteConfirm": "¿Eliminar esta transacción en efectivo?",
         "linkedTransactionNote": "Esta transferencia tiene una transacción de cuenta vinculada. ¿Qué desea hacer con ella?",
         "keepLinkedTransaction": "Conservar la transacción de cuenta. Se restaurarán los detalles originales de la transacción.",
-        "deleteLinkedTransaction": "Eliminar también la transacción de cuenta vinculada"
+        "deleteLinkedTransaction": "Eliminar también la transacción de cuenta vinculada",
+        "adjustmentBadge": "Ajuste",
+        "markedAsAdjustment": "Marcada como corrección de saldo",
+        "markedAsContribution": "Marcada como aportación real",
+        "adjustmentError": "Error al actualizar esta transferencia",
+        "rowActions": "Acciones de transacción",
+        "emptyStateDescription": "Los depósitos, retiros y transferencias de esta cartera aparecerán aquí.",
+        "edit": "Editar",
+        "editDialog": {
+          "title": "Editar transacción en efectivo",
+          "description": "Cambie cómo se trata esta transacción en los informes.",
+          "save": "Guardar cambios"
+        }
       },
       "buysSells": {
         "emptyState": "Sin transacciones de compra/venta",
