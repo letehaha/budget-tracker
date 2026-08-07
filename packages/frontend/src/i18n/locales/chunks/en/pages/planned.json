@@ -17,7 +17,6 @@
       "typeInstallment": "Installment",
       "completed": "Completed",
       "paused": "Paused",
-      "pausedSection": "Paused ({count})",
       "edit": "Edit",
       "cancel": "Cancel",
       "pauseSubscription": "Pause",
@@ -185,6 +184,20 @@
         "name": "Name · A–Z",
         "recent": "Recently added"
       },
+      "groups": {
+        "overdue": "Overdue ({count})",
+        "dueSoon": "Due this week ({count})",
+        "thisMonth": "Later this month ({count})",
+        "later": "Upcoming ({count})",
+        "noSchedule": "No schedule ({count})",
+        "active": "Active ({count})",
+        "paused": "Paused ({count})"
+      },
+      "errorState": {
+        "title": "Couldn't load your subscriptions",
+        "description": "Something went wrong while loading the list. Check your connection and try again.",
+        "retry": "Try again"
+      },
       "summary": {
         "filterAll": "All",
         "filterSubscriptions": "Subscriptions",
@@ -194,12 +207,10 @@
         "monthlyCost": "~{amount}/mo",
         "incomeLabel": "Expected income",
         "monthlyIncome": "~{amount}/mo",
-        "yearlyProjected": "{amount} projected",
-        "perYear": "{amount}/yr",
-        "acrossSubscriptions": "across {count} active subscription | across {count} active subscriptions",
-        "acrossBills": "across {count} active bill | across {count} active bills",
-        "acrossAll": "across {count} active subscriptions & bills",
-        "acrossIncome": "across {count} active income payment | across {count} active income payments"
+        "acrossIncome": "across {count} active income payment | across {count} active income payments",
+        "projectedPerYearLabel": "Projected / yr",
+        "activeCountLabel": "Active",
+        "loadError": "Couldn't load the summary."
       },
       "candidates": {
         "discover": "Discover",

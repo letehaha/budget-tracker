@@ -1,5 +1,18 @@
-import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_MATCH_SOURCE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_MATCH_SOURCE,
+  SUBSCRIPTION_TYPES,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import type { ComposerTranslation } from 'vue-i18n';
+
+/** Sentinel for "no type filter" in the list page tabs and the summary card. */
+export const ALL_TYPES_FILTER = 'all' as const;
+
+export type SubscriptionTypeFilter = SUBSCRIPTION_TYPES | typeof ALL_TYPES_FILTER;
+
+export const isSubscriptionTypeFilter = (value: unknown): value is SubscriptionTypeFilter =>
+  value === ALL_TYPES_FILTER || Object.values(SUBSCRIPTION_TYPES).includes(value as SUBSCRIPTION_TYPES);
 
 export const formatFrequency = ({
   frequency,

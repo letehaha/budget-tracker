@@ -17,9 +17,9 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
-import { useLocalStorage } from '@vueuse/core';
+import { useLocalStorage, useNow } from '@vueuse/core';
 import { addYears, endOfMonth, isWithinInterval, parseISO, startOfDay } from 'date-fns';
-import { PlusIcon, RepeatIcon, SearchIcon } from '@lucide/vue';
+import { CircleAlertIcon, PlusIcon, RepeatIcon, SearchIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -31,11 +31,15 @@ import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dial
 import SubscriptionsPeriodSelector from './components/subscriptions-period-selector.vue';
 import SubscriptionsSortSelect from './components/subscriptions-sort-select.vue';
 import SubscriptionsSummary from './components/subscriptions-summary.vue';
+import { type SubscriptionGroup, groupSubscriptions } from './group-subscriptions';
 import {
+  ALL_TYPES_FILTER,
   DEFAULT_SUBSCRIPTION_SORT,
   SUBSCRIPTION_SORT_STORAGE_KEY,
   type SubscriptionSortKey,
+  type SubscriptionTypeFilter,
   isSubscriptionSortKey,
+  isSubscriptionTypeFilter,
 } from './utils';
 
 const { t } = useI18n();
@@ -47,11 +51,19 @@ const isCreateDialogOpen = ref(false);
 const isDiscoverDialogOpen = ref(false);
 const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null);
 const deleteTarget = ref<SubscriptionListItem | null>(null);
-const activeFilter = ref<string>('all');
+const activeFilter = ref<SubscriptionTypeFilter>(ALL_TYPES_FILTER);
 
-const ALL_TIME_END = endOfMonth(addYears(startOfDay(new Date()), 10));
+const setActiveFilter = (value: string) => {
+  if (isSubscriptionTypeFilter(value)) activeFilter.value = value;
+};
+
+// Single clock for the page: grouping and every row read the same value, so a
+// tick past midnight moves them together instead of drifting apart.
+const now = useNow({ interval: 60_000 });
+
+const ALL_TIME_END = endOfMonth(addYears(startOfDay(now.value), 10));
 const periodFilter = ref<Period>({
-  from: startOfDay(new Date()),
+  from: startOfDay(now.value),
   to: ALL_TIME_END,
 });
 
@@ -64,7 +76,12 @@ if (!isSubscriptionSortKey(sortBy.value)) sortBy.value = DEFAULT_SUBSCRIPTION_SO
 // Full list (active + inactive) — a separate cache entry from the active-only
 // widgets. The server returns it already sorted, so `sortBy` is part of the
 // cache key; type/period filtering is client-side below.
-const { data: subscriptions, isPlaceholderData } = useSubscriptionsList({
+const {
+  data: subscriptions,
+  isPlaceholderData,
+  isError,
+  refetch,
+} = useSubscriptionsList({
   filter: computed(() => ({ sortBy: sortBy.value })),
 });
 
@@ -73,7 +90,7 @@ const filteredSubscriptions = computed(() => {
 
   let result = subscriptions.value;
 
-  if (activeFilter.value !== 'all') {
+  if (activeFilter.value !== ALL_TYPES_FILTER) {
     result = result.filter((s) => s.type === activeFilter.value);
   }
 
@@ -89,7 +106,7 @@ const filteredSubscriptions = computed(() => {
 });
 
 const filterItems = computed(() => [
-  { value: 'all', label: t('planned.subscriptions.summary.filterAll') },
+  { value: ALL_TYPES_FILTER, label: t('planned.subscriptions.summary.filterAll') },
   { value: SUBSCRIPTION_TYPES.subscription, label: t('planned.subscriptions.summary.filterSubscriptions') },
   { value: SUBSCRIPTION_TYPES.bill, label: t('planned.subscriptions.summary.filterBills') },
   { value: SUBSCRIPTION_TYPES.installment, label: t('planned.subscriptions.summary.filterInstallments') },
@@ -137,10 +154,14 @@ const confirmDelete = async () => {
   }
 };
 
-// Paused (inactive) items sink into their own section at the bottom; active
-// items keep the server-provided due-date order above.
-const activeSubscriptions = computed(() => filteredSubscriptions.value.filter((s) => s.isActive));
-const pausedSubscriptions = computed(() => filteredSubscriptions.value.filter((s) => !s.isActive));
+const groups = computed(() =>
+  groupSubscriptions({ subscriptions: filteredSubscriptions.value, sortBy: sortBy.value, now: now.value }),
+);
+
+const hasLoadError = computed(() => isError.value && !subscriptions.value?.length);
+
+const groupLabel = ({ group }: { group: SubscriptionGroup }): string =>
+  t(group.labelKey, { count: group.items.length });
 
 const navigateToDetail = ({ subscription }: { subscription: SubscriptionListItem }) => {
   router.push({
@@ -181,7 +202,7 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
 
     <!-- Filter Tabs + Period + Sort -->
     <div class="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-      <PillTabs v-model="activeFilter" :items="filterItems" />
+      <PillTabs :model-value="activeFilter" :items="filterItems" @update:model-value="setActiveFilter" />
       <div class="flex flex-wrap items-center justify-between gap-2">
         <SubscriptionsPeriodSelector v-model="periodFilter" />
         <SubscriptionsSortSelect v-model="sortBy" />
@@ -191,42 +212,47 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
     <SubscriptionsSummary :active-filter="activeFilter" class="mb-3 sm:mb-6" />
 
     <!-- Loading Skeleton -->
-    <div v-if="isPlaceholderData" class="divide-border border-border divide-y rounded-lg border">
-      <div v-for="i in 5" :key="i" class="flex animate-pulse items-center gap-4 px-4 py-3">
-        <div class="bg-muted h-5 w-32 rounded" />
-        <div class="bg-muted h-4 w-16 rounded-full" />
-        <div class="bg-muted h-4 w-20 rounded" />
-        <div class="bg-muted ml-auto h-4 w-24 rounded" />
+    <div v-if="isPlaceholderData" class="animate-pulse">
+      <div class="bg-muted mb-2 ml-1 h-3 w-24 rounded" />
+      <div class="divide-border border-border bg-card divide-y rounded-lg border">
+        <div v-for="i in 5" :key="i" class="flex items-center gap-2.5 px-4 py-3">
+          <div class="bg-muted size-8 shrink-0 rounded-full" />
+          <div class="flex min-w-0 flex-col gap-1.5">
+            <div class="bg-muted h-4 w-36 rounded" />
+            <div class="bg-muted h-3 w-24 rounded" />
+          </div>
+          <div class="bg-muted ml-auto h-4 w-20 rounded" />
+        </div>
       </div>
     </div>
 
-    <!-- Subscription List -->
-    <template v-else-if="filteredSubscriptions.length">
-      <!-- Active -->
-      <div v-if="activeSubscriptions.length" class="divide-border border-border @container divide-y rounded-lg border">
-        <SubscriptionRow
-          v-for="subscription in activeSubscriptions"
-          :key="subscription.id"
-          :subscription="subscription"
-          :is-marking-paid="isMarkingPaid"
-          @select="navigateToDetail({ subscription: $event })"
-          @pay="payPeriod({ subscription: $event })"
-          @toggle-active="handleToggleActive({ subscription: $event })"
-          @delete="deleteTarget = $event"
-        />
+    <!-- Error State -->
+    <div v-else-if="hasLoadError" class="flex flex-col items-center justify-center py-12 text-center">
+      <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
+        <CircleAlertIcon class="text-destructive-text size-8" />
       </div>
+      <h3 class="mb-1 font-medium">{{ $t('planned.subscriptions.errorState.title') }}</h3>
+      <p class="text-muted-foreground max-w-sm text-sm">
+        {{ $t('planned.subscriptions.errorState.description') }}
+      </p>
+      <Button variant="outline" class="mt-4" @click="refetch()">
+        {{ $t('planned.subscriptions.errorState.retry') }}
+      </Button>
+    </div>
 
-      <!-- Paused (inactive) -->
-      <div v-if="pausedSubscriptions.length" class="mt-6">
+    <!-- Subscription List -->
+    <div v-else-if="filteredSubscriptions.length" class="flex flex-col gap-6">
+      <div v-for="group in groups" :key="group.key">
         <h2 class="text-muted-foreground mb-2 px-1 text-xs font-medium tracking-wide uppercase">
-          {{ $t('planned.subscriptions.pausedSection', { count: pausedSubscriptions.length }) }}
+          {{ groupLabel({ group }) }}
         </h2>
-        <div class="divide-border border-border @container divide-y rounded-lg border">
+        <div class="divide-border border-border bg-card @container divide-y rounded-lg border">
           <SubscriptionRow
-            v-for="subscription in pausedSubscriptions"
+            v-for="subscription in group.items"
             :key="subscription.id"
             :subscription="subscription"
             :is-marking-paid="isMarkingPaid"
+            :now="now"
             @select="navigateToDetail({ subscription: $event })"
             @pay="payPeriod({ subscription: $event })"
             @toggle-active="handleToggleActive({ subscription: $event })"
@@ -234,7 +260,7 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
           />
         </div>
       </div>
-    </template>
+    </div>
 
     <!-- Empty State -->
     <div v-else class="flex flex-col items-center justify-center py-12 text-center">
@@ -246,7 +272,7 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
         {{ $t('planned.subscriptions.emptyState.description') }}
       </p>
       <Button class="mt-4" @click="isCreateDialogOpen = true">
-        <PlusIcon class="mr-2 size-4" />
+        <PlusIcon class="size-4" />
         {{ $t('planned.subscriptions.addSubscription') }}
       </Button>
     </div>
