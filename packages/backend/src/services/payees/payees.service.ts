@@ -13,6 +13,7 @@ import { connection } from '@models/connection';
 import PayeeAliases from '@models/payee-aliases.model';
 import PayeeTags from '@models/payee-tags.model';
 import Payees from '@models/payees.model';
+import Subscriptions from '@models/subscriptions.model';
 import Tags from '@models/tags.model';
 import Transactions from '@models/transactions.model';
 import {
@@ -508,6 +509,10 @@ export const mergePayees = withTransaction(
 
     // Move transactions.
     await Transactions.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
+
+    // Move subscription payee rules before the source is deleted: the FK
+    // SET NULL would otherwise silently drop the rule.
+    await Subscriptions.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
 
     // `categorizationMeta.payeeId` on previously-categorized rows still points
     // at the source id after merge – accepted as an audit-only dangling

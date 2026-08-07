@@ -9,6 +9,7 @@ import { createTransaction } from '@services/transactions/create-transaction';
 import { buildTransactionFromSubscription } from './build-transaction-from-subscription';
 import { ensureNextPeriodExists } from './ensure-next-period';
 import { findSubscriptionOrThrow, validateAccountOwnership } from './helpers';
+import { stampSubscriptionPayeeAndTags } from './stamp-payee-and-tags';
 
 interface MarkPeriodPaidParams {
   userId: number;
@@ -120,6 +121,12 @@ export const markPeriodPaid = withTransaction(
       transactionAutoCreated: shouldCreateTransaction,
       notes: notes ?? period.notes,
     });
+
+    // LINK mode only: a CREATE-mode transaction is already built with the
+    // subscription's payee and tags.
+    if (!shouldCreateTransaction && linkedTransactionId != null) {
+      await stampSubscriptionPayeeAndTags({ subscription, transactionIds: [linkedTransactionId] });
+    }
 
     // Ensure the next upcoming period exists so the schedule continues.
     await ensureNextPeriodExists({ subscription });

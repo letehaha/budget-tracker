@@ -8,6 +8,7 @@ import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-curre
 import type { CreateTransactionParams } from '@services/transactions/types';
 
 import { convertSubscriptionAmountToAccountCurrency } from './convert-subscription-amount';
+import { getSubscriptionTagIds } from './subscription-tags';
 
 /**
  * Translates a subscription into the params for `createTransaction`.
@@ -107,6 +108,8 @@ export async function buildTransactionFromSubscription({
   const categoryId =
     subscription.categoryId ?? (await Users.getUserDefaultCategory({ id: subscription.userId })) ?? undefined;
 
+  const tagIds = await getSubscriptionTagIds({ subscriptionId: subscription.id });
+
   return {
     userId: subscription.userId,
     accountId: subscription.accountId,
@@ -116,6 +119,10 @@ export async function buildTransactionFromSubscription({
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     accountType: ACCOUNT_TYPES.system,
     categoryId,
+    payeeId: subscription.payeeId ?? undefined,
+    // Even an empty tagIds array makes createTransaction skip the Payee's own
+    // default tags. Pass undefined to leave that rule in charge.
+    tagIds: tagIds.length > 0 ? tagIds : undefined,
     time: effectiveTime,
     note: subscription.name,
   };

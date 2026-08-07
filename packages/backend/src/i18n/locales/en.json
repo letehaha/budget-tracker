@@ -458,6 +458,8 @@
     "cannotLinkDifferentTransactionType": "Cannot link transactions with a different type than the recurring payment",
     "summaryCurrencyNotConnected": "Subscriptions summary can't be calculated: currency {{currencyCodes}} is not connected to your account. Connect it in Settings → Currencies.",
     "summaryBaseCurrencyNotSet": "Base currency is not set. Set a default currency in your settings to view the subscriptions summary.",
+    "payeeNotFoundOrNotBelongToUser": "Payee not found or does not belong to user.",
+    "tagsNotFoundOrNotBelongToUser": "One or more tags were not found or do not belong to user.",
     "validation": {
       "autoRecord": {
         "requiresAccount": "Auto-record requires an account so the booked transaction has somewhere to land.",

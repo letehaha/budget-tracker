@@ -5,7 +5,9 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
+import Payees from '@models/payees.model';
 import Subscriptions from '@models/subscriptions.model';
+import Tags from '@models/tags.model';
 
 /**
  * A monetary amount is meaningless without its currency, and the pay path treats
@@ -51,6 +53,23 @@ export const validateCategoryOwnership = async ({ categoryId, userId }: { catego
     query: Categories.findOne({ where: { id: categoryId, userId } }),
     message: 'Category not found or does not belong to user.',
   });
+};
+
+export const validatePayeeOwnership = async ({ payeeId, userId }: { payeeId: string; userId: number }) => {
+  await findOrThrowNotFound({
+    query: Payees.findOne({ where: { id: payeeId, userId } }),
+    message: t({ key: 'subscriptions.payeeNotFoundOrNotBelongToUser' }),
+  });
+};
+
+export const validateTagsOwnership = async ({ tagIds, userId }: { tagIds: string[]; userId: number }) => {
+  const uniqueTagIds = [...new Set(tagIds)];
+  if (uniqueTagIds.length === 0) return;
+
+  const ownedCount = await Tags.count({ where: { id: uniqueTagIds, userId } });
+  if (ownedCount !== uniqueTagIds.length) {
+    throw new ValidationError({ message: t({ key: 'subscriptions.tagsNotFoundOrNotBelongToUser' }) });
+  }
 };
 
 /**

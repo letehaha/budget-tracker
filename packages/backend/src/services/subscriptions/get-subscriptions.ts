@@ -16,6 +16,7 @@ import { col, fn, literal, Op } from 'sequelize';
 
 import { computeEffectiveNextDueDate, sortSubscriptions, type SubscriptionSortBy } from './sort-subscriptions';
 import { computeNextExpectedDate } from './subscription-date.utils';
+import { getSubscriptionTagIds, loadSubscriptionTagIds } from './subscription-tags';
 
 export { computeNextExpectedDate };
 
@@ -47,6 +48,7 @@ interface SubscriptionBase extends Pick<
   | 'endDate'
   | 'accountId'
   | 'categoryId'
+  | 'payeeId'
   | 'matchingRules'
   | 'isActive'
   | 'transactionType'
@@ -64,6 +66,7 @@ interface SubscriptionBase extends Pick<
 > {
   /** Cents-backed Money on the model, surfaced here as a decimal number. */
   expectedAmount: number | null;
+  tagIds: string[];
   account: SubscriptionAccount | null;
   category: SubscriptionCategory | null;
 }
@@ -181,7 +184,9 @@ export const getSubscriptions = async ({
   await backfillLogosForUnresolved({ subscriptions });
 
   const mapped = subscriptions.map((s) => {
-    const plain = s.toJSON() as unknown as SubscriptionBase & { linkedTransactionsCount: number | string | null };
+    const plain = s.toJSON() as unknown as Omit<SubscriptionBase, 'tagIds'> & {
+      linkedTransactionsCount: number | string | null;
+    };
     return {
       ...plain,
       expectedAmount: centsToApiDecimalOrNull(plain.expectedAmount),
@@ -256,10 +261,13 @@ export const getSubscriptions = async ({
     if (row.latestTime) latestTxTimeBySubscriptionId.set(row.id, row.latestTime);
   }
 
+  const tagIdsBySubscriptionId = await loadSubscriptionTagIds({ subscriptionIds });
+
   const items: SubscriptionListItem[] = mapped.map((item) => {
     const currentPeriod = earliestBySubscriptionId.get(item.id) ?? null;
     return {
       ...item,
+      tagIds: tagIdsBySubscriptionId.get(item.id) ?? [],
       currentPeriod,
       paidPeriodsCount: paidCountBySubscriptionId.get(item.id) ?? 0,
       nextDueDate: computeEffectiveNextDueDate({
@@ -308,7 +316,7 @@ export const getSubscriptionById = async ({
 
   // toJSON() is untyped; describe the loaded shape (Money fields still boxed,
   // join-table metadata nested under SubscriptionTransactions) so the rest is typed.
-  const raw = subscription.toJSON() as unknown as SubscriptionBase & {
+  const raw = subscription.toJSON() as unknown as Omit<SubscriptionBase, 'tagIds'> & {
     transactions?: Array<
       TransactionsAttributes & {
         SubscriptionTransactions: Pick<SubscriptionTransactions, 'matchSource' | 'matchedAt' | 'status'>;
@@ -335,6 +343,7 @@ export const getSubscriptionById = async ({
   return {
     ...raw,
     expectedAmount: centsToApiDecimalOrNull(raw.expectedAmount),
+    tagIds: await getSubscriptionTagIds({ subscriptionId: id }),
     transactions,
     nextExpectedDate,
     periods: raw.periods ?? [],

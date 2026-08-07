@@ -36,6 +36,7 @@ import ShareInvitationsModel from './share-invitations.model';
 import SubscriptionCandidatesModel from './subscription-candidates.model';
 import SubscriptionPeriodNotificationsModel from './subscription-period-notifications.model';
 import SubscriptionPeriodsModel from './subscription-periods.model';
+import SubscriptionTagsModel from './subscription-tags.model';
 import SubscriptionTransactionsModel from './subscription-transactions.model';
 import SubscriptionsModel from './subscriptions.model';
 import TagRemindersModel from './tag-reminders.model';
@@ -114,6 +115,7 @@ const models = [
   SubscriptionPeriodsModel,
   SubscriptionPeriodNotificationsModel,
   SubscriptionTransactionsModel,
+  SubscriptionTagsModel,
   SubscriptionCandidatesModel,
   PayeesModel,
   PayeeAliasesModel,

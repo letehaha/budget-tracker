@@ -7,6 +7,8 @@ import * as Transactions from '@models/transactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 
+import { stampSubscriptionPayeeAndTags } from './stamp-payee-and-tags';
+
 interface MatchTransactionParams {
   transaction: Transactions.default;
   userId: number;
@@ -96,6 +98,8 @@ export const matchTransactionToSubscriptions = withTransaction(
         },
       });
     }
+
+    await stampSubscriptionPayeeAndTags({ subscription: best.subscription, transactionIds: [transaction.id] });
 
     logger.info(
       `Subscription "${best.subscription.name}" matched transaction ${transaction.id} (score: ${best.score.toFixed(3)}, candidates: ${candidates.length})`,

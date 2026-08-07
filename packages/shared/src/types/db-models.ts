@@ -622,6 +622,13 @@ export interface SubscriptionModel extends EntityLogoFields {
   endDate: string | null;
   accountId: RecordId | null;
   categoryId: RecordId | null;
+  /** Payee stamped onto transactions matched or booked by this subscription,
+   *  unless the transaction already carries a payee or the user locked it. */
+  payeeId: RecordId | null;
+  /** Tags merged (add-only) onto transactions matched or booked by this
+   *  subscription. Optional because it is an association, so responses that
+   *  return a bare subscription row omit it. */
+  tagIds?: RecordId[];
   matchingRules: SubscriptionMatchingRules;
   isActive: boolean;
   notes: string | null;
