@@ -61,6 +61,11 @@ export interface PortfolioTransferModel {
   refToAmount: string | null;
   transactionId: string | null;
   metaData: Record<string, unknown> | null;
+  /**
+   * The transfer reconciles recorded cash to reality instead of recording money
+   * that crossed the portfolio boundary, so contribution reporting skips it.
+   */
+  isAdjustment: boolean;
   date: string;
   description: string | null;
   createdAt: Date;

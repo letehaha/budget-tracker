@@ -156,6 +156,7 @@ interface DirectCashTransactionRequest {
   currencyCode: string;
   date: string;
   description?: string | null;
+  isAdjustment?: boolean;
 }
 
 type DirectCashTransactionParams = { portfolioId: string } & DirectCashTransactionRequest;
@@ -165,6 +166,21 @@ export const createDirectCashTransaction = async ({
   ...params
 }: DirectCashTransactionParams): Promise<PortfolioTransferModel> => {
   const result = await api.post(`/investments/portfolios/${portfolioId}/cash-transaction`, params);
+  return result;
+};
+
+export const setTransferAdjustment = async ({
+  portfolioId,
+  transferId,
+  isAdjustment,
+}: {
+  portfolioId: string;
+  transferId: string;
+  isAdjustment: boolean;
+}): Promise<PortfolioTransferModel> => {
+  const result = await api.patch(`/investments/portfolios/${portfolioId}/transfers/${transferId}/adjustment`, {
+    isAdjustment,
+  });
   return result;
 };
 

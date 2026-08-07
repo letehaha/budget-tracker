@@ -13,26 +13,26 @@ export const computeNextExpectedDate = ({
   const start = parseISO(startDate);
   const now = new Date();
 
-  // Find the latest linked transaction date
-  let lastDate = start;
-  if (transactions && transactions.length > 0) {
-    const txDates = transactions.map((tx) => (tx.time ? new Date(tx.time) : null)).filter((d): d is Date => d !== null);
+  const txDates = (transactions ?? [])
+    .map((tx) => (tx.time ? new Date(tx.time) : null))
+    .filter((d): d is Date => d !== null);
 
-    if (txDates.length > 0) {
-      lastDate = max(txDates);
-    }
+  // A start date that hasn't arrived yet is itself the next payment, so nothing is advanced.
+  if (txDates.length === 0 && toUtcDay({ date: start }) >= toUtcDay({ date: now })) {
+    return toUtcDay({ date: start });
   }
 
-  // Advance from lastDate by frequency until we get a future date
-  let next = addFrequency({ date: lastDate, frequency });
+  // Advance from the latest known payment by frequency until we get a future date
+  let next = addFrequency({ date: txDates.length > 0 ? max(txDates) : start, frequency });
 
-  // If the computed next date is still in the past, keep advancing
   while (next < now) {
     next = addFrequency({ date: next, frequency });
   }
 
-  return next.toISOString().split('T')[0]!;
+  return toUtcDay({ date: next });
 };
+
+const toUtcDay = ({ date }: { date: Date }): string => date.toISOString().split('T')[0]!;
 
 const addFrequency = ({ date, frequency }: { date: Date; frequency: SUBSCRIPTION_FREQUENCIES }): Date => {
   switch (frequency) {

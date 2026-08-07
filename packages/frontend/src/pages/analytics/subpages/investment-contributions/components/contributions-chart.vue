@@ -7,38 +7,52 @@
       <div
         v-show="tooltip.visible"
         ref="tooltipRef"
-        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 rounded-lg border px-3 py-2 text-sm shadow-lg"
+        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-[18rem] rounded-xl border px-4 py-3 text-sm shadow-xl"
         :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
       >
-        <div v-if="tooltip.isAverage" class="flex items-center gap-2">
-          <span>{{ t('investmentContributions.average') }}:</span>
-          <span class="font-medium">{{ formatBaseCurrency(tooltip.averageValue) }}</span>
+        <div v-if="tooltip.isAverage">
+          <div class="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">
+            {{ t('investmentContributions.average') }}
+          </div>
+          <div class="text-lg font-semibold tracking-tight tabular-nums">
+            {{ formatBaseCurrency(tooltip.averageValue) }}
+          </div>
         </div>
 
         <template v-else>
-          <div class="mb-1 font-medium">{{ tooltip.period }}</div>
-
-          <div class="flex items-center gap-2">
-            <span>{{ t('investmentContributions.chart.total') }}:</span>
-            <span class="font-medium">{{ formatBaseCurrency(tooltip.total) }}</span>
+          <div class="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">
+            {{ tooltip.period }}
           </div>
 
-          <div v-if="tooltip.segments.length" class="border-border mt-1 space-y-0.5 border-t pt-1">
-            <div v-for="segment in tooltip.segments" :key="segment.portfolioId" class="flex items-center gap-2">
-              <span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: segment.color }"></span>
-              <span>{{ segment.name }}:</span>
-              <span class="font-medium">{{ formatBaseCurrency(segment.amount) }}</span>
-            </div>
-          </div>
-
-          <div
-            v-if="tooltip.showMomChange && tooltip.momChangePct !== undefined"
-            class="border-border mt-1 border-t pt-1"
-          >
-            <span class="mr-2">{{ t('investmentContributions.chart.vsPrevious') }}:</span>
-            <span :class="['font-medium', changeColorClass(tooltip.momChangePct)]">
-              {{ tooltip.momChangePct > 0 ? '+' : '' }}{{ tooltip.momChangePct }}%
+          <div class="mt-1 flex items-baseline justify-between gap-6">
+            <span class="text-xl font-semibold tracking-tight tabular-nums">
+              {{ formatBaseCurrency(tooltip.total) }}
             </span>
+            <span
+              v-if="tooltip.showMomChange && tooltip.momChangePct !== undefined"
+              class="flex items-baseline gap-1.5"
+            >
+              <span class="text-muted-foreground text-[11px]">
+                {{ t('investmentContributions.chart.vsPrevious') }}
+              </span>
+              <span :class="['text-sm font-semibold tabular-nums', changeColorClass(tooltip.momChangePct)]">
+                {{ tooltip.momChangePct > 0 ? '+' : '' }}{{ tooltip.momChangePct }}%
+              </span>
+            </span>
+          </div>
+
+          <div v-if="tooltip.segments.length" class="border-border/60 mt-3 space-y-2 border-t pt-3">
+            <div
+              v-for="segment in tooltip.segments"
+              :key="segment.portfolioId"
+              class="flex items-center justify-between gap-6"
+            >
+              <span class="flex min-w-0 items-center gap-2">
+                <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: segment.color }"></span>
+                <span class="truncate">{{ segment.name }}</span>
+              </span>
+              <span class="font-medium tabular-nums">{{ formatBaseCurrency(segment.amount) }}</span>
+            </div>
           </div>
         </template>
       </div>

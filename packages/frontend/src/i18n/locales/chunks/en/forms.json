@@ -164,6 +164,8 @@
       "currencyPlaceholder": "Select currency",
       "dateLabel": "Date",
       "descriptionLabel": "Description",
+      "adjustmentLabel": "This is a balance correction",
+      "adjustmentHint": "The cash balance still changes, but this won't count as money you contributed in the Investment Contributions report.",
       "descriptionPlaceholder": "Optional description",
       "cancelButton": "Cancel",
       "submitButton": "Submit",

@@ -14,8 +14,11 @@ import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, Da
 
 import Accounts from './accounts.model';
 import Categories from './categories.model';
+import Payees from './payees.model';
 import SubscriptionPeriods from './subscription-periods.model';
+import SubscriptionTags from './subscription-tags.model';
 import SubscriptionTransactions from './subscription-transactions.model';
+import Tags from './tags.model';
 import Transactions from './transactions.model';
 import Users from './users.model';
 
@@ -97,6 +100,13 @@ export default class Subscriptions extends Model {
     allowNull: true,
   })
   categoryId!: RecordId | null;
+
+  @ForeignKey(() => Payees)
+  @Column({
+    type: DataType.UUID,
+    allowNull: true,
+  })
+  payeeId!: RecordId | null;
 
   @Column({
     type: DataType.JSONB,
@@ -218,6 +228,17 @@ export default class Subscriptions extends Model {
 
   @BelongsTo(() => Categories)
   category!: Categories;
+
+  @BelongsTo(() => Payees)
+  payee!: Payees;
+
+  @BelongsToMany(() => Tags, {
+    through: () => SubscriptionTags,
+    foreignKey: 'subscriptionId',
+    otherKey: 'tagId',
+    as: 'tags',
+  })
+  tags?: Tags[];
 
   @BelongsToMany(() => Transactions, {
     through: { model: () => SubscriptionTransactions, unique: false },

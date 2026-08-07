@@ -7,4 +7,5 @@ export * from './get-transaction-portfolio-link.service';
 export * from './link-transaction-to-portfolio.service';
 export * from './list-portfolio-transfers.service';
 export * from './portfolio-to-account-transfer.service';
+export * from './set-transfer-adjustment.service';
 export * from './unlink-transaction-from-portfolio.service';

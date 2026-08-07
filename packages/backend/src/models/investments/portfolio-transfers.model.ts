@@ -103,6 +103,14 @@ export default class PortfolioTransfers extends Model {
   @Column({ type: DataType.JSONB, allowNull: true, defaultValue: null })
   metaData!: Record<string, unknown> | null;
 
+  /**
+   * The row reconciles recorded cash to reality instead of recording money that
+   * crossed the portfolio boundary. Contribution reporting skips it; cash and
+   * balance reconstruction still counts it, because the money did move.
+   */
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isAdjustment!: boolean;
+
   @ForeignKey(() => Transactions)
   @Index
   @Column({ type: DataType.UUID, allowNull: true, defaultValue: null, onDelete: 'SET NULL' })

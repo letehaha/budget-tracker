@@ -40,6 +40,8 @@ interface CreateSubscriptionPayload extends EntityLogoPayload {
   endDate?: string | null;
   accountId?: string | null;
   categoryId?: string | null;
+  payeeId?: string | null;
+  tagIds?: string[];
   matchingRules?: { rules: Array<Record<string, unknown>> };
   notes?: string | null;
   dueDate?: string | null;
@@ -60,6 +62,8 @@ interface UpdateSubscriptionPayload extends EntityLogoPayload {
   endDate?: string | null;
   accountId?: string | null;
   categoryId?: string | null;
+  payeeId?: string | null;
+  tagIds?: string[];
   matchingRules?: { rules: Array<Record<string, unknown>> };
   isActive?: boolean;
   notes?: string | null;

@@ -40,6 +40,8 @@ const schema = z.object({
         endDate: dateBound().nullable().optional(),
         accountId: recordId().nullable().optional(),
         categoryId: recordId().nullable().optional(),
+        payeeId: recordId().nullable().optional(),
+        tagIds: z.array(recordId()).optional(),
         matchingRules: z
           .object({ rules: z.array(matchingRuleSchema) })
           .optional()

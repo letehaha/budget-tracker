@@ -20,6 +20,12 @@ interface DirectCashTransactionParams {
   currencyCode: string;
   date: string;
   description?: string | null;
+  /**
+   * The deposit or withdrawal only reconciles the recorded cash to reality, so
+   * contribution reporting must not read it as money the user added. The cash
+   * balance still moves either way.
+   */
+  isAdjustment?: boolean;
 }
 
 const directCashTransactionImpl = async ({
@@ -30,6 +36,7 @@ const directCashTransactionImpl = async ({
   currencyCode,
   date,
   description,
+  isAdjustment = false,
 }: DirectCashTransactionParams) => {
   validatePositiveAmount({ amount });
 
@@ -53,6 +60,7 @@ const directCashTransactionImpl = async ({
     currencyCode,
     date,
     description,
+    isAdjustment,
   });
 
   // Update portfolio cash balance

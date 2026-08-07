@@ -8,6 +8,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
 import { findSubscriptionOrThrow } from './helpers';
+import { stampSubscriptionPayeeAndTags } from './stamp-payee-and-tags';
 
 interface LinkTransactionsParams {
   subscriptionId: RecordId;
@@ -101,6 +102,8 @@ export const linkTransactionsToSubscription = withTransaction(
         { where: { id: { [Op.in]: transactionIds } } },
       );
     }
+
+    await stampSubscriptionPayeeAndTags({ subscription, transactionIds });
 
     return { linked: transactionIds.length };
   },
