@@ -342,7 +342,8 @@
           "description": "Category, payee, tags and notes.",
           "edit": "Edit organization",
           "notesAdded": "Added",
-          "notesEmpty": "None"
+          "notesEmpty": "None",
+          "tagsMore": "+{count} more"
         }
       }
     }

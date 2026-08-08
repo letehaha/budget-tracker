@@ -20,6 +20,13 @@ const MIN_PAYMENTS_FOR_CHART = 4;
 /** A long pause would otherwise flood the chart with empty slots. */
 const MAX_GAP_SLOTS = 3;
 
+/**
+ * Only the most recent payments are charted. Bars have a min-width and no
+ * horizontal scroll, so an unbounded history (e.g. a weekly subscription)
+ * would overflow the card on narrow containers.
+ */
+const MAX_CHART_PAYMENTS = 24;
+
 /** Average calendar length of one billing period, used to count skipped periods. */
 const FREQUENCY_STEP_DAYS: Record<SUBSCRIPTION_FREQUENCIES, number> = {
   [SUBSCRIPTION_FREQUENCIES.weekly]: 7,
@@ -211,24 +218,29 @@ export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
     }));
 
   const latest = payments[0];
-  const refAmounts = payments.map((payment) => payment.refAmount);
-  const maxRefAmount = Math.max(0, ...refAmounts);
-  const minRefAmount = refAmounts.length ? Math.min(...refAmounts) : 0;
-  const refRange = maxRefAmount - minRefAmount;
-
-  const barHeightPct = ({ refAmount }: { refAmount: number }): number => {
-    if (maxRefAmount === 0) return MIN_BAR_HEIGHT_PCT;
-    if (refRange === 0) return 100;
-    return BAR_RANGE_FLOOR_PCT + ((refAmount - minRefAmount) / refRange) * (100 - BAR_RANGE_FLOOR_PCT);
-  };
 
   const buildChart = (): LinkedPaymentsChartSlot[] | null => {
     if (oldestFirst.length < MIN_PAYMENTS_FOR_CHART) return null;
 
+    const charted = oldestFirst.slice(-MAX_CHART_PAYMENTS);
+
+    // Heights scale within the charted window only, so an off-window outlier
+    // can't flatten the visible bars.
+    const refAmounts = charted.map((payment) => payment.refAmount);
+    const maxRefAmount = Math.max(0, ...refAmounts);
+    const minRefAmount = Math.min(...refAmounts);
+    const refRange = maxRefAmount - minRefAmount;
+
+    const barHeightPct = ({ refAmount }: { refAmount: number }): number => {
+      if (maxRefAmount === 0) return MIN_BAR_HEIGHT_PCT;
+      if (refRange === 0) return 100;
+      return BAR_RANGE_FLOOR_PCT + ((refAmount - minRefAmount) / refRange) * (100 - BAR_RANGE_FLOOR_PCT);
+    };
+
     const stepDays = FREQUENCY_STEP_DAYS[frequency];
 
-    return oldestFirst.flatMap((payment, index) => {
-      const previous = oldestFirst[index - 1];
+    return charted.flatMap((payment, index) => {
+      const previous = charted[index - 1];
       const gap = previous ? buildGap({ previous, current: payment, stepDays }) : null;
 
       const bar: LinkedPaymentsChartBar = {
@@ -240,7 +252,7 @@ export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
         currencyCode: payment.currencyCode,
         refAmount: payment.refAmount,
         refCurrencyCode: payment.refCurrencyCode,
-        isLatest: index === oldestFirst.length - 1,
+        isLatest: index === charted.length - 1,
       };
 
       return gap ? [gap, bar] : [bar];

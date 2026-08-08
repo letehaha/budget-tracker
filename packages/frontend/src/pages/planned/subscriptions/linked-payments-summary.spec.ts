@@ -218,6 +218,35 @@ describe('buildLinkedPaymentsSummary', () => {
     });
   });
 
+  describe('chart cap', () => {
+    const monthlyRun = ({ count, refAmount = 100 }: { count: number; refAmount?: number }): TestPayment[] =>
+      Array.from({ length: count }, (_, index) =>
+        buildTx({
+          id: `tx-${index}`,
+          refAmount,
+          time: new Date(Date.UTC(2020, index, 12, 10)).toISOString(),
+        }),
+      );
+
+    it('charts only the 24 most recent payments', () => {
+      const summary = buildSummary({ transactions: monthlyRun({ count: 40 }) });
+
+      const bars = paymentBars({ chart: summary.chart });
+      expect(bars).toHaveLength(24);
+      expect(bars[0]!.id).toBe('tx-16');
+      expect(bars[23]!.id).toBe('tx-39');
+      expect(bars[23]!.isLatest).toBe(true);
+    });
+
+    it('scales heights within the charted window, ignoring off-window outliers', () => {
+      const [outlier, ...rest] = monthlyRun({ count: 30 });
+      const summary = buildSummary({ transactions: [{ ...outlier!, refAmount: 100_000 }, ...rest] });
+
+      const bars = paymentBars({ chart: summary.chart });
+      expect(bars.every((bar) => bar.heightPct === 100)).toBe(true);
+    });
+  });
+
   describe('gap slots', () => {
     it('inserts one gap between payments that skipped a monthly period', () => {
       const summary = buildSummary({

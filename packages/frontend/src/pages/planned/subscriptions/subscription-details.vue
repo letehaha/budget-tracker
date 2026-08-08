@@ -21,10 +21,12 @@ import { useNotificationCenter } from '@/components/notification-center';
 import TransactionDetailsModal from '@/components/transactions-list/transaction-details-modal.vue';
 import { useManageTransactionDialog } from '@/components/transactions-list/use-manage-transaction-dialog';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
+import { usePayeeLookup } from '@/composable/data-queries/payees';
 import { useInvalidateSubscriptionQueries } from '@/composable/data-queries/subscriptions';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
+import { getCurrencyIcon } from '@/js/helpers/currencyImage';
 import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
 import { useTagsStore } from '@/stores';
@@ -111,6 +113,8 @@ watch(
   },
   { immediate: true },
 );
+
+const currencyFlagFailed = ref(false);
 
 const isActionsOpen = ref(false);
 const isBasicsEditorOpen = ref(false);
@@ -237,6 +241,19 @@ const resolvedTags = computed(() =>
     return tag ? [tag] : [];
   }),
 );
+
+const MAX_VISIBLE_TAGS = 2;
+const visibleTags = computed(() =>
+  resolvedTags.value.length > MAX_VISIBLE_TAGS ? resolvedTags.value.slice(0, 1) : resolvedTags.value,
+);
+const hiddenTagsCount = computed(() => resolvedTags.value.length - visibleTags.value.length);
+
+const { byId: payeesById } = usePayeeLookup();
+const resolvedPayee = computed(() => {
+  const payeeId = subscription.value?.payeeId;
+  if (!payeeId) return null;
+  return payeesById.value.get(payeeId) ?? null;
+});
 
 // --- Scheduled payment engine (only for subscriptions that have a dueDate / periods) ---
 
@@ -591,9 +608,22 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
               <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.typeLabel') }}</dt>
               <dd class="text-right font-medium">{{ $t(KIND_LABEL_KEYS[subscription.type]) }}</dd>
             </div>
-            <div class="flex items-baseline justify-between gap-3">
+            <div class="flex items-center justify-between gap-3">
               <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.currencyLabel') }}</dt>
-              <dd class="text-right font-medium">{{ subscription.expectedCurrencyCode ?? '–' }}</dd>
+              <dd class="flex items-center gap-1.5 text-right font-medium">
+                <template v-if="subscription.expectedCurrencyCode">
+                  <img
+                    v-if="!currencyFlagFailed"
+                    :src="getCurrencyIcon(subscription.expectedCurrencyCode)"
+                    :alt="subscription.expectedCurrencyCode"
+                    class="size-3.5 shrink-0 rounded-[2px]"
+                    loading="lazy"
+                    @error="currencyFlagFailed = true"
+                  />
+                  {{ subscription.expectedCurrencyCode }}
+                </template>
+                <template v-else>–</template>
+              </dd>
             </div>
           </dl>
         </div>
@@ -707,17 +737,39 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
                 <template v-else>–</template>
               </dd>
             </div>
+            <div v-if="subscription.payeeId" class="flex items-center justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.payeeLabel') }}</dt>
+              <dd class="flex items-center gap-1.5 text-right font-medium">
+                <template v-if="resolvedPayee">
+                  <BrandLogo
+                    :domain="resolvedPayee.logoDomain"
+                    :initials="resolvedPayee.logoInitials"
+                    :color="resolvedPayee.logoColor"
+                    :name="resolvedPayee.name"
+                    class="size-5 shrink-0"
+                  />
+                  {{ resolvedPayee.name }}
+                </template>
+                <template v-else>–</template>
+              </dd>
+            </div>
             <div class="flex items-baseline justify-between gap-3">
               <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.tagsLabel') }}</dt>
               <dd class="flex flex-wrap justify-end gap-1 text-right font-medium">
                 <template v-if="resolvedTags.length">
                   <span
-                    v-for="tag in resolvedTags"
+                    v-for="tag in visibleTags"
                     :key="tag.id"
                     class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white/90"
                     :style="{ backgroundColor: tag.color }"
                   >
                     {{ tag.name }}
+                  </span>
+                  <span
+                    v-if="hiddenTagsCount > 0"
+                    class="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                  >
+                    {{ $t('planned.subscriptions.editors.organize.tagsMore', { count: hiddenTagsCount }) }}
                   </span>
                 </template>
                 <template v-else-if="subscription.tagIds?.length">
@@ -726,14 +778,10 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
                 <template v-else>–</template>
               </dd>
             </div>
-            <div class="flex items-baseline justify-between gap-3">
+            <div v-if="subscription.notes" class="flex items-baseline justify-between gap-3">
               <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.notesLabel') }}</dt>
               <dd class="text-right font-medium">
-                {{
-                  subscription.notes
-                    ? $t('planned.subscriptions.editors.organize.notesAdded')
-                    : $t('planned.subscriptions.editors.organize.notesEmpty')
-                }}
+                {{ $t('planned.subscriptions.editors.organize.notesAdded') }}
               </dd>
             </div>
           </dl>
