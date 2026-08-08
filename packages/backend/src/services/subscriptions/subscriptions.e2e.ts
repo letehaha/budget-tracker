@@ -386,6 +386,61 @@ describe('Subscriptions', () => {
       expect(detail.transactions.length).toBe(1);
     });
 
+    it('links a transaction to another subscription after unlinking it from the first', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const subA = await helpers.createSubscription({
+        name: 'First Sub',
+        expectedAmount: 15,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+      const subB = await helpers.createSubscription({
+        name: 'Second Sub',
+        expectedAmount: 15,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1500,
+        }),
+        raw: true,
+      });
+
+      await helpers.linkTransactionsToSubscription({
+        id: subA.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      await helpers.unlinkTransactionsFromSubscription({
+        id: subA.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      const linkRes = await helpers.linkTransactionsToSubscription({
+        id: subB.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      expect(linkRes.linked).toBe(1);
+
+      const detailB = await helpers.getSubscriptionById({ id: subB.id, raw: true });
+      expect(detailB.transactions.length).toBe(1);
+      expect(detailB.transactions[0]!.id).toBe(tx.id);
+
+      const detailA = await helpers.getSubscriptionById({ id: subA.id, raw: true });
+      expect(detailA.transactions.length).toBe(0);
+    });
+
     it('unlinked transactions are excluded from suggestions', async () => {
       const account = await helpers.createAccount({ raw: true });
 
