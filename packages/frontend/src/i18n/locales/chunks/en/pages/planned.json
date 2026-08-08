@@ -46,7 +46,8 @@
         "legendRule": "Matched by rule",
         "legendAi": "Matched by AI",
         "legendManual": "Linked manually",
-        "chartLabel": "Payment amounts over time"
+        "chartLabel": "Payment amounts over time",
+        "gapTooltip": "No payments · {range}"
       },
       "quickAdd": {
         "currencyPlaceholder": "Select currency",

@@ -16,6 +16,7 @@ import { useI18n } from 'vue-i18n';
 
 import {
   type LinkedPaymentsChartBar,
+  type LinkedPaymentsChartGap,
   type LinkedPaymentsCurrencyTotal,
   buildLinkedPaymentsSummary,
 } from '../linked-payments-summary';
@@ -35,7 +36,12 @@ const invalidateSubscriptionQueries = useInvalidateSubscriptionQueries();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 
-const summary = computed(() => buildLinkedPaymentsSummary({ transactions: props.subscription.transactions ?? [] }));
+const summary = computed(() =>
+  buildLinkedPaymentsSummary({
+    transactions: props.subscription.transactions ?? [],
+    frequency: props.subscription.frequency,
+  }),
+);
 
 const hasMatchingRules = computed(() => (props.subscription.matchingRules?.rules?.length ?? 0) > 0);
 
@@ -83,6 +89,9 @@ const formatBarTooltip = ({ bar }: { bar: LinkedPaymentsChartBar }): string => {
   if (bar.currencyCode === bar.refCurrencyCode) return base;
   return `${base} ≈ ${formatAmountByCurrencyCode(bar.refAmount, bar.refCurrencyCode)}`;
 };
+
+/** Grows the gap block to the width its skipped slots would occupy as bars. */
+const gapBlockStyle = ({ gap }: { gap: LinkedPaymentsChartGap }) => ({ flex: `${gap.slotCount} 1 0%` });
 
 /** Expenses read with a leading minus, matching how transaction rows render amounts. */
 const formatRowAmount = ({ tx }: { tx: LinkedTransaction }): string =>
@@ -161,6 +170,7 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
         </div>
 
         <div
+          v-if="summary.chart"
           class="border-border/60 @lg/linked:border-border @lg/linked:bg-card border-t px-3 pt-3 pb-2.5 @lg/linked:rounded-lg @lg/linked:border @lg/linked:p-3.5"
         >
           <div
@@ -168,16 +178,34 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
             role="img"
             :aria-label="$t('planned.subscriptions.linked.chartLabel')"
           >
-            <ResponsiveTooltip v-for="bar in summary.chart" :key="bar.id" :delay-duration="100">
-              <div
-                class="max-w-9 min-w-2 flex-1 rounded-t-sm"
-                :class="bar.isLatest ? 'bg-app-expense-color' : 'bg-app-expense-color/30'"
-                :style="{ height: `${bar.heightPct}%` }"
-              />
-              <template #content>
-                <span class="tabular-nums">{{ formatBarTooltip({ bar }) }}</span>
-              </template>
-            </ResponsiveTooltip>
+            <template v-for="chartSlot in summary.chart" :key="chartSlot.id">
+              <ResponsiveTooltip v-if="chartSlot.kind === 'payment'" :delay-duration="100">
+                <div
+                  class="max-w-9 min-w-2 flex-1 rounded-t-sm"
+                  :class="chartSlot.isLatest ? 'bg-app-expense-color' : 'bg-app-expense-color/30'"
+                  :style="{ height: `${chartSlot.heightPct}%` }"
+                />
+                <template #content>
+                  <span class="tabular-nums">{{ formatBarTooltip({ bar: chartSlot }) }}</span>
+                </template>
+              </ResponsiveTooltip>
+
+              <ResponsiveTooltip v-else :delay-duration="100">
+                <div class="flex h-full items-end gap-1 @lg/linked:gap-1.5" :style="gapBlockStyle({ gap: chartSlot })">
+                  <div
+                    v-for="index in chartSlot.slotCount"
+                    :key="index"
+                    class="border-border max-w-9 min-w-2 flex-1 rounded-t-sm border border-dashed bg-transparent"
+                    style="height: 25%"
+                  />
+                </div>
+                <template #content>
+                  <span class="tabular-nums">
+                    {{ $t('planned.subscriptions.linked.gapTooltip', { range: chartSlot.rangeLabel }) }}
+                  </span>
+                </template>
+              </ResponsiveTooltip>
+            </template>
           </div>
 
           <i18n-t v-if="summary.drift" :keypath="driftKeypath" tag="p" class="text-muted-foreground mt-2.5 text-xs">
