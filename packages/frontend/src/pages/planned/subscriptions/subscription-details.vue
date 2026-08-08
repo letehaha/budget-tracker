@@ -9,7 +9,6 @@ import {
   toggleSubscriptionActive,
   unlinkSubscriptionPeriodTransaction,
   unlinkTransactionsFromSubscription,
-  updateSubscription,
 } from '@/api/subscriptions';
 import { loadTransactionById } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
@@ -23,21 +22,23 @@ import { useNotificationCenter } from '@/components/notification-center';
 import TransactionDetailsModal from '@/components/transactions-list/transaction-details-modal.vue';
 import { useManageTransactionDialog } from '@/components/transactions-list/use-manage-transaction-dialog';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
+import { useInvalidateSubscriptionQueries } from '@/composable/data-queries/subscriptions';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useFormatCurrency } from '@/composable/formatters';
 import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
+import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
+import { useTagsStore } from '@/stores';
 import {
   SUBSCRIPTION_MATCH_SOURCE,
   SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
-  TRANSACTION_TYPES,
-  type SubscriptionModel,
   type SubscriptionPeriodModel,
   type TransactionModel,
 } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { differenceInCalendarDays, format, parseISO, startOfDay } from 'date-fns';
+import { useNow } from '@vueuse/core';
+import { format, parseISO } from 'date-fns';
 import {
   CheckIcon,
   CirclePauseIcon,
@@ -58,9 +59,14 @@ import { useRoute, useRouter } from 'vue-router';
 
 import BrandLogo from '@/components/common/brand-logo.vue';
 
-import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
+import { AUTOMATION_MODES, type AutomationMode, deriveAutomationMode } from './automation-editor-state';
+import EditAutomationDialog from './components/edit-automation-dialog.vue';
+import EditBasicsDialog from './components/edit-basics-dialog.vue';
+import EditOrganizeDialog from './components/edit-organize-dialog.vue';
+import EditScheduleDialog from './components/edit-schedule-dialog.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
+import { daysUntilDue } from './subscription-due-status';
 import { formatFrequency, formatMatchSource, getTransactionTypePrefix, getTransactionTypeStyles } from './utils';
 
 const ManageTransactionDialogContent = defineAsyncComponent(
@@ -75,6 +81,14 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const subscriptionId = computed(() => route.params.id as string);
+
+// Single clock for the page, so every "in N days" readout ticks past midnight together.
+const now = useNow({ interval: 60_000 });
+
+const tagsStore = useTagsStore();
+tagsStore
+  .loadTags()
+  .catch((error) => captureException({ error, context: { scope: 'subscription-details:load-tags' } }));
 
 const {
   data: subscription,
@@ -101,38 +115,23 @@ watch(
 );
 
 const isActionsOpen = ref(false);
-const isEditDialogOpen = ref(false);
-const editFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null);
+const isBasicsEditorOpen = ref(false);
+const isScheduleEditorOpen = ref(false);
+const isAutomationEditorOpen = ref(false);
+const isOrganizeEditorOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isSuggestDialogOpen = ref(false);
 const suggestedMatches = ref<TransactionModel[]>([]);
 const selectedSuggestionIds = ref<Set<string>>(new Set());
 const isSuggestLoading = ref(false);
 
+const invalidateSubscriptionQueries = useInvalidateSubscriptionQueries();
+
+// Period actions create/delete/link transactions, so transaction views refresh too.
 const invalidateQueries = () => {
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionDetails });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
+  invalidateSubscriptionQueries();
   queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
 };
-
-const { mutate: updateSub } = useMutation({
-  mutationFn: ({
-    payload,
-  }: {
-    payload: Partial<Omit<SubscriptionModel, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
-  }) => updateSubscription({ id: subscriptionId.value, payload }),
-  onSuccess: () => {
-    invalidateQueries();
-    isEditDialogOpen.value = false;
-    addSuccessNotification(t('planned.subscriptions.updateSuccess'));
-  },
-  onError(err) {
-    const message = err instanceof ApiErrorResponseError ? err.data.message : t('planned.subscriptions.updateError');
-    editFormRef.value?.setError({ error: message ?? '' });
-  },
-});
 
 const handleToggleActive = async () => {
   if (!subscription.value) return;
@@ -211,9 +210,48 @@ const hasMatchingRules = computed(() => {
   return (subscription.value?.matchingRules?.rules?.length ?? 0) > 0;
 });
 
+const KIND_LABEL_KEYS: Record<SUBSCRIPTION_TYPES, string> = {
+  [SUBSCRIPTION_TYPES.subscription]: 'planned.subscriptions.typeSubscription',
+  [SUBSCRIPTION_TYPES.bill]: 'planned.subscriptions.typeBill',
+  [SUBSCRIPTION_TYPES.installment]: 'planned.subscriptions.typeInstallment',
+};
+
+const formattedAmount = computed(() => {
+  const sub = subscription.value;
+  if (!sub?.expectedAmount || !sub.expectedCurrencyCode) return null;
+  return `${getTransactionTypePrefix(sub.transactionType)}${formatAmountByCurrencyCode(sub.expectedAmount, sub.expectedCurrencyCode)}`;
+});
+
+const remindersSummary = computed(() => {
+  const presets = subscription.value?.remindBefore ?? [];
+  if (!presets.length) return null;
+  return presets.map((preset) => t(`planned.subscriptions.form.remindPresets.${preset}`)).join(', ');
+});
+
+const automationMode = computed(() =>
+  deriveAutomationMode({
+    autoRecord: subscription.value?.autoRecord ?? false,
+    rules: subscription.value?.matchingRules?.rules ?? [],
+  }),
+);
+
+const AUTOMATION_MODE_LABEL_KEYS: Record<AutomationMode, string> = {
+  [AUTOMATION_MODES.match]: 'planned.subscriptions.editors.automation.modeMatchLabel',
+  [AUTOMATION_MODES.record]: 'planned.subscriptions.editors.automation.modeRecordLabel',
+  [AUTOMATION_MODES.manual]: 'planned.subscriptions.editors.automation.modeManualLabel',
+};
+
+/** Tag chips render from the store, so an unloaded store degrades to a plain count. */
+const resolvedTags = computed(() =>
+  (subscription.value?.tagIds ?? []).flatMap((id) => {
+    const tag = tagsStore.getTagById(id);
+    return tag ? [tag] : [];
+  }),
+);
+
 const MATCH_SOURCE_CLASSES: Record<string, string> = {
-  [SUBSCRIPTION_MATCH_SOURCE.rule]: 'bg-green-500/10 text-green-600 dark:text-green-400',
-  [SUBSCRIPTION_MATCH_SOURCE.ai]: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  [SUBSCRIPTION_MATCH_SOURCE.rule]: 'bg-success-text/10 text-success-text',
+  [SUBSCRIPTION_MATCH_SOURCE.ai]: 'bg-primary/10 text-primary',
 };
 
 const getMatchSourceClass = ({ source }: { source: string }): string =>
@@ -268,8 +306,8 @@ const currentPeriod = computed(() => {
   );
 });
 
-function getDaysUntilDue({ dueDate }: { dueDate: string }): number {
-  return differenceInCalendarDays(parseISO(dueDate), startOfDay(new Date()));
+function getDaysUntilDue({ dueDate }: { dueDate: string }): number | null {
+  return daysUntilDue({ dueDate, now: now.value });
 }
 
 /**
@@ -278,7 +316,8 @@ function getDaysUntilDue({ dueDate }: { dueDate: string }): number {
  * that flips the stored status — so a past due date never reads as "in -1 days".
  */
 function effectivePeriodStatus({ period }: { period: SubscriptionPeriodModel }): string {
-  if (period.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming && getDaysUntilDue({ dueDate: period.dueDate }) < 0) {
+  const days = getDaysUntilDue({ dueDate: period.dueDate });
+  if (period.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming && days !== null && days < 0) {
     return SUBSCRIPTION_PERIOD_STATUSES.overdue;
   }
   return period.status;
@@ -489,13 +528,9 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
 
       <!-- Desktop actions -->
       <div class="hidden items-center gap-2 lg:flex">
-        <Button variant="outline" size="sm" @click="isEditDialogOpen = true">
-          <EditIcon class="mr-1.5 size-4" />
-          {{ $t('planned.subscriptions.edit') }}
-        </Button>
         <Button v-if="!isCompleted" variant="outline" size="sm" @click="handleToggleActive">
-          <CirclePauseIcon v-if="subscription.isActive" class="mr-1.5 size-4" />
-          <RepeatIcon v-else class="mr-1.5 size-4" />
+          <CirclePauseIcon v-if="subscription.isActive" class="size-4" />
+          <RepeatIcon v-else class="size-4" />
           {{
             subscription.isActive
               ? $t('planned.subscriptions.pauseSubscription')
@@ -503,7 +538,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           }}
         </Button>
         <Button variant="destructive" size="sm" @click="isDeleteDialogOpen = true">
-          <Trash2Icon class="mr-1.5 size-4" />
+          <Trash2Icon class="size-4" />
           {{ $t('planned.subscriptions.deleteSubscription') }}
         </Button>
       </div>
@@ -516,18 +551,6 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" class="flex w-auto min-w-48 flex-col gap-1 p-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            class="w-full justify-start"
-            @click="
-              isActionsOpen = false;
-              isEditDialogOpen = true;
-            "
-          >
-            <EditIcon class="size-4" />
-            {{ $t('planned.subscriptions.edit') }}
-          </Button>
           <Button
             v-if="!isCompleted"
             variant="ghost"
@@ -562,54 +585,178 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
       </Popover>
     </div>
 
-    <div class="border-border mb-6 grid grid-cols-2 gap-4 rounded-lg border p-4 sm:grid-cols-3 lg:grid-cols-5">
-      <div>
-        <p class="text-muted-foreground text-xs font-medium uppercase">{{ $t('planned.subscriptions.amount') }}</p>
-        <p class="mt-1 text-sm font-medium" :class="getTransactionTypeStyles(subscription.transactionType, '')">
-          {{ getTransactionTypePrefix(subscription.transactionType)
-          }}{{
-            subscription.expectedAmount && subscription.expectedCurrencyCode
-              ? formatAmountByCurrencyCode(subscription.expectedAmount, subscription.expectedCurrencyCode)
-              : '–'
-          }}
-        </p>
-      </div>
-      <div>
-        <p class="text-muted-foreground text-xs font-medium uppercase">
-          {{ $t('planned.subscriptions.frequencyLabel') }}
-        </p>
-        <p class="mt-1 text-sm font-medium">{{ formatFrequency({ frequency: subscription.frequency, t }) }}</p>
-      </div>
-      <div>
-        <p class="text-muted-foreground text-xs font-medium uppercase">
-          {{ $t('planned.subscriptions.nextExpected') }}
-        </p>
-        <p class="mt-1 text-sm font-medium">
-          {{ subscription.nextExpectedDate ? format(new Date(subscription.nextExpectedDate), 'MMM d, yyyy') : '–' }}
-        </p>
-      </div>
-      <div>
-        <p class="text-muted-foreground text-xs font-medium uppercase">{{ $t('planned.subscriptions.startDate') }}</p>
-        <p class="mt-1 text-sm font-medium">{{ format(new Date(subscription.startDate), 'MMM d, yyyy') }}</p>
-      </div>
-      <div>
-        <p class="text-muted-foreground text-xs font-medium uppercase">
-          {{ $t('planned.subscriptions.matchingRulesTitle') }}
-        </p>
-        <p class="mt-1 text-sm font-medium">
-          {{
-            hasMatchingRules
-              ? $t('planned.subscriptions.form.rulesCount', { count: subscription.matchingRules.rules.length })
-              : '–'
-          }}
-        </p>
-        <Button type="button" variant="link" size="sm" class="h-auto p-0 text-xs" @click="isEditDialogOpen = true">
-          {{
-            hasMatchingRules
-              ? $t('planned.subscriptions.updateMatchingRules')
-              : $t('planned.subscriptions.addMatchingRules')
-          }}
-        </Button>
+    <!-- Summary cards: each one is a read-only digest of the slice its editor owns. -->
+    <div class="@container mb-6">
+      <div class="grid grid-cols-1 gap-4 @2xl:grid-cols-2">
+        <div class="bg-card rounded-lg border p-4">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-muted-foreground text-xs font-medium uppercase">
+              {{ $t('planned.subscriptions.editors.basics.title') }}
+            </p>
+            <DesktopOnlyTooltip :content="$t('planned.subscriptions.editors.basics.edit')">
+              <Button variant="ghost" size="icon-sm" @click="isBasicsEditorOpen = true">
+                <EditIcon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </div>
+          <dl class="grid gap-1.5 text-sm">
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.amount') }}</dt>
+              <dd class="text-right font-medium" :class="getTransactionTypeStyles(subscription.transactionType, '')">
+                {{ formattedAmount ?? '–' }}
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.typeLabel') }}</dt>
+              <dd class="text-right font-medium">{{ $t(KIND_LABEL_KEYS[subscription.type]) }}</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.currencyLabel') }}</dt>
+              <dd class="text-right font-medium">{{ subscription.expectedCurrencyCode ?? '–' }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="bg-card rounded-lg border p-4">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-muted-foreground text-xs font-medium uppercase">
+              {{ $t('planned.subscriptions.editors.schedule.title') }}
+            </p>
+            <DesktopOnlyTooltip :content="$t('planned.subscriptions.editors.schedule.edit')">
+              <Button variant="ghost" size="icon-sm" @click="isScheduleEditorOpen = true">
+                <EditIcon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </div>
+          <dl class="grid gap-1.5 text-sm">
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.frequencyLabel') }}</dt>
+              <dd class="text-right font-medium">{{ formatFrequency({ frequency: subscription.frequency, t }) }}</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.nextExpected') }}</dt>
+              <dd class="text-right font-medium">
+                {{
+                  subscription.nextExpectedDate ? format(parseISO(subscription.nextExpectedDate), 'MMM d, yyyy') : '–'
+                }}
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.startDate') }}</dt>
+              <dd class="text-right font-medium">{{ format(parseISO(subscription.startDate), 'MMM d, yyyy') }}</dd>
+            </div>
+            <div v-if="subscription.endDate" class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.endDateLabel') }}</dt>
+              <dd class="text-right font-medium">{{ format(parseISO(subscription.endDate), 'MMM d, yyyy') }}</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.remindBeforeLabel') }}</dt>
+              <dd class="text-right font-medium">{{ remindersSummary ?? '–' }}</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.notifyEmailLabel') }}</dt>
+              <dd class="text-right font-medium">
+                {{
+                  subscription.notifyEmail
+                    ? $t('planned.subscriptions.editors.schedule.emailOn')
+                    : $t('planned.subscriptions.editors.schedule.emailOff')
+                }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="bg-card rounded-lg border p-4">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-muted-foreground text-xs font-medium uppercase">
+              {{ $t('planned.subscriptions.editors.automation.title') }}
+            </p>
+            <DesktopOnlyTooltip :content="$t('planned.subscriptions.editors.automation.edit')">
+              <Button variant="ghost" size="icon-sm" @click="isAutomationEditorOpen = true">
+                <EditIcon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </div>
+          <p class="text-sm font-medium">{{ $t(AUTOMATION_MODE_LABEL_KEYS[automationMode]) }}</p>
+          <p class="text-muted-foreground mt-0.5 text-sm">
+            <template v-if="automationMode === AUTOMATION_MODES.match">
+              {{ $t('planned.subscriptions.form.rulesCount', { count: subscription.matchingRules.rules.length }) }}
+            </template>
+            <template v-else-if="automationMode === AUTOMATION_MODES.record">
+              {{
+                subscription.account
+                  ? $t('planned.subscriptions.editors.automation.summaryRecord', { account: subscription.account.name })
+                  : $t('planned.subscriptions.editors.automation.summaryRecordNoAccount')
+              }}
+            </template>
+            <template v-else>
+              {{ $t('planned.subscriptions.editors.automation.summaryManual') }}
+            </template>
+          </p>
+          <p v-if="subscription.account" class="text-muted-foreground mt-1.5 text-sm">
+            {{ $t('planned.subscriptions.form.accountLabel') }}:
+            <span class="text-foreground font-medium">
+              {{ subscription.account.name }} ({{ subscription.account.currencyCode }})
+            </span>
+          </p>
+        </div>
+
+        <div class="bg-card rounded-lg border p-4">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-muted-foreground text-xs font-medium uppercase">
+              {{ $t('planned.subscriptions.editors.organize.title') }}
+            </p>
+            <DesktopOnlyTooltip :content="$t('planned.subscriptions.editors.organize.edit')">
+              <Button variant="ghost" size="icon-sm" @click="isOrganizeEditorOpen = true">
+                <EditIcon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </div>
+          <dl class="grid gap-1.5 text-sm">
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.categoryLabel') }}</dt>
+              <dd class="flex items-center gap-1.5 text-right font-medium">
+                <template v-if="subscription.category">
+                  <span
+                    class="inline-block size-2.5 shrink-0 rounded-full"
+                    :style="{ backgroundColor: subscription.category.color }"
+                  />
+                  {{ subscription.category.name }}
+                </template>
+                <template v-else>–</template>
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.tagsLabel') }}</dt>
+              <dd class="flex flex-wrap justify-end gap-1 text-right font-medium">
+                <template v-if="resolvedTags.length">
+                  <span
+                    v-for="tag in resolvedTags"
+                    :key="tag.id"
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white/90"
+                    :style="{ backgroundColor: tag.color }"
+                  >
+                    {{ tag.name }}
+                  </span>
+                </template>
+                <template v-else-if="subscription.tagIds?.length">
+                  {{ subscription.tagIds.length }}
+                </template>
+                <template v-else>–</template>
+              </dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-3">
+              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.notesLabel') }}</dt>
+              <dd class="text-right font-medium">
+                {{
+                  subscription.notes
+                    ? $t('planned.subscriptions.editors.organize.notesAdded')
+                    : $t('planned.subscriptions.editors.organize.notesEmpty')
+                }}
+              </dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </div>
 
@@ -650,20 +797,6 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
       </div>
     </div>
 
-    <!-- Category + Account -->
-    <div
-      v-if="subscription.category || subscription.account"
-      class="text-muted-foreground mb-6 flex items-center gap-4 text-sm"
-    >
-      <span v-if="subscription.category" class="flex items-center gap-1.5">
-        <span class="inline-block size-3 rounded-full" :style="{ backgroundColor: subscription.category.color }" />
-        {{ subscription.category.name }}
-      </span>
-      <span v-if="subscription.account">
-        {{ subscription.account.name }} ({{ subscription.account.currencyCode }})
-      </span>
-    </div>
-
     <!-- Next Due (scheduled subscriptions only) -->
     <div v-if="isScheduled && currentPeriod" class="bg-card mb-6 rounded-lg border p-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -685,10 +818,10 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
             <template v-if="currentPeriodStatus === SUBSCRIPTION_PERIOD_STATUSES.overdue">
               {{ $t('planned.subscriptions.periods.overdueBadge') }}
             </template>
-            <template v-else>
+            <template v-else-if="getDaysUntilDue({ dueDate: currentPeriod.dueDate }) !== null">
               {{
                 $t('planned.subscriptions.periods.inDays', {
-                  count: getDaysUntilDue({ dueDate: currentPeriod.dueDate }),
+                  count: getDaysUntilDue({ dueDate: currentPeriod.dueDate })!,
                 })
               }}
             </template>
@@ -833,7 +966,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
     <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-lg font-semibold">{{ $t('planned.subscriptions.linkedTransactionsTitle') }}</h2>
       <Button variant="outline" size="sm" :disabled="isSuggestLoading" @click="handleSuggestMatches">
-        <SearchIcon class="mr-1.5 size-4" />
+        <SearchIcon class="size-4" />
         {{ $t('planned.subscriptions.suggestMatches') }}
       </Button>
     </div>
@@ -854,15 +987,16 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           >
             {{ formatMatchSource({ source: tx.SubscriptionTransactions.matchSource, t }) }}
           </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            class="size-7"
-            :title="$t('planned.subscriptions.unlinkTransaction')"
-            @click="handleUnlinkTransaction({ transactionId: tx.id })"
-          >
-            <UnlinkIcon class="size-3.5" />
-          </Button>
+          <DesktopOnlyTooltip :content="$t('planned.subscriptions.unlinkTransaction')">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-7"
+              @click="handleUnlinkTransaction({ transactionId: tx.id })"
+            >
+              <UnlinkIcon class="size-3.5" />
+            </Button>
+          </DesktopOnlyTooltip>
         </div>
       </div>
     </div>
@@ -876,34 +1010,18 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
         variant="outline"
         size="sm"
         class="mt-3"
-        @click="isEditDialogOpen = true"
+        @click="isAutomationEditorOpen = true"
       >
-        <SettingsIcon class="mr-1.5 size-4" />
+        <SettingsIcon class="size-4" />
         {{ $t('planned.subscriptions.addMatchingRules') }}
       </Button>
     </div>
 
-    <!-- Edit Dialog -->
-    <ResponsiveDialog v-model:open="isEditDialogOpen" dialog-content-class="max-w-lg">
-      <template #title>{{ $t('planned.subscriptions.editTitle') }}</template>
-      <SubscriptionFormDialog
-        ref="editFormRef"
-        form-id="edit-subscription-form"
-        :initial-values="subscription"
-        @submit="(payload) => updateSub({ payload })"
-        @cancel="isEditDialogOpen = false"
-      />
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <Button variant="outline" type="button" @click="isEditDialogOpen = false">
-            {{ $t('planned.subscriptions.cancel') }}
-          </Button>
-          <Button type="submit" form="edit-subscription-form" :disabled="editFormRef?.isSubmitDisabled">
-            {{ $t('planned.subscriptions.form.update') }}
-          </Button>
-        </div>
-      </template>
-    </ResponsiveDialog>
+    <!-- Focused editors: each one owns and sends only its own field slice. -->
+    <EditBasicsDialog v-model:open="isBasicsEditorOpen" :subscription="subscription" />
+    <EditScheduleDialog v-model:open="isScheduleEditorOpen" :subscription="subscription" />
+    <EditAutomationDialog v-model:open="isAutomationEditorOpen" :subscription="subscription" />
+    <EditOrganizeDialog v-model:open="isOrganizeEditorOpen" :subscription="subscription" />
 
     <!-- Delete Confirmation -->
     <ResponsiveAlertDialog
@@ -947,10 +1065,10 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
           class="mt-3"
           @click="
             isSuggestDialogOpen = false;
-            isEditDialogOpen = true;
+            isAutomationEditorOpen = true;
           "
         >
-          <SettingsIcon class="mr-1.5 size-4" />
+          <SettingsIcon class="size-4" />
           {{
             hasMatchingRules
               ? $t('planned.subscriptions.updateMatchingRules')
@@ -965,7 +1083,7 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
             {{ $t('planned.subscriptions.cancel') }}
           </Button>
           <Button :disabled="selectedSuggestionIds.size === 0" @click="handleLinkSelected">
-            <LinkIcon class="mr-1.5 size-4" />
+            <LinkIcon class="size-4" />
             {{ $t('planned.subscriptions.linkSelected', { count: selectedSuggestionIds.size }) }}
           </Button>
         </div>

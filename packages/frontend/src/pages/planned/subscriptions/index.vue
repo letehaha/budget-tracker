@@ -1,22 +1,13 @@
 <script setup lang="ts">
-import {
-  type SubscriptionListItem,
-  createSubscription,
-  deleteSubscription,
-  toggleSubscriptionActive,
-} from '@/api/subscriptions';
-import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { type SubscriptionListItem, deleteSubscription, toggleSubscriptionActive } from '@/api/subscriptions';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
-import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
 import { useNotificationCenter } from '@/components/notification-center';
-import { useSubscriptionsList } from '@/composable/data-queries/subscriptions';
+import { useInvalidateSubscriptionQueries, useSubscriptionsList } from '@/composable/data-queries/subscriptions';
 import { type Period } from '@/composable/use-period-navigation';
-import { ApiErrorResponseError } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { SUBSCRIPTION_TYPES } from '@bt/shared/types';
-import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { useLocalStorage, useNow } from '@vueuse/core';
 import { addYears, endOfMonth, isWithinInterval, parseISO, startOfDay } from 'date-fns';
 import { CircleAlertIcon, PlusIcon, RepeatIcon, SearchIcon } from '@lucide/vue';
@@ -25,7 +16,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import DiscoverCandidatesDialog from './components/discover-candidates-dialog.vue';
-import SubscriptionFormDialog from './components/subscription-form-dialog.vue';
+import QuickAddSubscriptionDialog from './components/quick-add-subscription-dialog.vue';
 import SubscriptionRow from './components/subscription-list-item.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
 import SubscriptionsPeriodSelector from './components/subscriptions-period-selector.vue';
@@ -44,12 +35,11 @@ import {
 
 const { t } = useI18n();
 const router = useRouter();
-const queryClient = useQueryClient();
+const invalidateSubscriptionQueries = useInvalidateSubscriptionQueries();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
 const isCreateDialogOpen = ref(false);
 const isDiscoverDialogOpen = ref(false);
-const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null);
 const deleteTarget = ref<SubscriptionListItem | null>(null);
 const activeFilter = ref<SubscriptionTypeFilter>(ALL_TYPES_FILTER);
 
@@ -112,28 +102,10 @@ const filterItems = computed(() => [
   { value: SUBSCRIPTION_TYPES.installment, label: t('planned.subscriptions.summary.filterInstallments') },
 ]);
 
-const { mutate: createSub } = useMutation({
-  mutationFn: createSubscription,
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
-    isCreateDialogOpen.value = false;
-    addSuccessNotification(t('planned.subscriptions.createSuccess'));
-  },
-  onError(error) {
-    const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.subscriptions.createError');
-    createFormRef.value?.setError({ error: message ?? '' });
-  },
-});
-
 const handleToggleActive = async ({ subscription }: { subscription: SubscriptionListItem }) => {
   try {
     await toggleSubscriptionActive({ id: subscription.id, isActive: !subscription.isActive });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
+    invalidateSubscriptionQueries();
   } catch {
     addErrorNotification(t('planned.subscriptions.toggleError'));
   }
@@ -143,9 +115,7 @@ const confirmDelete = async () => {
   if (!deleteTarget.value) return;
   try {
     await deleteSubscription({ id: deleteTarget.value.id });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
+    invalidateSubscriptionQueries();
     addSuccessNotification(t('planned.subscriptions.deleteSuccess'));
   } catch {
     addErrorNotification(t('planned.subscriptions.deleteError'));
@@ -278,25 +248,7 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
     </div>
 
     <!-- Create Dialog -->
-    <ResponsiveDialog v-model:open="isCreateDialogOpen" dialog-content-class="max-w-lg">
-      <template #title>{{ $t('planned.subscriptions.createTitle') }}</template>
-      <SubscriptionFormDialog
-        ref="createFormRef"
-        form-id="create-subscription-form"
-        @submit="createSub"
-        @cancel="isCreateDialogOpen = false"
-      />
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <Button variant="outline" type="button" @click="isCreateDialogOpen = false">
-            {{ $t('planned.subscriptions.cancel') }}
-          </Button>
-          <Button type="submit" form="create-subscription-form" :disabled="createFormRef?.isSubmitDisabled">
-            {{ $t('planned.subscriptions.form.create') }}
-          </Button>
-        </div>
-      </template>
-    </ResponsiveDialog>
+    <QuickAddSubscriptionDialog v-model:open="isCreateDialogOpen" />
 
     <!-- Delete Confirmation -->
     <ResponsiveAlertDialog

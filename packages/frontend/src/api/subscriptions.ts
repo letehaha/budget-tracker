@@ -31,9 +31,11 @@ export interface SubscriptionListItem extends SubscriptionModel {
   category?: { id: string; name: string; color: string; icon: string | null } | null;
 }
 
-interface SubscriptionDetail extends SubscriptionModel {
+export interface SubscriptionDetail extends SubscriptionModel {
   nextExpectedDate: string | null;
   periods: SubscriptionPeriodModel[];
+  /** The detail endpoint always includes the tag association, unlike bare subscription rows. */
+  tagIds: NonNullable<SubscriptionModel['tagIds']>;
   account?: { id: string; name: string; currencyCode: string } | null;
   category?: { id: string; name: string; color: string; icon: string | null } | null;
   transactions?: Array<

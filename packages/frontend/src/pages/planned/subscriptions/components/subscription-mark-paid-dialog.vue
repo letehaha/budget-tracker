@@ -4,7 +4,7 @@ import {
   markSubscriptionPeriodPaid,
   type SubscriptionPayPreview,
 } from '@/api/subscriptions';
-import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { getAccountDisplayLabel } from '@/common/utils/account-display';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
@@ -14,6 +14,7 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useInvalidateSubscriptionQueries } from '@/composable/data-queries/subscriptions';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { useAccountsStore } from '@/stores';
@@ -41,6 +42,7 @@ type RecordMode = 'mark' | 'transaction';
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
+const invalidateSubscriptionQueries = useInvalidateSubscriptionQueries();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 const { accountsRecord } = storeToRefs(accountsStore);
@@ -49,19 +51,12 @@ const emit = defineEmits<{
   paid: [];
 }>();
 
-function invalidateSubscriptionQueries() {
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionDetails });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
-  // Booking an expense creates a transaction, so refresh all transaction-aware queries.
-  queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
-}
-
 const { mutate: markPaid, isPending } = useMutation({
   mutationFn: markSubscriptionPeriodPaid,
   onSuccess: () => {
     invalidateSubscriptionQueries();
+    // Booking an expense creates a transaction, so refresh all transaction-aware queries.
+    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
     addSuccessNotification(t('dialogs.subscriptionMarkPaid.notifications.markedAsPaid'));
     isDialogOpen.value = false;
     emit('paid');
