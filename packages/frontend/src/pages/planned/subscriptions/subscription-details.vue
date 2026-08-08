@@ -8,7 +8,6 @@ import {
   skipSubscriptionPeriod,
   toggleSubscriptionActive,
   unlinkSubscriptionPeriodTransaction,
-  unlinkTransactionsFromSubscription,
 } from '@/api/subscriptions';
 import { loadTransactionById } from '@/api/transactions';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
@@ -30,7 +29,6 @@ import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
 import { useTagsStore } from '@/stores';
 import {
-  SUBSCRIPTION_MATCH_SOURCE,
   SUBSCRIPTION_PERIOD_STATUSES,
   SUBSCRIPTION_TYPES,
   type SubscriptionPeriodModel,
@@ -46,7 +44,6 @@ import {
   EllipsisVerticalIcon,
   LinkIcon,
   RepeatIcon,
-  SearchIcon,
   SettingsIcon,
   SkipForwardIcon,
   Trash2Icon,
@@ -64,10 +61,11 @@ import EditAutomationDialog from './components/edit-automation-dialog.vue';
 import EditBasicsDialog from './components/edit-basics-dialog.vue';
 import EditOrganizeDialog from './components/edit-organize-dialog.vue';
 import EditScheduleDialog from './components/edit-schedule-dialog.vue';
+import LinkedTransactionsSection from './components/linked-transactions-section.vue';
 import SubscriptionMarkPaidDialog from './components/subscription-mark-paid-dialog.vue';
 import SubscriptionTypeBadge from './components/subscription-type-badge.vue';
 import { daysUntilDue } from './subscription-due-status';
-import { formatFrequency, formatMatchSource, getTransactionTypePrefix, getTransactionTypeStyles } from './utils';
+import { formatFrequency, getTransactionTypePrefix, getTransactionTypeStyles } from './utils';
 
 const ManageTransactionDialogContent = defineAsyncComponent(
   () => import('@/components/dialogs/manage-transaction/dialog-content.vue'),
@@ -158,17 +156,8 @@ const handleDelete = async () => {
   }
 };
 
-const handleUnlinkTransaction = async ({ transactionId }: { transactionId: string }) => {
-  try {
-    await unlinkTransactionsFromSubscription({ id: subscriptionId.value, transactionIds: [transactionId] });
-    invalidateQueries();
-    addSuccessNotification(t('planned.subscriptions.unlinkSuccess'));
-  } catch {
-    addErrorNotification(t('planned.subscriptions.unlinkError'));
-  }
-};
-
 const handleSuggestMatches = async () => {
+  if (isSuggestLoading.value) return;
   isSuggestLoading.value = true;
   try {
     suggestedMatches.value = await loadSuggestedMatches({ id: subscriptionId.value });
@@ -248,14 +237,6 @@ const resolvedTags = computed(() =>
     return tag ? [tag] : [];
   }),
 );
-
-const MATCH_SOURCE_CLASSES: Record<string, string> = {
-  [SUBSCRIPTION_MATCH_SOURCE.rule]: 'bg-success-text/10 text-success-text',
-  [SUBSCRIPTION_MATCH_SOURCE.ai]: 'bg-primary/10 text-primary',
-};
-
-const getMatchSourceClass = ({ source }: { source: string }): string =>
-  MATCH_SOURCE_CLASSES[source] ?? 'bg-muted text-muted-foreground';
 
 // --- Scheduled payment engine (only for subscriptions that have a dueDate / periods) ---
 
@@ -487,14 +468,14 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
   />
 
   <!-- Loading -->
-  <div v-else-if="isLoading" class="animate-pulse">
+  <div v-else-if="isLoading" class="mr-auto w-full max-w-5xl animate-pulse">
     <div class="bg-muted mb-4 h-8 w-1/3 rounded" />
     <div class="bg-muted mb-2 h-5 w-2/3 rounded" />
     <div class="bg-muted mb-6 h-5 w-1/2 rounded" />
     <div class="bg-muted h-40 rounded-lg" />
   </div>
 
-  <div v-else-if="subscription">
+  <div v-else-if="subscription" class="mr-auto w-full max-w-5xl">
     <!-- Header -->
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -962,60 +943,11 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
       </div>
     </template>
 
-    <!-- Linked Transactions -->
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-      <h2 class="text-lg font-semibold">{{ $t('planned.subscriptions.linkedTransactionsTitle') }}</h2>
-      <Button variant="outline" size="sm" :disabled="isSuggestLoading" @click="handleSuggestMatches">
-        <SearchIcon class="size-4" />
-        {{ $t('planned.subscriptions.suggestMatches') }}
-      </Button>
-    </div>
-
-    <div v-if="subscription.transactions?.length" class="border-border rounded-lg border">
-      <div
-        v-for="tx in subscription.transactions"
-        :key="tx.id"
-        class="border-border flex items-center gap-2 border-b px-2 last:border-b-0"
-      >
-        <TransactionRecord :tx="tx" :as-button="false" class="flex-1" @record-click="() => {}" />
-        <div class="flex shrink-0 items-center gap-1">
-          <span
-            :class="[
-              'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-              getMatchSourceClass({ source: tx.SubscriptionTransactions.matchSource }),
-            ]"
-          >
-            {{ formatMatchSource({ source: tx.SubscriptionTransactions.matchSource, t }) }}
-          </span>
-          <DesktopOnlyTooltip :content="$t('planned.subscriptions.unlinkTransaction')">
-            <Button
-              variant="ghost"
-              size="icon"
-              class="size-7"
-              @click="handleUnlinkTransaction({ transactionId: tx.id })"
-            >
-              <UnlinkIcon class="size-3.5" />
-            </Button>
-          </DesktopOnlyTooltip>
-        </div>
-      </div>
-    </div>
-
-    <div v-else class="border-border rounded-lg border p-8 text-center">
-      <LinkIcon class="text-muted-foreground mx-auto mb-2 size-8 opacity-50" />
-      <p class="text-muted-foreground text-sm">{{ $t('planned.subscriptions.noLinkedTransactions') }}</p>
-      <Button
-        v-if="!hasMatchingRules"
-        type="button"
-        variant="outline"
-        size="sm"
-        class="mt-3"
-        @click="isAutomationEditorOpen = true"
-      >
-        <SettingsIcon class="size-4" />
-        {{ $t('planned.subscriptions.addMatchingRules') }}
-      </Button>
-    </div>
+    <LinkedTransactionsSection
+      :subscription="subscription"
+      @suggest-matches="handleSuggestMatches"
+      @open-automation="isAutomationEditorOpen = true"
+    />
 
     <!-- Focused editors: each one owns and sends only its own field slice. -->
     <EditBasicsDialog v-model:open="isBasicsEditorOpen" :subscription="subscription" />

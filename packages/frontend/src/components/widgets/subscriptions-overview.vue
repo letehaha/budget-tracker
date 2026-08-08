@@ -19,7 +19,12 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
 import { daysUntilDue, isSubscriptionOverdue } from '@/pages/planned/subscriptions/subscription-due-status';
-import { getTransactionTypePrefix, getTransactionTypeStyles } from '@/pages/planned/subscriptions/utils';
+import {
+  getPercentOfIncomeColorClass,
+  getTransactionTypePrefix,
+  getTransactionTypeStyles,
+  isSubscriptionTypeFilter,
+} from '@/pages/planned/subscriptions/utils';
 import { useQuery } from '@tanstack/vue-query';
 import { useNow } from '@vueuse/core';
 import { parseISO } from 'date-fns';
@@ -64,23 +69,12 @@ const TITLE_KEYS: Record<string, string> = {
 };
 const widgetTitle = computed(() => t(TITLE_KEYS[widgetType.value ?? ''] ?? 'dashboard.widgets.subscriptions.titleAll'));
 
-// Per-type thresholds for highlighting how heavy the recurring cost is relative to income.
-// Subscriptions (entertainment-ish) should fire alarms much earlier than bills (rent/utilities).
-const PERCENT_OF_INCOME_THRESHOLDS: Record<string, { yellow: number; red: number }> = {
-  subscription: { yellow: 5, red: 10 },
-  bill: { yellow: 30, red: 50 },
-  installment: { yellow: 30, red: 50 },
-  all: { yellow: 20, red: 40 },
-};
-
-const percentOfIncomeColorClass = computed(() => {
-  const percent = summary.value?.percentOfIncome;
-  if (percent === null || percent === undefined) return 'text-muted-foreground';
-  const { yellow, red } = PERCENT_OF_INCOME_THRESHOLDS[widgetType.value ?? 'all']!;
-  if (percent >= red) return 'text-app-expense-color';
-  if (percent >= yellow) return 'text-warning-text';
-  return 'text-app-income-color';
-});
+const percentOfIncomeColorClass = computed(() =>
+  getPercentOfIncomeColorClass({
+    percent: summary.value?.percentOfIncome,
+    type: isSubscriptionTypeFilter(widgetType.value) ? widgetType.value : undefined,
+  }),
+);
 
 const {
   data: summary,

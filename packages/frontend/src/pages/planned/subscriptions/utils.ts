@@ -68,3 +68,28 @@ export const getTransactionTypeStyles = (
 export const getTransactionTypePrefix = (transactionType: string | undefined): string => {
   return transactionType === TRANSACTION_TYPES.income ? '+' : '';
 };
+
+/**
+ * Per-type thresholds for highlighting how heavy the recurring cost is relative to income.
+ * Subscriptions (entertainment-ish) should fire alarms much earlier than bills (rent/utilities).
+ */
+const PERCENT_OF_INCOME_THRESHOLDS: Record<SubscriptionTypeFilter, { yellow: number; red: number }> = {
+  [SUBSCRIPTION_TYPES.subscription]: { yellow: 5, red: 10 },
+  [SUBSCRIPTION_TYPES.bill]: { yellow: 30, red: 50 },
+  [SUBSCRIPTION_TYPES.installment]: { yellow: 30, red: 50 },
+  [ALL_TYPES_FILTER]: { yellow: 20, red: 40 },
+};
+
+export const getPercentOfIncomeColorClass = ({
+  percent,
+  type,
+}: {
+  percent: number | null | undefined;
+  type?: SubscriptionTypeFilter;
+}): string => {
+  if (percent === null || percent === undefined) return 'text-muted-foreground';
+  const { yellow, red } = PERCENT_OF_INCOME_THRESHOLDS[type ?? ALL_TYPES_FILTER];
+  if (percent >= red) return 'text-app-expense-color';
+  if (percent >= yellow) return 'text-warning-text';
+  return 'text-app-income-color';
+};

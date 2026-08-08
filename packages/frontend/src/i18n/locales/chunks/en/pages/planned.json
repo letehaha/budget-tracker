@@ -9,6 +9,7 @@
       "title": "Recurring Payments",
       "description": "Track recurring payments, bills, and income",
       "addSubscription": "Add Recurring Payment",
+      "addSubscriptionShort": "Add",
       "backToList": "Back to recurring payments",
       "createTitle": "Create Recurring Payment",
       "typeSubscription": "Subscription",
@@ -35,6 +36,18 @@
       "linkSelected": "Link {count} selected",
       "addMatchingRules": "Add matching rules",
       "updateMatchingRules": "Update matching rules",
+      "linked": {
+        "totalPaid": "Total paid",
+        "average": "Average",
+        "lastPayment": "Last payment",
+        "driftUp": "↑ {percent}% since first payment ({date})",
+        "driftDown": "↓ {percent}% since first payment ({date})",
+        "yearPayments": "{count} payment | {count} payments",
+        "legendRule": "Matched by rule",
+        "legendAi": "Matched by AI",
+        "legendManual": "Linked manually",
+        "chartLabel": "Payment amounts over time"
+      },
       "quickAdd": {
         "currencyPlaceholder": "Select currency",
         "nextPaymentLabel": "Next payment",
@@ -194,6 +207,7 @@
         "incomeLabel": "Expected income",
         "monthlyIncome": "~{amount}/mo",
         "acrossIncome": "across {count} active income payment | across {count} active income payments",
+        "percentOfIncome": "{percent}% of avg income",
         "projectedPerYearLabel": "Projected / yr",
         "activeCountLabel": "Active",
         "loadError": "Couldn't load the summary."

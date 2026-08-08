@@ -3,6 +3,7 @@ import { type SubscriptionListItem, deleteSubscription, toggleSubscriptionActive
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useInvalidateSubscriptionQueries, useSubscriptionsList } from '@/composable/data-queries/subscriptions';
 import { type Period } from '@/composable/use-period-navigation';
@@ -159,13 +160,21 @@ function payPeriod({ subscription }: { subscription: SubscriptionListItem }) {
         <p class="text-muted-foreground mt-1 hidden text-sm sm:block">{{ $t('planned.subscriptions.description') }}</p>
       </div>
       <div class="flex shrink-0 gap-2">
-        <Button variant="outline" size="sm" @click="isDiscoverDialogOpen = true">
-          <SearchIcon class="size-4" />
-          {{ $t('planned.subscriptions.candidates.discover') }}
-        </Button>
+        <DesktopOnlyTooltip :content="$t('planned.subscriptions.candidates.discover')">
+          <Button
+            variant="outline"
+            size="sm"
+            :aria-label="$t('planned.subscriptions.candidates.discover')"
+            @click="isDiscoverDialogOpen = true"
+          >
+            <SearchIcon class="size-4" />
+            <span class="hidden sm:inline">{{ $t('planned.subscriptions.candidates.discover') }}</span>
+          </Button>
+        </DesktopOnlyTooltip>
         <Button size="sm" @click="isCreateDialogOpen = true">
           <PlusIcon class="size-4" />
-          {{ $t('planned.subscriptions.addSubscription') }}
+          <span class="sm:hidden">{{ $t('planned.subscriptions.addSubscriptionShort') }}</span>
+          <span class="hidden sm:inline">{{ $t('planned.subscriptions.addSubscription') }}</span>
         </Button>
       </div>
     </div>

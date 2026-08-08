@@ -11,7 +11,7 @@ import { ArrowDownRightIcon, ArrowUpRightIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { ALL_TYPES_FILTER, type SubscriptionTypeFilter } from '../utils';
+import { ALL_TYPES_FILTER, type SubscriptionTypeFilter, getPercentOfIncomeColorClass } from '../utils';
 
 const props = defineProps<{
   activeFilter: SubscriptionTypeFilter;
@@ -119,6 +119,12 @@ const hero = computed(() => {
   };
 });
 
+const percentOfIncome = computed(() => (hasExpenses.value ? (summary.value?.percentOfIncome ?? null) : null));
+
+const percentOfIncomeClass = computed(() =>
+  getPercentOfIncomeColorClass({ percent: percentOfIncome.value, type: props.activeFilter }),
+);
+
 const stats = computed(() => {
   if (!summary.value) return [];
   const result = [];
@@ -196,12 +202,15 @@ const showIncomeFooter = computed(() => hasExpenses.value && (summary.value?.act
         <p
           :class="
             cn(
-              'mt-1 text-2xl font-semibold tracking-tight tabular-nums @sm:text-3xl',
+              'mt-1 flex flex-wrap items-baseline gap-x-2 text-2xl font-semibold tracking-tight tabular-nums @sm:text-3xl',
               !hero.isExpense && 'text-app-income-color',
             )
           "
         >
           {{ hero.amount }}
+          <span v-if="percentOfIncome !== null" :class="[percentOfIncomeClass, 'text-sm font-normal tracking-normal']">
+            {{ $t('planned.subscriptions.summary.percentOfIncome', { percent: percentOfIncome }) }}
+          </span>
         </p>
 
         <div v-if="showDistribution" class="mt-3.5">
