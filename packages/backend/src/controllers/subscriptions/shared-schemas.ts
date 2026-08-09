@@ -10,7 +10,7 @@ export const matchingRuleSchema = z.discriminatedUnion('field', [
   z.object({
     field: z.literal('amount'),
     operator: z.literal('between'),
-    value: z.object({ min: z.number().int(), max: z.number().int() }),
+    value: z.object({ min: z.number().nonnegative().finite(), max: z.number().nonnegative().finite() }),
     currencyCode: currencyCode().optional(),
   }),
   z.object({

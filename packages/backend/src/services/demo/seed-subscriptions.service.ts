@@ -110,11 +110,10 @@ export async function setupSubscriptions({
         {
           field: 'amount',
           operator: 'between',
-          // The matching engine compares raw cents when the rule currency equals
-          // the transaction's, so the bounds stay in cents.
+          // Rule bounds are decimals; the config holds cents.
           value: {
-            min: config.expectedAmount - toleranceCents,
-            max: config.expectedAmount + toleranceCents,
+            min: Money.fromCents(config.expectedAmount - toleranceCents).toNumber(),
+            max: Money.fromCents(config.expectedAmount + toleranceCents).toNumber(),
           },
           currencyCode: DEMO_CONFIG.baseCurrency,
         },
