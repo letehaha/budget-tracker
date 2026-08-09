@@ -441,16 +441,19 @@ describe('Subscriptions', () => {
       expect(detailA.transactions.length).toBe(0);
     });
 
-    it('unlinked transactions are excluded from suggestions', async () => {
+    it('unlinked transactions reappear in suggestions', async () => {
       const account = await helpers.createAccount({ raw: true });
+
+      // Relative date keeps the transaction inside the suggester's 12-month history window
+      const recentTime = subMonths(new Date(), 6).toISOString();
 
       const [tx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
-          amount: 1500,
+          amount: 15,
           note: 'netflix payment',
           transactionType: TRANSACTION_TYPES.expense,
-          time: '2025-06-15T10:00:00Z',
+          time: recentTime,
         }),
         raw: true,
       });
@@ -467,7 +470,6 @@ describe('Subscriptions', () => {
         raw: true,
       });
 
-      // Link then unlink
       await helpers.linkTransactionsToSubscription({
         id: sub.id,
         transactionIds: [tx.id],
@@ -479,7 +481,46 @@ describe('Subscriptions', () => {
         raw: true,
       });
 
-      // Suggest matches should NOT include the unlinked transaction
+      const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
+      const suggestedIds = suggestions.map((s: { id: string }) => s.id);
+      expect(suggestedIds).toContain(tx.id);
+    });
+
+    it('actively linked transactions are excluded from suggestions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Relative date keeps the transaction inside the suggester's 12-month history window
+      const recentTime = subMonths(new Date(), 6).toISOString();
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 15,
+          note: 'netflix payment',
+          transactionType: TRANSACTION_TYPES.expense,
+          time: recentTime,
+        }),
+        raw: true,
+      });
+
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 15,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['netflix'] }],
+        },
+        raw: true,
+      });
+
+      await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
       const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
       const suggestedIds = suggestions.map((s: { id: string }) => s.id);
       expect(suggestedIds).not.toContain(tx.id);

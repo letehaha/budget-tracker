@@ -1,4 +1,4 @@
-import { SubscriptionMatchingRule } from '@bt/shared/types';
+import { SUBSCRIPTION_LINK_STATUS, SubscriptionMatchingRule } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import * as Transactions from '@models/transactions.model';
@@ -43,11 +43,11 @@ export const suggestHistoricalMatches = async ({
     return [];
   }
 
-  // Get IDs of transactions already linked to this subscription (exclude from suggestions)
+  // Only active links are excluded, so an unlinked transaction can be suggested again.
   const excludedIds = (
     await SubscriptionTransactions.findAll({
       attributes: ['transactionId'],
-      where: { subscriptionId },
+      where: { subscriptionId, status: SUBSCRIPTION_LINK_STATUS.active },
     })
   ).map((l) => l.transactionId);
 
