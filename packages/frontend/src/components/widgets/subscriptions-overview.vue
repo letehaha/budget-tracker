@@ -18,10 +18,16 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
-import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
-import { getTransactionTypePrefix, getTransactionTypeStyles } from '@/pages/planned/subscriptions/utils';
+import { daysUntilDue, isSubscriptionOverdue } from '@/pages/planned/subscriptions/subscription-due-status';
+import {
+  getPercentOfIncomeColorClass,
+  getTransactionTypePrefix,
+  getTransactionTypeStyles,
+  isSubscriptionTypeFilter,
+} from '@/pages/planned/subscriptions/utils';
 import { useQuery } from '@tanstack/vue-query';
-import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
+import { useNow } from '@vueuse/core';
+import { parseISO } from 'date-fns';
 import { CheckIcon, ExternalLinkIcon, RepeatIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
@@ -63,23 +69,12 @@ const TITLE_KEYS: Record<string, string> = {
 };
 const widgetTitle = computed(() => t(TITLE_KEYS[widgetType.value ?? ''] ?? 'dashboard.widgets.subscriptions.titleAll'));
 
-// Per-type thresholds for highlighting how heavy the recurring cost is relative to income.
-// Subscriptions (entertainment-ish) should fire alarms much earlier than bills (rent/utilities).
-const PERCENT_OF_INCOME_THRESHOLDS: Record<string, { yellow: number; red: number }> = {
-  subscription: { yellow: 5, red: 10 },
-  bill: { yellow: 30, red: 50 },
-  installment: { yellow: 30, red: 50 },
-  all: { yellow: 20, red: 40 },
-};
-
-const percentOfIncomeColorClass = computed(() => {
-  const percent = summary.value?.percentOfIncome;
-  if (percent === null || percent === undefined) return 'text-muted-foreground';
-  const { yellow, red } = PERCENT_OF_INCOME_THRESHOLDS[widgetType.value ?? 'all']!;
-  if (percent >= red) return 'text-app-expense-color';
-  if (percent >= yellow) return 'text-warning-text';
-  return 'text-app-income-color';
-});
+const percentOfIncomeColorClass = computed(() =>
+  getPercentOfIncomeColorClass({
+    percent: summary.value?.percentOfIncome,
+    type: isSubscriptionTypeFilter(widgetType.value) ? widgetType.value : undefined,
+  }),
+);
 
 const {
   data: summary,
@@ -136,15 +131,10 @@ const formatNextDate = ({ dateStr }: { dateStr: string | null }) => {
 
 const UPCOMING_WINDOW_DAYS = 3;
 
-function getDaysUntilDue({ dueDate }: { dueDate: string }): number {
-  return differenceInCalendarDays(parseISO(dueDate), startOfDay(new Date()));
-}
+const now = useNow({ interval: 60_000 });
 
-function isPeriodOverdue({ subscription }: { subscription: SubscriptionListItem }): boolean {
-  const period = subscription.currentPeriod;
-  if (!period) return false;
-  return period.status === SUBSCRIPTION_PERIOD_STATUSES.overdue || getDaysUntilDue({ dueDate: period.dueDate }) < 0;
-}
+const isOverdue = ({ subscription }: { subscription: SubscriptionListItem }): boolean =>
+  isSubscriptionOverdue({ subscription, now: now.value });
 
 // Items with an open period that is overdue OR due within the next 3 days.
 // Overdue items are sorted first, then by ascending dueDate.
@@ -153,15 +143,14 @@ const actionableItems = computed<SubscriptionListItem[]>(() => {
 
   const filtered = allSubscriptions.value.filter((sub) => {
     if (!sub.currentPeriod) return false;
-    const overdue = isPeriodOverdue({ subscription: sub });
-    if (overdue) return true;
-    const daysLeft = getDaysUntilDue({ dueDate: sub.currentPeriod.dueDate });
-    return daysLeft >= 0 && daysLeft <= UPCOMING_WINDOW_DAYS;
+    if (isOverdue({ subscription: sub })) return true;
+    const daysLeft = daysUntilDue({ dueDate: sub.currentPeriod.dueDate, now: now.value });
+    return daysLeft !== null && daysLeft >= 0 && daysLeft <= UPCOMING_WINDOW_DAYS;
   });
 
   return filtered.toSorted((a, b) => {
-    const aOverdue = isPeriodOverdue({ subscription: a });
-    const bOverdue = isPeriodOverdue({ subscription: b });
+    const aOverdue = isOverdue({ subscription: a });
+    const bOverdue = isOverdue({ subscription: b });
     if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
     const aDate = a.currentPeriod?.dueDate ?? '';
     const bDate = b.currentPeriod?.dueDate ?? '';
@@ -289,7 +278,7 @@ function openSubscriptionsList() {
         <div v-for="sub in actionableItems" :key="sub.id" class="flex items-center gap-3 rounded-md px-3 py-1.5">
           <!-- Overdue badge -->
           <span
-            v-if="isPeriodOverdue({ subscription: sub })"
+            v-if="isOverdue({ subscription: sub })"
             class="bg-destructive/10 text-destructive-text shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
           >
             {{ $t('widgets.subscriptionsOverview.overdueBadge') }}

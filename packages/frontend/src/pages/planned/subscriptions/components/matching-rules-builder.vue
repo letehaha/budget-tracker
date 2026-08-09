@@ -2,6 +2,7 @@
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useCurrencyName } from '@/composable/formatters';
 import { useAccountsStore } from '@/stores';
@@ -115,7 +116,6 @@ const updateRuleCurrencyCode = ({ index, currencyCode }: { index: number; curren
   emit('update:modelValue', newRules);
 };
 
-// For note rules: manage the array of strings
 const updateNoteKeyword = ({
   ruleIndex,
   keywordIndex,
@@ -160,69 +160,76 @@ const updateAmountMax = ({ index, rule, v }: { index: number; rule: Subscription
 </script>
 
 <template>
-  <div class="space-y-3">
-    <div v-for="(rule, index) in modelValue" :key="index" class="border-border rounded-lg border p-3">
-      <div class="mb-3 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="text-muted-foreground text-xs font-medium uppercase">
-            {{ $t('planned.subscriptions.rules.ruleLabel', { number: index + 1 }) }}
-          </span>
-        </div>
-        <Button type="button" variant="ghost-destructive" size="icon-sm" @click="removeRule({ index })">
-          <Trash2Icon class="size-3.5" />
-        </Button>
+  <div class="grid gap-2">
+    <div v-for="(rule, index) in modelValue" :key="index" class="border-border grid gap-2 rounded-lg border p-2.5">
+      <div class="flex items-start gap-2">
+        <SelectField
+          :model-value="FIELD_OPTIONS.find((o) => o.value === rule.field) ?? null"
+          :values="FIELD_OPTIONS"
+          label-key="label"
+          value-key="value"
+          class="min-w-0 flex-1"
+          :placeholder="$t('planned.subscriptions.rules.selectField')"
+          @update:model-value="(v: any) => v && updateRuleField({ index, field: v.value })"
+        />
+        <DesktopOnlyTooltip :content="$t('planned.subscriptions.editors.automation.removeRule')">
+          <Button type="button" variant="ghost-destructive" size="icon-sm" @click="removeRule({ index })">
+            <Trash2Icon class="size-3.5" />
+          </Button>
+        </DesktopOnlyTooltip>
       </div>
 
-      <!-- Field selector -->
-      <SelectField
-        :model-value="FIELD_OPTIONS.find((o) => o.value === rule.field) ?? null"
-        :values="FIELD_OPTIONS"
-        label-key="label"
-        value-key="value"
-        :label="$t('planned.subscriptions.rules.fieldLabel')"
-        :placeholder="$t('planned.subscriptions.rules.selectField')"
-        @update:model-value="(v: any) => v && updateRuleField({ index, field: v.value })"
-      />
-
-      <!-- Note: keywords input -->
       <template v-if="rule.field === 'note'">
-        <div class="mt-3 space-y-2">
-          <p class="text-muted-foreground text-xs">{{ $t('planned.subscriptions.rules.noteDescription') }}</p>
+        <div class="grid gap-1.5">
           <div v-for="(keyword, ki) in rule.value as string[]" :key="ki" class="flex items-center gap-2">
             <InputField
               :model-value="keyword"
               :placeholder="$t('planned.subscriptions.rules.keywordPlaceholder')"
-              class="flex-1"
+              class="min-w-0 flex-1"
               @update:model-value="
                 (v: any) => updateNoteKeyword({ ruleIndex: index, keywordIndex: ki, value: String(v ?? '') })
               "
             />
-            <Button
+            <DesktopOnlyTooltip
               v-if="(rule.value as string[]).length > 1"
-              variant="ghost"
-              size="icon"
-              class="size-8 shrink-0"
-              type="button"
-              @click="removeNoteKeyword({ ruleIndex: index, keywordIndex: ki })"
+              :content="$t('planned.subscriptions.editors.automation.removeKeyword')"
             >
-              <Trash2Icon class="size-3.5" />
+              <Button
+                type="button"
+                variant="ghost-destructive"
+                size="icon-sm"
+                class="shrink-0"
+                @click="removeNoteKeyword({ ruleIndex: index, keywordIndex: ki })"
+              >
+                <Trash2Icon class="size-3.5" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-muted-foreground min-w-0 text-xs">
+              {{ $t('planned.subscriptions.rules.noteDescription') }}
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="shrink-0"
+              @click="addNoteKeyword({ ruleIndex: index })"
+            >
+              <PlusIcon class="size-3.5" />
+              {{ $t('planned.subscriptions.rules.addKeyword') }}
             </Button>
           </div>
-          <Button type="button" variant="outline" size="sm" @click="addNoteKeyword({ ruleIndex: index })">
-            <PlusIcon class="mr-1 size-3.5" />
-            {{ $t('planned.subscriptions.rules.addKeyword') }}
-          </Button>
         </div>
       </template>
 
-      <!-- Amount: min/max + currency -->
-      <template v-if="rule.field === 'amount'">
-        <div class="mt-3 grid grid-cols-2 gap-3">
+      <template v-else-if="rule.field === 'amount'">
+        <div class="grid grid-cols-2 gap-2">
           <InputField
             :model-value="getAmountValue({ rule }).min"
             type="number"
             :label="$t('planned.subscriptions.rules.minAmount')"
-            :placeholder="'0'"
+            :placeholder="$t('planned.subscriptions.form.amountPlaceholder')"
             only-positive
             @update:model-value="(v: any) => updateAmountMin({ index, rule, v })"
           />
@@ -230,7 +237,7 @@ const updateAmountMax = ({ index, rule, v }: { index: number; rule: Subscription
             :model-value="getAmountValue({ rule }).max"
             type="number"
             :label="$t('planned.subscriptions.rules.maxAmount')"
-            :placeholder="'0'"
+            :placeholder="$t('planned.subscriptions.form.amountPlaceholder')"
             only-positive
             @update:model-value="(v: any) => updateAmountMax({ index, rule, v })"
           />
@@ -240,45 +247,41 @@ const updateAmountMax = ({ index, rule, v }: { index: number; rule: Subscription
           :values="currencies"
           value-key="code"
           :label="$t('planned.subscriptions.rules.currencyCode')"
+          :placeholder="$t('planned.subscriptions.editors.basics.currencyPlaceholder')"
           with-search
           :label-key="(item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })"
-          class="mt-3"
           @update:model-value="(v: any) => updateRuleCurrencyCode({ index, currencyCode: v?.code ?? '' })"
         />
       </template>
 
-      <!-- Transaction Type: select -->
-      <template v-if="rule.field === 'transactionType'">
-        <div class="mt-3">
-          <SelectField
-            :model-value="TRANSACTION_TYPE_OPTIONS.find((o) => o.value === rule.value) ?? null"
-            :values="TRANSACTION_TYPE_OPTIONS"
-            label-key="label"
-            value-key="value"
-            :label="$t('planned.subscriptions.rules.transactionType')"
-            @update:model-value="(v: any) => v && updateRuleValue({ index, value: v.value })"
-          />
-        </div>
+      <template v-else-if="rule.field === 'transactionType'">
+        <SelectField
+          :model-value="TRANSACTION_TYPE_OPTIONS.find((o) => o.value === rule.value) ?? null"
+          :values="TRANSACTION_TYPE_OPTIONS"
+          label-key="label"
+          value-key="value"
+          :label="$t('planned.subscriptions.rules.fieldOptions.transactionType')"
+          :placeholder="$t('planned.subscriptions.editors.automation.selectTransactionType')"
+          @update:model-value="(v: any) => v && updateRuleValue({ index, value: v.value })"
+        />
       </template>
 
-      <!-- Account: select -->
-      <template v-if="rule.field === 'accountId'">
-        <div class="mt-3">
-          <SelectField
-            :model-value="accountOptions.find((o) => o.value === rule.value) ?? null"
-            :values="accountOptions"
-            label-key="label"
-            value-key="value"
-            :label="$t('planned.subscriptions.rules.account')"
-            with-search
-            @update:model-value="(v: any) => v && updateRuleValue({ index, value: v.value })"
-          />
-        </div>
+      <template v-else-if="rule.field === 'accountId'">
+        <SelectField
+          :model-value="accountOptions.find((o) => o.value === rule.value) ?? null"
+          :values="accountOptions"
+          label-key="label"
+          value-key="value"
+          :label="$t('planned.subscriptions.rules.fieldOptions.account')"
+          :placeholder="$t('planned.subscriptions.editors.automation.accountPlaceholder')"
+          with-search
+          @update:model-value="(v: any) => v && updateRuleValue({ index, value: v.value })"
+        />
       </template>
     </div>
 
-    <Button type="button" variant="outline" size="sm" @click="addRule">
-      <PlusIcon class="mr-1.5 size-4" />
+    <Button type="button" variant="outline" size="sm" class="justify-self-start" @click="addRule">
+      <PlusIcon class="size-4" />
       {{ $t('planned.subscriptions.rules.addRule') }}
     </Button>
   </div>

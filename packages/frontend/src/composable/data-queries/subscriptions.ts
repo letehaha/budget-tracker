@@ -46,6 +46,17 @@ export const useSubscriptionsList = ({
   return { ...query, list };
 };
 
+/** Invalidates every query that renders subscription data (details, list, summary, dashboard widget). */
+export const useInvalidateSubscriptionQueries = () => {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionDetails });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
+    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
+  };
+};
+
 /**
  * Clears a manual logo override via the dedicated reset endpoint, which also nulls
  * logoSource and re-enqueues automatic resolution. A regular update carrying null

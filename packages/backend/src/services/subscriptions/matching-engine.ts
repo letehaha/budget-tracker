@@ -175,12 +175,15 @@ async function evaluateRule({ rule, transaction, userId }: EvaluateRuleParams): 
     case 'amount': {
       if (rule.operator !== 'between' || typeof rule.value !== 'object' || Array.isArray(rule.value)) return false;
       const { min, max } = rule.value as { min: number; max: number };
+      // Rule bounds are decimals (the unit the API speaks); comparisons run in cents.
+      const minCents = Money.fromDecimal(min).toCents();
+      const maxCents = Money.fromDecimal(max).toCents();
       let amount = transaction.amount.abs();
 
       // If currencies match or no currency specified, compare directly
       if (!rule.currencyCode || rule.currencyCode === transaction.currencyCode) {
         const amountCents = amount.toCents();
-        return amountCents >= min && amountCents <= max;
+        return amountCents >= minCents && amountCents <= maxCents;
       }
 
       // Cross-currency: convert transaction amount to rule's currency, then compare with ±5% tolerance
@@ -199,8 +202,8 @@ async function evaluateRule({ rule, transaction, userId }: EvaluateRuleParams): 
       }
 
       const tolerance = 0.05;
-      const tolerantMin = Math.floor(min * (1 - tolerance));
-      const tolerantMax = Math.ceil(max * (1 + tolerance));
+      const tolerantMin = Math.floor(minCents * (1 - tolerance));
+      const tolerantMax = Math.ceil(maxCents * (1 + tolerance));
       const amountCents = amount.toCents();
       return amountCents >= tolerantMin && amountCents <= tolerantMax;
     }

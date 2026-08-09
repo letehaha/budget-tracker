@@ -386,16 +386,74 @@ describe('Subscriptions', () => {
       expect(detail.transactions.length).toBe(1);
     });
 
-    it('unlinked transactions are excluded from suggestions', async () => {
+    it('links a transaction to another subscription after unlinking it from the first', async () => {
       const account = await helpers.createAccount({ raw: true });
+      const subA = await helpers.createSubscription({
+        name: 'First Sub',
+        expectedAmount: 15,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+      const subB = await helpers.createSubscription({
+        name: 'Second Sub',
+        expectedAmount: 15,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
 
       const [tx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 1500,
+        }),
+        raw: true,
+      });
+
+      await helpers.linkTransactionsToSubscription({
+        id: subA.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      await helpers.unlinkTransactionsFromSubscription({
+        id: subA.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      const linkRes = await helpers.linkTransactionsToSubscription({
+        id: subB.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
+      expect(linkRes.linked).toBe(1);
+
+      const detailB = await helpers.getSubscriptionById({ id: subB.id, raw: true });
+      expect(detailB.transactions.length).toBe(1);
+      expect(detailB.transactions[0]!.id).toBe(tx.id);
+
+      const detailA = await helpers.getSubscriptionById({ id: subA.id, raw: true });
+      expect(detailA.transactions.length).toBe(0);
+    });
+
+    it('unlinked transactions reappear in suggestions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Relative date keeps the transaction inside the suggester's 12-month history window
+      const recentTime = subMonths(new Date(), 6).toISOString();
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 15,
           note: 'netflix payment',
           transactionType: TRANSACTION_TYPES.expense,
-          time: '2025-06-15T10:00:00Z',
+          time: recentTime,
         }),
         raw: true,
       });
@@ -412,7 +470,6 @@ describe('Subscriptions', () => {
         raw: true,
       });
 
-      // Link then unlink
       await helpers.linkTransactionsToSubscription({
         id: sub.id,
         transactionIds: [tx.id],
@@ -424,7 +481,46 @@ describe('Subscriptions', () => {
         raw: true,
       });
 
-      // Suggest matches should NOT include the unlinked transaction
+      const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
+      const suggestedIds = suggestions.map((s: { id: string }) => s.id);
+      expect(suggestedIds).toContain(tx.id);
+    });
+
+    it('actively linked transactions are excluded from suggestions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // Relative date keeps the transaction inside the suggester's 12-month history window
+      const recentTime = subMonths(new Date(), 6).toISOString();
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 15,
+          note: 'netflix payment',
+          transactionType: TRANSACTION_TYPES.expense,
+          time: recentTime,
+        }),
+        raw: true,
+      });
+
+      const sub = await helpers.createSubscription({
+        name: 'Netflix',
+        expectedAmount: 15,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [{ field: 'note', operator: 'contains_any', value: ['netflix'] }],
+        },
+        raw: true,
+      });
+
+      await helpers.linkTransactionsToSubscription({
+        id: sub.id,
+        transactionIds: [tx.id],
+        raw: true,
+      });
+
       const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
       const suggestedIds = suggestions.map((s: { id: string }) => s.id);
       expect(suggestedIds).not.toContain(tx.id);
@@ -541,7 +637,7 @@ describe('Subscriptions', () => {
         raw: true,
       });
 
-      // Create subscription with amount rule in USD (900-1100 cents = $9-$11)
+      // Create subscription with amount rule in USD ($9-$11)
       // The transaction is in UAH but should match after conversion
       const sub = await helpers.createSubscription({
         name: 'Apple TV',
@@ -552,14 +648,14 @@ describe('Subscriptions', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 900, max: 1100 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 9, max: 11 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
       });
 
       // The historical match suggestions should include the UAH transaction
-      // after converting its amount to USD and seeing it falls within 900-1100 cents
+      // after converting its amount to USD and seeing it falls within $9-$11
       const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
       const suggestedIds = suggestions.map((s: { id: string }) => s.id);
 
@@ -1083,6 +1179,149 @@ describe('Subscriptions', () => {
       // Should only contain the new tx, not the previously unlinked one
       expect(detail.transactions.length).toBe(1);
       expect(detail.transactions[0]!.id).toBe(tx2.id);
+    });
+  });
+
+  describe('Amount rule units (decimals)', () => {
+    // Amounts are chosen so decimal and cents interpretations can't both pass:
+    // 115.50 units (11550 cents) sits inside 100–130 as decimals and far outside it as cents.
+    it('suggests a transaction whose amount falls inside a decimal amount rule', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const recentTime = subMonths(new Date(), 6).toISOString();
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 115.5,
+          note: 'WFIRMA monthly fee',
+          transactionType: TRANSACTION_TYPES.expense,
+          time: recentTime,
+        }),
+        raw: true,
+      });
+
+      const sub = await helpers.createSubscription({
+        name: 'wFirma',
+        expectedAmount: 115.5,
+        expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [
+            { field: 'note', operator: 'contains_any', value: ['wfirma'] },
+            { field: 'amount', operator: 'between', value: { min: 100, max: 130 } },
+          ],
+        },
+        raw: true,
+      });
+
+      const suggestions = await helpers.getSuggestedMatches({ id: sub.id, raw: true });
+
+      expect(suggestions.map((s: { id: string }) => s.id)).toContain(tx.id);
+    });
+
+    it('auto-matches a new transaction whose amount falls inside a decimal amount rule', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const sub = await helpers.createSubscription({
+        name: 'wFirma',
+        expectedAmount: 115.5,
+        expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [
+            { field: 'note', operator: 'contains_any', value: ['wfirma'] },
+            { field: 'amount', operator: 'between', value: { min: 100, max: 130 } },
+          ],
+        },
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 115.5,
+          note: 'WFIRMA monthly fee',
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+
+      expect(detail.transactions.map((t) => t.id)).toContain(tx.id);
+    });
+
+    it('accepts fractional amount-rule bounds on create and update', async () => {
+      const createRes = await helpers.createSubscription({
+        name: 'Fractional Bounds',
+        expectedAmount: 15.99,
+        expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        matchingRules: {
+          rules: [{ field: 'amount', operator: 'between', value: { min: 15.5, max: 16.5 } }],
+        },
+        raw: false,
+      });
+
+      expect(createRes.statusCode).toBe(201);
+
+      const sub = await helpers.createSubscription({
+        name: 'Fractional Bounds Update',
+        expectedAmount: 15.99,
+        expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+
+      const updateRes = await helpers.updateSubscription({
+        id: sub.id,
+        matchingRules: {
+          rules: [{ field: 'amount', operator: 'between', value: { min: 15.5, max: 16.5 } }],
+        },
+        raw: false,
+      });
+
+      expect(updateRes.statusCode).toBe(200);
+    });
+
+    it('auto-matches a cross-currency transaction against a decimal amount rule', async () => {
+      // Seeded test rate: 1 USD ≈ 41.43 UAH, so $9.99 ≈ 413.89 UAH.
+      const UAH_PER_USD = 41.429899;
+      const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+
+      const sub = await helpers.createSubscription({
+        name: 'Apple TV',
+        expectedAmount: 9.99,
+        expectedCurrencyCode: 'USD',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        accountId: account.id,
+        matchingRules: {
+          rules: [
+            { field: 'note', operator: 'contains_any', value: ['apple'] },
+            { field: 'amount', operator: 'between', value: { min: 9, max: 11 }, currencyCode: 'USD' },
+          ],
+        },
+        raw: true,
+      });
+
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: Math.round(9.99 * UAH_PER_USD * 100) / 100,
+          note: 'APPLE.COM/BILL',
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+
+      expect(detail.transactions.map((t) => t.id)).toContain(tx.id);
     });
   });
 });
