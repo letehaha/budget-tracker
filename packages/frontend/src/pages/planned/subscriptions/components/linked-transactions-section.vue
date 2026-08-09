@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type SubscriptionDetail, unlinkTransactionsFromSubscription } from '@/api/subscriptions';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -11,7 +12,7 @@ import { SUBSCRIPTION_MATCH_SOURCE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { format } from 'date-fns';
 import { LinkIcon, SearchIcon, SettingsIcon, UnlinkIcon } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import {
@@ -55,23 +56,101 @@ const { mutate: unlinkTransaction, isPending: isUnlinking } = useMutation({
   onError: () => addErrorNotification(t('planned.subscriptions.unlinkError')),
 });
 
-const handleUnlink = ({ transactionId }: { transactionId: string }) =>
-  unlinkTransaction({ id: props.subscription.id, transactionIds: [transactionId] });
+const pendingUnlinkTx = ref<LinkedTransaction | null>(null);
+const isUnlinkConfirmOpen = ref(false);
 
-const formatTotals = ({ totals }: { totals: LinkedPaymentsCurrencyTotal[] }): string =>
-  totals.map(({ currencyCode, total }) => formatAmountByCurrencyCode(total, currencyCode)).join(' + ');
+const requestUnlink = ({ tx }: { tx: LinkedTransaction }) => {
+  pendingUnlinkTx.value = tx;
+  isUnlinkConfirmOpen.value = true;
+};
+
+const confirmUnlink = () => {
+  if (pendingUnlinkTx.value) {
+    unlinkTransaction({ id: props.subscription.id, transactionIds: [pendingUnlinkTx.value.id] });
+  }
+  isUnlinkConfirmOpen.value = false;
+};
+
+const pendingUnlinkLabel = computed(() => {
+  const tx = pendingUnlinkTx.value;
+  if (!tx) return '';
+  return `${format(new Date(tx.time), 'd MMM yyyy')} · ${formatRowAmount({ tx })}`;
+});
+
+const formatNativeLines = ({ totals }: { totals: LinkedPaymentsCurrencyTotal[] }): string[] =>
+  totals.map(({ currencyCode, total }) => formatAmountByCurrencyCode(total, currencyCode));
+
+// Currencies are never joined with an arithmetic separator: "A + B" claims an
+// addition the app can't perform. The middle dot lists them without that claim.
+const formatNativeList = ({ totals }: { totals: LinkedPaymentsCurrencyTotal[] }): string =>
+  formatNativeLines({ totals }).join(' · ');
+
+/** A payment recorded without an exchange rate has refAmount 0; a ref total would then understate. */
+const missingRefRates = computed(() => {
+  const { refTotal, totalsByCurrency } = summary.value.stats;
+  return refTotal === 0 && totalsByCurrency.some(({ total }) => total !== 0);
+});
+
+/** The "≈" disclosure: shown whenever the headline number is a conversion, not a booked amount. */
+const showApprox = computed(() => summary.value.stats.isConverted && !missingRefRates.value);
 
 const primaryTotal = computed(() => {
-  const [dominant] = summary.value.stats.totalsByCurrency;
-  return dominant ? formatAmountByCurrencyCode(dominant.total, dominant.currencyCode) : '–';
+  const { refTotal, refCurrencyCode, totalsByCurrency } = summary.value.stats;
+  if (missingRefRates.value) return formatNativeList({ totals: totalsByCurrency });
+  return refCurrencyCode ? formatAmountByCurrencyCode(refTotal, refCurrencyCode) : '–';
 });
 
-const secondaryTotals = computed(() => formatTotals({ totals: summary.value.stats.totalsByCurrency.slice(1) }));
+/** Mixed native currencies: the breakdown only works as a per-line tooltip list. */
+const totalBreakdownLines = computed(() => {
+  const { totalsByCurrency } = summary.value.stats;
+  if (!showApprox.value || totalsByCurrency.length < 2) return [];
+  return formatNativeLines({ totals: totalsByCurrency });
+});
+
+/** Single foreign currency: the native sum is a real billed amount and earns an inline line. */
+const nativeTotalLine = computed(() => {
+  const { totalsByCurrency } = summary.value.stats;
+  if (!showApprox.value || totalsByCurrency.length !== 1) return null;
+  return formatNativeList({ totals: totalsByCurrency });
+});
 
 const formattedAverage = computed(() => {
-  const { average } = summary.value.stats;
-  return average ? formatAmountByCurrencyCode(average.amount, average.currencyCode) : '–';
+  const { refAverage, refCurrencyCode, nativeAverage } = summary.value.stats;
+  if (missingRefRates.value) {
+    return nativeAverage ? formatAmountByCurrencyCode(nativeAverage.amount, nativeAverage.currencyCode) : '–';
+  }
+  if (refAverage === null || !refCurrencyCode) return '–';
+  return formatAmountByCurrencyCode(refAverage, refCurrencyCode);
 });
+
+/** The provider's sticker price, shown when the whole history is billed in one foreign currency. */
+const nativeAverageLine = computed(() => {
+  const { nativeAverage, refCurrencyCode } = summary.value.stats;
+  if (!showApprox.value || !nativeAverage || nativeAverage.currencyCode === refCurrencyCode) return null;
+  return formatAmountByCurrencyCode(nativeAverage.amount, nativeAverage.currencyCode);
+});
+
+interface YearTotalDisplay {
+  text: string;
+  converted: boolean;
+  breakdownLines: string[];
+}
+
+const yearGroupRows = computed(() =>
+  summary.value.yearGroups.map((group) => {
+    const { refCurrencyCode } = summary.value.stats;
+    const ratesMissing = group.refTotal === 0 && group.totalsByCurrency.some(({ total }) => total !== 0);
+    const total: YearTotalDisplay =
+      ratesMissing || !refCurrencyCode
+        ? { text: formatNativeList({ totals: group.totalsByCurrency }), converted: false, breakdownLines: [] }
+        : {
+            text: formatAmountByCurrencyCode(group.refTotal, refCurrencyCode),
+            converted: group.isConverted,
+            breakdownLines: group.isConverted ? formatNativeLines({ totals: group.totalsByCurrency }) : [],
+          };
+    return { group, total };
+  }),
+);
 
 const formattedLastPayment = computed(() => {
   const { lastPaymentTime } = summary.value.stats;
@@ -144,10 +223,25 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
               {{ $t('planned.subscriptions.linked.totalPaid') }}
             </p>
             <p class="text-amount text-xl @lg/linked:text-base">
-              {{ primaryTotal }}
-              <span v-if="secondaryTotals" class="text-muted-foreground text-xs font-medium">
-                + {{ secondaryTotals }}
-              </span>
+              <ResponsiveTooltip v-if="totalBreakdownLines.length" :delay-duration="100">
+                <span
+                  class="decoration-muted-foreground/50 cursor-default underline decoration-dotted underline-offset-4"
+                >
+                  <span class="text-muted-foreground">≈</span> {{ primaryTotal }}
+                </span>
+                <template #content>
+                  <p class="text-muted-foreground mb-1 text-xs">
+                    {{ $t('planned.subscriptions.linked.convertedTooltip') }}
+                  </p>
+                  <p v-for="line in totalBreakdownLines" :key="line" class="tabular-nums">{{ line }}</p>
+                </template>
+              </ResponsiveTooltip>
+              <template v-else>
+                <span v-if="showApprox" class="text-muted-foreground">≈</span> {{ primaryTotal }}
+              </template>
+            </p>
+            <p v-if="nativeTotalLine" class="text-muted-foreground mt-0.5 text-xs font-medium">
+              {{ nativeTotalLine }}
             </p>
           </div>
 
@@ -158,7 +252,12 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
               <p class="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
                 {{ $t('planned.subscriptions.linked.average') }}
               </p>
-              <p class="text-amount text-sm @lg/linked:text-base">{{ formattedAverage }}</p>
+              <p class="text-amount text-sm @lg/linked:text-base">
+                <span v-if="showApprox" class="text-muted-foreground">≈</span> {{ formattedAverage }}
+              </p>
+              <p v-if="nativeAverageLine" class="text-muted-foreground mt-0.5 text-xs font-medium">
+                {{ nativeAverageLine }}
+              </p>
             </div>
             <div class="@lg/linked:flex-1 @lg/linked:px-4 @lg/linked:py-2.5">
               <p class="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
@@ -223,14 +322,25 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
       </div>
 
       <div class="border-border bg-card overflow-hidden rounded-lg border">
-        <div v-for="group in summary.yearGroups" :key="group.year" class="border-border border-b last:border-b-0">
+        <div v-for="{ group, total } in yearGroupRows" :key="group.year" class="border-border border-b last:border-b-0">
           <div class="bg-background/50 flex items-center justify-between gap-3 px-2.5 py-1.5 @lg/linked:px-3.5">
             <span class="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
               {{ group.year }} ·
               {{ $t('planned.subscriptions.linked.yearPayments', { count: group.payments.length }) }}
             </span>
-            <span class="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums">
-              {{ formatTotals({ totals: group.totalsByCurrency }) }}
+            <ResponsiveTooltip v-if="total.converted" :delay-duration="100">
+              <span class="text-muted-foreground shrink-0 cursor-default font-mono text-[11px] tabular-nums">
+                ≈ {{ total.text }}
+              </span>
+              <template #content>
+                <p class="text-muted-foreground mb-1 text-xs">
+                  {{ $t('planned.subscriptions.linked.convertedTooltip') }}
+                </p>
+                <p v-for="line in total.breakdownLines" :key="line" class="tabular-nums">{{ line }}</p>
+              </template>
+            </ResponsiveTooltip>
+            <span v-else class="text-muted-foreground shrink-0 font-mono text-[11px] tabular-nums">
+              {{ total.text }}
             </span>
           </div>
 
@@ -262,7 +372,7 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
                 class="shrink-0 opacity-45 transition-opacity group-hover/row:opacity-100 [@media(hover:hover)]:opacity-0"
                 :disabled="isUnlinking"
                 :aria-label="$t('planned.subscriptions.unlinkTransaction')"
-                @click="handleUnlink({ transactionId: tx.id })"
+                @click="requestUnlink({ tx })"
               >
                 <UnlinkIcon class="size-3.5" />
               </Button>
@@ -270,6 +380,18 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
           </div>
         </div>
       </div>
+
+      <ResponsiveAlertDialog
+        v-model:open="isUnlinkConfirmOpen"
+        :confirm-label="$t('planned.subscriptions.unlinkConfirmAction')"
+        confirm-variant="destructive"
+        @confirm="confirmUnlink"
+      >
+        <template #title>{{ $t('planned.subscriptions.unlinkConfirmTitle') }}</template>
+        <template #description>
+          {{ $t('planned.subscriptions.unlinkConfirmDescription', { payment: pendingUnlinkLabel }) }}
+        </template>
+      </ResponsiveAlertDialog>
 
       <div class="text-muted-foreground mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 px-1 text-[11px]">
         <span class="inline-flex items-center gap-1.5">

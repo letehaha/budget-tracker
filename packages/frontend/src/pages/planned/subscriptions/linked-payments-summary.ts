@@ -55,6 +55,11 @@ export interface LinkedPaymentsCurrencyTotal {
 export interface LinkedPaymentsYearGroup<T> {
   year: number;
   payments: T[];
+  /** Sum of refAmount — the year's single comparable total in the base currency. */
+  refTotal: number;
+  /** True when at least one payment was booked in a non-base currency. */
+  isConverted: boolean;
+  /** Native per-currency breakdown, dominant currency first. */
   totalsByCurrency: LinkedPaymentsCurrencyTotal[];
 }
 
@@ -91,13 +96,28 @@ export interface LinkedPaymentsAverage {
   currencyCode: string;
 }
 
+/**
+ * Aggregates sum refAmount: it's the only denomination in which a multi-currency
+ * history adds up to one number, on the same basis budgets use. Native amounts stay
+ * available per-currency in `totalsByCurrency` for secondary display.
+ */
 export interface LinkedPaymentsStats {
+  /** Sum of refAmount across all payments, in the base currency. */
+  refTotal: number;
+  /** Base currency code; null only when nothing is linked. */
+  refCurrencyCode: string | null;
+  /** True when at least one payment was booked in a non-base currency. */
+  isConverted: boolean;
+  /** Native per-currency breakdown, dominant currency first. */
   totalsByCurrency: LinkedPaymentsCurrencyTotal[];
+  /** Mean refAmount over ALL payments, so total ÷ count reconciles with `refTotal`. */
+  refAverage: number | null;
   /**
-   * Mean over payments booked in the dominant currency only. A refAmount mean would
-   * surface the user's base currency, which reads disconnected next to the native totals.
+   * Mean native amount, present only when every payment shares one native currency —
+   * the sole case where a native mean is well-defined. Carries the provider's sticker
+   * price when that currency differs from the base.
    */
-  average: LinkedPaymentsAverage | null;
+  nativeAverage: LinkedPaymentsAverage | null;
   lastPaymentTime: Date | null;
 }
 
@@ -110,6 +130,12 @@ export interface LinkedPaymentsSummary<T> {
 }
 
 const toDate = ({ time }: { time: Date | string }): Date => (time instanceof Date ? time : new Date(time));
+
+const sumRefAmounts = <T extends LinkedPaymentLike>({ payments }: { payments: T[] }): number =>
+  payments.reduce((sum, payment) => sum + payment.refAmount, 0);
+
+const hasConvertedPayment = <T extends LinkedPaymentLike>({ payments }: { payments: T[] }): boolean =>
+  payments.some((payment) => payment.currencyCode !== payment.refCurrencyCode);
 
 /** Dominant currency first: the code the most payments were booked in leads the list. */
 const sumByCurrency = <T extends LinkedPaymentLike>({ payments }: { payments: T[] }): LinkedPaymentsCurrencyTotal[] => {
@@ -183,8 +209,8 @@ const buildGap = <T extends LinkedPaymentLike>({
 /**
  * Everything the linked-payments UI renders, derived in one pass: the ledger
  * (newest-first, grouped by year), the headline stats, the amount chart and the
- * price drift. Chart heights and drift compare `refAmount`, so payments booked in
- * different currencies stay comparable.
+ * price drift. Totals, averages, chart heights and drift all compare `refAmount`,
+ * so payments booked in different currencies stay comparable.
  */
 export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
   transactions,
@@ -214,6 +240,8 @@ export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
     .map(([year, yearPayments]) => ({
       year,
       payments: yearPayments,
+      refTotal: sumRefAmounts({ payments: yearPayments }),
+      isConverted: hasConvertedPayment({ payments: yearPayments }),
       totalsByCurrency: sumByCurrency({ payments: yearPayments }),
     }));
 
@@ -260,17 +288,21 @@ export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
   };
 
   const totalsByCurrency = sumByCurrency({ payments });
-  const dominant = totalsByCurrency[0];
-  const dominantCount = dominant
-    ? payments.filter((payment) => payment.currencyCode === dominant.currencyCode).length
-    : 0;
+  const refTotal = sumRefAmounts({ payments });
+  const singleNativeCurrency = totalsByCurrency.length === 1 ? totalsByCurrency[0] : undefined;
 
   return {
     payments,
     yearGroups,
     stats: {
+      refTotal,
+      refCurrencyCode: latest ? latest.refCurrencyCode : null,
+      isConverted: hasConvertedPayment({ payments }),
       totalsByCurrency,
-      average: dominant ? { amount: dominant.total / dominantCount, currencyCode: dominant.currencyCode } : null,
+      refAverage: payments.length ? refTotal / payments.length : null,
+      nativeAverage: singleNativeCurrency
+        ? { amount: singleNativeCurrency.total / payments.length, currencyCode: singleNativeCurrency.currencyCode }
+        : null,
       lastPaymentTime: latest ? toDate({ time: latest.time }) : null,
     },
     chart: buildChart(),

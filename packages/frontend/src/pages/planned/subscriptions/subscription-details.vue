@@ -652,10 +652,6 @@ async function openTransaction({ transactionId }: { transactionId: string }) {
                 }}
               </dd>
             </div>
-            <div class="flex items-baseline justify-between gap-3">
-              <dt class="text-muted-foreground">{{ $t('planned.subscriptions.startDate') }}</dt>
-              <dd class="text-right font-medium">{{ format(parseISO(subscription.startDate), 'MMM d, yyyy') }}</dd>
-            </div>
             <div v-if="subscription.endDate" class="flex items-baseline justify-between gap-3">
               <dt class="text-muted-foreground">{{ $t('planned.subscriptions.form.endDateLabel') }}</dt>
               <dd class="text-right font-medium">{{ format(parseISO(subscription.endDate), 'MMM d, yyyy') }}</dd>

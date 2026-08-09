@@ -79,9 +79,9 @@ describe('buildLinkedPaymentsSummary', () => {
   it('totals each year per currency, dominant currency first', () => {
     const summary = buildSummary({
       transactions: [
-        buildTx({ id: 'a', amount: 700, currencyCode: 'UAH', time: '2025-02-12T10:00:00.000Z' }),
-        buildTx({ id: 'b', amount: 66.55, currencyCode: 'PLN', time: '2025-05-12T10:00:00.000Z' }),
-        buildTx({ id: 'c', amount: 800, currencyCode: 'UAH', time: '2025-11-12T10:00:00.000Z' }),
+        buildTx({ id: 'a', amount: 700, refAmount: 700, currencyCode: 'UAH', time: '2025-02-12T10:00:00.000Z' }),
+        buildTx({ id: 'b', amount: 66.55, currencyCode: 'PLN', refAmount: 715.3, time: '2025-05-12T10:00:00.000Z' }),
+        buildTx({ id: 'c', amount: 800, currencyCode: 'UAH', refAmount: 800, time: '2025-11-12T10:00:00.000Z' }),
       ],
     });
 
@@ -89,6 +89,8 @@ describe('buildLinkedPaymentsSummary', () => {
       { currencyCode: 'UAH', total: 1500 },
       { currencyCode: 'PLN', total: 66.55 },
     ]);
+    expect(summary.yearGroups[0]!.refTotal).toBeCloseTo(2215.3);
+    expect(summary.yearGroups[0]!.isConverted).toBe(true);
   });
 
   it('totals all payments per currency with the dominant currency first', () => {
@@ -177,17 +179,70 @@ describe('buildLinkedPaymentsSummary', () => {
     expect(bars[1]!.heightPct).toBe(100);
   });
 
-  it('averages payments in the dominant currency and reports the last payment', () => {
+  it('totals and averages refAmount across every payment, so total ÷ count reconciles', () => {
     const summary = buildSummary({
       transactions: [
         buildTx({ id: 'a', amount: 66.55, currencyCode: 'PLN', refAmount: 700, time: '2025-02-12T10:00:00.000Z' }),
         buildTx({ id: 'b', amount: 700, refAmount: 700, time: '2025-05-12T10:00:00.000Z' }),
-        buildTx({ id: 'c', amount: 800, refAmount: 800, time: '2025-07-12T10:00:00.000Z' }),
+        buildTx({ id: 'c', amount: 800, refAmount: 850, time: '2025-07-12T10:00:00.000Z' }),
       ],
     });
 
-    expect(summary.stats.average).toEqual({ amount: 750, currencyCode: 'UAH' });
+    expect(summary.stats.refTotal).toBe(2250);
+    expect(summary.stats.refCurrencyCode).toBe('UAH');
+    expect(summary.stats.refAverage).toBe(750);
+    expect(summary.stats.isConverted).toBe(true);
     expect(summary.stats.lastPaymentTime).toEqual(new Date('2025-07-12T10:00:00.000Z'));
+  });
+
+  it('withholds the native average when payments mix native currencies', () => {
+    const summary = buildSummary({
+      transactions: [
+        buildTx({ id: 'a', amount: 66.55, currencyCode: 'PLN', refAmount: 700, time: '2025-02-12T10:00:00.000Z' }),
+        buildTx({ id: 'b', amount: 700, refAmount: 700, time: '2025-05-12T10:00:00.000Z' }),
+      ],
+    });
+
+    expect(summary.stats.nativeAverage).toBeNull();
+  });
+
+  it('reports the native average when every payment shares one native currency', () => {
+    const summary = buildSummary({
+      transactions: [
+        buildTx({
+          id: 'a',
+          amount: 9.99,
+          currencyCode: 'USD',
+          refAmount: 400,
+          refCurrencyCode: 'UAH',
+          time: '2025-02-12T10:00:00.000Z',
+        }),
+        buildTx({
+          id: 'b',
+          amount: 10.99,
+          currencyCode: 'USD',
+          refAmount: 460,
+          refCurrencyCode: 'UAH',
+          time: '2025-03-12T10:00:00.000Z',
+        }),
+      ],
+    });
+
+    expect(summary.stats.nativeAverage).toEqual({ amount: 10.49, currencyCode: 'USD' });
+    expect(summary.stats.refAverage).toBe(430);
+    expect(summary.stats.isConverted).toBe(true);
+  });
+
+  it('is not marked converted when every payment is booked in the base currency', () => {
+    const summary = buildSummary({
+      transactions: [
+        buildTx({ id: 'a', time: '2025-02-12T10:00:00.000Z' }),
+        buildTx({ id: 'b', time: '2025-03-12T10:00:00.000Z' }),
+      ],
+    });
+
+    expect(summary.stats.isConverted).toBe(false);
+    expect(summary.yearGroups[0]!.isConverted).toBe(false);
   });
 
   describe('chart threshold', () => {
@@ -432,8 +487,12 @@ describe('buildLinkedPaymentsSummary', () => {
     expect(summary.chart).toBeNull();
     expect(summary.drift).toBeNull();
     expect(summary.stats).toEqual({
+      refTotal: 0,
+      refCurrencyCode: null,
+      isConverted: false,
       totalsByCurrency: [],
-      average: null,
+      refAverage: null,
+      nativeAverage: null,
       lastPaymentTime: null,
     });
   });

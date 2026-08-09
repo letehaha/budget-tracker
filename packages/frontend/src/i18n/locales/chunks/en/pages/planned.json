@@ -47,7 +47,8 @@
         "legendAi": "Matched by AI",
         "legendManual": "Linked manually",
         "chartLabel": "Payment amounts over time",
-        "gapTooltip": "No payments · {range}"
+        "gapTooltip": "No payments · {range}",
+        "convertedTooltip": "Converted at each payment's exchange rate"
       },
       "quickAdd": {
         "currencyPlaceholder": "Select currency",
@@ -169,6 +170,9 @@
       "toggleError": "Failed to update recurring payment status",
       "unlinkSuccess": "Transaction unlinked successfully",
       "unlinkError": "Failed to unlink transaction",
+      "unlinkConfirmTitle": "Unlink this payment?",
+      "unlinkConfirmDescription": "{payment} will be removed from this subscription's history. The transaction itself won't be deleted.",
+      "unlinkConfirmAction": "Unlink",
       "suggestError": "Failed to load suggested matches",
       "linkSuccess": "Transactions linked successfully",
       "linkError": "Failed to link transactions",
