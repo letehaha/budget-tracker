@@ -79,9 +79,9 @@ export function initWebMcp(): void {
         inputSchema: EMPTY_OBJECT_SCHEMA,
         execute: () => ({
           name: 'MoneyMatter',
-          tagline: 'Your finances. Your server. Zero data harvesting.',
+          tagline: 'Your finances. Your server. Your rules.',
           description:
-            'Free, open-source budget tracking app. Bank sync, AI-assisted categorization, budgets, investment tracking, and full export. Self-host or use the hosted cloud — either way, data is never sold or shared.',
+            'Free, open-source personal finance app with budget tracking. Bank sync, AI-assisted categorization, budgets, investment tracking, and full export. Self-host it or use the hosted cloud. Data is never sold or shared.',
           pricing: 'Free',
           cloudSignUpUrl: 'https://moneymatter.app/sign-up',
           sourceCodeUrl: GITHUB_URL,

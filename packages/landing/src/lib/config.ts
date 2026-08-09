@@ -41,6 +41,14 @@ export const config = {
   get apiVer(): string {
     return runtime().API_VER ?? import.meta.env.VITE_APP_API_VER ?? '/api/v1';
   },
+  /**
+   * Origin the SPA is served from. Empty everywhere the landing and the SPA
+   * share an origin, which is every deployed setup; only `astro dev` serves
+   * them from different ports and needs the override.
+   */
+  get appUrl(): string {
+    return import.meta.env.VITE_APP_URL ?? '';
+  },
   get posthogKey(): string | undefined {
     return runtime().POSTHOG_KEY ?? import.meta.env.VITE_POSTHOG_KEY;
   },

@@ -33,13 +33,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-import { config } from '../lib/config';
-import { trackAnalyticsEvent } from '../lib/posthog';
+import { startDemo } from '../lib/start-demo';
 import DemoLoadingOverlay from './demo-loading-overlay.vue';
-
-const TOO_MANY_REQUESTS = 429;
 
 const isDemoLoading = ref(false);
 const errorMessage = ref('');
@@ -49,49 +46,29 @@ async function handleTryDemo() {
 
   isDemoLoading.value = true;
   errorMessage.value = '';
-  trackAnalyticsEvent({ event: 'demo_started', properties: { location: 'hero' } });
-  const startedAt = Date.now();
 
-  let response: Response;
-
-  // Only fetch can fail for network reasons, so only it sits in the try.
-  // A throw after a 200 would read as a network error, though the account already exists.
-  try {
-    response = await fetch(`${config.apiHttp}${config.apiVer}/demo`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Failed to start demo:', error);
-    trackAnalyticsEvent({ event: 'demo_setup_failed', properties: { reason: 'network' } });
-    errorMessage.value = "Couldn't reach the server. Please check your connection and try again.";
-    isDemoLoading.value = false;
-    return;
-  }
-
-  if (!response.ok) {
-    const isRateLimited = response.status === TOO_MANY_REQUESTS;
-
-    trackAnalyticsEvent({
-      event: 'demo_setup_failed',
-      properties: { reason: isRateLimited ? 'rate_limited' : 'server_error', status: response.status },
-    });
-    errorMessage.value = isRateLimited
-      ? 'Too many demo sessions from this network. Please try again in a few minutes.'
-      : "Couldn't start the demo. Please try again.";
-    isDemoLoading.value = false;
-    return;
-  }
-
-  // finally, so a throw from tracking still lands the visitor in the account
-  // they just created rather than leaving the loading overlay up.
-  try {
-    trackAnalyticsEvent({ event: 'demo_setup_succeeded', properties: { duration_ms: Date.now() - startedAt } });
-  } finally {
-    // Backend sets session cookies automatically via Set-Cookie headers.
-    // Full page load so the Vue SPA picks up the session.
-    window.location.href = '/dashboard';
-  }
+  await startDemo({
+    location: 'hero',
+    onError: ({ message }) => {
+      errorMessage.value = message;
+      isDemoLoading.value = false;
+    },
+  });
 }
+
+// A bfcache restore replays the state the page had when the demo redirected away.
+function handlePageShow(event: PageTransitionEvent) {
+  if (!event.persisted) return;
+
+  isDemoLoading.value = false;
+  errorMessage.value = '';
+}
+
+onMounted(() => {
+  window.addEventListener('pageshow', handlePageShow);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pageshow', handlePageShow);
+});
 </script>

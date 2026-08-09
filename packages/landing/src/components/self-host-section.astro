@@ -11,14 +11,14 @@
       </div>
       <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Two ways to use MoneyMatter</h2>
       <p class="text-muted-foreground mt-4 text-lg">
-        Maximum privacy with self-hosting, or quick start with our cloud. Either way, your data is never sold.
+        Run it on your own server with Docker, or sign up for our cloud in a minute. Your data is never sold.
       </p>
     </div>
 
     <!-- Two options grid -->
     <div class="mt-12 grid gap-8 lg:grid-cols-2">
       <!-- Self-hosted option -->
-      <div class="border-border/50 bg-card rounded-2xl border p-8">
+      <div class="border-border/50 bg-card flex flex-col rounded-2xl border p-8">
         <div class="mb-4 flex items-center gap-3">
           <div class="flex size-10 items-center justify-center rounded-lg bg-green-500/10">
             <!-- ShieldCheck -->
@@ -37,11 +37,15 @@
           </li>
           <li class="flex items-center gap-2 text-sm">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4 shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
-            <span>Deploy with Docker in minutes</span>
+            <span>Deploy with Docker Compose</span>
           </li>
           <li class="flex items-center gap-2 text-sm">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4 shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
-            <span>Full control over backups & updates</span>
+            <span>Runs on a $5 VPS or a Raspberry Pi</span>
+          </li>
+          <li class="flex items-center gap-2 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4 shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>Built-in backup & restore</span>
           </li>
           <li class="flex items-center gap-2 text-sm">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4 shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
@@ -49,9 +53,9 @@
           </li>
         </ul>
 
-        <div class="mt-6">
+        <div class="mt-auto pt-6">
           <a
-            href="https://github.com/letehaha/budget-tracker"
+            href="https://github.com/letehaha/budget-tracker/tree/main/self-hosting"
             target="_blank"
             rel="noopener noreferrer"
             class="border-border bg-card hover:bg-accent inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
@@ -66,7 +70,7 @@
       </div>
 
       <!-- Cloud option -->
-      <div class="border-border/50 bg-card rounded-2xl border p-8">
+      <div class="border-border/50 bg-card flex flex-col rounded-2xl border p-8">
         <div class="mb-4 flex items-center gap-3">
           <div class="flex size-10 items-center justify-center rounded-lg bg-blue-500/10">
             <!-- Globe -->
@@ -93,11 +97,11 @@
           </li>
           <li class="flex items-center gap-2 text-sm">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4 shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
-            <span>Switch to self-hosted whenever</span>
+            <span>Move to self-hosted anytime: export, restore, done</span>
           </li>
         </ul>
 
-        <div class="mt-6">
+        <div class="mt-auto pt-6">
           <a
             href="/sign-up"
             class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
@@ -124,7 +128,7 @@
       </div>
       <div class="text-muted-foreground flex items-center gap-2 text-sm">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
-        <span>Open source = auditable</span>
+        <span>Auditable AGPL-3.0 code</span>
       </div>
       <div class="text-muted-foreground flex items-center gap-2 text-sm">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary size-4"><path d="M20 6 9 17l-5-5"/></svg>
