@@ -246,16 +246,10 @@ const absorbLinkResidualIntoOpeningBalance = async ({
 }): Promise<number> => {
   const sequelizeTx = namespace.get('transaction');
 
-  const [row] = await Transactions.sequelize!.query<{ signedSum: string }>(
-    `SELECT COALESCE(SUM(CASE WHEN "transactionType" = :incomeType THEN "amount" ELSE -"amount" END), 0) AS "signedSum"
-     FROM "Transactions" WHERE "accountId" = :accountId`,
-    {
-      replacements: { accountId, incomeType: TRANSACTION_TYPES.income },
-      type: QueryTypes.SELECT,
-      transaction: sequelizeTx,
-    },
-  );
-
+  // The lock must be taken BEFORE the ledger sum: a concurrent sync blocks on
+  // this row lock, so summing first would pair a pre-sync transaction sum with
+  // a post-sync currentBalance and absorb the concurrent delta into the
+  // opening balance.
   const account = await Accounts.findOne({
     where: { id: accountId, userId },
     transaction: sequelizeTx,
@@ -271,6 +265,16 @@ const absorbLinkResidualIntoOpeningBalance = async ({
     );
     return 0;
   }
+
+  const [row] = await Transactions.sequelize!.query<{ signedSum: string }>(
+    `SELECT COALESCE(SUM(CASE WHEN "transactionType" = :incomeType THEN "amount" ELSE -"amount" END), 0) AS "signedSum"
+     FROM "Transactions" WHERE "accountId" = :accountId`,
+    {
+      replacements: { accountId, incomeType: TRANSACTION_TYPES.income },
+      type: QueryTypes.SELECT,
+      transaction: sequelizeTx,
+    },
+  );
 
   const signedSumCents = Number(row?.signedSum ?? 0);
   const initialBalanceBefore = account.initialBalance;
