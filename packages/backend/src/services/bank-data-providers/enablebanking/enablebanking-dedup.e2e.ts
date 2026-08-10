@@ -688,6 +688,49 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       expect(externalData.entryReference).toBe('booked_ref_001');
     });
 
+    it('upgrades a pending row carrying an entry_reference when its booked copy arrives under a different reference', async () => {
+      // Some ASPSPs stamp an entry_reference on the pending authorisation and a
+      // DIFFERENT one on the booked copy: tier 1 misses (references differ) and
+      // the hash misses (it is derived from the reference), so the pending tier
+      // is the only path left.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '647.31',
+          transactionDate: '2025-03-02',
+          remittanceInformation: ['LIDL254STHLMAKALLA STOCKHOLM'],
+          entryReference: 'pending_ref_647',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const afterPendingSync = await listTransactions({ accountId });
+      expect(afterPendingSync.length).toBe(1);
+      const pendingTx = afterPendingSync[0]!;
+      expect((await readExternalData({ id: pendingTx.id })).rawTransaction?.status).toBe('PDNG');
+      expect((await readExternalData({ id: pendingTx.id })).entryReference).toBe('pending_ref_647');
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '647.31',
+          bookingDate: '2025-03-03',
+          remittanceInformation: ['LIDL254STHLMAKALLA K5529 Kortköp/uttag'],
+          entryReference: 'booked_ref_647',
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const afterBookedSync = await listTransactions({ accountId });
+      expect(afterBookedSync.length).toBe(1);
+      const upgraded = afterBookedSync[0]!;
+      expect(upgraded.id).toBe(pendingTx.id);
+
+      const externalData = await readExternalData({ id: upgraded.id });
+      expect(externalData.rawTransaction?.status).toBe('BOOK');
+      expect(externalData.entryReference).toBe('booked_ref_647');
+    });
+
     it('pairs a booked re-issue with its nearest pending row, not the first candidate', async () => {
       helpers.enablebanking.setFixedTransactions([
         { ...CARD_PENDING, amount: '25.00', transactionDate: '2025-02-03', remittanceInformation: ['PENDING EARLY'] },
