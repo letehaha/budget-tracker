@@ -2,6 +2,7 @@ import {
   API_ERROR_CODES,
   BANK_PROVIDER_TYPE,
   TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
   VEHICLE_CLASS,
   asDecimal,
 } from '@bt/shared/types';
@@ -48,10 +49,13 @@ const setupLinkedScenario = async ({
   initialBalance,
   bankBalance,
   bankTransactions,
+  beforeLink,
 }: {
   initialBalance: number;
   bankBalance: number;
   bankTransactions: ReturnType<typeof getMockedLunchFlowTransactions>;
+  /** Seeds account state (e.g. manual transactions) between creation and linking. */
+  beforeLink?: ({ accountId }: { accountId: Accounts['id'] }) => Promise<void>;
 }) => {
   await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
 
@@ -63,6 +67,8 @@ const setupLinkedScenario = async ({
     }),
     raw: true,
   });
+
+  if (beforeLink) await beforeLink({ accountId: account.id });
 
   const { connectionId } = await helpers.bankDataProviders.connectProvider({
     providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
@@ -158,6 +164,70 @@ describe('Balance reconciliation when linking account to a bank connection', () 
     const todayRow = await readTodayBalanceRow({ accountId: account.id });
     expect(todayRow).not.toBeNull();
     expect(todayRow!.amount.toCents()).toBe(updatedAccount.refCurrentBalance.toCents());
+  });
+
+  it('absorbs only the unexplained residual when the account already carries manual transactions', async () => {
+    // Manual history: 1000 opening − 200 expense + 50 income = 850 tracked.
+    // The bank reports 1200 with one +100 transaction, so the books explain
+    // 1000 − 200 + 50 + 100 = 950 and exactly 250 is residual — NOT the full
+    // pre-link gap of 1200 − 850 = 350.
+    let manualRowsBefore: Transactions[] = [];
+
+    const bankTransactions = getMockedLunchFlowTransactions(1);
+    bankTransactions.transactions[0]!.amount = asDecimal(100);
+    bankTransactions.transactions[0]!.date = subDays(new Date(), 1).toISOString();
+
+    const { account } = await setupLinkedScenario({
+      initialBalance: 1000,
+      bankBalance: 1200,
+      bankTransactions,
+      beforeLink: async ({ accountId }) => {
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId,
+            amount: 200,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: subDays(new Date(), 10).toISOString(),
+          }),
+          raw: true,
+        });
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.income,
+            time: subDays(new Date(), 5).toISOString(),
+          }),
+          raw: true,
+        });
+        manualRowsBefore = await Transactions.findAll({ where: { accountId }, raw: true });
+      },
+    });
+
+    const updatedAccount = (await Accounts.findByPk(account.id))!;
+    const transactions = await Transactions.findAll({ where: { accountId: account.id }, raw: true });
+
+    const syncedRows = transactions.filter((tx) => tx.originalId !== null);
+    expect(syncedRows.length).toBe(1);
+
+    // The manual rows must survive the link untouched.
+    const manualRowsAfter = transactions.filter((tx) => tx.originalId === null);
+    expect(manualRowsAfter.length).toBe(2);
+    expect(manualRowsBefore.length).toBe(2);
+    for (const before of manualRowsBefore) {
+      const after = manualRowsAfter.find((tx) => tx.id === before.id);
+      expect(after).toBeDefined();
+      expect(after!.time).toEqual(before.time);
+      expect(Number(after!.amount)).toBe(Number(before.amount));
+      expect(after!.transactionType).toBe(before.transactionType);
+      expect(after!.transferNature).toBe(before.transferNature);
+    }
+
+    expect(updatedAccount.currentBalance.toNumber()).toBe(1200);
+    expect(updatedAccount.initialBalance.toNumber()).toBe(1250);
+    expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
+      updatedAccount.currentBalance.toCents(),
+    );
   });
 
   it('keeps the ledger intact across an unlink → relink cycle with unchanged bank state', async () => {
