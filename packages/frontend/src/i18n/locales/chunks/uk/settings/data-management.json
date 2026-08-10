@@ -34,6 +34,10 @@
         "cta": "Імпортувати з Wallet",
         "listDescription": "Мультивалютні рахунки з автоматичним визначенням переказів"
       },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Імпортуйте файл .mny з Microsoft Money"
+      },
       "import": {
         "back": "Назад до Імпорту",
         "groups": {
@@ -88,10 +92,6 @@
           "clear": "Очистити період"
         },
         "listDescription": "Завантажте zip для таблиць, податків або міграції"
-      },
-      "ms-money": {
-        "title": "Microsoft Money",
-        "listDescription": "Імпортуйте файл .mny з Microsoft Money"
       }
     }
   }

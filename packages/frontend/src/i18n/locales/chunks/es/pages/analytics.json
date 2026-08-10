@@ -7,10 +7,10 @@
       "trendsComparison": "Comparación de tendencias",
       "investmentCalculator": "Calculadora de inversiones",
       "pivotReport": "Tabla dinámica",
-      "collapse": "Contraer",
       "netWorthDrivers": "Impulsores del patrimonio neto",
       "investmentContributions": "Aportaciones",
       "netWorthHistory": "Historial de patrimonio neto",
+      "collapse": "Contraer",
       "sections": {
         "investments": "Inversiones"
       }
@@ -97,6 +97,7 @@
       "timeHorizon": "Horizonte temporal (años)",
       "years": "Años",
       "annualReturn": "Rentabilidad anual (%)",
+      "annualReturnPlaceholder": "Seleccionar preajuste",
       "annualInflation": "Inflación anual (%)",
       "perMonth": "al mes",
       "totalInvested": "Total invertido",
@@ -125,8 +126,7 @@
       "configure": "Configurar",
       "hideInputs": "Ocultar",
       "portfolioReturnOption": "{name} (su ~{rate}%/año)",
-      "portfolioNoHistoryOption": "{name} — historial insuficiente",
-      "annualReturnPlaceholder": "Seleccionar preajuste"
+      "portfolioNoHistoryOption": "{name} — historial insuficiente"
     },
     "portfolioFilter": {
       "all": "Todas las carteras",

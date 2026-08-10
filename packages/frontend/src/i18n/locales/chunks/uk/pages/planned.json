@@ -9,16 +9,14 @@
       "title": "Регулярні витрати",
       "description": "Відстежуйте регулярні витрати та рахунки",
       "addSubscription": "Додати регулярну витрату",
+      "addSubscriptionShort": "",
       "backToList": "Повернутися до регулярних витрат",
       "createTitle": "Створити регулярну витрату",
-      "editTitle": "Редагувати регулярну витрату",
       "typeSubscription": "Підписка",
       "typeBill": "Рахунок",
       "typeInstallment": "Розстрочка",
       "completed": "Завершено",
       "paused": "Призупинено",
-      "pausedSection": "Призупинені ({count})",
-      "edit": "Редагувати",
       "cancel": "Скасувати",
       "pauseSubscription": "Призупинити підписку",
       "resumeSubscription": "Відновити підписку",
@@ -36,9 +34,28 @@
       "suggestMatchesDescription": "Транзакції, що відповідають правилам вашої підписки",
       "noSuggestedMatches": "Збігів не знайдено",
       "linkSelected": "Прив'язати {count} обраних",
-      "matchingRulesTitle": "Правила зіставлення",
       "addMatchingRules": "Додати правила зіставлення",
       "updateMatchingRules": "Оновити правила зіставлення",
+      "linked": {
+        "totalPaid": "",
+        "average": "",
+        "lastPayment": "",
+        "driftUp": "",
+        "driftDown": "",
+        "yearPayments": "",
+        "legendRule": "",
+        "legendAi": "",
+        "legendManual": "",
+        "chartLabel": "",
+        "gapTooltip": "",
+        "convertedTooltip": ""
+      },
+      "quickAdd": {
+        "currencyPlaceholder": "",
+        "nextPaymentLabel": "",
+        "nextPaymentHint": "",
+        "refineHint": ""
+      },
       "frequency": {
         "weekly": "Щотижня",
         "biweekly": "Раз на два тижні",
@@ -59,6 +76,12 @@
         "typeLabel": "Тип",
         "typeSubscriptionDesc": "Регулярний платіж за послугу",
         "typeBillDesc": "Регулярний рахунок або комунальний платіж",
+        "transactionTypeLabel": "Тип транзакції",
+        "transactionTypeExpense": "Видатки",
+        "transactionTypeIncome": "Дохід",
+        "transactionTypeExpenseDesc": "Регулярний вихідний платіж",
+        "transactionTypeIncomeDesc": "Регулярна зарплата, гонорар або запланований дохід",
+        "transactionTypeLockedTooltip": "Тип транзакції не можна змінити після створення регулярного платежу",
         "amountLabel": "Очікувана сума",
         "amountPlaceholder": "0.00",
         "currencyLabel": "Валюта",
@@ -82,10 +105,6 @@
         "update": "Оновити",
         "create": "Створити",
         "rulesCount": "{count} правил зіставлення налаштовано",
-        "editRules": "Редагувати правила",
-        "addRules": "Додати правила",
-        "saveRules": "Зберегти правила",
-        "extraOptions": "Додаткові опції",
         "validationAmountCurrency": "Сума та валюта мають бути вказані разом.",
         "validationSubscriptionRequiresAmount": "Підписки потребують суму та валюту.",
         "typeInstallmentDesc": "Фінансована покупка, що сплачується фіксованою кількістю платежів",
@@ -109,22 +128,7 @@
           "1_week": "За 1 тиждень",
           "2_weeks": "За 2 тижні",
           "1_month": "За 1 місяць"
-        },
-        "scheduleSectionLabel": "Платіжний розклад",
-        "scheduleSectionHint": "Відстежуйте терміни, генеруйте періоди, надсилайте нагадування",
-        "autoRecord": {
-          "label": "Автозапис у день оплати",
-          "help": "Автоматично записує транзакцію о 00:00 UTC у день оплати.",
-          "requiresAccount": "Для автозапису потрібен рахунок.",
-          "requiresAmount": "Для автозапису потрібна сума та валюта.",
-          "conflictsMatching": "Існуючі правила зіставлення були очищені — автозапис і правила зіставлення не можна використовувати одночасно."
-        },
-        "transactionTypeLabel": "Тип транзакції",
-        "transactionTypeExpense": "Видатки",
-        "transactionTypeIncome": "Дохід",
-        "transactionTypeExpenseDesc": "Регулярний вихідний платіж",
-        "transactionTypeIncomeDesc": "Регулярна зарплата, гонорар або запланований дохід",
-        "transactionTypeLockedTooltip": "Тип транзакції не можна змінити після створення регулярного платежу"
+        }
       },
       "progress": {
         "title": "Прогрес розстрочки",
@@ -135,8 +139,6 @@
         "completedNote": "План завершено"
       },
       "rules": {
-        "ruleLabel": "Правило {number}",
-        "fieldLabel": "Поле",
         "selectField": "Оберіть поле",
         "noteDescription": "Транзакція збігатиметься, якщо її нотатка містить будь-яке з цих ключових слів",
         "keywordPlaceholder": "Введіть ключове слово",
@@ -144,8 +146,6 @@
         "minAmount": "Мін. сума",
         "maxAmount": "Макс. сума",
         "currencyCode": "Код валюти",
-        "transactionType": "Тип транзакції",
-        "account": "Рахунок",
         "addRule": "Додати правило",
         "fieldOptions": {
           "note": "Нотатка",
@@ -170,6 +170,9 @@
       "toggleError": "Не вдалося оновити статус підписки",
       "unlinkSuccess": "Транзакцію успішно від'єднано",
       "unlinkError": "Не вдалося від'єднати транзакцію",
+      "unlinkConfirmTitle": "",
+      "unlinkConfirmDescription": "",
+      "unlinkConfirmAction": "",
       "suggestError": "Не вдалося завантажити запропоновані збіги",
       "linkSuccess": "Транзакції успішно прив'язано",
       "linkError": "Не вдалося прив'язати транзакції",
@@ -185,21 +188,34 @@
         "name": "Назва · А–Я",
         "recent": "Нещодавно додано"
       },
+      "groups": {
+        "overdue": "",
+        "dueSoon": "",
+        "thisMonth": "",
+        "later": "",
+        "noSchedule": "",
+        "active": "",
+        "paused": ""
+      },
+      "errorState": {
+        "title": "",
+        "description": "",
+        "retry": ""
+      },
       "summary": {
         "filterAll": "Усі",
         "filterSubscriptions": "Підписки",
         "filterBills": "Рахунки",
         "filterInstallments": "Розстрочки",
-        "monthlyCost": "~{amount}/міс",
-        "yearlyProjected": "прогнозовано {amount}",
-        "perYear": "{amount}/рік",
-        "acrossSubscriptions": "серед {count} активної підписки | серед {count} активних підписок",
-        "acrossBills": "серед {count} активного рахунку | серед {count} активних рахунків",
-        "acrossAll": "серед {count} активних підписок і рахунків",
         "spendingLabel": "Витрати за місяць",
+        "monthlyCost": "~{amount}/міс",
         "incomeLabel": "Очікуваний дохід",
         "monthlyIncome": "~{amount}/міс",
-        "acrossIncome": "серед {count} активного платежу з доходом | серед {count} активних платежів з доходом | серед {count} активних платежів з доходом"
+        "acrossIncome": "серед {count} активного платежу з доходом | серед {count} активних платежів з доходом | серед {count} активних платежів з доходом",
+        "percentOfIncome": "",
+        "projectedPerYearLabel": "",
+        "activeCountLabel": "",
+        "loadError": ""
       },
       "candidates": {
         "discover": "Знайти",
@@ -227,7 +243,8 @@
         "viewTransactions": "Переглянути транзакції",
         "sampleTransactionsTitle": "Зразки транзакцій",
         "sampleTransactionsDescription": "Це зразки транзакцій, які спричинили виявлення цієї підписки.",
-        "noTransactionsFound": "Транзакцій не знайдено"
+        "noTransactionsFound": "Транзакцій не знайдено",
+        "acceptLinkFailed": ""
       },
       "periods": {
         "status": {
@@ -281,6 +298,57 @@
         "next6Months": "Наступні 6 місяців",
         "nextYear": "Наступний рік",
         "all": "Увесь час"
+      },
+      "editors": {
+        "basics": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "kindPlaceholder": "",
+          "currencyPlaceholder": "",
+          "firstPaymentDueLabel": "",
+          "installmentScheduleRequired": ""
+        },
+        "schedule": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "frequencyPlaceholder": "",
+          "clearDueDate": "",
+          "detectionOnlyHint": "",
+          "emailOn": "",
+          "emailOff": ""
+        },
+        "automation": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "modeMatchLabel": "",
+          "modeMatchDesc": "",
+          "modeRecordLabel": "",
+          "modeRecordDesc": "",
+          "modeManualLabel": "",
+          "modeManualDesc": "",
+          "accountPlaceholder": "",
+          "accountOptionalHint": "",
+          "accountRequiredHint": "",
+          "recordNeedsAmount": "",
+          "matchNeedsRule": "",
+          "summaryRecord": "",
+          "summaryRecordNoAccount": "",
+          "summaryManual": "",
+          "selectTransactionType": "",
+          "removeRule": "",
+          "removeKeyword": ""
+        },
+        "organize": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "notesAdded": "",
+          "notesEmpty": "",
+          "tagsMore": ""
+        }
       }
     }
   }

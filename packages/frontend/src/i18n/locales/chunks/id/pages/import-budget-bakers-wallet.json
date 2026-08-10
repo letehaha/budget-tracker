@@ -157,10 +157,6 @@
           "importButton": "Impor {count} transaksi",
           "importing": "Mengimpor..."
         }
-      },
-      "progress": {
-        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
-        "lostContact": "Kehilangan kontak dengan tugas impor."
       }
     }
   }

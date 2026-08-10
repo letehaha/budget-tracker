@@ -77,10 +77,6 @@
           "viewTransactions": "Lihat transaksi",
           "importAnother": "Impor file lain"
         }
-      },
-      "progress": {
-        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
-        "lostContact": "Kehilangan kontak dengan tugas impor."
       }
     }
   }

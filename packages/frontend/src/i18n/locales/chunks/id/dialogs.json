@@ -186,6 +186,7 @@
         "saveButton": "Simpan",
         "confirmButton": "Konfirmasi",
         "linkedRefunds": "Pengembalian dana tertaut",
+        "unlinkRefund": "Lepas tautan pengembalian dana",
         "refundsPortion": "Merefund bagian {name}",
         "selectOnlyOne": "* Anda hanya dapat memilih satu transaksi",
         "selectMultipleWithLimit": "* Anda dapat memilih beberapa transaksi, tetapi total jumlahnya tidak boleh lebih besar dari jumlah transaksi asli",
@@ -196,8 +197,7 @@
         "amountMayBeSmaller": "Beberapa opsi mungkin lebih kecil dari jumlah refund Anda",
         "finalValidationWarning": "Validasi akhir akan menggunakan jumlah yang sudah dikonversi.",
         "mainCategoryLabel": "(utama)",
-        "linkRemovedOnTypeChange": "Tautan refund dihapus karena jenis transaksi berubah.",
-        "unlinkRefund": "Lepas tautan pengembalian dana"
+        "linkRemovedOnTypeChange": "Tautan refund dihapus karena jenis transaksi berubah."
       },
       "refundInfo": {
         "trigger": "Bagaimana caranya?",

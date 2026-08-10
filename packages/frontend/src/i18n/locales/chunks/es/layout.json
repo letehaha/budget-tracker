@@ -53,7 +53,6 @@
   },
   "header": {
     "add": "Añadir",
-    "import": "Importar",
     "importData": "Importar datos",
     "language": "Idioma",
     "newTransaction": "Nueva transacción",
@@ -73,12 +72,12 @@
       "categorizing": "Categorizando...",
       "completed": "IA categorizó {count} transacción | IA categorizó {count} transacciones",
       "completedShort": "Categorización completada",
+      "completedWithSkipped": "Categorizada {count} transacción ({skipped} omitida) | Categorizadas {count} transacciones ({skipped} omitidas)",
       "failed": "La categorización ha fallado",
       "failedShort": "Error",
+      "allSkipped": "La IA no pudo categorizar la transacción con confianza | La IA no pudo categorizar ninguna de las {count} transacciones con confianza",
       "queued": "Esperando para comenzar...",
-      "transactions": "transacciones",
-      "completedWithSkipped": "Categorizada {count} transacción ({skipped} omitida) | Categorizadas {count} transacciones ({skipped} omitidas)",
-      "allSkipped": "La IA no pudo categorizar la transacción con confianza | La IA no pudo categorizar ninguna de las {count} transacciones con confianza"
+      "transactions": "transacciones"
     }
   },
   "themeSelector": {

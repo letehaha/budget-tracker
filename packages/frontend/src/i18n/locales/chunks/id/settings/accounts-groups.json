@@ -1,25 +1,6 @@
 {
   "settings": {
     "accountGroups": {
-      "title": "Kelola grup akun",
-      "addButton": "Tambah grup baru",
-      "table": {
-        "placeholder": "Nama akun",
-        "saveButton": "Simpan",
-        "editButton": "Sunting",
-        "deleteButton": "Hapus",
-        "deleteDisabledTooltip": "Grup ini terhubung ke koneksi bank dan tidak dapat dihapus manual. Putuskan koneksi bank untuk menghapusnya otomatis.",
-        "unlinkButton": "Lepaskan",
-        "noData": "Tidak ada data grup akun",
-        "deleteDialog": {
-          "title": "Hapus grup akun ini?",
-          "unlinkWarning": "Sebelum dihapus, lepaskan akun-akun di bawah ini terlebih dahulu"
-        },
-        "notifications": {
-          "unlinked": "Akun telah dilepaskan",
-          "deleted": "Grup telah dihapus"
-        }
-      },
       "page": {
         "title": "Grup akun",
         "description": "Atur akun ke dalam grup. Koneksi bank membuat dan mengelola grupnya sendiri secara otomatis.",
@@ -42,10 +23,11 @@
         "inParent": "di {name}",
         "manageConnection": "Kelola koneksi"
       },
-      "rename": {
+      "update": {
         "label": "Nama grup",
         "placeholder": "Masukkan nama grup",
-        "saveButton": "Simpan"
+        "saveButton": "Simpan",
+        "emptyNameError": "Nama grup tidak boleh kosong"
       },
       "accounts": {
         "heading": "Akun dalam grup ini",
@@ -58,12 +40,6 @@
         "confirmTitle": "Hapus grup ini?",
         "description": "Grup akan dihapus. Akun di dalamnya tidak ikut dihapus — akun tersebut hanya berhenti dikelompokkan.",
         "affectedAccounts": "Akun berikut akan dihapus dari grup:"
-      },
-      "update": {
-        "label": "Nama grup",
-        "placeholder": "Masukkan nama grup",
-        "saveButton": "Simpan",
-        "emptyNameError": "Nama grup tidak boleh kosong"
       }
     }
   }

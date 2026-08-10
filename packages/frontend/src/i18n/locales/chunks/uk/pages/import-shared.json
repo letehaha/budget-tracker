@@ -1,4 +1,12 @@
 {
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "Завдання імпорту застаріло або не знайдено.",
+        "lostContact": "Втрачено зв'язок із завданням імпорту."
+      }
+    }
+  },
   "importShared": {
     "action": {
       "createNew": "Створити новий",
@@ -65,14 +73,6 @@
         "category": "Категорія"
       },
       "importAnywayAriaLabel": "Імпортувати рядок {row} все одно"
-    }
-  },
-  "pages": {
-    "importExport": {
-      "progress": {
-        "jobExpired": "Завдання імпорту застаріло або не знайдено.",
-        "lostContact": "Втрачено зв'язок із завданням імпорту."
-      }
     }
   }
 }

@@ -9,16 +9,14 @@
       "title": "Biaya Berulang",
       "description": "Lacak biaya dan tagihan berulang",
       "addSubscription": "Tambah Biaya Berulang",
+      "addSubscriptionShort": "",
       "backToList": "Kembali ke biaya berulang",
       "createTitle": "Buat Biaya Berulang",
-      "editTitle": "Edit Biaya Berulang",
       "typeSubscription": "Langganan",
       "typeBill": "Tagihan",
       "typeInstallment": "Cicilan",
       "completed": "Selesai",
       "paused": "Dijeda",
-      "pausedSection": "Dijeda ({count})",
-      "edit": "Sunting",
       "cancel": "Batal",
       "pauseSubscription": "Jeda langganan",
       "resumeSubscription": "Lanjutkan langganan",
@@ -36,9 +34,28 @@
       "suggestMatchesDescription": "Transaksi yang sesuai dengan aturan langganan Anda",
       "noSuggestedMatches": "Tidak ada transaksi yang cocok ditemukan",
       "linkSelected": "Hubungkan {count} dipilih",
-      "matchingRulesTitle": "Aturan Pencocokan",
       "addMatchingRules": "Tambah aturan pencocokan",
       "updateMatchingRules": "Perbarui aturan pencocokan",
+      "linked": {
+        "totalPaid": "",
+        "average": "",
+        "lastPayment": "",
+        "driftUp": "",
+        "driftDown": "",
+        "yearPayments": "",
+        "legendRule": "",
+        "legendAi": "",
+        "legendManual": "",
+        "chartLabel": "",
+        "gapTooltip": "",
+        "convertedTooltip": ""
+      },
+      "quickAdd": {
+        "currencyPlaceholder": "",
+        "nextPaymentLabel": "",
+        "nextPaymentHint": "",
+        "refineHint": ""
+      },
       "frequency": {
         "weekly": "Mingguan",
         "biweekly": "Dua Mingguan",
@@ -59,6 +76,12 @@
         "typeLabel": "Jenis",
         "typeSubscriptionDesc": "Pembayaran layanan berulang",
         "typeBillDesc": "Tagihan atau utilitas berulang",
+        "transactionTypeLabel": "Jenis transaksi",
+        "transactionTypeExpense": "Pengeluaran",
+        "transactionTypeIncome": "Pemasukan",
+        "transactionTypeExpenseDesc": "Arus kas keluar berulang",
+        "transactionTypeIncomeDesc": "Gaji, retainer, atau setoran terjadwal yang berulang",
+        "transactionTypeLockedTooltip": "Jenis transaksi tidak dapat diubah setelah pembayaran berulang dibuat",
         "amountLabel": "Jumlah yang diharapkan",
         "amountPlaceholder": "0.00",
         "currencyLabel": "Mata Uang",
@@ -82,10 +105,6 @@
         "update": "Perbarui",
         "create": "Buat",
         "rulesCount": "{count} aturan pencocokan dikonfigurasi",
-        "editRules": "Edit Aturan",
-        "addRules": "Tambah Aturan",
-        "saveRules": "Simpan Aturan",
-        "extraOptions": "Opsi tambahan",
         "validationAmountCurrency": "Jumlah dan mata uang harus diberikan bersama.",
         "validationSubscriptionRequiresAmount": "Langganan memerlukan jumlah dan mata uang.",
         "typeInstallmentDesc": "Pembelian yang dibiayai dibayar dalam jumlah pembayaran tetap",
@@ -109,22 +128,7 @@
           "1_week": "1 minggu sebelumnya",
           "2_weeks": "2 minggu sebelumnya",
           "1_month": "1 bulan sebelumnya"
-        },
-        "scheduleSectionLabel": "Jadwal pembayaran",
-        "scheduleSectionHint": "Lacak tanggal jatuh tempo, buat periode, kirim pengingat",
-        "autoRecord": {
-          "label": "Catat otomatis pada tanggal jatuh tempo",
-          "help": "Mencatat transaksi secara otomatis pada pukul 00:00 UTC tanggal jatuh tempo.",
-          "requiresAccount": "Pencatatan otomatis memerlukan akun.",
-          "requiresAmount": "Pencatatan otomatis memerlukan jumlah dan mata uang.",
-          "conflictsMatching": "Aturan pencocokan yang ada telah dihapus — pencatatan otomatis dan aturan pencocokan tidak dapat digunakan bersama."
-        },
-        "transactionTypeLabel": "Jenis transaksi",
-        "transactionTypeExpense": "Pengeluaran",
-        "transactionTypeIncome": "Pemasukan",
-        "transactionTypeExpenseDesc": "Arus kas keluar berulang",
-        "transactionTypeIncomeDesc": "Gaji, retainer, atau setoran terjadwal yang berulang",
-        "transactionTypeLockedTooltip": "Jenis transaksi tidak dapat diubah setelah pembayaran berulang dibuat"
+        }
       },
       "progress": {
         "title": "Progres cicilan",
@@ -135,8 +139,6 @@
         "completedNote": "Rencana selesai"
       },
       "rules": {
-        "ruleLabel": "Aturan {number}",
-        "fieldLabel": "Bidang",
         "selectField": "Pilih bidang",
         "noteDescription": "Transaksi akan cocok jika catatannya mengandung salah satu dari kata kunci ini",
         "keywordPlaceholder": "Masukkan kata kunci",
@@ -144,8 +146,6 @@
         "minAmount": "Jumlah min",
         "maxAmount": "Jumlah maks",
         "currencyCode": "Kode mata uang",
-        "transactionType": "Jenis transaksi",
-        "account": "Akun",
         "addRule": "Tambah Aturan",
         "fieldOptions": {
           "note": "Catatan",
@@ -170,6 +170,9 @@
       "toggleError": "Gagal memperbarui status langganan",
       "unlinkSuccess": "Transaksi berhasil dilepaskan",
       "unlinkError": "Gagal melepaskan transaksi",
+      "unlinkConfirmTitle": "",
+      "unlinkConfirmDescription": "",
+      "unlinkConfirmAction": "",
       "suggestError": "Gagal memuat kecocokan yang disarankan",
       "linkSuccess": "Transaksi berhasil dihubungkan",
       "linkError": "Gagal menghubungkan transaksi",
@@ -185,21 +188,34 @@
         "name": "Nama · A–Z",
         "recent": "Baru ditambahkan"
       },
+      "groups": {
+        "overdue": "",
+        "dueSoon": "",
+        "thisMonth": "",
+        "later": "",
+        "noSchedule": "",
+        "active": "",
+        "paused": ""
+      },
+      "errorState": {
+        "title": "",
+        "description": "",
+        "retry": ""
+      },
       "summary": {
         "filterAll": "Semua",
         "filterSubscriptions": "Langganan",
         "filterBills": "Tagihan",
         "filterInstallments": "Cicilan",
-        "monthlyCost": "~{amount}/bln",
-        "yearlyProjected": "{amount} diproyeksikan",
-        "perYear": "{amount}/thn",
-        "acrossSubscriptions": "di {count} langganan aktif | di {count} langganan aktif",
-        "acrossBills": "di {count} tagihan aktif | di {count} tagihan aktif",
-        "acrossAll": "di {count} langganan & tagihan aktif",
         "spendingLabel": "Pengeluaran bulanan",
+        "monthlyCost": "~{amount}/bln",
         "incomeLabel": "Pemasukan yang diharapkan",
         "monthlyIncome": "~{amount}/bln",
-        "acrossIncome": "di {count} pembayaran pemasukan aktif"
+        "acrossIncome": "di {count} pembayaran pemasukan aktif",
+        "percentOfIncome": "",
+        "projectedPerYearLabel": "",
+        "activeCountLabel": "",
+        "loadError": ""
       },
       "candidates": {
         "discover": "Temukan",
@@ -227,7 +243,8 @@
         "viewTransactions": "Lihat transaksi",
         "sampleTransactionsTitle": "Contoh transaksi",
         "sampleTransactionsDescription": "Ini adalah contoh transaksi yang memicu deteksi langganan ini.",
-        "noTransactionsFound": "Tidak ada transaksi ditemukan"
+        "noTransactionsFound": "Tidak ada transaksi ditemukan",
+        "acceptLinkFailed": ""
       },
       "periods": {
         "status": {
@@ -281,6 +298,57 @@
         "next6Months": "6 bulan ke depan",
         "nextYear": "Tahun depan",
         "all": "Sepanjang waktu"
+      },
+      "editors": {
+        "basics": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "kindPlaceholder": "",
+          "currencyPlaceholder": "",
+          "firstPaymentDueLabel": "",
+          "installmentScheduleRequired": ""
+        },
+        "schedule": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "frequencyPlaceholder": "",
+          "clearDueDate": "",
+          "detectionOnlyHint": "",
+          "emailOn": "",
+          "emailOff": ""
+        },
+        "automation": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "modeMatchLabel": "",
+          "modeMatchDesc": "",
+          "modeRecordLabel": "",
+          "modeRecordDesc": "",
+          "modeManualLabel": "",
+          "modeManualDesc": "",
+          "accountPlaceholder": "",
+          "accountOptionalHint": "",
+          "accountRequiredHint": "",
+          "recordNeedsAmount": "",
+          "matchNeedsRule": "",
+          "summaryRecord": "",
+          "summaryRecordNoAccount": "",
+          "summaryManual": "",
+          "selectTransactionType": "",
+          "removeRule": "",
+          "removeKeyword": ""
+        },
+        "organize": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "notesAdded": "",
+          "notesEmpty": "",
+          "tagsMore": ""
+        }
       }
     }
   }

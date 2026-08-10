@@ -5,6 +5,14 @@
       "notFound": "Akun tidak ditemukan",
       "notFoundDescription": "Akun yang Anda cari tidak ada atau telah dihapus.",
       "goToAccounts": "Pergi ke Akun",
+      "logo": {
+        "change": "Ganti logo",
+        "dialogTitle": "Logo akun",
+        "dialogDescription": "Cari logo merek atau pilih huruf khusus.",
+        "updatedToast": "Logo akun diperbarui",
+        "resetToast": "Logo dihapus",
+        "error": "Gagal memperbarui logo akun"
+      },
       "header": {
         "updateSuccess": "Data akun berhasil diubah",
         "updateError": "Terjadi kesalahan saat mencoba memperbarui akun",
@@ -256,14 +264,6 @@
           "cancelSuccess": "Undangan dibatalkan.",
           "cancelError": "Tidak dapat membatalkan undangan."
         }
-      },
-      "logo": {
-        "change": "Ganti logo",
-        "dialogTitle": "Logo akun",
-        "dialogDescription": "Cari logo merek atau pilih huruf khusus.",
-        "updatedToast": "Logo akun diperbarui",
-        "resetToast": "Logo dihapus",
-        "error": "Gagal memperbarui logo akun"
       }
     },
     "vehicleDetails": {

@@ -9,16 +9,14 @@
       "title": "Cargos recurrentes",
       "description": "Seguimiento de cargos recurrentes y facturas",
       "addSubscription": "Añadir cargo recurrente",
+      "addSubscriptionShort": "",
       "backToList": "Volver a cargos recurrentes",
       "createTitle": "Crear cargo recurrente",
-      "editTitle": "Editar cargo recurrente",
       "typeSubscription": "Suscripción",
       "typeBill": "Factura",
       "typeInstallment": "A plazos",
       "completed": "Completado",
       "paused": "En pausa",
-      "pausedSection": "Pausadas ({count})",
-      "edit": "Editar",
       "cancel": "Cancelar",
       "pauseSubscription": "Pausar suscripción",
       "resumeSubscription": "Reanudar suscripción",
@@ -36,9 +34,28 @@
       "suggestMatchesDescription": "Transacciones que coinciden con sus reglas de suscripción",
       "noSuggestedMatches": "No se encontraron transacciones coincidentes",
       "linkSelected": "Vincular {count} seleccionadas",
-      "matchingRulesTitle": "Reglas de coincidencia",
       "addMatchingRules": "Añadir reglas de coincidencia",
       "updateMatchingRules": "Actualizar reglas de coincidencia",
+      "linked": {
+        "totalPaid": "",
+        "average": "",
+        "lastPayment": "",
+        "driftUp": "",
+        "driftDown": "",
+        "yearPayments": "",
+        "legendRule": "",
+        "legendAi": "",
+        "legendManual": "",
+        "chartLabel": "",
+        "gapTooltip": "",
+        "convertedTooltip": ""
+      },
+      "quickAdd": {
+        "currencyPlaceholder": "",
+        "nextPaymentLabel": "",
+        "nextPaymentHint": "",
+        "refineHint": ""
+      },
       "frequency": {
         "weekly": "Semanal",
         "biweekly": "Quincenal",
@@ -59,6 +76,12 @@
         "typeLabel": "Tipo",
         "typeSubscriptionDesc": "Pago recurrente de servicio",
         "typeBillDesc": "Factura o suministro recurrente",
+        "transactionTypeLabel": "Tipo de transacción",
+        "transactionTypeExpense": "Gasto",
+        "transactionTypeIncome": "Ingreso",
+        "transactionTypeExpenseDesc": "Salida de efectivo recurrente",
+        "transactionTypeIncomeDesc": "Nómina recurrente, honorario fijo o depósito programado",
+        "transactionTypeLockedTooltip": "El tipo de transacción no se puede cambiar después de crear la suscripción",
         "amountLabel": "Importe esperado",
         "amountPlaceholder": "0.00",
         "currencyLabel": "Moneda",
@@ -82,10 +105,6 @@
         "update": "Actualizar",
         "create": "Crear",
         "rulesCount": "{count} reglas de coincidencia configuradas",
-        "editRules": "Editar reglas",
-        "addRules": "Añadir reglas",
-        "saveRules": "Guardar reglas",
-        "extraOptions": "Opciones adicionales",
         "validationAmountCurrency": "El importe y la moneda deben proporcionarse juntos.",
         "validationSubscriptionRequiresAmount": "Las suscripciones requieren un importe y una moneda.",
         "typeInstallmentDesc": "Compra financiada pagada en un número fijo de cuotas",
@@ -109,22 +128,7 @@
           "1_week": "1 semana antes",
           "2_weeks": "2 semanas antes",
           "1_month": "1 mes antes"
-        },
-        "scheduleSectionLabel": "Programa de pagos",
-        "scheduleSectionHint": "Registre fechas de vencimiento, genere períodos, envíe recordatorios",
-        "autoRecord": {
-          "label": "Registro automático en la fecha de vencimiento",
-          "help": "Registra la transacción automáticamente a las 00:00 UTC de la fecha de vencimiento.",
-          "requiresAccount": "El registro automático necesita una cuenta.",
-          "requiresAmount": "El registro automático necesita un importe y una moneda.",
-          "conflictsMatching": "Las reglas de coincidencia existentes fueron eliminadas — el registro automático y las reglas de coincidencia no pueden usarse juntos."
-        },
-        "transactionTypeLabel": "Tipo de transacción",
-        "transactionTypeExpense": "Gasto",
-        "transactionTypeIncome": "Ingreso",
-        "transactionTypeExpenseDesc": "Salida de efectivo recurrente",
-        "transactionTypeIncomeDesc": "Nómina recurrente, honorario fijo o depósito programado",
-        "transactionTypeLockedTooltip": "El tipo de transacción no se puede cambiar después de crear la suscripción"
+        }
       },
       "progress": {
         "title": "Progreso de cuotas",
@@ -135,8 +139,6 @@
         "completedNote": "Plan completado"
       },
       "rules": {
-        "ruleLabel": "Regla {number}",
-        "fieldLabel": "Campo",
         "selectField": "Seleccionar campo",
         "noteDescription": "La transacción coincidirá si su nota contiene alguna de estas palabras clave",
         "keywordPlaceholder": "Introducir palabra clave",
@@ -144,8 +146,6 @@
         "minAmount": "Importe mínimo",
         "maxAmount": "Importe máximo",
         "currencyCode": "Código de moneda",
-        "transactionType": "Tipo de transacción",
-        "account": "Cuenta",
         "addRule": "Añadir regla",
         "fieldOptions": {
           "note": "Nota",
@@ -170,6 +170,9 @@
       "toggleError": "Error al actualizar el estado de la suscripción",
       "unlinkSuccess": "Transacción desvinculada correctamente",
       "unlinkError": "Error al desvincular la transacción",
+      "unlinkConfirmTitle": "",
+      "unlinkConfirmDescription": "",
+      "unlinkConfirmAction": "",
       "suggestError": "Error al cargar coincidencias sugeridas",
       "linkSuccess": "Transacciones vinculadas correctamente",
       "linkError": "Error al vincular transacciones",
@@ -185,21 +188,34 @@
         "name": "Nombre · A–Z",
         "recent": "Añadido recientemente"
       },
+      "groups": {
+        "overdue": "",
+        "dueSoon": "",
+        "thisMonth": "",
+        "later": "",
+        "noSchedule": "",
+        "active": "",
+        "paused": ""
+      },
+      "errorState": {
+        "title": "",
+        "description": "",
+        "retry": ""
+      },
       "summary": {
         "filterAll": "Todas",
         "filterSubscriptions": "Suscripciones",
         "filterBills": "Facturas",
         "filterInstallments": "A plazos",
-        "monthlyCost": "~{amount}/mes",
-        "yearlyProjected": "{amount} proyectado",
-        "perYear": "{amount}/año",
-        "acrossSubscriptions": "entre {count} suscripción activa | entre {count} suscripciones activas",
-        "acrossBills": "entre {count} factura activa | entre {count} facturas activas",
-        "acrossAll": "entre {count} suscripciones y facturas activas",
         "spendingLabel": "Gasto mensual",
+        "monthlyCost": "~{amount}/mes",
         "incomeLabel": "Ingreso esperado",
         "monthlyIncome": "~{amount}/mes",
-        "acrossIncome": "entre {count} ingreso activo | entre {count} ingresos activos"
+        "acrossIncome": "entre {count} ingreso activo | entre {count} ingresos activos",
+        "percentOfIncome": "",
+        "projectedPerYearLabel": "",
+        "activeCountLabel": "",
+        "loadError": ""
       },
       "candidates": {
         "discover": "Descubrir",
@@ -227,7 +243,8 @@
         "viewTransactions": "Ver transacciones",
         "sampleTransactionsTitle": "Transacciones de muestra",
         "sampleTransactionsDescription": "Estas son transacciones de muestra que activaron esta detección de suscripción.",
-        "noTransactionsFound": "No se encontraron transacciones"
+        "noTransactionsFound": "No se encontraron transacciones",
+        "acceptLinkFailed": ""
       },
       "periods": {
         "status": {
@@ -281,6 +298,57 @@
         "next6Months": "Próximos 6 meses",
         "nextYear": "Próximo año",
         "all": "Todo el tiempo"
+      },
+      "editors": {
+        "basics": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "kindPlaceholder": "",
+          "currencyPlaceholder": "",
+          "firstPaymentDueLabel": "",
+          "installmentScheduleRequired": ""
+        },
+        "schedule": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "frequencyPlaceholder": "",
+          "clearDueDate": "",
+          "detectionOnlyHint": "",
+          "emailOn": "",
+          "emailOff": ""
+        },
+        "automation": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "modeMatchLabel": "",
+          "modeMatchDesc": "",
+          "modeRecordLabel": "",
+          "modeRecordDesc": "",
+          "modeManualLabel": "",
+          "modeManualDesc": "",
+          "accountPlaceholder": "",
+          "accountOptionalHint": "",
+          "accountRequiredHint": "",
+          "recordNeedsAmount": "",
+          "matchNeedsRule": "",
+          "summaryRecord": "",
+          "summaryRecordNoAccount": "",
+          "summaryManual": "",
+          "selectTransactionType": "",
+          "removeRule": "",
+          "removeKeyword": ""
+        },
+        "organize": {
+          "title": "",
+          "description": "",
+          "edit": "",
+          "notesAdded": "",
+          "notesEmpty": "",
+          "tagsMore": ""
+        }
       }
     }
   }

@@ -70,16 +70,6 @@
       },
       "expensesStructure": {
         "title": "Estructura de gastos",
-        "excludedCategories": {
-          "message": "Algunas categorías están excluidas de este widget"
-        },
-        "excludeSettings": {
-          "title": "Ajustes",
-          "excludeCategories": "Excluir categorías",
-          "dialogTitle": "Excluir categorías",
-          "dialogDescription": "Seleccione las categorías a excluir del gráfico y totales de este widget",
-          "save": "Guardar"
-        },
         "today": "Hoy",
         "vsPreviousPeriod": "vs período anterior",
         "viewButton": "Ver"
@@ -100,6 +90,7 @@
         "configTypeInstallments": "A plazos",
         "activeSummary": "{count} activa(s)",
         "perYear": " al año",
+        "incomeSummary": "{count} activa(s) · {amount}/mes de ingresos",
         "percentOfIncome": "{percent}% del ingreso promedio",
         "settings": {
           "title": "Ajustes",
@@ -112,8 +103,7 @@
             "6": "Últimos 6 meses",
             "12": "Últimos 12 meses"
           }
-        },
-        "incomeSummary": "{count} activa(s) · {amount}/mes de ingresos"
+        }
       },
       "categoryTracker": {
         "title": "Lista de seguimiento de categorías",

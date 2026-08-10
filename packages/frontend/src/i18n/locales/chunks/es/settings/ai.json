@@ -14,12 +14,7 @@
         "title": "Claves de API",
         "description": "Añada sus propias claves de API para usar proveedores específicos",
         "badges": {
-          "default": "Predeterminado",
-          "invalid": "No válida"
-        },
-        "status": {
-          "failed": "Error {timeAgo}",
-          "validated": "Validada {timeAgo}"
+          "default": "Predeterminado"
         },
         "buttons": {
           "setDefault": "Establecer como predeterminado"
@@ -71,6 +66,11 @@
           "removeSuccess": "Clave de API de {provider} eliminada",
           "removeFailed": "Error al eliminar la clave de API"
         }
+      },
+      "credentialStatus": {
+        "validated": "Validado {timeAgo}",
+        "failed": "Error {timeAgo}",
+        "invalidBadge": "No válido"
       },
       "features": {
         "title": "Funciones de IA",
@@ -165,23 +165,6 @@
           "endpointsLoadError": "No se pudieron cargar sus endpoints, por lo que el nombre del modelo no se puede editar en este momento."
         }
       },
-      "customInstructions": {
-        "title": "Instrucciones personalizadas",
-        "description": "Proporcione contexto para ayudar a la IA a categorizar sus transacciones. Estas instrucciones se incluyen al categorizar transacciones durante la sincronización bancaria y la importación manual.",
-        "placeholder": "Ej.: las transacciones de «Starbucks» deben ser «Café». Mis ingresos como autónomo provienen de «Acme Corp».",
-        "requiresApiKey": "Añada una clave de API personal para usar instrucciones personalizadas.",
-        "save": "Guardar",
-        "saved": "¡Guardado!",
-        "saveFailed": "Error al guardar las instrucciones personalizadas. Inténtelo de nuevo.",
-        "requiresOwnCredentials": "Añada su propia clave de API o un endpoint personalizado para usar instrucciones personalizadas.",
-        "credentialsCheckFailed": "No pudimos comprobar si tiene sus propias credenciales de IA. Inténtelo de nuevo para desbloquear las instrucciones personalizadas.",
-        "retryCredentialsCheck": "Intentar de nuevo"
-      },
-      "credentialStatus": {
-        "validated": "Validado {timeAgo}",
-        "failed": "Error {timeAgo}",
-        "invalidBadge": "No válido"
-      },
       "customEndpoint": {
         "title": "Endpoints personalizados",
         "description": "Conecte sus propios servidores compatibles con OpenAI y use sus modelos para cualquier función de IA.",
@@ -273,6 +256,18 @@
           "localNetworkOnly": "Un servidor que se ejecuta en su propio ordenador ({ip} o {hostname}) solo funciona cuando esta aplicación se ejecuta en su propia máquina o su propia red. La versión alojada no puede acceder a él, porque ahí las direcciones privadas están bloqueadas.",
           "dockerHost": "Si ejecuta esta aplicación en Docker en la misma máquina que el servidor del modelo, use {dockerHost} en lugar de {ip}."
         }
+      },
+      "customInstructions": {
+        "title": "Instrucciones personalizadas",
+        "description": "Proporcione contexto para ayudar a la IA a categorizar sus transacciones. Estas instrucciones se incluyen al categorizar transacciones durante la sincronización bancaria y la importación manual.",
+        "placeholder": "Ej.: las transacciones de «Starbucks» deben ser «Café». Mis ingresos como autónomo provienen de «Acme Corp».",
+        "requiresApiKey": "Añada una clave de API personal para usar instrucciones personalizadas.",
+        "requiresOwnCredentials": "Añada su propia clave de API o un endpoint personalizado para usar instrucciones personalizadas.",
+        "credentialsCheckFailed": "No pudimos comprobar si tiene sus propias credenciales de IA. Inténtelo de nuevo para desbloquear las instrucciones personalizadas.",
+        "retryCredentialsCheck": "Intentar de nuevo",
+        "save": "Guardar",
+        "saved": "¡Guardado!",
+        "saveFailed": "Error al guardar las instrucciones personalizadas. Inténtelo de nuevo."
       }
     }
   }

@@ -186,6 +186,7 @@
         "saveButton": "Guardar",
         "confirmButton": "Confirmar",
         "linkedRefunds": "Reembolsos vinculados",
+        "unlinkRefund": "Desvincular reembolso",
         "refundsPortion": "Reembolsa la parte de {name}",
         "selectOnlyOne": "* solo puede seleccionar una transacción",
         "selectMultipleWithLimit": "* puede seleccionar varias transacciones, pero su importe total no puede superar el importe de la transacción original",
@@ -196,8 +197,7 @@
         "amountMayBeSmaller": "Algunas opciones pueden ser inferiores al importe de su reembolso",
         "finalValidationWarning": "La validación final utilizará importes convertidos.",
         "mainCategoryLabel": "(principal)",
-        "linkRemovedOnTypeChange": "Se eliminó el vínculo de reembolso porque cambió el tipo de transacción.",
-        "unlinkRefund": "Desvincular reembolso"
+        "linkRemovedOnTypeChange": "Se eliminó el vínculo de reembolso porque cambió el tipo de transacción."
       },
       "refundInfo": {
         "trigger": "¿Cómo funciona?",

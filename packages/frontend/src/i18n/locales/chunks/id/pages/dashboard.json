@@ -70,16 +70,6 @@
       },
       "expensesStructure": {
         "title": "Struktur Pengeluaran",
-        "excludedCategories": {
-          "message": "Beberapa kategori dikecualikan dari widget ini"
-        },
-        "excludeSettings": {
-          "title": "Pengaturan",
-          "excludeCategories": "Kecualikan kategori",
-          "dialogTitle": "Kecualikan kategori",
-          "dialogDescription": "Pilih kategori untuk dikecualikan dari grafik dan total widget ini",
-          "save": "Simpan"
-        },
         "today": "Hari ini",
         "vsPreviousPeriod": "vs periode sebelumnya",
         "viewButton": "Lihat"
@@ -100,6 +90,7 @@
         "configTypeInstallments": "Cicilan",
         "activeSummary": "{count} aktif",
         "perYear": " per tahun",
+        "incomeSummary": "{count} aktif · {amount}/bln pemasukan",
         "percentOfIncome": "{percent}% dari rata-rata pemasukan",
         "settings": {
           "title": "Pengaturan",
@@ -112,8 +103,7 @@
             "6": "6 bulan terakhir",
             "12": "12 bulan terakhir"
           }
-        },
-        "incomeSummary": "{count} aktif · {amount}/bln pemasukan"
+        }
       },
       "categoryTracker": {
         "title": "Pantauan Kategori",
