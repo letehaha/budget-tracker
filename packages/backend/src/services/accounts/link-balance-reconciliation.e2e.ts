@@ -1,6 +1,13 @@
-import { BANK_PROVIDER_TYPE, TRANSACTION_TRANSFER_NATURE, asDecimal } from '@bt/shared/types';
+import {
+  API_ERROR_CODES,
+  BANK_PROVIDER_TYPE,
+  TRANSACTION_TRANSFER_NATURE,
+  VEHICLE_CLASS,
+  asDecimal,
+} from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
+import Balances from '@models/balances.model';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { getMockedLunchFlowTransactions } from '@tests/mocks/lunchflow/data';
@@ -9,7 +16,7 @@ import {
   getLunchFlowBalanceMock,
   getLunchFlowTransactionsMock,
 } from '@tests/mocks/lunchflow/mock-api';
-import { subDays } from 'date-fns';
+import { format, subDays, subYears } from 'date-fns';
 
 /**
  * Linking an existing system account to a bank connection must reconcile the
@@ -22,6 +29,10 @@ import { subDays } from 'date-fns';
  */
 
 const LUNCHFLOW_EXTERNAL_ACCOUNT_ID = '1001';
+
+/** Reads the error envelope (`code` + `message`) from a failed helper response. */
+const extractError = (response: unknown) =>
+  (response as helpers.CustomResponse<unknown>).body.response as unknown as { code: string; message: string };
 
 /** Bank-reported balance, in dollars (LunchFlow account 1001 is USD). */
 const mockBankBalance = ({ amount }: { amount: number }) =>
@@ -64,6 +75,8 @@ const setupLinkedScenario = async ({
     mockBankBalance({ amount: bankBalance }),
   );
 
+  const preLinkAccount = (await Accounts.findByPk(account.id))!;
+
   const linkResponse = await helpers.linkAccountToBankConnection({
     id: account.id,
     connectionId,
@@ -72,8 +85,11 @@ const setupLinkedScenario = async ({
   });
   expect(linkResponse.statusCode).toBe(200);
 
-  return { account };
+  return { account, preLinkAccount, connectionId };
 };
+
+const readTodayBalanceRow = async ({ accountId }: { accountId: string }) =>
+  Balances.findOne({ where: { accountId, date: format(new Date(), 'yyyy-MM-dd') } });
 
 describe('Balance reconciliation when linking account to a bank connection', () => {
   it('does not create an adjustment transaction when the gap is fully explained by synced transactions', async () => {
@@ -110,7 +126,7 @@ describe('Balance reconciliation when linking account to a bank connection', () 
   });
 
   it('absorbs a residual difference into initialBalance when the bank returns no transactions', async () => {
-    const { account } = await setupLinkedScenario({
+    const { account, preLinkAccount } = await setupLinkedScenario({
       initialBalance: 1000,
       bankBalance: 1100,
       bankTransactions: { transactions: [], total: 0 },
@@ -130,6 +146,18 @@ describe('Balance reconciliation when linking account to a bank connection', () 
     expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
       updatedAccount.currentBalance.toCents(),
     );
+
+    // The USD opening balance moved, so its base-currency stamp must be re-derived
+    // rather than left on the pre-link value.
+    expect(updatedAccount.refInitialBalance).not.toBeNull();
+    expect(updatedAccount.refInitialBalance.toCents()).not.toBe(preLinkAccount.refInitialBalance.toCents());
+    expect(updatedAccount.refInitialBalance.toCents()).toBeGreaterThan(preLinkAccount.refInitialBalance.toCents());
+
+    // The restamp cascade shifts every Balances row, including today's — which the
+    // sync pinned to the bank's authoritative balance. It has to stay pinned.
+    const todayRow = await readTodayBalanceRow({ accountId: account.id });
+    expect(todayRow).not.toBeNull();
+    expect(todayRow!.amount.toCents()).toBe(updatedAccount.refCurrentBalance.toCents());
   });
 
   it('keeps the ledger intact across an unlink → relink cycle with unchanged bank state', async () => {
@@ -178,5 +206,62 @@ describe('Balance reconciliation when linking account to a bank connection', () 
     expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
       updatedAccount.currentBalance.toCents(),
     );
+  });
+
+  // Loan and vehicle balances are owned by their dedicated flows, so a bank sync
+  // force-writing `currentBalance` would desync the managed anchor.
+  describe('dedicated-flow accounts are rejected up front', () => {
+    const connectLunchFlow = async () => {
+      await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
+      const { connectionId } = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+        raw: true,
+      });
+      return connectionId;
+    };
+
+    const expectLinkRejected = async ({ accountId, connectionId }: { accountId: string; connectionId: string }) => {
+      const response = await helpers.linkAccountToBankConnection({
+        id: accountId,
+        connectionId,
+        externalAccountId: LUNCHFLOW_EXTERNAL_ACCOUNT_ID,
+        raw: false,
+      });
+
+      expect(response.statusCode).toBe(422);
+      expect(extractError(response).code).toBe(API_ERROR_CODES.validationError);
+    };
+
+    it('rejects linking a loan-category account', async () => {
+      const connectionId = await connectLunchFlow();
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({
+          currencyCode: 'USD',
+          initialBalance: 1_000,
+          originalPrincipal: 1_000,
+        }),
+        raw: true,
+      });
+
+      await expectLinkRejected({ accountId: loan.id, connectionId });
+    });
+
+    it('rejects linking a vehicle-category account', async () => {
+      const connectionId = await connectLunchFlow();
+      const vehicle = await helpers.createVehicle({
+        name: 'Toyota Camry 2020',
+        currencyCode: 'USD',
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2020,
+        vehicleClass: VEHICLE_CLASS.sedan,
+        purchasePrice: 25_000,
+        purchaseDate: format(subYears(new Date(), 3), 'yyyy-MM-dd'),
+        raw: true,
+      });
+
+      await expectLinkRejected({ accountId: vehicle.accountId, connectionId });
+    });
   });
 });

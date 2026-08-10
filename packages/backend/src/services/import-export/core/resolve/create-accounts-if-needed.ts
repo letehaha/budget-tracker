@@ -3,8 +3,8 @@ import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
-import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
+import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 
 interface CreateAccountsIfNeededParams {
   userId: number;

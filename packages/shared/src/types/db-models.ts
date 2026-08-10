@@ -84,6 +84,8 @@ export interface AccountExternalData {
       externalBalance: number;
       difference: number;
       adjustmentTransactionId: RecordId | null;
+      /** Residual the post-link sync left unexplained, in cents, folded into the opening balance. */
+      absorbedResidual?: number;
     };
   };
   // Allow any additional custom fields

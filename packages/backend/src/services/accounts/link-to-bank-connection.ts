@@ -7,17 +7,19 @@ import {
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { NotFoundError, ValidationError } from '@js/errors';
+import { logger } from '@js/utils/logger';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts, { getAccountById } from '@models/accounts.model';
+import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { namespace } from '@models/connection';
 import Transactions from '@models/transactions.model';
+import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
 import { restampRefInitialBalance } from '@services/accounts/restamp-ref-initial-balance';
 import { bankProviderRegistry } from '@services/bank-data-providers';
 import { syncTransactionsForAccount } from '@services/bank-data-providers/connection/sync-transactions-for-account';
 import { withTransaction } from '@services/common/with-transaction';
-import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
 import { QueryTypes } from 'sequelize';
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
@@ -40,45 +42,6 @@ interface LinkResult {
   balanceAdjustmentTransaction: null;
   balanceDifference: number;
 }
-
-/**
- * Restores `initialBalance + Σsigned(tx) = currentBalance` after the post-link
- * sync backfilled the provider's transactions and force-wrote its authoritative
- * balance. Only the opening balance moves: the bank owns `currentBalance`, and
- * the residual is by definition history the provider never handed us.
- */
-const absorbLinkResidualIntoOpeningBalance = async ({
-  accountId,
-  userId,
-}: {
-  accountId: string;
-  userId: number;
-}): Promise<void> => {
-  const sequelizeTx = namespace.get('transaction');
-
-  const [row] = await Transactions.sequelize!.query<{ signedSum: string }>(
-    `SELECT COALESCE(SUM(CASE WHEN "transactionType" = :incomeType THEN "amount" ELSE -"amount" END), 0) AS "signedSum"
-     FROM "Transactions" WHERE "accountId" = :accountId`,
-    {
-      replacements: { accountId, incomeType: TRANSACTION_TYPES.income },
-      type: QueryTypes.SELECT,
-      transaction: sequelizeTx,
-    },
-  );
-
-  const account = await Accounts.findOne({ where: { id: accountId, userId }, transaction: sequelizeTx });
-  if (!account) return;
-
-  const signedSumCents = Number(row?.signedSum ?? 0);
-  const identityGapCents = account.currentBalance.toCents() - (account.initialBalance.toCents() + signedSumCents);
-  if (identityGapCents === 0) return;
-
-  await Accounts.update(
-    { initialBalance: Money.fromCents(account.initialBalance.toCents() + identityGapCents) },
-    { where: { id: accountId, userId } },
-  );
-  await restampRefInitialBalance({ accountId, allowProviderAccount: true });
-};
 
 /**
  * Links a system account to a bank connection using forward-only strategy.
@@ -233,15 +196,115 @@ export const linkAccountToBankConnection = withTransaction(
     // 12. Re-anchor the opening balance against what the sync actually wrote.
     // Providers that enqueue their sync (Monobank) have changed nothing yet, so
     // the gap is zero and this is a no-op for them.
-    await absorbLinkResidualIntoOpeningBalance({ accountId, userId });
+    const absorbedResidual = await absorbLinkResidualIntoOpeningBalance({ accountId, userId });
 
     // 13. Fetch and return the updated account
-    const updatedAccount = await Accounts.findByPk(accountId);
+    const updatedAccount = (await Accounts.findByPk(accountId))!;
+
+    // 14. Record what the absorb moved, alongside the reconciliation snapshot
+    // written in step 7 (before the sync had run and could produce a residual).
+    if (absorbedResidual !== 0) {
+      const currentExternalData = (updatedAccount.externalData || {}) as AccountExternalData;
+      const connectionMeta = currentExternalData.bankConnection ?? updatedExternalData.bankConnection!;
+
+      await updatedAccount.update({
+        externalData: {
+          ...currentExternalData,
+          bankConnection: {
+            ...connectionMeta,
+            balanceReconciliation: { ...connectionMeta.balanceReconciliation, absorbedResidual },
+          },
+        },
+      });
+    }
 
     return {
-      account: updatedAccount!,
+      account: updatedAccount,
       balanceAdjustmentTransaction: null,
       balanceDifference,
     };
   },
 );
+
+/**
+ * Restores `initialBalance + Σsigned(tx) = currentBalance` after the post-link
+ * sync backfilled the provider's transactions and force-wrote its authoritative
+ * balance. Only the opening balance moves: the bank owns `currentBalance`, and
+ * the residual is by definition history the provider never handed us.
+ *
+ * The account row is read under SELECT ... FOR UPDATE so the read-compute-write
+ * serializes against a concurrent import or sync absorbing into the same account.
+ *
+ * Returns the absorbed residual in cents (0 when the identity already holds).
+ */
+const absorbLinkResidualIntoOpeningBalance = async ({
+  accountId,
+  userId,
+}: {
+  accountId: string;
+  userId: number;
+}): Promise<number> => {
+  const sequelizeTx = namespace.get('transaction');
+
+  const [row] = await Transactions.sequelize!.query<{ signedSum: string }>(
+    `SELECT COALESCE(SUM(CASE WHEN "transactionType" = :incomeType THEN "amount" ELSE -"amount" END), 0) AS "signedSum"
+     FROM "Transactions" WHERE "accountId" = :accountId`,
+    {
+      replacements: { accountId, incomeType: TRANSACTION_TYPES.income },
+      type: QueryTypes.SELECT,
+      transaction: sequelizeTx,
+    },
+  );
+
+  const account = await Accounts.findOne({
+    where: { id: accountId, userId },
+    transaction: sequelizeTx,
+    lock: sequelizeTx?.LOCK.UPDATE,
+  });
+  if (!account) {
+    logger.error(
+      {
+        message: 'Account missing when absorbing the post-link balance residual',
+        error: new Error(`Accounts.findOne returned null for accountId=${accountId}`),
+      },
+      { code: 'ACCOUNT_LINK_RESIDUAL_ACCOUNT_MISSED', accountId, userId },
+    );
+    return 0;
+  }
+
+  const signedSumCents = Number(row?.signedSum ?? 0);
+  const initialBalanceBefore = account.initialBalance;
+  const identityGapCents = account.currentBalance.toCents() - (initialBalanceBefore.toCents() + signedSumCents);
+  if (identityGapCents === 0) return 0;
+
+  const initialBalanceAfter = initialBalanceBefore.add(Money.fromCents(identityGapCents));
+  await Accounts.update({ initialBalance: initialBalanceAfter }, { where: { id: accountId, userId } });
+  await restampRefInitialBalance({ accountId, allowProviderAccount: true });
+
+  // The restamp cascade shifts every Balances row by the opening-balance diff,
+  // including today's — which the sync just pinned to the bank's authoritative
+  // balance. Re-pin it from the post-restamp row so the spot value survives.
+  const restamped = await Accounts.findOne({ where: { id: accountId, userId }, transaction: sequelizeTx });
+  if (restamped) {
+    await Balances.setTodayRowToSpot({ account: restamped });
+  } else {
+    logger.error(
+      {
+        message: 'Account re-read after restampRefInitialBalance missed; the current-day balance row stays cascaded',
+        error: new Error(`Accounts.findOne returned null for accountId=${accountId}`),
+      },
+      { code: 'ACCOUNT_LINK_RESIDUAL_REREAD_MISSED', accountId, userId },
+    );
+  }
+
+  logger.info('Absorbed post-link balance residual into the opening balance', {
+    accountId,
+    userId,
+    signedSumCents,
+    identityGapCents,
+    initialBalanceBeforeCents: initialBalanceBefore.toCents(),
+    initialBalanceAfterCents: initialBalanceAfter.toCents(),
+  });
+
+  return identityGapCents;
+};
