@@ -1572,7 +1572,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // the sync where an entry_reference-less row finally gets one. Requires a
     // matching counterparty IBAN so recurring same-amount payments to different
     // parties don't collapse, and only considers rows with no stored
-    // entryReference – a row carrying a different one is a different transaction.
+    // entryReference – a row carrying one is either the same transaction (already
+    // returned by tier 1) or a different one. The pending-upgrade exception, where
+    // the booked copy arrives under a fresh reference, is tier 4's job.
     if (counterpartyIban) {
       const byFingerprint = await Transactions.findOne({
         where: {
@@ -1597,7 +1599,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // different entry_reference, so no earlier tier sees it. Safety comes from
     // the pre-booking-only candidate pool, exact amount/currency/type equality, the
     // conditional IBAN gate below, and the caller flipping the matched row to BOOK.
-    // A candidate whose reference equals the incoming one already returned in (1).
+    // A stored entryReference is only tolerated when the incoming payload carries
+    // one too: then tier 1 has already ruled out an equal-reference row, so the
+    // mismatch is the fresh-reference re-issue. A reference-less payload never
+    // reaches tier 1, so it may only consume reference-less candidates.
     if (!accountHasPendingRows) return null;
     if (getRawTransactionStatus({ externalData: tx.metadata }) !== TransactionStatus.BOOK) return null;
 
@@ -1611,7 +1616,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         time: {
           [Op.between]: [subDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS), addDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS)],
         },
-        [Op.and]: [wherePreBookingStatus()],
+        [Op.and]: entryReference ? [wherePreBookingStatus()] : [wherePreBookingStatus(), whereNoEntryReference()],
       },
     });
 

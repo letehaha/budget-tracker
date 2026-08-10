@@ -731,6 +731,42 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       expect(externalData.entryReference).toBe('booked_ref_647');
     });
 
+    it('does not let a reference-less booked copy consume a pending row that carries an entry_reference', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_PENDING,
+          amount: '77.15',
+          transactionDate: '2025-04-10',
+          remittanceInformation: ['PENDING WITH REFERENCE'],
+          entryReference: 'pending_ref_X',
+        },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+
+      const afterPendingSync = await listTransactions({ accountId });
+      expect(afterPendingSync.length).toBe(1);
+      const pendingTx = afterPendingSync[0]!;
+      expect((await readExternalData({ id: pendingTx.id })).entryReference).toBe('pending_ref_X');
+
+      // No entry_reference on the incoming payload means tier 1 never ran, so the
+      // stored reference was never compared. Consuming the row would be a guess.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...CARD_BOOKED,
+          amount: '77.15',
+          bookingDate: '2025-04-11',
+          remittanceInformation: ['BOOKED WITHOUT REFERENCE'],
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const finalRows = await listTransactions({ accountId });
+      expect(finalRows.length).toBe(2);
+      const stillPending = await readExternalData({ id: pendingTx.id });
+      expect(stillPending.rawTransaction?.status).toBe('PDNG');
+      expect(stillPending.entryReference).toBe('pending_ref_X');
+    });
+
     it('pairs a booked re-issue with its nearest pending row, not the first candidate', async () => {
       helpers.enablebanking.setFixedTransactions([
         { ...CARD_PENDING, amount: '25.00', transactionDate: '2025-02-03', remittanceInformation: ['PENDING EARLY'] },
