@@ -9,16 +9,14 @@
       "title": "Регулярні витрати",
       "description": "Відстежуйте регулярні витрати та рахунки",
       "addSubscription": "Додати регулярну витрату",
+      "addSubscriptionShort": "Додати",
       "backToList": "Повернутися до регулярних витрат",
       "createTitle": "Створити регулярну витрату",
-      "editTitle": "Редагувати регулярну витрату",
       "typeSubscription": "Підписка",
       "typeBill": "Рахунок",
       "typeInstallment": "Розстрочка",
       "completed": "Завершено",
       "paused": "Призупинено",
-      "pausedSection": "Призупинені ({count})",
-      "edit": "Редагувати",
       "cancel": "Скасувати",
       "pauseSubscription": "Призупинити підписку",
       "resumeSubscription": "Відновити підписку",
@@ -36,9 +34,28 @@
       "suggestMatchesDescription": "Транзакції, що відповідають правилам вашої підписки",
       "noSuggestedMatches": "Збігів не знайдено",
       "linkSelected": "Прив'язати {count} обраних",
-      "matchingRulesTitle": "Правила зіставлення",
       "addMatchingRules": "Додати правила зіставлення",
       "updateMatchingRules": "Оновити правила зіставлення",
+      "linked": {
+        "totalPaid": "Усього сплачено",
+        "average": "У середньому",
+        "lastPayment": "Останній платіж",
+        "driftUp": "↑ {percent}% з першого платежу ({date})",
+        "driftDown": "↓ {percent}% з першого платежу ({date})",
+        "yearPayments": "{count} платіж | {count} платежі | {count} платежів",
+        "legendRule": "Зіставлено за правилом",
+        "legendAi": "Зіставлено ШІ",
+        "legendManual": "Прив'язано вручну",
+        "chartLabel": "Суми платежів у часі",
+        "gapTooltip": "Немає платежів · {range}",
+        "convertedTooltip": "Конвертовано за курсом на дату кожного платежу"
+      },
+      "quickAdd": {
+        "currencyPlaceholder": "Оберіть валюту",
+        "nextPaymentLabel": "Наступний платіж",
+        "nextPaymentHint": "Необов'язково. Вкажіть дату, щоб відстежувати терміни оплати та отримувати нагадування.",
+        "refineHint": "Рахунок, категорію, теги, нагадування та автоматизацію можна додати одразу після створення."
+      },
       "frequency": {
         "weekly": "Щотижня",
         "biweekly": "Раз на два тижні",
@@ -82,10 +99,6 @@
         "update": "Оновити",
         "create": "Створити",
         "rulesCount": "{count} правил зіставлення налаштовано",
-        "editRules": "Редагувати правила",
-        "addRules": "Додати правила",
-        "saveRules": "Зберегти правила",
-        "extraOptions": "Додаткові опції",
         "validationAmountCurrency": "Сума та валюта мають бути вказані разом.",
         "validationSubscriptionRequiresAmount": "Підписки потребують суму та валюту.",
         "typeInstallmentDesc": "Фінансована покупка, що сплачується фіксованою кількістю платежів",
@@ -110,15 +123,6 @@
           "2_weeks": "За 2 тижні",
           "1_month": "За 1 місяць"
         },
-        "scheduleSectionLabel": "Платіжний розклад",
-        "scheduleSectionHint": "Відстежуйте терміни, генеруйте періоди, надсилайте нагадування",
-        "autoRecord": {
-          "label": "Автозапис у день оплати",
-          "help": "Автоматично записує транзакцію о 00:00 UTC у день оплати.",
-          "requiresAccount": "Для автозапису потрібен рахунок.",
-          "requiresAmount": "Для автозапису потрібна сума та валюта.",
-          "conflictsMatching": "Існуючі правила зіставлення були очищені — автозапис і правила зіставлення не можна використовувати одночасно."
-        },
         "transactionTypeLabel": "Тип транзакції",
         "transactionTypeExpense": "Видатки",
         "transactionTypeIncome": "Дохід",
@@ -135,8 +139,6 @@
         "completedNote": "План завершено"
       },
       "rules": {
-        "ruleLabel": "Правило {number}",
-        "fieldLabel": "Поле",
         "selectField": "Оберіть поле",
         "noteDescription": "Транзакція збігатиметься, якщо її нотатка містить будь-яке з цих ключових слів",
         "keywordPlaceholder": "Введіть ключове слово",
@@ -144,8 +146,6 @@
         "minAmount": "Мін. сума",
         "maxAmount": "Макс. сума",
         "currencyCode": "Код валюти",
-        "transactionType": "Тип транзакції",
-        "account": "Рахунок",
         "addRule": "Додати правило",
         "fieldOptions": {
           "note": "Нотатка",
@@ -170,6 +170,9 @@
       "toggleError": "Не вдалося оновити статус підписки",
       "unlinkSuccess": "Транзакцію успішно від'єднано",
       "unlinkError": "Не вдалося від'єднати транзакцію",
+      "unlinkConfirmTitle": "Від'єднати цей платіж?",
+      "unlinkConfirmDescription": "{payment} буде вилучено з історії цієї підписки. Саму транзакцію не буде видалено.",
+      "unlinkConfirmAction": "Від'єднати",
       "suggestError": "Не вдалося завантажити запропоновані збіги",
       "linkSuccess": "Транзакції успішно прив'язано",
       "linkError": "Не вдалося прив'язати транзакції",
@@ -185,21 +188,34 @@
         "name": "Назва · А–Я",
         "recent": "Нещодавно додано"
       },
+      "groups": {
+        "overdue": "Прострочені ({count})",
+        "dueSoon": "Оплата цього тижня ({count})",
+        "thisMonth": "Пізніше цього місяця ({count})",
+        "later": "Найближчі ({count})",
+        "noSchedule": "Без розкладу ({count})",
+        "active": "Активні ({count})",
+        "paused": "Призупинені ({count})"
+      },
+      "errorState": {
+        "title": "Не вдалося завантажити ваші підписки",
+        "description": "Під час завантаження списку сталася помилка. Перевірте з'єднання та спробуйте ще раз.",
+        "retry": "Спробувати ще раз"
+      },
       "summary": {
         "filterAll": "Усі",
         "filterSubscriptions": "Підписки",
         "filterBills": "Рахунки",
         "filterInstallments": "Розстрочки",
         "monthlyCost": "~{amount}/міс",
-        "yearlyProjected": "прогнозовано {amount}",
-        "perYear": "{amount}/рік",
-        "acrossSubscriptions": "серед {count} активної підписки | серед {count} активних підписок",
-        "acrossBills": "серед {count} активного рахунку | серед {count} активних рахунків",
-        "acrossAll": "серед {count} активних підписок і рахунків",
         "spendingLabel": "Витрати за місяць",
         "incomeLabel": "Очікуваний дохід",
         "monthlyIncome": "~{amount}/міс",
-        "acrossIncome": "серед {count} активного платежу з доходом | серед {count} активних платежів з доходом | серед {count} активних платежів з доходом"
+        "acrossIncome": "серед {count} активного платежу з доходом | серед {count} активних платежів з доходом | серед {count} активних платежів з доходом",
+        "percentOfIncome": "{percent}% від середнього доходу",
+        "projectedPerYearLabel": "Прогноз / рік",
+        "activeCountLabel": "Активні",
+        "loadError": "Не вдалося завантажити підсумок."
       },
       "candidates": {
         "discover": "Знайти",
@@ -227,7 +243,8 @@
         "viewTransactions": "Переглянути транзакції",
         "sampleTransactionsTitle": "Зразки транзакцій",
         "sampleTransactionsDescription": "Це зразки транзакцій, які спричинили виявлення цієї підписки.",
-        "noTransactionsFound": "Транзакцій не знайдено"
+        "noTransactionsFound": "Транзакцій не знайдено",
+        "acceptLinkFailed": "Регулярний платіж створено, але виявленого кандидата не вдалося позначити як прийнятого. Він може знову з'явитися в розділі «Знайти»."
       },
       "periods": {
         "status": {
@@ -281,6 +298,57 @@
         "next6Months": "Наступні 6 місяців",
         "nextYear": "Наступний рік",
         "all": "Увесь час"
+      },
+      "editors": {
+        "basics": {
+          "title": "Основне",
+          "description": "Назва, вид і очікувана сума.",
+          "edit": "Редагувати основне",
+          "kindPlaceholder": "Оберіть вид",
+          "currencyPlaceholder": "Оберіть валюту",
+          "firstPaymentDueLabel": "Дата першого платежу",
+          "installmentScheduleRequired": "Для плану розстрочки потрібні дата першого платежу та кількість платежів."
+        },
+        "schedule": {
+          "title": "Розклад",
+          "description": "Як часто повторюється та коли термін оплати.",
+          "edit": "Редагувати розклад",
+          "frequencyPlaceholder": "Оберіть частоту",
+          "clearDueDate": "Очистити",
+          "detectionOnlyHint": "Без дати платежу ця підписка лише виявляє відповідні транзакції — без платіжних періодів і нагадувань.",
+          "emailOn": "Увімк.",
+          "emailOff": "Вимк."
+        },
+        "automation": {
+          "title": "Автоматизація",
+          "description": "Оберіть, як платежі потраплятимуть до вашого обліку.",
+          "edit": "Редагувати автоматизацію",
+          "modeMatchLabel": "Зіставляти банківські транзакції",
+          "modeMatchDesc": "Автоматично прив'язувати відповідні банківські транзакції.",
+          "modeRecordLabel": "Автозапис платежів",
+          "modeRecordDesc": "Записувати платіж за мене в день оплати.",
+          "modeManualLabel": "Робити це вручну",
+          "modeManualDesc": "Я самостійно позначатиму платежі як сплачені.",
+          "accountPlaceholder": "Оберіть рахунок",
+          "accountOptionalHint": "Використовується під час запису платежів.",
+          "accountRequiredHint": "Платежі записуються на цей рахунок.",
+          "recordNeedsAmount": "Спочатку вкажіть суму та валюту в розділі «Основне» — автозапис записує фіксовану суму.",
+          "matchNeedsRule": "Додайте щонайменше одне повне правило — без нього зіставлення не працює.",
+          "summaryRecord": "Автозапис на рахунок {account}",
+          "summaryRecordNoAccount": "Автозапис платежів у день оплати",
+          "summaryManual": "Ви позначаєте платежі як сплачені",
+          "selectTransactionType": "Оберіть тип",
+          "removeRule": "Видалити правило",
+          "removeKeyword": "Видалити ключове слово"
+        },
+        "organize": {
+          "title": "Організація",
+          "description": "Категорія, отримувач платежу, теги та нотатки.",
+          "edit": "Редагувати організацію",
+          "notesAdded": "Додано",
+          "notesEmpty": "Немає",
+          "tagsMore": "+{count} ще"
+        }
       }
     }
   }

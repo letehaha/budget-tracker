@@ -23,7 +23,6 @@ export default class SubscriptionTransactions extends Model {
     type: DataType.UUID,
     allowNull: false,
     primaryKey: true,
-    unique: true,
   })
   transactionId!: RecordId;
 

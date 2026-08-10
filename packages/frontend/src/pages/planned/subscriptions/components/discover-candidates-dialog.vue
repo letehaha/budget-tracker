@@ -5,22 +5,23 @@ import {
   detectSubscriptionCandidates,
   dismissSubscriptionCandidate,
 } from '@/api/subscription-candidates';
-import { createSubscription } from '@/api/subscriptions';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
-import { ApiErrorResponseError } from '@/js/errors';
-import { SUBSCRIPTION_TYPES, type SubscriptionModel, type RecordId } from '@bt/shared/types';
+import { useInvalidateSubscriptionQueries } from '@/composable/data-queries/subscriptions';
+import { captureException } from '@/lib/sentry';
+import type { SubscriptionModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { formatDistanceToNow } from 'date-fns';
 import { SearchIcon } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import type { QuickAddFormState } from '../quick-add-payload';
 import CandidateCard from './candidate-card.vue';
 import CandidateTransactionsDialog from './candidate-transactions-dialog.vue';
-import SubscriptionFormDialog from './subscription-form-dialog.vue';
+import QuickAddSubscriptionDialog from './quick-add-subscription-dialog.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -32,11 +33,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
+const invalidateSubscriptionQueries = useInvalidateSubscriptionQueries();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
 const isCreateDialogOpen = ref(false);
-const createFormRef = ref<InstanceType<typeof SubscriptionFormDialog> | null>(null);
-const prefillValues = ref<Partial<SubscriptionModel> | null>(null);
+const candidatePrefill = ref<Partial<QuickAddFormState> | null>(null);
 // Track which candidate is being accepted so we can mark it after subscription creation
 const pendingAcceptCandidateId = ref<string | null>(null);
 const linkingId = ref<string | null>(null);
@@ -80,9 +81,7 @@ const { mutate: doLink, isPending: isLinking } = useMutation({
   mutationFn: acceptSubscriptionCandidate,
   onSuccess() {
     queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionCandidates });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
+    invalidateSubscriptionQueries();
     addSuccessNotification(t('planned.subscriptions.candidates.linkSuccess'));
     linkingId.value = null;
   },
@@ -92,37 +91,16 @@ const { mutate: doLink, isPending: isLinking } = useMutation({
   },
 });
 
-/**
- * Issue 1 fix: Don't call accept API yet. Just open the form pre-filled
- * with candidate data. Accept will be called after subscription creation.
- */
+// The accept API is deliberately NOT called here: it runs only after the
+// subscription is actually created, so a cancelled dialog leaves the candidate open.
 const handleAccept = ({ candidate }: { candidate: SubscriptionCandidate }) => {
   pendingAcceptCandidateId.value = candidate.id;
-  prefillValues.value = {
-    id: '' as RecordId,
-    userId: 0,
+  candidatePrefill.value = {
     name: candidate.suggestedName,
-    type: SUBSCRIPTION_TYPES.subscription,
     expectedAmount: candidate.averageAmount,
     expectedCurrencyCode: candidate.currencyCode,
     frequency: candidate.detectedFrequency,
-    startDate: new Date().toISOString().split('T')[0]!,
-    endDate: null,
-    accountId: candidate.accountId as RecordId | null,
-    categoryId: null,
-    matchingRules: {
-      rules: [
-        {
-          field: 'note',
-          operator: 'contains_any',
-          value: [candidate.suggestedName],
-        },
-      ],
-    },
-    isActive: true,
-    notes: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    accountId: candidate.accountId ?? null,
   };
   isCreateDialogOpen.value = true;
 };
@@ -142,46 +120,37 @@ const handleLink = ({ candidate }: { candidate: SubscriptionCandidate }) => {
   doLink({ id: candidate.id, subscriptionId: candidate.possibleMatch.id });
 };
 
-const { mutate: createSub } = useMutation({
-  mutationFn: createSubscription,
-  onSuccess: (createdSubscription) => {
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsList });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionsSummary });
-    queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.widgetSubscriptionsUpcoming });
-    isCreateDialogOpen.value = false;
-    prefillValues.value = null;
-    addSuccessNotification(t('planned.subscriptions.createSuccess'));
-
-    // Now mark the candidate as accepted and link its sample transactions (fire-and-forget)
-    if (pendingAcceptCandidateId.value) {
-      acceptSubscriptionCandidate({
-        id: pendingAcceptCandidateId.value,
-        subscriptionId: createdSubscription.id,
-      })
-        .then(() => {
-          queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionCandidates });
-        })
-        .catch(() => {
-          // Candidate accept failed, but subscription was created — not critical
-        });
-      pendingAcceptCandidateId.value = null;
-    }
-  },
-  onError(error) {
-    const message =
-      error instanceof ApiErrorResponseError ? error.data.message : t('planned.subscriptions.createError');
-    createFormRef.value?.setError({ error: message ?? '' });
-  },
-});
-
-const handleCreateDialogClose = (open: boolean) => {
-  isCreateDialogOpen.value = open;
-  if (!open) {
-    // User closed form without creating — clear pending accept
-    pendingAcceptCandidateId.value = null;
-    prefillValues.value = null;
-  }
+// Mark the candidate as accepted and link its sample transactions (fire-and-forget:
+// the subscription itself was created, so a failed accept is reported but not rolled back).
+const handleCreated = ({ subscription }: { subscription: SubscriptionModel }) => {
+  const candidateId = pendingAcceptCandidateId.value;
+  if (!candidateId) return;
+  acceptSubscriptionCandidate({
+    id: candidateId,
+    subscriptionId: subscription.id,
+  })
+    .then(() => {
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.subscriptionCandidates });
+    })
+    .catch((error) => {
+      captureException({
+        error,
+        context: {
+          scope: 'discover-candidates-dialog:accept-after-create',
+          candidateId,
+          subscriptionId: subscription.id,
+        },
+      });
+      addErrorNotification(t('planned.subscriptions.candidates.acceptLinkFailed'));
+    });
+  pendingAcceptCandidateId.value = null;
 };
+
+watch(isCreateDialogOpen, (open) => {
+  if (open) return;
+  pendingAcceptCandidateId.value = null;
+  candidatePrefill.value = null;
+});
 </script>
 
 <template>
@@ -288,26 +257,11 @@ const handleCreateDialogClose = (open: boolean) => {
   </ResponsiveDialog>
 
   <!-- Create subscription dialog (pre-filled from accepted candidate) -->
-  <ResponsiveDialog :open="isCreateDialogOpen" dialog-content-class="max-w-lg" @update:open="handleCreateDialogClose">
-    <template #title>{{ t('planned.subscriptions.createTitle') }}</template>
-    <SubscriptionFormDialog
-      ref="createFormRef"
-      :initial-values="prefillValues ?? undefined"
-      form-id="create-from-candidate-form"
-      @submit="createSub"
-      @cancel="handleCreateDialogClose(false)"
-    />
-    <template #footer>
-      <div class="flex justify-end gap-2">
-        <Button variant="outline" type="button" @click="handleCreateDialogClose(false)">
-          {{ t('planned.subscriptions.cancel') }}
-        </Button>
-        <Button type="submit" form="create-from-candidate-form" :disabled="createFormRef?.isSubmitDisabled">
-          {{ t('planned.subscriptions.form.create') }}
-        </Button>
-      </div>
-    </template>
-  </ResponsiveDialog>
+  <QuickAddSubscriptionDialog
+    v-model:open="isCreateDialogOpen"
+    :prefill="candidatePrefill"
+    @created="handleCreated({ subscription: $event })"
+  />
 
   <!-- Sample transactions preview dialog -->
   <CandidateTransactionsDialog

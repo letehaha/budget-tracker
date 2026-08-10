@@ -227,10 +227,6 @@
     "create": {
       "error": "Gagal membuat grup"
     },
-    "rename": {
-      "success": "Grup telah diganti nama",
-      "error": "Gagal mengganti nama grup"
-    },
     "delete": {
       "success": "Grup telah dihapus",
       "error": "Gagal menghapus grup"

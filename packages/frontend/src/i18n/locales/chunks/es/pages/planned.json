@@ -9,16 +9,14 @@
       "title": "Cargos recurrentes",
       "description": "Seguimiento de cargos recurrentes y facturas",
       "addSubscription": "Añadir cargo recurrente",
+      "addSubscriptionShort": "Añadir",
       "backToList": "Volver a cargos recurrentes",
       "createTitle": "Crear cargo recurrente",
-      "editTitle": "Editar cargo recurrente",
       "typeSubscription": "Suscripción",
       "typeBill": "Factura",
       "typeInstallment": "A plazos",
       "completed": "Completado",
       "paused": "En pausa",
-      "pausedSection": "Pausadas ({count})",
-      "edit": "Editar",
       "cancel": "Cancelar",
       "pauseSubscription": "Pausar suscripción",
       "resumeSubscription": "Reanudar suscripción",
@@ -36,9 +34,28 @@
       "suggestMatchesDescription": "Transacciones que coinciden con sus reglas de suscripción",
       "noSuggestedMatches": "No se encontraron transacciones coincidentes",
       "linkSelected": "Vincular {count} seleccionadas",
-      "matchingRulesTitle": "Reglas de coincidencia",
       "addMatchingRules": "Añadir reglas de coincidencia",
       "updateMatchingRules": "Actualizar reglas de coincidencia",
+      "linked": {
+        "totalPaid": "Total pagado",
+        "average": "Promedio",
+        "lastPayment": "Último pago",
+        "driftUp": "↑ {percent}% desde el primer pago ({date})",
+        "driftDown": "↓ {percent}% desde el primer pago ({date})",
+        "yearPayments": "{count} pago | {count} pagos",
+        "legendRule": "Coincidencia por regla",
+        "legendAi": "Coincidencia por IA",
+        "legendManual": "Vinculado manualmente",
+        "chartLabel": "Importes de los pagos a lo largo del tiempo",
+        "gapTooltip": "Sin pagos · {range}",
+        "convertedTooltip": "Convertido al tipo de cambio de cada pago"
+      },
+      "quickAdd": {
+        "currencyPlaceholder": "Seleccionar moneda",
+        "nextPaymentLabel": "Próximo pago",
+        "nextPaymentHint": "Opcional. Establezca una fecha para hacer seguimiento de los pagos pendientes y recibir recordatorios.",
+        "refineHint": "Puede añadir una cuenta, categoría, etiquetas, recordatorios y automatización justo después de crearlo."
+      },
       "frequency": {
         "weekly": "Semanal",
         "biweekly": "Quincenal",
@@ -82,10 +99,6 @@
         "update": "Actualizar",
         "create": "Crear",
         "rulesCount": "{count} reglas de coincidencia configuradas",
-        "editRules": "Editar reglas",
-        "addRules": "Añadir reglas",
-        "saveRules": "Guardar reglas",
-        "extraOptions": "Opciones adicionales",
         "validationAmountCurrency": "El importe y la moneda deben proporcionarse juntos.",
         "validationSubscriptionRequiresAmount": "Las suscripciones requieren un importe y una moneda.",
         "typeInstallmentDesc": "Compra financiada pagada en un número fijo de cuotas",
@@ -110,15 +123,6 @@
           "2_weeks": "2 semanas antes",
           "1_month": "1 mes antes"
         },
-        "scheduleSectionLabel": "Programa de pagos",
-        "scheduleSectionHint": "Registre fechas de vencimiento, genere períodos, envíe recordatorios",
-        "autoRecord": {
-          "label": "Registro automático en la fecha de vencimiento",
-          "help": "Registra la transacción automáticamente a las 00:00 UTC de la fecha de vencimiento.",
-          "requiresAccount": "El registro automático necesita una cuenta.",
-          "requiresAmount": "El registro automático necesita un importe y una moneda.",
-          "conflictsMatching": "Las reglas de coincidencia existentes fueron eliminadas — el registro automático y las reglas de coincidencia no pueden usarse juntos."
-        },
         "transactionTypeLabel": "Tipo de transacción",
         "transactionTypeExpense": "Gasto",
         "transactionTypeIncome": "Ingreso",
@@ -135,8 +139,6 @@
         "completedNote": "Plan completado"
       },
       "rules": {
-        "ruleLabel": "Regla {number}",
-        "fieldLabel": "Campo",
         "selectField": "Seleccionar campo",
         "noteDescription": "La transacción coincidirá si su nota contiene alguna de estas palabras clave",
         "keywordPlaceholder": "Introducir palabra clave",
@@ -144,8 +146,6 @@
         "minAmount": "Importe mínimo",
         "maxAmount": "Importe máximo",
         "currencyCode": "Código de moneda",
-        "transactionType": "Tipo de transacción",
-        "account": "Cuenta",
         "addRule": "Añadir regla",
         "fieldOptions": {
           "note": "Nota",
@@ -170,6 +170,9 @@
       "toggleError": "Error al actualizar el estado de la suscripción",
       "unlinkSuccess": "Transacción desvinculada correctamente",
       "unlinkError": "Error al desvincular la transacción",
+      "unlinkConfirmTitle": "¿Desvincular este pago?",
+      "unlinkConfirmDescription": "{payment} se eliminará del historial de esta suscripción. La transacción en sí no se eliminará.",
+      "unlinkConfirmAction": "Desvincular",
       "suggestError": "Error al cargar coincidencias sugeridas",
       "linkSuccess": "Transacciones vinculadas correctamente",
       "linkError": "Error al vincular transacciones",
@@ -185,21 +188,34 @@
         "name": "Nombre · A–Z",
         "recent": "Añadido recientemente"
       },
+      "groups": {
+        "overdue": "Vencidas ({count})",
+        "dueSoon": "Vencen esta semana ({count})",
+        "thisMonth": "Más adelante este mes ({count})",
+        "later": "Próximas ({count})",
+        "noSchedule": "Sin calendario ({count})",
+        "active": "Activas ({count})",
+        "paused": "Pausadas ({count})"
+      },
+      "errorState": {
+        "title": "No se pudieron cargar sus suscripciones",
+        "description": "Algo salió mal al cargar la lista. Compruebe su conexión e inténtelo de nuevo.",
+        "retry": "Reintentar"
+      },
       "summary": {
         "filterAll": "Todas",
         "filterSubscriptions": "Suscripciones",
         "filterBills": "Facturas",
         "filterInstallments": "A plazos",
         "monthlyCost": "~{amount}/mes",
-        "yearlyProjected": "{amount} proyectado",
-        "perYear": "{amount}/año",
-        "acrossSubscriptions": "entre {count} suscripción activa | entre {count} suscripciones activas",
-        "acrossBills": "entre {count} factura activa | entre {count} facturas activas",
-        "acrossAll": "entre {count} suscripciones y facturas activas",
         "spendingLabel": "Gasto mensual",
         "incomeLabel": "Ingreso esperado",
         "monthlyIncome": "~{amount}/mes",
-        "acrossIncome": "entre {count} ingreso activo | entre {count} ingresos activos"
+        "acrossIncome": "entre {count} ingreso activo | entre {count} ingresos activos",
+        "percentOfIncome": "{percent}% del ingreso medio",
+        "projectedPerYearLabel": "Proyectado / año",
+        "activeCountLabel": "Activas",
+        "loadError": "No se pudo cargar el resumen."
       },
       "candidates": {
         "discover": "Descubrir",
@@ -227,7 +243,8 @@
         "viewTransactions": "Ver transacciones",
         "sampleTransactionsTitle": "Transacciones de muestra",
         "sampleTransactionsDescription": "Estas son transacciones de muestra que activaron esta detección de suscripción.",
-        "noTransactionsFound": "No se encontraron transacciones"
+        "noTransactionsFound": "No se encontraron transacciones",
+        "acceptLinkFailed": "El cargo recurrente se creó, pero el candidato detectado no se pudo marcar como aceptado. Es posible que vuelva a aparecer en Descubrir."
       },
       "periods": {
         "status": {
@@ -281,6 +298,57 @@
         "next6Months": "Próximos 6 meses",
         "nextYear": "Próximo año",
         "all": "Todo el tiempo"
+      },
+      "editors": {
+        "basics": {
+          "title": "Datos básicos",
+          "description": "Nombre, tipo e importe esperado.",
+          "edit": "Editar datos básicos",
+          "kindPlaceholder": "Seleccionar un tipo",
+          "currencyPlaceholder": "Seleccionar una moneda",
+          "firstPaymentDueLabel": "Vencimiento del primer pago",
+          "installmentScheduleRequired": "Un plan a plazos necesita una fecha del primer pago y un número de cuotas."
+        },
+        "schedule": {
+          "title": "Calendario",
+          "description": "Con qué frecuencia se repite y cuándo vence.",
+          "edit": "Editar calendario",
+          "frequencyPlaceholder": "Seleccionar una frecuencia",
+          "clearDueDate": "Limpiar",
+          "detectionOnlyHint": "Sin una fecha de vencimiento, esta suscripción solo detecta transacciones coincidentes: sin períodos de pago ni recordatorios.",
+          "emailOn": "Activado",
+          "emailOff": "Desactivado"
+        },
+        "automation": {
+          "title": "Automatización",
+          "description": "Elija cómo llegan los pagos a sus registros.",
+          "edit": "Editar automatización",
+          "modeMatchLabel": "Coincidir con transacciones bancarias",
+          "modeMatchDesc": "Vincula automáticamente las transacciones bancarias coincidentes.",
+          "modeRecordLabel": "Registrar pagos automáticamente",
+          "modeRecordDesc": "Registrar el pago por mí en la fecha de vencimiento.",
+          "modeManualLabel": "Gestionarlo yo mismo",
+          "modeManualDesc": "Marcaré los pagos como pagados yo mismo.",
+          "accountPlaceholder": "Seleccionar una cuenta",
+          "accountOptionalHint": "Se usa al registrar los pagos.",
+          "accountRequiredHint": "Los pagos se registran en esta cuenta.",
+          "recordNeedsAmount": "Primero establezca el importe y la moneda en Datos básicos: el registro automático anota un importe fijo.",
+          "matchNeedsRule": "Añada al menos una regla completa: la coincidencia no puede ejecutarse sin ninguna.",
+          "summaryRecord": "Registro automático en {account}",
+          "summaryRecordNoAccount": "Registra los pagos automáticamente en la fecha de vencimiento",
+          "summaryManual": "Usted marca los pagos como pagados",
+          "selectTransactionType": "Seleccionar un tipo",
+          "removeRule": "Eliminar regla",
+          "removeKeyword": "Eliminar palabra clave"
+        },
+        "organize": {
+          "title": "Organización",
+          "description": "Categoría, beneficiario, etiquetas y notas.",
+          "edit": "Editar organización",
+          "notesAdded": "Añadidas",
+          "notesEmpty": "Ninguna",
+          "tagsMore": "+{count} más"
+        }
       }
     }
   }

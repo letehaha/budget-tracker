@@ -90,6 +90,10 @@
   --color-account-crypto: var(--account-crypto);
   --color-account-vehicle: var(--account-vehicle);
 
+  --color-subscription-type-subscription: var(--subscription-type-subscription);
+  --color-subscription-type-bill: var(--subscription-type-bill);
+  --color-subscription-type-installment: var(--subscription-type-installment);
+
   /* Border radius */
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -316,6 +320,14 @@
     --account-investment: rgb(124, 92, 200);
     --account-crypto: rgb(234, 88, 12);
     --account-vehicle: rgb(79, 70, 229);
+
+    /*
+      Per-recurring-payment-type identity colors: one hue per type, shared by the type badge and
+      the summary card's composition bar and legend dots.
+    */
+    --subscription-type-subscription: rgb(37, 99, 235);
+    --subscription-type-bill: rgb(234, 88, 12);
+    --subscription-type-installment: rgb(147, 51, 234);
   }
 
   :root.dark {
@@ -403,6 +415,14 @@
     --account-investment: rgb(167, 139, 250);
     --account-crypto: rgb(251, 146, 60);
     --account-vehicle: rgb(129, 140, 248);
+
+    /*
+      Per-recurring-payment-type identity colors, brighter variants for contrast on the near-black
+      dark background.
+    */
+    --subscription-type-subscription: rgb(96, 165, 250);
+    --subscription-type-bill: rgb(251, 146, 60);
+    --subscription-type-installment: rgb(192, 132, 252);
   }
 }
 

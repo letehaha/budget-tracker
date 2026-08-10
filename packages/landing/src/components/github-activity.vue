@@ -19,7 +19,7 @@
     </div>
 
     <!-- Tagline -->
-    <p class="text-muted-foreground text-xs">Built by an active solo developer</p>
+    <p class="text-muted-foreground text-xs">Built by one developer, in the open</p>
   </div>
 
   <!-- Loading state -->

@@ -39,9 +39,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
-defineProps<{
+import { useScrollLock } from '../lib/use-scroll-lock';
+
+const props = defineProps<{
   isVisible: boolean;
 }>();
 
@@ -50,6 +52,16 @@ const isMounted = ref(false);
 onMounted(() => {
   isMounted.value = true;
 });
+
+const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
+
+watch(
+  () => props.isVisible,
+  (isVisible) => {
+    if (isVisible) lockScroll();
+    else unlockScroll();
+  },
+);
 </script>
 
 <style scoped>

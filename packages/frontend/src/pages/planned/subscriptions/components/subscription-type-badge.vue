@@ -7,12 +7,10 @@ const props = defineProps<{
   size?: 'sm' | 'md';
 }>();
 
-// Raw Tailwind palette, one hue per type (this badge predates the global.css
-// color tokens): subscription=blue, bill=orange, installment=purple.
 const TYPE_COLOR_CLASS: Record<SUBSCRIPTION_TYPES, string> = {
-  [SUBSCRIPTION_TYPES.subscription]: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  [SUBSCRIPTION_TYPES.bill]: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
-  [SUBSCRIPTION_TYPES.installment]: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  [SUBSCRIPTION_TYPES.subscription]: 'bg-subscription-type-subscription/10 text-subscription-type-subscription',
+  [SUBSCRIPTION_TYPES.bill]: 'bg-subscription-type-bill/10 text-subscription-type-bill',
+  [SUBSCRIPTION_TYPES.installment]: 'bg-subscription-type-installment/10 text-subscription-type-installment',
 };
 
 const TYPE_LABEL_KEY: Record<SUBSCRIPTION_TYPES, string> = {

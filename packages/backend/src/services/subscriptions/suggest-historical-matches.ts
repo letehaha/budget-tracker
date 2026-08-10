@@ -1,4 +1,5 @@
-import { SubscriptionMatchingRule } from '@bt/shared/types';
+import { SUBSCRIPTION_LINK_STATUS, SubscriptionMatchingRule } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import * as Transactions from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
@@ -42,11 +43,11 @@ export const suggestHistoricalMatches = async ({
     return [];
   }
 
-  // Get IDs of transactions already linked to this subscription (exclude from suggestions)
+  // Only active links are excluded, so an unlinked transaction can be suggested again.
   const excludedIds = (
     await SubscriptionTransactions.findAll({
       attributes: ['transactionId'],
-      where: { subscriptionId },
+      where: { subscriptionId, status: SUBSCRIPTION_LINK_STATUS.active },
     })
   ).map((l) => l.transactionId);
 
@@ -83,8 +84,8 @@ export const suggestHistoricalMatches = async ({
 };
 
 interface AmountRuleWithCurrency {
-  min: number;
-  max: number;
+  minCents: number;
+  maxCents: number;
   currencyCode: string;
 }
 
@@ -111,18 +112,21 @@ function buildWhereFromRules({ rules }: { rules: SubscriptionMatchingRule[] }): 
       case 'amount': {
         if (rule.operator === 'between' && typeof rule.value === 'object' && !Array.isArray(rule.value)) {
           const { min, max } = rule.value as { min: number; max: number };
+          // Rule bounds are decimals; the `amount` column and the tolerance math below are cents.
+          const minCents = Money.fromDecimal(min).toCents();
+          const maxCents = Money.fromDecimal(max).toCents();
 
           if (rule.currencyCode) {
             // Cross-currency amount rules need post-processing
             crossCurrencyAmountRules.push({
-              min,
-              max,
+              minCents,
+              maxCents,
               currencyCode: rule.currencyCode,
             });
           } else {
             // Same-currency amount rules can use SQL
             sqlConditions.push({
-              amount: { [Op.between]: [min, max] },
+              amount: { [Op.between]: [minCents, maxCents] },
             });
           }
         }
@@ -171,7 +175,7 @@ async function filterByCrossCurrencyAmount({
       // If currencies match, compare directly
       if (tx.currencyCode === rule.currencyCode) {
         const amountCents = amount.toCents();
-        if (amountCents < rule.min || amountCents > rule.max) {
+        if (amountCents < rule.minCents || amountCents > rule.maxCents) {
           matchesAllRules = false;
           break;
         }
@@ -195,8 +199,8 @@ async function filterByCrossCurrencyAmount({
       }
 
       // Apply tolerance (same as matching-engine.ts)
-      const tolerantMin = Math.floor(rule.min * (1 - CROSS_CURRENCY_TOLERANCE));
-      const tolerantMax = Math.ceil(rule.max * (1 + CROSS_CURRENCY_TOLERANCE));
+      const tolerantMin = Math.floor(rule.minCents * (1 - CROSS_CURRENCY_TOLERANCE));
+      const tolerantMax = Math.ceil(rule.maxCents * (1 + CROSS_CURRENCY_TOLERANCE));
       const amountCents = amount.toCents();
       if (amountCents < tolerantMin || amountCents > tolerantMax) {
         matchesAllRules = false;

@@ -227,10 +227,6 @@
     "create": {
       "error": "Error al crear el grupo"
     },
-    "rename": {
-      "success": "El grupo ha sido renombrado",
-      "error": "Error al renombrar el grupo"
-    },
     "delete": {
       "success": "El grupo ha sido eliminado",
       "error": "Error al eliminar el grupo"

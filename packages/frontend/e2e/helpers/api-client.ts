@@ -543,6 +543,38 @@ export async function createHolding({
   });
 }
 
+// ─── Subscriptions (Recurring Payments) ──────────────────────────────
+
+type SubscriptionFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semi_annual' | 'annual';
+
+/**
+ * POST /subscriptions. `expectedAmount` is a decimal and must always travel with
+ * `expectedCurrencyCode`; the API rejects either one alone.
+ */
+export async function createSubscription({
+  request,
+  payload,
+}: {
+  request: APIRequestContext;
+  payload: {
+    name: string;
+    frequency: SubscriptionFrequency;
+    startDate: string;
+    type?: 'subscription' | 'bill' | 'installment';
+    transactionType?: 'expense' | 'income';
+    expectedAmount?: number | null;
+    expectedCurrencyCode?: string | null;
+    dueDate?: string | null;
+    maxOccurrences?: number | null;
+    endDate?: string | null;
+    accountId?: string | null;
+    categoryId?: string | null;
+    notes?: string | null;
+  };
+}) {
+  return apiPost({ request, path: '/api/v1/subscriptions', data: payload });
+}
+
 export async function createInvestmentTransaction({
   request,
   portfolioId,

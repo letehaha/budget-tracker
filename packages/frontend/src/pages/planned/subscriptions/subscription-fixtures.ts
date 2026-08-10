@@ -1,0 +1,44 @@
+import type { SubscriptionListItem } from '@/api/subscriptions';
+import { type RecordId, SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+
+const BASE_SUBSCRIPTION: SubscriptionListItem = {
+  id: '00000000-0000-0000-0000-000000000001' as RecordId,
+  userId: 1,
+  name: 'Subscription',
+  type: SUBSCRIPTION_TYPES.subscription,
+  transactionType: TRANSACTION_TYPES.expense,
+  expectedAmount: 9.99,
+  expectedCurrencyCode: 'USD',
+  frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+  startDate: '2025-01-01',
+  endDate: null,
+  accountId: null,
+  categoryId: null,
+  payeeId: null,
+  matchingRules: { rules: [] },
+  isActive: true,
+  notes: null,
+  dueDate: null,
+  anchorDay: null,
+  maxOccurrences: null,
+  completedAt: null,
+  showInWidget: true,
+  autoRecord: false,
+  remindBefore: [],
+  notifyEmail: false,
+  logoDomain: null,
+  logoInitials: null,
+  logoColor: null,
+  logoSource: null,
+  createdAt: new Date('2025-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2025-01-01T00:00:00.000Z'),
+  linkedTransactionsCount: 0,
+  currentPeriod: null,
+  nextDueDate: null,
+  paidPeriodsCount: 0,
+};
+
+export const buildSubscription = (overrides: Partial<SubscriptionListItem> = {}): SubscriptionListItem => ({
+  ...BASE_SUBSCRIPTION,
+  ...overrides,
+});

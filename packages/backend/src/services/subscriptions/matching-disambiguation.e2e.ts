@@ -11,11 +11,10 @@ import * as helpers from '@tests/helpers';
  *
  * Test exchange rate: 1 USD ≈ 41.43 UAH (from seeded test data)
  *
- * IMPORTANT: Transaction amounts and subscription expectedAmount cross the API
- * as **decimals** (e.g., 9.99 for $9.99). Matching rule min/max, by contrast,
- * are expressed in **cents** (e.g., 999) — the matching engine compares them
- * against the transaction amount in cents. The helper below converts USD cents
- * to a UAH decimal (API format) for transaction amounts.
+ * IMPORTANT: Every amount crosses the API as a **decimal** (e.g., 9.99 for
+ * $9.99) — transaction amounts, subscription expectedAmount, and matching rule
+ * min/max alike. The helper below converts USD cents to a UAH decimal (API
+ * format) for transaction amounts.
  */
 
 const UAH_PER_USD = 41.429899;
@@ -49,7 +48,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 1900, max: 2100 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 19, max: 21 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -66,7 +65,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 250, max: 350 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 2.5, max: 3.5 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -83,7 +82,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 900, max: 1100 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 9, max: 11 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -100,7 +99,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 1000, max: 1200 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 10, max: 12 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -169,7 +168,7 @@ describe('Subscription matching disambiguation', () => {
     it('disambiguates by best amount fit when amount ranges overlap', async () => {
       const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
 
-      // Apple TV: expected $9.99, range 900-1200
+      // Apple TV: expected $9.99, range $9-$12
       const appleTv = await helpers.createSubscription({
         name: 'Apple TV',
         type: SUBSCRIPTION_TYPES.subscription,
@@ -181,13 +180,13 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 900, max: 1200 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 9, max: 12 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
       });
 
-      // Apple Music: expected $10.99, range 1000-1200 (overlaps with Apple TV)
+      // Apple Music: expected $10.99, range $10-$12 (overlaps with Apple TV)
       const appleMusic = await helpers.createSubscription({
         name: 'Apple Music',
         type: SUBSCRIPTION_TYPES.subscription,
@@ -199,7 +198,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 1000, max: 1200 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 10, max: 12 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -252,7 +251,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 900, max: 1100 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 9, max: 11 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -304,7 +303,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 900, max: 1100 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 9, max: 11 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -340,7 +339,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 900, max: 1100 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 9, max: 11 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -395,7 +394,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 900, max: 1100 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 9, max: 11 }, currencyCode: 'USD' },
           ],
         },
         raw: true,
@@ -412,7 +411,7 @@ describe('Subscription matching disambiguation', () => {
         matchingRules: {
           rules: [
             { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 1000, max: 1200 }, currencyCode: 'USD' },
+            { field: 'amount', operator: 'between', value: { min: 10, max: 12 }, currencyCode: 'USD' },
           ],
         },
         raw: true,

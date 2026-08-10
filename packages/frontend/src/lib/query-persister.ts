@@ -3,8 +3,12 @@ import {
   type PersistedQuery,
   experimental_createQueryPersister,
 } from '@tanstack/query-persist-client-core';
-import type { Query, QueryClient, QueryFunctionContext, QueryKey } from '@tanstack/vue-query';
+import { type Query, type QueryClient, type QueryFunctionContext, type QueryKey, hashKey } from '@tanstack/vue-query';
 import { type UseStore, clear, createStore, del, entries, get, set } from 'idb-keyval';
+
+// Changing this strands every existing persisted row: `persisterGc` only scans keys
+// carrying the current prefix, so orphans are never collected.
+const PERSISTER_KEY_PREFIX = 'tanstack-query';
 
 // Discard restored entries older than a day so a user who returns after a long
 // break refetches from scratch rather than seeing day-stale figures.
@@ -53,6 +57,7 @@ const persister = idbStorage
   ? experimental_createQueryPersister<string>({
       storage: idbStorage,
       maxAge: MAX_PERSISTED_AGE_MS,
+      prefix: PERSISTER_KEY_PREFIX,
       // Bust every persisted entry when a new build ships: __APP_VERSION__ is the
       // commit hash baked into the bundle, so a deploy invalidates stale shapes.
       buster: __APP_VERSION__,
@@ -126,6 +131,15 @@ export const persistedQueryFn = persister
  * revalidation is only correct if nothing can invalidate it.
  */
 export const persistedImmutableQueryFn = persister?.persisterFn;
+
+/**
+ * Drops one query's persisted snapshot, matched exactly (no prefix matching).
+ * Prefer `invalidatePersistedQuery`, which also invalidates the in-memory entry.
+ */
+export const removePersistedQuery = async ({ queryKey }: { queryKey: QueryKey }): Promise<void> => {
+  if (!persistedQueryStore) return;
+  await del(`${PERSISTER_KEY_PREFIX}-${hashKey(queryKey)}`, persistedQueryStore);
+};
 
 /**
  * Expire abandoned entries – rows whose key is no longer read through the
