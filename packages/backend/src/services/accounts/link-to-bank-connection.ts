@@ -3,8 +3,6 @@ import {
   API_ERROR_CODES,
   type AccountExternalData,
   BANK_PROVIDER_TYPE,
-  PAYMENT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
@@ -13,11 +11,13 @@ import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts, { getAccountById } from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { namespace } from '@models/connection';
 import Transactions from '@models/transactions.model';
+import { restampRefInitialBalance } from '@services/accounts/restamp-ref-initial-balance';
 import { bankProviderRegistry } from '@services/bank-data-providers';
 import { syncTransactionsForAccount } from '@services/bank-data-providers/connection/sync-transactions-for-account';
 import { withTransaction } from '@services/common/with-transaction';
-import { createTransaction } from '@services/transactions/create-transaction';
+import { QueryTypes } from 'sequelize';
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
   [BANK_PROVIDER_TYPE.MONOBANK]: ACCOUNT_TYPES.monobank,
@@ -36,9 +36,48 @@ interface LinkAccountToBankConnectionPayload {
 
 interface LinkResult {
   account: Accounts;
-  balanceAdjustmentTransaction?: Transactions | null;
+  balanceAdjustmentTransaction: null;
   balanceDifference: number;
 }
+
+/**
+ * Restores `initialBalance + Σsigned(tx) = currentBalance` after the post-link
+ * sync backfilled the provider's transactions and force-wrote its authoritative
+ * balance. Only the opening balance moves: the bank owns `currentBalance`, and
+ * the residual is by definition history the provider never handed us.
+ */
+const absorbLinkResidualIntoOpeningBalance = async ({
+  accountId,
+  userId,
+}: {
+  accountId: string;
+  userId: number;
+}): Promise<void> => {
+  const sequelizeTx = namespace.get('transaction');
+
+  const [row] = await Transactions.sequelize!.query<{ signedSum: string }>(
+    `SELECT COALESCE(SUM(CASE WHEN "transactionType" = :incomeType THEN "amount" ELSE -"amount" END), 0) AS "signedSum"
+     FROM "Transactions" WHERE "accountId" = :accountId`,
+    {
+      replacements: { accountId, incomeType: TRANSACTION_TYPES.income },
+      type: QueryTypes.SELECT,
+      transaction: sequelizeTx,
+    },
+  );
+
+  const account = await Accounts.findOne({ where: { id: accountId, userId }, transaction: sequelizeTx });
+  if (!account) return;
+
+  const signedSumCents = Number(row?.signedSum ?? 0);
+  const identityGapCents = account.currentBalance.toCents() - (account.initialBalance.toCents() + signedSumCents);
+  if (identityGapCents === 0) return;
+
+  await Accounts.update(
+    { initialBalance: Money.fromCents(account.initialBalance.toCents() + identityGapCents) },
+    { where: { id: accountId, userId } },
+  );
+  await restampRefInitialBalance({ accountId, allowProviderAccount: true });
+};
 
 /**
  * Links a system account to a bank connection using forward-only strategy.
@@ -46,9 +85,10 @@ interface LinkResult {
  * 1. Validates the account is a system account
  * 2. Fetches current balance from external provider
  * 3. Validates currency match between system and external accounts
- * 4. Creates balance adjustment transaction if there's a difference
- * 5. Updates account type to match provider (e.g., 'monobank')
- * 6. Stores linking metadata in account's externalData
+ * 4. Updates account type to match provider (e.g., 'monobank')
+ * 5. Stores linking metadata in account's externalData
+ * 6. Syncs the provider's transactions, then absorbs whatever balance residual
+ *    those transactions do not explain into the opening balance
  *
  * Note: Existing transactions remain as 'system' type to preserve data integrity.
  * Only newly synced transactions will have the external account type.
@@ -127,40 +167,7 @@ export const linkAccountToBankConnection = withTransaction(
     const existingExternalData = account.externalData || {};
     const linkedAt = new Date().toISOString();
 
-    // 7. Create balance adjustment transaction if needed
-    let balanceAdjustmentTransaction: Transactions | null = null;
-
-    if (balanceDifference !== 0) {
-      // Create transfer_out_wallet transaction to reconcile the difference
-      // Note: The transaction hook will automatically update the account balance
-      const [createdTransaction] = await createTransaction({
-        userId,
-        accountId: account.id,
-        amount: Money.fromCents(Math.abs(balanceDifference)),
-        time: new Date(),
-        transactionType: balanceDifference > 0 ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
-        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-        // At this point of time transactions should still be "system" because its
-        // behaviour is system-like one
-        accountType: ACCOUNT_TYPES.system,
-        paymentType: PAYMENT_TYPES.bankTransfer, // Balance adjustment from bank connection
-        note: `Balance adjustment when linking to bank connection. System: ${systemBalance}, External: ${externalBalance}`,
-        externalData: {
-          type: 'bank_connection_balance_adjustment',
-          connectionId,
-          linkedAt,
-          balances: {
-            system: systemBalance,
-            external: externalBalance,
-            difference: balanceDifference,
-          },
-        },
-      });
-
-      balanceAdjustmentTransaction = createdTransaction;
-    }
-
-    // 8. Update account metadata with linking information
+    // 7. Update account metadata with linking information
     // Include external account metadata (iban, product, ownerName, etc.) to ensure
     // IBAN is stored for account matching during reconnection flows
     const updatedExternalData: AccountExternalData = {
@@ -173,12 +180,12 @@ export const linkAccountToBankConnection = withTransaction(
           systemBalance,
           externalBalance,
           difference: balanceDifference,
-          adjustmentTransactionId: balanceAdjustmentTransaction?.id || null,
+          adjustmentTransactionId: null,
         },
       },
     };
 
-    // 9. Update account to external type
+    // 8. Update account to external type
     const newAccountType = PROVIDER_TO_ACCOUNT_TYPE[bankConnection.providerType as BANK_PROVIDER_TYPE];
 
     await account.update({
@@ -193,10 +200,10 @@ export const linkAccountToBankConnection = withTransaction(
     // to maintain data integrity and audit trail.
     // Only new transactions synced from the provider will have the external account type.
 
-    // 10. Update connection's last sync timestamp
+    // 9. Update connection's last sync timestamp
     await bankConnection.update({ lastSyncAt: new Date() });
 
-    // 11. Add account to the connection's AccountGroup if it exists and account is ungrouped
+    // 10. Add account to the connection's AccountGroup if it exists and account is ungrouped
     const connectionGroup = await AccountGroup.findOne({
       where: { bankDataProviderConnectionId: connectionId, userId },
     });
@@ -211,7 +218,7 @@ export const linkAccountToBankConnection = withTransaction(
       }
     }
 
-    // 12. Trigger automatic transaction sync for the newly linked account
+    // 11. Trigger automatic transaction sync for the newly linked account
     // This uses the syncTransactionsForAccount service which handles all the logic
     // including checking correct from-to dates, rate limits, and provider-specific behavior
     await syncTransactionsForAccount({
@@ -220,12 +227,17 @@ export const linkAccountToBankConnection = withTransaction(
       accountId,
     });
 
+    // 12. Re-anchor the opening balance against what the sync actually wrote.
+    // Providers that enqueue their sync (Monobank) have changed nothing yet, so
+    // the gap is zero and this is a no-op for them.
+    await absorbLinkResidualIntoOpeningBalance({ accountId, userId });
+
     // 13. Fetch and return the updated account
     const updatedAccount = await Accounts.findByPk(accountId);
 
     return {
       account: updatedAccount!,
-      balanceAdjustmentTransaction,
+      balanceAdjustmentTransaction: null,
       balanceDifference,
     };
   },

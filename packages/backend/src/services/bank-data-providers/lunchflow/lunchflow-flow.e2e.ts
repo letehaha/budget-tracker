@@ -1173,17 +1173,12 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       // 4. Verify no duplicates — should still have the same number of transactions
-      const afterRelinkTx = await Transactions.findAll({
+      const syncedTx = await Transactions.findAll({
         where: { accountId },
         raw: true,
       });
 
-      // The relink may create a balance adjustment transaction, so filter those out
-      const syncedTx = afterRelinkTx.filter(
-        (tx) => (tx.externalData as Record<string, unknown>)?.type !== 'bank_connection_balance_adjustment',
-      );
-
-      // Must be exactly MOCK_AMOUNT — no duplicates
+      // Must be exactly MOCK_AMOUNT — no duplicates, and linking mints no rows of its own
       expect(syncedTx.length).toBe(MOCK_AMOUNT);
 
       // Date filtering means only transactions on or after the latest existing date
@@ -1312,16 +1307,11 @@ describe('LunchFlow Data Provider E2E', () => {
         raw: true,
       });
 
-      // Filter out any balance adjustment transactions
-      const nonAdjustmentTx = finalTx.filter(
-        (tx) => (tx.externalData as Record<string, unknown>)?.type !== 'bank_connection_balance_adjustment',
-      );
-
       // 5 original bank txs + 1 manual tx + 2 new bank txs = 8
-      expect(nonAdjustmentTx.length).toBe(MOCK_AMOUNT + 1 + 2);
+      expect(finalTx.length).toBe(MOCK_AMOUNT + 1 + 2);
 
       // Verify the 2 new transactions were created with correct originalIds
-      const newSyncedTx = nonAdjustmentTx.filter(
+      const newSyncedTx = finalTx.filter(
         (tx) => tx.originalId === 'new-tx-after-manual-1' || tx.originalId === 'new-tx-after-manual-2',
       );
       expect(newSyncedTx.length).toBe(2);
@@ -1329,7 +1319,7 @@ describe('LunchFlow Data Provider E2E', () => {
       // Verify the original 5 bank transactions still have originalId = null
       // (they were NOT re-processed because their dates are before the latest tx).
       // The 5 unlinked bank txs have originalId = null WITH originalSource.
-      const unlinkedBankTx = nonAdjustmentTx.filter(
+      const unlinkedBankTx = finalTx.filter(
         (tx) => tx.originalId === null && (tx.externalData as Record<string, unknown>)?.originalSource,
       );
       expect(unlinkedBankTx.length).toBe(MOCK_AMOUNT);

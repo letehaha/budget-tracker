@@ -27,10 +27,15 @@ import { withTransaction } from '../common/with-transaction';
  * keep their provider-owned opening snapshot, a loan's `refInitialBalance` is its
  * balance-anchor value stamped by `updateLoan`, and a vehicle's opening is its
  * purchase value with no transactions to define a boundary.
+ *
+ * `allowProviderAccount` opts a bank-provider account in, for the callers that
+ * deliberately rewrite its `initialBalance` (linking an existing account to a
+ * connection) and therefore own the ref stamp too.
  */
 async function restampRefInitialBalanceImpl({
   accountId,
   excludeTransactionId,
+  allowProviderAccount = false,
 }: {
   accountId: string;
   /**
@@ -38,11 +43,12 @@ async function restampRefInitialBalanceImpl({
    * BeforeDestroy hook, where it still exists.
    */
   excludeTransactionId?: string;
+  allowProviderAccount?: boolean;
 }): Promise<void> {
   const account = await Accounts.findOne({ where: { id: accountId } });
   if (!account) return;
   if (
-    account.type !== ACCOUNT_TYPES.system ||
+    (account.type !== ACCOUNT_TYPES.system && !allowProviderAccount) ||
     account.accountCategory === ACCOUNT_CATEGORIES.loan ||
     account.accountCategory === ACCOUNT_CATEGORIES.vehicle
   ) {
