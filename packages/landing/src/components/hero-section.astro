@@ -94,26 +94,37 @@
               https://moneymatter.app
             </div>
           </div>
-          <!-- App screenshot -->
-          <div class="relative">
+          <!-- App screenshot. On mobile the tall phone capture is cropped to a
+               viewport-height cap; DemoPortal lifts the cap when zooming in. -->
+          <div data-hero-crop class="relative max-h-[65svh] overflow-hidden sm:max-h-none">
             <picture>
               <source
                 media="(max-width: 639px)"
-                srcset="/img/landing/dashboard-screenshot/dashboard-mobile@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-mobile@2x.webp 2x"
+                srcset="/img/landing/dashboard-screenshot/dashboard-mobile-v2@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-mobile-v2@2x.webp 2x"
+                width="1170"
+                height="2532"
               />
               <source
-                srcset="/img/landing/dashboard-screenshot/dashboard-desktop@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-desktop@2x.webp 2x"
+                srcset="/img/landing/dashboard-screenshot/dashboard-desktop-v2@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-desktop-v2@2x.webp 2x"
+                width="1612"
+                height="935"
               />
               <img
-                src="/img/landing/dashboard-screenshot/dashboard-desktop@1x.webp"
+                src="/img/landing/dashboard-screenshot/dashboard-desktop-v2@1x.webp"
                 alt="MoneyMatter budget tracker dashboard showing expense overview and financial analytics"
-                width="1022"
-                height="600"
+                width="1612"
+                height="935"
                 class="w-full"
                 loading="eager"
                 fetchpriority="high"
               />
             </picture>
+
+            <div
+              data-hero-fade
+              class="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-background to-transparent sm:hidden"
+            >
+            </div>
 
             <!-- Vue island: DemoPortal overlays the screenshot -->
             <slot name="demo-portal" />

@@ -2,18 +2,20 @@
   <div
     ref="rootEl"
     class="absolute inset-0"
-    @pointerenter="isHovered = true"
+    @pointerenter="handlePointerEnter"
     @pointerleave="isHovered = false"
     @focusin="isFocused = true"
     @focusout="isFocused = false"
   >
     <div
+      v-if="canHover"
       class="pointer-events-none absolute inset-0 transition-all duration-300"
       :class="showAffordances ? 'bg-background/60 backdrop-blur-[2px]' : 'bg-transparent'"
     />
 
     <!-- Corner ticks -->
     <div
+      v-if="canHover"
       class="pointer-events-none absolute inset-0 transition-opacity duration-500"
       :class="showAffordances ? 'opacity-100' : 'opacity-0'"
     >
@@ -24,31 +26,36 @@
     </div>
 
     <div
-      class="absolute inset-0 flex flex-col items-center justify-center gap-2 transition-opacity duration-500"
-      :class="showAffordances ? 'opacity-100' : 'pointer-events-none opacity-0'"
+      class="absolute inset-0 flex justify-center transition-opacity duration-500"
+      :class="[
+        canHover ? 'items-center' : 'items-end pb-6',
+        showAffordances ? 'opacity-100' : 'pointer-events-none opacity-0',
+      ]"
     >
-      <button
-        class="bg-primary text-primary-foreground shadow-primary/25 hover:bg-primary/90 focus-visible:ring-primary/70 focus-visible:ring-offset-background relative flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-        @click="handleStart"
-      >
-        <!-- Play icon -->
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="size-4"
+      <div class="flex flex-col items-center gap-2">
+        <button
+          class="bg-primary text-primary-foreground shadow-primary/25 hover:bg-primary/90 focus-visible:ring-primary/70 focus-visible:ring-offset-background flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          @click="handleStart"
         >
-          <polygon points="6 3 20 12 6 21 6 3" />
-        </svg>
-        Open live demo
-      </button>
-      <span class="text-muted-foreground relative text-xs">No signup · sample data</span>
+          <!-- Play icon -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-4"
+          >
+            <polygon points="6 3 20 12 6 21 6 3" />
+          </svg>
+          Open live demo
+        </button>
+        <span class="text-muted-foreground text-xs">No signup · sample data</span>
+      </div>
     </div>
 
     <!-- Veil -->
@@ -56,7 +63,7 @@
       <Transition name="veil">
         <div
           v-if="status !== 'idle'"
-          class="bg-background/80 fixed inset-0 z-[60] flex flex-col items-center justify-center px-6 text-center backdrop-blur-sm"
+          class="bg-background/80 fixed inset-0 z-60 flex flex-col items-center justify-center px-6 text-center backdrop-blur-sm"
           @click="dismissError"
         >
           <template v-if="status === 'loading'">
@@ -94,22 +101,39 @@ import { startDemo } from '../lib/start-demo';
 
 const FRAME_SELECTOR = '[data-hero-frame]';
 const SECTION_SELECTOR = '[data-hero-section]';
+const CROP_SELECTOR = '[data-hero-crop]';
+const FADE_SELECTOR = '[data-hero-fade]';
 const FRAME_ZOOM_CLASS = 'z-50';
 const ZOOMED_SECTION_Z_INDEX = '50';
 const ZOOM_OVERSHOOT = 1.02;
 const ZOOM_DURATION_MS = 600;
 const ZOOM_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
+const HOVER_QUERY = '(hover: hover) and (pointer: fine)';
 
 const rootEl = useTemplateRef<HTMLDivElement>('rootEl');
 const isMounted = ref(false);
+const canHover = ref(true);
 const isHovered = ref(false);
 const isFocused = ref(false);
-const isRevealed = computed(() => isHovered.value || isFocused.value);
+const isRevealed = computed(() => !canHover.value || isHovered.value || isFocused.value);
 const status = ref<'idle' | 'loading' | 'error'>('idle');
 const showAffordances = computed(() => isRevealed.value && status.value === 'idle');
 const errorMessage = ref('');
 
 let unzoomTimeout = 0;
+let hoverQuery: MediaQueryList | null = null;
+let cropCollapsedHeight = 0;
+
+// Touch fires pointerenter on tap and never a matching pointerleave, which would latch hover on.
+function handlePointerEnter() {
+  if (!canHover.value) return;
+
+  isHovered.value = true;
+}
+
+function handleHoverQueryChange(event: MediaQueryListEvent) {
+  canHover.value = event.matches;
+}
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -121,6 +145,75 @@ function getFrame(): HTMLElement | null {
 
 function getSection(): HTMLElement | null {
   return rootEl.value?.closest<HTMLElement>(SECTION_SELECTOR) ?? null;
+}
+
+function getCrop(): HTMLElement | null {
+  return rootEl.value?.closest<HTMLElement>(CROP_SELECTOR) ?? null;
+}
+
+function getFade(): HTMLElement | null {
+  return getFrame()?.querySelector<HTMLElement>(FADE_SELECTOR) ?? null;
+}
+
+// The mobile crop caps the tall screenshot. Measure the frame with the cap
+// lifted so the zoom targets the full image, then animate the cap open in
+// sync with the frame transform.
+function expandCropAndMeasure(frame: HTMLElement): DOMRect {
+  const crop = getCrop();
+  if (!crop) return frame.getBoundingClientRect();
+
+  crop.style.transition = 'none';
+  crop.style.maxHeight = '';
+  cropCollapsedHeight = crop.getBoundingClientRect().height;
+  crop.style.maxHeight = 'none';
+  const expandedHeight = crop.getBoundingClientRect().height;
+  const rect = frame.getBoundingClientRect();
+
+  if (expandedHeight === cropCollapsedHeight) {
+    crop.style.maxHeight = '';
+    crop.style.transition = '';
+    cropCollapsedHeight = 0;
+    return rect;
+  }
+
+  crop.style.maxHeight = `${cropCollapsedHeight}px`;
+  void crop.offsetHeight;
+  crop.style.transition = `max-height ${ZOOM_DURATION_MS}ms ${ZOOM_EASING}`;
+  crop.style.maxHeight = `${expandedHeight}px`;
+
+  const fade = getFade();
+  if (fade) {
+    fade.style.transition = `opacity ${ZOOM_DURATION_MS}ms ${ZOOM_EASING}`;
+    fade.style.opacity = '0';
+  }
+
+  return rect;
+}
+
+function collapseCrop(): void {
+  if (!cropCollapsedHeight) return;
+
+  const crop = getCrop();
+  if (crop) crop.style.maxHeight = `${cropCollapsedHeight}px`;
+
+  const fade = getFade();
+  if (fade) fade.style.opacity = '';
+}
+
+function clearCropStyles(): void {
+  cropCollapsedHeight = 0;
+
+  const crop = getCrop();
+  if (crop) {
+    crop.style.maxHeight = '';
+    crop.style.transition = '';
+  }
+
+  const fade = getFade();
+  if (fade) {
+    fade.style.opacity = '';
+    fade.style.transition = '';
+  }
 }
 
 function zoomFrame() {
@@ -141,7 +234,7 @@ function zoomFrame() {
   // Measuring with the transform cleared keeps a retry mid-unzoom accurate.
   frame.style.transition = 'none';
   frame.style.transform = '';
-  const rect = frame.getBoundingClientRect();
+  const rect = expandCropAndMeasure(frame);
 
   const scale = Math.max(window.innerWidth / rect.width, window.innerHeight / rect.height) * ZOOM_OVERSHOOT;
   const offsetX = window.innerWidth / 2 - (rect.left + rect.width / 2);
@@ -169,6 +262,8 @@ function clearFrameStyles() {
     section.style.overflow = '';
     section.style.zIndex = '';
   }
+
+  clearCropStyles();
 }
 
 function unzoomFrame() {
@@ -177,6 +272,7 @@ function unzoomFrame() {
 
   frame.style.transform = '';
   frame.style.borderRadius = '';
+  collapseCrop();
 
   unzoomTimeout = window.setTimeout(clearFrameStyles, ZOOM_DURATION_MS);
 }
@@ -226,12 +322,16 @@ function handlePageShow(event: PageTransitionEvent) {
 
 onMounted(() => {
   isMounted.value = true;
+  hoverQuery = window.matchMedia(HOVER_QUERY);
+  canHover.value = hoverQuery.matches;
+  hoverQuery.addEventListener('change', handleHoverQueryChange);
   window.addEventListener('keydown', handleKeydown);
   window.addEventListener('pageshow', handlePageShow);
 });
 
 onBeforeUnmount(() => {
   window.clearTimeout(unzoomTimeout);
+  hoverQuery?.removeEventListener('change', handleHoverQueryChange);
   window.removeEventListener('keydown', handleKeydown);
   window.removeEventListener('pageshow', handlePageShow);
 });
