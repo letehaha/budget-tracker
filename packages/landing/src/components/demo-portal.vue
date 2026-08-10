@@ -95,9 +95,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue';
 
 import { startDemo } from '../lib/start-demo';
+import { useScrollLock } from '../lib/use-scroll-lock';
 
 const FRAME_SELECTOR = '[data-hero-frame]';
 const SECTION_SELECTOR = '[data-hero-section]';
@@ -119,6 +120,19 @@ const isRevealed = computed(() => !canHover.value || isHovered.value || isFocuse
 const status = ref<'idle' | 'loading' | 'error'>('idle');
 const showAffordances = computed(() => isRevealed.value && status.value === 'idle');
 const errorMessage = ref('');
+
+const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
+
+// Synchronous so the lock lands before `handleStart` measures the frame for the
+// zoom, keeping the measurement and the animation on one layout.
+watch(
+  () => status.value !== 'idle',
+  (isVeilVisible) => {
+    if (isVeilVisible) lockScroll();
+    else unlockScroll();
+  },
+  { flush: 'sync' },
+);
 
 let unzoomTimeout = 0;
 let hoverQuery: MediaQueryList | null = null;
