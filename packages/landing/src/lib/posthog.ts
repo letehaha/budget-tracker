@@ -2,16 +2,19 @@ import posthog from 'posthog-js';
 
 import { config } from './config';
 
+export type DemoStartLocation = 'hero' | 'hero_screenshot';
+
 type LandingAnalyticsEvent =
   | {
       event: 'landing_cta_clicked';
       properties: { location: 'header' | 'hero' | 'cta_section' | 'self_host'; action: string };
     }
+  | { event: 'landing_roadmap_clicked'; properties: { location: 'hero' } }
   | {
       event: 'landing_github_clicked';
       properties: { location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' };
     }
-  | { event: 'demo_started'; properties: { location: 'hero' } }
+  | { event: 'demo_started'; properties: { location: DemoStartLocation } }
   // `demo_started` fires on click; these two close out that funnel.
   // Setup bulk-inserts ~1.5k transactions and rebuilds balances twice, so without
   // them a slow or rejected run looks the same as a visitor who never clicked.

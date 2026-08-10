@@ -1,11 +1,11 @@
 ---
 /**
  * Hero section — mostly static, with Vue island slots for
- * TryDemoButton and GitHubActivity.
+ * TryDemoButton, DemoPortal and GitHubActivity.
  */
 ---
 
-<section class="relative z-10 overflow-hidden py-20 sm:pt-40 sm:pb-32">
+<section data-hero-section class="relative z-10 overflow-hidden py-20 sm:pt-40 sm:pb-32">
   <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <div class="text-center">
       <!-- Badge -->
@@ -13,8 +13,11 @@
         class="hero-fade-in border-border/60 bg-card/50 mb-8 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm backdrop-blur-sm"
         style="animation-delay: 0.1s"
       >
-        <span class="size-2 animate-pulse rounded-full bg-green-500"></span>
-        <span class="text-muted-foreground">Early Access &bull; Open Source &bull; AI-Ready</span>
+        <span class="size-2 shrink-0 animate-pulse rounded-full bg-green-500"></span>
+        <span class="text-muted-foreground">
+          <span class="max-xs:hidden">Open source &bull; AGPL-3.0 &bull; Early access</span>
+          <span class="xs:hidden">Open source &bull; Early access</span>
+        </span>
       </div>
 
       <!-- Headline -->
@@ -23,7 +26,7 @@
       >
         Your finances. Your server.
         <span class="hero-gradient-text inline-block bg-clip-text leading-tight text-transparent">
-          Zero data harvesting.
+          Your rules.
         </span>
       </h1>
 
@@ -32,8 +35,8 @@
         class="hero-fade-in text-muted-foreground mx-auto mt-6 max-w-2xl text-lg sm:text-xl"
         style="animation-delay: 0.35s"
       >
-        Free, open-source budget tracking that respects your privacy. Self-host for complete control, or use our cloud
-        — either way, your data is never sold or shared.
+        Free, open-source personal finance tracking. Run it on your own server with Docker, or use our cloud. Your data
+        is never sold or shared.
       </p>
 
       <!-- CTA Buttons -->
@@ -62,13 +65,23 @@
 
       <!-- Early Adopter Callout -->
       <p class="hero-fade-in text-muted-foreground mt-6 text-sm" style="animation-delay: 0.55s">
-        <span class="text-primary font-medium">Early adopter perk:</span>
-        Shape the roadmap with your feedback
+        <span class="text-primary xs:inline block font-medium">Early adopter perk</span>
+        <a
+          href="https://moneymatter.featurebase.app/dashboard/roadmap"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-foreground underline underline-offset-4 transition-colors"
+          data-track="landing_roadmap_clicked"
+          data-track-location="hero"
+        >
+          Shape the roadmap with your feedback
+        </a>
       </p>
 
       <!-- App Preview -->
       <div class="hero-fade-in relative mx-auto mt-16 max-w-5xl" style="animation-delay: 0.7s">
         <div
+          data-hero-frame
           class="border-border/50 from-card to-card/50 relative overflow-hidden rounded-2xl border bg-linear-to-b shadow-2xl"
         >
           <!-- Browser chrome -->
@@ -82,25 +95,41 @@
               https://moneymatter.app
             </div>
           </div>
-          <!-- App screenshot -->
-          <picture>
-            <source
-              media="(max-width: 639px)"
-              srcset="/img/landing/dashboard-screenshot/dashboard-mobile@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-mobile@2x.webp 2x"
-            />
-            <source
-              srcset="/img/landing/dashboard-screenshot/dashboard-desktop@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-desktop@2x.webp 2x"
-            />
-            <img
-              src="/img/landing/dashboard-screenshot/dashboard-desktop@1x.webp"
-              alt="MoneyMatter budget tracker dashboard showing expense overview and financial analytics"
-              width="1022"
-              height="600"
-              class="w-full"
-              loading="eager"
-              fetchpriority="high"
-            />
-          </picture>
+          <!-- App screenshot. On mobile the tall phone capture is cropped to a
+               viewport-height cap; DemoPortal lifts the cap when zooming in. -->
+          <div data-hero-crop class="relative max-h-[65svh] overflow-hidden sm:max-h-none">
+            <picture>
+              <source
+                media="(max-width: 639px)"
+                srcset="/img/landing/dashboard-screenshot/dashboard-mobile-v2@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-mobile-v2@2x.webp 2x"
+                width="1170"
+                height="2532"
+              />
+              <source
+                srcset="/img/landing/dashboard-screenshot/dashboard-desktop-v2@1x.webp 1x, /img/landing/dashboard-screenshot/dashboard-desktop-v2@2x.webp 2x"
+                width="1612"
+                height="935"
+              />
+              <img
+                src="/img/landing/dashboard-screenshot/dashboard-desktop-v2@1x.webp"
+                alt="MoneyMatter budget tracker dashboard showing expense overview and financial analytics"
+                width="1612"
+                height="935"
+                class="w-full"
+                loading="eager"
+                fetchpriority="high"
+              />
+            </picture>
+
+            <div
+              data-hero-fade
+              class="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-background to-transparent sm:hidden"
+            >
+            </div>
+
+            <!-- Vue island: DemoPortal overlays the screenshot -->
+            <slot name="demo-portal" />
+          </div>
         </div>
 
         <!-- GitHub Activity (Vue island slot) -->
@@ -113,21 +142,11 @@
 </section>
 
 <style>
-  /* Animated gradient text */
+  /* Gradient text */
   .hero-gradient-text {
     background-image: linear-gradient(90deg, #8b5cf6 0%, #a855f7 25%, #ec4899 50%, #a855f7 75%, #8b5cf6 100%) !important;
     background-size: 200% 100% !important;
-    animation: hero-gradient-shift 2.5s ease-in-out infinite;
-  }
-
-  @keyframes hero-gradient-shift {
-    0%,
-    100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
+    background-position: 50% 50% !important;
   }
 
   /* Hero content slide-up animation */

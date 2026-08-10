@@ -1,4 +1,11 @@
 ---
+// Font CSS must be imported here rather than from global.css: the Tailwind Vite
+// plugin inlines @import-ed CSS but never emits the referenced woff2 assets.
+import '@fontsource/montserrat/latin-400.css';
+import '@fontsource/montserrat/latin-500.css';
+import '@fontsource/montserrat/latin-600.css';
+import '@fontsource/montserrat/latin-700.css';
+
 interface Props {
   title: string;
   description?: string;
@@ -9,7 +16,7 @@ interface Props {
 
 const {
   title,
-  description = 'Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host for full control or use our cloud — your data stays yours.',
+  description = 'Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host with Docker or use our cloud. Your data stays yours.',
   ogImage = '/img/og-image.jpg',
   canonicalUrl,
   noindex = false,

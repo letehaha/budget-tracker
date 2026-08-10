@@ -12,11 +12,12 @@ import LandingFooter from '@/components/landing-footer.astro';
 
 import TryDemoButton from '@/components/try-demo-button.vue';
 import GitHubActivity from '@/components/github-activity.vue';
+import DemoPortal from '@/components/demo-portal.vue';
 ---
 
 <BaseLayout
   title="Free Open-Source Budget Tracker & Personal Finance App | MoneyMatter"
-  description="Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host for full control or use our cloud — your data stays yours."
+  description="Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host with Docker or use our cloud. Your data stays yours."
   canonicalUrl="https://moneymatter.app/"
 >
   <!-- Structured Data (JSON-LD) -->
@@ -35,7 +36,7 @@ import GitHubActivity from '@/components/github-activity.vue';
         "@type": "SoftwareApplication",
         "@id": "https://moneymatter.app/#app",
         "name": "MoneyMatter",
-        "description": "Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host for full control or use our cloud — your data stays yours.",
+        "description": "Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host with Docker or use our cloud. Your data stays yours.",
         "url": "https://moneymatter.app/",
         "applicationCategory": "FinanceApplication",
         "operatingSystem": "Web",
@@ -75,6 +76,7 @@ import GitHubActivity from '@/components/github-activity.vue';
     <HeroSection>
       <TryDemoButton slot="try-demo" client:load />
       <GitHubActivity slot="github-activity" client:visible />
+      <DemoPortal slot="demo-portal" client:visible />
     </HeroSection>
 
     <ComparisonSection />
@@ -102,6 +104,11 @@ import GitHubActivity from '@/components/github-activity.vue';
         trackAnalyticsEvent({
           event: 'landing_cta_clicked',
           properties: { location: location as 'header' | 'hero' | 'cta_section' | 'self_host', action: 'sign_up' },
+        });
+      } else if (event === 'landing_roadmap_clicked' && location) {
+        trackAnalyticsEvent({
+          event: 'landing_roadmap_clicked',
+          properties: { location: location as 'hero' },
         });
       } else if (event === 'landing_github_clicked' && location) {
         trackAnalyticsEvent({
