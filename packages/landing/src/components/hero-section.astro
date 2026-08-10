@@ -13,9 +13,10 @@
         class="hero-fade-in border-border/60 bg-card/50 mb-8 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm backdrop-blur-sm"
         style="animation-delay: 0.1s"
       >
-        <span class="size-2 animate-pulse rounded-full bg-green-500"></span>
+        <span class="size-2 shrink-0 animate-pulse rounded-full bg-green-500"></span>
         <span class="text-muted-foreground">
-          <span data-proof-activity>Open source</span> &bull; <span data-proof-license>AGPL-3.0</span> &bull; Early access
+          <span class="max-xs:hidden">Open source &bull; AGPL-3.0 &bull; Early access</span>
+          <span class="xs:hidden">Open source &bull; Early access</span>
         </span>
       </div>
 
@@ -139,26 +140,6 @@
     </div>
   </div>
 </section>
-
-<script>
-  import { fetchGitHubActivity } from '@/lib/github-api';
-
-  const activityEl = document.querySelector('[data-proof-activity]');
-  const licenseEl = document.querySelector('[data-proof-license]');
-
-  if (activityEl && licenseEl) {
-    fetchGitHubActivity()
-      .then((response) => {
-        if (!('commitsLast30Days' in response) || typeof response.commitsLast30Days !== 'number') return;
-
-        activityEl.textContent = `${response.commitsLast30Days} commits in the last 30 days`;
-        licenseEl.textContent = 'AGPL open source';
-      })
-      .catch((error) => {
-        console.error('Failed to fetch GitHub activity:', error);
-      });
-  }
-</script>
 
 <style>
   /* Gradient text */
