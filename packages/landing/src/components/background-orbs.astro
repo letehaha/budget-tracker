@@ -163,15 +163,21 @@
     background-size: 96px 96px;
   }
 
+  /*
+    Without the pulse animation the orbs fall back to opacity 1, brighter than
+    they ever appear animated, so pin a value inside the pulse's 0.5-0.8 range.
+  */
   @media (pointer: coarse) {
-    .orbs-container {
-      display: none;
+    .hero-orb {
+      animation: none;
+      opacity: 0.6;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .hero-orb {
       animation: none;
+      opacity: 0.6;
     }
   }
 </style>
