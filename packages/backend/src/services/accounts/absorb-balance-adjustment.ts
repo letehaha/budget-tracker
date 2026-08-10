@@ -5,7 +5,7 @@ import { logger } from '@js/utils/logger';
 import Accounts, * as AccountsModel from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
-import { assertNotDedicatedFlowAccount } from '@services/import-export/core/dedicated-flow-guard';
+import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
 
 import { withTransaction } from '../common/with-transaction';
 import { measureSpotRefBalance } from './measure-spot-ref-balance';
@@ -53,7 +53,7 @@ export const absorbBalanceAdjustment = withTransaction(
     if (!account) {
       throw new ValidationError({ message: `Account with ID ${accountId} not found` });
     }
-    assertNotDedicatedFlowAccount({ account, actionPhrase: 'take a balance adjustment' });
+    assertNotDerivedBalanceAccount({ account, actionPhrase: 'take a balance adjustment' });
 
     const isSystem = account.type === ACCOUNT_TYPES.system;
     const newCurrentBalance = account.currentBalance.add(amountDelta);

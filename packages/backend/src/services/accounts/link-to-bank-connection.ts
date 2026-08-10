@@ -17,6 +17,7 @@ import { restampRefInitialBalance } from '@services/accounts/restamp-ref-initial
 import { bankProviderRegistry } from '@services/bank-data-providers';
 import { syncTransactionsForAccount } from '@services/bank-data-providers/connection/sync-transactions-for-account';
 import { withTransaction } from '@services/common/with-transaction';
+import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
 import { QueryTypes } from 'sequelize';
 
 const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
@@ -116,6 +117,8 @@ export const linkAccountToBankConnection = withTransaction(
         message: 'Only system accounts can be linked to a bank connection.',
       });
     }
+
+    assertNotDerivedBalanceAccount({ account, actionPhrase: 'be linked to a bank connection' });
 
     // 2. Fetch and validate the bank connection
     const bankConnection = await BankDataProviderConnections.findOne({

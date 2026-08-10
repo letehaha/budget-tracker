@@ -4,7 +4,7 @@ import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
-import { assertNotDedicatedFlowAccount } from '@services/import-export/core/dedicated-flow-guard';
+import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
 
 interface CreateAccountsIfNeededParams {
   userId: number;
@@ -126,7 +126,7 @@ export async function createAccountsIfNeeded({
         message: `Account with ID ${id} not found`,
       });
     }
-    assertNotDedicatedFlowAccount({ account, actionPhrase: 'be an import target' });
+    assertNotDerivedBalanceAccount({ account, actionPhrase: 'be an import target' });
     return account;
   };
 
