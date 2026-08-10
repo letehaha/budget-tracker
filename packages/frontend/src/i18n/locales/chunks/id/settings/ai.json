@@ -14,12 +14,7 @@
         "title": "Kunci API",
         "description": "Tambahkan kunci API Anda sendiri untuk menggunakan penyedia tertentu",
         "badges": {
-          "default": "Bawaan",
-          "invalid": "Tidak Valid"
-        },
-        "status": {
-          "failed": "Gagal {timeAgo}",
-          "validated": "Tervalidasi {timeAgo}"
+          "default": "Bawaan"
         },
         "buttons": {
           "setDefault": "Jadikan Default"

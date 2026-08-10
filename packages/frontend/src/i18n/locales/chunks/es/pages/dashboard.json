@@ -70,16 +70,6 @@
       },
       "expensesStructure": {
         "title": "Estructura de gastos",
-        "excludedCategories": {
-          "message": "Algunas categorías están excluidas de este widget"
-        },
-        "excludeSettings": {
-          "title": "Ajustes",
-          "excludeCategories": "Excluir categorías",
-          "dialogTitle": "Excluir categorías",
-          "dialogDescription": "Seleccione las categorías a excluir del gráfico y totales de este widget",
-          "save": "Guardar"
-        },
         "today": "Hoy",
         "vsPreviousPeriod": "vs período anterior",
         "viewButton": "Ver"

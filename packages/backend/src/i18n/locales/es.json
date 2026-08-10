@@ -277,7 +277,6 @@
     "invalidFile": "Archivo no válido",
     "textExtractionFailed": "La extracción de texto falló. Es posible que el PDF sea un documento escaneado. La extracción basada en imágenes aún no está implementada.",
     "failedToExtractText": "No se pudo extraer el texto del archivo.",
-    "failedToExtractTextPdf": "No se pudo extraer el texto del PDF. Es posible que sea un documento escaneado.",
     "fileContentRequired": "El contenido del archivo es obligatorio",
     "pdfPasswordRequired": "Este PDF está protegido con contraseña. Introduzca la contraseña del documento para continuar.",
     "pdfPasswordInvalid": "La contraseña introducida es incorrecta. Compruébela e inténtelo de nuevo.",

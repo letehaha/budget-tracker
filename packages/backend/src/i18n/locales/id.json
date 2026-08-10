@@ -277,7 +277,6 @@
     "invalidFile": "File tidak valid",
     "textExtractionFailed": "Ekstraksi teks gagal. PDF mungkin merupakan dokumen hasil pindaian. Ekstraksi berbasis gambar belum diimplementasikan.",
     "failedToExtractText": "Gagal mengekstrak teks dari file.",
-    "failedToExtractTextPdf": "Gagal mengekstrak teks dari PDF. Mungkin merupakan dokumen hasil pindaian.",
     "fileContentRequired": "Konten file diperlukan",
     "pdfPasswordRequired": "PDF ini dilindungi kata sandi. Masukkan kata sandi dokumen untuk melanjutkan.",
     "pdfPasswordInvalid": "Kata sandi yang Anda masukkan salah. Periksa kembali dan coba lagi.",

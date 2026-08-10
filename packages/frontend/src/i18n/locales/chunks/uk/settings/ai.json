@@ -14,12 +14,7 @@
         "title": "API ключі",
         "description": "Додайте власні API ключі для використання конкретних провайдерів",
         "badges": {
-          "default": "За замовчуванням",
-          "invalid": "Недійсний"
-        },
-        "status": {
-          "failed": "Помилка {timeAgo}",
-          "validated": "Перевірено {timeAgo}"
+          "default": "За замовчуванням"
         },
         "buttons": {
           "setDefault": "Встановити за замовчуванням"

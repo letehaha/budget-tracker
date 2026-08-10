@@ -14,12 +14,7 @@
         "title": "Claves de API",
         "description": "Añada sus propias claves de API para usar proveedores específicos",
         "badges": {
-          "default": "Predeterminado",
-          "invalid": "No válida"
-        },
-        "status": {
-          "failed": "Error {timeAgo}",
-          "validated": "Validada {timeAgo}"
+          "default": "Predeterminado"
         },
         "buttons": {
           "setDefault": "Establecer como predeterminado"
