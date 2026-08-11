@@ -165,6 +165,7 @@ import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
 import SpikeTransactionsPanel from './components/spike-transactions-panel.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
+import { type NetWorthComponentBalances, type NetWorthIncludeSettings, composeNetWorth } from './net-worth-composition';
 
 // Calculate it manually so chart will always have first and last ticks (dates)
 function generateDateSteps({
@@ -249,28 +250,14 @@ const includeLoansInTotal = computed<boolean>(() => {
   return (cfg?.includeLoansInTotal as boolean | undefined) ?? true;
 });
 
-type BalancePoint = {
-  accountsBalance: number;
-  portfoliosBalance: number;
-  venturesBalance: number;
-  vehiclesBalance: number;
-  loansBalance: number;
-  totalBalance: number;
-};
+const compositionSettings = computed<NetWorthIncludeSettings>(() => ({
+  includeVentures: includeVenturesInTotal.value,
+  includeVehicles: includeVehiclesInTotal.value,
+  includeLoans: includeLoansInTotal.value,
+}));
 
-const getEffectiveTotal = (point: BalancePoint): number => {
-  // Fast path: nothing excluded → use the server-computed total verbatim.
-  if (includeVehiclesInTotal.value && includeVenturesInTotal.value && includeLoansInTotal.value) {
-    return point.totalBalance;
-  }
-  let total = point.accountsBalance + point.portfoliosBalance;
-  if (includeVenturesInTotal.value) total += point.venturesBalance;
-  if (includeVehiclesInTotal.value) total += point.vehiclesBalance;
-  // Loans are stored as negatives — excluding them raises net worth (ignoring debt);
-  // including them subtracts liabilities as usual.
-  if (includeLoansInTotal.value) total += point.loansBalance;
-  return total;
-};
+const getEffectiveTotal = (point: NetWorthComponentBalances): number =>
+  composeNetWorth({ point, settings: compositionSettings.value });
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);

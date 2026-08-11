@@ -118,7 +118,36 @@
         "income": "Income",
         "expenses": "Expenses",
         "saved": "Saved",
-        "previousPeriodsTrend": "Previous periods trend"
+        "previousPeriodsTrend": "Previous periods trend",
+        "viewDetails": "View details"
+      },
+      "netWorth": {
+        "title": "Net Worth",
+        "description": "How your net worth changed over the selected period. Counts every balance change: accounts, investments, loans, and asset values.",
+        "vsPrevious": "vs previous",
+        "start": "Start",
+        "end": "End",
+        "growth": "Growth",
+        "previousPeriodsTrend": "Previous periods trend",
+        "excludedTooltip": "Excluded from net worth: {components}",
+        "viewHistory": "View history",
+        "loadFailed": "Couldn't load net worth data.",
+        "components": {
+          "ventures": "Ventures",
+          "vehicles": "Vehicles",
+          "loans": "Loans"
+        },
+        "settings": {
+          "title": "Include in net worth",
+          "loans": "Loans",
+          "vehicles": "Vehicles",
+          "ventures": "Ventures"
+        },
+        "trendTooltip": {
+          "change": "Change",
+          "netWorth": "Net worth",
+          "noData": "No data for this period"
+        }
       },
       "creditUtilization": {
         "title": "Credit Utilization",
@@ -151,6 +180,10 @@
         "cashFlow": {
           "name": "Cash Flow",
           "description": "Income vs expenses with savings rate"
+        },
+        "netWorth": {
+          "name": "Net Worth",
+          "description": "How your total net worth changes over time, including investments, loans, and assets."
         },
         "creditUtilization": {
           "name": "Credit Utilization",
@@ -193,7 +226,7 @@
       "settings": {
         "excludeTitle": "Exclude transactions",
         "excludeTransfersDescription": "Hide transfers between your own accounts",
-        "excludeOutOfWalletDescription": "Hide balance adjustments and other out-of-wallet transfers",
+        "excludeOutOfWalletDescription": "Hide transfers to and from accounts you don't track",
         "balanceAdjustmentsTitle": "Balance adjustments",
         "excludeBalanceAdjustmentsDescription": "Hide balance adjustment transactions",
         "nothingExcluded": "Nothing excluded"

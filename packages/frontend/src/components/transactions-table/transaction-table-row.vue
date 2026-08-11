@@ -231,7 +231,7 @@ const transferDestinationAccount = computed(() =>
   oppositeTx.value ? accountsRecord.value[oppositeTx.value.accountId] : undefined,
 );
 const transferDestinationName = computed(
-  () => transferDestinationAccount.value?.name ?? t('transactions.transfer.hiddenAccount'),
+  () => transferDestinationAccount.value?.name ?? t('common.transactions.record.hiddenAccount'),
 );
 
 const formattedDate = computed(() => format(new Date(props.tx.time), 'd MMM y'));

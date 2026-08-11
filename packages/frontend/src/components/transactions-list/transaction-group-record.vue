@@ -45,7 +45,7 @@ const dateRange = computed(() => {
         <p class="truncate text-sm font-medium">{{ group.groupName }}</p>
         <p class="text-muted-foreground text-xs">
           {{ group.transactionCount }}
-          {{ t('transactions.transactionGroups.transactionGroupRecord.transactionCountLabel') }}
+          {{ t('transactionGroups.transactionGroupRecord.transactionCountLabel') }}
         </p>
       </div>
     </div>

@@ -154,11 +154,9 @@ const formatDateRange = ({ group }: { group: TransactionGroupResponse }) => {
       confirm-variant="destructive"
       @confirm="handleDelete"
     >
-      <template #title>{{ t('transactions.transactionGroups.groupDialog.deleteGroupTitle') }}</template>
+      <template #title>{{ t('transactionGroups.groupDialog.deleteGroupTitle') }}</template>
       <template #description>
-        {{
-          t('transactions.transactionGroups.groupDialog.deleteGroupDescription', { groupName: deleteState.groupName })
-        }}
+        {{ t('transactionGroups.groupDialog.deleteGroupDescription', { groupName: deleteState.groupName }) }}
       </template>
     </ResponsiveAlertDialog>
   </div>

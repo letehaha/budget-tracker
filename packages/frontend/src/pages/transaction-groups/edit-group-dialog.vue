@@ -49,24 +49,24 @@ const save = async () => {
 
 <template>
   <ResponsiveDialog :open="open" @update:open="emit('update:open', $event)">
-    <template #title>{{ t('transactions.transactionGroups.groupDialog.editTitle') }}</template>
+    <template #title>{{ t('transactionGroups.groupDialog.editTitle') }}</template>
     <template #description />
 
     <div class="space-y-3 py-2">
-      <InputField v-model="form.name" :label="t('transactions.transactionGroups.groupDialog.nameLabel')" />
+      <InputField v-model="form.name" :label="t('transactionGroups.groupDialog.nameLabel')" />
       <TextareaField
         v-model="form.note"
-        :label="t('transactions.transactionGroups.groupDialog.noteLabel')"
+        :label="t('transactionGroups.groupDialog.noteLabel')"
         :rows="2"
-        :placeholder="t('transactions.transactionGroups.groupDialog.notePlaceholder')"
+        :placeholder="t('transactionGroups.groupDialog.notePlaceholder')"
       />
       <div class="flex gap-2">
         <Button size="sm" @click="save">
           <SaveIcon class="mr-1 size-3.5" />
-          {{ t('transactions.transactionGroups.groupDialog.savingAction') }}
+          {{ t('transactionGroups.groupDialog.savingAction') }}
         </Button>
         <Button variant="ghost" size="sm" @click="emit('update:open', false)">
-          {{ t('transactions.transactionGroups.groupDialog.cancelButton') }}
+          {{ t('transactionGroups.groupDialog.cancelButton') }}
         </Button>
       </div>
     </div>
