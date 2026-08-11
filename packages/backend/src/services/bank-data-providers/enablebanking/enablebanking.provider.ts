@@ -801,6 +801,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
           // Process each transaction and collect created/updated transaction IDs
           const createdTransactionIds: string[] = [];
+          // Rows the bank booked this run: auto-link eligible, but not new, so they must not be re-emitted.
+          const bookedUpgradedTransactionIds: string[] = [];
           let updatedCount = 0;
           // Tier 4 costs one extra query per unmatched row, and on an initial 3-year
           // sync every row is unmatched. Flips to true as soon as this run stores a
@@ -926,6 +928,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
                 await existingTx.update(updates);
                 updatedCount++;
               }
+              if (pendingBecameBooked) {
+                bookedUpgradedTransactionIds.push(existingTx.id);
+              }
               continue;
             }
 
@@ -991,7 +996,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           const balance = await this.fetchBalance(connectionId, apiUid);
           await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
 
-          return { transactionIds: createdTransactionIds };
+          return { transactionIds: createdTransactionIds, extraAutoLinkCandidateIds: bookedUpgradedTransactionIds };
         },
       });
     } catch (error) {
