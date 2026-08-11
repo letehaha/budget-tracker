@@ -2,7 +2,7 @@
   <span
     class="bg-muted text-muted-foreground inline-flex items-center rounded px-1.5 py-0.5 text-[10px] leading-none font-medium tracking-wider uppercase"
   >
-    {{ $t('investments.trash.deletedBadge') }}
+    {{ $t('common.ui.deletedBadge') }}
   </span>
 </template>
 

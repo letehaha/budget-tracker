@@ -268,7 +268,7 @@ const accountFrom = computed(() => accountsRecord.value[transaction.value.accoun
 const addedByTooltip = computed(() => {
   const addedBy = transaction.value.addedBy;
   if (!addedBy || addedBy.id === currentUser.value?.id) return undefined;
-  return t('transactions.addedByTooltip', { handle: `@${addedBy.username}` });
+  return t('common.transactions.record.addedByTooltip', { handle: `@${addedBy.username}` });
 });
 const accountTo = computed(() =>
   oppositeTransferTransaction.value ? accountsRecord.value[oppositeTransferTransaction.value.accountId] : undefined,
@@ -299,12 +299,12 @@ const transferSeparator = computed(() =>
 // Accounts can be undefined when hidden from the caller — e.g. a recipient viewing a
 // transfer on a shared account whose other side lives in an unshared private account of
 // the owner. Fall back to a labeled placeholder rather than rendering "undefined".
-const transferFromLabel = computed(() => accountFrom.value?.name ?? t('transactions.transfer.hiddenAccount'));
+const transferFromLabel = computed(() => accountFrom.value?.name ?? t('common.transactions.record.hiddenAccount'));
 const transferToLabel = computed(() => {
   if (transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
     return t('common.outOfWallet');
   }
-  return accountTo.value?.name ?? t('transactions.transfer.hiddenAccount');
+  return accountTo.value?.name ?? t('common.transactions.record.hiddenAccount');
 });
 
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');

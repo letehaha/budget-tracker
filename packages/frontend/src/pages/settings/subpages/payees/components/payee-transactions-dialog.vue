@@ -13,7 +13,7 @@
     <div v-else-if="transactions.length === 0" class="text-muted-foreground py-8 text-center text-sm">
       {{ $t('payees.transactionsDialog.empty') }}
     </div>
-    <TransactionsList v-else :transactions="transactions" :paginate="false" raw-list>
+    <TransactionsList v-else :transactions="transactions" :paginate="false" raw-list disable-grouping>
       <template #row-trailing="{ tx }">
         <DesktopOnlyTooltip :content="$t('payees.transactionsDialog.unlink')">
           <Button
