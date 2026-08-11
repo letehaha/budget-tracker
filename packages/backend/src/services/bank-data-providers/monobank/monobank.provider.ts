@@ -16,7 +16,9 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import cc from 'currency-codes';
+import { Op } from 'sequelize';
 
+import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankApiClient } from './api-client';
@@ -38,6 +40,7 @@ export class MonobankProvider extends BaseBankDataProvider {
       requiresReauth: false,
       supportsManualSync: true,
       supportsAutoSync: true,
+      queuedSync: true,
       defaultSyncInterval: 4 * 60 * 60 * 1000, // 4 hours
       minSyncInterval: 60 * 1000, // 1 minute (Monobank API rate limit)
     },
@@ -208,17 +211,22 @@ export class MonobankProvider extends BaseBankDataProvider {
       enqueue: async () => {
         const account = await this.getSystemAccount(systemAccountId);
 
-        // Find the most recent transaction for this account
+        // A future-dated planned row must not anchor the window: it would push
+        // `from` past `to` and turn every sync into a no-op until that date
+        // passes.
         const latestTransaction = await Transactions.findOne({
           where: {
             accountId: account.id,
+            time: { [Op.lte]: new Date() },
           },
           order: [['time', 'DESC']],
         });
 
-        // Default to last 31 days if no transactions found
+        // Accounts with no rows at all backfill the provider's 31-day maximum:
+        // there is nothing to collide with, and the deferred residual absorb
+        // explains whatever the backfill doesn't.
         const from = latestTransaction
-          ? new Date(latestTransaction.time)
+          ? clampSyncStartToLink({ account, from: new Date(latestTransaction.time) })
           : new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
         const to = new Date();
 

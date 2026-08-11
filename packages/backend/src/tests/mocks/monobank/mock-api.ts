@@ -13,13 +13,32 @@ export const MONOBANK_URLS_MOCK = Object.freeze({
 export const getMonobankTransactionsMock = ({
   response = [],
   accountId,
-}: { response?: ExternalMonobankTransactionResponse[]; accountId?: string | number } = {}) => {
+  respectDateRange = false,
+}: {
+  response?: ExternalMonobankTransactionResponse[];
+  accountId?: string | number;
+  /**
+   * Filter the response by the `{from}/{to}` unix-second segments of the
+   * statement URL, like the real API. Off by default: most tests want a fixed
+   * payload regardless of the requested window.
+   */
+  respectDateRange?: boolean;
+} = {}) => {
   const urlPattern = accountId
     ? new RegExp(`${MONOBANK_URLS_MOCK.personalStatement.source}/${accountId}`)
     : MONOBANK_URLS_MOCK.personalStatement;
 
-  return http.get(urlPattern, () => {
-    return HttpResponse.json(response);
+  return http.get(urlPattern, ({ request }) => {
+    if (!respectDateRange) {
+      return HttpResponse.json(response);
+    }
+
+    // URL shape: .../personal/statement/{account}/{from}/{to}
+    const segments = new URL(request.url).pathname.split('/').filter(Boolean);
+    const from = Number(segments.at(-2));
+    const to = Number(segments.at(-1));
+
+    return HttpResponse.json(response.filter((tx) => tx.time >= from && tx.time <= to));
   });
 };
 

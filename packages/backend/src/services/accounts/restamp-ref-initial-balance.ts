@@ -9,28 +9,24 @@ import { Op } from 'sequelize';
 import { withTransaction } from '../common/with-transaction';
 
 /**
- * Re-stamps `refInitialBalance` at the exchange rate of the account's ledger
- * boundary — the date the opening balance actually existed.
- *
- * For a tx-backed system account, `initialBalance` is the balance immediately
- * BEFORE the earliest transaction, so its base-currency value uses that date's
- * rate. Converting at the account's creation date instead (e.g. an import of
- * years-old history) mixes an import-day rate into a ledger whose transactions
- * each carry their own historical rate.
- *
- * The boundary moves whenever a transaction older than all existing ones is added
- * or the earliest is deleted/re-dated, so this runs from the per-transaction
- * balance hook. With no transactions there is no boundary: the opening balance is
- * stamped at the latest rate, matching account creation.
- *
- * Scope: system accounts, excluding loans and vehicles. Bank-provider accounts
- * keep their provider-owned opening snapshot, a loan's `refInitialBalance` is its
- * balance-anchor value stamped by `updateLoan`, and a vehicle's opening is its
- * purchase value with no transactions to define a boundary.
+ * 'failed' keeps the previous stamp: hook callers tolerate it (a missing rate
+ * must not fail a transaction write); callers that just rewrote
+ * `initialBalance` must not.
+ */
+type RestampOutcome = 'restamped' | 'unchanged' | 'skipped' | 'failed';
+
+/**
+ * Re-stamps `refInitialBalance` at the exchange rate of the ledger boundary:
+ * the date immediately before the account's earliest transaction (now, when
+ * there are none). Stamping at any other date mixes a foreign rate into a
+ * ledger whose transactions each carry their own historical rate. Scope:
+ * system accounts minus loans and vehicles, whose stamps are owned by their
+ * dedicated flows.
  */
 async function restampRefInitialBalanceImpl({
   accountId,
   excludeTransactionId,
+  allowProviderAccount = false,
 }: {
   accountId: string;
   /**
@@ -38,15 +34,20 @@ async function restampRefInitialBalanceImpl({
    * BeforeDestroy hook, where it still exists.
    */
   excludeTransactionId?: string;
-}): Promise<void> {
+  /**
+   * Opts a bank-provider account in, for a caller that deliberately rewrote
+   * `initialBalance` and therefore owns the ref stamp too.
+   */
+  allowProviderAccount?: boolean;
+}): Promise<RestampOutcome> {
   const account = await Accounts.findOne({ where: { id: accountId } });
-  if (!account) return;
+  if (!account) return 'skipped';
   if (
-    account.type !== ACCOUNT_TYPES.system ||
+    (account.type !== ACCOUNT_TYPES.system && !allowProviderAccount) ||
     account.accountCategory === ACCOUNT_CATEGORIES.loan ||
     account.accountCategory === ACCOUNT_CATEGORIES.vehicle
   ) {
-    return;
+    return 'skipped';
   }
 
   const earliestTxTime = (await Transactions.min('time', {
@@ -76,10 +77,10 @@ async function restampRefInitialBalanceImpl({
       },
       { code: 'ACCOUNT_REF_INITIAL_RESTAMP_FAILED', accountId, userId: account.userId },
     );
-    return;
+    return 'failed';
   }
 
-  if (refInitialBalance.equals(account.refInitialBalance)) return;
+  if (refInitialBalance.equals(account.refInitialBalance)) return 'unchanged';
 
   await Accounts.update({ refInitialBalance }, { where: { id: accountId } });
 
@@ -89,9 +90,8 @@ async function restampRefInitialBalanceImpl({
   if (updated) {
     await Balances.handleAccountChange({ account: updated, prevAccount: account });
   } else {
-    // The row was just updated above, so a miss is an impossible-state (concurrent
-    // delete / id drift). `refInitialBalance` persisted but the history cascade is
-    // skipped — the chart diverges from the new stamp until the next full rebuild.
+    // Impossible state: the row was updated above. The stamp persisted but the
+    // history cascade is skipped, so the chart diverges until the next rebuild.
     logger.error(
       {
         message:
@@ -100,6 +100,7 @@ async function restampRefInitialBalanceImpl({
       { code: 'ACCOUNT_REF_INITIAL_RESTAMP_REREAD_MISSED', accountId, userId: account.userId },
     );
   }
+  return 'restamped';
 }
 
 export const restampRefInitialBalance = withTransaction(restampRefInitialBalanceImpl);

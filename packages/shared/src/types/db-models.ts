@@ -84,6 +84,14 @@ export interface AccountExternalData {
       externalBalance: number;
       difference: number;
       adjustmentTransactionId: RecordId | null;
+      /** Residual the post-link sync left unexplained, in cents, folded into the opening balance. */
+      absorbedResidual?: number;
+      /**
+       * Set at link time for queue-synced providers, whose residual cannot be
+       * measured until the worker persists the sync. The queue's completion
+       * path runs the deferred absorb and clears this.
+       */
+      pendingAbsorb?: boolean;
     };
   };
   // Allow any additional custom fields

@@ -1070,8 +1070,8 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
         raw: true,
       });
 
-      // Should have 5 synced transactions + 1 balance adjustment transaction from linking
-      expect(transactions.length).toBe(6);
+      // Should have 5 synced transactions; linking itself creates no rows
+      expect(transactions.length).toBe(5);
 
       // Find external transactions (those with originalId)
       const externalTransactions = transactions.filter((tx) => tx.originalId !== null);
@@ -1185,9 +1185,8 @@ describe.skip('Bank Data Provider Transaction Sync E2E', () => {
         raw: true,
       });
 
-      // Should have: 1 balance adjustment + 5 original external + 1 manual + 3 new external + 1 new balance adjustment = 11 transactions
-      // Or it might be fewer if there's no balance adjustment on second link
-      expect(transactions.length).toBeGreaterThanOrEqual(10);
+      // Should have: 5 original external + 1 manual + 3 new external = 9 transactions
+      expect(transactions.length).toBeGreaterThanOrEqual(9);
 
       // 14. Verify account balance updated (we don't check exact amount due to complex balance logic)
       account = (await Accounts.findByPk(systemAccount.id))!;
