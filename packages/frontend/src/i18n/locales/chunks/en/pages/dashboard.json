@@ -190,6 +190,12 @@
           "off": "Off"
         }
       },
+      "settings": {
+        "excludeTitle": "Exclude transactions",
+        "excludeTransfersDescription": "Hide transfers between your own accounts",
+        "excludeOutOfWalletDescription": "Hide balance adjustments and other out-of-wallet transfers",
+        "nothingExcluded": "Nothing excluded"
+      },
       "overdueBadge": "Overdue",
       "scheduledBadge": "Scheduled",
       "payAction": "Mark paid"

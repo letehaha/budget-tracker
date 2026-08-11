@@ -8,21 +8,24 @@ import { useFormatCurrency } from '@/composable/formatters';
 import { buttonVariants } from '@/components/lib/ui/button';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import BrandLogo from '@/components/common/brand-logo.vue';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import SubscriptionMarkPaidDialog from '@/pages/planned/subscriptions/components/subscription-mark-paid-dialog.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import { ListIcon } from '@lucide/vue';
+import { ArrowUpRightIcon, ListIcon } from '@lucide/vue';
 import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
 import { computed, inject, ref } from 'vue';
 
 import EmptyState from './components/empty-state.vue';
+import LatestRecordsSettingsPopover from './components/latest-records-settings-popover.vue';
 import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
+import { buildLatestRecordsTransferNatures, readLatestRecordsExclusions } from './latest-records-config';
 
 // Days ahead threshold for "upcoming" payments shown in the widget.
 const UPCOMING_DAYS_WINDOW = 3;
@@ -45,10 +48,21 @@ const maxDisplay = computed(() => {
   return (config.rowSpan ?? 1) >= 2 ? 12 : 5;
 });
 
+const transferNatures = computed(() =>
+  buildLatestRecordsTransferNatures(readLatestRecordsExclusions({ widgetConfig: widgetConfigRef?.value })),
+);
+
 const { data: transactions, isFetching: isTxFetching } = useQuery({
-  queryKey: VUE_QUERY_CACHE_KEYS.widgetLatestRecords,
+  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetLatestRecords, transferNatures],
   queryFn: () =>
-    apiLoadTransactions({ limit: 40, offset: 0, includeSplits: true, includeTags: true, includeGroups: true }), // Over-fetch to account for deduplication and grouping
+    apiLoadTransactions({
+      limit: 40, // Over-fetch to account for deduplication and grouping
+      offset: 0,
+      includeSplits: true,
+      includeTags: true,
+      includeGroups: true,
+      transferNatures: transferNatures.value,
+    }),
   staleTime: Infinity,
   placeholderData: [],
   enabled: isAppInitialized,
@@ -122,14 +136,22 @@ const isDataEmpty = computed(() => !isTxFetching.value && (transactions.value?.l
   <WidgetWrapper :is-fetching="isFetching">
     <template #title> {{ $t('dashboard.widgets.latestTransactions.title') }} </template>
     <template #action>
-      <template v-if="!isDataEmpty && !isInitialLoading">
-        <router-link
-          :class="buttonVariants({ variant: 'ghost', size: 'sm', class: 'text-muted-foreground' })"
-          :to="{ name: ROUTES_NAMES.transactions }"
-        >
-          {{ $t('dashboard.widgets.latestTransactions.showAll') }}
-        </router-link>
-      </template>
+      <DesktopOnlyTooltip
+        v-if="!isDataEmpty && !isInitialLoading"
+        :content="$t('dashboard.widgets.latestTransactions.showAll')"
+      >
+        <span class="inline-flex">
+          <router-link
+            :class="buttonVariants({ variant: 'ghost', size: 'icon-sm', class: 'text-muted-foreground' })"
+            :to="{ name: ROUTES_NAMES.transactions }"
+            :aria-label="$t('dashboard.widgets.latestTransactions.showAll')"
+          >
+            <ArrowUpRightIcon class="size-4" />
+          </router-link>
+        </span>
+      </DesktopOnlyTooltip>
+
+      <LatestRecordsSettingsPopover />
     </template>
 
     <template v-if="isInitialLoading">
