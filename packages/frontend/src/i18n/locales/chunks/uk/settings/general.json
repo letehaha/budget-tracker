@@ -1,6 +1,6 @@
 {
   "settings": {
-    "statistics": {
+    "general": {
       "title": "Статистика",
       "description": "Налаштуйте спосіб розрахунку та відображення фінансових даних у застосунку.",
       "creditLimit": {

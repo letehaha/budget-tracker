@@ -249,6 +249,10 @@ export const ZodSettingsSchema = z.object({
   // When true, the sidebar Accounts panel hides accounts whose display balance is
   // zero, and hides any account group left with no non-zero account. Off by default.
   hideZeroBalances: z.boolean().optional(),
+  // When true, manual (`system`) accounts are offered as candidates to the bank-sync transfer
+  // matcher. Opt-in because linking turns a manually recorded row into a transfer leg, and
+  // transfer legs carry no category, so the row disappears from category stats.
+  matchTransfersWithManualAccounts: z.boolean().optional(),
 });
 
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
@@ -335,6 +339,7 @@ export const ZodSettingsPatchSchema = z.object({
   payeeExtractionUsesDescription: z.boolean().optional(),
   showSupportButton: z.boolean().optional(),
   hideZeroBalances: z.boolean().optional(),
+  matchTransfersWithManualAccounts: z.boolean().optional(),
 });
 
 export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;

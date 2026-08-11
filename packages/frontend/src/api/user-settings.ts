@@ -84,6 +84,11 @@ export interface UserSettingsSchema {
     recalculateAccountBalance?: boolean;
   };
   includeCreditLimitInStats?: boolean;
+  /**
+   * Let bank-sync transfer auto-linking pair a synced transaction with a
+   * manually-created one. Off when unset.
+   */
+  matchTransfersWithManualAccounts?: boolean;
   sidebarSections?: SidebarSectionsConfig;
   payeeExtractionUsesDescription?: boolean;
   ui?: UiSettings;

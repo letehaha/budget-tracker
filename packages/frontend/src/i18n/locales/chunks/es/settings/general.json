@@ -1,6 +1,6 @@
 {
   "settings": {
-    "statistics": {
+    "general": {
       "title": "Estadísticas",
       "description": "Controle cómo se calculan y muestran sus datos financieros en la aplicación.",
       "creditLimit": {

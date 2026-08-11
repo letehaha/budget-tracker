@@ -1,5 +1,5 @@
 import type { RecordId } from '@bt/shared/types';
-import { BANK_PROVIDER_TYPE, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { DOMAIN_EVENTS, type TransactionsSyncedPayload, eventBus } from '@root/services/common/event-bus';
 import * as helpers from '@tests/helpers';
@@ -102,6 +102,41 @@ describe('Enable Banking transfer auto-linking (E2E)', () => {
     remittanceInformation: ['OWN TRANSFER-IN'],
     ...overrides,
   });
+
+  /** Manual account in the same currency as the mocked bank accounts, so its rows can be candidates. */
+  async function createManualAccount(): Promise<RecordId> {
+    const account = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({
+        name: 'Cash wallet',
+        type: ACCOUNT_TYPES.system,
+        currencyCode: 'EUR',
+      }),
+      raw: true,
+    });
+
+    return account.id;
+  }
+
+  function createManualExpense({
+    accountId,
+    amount = 150,
+    note = 'MOVED TO SAVINGS',
+  }: {
+    accountId: RecordId;
+    amount?: number;
+    note?: string;
+  }) {
+    return helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId,
+        amount,
+        note,
+        transactionType: TRANSACTION_TYPES.expense,
+        time: new Date('2024-03-15T10:00:00.000Z').toISOString(),
+      }),
+      raw: true,
+    });
+  }
 
   it('links a transfer pair confirmed by counterparty IBANs', async () => {
     const { connectionId, mainAccountId, savingsAccountId } = await setupTwoAccounts();
@@ -364,5 +399,68 @@ describe('Enable Banking transfer auto-linking (E2E)', () => {
     for (const tx of [...mainTxs, ...savingsTxs]) {
       expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     }
+  });
+
+  describe('manual accounts as candidates', () => {
+    it('does not link a manual row when the setting is off', async () => {
+      const { connectionId, savingsAccountId } = await setupTwoAccounts();
+      const manualAccountId = await createManualAccount();
+      await createManualExpense({ accountId: manualAccountId });
+
+      await syncAccountWith({
+        connectionId,
+        accountId: savingsAccountId,
+        transactions: [incomeLeg({ counterpartyIban: null })],
+      });
+
+      const [manualTx] = await listTransactions({ accountId: manualAccountId });
+      const [savingsTx] = await listTransactions({ accountId: savingsAccountId });
+
+      expect(manualTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+      expect(savingsTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    });
+
+    it('links a manual row to the synced leg when the setting is on', async () => {
+      const { connectionId, savingsAccountId } = await setupTwoAccounts();
+      const manualAccountId = await createManualAccount();
+      await createManualExpense({ accountId: manualAccountId });
+      await helpers.patchUserSettings({ patch: { matchTransfersWithManualAccounts: true }, raw: true });
+
+      await syncAccountWith({
+        connectionId,
+        accountId: savingsAccountId,
+        transactions: [incomeLeg({ counterpartyIban: null })],
+      });
+
+      const [manualTx] = await listTransactions({ accountId: manualAccountId });
+      const [savingsTx] = await listTransactions({ accountId: savingsAccountId });
+
+      expect(manualTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+      expect(savingsTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+      expect(manualTx!.transferId).toBeTruthy();
+      expect(manualTx!.transferId).toBe(savingsTx!.transferId);
+    });
+
+    it('does not link when two manual rows of the same amount compete', async () => {
+      const { connectionId, savingsAccountId } = await setupTwoAccounts();
+      const manualAccountId = await createManualAccount();
+      await createManualExpense({ accountId: manualAccountId, note: 'MOVED TO SAVINGS A' });
+      await createManualExpense({ accountId: manualAccountId, note: 'MOVED TO SAVINGS B' });
+      await helpers.patchUserSettings({ patch: { matchTransfersWithManualAccounts: true }, raw: true });
+
+      await syncAccountWith({
+        connectionId,
+        accountId: savingsAccountId,
+        transactions: [incomeLeg({ counterpartyIban: null })],
+      });
+
+      const manualTxs = await listTransactions({ accountId: manualAccountId });
+      const savingsTxs = await listTransactions({ accountId: savingsAccountId });
+
+      expect(manualTxs.length).toBe(2);
+      for (const tx of [...manualTxs, ...savingsTxs]) {
+        expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+      }
+    });
   });
 });

@@ -16,7 +16,7 @@
       "workspaceGroup": "Espacio de trabajo",
       "appearance": "Apariencia",
       "language": "Idioma",
-      "statistics": "Estadísticas",
+      "general": "Estadísticas",
       "payees": "Beneficiarios",
       "subscriptions": "Pagos programados"
     },

@@ -1,10 +1,11 @@
 import { ACCOUNT_TYPES, type RecordId, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
-import { connection } from '@models/index';
+import { connection } from '@models/connection';
 import Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
+import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { addDays, subDays } from 'date-fns';
 import { DatabaseError, Op, QueryTypes } from 'sequelize';
 
@@ -12,7 +13,10 @@ import { getCounterpartyIban, hasSettledStatus } from '../enablebanking/utils/tr
 import { TRANSFER_DATE_WINDOW_DAYS, normalizeIban } from './transfer-matching';
 
 /** Walutomat rows must not auto-link here: that provider's own FX/IBAN matchers own them. */
-const UNMATCHABLE_ACCOUNT_TYPES = [ACCOUNT_TYPES.system, ACCOUNT_TYPES.walutomat];
+const NEVER_MATCHABLE_ACCOUNT_TYPES: ACCOUNT_TYPES[] = [ACCOUNT_TYPES.walutomat];
+
+/** Seeds are the rows a provider sync just produced, so a manual account can never hold one. */
+const SEED_EXCLUDED_ACCOUNT_TYPES: ACCOUNT_TYPES[] = [ACCOUNT_TYPES.system, ...NEVER_MATCHABLE_ACCOUNT_TYPES];
 
 function oppositeType({ type }: { type: TRANSACTION_TYPES }): TRANSACTION_TYPES {
   return type === TRANSACTION_TYPES.expense ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense;
@@ -55,12 +59,20 @@ function ibanRelation({
   return confirmed ? 'confirmed' : 'neutral';
 }
 
-async function findLinkableCandidates({ tx, userId }: { tx: Transactions; userId: number }): Promise<Transactions[]> {
+async function findLinkableCandidates({
+  tx,
+  userId,
+  excludedAccountTypes,
+}: {
+  tx: Transactions;
+  userId: number;
+  excludedAccountTypes: ACCOUNT_TYPES[];
+}): Promise<Transactions[]> {
   const candidates = await Transactions.findAll({
     where: {
       userId,
       accountId: { [Op.ne]: tx.accountId },
-      accountType: { [Op.notIn]: UNMATCHABLE_ACCOUNT_TYPES },
+      accountType: { [Op.notIn]: excludedAccountTypes },
       transactionType: oppositeType({ type: tx.transactionType }),
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       refundLinked: false,
@@ -80,13 +92,15 @@ async function pickUniqueMatch({
   userId,
   accountIbanById,
   exclude,
+  candidateExcludedTypes,
 }: {
   tx: Transactions;
   userId: number;
   accountIbanById: Map<RecordId, string>;
   exclude: Set<RecordId>;
+  candidateExcludedTypes: ACCOUNT_TYPES[];
 }): Promise<Transactions | null> {
-  const relations = (await findLinkableCandidates({ tx, userId }))
+  const relations = (await findLinkableCandidates({ tx, userId, excludedAccountTypes: candidateExcludedTypes }))
     .filter((c) => !exclude.has(c.id))
     .map((candidate) => ({ candidate, relation: ibanRelation({ a: tx, b: candidate, accountIbanById }) }));
 
@@ -110,8 +124,13 @@ const linkTransfersInTransaction = withTransaction(
         type: QueryTypes.SELECT,
       });
 
+      const { matchTransfersWithManualAccounts } = await getUserSettings({ userId });
+      const candidateExcludedTypes = matchTransfersWithManualAccounts
+        ? NEVER_MATCHABLE_ACCOUNT_TYPES
+        : SEED_EXCLUDED_ACCOUNT_TYPES;
+
       const accounts = await Accounts.findAll({ where: { userId }, attributes: ['id', 'type', 'externalData'] });
-      const matchableAccounts = accounts.filter((account) => !UNMATCHABLE_ACCOUNT_TYPES.includes(account.type));
+      const matchableAccounts = accounts.filter((account) => !candidateExcludedTypes.includes(account.type));
       if (matchableAccounts.length < 2) return consumed;
 
       const accountIbanById = new Map<RecordId, string>();
@@ -133,7 +152,7 @@ const linkTransfersInTransaction = withTransaction(
       });
 
       const linkableTxs = syncedTxs.filter(
-        (tx) => !UNMATCHABLE_ACCOUNT_TYPES.includes(tx.accountType) && isLinkableRow({ tx }),
+        (tx) => !SEED_EXCLUDED_ACCOUNT_TYPES.includes(tx.accountType) && isLinkableRow({ tx }),
       );
       if (linkableTxs.length === 0) return consumed;
 
@@ -142,7 +161,7 @@ const linkTransfersInTransaction = withTransaction(
       for (const tx of linkableTxs) {
         if (consumed.has(tx.id)) continue;
 
-        const match = await pickUniqueMatch({ tx, userId, accountIbanById, exclude: consumed });
+        const match = await pickUniqueMatch({ tx, userId, accountIbanById, exclude: consumed, candidateExcludedTypes });
         if (!match) continue;
 
         // The pair must be unique from both sides. One leg can confirm on its single IBAN
@@ -153,6 +172,7 @@ const linkTransfersInTransaction = withTransaction(
           userId,
           accountIbanById,
           exclude: new Set<RecordId>(),
+          candidateExcludedTypes,
         });
         if (reverseMatch?.id !== tx.id) continue;
 
