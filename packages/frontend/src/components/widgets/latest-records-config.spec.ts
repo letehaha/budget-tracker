@@ -10,6 +10,7 @@ describe('readLatestRecordsExclusions', () => {
     expect(readLatestRecordsExclusions({ widgetConfig: widgetConfig() })).toEqual({
       excludeTransfers: false,
       excludeOutOfWallet: true,
+      excludeBalanceAdjustments: false,
     });
   });
 
@@ -17,25 +18,40 @@ describe('readLatestRecordsExclusions', () => {
     expect(readLatestRecordsExclusions({ widgetConfig: null })).toEqual({
       excludeTransfers: false,
       excludeOutOfWallet: true,
+      excludeBalanceAdjustments: false,
     });
   });
 
   it('reads stored values', () => {
     expect(
       readLatestRecordsExclusions({
-        widgetConfig: widgetConfig({ excludeTransfers: true, excludeOutOfWallet: false }),
+        widgetConfig: widgetConfig({
+          excludeTransfers: true,
+          excludeOutOfWallet: false,
+          excludeBalanceAdjustments: true,
+        }),
       }),
-    ).toEqual({ excludeTransfers: true, excludeOutOfWallet: false });
+    ).toEqual({ excludeTransfers: true, excludeOutOfWallet: false, excludeBalanceAdjustments: true });
   });
 });
 
 describe('buildLatestRecordsTransferNatures', () => {
   it('returns undefined when nothing is excluded', () => {
-    expect(buildLatestRecordsTransferNatures({ excludeTransfers: false, excludeOutOfWallet: false })).toBeUndefined();
+    expect(
+      buildLatestRecordsTransferNatures({
+        excludeTransfers: false,
+        excludeOutOfWallet: false,
+        excludeBalanceAdjustments: false,
+      }),
+    ).toBeUndefined();
   });
 
   it('keeps plain transactions and every nature but the excluded one', () => {
-    const natures = buildLatestRecordsTransferNatures({ excludeTransfers: false, excludeOutOfWallet: true });
+    const natures = buildLatestRecordsTransferNatures({
+      excludeTransfers: false,
+      excludeOutOfWallet: true,
+      excludeBalanceAdjustments: false,
+    });
 
     expect(natures).toContain(TRANSACTION_TRANSFER_NATURE.not_transfer);
     expect(natures).toContain(TRANSACTION_TRANSFER_NATURE.common_transfer);
@@ -43,7 +59,11 @@ describe('buildLatestRecordsTransferNatures', () => {
   });
 
   it('drops both natures when both exclusions are on', () => {
-    const natures = buildLatestRecordsTransferNatures({ excludeTransfers: true, excludeOutOfWallet: true });
+    const natures = buildLatestRecordsTransferNatures({
+      excludeTransfers: true,
+      excludeOutOfWallet: true,
+      excludeBalanceAdjustments: false,
+    });
 
     expect(natures).not.toContain(TRANSACTION_TRANSFER_NATURE.common_transfer);
     expect(natures).not.toContain(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);

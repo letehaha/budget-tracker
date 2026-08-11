@@ -95,6 +95,9 @@ export const adjustAccountBalance = withTransaction(
       note: note ?? t({ key: 'balanceAdjustment.defaultNote' }),
       categoryId: defaultCategoryId,
       time: effectiveTime,
+      // `transfer_out_wallet` alone can't identify adjustments — imports and
+      // cross-user transfer conversions produce it too, so mark explicitly.
+      externalData: { balanceAdjustment: true },
     });
 
     // Vehicles aren't real accounts in the usual sense — they're an asset whose

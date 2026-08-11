@@ -194,6 +194,8 @@
         "excludeTitle": "Exclude transactions",
         "excludeTransfersDescription": "Hide transfers between your own accounts",
         "excludeOutOfWalletDescription": "Hide balance adjustments and other out-of-wallet transfers",
+        "balanceAdjustmentsTitle": "Balance adjustments",
+        "excludeBalanceAdjustmentsDescription": "Hide balance adjustment transactions",
         "nothingExcluded": "Nothing excluded"
       },
       "overdueBadge": "Overdue",

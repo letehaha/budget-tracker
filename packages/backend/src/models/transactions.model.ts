@@ -96,6 +96,8 @@ export interface TransactionsAttributes {
     balance?: number;
     hold?: boolean;
     receiptId?: string;
+    /** Set on transactions created by the balance-adjustment flow. */
+    balanceAdjustment?: boolean;
   } & Record<string, unknown>;
   commissionRate: Money;
   refCommissionRate: Money;
@@ -702,6 +704,7 @@ export const findWithFilters = async ({
   attributes,
   categorizationSource,
   categorizedAt,
+  excludeBalanceAdjustments,
 }: {
   from: number;
   limit?: number;
@@ -755,6 +758,8 @@ export const findWithFilters = async ({
   categorizationSource?: CATEGORIZATION_SOURCE;
   /** Exact `categorizationMeta.categorizedAt` stamp, which identifies one categorization run. */
   categorizedAt?: string;
+  /** Hide transactions created by the balance-adjustment flow (`externalData.balanceAdjustment`). */
+  excludeBalanceAdjustments?: boolean;
 }) => {
   const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
 
@@ -1003,6 +1008,18 @@ export const findWithFilters = async ({
       ],
       required: false,
     });
+  }
+
+  if (excludeBalanceAdjustments) {
+    // `NULL @> ...` yields NULL (not false), so the IS NULL branch is required to
+    // keep rows that have no externalData at all.
+    const notBalanceAdjustment = literal(
+      `("Transactions"."externalData" IS NULL OR NOT ("Transactions"."externalData" @> '{"balanceAdjustment": true}'))`,
+    );
+    const existingAnd = whereClause[Op.and as unknown as string] as unknown[] | undefined;
+    whereClause[Op.and as unknown as string] = existingAnd
+      ? [...existingAnd, notBalanceAdjustment]
+      : [notBalanceAdjustment];
   }
 
   // Filter by categorization source (stored in JSONB field)

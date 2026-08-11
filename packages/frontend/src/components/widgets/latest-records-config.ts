@@ -4,6 +4,8 @@ import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 export interface LatestRecordsExclusions {
   excludeTransfers: boolean;
   excludeOutOfWallet: boolean;
+  /** Narrower than `excludeOutOfWallet`: hides only balance-adjustment rows, not every out-of-wallet transfer. */
+  excludeBalanceAdjustments: boolean;
 }
 
 /** Out-of-wallet transfers are hidden unless the user opts back in. */
@@ -17,6 +19,7 @@ export const readLatestRecordsExclusions = ({
   return {
     excludeTransfers: config?.excludeTransfers === true,
     excludeOutOfWallet: config?.excludeOutOfWallet !== false,
+    excludeBalanceAdjustments: config?.excludeBalanceAdjustments === true,
   };
 };
 
