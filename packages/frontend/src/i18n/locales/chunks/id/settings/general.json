@@ -1,6 +1,6 @@
 {
   "settings": {
-    "statistics": {
+    "general": {
       "title": "Statistik",
       "description": "Kontrol bagaimana data keuangan Anda dihitung dan ditampilkan di seluruh aplikasi.",
       "creditLimit": {

@@ -29,7 +29,7 @@ import { Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
-import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { SimplefinApiClient } from './api-client';
 import {
@@ -420,7 +420,11 @@ export class SimplefinProvider extends BaseBankDataProvider {
           });
         }
 
-        emitTransactionsSyncEvent({ userId: connection.userId, accountId: account.id, transactionIds: createdIds });
+        await linkAndEmitSyncedTransactions({
+          userId: connection.userId,
+          accountId: account.id,
+          transactionIds: createdIds,
+        });
         logger.info(`[SimpleFIN] Sync: ${createdIds.length} transactions created for account ${account.id}`);
 
         await setAccountSyncStatus({ accountId: account.id, status: SyncStatus.COMPLETED, userId });

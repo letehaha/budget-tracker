@@ -17,7 +17,7 @@ import {
   ProviderMetadata,
   ProviderTransaction,
 } from './types';
-import { emitTransactionsSyncEvent } from './utils/emit-transactions-sync-event';
+import { linkAndEmitSyncedTransactions } from './utils/link-and-emit-synced-transactions';
 
 /**
  * Shape of connection-metadata fields used by the shared auth-failure
@@ -248,18 +248,21 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
 
   /**
    * Wrap a provider's inline sync work with the shared status lifecycle:
-   * SYNCING → work → updateLastSync → emit event → COMPLETED. On error, log
-   * via `errorLogMessage`, record FAILED with the error message, then rethrow.
+   * SYNCING → work → updateLastSync → auto-link transfers → emit event →
+   * COMPLETED. On error, log via `errorLogMessage`, record FAILED with the error
+   * message, then rethrow.
    *
    * `work` must return an object containing `transactionIds` — the ids created
-   * during persistence — so the emit event can carry them. Any extra fields on
-   * the result are passed through to the caller untouched.
+   * during persistence — so the emit event can carry them. `extraAutoLinkCandidateIds`
+   * widens the auto-link scope with already-stored rows the sync made linkable (a pending
+   * row upgraded to booked) without emitting them. Any extra fields on the result are
+   * passed through to the caller untouched.
    *
    * Providers whose upstream uses a job queue (Monobank) should use
    * {@link runQueuedSync} instead — the worker, not this helper, owns the
    * SYNCING → COMPLETED transition there.
    */
-  protected async runSyncWithStatus<T extends { transactionIds: string[] }>({
+  protected async runSyncWithStatus<T extends { transactionIds: string[]; extraAutoLinkCandidateIds?: string[] }>({
     systemAccountId,
     userId,
     connectionId,
@@ -279,10 +282,11 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
 
       await this.updateLastSync(connectionId);
 
-      emitTransactionsSyncEvent({
+      await linkAndEmitSyncedTransactions({
         userId,
         accountId: systemAccountId,
         transactionIds: result.transactionIds,
+        extraAutoLinkCandidateIds: result.extraAutoLinkCandidateIds,
       });
 
       await setAccountSyncStatus({ accountId: systemAccountId, status: SyncStatus.COMPLETED, userId });

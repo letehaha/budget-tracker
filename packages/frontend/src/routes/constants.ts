@@ -57,7 +57,7 @@ export const ROUTES_NAMES = Object.freeze({
   settingsDataManagementExportConfigure: `${ROUTER_LAYOUTS.dashboard}.settings.data-management.export.configure`,
   settingsAppearance: `${ROUTER_LAYOUTS.dashboard}.settings.appearance`,
   settingsLanguage: `${ROUTER_LAYOUTS.dashboard}.settings.language`,
-  settingsStatistics: `${ROUTER_LAYOUTS.dashboard}.settings.statistics`,
+  settingsGeneral: `${ROUTER_LAYOUTS.dashboard}.settings.general`,
   settingsAi: `${ROUTER_LAYOUTS.dashboard}.settings.ai`,
   settingsAiFeatures: `${ROUTER_LAYOUTS.dashboard}.settings.ai.features`,
   settingsAiKeys: `${ROUTER_LAYOUTS.dashboard}.settings.ai.keys`,

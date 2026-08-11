@@ -25,7 +25,7 @@ import crypto from 'crypto';
 import IORedis from 'ioredis';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
-import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankAccountNotFoundError, MonobankApiClient, MonobankGeoBlockedError } from './api-client';
 
@@ -191,8 +191,7 @@ function buildJobProcessor(queueName: string) {
             }
           }
 
-          // Emit event for this batch's transactions (AI categorization, etc.)
-          emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
+          await linkAndEmitSyncedTransactions({ userId, accountId, transactionIds: createdTransactionIds });
 
           // Update account metadata and balance after processing all transactions in this batch.
           const account = await Accounts.findByPk(accountId);
