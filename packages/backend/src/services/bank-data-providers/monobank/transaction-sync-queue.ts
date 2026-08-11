@@ -17,6 +17,7 @@ import Transactions from '@models/transactions.model';
 import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
 import * as Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
+import { runPendingLinkAbsorb } from '@services/accounts/absorb-link-residual';
 import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import * as transactionsService from '@services/transactions';
 import { Job, Queue, UnrecoverableError, Worker } from 'bullmq';
@@ -24,7 +25,7 @@ import crypto from 'crypto';
 import IORedis from 'ioredis';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
-import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankAccountNotFoundError, MonobankApiClient, MonobankGeoBlockedError } from './api-client';
 
@@ -190,17 +191,22 @@ function buildJobProcessor(queueName: string) {
             }
           }
 
-          // Emit event for this batch's transactions (AI categorization, etc.)
-          emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
+          await linkAndEmitSyncedTransactions({ userId, accountId, transactionIds: createdTransactionIds });
 
           // Update account metadata and balance after processing all transactions in this batch.
           const account = await Accounts.findByPk(accountId);
 
           if (account) {
-            // Update sync timestamp in externalData (independent of the balance write).
-            const externalData = (account.externalData as Record<string, unknown>) || {};
-            externalData.lastSyncedAt = new Date().toISOString();
-            await account.update({ externalData });
+            // Stamp lastSyncedAt via jsonb_set: a whole-blob read-modify-write
+            // races concurrent metadata writers (the completion path clearing
+            // `pendingAbsorb`, the link flow writing bankConnection) and would
+            // resurrect cleared flags.
+            await Accounts.sequelize!.query(
+              `UPDATE "Accounts"
+               SET "externalData" = jsonb_set(COALESCE("externalData", '{}'::jsonb), '{lastSyncedAt}', to_jsonb(:lastSyncedAt::text))
+               WHERE "id" = :accountId`,
+              { replacements: { lastSyncedAt: new Date().toISOString(), accountId } },
+            );
 
             // Update account balance to reflect the current state from Monobank.
             // Monobank API returns transactions in chronological order (oldest to newest),
@@ -549,6 +555,48 @@ function jobGroupCompletionsKey(jobGroupId: string): string {
 }
 
 /**
+ * Runs the deferred post-link absorb before flipping the status to COMPLETED,
+ * so status waiters observe the reconciled account.
+ *
+ * `swallowAbsorbError` is safe only where no ambient CLS transaction exists
+ * (the worker's 'completed' event): there a failed absorb rolls itself back
+ * and the still-set `pendingAbsorb` retries next group. Inside an ambient
+ * transaction the error must propagate, or a half-applied opening-balance
+ * move commits.
+ */
+async function finalizeSyncGroup({
+  accountId,
+  userId,
+  connectionId,
+  swallowAbsorbError,
+}: {
+  accountId: RecordId;
+  userId: number;
+  connectionId: string;
+  swallowAbsorbError: boolean;
+}): Promise<void> {
+  if (swallowAbsorbError) {
+    try {
+      await runPendingLinkAbsorb({ accountId: String(accountId), userId });
+    } catch (error) {
+      logger.error(
+        { message: '[Monobank] Deferred post-link residual absorb failed', error: error as Error },
+        { accountId, userId },
+      );
+    }
+  } else {
+    await runPendingLinkAbsorb({ accountId: String(accountId), userId });
+  }
+
+  await Promise.all([
+    setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId }),
+    // Nothing else stamps the connection's lastSyncAt in the queued flow, so
+    // the list view's "Last synced" column would never move without this.
+    BankDataProviderConnections.update({ lastSyncAt: new Date() }, { where: { id: connectionId } }),
+  ]);
+}
+
+/**
  * Handles a batch job's 'completed' event.
  *
  * Uses an atomic Redis counter (INCR) keyed by jobGroupId rather than
@@ -575,14 +623,7 @@ export async function handleCompletedBatch(job: Job<TransactionSyncJobData>): Pr
 
   if (completedCount < totalBatches) return;
 
-  await Promise.all([
-    setAccountSyncStatus({ accountId, status: SyncStatus.COMPLETED, userId }),
-    // Mark the connection as synced. Enable Banking does this via
-    // base-provider's `updateLastSync`; Monobank's queue-based flow needs
-    // the equivalent write so the list view's "Last synced" column reflects
-    // reality for the connection, not just the account.
-    BankDataProviderConnections.update({ lastSyncAt: new Date() }, { where: { id: connectionId } }),
-  ]);
+  await finalizeSyncGroup({ accountId, userId, connectionId, swallowAbsorbError: true });
   await redisClient.del(counterKey);
   logger.info(`All batches completed for account ${accountId}, status set to COMPLETED`);
 }
@@ -636,6 +677,15 @@ export async function queueTransactionSync(params: {
 
   // Generate unique group ID for this sync operation
   const jobGroupId = `${userId}-${accountId}-${Date.now()}`;
+
+  // An empty window (from >= to, e.g. the forward-only clamp) enqueues no
+  // batches, so no worker completion ever fires: finalize here or the account
+  // sits in QUEUED forever and a pending link absorb never runs.
+  if (chunks.length === 0) {
+    await finalizeSyncGroup({ accountId, userId, connectionId, swallowAbsorbError: false });
+    logger.info(`[QUEUE] Empty sync window for account ${accountId} (group: ${jobGroupId}), finalized without batches`);
+    return { jobGroupId, totalBatches: 0, estimatedMinutes: 0 };
+  }
 
   // Queue jobs for each chunk, wrapped in a Sentry publish span
   await withQueuePublishSpan({

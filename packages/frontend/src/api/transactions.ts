@@ -49,6 +49,8 @@ export const loadTransactions = async ({
   sortBy?: TRANSACTION_SORT_FIELD;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  /** Hide transactions created by the balance-adjustment flow. */
+  excludeBalanceAdjustments?: boolean;
   excludeAccountIds?: string[];
   transferFilter?: FILTER_OPERATION;
   refundFilter?: FILTER_OPERATION;

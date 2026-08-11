@@ -801,12 +801,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
           // Process each transaction and collect created/updated transaction IDs
           const createdTransactionIds: string[] = [];
+          // Rows the bank booked this run: auto-link eligible, but not new, so they must not be re-emitted.
+          const bookedUpgradedTransactionIds: string[] = [];
           let updatedCount = 0;
           // Tier 4 costs one extra query per unmatched row, and on an initial 3-year
           // sync every row is unmatched. Flips to true as soon as this run stores a
           // pending row so a same-batch booked copy can still upgrade it.
           let accountHasPendingRows = await this.accountHasPendingRows({ accountId: account.id });
-          let pendingWithEntryReferenceCount = 0;
           let stalePendingIgnoredCount = 0;
           let revokedRemovedCount = 0;
           let revokedKeptCount = 0;
@@ -927,6 +928,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
                 await existingTx.update(updates);
                 updatedCount++;
               }
+              if (pendingBecameBooked) {
+                bookedUpgradedTransactionIds.push(existingTx.id);
+              }
               continue;
             }
 
@@ -967,9 +971,6 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
             if (isPreBookingStatus({ status: incomingStatus })) {
               accountHasPendingRows = true;
-              if (getRawTransaction({ externalData: tx.metadata })?.entry_reference != null) {
-                pendingWithEntryReferenceCount++;
-              }
             }
           }
 
@@ -986,14 +987,6 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             );
           }
 
-          if (pendingWithEntryReferenceCount > 0) {
-            // The pending-upgrade tier only considers rows without an entry reference,
-            // so this bank's pending rows can never be adopted by their booked copy.
-            logger.info(
-              `Enable Banking sync: account ${account.id} stored ${pendingWithEntryReferenceCount} pre-booking row(s) carrying an entry_reference; pending upgrade cannot see them`,
-            );
-          }
-
           // Runs before the authoritative write below so today's row ends up
           // holding the bank's own balance rather than a re-derived one.
           await this.reconcileDailyClosingBalances({ account, providerTransactions });
@@ -1003,7 +996,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           const balance = await this.fetchBalance(connectionId, apiUid);
           await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
 
-          return { transactionIds: createdTransactionIds };
+          return { transactionIds: createdTransactionIds, extraAutoLinkCandidateIds: bookedUpgradedTransactionIds };
         },
       });
     } catch (error) {
@@ -1584,7 +1577,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // the sync where an entry_reference-less row finally gets one. Requires a
     // matching counterparty IBAN so recurring same-amount payments to different
     // parties don't collapse, and only considers rows with no stored
-    // entryReference – a row carrying a different one is a different transaction.
+    // entryReference: a row carrying one is either the same transaction (already
+    // returned by tier 1) or a different one. The pending-upgrade exception, where
+    // the booked copy arrives under a fresh reference, is tier 4's job.
     if (counterpartyIban) {
       const byFingerprint = await Transactions.findOne({
         where: {
@@ -1604,11 +1599,15 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       if (byFingerprint) return byFingerprint;
     }
 
-    // (4) Pending upgrade. A card purchase first arrives as PDNG or HOLD with no
-    // entry_reference and is re-issued as BOOK with a fresh reference and
-    // different remittance text, so no earlier tier sees it. Safety comes from
+    // (4) Pending upgrade. A card purchase first arrives as PDNG or HOLD and is
+    // re-issued as BOOK with different remittance text and, on some ASPSPs, a
+    // different entry_reference, so no earlier tier sees it. Safety comes from
     // the pre-booking-only candidate pool, exact amount/currency/type equality, the
     // conditional IBAN gate below, and the caller flipping the matched row to BOOK.
+    // A stored entryReference is only tolerated when the incoming payload carries
+    // one too: then tier 1 has already ruled out an equal-reference row, so the
+    // mismatch is the fresh-reference re-issue. A reference-less payload never
+    // reaches tier 1, so it may only consume reference-less candidates.
     if (!accountHasPendingRows) return null;
     if (getRawTransactionStatus({ externalData: tx.metadata }) !== TransactionStatus.BOOK) return null;
 
@@ -1622,7 +1621,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         time: {
           [Op.between]: [subDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS), addDays(tx.date, PENDING_UPGRADE_WINDOW_DAYS)],
         },
-        [Op.and]: [wherePreBookingStatus(), whereNoEntryReference()],
+        [Op.and]: entryReference ? [wherePreBookingStatus()] : [wherePreBookingStatus(), whereNoEntryReference()],
       },
     });
 

@@ -1,6 +1,6 @@
 {
   "settings": {
-    "statistics": {
+    "general": {
       "title": "Statistik",
       "description": "Kontrol bagaimana data keuangan Anda dihitung dan ditampilkan di seluruh aplikasi.",
       "creditLimit": {
@@ -8,6 +8,12 @@
         "description": "Saat diaktifkan, batas kredit dikurangkan dari saldo akun dalam statistik dan grafik tren saldo. Ini menunjukkan posisi keuangan aktual Anda, bukan kredit yang tersedia.",
         "successNotification": "Pengaturan berhasil diperbarui",
         "errorNotification": "Gagal memperbarui pengaturan"
+      },
+      "manualTransferMatching": {
+        "label": "Cocokkan transfer dengan akun manual",
+        "description": "Izinkan transfer yang terdeteksi otomatis untuk menghubungkan transaksi bank yang tersinkronisasi dengan transaksi yang Anda buat secara manual.",
+        "successNotification": "Pengaturan pencocokan transfer diperbarui",
+        "errorNotification": "Gagal memperbarui pengaturan pencocokan transfer"
       }
     }
   }

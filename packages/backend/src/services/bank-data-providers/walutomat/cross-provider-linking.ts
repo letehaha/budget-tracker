@@ -6,11 +6,7 @@ import { linkTransactions } from '@services/transactions/transactions-linking/li
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
-/**
- * Date window (in days) for matching cross-provider transactions.
- * Bank transfers typically settle within 1-2 business days.
- */
-const DATE_WINDOW_DAYS = 3;
+import { TRANSFER_DATE_WINDOW_DAYS, normalizeIban } from '../utils/transfer-matching';
 
 /**
  * Extract the counterparty IBAN from a Walutomat transaction's operationDetails.
@@ -83,7 +79,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
     const iban = externalData?.iban as string | undefined;
     if (!iban) continue;
 
-    const normalized = iban.replace(/\s/g, '').toUpperCase();
+    const normalized = normalizeIban({ iban });
     const existing = ibanToAccountIds.get(normalized);
     if (existing) {
       existing.push(account.id);
@@ -110,7 +106,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
 
     if (!counterpartyIban) continue;
 
-    const normalizedIban = counterpartyIban.replace(/\s/g, '').toUpperCase();
+    const normalizedIban = normalizeIban({ iban: counterpartyIban });
     const matchingAccountIds = ibanToAccountIds.get(normalizedIban);
 
     if (!matchingAccountIds || matchingAccountIds.length === 0) continue;
@@ -122,8 +118,8 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
       externalData.operationType === 'PAYIN' ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 
     const txDate = new Date(tx.time);
-    const dateFrom = subDays(txDate, DATE_WINDOW_DAYS);
-    const dateTo = addDays(txDate, DATE_WINDOW_DAYS);
+    const dateFrom = subDays(txDate, TRANSFER_DATE_WINDOW_DAYS);
+    const dateTo = addDays(txDate, TRANSFER_DATE_WINDOW_DAYS);
 
     // Search for matching transactions in the identified accounts
     const candidates = await Transactions.findAll({

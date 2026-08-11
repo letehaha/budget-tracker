@@ -25,8 +25,9 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
-import { Sequelize } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 
+import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { LunchFlowApiClient } from './api-client';
@@ -296,19 +297,21 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         }
 
         // Filter out pending transactions (those with null IDs)
-        let postedTransactions = transactionsResponse.transactions.filter((tx) => tx.id !== null);
+        const postedTransactions = transactionsResponse.transactions.filter((tx) => tx.id !== null);
 
-        // LunchFlow API doesn't support date-range filtering, so we filter in runtime.
-        // Only process transactions on or after the latest existing transaction date.
+        // LunchFlow has no server-side date filtering, so the window gates ROW
+        // CREATION only. Dedup and the unlink→relink originalId restoration
+        // below must see the whole feed: pre-window rows still match existing
+        // rows by originalSource. A future-dated planned row must not anchor
+        // the cutoff, or every genuinely new row is skipped until that date.
         const latestTransaction = await Transactions.findOne({
-          where: { accountId: account.id },
+          where: { accountId: account.id, time: { [Op.lte]: new Date() } },
           order: [['time', 'DESC']],
         });
 
-        if (latestTransaction) {
-          const fromDate = new Date(latestTransaction.time);
-          postedTransactions = postedTransactions.filter((tx) => new Date(tx.date) >= fromDate);
-        }
+        const createFromDate = latestTransaction
+          ? clampSyncStartToLink({ account, from: new Date(latestTransaction.time) })
+          : null;
 
         // Sort by date ascending
         postedTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -345,6 +348,12 @@ export class LunchFlowProvider extends BaseBankDataProvider {
           if (existingByOriginalSource) {
             // Restore the originalId so future syncs use the fast primary path
             await existingByOriginalSource.update({ originalId: tx.id! });
+            continue;
+          }
+
+          // Unmatched pre-window rows are pre-link/pre-existing history: the
+          // link residual absorb owns it, so never mint rows for it.
+          if (createFromDate && new Date(tx.date) < createFromDate) {
             continue;
           }
 

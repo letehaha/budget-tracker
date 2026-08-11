@@ -69,7 +69,6 @@ import { ROUTES_NAMES } from '@/routes';
 import { useUserStore } from '@/stores';
 import { useElementSize } from '@vueuse/core';
 import {
-  BarChart3Icon,
   CalendarClockIcon,
   ChevronRightIcon,
   CircleDollarSignIcon,
@@ -79,6 +78,7 @@ import {
   LayersIcon,
   PaletteIcon,
   PlugIcon,
+  SettingsIcon,
   ShieldIcon,
   SparklesIcon,
   StoreIcon,
@@ -149,10 +149,10 @@ const personalTabs = computed<Tab[]>(() => [
     icon: LanguagesIcon,
   },
   {
-    name: 'statistics',
-    label: t('settings.navigation.statistics'),
-    to: { name: ROUTES_NAMES.settingsStatistics },
-    icon: BarChart3Icon,
+    name: 'general',
+    label: t('settings.navigation.general'),
+    to: { name: ROUTES_NAMES.settingsGeneral },
+    icon: SettingsIcon,
   },
   {
     name: 'security',

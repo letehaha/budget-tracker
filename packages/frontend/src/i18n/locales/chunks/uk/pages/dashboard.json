@@ -190,6 +190,14 @@
           "off": "Вимк."
         }
       },
+      "settings": {
+        "excludeTitle": "Виключити транзакції",
+        "excludeTransfersDescription": "Приховати перекази між власними рахунками",
+        "excludeOutOfWalletDescription": "Приховати коригування балансу та інші перекази поза гаманцем",
+        "balanceAdjustmentsTitle": "Коригування балансу",
+        "excludeBalanceAdjustmentsDescription": "Приховати транзакції коригування балансу",
+        "nothingExcluded": "Нічого не виключено"
+      },
       "overdueBadge": "Прострочено",
       "scheduledBadge": "Заплановано",
       "payAction": "Позначити як оплачено"

@@ -1,6 +1,6 @@
 {
   "settings": {
-    "statistics": {
+    "general": {
       "title": "Estadísticas",
       "description": "Controle cómo se calculan y muestran sus datos financieros en la aplicación.",
       "creditLimit": {
@@ -8,6 +8,12 @@
         "description": "Cuando está habilitado, los límites de crédito se restan de los saldos de las cuentas en las estadísticas y en el gráfico de tendencia del saldo. Esto muestra su posición financiera real en lugar del crédito disponible.",
         "successNotification": "Ajuste actualizado correctamente",
         "errorNotification": "Error al actualizar el ajuste"
+      },
+      "manualTransferMatching": {
+        "label": "Asociar transferencias con cuentas manuales",
+        "description": "Permite que las transferencias detectadas automáticamente vinculen una transacción bancaria sincronizada con una que usted creó manualmente.",
+        "successNotification": "Ajuste de asociación de transferencias actualizado",
+        "errorNotification": "Error al actualizar el ajuste de asociación de transferencias"
       }
     }
   }

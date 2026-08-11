@@ -190,6 +190,14 @@
           "off": "Nonaktif"
         }
       },
+      "settings": {
+        "excludeTitle": "Kecualikan transaksi",
+        "excludeTransfersDescription": "Sembunyikan transfer antar akun Anda sendiri",
+        "excludeOutOfWalletDescription": "Sembunyikan penyesuaian saldo dan transfer di luar dompet lainnya",
+        "balanceAdjustmentsTitle": "Penyesuaian saldo",
+        "excludeBalanceAdjustmentsDescription": "Sembunyikan transaksi penyesuaian saldo",
+        "nothingExcluded": "Tidak ada yang dikecualikan"
+      },
       "overdueBadge": "Terlambat",
       "scheduledBadge": "Terjadwal",
       "payAction": "Tandai dibayar"

@@ -381,7 +381,7 @@ export async function startBalanceReconciliation({
       throw new ValidationError({ message: `Account with ID ${accountId} not found` });
     }
     if (isDedicatedFlowAccountCategory(account.accountCategory)) {
-      // Unreachable through the importers — `assertNotDedicatedFlowAccount`
+      // Unreachable through the importers — `assertNotDerivedBalanceAccount`
       // rejects vehicle/loan targets before execution. A caller that skips that
       // guard would otherwise lose this account's capture silently and
       // permanently shift its balance when `finalize` runs without it.

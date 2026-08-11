@@ -25,10 +25,8 @@ export default createController(
       data: {
         account: result.account,
         balanceDifference: result.balanceDifference,
-        balanceAdjustmentTransaction: result.balanceAdjustmentTransaction || null,
-        message: result.balanceAdjustmentTransaction
-          ? `Account linked successfully. Balance adjusted by ${result.balanceDifference}.`
-          : 'Account linked successfully.',
+        balanceAdjustmentTransaction: null,
+        message: 'Account linked successfully.',
       },
     };
   },

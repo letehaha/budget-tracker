@@ -190,6 +190,14 @@
           "off": "Desactivado"
         }
       },
+      "settings": {
+        "excludeTitle": "Excluir transacciones",
+        "excludeTransfersDescription": "Ocultar transferencias entre sus propias cuentas",
+        "excludeOutOfWalletDescription": "Ocultar ajustes de saldo y otras transferencias fuera de cartera",
+        "balanceAdjustmentsTitle": "Ajustes de saldo",
+        "excludeBalanceAdjustmentsDescription": "Ocultar transacciones de ajuste de saldo",
+        "nothingExcluded": "Nada excluido"
+      },
       "overdueBadge": "Vencido",
       "scheduledBadge": "Programado",
       "payAction": "Marcar como pagado"

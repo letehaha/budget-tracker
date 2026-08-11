@@ -23,6 +23,12 @@ interface ProviderFeatures {
   supportsManualSync: boolean;
   /** Provider supports automatic scheduled sync */
   supportsAutoSync: boolean;
+  /**
+   * syncTransactions only enqueues background jobs instead of persisting
+   * inline. Work that needs post-sync state (balance reconciliation, residual
+   * absorb) must defer to the queue's completion path.
+   */
+  queuedSync?: boolean;
   /** Default interval between auto-syncs (milliseconds) */
   defaultSyncInterval?: number;
   /** Minimum interval between syncs due to rate limits (milliseconds) */
