@@ -120,6 +120,34 @@
         "saved": "Saved",
         "previousPeriodsTrend": "Previous periods trend"
       },
+      "netWorth": {
+        "title": "Net Worth",
+        "description": "How your net worth changed over the selected period. Counts every balance change: accounts, investments, loans, and asset values.",
+        "vsPrevious": "vs previous",
+        "start": "Start",
+        "end": "End",
+        "growth": "Growth",
+        "previousPeriodsTrend": "Previous periods trend",
+        "excludedTooltip": "Excluded from net worth: {components}",
+        "viewHistory": "View history",
+        "loadFailed": "Couldn't load net worth data.",
+        "components": {
+          "ventures": "Ventures",
+          "vehicles": "Vehicles",
+          "loans": "Loans"
+        },
+        "settings": {
+          "title": "Include in net worth",
+          "loans": "Loans",
+          "vehicles": "Vehicles",
+          "ventures": "Ventures"
+        },
+        "trendTooltip": {
+          "change": "Change",
+          "netWorth": "Net worth",
+          "noData": "No data for this period"
+        }
+      },
       "creditUtilization": {
         "title": "Credit Utilization",
         "description": "Shows how much of your credit limits are currently used across all accounts",
@@ -151,6 +179,10 @@
         "cashFlow": {
           "name": "Cash Flow",
           "description": "Income vs expenses with savings rate"
+        },
+        "netWorth": {
+          "name": "Net Worth",
+          "description": "How your total net worth changes over time, including investments, loans, and assets."
         },
         "creditUtilization": {
           "name": "Credit Utilization",

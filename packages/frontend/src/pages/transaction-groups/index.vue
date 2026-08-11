@@ -156,9 +156,7 @@ const formatDateRange = ({ group }: { group: TransactionGroupResponse }) => {
     >
       <template #title>{{ t('transactionGroups.groupDialog.deleteGroupTitle') }}</template>
       <template #description>
-        {{
-          t('transactionGroups.groupDialog.deleteGroupDescription', { groupName: deleteState.groupName })
-        }}
+        {{ t('transactionGroups.groupDialog.deleteGroupDescription', { groupName: deleteState.groupName }) }}
       </template>
     </ResponsiveAlertDialog>
   </div>
