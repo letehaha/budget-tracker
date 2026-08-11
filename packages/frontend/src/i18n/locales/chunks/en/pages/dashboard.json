@@ -118,7 +118,8 @@
         "income": "Income",
         "expenses": "Expenses",
         "saved": "Saved",
-        "previousPeriodsTrend": "Previous periods trend"
+        "previousPeriodsTrend": "Previous periods trend",
+        "viewDetails": "View details"
       },
       "netWorth": {
         "title": "Net Worth",

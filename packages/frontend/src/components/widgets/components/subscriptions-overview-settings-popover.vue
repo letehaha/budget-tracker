@@ -45,15 +45,6 @@
                 </span>
                 <ChevronRightIcon class="text-muted-foreground size-4" />
               </button>
-
-              <router-link
-                :to="{ name: ROUTES_NAMES.plannedSubscriptions }"
-                class="hover:bg-accent flex items-center justify-between gap-2 rounded-md px-2 py-2 transition-colors"
-                @click="isOpen = false"
-              >
-                <span class="text-sm font-medium">{{ t('common.actions.viewAll') }}</span>
-                <ArrowUpRightIcon class="text-muted-foreground size-4" />
-              </router-link>
             </div>
           </div>
         </template>
@@ -129,8 +120,7 @@ import SlidingPanels from '@/components/common/sliding-panels.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
-import { ROUTES_NAMES } from '@/routes/constants';
-import { ArrowLeftIcon, ArrowUpRightIcon, CheckIcon, ChevronRightIcon, InfoIcon, SettingsIcon } from '@lucide/vue';
+import { ArrowLeftIcon, CheckIcon, ChevronRightIcon, InfoIcon, SettingsIcon } from '@lucide/vue';
 import type { Ref } from 'vue';
 import { computed, inject, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
