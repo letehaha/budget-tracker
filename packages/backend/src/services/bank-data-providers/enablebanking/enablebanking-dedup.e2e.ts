@@ -689,10 +689,9 @@ describe('Enable Banking dedup improvements (E2E)', () => {
     });
 
     it('upgrades a pending row carrying an entry_reference when its booked copy arrives under a different reference', async () => {
-      // Some ASPSPs stamp an entry_reference on the pending authorisation and a
-      // DIFFERENT one on the booked copy: tier 1 misses (references differ) and
-      // the hash misses (it is derived from the reference), so the pending tier
-      // is the only path left.
+      // Some ASPSPs stamp different entry_references on the pending
+      // authorisation and its booked copy: tier 1 and the reference-derived
+      // hash both miss, so the pending tier is the only path left.
       helpers.enablebanking.setFixedTransactions([
         {
           ...CARD_PENDING,

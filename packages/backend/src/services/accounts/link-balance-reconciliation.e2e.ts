@@ -1,15 +1,19 @@
 import {
   API_ERROR_CODES,
   BANK_PROVIDER_TYPE,
+  type ExternalMonobankTransactionResponse,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
+  asCents,
   asDecimal,
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import Transactions from '@models/transactions.model';
+import { redisClient } from '@root/redis-client';
+import { REDIS_KEYS, SyncStatus } from '@services/bank-data-providers/sync/sync-status-tracker';
 import * as helpers from '@tests/helpers';
 import { getMockedLunchFlowTransactions } from '@tests/mocks/lunchflow/data';
 import {
@@ -17,21 +21,21 @@ import {
   getLunchFlowBalanceMock,
   getLunchFlowTransactionsMock,
 } from '@tests/mocks/lunchflow/mock-api';
-import { format, subDays, subYears } from 'date-fns';
+import { MONOBANK_URLS_MOCK, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
+import { format, subDays, subMinutes, subYears } from 'date-fns';
+import { HttpResponse, http } from 'msw';
 
 /**
- * Linking an existing system account to a bank connection must reconcile the
- * balance WITHOUT minting `transfer_out_wallet` "Balance adjustment" rows:
- * the post-link sync backfills the gap transactions and force-writes the
- * bank's authoritative balance, so an adjustment created up-front both spams
- * the transaction feed and double-counts the gap in the ledger.
- *
- * The invariant checked throughout: initialBalance + Σsigned(tx) === currentBalance.
+ * Linking must reconcile the balance without minting `transfer_out_wallet`
+ * "Balance adjustment" rows: the bank balance is force-written, the
+ * unexplained residual moves into the opening balance, and (forward-only rule)
+ * pre-link statement rows are never imported over manual history, whose bank
+ * copies dedup cannot recognize. Only an account with no rows backfills.
+ * Invariant checked throughout: initialBalance + Σsigned(tx) === currentBalance.
  */
 
 const LUNCHFLOW_EXTERNAL_ACCOUNT_ID = '1001';
 
-/** Reads the error envelope (`code` + `message`) from a failed helper response. */
 const extractError = (response: unknown) =>
   (response as helpers.CustomResponse<unknown>).body.response as unknown as { code: string; message: string };
 
@@ -117,15 +121,12 @@ describe('Balance reconciliation when linking account to a bank connection', () 
     const syncedIncomes = transactions.filter((tx) => tx.originalId !== null);
     expect(syncedIncomes.length).toBe(1);
 
-    // The sync backfills the +100 and force-writes the bank balance, so an
-    // up-front adjustment both spams the feed and double-counts the gap.
     const adjustments = transactions.filter(
       (tx) => tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
     );
     expect(adjustments.length).toBe(0);
 
     expect(updatedAccount.currentBalance.toNumber()).toBe(1100);
-    // Ledger identity: the books must explain the balance.
     expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
       updatedAccount.currentBalance.toCents(),
     );
@@ -159,18 +160,19 @@ describe('Balance reconciliation when linking account to a bank connection', () 
     expect(updatedAccount.refInitialBalance.toCents()).not.toBe(preLinkAccount.refInitialBalance.toCents());
     expect(updatedAccount.refInitialBalance.toCents()).toBeGreaterThan(preLinkAccount.refInitialBalance.toCents());
 
-    // The restamp cascade shifts every Balances row, including today's — which the
-    // sync pinned to the bank's authoritative balance. It has to stay pinned.
+    // The restamp cascade shifts every Balances row, including today's, which
+    // the sync pinned to the bank's authoritative balance. It must stay pinned.
     const todayRow = await readTodayBalanceRow({ accountId: account.id });
     expect(todayRow).not.toBeNull();
     expect(todayRow!.amount.toCents()).toBe(updatedAccount.refCurrentBalance.toCents());
   });
 
-  it('absorbs only the unexplained residual when the account already carries manual transactions', async () => {
+  it('absorbs the whole pre-link gap without importing pre-link bank history over manual rows', async () => {
     // Manual history: 1000 opening − 200 expense + 50 income = 850 tracked.
-    // The bank reports 1200 with one +100 transaction, so the books explain
-    // 1000 − 200 + 50 + 100 = 950 and exactly 250 is residual — NOT the full
-    // pre-link gap of 1200 − 850 = 350.
+    // The bank reports 1200 plus a +100 row from yesterday. Forward-only
+    // linking must not import that pre-link row (the manual ledger owns
+    // pre-link history, whose bank copies dedup cannot recognize), so the
+    // full 350 gap moves to the opening balance.
     let manualRowsBefore: Transactions[] = [];
 
     const bankTransactions = getMockedLunchFlowTransactions(1);
@@ -208,7 +210,7 @@ describe('Balance reconciliation when linking account to a bank connection', () 
     const transactions = await Transactions.findAll({ where: { accountId: account.id }, raw: true });
 
     const syncedRows = transactions.filter((tx) => tx.originalId !== null);
-    expect(syncedRows.length).toBe(1);
+    expect(syncedRows.length).toBe(0);
 
     // The manual rows must survive the link untouched.
     const manualRowsAfter = transactions.filter((tx) => tx.originalId === null);
@@ -224,7 +226,53 @@ describe('Balance reconciliation when linking account to a bank connection', () 
     }
 
     expect(updatedAccount.currentBalance.toNumber()).toBe(1200);
-    expect(updatedAccount.initialBalance.toNumber()).toBe(1250);
+    expect(updatedAccount.initialBalance.toNumber()).toBe(1350);
+    expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
+      updatedAccount.currentBalance.toCents(),
+    );
+  });
+
+  it('does not duplicate a manually-logged purchase whose bank timestamp falls inside the pre-link window', async () => {
+    // The user logged the purchase at T; the bank stamped its copy at T+30m
+    // (backdated entry or settlement delay). Forward-only linking must not
+    // re-import the bank's copy: the pre-link gap belongs to the opening
+    // balance, not to a duplicated row.
+    const manualTime = subMinutes(new Date(), 180);
+    const bankTime = subMinutes(new Date(), 150);
+
+    const bankTransactions = getMockedLunchFlowTransactions(1);
+    bankTransactions.transactions[0]!.amount = asDecimal(-30);
+    bankTransactions.transactions[0]!.date = bankTime.toISOString();
+
+    const { account } = await setupLinkedScenario({
+      initialBalance: 1000,
+      bankBalance: 1200,
+      bankTransactions,
+      beforeLink: async ({ accountId }) => {
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId,
+            amount: 30,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: manualTime.toISOString(),
+          }),
+          raw: true,
+        });
+      },
+    });
+
+    const updatedAccount = (await Accounts.findByPk(account.id))!;
+    const transactions = await Transactions.findAll({ where: { accountId: account.id }, raw: true });
+
+    // Only the manual row must exist: the bank's copy of the same purchase
+    // must not have been imported as a second row.
+    expect(transactions.length).toBe(1);
+    expect(transactions.filter((tx) => tx.originalId !== null).length).toBe(0);
+
+    expect(updatedAccount.currentBalance.toNumber()).toBe(1200);
+    // Tracked state was 1000 − 30 = 970, bank says 1200: the whole 230 gap is
+    // opening-balance history the provider never handed us.
+    expect(updatedAccount.initialBalance.toNumber()).toBe(1230);
     expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
       updatedAccount.currentBalance.toCents(),
     );
@@ -243,7 +291,6 @@ describe('Balance reconciliation when linking account to a bank connection', () 
 
     await helpers.unlinkAccountFromBankConnection({ id: account.id, raw: true });
 
-    // Same bank state: same transactions, same balance.
     const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
     global.mswMockServer.use(
       getLunchFlowTransactionsMock({ response: bankTransactions, accountId: LUNCHFLOW_EXTERNAL_ACCOUNT_ID }),
@@ -276,6 +323,242 @@ describe('Balance reconciliation when linking account to a bank connection', () 
     expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
       updatedAccount.currentBalance.toCents(),
     );
+  });
+
+  // Monobank linking enqueues a BullMQ job and returns, so the reconciliation
+  // contract must hold across the async boundary: bank balance at link time,
+  // residual absorb after the worker finishes.
+  describe('queued provider (Monobank)', () => {
+    const MONOBANK_EXTERNAL_ID = 'linkable-mono-account';
+
+    /** UAH client-info override with a controlled bank balance, in cents. */
+    const mockMonobankClientInfo = ({ balanceCents }: { balanceCents: number }) =>
+      http.get(MONOBANK_URLS_MOCK.clientInfo, () =>
+        HttpResponse.json({
+          clientId: 'link-test-client',
+          name: 'Link Test User',
+          webHookUrl: '',
+          permissions: '',
+          accounts: [
+            {
+              id: MONOBANK_EXTERNAL_ID,
+              sendId: 'link-test-send-id',
+              balance: asCents(balanceCents),
+              creditLimit: asCents(0),
+              type: 'black',
+              currencyCode: 980,
+              cashbackType: 'Miles',
+              maskedPan: [],
+              iban: 'UA000000000000000000000000000',
+            },
+          ],
+          jars: [],
+        }),
+      );
+
+    const buildBankStatementTx = ({
+      id,
+      time,
+      amountCents,
+      balanceCents,
+    }: {
+      id: string;
+      time: Date;
+      amountCents: number;
+      balanceCents: number;
+    }): ExternalMonobankTransactionResponse => ({
+      id,
+      time: Math.floor(time.getTime() / 1000),
+      description: 'Statement row',
+      mcc: 4829,
+      originalMcc: 4829,
+      hold: false,
+      amount: asCents(amountCents),
+      operationAmount: asCents(amountCents),
+      currencyCode: 980,
+      commissionRate: asCents(0),
+      cashbackAmount: asCents(0),
+      balance: asCents(balanceCents),
+      comment: '',
+      receiptId: '',
+      invoiceId: '',
+      counterEdrpou: '',
+      counterIban: '',
+      counterName: 'Link Test Counterparty',
+    });
+
+    /** The queued sync settles out-of-request; poll Redis for a terminal status. */
+    const waitForQueuedSyncToSettle = async ({
+      accountId,
+      timeoutMs = 15_000,
+    }: {
+      accountId: string;
+      timeoutMs?: number;
+    }): Promise<SyncStatus> => {
+      const startedAt = Date.now();
+      while (Date.now() - startedAt < timeoutMs) {
+        const raw = await redisClient.get(REDIS_KEYS.accountSyncStatus(accountId));
+        if (raw) {
+          const { status } = JSON.parse(raw) as { status: SyncStatus };
+          if (status === SyncStatus.COMPLETED || status === SyncStatus.FAILED) return status;
+        }
+        await helpers.sleep(150);
+      }
+      throw new Error(`Queued Monobank sync did not settle within ${timeoutMs}ms for account ${accountId}`);
+    };
+
+    const setupMonobankLink = async ({
+      initialBalance,
+      bankBalanceCents,
+      bankStatement,
+      apiToken,
+      beforeLink,
+    }: {
+      initialBalance: number;
+      bankBalanceCents: number;
+      bankStatement: ExternalMonobankTransactionResponse[];
+      /** Unique per test: token hash keys the BullMQ queue lane and the client-info cache. */
+      apiToken: string;
+      beforeLink?: ({ accountId }: { accountId: Accounts['id'] }) => Promise<void>;
+    }) => {
+      await helpers.addUserCurrencies({ currencyCodes: ['UAH'], raw: true });
+
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({
+          name: 'Linkable Monobank account',
+          currencyCode: 'UAH',
+          initialBalance,
+        }),
+        raw: true,
+      });
+
+      if (beforeLink) await beforeLink({ accountId: account.id });
+
+      global.mswMockServer.use(
+        mockMonobankClientInfo({ balanceCents: bankBalanceCents }),
+        getMonobankTransactionsMock({ response: bankStatement, respectDateRange: true }),
+      );
+
+      const { connectionId } = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.MONOBANK,
+        credentials: { apiToken },
+        raw: true,
+      });
+
+      const linkResponse = await helpers.linkAccountToBankConnection({
+        id: account.id,
+        connectionId,
+        externalAccountId: MONOBANK_EXTERNAL_ID,
+        raw: false,
+      });
+      expect(linkResponse.statusCode).toBe(200);
+
+      const settled = await waitForQueuedSyncToSettle({ accountId: account.id });
+      expect(settled).toBe(SyncStatus.COMPLETED);
+
+      return { account };
+    };
+
+    it('updates the balance to the bank figure when the sync window returns no transactions', async () => {
+      // Dormant account: the statement window returns zero rows, and the bank
+      // balance must still land.
+      const { account } = await setupMonobankLink({
+        initialBalance: 900,
+        bankBalanceCents: 100_000,
+        bankStatement: [],
+        apiToken: 'link-mono-token-stale-balance',
+      });
+
+      const updatedAccount = (await Accounts.findByPk(account.id))!;
+      const transactions = await Transactions.findAll({ where: { accountId: account.id }, raw: true });
+
+      expect(transactions.length).toBe(0);
+      expect(updatedAccount.currentBalance.toNumber()).toBe(1000);
+      // The unexplainable +100 must land in the opening balance.
+      expect(updatedAccount.initialBalance.toNumber()).toBe(1000);
+      expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
+        updatedAccount.currentBalance.toCents(),
+      );
+    });
+
+    it('does not re-import a manually-logged purchase whose bank timestamp falls inside the pre-link window', async () => {
+      // Manual row at T, the bank's copy stamped T+30m. Dedup by originalId
+      // cannot catch it (manual rows have none), so the sync window must not
+      // reach back past the link.
+      const manualTime = subMinutes(new Date(), 180);
+      const bankTime = subMinutes(new Date(), 150);
+
+      const { account } = await setupMonobankLink({
+        initialBalance: 1000,
+        bankBalanceCents: 120_000,
+        bankStatement: [
+          buildBankStatementTx({
+            id: 'bank-copy-of-manual-row',
+            time: bankTime,
+            amountCents: -5_000,
+            balanceCents: 120_000,
+          }),
+        ],
+        apiToken: 'link-mono-token-duplicates',
+        beforeLink: async ({ accountId }) => {
+          await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId,
+              amount: 50,
+              transactionType: TRANSACTION_TYPES.expense,
+              time: manualTime.toISOString(),
+            }),
+            raw: true,
+          });
+        },
+      });
+
+      const updatedAccount = (await Accounts.findByPk(account.id))!;
+      const transactions = await Transactions.findAll({ where: { accountId: account.id }, raw: true });
+
+      expect(transactions.length).toBe(1);
+      expect(transactions.filter((tx) => tx.originalId !== null).length).toBe(0);
+
+      expect(updatedAccount.currentBalance.toNumber()).toBe(1200);
+      // Tracked 1000 − 50 = 950 against the bank's 1200: the 250 gap is
+      // pre-link history, absorbed into the opening balance.
+      expect(updatedAccount.initialBalance.toNumber()).toBe(1250);
+      expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
+        updatedAccount.currentBalance.toCents(),
+      );
+    });
+
+    it('keeps the ledger identity when the backfill imports transactions on an empty account', async () => {
+      // Empty account: the sync backfills history and force-writes the bank
+      // balance from the newest row; the absorb must then explain the rest via
+      // the opening balance after the worker finishes, not before.
+      const { account } = await setupMonobankLink({
+        initialBalance: 500,
+        bankBalanceCents: 100_000,
+        bankStatement: [
+          buildBankStatementTx({
+            id: 'backfilled-income',
+            time: subDays(new Date(), 5),
+            amountCents: 20_000,
+            balanceCents: 100_000,
+          }),
+        ],
+        apiToken: 'link-mono-token-backfill',
+      });
+
+      const updatedAccount = (await Accounts.findByPk(account.id))!;
+      const transactions = await Transactions.findAll({ where: { accountId: account.id }, raw: true });
+
+      expect(transactions.length).toBe(1);
+      expect(transactions[0]!.originalId).toBe('backfilled-income');
+
+      expect(updatedAccount.currentBalance.toNumber()).toBe(1000);
+      // 1000 bank − 200 imported = 800 of opening-balance history.
+      expect(updatedAccount.initialBalance.toNumber()).toBe(800);
+      expect(updatedAccount.initialBalance.toCents() + sumSignedCents(transactions)).toBe(
+        updatedAccount.currentBalance.toCents(),
+      );
+    });
   });
 
   // Loan and vehicle balances are owned by their dedicated flows, so a bank sync

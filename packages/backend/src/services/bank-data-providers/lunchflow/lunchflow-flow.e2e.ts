@@ -1178,7 +1178,7 @@ describe('LunchFlow Data Provider E2E', () => {
         raw: true,
       });
 
-      // Must be exactly MOCK_AMOUNT — no duplicates, and linking mints no rows of its own
+      // Must be exactly MOCK_AMOUNT: no duplicates, and linking mints no rows of its own
       expect(syncedTx.length).toBe(MOCK_AMOUNT);
 
       // Date filtering means only transactions on or after the latest existing date
@@ -1300,7 +1300,7 @@ describe('LunchFlow Data Provider E2E', () => {
         raw: true,
       });
 
-      // 5. Verify: old bank transactions were NOT re-processed (filtered by date),
+      // 5. Verify: old bank transactions were NOT re-created as duplicates,
       //    only the 2 new ones were created
       const finalTx = await Transactions.findAll({
         where: { accountId },
@@ -1316,13 +1316,13 @@ describe('LunchFlow Data Provider E2E', () => {
       );
       expect(newSyncedTx.length).toBe(2);
 
-      // Verify the original 5 bank transactions still have originalId = null
-      // (they were NOT re-processed because their dates are before the latest tx).
-      // The 5 unlinked bank txs have originalId = null WITH originalSource.
-      const unlinkedBankTx = finalTx.filter(
-        (tx) => tx.originalId === null && (tx.externalData as Record<string, unknown>)?.originalSource,
+      // The original 5 bank rows matched by `externalData.originalSource`, so
+      // the relink restored their originalId instead of minting duplicates;
+      // future syncs dedup them through the fast primary path again.
+      const restoredBankTx = finalTx.filter(
+        (tx) => tx.originalId !== null && (tx.externalData as Record<string, unknown>)?.originalSource,
       );
-      expect(unlinkedBankTx.length).toBe(MOCK_AMOUNT);
+      expect(restoredBankTx.length).toBe(MOCK_AMOUNT);
     });
   });
 

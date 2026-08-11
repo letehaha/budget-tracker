@@ -1572,7 +1572,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // the sync where an entry_reference-less row finally gets one. Requires a
     // matching counterparty IBAN so recurring same-amount payments to different
     // parties don't collapse, and only considers rows with no stored
-    // entryReference – a row carrying one is either the same transaction (already
+    // entryReference: a row carrying one is either the same transaction (already
     // returned by tier 1) or a different one. The pending-upgrade exception, where
     // the booked copy arrives under a fresh reference, is tier 4's job.
     if (counterpartyIban) {

@@ -127,7 +127,7 @@ beforeEach(() => {
   updateAccountByIdMock.mockResolvedValue({ id: 'updated-sentinel' } as never);
   // 1:1 spot conversion – ref assertions read as plain native numbers.
   calculateRefAmountMock.mockImplementation(async ({ amount }) => amount);
-  restampMock.mockResolvedValue(undefined as never);
+  restampMock.mockResolvedValue('restamped');
   setTodayRowToSpotMock.mockResolvedValue(undefined as never);
 });
 
