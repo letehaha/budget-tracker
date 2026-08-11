@@ -48,12 +48,12 @@ const maxDisplay = computed(() => {
   return (config.rowSpan ?? 1) >= 2 ? 12 : 5;
 });
 
-const transferNatures = computed(() =>
-  buildLatestRecordsTransferNatures(readLatestRecordsExclusions({ widgetConfig: widgetConfigRef?.value })),
-);
+const exclusions = computed(() => readLatestRecordsExclusions({ widgetConfig: widgetConfigRef?.value }));
+const transferNatures = computed(() => buildLatestRecordsTransferNatures(exclusions.value));
+const excludeBalanceAdjustments = computed(() => exclusions.value.excludeBalanceAdjustments);
 
 const { data: transactions, isFetching: isTxFetching } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetLatestRecords, transferNatures],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetLatestRecords, transferNatures, excludeBalanceAdjustments],
   queryFn: () =>
     apiLoadTransactions({
       limit: 40, // Over-fetch to account for deduplication and grouping
@@ -62,6 +62,7 @@ const { data: transactions, isFetching: isTxFetching } = useQuery({
       includeTags: true,
       includeGroups: true,
       transferNatures: transferNatures.value,
+      excludeBalanceAdjustments: excludeBalanceAdjustments.value || undefined,
     }),
   staleTime: Infinity,
   placeholderData: [],

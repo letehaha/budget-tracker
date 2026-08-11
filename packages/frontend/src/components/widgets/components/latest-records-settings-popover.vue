@@ -80,6 +80,22 @@
                   @update:model-value="(value) => persistConfig({ excludeOutOfWallet: !!value })"
                 />
               </div>
+
+              <div class="flex items-center justify-between gap-2 rounded-md px-2 py-2">
+                <span class="flex flex-col">
+                  <span class="text-sm font-medium">{{
+                    $t('widgets.latestRecords.settings.balanceAdjustmentsTitle')
+                  }}</span>
+                  <span class="text-muted-foreground text-xs">
+                    {{ $t('widgets.latestRecords.settings.excludeBalanceAdjustmentsDescription') }}
+                  </span>
+                </span>
+                <Switch
+                  :model-value="exclusions.excludeBalanceAdjustments"
+                  :disabled="isUpdating"
+                  @update:model-value="(value) => persistConfig({ excludeBalanceAdjustments: !!value })"
+                />
+              </div>
             </div>
           </div>
         </template>
@@ -121,6 +137,9 @@ const exclusionsSummary = computed(() => {
   }
   if (exclusions.value.excludeOutOfWallet) {
     excluded.push(t('transactions.filters.transferNature.outOfWallet'));
+  }
+  if (exclusions.value.excludeBalanceAdjustments) {
+    excluded.push(t('widgets.latestRecords.settings.balanceAdjustmentsTitle'));
   }
   return excluded.length === 0 ? t('widgets.latestRecords.settings.nothingExcluded') : excluded.join(', ');
 });

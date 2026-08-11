@@ -2,6 +2,7 @@ import { CATEGORY_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, asDecim
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { format } from 'date-fns';
 
@@ -67,6 +68,9 @@ describe('Balance Adjustment', () => {
     expect(result.transaction!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
     expect(result.transaction!.amount).toBe(500);
 
+    const storedTx = await Transactions.findOne({ where: { id: result.transaction!.id } });
+    expect(storedTx!.externalData).toEqual({ balanceAdjustment: true });
+
     const updatedAccount = await helpers.getAccount({ id: account.id, raw: true });
     expect(updatedAccount.currentBalance).toBe(1500);
   });
@@ -89,6 +93,9 @@ describe('Balance Adjustment', () => {
     expect(result.transaction!.transactionType).toBe(TRANSACTION_TYPES.expense);
     expect(result.transaction!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
     expect(result.transaction!.amount).toBe(1200);
+
+    const storedTx = await Transactions.findOne({ where: { id: result.transaction!.id } });
+    expect(storedTx!.externalData).toEqual({ balanceAdjustment: true });
 
     const updatedAccount = await helpers.getAccount({ id: account.id, raw: true });
     expect(updatedAccount.currentBalance).toBe(800);

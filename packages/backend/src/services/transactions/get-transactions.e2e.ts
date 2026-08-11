@@ -4,6 +4,7 @@ import {
   TRANSACTION_SORT_FIELD,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  asDecimal,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { describe, expect, it } from '@jest/globals';
@@ -751,6 +752,73 @@ describe('Retrieve transactions with filters', () => {
       });
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+
+  describe('excludeBalanceAdjustments filter', () => {
+    // One plain expense + one manual out-of-wallet transfer + one balance-adjustment
+    // row (spawned by the balance-adjustment endpoint).
+    const setupWithAdjustment = async () => {
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      const [plain] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
+        raw: true,
+      });
+      const [manualOutOfWallet] = await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({ accountId: account.id, amount: 200 }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+        },
+        raw: true,
+      });
+      const adjustmentResult = await helpers.balanceAdjustment({
+        id: account.id,
+        payload: { targetBalance: asDecimal(500) },
+        raw: true,
+      });
+
+      return { plain, manualOutOfWallet, adjustment: adjustmentResult.transaction! };
+    };
+
+    it('hides only balance-adjustment rows, keeping other out-of-wallet transfers', async () => {
+      const { plain, manualOutOfWallet, adjustment } = await setupWithAdjustment();
+
+      const result = await helpers.getTransactions({ excludeBalanceAdjustments: true, raw: true });
+
+      const ids = result.map((tx) => tx.id);
+      expect(ids).toContain(plain.id);
+      expect(ids).toContain(manualOutOfWallet.id);
+      expect(ids).not.toContain(adjustment.id);
+    });
+
+    it('returns balance-adjustment rows when the flag is off', async () => {
+      const { plain, manualOutOfWallet, adjustment } = await setupWithAdjustment();
+
+      const result = await helpers.getTransactions({ raw: true });
+
+      const ids = result.map((tx) => tx.id);
+      expect(ids).toContain(plain.id);
+      expect(ids).toContain(manualOutOfWallet.id);
+      expect(ids).toContain(adjustment.id);
+    });
+
+    it('composes with a transferNatures include-list', async () => {
+      const { plain, manualOutOfWallet, adjustment } = await setupWithAdjustment();
+
+      const result = await helpers.getTransactions({
+        transferNatures: [TRANSACTION_TRANSFER_NATURE.transfer_out_wallet],
+        excludeBalanceAdjustments: true,
+        raw: true,
+      });
+
+      const ids = result.map((tx) => tx.id);
+      expect(ids).toContain(manualOutOfWallet.id);
+      expect(ids).not.toContain(plain.id);
+      expect(ids).not.toContain(adjustment.id);
     });
   });
 });
