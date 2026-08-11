@@ -225,7 +225,7 @@
       "settings": {
         "excludeTitle": "Exclude transactions",
         "excludeTransfersDescription": "Hide transfers between your own accounts",
-        "excludeOutOfWalletDescription": "Hide balance adjustments and other out-of-wallet transfers",
+        "excludeOutOfWalletDescription": "Hide transfers to and from accounts you don't track",
         "balanceAdjustmentsTitle": "Balance adjustments",
         "excludeBalanceAdjustmentsDescription": "Hide balance adjustment transactions",
         "nothingExcluded": "Nothing excluded"
