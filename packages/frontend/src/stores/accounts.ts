@@ -75,6 +75,20 @@ export const useAccountsStore = defineStore('accounts', () => {
     txTargetableAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.loan),
   );
 
+  // Loan and vehicle balances are replayed from their transactions, which would count a plan
+  // as money that already moved. Plans are owner-only: the backend rejects one on an account
+  // shared with the user.
+  const plannedTargetableAccountsActiveFirst = computed(() => {
+    const targetable = (accounts.value ?? []).filter(
+      (item) => !isDedicatedFlowAccountCategory(item.accountCategory) && (!item.share || item.share.isOwner === true),
+    );
+
+    return [
+      ...targetable.filter((item) => item.status === ACCOUNT_STATUSES.active),
+      ...targetable.filter((item) => item.status === ACCOUNT_STATUSES.archived),
+    ];
+  });
+
   // Vehicle and loan balances are derived (depreciation model / loan anchor), so
   // data imports must never link imported rows to them or shift their balance.
   // Import wizards offer only the remaining accounts as link targets; the backend
@@ -156,6 +170,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     systemAccountsActiveFirst,
     txTargetableAccountsActiveFirst,
     txTargetableSourceAccountsActiveFirst,
+    plannedTargetableAccountsActiveFirst,
     importLinkableAccounts,
     activeImportLinkableAccounts,
     accountsCurrencyCodes,

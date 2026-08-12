@@ -24,6 +24,7 @@ import { createPayeesIfNeeded } from '@services/import-export/core/resolve/creat
 import { createNamedTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
 import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { createTransaction } from '@services/transactions';
+import { selectAccountsWithPlannedRows } from '@services/transactions/planned-matching';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -130,13 +131,14 @@ export async function executeMsMoneyImport({
     source: ImportSource.msMoney,
   };
 
-  // The wire type marks `accountBalanceChanges` and `voidedImported` optional
-  // only for retained job results produced before those fields existed; this
-  // executor always emits both, so the local type re-requires them to keep the
-  // pushes and increments below well-typed.
+  // The wire type marks `accountBalanceChanges`, `voidedImported` and `merged`
+  // optional only for retained job results produced before those fields existed;
+  // this executor always emits all three, so the local type re-requires them to
+  // keep the pushes and increments below well-typed.
   const summary: MsMoneyImportSummary & {
     accountBalanceChanges: AccountBalanceChange[];
     voidedImported: number;
+    merged: number;
   } = {
     accountsCreated: 0,
     accountsLinked: 0,
@@ -147,6 +149,7 @@ export async function executeMsMoneyImport({
     transfersImported: 0,
     outOfWalletImported: 0,
     voidedImported: 0,
+    merged: 0,
     duplicatesSkipped: 0,
     errors: [],
     accountBalanceChanges: [],
@@ -253,6 +256,8 @@ export async function executeMsMoneyImport({
   });
   const reconciler = await startBalanceReconciliation({ userId, accountIds: capturedAccountIds });
 
+  const plannedMatchAccountIds = await selectAccountsWithPlannedRows({ accountIds: capturedAccountIds });
+
   // Phase 3: categories. Money nests them two deep, so a create-new leaf also
   // rebuilds its parent group; link-existing only verifies ownership. Categories
   // the user left out of the mapping resolve to nothing, so those rows import
@@ -349,7 +354,7 @@ export async function executeMsMoneyImport({
           ? `${baseNote} (voided: ${Math.abs(tx.voidedAmount).toFixed(2)})`.trim()
           : baseNote;
 
-      await createTransaction({
+      const createResult = await createTransaction({
         userId,
         accountId,
         amount,
@@ -371,6 +376,7 @@ export async function executeMsMoneyImport({
         // linked Payee's enforce/hint default. Inert when the row has no mapped
         // category, so Payee categorization still runs then.
         categoryIdIsExplicit: categoryId != null,
+        matchPlanned: plannedMatchAccountIds.has(accountId),
       });
 
       // Fold this committed row into the per-account balance tally IMMEDIATELY
@@ -387,7 +393,10 @@ export async function executeMsMoneyImport({
         }),
       });
 
-      if (tx.isVoid) {
+      // A merged row is an existing planned transaction, not a newly imported one.
+      if (createResult.mergedIntoPlanned) {
+        summary.merged += 1;
+      } else if (tx.isVoid) {
         summary.voidedImported += 1;
       } else if (tx.outOfWallet) {
         summary.outOfWalletImported += 1;

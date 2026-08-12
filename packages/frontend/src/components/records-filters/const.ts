@@ -21,6 +21,7 @@ export interface FiltersStruct {
   amountLte: number | undefined;
   transferFilter: FILTER_OPERATION;
   refundFilter: FILTER_OPERATION;
+  plannedFilter: FILTER_OPERATION;
   /** Which transfer kinds to include. All selected = no narrowing. */
   transferNatures: TRANSACTION_TRANSFER_NATURE[];
   accountIds: string[];
@@ -41,6 +42,7 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   amountLte: undefined,
   transferFilter: FILTER_OPERATION.all,
   refundFilter: FILTER_OPERATION.all,
+  plannedFilter: FILTER_OPERATION.all,
   transferNatures: [...SELECTABLE_TRANSFER_NATURES],
   accountIds: [],
   excludedBudgetIds: null,

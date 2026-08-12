@@ -66,6 +66,20 @@ export type GetSpendingsByCategoriesByTypeReturnType = {
 
 export type GetTransactionsResponse = TransactionModel[];
 
+/** One account's pending planned rows, aggregated. Deltas are decimals, income minus
+ *  expenses — `plannedDelta` in the account currency, `refPlannedDelta` in the base one. */
+export interface PlannedSummaryEntry {
+  accountId: RecordId;
+  currencyCode: string;
+  plannedDelta: number;
+  refPlannedDelta: number;
+  count: number;
+  /** ISO datetime of the furthest-out plan on the account. */
+  latestTime: string;
+}
+
+export type GetPlannedSummaryResponse = PlannedSummaryEntry[];
+
 export interface SplitInput {
   categoryId: RecordId;
   amount: number;
@@ -97,6 +111,7 @@ export interface CreateTransactionBody {
   payeeId?: RecordId | null;
   /** True when the caller wants future syncs to leave this row's Payee link alone. */
   payeeLocked?: boolean;
+  isPlanned?: boolean;
 }
 
 export interface UpdateTransactionBody {
@@ -125,6 +140,7 @@ export interface UpdateTransactionBody {
   tagIds?: string[] | null;
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
+  isPlanned?: boolean;
 }
 
 export interface UnlinkTransferTransactionsBody {

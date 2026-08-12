@@ -237,7 +237,7 @@ export const getSubscriptions = async ({
     }
   }
 
-  // Latest linked ACTIVE transaction time per subscription. Feeds the derived
+  // Latest linked ACTIVE, non-planned transaction time per subscription. Feeds the derived
   // next-due date for detection-only subs that have no open period. Selects only
   // the DATE column (no Money columns), so raw rows are safe.
   const latestTxRows = (await Subscriptions.findAll({
@@ -248,6 +248,7 @@ export const getSubscriptions = async ({
         model: Transactions,
         attributes: [],
         through: { attributes: [], where: { status: SUBSCRIPTION_LINK_STATUS.active } },
+        where: { isPlanned: false },
         required: false,
       },
     ],
@@ -337,7 +338,7 @@ export const getSubscriptionById = async ({
   const nextExpectedDate = computeNextExpectedDate({
     startDate: raw.startDate,
     frequency: raw.frequency,
-    transactions,
+    transactions: transactions.filter((tx) => !tx.isPlanned),
   });
 
   return {

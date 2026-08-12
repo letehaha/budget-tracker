@@ -54,4 +54,6 @@ export interface UI_FORM_STRUCT {
   payeeId?: string | null;
   /** True when the form initialized from an existing tx whose category was already user-touched. Used to gate the Payee auto-fill so we don't clobber an explicit category. */
   categoryUserTouched?: boolean;
+  /** Entry for money that hasn't moved yet: no balance impact until it's confirmed. */
+  isPlanned?: boolean;
 }

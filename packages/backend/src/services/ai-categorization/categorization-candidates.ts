@@ -18,6 +18,7 @@ import { CATEGORIZATION_SCOPE, type CategorizationScope } from './categorization
 export type CandidateWhere = {
   categorizationMeta: null;
   transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer;
+  isPlanned: false;
   categoryId?: string;
 };
 
@@ -46,6 +47,9 @@ export function ownedAccountsInclude({
  * Transfers are excluded on both scopes because the UI neither shows nor lets the user edit
  * a category on them, so an AI guess there is invisible and unfixable.
  *
+ * Planned rows are excluded because their category is the user's own entry, and an AI guess
+ * would overwrite it before the row ever becomes a real transaction.
+ *
  * `null` when a `defaultCategoryOnly` scope meets a user with no default category — nothing
  * can be a candidate then.
  */
@@ -59,6 +63,7 @@ export async function buildCandidateWhere({
   const base = {
     categorizationMeta: null,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+    isPlanned: false,
   } as const;
 
   if (scope === CATEGORIZATION_SCOPE.anyCategory) return base;

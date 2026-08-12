@@ -100,6 +100,7 @@
           "transactionsImported": "Transactions imported",
           "transfersImported": "Transfers imported",
           "outOfWalletImported": "Out-of-wallet imported",
+          "mergedIntoPlanned": "Merged into planned",
           "duplicatesSkipped": "Duplicates skipped",
           "errorsTitle": "{count} row(s) failed | {count} row failed | {count} rows failed",
           "errorsOverflow": "+{count} more",

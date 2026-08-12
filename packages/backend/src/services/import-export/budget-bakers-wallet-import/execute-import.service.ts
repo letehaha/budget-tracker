@@ -25,6 +25,7 @@ import { createNamedTagsIfNeeded } from '@services/import-export/core/resolve/cr
 import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
+import { selectAccountsWithPlannedRows } from '@services/transactions/planned-matching';
 import { v4 as uuidv4 } from 'uuid';
 
 import { mapBudgetBakersWalletPaymentType } from './localized-values';
@@ -98,10 +99,14 @@ export async function executeBudgetBakersWalletImport({
     source: ImportSource.budgetBakersWallet,
   };
 
-  // The wire type marks `accountBalanceChanges` optional only for retained job
-  // results produced before the field existed; this executor always emits it,
-  // so the local type re-requires it to keep the pushes below well-typed.
-  const summary: BudgetBakersWalletImportSummary & { accountBalanceChanges: AccountBalanceChange[] } = {
+  // The wire type marks `accountBalanceChanges` and `merged` optional only for
+  // retained job results produced before those fields existed; this executor
+  // always emits both, so the local type re-requires them to keep the pushes
+  // and increments below well-typed.
+  const summary: BudgetBakersWalletImportSummary & {
+    accountBalanceChanges: AccountBalanceChange[];
+    merged: number;
+  } = {
     accountsCreated: 0,
     accountsLinked: 0,
     categoriesCreated: 0,
@@ -110,6 +115,7 @@ export async function executeBudgetBakersWalletImport({
     transactionsImported: 0,
     transfersImported: 0,
     outOfWalletImported: 0,
+    merged: 0,
     duplicatesSkipped: 0,
     errors: [],
     accountBalanceChanges: [],
@@ -196,6 +202,8 @@ export async function executeBudgetBakersWalletImport({
     accountMapping,
   });
   const reconciler = await startBalanceReconciliation({ userId, accountIds: capturedAccountIds });
+
+  const plannedMatchAccountIds = await selectAccountsWithPlannedRows({ accountIds: capturedAccountIds });
 
   // Phase 3: categories. Resolve each mapped category to an id via the shared
   // CSV resolver: link-existing verifies ownership, create-new finds-or-creates
@@ -291,7 +299,7 @@ export async function executeBudgetBakersWalletImport({
       // false. An empty `payee` cell resolves to undefined → imports without a Payee.
       const payeeId = tx.payeeName ? payeeNameToId.get(tx.payeeName) : undefined;
 
-      const [transaction] = await createTransaction({
+      const createResult = await createTransaction({
         userId,
         accountId,
         amount,
@@ -311,7 +319,9 @@ export async function executeBudgetBakersWalletImport({
         // linked Payee's enforce/hint default. Inert when the row has no mapped
         // category, so Payee categorization still runs then.
         categoryIdIsExplicit: categoryId != null,
+        matchPlanned: plannedMatchAccountIds.has(accountId),
       });
+      const [transaction] = createResult;
 
       // Fold this committed row into the per-account balance tally IMMEDIATELY after
       // the commit, before any post-commit side-effect that can throw
@@ -328,34 +338,40 @@ export async function executeBudgetBakersWalletImport({
         }),
       });
 
-      if (tx.outOfWallet) {
-        summary.outOfWalletImported += 1;
+      // A merged row is an existing planned transaction, not a newly imported
+      // one, and it keeps the plan's own tag set.
+      if (createResult.mergedIntoPlanned) {
+        summary.merged += 1;
       } else {
-        summary.transactionsImported += 1;
-      }
+        if (tx.outOfWallet) {
+          summary.outOfWalletImported += 1;
+        } else {
+          summary.transactionsImported += 1;
+        }
 
-      // Union step: explicit `tagIds` made createTransaction skip the payee's
-      // default tags, so re-apply them here on top of the imported set.
-      // `applyPayeeDefaultTags` is add-only and dedupes, so both sets coexist.
-      // The transaction is already committed, so a failure here loses only the
-      // default tags and is reported as its own error — reporting it as a
-      // failed row would invite a re-import that duplicates the transaction.
-      if (transaction && hasImportedTags && transaction.payeeId) {
-        try {
-          await applyPayeeDefaultTags({
-            accountOwnerUserId: userId,
-            transactionId: transaction.id,
-            payeeId: transaction.payeeId,
-          });
-        } catch (err) {
-          logger.error({
-            message: `[Budget Bakers Wallet import] Failed to apply default payee tags (row ${tx.rowIndex}, account "${tx.accountName}")`,
-            error: err as Error,
-          });
-          summary.errors.push({
-            rowIndex: tx.rowIndex,
-            error: 'Transaction was imported, but the payee default tags could not be applied',
-          });
+        // Union step: explicit `tagIds` made createTransaction skip the payee's
+        // default tags, so re-apply them here on top of the imported set.
+        // `applyPayeeDefaultTags` is add-only and dedupes, so both sets coexist.
+        // The transaction is already committed, so a failure here loses only the
+        // default tags and is reported as its own error — reporting it as a
+        // failed row would invite a re-import that duplicates the transaction.
+        if (transaction && hasImportedTags && transaction.payeeId) {
+          try {
+            await applyPayeeDefaultTags({
+              accountOwnerUserId: userId,
+              transactionId: transaction.id,
+              payeeId: transaction.payeeId,
+            });
+          } catch (err) {
+            logger.error({
+              message: `[Budget Bakers Wallet import] Failed to apply default payee tags (row ${tx.rowIndex}, account "${tx.accountName}")`,
+              error: err as Error,
+            });
+            summary.errors.push({
+              rowIndex: tx.rowIndex,
+              error: 'Transaction was imported, but the payee default tags could not be applied',
+            });
+          }
         }
       }
     } catch (err) {

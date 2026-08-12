@@ -1,5 +1,6 @@
 import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { t } from '@i18n/index';
 import { ConflictError, ValidationError } from '@js/errors';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Transactions from '@models/transactions.model';
@@ -86,12 +87,18 @@ export const markPeriodPaid = withTransaction(
       linkedTransactionId = createdBaseTx.id;
     } else if (transactionId != null) {
       // Validate the caller-supplied transaction.
-      await findOrThrowNotFound({
+      const linkedTransaction = await findOrThrowNotFound({
         query: Transactions.findOne({
           where: { id: transactionId, userId },
         }),
         message: 'Transaction not found.',
       });
+
+      if (linkedTransaction.isPlanned) {
+        throw new ValidationError({
+          message: t({ key: 'transactions.plannedCannotConfirmPayment' }),
+        });
+      }
 
       // A transaction is one real payment, so it may back only one period. Scope
       // the lookup by transactionId alone (across every subscription): linking it

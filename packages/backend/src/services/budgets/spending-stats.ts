@@ -459,9 +459,11 @@ const buildSharedBudgetMergeMap = ({
 const getManualBudgetSpendingStats = async ({
   userId: ownerUserId,
   budgetId,
+  callerUserId,
 }: {
   userId: number;
   budgetId: string;
+  callerUserId: number;
 }): Promise<SpendingStatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findOne({ where: { id: budgetId, userId: ownerUserId } }),
@@ -473,6 +475,7 @@ const getManualBudgetSpendingStats = async ({
     budgetIds: [budgetId],
     from: 0,
     limit: Infinity,
+    plannedVisibleToUserId: callerUserId,
     attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked', 'userId'],
   });
 
@@ -554,9 +557,11 @@ const getManualBudgetSpendingStats = async ({
 const getCategoryBudgetSpendingStats = async ({
   userId,
   budgetId,
+  isOwner,
 }: {
   userId: number;
   budgetId: string;
+  isOwner: boolean;
 }): Promise<SpendingStatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findOne({
@@ -598,12 +603,17 @@ const getCategoryBudgetSpendingStats = async ({
     }
   });
 
+  // Planned rows are owner-only: they count as spent for the owner, but a share
+  // recipient must never see them.
+  const plannedFilter = isOwner ? {} : { isPlanned: false };
+
   // Primary category transactions (without splits)
   const primaryCategoryTransactions = await Transactions.default.findAll({
     where: {
       userId,
       categoryId: { [Op.in]: Array.from(expandedCategoryIds) },
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      ...plannedFilter,
       ...dateFilter,
     },
     include: [{ model: TransactionSplits, as: 'splits', required: false }],
@@ -622,6 +632,7 @@ const getCategoryBudgetSpendingStats = async ({
         as: 'transaction',
         where: {
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+          ...plannedFilter,
           ...dateFilter,
         },
         attributes: ['id', 'time', 'transactionType', 'refundLinked'],
@@ -700,7 +711,7 @@ export const getBudgetSpendingStats = async ({
   // Share-aware auth: recipient sees the same numbers the owner would (per PRD
   // visibility decision). Downstream queries scope against the owner's userId so
   // a recipient's unrelated transactions don't filter the result.
-  const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+  const { ownerUserId, isOwner } = await authorizeBudgetRead({ userId, budgetId });
 
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findOne({ where: { id: budgetId, userId: ownerUserId }, attributes: ['type'] }),
@@ -708,8 +719,8 @@ export const getBudgetSpendingStats = async ({
   });
 
   if (budgetDetails.type === BUDGET_TYPES.category) {
-    return getCategoryBudgetSpendingStats({ userId: ownerUserId, budgetId });
+    return getCategoryBudgetSpendingStats({ userId: ownerUserId, budgetId, isOwner });
   }
 
-  return getManualBudgetSpendingStats({ userId: ownerUserId, budgetId });
+  return getManualBudgetSpendingStats({ userId: ownerUserId, budgetId, callerUserId: userId });
 };

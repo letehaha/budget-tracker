@@ -19,6 +19,7 @@ import * as Accounts from '@models/accounts.model';
 import * as Users from '@models/users.model';
 import { CATEGORIZATION_SCOPE, queueCategorizationJob } from '@services/ai-categorization';
 import { createTransaction } from '@services/transactions';
+import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ExecuteImportParams {
@@ -56,6 +57,7 @@ async function executeImportImpl({
     return {
       summary: {
         imported: 0,
+        merged: 0,
         skipped: skipIndices.length,
         errors: [],
       },
@@ -77,9 +79,13 @@ async function executeImportImpl({
   // Get user's default category
   const defaultCategoryId = await Users.getUserDefaultCategory({ id: userId });
 
+  // One probe for the whole run instead of one per row.
+  const matchPlanned = await accountHasPlannedRows({ accountId });
+
   // Create transactions
   const errors: StatementImportError[] = [];
   const newTransactionIds: string[] = [];
+  let mergedCount = 0;
 
   for (let i = 0; i < transactions.length; i++) {
     // Skip if in skip list
@@ -145,7 +151,7 @@ async function executeImportImpl({
       // Without this path the imported row would arrive at AI with
       // `categorizationMeta = null` and bypass any Payee defaults the user has
       // already set up.
-      const [transaction] = await createTransaction({
+      const createResult = await createTransaction({
         userId,
         amount,
         commissionRate: Money.zero(),
@@ -161,9 +167,15 @@ async function executeImportImpl({
           importDetails,
         },
         rawMerchantName: tx.merchant?.trim() || null,
+        matchPlanned,
       });
+      const [transaction] = createResult;
 
-      if (transaction) {
+      // A merged row is an existing planned transaction the user already
+      // categorized, so it stays out of the ids fed to AI categorization below.
+      if (createResult.mergedIntoPlanned) {
+        mergedCount += 1;
+      } else if (transaction) {
         newTransactionIds.push(transaction.id);
       }
     } catch (error) {
@@ -186,6 +198,7 @@ async function executeImportImpl({
   return {
     summary: {
       imported: newTransactionIds.length,
+      merged: mergedCount,
       skipped: skipIndices.length,
       errors,
     },

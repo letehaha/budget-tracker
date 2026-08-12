@@ -6,6 +6,11 @@
       "emptyState": "Click Customize to add widgets"
     },
     "widgets": {
+      "common": {
+        "includePlanned": "Include planned transactions",
+        "includePlannedTooltip": "Count pending planned transactions in this widget's numbers.",
+        "includePlannedSaveError": "Couldn't save the planned transactions setting. Please try again."
+      },
       "balanceTrend": {
         "title": "Balance trend",
         "balanceTypes": {
@@ -54,9 +59,11 @@
           "spikeMarkers": "Spike markers",
           "fitToLatestData": "Fit to latest data",
           "fitToLatestDataTooltip": "When on, the chart only spans up to your latest data point. When off, the x-axis covers the full selected period, leaving empty space for any future dates.",
+          "fitToLatestDataLockedTooltip": "Turn off planned transactions to change this — their projection always extends the chart to the end of the period.",
           "on": "On",
           "off": "Off",
-          "includeInTotal": "Include in total"
+          "includeInTotal": "Include in total",
+          "includePlannedTooltip": "Show a dashed projection of pending planned transactions on top of the trend."
         },
         "componentsSettings": {
           "description": "Choose which components count toward the Total balance line.",
@@ -66,6 +73,9 @@
           "loansTooltip": "When on, your outstanding loan balances are subtracted from the total (true net worth). When off, loans are ignored so the total shows assets only.",
           "allIncluded": "All components",
           "excluding": "Excluding {items}"
+        },
+        "projection": {
+          "summary": "{amount} projected · {count} planned entry through {date} | {amount} projected · {count} planned entries through {date}"
         }
       },
       "expensesStructure": {
@@ -155,6 +165,13 @@
         "utilized": "utilized",
         "noAccounts": "No accounts with credit limits"
       },
+      "plannedOverview": {
+        "title": "Planned",
+        "projectedTotal": "Projected balance",
+        "pendingCount": "{count} planned entry | {count} planned entries",
+        "through": "Through {date}",
+        "loadFailed": "Couldn't load planned transactions"
+      },
       "emptyState": "There are no data in selected time interval.",
       "registry": {
         "balanceTrend": {
@@ -188,6 +205,10 @@
         "creditUtilization": {
           "name": "Credit Utilization",
           "description": "Credit limit usage across your accounts"
+        },
+        "plannedOverview": {
+          "name": "Planned overview",
+          "description": "Pending planned transactions and your projected balance"
         }
       }
     },
@@ -229,6 +250,8 @@
         "excludeOutOfWalletDescription": "Hide transfers to and from accounts you don't track",
         "balanceAdjustmentsTitle": "Balance adjustments",
         "excludeBalanceAdjustmentsDescription": "Hide balance adjustment transactions",
+        "plannedTitle": "Planned transactions",
+        "excludePlannedDescription": "Hide pending planned transactions from the list",
         "nothingExcluded": "Nothing excluded"
       },
       "overdueBadge": "Overdue",

@@ -43,6 +43,7 @@ export function slimTransactionsForMcp(txs: TransactionApiResponse[]) {
     transferNature: tx.transferNature,
     accountId: tx.accountId,
     categoryId: tx.categoryId,
+    isPlanned: tx.isPlanned,
     ...(tx.tags && { tags: tx.tags.map((t) => ({ id: t.id, name: t.name })) }),
     ...(tx.splits && {
       splits: tx.splits.map((s) => ({ categoryId: s.categoryId, amount: s.amount, note: s.note })),

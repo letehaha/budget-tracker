@@ -1,25 +1,36 @@
 <template>
   <!-- Borders live on cells, not the row: the table uses border-separate, where <tr> borders don't render -->
   <tr
-    class="hover:bg-muted/50 h-10 cursor-pointer divide-x transition-colors"
+    :class="['hover:bg-muted/50 h-10 cursor-pointer divide-x transition-colors', isPlannedRow && 'bg-muted']"
     aria-haspopup="true"
     :data-index="index"
     @click="emitRecordClick"
   >
     <!-- Selection checkbox (sticky so it survives horizontal scroll) -->
-    <td class="bg-card sticky left-0 z-1 w-8 border-b px-1" @click.stop>
-      <label class="flex items-center justify-center">
-        <Checkbox v-if="isSelectable" :model-value="isSelected" @update:model-value="onSelectionChange" />
-        <ResponsiveTooltip
-          v-else-if="unselectableReason"
-          :delay-duration="100"
-          :content="$t(`transactions.bulkEdit.unselectableReasons.${unselectableReason}`)"
-          content-class-name="max-w-56"
-        >
-          <InfoIcon class="text-muted-foreground size-3.5 cursor-help" />
-        </ResponsiveTooltip>
-        <div v-else class="size-4" />
-      </label>
+    <!-- Arbitrary property, not border-dashed: the cell's border-b must stay solid. -->
+    <td
+      :class="[
+        'sticky left-0 z-1 w-8 border-b px-1',
+        isPlannedRow ? 'bg-muted border-l-primary/60 border-l-2 [border-left-style:dashed]' : 'bg-card',
+      ]"
+      @click.stop
+    >
+      <div class="flex flex-col items-center justify-center gap-0.5">
+        <label class="flex items-center justify-center">
+          <Checkbox v-if="isSelectable" :model-value="isSelected" @update:model-value="onSelectionChange" />
+          <ResponsiveTooltip
+            v-else-if="unselectableReason"
+            :delay-duration="100"
+            :content="$t(`transactions.bulkEdit.unselectableReasons.${unselectableReason}`)"
+            content-class-name="max-w-56"
+          >
+            <InfoIcon class="text-muted-foreground size-3.5 cursor-help" />
+          </ResponsiveTooltip>
+          <div v-else class="size-4" />
+        </label>
+
+        <PlannedIndicator compact hide-confirmed :transaction="tx" />
+      </div>
     </td>
 
     <td
@@ -163,6 +174,7 @@ import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import PlannedIndicator from '@/components/transactions-list/indicators/planned-indicator.vue';
 import RefundIndicator from '@/components/transactions-list/indicators/refund-indicator.vue';
 import SplitIndicator from '@/components/transactions-list/indicators/split-indicator.vue';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
@@ -216,6 +228,7 @@ const isOutOfWalletTransfer = computed(
 );
 const isPortfolioLinked = computed(() => props.tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
 const isTransferRow = computed(() => isCommonTransfer.value || isOutOfWalletTransfer.value || isPortfolioLinked.value);
+const isPlannedRow = computed(() => props.tx.isPlanned);
 
 // Opposite leg lookup is only meaningful for common transfers; the composable
 // no-ops for other natures.

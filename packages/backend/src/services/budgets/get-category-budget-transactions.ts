@@ -24,7 +24,7 @@ export const getCategoryBudgetTransactions = async ({
 }: GetCategoryBudgetTransactionsParams) => {
   // Share-aware auth: recipient sees owner's transactions on the budget (per PRD
   // visibility decision), not a recipient-userId slice.
-  const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+  const { ownerUserId, isOwner } = await authorizeBudgetRead({ userId, budgetId });
 
   const budget = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId, {
@@ -48,12 +48,17 @@ export const getCategoryBudgetTransactions = async ({
     endDate: budget.endDate,
   });
 
+  // Planned rows are owner-only: they count as spent for the owner, but a share
+  // recipient must never see them.
+  const plannedFilter = isOwner ? {} : { isPlanned: false };
+
   // Get transactions where primary category matches and have no splits
   const primaryCategoryTransactions = await Transactions.default.findAll({
     where: {
       userId: ownerUserId,
       categoryId: { [Op.in]: categoryIds },
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      ...plannedFilter,
       ...dateFilter,
     },
     include: [
@@ -76,6 +81,7 @@ export const getCategoryBudgetTransactions = async ({
         as: 'transaction',
         where: {
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+          ...plannedFilter,
           ...dateFilter,
         },
         attributes: ['id', 'time', 'transactionType', 'note', 'accountId'],

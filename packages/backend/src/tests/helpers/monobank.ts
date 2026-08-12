@@ -7,6 +7,55 @@ import { getMockedClientData } from '@tests/mocks/monobank/data';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { subDays } from 'date-fns';
 
+/**
+ * Explicit payload for one mocked Monobank transaction. Money fields are plain numbers
+ * (cents, negative for an expense) and `time` accepts a `Date` alongside Monobank's unix
+ * seconds, so a test can pin an exact amount/date pair against a planned transaction.
+ */
+export interface MonobankTransactionOverride extends Partial<
+  Omit<
+    ExternalMonobankTransactionResponse,
+    'time' | 'amount' | 'operationAmount' | 'commissionRate' | 'cashbackAmount' | 'balance'
+  >
+> {
+  time?: number | Date;
+  amount?: number;
+  operationAmount?: number;
+  commissionRate?: number;
+  cashbackAmount?: number;
+  balance?: number;
+}
+
+const buildMockedTransaction = ({
+  time = new Date(),
+  amount = -1000,
+  operationAmount,
+  commissionRate = 0,
+  cashbackAmount = 0,
+  balance = 0,
+  ...rest
+}: MonobankTransactionOverride = {}): ExternalMonobankTransactionResponse => ({
+  id: faker.string.uuid(),
+  description: '',
+  mcc: 0,
+  originalMcc: 0,
+  hold: false,
+  currencyCode: 980,
+  comment: '',
+  receiptId: '',
+  invoiceId: '',
+  counterEdrpou: '',
+  counterIban: '',
+  counterName: '',
+  ...rest,
+  time: Math.floor((time instanceof Date ? time.getTime() : time * 1000) / 1000),
+  amount: asCents(amount),
+  operationAmount: asCents(operationAmount ?? amount),
+  commissionRate: asCents(commissionRate),
+  cashbackAmount: asCents(cashbackAmount),
+  balance: asCents(balance),
+});
+
 const getMockedTransactionData = (
   amount = 1,
   { initialBalance }: { initialBalance?: number } = {},
@@ -71,12 +120,21 @@ const getTransactions = async () => {
   );
 };
 
-const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promise<{
+/**
+ * `transactions` pins the exact payloads the bank returns; without it the mock invents
+ * `amount` random rows, which can never line up with a planned transaction.
+ */
+const addTransactions = async ({
+  amount = 10,
+  transactions: explicitTransactions,
+}: { amount?: number; transactions?: MonobankTransactionOverride[] } = {}): Promise<{
   account: Accounts;
   transactions: Transactions[];
 }> => {
   // Generate mocked transactions data first (we'll use initial balance later if account exists)
-  let mockedTransactions = getMockedTransactionData(amount);
+  let mockedTransactions = explicitTransactions
+    ? explicitTransactions.map((override) => buildMockedTransaction(override))
+    : getMockedTransactionData(amount);
 
   // Check if there's already a connected Monobank connection
   const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
@@ -101,7 +159,7 @@ const addTransactions = async ({ amount = 10 }: { amount?: number } = {}): Promi
       // Accounts already connected - just get the account and sync with mocked data
       account = await Accounts.findByPk(connection.accounts[0]!.id);
 
-      if (account) {
+      if (account && !explicitTransactions) {
         // Regenerate mocked transactions with correct initial balance
         mockedTransactions = getMockedTransactionData(amount, {
           initialBalance: account.initialBalance.toCents(),
@@ -183,5 +241,6 @@ export default {
   mockTransactions: addTransactions,
   mockedClientData: getMockedClientData,
   mockedTransactionData: getMockedTransactionData,
+  buildTransaction: buildMockedTransaction,
   mockedToken: VALID_MONOBANK_TOKEN,
 };

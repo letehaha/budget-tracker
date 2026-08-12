@@ -193,6 +193,7 @@ async function checkReminder({
     startDate: effectiveFrom.toISOString(),
     endDate: to.toISOString(),
     tagIds: [reminder.tagId],
+    isPlanned: false,
     from: 0,
     limit: isExistenceCheck ? 1 : undefined, // No limit for amount calculation, limit 1 for existence check
   });

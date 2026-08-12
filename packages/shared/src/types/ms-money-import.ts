@@ -358,6 +358,12 @@ export interface MsMoneyImportSummary extends ImportSummaryBase {
    * produced before this field existed do not carry it.
    */
   voidedImported?: number;
+  /**
+   * Rows that merged into an existing planned transaction instead of creating a
+   * new one. Counted here instead of `transactionsImported`. Optional for the
+   * same reason as `voidedImported`.
+   */
+  merged?: number;
   duplicatesSkipped: number;
   errors: MsMoneyImportError[];
 }

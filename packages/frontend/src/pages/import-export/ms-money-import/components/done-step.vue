@@ -58,6 +58,11 @@
         :value="summary.voidedImported ?? 0"
       />
       <StatCard
+        v-if="(summary.merged ?? 0) > 0"
+        :label="$t('pages.importExport.msMoneyImport.done.mergedIntoPlanned')"
+        :value="summary.merged ?? 0"
+      />
+      <StatCard
         v-if="summary.duplicatesSkipped > 0"
         :label="$t('pages.importExport.msMoneyImport.done.duplicatesSkipped')"
         :value="summary.duplicatesSkipped"

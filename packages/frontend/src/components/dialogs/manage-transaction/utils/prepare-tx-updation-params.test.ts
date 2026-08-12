@@ -364,6 +364,145 @@ describe('prepareTxUpdationParams', () => {
     });
   });
 
+  describe('planned rows', () => {
+    beforeEach(() => {
+      sourceAccount = getUahAccount();
+    });
+
+    it('keeps amount and date in the payload for a planned row on a synced account', () => {
+      const plannedTx = buildExternalExpenseTransaction({ isPlanned: true });
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(plannedTx),
+        type: FORM_TYPES.expense,
+        account: sourceAccount as AccountModel,
+        amount: 1500,
+        category: USER_CATEGORIES[0]!,
+        isPlanned: true,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: plannedTx,
+        linkedTransaction: null,
+        isTransferTx: false,
+        isRecordExternal: true,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result).toEqual({
+        txId: plannedTx.id,
+        amount: formMock.amount,
+        note: formMock.note,
+        time: expect.anything(),
+        transactionType: TRANSACTION_TYPES.expense,
+        paymentType: plannedTx.paymentType,
+        accountId: formMock.account!.id,
+        categoryId: formMock.category.id,
+        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      });
+    });
+
+    it('sends isPlanned: true when the flag is checked on an existing manual row', () => {
+      const expenseTx = buildSystemExpenseTransaction();
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(expenseTx),
+        type: FORM_TYPES.expense,
+        account: sourceAccount as AccountModel,
+        amount: 1500,
+        category: USER_CATEGORIES[0]!,
+        isPlanned: true,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: expenseTx,
+        linkedTransaction: null,
+        isTransferTx: false,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result.isPlanned).toBe(true);
+    });
+
+    it('sends isPlanned: false when the flag is unchecked on a planned row', () => {
+      const plannedTx = buildSystemExpenseTransaction({ isPlanned: true });
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(plannedTx),
+        type: FORM_TYPES.expense,
+        account: sourceAccount as AccountModel,
+        amount: 1500,
+        category: USER_CATEGORIES[0]!,
+        isPlanned: false,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: plannedTx,
+        linkedTransaction: null,
+        isTransferTx: false,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result.isPlanned).toBe(false);
+    });
+
+    it('omits isPlanned when an unrelated edit leaves the flag untouched', () => {
+      const plannedTx = buildSystemExpenseTransaction({ isPlanned: true });
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(plannedTx),
+        type: FORM_TYPES.expense,
+        account: sourceAccount as AccountModel,
+        amount: 1500,
+        note: 'Fixed a typo',
+        category: USER_CATEGORIES[0]!,
+        isPlanned: true,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: plannedTx,
+        linkedTransaction: null,
+        isTransferTx: false,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result).not.toHaveProperty('isPlanned');
+    });
+
+    it('never sends isPlanned: true in a transfer payload', () => {
+      const expenseTx = buildSystemExpenseTransaction();
+      const formMock: UI_FORM_STRUCT = {
+        ...buildBaseFormMock(expenseTx),
+        type: FORM_TYPES.transfer,
+        account: sourceAccount as AccountModel,
+        amount: 2000,
+        targetAmount: 2000,
+        toAccount: getUah2Account() as AccountModel,
+        // Stale flag the reset watch would have cleared already.
+        isPlanned: true,
+      };
+
+      const result = prepareTxUpdationParams({
+        form: formMock,
+        transaction: expenseTx,
+        linkedTransaction: null,
+        isTransferTx: true,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+      expect(result).not.toHaveProperty('isPlanned');
+    });
+  });
+
   describe('income/expense conversions', () => {
     beforeEach(() => {
       sourceAccount = getUahAccount();

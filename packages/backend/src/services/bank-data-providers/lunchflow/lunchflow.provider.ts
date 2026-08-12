@@ -25,10 +25,13 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
+import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { Op, Sequelize } from 'sequelize';
 
 import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { encryptCredentials } from '../utils/credential-encryption';
+import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
+import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { LunchFlowApiClient } from './api-client';
 import {
@@ -305,7 +308,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         // rows by originalSource. A future-dated planned row must not anchor
         // the cutoff, or every genuinely new row is skipped until that date.
         const latestTransaction = await Transactions.findOne({
-          where: { accountId: account.id, time: { [Op.lte]: new Date() } },
+          where: { accountId: account.id, time: { [Op.lte]: new Date() }, ...REAL_TRANSACTIONS_WHERE },
           order: [['time', 'DESC']],
         });
 
@@ -318,7 +321,12 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
         const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
         const createdTransactionIds: string[] = [];
+        let mergedIntoPlannedCount = 0;
         const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
+
+        // One probe per run instead of one per row. Anchorless runs are backfills
+        // and must not consume plans.
+        const matchPlanned = Boolean(latestTransaction) && (await accountHasPlannedRows({ accountId: account.id }));
 
         for (const tx of postedTransactions) {
           await checkpoint();
@@ -359,7 +367,7 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
           const isExpense = tx.amount < 0;
 
-          const [createdTx] = await createTransaction({
+          const createResult = await createTransaction({
             originalId: tx.id!,
             note: tx.description || tx.merchant || '',
             amount: Money.fromDecimal(Math.abs(tx.amount)),
@@ -379,15 +387,27 @@ export class LunchFlowProvider extends BaseBankDataProvider {
             transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
             accountType: ACCOUNT_TYPES.lunchflow,
             rawMerchantName: tx.merchant?.trim() || null,
+            matchPlanned,
           });
 
-          createdTransactionIds.push(createdTx.id);
+          // A merged row is not a new row: it keeps the user's category and payee, which the
+          // post-sync listeners on the emitted ids would overwrite.
+          if (createResult.mergedIntoPlanned) {
+            mergedIntoPlannedCount += 1;
+          } else {
+            createdTransactionIds.push(createResult[0].id);
+          }
         }
 
-        if (createdTransactionIds.length > 0) {
+        if (createdTransactionIds.length > 0 || mergedIntoPlannedCount > 0) {
           logger.info(
-            `[LunchFlow] Sync: ${createdTransactionIds.length} transactions created for account ${account.id}`,
+            `[LunchFlow] Sync: ${createdTransactionIds.length} transactions created, ${mergedIntoPlannedCount} planned confirmed for account ${account.id}`,
           );
+          await notifyPlannedConfirmations({
+            userId: connection.userId,
+            accountId: account.id,
+            mergedCount: mergedIntoPlannedCount,
+          });
         }
 
         // Update account balance

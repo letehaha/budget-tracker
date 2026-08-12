@@ -85,6 +85,15 @@ export const matchTransactionToSubscriptions = withTransaction(
       matchSource: SUBSCRIPTION_MATCH_SOURCE.rule,
     });
 
+    // On a planned row the user picked the category, payee and tags on purpose, so the
+    // match only records the link.
+    if (transaction.isPlanned) {
+      logger.info(
+        `Subscription "${best.subscription.name}" linked planned transaction ${transaction.id} (score: ${best.score.toFixed(3)}, candidates: ${candidates.length})`,
+      );
+      return best.subscription;
+    }
+
     // Apply category if subscription has one
     if (best.subscription.categoryId) {
       await Transactions.updateTransactionById({

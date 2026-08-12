@@ -401,7 +401,7 @@ async function recalculateAccounts(params: {
   const accountIds = accounts.map((a) => a.id);
   const boundaryRows = accountIds.length
     ? await Transactions.sequelize!.query<{ accountId: string; earliestTime: Date }>(
-        `SELECT "accountId", MIN("time") AS "earliestTime" FROM "Transactions" WHERE "accountId" IN (:accountIds) GROUP BY "accountId"`,
+        `SELECT "accountId", MIN("time") AS "earliestTime" FROM "Transactions" WHERE "accountId" IN (:accountIds) AND "isPlanned" = false GROUP BY "accountId"`,
         { replacements: { accountIds }, type: QueryTypes.SELECT, transaction },
       )
     : [];

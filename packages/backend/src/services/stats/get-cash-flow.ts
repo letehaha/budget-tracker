@@ -28,6 +28,8 @@ interface GetCashFlowParams {
    * parent.
    */
   excludedCategoryIds?: RecordId[];
+  /** Drops pending planned rows, leaving only money that actually moved. */
+  excludePlanned?: boolean;
 }
 
 type CategoryInfo = AccessibleCategoryInfo;
@@ -105,6 +107,7 @@ export const getCashFlow = withTransaction(
     accountId,
     categoryIds,
     excludedCategoryIds,
+    excludePlanned,
   }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
     // Generate period buckets
     const buckets = generatePeriodBuckets({ from, to, granularity });
@@ -150,6 +153,7 @@ export const getCashFlow = withTransaction(
           [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense],
         },
         ...(categoryWhere ? { categoryId: categoryWhere } : {}),
+        ...(excludePlanned ? { isPlanned: false } : {}),
         ...getWhereConditionForTime({ from, to, columnName: 'time' }),
       }),
       include: [

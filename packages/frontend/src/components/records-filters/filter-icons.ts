@@ -2,6 +2,7 @@ import {
   ArrowLeftRightIcon,
   ArrowUpDownIcon,
   BanknoteIcon,
+  CalendarClockIcon,
   LayersIcon,
   StickyNoteIcon,
   StoreIcon,
@@ -25,5 +26,6 @@ export const FILTER_ICONS: Record<ExtraFilterKey, FunctionalComponent> = {
   transferKinds: LayersIcon,
   refunds: UndoIcon,
   transfers: ArrowLeftRightIcon,
+  planned: CalendarClockIcon,
   note: StickyNoteIcon,
 };

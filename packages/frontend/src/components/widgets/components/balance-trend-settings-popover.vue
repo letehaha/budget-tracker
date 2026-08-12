@@ -57,15 +57,40 @@
                   </span>
                   <ResponsiveTooltip
                     :delay-duration="100"
-                    :content="t('dashboard.widgets.balanceTrend.settings.fitToLatestDataTooltip')"
+                    :content="fitToLatestDataTooltip"
                     content-class-name="max-w-60"
                   >
                     <InfoIcon class="text-muted-foreground size-3.5 cursor-help" @click.prevent.stop />
                   </ResponsiveTooltip>
                 </div>
                 <Switch
+                  class="shrink-0"
                   :model-value="persistedSettings.fitToLatestData"
+                  :disabled="isProjectionActive"
                   @update:model-value="onFitToLatestDataToggle"
+                />
+              </div>
+
+              <div class="flex items-center justify-between gap-2 rounded-md px-2 py-2">
+                <span class="max-w-45 text-sm font-medium">
+                  {{ t('dashboard.widgets.common.includePlanned') }}
+
+                  <ResponsiveTooltip
+                    :delay-duration="100"
+                    :content="t('dashboard.widgets.balanceTrend.settings.includePlannedTooltip')"
+                    content-class-name="max-w-60"
+                  >
+                    <InfoIcon
+                      class="text-muted-foreground inline size-3.5 -translate-y-px cursor-help"
+                      @click.prevent.stop
+                    />
+                  </ResponsiveTooltip>
+                </span>
+                <Switch
+                  class="shrink-0"
+                  data-testid="bt-include-planned-switch"
+                  :model-value="persistedSettings.includePlanned"
+                  @update:model-value="onIncludePlannedToggle"
                 />
               </div>
             </div>
@@ -236,6 +261,7 @@ import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { Switch } from '@/components/lib/ui/switch';
+import { readIncludePlanned, useIncludePlannedSaveError } from '@/components/widgets/use-include-planned-config';
 import { SPIKE_DEFAULTS } from '@/composable/charts/use-spike-detection';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useFormValidation } from '@/composable/form-validator';
@@ -245,9 +271,15 @@ import type { Ref } from 'vue';
 import { computed, inject, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+const props = defineProps<{
+  /** Whether the chart currently draws a projection, which owns the x-axis end while it does. */
+  isProjectionActive: boolean;
+}>();
+
 const { t } = useI18n({ useScope: 'global' });
 const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
 const { data: userSettingsData, mutateAsync: saveUserSettings } = useUserSettings();
+const notifyIncludePlannedSaveError = useIncludePlannedSaveError();
 
 const FIT_TO_LATEST_DATA_DEFAULT = true;
 const INCLUDE_VEHICLES_DEFAULT = true;
@@ -265,8 +297,17 @@ const persistedSettings = computed(() => {
     includeVehiclesInTotal: (cfg?.includeVehiclesInTotal as boolean | undefined) ?? INCLUDE_VEHICLES_DEFAULT,
     includeVenturesInTotal: (cfg?.includeVenturesInTotal as boolean | undefined) ?? INCLUDE_VENTURES_DEFAULT,
     includeLoansInTotal: (cfg?.includeLoansInTotal as boolean | undefined) ?? INCLUDE_LOANS_DEFAULT,
+    includePlanned: readIncludePlanned({ config: cfg }),
   };
 });
+
+// A drawn projection always extends the chart to the period end, so while one is on
+// screen the fit switch is inert and its tooltip says who owns the axis.
+const fitToLatestDataTooltip = computed(() =>
+  props.isProjectionActive
+    ? t('dashboard.widgets.balanceTrend.settings.fitToLatestDataLockedTooltip')
+    : t('dashboard.widgets.balanceTrend.settings.fitToLatestDataTooltip'),
+);
 
 const includeInTotalSummary = computed(() => {
   const excluded: string[] = [];
@@ -394,5 +435,13 @@ function onIncludeVenturesToggle(value: boolean) {
 
 function onIncludeLoansToggle(value: boolean) {
   persistConfig({ includeLoansInTotal: value });
+}
+
+async function onIncludePlannedToggle(value: boolean) {
+  try {
+    await persistConfig({ includePlanned: value });
+  } catch (error) {
+    notifyIncludePlannedSaveError({ error });
+  }
 }
 </script>

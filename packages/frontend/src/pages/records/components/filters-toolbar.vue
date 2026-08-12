@@ -145,6 +145,17 @@
           />
         </div>
 
+        <div
+          v-else-if="filterKey === 'planned'"
+          class="border-input bg-input-background flex h-10 items-center rounded-md border px-3"
+        >
+          <OperationPills
+            :label="$t('transactions.filters.plannedFilter.label')"
+            :model-value="filters.plannedFilter"
+            @update:model-value="emitFilters({ ...filters, plannedFilter: $event })"
+          />
+        </div>
+
         <div v-else-if="filterKey === 'note'" class="w-56">
           <NoteIncludesFilter
             compact

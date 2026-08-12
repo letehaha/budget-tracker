@@ -6,7 +6,7 @@
     }"
     class="input-field"
   >
-    <FieldLabel :label="label">
+    <FieldLabel :label="label" :only-template="nonLabelWrapper">
       <template v-if="$slots['label-after']" #label-after>
         <slot name="label-after" />
       </template>
@@ -92,6 +92,11 @@ const props = defineProps<{
   trailingIconCssClass?: string;
   leadingIconCssClass?: string;
   placeholder?: string;
+  /**
+   * Wraps the field in a `div` instead of a `label`. Needed when `label-right` holds a clickable
+   * control: it precedes the input in tree order, so a `label` would send every click to it.
+   */
+  nonLabelWrapper?: boolean;
 }>();
 
 const emits = defineEmits<{

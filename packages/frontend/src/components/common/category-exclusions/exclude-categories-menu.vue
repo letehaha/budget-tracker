@@ -5,7 +5,7 @@
         <SettingsIcon class="text-muted-foreground size-4" />
       </Button>
     </PopoverTrigger>
-    <PopoverContent class="w-52 p-1" align="end">
+    <PopoverContent class="w-60 p-1" align="end">
       <button
         type="button"
         class="hover:bg-accent flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
@@ -15,6 +15,8 @@
         <CircleOffIcon class="text-muted-foreground size-4" />
         {{ $t('dialogs.categoryExclusions.menuItem') }}
       </button>
+      <!-- Extra widget-specific rows rendered below the shared exclusions entry. -->
+      <slot />
     </PopoverContent>
   </Popover>
 

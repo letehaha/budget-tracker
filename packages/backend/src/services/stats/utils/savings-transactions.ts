@@ -27,6 +27,7 @@ export const fetchSavingsTransactions = ({
   Transactions.findAll({
     where: {
       userId,
+      isPlanned: false,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       transactionType: { [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense] },
       ...getWhereConditionForTime({ from, to, columnName: 'time' }),

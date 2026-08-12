@@ -52,6 +52,8 @@ export async function findDuplicates({
     endDate: `${maxDay}T23:59:59.999Z`,
     from: 0,
     limit: 10000,
+    // Planned rows are merge targets for incoming rows, not duplicates of them.
+    isPlanned: false,
   });
 
   // Build lookup maps for efficient matching

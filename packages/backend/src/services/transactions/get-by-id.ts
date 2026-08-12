@@ -96,6 +96,9 @@ export const getTransactionById = withTransaction(
     const tx = await TransactionsModel.findOne({ where: { id } });
     if (!tx) return null;
 
+    // Planned rows belong to their creator only; nobody reaches them through a share.
+    if (tx.isPlanned) return null;
+
     const access = await canUserAccessResource({
       userId,
       resourceType: RESOURCE_TYPES.account,

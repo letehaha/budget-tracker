@@ -1,15 +1,18 @@
-import { connection } from '@models/connection';
+import { connection, namespace } from '@models/connection';
 import { UniqueConstraintError } from 'sequelize';
 
 /**
  * Run `fn` inside a Postgres SAVEPOINT. A failed statement aborts the whole
  * surrounding transaction; a savepoint scopes the rollback to `fn`, keeping the
- * enclosing transaction usable. One line suffices because `Sequelize.useCLS`
- * makes `sequelize.transaction()` open a savepoint when a transaction is
- * already active on the async context (a plain transaction otherwise).
+ * enclosing transaction usable. The ambient transaction must be passed
+ * explicitly: CLS injects it into queries but not into `sequelize.transaction()`,
+ * which would otherwise open an independent transaction on a second connection
+ * and deadlock against row locks the ambient transaction already holds.
  */
 export function runInSavepoint<T>(fn: () => Promise<T>): Promise<T> {
-  return connection.sequelize.transaction(() => fn());
+  const ambient = namespace.get('transaction');
+  const options = ambient && !ambient.finished ? { transaction: ambient } : {};
+  return connection.sequelize.transaction(options, () => fn());
 }
 
 /**
