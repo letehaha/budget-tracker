@@ -100,6 +100,7 @@
           "transactionsImported": "Transacciones importadas",
           "transfersImported": "Transferencias importadas",
           "outOfWalletImported": "Fuera de Wallet importadas",
+          "mergedIntoPlanned": "Fusionadas con planificadas",
           "duplicatesSkipped": "Duplicados omitidos",
           "errorsTitle": "{count} fila(s) fallaron | {count} fila falló | {count} filas fallaron",
           "errorsOverflow": "+{count} más",

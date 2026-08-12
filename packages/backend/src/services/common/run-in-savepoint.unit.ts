@@ -1,4 +1,4 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { UniqueConstraintError } from 'sequelize';
 
 // ── Mocks (hoisted before importing the module under test) ──────────────────
@@ -6,19 +6,57 @@ import { UniqueConstraintError } from 'sequelize';
 // Stand in for the managed savepoint transaction: run the callback, return its
 // value on success, propagate its rejection on failure — exactly what a
 // `ROLLBACK TO SAVEPOINT` + rethrow looks like to the caller.
+const mockTransaction = jest.fn((_options: unknown, cb: () => Promise<unknown>) => cb());
+const mockNamespaceGet = jest.fn<(key: string) => unknown>();
+
 jest.mock('@models/connection', () => ({
   __esModule: true,
   connection: {
     sequelize: {
-      transaction: (cb: () => Promise<unknown>) => cb(),
+      transaction: (options: unknown, cb: () => Promise<unknown>) => mockTransaction(options, cb),
     },
+  },
+  namespace: {
+    get: (key: string) => mockNamespaceGet(key),
   },
 }));
 
 // eslint-disable-next-line import/first
-import { insertOrAdopt } from './run-in-savepoint';
+import { insertOrAdopt, runInSavepoint } from './run-in-savepoint';
 
 const makeUniqueError = () => new UniqueConstraintError({});
+
+beforeEach(() => {
+  mockTransaction.mockClear();
+  mockNamespaceGet.mockReset();
+});
+
+describe('runInSavepoint', () => {
+  it('passes the ambient CLS transaction as the parent', async () => {
+    const ambient = { finished: undefined };
+    mockNamespaceGet.mockReturnValue(ambient);
+
+    await runInSavepoint(() => Promise.resolve('ok'));
+
+    expect(mockTransaction).toHaveBeenCalledWith({ transaction: ambient }, expect.any(Function));
+  });
+
+  it('opens a plain transaction when the ambient transaction is finished', async () => {
+    mockNamespaceGet.mockReturnValue({ finished: 'commit' });
+
+    await runInSavepoint(() => Promise.resolve('ok'));
+
+    expect(mockTransaction).toHaveBeenCalledWith({}, expect.any(Function));
+  });
+
+  it('opens a plain transaction when no ambient transaction exists', async () => {
+    mockNamespaceGet.mockReturnValue(undefined);
+
+    await runInSavepoint(() => Promise.resolve('ok'));
+
+    expect(mockTransaction).toHaveBeenCalledWith({}, expect.any(Function));
+  });
+});
 
 describe('insertOrAdopt', () => {
   it('returns the inserted row and never consults adopt on success', async () => {

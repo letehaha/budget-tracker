@@ -42,6 +42,9 @@
       "transferFilter": {
         "label": "Transferencias"
       },
+      "plannedFilter": {
+        "label": "Planificadas"
+      },
       "filterOperation": {
         "all": "Todos",
         "exclude": "Excluir",
@@ -199,6 +202,13 @@
         "addFailed": "Error al añadir transacciones al grupo"
       }
     },
+    "planned": {
+      "label": "Planificada",
+      "confirmedLabel": "Confirmada",
+      "plannedTooltip": "Transacción planificada",
+      "expiredTooltip": "Se esperaba hace {days} días, sin transacción bancaria coincidente",
+      "mergedTooltip": "Confirmada a partir de un movimiento planificado del {date}"
+    },
     "transfer": {
       "hiddenAccount": "Cuenta oculta"
     },
@@ -261,7 +271,14 @@
       "overdueBadge": "Vencido",
       "scheduledBadge": "Programado",
       "payAction": "Marcar como pagado",
-      "hideToggle": "Ocultar pagos próximos"
+      "hideToggle": "Ocultar pagos próximos",
+      "expectedBadge": "Esperada",
+      "unconfirmedBadge": "Sin confirmar",
+      "morePlans": "+{count} planificadas más",
+      "morePlansAtLeast": "+{count}+ planificadas más",
+      "deletePlanTitle": "¿Eliminar la transacción planificada?",
+      "deletePlanDescription": "Esta acción no se puede deshacer.",
+      "plansLoadFailed": "No se pudieron cargar las transacciones planificadas"
     }
   }
 }

@@ -20,15 +20,17 @@ export const getExpensesAmountForPeriod = async ({
   from,
   to,
   excludedCategoryIds,
+  excludePlanned,
   ...rest
-}: Params & { excludedCategoryIds?: string[] } = {}): Promise<number> => {
-  const params: endpointsTypes.GetBalanceHistoryPayload & { excludedCategoryIds?: string } = {
+}: Params & { excludedCategoryIds?: string[]; excludePlanned?: boolean } = {}): Promise<number> => {
+  const params: endpointsTypes.GetBalanceHistoryPayload & { excludedCategoryIds?: string; excludePlanned?: string } = {
     ...rest,
   };
 
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
   if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
+  if (excludePlanned) params.excludePlanned = 'true';
 
   return api.get('/stats/expenses-amount-for-period', params);
 };
@@ -39,16 +41,19 @@ export const getSpendingsByCategories = async ({
   type,
   categoryIds,
   excludedCategoryIds,
+  excludePlanned,
   ...rest
 }: Params & {
   type?: TRANSACTION_TYPES;
   categoryIds?: string[];
   excludedCategoryIds?: string[];
+  excludePlanned?: boolean;
 } = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
   const params: endpointsTypes.GetBalanceHistoryPayload & {
     type?: string;
     categoryIds?: string;
     excludedCategoryIds?: string;
+    excludePlanned?: string;
   } = {
     ...rest,
   };
@@ -58,6 +63,7 @@ export const getSpendingsByCategories = async ({
   if (type) params.type = type;
   if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
   if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
+  if (excludePlanned) params.excludePlanned = 'true';
 
   return api.get('/stats/spendings-by-categories', params);
 };
@@ -67,10 +73,12 @@ export const getSpendingsByCategoriesByType = async ({
   to,
   categoryIds,
   excludedCategoryIds,
+  excludePlanned,
   ...rest
 }: Params & {
   categoryIds?: string[];
   excludedCategoryIds?: string[];
+  excludePlanned?: boolean;
 } = {}): Promise<endpointsTypes.GetSpendingsByCategoriesByTypeReturnType> => {
   const params: Record<string, string | boolean> = { groupByType: true };
 
@@ -79,6 +87,7 @@ export const getSpendingsByCategoriesByType = async ({
   if (to) params.to = formatDate(to);
   if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
   if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
+  if (excludePlanned) params.excludePlanned = true;
 
   return api.get('/stats/spendings-by-categories', params);
 };
@@ -115,6 +124,7 @@ interface GetCashFlowParams {
   accountId?: string;
   categoryIds?: string[];
   excludedCategoryIds?: string[];
+  excludePlanned?: boolean;
 }
 
 export const getCashFlow = async ({
@@ -124,6 +134,7 @@ export const getCashFlow = async ({
   accountId,
   categoryIds,
   excludedCategoryIds,
+  excludePlanned,
 }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
   const params: Record<string, string | number | boolean> = {
     from: formatDate(from),
@@ -138,6 +149,7 @@ export const getCashFlow = async ({
   if (excludedCategoryIds !== undefined && excludedCategoryIds.length > 0) {
     params.excludedCategoryIds = excludedCategoryIds.join(',');
   }
+  if (excludePlanned) params.excludePlanned = true;
 
   return api.get('/stats/cash-flow', params);
 };

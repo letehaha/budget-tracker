@@ -281,7 +281,7 @@ const handleClose = () => setOpen(false);
 
     <!-- Progress -->
     <div v-else-if="step === 'progress'" class="flex flex-col items-center gap-3 py-6 text-center">
-      <LoaderCircleIcon class="text-primary size-8 animate-spin" />
+      <LoaderCircleIcon class="text-primary-text size-8 animate-spin" />
       <p class="font-medium">{{ phaseLabel }}</p>
       <p v-if="progressInserted != null" class="text-muted-foreground text-sm">
         {{ $t('settings.security.backup.restore.progress.inserted', { count: progressInserted }) }}

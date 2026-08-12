@@ -118,6 +118,7 @@
           "outOfWalletImported": "Transferencias fuera de cartera",
           "duplicatesSkipped": "Duplicados omitidos",
           "voidedImported": "Anuladas importadas",
+          "mergedIntoPlanned": "Fusionadas con planificadas",
           "balanceWarningTitle": "Algunos saldos podrían estar desincronizados",
           "balanceWarningBody": "No pudimos establecer el saldo final en todas las cuentas. Revíselas y ajústelas si es necesario.",
           "errorsTitle": "{count} fila(s) no se pudieron importar",

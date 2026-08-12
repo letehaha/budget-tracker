@@ -3,7 +3,7 @@ import type { TagModel, TransactionModel, RecordId } from '@bt/shared/types';
 import type { InfiniteData, QueryClient } from '@tanstack/vue-query';
 import { toRaw } from 'vue';
 
-import { getTxTypeFromFormType } from '../helpers';
+import { getTxTypeFromFormType, isTxEditableAsManual, resolveFormIsPlanned } from '../helpers';
 import type { UI_FORM_STRUCT } from '../types';
 
 interface BuildOptimisticTransactionParams {
@@ -32,11 +32,11 @@ export const buildOptimisticTransaction = ({
     ...rawTransaction,
     note: form.note ?? '',
     paymentType: form.paymentType!.value,
+    isPlanned: resolveFormIsPlanned({ form }),
     updatedAt: new Date(),
   };
 
-  // Only update certain fields for non-external transactions
-  if (!isRecordExternal) {
+  if (isTxEditableAsManual({ transaction: rawTransaction, isRecordExternal })) {
     updatedTransaction.amount = Number(form.amount);
     updatedTransaction.time = new Date(form.time);
     updatedTransaction.transactionType = getTxTypeFromFormType(form.type);

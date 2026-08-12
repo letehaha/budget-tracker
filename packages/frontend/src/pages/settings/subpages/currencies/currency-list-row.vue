@@ -45,7 +45,7 @@
                   :class="
                     cn(
                       'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                      currency.custom ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                      currency.custom ? 'bg-primary/15 text-primary-text' : 'bg-muted text-muted-foreground',
                     )
                   "
                 >

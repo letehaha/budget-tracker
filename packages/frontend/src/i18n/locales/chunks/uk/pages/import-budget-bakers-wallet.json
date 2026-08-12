@@ -100,6 +100,7 @@
           "transactionsImported": "Транзакцій імпортовано",
           "transfersImported": "Переказів імпортовано",
           "outOfWalletImported": "Поза Wallet імпортовано",
+          "mergedIntoPlanned": "Об'єднано із запланованими",
           "duplicatesSkipped": "Дублікатів пропущено",
           "errorsTitle": "Не вдалося імпортувати {count} рядків | Не вдалося імпортувати {count} рядок | Не вдалося імпортувати {count} рядків",
           "errorsOverflow": "+{count} більше",

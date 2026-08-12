@@ -3,6 +3,7 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { addDays } from 'date-fns';
 
 describe('POST /transactions/bulk-delete', () => {
   it('deletes multiple transactions and updates the list', async () => {
@@ -94,6 +95,25 @@ describe('POST /transactions/bulk-delete', () => {
     const remainingIds = remaining.map((tx) => tx.id);
     expect(remainingIds).toContain(systemTx.id);
     expect(remainingIds).toContain(externalTxId);
+  });
+
+  it('deletes a planned transaction on a bank-connected account without moving the balance', async () => {
+    const { account } = await helpers.monobank.mockTransactions({ amount: 2 });
+    const balanceBefore = Number((await helpers.getAccount({ id: account.id, raw: true })).currentBalance);
+
+    const [planned] = await helpers.createPlannedTransaction({
+      payload: { accountId: account.id, amount: 250, time: addDays(new Date(), 5).toISOString() },
+      raw: true,
+    });
+
+    const result = await helpers.bulkDeleteTransactions({
+      payload: { transactionIds: [planned.id] },
+      raw: true,
+    });
+
+    expect(result.deletedCount).toBe(1);
+    expect(await helpers.getTransactionById({ id: planned.id, raw: true })).toBe(null);
+    expect(Number((await helpers.getAccount({ id: account.id, raw: true })).currentBalance)).toBe(balanceBefore);
   });
 
   it('validates that at least one id is required', async () => {

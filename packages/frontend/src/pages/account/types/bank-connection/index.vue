@@ -105,7 +105,7 @@ const tabItems = computed<PillTabItem[]>(() => {
           </p>
           <RouterLink
             :to="{ name: ROUTES_NAMES.accountIntegrationDetails, params: { connectionId: currentConnection.id } }"
-            class="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
+            class="text-primary-text hover:text-primary-text/80 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
           >
             {{ $t('pages.account.integrations.reauthBanner.reconnectLink') }}
             <ExternalLinkIcon class="size-3" />

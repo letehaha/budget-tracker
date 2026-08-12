@@ -38,6 +38,7 @@ export const getSpendingsByCategories = async ({
   excludedCategoryIds,
   type,
   groupByType,
+  excludePlanned,
 }: {
   raw?: boolean;
   from?: string;
@@ -46,6 +47,7 @@ export const getSpendingsByCategories = async ({
   excludedCategoryIds?: string[];
   type?: TRANSACTION_TYPES;
   groupByType?: boolean;
+  excludePlanned?: boolean;
 } = {}) => {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
@@ -56,6 +58,7 @@ export const getSpendingsByCategories = async ({
   }
   if (type) params.append('type', type);
   if (groupByType) params.append('groupByType', 'true');
+  if (excludePlanned !== undefined) params.append('excludePlanned', String(excludePlanned));
 
   const result = await helpers.makeRequest({
     method: 'get',
@@ -69,11 +72,13 @@ export async function getExpensesAmountForPeriod<R extends boolean | undefined =
   from,
   to,
   excludedCategoryIds,
+  excludePlanned,
   raw,
 }: {
   from?: string;
   to?: string;
   excludedCategoryIds?: string[];
+  excludePlanned?: boolean;
   raw?: R;
 }) {
   const params = new URLSearchParams();
@@ -82,6 +87,7 @@ export async function getExpensesAmountForPeriod<R extends boolean | undefined =
   if (excludedCategoryIds && excludedCategoryIds.length > 0) {
     params.append('excludedCategoryIds', excludedCategoryIds.join(','));
   }
+  if (excludePlanned !== undefined) params.append('excludePlanned', String(excludePlanned));
 
   const result = await helpers.makeRequest<number, R>({
     method: 'get',
@@ -113,6 +119,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   accountId,
   categoryIds,
   excludedCategoryIds,
+  excludePlanned,
   raw,
 }: {
   from: string;
@@ -121,6 +128,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   accountId?: string;
   categoryIds?: string[];
   excludedCategoryIds?: string[];
+  excludePlanned?: boolean;
   raw?: R;
 }) {
   const params = new URLSearchParams();
@@ -132,6 +140,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   if (excludedCategoryIds && excludedCategoryIds.length > 0) {
     params.append('excludedCategoryIds', excludedCategoryIds.join(','));
   }
+  if (excludePlanned !== undefined) params.append('excludePlanned', String(excludePlanned));
 
   const result = await helpers.makeRequest<endpointsTypes.GetCashFlowResponse, R>({
     method: 'get',

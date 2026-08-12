@@ -276,6 +276,7 @@ export async function transformTransactions({
       refundOf,
       linkedTransfer,
       subscription: subNameByTxId.get(tx.id) ?? '',
+      isPlanned: tx.isPlanned,
     };
   });
 }

@@ -27,11 +27,14 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
+import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
+import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
+import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { EnableBankingApiClient, isAspspDateRangeRejection } from './api-client';
 import {
@@ -759,7 +762,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
           // Find the most recent transaction
           const latestTransaction = await Transactions.findOne({
-            where: { accountId: account.id },
+            where: { accountId: account.id, ...REAL_TRANSACTIONS_WHERE },
             order: [['time', 'DESC']],
           });
 
@@ -768,8 +771,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // Incremental: `from` anchored to last tx – bank lookback can't be exceeded.
           // Initial: no anchor, must negotiate window with bank.
           // Anchor capped at `to`: it is a MAX over every row on the account, so one
-          // future-dated entry – a planned expense the user typed in, or a value_date
-          // past today – would ask for a date_from the bank rejects on every sync.
+          // future-dated entry – a value_date past today – would ask for a date_from
+          // the bank rejects on every sync.
           const providerTransactions = latestTransaction
             ? await this.fetchTransactions(
                 connectionId,
@@ -804,6 +807,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // Rows the bank booked this run: auto-link eligible, but not new, so they must not be re-emitted.
           const bookedUpgradedTransactionIds: string[] = [];
           let updatedCount = 0;
+          const mergedPlannedIds: string[] = [];
+          // Only the incremental branch may confirm a plan: the initial history fetch
+          // reaches years back, where a same-amount charge would eat an unrelated plan.
+          const matchPlanned = Boolean(latestTransaction) && (await accountHasPlannedRows({ accountId: account.id }));
           // Tier 4 costs one extra query per unmatched row, and on an initial 3-year
           // sync every row is unmatched. Flips to true as soon as this run stores a
           // pending row so a same-batch booked copy can still upgrade it.
@@ -839,6 +846,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
                 } else {
                   const createdIndex = createdTransactionIds.indexOf(existingTx.id);
                   if (createdIndex !== -1) createdTransactionIds.splice(createdIndex, 1);
+                  const mergedIndex = mergedPlannedIds.indexOf(existingTx.id);
+                  if (mergedIndex !== -1) mergedPlannedIds.splice(mergedIndex, 1);
                   await existingTx.destroy();
                   revokedRemovedCount++;
                 }
@@ -946,7 +955,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
             // TODO: consider creating transactions in batch?
             // Create transaction using service (handles all required fields)
-            const [createdTx] = await createTransaction({
+            const createResult = await createTransaction({
               originalId: tx.externalId,
               note: tx.description,
               amount: Money.fromCents(Math.abs(tx.amount)), // Ensure positive value
@@ -965,9 +974,18 @@ export class EnableBankingProvider extends BaseBankDataProvider {
               transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
               accountType: ACCOUNT_TYPES.enableBanking,
               rawMerchantName: merchantNameClean || null,
+              matchPlanned,
             });
 
-            createdTransactionIds.push(createdTx.id);
+            const [createdTx] = createResult;
+
+            // A merged row is not a new row: it keeps the user's category and payee, which
+            // the post-sync listeners on the emitted ids would overwrite.
+            if (createResult.mergedIntoPlanned) {
+              mergedPlannedIds.push(createdTx.id);
+            } else {
+              createdTransactionIds.push(createdTx.id);
+            }
 
             if (isPreBookingStatus({ status: incomingStatus })) {
               accountHasPendingRows = true;
@@ -978,14 +996,21 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           if (
             createdTransactionIds.length > 0 ||
             updatedCount > 0 ||
+            mergedPlannedIds.length > 0 ||
             stalePendingIgnoredCount > 0 ||
             revokedRemovedCount > 0 ||
             revokedKeptCount > 0
           ) {
             logger.info(
-              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated, ${stalePendingIgnoredCount} stale pending ignored, ${revokedRemovedCount} revoked removed, ${revokedKeptCount} revoked kept for account ${account.id}`,
+              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated, ${mergedPlannedIds.length} planned confirmed, ${stalePendingIgnoredCount} stale pending ignored, ${revokedRemovedCount} revoked removed, ${revokedKeptCount} revoked kept for account ${account.id}`,
             );
           }
+
+          await notifyPlannedConfirmations({
+            userId: connection.userId,
+            accountId: account.id,
+            mergedCount: mergedPlannedIds.length,
+          });
 
           // Runs before the authoritative write below so today's row ends up
           // holding the bank's own balance rather than a re-derived one.

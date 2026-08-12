@@ -28,7 +28,7 @@
                   <p class="font-medium">{{ parseUserAgent(session.userAgent) }}</p>
                   <span
                     v-if="session.isCurrent"
-                    class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium"
+                    class="bg-primary/10 text-primary-text rounded-full px-2 py-0.5 text-xs font-medium"
                   >
                     {{ $t('settings.security.activeSessions.currentBadge') }}
                   </span>

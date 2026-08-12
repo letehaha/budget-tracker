@@ -65,12 +65,21 @@ export const loadTransactions = async ({
   includeSplits?: boolean;
   includeTags?: boolean;
   includeGroups?: boolean;
+  /** true = only planned rows, false = exclude them, absent = both. */
+  isPlanned?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
   return api.get('/transactions', {
     ...params,
+    // The client drops falsy query values, which would swallow `isPlanned: false`.
+    // Stringifying keeps the "exclude planned" intent on the wire.
+    isPlanned: params.isPlanned === undefined ? undefined : String(params.isPlanned),
     from: from ? new Date(from).toISOString() : undefined,
     to: to ? new Date(to).toISOString() : undefined,
   });
+};
+
+export const loadPlannedSummary = async (): Promise<endpointsTypes.GetPlannedSummaryResponse> => {
+  return api.get('/transactions/planned-summary');
 };
 
 export const loadTransactionsByTransferId = async (transferId: string): Promise<TransactionModel[]> => {

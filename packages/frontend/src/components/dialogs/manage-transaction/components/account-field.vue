@@ -134,6 +134,9 @@
           <template #item="{ item, label }">
             <AccountOptionRow :account="item" :label="label" archived-class="text-muted-foreground" />
           </template>
+          <template v-if="$slots['account-label-right']" #label-right>
+            <slot name="account-label-right" />
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="mt-4 w-full" variant="link">
@@ -142,6 +145,8 @@
             </CreateAccountDialog>
           </template>
         </select-field>
+
+        <slot name="account-hint" />
       </form-row>
     </template>
   </template>
@@ -151,14 +156,18 @@
         :model-value="$t('dialogs.manageTransaction.form.noAccountExists')"
         :label="$t('dialogs.manageTransaction.form.accountLabel')"
         readonly
+        non-label-wrapper
         :disabled="disabled"
       >
         <template #label-right>
-          <CreateAccountDialog>
-            <div class="text-primary cursor-pointer hover:underline">
-              {{ $t('dialogs.manageTransaction.form.createAccountLink') }}
-            </div>
-          </CreateAccountDialog>
+          <div class="flex items-center gap-3">
+            <slot name="account-label-right" />
+            <CreateAccountDialog>
+              <div class="text-primary-text cursor-pointer hover:underline">
+                {{ $t('dialogs.manageTransaction.form.createAccountLink') }}
+              </div>
+            </CreateAccountDialog>
+          </div>
         </template>
       </input-field>
     </form-row>

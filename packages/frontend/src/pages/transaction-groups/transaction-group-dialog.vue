@@ -145,7 +145,7 @@ const summary = computed(() => {
   <ResponsiveDialog :open="open" dialog-content-class="sm:max-w-2xl" @update:open="emit('update:open', $event)">
     <template #title>
       <div class="flex items-center gap-2">
-        {{ group?.name ?? t('transactions.transactionGroups.groupDialog.loadingText') }}
+        {{ group?.name ?? t('transactionGroups.groupDialog.loadingText') }}
 
         <Popover v-if="group" v-model:open="isActionsPopoverOpen">
           <PopoverTrigger as-child>
@@ -156,11 +156,11 @@ const summary = computed(() => {
           <PopoverContent align="start" class="flex w-auto min-w-40 flex-col gap-1 p-1">
             <Button variant="ghost" size="sm" class="w-full justify-start" @click="startEdit">
               <PencilIcon class="mr-2 size-4" />
-              {{ t('transactions.transactionGroups.groupDialog.editAction') }}
+              {{ t('transactionGroups.groupDialog.editAction') }}
             </Button>
             <Button variant="ghost-destructive" size="sm" class="w-full justify-start" @click="openDeleteConfirm">
               <Trash2Icon class="mr-2 size-4" />
-              {{ t('transactions.transactionGroups.groupDialog.deleteAction') }}
+              {{ t('transactionGroups.groupDialog.deleteAction') }}
             </Button>
           </PopoverContent>
         </Popover>
@@ -186,13 +186,13 @@ const summary = computed(() => {
         >
           <div class="bg-muted/30 px-4 py-2.5">
             <p class="text-muted-foreground text-xs">
-              {{ t('transactions.transactionGroups.groupDialog.summary.transactions') }}
+              {{ t('transactionGroups.groupDialog.summary.transactions') }}
             </p>
             <p class="text-lg font-semibold">{{ summary.count }}</p>
           </div>
           <div class="bg-muted/30 px-4 py-2.5">
             <p class="text-muted-foreground text-xs">
-              {{ t('transactions.transactionGroups.groupDialog.summary.net') }}
+              {{ t('transactionGroups.groupDialog.summary.net') }}
             </p>
             <p
               class="text-lg font-semibold"
@@ -204,13 +204,13 @@ const summary = computed(() => {
           <template v-if="summary.hasBothTypes">
             <div class="bg-muted/30 px-4 py-2.5">
               <p class="text-muted-foreground text-xs">
-                {{ t('transactions.transactionGroups.groupDialog.summary.moneyIn') }}
+                {{ t('transactionGroups.groupDialog.summary.moneyIn') }}
               </p>
               <p class="text-app-income-color text-lg font-semibold">{{ formatBaseCurrency(summary.income) }}</p>
             </div>
             <div class="bg-muted/30 px-4 py-2.5">
               <p class="text-muted-foreground text-xs">
-                {{ t('transactions.transactionGroups.groupDialog.summary.moneyOut') }}
+                {{ t('transactionGroups.groupDialog.summary.moneyOut') }}
               </p>
               <p class="text-app-expense-color text-lg font-semibold">{{ formatBaseCurrency(summary.expense) }}</p>
             </div>
@@ -220,7 +220,7 @@ const summary = computed(() => {
 
       <div class="space-y-1">
         <h4 class="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-          {{ t('transactions.transactionGroups.groupDialog.transactionsLabel') }} ({{ transactions.length }})
+          {{ t('transactionGroups.groupDialog.transactionsLabel') }} ({{ transactions.length }})
         </h4>
         <TransactionsList raw-list :paginate="false" :transactions="transactions">
           <template #row-trailing="{ tx }">
@@ -246,9 +246,9 @@ const summary = computed(() => {
     confirm-variant="destructive"
     @confirm="handleDelete"
   >
-    <template #title>{{ t('transactions.transactionGroups.groupDialog.deleteGroupTitle') }}</template>
+    <template #title>{{ t('transactionGroups.groupDialog.deleteGroupTitle') }}</template>
     <template #description>
-      {{ t('transactions.transactionGroups.groupDialog.deleteGroupDescription', { groupName: group?.name }) }}
+      {{ t('transactionGroups.groupDialog.deleteGroupDescription', { groupName: group?.name }) }}
     </template>
   </ResponsiveAlertDialog>
 
@@ -257,19 +257,19 @@ const summary = computed(() => {
     v-model:open="removeConfirm.isOpen"
     :confirm-label="
       wouldDissolve
-        ? t('transactions.transactionGroups.groupDialog.removeAndDeleteButtonText')
-        : t('transactions.transactionGroups.groupDialog.removeButtonText')
+        ? t('transactionGroups.groupDialog.removeAndDeleteButtonText')
+        : t('transactionGroups.groupDialog.removeButtonText')
     "
     confirm-variant="destructive"
     @confirm="confirmRemoveTransaction"
   >
-    <template #title>{{ t('transactions.transactionGroups.groupDialog.removeTransactionTitle') }}</template>
+    <template #title>{{ t('transactionGroups.groupDialog.removeTransactionTitle') }}</template>
     <template #description>
       <template v-if="wouldDissolve">
-        {{ t('transactions.transactionGroups.groupDialog.removeTransactionDescription') }}
+        {{ t('transactionGroups.groupDialog.removeTransactionDescription') }}
       </template>
       <template v-else>
-        {{ t('transactions.transactionGroups.groupDialog.removeTransactionDescriptionNormal') }}
+        {{ t('transactionGroups.groupDialog.removeTransactionDescriptionNormal') }}
       </template>
     </template>
   </ResponsiveAlertDialog>

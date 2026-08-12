@@ -128,6 +128,7 @@
             >
               <UsersIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" :aria-label="addedByTooltip" />
             </ResponsiveTooltip>
+            <PlannedIndicator :transaction="transaction" />
             <SplitIndicator :transaction="transaction" />
             <RefundIndicator :transaction="transaction" />
             <TagsIndicator :transaction="transaction" />
@@ -187,6 +188,7 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import PlannedIndicator from './indicators/planned-indicator.vue';
 import RefundIndicator from './indicators/refund-indicator.vue';
 import SplitIndicator from './indicators/split-indicator.vue';
 import TagsIndicator from './indicators/tags-indicator.vue';
@@ -268,7 +270,7 @@ const accountFrom = computed(() => accountsRecord.value[transaction.value.accoun
 const addedByTooltip = computed(() => {
   const addedBy = transaction.value.addedBy;
   if (!addedBy || addedBy.id === currentUser.value?.id) return undefined;
-  return t('transactions.addedByTooltip', { handle: `@${addedBy.username}` });
+  return t('common.transactions.record.addedByTooltip', { handle: `@${addedBy.username}` });
 });
 const accountTo = computed(() =>
   oppositeTransferTransaction.value ? accountsRecord.value[oppositeTransferTransaction.value.accountId] : undefined,
@@ -299,12 +301,12 @@ const transferSeparator = computed(() =>
 // Accounts can be undefined when hidden from the caller — e.g. a recipient viewing a
 // transfer on a shared account whose other side lives in an unshared private account of
 // the owner. Fall back to a labeled placeholder rather than rendering "undefined".
-const transferFromLabel = computed(() => accountFrom.value?.name ?? t('transactions.transfer.hiddenAccount'));
+const transferFromLabel = computed(() => accountFrom.value?.name ?? t('common.transactions.record.hiddenAccount'));
 const transferToLabel = computed(() => {
   if (transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
     return t('common.outOfWallet');
   }
-  return accountTo.value?.name ?? t('transactions.transfer.hiddenAccount');
+  return accountTo.value?.name ?? t('common.transactions.record.hiddenAccount');
 });
 
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');

@@ -45,21 +45,24 @@ export function computePrevPeriod({ from, to }: DatePeriod): DatePeriod {
  * The five periods preceding the selected one, plus the selected one itself
  * (flagged `isCurrent`), oldest first — the buckets behind the trend bars.
  */
-export function computeTrendPeriods({ from, to }: DatePeriod): TrendPeriod[] {
+export function computeTrendPeriods({ from, to }: DatePeriod): [TrendPeriod, ...TrendPeriod[]] {
   const durationInDays = differenceInDays(to, from) + 1;
   const fullMonth = isFullMonthPeriod({ from, to });
 
-  const periods: TrendPeriod[] = [];
-
-  for (let i = PREV_PERIOD_COUNT; i >= 1; i--) {
+  const windowBack = (stepsBack: number): TrendPeriod => {
     if (fullMonth) {
-      const periodFrom = startOfMonth(subMonths(from, i));
-      periods.push({ from: periodFrom, to: endOfMonth(periodFrom), isCurrent: false });
-    } else {
-      const periodTo = subDays(from, (i - 1) * durationInDays + 1);
-      const periodFrom = subDays(periodTo, durationInDays - 1);
-      periods.push({ from: periodFrom, to: periodTo, isCurrent: false });
+      const periodFrom = startOfMonth(subMonths(from, stepsBack));
+      return { from: periodFrom, to: endOfMonth(periodFrom), isCurrent: false };
     }
+
+    const periodTo = subDays(from, (stepsBack - 1) * durationInDays + 1);
+    return { from: subDays(periodTo, durationInDays - 1), to: periodTo, isCurrent: false };
+  };
+
+  const periods: [TrendPeriod, ...TrendPeriod[]] = [windowBack(PREV_PERIOD_COUNT)];
+
+  for (let i = PREV_PERIOD_COUNT - 1; i >= 1; i--) {
+    periods.push(windowBack(i));
   }
 
   // The selected period is the last (rightmost) bar.

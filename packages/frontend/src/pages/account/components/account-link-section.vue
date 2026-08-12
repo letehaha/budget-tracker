@@ -116,7 +116,7 @@ const linkingError = computed(() => {
 <template>
   <div v-if="showLinkOption" class="rounded-lg border p-5">
     <div class="mb-4 flex items-center gap-2.5">
-      <div class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full">
+      <div class="bg-primary/10 text-primary-text flex size-9 shrink-0 items-center justify-center rounded-full">
         <Link2Icon class="size-4" />
       </div>
       <div>
@@ -135,7 +135,7 @@ const linkingError = computed(() => {
           :key="key"
           class="flex items-start gap-2 text-sm"
         >
-          <CheckIcon class="text-primary mt-0.5 size-4 shrink-0" />
+          <CheckIcon class="text-primary-text mt-0.5 size-4 shrink-0" />
           <span>{{ $t(`pages.account.link.${key}`) }}</span>
         </li>
       </ul>

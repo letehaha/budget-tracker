@@ -36,7 +36,7 @@ watch(
       <Tooltip.TooltipProvider>
         <Tooltip.Tooltip>
           <Tooltip.TooltipTrigger>
-            <InfoIcon class="text-primary size-4" />
+            <InfoIcon class="text-primary-text size-4" />
           </Tooltip.TooltipTrigger>
           <Tooltip.TooltipContent class="max-w-[400px] p-4">
             <span class="text-sm leading-6 opacity-90">

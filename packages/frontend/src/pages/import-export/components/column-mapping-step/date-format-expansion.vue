@@ -38,7 +38,7 @@
               {{ label }}
               <span
                 v-if="item.value === analysis.suggestion"
-                class="bg-primary/10 text-primary rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                class="bg-primary/10 text-primary-text rounded-full px-1.5 py-0.5 text-[10px] font-medium"
               >
                 {{ $t('pages.importExport.mapColumns.dateFormat.suggestedBadge') }}
               </span>

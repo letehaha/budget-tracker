@@ -6,6 +6,7 @@ import { linkTransactions } from '@services/transactions/transactions-linking/li
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
+import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { TRANSFER_DATE_WINDOW_DAYS, normalizeIban } from '../utils/transfer-matching';
 
 /**
@@ -45,6 +46,7 @@ function extractCounterpartyIban({
  * - Date within ±3 days
  * - Opposite transaction type (PAYOUT→income, PAYIN→expense)
  * - Neither transaction is already linked as a transfer
+ * - Neither transaction is planned
  *
  * Only links when exactly 1 unambiguous match is found.
  */
@@ -128,6 +130,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
         accountId: { [Op.in]: matchingAccountIds },
         transactionType: expectedOppositeType,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        ...REAL_TRANSACTIONS_WHERE,
         currencyCode: tx.currencyCode,
         // amount is stored as cents in DB, tx.amount is a Money object
         amount: tx.amount.toCents(),
@@ -149,7 +152,22 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
 
   if (pairsToLink.length === 0) return;
 
-  await linkTransactions({ userId, ids: pairsToLink });
+  // One rejected pair (planned or split-bearing leg) must not abort the rest of the batch.
+  let linkedCount = 0;
+  for (const pair of pairsToLink) {
+    try {
+      await linkTransactions({ userId, ids: [pair] });
+      linkedCount += 1;
+    } catch (err) {
+      logger.warn(
+        `[Walutomat] Failed to auto-link cross-provider pair ${pair[0]} <-> ${pair[1]}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
 
-  logger.info(`[Walutomat] Auto-linked ${pairsToLink.length} cross-provider transfer(s) for user ${userId}`);
+  if (linkedCount === 0) return;
+
+  logger.info(`[Walutomat] Auto-linked ${linkedCount} cross-provider transfer(s) for user ${userId}`);
 }

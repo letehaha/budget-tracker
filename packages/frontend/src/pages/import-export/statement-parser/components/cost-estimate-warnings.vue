@@ -10,7 +10,7 @@
       <p class="text-warning-text">
         {{ $t('pages.statementParser.uploadExtract.freeApiWarning') }}
       </p>
-      <router-link :to="{ name: ROUTES_NAMES.settingsAiKeys }" class="text-primary text-sm hover:underline">
+      <router-link :to="{ name: ROUTES_NAMES.settingsAiKeys }" class="text-primary-text text-sm hover:underline">
         {{ $t('pages.statementParser.uploadExtract.addApiKeyLink') }}
       </router-link>
     </Callout>

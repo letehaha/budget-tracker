@@ -84,11 +84,20 @@ All computation functions, services, utils, and helpers **must** have unit tests
 | Expense / negative | `text-app-expense-color`  |
 | Transfer           | `text-app-transfer-color` |
 
-### Destructive styling
+### Text/icon color vs. fill color
 
-- **Text / icons**: use `text-destructive-text` (e.g., delete icon, error message)
-- **Backgrounds**: use `bg-destructive` (e.g., destructive button backgrounds)
-- **Do NOT** use `text-destructive` for text — that color is intended for backgrounds and will look wrong on text
+Semantic colors come in pairs: the **base token is a fill** (button/badge backgrounds, with `*-foreground` for the label on top), and the **`*-text` token is the tint tuned for text and icons** sitting directly on the page/card background. Icons count as text here — lucide icons inherit `currentColor`.
+
+| Color           | Text / icons            | Fill / background                        |
+| --------------- | ----------------------- | ---------------------------------------- |
+| Primary (brand) | `text-primary-text`     | `bg-primary` + `text-primary-foreground` |
+| Destructive     | `text-destructive-text` | `bg-destructive`                         |
+| Success         | `text-success-text`     | `bg-success`                             |
+| Warning         | `text-warning-text`     | —                                        |
+
+- **Never** use `text-primary` or `text-destructive` to color text or icons. Fill tokens are tuned so a white label passes contrast _on top of them_, which makes them too low-contrast _as_ text on the dark theme (this is why `--primary-text` exists as a separate, brighter tint in dark mode)
+- Tinted chips like `bg-primary/10` still count as a dark background — text/icons inside them use `text-primary-text`
+- Borders, strokes (progress rings), and chart lines may keep using the base token — non-text UI parts only need 3:1 contrast
 
 ---
 

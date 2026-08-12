@@ -357,4 +357,47 @@ describe('prepareTxCreationParams', () => {
       expect(result.refundForTxId).toBeUndefined();
     });
   });
+
+  describe('planned transactions', () => {
+    it('sends isPlanned when the flag is checked', () => {
+      const form = createBaseForm({ type: FORM_TYPES.expense, isPlanned: true });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result.isPlanned).toBe(true);
+    });
+
+    it('omits isPlanned when the flag is not set', () => {
+      const form = createBaseForm({ type: FORM_TYPES.expense });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result).not.toHaveProperty('isPlanned');
+    });
+
+    it('never sends isPlanned in a transfer payload', () => {
+      const form = createBaseForm({
+        type: FORM_TYPES.transfer,
+        toAccount: createMockAccount({ id: '00000000-0000-0000-0000-000000000002' as RecordId }),
+        // Stale flag the reset watch would have cleared already.
+        isPlanned: true,
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: true,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result).not.toHaveProperty('isPlanned');
+    });
+  });
 });

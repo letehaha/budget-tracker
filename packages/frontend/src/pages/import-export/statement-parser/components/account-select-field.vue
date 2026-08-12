@@ -89,7 +89,7 @@ watch(isOpen, (open) => {
             <AccountLogo :account="modelValue" class="size-5 shrink-0" />
             <span class="truncate">{{ modelValue.name }}</span>
             <span class="text-muted-foreground shrink-0">({{ modelValue.currencyCode }})</span>
-            <span v-if="isNewAccount" class="text-primary shrink-0">
+            <span v-if="isNewAccount" class="text-primary-text shrink-0">
               {{ t('pages.statementParser.accountSelect.newlyCreated') }}
             </span>
           </span>
@@ -131,7 +131,7 @@ watch(isOpen, (open) => {
             <span>
               {{ account.name }}
               <span class="text-muted-foreground ml-1">{{ account.currencyCode }}</span>
-              <span v-if="isNewAccount && modelValue?.id === account.id" class="text-primary ml-1">
+              <span v-if="isNewAccount && modelValue?.id === account.id" class="text-primary-text ml-1">
                 {{ t('pages.statementParser.accountSelect.newlyCreated') }}
               </span>
             </span>

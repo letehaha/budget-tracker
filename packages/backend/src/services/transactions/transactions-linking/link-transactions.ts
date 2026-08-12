@@ -3,6 +3,7 @@ import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import TransactionSplits from '@models/transaction-splits.model';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
@@ -108,6 +109,21 @@ export const linkTransactions = withTransaction(
           opposite,
           ignoreBaseTxTypeValidation,
         });
+
+        if (base.isPlanned || opposite.isPlanned) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.linkPlannedNotAllowed' }),
+          });
+        }
+
+        const splitsOnLegs = await TransactionSplits.count({
+          where: { transactionId: { [Op.in]: [baseTxId, oppositeTxId] } },
+        });
+        if (splitsOnLegs > 0) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.linkSplitTransactionNotAllowed' }),
+          });
+        }
 
         // `validateTransactionLinking` already rejects `transfer_to_loan` legs as
         // already-linked, so a link can never legitimately land on a loan account.

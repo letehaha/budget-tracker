@@ -13,7 +13,7 @@
           class="border-border hover:border-foreground/25 hover:bg-accent/50 group flex w-full items-start gap-4 rounded-lg border bg-transparent p-5 text-left transition-all"
         >
           <div class="bg-primary/10 group-hover:bg-primary/15 rounded-lg p-2.5 transition-colors">
-            <WalletIcon class="text-primary size-5" />
+            <WalletIcon class="text-primary-text size-5" />
           </div>
           <div>
             <h3 class="font-medium">{{ $t('dashboard.onboarding.createManualAccount.title') }}</h3>
@@ -29,7 +29,7 @@
         @click="navigateToIntegrations"
       >
         <div class="bg-primary/10 group-hover:bg-primary/15 rounded-lg p-2.5 transition-colors">
-          <LandmarkIcon class="text-primary size-5" />
+          <LandmarkIcon class="text-primary-text size-5" />
         </div>
         <div>
           <h3 class="font-medium">{{ $t('dashboard.onboarding.connectBank.title') }}</h3>

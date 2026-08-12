@@ -103,6 +103,12 @@
         "categoryLabel": "Category",
         "targetAmountLabel": "Target amount",
         "targetAmountPlaceholder": "Target amount",
+        "plannedLabel": "Planned transaction",
+        "plannedUnavailableNotification": "Planned transactions aren't available here, so the option was turned off.",
+        "plannedTooltip": "Enter it before it happens. Your balance stays as is until the transaction actually arrives.",
+        "plannedConnectedAccountTooltip": "Only planned transactions can sit on a bank-connected account. Switching this off clears the account and the date.",
+        "plannedAccountsUnlockedHint": "Bank-connected accounts are now selectable",
+        "plannedDatesUnlockedHint": "Future dates unlocked",
         "datetimeLabel": "Datetime",
         "splitInfo": "Split into {count} categories",
         "editSplit": "Edit",
@@ -134,7 +140,8 @@
         "noLoansExist": "No loans exist",
         "validation": {
           "required": "This field is required",
-          "minValue": "Amount must be 0 or greater"
+          "minValue": "Amount must be 0 or greater",
+          "futureDate": "Date must be today or earlier."
         }
       },
       "refundRecordsList": {

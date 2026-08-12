@@ -3,15 +3,15 @@
     v-if="isDemo"
     class="bg-primary/10 border-primary/20 flex items-center justify-center gap-2 border-b px-4 py-2 text-sm"
   >
-    <AlertCircleIcon class="text-primary size-4 shrink-0" />
-    <span class="text-primary/90">
+    <AlertCircleIcon class="text-primary-text size-4 shrink-0" />
+    <span class="text-primary-text/90">
       <i18n-t keypath="demo.banner.message" tag="span">
         <template #time>
           <template v-if="timeRemaining"> ({{ t('demo.banner.resets', { time: timeRemaining }) }})</template>
         </template>
         <template #signUpLink>
           <button
-            class="text-primary hover:text-primary/80 font-semibold underline underline-offset-2"
+            class="text-primary-text hover:text-primary-text/80 font-semibold underline underline-offset-2"
             @click="handleSignUpClick"
           >
             {{ t('demo.banner.signUp') }}

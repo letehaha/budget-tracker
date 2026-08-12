@@ -13,6 +13,7 @@ import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { CustomResponse } from '@tests/helpers/common';
+import { addDays } from 'date-fns';
 
 // ---------------------------------------------------------------------------
 // Shared test scaffold helpers
@@ -325,6 +326,74 @@ describe('Shared budget visibility', () => {
       expect(recipientView.transactions[0]!.id).toBe(ownerTx!.id);
     });
 
+    it("keeps the owner's planned transaction out of the recipient's list and stats while the owner still counts it", async () => {
+      const category = await helpers.addCustomCategory({ name: 'Cat-planned', color: '#0f0f0f', raw: true });
+      const ownerAccount = await helpers.createAccount({ raw: true });
+
+      const [realTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: ownerAccount.id,
+          amount: 60,
+          transactionType: TRANSACTION_TYPES.expense,
+          categoryId: category.id,
+        }),
+        raw: true,
+      });
+      const [plannedTx] = await helpers.createPlannedTransaction({
+        payload: {
+          accountId: ownerAccount.id,
+          amount: 40,
+          transactionType: TRANSACTION_TYPES.expense,
+          categoryId: category.id,
+          time: addDays(new Date(), 5).toISOString(),
+        },
+        raw: true,
+      });
+
+      const budget = await helpers.createCustomBudget({
+        name: 'Category budget with a plan',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category.id],
+        limitAmount: 500,
+        raw: true,
+      });
+
+      const recipient = await provisionRecipient();
+      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
+
+      const ownerView = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true });
+      expect(ownerView.total).toBe(2);
+      expect(ownerView.transactions.map((tx) => tx.id).toSorted()).toEqual([realTx!.id, plannedTx!.id].toSorted());
+
+      const recipientView = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true }),
+      });
+
+      expect(recipientView.total).toBe(1);
+      expect(recipientView.transactions.map((tx) => tx.id)).toEqual([realTx!.id]);
+
+      const ownerStats = (await helpers.getStats({ id: budget.id, raw: true }))!;
+      expect(ownerStats.summary.actualExpense).toBe(100);
+      expect(ownerStats.summary.transactionsCount).toBe(2);
+
+      const recipientStats = (await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getStats({ id: budget.id, raw: true }),
+      }))!;
+      expect(recipientStats.summary.actualExpense).toBe(60);
+      expect(recipientStats.summary.transactionsCount).toBe(1);
+
+      const ownerSpending = await helpers.getSpendingStats({ id: budget.id, raw: true });
+      expect(ownerSpending.spendingsByCategory.find((c) => c.categoryId === category.id)?.amount).toBe(100);
+
+      const recipientSpending = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getSpendingStats({ id: budget.id, raw: true }),
+      });
+      expect(recipientSpending.spendingsByCategory.find((c) => c.categoryId === category.id)?.amount).toBe(60);
+    });
+
     it('stranger calling GET /budgets/:id/category-transactions gets 404', async () => {
       const category = await helpers.addCustomCategory({ name: 'Cat-stranger', color: '#654321', raw: true });
       const budget = await helpers.createCustomBudget({
@@ -342,6 +411,66 @@ describe('Shared budget visibility', () => {
       })) as CustomResponse<unknown>;
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+  });
+
+  describe("Owner's planned rows on a shared manual budget", () => {
+    it('counts the plan for the owner but keeps it out of the recipient stats and spending totals', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const [realTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-03-10T10:00:00Z',
+        }),
+        raw: true,
+      });
+      const [plannedTx] = await helpers.createPlannedTransaction({
+        payload: {
+          accountId: account.id,
+          amount: 250,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-03-20T10:00:00Z',
+        },
+        raw: true,
+      });
+
+      const budget = await helpers.createCustomBudget({
+        name: 'Manual budget with a plan',
+        startDate: '2025-03-01T00:00:00Z',
+        endDate: '2025-03-31T23:59:59Z',
+        limitAmount: 1000,
+        raw: true,
+      });
+      await helpers.addTransactionToCustomBudget({
+        id: budget.id,
+        payload: { transactionIds: [realTx!.id, plannedTx!.id] },
+      });
+
+      const recipient = await provisionRecipient();
+      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
+
+      const ownerStats = (await helpers.getStats({ id: budget.id, raw: true }))!;
+      expect(ownerStats.summary.actualExpense).toBe(350);
+      expect(ownerStats.summary.transactionsCount).toBe(2);
+
+      const recipientStats = (await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getStats({ id: budget.id, raw: true }),
+      }))!;
+      expect(recipientStats.summary.actualExpense).toBe(100);
+      expect(recipientStats.summary.transactionsCount).toBe(1);
+
+      const ownerSpending = await helpers.getSpendingStats({ id: budget.id, raw: true });
+      expect(ownerSpending.spendingOverTime.periods.reduce((sum, p) => sum + p.expense, 0)).toBe(350);
+
+      const recipientSpending = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getSpendingStats({ id: budget.id, raw: true }),
+      });
+      expect(recipientSpending.spendingOverTime.periods.reduce((sum, p) => sum + p.expense, 0)).toBe(100);
     });
   });
 

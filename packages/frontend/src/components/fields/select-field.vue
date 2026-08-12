@@ -139,9 +139,14 @@ watch(
 <template>
   <div>
     <template v-if="label">
-      <FieldLabel :label="label">
+      <!-- A `label` would forward clicks anywhere on it to the first button slotted
+           into label-right; the select itself sits outside FieldLabel either way. -->
+      <FieldLabel :label="label" :only-template="Boolean($slots['label-right'])">
         <template v-if="required" #label-after>
           <span class="text-destructive-text" aria-hidden="true">*</span>
+        </template>
+        <template v-if="$slots['label-right']" #label-right>
+          <slot name="label-right" />
         </template>
       </FieldLabel>
     </template>

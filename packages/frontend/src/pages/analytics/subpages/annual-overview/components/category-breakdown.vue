@@ -60,7 +60,7 @@
       <!-- View all button -->
       <button
         v-if="sortedCategories.length > defaultDisplayCount && !showAll"
-        class="text-primary mt-2 w-full py-2 text-center text-sm hover:underline"
+        class="text-primary-text mt-2 w-full py-2 text-center text-sm hover:underline"
         @click="showAll = true"
       >
         {{ t('analytics.trends.categoryBreakdown.viewAll') }} ({{

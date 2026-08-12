@@ -53,6 +53,7 @@ async function restampRefInitialBalanceImpl({
   const earliestTxTime = (await Transactions.min('time', {
     where: {
       accountId,
+      isPlanned: false,
       ...(excludeTransactionId ? { id: { [Op.ne]: excludeTransactionId } } : {}),
     },
   })) as Date | null;

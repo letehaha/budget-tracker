@@ -10,6 +10,7 @@ import { addDays, subDays } from 'date-fns';
 import { DatabaseError, Op, QueryTypes } from 'sequelize';
 
 import { getCounterpartyIban, hasSettledStatus } from '../enablebanking/utils/transaction-metadata';
+import { REAL_TRANSACTIONS_WHERE } from './real-transactions-where';
 import { TRANSFER_DATE_WINDOW_DAYS, normalizeIban } from './transfer-matching';
 
 /** Walutomat rows must not auto-link here: that provider's own FX/IBAN matchers own them. */
@@ -70,6 +71,7 @@ async function findLinkableCandidates({
 }): Promise<Transactions[]> {
   const candidates = await Transactions.findAll({
     where: {
+      ...REAL_TRANSACTIONS_WHERE,
       userId,
       accountId: { [Op.ne]: tx.accountId },
       accountType: { [Op.notIn]: excludedAccountTypes },
@@ -143,6 +145,7 @@ const linkTransfersInTransaction = withTransaction(
 
       const syncedTxs = await Transactions.findAll({
         where: {
+          ...REAL_TRANSACTIONS_WHERE,
           id: { [Op.in]: transactionIds },
           userId,
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,

@@ -18,6 +18,7 @@ export function getDisplayItemKey(item: DisplayItem | undefined, index: number):
 interface UseTransactionsDisplayOptions {
   transactions: MaybeRefOrGetter<TransactionModel[]>;
   contentFiltersActive?: MaybeRefOrGetter<boolean>;
+  disableGrouping?: MaybeRefOrGetter<boolean>;
   maxDisplay?: MaybeRefOrGetter<number | undefined>;
 }
 
@@ -25,17 +26,20 @@ interface UseTransactionsDisplayOptions {
  * Processes raw transactions for display:
  * - Deduplicates transfers (shows expense side of common transfers when both legs are present;
  *   shows whichever single leg is present when only one side is in the list, e.g. account view)
- * - Groups transactions by groupId into collapsed group rows (unless content filters are active)
+ * - Groups transactions by groupId into collapsed group rows (unless content filters are active
+ *   or grouping is disabled)
  * - Applies optional maxDisplay limit
  */
 export function useTransactionsDisplay({
   transactions,
   contentFiltersActive,
+  disableGrouping,
   maxDisplay,
 }: UseTransactionsDisplayOptions) {
   const displayTransactions = computed<DisplayItem[]>(() => {
     const txs = toValue(transactions);
     const filtersActive = toValue(contentFiltersActive) ?? false;
+    const groupingDisabled = toValue(disableGrouping) ?? false;
     const max = toValue(maxDisplay);
     // Collect which transferIds have their expense side present in this list.
     // Used to decide whether the income side of a pair should be shown (when the
@@ -57,8 +61,8 @@ export function useTransactionsDisplay({
       return !transferIdsWithExpense.has(tx.transferId as string);
     });
 
-    // When content filters are active, dissolve groups — show individual transactions
-    if (filtersActive) {
+    // Dissolve groups — show individual transactions
+    if (filtersActive || groupingDisabled) {
       return max ? deduplicated.slice(0, max) : deduplicated;
     }
 

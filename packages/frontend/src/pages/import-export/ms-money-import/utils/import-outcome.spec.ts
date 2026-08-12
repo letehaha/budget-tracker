@@ -36,6 +36,14 @@ describe('deriveImportOutcome', () => {
     expect(deriveImportOutcome({ summary: aSummary({ voidedImported: 1 }) })).toBe('success');
   });
 
+  it('is a success when every row merged into a planned transaction', () => {
+    expect(deriveImportOutcome({ summary: aSummary({ merged: 8 }) })).toBe('success');
+  });
+
+  it('is partial when merged rows landed alongside errors', () => {
+    expect(deriveImportOutcome({ summary: aSummary({ merged: 8, errors: [rowError()] }) })).toBe('partial');
+  });
+
   it('is partial when rows landed alongside errors', () => {
     expect(deriveImportOutcome({ summary: aSummary({ transactionsImported: 5, errors: [rowError()] }) })).toBe(
       'partial',

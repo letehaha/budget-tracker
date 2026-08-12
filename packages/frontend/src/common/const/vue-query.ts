@@ -43,6 +43,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // widget balance trend
   widgetBalanceTrend: [transactionChange, securityPriceChange, ventureChange, 'widget-balance-trend'] as const,
   widgetBalanceTrendPrev: [transactionChange, securityPriceChange, ventureChange, 'widget-balance-trend-prev'] as const,
+  widgetBalanceTrendPlanned: [transactionChange, 'widget-balance-trend-planned'] as const,
   widgetBalanceTotalBalance: [
     transactionChange,
     securityPriceChange,
@@ -64,6 +65,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // widget latest records
   widgetLatestRecords: [transactionChange, 'widget-latest-records'] as const,
 
+  // planned transactions
+  plannedSummary: [transactionChange, 'planned-summary'] as const,
+  pendingPlannedTransactions: [transactionChange, 'pending-planned-transactions'] as const,
+
   // widget category spending tracker
   widgetCategorySpendingTracker: [transactionChange, 'widget-category-spending-tracker'] as const,
 
@@ -71,6 +76,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   widgetCashFlow: [transactionChange, 'widget-cash-flow'] as const,
   widgetCashFlowPrev: [transactionChange, 'widget-cash-flow-prev'] as const,
   widgetCashFlowTrend: [transactionChange, 'widget-cash-flow-trend'] as const,
+
+  // widget net worth
+  widgetNetWorth: [transactionChange, securityPriceChange, ventureChange, 'widget-net-worth'] as const,
 
   // analytics
   analyticsBalanceHistoryTrend: [

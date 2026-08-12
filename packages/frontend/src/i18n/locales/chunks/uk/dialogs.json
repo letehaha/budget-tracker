@@ -103,6 +103,12 @@
         "categoryLabel": "Категорія",
         "targetAmountLabel": "Цільова сума",
         "targetAmountPlaceholder": "Цільова сума",
+        "plannedLabel": "Запланована транзакція",
+        "plannedUnavailableNotification": "Заплановані транзакції тут недоступні, тому цю опцію вимкнено.",
+        "plannedTooltip": "Внесіть її ще до того, як вона станеться. Ваш баланс залишиться незмінним, доки транзакція справді не надійде.",
+        "plannedConnectedAccountTooltip": "На рахунку, підключеному до банку, можуть бути лише заплановані транзакції. Якщо вимкнути це, рахунок і дату буде очищено.",
+        "plannedAccountsUnlockedHint": "Тепер можна обирати рахунки, підключені до банку",
+        "plannedDatesUnlockedHint": "Майбутні дати розблоковано",
         "datetimeLabel": "Дата і час",
         "splitInfo": "Розділено на {count} категорій",
         "editSplit": "Редагувати",
@@ -134,7 +140,8 @@
         "noLoansExist": "Позик немає",
         "validation": {
           "required": "Це поле обов'язкове",
-          "minValue": "Сума повинна бути більше нуля"
+          "minValue": "Сума повинна бути більше нуля",
+          "futureDate": "Дата має бути сьогоднішньою або ранішою."
         }
       },
       "refundRecordsList": {

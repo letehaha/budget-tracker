@@ -6,6 +6,11 @@ import ExcludeCategoriesMenu from '@/components/common/category-exclusions/exclu
 import ExcludedCountBadge from '@/components/common/category-exclusions/excluded-count-badge.vue';
 import { useCategoryExclusionsConfig } from '@/components/common/category-exclusions/use-category-exclusions-config';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
+import { buttonVariants } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { ROUTES_NAMES } from '@/routes/constants';
+import IncludePlannedMenuItem from '@/components/widgets/components/include-planned-menu-item.vue';
+import { useIncludePlannedConfig } from '@/components/widgets/use-include-planned-config';
 import { format, isSameMonth, parseISO } from 'date-fns';
 import { ArrowDownRightIcon, ArrowUpRightIcon, InfoIcon, WalletIcon } from '@lucide/vue';
 import { computed } from 'vue';
@@ -24,6 +29,7 @@ const props = defineProps<{
 const { formatBaseCurrency } = useFormatCurrency();
 
 const { widgetConfigRef, excludedCategoryIds, persistExcludedCategories } = useCategoryExclusionsConfig();
+const { includePlanned } = useIncludePlannedConfig();
 
 const {
   currentTotals,
@@ -35,7 +41,7 @@ const {
   isFetching,
   isInitialLoading,
   isEmpty,
-} = useCashFlowData({ selectedPeriod: () => props.selectedPeriod, excludedCategoryIds });
+} = useCashFlowData({ selectedPeriod: () => props.selectedPeriod, excludedCategoryIds, includePlanned });
 
 const income = computed(() => currentTotals.value.income);
 const expenses = computed(() => currentTotals.value.expenses);
@@ -141,11 +147,25 @@ const trendBars = computed(() => {
     </template>
 
     <template v-if="widgetConfigRef" #action>
+      <DesktopOnlyTooltip v-if="!isEmpty && !isInitialLoading" :content="$t('dashboard.widgets.cashFlow.viewDetails')">
+        <span class="inline-flex">
+          <router-link
+            :class="buttonVariants({ variant: 'ghost', size: 'icon-sm', class: 'text-muted-foreground' })"
+            :to="{ name: ROUTES_NAMES.analyticsCashFlow }"
+            :aria-label="$t('dashboard.widgets.cashFlow.viewDetails')"
+          >
+            <ArrowUpRightIcon class="size-4" />
+          </router-link>
+        </span>
+      </DesktopOnlyTooltip>
+
       <ExcludeCategoriesMenu
         :excluded-category-ids="excludedCategoryIds"
         test-id-prefix="cf"
         @save="persistExcludedCategories"
-      />
+      >
+        <IncludePlannedMenuItem test-id-prefix="cf" />
+      </ExcludeCategoriesMenu>
     </template>
 
     <template v-if="isInitialLoading">

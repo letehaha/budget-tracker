@@ -50,7 +50,7 @@
                 name: ROUTES_NAMES.accountIntegrationDetails,
                 params: { connectionId: account.bankDataProviderConnectionId },
               }"
-              class="text-primary hover:text-primary/80 inline-flex items-center gap-0.5 font-medium underline underline-offset-2"
+              class="text-primary-text hover:text-primary-text/80 inline-flex items-center gap-0.5 font-medium underline underline-offset-2"
             >
               {{ t('pages.account.relinkWarning.connectionSettings') }}
             </router-link>

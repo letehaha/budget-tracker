@@ -28,7 +28,6 @@
       "restoringButton": "Restoring…",
       "purgeButton": "Delete now",
       "purgingButton": "Deleting…",
-      "deletedBadge": "Deleted",
       "confirmPurgeTitle": "Delete portfolio permanently?",
       "confirmPurge": "Permanently delete \"{name}\"? This cannot be undone.",
       "tryAgain": "Try again",

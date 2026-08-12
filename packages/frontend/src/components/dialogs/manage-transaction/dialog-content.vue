@@ -22,6 +22,7 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
 import {
+  isDedicatedFlowAccountCategory,
   isTwoLegTransfer,
   ACCOUNT_CATEGORIES,
   ACCOUNT_TYPES,
@@ -32,6 +33,7 @@ import {
 } from '@bt/shared/types';
 import { helpers, minValue } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
+import { endOfDay } from 'date-fns';
 import { SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
@@ -42,6 +44,8 @@ import { useRoute } from 'vue-router';
 import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
+import PlannedToggle from './components/planned-toggle.vue';
+import PlannedUnlockHint from './components/planned-unlock-hint.vue';
 import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import VehicleLinkedView from './components/vehicle-linked-view.vue';
 import VentureLinkedView from './components/venture-linked-view.vue';
@@ -63,7 +67,7 @@ import {
 import type { TransferDestinationType } from './composables/transfer-form';
 import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
 
-import { canDeleteTransaction, prepopulateForm } from './helpers';
+import { canDeleteTransaction, isTxEditableAsManual, prepopulateForm } from './helpers';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
 
 defineOptions({
@@ -105,8 +109,13 @@ const { t } = useI18n();
 watch(() => route.path, closeModal);
 
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
-const { accountsRecord, txTargetableAccountsActiveFirst, txTargetableSourceAccountsActiveFirst } =
-  storeToRefs(useAccountsStore());
+const {
+  accounts: allAccounts,
+  accountsRecord,
+  txTargetableAccountsActiveFirst,
+  txTargetableSourceAccountsActiveFirst,
+  plannedTargetableAccountsActiveFirst,
+} = storeToRefs(useAccountsStore());
 
 // Vehicle balance-adjustments are reused `transfer_out_wallet` rows on a
 // vehicle-category account. Editing them in this generic dialog would let the
@@ -144,6 +153,7 @@ const form = ref<UI_FORM_STRUCT>({
   tagIds: [],
   payeeId: null,
   categoryUserTouched: false,
+  isPlanned: false,
 });
 
 // PayeeField → category auto-fill (one-shot) + tag auto-apply.
@@ -398,8 +408,12 @@ const {
 // call it "Refunded by"
 // 3. When editing, validate refAmount in the same way
 
+const isEditableAsManual = computed(() =>
+  isTxEditableAsManual({ transaction: transaction.value, isRecordExternal: isRecordExternal.value }),
+);
+
 const isAmountFieldDisabled = computed(() => {
-  if (isRecordExternal.value) {
+  if (!isEditableAsManual.value) {
     if (!isTransferTx.value) return true;
     if (transaction.value?.transactionType === TRANSACTION_TYPES.expense) {
       return true;
@@ -410,6 +424,88 @@ const isAmountFieldDisabled = computed(() => {
   if (isTransferTx.value && linkedTransaction.value) return true;
   return false;
 });
+
+// Planned mode is chosen once, at creation: un-planning a row means deleting the plan.
+// Loan and vehicle balances are recomputed by replaying transactions, and plans on
+// accounts shared *with* the caller belong to the owner only.
+const isPlannedToggleVisible = computed(() => {
+  if (!isFormCreation.value) return false;
+  if (isTransferTx.value) return false;
+  if (isAccountSharedWithCaller.value) return false;
+  // The toggle is what unlocks bank-connected accounts in the picker, so an empty picker
+  // must not hide it. Only a user with no accounts at all has nothing to plan against.
+  if (!allAccounts.value?.length) return false;
+  const account = resolvedAccount.value;
+  if (!account) return true;
+  return !isDedicatedFlowAccountCategory(account.accountCategory);
+});
+
+const isPlannedBadgeVisible = computed(() => !isFormCreation.value && Boolean(form.value.isPlanned));
+
+// Real transactions on a bank-connected account come from the sync, so the account picker
+// only offers those once the row is a plan.
+const isSelectedAccountConnected = computed(() => {
+  const account = resolvedAccount.value;
+  if (!account) return false;
+  return account.type !== ACCOUNT_TYPES.system;
+});
+
+const nonTransferSourceAccounts = computed(() =>
+  form.value.isPlanned ? plannedTargetableAccountsActiveFirst.value : txTargetableSourceAccountsActiveFirst.value,
+);
+
+const hasConnectedAccountsToOffer = computed(() =>
+  plannedTargetableAccountsActiveFirst.value.some((account) => account.type !== ACCOUNT_TYPES.system),
+);
+
+// Turning the mode off strands both fields it had unlocked, so the tooltip warns before
+// the click rather than explaining the empty account afterwards.
+const plannedTooltipOverride = computed(() =>
+  isSelectedAccountConnected.value ? t('dialogs.manageTransaction.form.plannedConnectedAccountTooltip') : undefined,
+);
+
+watch(isPlannedToggleVisible, (isVisible) => {
+  if (isVisible || !form.value.isPlanned) return;
+  form.value.isPlanned = false;
+  addInfoNotification(t('dialogs.manageTransaction.form.plannedUnavailableNotification'));
+});
+
+// In edit mode `isPlanned` mirrors the saved row, so nothing here may touch it. The accounts
+// store resolves the account after mount, and stamping the flag on an already-saved
+// bank-synced row makes the update fail.
+watch(isSelectedAccountConnected, (isConnected) => {
+  if (!isFormCreation.value) return;
+  if (!isConnected || !isPlannedToggleVisible.value) return;
+  form.value.isPlanned = true;
+});
+
+// A future date is legitimate on a planned row, and plain rows in the wild already carry
+// them, so only a date the user edits after unchecking gets validated.
+const isDateUserTouched = ref(false);
+const wasPlannedUnchecked = ref(false);
+
+// Turning the mode off (or losing it to a type switch) strands the two things it had
+// unlocked: a connected account the picker no longer offers, and a future date. Clear both
+// so the user re-picks deliberately instead of submitting a shape the backend rejects.
+watch(
+  () => form.value.isPlanned,
+  (isPlanned, wasPlanned) => {
+    if (isPlanned) return;
+    if (wasPlanned) wasPlannedUnchecked.value = true;
+
+    if (isSelectedAccountConnected.value) {
+      form.value.account = null;
+    }
+
+    if (form.value.time && form.value.time.getTime() > Date.now()) {
+      form.value.time = new Date();
+    }
+  },
+);
+
+const isPastDateRequired = computed(
+  () => wasPlannedUnchecked.value && isDateUserTouched.value && !form.value.isPlanned,
+);
 
 const isCurrenciesDifferent = computed(() => {
   if (!form.value.account || !form.value.toAccount) return false;
@@ -635,6 +731,16 @@ const validationRules = computed(() => {
         ...(isTargetAmountRequired.value ? { required: isAmountFilled, minValue: minValue(0) } : {}),
         ...(overpayOnTarget ? { notOverpay: loanOverpayRule } : {}),
       },
+      time: {
+        ...(isPastDateRequired.value
+          ? {
+              notFutureDate: helpers.withMessage(
+                () => t('dialogs.manageTransaction.form.validation.futureDate'),
+                (value: unknown) => !(value instanceof Date) || value.getTime() <= endOfDay(new Date()).getTime(),
+              ),
+            }
+          : {}),
+      },
     },
   };
 });
@@ -653,10 +759,20 @@ const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
 
 const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
+const timeErrorMessage = computed(() => getFieldErrorMessage('form.time'));
 
 const onAmountBlur = () => {
   touchField('form.amount');
   prefillLoanTargetAmount();
+};
+
+// The field echoes every programmatic write back as an update, so an unchanged
+// value must not count as user input.
+const onDateUpdate = (value: Date) => {
+  if (value.getTime() === form.value.time?.getTime()) return;
+  form.value.time = value;
+  isDateUserTouched.value = true;
+  touchField('form.time');
 };
 
 // Rates load async – fill the loan target once they arrive, but only if still empty so a manual entry isn't clobbered.
@@ -668,6 +784,7 @@ watch(exchangeRates, () => {
 const submit = () => {
   touchField('form.amount');
   touchField('form.targetAmount');
+  touchField('form.time');
 
   if (!isFormValid('form')) return;
 
@@ -774,7 +891,7 @@ onUnmounted(() => {
       <SelectField
         v-model="form.paymentType"
         :label="$t('dialogs.manageTransaction.form.paymentTypeLabel')"
-        :disabled="isFormFieldsDisabled || isRecordExternal"
+        :disabled="isFormFieldsDisabled || !isEditableAsManual"
         :values="VERBOSE_PAYMENT_TYPES"
         :label-key="(item) => t(item.label)"
         is-value-preselected
@@ -821,12 +938,15 @@ onUnmounted(() => {
   <VentureLinkedView v-else-if="isVentureLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VehicleLinkedView v-else-if="isVehicleLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <div v-else class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-t-xl">
+    <!-- Striped while planned, so the mode stays readable once the toggle scrolls away. -->
     <div
       :class="[
         'h-3 rounded-t-lg transition-[background-color] duration-200 ease-out',
         currentTxType === FORM_TYPES.income && 'bg-app-income-color',
         currentTxType === FORM_TYPES.expense && 'bg-app-expense-color',
         currentTxType === FORM_TYPES.transfer && 'bg-app-transfer-color',
+        form.isPlanned &&
+          'bg-[repeating-linear-gradient(115deg,transparent_0_7px,var(--planned-stripe)_7px_14px)] bg-size-[14px_14px]',
       ]"
     />
     <div class="mb-4 flex items-center justify-between px-6 py-3">
@@ -855,6 +975,7 @@ onUnmounted(() => {
             :transaction="transaction"
             :account="transaction ? accountsRecord[transaction.accountId] : undefined"
             :disabled="isFormFieldsDisabled"
+            :is-transfer-disabled="Boolean(form.isPlanned)"
             class="mb-6"
             @change-tx-type="selectTransactionType"
           />
@@ -891,14 +1012,30 @@ onUnmounted(() => {
               :is-transfer-transaction="isTransferTx"
               :is-transaction-linking="!!linkedTransaction"
               :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
-              :accounts="isTransferTx ? transferSourceAccounts : txTargetableSourceAccountsActiveFirst"
+              :accounts="isTransferTx ? transferSourceAccounts : nonTransferSourceAccounts"
               :from-account-disabled="fromAccountFieldDisabled"
               :to-account-disabled="toAccountFieldDisabled"
               :destination-type-disabled="isDestinationTypeLocked"
               :filtered-accounts="transferDestinationAccounts"
               :portfolios="portfolios ?? []"
               :loan-accounts="loanDestinationAccounts"
-            />
+            >
+              <template v-if="isPlannedToggleVisible || isPlannedBadgeVisible" #account-label-right>
+                <PlannedToggle
+                  :model-value="Boolean(form.isPlanned)"
+                  :readonly="isPlannedBadgeVisible"
+                  :disabled="isFormFieldsDisabled"
+                  :tooltip-override="isPlannedBadgeVisible ? undefined : plannedTooltipOverride"
+                  @update:model-value="(value) => (form.isPlanned = value)"
+                />
+              </template>
+
+              <template #account-hint>
+                <PlannedUnlockHint v-if="isFormCreation && form.isPlanned && hasConnectedAccountsToOffer">
+                  {{ $t('dialogs.manageTransaction.form.plannedAccountsUnlockedHint') }}
+                </PlannedUnlockHint>
+              </template>
+            </account-field>
 
             <template v-if="!isTransferTx">
               <form-row>
@@ -1006,13 +1143,19 @@ onUnmounted(() => {
 
             <form-row>
               <date-field
-                v-model="form.time"
-                :disabled="isFormFieldsDisabled || isRecordExternal"
+                :model-value="form.time"
+                :disabled="isFormFieldsDisabled || !isEditableAsManual"
                 :label="$t('dialogs.manageTransaction.form.datetimeLabel')"
+                :error-message="timeErrorMessage"
                 :calendar-options="{
-                  maxDate: new Date(),
+                  maxDate: form.isPlanned ? undefined : new Date(),
                 }"
+                @update:model-value="onDateUpdate"
               />
+
+              <PlannedUnlockHint v-if="isFormCreation && form.isPlanned">
+                {{ $t('dialogs.manageTransaction.form.plannedDatesUnlockedHint') }}
+              </PlannedUnlockHint>
             </form-row>
 
             <p v-if="isPreAnchorLoanPayment" class="text-muted-foreground -mt-1 px-1 text-xs">

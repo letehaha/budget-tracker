@@ -3,7 +3,7 @@
     <CardHeader class="pb-4">
       <div class="flex flex-wrap items-center gap-3">
         <div class="bg-primary/10 flex size-9 items-center justify-center rounded-lg">
-          <WalletIcon class="text-primary size-5" />
+          <WalletIcon class="text-primary-text size-5" />
         </div>
         <CardTitle class="text-lg">{{ $t('portfolioDetail.cashBalances.title') }}</CardTitle>
 

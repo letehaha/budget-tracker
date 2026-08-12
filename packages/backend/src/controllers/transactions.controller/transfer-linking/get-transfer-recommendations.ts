@@ -123,6 +123,7 @@ export default createController(schema, async ({ user, query }) => {
     transactionType: searchTransactionType,
     excludeTransfer: true,
     excludeRefunds: true,
+    isPlanned: false,
     includeSplits: true,
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),

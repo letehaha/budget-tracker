@@ -21,7 +21,7 @@
       </div>
 
       <div class="bg-muted/40 @container grid grid-cols-[auto_1fr] items-start gap-x-3 gap-y-1 rounded-lg border p-4">
-        <LanguagesIcon class="text-primary mt-0.5 size-5 shrink-0" />
+        <LanguagesIcon class="text-primary-text mt-0.5 size-5 shrink-0" />
 
         <h3 class="text-sm font-medium">{{ $t('settings.language.contribute.title') }}</h3>
 

@@ -41,7 +41,7 @@ export const absorbLinkResidualIntoOpeningBalance = withTransaction(
 
     const [row] = await Transactions.sequelize!.query<{ signedSum: string }>(
       `SELECT COALESCE(SUM(CASE WHEN "transactionType" = :incomeType THEN "amount" ELSE -"amount" END), 0) AS "signedSum"
-       FROM "Transactions" WHERE "accountId" = :accountId`,
+       FROM "Transactions" WHERE "accountId" = :accountId AND "isPlanned" = false`,
       {
         replacements: { accountId, incomeType: TRANSACTION_TYPES.income },
         type: QueryTypes.SELECT,

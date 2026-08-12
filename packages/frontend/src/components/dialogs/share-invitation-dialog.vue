@@ -75,7 +75,7 @@ const retryFetchInvitations = () => {
     <div class="flex flex-col gap-6 pt-2">
       <div class="flex flex-col items-center gap-3 text-center">
         <div class="bg-primary/10 flex size-16 items-center justify-center rounded-full">
-          <UsersIcon class="text-primary size-8" />
+          <UsersIcon class="text-primary-text size-8" />
         </div>
       </div>
 

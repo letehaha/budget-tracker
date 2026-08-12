@@ -9,14 +9,16 @@ import type { MsMoneyImportSummary } from '@bt/shared/types';
  */
 export type MsMoneyImportOutcome = 'success' | 'partial' | 'empty' | 'failure';
 
-/** Rows the import actually wrote. Voided rows land as zero-amount transactions
- *  and are counted separately from `transactionsImported`. */
+/** Rows the import landed. Voided rows (zero-amount transactions) and rows that
+ *  confirmed an existing planned transaction are counted separately from
+ *  `transactionsImported`, but both landed. */
 function countImported({ summary }: { summary: MsMoneyImportSummary }): number {
   return (
     summary.transactionsImported +
     summary.transfersImported +
     summary.outOfWalletImported +
-    (summary.voidedImported ?? 0)
+    (summary.voidedImported ?? 0) +
+    (summary.merged ?? 0)
   );
 }
 

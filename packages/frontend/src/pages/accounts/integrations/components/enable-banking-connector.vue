@@ -24,7 +24,7 @@
             <div class="flex-1">
               <p class="text-sm">
                 {{ t('pages.integrations.enableBankingConnector.credentials.helpText') }}
-                <button @click="showHelpDialog = true" class="text-primary font-medium underline">
+                <button @click="showHelpDialog = true" class="text-primary-text font-medium underline">
                   {{ t('pages.integrations.enableBankingConnector.credentials.helpLink') }}
                 </button>
               </p>

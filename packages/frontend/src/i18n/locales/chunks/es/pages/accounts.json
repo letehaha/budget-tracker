@@ -26,7 +26,8 @@
       "totalBalance": "Saldo total",
       "assets": "Activos",
       "liabilities": "Pasivos",
-      "vehicles": "Vehículos"
+      "vehicles": "Vehículos",
+      "projected": "Previsto {amount} · {count} movimiento planificado hasta {date} | Previsto {amount} · {count} movimientos planificados hasta {date}"
     },
     "connect": "Conectar",
     "connectBank": "Conectar banco",

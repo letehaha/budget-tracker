@@ -11,6 +11,12 @@
       :model-value="transferFilter"
       @update:model-value="$emit('update:transfer-filter', $event)"
     />
+
+    <OperationPills
+      :label="$t('transactions.filters.plannedFilter.label')"
+      :model-value="plannedFilter"
+      @update:model-value="$emit('update:planned-filter', $event)"
+    />
   </div>
 </template>
 
@@ -22,10 +28,12 @@ import OperationPills from './operation-pills.vue';
 defineProps<{
   refundFilter: FILTER_OPERATION;
   transferFilter: FILTER_OPERATION;
+  plannedFilter: FILTER_OPERATION;
 }>();
 
 defineEmits<{
   'update:refund-filter': [value: FILTER_OPERATION];
   'update:transfer-filter': [value: FILTER_OPERATION];
+  'update:planned-filter': [value: FILTER_OPERATION];
 }>();
 </script>

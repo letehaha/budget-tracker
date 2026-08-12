@@ -19,7 +19,7 @@
             {{ $t('settings.tags.tabs.reminders') }}
             <span
               v-if="reminders.length > 0"
-              class="bg-primary/10 text-primary ml-1.5 inline-flex size-5 items-center justify-center rounded-full text-xs font-medium"
+              class="bg-primary/10 text-primary-text ml-1.5 inline-flex size-5 items-center justify-center rounded-full text-xs font-medium"
             >
               {{ reminders.length }}
             </span>

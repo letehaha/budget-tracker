@@ -33,6 +33,8 @@ export const getUpcomingPayments = async ({ userId, limit = 5, type }: GetUpcomi
           where: { status: SUBSCRIPTION_LINK_STATUS.active },
         },
         attributes: ['id', 'time'],
+        where: { isPlanned: false },
+        required: false,
       },
       {
         model: SubscriptionPeriods,

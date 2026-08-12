@@ -96,6 +96,21 @@
                   @update:model-value="(value) => persistConfig({ excludeBalanceAdjustments: !!value })"
                 />
               </div>
+
+              <div class="flex items-center justify-between gap-2 rounded-md px-2 py-2">
+                <span class="flex flex-col">
+                  <span class="text-sm font-medium">{{ $t('widgets.latestRecords.settings.plannedTitle') }}</span>
+                  <span class="text-muted-foreground text-xs">
+                    {{ $t('widgets.latestRecords.settings.excludePlannedDescription') }}
+                  </span>
+                </span>
+                <Switch
+                  data-testid="lr-exclude-planned-switch"
+                  :model-value="!includePlanned"
+                  :disabled="isUpdating"
+                  @update:model-value="onExcludePlannedToggle"
+                />
+              </div>
             </div>
           </div>
         </template>
@@ -110,6 +125,7 @@ import SlidingPanels from '@/components/common/sliding-panels.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { Switch } from '@/components/lib/ui/switch';
+import { useIncludePlannedConfig, useIncludePlannedSaveError } from '@/components/widgets/use-include-planned-config';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { ArrowLeftIcon, ChevronRightIcon, SettingsIcon } from '@lucide/vue';
 import type { Ref } from 'vue';
@@ -129,6 +145,8 @@ type View = 'main' | 'exclusions';
 const view = ref<View>('main');
 
 const exclusions = computed(() => readLatestRecordsExclusions({ widgetConfig: widgetConfigRef?.value }));
+const { includePlanned } = useIncludePlannedConfig();
+const notifyIncludePlannedSaveError = useIncludePlannedSaveError();
 
 const exclusionsSummary = computed(() => {
   const excluded: string[] = [];
@@ -140,6 +158,9 @@ const exclusionsSummary = computed(() => {
   }
   if (exclusions.value.excludeBalanceAdjustments) {
     excluded.push(t('widgets.latestRecords.settings.balanceAdjustmentsTitle'));
+  }
+  if (!includePlanned.value) {
+    excluded.push(t('widgets.latestRecords.settings.plannedTitle'));
   }
   return excluded.length === 0 ? t('widgets.latestRecords.settings.nothingExcluded') : excluded.join(', ');
 });
@@ -171,5 +192,13 @@ async function persistConfig(patch: Record<string, unknown>) {
   };
 
   await saveUserSettings({ ...settings, dashboard: { widgets } });
+}
+
+async function onExcludePlannedToggle(value: boolean) {
+  try {
+    await persistConfig({ includePlanned: !value });
+  } catch (error) {
+    notifyIncludePlannedSaveError({ error });
+  }
 }
 </script>

@@ -28,7 +28,7 @@ defineEmits<{
     <div class="pointer-events-none min-w-0 flex-1">
       <TransactionRecord :tx="item.expense as TransactionModel" :as-button="false" />
     </div>
-    <div class="bg-primary/10 text-primary mr-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+    <div class="bg-primary/10 text-primary-text mr-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
       {{ item.matches.length }}
     </div>
   </div>

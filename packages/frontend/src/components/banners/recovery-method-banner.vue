@@ -4,7 +4,7 @@
     class="bg-primary/10 text-foreground border-primary/20 relative mb-4 rounded-lg border px-4 py-3"
   >
     <div class="flex items-start gap-3">
-      <ShieldAlertIcon class="text-primary mt-0.5 size-5 shrink-0" />
+      <ShieldAlertIcon class="text-primary-text mt-0.5 size-5 shrink-0" />
       <div class="flex-1">
         <p class="font-medium">{{ $t('banners.recoveryMethod.title') }}</p>
         <p class="text-muted-foreground mt-1 text-sm">

@@ -27,7 +27,7 @@ withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 const navItemBase = 'w-full gap-2 px-3';
 const navItemActive = 'bg-primary/10 text-foreground';
 const navIconBase = 'size-4 shrink-0';
-const navIconActive = 'text-primary';
+const navIconActive = 'text-primary-text';
 
 const route = useRoute();
 const { isAccountsOpen, isTransactionsOpen, isPlannedOpen } = useSidebarNavCollapse();

@@ -16,7 +16,7 @@ import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useFormValidation } from '@/composable';
 import { useAccountAccess } from '@/composable/use-account-access';
-import { useAccountDisplayBalance } from '@/composable/use-account-display-balance';
+import { useAccountProjectedBalance, usePlannedDateLabel } from '@/composable/use-projected-balance';
 import { toLocalCurrencyNumber } from '@/js/helpers';
 import * as validators from '@/js/helpers/validators';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
@@ -33,7 +33,8 @@ const props = defineProps<{
   account: AccountModel;
 }>();
 const { currenciesMap, baseCurrency } = storeToRefs(useCurrenciesStore());
-const { displayBalance, displayRefBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
+const { displayBalance, displayRefBalance, projectedBalance, plannedCount, latestPlannedTime, hasPendingPlans } =
+  useAccountProjectedBalance({ account: toRef(() => props.account) });
 const accountsStore = useAccountsStore();
 const formEditingPopoverOpen = ref(false);
 const adjustmentDialogOpen = ref(false);
@@ -43,6 +44,13 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const { t } = useI18n();
 
 const isSystemAccount = computed(() => props.account.type === ACCOUNT_TYPES.system);
+
+const { formatPlannedDate } = usePlannedDateLabel();
+
+const projectedBalanceDisplay = computed(() =>
+  toLocalCurrencyNumber(projectedBalance.value, { currency: props.account.currencyCode }),
+);
+const latestPlannedDisplay = computed(() => formatPlannedDate({ time: latestPlannedTime.value }));
 const { isOwner, isSharedWithCaller, ownerHandle, permission, writeScope, isHouseholdGranted } = useAccountAccess(
   toRef(() => props.account),
 );
@@ -256,6 +264,20 @@ watch([formEditingPopoverOpen, () => props.account.id], () => {
           </span>
         </div>
       </div>
+
+      <i18n-t
+        v-if="hasPendingPlans"
+        keypath="pages.account.header.projectedBalance"
+        :plural="plannedCount"
+        tag="div"
+        class="text-muted-foreground mt-1 text-sm"
+      >
+        <template #amount>
+          <span class="text-amount text-foreground">{{ projectedBalanceDisplay }}</span>
+        </template>
+        <template #count>{{ plannedCount }}</template>
+        <template #date>{{ latestPlannedDisplay }}</template>
+      </i18n-t>
     </div>
 
     <BalanceAdjustmentDialog v-if="adjustmentDialogOpen" :account="account" @close="adjustmentDialogOpen = false" />

@@ -24,7 +24,8 @@
       "totalBalance": "Total balance",
       "assets": "Assets",
       "liabilities": "Liabilities",
-      "vehicles": "Vehicles"
+      "vehicles": "Vehicles",
+      "projected": "Projected {amount} · {count} planned entry through {date} | Projected {amount} · {count} planned entries through {date}"
     },
     "sharedBy": "Shared by {handle}",
     "viaHousehold": "Shared via {handle}'s household",

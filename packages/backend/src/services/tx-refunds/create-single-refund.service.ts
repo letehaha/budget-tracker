@@ -1,5 +1,6 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as RefundTransactions from '@models/refund-transactions.model';
@@ -27,6 +28,7 @@ interface CreateSingleRefundParams {
  *    3rd point.
  * 5. Refund over `transfer` transaction. Might be supported in the future, but not now.
  * 6. Refund over existing refund.
+ * 7. Either side is a planned transaction.
  *
  * @async
  * @export
@@ -57,6 +59,12 @@ export const createSingleRefund = withTransaction(
       if (originalTxId && !originalTx) {
         throw new NotFoundError({
           message: 'Original transaction not found',
+        });
+      }
+
+      if (originalTx?.isPlanned || refundTx.isPlanned) {
+        throw new ValidationError({
+          message: t({ key: 'transactions.plannedCannotBeRefundLinked' }),
         });
       }
 

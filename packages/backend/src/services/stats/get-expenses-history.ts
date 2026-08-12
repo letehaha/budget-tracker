@@ -42,12 +42,15 @@ export const getExpensesHistory = async ({
   to,
   accountId,
   transactionType = TRANSACTION_TYPES.expense,
+  excludePlanned,
 }: {
   userId: number;
   accountId?: string;
   from?: string;
   to?: string;
   transactionType?: TRANSACTION_TYPES;
+  /** Drops pending planned rows, leaving only money that actually moved. */
+  excludePlanned?: boolean;
 }): Promise<GetExpensesHistoryResponseSchema[]> => {
   const dataAttributes: (keyof Transactions.default)[] = [
     'id',
@@ -67,6 +70,7 @@ export const getExpensesHistory = async ({
       userId,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       transactionType,
+      ...(excludePlanned ? { isPlanned: false } : {}),
       ...getWhereConditionForTime({ from, to, columnName: 'time' }),
     }),
     include: [

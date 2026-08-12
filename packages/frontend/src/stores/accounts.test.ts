@@ -1,4 +1,11 @@
-import { type AccountWithRelinkStatus, type RecordId, type UserModel } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  ACCOUNT_STATUSES,
+  ACCOUNT_TYPES,
+  type AccountWithRelinkStatus,
+  type RecordId,
+  type UserModel,
+} from '@bt/shared/types';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { ACCOUNTS } from '@tests/mocks/accounts';
 import { flushPromises, mount } from '@vue/test-utils';
@@ -25,6 +32,14 @@ const mockLoadAccounts = vi.mocked(apiLoadAccounts);
 
 /** An account carrying the given id, reusing a valid mock as the base shape. */
 const withId = (id: string): AccountWithRelinkStatus => ({ ...ACCOUNTS[0]!, id: id as RecordId });
+
+const buildAccount = (id: string, overrides: Partial<AccountWithRelinkStatus> = {}): AccountWithRelinkStatus => ({
+  ...withId(id),
+  type: ACCOUNT_TYPES.system,
+  accountCategory: ACCOUNT_CATEGORIES.general,
+  status: ACCOUNT_STATUSES.active,
+  ...overrides,
+});
 
 describe('useAccountsStore – accountsRecord mirrors the live accounts list', () => {
   let store: ReturnType<typeof useAccountsStore>;
@@ -70,5 +85,53 @@ describe('useAccountsStore – accountsRecord mirrors the live accounts list', (
     expect(store.accountsRecord['acc-drop']).toBeUndefined();
     expect(store.accountsRecord['acc-keep']).toBeDefined();
     expect(Object.keys(store.accountsRecord)).toEqual(['acc-keep']);
+  });
+
+  describe('plannedTargetableAccountsActiveFirst', () => {
+    const seed = async (accounts: AccountWithRelinkStatus[]) => {
+      mockLoadAccounts.mockResolvedValue(accounts);
+      mountStore();
+      await flushPromises();
+      return store.plannedTargetableAccountsActiveFirst.map((account) => account.id);
+    };
+
+    it('offers bank-connected accounts, which the manual picker leaves out', async () => {
+      const ids = await seed([buildAccount('acc-cash'), buildAccount('acc-mono', { type: ACCOUNT_TYPES.monobank })]);
+
+      expect(ids).toEqual(['acc-cash', 'acc-mono']);
+    });
+
+    it('drops loan and vehicle accounts, whose balances are replayed from transactions', async () => {
+      const ids = await seed([
+        buildAccount('acc-cash'),
+        buildAccount('acc-loan', { accountCategory: ACCOUNT_CATEGORIES.loan }),
+        buildAccount('acc-car', { accountCategory: ACCOUNT_CATEGORIES.vehicle }),
+      ]);
+
+      expect(ids).toEqual(['acc-cash']);
+    });
+
+    it('drops accounts shared with the user, since a plan belongs to the account owner', async () => {
+      const ids = await seed([
+        buildAccount('acc-own'),
+        buildAccount('acc-owned-share', {
+          share: { isOwner: true } as AccountWithRelinkStatus['share'],
+        }),
+        buildAccount('acc-theirs', {
+          share: { isOwner: false } as AccountWithRelinkStatus['share'],
+        }),
+      ]);
+
+      expect(ids).toEqual(['acc-own', 'acc-owned-share']);
+    });
+
+    it('keeps archived accounts reachable but sorts them behind the active ones', async () => {
+      const ids = await seed([
+        buildAccount('acc-archived', { status: ACCOUNT_STATUSES.archived }),
+        buildAccount('acc-active'),
+      ]);
+
+      expect(ids).toEqual(['acc-active', 'acc-archived']);
+    });
   });
 });

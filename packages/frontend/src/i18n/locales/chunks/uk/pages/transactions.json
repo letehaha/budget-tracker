@@ -42,6 +42,9 @@
       "transferFilter": {
         "label": "Перекази"
       },
+      "plannedFilter": {
+        "label": "Заплановані"
+      },
       "filterOperation": {
         "all": "Всі",
         "exclude": "Виключити",
@@ -199,6 +202,13 @@
         "addFailed": "Не вдалося додати транзакції до групи"
       }
     },
+    "planned": {
+      "label": "Заплановано",
+      "confirmedLabel": "Підтверджено",
+      "plannedTooltip": "Запланована транзакція",
+      "expiredTooltip": "Очікувалася {days} дн. тому, відповідної банківської транзакції немає",
+      "mergedTooltip": "Підтверджено із запланованого запису від {date}"
+    },
     "transfer": {
       "hiddenAccount": "Прихований рахунок"
     },
@@ -261,7 +271,14 @@
       "overdueBadge": "Прострочено",
       "scheduledBadge": "Заплановано",
       "payAction": "Позначити як сплачено",
-      "hideToggle": "Сховати заплановані платежі"
+      "hideToggle": "Сховати заплановані платежі",
+      "expectedBadge": "Очікується",
+      "unconfirmedBadge": "Не підтверджено",
+      "morePlans": "+{count} запланованих",
+      "morePlansAtLeast": "+{count}+ запланованих",
+      "deletePlanTitle": "Видалити заплановану транзакцію?",
+      "deletePlanDescription": "Цю дію неможливо скасувати.",
+      "plansLoadFailed": "Не вдалося завантажити заплановані транзакції"
     }
   }
 }

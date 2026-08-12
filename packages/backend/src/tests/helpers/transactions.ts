@@ -56,6 +56,37 @@ export async function createTransaction({
   });
 }
 
+type CreatePlannedTransactionPayload = Parameters<typeof buildTransactionPayload>[0];
+
+export function createPlannedTransaction({
+  payload,
+  raw,
+}: {
+  payload: CreatePlannedTransactionPayload;
+  raw?: false;
+}): Promise<Response>;
+export function createPlannedTransaction({
+  payload,
+  raw,
+}: {
+  payload: CreatePlannedTransactionPayload;
+  raw?: true;
+}): Promise<[baseTx: Transactions, oppositeTx?: Transactions]>;
+export function createPlannedTransaction({
+  payload,
+  raw = false,
+}: {
+  payload: CreatePlannedTransactionPayload;
+  raw?: boolean;
+}) {
+  return makeRequest({
+    method: 'post',
+    url: '/transactions',
+    payload: buildTransactionPayload({ ...payload, isPlanned: true }),
+    raw,
+  });
+}
+
 interface SplitInput {
   categoryId: string;
   amount: number;

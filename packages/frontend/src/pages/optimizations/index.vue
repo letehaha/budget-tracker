@@ -42,7 +42,7 @@ const optimizations = [
       >
         <div class="flex items-start gap-4">
           <div class="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-lg">
-            <component :is="item.icon" class="text-primary size-5" />
+            <component :is="item.icon" class="text-primary-text size-5" />
           </div>
           <div class="min-w-0">
             <h3 class="font-semibold">{{ $t(item.titleKey) }}</h3>

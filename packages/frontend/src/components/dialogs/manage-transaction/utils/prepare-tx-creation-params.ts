@@ -3,7 +3,7 @@ import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
 import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, type RecordId } from '@bt/shared/types';
 import type { SplitInput } from '@bt/shared/types/endpoints';
 
-import { getOppositeTxType, getTxTypeFromFormType } from '../helpers';
+import { getOppositeTxType, getTxTypeFromFormType, resolveFormIsPlanned } from '../helpers';
 import { type FormSplit, UI_FORM_STRUCT } from '../types';
 
 /**
@@ -90,6 +90,10 @@ export const prepareTxCreationParams = ({
     if (form.payeeId !== undefined && form.payeeId !== null) {
       creationParams.payeeId = form.payeeId as RecordId;
       creationParams.payeeLocked = true;
+    }
+
+    if (resolveFormIsPlanned({ form })) {
+      creationParams.isPlanned = true;
     }
   }
 

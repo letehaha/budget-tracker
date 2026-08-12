@@ -103,6 +103,7 @@ export interface TransactionsAttributes {
   refCommissionRate: Money;
   cashbackAmount: Money;
   refundLinked: boolean;
+  isPlanned: boolean;
   categorizationMeta: CategorizationMeta | null;
   payeeId: string | null;
   payeeLocked: boolean;
@@ -255,6 +256,15 @@ export default class Transactions extends Model {
     defaultValue: false,
   })
   refundLinked!: boolean;
+
+  // `defaultValue` is required here, not just in SQL: backup restore rejects an archive that
+  // omits a NOT NULL column unless the model supplies a default.
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  declare isPlanned: boolean;
 
   // Metadata about how this transaction was categorized (manual, ai, mcc_rule, user_rule, subscription_rule, payee_rule)
   @Column({
@@ -421,6 +431,9 @@ export default class Transactions extends Model {
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
     const { accountType, accountId, amount, transactionType } = instance;
 
+    // A planned row records money that hasn't moved yet.
+    if (instance.isPlanned) return;
+
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
         accountId,
@@ -434,6 +447,47 @@ export default class Transactions extends Model {
     if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
       await Transactions.triggerLoanBalanceRecompute(instance.accountId);
     }
+  }
+
+  /**
+   * Balance effect of an `isPlanned` flip: becoming real applies the amount exactly as
+   * `@AfterCreate` does, going back to planned withdraws it exactly as `@BeforeDestroy`
+   * does. The reverse works off `prevData` — the money sat on the pre-update account.
+   */
+  private static async applyPlannedFlipBalanceChange({
+    newData,
+    prevData,
+    becameReal,
+  }: {
+    newData: Transactions;
+    prevData: Transactions;
+    becameReal: boolean;
+  }): Promise<void> {
+    if (becameReal) {
+      if (newData.accountType === ACCOUNT_TYPES.system) {
+        await updateAccountBalanceForChangedTx({
+          accountId: newData.accountId,
+          amount: newData.amount,
+          transactionType: newData.transactionType,
+        });
+      }
+
+      await Balances.handleTransactionChange({ data: newData });
+      return;
+    }
+
+    if (prevData.accountType === ACCOUNT_TYPES.system) {
+      await updateAccountBalanceForChangedTx({
+        accountId: prevData.accountId,
+        prevAmount: prevData.amount,
+        transactionType: prevData.transactionType,
+        // The row survives the flip, so the ledger-boundary lookup has to be told to
+        // ignore it the same way a delete would.
+        removedTransactionId: newData.id,
+      });
+    }
+
+    await Balances.handleTransactionChange({ data: prevData, isDelete: true });
   }
 
   @AfterUpdate
@@ -457,6 +511,17 @@ export default class Transactions extends Model {
       newRaw[field] = Money.fromCents(newRaw[field]);
       prevRaw[field] = Money.fromCents(prevRaw[field]);
     }
+
+    const wasPlanned = Boolean(prevData.isPlanned);
+    const isPlanned = Boolean(newData.isPlanned);
+
+    if (wasPlanned !== isPlanned) {
+      await Transactions.applyPlannedFlipBalanceChange({ newData, prevData, becameReal: wasPlanned });
+      return;
+    }
+
+    // Editing a planned row moves nothing: the money still hasn't happened.
+    if (isPlanned) return;
 
     const isAccountChanged = newData.accountId !== prevData.accountId;
 
@@ -517,16 +582,20 @@ export default class Transactions extends Model {
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
     const { accountType, accountId, amount, transactionType } = instance;
 
-    if (accountType === ACCOUNT_TYPES.system) {
-      await updateAccountBalanceForChangedTx({
-        accountId,
-        prevAmount: amount,
-        transactionType,
-        removedTransactionId: instance.id,
-      });
-    }
+    // Planned rows never moved a balance, so there is nothing to take back. Group
+    // bookkeeping below still has to run so groups keep auto-dissolving.
+    if (!instance.isPlanned) {
+      if (accountType === ACCOUNT_TYPES.system) {
+        await updateAccountBalanceForChangedTx({
+          accountId,
+          prevAmount: amount,
+          transactionType,
+          removedTransactionId: instance.id,
+        });
+      }
 
-    await Balances.handleTransactionChange({ data: instance, isDelete: true });
+      await Balances.handleTransactionChange({ data: instance, isDelete: true });
+    }
 
     // Capture group membership BEFORE CASCADE deletes the join rows.
     // Stored on the instance so @AfterDestroy can check only the affected groups.
@@ -705,6 +774,8 @@ export const findWithFilters = async ({
   categorizationSource,
   categorizedAt,
   excludeBalanceAdjustments,
+  isPlanned,
+  plannedVisibleToUserId,
 }: {
   from: number;
   limit?: number;
@@ -760,6 +831,11 @@ export const findWithFilters = async ({
   categorizedAt?: string;
   /** Hide transactions created by the balance-adjustment flow (`externalData.balanceAdjustment`). */
   excludeBalanceAdjustments?: boolean;
+  /** Exact `isPlanned` match. */
+  isPlanned?: boolean;
+  /** Keeps planned rows authored by other users out of the result while leaving the
+   * caller's own plans visible. */
+  plannedVisibleToUserId?: number;
 }) => {
   const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
 
@@ -1031,6 +1107,17 @@ export const findWithFilters = async ({
     whereClause['categorizationMeta.categorizedAt'] = categorizedAt;
   }
 
+  if (isPlanned !== undefined) {
+    whereClause.isPlanned = isPlanned;
+  }
+
+  if (plannedVisibleToUserId !== undefined) {
+    const andKey = Op.and as unknown as string;
+    const existingAnd = (whereClause as Record<string, unknown>)[andKey] as unknown[] | undefined;
+    const plannedVisibility = { [Op.or]: [{ isPlanned: false }, { userId: plannedVisibleToUserId }] };
+    whereClause[andKey] = existingAnd ? [...existingAnd, plannedVisibility] : [plannedVisibility];
+  }
+
   const transactions = await Transactions.findAll({
     include: queryInclude,
     where: whereClause,
@@ -1123,6 +1210,7 @@ type CreateTxOptionalParams = Partial<
     | 'categorizationMeta'
     | 'payeeId'
     | 'payeeLocked'
+    | 'isPlanned'
   >
 >;
 
@@ -1148,6 +1236,8 @@ export interface UpdateTransactionByIdParams {
   paymentType?: PAYMENT_TYPES;
   accountId?: string;
   categoryId?: string;
+  /** Moving a row between accounts moves it between account types; the hooks read this one. */
+  accountType?: ACCOUNT_TYPES;
   currencyCode?: string;
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
@@ -1156,6 +1246,7 @@ export interface UpdateTransactionByIdParams {
   categorizationMeta?: CategorizationMeta | null;
   payeeId?: string | null;
   payeeLocked?: boolean;
+  isPlanned?: boolean;
 }
 
 export const updateTransactionById = async (
@@ -1212,9 +1303,11 @@ export const deleteTransactionById = async ({ id, userId }: { id: string; userId
 
   if (!tx) return true;
 
-  if (tx.accountType !== ACCOUNT_TYPES.system) {
+  // A plan on a provider account is the user's own row that the bank has never reported,
+  // so deleting it takes nothing away from the sync.
+  if (tx.accountType !== ACCOUNT_TYPES.system && !tx.isPlanned) {
     throw new ValidationError({
-      message: "It's not allowed to manually delete external transactions",
+      message: t({ key: 'transactions.cannotDeleteExternal' }),
     });
   }
 

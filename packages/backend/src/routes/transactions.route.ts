@@ -7,6 +7,7 @@ import bulkDelete from '@controllers/transactions.controller/bulk-delete';
 import bulkUpdate from '@controllers/transactions.controller/bulk-update';
 import createTransaction from '@controllers/transactions.controller/create-transaction';
 import deleteTransaction from '@controllers/transactions.controller/delete-transaction';
+import getPlannedSummary from '@controllers/transactions.controller/get-planned-summary';
 import getPortfolioLink from '@controllers/transactions.controller/get-portfolio-link';
 import getTransactions from '@controllers/transactions.controller/get-transaction';
 import getTransactionsByIds from '@controllers/transactions.controller/get-transactions-by-ids';
@@ -39,6 +40,12 @@ router.get(
   authenticateSession,
   validateEndpoint(getRefundRecommendations.schema),
   getRefundRecommendations.handler,
+);
+router.get(
+  '/planned-summary',
+  authenticateSession,
+  validateEndpoint(getPlannedSummary.schema),
+  getPlannedSummary.handler,
 );
 router.get(
   '/transfer-recommendations',

@@ -10,6 +10,20 @@
         <div class="mt-1 text-2xl font-semibold tracking-tight tabular-nums @[40rem]/accounts-page:text-4xl">
           {{ totalDisplay }}
         </div>
+
+        <i18n-t
+          v-if="hasPendingPlans"
+          keypath="accounts.overview.projected"
+          :plural="planned.count"
+          tag="div"
+          class="text-muted-foreground mt-1 text-xs"
+        >
+          <template #amount>
+            <span class="text-foreground font-semibold tabular-nums">{{ projectedDisplay }}</span>
+          </template>
+          <template #count>{{ planned.count }}</template>
+          <template #date>{{ latestPlannedDisplay }}</template>
+        </i18n-t>
       </div>
 
       <div class="flex gap-4 @[40rem]/accounts-page:gap-8">
@@ -51,6 +65,7 @@
 <script setup lang="ts">
 import { Card } from '@/components/lib/ui/card';
 import { useFormatCurrency } from '@/composable';
+import { type PlannedAggregate, usePlannedDateLabel } from '@/composable/use-projected-balance';
 import type { AccountsOverview } from '@/pages/accounts/accounts-overview-totals';
 import { computed } from 'vue';
 
@@ -58,11 +73,20 @@ const props = defineProps<{
   overview: AccountsOverview;
   baseCurrencyCode: string;
   hasVehicles: boolean;
+  planned: PlannedAggregate;
+  projectedTotal: number;
 }>();
 
 const { formatBaseCurrency } = useFormatCurrency();
+const { formatPlannedDate } = usePlannedDateLabel();
 
 const totalDisplay = computed(
   () => `${props.overview.isApprox ? '≈ ' : ''}${formatBaseCurrency(props.overview.total)}`,
 );
+
+const hasPendingPlans = computed(() => props.planned.count > 0);
+const projectedDisplay = computed(
+  () => `${props.overview.isApprox ? '≈ ' : ''}${formatBaseCurrency(props.projectedTotal)}`,
+);
+const latestPlannedDisplay = computed(() => formatPlannedDate({ time: props.planned.latestTime }));
 </script>

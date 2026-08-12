@@ -1,10 +1,4 @@
-import {
-  ACCOUNT_TYPES,
-  PAYMENT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  isTwoLegTransfer,
-} from '@bt/shared/types';
+import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deserializeCreateTransaction, serializeTransactionTuple } from '@root/serializers';
@@ -23,7 +17,6 @@ const schema = z.object({
       transactionType: z.nativeEnum(TRANSACTION_TYPES),
       paymentType: z.nativeEnum(PAYMENT_TYPES),
       accountId: recordId(),
-      accountType: z.nativeEnum(ACCOUNT_TYPES).optional(),
       destinationAmount: positiveAmountSchema().optional(),
       destinationAccountId: recordId().optional(),
       destinationTransactionId: recordId().optional(),
@@ -35,6 +28,7 @@ const schema = z.object({
       tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').optional(),
       payeeId: recordId().nullable().optional(),
       payeeLocked: z.boolean().optional(),
+      isPlanned: z.boolean().optional().default(false),
     })
     .refine(
       (data) =>
@@ -144,7 +138,6 @@ export default createController(schema, async ({ user, body }) => {
 
   // TODO: Add validations
   // 1. Amount and destinationAmount with same currency should be equal
-  // 2. That transactions here might be created only with system account type
 
   const transactions = await transactionsService.createTransaction(params);
 

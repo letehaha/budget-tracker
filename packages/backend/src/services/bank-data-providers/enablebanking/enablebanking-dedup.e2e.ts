@@ -1,5 +1,12 @@
 import type { RecordId } from '@bt/shared/types';
-import { BANK_PROVIDER_TYPE, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  BANK_PROVIDER_TYPE,
+  PAYMENT_TYPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
@@ -88,6 +95,56 @@ describe('Enable Banking dedup improvements (E2E)', () => {
     const other = categories.find((c) => c.id !== categoryId);
     if (!other) throw new Error('Expected the test user to have more than one category');
     return other.id;
+  }
+
+  /**
+   * Writes a real (non-planned) row straight onto the model, which is the population
+   * reconcile exists to clean up: the transactions API refuses hand-typed rows on a
+   * bank-connected account, but every importer passes `accountType: system` without
+   * checking the target, so imported rows still land here — as do rows predating the
+   * rule. `accountType: system` is what makes the balance hooks move `currentBalance`,
+   * matching what those importers produce.
+   *
+   * Currency and FX mirror an already-synced row on the account so the seeded row
+   * converts to the base currency exactly like the row it duplicates.
+   */
+  async function insertRealRow({
+    accountId,
+    amount,
+    time,
+    categoryId,
+    note,
+    externalData,
+  }: {
+    accountId: RecordId;
+    amount: number;
+    time: string;
+    categoryId?: RecordId;
+    note?: string;
+    externalData?: Record<string, unknown>;
+  }) {
+    const reference = await Transactions.findOne({ where: { accountId }, order: [['time', 'ASC']] });
+    if (!reference) throw new Error('Expected a synced row on the account to mirror currency and FX from');
+
+    return Transactions.create({
+      amount: Money.fromDecimal(amount),
+      refAmount: reference.refAmount.multiply(amount).divide(reference.amount.toNumber()),
+      commissionRate: Money.zero(),
+      refCommissionRate: Money.zero(),
+      cashbackAmount: Money.zero(),
+      accountId,
+      userId: reference.userId,
+      categoryId: categoryId ?? reference.categoryId,
+      note: note ?? null,
+      time: new Date(time),
+      transactionType: TRANSACTION_TYPES.expense,
+      paymentType: PAYMENT_TYPES.bankTransfer,
+      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      accountType: ACCOUNT_TYPES.system,
+      currencyCode: reference.currencyCode,
+      refCurrencyCode: reference.refCurrencyCode,
+      externalData: externalData ?? null,
+    });
   }
 
   // ==========================================================================
@@ -304,10 +361,9 @@ describe('Enable Banking dedup improvements (E2E)', () => {
   // ==========================================================================
   describe('#4 reconciliation of existing duplicates', () => {
     /**
-     * Fabricates the kind of duplicate reconcile exists to clean up: a plain
-     * expense created via the API, then patched on the model because the API
-     * can't set the counterparty IBAN that reconcile's gate reads. Its category
-     * mirrors the synced row so reconcile sees an unedited duplicate.
+     * A plain expense duplicating the synced row, carrying the counterparty IBAN
+     * that reconcile's gate reads. Its category mirrors the synced row so reconcile
+     * sees an unedited duplicate.
      */
     async function insertManualOrphan({
       accountId,
@@ -320,24 +376,12 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       time: string;
       counterpartyIban?: string;
     }) {
-      const categoryId = (await listTransactions({ accountId }))[0]!.categoryId;
-
-      const [tx] = await helpers.createTransaction({
-        payload: {
-          amount,
-          accountId,
-          time,
-          categoryId,
-          transactionType: TRANSACTION_TYPES.expense,
-          paymentType: PAYMENT_TYPES.bankTransfer,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        },
-        raw: true,
+      return insertRealRow({
+        accountId,
+        amount,
+        time,
+        externalData: counterpartyIban ? { creditorAccount: counterpartyIban } : undefined,
       });
-      if (counterpartyIban) {
-        await Transactions.update({ externalData: { creditorAccount: counterpartyIban } }, { where: { id: tx.id } });
-      }
-      return tx;
     }
 
     it('merges a duplicate pair where one has entry_reference and the other does not', async () => {
@@ -593,8 +637,7 @@ describe('Enable Banking dedup improvements (E2E)', () => {
     /**
      * Fabricates a pending row sitting next to its already-booked twin. Live sync
      * prevents that shape, so it has to be built by hand — and it is exactly the
-     * pollution reconcile exists to clean up. The API doesn't expose externalData,
-     * so the PDNG payload is written straight onto the model after creating the row.
+     * pollution reconcile exists to clean up.
      */
     async function insertPendingOrphan({
       accountId,
@@ -611,29 +654,17 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       remittanceInformation: string[];
       note?: string;
     }) {
-      const [tx] = await helpers.createTransaction({
-        payload: {
-          amount,
-          accountId,
-          time,
-          categoryId,
-          note: note ?? remittanceInformation.join(' '),
-          transactionType: TRANSACTION_TYPES.expense,
-          paymentType: PAYMENT_TYPES.bankTransfer,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      return insertRealRow({
+        accountId,
+        amount,
+        time,
+        categoryId,
+        note: note ?? remittanceInformation.join(' '),
+        externalData: {
+          isExpense: true,
+          rawTransaction: { status: 'PDNG', remittance_information: remittanceInformation },
         },
-        raw: true,
       });
-      await Transactions.update(
-        {
-          externalData: {
-            isExpense: true,
-            rawTransaction: { status: 'PDNG', remittance_information: remittanceInformation },
-          },
-        },
-        { where: { id: tx.id } },
-      );
-      return tx;
     }
 
     it('upgrades the stored pending row in place when the bank re-issues it as booked', async () => {
@@ -1104,29 +1135,18 @@ describe('Enable Banking dedup improvements (E2E)', () => {
 
       // A cancelled authorisation the bank still returns, reference and all. Live
       // sync can't produce this shape, so the payload is written onto the row.
-      const [cancelled] = await helpers.createTransaction({
-        payload: {
-          amount: 60,
-          accountId,
-          categoryId,
-          time: new Date('2025-07-20').toISOString(),
-          note: 'CARD PURCHASE',
-          transactionType: TRANSACTION_TYPES.expense,
-          paymentType: PAYMENT_TYPES.bankTransfer,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+      const cancelled = await insertRealRow({
+        accountId,
+        amount: 60,
+        categoryId,
+        time: new Date('2025-07-20').toISOString(),
+        note: 'CARD PURCHASE',
+        externalData: {
+          isExpense: true,
+          entryReference: 'cancelled_guard_ref',
+          rawTransaction: { status: 'CNCL', remittance_information: ['CARD PURCHASE'] },
         },
-        raw: true,
       });
-      await Transactions.update(
-        {
-          externalData: {
-            isExpense: true,
-            entryReference: 'cancelled_guard_ref',
-            rawTransaction: { status: 'CNCL', remittance_information: ['CARD PURCHASE'] },
-          },
-        },
-        { where: { id: cancelled.id } },
-      );
 
       // Same amount, same category, same note, two days earlier — every merge gate
       // passes, so only the status keeps this row alive.
@@ -1479,21 +1499,16 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       const { connectionId, accountId } = await setupConnectionWithAccount();
       const syncedTx = (await listTransactions({ accountId }))[0]!;
 
-      // A planned expense the user entered on their bank account. The anchor is
-      // MAX(time) over every row, so this alone pushes it past today.
+      // A real row dated past today — an imported entry, or a bank row whose value_date
+      // runs ahead. The anchor is MAX(time) over every real row, so this alone pushes it
+      // past today. A planned row would not: the anchor query filters those out.
       const future = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
-      await helpers.createTransaction({
-        payload: {
-          amount: 20,
-          accountId,
-          categoryId: syncedTx.categoryId,
-          time: future.toISOString(),
-          note: 'PLANNED RENT',
-          transactionType: TRANSACTION_TYPES.expense,
-          paymentType: PAYMENT_TYPES.bankTransfer,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        },
-        raw: true,
+      await insertRealRow({
+        accountId,
+        amount: 20,
+        time: future.toISOString(),
+        categoryId: syncedTx.categoryId,
+        note: 'FUTURE VALUE DATE',
       });
 
       await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });

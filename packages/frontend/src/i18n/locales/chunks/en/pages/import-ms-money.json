@@ -118,6 +118,7 @@
           "outOfWalletImported": "Out-of-wallet transfers",
           "duplicatesSkipped": "Duplicates skipped",
           "voidedImported": "Voided imported",
+          "mergedIntoPlanned": "Merged into planned",
           "balanceWarningTitle": "Some balances may be off",
           "balanceWarningBody": "We couldn't set the final balance on every account. Check them and adjust if needed.",
           "errorsTitle": "{count} row(s) could not be imported",
