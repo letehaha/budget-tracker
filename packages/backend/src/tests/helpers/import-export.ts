@@ -15,6 +15,7 @@ import type {
   ExtractUniqueValuesResponse,
   ExtractedMetadata,
   ExtractedTransaction,
+  ImportBatchesHistoryResponse,
   MsMoneyAccountMapping,
   MsMoneyImportProgress,
   MsMoneyUploadResponse,
@@ -749,4 +750,23 @@ export function expectMsMoneyFailed(
   if (progress.status !== 'failed') {
     throw new Error(`Expected failed Microsoft Money import, got status="${progress.status}".`);
   }
+}
+
+// ============================================
+// Import Batches History Endpoint
+// ============================================
+
+export function getBatchesHistory<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload?: { limit?: number; offset?: number };
+  raw?: R;
+} = {}): UtilizeReturnType<() => ImportBatchesHistoryResponse, R> {
+  return makeRequest<ImportBatchesHistoryResponse, R>({
+    method: 'get',
+    url: '/import/batches-history',
+    payload,
+    raw,
+  });
 }
