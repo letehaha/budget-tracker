@@ -117,6 +117,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
   const rawTransactions = await Transactions.findAll({
     where: {
       userId,
+      isPlanned: false,
       transactionType: TRANSACTION_TYPES.expense,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       refundLinked: false,

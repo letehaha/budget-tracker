@@ -248,6 +248,12 @@ export interface StatementImportError {
 export interface StatementExecuteImportResponse {
   summary: {
     imported: number;
+    /**
+     * Rows that merged into an existing planned transaction instead of creating
+     * a new one. Counted here instead of `imported`, and absent from
+     * `newTransactionIds`.
+     */
+    merged?: number;
     skipped: number;
     errors: StatementImportError[];
   };

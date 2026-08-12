@@ -75,4 +75,24 @@ describe('Record TypeSelector component', () => {
       },
     );
   });
+
+  test('only "Transfer" is disabled when isTransferDisabled is set', () => {
+    const transaction = buildSystemExpenseTransaction();
+    const wrapper = mount(TypeSelectorVue, {
+      props: {
+        selectedTransactionType: getFormTypeFromTransaction(transaction),
+        isFormCreation: true,
+        isTransferDisabled: true,
+      },
+      global: {
+        plugins: [i18n],
+      },
+    });
+
+    const buttons = wrapper.findAll('button');
+    const disabledButtons = buttons.filter((item) => item.attributes().disabled !== undefined);
+
+    expect(disabledButtons.length).toBe(1);
+    expect(disabledButtons[0]!.text()).toBe('Transfer');
+  });
 });

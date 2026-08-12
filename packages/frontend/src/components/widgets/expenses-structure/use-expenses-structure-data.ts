@@ -17,9 +17,11 @@ export interface ChartDataItem {
 export function useExpensesStructureData({
   selectedPeriod,
   excludedCategoryIds,
+  includePlanned,
 }: {
   selectedPeriod: () => { from: Date; to: Date };
   excludedCategoryIds: Ref<string[]>;
+  includePlanned: Ref<boolean>;
 }) {
   const { t } = useI18n();
 
@@ -59,7 +61,8 @@ export function useExpensesStructureData({
     { deep: true },
   );
 
-  const excludedKey = computed(() => excludedCategoryIds.value.join(','));
+  const excludedKey = computed(() => `${excludedCategoryIds.value.join(',')}:planned-${includePlanned.value}`);
+  const excludePlannedParam = computed(() => !includePlanned.value || undefined);
 
   const { data: spendingsByCategories, isFetching: isSpendingsByCategoriesFetching } = useQuery({
     queryKey: [...VUE_QUERY_CACHE_KEYS.widgetExpensesStructureTotal, periodQueryKey, excludedKey],
@@ -68,6 +71,7 @@ export function useExpensesStructureData({
         from: selectedPeriod().from,
         to: selectedPeriod().to,
         excludedCategoryIds: excludedCategoryIds.value.length > 0 ? excludedCategoryIds.value : undefined,
+        excludePlanned: excludePlannedParam.value,
       }),
     staleTime: Infinity,
     placeholderData: (previousData) => previousData || {},
@@ -80,6 +84,7 @@ export function useExpensesStructureData({
         from: selectedPeriod().from,
         to: selectedPeriod().to,
         excludedCategoryIds: excludedCategoryIds.value.length > 0 ? excludedCategoryIds.value : undefined,
+        excludePlanned: excludePlannedParam.value,
       }),
     staleTime: Infinity,
     placeholderData: (previousData) => previousData || 0,
@@ -112,6 +117,7 @@ export function useExpensesStructureData({
         from: prevPeriod.value.from,
         to: prevPeriod.value.to,
         excludedCategoryIds: excludedCategoryIds.value.length > 0 ? excludedCategoryIds.value : undefined,
+        excludePlanned: excludePlannedParam.value,
       }),
     staleTime: Infinity,
     placeholderData: (previousData) => previousData || 0,

@@ -13,7 +13,9 @@
         :excluded-category-ids="excludedCategoryIds"
         test-id-prefix="es"
         @save="persistExcludedCategories"
-      />
+      >
+        <IncludePlannedMenuItem test-id-prefix="es" />
+      </ExcludeCategoriesMenu>
     </template>
 
     <!-- Stats row - two columns with space between -->
@@ -74,6 +76,8 @@
 import ExcludeCategoriesMenu from '@/components/common/category-exclusions/exclude-categories-menu.vue';
 import ExcludedCountBadge from '@/components/common/category-exclusions/excluded-count-badge.vue';
 import { useCategoryExclusionsConfig } from '@/components/common/category-exclusions/use-category-exclusions-config';
+import IncludePlannedMenuItem from '@/components/widgets/components/include-planned-menu-item.vue';
+import { useIncludePlannedConfig } from '@/components/widgets/use-include-planned-config';
 import { useFormatCurrency } from '@/composable';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
@@ -103,6 +107,7 @@ const { categoriesMap } = storeToRefs(categoriesStore);
 const router = useRouter();
 
 const { widgetConfigRef, excludedCategoryIds, persistExcludedCategories } = useCategoryExclusionsConfig();
+const { includePlanned } = useIncludePlannedConfig();
 
 const {
   hasExcludedStats,
@@ -117,6 +122,7 @@ const {
 } = useExpensesStructureData({
   selectedPeriod: () => props.selectedPeriod,
   excludedCategoryIds,
+  includePlanned,
 });
 
 const getAllCategoryIds = (rootCategoryId: string): string[] => {

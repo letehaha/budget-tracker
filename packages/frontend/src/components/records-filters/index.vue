@@ -21,8 +21,10 @@
     <ExclusionsFilter
       :refund-filter="filters.refundFilter"
       :transfer-filter="filters.transferFilter"
+      :planned-filter="filters.plannedFilter"
       @update:refund-filter="$emit('update:filters', { ...filters, refundFilter: $event })"
       @update:transfer-filter="$emit('update:filters', { ...filters, transferFilter: $event })"
+      @update:planned-filter="$emit('update:filters', { ...filters, plannedFilter: $event })"
     />
 
     <TransferNatureFilter

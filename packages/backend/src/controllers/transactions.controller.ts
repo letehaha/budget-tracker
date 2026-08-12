@@ -1,5 +1,5 @@
 import { SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES } from '@bt/shared/types';
-import { recordId } from '@common/lib/zod/custom-types';
+import { booleanQuery, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { serializeTransaction, serializeTransactions } from '@root/serializers';
 import { isPermissionAtLeast } from '@services/sharing/auth/permission-rank';
@@ -12,7 +12,7 @@ export const getTransactionById = createController(
       id: recordId(),
     }),
     query: z.object({
-      includeSplits: z.boolean().optional(),
+      includeSplits: booleanQuery().optional(),
     }),
   }),
   async ({ user, params, query }) => {

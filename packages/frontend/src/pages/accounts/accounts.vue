@@ -82,6 +82,8 @@
             :overview="overview"
             :base-currency-code="baseCurrencyCode"
             :has-vehicles="!!vehiclesWithAccount.length"
+            :planned="plannedTotals"
+            :projected-total="projectedTotal"
           />
 
           <AccountsSection :title="$t('accounts.sections.bankConnections')" :count="bankConnectionsCount">
@@ -223,6 +225,7 @@ import * as Popover from '@/components/lib/ui/popover';
 import GroupTotal from '@/components/sidebar/accounts-view/group-total.vue';
 import { collectGroupAccounts } from '@/components/sidebar/accounts-view/helpers/account-totals';
 import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
+import { useProjectedBalance } from '@/composable/use-projected-balance';
 import AddIntegrationDialog from '@/pages/accounts/integrations/components/add-integration-dialog.vue';
 import { useAccountsStore } from '@/stores';
 import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, AccountModel } from '@bt/shared/types';
@@ -364,6 +367,12 @@ const overview = computed(() =>
     includeCreditLimit: includeCreditLimit.value,
   }),
 );
+
+// The planned-summary endpoint also covers archived accounts, so the projected total is
+// scoped to the very accounts the real total above is built from.
+const { aggregateFor } = useProjectedBalance();
+const plannedTotals = computed(() => aggregateFor({ accountIds: moneyAccounts.value.map((account) => account.id) }));
+const projectedTotal = computed(() => overview.value.total + plannedTotals.value.refPlannedDelta);
 
 const connectionAccountsCount = computed(() =>
   connectionGroups.value.reduce((sum, group) => sum + collectGroupAccounts({ group }).length, 0),

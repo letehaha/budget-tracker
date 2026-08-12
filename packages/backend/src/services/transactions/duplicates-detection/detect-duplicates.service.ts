@@ -111,6 +111,8 @@ export async function detectDuplicates<T extends TransactionToCheck>({
     endDate: endDateStr,
     from: 0,
     limit: 10000,
+    // Planned rows are merge targets for incoming rows, not duplicates of them.
+    isPlanned: false,
   });
 
   // Build lookup map for efficient matching: key = "date:amount:type"

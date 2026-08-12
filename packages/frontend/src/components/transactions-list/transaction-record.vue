@@ -128,6 +128,7 @@
             >
               <UsersIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" :aria-label="addedByTooltip" />
             </ResponsiveTooltip>
+            <PlannedIndicator :transaction="transaction" />
             <SplitIndicator :transaction="transaction" />
             <RefundIndicator :transaction="transaction" />
             <TagsIndicator :transaction="transaction" />
@@ -187,6 +188,7 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import PlannedIndicator from './indicators/planned-indicator.vue';
 import RefundIndicator from './indicators/refund-indicator.vue';
 import SplitIndicator from './indicators/split-indicator.vue';
 import TagsIndicator from './indicators/tags-indicator.vue';

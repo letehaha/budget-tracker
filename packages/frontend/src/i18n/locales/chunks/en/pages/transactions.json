@@ -42,6 +42,9 @@
       "transferFilter": {
         "label": "Transfers"
       },
+      "plannedFilter": {
+        "label": "Planned"
+      },
       "filterOperation": {
         "all": "All",
         "exclude": "Exclude",
@@ -168,6 +171,13 @@
         "addFailed": "Failed to add transactions to group"
       }
     },
+    "planned": {
+      "label": "Planned",
+      "confirmedLabel": "Confirmed",
+      "plannedTooltip": "Planned transaction",
+      "expiredTooltip": "Expected {days} days ago, no matching bank transaction",
+      "mergedTooltip": "Confirmed from planned entry on {date}"
+    },
     "table": {
       "columns": {
         "date": "Date",
@@ -226,7 +236,14 @@
       "overdueBadge": "Overdue",
       "scheduledBadge": "Scheduled",
       "payAction": "Mark paid",
-      "hideToggle": "Hide upcoming payments"
+      "hideToggle": "Hide upcoming payments",
+      "expectedBadge": "Expected",
+      "unconfirmedBadge": "Unconfirmed",
+      "morePlans": "+{count} more planned",
+      "morePlansAtLeast": "+{count}+ more planned",
+      "deletePlanTitle": "Delete planned transaction?",
+      "deletePlanDescription": "This action cannot be undone.",
+      "plansLoadFailed": "Couldn't load planned transactions"
     }
   }
 }

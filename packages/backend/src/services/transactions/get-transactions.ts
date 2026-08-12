@@ -12,7 +12,9 @@ type FindWithFiltersParams = Parameters<typeof Transactions.findWithFilters>[0];
  * optional — the service still needs the caller identity to compute accessible
  * accounts. The model treats it as optional so this service can drop it on the way
  * through (account-scoped query). */
-type GetTransactionsParams = Omit<FindWithFiltersParams, 'isRaw' | 'userId'> & { userId: number };
+type GetTransactionsParams = Omit<FindWithFiltersParams, 'isRaw' | 'userId' | 'plannedVisibleToUserId'> & {
+  userId: number;
+};
 
 /** Internal snapshot of the user who attached a tx to a shared budget. `null` for
  *  owner-attached rows and for non-budget-scoped fetches. The public-facing shape is
@@ -98,6 +100,7 @@ export const getTransactions = async (params: GetTransactionsParams) => {
     ...rest,
     accountIds: scopedAccountIds,
     budgetIds: scopedBudgetIds,
+    plannedVisibleToUserId: userId,
     isRaw,
   });
 

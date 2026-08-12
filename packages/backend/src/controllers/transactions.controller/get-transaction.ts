@@ -73,6 +73,8 @@ const schema = z.object({
         excludeTransfer: booleanQuery().optional(),
         excludeRefunds: booleanQuery().optional(),
         excludeBalanceAdjustments: booleanQuery().optional(),
+        // Absent = both, true = only planned, false = exclude planned.
+        isPlanned: booleanQuery().optional(),
         transferFilter: z.nativeEnum(FILTER_OPERATION).optional(),
         refundFilter: z.nativeEnum(FILTER_OPERATION).optional(),
         // Amount filters now accept decimals from API

@@ -33,6 +33,8 @@ export const getSpendingsByCategories = withTransaction(
      * its hidden parent.
      */
     excludedCategoryIds?: string[];
+    /** Drops pending planned rows, leaving only money that actually moved. */
+    excludePlanned?: boolean;
   }): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
     const transactions = await getExpensesHistory(params);
 
@@ -75,6 +77,7 @@ export async function getSpendingsByCategoriesByType(params: {
   to?: string;
   categoryIds?: string[];
   excludedCategoryIds?: string[];
+  excludePlanned?: boolean;
 }): Promise<endpointsTypes.GetSpendingsByCategoriesByTypeReturnType> {
   const [expenseByCategory, incomeByCategory] = await Promise.all([
     getSpendingsByCategories({ ...params, transactionType: TRANSACTION_TYPES.expense }),

@@ -379,6 +379,8 @@ export const NOTIFICATION_TYPES = {
   changelog: 'changelog',
   tagReminder: 'tag_reminder',
   subscriptionReminder: 'subscription_reminder',
+  /** A bank sync confirmed N planned transactions by merging real rows into them. */
+  plannedConfirmed: 'planned_confirmed',
   shareInvitationReceived: 'share_invitation_received',
   shareInvitationSendFailed: 'share_invitation_send_failed',
   shareAccepted: 'share_accepted',

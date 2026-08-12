@@ -283,6 +283,9 @@
 
     --warning-text: rgb(196, 120, 35);
 
+    /* Darkens whatever transaction-type color bar sits under the planned stripe overlay. */
+    --planned-stripe: rgba(0, 0, 0, 0.35);
+
     /* Custom colors */
     --error-message: rgb(201, 75, 54);
 
@@ -380,6 +383,9 @@
     --success-text: rgb(46, 204, 113);
 
     --warning-text: rgb(243, 156, 18);
+
+    /* Darkens whatever transaction-type color bar sits under the planned stripe overlay. */
+    --planned-stripe: rgba(0, 0, 0, 0.35);
 
     /* Custom colors */
     --error-message: rgb(228, 105, 89);

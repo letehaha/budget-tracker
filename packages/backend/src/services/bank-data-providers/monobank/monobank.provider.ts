@@ -20,6 +20,7 @@ import { Op } from 'sequelize';
 
 import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { encryptCredentials } from '../utils/credential-encryption';
+import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankApiClient } from './api-client';
 import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
@@ -218,6 +219,7 @@ export class MonobankProvider extends BaseBankDataProvider {
           where: {
             accountId: account.id,
             time: { [Op.lte]: new Date() },
+            ...REAL_TRANSACTIONS_WHERE,
           },
           order: [['time', 'DESC']],
         });
@@ -230,12 +232,15 @@ export class MonobankProvider extends BaseBankDataProvider {
           : new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
         const to = new Date();
 
-        return this.loadTransactionsForPeriod({
+        return this.enqueueTransactionSync({
           connectionId,
           systemAccountId,
           userId,
           from,
           to,
+          // Only an anchored (incremental) sync may consume plans: the anchorless
+          // default window is a backfill, and old charges must not eat fresh plans.
+          matchPlanned: Boolean(latestTransaction),
         });
       },
     });
@@ -258,6 +263,26 @@ export class MonobankProvider extends BaseBankDataProvider {
     from: Date;
     to: Date;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
+    // No `matchPlanned`: a charge from an arbitrary past window must not consume a plan
+    // the user made for something else.
+    return this.enqueueTransactionSync({ connectionId, systemAccountId, userId, from, to });
+  }
+
+  private async enqueueTransactionSync({
+    connectionId,
+    systemAccountId,
+    userId,
+    from,
+    to,
+    matchPlanned = false,
+  }: {
+    connectionId: string;
+    systemAccountId: RecordId;
+    userId: number;
+    from: Date;
+    to: Date;
+    matchPlanned?: boolean;
+  }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
     const account = await this.getSystemAccount(systemAccountId);
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
@@ -277,6 +302,7 @@ export class MonobankProvider extends BaseBankDataProvider {
       apiToken,
       from,
       to,
+      matchPlanned,
     });
 
     return result;

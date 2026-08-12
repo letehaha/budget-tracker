@@ -232,6 +232,46 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
       // Link-mode never sets the auto-created flag.
       expect(period.transactionAutoCreated).toBe(false);
     });
+
+    it('rejects a planned transaction and leaves the period upcoming', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const [planned] = await helpers.createPlannedTransaction({
+        payload: {
+          accountId: account.id,
+          amount: 10,
+          time: addMonths(new Date(), 1).toISOString(),
+        },
+        raw: true,
+      });
+
+      const sub = await helpers.createSubscription({
+        name: 'Gym',
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: futureDate({ monthsAhead: 1, day: 1 }),
+        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+        accountId: account.id,
+        categoryId: global.DEFAULT_CATEGORY_ID,
+        expectedAmount: 10,
+        expectedCurrencyCode: global.BASE_CURRENCY.code,
+        raw: true,
+      });
+
+      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const upcoming = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+
+      const res = await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: upcoming!.id,
+        transactionId: planned!.id,
+        raw: false,
+      });
+      expect(res.statusCode).toBe(422);
+
+      const after = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const period = after.periods.find((p) => p.id === upcoming!.id);
+      expect(period!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(period!.transactionId).toBeNull();
+    });
   });
 
   describe('Variable bill (no expectedAmount)', () => {

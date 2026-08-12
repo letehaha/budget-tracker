@@ -91,6 +91,21 @@ export const getAvailableTransferDestinationTypes = (transactionType: TRANSACTIO
   return types;
 };
 
+// A planned row is user-entered data the bank hasn't confirmed yet, so amount and date
+// stay editable even on a provider-linked account.
+export const isTxEditableAsManual = ({
+  transaction,
+  isRecordExternal,
+}: {
+  transaction: TransactionModel | undefined | null;
+  isRecordExternal: boolean;
+}): boolean => !isRecordExternal || !!transaction?.isPlanned;
+
+// Transfers can't be planned, so a flag left over from a type switch must never reach
+// the payload.
+export const resolveFormIsPlanned = ({ form }: { form: UI_FORM_STRUCT }): boolean =>
+  form.type !== FORM_TYPES.transfer && !!form.isPlanned;
+
 // The backend cascades a transfer delete across both legs, so an external-bank
 // partner (which can't be removed) would orphan the call — hide the button instead.
 export const canDeleteTransaction = ({
@@ -105,6 +120,9 @@ export const canDeleteTransaction = ({
   canMutate: boolean;
 }): boolean => {
   if (!transaction || !canMutate) return false;
+  // A planned row is never a transfer leg and stays `accountType: system` until it
+  // merges, so the backend deletes it whatever account it sits on.
+  if (transaction.isPlanned) return true;
   const primaryAccount = accounts[transaction.accountId];
   if (!primaryAccount || primaryAccount.type !== ACCOUNT_TYPES.system) return false;
   if (oppositeTransaction) {
@@ -173,6 +191,7 @@ export const prepopulateForm = ({
       // Existing tx has a categoryId already, so treat the picker as user-touched
       // to prevent later Payee selections from silently overwriting it.
       categoryUserTouched: transaction.categoryId !== null && transaction.categoryId !== undefined,
+      isPlanned: Boolean(transaction.isPlanned),
     } as UI_FORM_STRUCT;
 
     // Convert transaction splits to form splits

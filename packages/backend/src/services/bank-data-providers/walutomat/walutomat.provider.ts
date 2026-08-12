@@ -23,10 +23,13 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
+import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
 import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
+import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
+import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { type HistoryItem, type WalletBalance, WalutomatApiClient, WalutomatHttpError } from './api-client';
 import { linkCrossProviderTransfers } from './cross-provider-linking';
@@ -301,7 +304,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
         // Determine sync start date
         const latestTransaction = await Transactions.findOne({
-          where: { accountId: account.id },
+          where: { accountId: account.id, ...REAL_TRANSACTIONS_WHERE },
           order: [['time', 'DESC']],
         });
 
@@ -333,7 +336,12 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
         const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
         const createdTransactionIds: string[] = [];
+        let mergedIntoPlannedCount = 0;
         const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
+
+        // One probe per run instead of one per row. Anchorless runs are backfills
+        // and must not consume plans.
+        const matchPlanned = Boolean(latestTransaction) && (await accountHasPlannedRows({ accountId: account.id }));
 
         for (const item of historyItems) {
           await checkpoint();
@@ -367,7 +375,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
           const operationAmount = parseFloat(item.operationAmount);
           const isExpense = operationAmount < 0;
 
-          const [createdTx] = await createTransaction({
+          const createResult = await createTransaction({
             originalId: item.transactionId,
             note: buildTransactionDescription(item),
             amount: Money.fromDecimal(Math.abs(operationAmount)),
@@ -389,15 +397,27 @@ export class WalutomatProvider extends BaseBankDataProvider {
             categoryId: defaultCategoryId,
             transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
             accountType: ACCOUNT_TYPES.walutomat,
+            matchPlanned,
           });
 
-          createdTransactionIds.push(createdTx.id);
+          // A merged row is not a new row: it keeps the user's category and payee, which the
+          // post-sync listeners on the emitted ids would overwrite.
+          if (createResult.mergedIntoPlanned) {
+            mergedIntoPlannedCount += 1;
+          } else {
+            createdTransactionIds.push(createResult[0].id);
+          }
         }
 
-        if (createdTransactionIds.length > 0) {
+        if (createdTransactionIds.length > 0 || mergedIntoPlannedCount > 0) {
           logger.info(
-            `[Walutomat] Sync: ${createdTransactionIds.length} transactions created for account ${account.id}`,
+            `[Walutomat] Sync: ${createdTransactionIds.length} transactions created, ${mergedIntoPlannedCount} planned confirmed for account ${account.id}`,
           );
+          await notifyPlannedConfirmations({
+            userId: connection.userId,
+            accountId: account.id,
+            mergedCount: mergedIntoPlannedCount,
+          });
         }
 
         // Update account balance
@@ -537,9 +557,21 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
       if (pairsToLink.length === 0) return;
 
-      await linkTransactions({ userId, ids: pairsToLink });
+      // One rejected pair (planned or split-bearing leg) must not abort the rest of the batch.
+      let linkedCount = 0;
+      for (const pair of pairsToLink) {
+        try {
+          await linkTransactions({ userId, ids: [pair] });
+          linkedCount += 1;
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          logger.warn(`[Walutomat] Failed to auto-link FX pair ${pair[0]} <-> ${pair[1]}: ${errorMsg}`);
+        }
+      }
 
-      logger.info(`[Walutomat] Auto-linked ${pairsToLink.length} FX transfer pair(s) for user ${userId}`);
+      if (linkedCount === 0) return;
+
+      logger.info(`[Walutomat] Auto-linked ${linkedCount} FX transfer pair(s) for user ${userId}`);
     } catch (error) {
       // Non-critical — don't fail the sync if linking fails
       const errorMsg = error instanceof Error ? error.message : String(error);

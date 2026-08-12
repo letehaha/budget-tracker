@@ -117,6 +117,15 @@ export const buildNotificationRoute = (notification: NotificationStruct): Notifi
       };
     }
 
+    case NOTIFICATION_TYPES.plannedConfirmed: {
+      const payload = notification.payload as { accountId?: string } | undefined;
+      if (!payload?.accountId) return null;
+      return {
+        kind: 'spa',
+        to: { name: ROUTES_NAMES.account, params: { id: payload.accountId } },
+      };
+    }
+
     default:
       return null;
   }

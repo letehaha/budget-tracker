@@ -288,6 +288,13 @@ export interface BudgetBakersWalletImportSummary extends ImportSummaryBase {
   transfersImported: number;
   /** Unpaired transfer legs imported as `transfer_out_wallet` transactions. */
   outOfWalletImported: number;
+  /**
+   * Rows that merged into an existing planned transaction instead of creating a
+   * new one. Counted here instead of `transactionsImported`. Optional for the
+   * same reason as `accountBalanceChanges`: retained job results predating the
+   * field.
+   */
+  merged?: number;
   duplicatesSkipped: number;
   errors: BudgetBakersWalletImportError[];
 }

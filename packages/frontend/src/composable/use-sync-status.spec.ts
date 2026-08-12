@@ -16,12 +16,19 @@ vi.mock('@/api/bank-data-providers', () => ({
   triggerSync: (...args: unknown[]) => triggerSyncRequest(...args),
 }));
 
+// Captures the SSE handler the composable registers, so a test can push a status
+// snapshot through it without a real connection.
+const sse = vi.hoisted(() => ({ handler: null as ((data: unknown) => void) | null }));
+
 vi.mock('./use-sse', () => ({
   SSE_EVENT_TYPES: { SYNC_STATUS_CHANGED: 'sync_status_changed' },
   useSSE: () => ({
     connect: vi.fn(),
     disconnect: vi.fn(),
-    on: vi.fn(() => () => {}),
+    on: vi.fn((_event: string, handler: (data: unknown) => void) => {
+      sse.handler = handler;
+      return () => {};
+    }),
     isConnected: { value: false },
   }),
 }));
@@ -31,9 +38,20 @@ vi.mock('@/common/const', () => ({
     bankSyncStatus: ['bankSyncStatus'],
     payeesList: ['payeesList'],
     payeesLookup: ['payeesLookup'],
+    allAccounts: ['allAccounts'],
   },
   VUE_QUERY_GLOBAL_PREFIXES: { transactionChange: 'transactionChange', bankConnectionChange: 'bankConnectionChange' },
 }));
+
+const invalidatePersistedQuery = vi.fn();
+vi.mock('@/lib/query-client', () => ({
+  invalidatePersistedQuery: (...args: unknown[]) => {
+    invalidatePersistedQuery(...args);
+    return Promise.resolve();
+  },
+}));
+
+vi.mock('@/lib/sentry', () => ({ captureException: vi.fn() }));
 
 vi.mock('@/i18n', () => ({ ensureChunkLoaded: vi.fn() }));
 
@@ -41,8 +59,14 @@ vi.mock('@/stores/auth', () => ({ useAuthStore: () => auth }));
 vi.mock('@/stores/user', () => ({ useUserStore: () => user }));
 vi.mock('pinia', () => ({ storeToRefs: (store: unknown) => store }));
 
+const queryClient = vi.hoisted(() => ({
+  getQueryData: vi.fn(),
+  setQueryData: vi.fn(),
+  invalidateQueries: vi.fn(),
+}));
+
 vi.mock('@tanstack/vue-query', () => ({
-  useQueryClient: () => ({ getQueryData: vi.fn(), setQueryData: vi.fn(), invalidateQueries: vi.fn() }),
+  useQueryClient: () => queryClient,
   useQuery: (options: { enabled?: unknown }) => {
     query.options = options;
     return { data: ref(null), isFetching: ref(false), refetch: vi.fn() };
@@ -112,5 +136,44 @@ describe('useSyncStatus demo gating', () => {
     await useSyncStatus().watchSync();
 
     expect(getSyncStatus).not.toHaveBeenCalled();
+  });
+});
+
+const buildStatus = ({ syncing }: { syncing: number }) => ({
+  summary: { syncing, queued: 0, completed: 0, failed: 0, total: 1 },
+  accounts: [],
+  connectionsNeedingReauth: [],
+});
+
+describe('useSyncStatus cache invalidation on sync completion', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    auth.isLoggedIn.value = true;
+    user.isDemo.value = false;
+    useSyncStatus().subscribeToSSE();
+  });
+
+  const completeSync = () => {
+    queryClient.getQueryData.mockReturnValueOnce(buildStatus({ syncing: 1 }));
+    sse.handler?.(buildStatus({ syncing: 0 }));
+  };
+
+  it('drops the persisted accounts snapshot so balances match the refreshed planned deltas', () => {
+    completeSync();
+
+    expect(invalidatePersistedQuery).toHaveBeenCalledWith({ queryKey: ['allAccounts'] });
+  });
+
+  it('leaves the persisted accounts snapshot alone while a sync is still running', () => {
+    queryClient.getQueryData.mockReturnValueOnce(buildStatus({ syncing: 1 }));
+    sse.handler?.(buildStatus({ syncing: 1 }));
+
+    expect(invalidatePersistedQuery).not.toHaveBeenCalled();
+  });
+
+  it('still invalidates the transaction-change prefix the planned summary lives under', () => {
+    completeSync();
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactionChange'] });
   });
 });

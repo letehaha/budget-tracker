@@ -391,8 +391,10 @@ export async function startBalanceReconciliation({
       continue;
     }
 
+    // A future-dated planned row would push this boundary forward and make every imported
+    // row count as historical, folding the whole import into the opening balance.
     const latestTx = await Transactions.findOne({
-      where: { userId, accountId },
+      where: { userId, accountId, isPlanned: false },
       attributes: ['time'],
       order: [['time', 'DESC']],
     });

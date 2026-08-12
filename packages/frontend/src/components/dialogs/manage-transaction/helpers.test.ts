@@ -26,9 +26,11 @@ import {
   getDestinationAmount,
   getFormTypeFromTransaction,
   getTxTypeFromFormType,
+  isTxEditableAsManual,
   prepopulateForm,
+  resolveFormIsPlanned,
 } from './helpers';
-import { FORM_TYPES } from './types';
+import { FORM_TYPES, type UI_FORM_STRUCT } from './types';
 
 describe('components/modals/modify-record/helpers', () => {
   describe('getAvailableTransferDestinationTypes', () => {
@@ -438,6 +440,60 @@ describe('components/modals/modify-record/helpers', () => {
       expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: true })).toBe(
         false,
       );
+    });
+
+    it('returns true for a planned row on a provider-linked account', () => {
+      const transaction = buildSystemExpenseTransaction({ accountId: destMonobankAccount.id, isPlanned: true });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: true })).toBe(
+        true,
+      );
+    });
+
+    it('returns false for a planned row the caller cannot mutate', () => {
+      const transaction = buildSystemExpenseTransaction({ accountId: destMonobankAccount.id, isPlanned: true });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: false })).toBe(
+        false,
+      );
+    });
+  });
+
+  describe('isTxEditableAsManual', () => {
+    it('is true for any transaction on a manual account', () => {
+      expect(isTxEditableAsManual({ transaction: buildSystemExpenseTransaction(), isRecordExternal: false })).toBe(
+        true,
+      );
+    });
+
+    it('is false for a synced transaction', () => {
+      expect(isTxEditableAsManual({ transaction: buildSystemExpenseTransaction(), isRecordExternal: true })).toBe(
+        false,
+      );
+    });
+
+    it('is true for a planned transaction on a synced account', () => {
+      expect(
+        isTxEditableAsManual({
+          transaction: buildSystemExpenseTransaction({ isPlanned: true }),
+          isRecordExternal: true,
+        }),
+      ).toBe(true);
+    });
+  });
+
+  describe('resolveFormIsPlanned', () => {
+    const buildForm = (overrides: Partial<UI_FORM_STRUCT>): UI_FORM_STRUCT =>
+      ({ type: FORM_TYPES.expense, ...overrides }) as UI_FORM_STRUCT;
+
+    it('is false when the flag was never set', () => {
+      expect(resolveFormIsPlanned({ form: buildForm({}) })).toBe(false);
+    });
+
+    it('is true for a non-transfer form with the flag set', () => {
+      expect(resolveFormIsPlanned({ form: buildForm({ isPlanned: true }) })).toBe(true);
+    });
+
+    it('is false for a transfer form even when the flag survived the type switch', () => {
+      expect(resolveFormIsPlanned({ form: buildForm({ type: FORM_TYPES.transfer, isPlanned: true }) })).toBe(false);
     });
   });
 });

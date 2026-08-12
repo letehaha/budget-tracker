@@ -41,6 +41,7 @@ export const EXTRA_FILTER_KEYS = [
   'transferKinds',
   'refunds',
   'transfers',
+  'planned',
   'note',
 ] as const;
 
@@ -96,6 +97,12 @@ export const EXTRA_FILTERS: Record<ExtraFilterKey, ExtraFilterDefinition> = {
     menuLabelKey: 'transactions.filters.transferFilter.label',
     defaultSlice: () => ({ transferFilter: DEFAULT_FILTERS.transferFilter }),
     isActive: (filters) => filters.transferFilter !== FILTER_OPERATION.all,
+    dissolvesGroups: true,
+  },
+  planned: {
+    menuLabelKey: 'transactions.filters.plannedFilter.label',
+    defaultSlice: () => ({ plannedFilter: DEFAULT_FILTERS.plannedFilter }),
+    isActive: (filters) => filters.plannedFilter !== FILTER_OPERATION.all,
     dissolvesGroups: true,
   },
   note: {

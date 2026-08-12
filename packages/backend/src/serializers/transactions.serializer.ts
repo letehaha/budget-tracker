@@ -5,7 +5,7 @@
  * Money fields auto-convert via .toNumber().
  * Deserializers convert API decimal inputs to Money.
  */
-import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import type { CategorizationMeta, RecordId } from '@bt/shared/types';
 import { Money, centsToApiDecimal } from '@common/types/money';
 import type Tags from '@models/tags.model';
@@ -52,6 +52,9 @@ export interface TransactionApiResponse {
   transferId: string | null;
   originalId: string | null;
   refundLinked: boolean;
+  isPlanned: boolean;
+  /** Set when a bank transaction merged into this row while it was planned. */
+  plannedMerge: { mergedAt: string } | null;
   payeeId: string | null;
   payeeLocked: boolean;
   /** How this tx's category was assigned (manual / ai / payee_rule / etc.). `null`
@@ -102,7 +105,6 @@ interface CreateTransactionRequest {
   destinationAccountId?: string;
   destinationTransactionId?: string;
   categoryId?: RecordId;
-  accountType?: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
   refundForTxId?: string;
   refundForSplitId?: string;
@@ -114,6 +116,7 @@ interface CreateTransactionRequest {
   tagIds?: string[];
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
+  isPlanned?: boolean;
 }
 
 // ============================================================================
@@ -132,7 +135,6 @@ interface CreateTransactionInternal {
   destinationAccountId?: string;
   destinationTransactionId?: string;
   categoryId?: RecordId;
-  accountType: ACCOUNT_TYPES;
   transferNature: TRANSACTION_TRANSFER_NATURE;
   refundsTxId?: string;
   refundsSplitId?: string;
@@ -145,6 +147,7 @@ interface CreateTransactionInternal {
   userId: number;
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
+  isPlanned?: boolean;
 }
 
 // ============================================================================
@@ -172,6 +175,11 @@ function serializeTransactionSplit(
       },
     }),
   };
+}
+
+function extractPlannedMerge({ externalData }: { externalData: unknown }): { mergedAt: string } | null {
+  const mergedAt = (externalData as { plannedMerge?: { mergedAt?: unknown } } | null)?.plannedMerge?.mergedAt;
+  return typeof mergedAt === 'string' ? { mergedAt } : null;
 }
 
 /**
@@ -207,6 +215,8 @@ export function serializeTransaction(
     transferId: tx.transferId,
     originalId: tx.originalId,
     refundLinked: tx.refundLinked,
+    isPlanned: tx.isPlanned ?? false,
+    plannedMerge: extractPlannedMerge({ externalData: tx.externalData }),
     payeeId: tx.payeeId ?? null,
     payeeLocked: tx.payeeLocked ?? false,
     categorizationMeta: tx.categorizationMeta ?? null,
@@ -299,7 +309,6 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     destinationAccountId: req.destinationAccountId,
     destinationTransactionId: req.destinationTransactionId,
     categoryId: req.categoryId,
-    accountType: req.accountType ?? ACCOUNT_TYPES.system,
     transferNature: req.transferNature,
     refundsTxId: req.refundForTxId,
     refundsSplitId: req.refundForSplitId,
@@ -312,5 +321,6 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     userId,
     payeeId: req.payeeId,
     payeeLocked: req.payeeLocked,
+    isPlanned: req.isPlanned,
   };
 }

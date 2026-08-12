@@ -17,15 +17,17 @@ interface CategorySpendingItem {
 export function useCategorySpendingData({
   selectedPeriod,
   categoryIds,
+  includePlanned,
 }: {
   selectedPeriod: () => { from: Date; to: Date };
   categoryIds: Ref<string[]>;
+  includePlanned: Ref<boolean>;
 }) {
   const { t } = useI18n();
   const { isAppInitialized } = storeToRefs(useRootStore());
 
   const periodQueryKey = computed(() => `${selectedPeriod().from.getTime()}-${selectedPeriod().to.getTime()}`);
-  const categoryIdsQueryKey = computed(() => categoryIds.value.join(','));
+  const categoryIdsQueryKey = computed(() => `${categoryIds.value.join(',')}:planned-${includePlanned.value}`);
 
   const isEnabled = computed(() => isAppInitialized.value && categoryIds.value.length > 0);
 
@@ -40,6 +42,7 @@ export function useCategorySpendingData({
         from: selectedPeriod().from,
         to: selectedPeriod().to,
         categoryIds: categoryIds.value,
+        excludePlanned: !includePlanned.value || undefined,
       }),
     staleTime: Infinity,
     placeholderData: (previousData) => previousData || {},
