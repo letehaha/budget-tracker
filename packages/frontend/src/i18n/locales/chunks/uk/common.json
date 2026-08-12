@@ -38,7 +38,8 @@
       "chooseAction": "Оберіть дію",
       "other": "Інше",
       "refund": "Повернення",
-      "split": "Розділення"
+      "split": "Розділення",
+      "deletedBadge": "Видалено"
     },
     "components": {
       "statusIndicator": {
@@ -142,6 +143,10 @@
       },
       "unlink": {
         "error": "Не вдалося відв'язати транзакції!"
+      },
+      "record": {
+        "addedByTooltip": "Цю транзакцію додав до бюджету {handle}",
+        "hiddenAccount": "Прихований рахунок"
       }
     },
     "outOfWallet": "Поза гаманцем",
@@ -401,6 +406,39 @@
     "estimatedCost": {
       "yourApiKey": "(ваш API ключ)",
       "setByEndpoint": "Визначається вашим ендпоінтом"
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "Редагувати групу",
+      "nameLabel": "Назва",
+      "noteLabel": "Примітка (необов'язково)",
+      "notePlaceholder": "Необов'язкова примітка...",
+      "loadingText": "Завантаження...",
+      "savingText": "Збереження...",
+      "savingAction": "Зберегти",
+      "cancelButton": "Скасувати",
+      "deletingText": "Видалення...",
+      "editAction": "Редагувати",
+      "deleteAction": "Видалити групу",
+      "transactionsLabel": "Транзакції",
+      "deleteGroupTitle": "Видалити групу",
+      "deleteGroupDescription": "Ви впевнені, що хочете видалити \"{groupName}\"? Транзакції не будуть видалені.",
+      "removeTransactionTitle": "Видалити транзакцію з групи",
+      "removeTransactionDescription": "Це залишить менше 2 транзакцій у групі, тому група буде видалена. Продовжити?",
+      "removeTransactionDescriptionNormal": "Ви впевнені, що хочете видалити цю транзакцію з групи?",
+      "removeButtonText": "Видалити",
+      "removeAndDeleteButtonText": "Видалити й видалити групу",
+      "transactionCountSuffix": "транзакцій",
+      "summary": {
+        "transactions": "Транзакції",
+        "net": "Нетто",
+        "moneyIn": "Надходження",
+        "moneyOut": "Видатки"
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": "транзакцій"
     }
   }
 }

@@ -23,7 +23,8 @@
           "writeOwn": "Dapat edit transaksi sendiri",
           "writeAll": "Dapat edit transaksi",
           "manage": "Manajer"
-        }
+        },
+        "projectedBalance": "Proyeksi saldo {amount} · {count} entri terencana hingga {date} | Proyeksi saldo {amount} · {count} entri terencana hingga {date}"
       },
       "balanceAdjustmentDialog": {
         "title": "Sesuaikan Saldo",

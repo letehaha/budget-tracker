@@ -6,6 +6,11 @@
       "emptyState": "Haga clic en Personalizar para añadir widgets"
     },
     "widgets": {
+      "common": {
+        "includePlanned": "Incluir transacciones planificadas",
+        "includePlannedTooltip": "Contar las transacciones planificadas pendientes en las cifras de este widget.",
+        "includePlannedSaveError": "No se pudo guardar la configuración de transacciones planificadas. Inténtelo de nuevo."
+      },
       "balanceTrend": {
         "title": "Tendencia de saldo",
         "balanceTypes": {
@@ -54,9 +59,11 @@
           "spikeMarkers": "Marcadores de pico",
           "fitToLatestData": "Ajustar a los últimos datos",
           "fitToLatestDataTooltip": "Cuando está activado, el gráfico solo abarca hasta su último punto de datos. Cuando está desactivado, el eje X cubre todo el período seleccionado, dejando espacio vacío para fechas futuras.",
+          "fitToLatestDataLockedTooltip": "Desactive las transacciones planificadas para cambiar esto: su proyección siempre extiende el gráfico hasta el final del período.",
           "on": "Activado",
           "off": "Desactivado",
-          "includeInTotal": "Incluir en el total"
+          "includeInTotal": "Incluir en el total",
+          "includePlannedTooltip": "Mostrar una proyección discontinua de las transacciones planificadas pendientes sobre la tendencia."
         },
         "componentsSettings": {
           "description": "Elija qué componentes cuentan hacia la línea de saldo Total.",
@@ -66,6 +73,9 @@
           "loansTooltip": "Cuando está activado, sus saldos de préstamos pendientes se restan del total (patrimonio neto real). Cuando está desactivado, los préstamos se ignoran para que el total solo muestre los activos.",
           "allIncluded": "Todos los componentes",
           "excluding": "Excluyendo {items}"
+        },
+        "projection": {
+          "summary": "{amount} previsto · {count} movimiento planificado hasta {date} | {amount} previsto · {count} movimientos planificados hasta {date}"
         }
       },
       "expensesStructure": {
@@ -118,13 +128,49 @@
         "income": "Ingresos",
         "expenses": "Gastos",
         "saved": "Ahorrado",
-        "previousPeriodsTrend": "Tendencia de períodos anteriores"
+        "previousPeriodsTrend": "Tendencia de períodos anteriores",
+        "viewDetails": "Ver detalles"
+      },
+      "netWorth": {
+        "title": "Patrimonio neto",
+        "description": "Cómo cambió su patrimonio neto durante el período seleccionado. Cuenta todos los cambios de saldo: cuentas, inversiones, préstamos y valor de los activos.",
+        "vsPrevious": "vs anterior",
+        "start": "Inicio",
+        "end": "Fin",
+        "growth": "Crecimiento",
+        "previousPeriodsTrend": "Tendencia de períodos anteriores",
+        "excludedTooltip": "Excluido del patrimonio neto: {components}",
+        "viewHistory": "Ver historial",
+        "loadFailed": "No se pudieron cargar los datos del patrimonio neto.",
+        "components": {
+          "ventures": "Proyectos",
+          "vehicles": "Vehículos",
+          "loans": "Préstamos"
+        },
+        "settings": {
+          "title": "Incluir en el patrimonio neto",
+          "loans": "Préstamos",
+          "vehicles": "Vehículos",
+          "ventures": "Proyectos"
+        },
+        "trendTooltip": {
+          "change": "Cambio",
+          "netWorth": "Patrimonio neto",
+          "noData": "No hay datos para este período"
+        }
       },
       "creditUtilization": {
         "title": "Utilización de crédito",
         "description": "Muestra cuánto de sus límites de crédito está siendo utilizado actualmente en todas las cuentas",
         "utilized": "utilizado",
         "noAccounts": "No hay cuentas con límites de crédito"
+      },
+      "plannedOverview": {
+        "title": "Planificadas",
+        "projectedTotal": "Saldo previsto",
+        "pendingCount": "{count} movimiento planificado | {count} movimientos planificados",
+        "through": "Hasta {date}",
+        "loadFailed": "No se pudieron cargar las transacciones planificadas"
       },
       "emptyState": "No hay datos en el intervalo de tiempo seleccionado.",
       "registry": {
@@ -152,9 +198,17 @@
           "name": "Flujo de caja",
           "description": "Ingresos vs gastos con tasa de ahorro"
         },
+        "netWorth": {
+          "name": "Patrimonio neto",
+          "description": "Cómo cambia su patrimonio neto total a lo largo del tiempo, incluidas inversiones, préstamos y activos."
+        },
         "creditUtilization": {
           "name": "Utilización de crédito",
           "description": "Uso del límite de crédito en sus cuentas"
+        },
+        "plannedOverview": {
+          "name": "Resumen de planificadas",
+          "description": "Transacciones planificadas pendientes y su saldo previsto"
         }
       }
     },
@@ -196,6 +250,8 @@
         "excludeOutOfWalletDescription": "Ocultar ajustes de saldo y otras transferencias fuera de cartera",
         "balanceAdjustmentsTitle": "Ajustes de saldo",
         "excludeBalanceAdjustmentsDescription": "Ocultar transacciones de ajuste de saldo",
+        "plannedTitle": "Transacciones planificadas",
+        "excludePlannedDescription": "Ocultar de la lista las transacciones planificadas pendientes",
         "nothingExcluded": "Nada excluido"
       },
       "overdueBadge": "Vencido",

@@ -103,6 +103,12 @@
         "categoryLabel": "Kategori",
         "targetAmountLabel": "Jumlah target",
         "targetAmountPlaceholder": "Jumlah target",
+        "plannedLabel": "Transaksi terencana",
+        "plannedUnavailableNotification": "Transaksi terencana tidak tersedia di sini, jadi opsinya dinonaktifkan.",
+        "plannedTooltip": "Catat sebelum transaksinya terjadi. Saldo Anda tetap seperti semula sampai transaksi tersebut benar-benar masuk.",
+        "plannedConnectedAccountTooltip": "Hanya transaksi terencana yang dapat berada di akun yang terhubung ke bank. Menonaktifkan ini akan mengosongkan akun dan tanggalnya.",
+        "plannedAccountsUnlockedHint": "Akun yang terhubung ke bank kini dapat dipilih",
+        "plannedDatesUnlockedHint": "Tanggal mendatang telah dibuka",
         "datetimeLabel": "Tanggal Waktu",
         "splitInfo": "Bagi ke dalam {count} kategori",
         "editSplit": "Sunting",
@@ -134,7 +140,8 @@
         "noLoansExist": "Tidak ada pinjaman",
         "validation": {
           "required": "Bidang ini wajib diisi",
-          "minValue": "Jumlah harus lebih besar dari nol"
+          "minValue": "Jumlah harus lebih besar dari nol",
+          "futureDate": "Tanggal harus hari ini atau sebelumnya."
         }
       },
       "refundRecordsList": {

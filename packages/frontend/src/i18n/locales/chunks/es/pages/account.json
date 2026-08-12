@@ -23,7 +23,8 @@
           "writeOwn": "Puede editar transacciones propias",
           "writeAll": "Puede editar transacciones",
           "manage": "Gestor"
-        }
+        },
+        "projectedBalance": "Saldo previsto {amount} · {count} movimiento planificado hasta {date} | Saldo previsto {amount} · {count} movimientos planificados hasta {date}"
       },
       "balanceAdjustmentDialog": {
         "title": "Ajustar saldo",

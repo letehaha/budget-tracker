@@ -38,7 +38,8 @@
       "chooseAction": "Pilih tindakan",
       "other": "Lainnya",
       "refund": "Pengembalian dana",
-      "split": "Bagi"
+      "split": "Bagi",
+      "deletedBadge": "Dihapus"
     },
     "components": {
       "statusIndicator": {
@@ -142,6 +143,10 @@
       },
       "unlink": {
         "error": "Gagal melepas tautan transaksi!"
+      },
+      "record": {
+        "addedByTooltip": "Transaksi ini dilampirkan ke anggaran oleh {handle}",
+        "hiddenAccount": "Akun tersembunyi"
       }
     },
     "outOfWallet": "Di Luar Dompet",
@@ -401,6 +406,39 @@
     "estimatedCost": {
       "yourApiKey": "(kunci API Anda)",
       "setByEndpoint": "Ditetapkan oleh endpoint Anda"
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "Sunting Grup",
+      "nameLabel": "Nama",
+      "noteLabel": "Catatan (opsional)",
+      "notePlaceholder": "Catatan opsional...",
+      "loadingText": "Memuat...",
+      "savingText": "Menyimpan...",
+      "savingAction": "Simpan",
+      "cancelButton": "Batal",
+      "deletingText": "Menghapus...",
+      "editAction": "Sunting",
+      "deleteAction": "Hapus Grup",
+      "transactionsLabel": "Transaksi",
+      "deleteGroupTitle": "Hapus grup",
+      "deleteGroupDescription": "Apakah Anda yakin ingin menghapus \"{groupName}\"? Transaksinya tidak akan dihapus.",
+      "removeTransactionTitle": "Keluarkan transaksi dari grup",
+      "removeTransactionDescription": "Ini akan menyisakan kurang dari 2 transaksi dalam grup, sehingga grup akan dihapus. Lanjutkan?",
+      "removeTransactionDescriptionNormal": "Apakah Anda yakin ingin mengeluarkan transaksi ini dari grup?",
+      "removeButtonText": "Keluarkan",
+      "removeAndDeleteButtonText": "Keluarkan & Hapus Grup",
+      "transactionCountSuffix": "transaksi",
+      "summary": {
+        "transactions": "Transaksi",
+        "net": "Bersih",
+        "moneyIn": "Uang masuk",
+        "moneyOut": "Uang keluar"
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": "transaksi"
     }
   }
 }

@@ -38,7 +38,8 @@
       "chooseAction": "Elija una acción",
       "other": "Otro",
       "refund": "Reembolso",
-      "split": "Dividir"
+      "split": "Dividir",
+      "deletedBadge": "Eliminado"
     },
     "components": {
       "statusIndicator": {
@@ -142,6 +143,10 @@
       },
       "unlink": {
         "error": "Error al desvincular las transacciones"
+      },
+      "record": {
+        "addedByTooltip": "{handle} adjuntó esta transacción al presupuesto",
+        "hiddenAccount": "Cuenta oculta"
       }
     },
     "outOfWallet": "Fuera de cartera",
@@ -401,6 +406,39 @@
     "estimatedCost": {
       "yourApiKey": "(su clave de API)",
       "setByEndpoint": "Definido por su endpoint"
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "Editar grupo",
+      "nameLabel": "Nombre",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "Nota opcional…",
+      "loadingText": "Cargando…",
+      "savingText": "Guardando…",
+      "savingAction": "Guardar",
+      "cancelButton": "Cancelar",
+      "deletingText": "Eliminando…",
+      "editAction": "Editar",
+      "deleteAction": "Eliminar grupo",
+      "transactionsLabel": "Transacciones",
+      "deleteGroupTitle": "Eliminar grupo",
+      "deleteGroupDescription": "¿Está seguro de que desea eliminar \"{groupName}\"? Las transacciones no se eliminarán.",
+      "removeTransactionTitle": "Quitar transacción del grupo",
+      "removeTransactionDescription": "Esto dejará menos de 2 transacciones en el grupo, por lo que el grupo se eliminará. ¿Continuar?",
+      "removeTransactionDescriptionNormal": "¿Está seguro de que desea quitar esta transacción del grupo?",
+      "removeButtonText": "Quitar",
+      "removeAndDeleteButtonText": "Quitar y eliminar el grupo",
+      "transactionCountSuffix": "transacciones",
+      "summary": {
+        "transactions": "Transacciones",
+        "net": "Neto",
+        "moneyIn": "Dinero entrante",
+        "moneyOut": "Dinero saliente"
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": "transacciones"
     }
   }
 }

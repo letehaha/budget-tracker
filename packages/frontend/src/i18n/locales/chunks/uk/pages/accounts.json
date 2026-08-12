@@ -26,7 +26,8 @@
       "totalBalance": "Загальний баланс",
       "assets": "Активи",
       "liabilities": "Зобов'язання",
-      "vehicles": "Транспорт"
+      "vehicles": "Транспорт",
+      "projected": "Прогноз {amount} · {count} запланований запис до {date} | Прогноз {amount} · {count} заплановані записи до {date} | Прогноз {amount} · {count} запланованих записів до {date}"
     },
     "connect": "Підключити",
     "connectBank": "Підключити банк",

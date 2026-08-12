@@ -42,6 +42,9 @@
       "transferFilter": {
         "label": "Transfer"
       },
+      "plannedFilter": {
+        "label": "Terencana"
+      },
       "filterOperation": {
         "all": "Semua",
         "exclude": "Kecualikan",
@@ -199,6 +202,13 @@
         "addFailed": "Gagal menambahkan transaksi ke grup"
       }
     },
+    "planned": {
+      "label": "Terencana",
+      "confirmedLabel": "Dikonfirmasi",
+      "plannedTooltip": "Transaksi terencana",
+      "expiredTooltip": "Diharapkan {days} hari lalu, tidak ada transaksi bank yang cocok",
+      "mergedTooltip": "Dikonfirmasi dari entri terencana pada {date}"
+    },
     "transfer": {
       "hiddenAccount": "Akun tersembunyi"
     },
@@ -261,7 +271,14 @@
       "overdueBadge": "Terlambat",
       "scheduledBadge": "Terjadwal",
       "payAction": "Tandai dibayar",
-      "hideToggle": "Sembunyikan pembayaran mendatang"
+      "hideToggle": "Sembunyikan pembayaran mendatang",
+      "expectedBadge": "Diharapkan",
+      "unconfirmedBadge": "Belum dikonfirmasi",
+      "morePlans": "+{count} terencana lainnya",
+      "morePlansAtLeast": "+{count}+ terencana lainnya",
+      "deletePlanTitle": "Hapus transaksi terencana?",
+      "deletePlanDescription": "Tindakan ini tidak dapat dibatalkan.",
+      "plansLoadFailed": "Tidak dapat memuat transaksi terencana"
     }
   }
 }

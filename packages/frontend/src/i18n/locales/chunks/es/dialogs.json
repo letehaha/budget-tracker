@@ -103,6 +103,12 @@
         "categoryLabel": "Categoría",
         "targetAmountLabel": "Importe objetivo",
         "targetAmountPlaceholder": "Importe objetivo",
+        "plannedLabel": "Transacción planificada",
+        "plannedUnavailableNotification": "Las transacciones planificadas no están disponibles aquí, así que la opción se ha desactivado.",
+        "plannedTooltip": "Regístrela antes de que ocurra. Su saldo no cambia hasta que la transacción llegue realmente.",
+        "plannedConnectedAccountTooltip": "Solo las transacciones planificadas pueden estar en una cuenta conectada al banco. Al desactivar esta opción se borran la cuenta y la fecha.",
+        "plannedAccountsUnlockedHint": "Ya puede seleccionar cuentas conectadas al banco",
+        "plannedDatesUnlockedHint": "Fechas futuras desbloqueadas",
         "datetimeLabel": "Fecha y hora",
         "splitInfo": "Dividido en {count} categorías",
         "editSplit": "Editar",
@@ -134,7 +140,8 @@
         "noLoansExist": "No existen préstamos",
         "validation": {
           "required": "Este campo es obligatorio",
-          "minValue": "El importe debe ser mayor que cero"
+          "minValue": "El importe debe ser mayor que cero",
+          "futureDate": "La fecha debe ser hoy o anterior."
         }
       },
       "refundRecordsList": {

@@ -26,7 +26,8 @@
       "totalBalance": "Total saldo",
       "assets": "Aset",
       "liabilities": "Kewajiban",
-      "vehicles": "Kendaraan"
+      "vehicles": "Kendaraan",
+      "projected": "Proyeksi {amount} · {count} entri terencana hingga {date} | Proyeksi {amount} · {count} entri terencana hingga {date}"
     },
     "connect": "Hubungkan",
     "connectBank": "Hubungkan bank",

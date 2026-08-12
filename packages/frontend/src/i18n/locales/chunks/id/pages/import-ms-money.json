@@ -118,6 +118,7 @@
           "outOfWalletImported": "Transfer di luar dompet",
           "duplicatesSkipped": "Duplikat dilewati",
           "voidedImported": "Transaksi dibatalkan diimpor",
+          "mergedIntoPlanned": "Digabungkan ke transaksi terencana",
           "balanceWarningTitle": "Beberapa saldo mungkin tidak akurat",
           "balanceWarningBody": "Kami tidak dapat mengatur saldo akhir pada setiap akun. Periksa dan sesuaikan jika diperlukan.",
           "errorsTitle": "{count} baris tidak dapat diimpor",
