@@ -33,6 +33,7 @@ export type ImportJobStatus = (typeof IMPORT_JOB_STATUSES)[number];
  */
 export enum ImportSource {
   csv = 'csv',
+  ynab = 'ynab',
   statementParser = 'statement-parser',
   budgetBakersWallet = 'budget-bakers-wallet',
   msMoney = 'ms-money',
@@ -49,6 +50,31 @@ export interface TransactionImportDetails {
   importedAt: string;
   /** Source of the import */
   source: ImportSource;
+}
+
+/**
+ * One import batch in GET /import/batches-history. All transactions of a batch share a
+ * single `importDetails.batchId`, so the id doubles as the filter for drilling into
+ * GET /transactions?batchId=.
+ */
+export interface ImportBatchSummary {
+  batchId: string;
+  source: ImportSource;
+  /** ISO timestamp shared by every transaction the batch created. */
+  importedAt: string;
+  transactionCount: number;
+  /** Distinct account ids touched by the batch. */
+  accountIds: string[];
+}
+
+/**
+ * Response of GET /import/batches-history. `totalCount` is only filled on the first
+ * page (`offset === 0`) and is `null` on every later one, same convention as
+ * `AiCategorizationHistoryResponse`.
+ */
+export interface ImportBatchesHistoryResponse {
+  items: ImportBatchSummary[];
+  totalCount: number | null;
 }
 
 export enum CategoryOptionValue {

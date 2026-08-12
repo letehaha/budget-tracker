@@ -35,7 +35,7 @@ import TransactionTags from '@models/transaction-tags.model';
 import { hasBalanceRelevantChange } from '@models/transactions-balance-relevance';
 import Users from '@models/users.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
-import { Op, Includeable, Order, WhereOptions, literal } from 'sequelize';
+import { Op, Includeable, Order, WhereOptions, literal, where as sequelizeWhere } from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -705,6 +705,7 @@ export const findWithFilters = async ({
   categorizationSource,
   categorizedAt,
   excludeBalanceAdjustments,
+  batchId,
 }: {
   from: number;
   limit?: number;
@@ -760,6 +761,8 @@ export const findWithFilters = async ({
   categorizedAt?: string;
   /** Hide transactions created by the balance-adjustment flow (`externalData.balanceAdjustment`). */
   excludeBalanceAdjustments?: boolean;
+  /** Filter to only transactions from one import batch (`externalData.importDetails.batchId`). */
+  batchId?: string;
 }) => {
   const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
 
@@ -1029,6 +1032,16 @@ export const findWithFilters = async ({
 
   if (categorizedAt) {
     whereClause['categorizationMeta.categorizedAt'] = categorizedAt;
+  }
+
+  if (batchId) {
+    // Must match the index expression in migration
+    // 20251229000000-add-index-external-data-import-details exactly
+    // (`"externalData"->'importDetails'->>'batchId'`) - Sequelize's dotted-key
+    // shorthand compiles to `#>>` instead and would skip the index.
+    const batchIdMatch = sequelizeWhere(literal(`"externalData"->'importDetails'->>'batchId'`), batchId);
+    const existingAnd = whereClause[Op.and as unknown as string] as unknown[] | undefined;
+    whereClause[Op.and as unknown as string] = existingAnd ? [...existingAnd, batchIdMatch] : [batchIdMatch];
   }
 
   const transactions = await Transactions.findAll({

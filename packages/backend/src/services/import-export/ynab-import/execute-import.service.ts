@@ -83,7 +83,7 @@ export async function executeYnabImport({
   const importDetails: TransactionImportDetails = {
     batchId,
     importedAt,
-    source: ImportSource.csv,
+    source: ImportSource.ynab,
   };
   // Convert starting balances at the earliest CSV date, not today — YNAB
   // exports span years and using today's FX rate would skew refInitialBalance

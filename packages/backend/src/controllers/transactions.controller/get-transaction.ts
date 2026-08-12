@@ -90,6 +90,7 @@ const schema = z.object({
           }),
         categorizationSource: z.nativeEnum(CATEGORIZATION_SOURCE).optional(),
         categorizedAt: z.string().datetime().optional(),
+        batchId: recordId().optional(),
       })
       .refine(
         (data) => {
