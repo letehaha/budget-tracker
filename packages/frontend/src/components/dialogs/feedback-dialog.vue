@@ -43,7 +43,7 @@
       rel="noopener noreferrer"
       class="border-border hover:border-primary/40 hover:bg-accent group flex items-start gap-3 rounded-lg border p-4 transition-colors"
     >
-      <UsersIcon class="text-muted-foreground group-hover:text-primary mt-0.5 size-5 shrink-0 transition-colors" />
+      <UsersIcon class="text-muted-foreground group-hover:text-primary-text mt-0.5 size-5 shrink-0 transition-colors" />
 
       <span class="min-w-0 flex-1">
         <span class="flex items-center gap-1.5 text-sm font-medium">

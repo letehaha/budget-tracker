@@ -63,7 +63,7 @@ const iconConfig = computed(() => {
         "
       >
         <!-- Icon -->
-        <CheckCircle2Icon v-if="isComplete" class="text-primary size-5 shrink-0" />
+        <CheckCircle2Icon v-if="isComplete" class="text-primary-text size-5 shrink-0" />
         <component :is="iconConfig.icon" v-else :class="cn('size-5 shrink-0', iconConfig.color)" />
 
         <!-- Title -->

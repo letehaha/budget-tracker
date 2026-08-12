@@ -91,7 +91,7 @@ const confidence = computed(() => {
     <!-- Possible match indicator -->
     <div
       v-if="candidate.possibleMatch"
-      class="bg-primary/10 text-primary mt-3 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs"
+      class="bg-primary/10 text-primary-text mt-3 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs"
     >
       <LinkIcon class="size-3 shrink-0" />
       {{ t('planned.subscriptions.candidates.possibleMatch', { name: candidate.possibleMatch.name }) }}

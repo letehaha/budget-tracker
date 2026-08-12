@@ -39,7 +39,7 @@
               >
                 <span class="min-w-0 flex-1 truncate text-left text-sm font-semibold">{{ section.label }}</span>
                 <span
-                  class="text-primary bg-primary/10 shrink-0 rounded-full px-2 py-0.5 text-center text-xs font-medium tabular-nums"
+                  class="text-primary-text bg-primary/10 shrink-0 rounded-full px-2 py-0.5 text-center text-xs font-medium tabular-nums"
                 >
                   {{ selectedInSection(section) }}/{{ section.accounts.length }}
                 </span>

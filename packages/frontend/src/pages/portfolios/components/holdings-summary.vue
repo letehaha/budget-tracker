@@ -4,7 +4,7 @@
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-3">
           <div class="bg-primary/10 flex size-9 items-center justify-center rounded-lg">
-            <LayoutListIcon class="text-primary size-5" />
+            <LayoutListIcon class="text-primary-text size-5" />
           </div>
           <div>
             <CardTitle class="text-lg">{{ $t('portfolioDetail.holdings.title') }}</CardTitle>

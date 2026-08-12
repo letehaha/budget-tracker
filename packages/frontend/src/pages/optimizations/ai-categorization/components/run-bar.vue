@@ -81,7 +81,7 @@ const handleConfirmRun = () => {
       <div v-if="!isCountKnown" class="bg-muted h-4 w-32 animate-pulse rounded" />
 
       <template v-else-if="isCategorizing">
-        <Loader2Icon class="text-primary size-4 shrink-0 animate-spin" />
+        <Loader2Icon class="text-primary-text size-4 shrink-0 animate-spin" />
         <span class="min-w-0 truncate text-sm tabular-nums">{{ processedLabel }}</span>
       </template>
 

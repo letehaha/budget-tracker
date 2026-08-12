@@ -69,7 +69,7 @@
                 @click="onTypeChange(choice.value)"
               >
                 <span class="text-sm">{{ t(choice.label) }}</span>
-                <CheckIcon v-if="currentType === choice.value" class="text-primary size-4" />
+                <CheckIcon v-if="currentType === choice.value" class="text-primary-text size-4" />
               </button>
             </div>
           </div>
@@ -102,7 +102,7 @@
                 @click="onLookbackChange(choice.value)"
               >
                 <span class="text-sm">{{ t(choice.label) }}</span>
-                <CheckIcon v-if="currentLookback === choice.value" class="text-primary size-4" />
+                <CheckIcon v-if="currentLookback === choice.value" class="text-primary-text size-4" />
               </button>
             </div>
           </div>

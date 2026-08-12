@@ -155,7 +155,7 @@
       >
         <template #label-right>
           <CreateAccountDialog>
-            <div class="text-primary cursor-pointer hover:underline">
+            <div class="text-primary-text cursor-pointer hover:underline">
               {{ $t('dialogs.manageTransaction.form.createAccountLink') }}
             </div>
           </CreateAccountDialog>

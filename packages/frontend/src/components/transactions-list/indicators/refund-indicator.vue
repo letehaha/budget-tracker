@@ -2,7 +2,9 @@
   <TooltipProvider v-if="isRefund" :delay-duration="0">
     <Tooltip>
       <TooltipTrigger as-child>
-        <div class="border-primary text-primary flex size-6 items-center gap-0.5 rounded-sm border px-1 py-0.5 text-xs">
+        <div
+          class="border-primary text-primary-text flex size-6 items-center gap-0.5 rounded-sm border px-1 py-0.5 text-xs"
+        >
           <RotateCcwIcon class="size-4" />
         </div>
       </TooltipTrigger>

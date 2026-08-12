@@ -388,7 +388,7 @@ const hasSmallOptions = computed(() => {
                   })
                 }}
               </span>
-              <CheckIcon v-if="tempSplitSelection?.splitId === null" class="text-primary size-4" />
+              <CheckIcon v-if="tempSplitSelection?.splitId === null" class="text-primary-text size-4" />
             </div>
           </button>
 
@@ -420,7 +420,7 @@ const hasSmallOptions = computed(() => {
               <span :class="['text-sm tabular-nums', isSplitTooSmall(split) && 'text-warning-text']">
                 {{ formatUIAmount(split.amount, { currency: pendingTransaction.currencyCode }) }}
               </span>
-              <CheckIcon v-if="tempSplitSelection?.splitId === split.id" class="text-primary size-4" />
+              <CheckIcon v-if="tempSplitSelection?.splitId === split.id" class="text-primary-text size-4" />
             </div>
           </button>
         </div>

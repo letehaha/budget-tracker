@@ -21,7 +21,7 @@
           <div class="space-y-2">
             <div class="flex gap-2">
               <span
-                class="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-medium"
+                class="bg-primary/10 text-primary-text flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-medium"
               >
                 1
               </span>
@@ -40,7 +40,7 @@
                 v-for="connectionId in uniqueConnectionIds"
                 :key="connectionId"
                 :to="{ name: ROUTES_NAMES.accountIntegrationDetails, params: { connectionId } }"
-                class="bg-primary/10 text-primary hover:bg-primary/20 inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors"
+                class="bg-primary/10 text-primary-text hover:bg-primary/20 inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors"
               >
                 <ExternalLinkIcon class="size-3" />
                 {{ $t('relinkWarning.connectionLabel', { id: connectionId }) }}
@@ -50,7 +50,7 @@
 
           <div class="flex gap-2">
             <span
-              class="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-medium"
+              class="bg-primary/10 text-primary-text flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-medium"
             >
               2
             </span>

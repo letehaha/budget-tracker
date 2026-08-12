@@ -69,7 +69,7 @@ const subtitle = computed(() => {
 
             <span
               v-if="isBankLinked"
-              class="bg-primary/15 text-primary shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              class="bg-primary/15 text-primary-text shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
             >
               <span class="hidden @[30rem]/account-groups:inline">
                 {{ $t('settings.accountGroups.row.bankBadge') }}

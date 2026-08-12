@@ -19,7 +19,7 @@
       <TriangleAlertIcon class="text-warning-text size-5" />
     </template>
     <template #info-icon>
-      <InfoIcon class="text-primary size-5" />
+      <InfoIcon class="text-primary-text size-5" />
     </template>
     <template #close-icon>
       <XIcon class="size-4" />

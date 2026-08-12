@@ -22,7 +22,7 @@
         :counter-text="counterText"
       >
         <template #icon>
-          <ArrowLeftRightIcon class="text-primary size-5" aria-hidden="true" />
+          <ArrowLeftRightIcon class="text-primary-text size-5" aria-hidden="true" />
         </template>
         <template #title>{{ $t('settings.currencies.setBase.overlay.title') }}</template>
         <template #description>{{ $t('settings.currencies.setBase.overlay.description') }}</template>

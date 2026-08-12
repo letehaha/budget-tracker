@@ -21,7 +21,7 @@
               {{ getProviderLabel(providerInfo.provider) }}
               <span
                 v-if="providerInfo.provider === defaultProvider"
-                class="bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 text-xs"
+                class="bg-primary/10 text-primary-text ml-2 rounded-full px-2 py-0.5 text-xs"
               >
                 {{ $t('settings.ai.apiKeyManager.badges.default') }}
               </span>
@@ -142,7 +142,7 @@
                 :href="getProviderApiKeyUrl(selectedProvider)"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-primary hover:underline"
+                class="text-primary-text hover:underline"
               >
                 {{ getProviderApiKeyUrlLabel(selectedProvider) }}
               </a>

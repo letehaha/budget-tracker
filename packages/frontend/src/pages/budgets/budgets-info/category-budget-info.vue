@@ -217,19 +217,19 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
       <div class="flex flex-col gap-4 @md:flex-row @md:items-center @md:justify-between">
         <div class="flex items-center gap-4">
           <div class="bg-primary/10 flex size-12 shrink-0 items-center justify-center rounded-xl">
-            <LayersIcon class="text-primary size-6" />
+            <LayersIcon class="text-primary-text size-6" />
           </div>
           <div>
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-semibold tracking-tight">{{ budgetData.name }}</h1>
               <span
                 v-if="isSharedWithCaller"
-                class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+                class="bg-primary/10 text-primary-text inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
               >
                 <UsersIcon class="size-3" />
                 {{ $t('budgets.share.sharedByBadge', { handle: `@${ownerHandle}` }) }}
               </span>
-              <span class="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-medium">
+              <span class="bg-primary/10 text-primary-text rounded-full px-2.5 py-1 text-xs font-medium">
                 {{ $t('budgets.list.autoTracked') }}
               </span>
               <span

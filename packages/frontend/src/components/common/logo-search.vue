@@ -245,7 +245,7 @@ function applyMonogram() {
               <p class="truncate text-sm font-medium">{{ result.name }}</p>
               <p class="text-muted-foreground truncate text-xs">{{ result.domain }}</p>
             </div>
-            <CheckIcon v-if="result.domain === selectedDomain" class="text-primary size-4 shrink-0" />
+            <CheckIcon v-if="result.domain === selectedDomain" class="text-primary-text size-4 shrink-0" />
           </Button>
         </div>
       </ScrollArea>

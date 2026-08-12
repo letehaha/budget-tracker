@@ -15,7 +15,7 @@
 
           <ResponsiveTooltip content-class-name="max-w-100 p-4">
             <span class="mt-2 flex items-center gap-2">
-              <InfoIcon class="text-primary size-4" />
+              <InfoIcon class="text-primary-text size-4" />
               <p class="text-muted-foreground text-xs">{{ t('pages.integrations.monobank.tokenHint') }}</p>
             </span>
             <template #content>

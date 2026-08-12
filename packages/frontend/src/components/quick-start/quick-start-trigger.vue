@@ -62,7 +62,7 @@ const strokeDasharray = (progress: number) => {
             </svg>
             <!-- Center icon -->
             <div class="absolute inset-0 flex items-center justify-center">
-              <RocketIcon class="text-primary size-5" />
+              <RocketIcon class="text-primary-text size-5" />
             </div>
           </div>
 

@@ -60,7 +60,7 @@ const monogramStyle = computed(() => {
 const monogramClass = computed(() =>
   cn(
     'absolute inset-0 flex items-center justify-center overflow-hidden rounded-[inherit] leading-none font-bold uppercase whitespace-nowrap',
-    !customInitials.value && 'bg-primary/15 text-primary',
+    !customInitials.value && 'bg-primary/15 text-primary-text',
   ),
 );
 
