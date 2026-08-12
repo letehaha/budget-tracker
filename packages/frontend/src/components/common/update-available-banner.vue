@@ -11,7 +11,9 @@
       aria-live="polite"
       class="bg-popover text-popover-foreground xs:left-auto xs:w-90 fixed inset-x-4 bottom-4 z-(--z-notifications) flex items-start gap-3 rounded-lg border p-4 shadow-lg"
     >
-      <div class="bg-primary/10 text-primary mt-0.5 flex size-8 flex-none items-center justify-center rounded-full">
+      <div
+        class="bg-primary/10 text-primary-text mt-0.5 flex size-8 flex-none items-center justify-center rounded-full"
+      >
         <RefreshCwIcon class="size-4" />
       </div>
 

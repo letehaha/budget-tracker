@@ -131,7 +131,7 @@
     <!-- AI categorization section (always rendered, doesn't scroll with the list) -->
     <div v-if="isCategorizing || categorizationJustCompleted" class="border-border mt-3 space-y-2 border-t pt-3">
       <div class="flex items-center gap-2">
-        <SparklesIcon class="text-primary size-4" />
+        <SparklesIcon class="text-primary-text size-4" />
         <span class="text-sm font-medium">{{ $t('header.categorization.title') }}</span>
       </div>
 
@@ -297,7 +297,7 @@ const getStatusIcon = (status: SyncStatus) => {
 const getStatusColor = (status: SyncStatus) => {
   switch (status) {
     case SyncStatus.SYNCING:
-      return 'text-primary';
+      return 'text-primary-text';
     case SyncStatus.QUEUED:
       return 'text-yellow-500';
     case SyncStatus.COMPLETED:

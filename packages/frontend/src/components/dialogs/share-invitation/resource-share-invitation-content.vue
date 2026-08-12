@@ -145,7 +145,7 @@ const closeDialog = () => emit('close');
       <template v-if="childState === 'pending'">
         <i18n-t keypath="dialogs.shareInvitationDialog.titlePending" tag="span">
           <template #owner>
-            <span class="text-primary">
+            <span class="text-primary-text">
               {{ invitation.owner?.username || $t('dialogs.shareInvitationDialog.unknownOwner') }}
             </span>
           </template>

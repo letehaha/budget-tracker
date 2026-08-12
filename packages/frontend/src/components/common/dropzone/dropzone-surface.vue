@@ -96,7 +96,7 @@ function onDrop(e: DragEvent) {
           )
         "
       >
-        <FileUpIcon class="text-primary size-7" />
+        <FileUpIcon class="text-primary-text size-7" />
       </div>
       <div class="space-y-1 text-center">
         <p class="text-sm font-medium">

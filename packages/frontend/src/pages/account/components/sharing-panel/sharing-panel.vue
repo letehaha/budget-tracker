@@ -247,7 +247,7 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
           >
             <div class="flex min-w-0 items-center gap-3">
               <div
-                class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium"
+                class="bg-primary/10 text-primary-text flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-medium"
               >
                 <UserIcon class="size-4" />
               </div>

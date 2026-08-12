@@ -13,7 +13,7 @@
             : dashed
               ? 'border-border text-muted-foreground border border-dashed'
               : accent
-                ? 'bg-primary/10 text-primary'
+                ? 'bg-primary/10 text-primary-text'
                 : 'bg-muted text-muted-foreground',
         )
       "
@@ -25,7 +25,10 @@
     <div class="flex min-w-0 flex-1 flex-col">
       <div class="flex items-center gap-2">
         <span class="truncate font-medium">{{ title }}</span>
-        <span v-if="badge" class="bg-primary/10 text-primary shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+        <span
+          v-if="badge"
+          class="bg-primary/10 text-primary-text shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+        >
           {{ badge }}
         </span>
       </div>
@@ -41,7 +44,7 @@
         cn(
           'size-4 shrink-0 transition-[color,transform] duration-200 group-hover:translate-x-0.5',
           accent
-            ? 'text-muted-foreground group-hover:text-primary'
+            ? 'text-muted-foreground group-hover:text-primary-text'
             : 'text-muted-foreground/70 group-hover:text-foreground',
         )
       "

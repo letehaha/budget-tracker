@@ -92,7 +92,7 @@
               <button
                 v-if="isTouchDevice && tooltip.periodStart && tooltip.periodEnd"
                 type="button"
-                class="text-primary mt-2 block w-full text-left text-sm font-medium underline"
+                class="text-primary-text mt-2 block w-full text-left text-sm font-medium underline"
                 @touchstart.stop
                 @touchend.stop="handleViewTransactionsClick"
                 @click.stop.prevent="handleViewTransactionsClick"

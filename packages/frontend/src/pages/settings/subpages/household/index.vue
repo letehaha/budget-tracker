@@ -351,7 +351,9 @@ watch(permissionOptions, (next) => {
           </div>
           <template v-else>
             <div v-if="ownerMember" class="border-border bg-card/60 mb-2 flex items-center gap-3 rounded-md border p-3">
-              <div class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full">
+              <div
+                class="bg-primary/10 text-primary-text flex size-9 shrink-0 items-center justify-center rounded-full"
+              >
                 {{ ownerMember.user.username.slice(0, 1).toUpperCase() }}
               </div>
               <div class="min-w-0 flex-1">
@@ -373,7 +375,9 @@ watch(permissionOptions, (next) => {
                 class="border-border bg-card flex flex-col gap-3 rounded-md border p-3 @sm/household:flex-row @sm/household:items-center"
               >
                 <div class="flex min-w-0 flex-1 items-center gap-3">
-                  <div class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full">
+                  <div
+                    class="bg-primary/10 text-primary-text flex size-9 shrink-0 items-center justify-center rounded-full"
+                  >
                     {{ member.user.username.slice(0, 1).toUpperCase() }}
                   </div>
                   <div class="min-w-0">
@@ -499,7 +503,9 @@ watch(permissionOptions, (next) => {
               class="border-border bg-card flex flex-col gap-3 rounded-md border p-3 @sm/household:flex-row @sm/household:items-center"
             >
               <div class="flex min-w-0 flex-1 items-center gap-3">
-                <div class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-full">
+                <div
+                  class="bg-primary/10 text-primary-text flex size-9 shrink-0 items-center justify-center rounded-full"
+                >
                   {{ row.owner.username.slice(0, 1).toUpperCase() }}
                 </div>
                 <div class="min-w-0">

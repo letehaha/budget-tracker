@@ -32,6 +32,7 @@
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-text);
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -254,6 +255,7 @@
 
     --primary: rgb(115, 85, 190);
     --primary-foreground: rgb(255, 255, 255);
+    --primary-text: rgb(115, 85, 190);
 
     --secondary: rgb(229, 231, 223);
     --secondary-foreground: rgb(32, 28, 22);
@@ -351,6 +353,8 @@
 
     --primary: rgb(130, 100, 205);
     --primary-foreground: rgb(255, 255, 255);
+    /* --primary stays dark enough for white labels on filled buttons; --primary-text is the brighter tint text/icons need on dark backgrounds. */
+    --primary-text: rgb(167, 139, 250);
 
     --secondary: rgb(42, 40, 38);
     --secondary-foreground: rgb(249, 248, 246);

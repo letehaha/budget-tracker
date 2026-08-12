@@ -11,7 +11,7 @@ const { t } = useI18n();
 <template>
   <Popover.Popover>
     <Popover.PopoverTrigger as-child>
-      <div class="text-primary inline-flex cursor-pointer items-center gap-1 hover:underline">
+      <div class="text-primary-text inline-flex cursor-pointer items-center gap-1 hover:underline">
         {{ t('dialogs.manageTransaction.refundInfo.trigger') }} <InfoIcon :size="16" />
       </div>
     </Popover.PopoverTrigger>

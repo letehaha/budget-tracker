@@ -89,7 +89,7 @@
                       :content="$t('pages.integrations.details.connectionDetails.autoSyncTooltip')"
                       content-class-name="max-w-[300px] text-sm leading-6 text-white/90"
                     >
-                      <InfoIcon class="text-primary size-4 cursor-pointer" />
+                      <InfoIcon class="text-primary-text size-4 cursor-pointer" />
                     </ResponsiveTooltip>
                   </p>
                   <p class="font-medium">
@@ -422,7 +422,7 @@
 
             <div class="mt-2">
               <Popover.Popover>
-                <Popover.PopoverTrigger class="text-primary flex cursor-pointer items-center gap-2 text-sm">
+                <Popover.PopoverTrigger class="text-primary-text flex cursor-pointer items-center gap-2 text-sm">
                   {{ $t('pages.integrations.details.fetchAccountsDialog.missingAccountsQuestion') }}
                   <InfoIcon class="size-4" />
                 </Popover.PopoverTrigger>

@@ -1,7 +1,7 @@
 <template>
   <div class="@container/import-step space-y-6">
     <div v-if="store.isImporting" class="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <Loader2Icon class="text-primary size-10 animate-spin" />
+      <Loader2Icon class="text-primary-text size-10 animate-spin" />
       <div>
         <h3 class="text-lg font-semibold">{{ $t('pages.statementParser.importResults.importingTitle') }}</h3>
         <p class="text-muted-foreground mt-1 text-sm">

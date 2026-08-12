@@ -74,7 +74,7 @@ const formatDate = (date: string) => format(new Date(date), 'MMM d, yyyy');
 const getCategoryColor = (category: INVESTMENT_TRANSACTION_CATEGORY) => {
   if (category === INVESTMENT_TRANSACTION_CATEGORY.buy) return 'bg-app-income-color/10 text-app-income-color';
   if (category === INVESTMENT_TRANSACTION_CATEGORY.sell) return 'bg-app-expense-color/10 text-app-expense-color';
-  return 'bg-primary/10 text-primary';
+  return 'bg-primary/10 text-primary-text';
 };
 
 const getCategoryIcon = (category: INVESTMENT_TRANSACTION_CATEGORY): Component => {

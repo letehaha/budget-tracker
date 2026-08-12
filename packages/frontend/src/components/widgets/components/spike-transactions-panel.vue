@@ -87,7 +87,7 @@
             <TransactionRecord v-for="tx in significantTransactions" :key="tx.id" :tx="tx" :as-button="false" />
           </div>
           <button
-            class="text-primary hover:text-primary/80 mt-2 w-full text-center text-xs font-medium transition-colors"
+            class="text-primary-text hover:text-primary-text/80 mt-2 w-full text-center text-xs font-medium transition-colors"
             @click="$emit('see-all')"
           >
             {{ t('dashboard.widgets.balanceTrend.spikePanel.seeAllTransactions') }} &rarr;

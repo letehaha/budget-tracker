@@ -22,7 +22,7 @@
         finishing-label-key="settings.security.backup.restore.overlay.finishing"
       >
         <template #icon>
-          <DatabaseBackupIcon class="text-primary size-5" aria-hidden="true" />
+          <DatabaseBackupIcon class="text-primary-text size-5" aria-hidden="true" />
         </template>
         <template #title>{{ $t('settings.security.backup.restore.overlay.title') }}</template>
         <template #description>{{ $t('settings.security.backup.restore.overlay.description') }}</template>

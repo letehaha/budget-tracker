@@ -82,7 +82,7 @@ const handleUnlink = () => {
             <RouterLink
               v-else
               :to="{ name: ROUTES_NAMES.portfolioDetail, params: { portfolioId: linkData.portfolioId } }"
-              class="text-primary underline underline-offset-2"
+              class="text-primary-text underline underline-offset-2"
               @click="emit('close-modal')"
             >
               {{ linkData.portfolioName }}

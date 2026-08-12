@@ -70,7 +70,7 @@
               <!-- Expand toggle -->
               <button
                 type="button"
-                class="text-primary/80 hover:text-primary mt-1 text-xs underline-offset-2 hover:underline"
+                class="text-primary-text/80 hover:text-primary-text mt-1 text-xs underline-offset-2 hover:underline"
                 @click="toggleExpand(index)"
               >
                 {{

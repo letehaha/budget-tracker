@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- Loading State -->
     <div v-if="store.isDetectingDuplicates" class="flex items-center justify-center gap-2 py-8">
-      <Loader2Icon class="text-primary size-6 animate-spin" />
+      <Loader2Icon class="text-primary-text size-6 animate-spin" />
       <span>{{ $t('pages.statementParser.transactionReview.checkingDuplicates') }}</span>
     </div>
 

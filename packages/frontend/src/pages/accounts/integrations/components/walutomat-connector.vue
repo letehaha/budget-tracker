@@ -10,7 +10,7 @@
             <div class="flex-1">
               <p class="text-sm">
                 {{ t('pages.integrations.walutomat.helpText') }}
-                <button class="text-primary font-medium underline" @click="showInstructions = true">
+                <button class="text-primary-text font-medium underline" @click="showInstructions = true">
                   {{ t('pages.integrations.walutomat.viewInstructions') }}
                 </button>
               </p>

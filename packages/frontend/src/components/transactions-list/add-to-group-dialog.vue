@@ -119,7 +119,7 @@ const handleSubmit = async () => {
           :key="group.id"
           :class="[
             'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors',
-            selectedGroupId === group.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted',
+            selectedGroupId === group.id ? 'bg-primary/10 text-primary-text' : 'hover:bg-muted',
           ]"
           @click="selectedGroupId = group.id"
         >
@@ -130,7 +130,7 @@ const handleSubmit = async () => {
               {{ t('transactions.transactionGroups.addToGroupDialog.transactionCountLabel') || 'transactions' }}
             </p>
           </div>
-          <CheckIcon v-if="selectedGroupId === group.id" class="text-primary ml-2 size-4 shrink-0" />
+          <CheckIcon v-if="selectedGroupId === group.id" class="text-primary-text ml-2 size-4 shrink-0" />
         </button>
       </div>
 

@@ -4,7 +4,7 @@
        the badge alone stays clean. The badge icon is job-specific (see `#icon`). -->
   <div class="relative mx-auto flex size-16 items-center justify-center">
     <Loader2Icon
-      class="text-primary/30 animation-duration-[2.5s] absolute size-16 animate-spin motion-reduce:hidden"
+      class="text-primary-text/30 animation-duration-[2.5s] absolute size-16 animate-spin motion-reduce:hidden"
       aria-hidden="true"
     />
     <div class="bg-primary/10 ring-primary/15 flex size-11 items-center justify-center rounded-full ring-1">

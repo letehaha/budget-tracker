@@ -143,7 +143,7 @@ watchEffect(() => {
               <h1 class="text-2xl font-semibold tracking-tight">{{ budgetData.name }}</h1>
               <span
                 v-if="isSharedWithCaller"
-                class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+                class="bg-primary/10 text-primary-text inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
               >
                 <UsersIcon class="size-3" />
                 {{ $t('budgets.share.sharedByBadge', { handle: `@${ownerHandle}` }) }}

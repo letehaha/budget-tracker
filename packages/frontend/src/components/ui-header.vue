@@ -55,7 +55,7 @@
                 @mouseenter="onFeedbackEnter"
                 @click="onFeedbackClick"
               >
-                <FeedbackIcon class="text-primary size-4" />
+                <FeedbackIcon class="text-primary-text size-4" />
                 <span class="hidden @[890px]/header-bar:inline">{{ $t('header.feedback') }}</span>
               </Button>
             </FeedbackDialog>
@@ -90,7 +90,7 @@
                 <AlertTriangleIcon v-else-if="syncStatus.syncStuck.value" class="text-destructive-text" :size="16" />
                 <SparklesIcon
                   v-else-if="categorizationStatus.isCategorizing.value"
-                  class="text-primary animate-pulse"
+                  class="text-primary-text animate-pulse"
                   :size="16"
                 />
                 <CloudCheckIcon v-else-if="hasConnections" class="text-success-text size-4" />

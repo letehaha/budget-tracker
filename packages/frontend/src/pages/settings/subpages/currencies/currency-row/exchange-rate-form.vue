@@ -35,7 +35,7 @@
       <span class="text-muted-foreground min-w-0 text-xs leading-5">
         {{ $t('settings.currencies.exchangeRate.disableLiveUpdate') }}
         <span class="mt-0.5 flex items-center gap-1">
-          <InfoIcon class="text-primary size-3.5 shrink-0" />
+          <InfoIcon class="text-primary-text size-3.5 shrink-0" />
           {{ $t('settings.currencies.exchangeRate.liveUpdateInfo') }}
         </span>
       </span>
