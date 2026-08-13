@@ -45,6 +45,8 @@ export const loadTransactions = async ({
   categorizationSource?: string;
   /** Exact `categorizationMeta.categorizedAt` stamp — pairs with `categorizationSource` to fetch one AI run. */
   categorizedAt?: string;
+  /** Exact `externalData.importDetails.batchId` stamp — filters to one import batch. */
+  batchId?: string;
   order?: SORT_DIRECTIONS;
   sortBy?: TRANSACTION_SORT_FIELD;
   excludeTransfer?: boolean;

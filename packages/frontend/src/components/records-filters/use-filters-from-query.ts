@@ -66,6 +66,10 @@ export const useFiltersFromQuery = () => {
       filters.noteIncludes = query.noteIncludes as string;
     }
 
+    if (query.batchId) {
+      filters.batchId = query.batchId as string;
+    }
+
     const transferFilter = parseFilterOperation(query.transferFilter as string | undefined);
     if (transferFilter) {
       filters.transferFilter = transferFilter;
