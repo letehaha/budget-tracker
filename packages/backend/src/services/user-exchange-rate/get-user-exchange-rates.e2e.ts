@@ -10,6 +10,7 @@ import {
 } from '@tests/mocks/exchange-rates/endpoints';
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
 import { startOfDay, subYears } from 'date-fns';
+import { QueryTypes } from 'sequelize';
 
 /**
  * Drives `getExchangeRate` through the real HTTP surface (`GET /user/currencies/rates`
@@ -174,6 +175,21 @@ describe('getUserExchangeRates (cross-rate cache + fallback semantics)', () => {
     // getExchangeRate threw (genuinely missing); getUserExchangeRates drops it + logs.
     expect(rows.find((row) => row.baseCode === EXOTIC)).toBeUndefined();
     expect(loggedWith(errorSpy, EXOTIC)).toBe(true);
+  });
+
+  it('adopts a base currency instead of erroring when no default-currency row exists', async () => {
+    // Legacy state seen in production: connected currencies but no row flagged
+    // isDefaultCurrency, which used to dereference a null base and 500.
+    await connection.sequelize.query(`UPDATE "UsersCurrencies" SET "isDefaultCurrency" = false`);
+
+    const res = await helpers.getCurrenciesRates({ codes: [global.BASE_CURRENCY_CODE] });
+
+    expect(res).toEqual(expect.any(Array));
+    const healed = (await connection.sequelize.query(
+      `SELECT "currencyCode" FROM "UsersCurrencies" WHERE "isDefaultCurrency" = true`,
+      { type: QueryTypes.SELECT },
+    )) as { currencyCode: string }[];
+    expect(healed).toHaveLength(1);
   });
 
   it('does not hit any provider when today rates already exist for both legs', async () => {

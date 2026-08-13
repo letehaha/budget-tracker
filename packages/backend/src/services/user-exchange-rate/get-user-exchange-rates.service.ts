@@ -1,5 +1,6 @@
 import { logger } from '@js/utils';
 import * as UsersCurrencies from '@models/users-currencies.model';
+import { ensureUserBaseCurrency } from '@services/currencies/ensure-base-currency.service';
 
 import { withTransaction } from '../common/with-transaction';
 import { getExchangeRate } from './get-exchange-rate.service';
@@ -12,8 +13,14 @@ import { getExchangeRate } from './get-exchange-rate.service';
  */
 
 export const getUserExchangeRates = withTransaction(async ({ userId }: { userId: number }) => {
-  const userBaseCurrency = await UsersCurrencies.getBaseCurrency({ userId });
   const userCurrencies = await UsersCurrencies.getCurrencies({ userId });
+
+  // Nothing to convert, and no base currency is needed to say so. Checked before
+  // ensureUserBaseCurrency so a user who has connected no currencies at all is
+  // not forced through a heal that has nothing to adopt from.
+  if (userCurrencies.length === 0) return [];
+
+  const userBaseCurrency = await ensureUserBaseCurrency({ userId });
 
   const results = await Promise.allSettled(
     userCurrencies.map((item) =>
