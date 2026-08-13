@@ -9,20 +9,20 @@ import Categories from '@models/categories.model';
 import Tags from '@models/tags.model';
 import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
+import { countTransactions, findTransactions } from '@models/transactions-query';
 import Transactions, { buildOrderClause } from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
-import { type FindOptions, type Includeable, Op, literal } from 'sequelize';
+import { type Includeable, Op, type WhereOptions, literal } from 'sequelize';
 
 import { CATEGORIZATION_SCOPE, type CategorizationScope } from './categorization-scope';
 
 export type CandidateWhere = {
   categorizationMeta: null;
   transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer;
-  isPlanned: false;
   categoryId?: string;
 };
 
-type CandidateCriteria = Omit<FindOptions, 'include'> & { include: Includeable[] };
+type CandidateCriteria = { where: WhereOptions; include: Includeable[] };
 
 /**
  * Ownership gate shared by every ai-categorization query: the account must belong to the
@@ -47,8 +47,9 @@ export function ownedAccountsInclude({
  * Transfers are excluded on both scopes because the UI neither shows nor lets the user edit
  * a category on them, so an AI guess there is invisible and unfixable.
  *
- * Planned rows are excluded because their category is the user's own entry, and an AI guess
- * would overwrite it before the row ever becomes a real transaction.
+ * Planned rows are excluded by `planned: 'exclude'` on every query this where is spread into:
+ * their category is the user's own entry, and an AI guess would overwrite it before the row
+ * ever becomes a real transaction.
  *
  * `null` when a `defaultCategoryOnly` scope meets a user with no default category — nothing
  * can be a candidate then.
@@ -63,7 +64,6 @@ export async function buildCandidateWhere({
   const base = {
     categorizationMeta: null,
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-    isPlanned: false,
   } as const;
 
   if (scope === CATEGORIZATION_SCOPE.anyCategory) return base;
@@ -107,11 +107,14 @@ export async function findCandidateTransactionIds({
   const criteria = await buildCandidateCriteria({ userId, transactionIds });
   if (!criteria) return [];
 
-  const transactions = await Transactions.findAll({
+  const transactions = await findTransactions({
     ...criteria,
+    planned: 'exclude',
+    access: { accountOwner: userId },
+    balanceAdjustments: 'include',
+    completeness: { cap: { limit: AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN, onTruncated: 'log' } },
     attributes: ['id'],
     order: [['time', 'DESC']],
-    limit: AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN,
   });
 
   return transactions.map((tx) => tx.id);
@@ -122,7 +125,14 @@ async function countCandidateTransactions({ userId }: { userId: number }): Promi
   const criteria = await buildCandidateCriteria({ userId });
   if (!criteria) return 0;
 
-  return Transactions.count({ ...criteria, distinct: true, col: 'id' });
+  return countTransactions({
+    ...criteria,
+    planned: 'exclude',
+    access: { accountOwner: userId },
+    balanceAdjustments: 'include',
+    distinct: true,
+    col: 'id',
+  });
 }
 
 /**
@@ -151,8 +161,12 @@ export async function listCandidateTransactions({
   if (!criteria) return { items: [], totalCount: isFirstPage ? 0 : null };
 
   const [items, totalCount] = await Promise.all([
-    Transactions.findAll({
+    findTransactions({
       ...criteria,
+      planned: 'exclude',
+      access: { accountOwner: userId },
+      balanceAdjustments: 'include',
+      completeness: { page: { offset, limit } },
       include: [
         ...criteria.include,
         {
@@ -185,8 +199,6 @@ export async function listCandidateTransactions({
         },
       ],
       order: buildOrderClause({ sortBy, order }),
-      limit,
-      offset,
     }),
     isFirstPage ? countCandidateTransactions({ userId }) : null,
   ]);

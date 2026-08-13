@@ -105,14 +105,16 @@ export async function detectDuplicates<T extends TransactionToCheck>({
 
   // Fetch existing transactions in the date range for this account
   const existingTransactions = await Transactions.findWithFilters({
-    userId,
+    access: { creator: userId },
     accountIds: [accountId],
     startDate: minDate,
     endDate: endDateStr,
-    from: 0,
-    limit: 10000,
+    completeness: { cap: { limit: 10000, onTruncated: 'log' } },
     // Planned rows are merge targets for incoming rows, not duplicates of them.
-    isPlanned: false,
+    planned: 'exclude',
+    // A balance adjustment is a real stored row an import can land on top of, so it stays
+    // in the set the incoming rows are compared against.
+    balanceAdjustments: 'include',
   });
 
   // Build lookup map for efficient matching: key = "date:amount:type"

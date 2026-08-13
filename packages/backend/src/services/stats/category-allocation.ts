@@ -2,7 +2,7 @@ import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import RefundTransactions from '@models/refund-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { Op } from 'sequelize';
 
 /**
@@ -76,7 +76,7 @@ export interface CategoryAllocations {
  * `BudgetRefundPair` keys its scope flags on original/refund rather than expense/income, and the
  * pivot's `WholeTxRefund` carries payee/tag, which splits don't have.
  */
-interface CategoryRefundPair {
+export interface CategoryRefundPair {
   /** Refund magnitude in integer cents (base/reference currency), always positive: callers negate it. */
   cents: number;
   /** The refund tx's own date — the bucket the money actually moved in. */
@@ -143,8 +143,20 @@ export const resolveRefundPairs = async ({
   }
 
   if (missingTxIds.size > 0) {
-    const missingTxs = await Transactions.findAll({
-      where: { id: { [Op.in]: [...missingTxIds] } },
+    // A refund link and both of its transactions always belong to one user, so scoping the
+    // counterpart lookup to the links' owners keeps it inside the scope the caller's rows came
+    // from. Planned rows never count as a refund leg — stats read money that actually moved.
+    // Balance adjustments stay in: this hydrates counterparts of links the caller already has,
+    // and dropping one would leave its pair half-resolved rather than filtered.
+    const missingTxs = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
+      where: {
+        id: { [Op.in]: [...missingTxIds] },
+        userId: { [Op.in]: [...new Set(refunds.map((refund) => refund.userId))] },
+      },
       attributes: ['id', 'refAmount', 'categoryId', 'transactionType', 'time'],
     });
     for (const tx of missingTxs) txMap.set(tx.id, toTxEntry(tx));

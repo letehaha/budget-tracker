@@ -1,6 +1,6 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import type Vehicles from '@models/vehicles.model';
 import { format, parseISO } from 'date-fns';
 import { Op } from 'sequelize';
@@ -38,10 +38,16 @@ export async function reconstructVehicleAnchor({
 }: ReconstructAnchorParams): Promise<ReconstructedAnchor> {
   const cutoff = asOf ?? new Date();
 
-  const overrideTxs = await Transactions.findAll({
+  // Overrides are written by the balance-adjustment flow, which stamps them as adjustments —
+  // excluding those (the boundary's default) would erase every anchor after the purchase.
+  const overrideTxs = await findTransactions({
+    planned: 'exclude',
+    access: 'unscoped-internal',
+    balanceAdjustments: 'include',
+    transfers: { natures: [TRANSACTION_TRANSFER_NATURE.transfer_out_wallet] },
+    completeness: 'all',
     where: {
       accountId: vehicle.accountId,
-      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
       time: { [Op.lte]: cutoff },
     },
     order: [

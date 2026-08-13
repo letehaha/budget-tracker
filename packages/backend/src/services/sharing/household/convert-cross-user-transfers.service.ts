@@ -1,6 +1,7 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
+import { findTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import Users from '@models/users.model';
 import { Op } from 'sequelize';
@@ -108,9 +109,14 @@ export const convertCrossUserTransfersToOutOfWallet = async ({
   // Neither user has any accounts in scope — nothing could possibly need conversion.
   if (accountIds.length === 0) return { convertedPairCount: 0 };
 
-  const candidates = await Transactions.default.findAll({
+  // Both users' rows are in scope by design, so the account-id list is the only scope.
+  const candidates = await findTransactions({
+    planned: 'include',
+    access: 'unscoped-internal',
+    balanceAdjustments: 'include',
+    transfers: { natures: [TRANSACTION_TRANSFER_NATURE.common_transfer] },
+    completeness: 'all',
     where: {
-      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       transferId: { [Op.not]: null },
       accountId: { [Op.in]: accountIds },
     },
@@ -186,9 +192,13 @@ export const convertCrossUserTransfersForAccountIds = async ({
   // Step 1: discover candidate transferIds — common_transfer rows on the trigger
   // accounts. Using `attributes` to keep the payload light; the full leg rows are
   // re-loaded in step 2 alongside the partners.
-  const triggerLegStubs = (await Transactions.default.findAll({
+  const triggerLegStubs = (await findTransactions({
+    planned: 'include',
+    access: 'unscoped-internal',
+    balanceAdjustments: 'include',
+    transfers: { natures: [TRANSACTION_TRANSFER_NATURE.common_transfer] },
+    completeness: 'all',
     where: {
-      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       transferId: { [Op.not]: null },
       accountId: { [Op.in]: accountIds },
     },
@@ -204,11 +214,13 @@ export const convertCrossUserTransfersForAccountIds = async ({
   // Step 2: load every leg of those transfers (both the trigger-side leg and the partner
   // leg, which lives outside `accountIds`). This is what lets us identify the partner
   // user without an extra round-trip per pair.
-  const allLegs = await Transactions.default.findAll({
-    where: {
-      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-      transferId: { [Op.in]: transferIds },
-    },
+  const allLegs = await findTransactions({
+    planned: 'include',
+    access: 'unscoped-internal',
+    balanceAdjustments: 'include',
+    transfers: { natures: [TRANSACTION_TRANSFER_NATURE.common_transfer] },
+    completeness: 'all',
+    where: { transferId: { [Op.in]: transferIds } },
   });
 
   // Step 3: resolve the involved accounts + their owners' usernames so the per-pair

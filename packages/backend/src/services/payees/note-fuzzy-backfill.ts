@@ -2,7 +2,7 @@ import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import PayeeAliases from '@models/payee-aliases.model';
 import Payees from '@models/payees.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions, updateTransactions } from '@models/transactions-query';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -67,7 +67,15 @@ export const runNoteFuzzyBackfill = withTransaction(
 
     // Scope candidates by `Account.userId` (account ownership), not
     // `Transactions.userId` (row creator). See the input doc for why.
-    const candidates = await Transactions.findAll({
+    //
+    // Planned rows are out of scope on both the scan and the write below: a plan
+    // carries the payee its author typed, and the sync batch this pass runs over
+    // is debounced, so a row can be turned into a plan while the batch waits.
+    const candidates = await findTransactions({
+      planned: 'exclude',
+      access: { accountOwner: userId },
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: {
         id: { [Op.in]: transactionIds },
         payeeId: null,
@@ -104,14 +112,17 @@ export const runNoteFuzzyBackfill = withTransaction(
         const normalized = normalizePayeeName({ raw });
         if (!normalized) continue;
 
-        await Transactions.update(
-          { payeeId: match.payeeId },
-          // Update by id only — auth was established at the candidate
-          // fetch via the Accounts JOIN. `payeeId IS NULL AND
-          // payeeLocked = false` stays in the WHERE as the idempotency
-          // guard against a concurrent sync linking the same row first.
-          { where: { id: tx.id, payeeId: null, payeeLocked: false } },
-        );
+        // Update by id only — auth was established at the candidate fetch via
+        // the Accounts JOIN. `payeeId IS NULL AND payeeLocked = false` stays in
+        // the WHERE as the idempotency guard against a concurrent sync linking
+        // the same row first.
+        await updateTransactions({
+          values: { payeeId: match.payeeId },
+          planned: 'exclude',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
+          where: { id: tx.id, payeeId: null, payeeLocked: false },
+        });
 
         await ensureAliasExists({
           payeeId: match.payeeId,

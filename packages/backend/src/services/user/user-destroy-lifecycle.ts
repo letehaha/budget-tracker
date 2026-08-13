@@ -10,7 +10,7 @@ import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import { namespace } from '@models/connection';
 import ResourceShares from '@models/resource-shares.model';
-import Transactions from '@models/transactions.model';
+import { updateTransactions } from '@models/transactions-query';
 import * as Users from '@models/users.model';
 import { Op, type Transaction } from 'sequelize';
 
@@ -496,13 +496,13 @@ async function stampCreatorSnapshotForOutboundTransactions({ deletingUser }: { d
     avatar: deletingUser.avatar ?? null,
   };
 
-  await Transactions.update(
-    { creatorSnapshot: snapshot },
-    {
-      where: {
-        userId: deletingUser.id,
-        accountId: { [Op.in]: Array.from(accessibleAccountIds) },
-      },
-    },
-  );
+  // Total reach: every outbound row the user authored keeps a creator label, plans and
+  // balance adjustments included — anything skipped here goes anonymous for good.
+  await updateTransactions({
+    values: { creatorSnapshot: snapshot },
+    where: { accountId: { [Op.in]: Array.from(accessibleAccountIds) } },
+    planned: 'include',
+    access: { creator: deletingUser.id },
+    balanceAdjustments: 'include',
+  });
 }

@@ -3,9 +3,9 @@ import type { EntityLogoPayload } from '@bt/shared/types';
 
 import type { RenameResolution } from './resolve-rename';
 
-export type GroupUpdatePayload = { name?: string } & EntityLogoPayload;
+type GroupUpdatePayload = { name?: string } & EntityLogoPayload;
 
-export interface GroupUpdatePlan {
+interface GroupUpdatePlan {
   /** The payload to submit, or null when there is nothing to save. */
   updates: GroupUpdatePayload | null;
   /** Set when the draft can't be saved at all, so the form can explain the disabled submit. */

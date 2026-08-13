@@ -316,4 +316,41 @@ describe('Get budget stats', () => {
       expect(stats.summary.balance).toBe(-500);
     });
   });
+
+  describe('Accounts excluded from stats', () => {
+    it('counts a manually attached transaction from an excludeFromStats account', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const [tx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 300,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+      });
+
+      await helpers.updateAccount({ id: account.id, payload: { excludeFromStats: true }, raw: true });
+
+      const budget = await helpers.createCustomBudget({
+        name: 'excluded-account-budget',
+        limitAmount: 1000,
+        raw: true,
+      });
+      await helpers.addTransactionToCustomBudget({
+        id: budget.id,
+        payload: { transactionIds: [tx.id] },
+      });
+
+      const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
+
+      expect(stats.summary.transactionsCount).toBe(1);
+      expect(stats.summary.actualExpense).toBe(300);
+      expect(stats.summary.balance).toBe(-300);
+      expect(stats.summary.utilizationRate?.toFixed(2)).toBe(((300 / 1000) * 100).toFixed(2));
+
+      const linked = await helpers.getTransactions({ budgetIds: [budget.id], raw: true });
+      expect(linked.map((item) => item.id)).toEqual([tx.id]);
+    });
+  });
 });

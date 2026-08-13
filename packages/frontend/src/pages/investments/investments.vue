@@ -238,8 +238,8 @@ const currenciesStore = useCurrenciesStore();
 const { currencies } = storeToRefs(currenciesStore);
 const portfoliosQuery = usePortfolios();
 
-// Extract portfolios data and sort by enabled status
-const portfolios = computed(() => portfoliosQuery.data.value?.sort((a, b) => +b.isEnabled - +a.isEnabled) || []);
+// Copy before sorting: sort() mutates in place, and the source array is the query cache.
+const portfolios = computed(() => [...(portfoliosQuery.data.value ?? [])].sort((a, b) => +b.isEnabled - +a.isEnabled));
 
 // Portfolio type icon mapping
 const getPortfolioTypeIcon = (type: PORTFOLIO_TYPE): FunctionalComponent => {

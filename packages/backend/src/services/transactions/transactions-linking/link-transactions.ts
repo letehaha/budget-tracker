@@ -4,6 +4,7 @@ import { NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import TransactionSplits from '@models/transaction-splits.model';
+import { findTransactions, updateTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
@@ -73,7 +74,11 @@ export const linkTransactions = withTransaction(
         // Fetch both rows without a userId filter – sharing means the pair can live on
         // accounts owned by different users. The auth gate below verifies the caller has
         // `write` on each side's parent account before we mutate anything.
-        const transactions = await Transactions.default.findAll({
+        const transactions = await findTransactions({
+          planned: 'include',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
+          completeness: 'all',
           where: { id: { [Op.in]: [baseTxId, oppositeTxId] } },
         });
 
@@ -141,18 +146,17 @@ export const linkTransactions = withTransaction(
           throw new ValidationError({ message: t({ key: 'transactions.loanAccountReadonly' }) });
         }
 
-        const [, results] = await Transactions.default.update(
-          {
+        const [, results = []] = await updateTransactions({
+          planned: 'include',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
+          values: {
             transferId: uuidv4(),
             transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
           },
-          {
-            where: {
-              id: { [Op.in]: [baseTxId, oppositeTxId] },
-            },
-            returning: true,
-          },
-        );
+          where: { id: { [Op.in]: [baseTxId, oppositeTxId] } },
+          returning: true,
+        });
 
         result.push([
           results.find((tx) => tx.id === baseTxId),

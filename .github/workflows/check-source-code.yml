@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        task: [lint, 'test:unit', knip]
+        task: [lint, 'test:unit', 'test:lint-rules', knip]
     steps:
       - name: Skip – no backend changes
         if: needs.detect-changes.outputs.frontend-only == 'true'

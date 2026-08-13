@@ -272,6 +272,34 @@ export async function getPivotReport<R extends boolean | undefined = undefined>(
   return result;
 }
 
+export async function getCumulativeData<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  metric,
+  accountId,
+  raw,
+}: {
+  from: string;
+  to: string;
+  metric: endpointsTypes.CumulativeMetric;
+  accountId?: string;
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('metric', metric);
+  if (accountId) params.append('accountId', accountId);
+
+  const result = await helpers.makeRequest<endpointsTypes.GetCumulativeResponse, R>({
+    method: 'get',
+    url: `/stats/cumulative?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
 export async function getTotalBalance<R extends boolean | undefined = undefined>({
   date,
   raw,

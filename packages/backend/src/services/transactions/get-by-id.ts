@@ -4,7 +4,8 @@ import { ForbiddenError, NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import BudgetTransactions from '@models/budget-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
-import TransactionsModel, * as Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
+import * as Transactions from '@models/transactions.model';
 import { assertOwnScopeOk } from '@services/sharing/auth/authorize-account-write.service';
 import {
   type GrantedAccessResult,
@@ -93,7 +94,12 @@ export const getTransactionById = withTransaction(
 
     // Caller didn't author the row. Cheap PK lookup first to short-circuit "no such tx"
     // without paying for a share-table query.
-    const tx = await TransactionsModel.findOne({ where: { id } });
+    const tx = await findOneTransaction({
+      planned: 'include',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      where: { id },
+    });
     if (!tx) return null;
 
     // Planned rows belong to their creator only; nobody reaches them through a share.
@@ -107,7 +113,10 @@ export const getTransactionById = withTransaction(
     });
     if (access.granted) {
       if (includeSplits) {
-        const withSplits = await TransactionsModel.findOne({
+        const withSplits = await findOneTransaction({
+          planned: 'include',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
           where: { id },
           include: [{ model: TransactionSplits, as: 'splits' }],
         });
@@ -148,7 +157,10 @@ export const getTransactionById = withTransaction(
     };
 
     if (includeSplits) {
-      const withSplits = await TransactionsModel.findOne({
+      const withSplits = await findOneTransaction({
+        planned: 'include',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
         where: { id },
         include: [{ model: TransactionSplits, as: 'splits' }],
       });
@@ -210,7 +222,14 @@ export const getWritableTransactionById = withTransaction(
       // look identical (F3 existence masking). For UUID-keyed write paths the distinction
       // is the whole UX point — recipients editing an owner-only tx should see "not
       // authorized", not the misleading "transaction doesn't exist".
-      const exists = await TransactionsModel.findOne({ where: { id }, attributes: ['id'], raw: true });
+      const exists = await findOneTransaction({
+        planned: 'include',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        where: { id },
+        attributes: ['id'],
+        raw: true,
+      });
       if (exists) {
         throw new ForbiddenError({
           message: t({ key: 'transactions.notAuthorizedToEdit' }),

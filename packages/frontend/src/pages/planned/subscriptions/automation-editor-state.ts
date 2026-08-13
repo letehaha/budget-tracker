@@ -51,7 +51,7 @@ export const filterEmptyMatchingRules = ({
     return kept;
   }, []);
 
-export interface AutomationPayload {
+interface AutomationPayload {
   autoRecord: boolean;
   matchingRules: { rules: SubscriptionMatchingRule[] };
   accountId: RecordId | null;

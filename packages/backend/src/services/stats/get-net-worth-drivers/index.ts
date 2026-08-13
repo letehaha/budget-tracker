@@ -463,7 +463,7 @@ export const getNetWorthDrivers = async ({
   // One read transaction pins a single Postgres connection across the fan-out
   // below, rather than each branch checking out its own and a burst of report
   // loads draining the pool.
-  const [savingsTransactions, investmentSlice, accountsBalanceHistory] = await withTransaction(async () => {
+  const [savingsIntake, investmentSlice, accountsBalanceHistory] = await withTransaction(async () => {
     const userBaseCurrencyPromise = UsersCurrencies.findOne({
       where: { userId, isDefaultCurrency: true },
       raw: true,
@@ -492,7 +492,11 @@ export const getNetWorthDrivers = async ({
     ]);
   })();
 
-  const savings = accumulateSavings({ transactions: savingsTransactions, buckets });
+  const savings = accumulateSavings({
+    transactions: savingsIntake.rows,
+    refundPairs: savingsIntake.refundPairs,
+    buckets,
+  });
   const growth = computeInvestmentGrowth({
     flows: investmentSlice.flows,
     holdingsCentsByDate: investmentSlice.holdingsCentsByDate,

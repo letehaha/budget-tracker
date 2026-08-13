@@ -194,6 +194,73 @@ describe('GET /stats/net-worth-drivers', () => {
 
       expect(buckets[0]!.savings.income).toBe(0);
     });
+
+    it('nets a refunded expense out of both sides of savings', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 5000,
+          transactionType: TRANSACTION_TYPES.income,
+          time: `${JAN.start}T10:00:00.000Z`,
+        }),
+        raw: true,
+      });
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2026-01-10T10:00:00.000Z',
+        }),
+        raw: true,
+      });
+      const [refundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2026-01-20T10:00:00.000Z',
+        }),
+        raw: true,
+      });
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+      const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
+
+      // Money that came back was never spent and is not earnings, so only the 5,000 salary
+      // survives on the income side and the expense side clears.
+      expect(buckets[0]!.savings).toEqual({ income: 5000, expenses: 0, net: 5000 });
+    });
+
+    it('leaves only the amount actually spent after a partial refund', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1000,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2026-01-10T10:00:00.000Z',
+        }),
+        raw: true,
+      });
+      const [refundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 400,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2026-01-20T10:00:00.000Z',
+        }),
+        raw: true,
+      });
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+      const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
+
+      expect(buckets[0]!.savings).toEqual({ income: 0, expenses: 600, net: -600 });
+    });
   });
 
   describe('investment growth', () => {

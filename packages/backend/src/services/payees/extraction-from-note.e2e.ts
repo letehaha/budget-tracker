@@ -148,4 +148,49 @@ describe('Payee extraction — description/note fallback flag', () => {
       expect(tx.categoryId).toBe(global.DEFAULT_CATEGORY_ID);
     });
   });
+
+  describe('occurrence-based promotion and planned rows', () => {
+    it('backfills the promoted Payee onto real rows only, never onto a plan', async () => {
+      // A plan records an intention, so it is neither evidence of a recurring
+      // merchant nor a row the promotion may stamp. Real rows carrying the
+      // same note still promote and still get backfilled.
+      await helpers.updateUserSettings({
+        settings: { locale: 'en', payeeExtractionUsesDescription: true },
+      });
+
+      const account = await helpers.createAccount({ raw: true });
+
+      const [planned] = await helpers.createPlannedTransaction({
+        payload: {
+          accountId: account.id,
+          note: 'Quantum Diner',
+          time: '2030-04-01T12:00:00.000Z',
+        },
+        raw: true,
+      });
+      const [firstReal] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, note: 'Quantum Diner' }),
+        raw: true,
+      });
+      const [secondReal] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, note: 'Quantum Diner' }),
+        raw: true,
+      });
+
+      const payees = await helpers.listPayees({ raw: true });
+      const promoted = payees.find((p) => p.name === 'Quantum Diner');
+      expect(promoted).toBeDefined();
+
+      const [plannedAfter, firstRealAfter, secondRealAfter] = await Promise.all([
+        helpers.getTransactionById({ id: planned!.id, raw: true }),
+        helpers.getTransactionById({ id: firstReal!.id, raw: true }),
+        helpers.getTransactionById({ id: secondReal!.id, raw: true }),
+      ]);
+
+      expect(plannedAfter!.isPlanned).toBe(true);
+      expect(plannedAfter!.payeeId).toBeNull();
+      expect(firstRealAfter!.payeeId).toBe(promoted!.id);
+      expect(secondRealAfter!.payeeId).toBe(promoted!.id);
+    });
+  });
 });

@@ -6,7 +6,7 @@ import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -20,7 +20,6 @@ import { Op } from 'sequelize';
 
 import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { encryptCredentials } from '../utils/credential-encryption';
-import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankApiClient } from './api-client';
 import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
@@ -215,11 +214,13 @@ export class MonobankProvider extends BaseBankDataProvider {
         // A future-dated planned row must not anchor the window: it would push
         // `from` past `to` and turn every sync into a no-op until that date
         // passes.
-        const latestTransaction = await Transactions.findOne({
+        const latestTransaction = await findOneTransaction({
+          planned: 'exclude',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
           where: {
             accountId: account.id,
             time: { [Op.lte]: new Date() },
-            ...REAL_TRANSACTIONS_WHERE,
           },
           order: [['time', 'DESC']],
         });

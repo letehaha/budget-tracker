@@ -1,7 +1,7 @@
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Budgets from '@models/budget.model';
-import Transactions from '@models/transactions.model';
+import { countTransactions } from '@models/transactions-query';
 import UserSettings, {
   DEFAULT_ONBOARDING_STATE,
   DEFAULT_SETTINGS,
@@ -119,8 +119,9 @@ export const detectCompletedTasks = withTransaction(async ({ userId }: { userId:
       // Check if user has created any accounts
       Accounts.count({ where: { userId } }),
 
-      // Check if user has added any transactions
-      Transactions.count({ where: { userId } }),
+      // Check if user has added any transactions. The task is "you have used the
+      // records screen", which a plan satisfies as much as a real row does.
+      countTransactions({ planned: 'include', access: { creator: userId }, balanceAdjustments: 'include' }),
 
       // Check if user has created any budgets
       Budgets.count({ where: { userId } }),

@@ -1,7 +1,6 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/accounts.model';
-import * as Transactions from '@models/transactions.model';
+import { statsTransactions } from '@services/stats/stats-transactions';
 import {
   addMonths,
   differenceInMonths,
@@ -16,8 +15,6 @@ import {
   subMonths,
 } from 'date-fns';
 import { Op } from 'sequelize';
-
-import { getWhereConditionForTime } from './utils';
 
 interface GetCumulativeDataParams {
   userId: number;
@@ -106,33 +103,18 @@ async function getPeriodData({
   const effectiveToDate = toDate > now ? endOfMonth(now) : toDate;
   const effectiveTo = format(effectiveToDate, 'yyyy-MM-dd');
 
-  // Determine which transaction types to fetch based on metric
-  const transactionTypes =
-    metric === 'savings'
-      ? [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense]
-      : metric === 'income'
-        ? [TRANSACTION_TYPES.income]
-        : [TRANSACTION_TYPES.expense];
-
-  // Fetch transactions
-  const transactions = await Transactions.default.findAll({
+  // Both directions are always loaded, whatever the metric: a refund pairs an expense with an
+  // income, and netting one side needs the other side in scope.
+  const { rows: transactions, refundPairs } = await statsTransactions({
+    access: { creator: userId },
+    planned: 'exclude',
+    refunds: 'net',
+    window: { from, to: effectiveTo },
     where: removeUndefinedKeys({
       accountId,
-      userId,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      transactionType: {
-        [Op.in]: transactionTypes,
-      },
-      ...getWhereConditionForTime({ from, to: effectiveTo, columnName: 'time' }),
+      transactionType: { [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense] },
     }),
-    include: [
-      {
-        model: Accounts,
-        where: { excludeFromStats: false },
-        attributes: [],
-      },
-    ],
-    attributes: ['time', 'refAmount', 'transactionType'],
+    attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
   });
 
   // Build a map of year-month to aggregate values
@@ -154,6 +136,20 @@ async function getPeriodData({
     } else if (tx.transactionType === TRANSACTION_TYPES.expense) {
       monthEntry.expenses += Math.abs(tx.refAmount.toCents());
     }
+  }
+
+  // Refunded money was neither spent nor earned: both halves leave in the month the money came
+  // back, which keeps the savings metric (income - expenses) untouched. A pair with only one half
+  // in scope stays gross — subtracting it alone would remove money the report never counted.
+  for (const pair of refundPairs) {
+    if (!pair.expenseInScope || !pair.incomeInScope) continue;
+
+    const refundTime = new Date(pair.time);
+    const monthEntry = monthlyDataMap.get(`${getYear(refundTime)}-${getMonth(refundTime)}`);
+    if (!monthEntry) continue;
+
+    monthEntry.income -= pair.cents;
+    monthEntry.expenses -= pair.cents;
   }
 
   // Build cumulative data based on metric

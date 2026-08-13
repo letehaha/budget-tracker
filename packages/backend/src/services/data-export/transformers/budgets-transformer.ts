@@ -4,6 +4,7 @@ import BudgetCategories from '@models/budget-categories.model';
 import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
+import { findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import { Op } from 'sequelize';
@@ -41,7 +42,15 @@ export async function transformBudgets({ userId }: { userId: number }): Promise<
       ? Categories.findAll({ where: { userId, id: { [Op.in]: categoryIds } }, attributes: ['id', 'name'] })
       : Promise.resolve([] as Categories[]),
     transactionIds.length
-      ? Transactions.findAll({ where: { userId, id: { [Op.in]: transactionIds } } })
+      ? // Export mirrors what the budget screen shows, and a budget counts every row
+        // linked to it — so a linked plan is exported and summed like any other.
+        findTransactions({
+          where: { id: { [Op.in]: transactionIds } },
+          planned: 'include',
+          access: { creator: userId },
+          balanceAdjustments: 'include',
+          completeness: 'all',
+        })
       : Promise.resolve([] as Transactions[]),
   ]);
 

@@ -9,12 +9,12 @@ export type { NetWorthIncludeSettings };
 
 export type NetWorthComponentKey = 'ventures' | 'vehicles' | 'loans';
 
-export type NetWorthTrendBar = { label: string; shortLabel: string } & (
+type NetWorthTrendBar = { label: string; shortLabel: string } & (
   | { hasData: false }
   | { hasData: true; delta: number; endNetWorth: number }
 );
 
-export type NetWorthPrevDelta = { available: false } | { available: true; delta: number };
+type NetWorthPrevDelta = { available: false } | { available: true; delta: number };
 
 interface DatePeriod {
   from: Date;

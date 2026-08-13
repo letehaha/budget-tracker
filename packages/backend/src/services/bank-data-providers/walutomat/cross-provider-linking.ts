@@ -1,12 +1,11 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
-import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { TRANSFER_DATE_WINDOW_DAYS, normalizeIban } from '../utils/transfer-matching';
 
 /**
@@ -52,11 +51,14 @@ function extractCounterpartyIban({
  */
 export async function linkCrossProviderTransfers({ userId }: { userId: number }): Promise<void> {
   // Step 1: Find unlinked Walutomat PAYIN/PAYOUT transactions
-  const walutomatTxs = await Transactions.findAll({
+  const walutomatTxs = await findTransactions({
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    transfers: 'exclude',
+    completeness: 'all',
     where: {
-      userId,
       accountType: ACCOUNT_TYPES.walutomat,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       [Op.or]: [
         Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'PAYIN'),
         Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'PAYOUT'),
@@ -124,13 +126,15 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
     const dateTo = addDays(txDate, TRANSFER_DATE_WINDOW_DAYS);
 
     // Search for matching transactions in the identified accounts
-    const candidates = await Transactions.findAll({
+    const candidates = await findTransactions({
+      planned: 'exclude',
+      access: { creator: userId },
+      balanceAdjustments: 'include',
+      transfers: 'exclude',
+      completeness: 'all',
       where: {
-        userId,
         accountId: { [Op.in]: matchingAccountIds },
         transactionType: expectedOppositeType,
-        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        ...REAL_TRANSACTIONS_WHERE,
         currencyCode: tx.currencyCode,
         // amount is stored as cents in DB, tx.amount is a Money object
         amount: tx.amount.toCents(),

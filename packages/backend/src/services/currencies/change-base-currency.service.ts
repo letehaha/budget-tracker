@@ -22,6 +22,7 @@ import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import Portfolios from '@models/investments/portfolios.model';
 import LoanDetails from '@models/loan-details.model';
 import ResourceShares from '@models/resource-shares.model';
+import { findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.model';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
@@ -331,8 +332,14 @@ async function rebuildTransactions(params: {
 }): Promise<number> {
   const { userId, newCurrencyCode, transaction } = params;
 
-  const transactions = await Transactions.findAll({
-    where: { userId },
+  // Every row the user authored carries a ref stamp in the old base currency, planned
+  // and adjustment rows included: a plan that materializes later must already hold the
+  // new base currency's amount.
+  const transactions = await findTransactions({
+    planned: 'include',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
     transaction,
   });
 
@@ -401,7 +408,7 @@ async function recalculateAccounts(params: {
   const accountIds = accounts.map((a) => a.id);
   const boundaryRows = accountIds.length
     ? await Transactions.sequelize!.query<{ accountId: string; earliestTime: Date }>(
-        `SELECT "accountId", MIN("time") AS "earliestTime" FROM "Transactions" WHERE "accountId" IN (:accountIds) AND "isPlanned" = false GROUP BY "accountId"`,
+        `SELECT "accountId", MIN("time") AS "earliestTime" FROM real_transactions WHERE "accountId" IN (:accountIds) GROUP BY "accountId"`,
         { replacements: { accountIds }, type: QueryTypes.SELECT, transaction },
       )
     : [];

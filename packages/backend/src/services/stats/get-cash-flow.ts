@@ -1,19 +1,18 @@
 import type { RecordId } from '@bt/shared/types';
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/accounts.model';
-import * as Transactions from '@models/transactions.model';
 import { expandCategoryIdsWithDescendants, getRootCategoryId } from '@services/categories/category-hierarchy';
 import {
   AccessibleCategoryInfo,
   getAccessibleCategoryMap,
 } from '@services/categories/get-accessible-category-map.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { statsTransactions } from '@services/stats/stats-transactions';
 import { format } from 'date-fns';
 import { Op } from 'sequelize';
 
-import { computeCategoryAllocations, resolveRefundPairs } from './category-allocation';
-import { findBucketIndex, generatePeriodBuckets, getWhereConditionForTime } from './utils';
+import { computeCategoryAllocations } from './category-allocation';
+import { findBucketIndex, generatePeriodBuckets } from './utils';
 
 interface GetCashFlowParams {
   userId: number;
@@ -143,35 +142,25 @@ export const getCashFlow = withTransaction(
     const categoryWhere =
       queryFilterCategoryIds && queryFilterCategoryIds.length > 0 ? { [Op.in]: queryFilterCategoryIds } : undefined;
 
-    // Fetch all transactions (both income and expense) in the date range
-    const transactions = await Transactions.default.findAll({
+    // Fetch all transactions (both income and expense) in the date range. Refund pairs come
+    // resolved because this report nets them against income as well as expenses.
+    const { rows: transactions, refundPairs } = await statsTransactions({
+      access: { creator: userId },
+      planned: excludePlanned ? 'exclude' : 'include',
+      refunds: 'net',
+      window: { from, to },
       where: removeUndefinedKeys({
         accountId,
-        userId,
-        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         transactionType: {
           [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense],
         },
         ...(categoryWhere ? { categoryId: categoryWhere } : {}),
-        ...(excludePlanned ? { isPlanned: false } : {}),
-        ...getWhereConditionForTime({ from, to, columnName: 'time' }),
       }),
-      include: [
-        {
-          model: Accounts,
-          where: { excludeFromStats: false },
-          attributes: [],
-        },
-      ],
       attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
     });
 
-    // Each leg carries its transaction's type, so one call covers both directions. Refunds are
-    // resolved separately because this report nets them against income as well as expenses.
-    const [allocations, refundPairs] = await Promise.all([
-      computeCategoryAllocations({ transactions, applyRefunds: false }),
-      resolveRefundPairs({ transactions }),
-    ]);
+    // Each leg carries its transaction's type, so one call covers both directions.
+    const allocations = await computeCategoryAllocations({ transactions, applyRefunds: false });
 
     // Determine which categories to report in the breakdown
     // If specific categories selected, report those exact categories (not aggregated to root)

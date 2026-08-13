@@ -3,7 +3,7 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import LoanDetails from '@models/loan-details.model';
-import Transactions from '@models/transactions.model';
+import { countTransactions } from '@models/transactions-query';
 import { deleteAccountById } from '@services/accounts.service';
 import { withTransaction } from '@services/common/with-transaction';
 
@@ -22,12 +22,12 @@ const deleteLoanImpl = async ({ userId, accountId }: DeleteLoanParams) => {
   // Payment legs are real ledger entries; deleting the loan would orphan them,
   // so they hard-block. Timeline events (corrections, notes) are self-contained
   // metadata that disappears with the loan and deliberately do NOT block.
-  const paymentCount = await Transactions.count({
-    where: {
-      accountId,
-      userId,
-      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
-    },
+  const paymentCount = await countTransactions({
+    planned: 'exclude',
+    access: { creator: userId },
+    transfers: { natures: [TRANSACTION_TRANSFER_NATURE.transfer_to_loan] },
+    balanceAdjustments: 'include',
+    where: { accountId },
   });
   if (paymentCount > 0) {
     throw new ValidationError({ message: t({ key: 'loans.deleteBlockedByPayments' }) });
