@@ -1,6 +1,6 @@
 import { ConflictError, ValidationError } from '@js/errors';
 import TransactionGroupItems from '@models/transaction-group-items.model';
-import Transactions from '@models/transactions.model';
+import { countTransactions } from '@models/transactions-query';
 import { Op } from 'sequelize';
 
 /**
@@ -17,12 +17,16 @@ export async function validateTransactionsForGroup({
   transactionIds: string[];
   userId: number;
 }): Promise<void> {
-  // Use count() instead of findAll() — we only need the count, not full rows
-  const matchingCount = await Transactions.count({
+  // Use count() instead of findAll() — we only need the count, not full rows.
+  // Groups are a plain labelling device with no money semantics, so a plan is as
+  // groupable as any other row and the count must see it, or valid ids read as invalid.
+  const matchingCount = await countTransactions({
     where: {
       id: { [Op.in]: transactionIds },
-      userId,
     },
+    planned: 'include',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
   });
 
   if (matchingCount !== transactionIds.length) {

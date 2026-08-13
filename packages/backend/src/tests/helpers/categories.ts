@@ -92,24 +92,49 @@ export const getCategoriesListResponse = async (params?: { accountId?: string; i
   });
 };
 
-export async function deleteCustomCategory({ raw, ...params }: { categoryId?: string; raw?: false }): Promise<Response>;
+export function getCategoryTransactionCount<R extends boolean | undefined = undefined>({
+  categoryId,
+  raw,
+}: {
+  categoryId: string;
+  raw?: R;
+}) {
+  return helpers.makeRequest<{ transactionCount: number }, R>({
+    method: 'get',
+    url: `/categories/${categoryId}/transaction-count`,
+    raw,
+  });
+}
+
 export async function deleteCustomCategory({
   raw,
   ...params
 }: {
   categoryId?: string;
+  replaceWithCategoryId?: string;
+  raw?: false;
+}): Promise<Response>;
+export async function deleteCustomCategory({
+  raw,
+  ...params
+}: {
+  categoryId?: string;
+  replaceWithCategoryId?: string;
   raw?: true;
 }): Promise<CategoryModel[]>;
 export async function deleteCustomCategory({
   categoryId,
+  replaceWithCategoryId,
   raw = true,
 }: {
   categoryId?: string;
+  replaceWithCategoryId?: string;
   raw?: boolean;
 }): Promise<Response | CategoryModel[]> {
   const result = await helpers.makeRequest({
     method: 'delete',
     url: `/categories/${categoryId}`,
+    payload: replaceWithCategoryId ? { replaceWithCategoryId } : null,
     raw,
   });
 

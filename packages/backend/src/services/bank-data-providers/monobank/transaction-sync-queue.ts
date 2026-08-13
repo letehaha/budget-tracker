@@ -13,7 +13,7 @@ import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as MerchantCategoryCodes from '@models/merchant-category-codes.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
 import * as Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
@@ -28,7 +28,6 @@ import IORedis from 'ioredis';
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
 import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
-import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankAccountNotFoundError, MonobankApiClient, MonobankGeoBlockedError } from './api-client';
 
@@ -241,11 +240,12 @@ function buildJobProcessor(queueName: string) {
             // Balances snapshot for today via a race-safe upsert — concurrent batches
             // serialize at the unique (accountId, date) index.
             if (transactions.length > 0) {
-              const newestTransactionInDb = await Transactions.findOne({
+              const newestTransactionInDb = await findOneTransaction({
+                planned: 'exclude',
+                access: { creator: userId },
+                balanceAdjustments: 'include',
                 where: {
-                  userId,
                   accountId,
-                  ...REAL_TRANSACTIONS_WHERE,
                 },
                 // When two transactions share the same `time`, prefer the one
                 // created most recently. Without ['createdAt', 'DESC'] the
@@ -488,11 +488,13 @@ async function createMonobankTransaction({
   matchPlanned: boolean;
 }): Promise<{ createdId?: string; mergedIntoPlanned: boolean }> {
   // Check if transaction already exists (duplicate prevention)
-  const isTransactionExists = await Transactions.findOne({
+  const isTransactionExists = await findOneTransaction({
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
     where: {
       originalId: data.id,
       accountId,
-      userId,
     },
   });
 

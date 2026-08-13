@@ -185,7 +185,8 @@ test.describe('Transaction Groups', () => {
     // It should show "Edit Transaction" content with amount, account, category fields
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 5_000 });
-    await expect(dialog.getByText('Amount')).toBeVisible({ timeout: 5_000 });
+    // Exact match: the dialog also carries an "Original amount" field.
+    await expect(dialog.getByText('Amount', { exact: true })).toBeVisible({ timeout: 5_000 });
     await expect(dialog.getByText('Category')).toBeVisible();
 
     // Close the manage tx dialog

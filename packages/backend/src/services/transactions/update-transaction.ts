@@ -313,8 +313,18 @@ const makeBasicBaseTxUpdation = async (
               [Op.in]: refundedByTxIds,
             },
           },
-          attributes: ['refAmount'],
+          attributes: ['refAmount', 'isPlanned'],
         });
+
+        // A plan holds no money, so its refAmount must never take part in the
+        // sum check below — otherwise an oversized plan is rejected for the
+        // wrong reason and the caller never learns plans cannot be linked.
+        if (newTransactions.some((tx) => tx.isPlanned)) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.plannedCannotBeRefundLinked' }),
+          });
+        }
+
         const sum = Money.sum(newTransactions.map((curr) => curr.refAmount));
 
         if (sum.greaterThan(baseTransactionUpdateParams.refAmount)) {

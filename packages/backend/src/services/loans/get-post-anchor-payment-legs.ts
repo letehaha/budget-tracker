@@ -1,10 +1,11 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
+import type Transactions from '@models/transactions.model';
 import { Op, col, fn, where as sqlWhere } from 'sequelize';
 
 /**
- * Payment legs that count toward a loan's outstanding balance: the
- * `transfer_to_loan` income legs on the loan account dated on/after the anchor
+ * Payment legs that count toward a loan's outstanding balance: the real (never
+ * planned) `transfer_to_loan` income legs on the loan account dated on/after the anchor
  * date (inclusive `DATE(time) >= anchorDate` — the anchor snapshot is the
  * outstanding *before* that day's payments, so same-day legs still count).
  * Pre-anchor legs are baked into the snapshot and stay informational.
@@ -23,11 +24,15 @@ export const getPostAnchorPaymentLegs = async ({
   /** yyyy-MM-dd inclusive boundary. */
   anchorDate: string;
 }): Promise<Transactions[]> =>
-  Transactions.findAll({
+  findTransactions({
+    planned: 'exclude',
+    access: { creator: userId },
+    transfers: { natures: [TRANSACTION_TRANSFER_NATURE.transfer_to_loan] },
+    // An adjustment-flagged leg still moved the loan balance, so it belongs in the sum.
+    balanceAdjustments: 'include',
+    completeness: 'all',
     where: {
       accountId: loanAccountId,
-      userId,
-      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
       // A loan account only ever holds the income legs of its payments; pinning
       // the type keeps a stray non-income leg from flipping the sign of the sum.
       transactionType: TRANSACTION_TYPES.income,

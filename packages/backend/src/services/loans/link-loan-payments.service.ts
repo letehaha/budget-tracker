@@ -9,7 +9,7 @@ import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import LoanDetails from '@models/loan-details.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { isOnOrAfterAnchorDay } from '@services/loans/anchor-day';
@@ -58,7 +58,15 @@ const linkLoanPaymentsImpl = async ({
   const anchorDate = loanDetails.balanceAnchorDate;
   const loanCurrencyCode = loanAccount.currencyCode;
 
-  const transactions = await Transactions.findAll({ where: { id: transactionIds, userId } });
+  // Planned rows are dropped by the policy rather than validated: a plan is not
+  // money that moved, so it fails the selection check below like any stale id.
+  const transactions = await findTransactions({
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
+    where: { id: transactionIds },
+  });
   if (transactions.length !== new Set(transactionIds).size) {
     // Stale or tampered selection — fail the whole batch rather than silently link a subset.
     throw new ValidationError({ message: t({ key: 'loans.linkPaymentsInvalidSelection' }) });

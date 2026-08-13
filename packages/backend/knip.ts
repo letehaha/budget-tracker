@@ -9,11 +9,14 @@ const config: KnipConfig = {
     'src/tests/**',
     // jest config files
     'jest.config.*.ts',
+    // Loaded by sequelize-cli, not imported: entries rather than ignores so their own
+    // imports (src/migrations/utils) still get dead-code checked
+    'src/migrations/*.ts',
   ],
   ignoreBinaries: ['knip', 'ts-node', 'nodemon', 'cross-env', 'sequelize-cli', 'jest', 'oxlint', 'vite', 'tsc'],
   ignore: [
     'config/**',
-    'src/migrations/**',
+    'src/migrations/*.js',
     // Loaded by oxlint via jsPlugins in .oxlintrc.json, not imported
     'lint/**',
     // Barrel file re-exporting 3rd-party API types - @public is set on source files

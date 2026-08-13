@@ -42,7 +42,7 @@ import { computed, ref } from 'vue';
  *
  * Every step is always visible; none of them is conditional.
  */
-export type MsMoneyImportStepKey = 'upload' | 'resolve' | 'review' | 'execute' | 'done';
+type MsMoneyImportStepKey = 'upload' | 'resolve' | 'review' | 'execute' | 'done';
 
 /** Every step in canonical order. All are always visible. */
 const MS_MONEY_STEP_KEYS: readonly MsMoneyImportStepKey[] = ['upload', 'resolve', 'review', 'execute', 'done'];

@@ -13,7 +13,7 @@ import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from 
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import { getUserDefaultCategory } from '@models/users.model';
 import {
   BaseBankDataProvider,
@@ -32,7 +32,6 @@ import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
 import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
-import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { SimplefinApiClient } from './api-client';
 import {
@@ -314,8 +313,11 @@ export class SimplefinProvider extends BaseBankDataProvider {
     // Incremental window: from the latest stored transaction (re-fetching it
     // is harmless — dedup catches it), or an INITIAL_BACKFILL_DAYS backfill on
     // first sync.
-    const latestTransaction = await Transactions.findOne({
-      where: { accountId: systemAccountId, ...REAL_TRANSACTIONS_WHERE },
+    const latestTransaction = await findOneTransaction({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      where: { accountId: systemAccountId },
       order: [['time', 'DESC']],
     });
     const to = new Date();
@@ -380,8 +382,11 @@ export class SimplefinProvider extends BaseBankDataProvider {
     const anchoredAccountIds = new Set<string>();
     const froms = await Promise.all(
       accounts.map(async (account) => {
-        const latest = await Transactions.findOne({
-          where: { accountId: account.id, ...REAL_TRANSACTIONS_WHERE },
+        const latest = await findOneTransaction({
+          planned: 'exclude',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
+          where: { accountId: account.id },
           order: [['time', 'DESC']],
         });
         if (latest) anchoredAccountIds.add(account.id);
@@ -793,12 +798,20 @@ export class SimplefinProvider extends BaseBankDataProvider {
       await checkpoint();
 
       // Primary dedup: normal re-sync.
-      const existingTx = await Transactions.findOne({ where: { accountId: account.id, originalId: tx.id } });
+      const existingTx = await findOneTransaction({
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        where: { accountId: account.id, originalId: tx.id },
+      });
       if (existingTx) continue;
 
       // Secondary dedup: unlink→relink cleared originalId to null but preserved
       // the original value under externalData.originalSource.originalId.
-      const existingByOriginalSource = await Transactions.findOne({
+      const existingByOriginalSource = await findOneTransaction({
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
         where: Sequelize.and(
           { accountId: account.id, originalId: null },
           Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), tx.id),

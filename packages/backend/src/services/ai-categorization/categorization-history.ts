@@ -1,5 +1,5 @@
 import { type AiCategorizationRunSummary, CATEGORIZATION_SOURCE, type CATEGORIZATION_TRIGGER } from '@bt/shared/types';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { type Includeable, type WhereOptions, col, fn, literal } from 'sequelize';
 
 import { ownedAccountsInclude } from './categorization-candidates';
@@ -7,7 +7,7 @@ import { ownedAccountsInclude } from './categorization-candidates';
 const CATEGORIZED_AT = `"Transactions"."categorizationMeta"->>'categorizedAt'`;
 
 function buildRunScope({ userId }: { userId: number }): {
-  where: WhereOptions<Transactions>;
+  where: WhereOptions;
   include: Includeable[];
 } {
   return {
@@ -19,8 +19,12 @@ function buildRunScope({ userId }: { userId: number }): {
 }
 
 async function countCategorizationRuns({ userId }: { userId: number }): Promise<number> {
-  const [row] = (await Transactions.findAll({
+  const [row] = (await findTransactions({
     ...buildRunScope({ userId }),
+    planned: 'exclude',
+    access: { accountOwner: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
     attributes: [[fn('COUNT', literal(`DISTINCT (${CATEGORIZED_AT})`)), 'runCount']],
     raw: true,
   })) as unknown as { runCount: string | number }[];
@@ -30,8 +34,9 @@ async function countCategorizationRuns({ userId }: { userId: number }): Promise<
 
 /**
  * One entry per distinct `categorizationMeta.categorizedAt` stamp the AI wrote. A row the
- * user re-categorized carries a different source and drops out, so the counts describe the
- * current state rather than what the run originally decided.
+ * user re-categorized carries a different source and drops out, and so does one flipped back
+ * to planned, so the counts describe the current state rather than what the run originally
+ * decided.
  *
  * The total is only counted for the first page — later pages of an infinite scroll get
  * `null` rather than paying for a COUNT that cannot have changed meaning for them.
@@ -48,8 +53,12 @@ export async function listCategorizationRuns({
   const isFirstPage = offset === 0;
 
   const [rows, totalCount] = await Promise.all([
-    Transactions.findAll({
+    findTransactions({
       ...buildRunScope({ userId }),
+      planned: 'exclude',
+      access: { accountOwner: userId },
+      balanceAdjustments: 'include',
+      completeness: { page: { offset, limit } },
       attributes: [
         [literal(CATEGORIZED_AT), 'categorizedAt'],
         [fn('COUNT', col('Transactions.id')), 'transactionCount'],
@@ -60,8 +69,6 @@ export async function listCategorizationRuns({
       // Postgres resolves both against the `categorizedAt` output column above.
       group: ['categorizedAt'],
       order: literal(`"categorizedAt" DESC`),
-      limit,
-      offset,
       subQuery: false,
       raw: true,
     }) as unknown as Promise<

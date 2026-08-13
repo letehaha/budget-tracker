@@ -20,6 +20,7 @@ export const getPlannedSummary = async ({
   userId: number;
 }): Promise<endpointsTypes.PlannedSummaryEntry[]> => {
   const rows: RawSummaryRow[] = await connection.sequelize.query(
+    // planned-ok: the summary is about plans, so it reads the base table on purpose
     `
     SELECT "accountId",
            "currencyCode",

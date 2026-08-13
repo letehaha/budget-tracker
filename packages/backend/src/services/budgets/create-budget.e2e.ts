@@ -88,6 +88,65 @@ describe('Create Budget', () => {
     expect(budgetById?.name).toBe('Budget With Transactions');
   });
 
+  describe('autoInclude with planned transactions', () => {
+    const seedRangeWithPlannedTransaction = async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const [realTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-03-02T10:00:00Z',
+        }),
+        raw: true,
+      });
+
+      const [plannedTx] = await helpers.createPlannedTransaction({
+        payload: {
+          accountId: account.id,
+          amount: 250,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-03-03T10:00:00Z',
+        },
+        raw: true,
+      });
+
+      const budget = await helpers.createCustomBudget({
+        name: 'Auto-include Planned Budget',
+        startDate: '2025-03-01T00:00:00Z',
+        endDate: '2025-03-04T23:59:59Z',
+        autoInclude: true,
+        limitAmount: 500,
+        raw: true,
+      });
+
+      return { account, realTx, plannedTx, budget };
+    };
+
+    it('links only the real transaction from the covered date range', async () => {
+      const { realTx, plannedTx, budget } = await seedRangeWithPlannedTransaction();
+
+      const linked = await helpers.getTransactions({ budgetIds: [budget.id], limit: 30, raw: true });
+      const linkedIds = linked.map((tx) => tx.id);
+
+      expect(linkedIds).toEqual([realTx.id]);
+      expect(linkedIds).not.toContain(plannedTx.id);
+    });
+
+    it('does not count the planned transaction in budget stats', async () => {
+      const { budget } = await seedRangeWithPlannedTransaction();
+
+      const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
+
+      expect(stats.summary.actualExpense).toBe(100);
+      expect(stats.summary.actualIncome).toBe(0);
+      expect(stats.summary.balance).toBe(-100);
+      expect(stats.summary.transactionsCount).toBe(1);
+      expect(stats.summary.utilizationRate).toBeCloseTo((100 / 500) * 100, 1);
+    });
+  });
+
   it('fails validation when start date is later than end date', async () => {
     const response = await helpers.createCustomBudget({
       name: 'Inverted Range Budget',

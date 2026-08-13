@@ -1,5 +1,6 @@
 import { CATEGORIZATION_MODE, CATEGORIZATION_SOURCE } from '@bt/shared/types';
 import Payees from '@models/payees.model';
+import { updateTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 
 import { withTransaction } from '../common/with-transaction';
@@ -68,8 +69,8 @@ export const applyPayeeCategorization = withTransaction(
     // based on the description — right for catch-all merchants (Amazon,
     // Walmart) where the default is a fallback but per-tx context matters.
     const enforceMeta = payee.categorizationMode === CATEGORIZATION_MODE.enforce;
-    await Transactions.update(
-      {
+    await updateTransactions({
+      values: {
         categoryId: payee.defaultCategoryId,
         categorizationMeta: enforceMeta
           ? {
@@ -79,13 +80,13 @@ export const applyPayeeCategorization = withTransaction(
             }
           : null,
       },
-      {
-        where: { id: transactionId },
-        // categoryId / meta changes don't affect balances; skip hooks
-        // to avoid an unnecessary balance recalculation pass.
-        individualHooks: false,
-      },
-    );
+      // The caller picked this exact row and authorized it, so the boundary adds no scope
+      // of its own and no row class is filtered out from under it.
+      planned: 'include',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      where: { id: transactionId },
+    });
     const updated = await Transactions.findByPk(transactionId);
     return updated ?? latest;
   },

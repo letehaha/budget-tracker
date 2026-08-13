@@ -6,7 +6,7 @@ import BudgetCategories from '@models/budget-categories.model';
 import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
@@ -85,13 +85,17 @@ export const createBudget = withTransaction(async (payload: CreateBudgetPayload)
   // For manual budgets with autoInclude, link transactions by date range
   if (budgetType === BUDGET_TYPES.manual && payload.autoInclude && payload.startDate && payload.endDate) {
     const transactionFilters = prepareTransactionFilters(budgetData);
-    const transactions = await Transactions.findAll({
+    const transactions = await findTransactions({
+      planned: 'exclude',
+      access: { creator: transactionFilters.userId },
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: {
-        userId: transactionFilters.userId,
         time: {
           [Op.between]: [transactionFilters.startDate, transactionFilters.endDate],
         },
       },
+      attributes: ['id'],
     });
 
     if (transactions.length) {

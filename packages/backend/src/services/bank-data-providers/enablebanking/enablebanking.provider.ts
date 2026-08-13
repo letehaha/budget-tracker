@@ -16,6 +16,7 @@ import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { countTransactions, findOneTransaction, findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import {
@@ -34,7 +35,6 @@ import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
 import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
-import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { EnableBankingApiClient, isAspspDateRangeRejection } from './api-client';
 import {
@@ -761,8 +761,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           }
 
           // Find the most recent transaction
-          const latestTransaction = await Transactions.findOne({
-            where: { accountId: account.id, ...REAL_TRANSACTIONS_WHERE },
+          const latestTransaction = await findOneTransaction({
+            planned: 'exclude',
+            access: 'unscoped-internal',
+            balanceAdjustments: 'include',
+            where: { accountId: account.id },
             order: [['time', 'DESC']],
           });
 
@@ -1056,7 +1059,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     ];
     if (bookingDates.length === 0) return;
 
-    const storedRows = await Transactions.findAll({
+    const storedRows = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: {
         accountId: account.id,
         [Op.and]: [
@@ -1495,7 +1502,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     );
 
     // Get all transactions for this account
-    const transactions = await Transactions.findAll({
+    const transactions = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: { accountId: account.id },
     });
 
@@ -1561,7 +1572,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // (1) entry_reference: ASPSP promises this is unique + immutable per account.
     // Cheapest, strongest match – short-circuits the rest.
     if (entryReference) {
-      const byEntryRef = await Transactions.findOne({
+      const byEntryRef = await findOneTransaction({
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
         where: {
           accountId,
           [Op.and]: [Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), entryReference)],
@@ -1574,7 +1588,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // consistently returns the same fields (or no entry_reference at all).
     // `pendingHash` is the hash a row carried while it was pending, kept so a
     // pending entry the ASPSP re-sends after booking still lands on the same row.
-    const byOriginalId = await Transactions.findOne({
+    const byOriginalId = await findOneTransaction({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
       where: {
         accountId,
         [Op.or]: [
@@ -1606,7 +1623,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // returned by tier 1) or a different one. The pending-upgrade exception, where
     // the booked copy arrives under a fresh reference, is tier 4's job.
     if (counterpartyIban) {
-      const byFingerprint = await Transactions.findOne({
+      const byFingerprint = await findOneTransaction({
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
         where: {
           ...fingerprintBase,
           time: {
@@ -1636,7 +1656,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     if (!accountHasPendingRows) return null;
     if (getRawTransactionStatus({ externalData: tx.metadata }) !== TransactionStatus.BOOK) return null;
 
-    const pendingCandidates = await Transactions.findAll({
+    const pendingCandidates = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: {
         ...fingerprintBase,
         // A row the user made load-bearing must not have its time and identity
@@ -1673,7 +1697,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
   /** Whether tier 4 has anything to look at. Cheap enough to run once per sync. */
   private async accountHasPendingRows({ accountId }: { accountId: string }): Promise<boolean> {
-    const count = await Transactions.count({
+    const count = await countTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
       where: {
         accountId,
         [Op.and]: [wherePreBookingStatus()],
@@ -1710,7 +1737,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     accountId: string;
   }): Promise<{ mergedCount: number; skippedCount: number; consideredPairs: number; unresolvedCount: number }> {
     const account = await this.getSystemAccount(accountId);
-    const allTxs = await Transactions.findAll({
+    // A planned row records money that has not moved, so it can never be the duplicate
+    // of a bank row — and this pass deletes what it pairs off.
+    const allTxs = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: { accountId: account.id },
       order: [['time', 'ASC']],
     });

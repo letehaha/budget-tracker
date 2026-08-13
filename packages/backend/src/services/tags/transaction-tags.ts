@@ -4,7 +4,7 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import Tags from '@models/tags.model';
 import TransactionTags from '@models/transaction-tags.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
@@ -23,10 +23,14 @@ export const addTransactionsToTag = withTransaction(async (payload: AddTransacti
     message: t({ key: 'tags.tagNotFound' }),
   });
 
-  const transactions = await Transactions.findAll({
+  const transactions = await findTransactions({
+    // Tags attach to planned rows too, so the ownership check spans both kinds.
+    planned: 'include',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
     where: {
       id: { [Op.in]: transactionIds },
-      userId,
     },
   });
 
@@ -79,10 +83,14 @@ export const removeTransactionsFromTag = withTransaction(async (payload: RemoveT
   });
 
   // Verify transactions belong to user
-  const transactions = await Transactions.findAll({
+  const transactions = await findTransactions({
+    // Tags attach to planned rows too, so the ownership check spans both kinds.
+    planned: 'include',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
     where: {
       id: { [Op.in]: transactionIds },
-      userId,
     },
   });
 

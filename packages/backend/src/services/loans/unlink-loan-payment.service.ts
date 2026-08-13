@@ -3,6 +3,7 @@ import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import { namespace } from '@models/connection';
+import { findOneTransaction, findTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@services/common/with-transaction';
 
@@ -36,7 +37,12 @@ const unlinkLoanPaymentImpl = async ({ userId, accountId, transactionId }: Unlin
     throw new NotFoundError({ message: t({ key: 'loans.loanNotFound' }) });
   }
 
-  const transaction = await Transactions.default.findOne({ where: { id: transactionId, userId } });
+  const transaction = await findOneTransaction({
+    planned: 'include',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    where: { id: transactionId },
+  });
   if (!transaction) {
     throw new NotFoundError({ message: t({ key: 'loans.unlinkPaymentNotFound' }) });
   }
@@ -46,7 +52,14 @@ const unlinkLoanPaymentImpl = async ({ userId, accountId, transactionId }: Unlin
 
   // Split the pair by account (the leg on the loan account is the income leg to
   // delete) rather than by the passed id — so the caller may hand us either leg.
-  const legs = await Transactions.default.findAll({ where: { transferId: transaction.transferId } });
+  const legs = await findTransactions({
+    planned: 'include',
+    // The loan-side leg can sit on a shared account owned by the other party.
+    access: 'unscoped-internal',
+    balanceAdjustments: 'include',
+    completeness: 'all',
+    where: { transferId: transaction.transferId },
+  });
   const loanLeg = legs.find((leg) => leg.accountId === accountId);
   const sourceLeg = legs.find((leg) => leg.id !== loanLeg?.id);
   if (!loanLeg || !sourceLeg) {

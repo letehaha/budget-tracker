@@ -1,13 +1,8 @@
-import {
-  SUBSCRIPTION_CANDIDATE_STATUS,
-  SUBSCRIPTION_LINK_STATUS,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-} from '@bt/shared/types';
+import { SUBSCRIPTION_CANDIDATE_STATUS, SUBSCRIPTION_LINK_STATUS, TRANSACTION_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Subscriptions from '@models/subscriptions.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { Op, QueryTypes } from 'sequelize';
 
 import {
@@ -114,16 +109,18 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
   );
   const linkedSet = new Set(linkedTxIds.map((r) => r.transactionId));
 
-  const rawTransactions = await Transactions.findAll({
+  const rawTransactions = await findTransactions({
     where: {
-      userId,
-      isPlanned: false,
       transactionType: TRANSACTION_TYPES.expense,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       refundLinked: false,
       time: { [Op.gte]: sinceDate },
       note: { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }] },
     },
+    planned: 'exclude',
+    access: { creator: userId },
+    transfers: 'exclude',
+    balanceAdjustments: 'include',
+    completeness: 'all',
     attributes: ['id', 'amount', 'note', 'time', 'accountId', 'currencyCode'],
     order: [['time', 'ASC']],
   });

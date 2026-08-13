@@ -1,10 +1,13 @@
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import TransactionSplits from '@models/transaction-splits.model';
+import { PlannedPolicy, transactionsInclude } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
+import { statsTransactions } from '@services/stats/stats-transactions';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -70,9 +73,10 @@ const getManualBudgetStats = async ({
   >[] = await Transactions.findWithFilters({
     excludeTransfer: true,
     budgetIds: [budgetId],
-    from: 0,
-    limit: Infinity,
-    plannedVisibleToUserId: callerUserId,
+    completeness: 'all',
+    planned: { visibleTo: callerUserId },
+    access: 'pre-scoped',
+    balanceAdjustments: 'include',
     attributes: ['id', 'time', 'amount', 'refAmount', 'transactionType', 'refundLinked'],
   });
 
@@ -115,19 +119,16 @@ const getCategoryBudgetStats = async ({
 
   // Planned rows are owner-only: they count as spent for the owner, but a share
   // recipient must never see them.
-  const plannedFilter = isOwner ? {} : { isPlanned: false };
+  const planned: PlannedPolicy = isOwner ? 'include' : 'exclude';
 
   // Get transactions where primary category matches and have no splits
-  const primaryCategoryTransactions = await Transactions.default.findAll({
-    where: {
-      userId,
-      categoryId: { [Op.in]: categoryIds },
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      ...plannedFilter,
-      ...dateFilter,
-    },
+  const { rows: primaryCategoryTransactions } = await statsTransactions({
+    access: { creator: userId },
+    planned,
+    refunds: 'ignore',
+    window: { from: budgetDetails.startDate ?? undefined, to: budgetDetails.endDate ?? undefined },
+    where: { categoryId: { [Op.in]: categoryIds } },
     include: [{ model: TransactionSplits, as: 'splits', required: false }],
-    raw: false,
   });
 
   // Get splits that match the categories
@@ -137,16 +138,17 @@ const getCategoryBudgetStats = async ({
       categoryId: { [Op.in]: categoryIds },
     },
     include: [
-      {
-        model: Transactions.default,
+      transactionsInclude({
+        planned,
+        required: true,
         as: 'transaction',
         where: {
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-          ...plannedFilter,
           ...dateFilter,
         },
         attributes: ['id', 'time', 'transactionType', 'refundLinked'],
-      },
+        include: [{ model: Accounts, where: { excludeFromStats: false }, attributes: [] }],
+      }),
     ],
   });
 

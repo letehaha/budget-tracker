@@ -1,5 +1,5 @@
 import Accounts from '@models/accounts.model';
-import * as Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { format } from 'date-fns';
 
 interface GetEarliestTransactionDateParams {
@@ -10,12 +10,18 @@ interface GetEarliestTransactionDateParams {
  * Returns the date of the user's earliest (oldest) transaction.
  * Only considers transactions from enabled accounts.
  * Returns null if the user has no transactions.
+ *
+ * Plans are intentions rather than history, so a future-dated one can never become the
+ * date the user's records start.
  */
 export const getEarliestTransactionDate = async ({
   userId,
 }: GetEarliestTransactionDateParams): Promise<string | null> => {
-  const oldest: Pick<Transactions.default, 'time'> | null = await Transactions.default.findOne({
-    where: { userId },
+  const [oldest] = await findTransactions({
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: 'probe',
     include: [
       {
         model: Accounts,

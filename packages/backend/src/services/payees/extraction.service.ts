@@ -2,7 +2,7 @@ import { logger } from '@js/utils/logger';
 import PayeeAliases from '@models/payee-aliases.model';
 import PayeeIgnoredNames from '@models/payee-ignored-names.model';
 import Payees from '@models/payees.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions, updateTransactions } from '@models/transactions-query';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
 import { Op } from 'sequelize';
 
@@ -67,6 +67,9 @@ async function findExactMatch({
  * payeeLocked = false`. Returns the ids so the caller can backfill them in
  * the same DB write.
  *
+ * A plan records an intention, not a payment, so it is neither evidence that a
+ * merchant recurs nor a row the promotion may stamp.
+ *
  * The set is bounded by `PRIOR_UNMATCHED_SCAN_LIMIT` so a one-time bulk
  * import on an unusually large account doesn't degrade per-row create cost.
  * Anything beyond the cap will be picked up by the post-sync note fuzzy
@@ -80,23 +83,17 @@ async function collectPriorUnmatched({
   userId: number;
   normalizedQuery: string;
 }): Promise<string[]> {
-  const candidates = await Transactions.findAll({
+  const candidates = await findTransactions({
+    access: { creator: userId },
+    planned: 'exclude',
+    balanceAdjustments: 'include',
+    completeness: { cap: { limit: PRIOR_UNMATCHED_SCAN_LIMIT, onTruncated: 'log' } },
     where: {
-      userId,
       payeeId: null,
       payeeLocked: false,
     },
     attributes: ['id', 'externalData', 'note'],
-    limit: PRIOR_UNMATCHED_SCAN_LIMIT,
   });
-
-  if (candidates.length === PRIOR_UNMATCHED_SCAN_LIMIT) {
-    logger.info('[Payee extraction] prior-unmatched scan hit cap; older transactions skipped', {
-      userId,
-      normalizedQuery,
-      cap: PRIOR_UNMATCHED_SCAN_LIMIT,
-    });
-  }
 
   const matchedIds: string[] = [];
   for (const tx of candidates) {
@@ -218,7 +215,15 @@ export const resolvePayeeForRawMerchant = withTransaction(
         rawName: trimmed,
         normalizedName: normalizedQuery,
       });
-      await Transactions.update({ payeeId: payee.id }, { where: { id: { [Op.in]: priorIds }, userId } });
+      // A plan must never carry a payee it did not name itself, so the write states it too —
+      // a row can turn into a plan between the scan above and this update.
+      await updateTransactions({
+        values: { payeeId: payee.id },
+        planned: 'exclude',
+        access: { creator: userId },
+        balanceAdjustments: 'include',
+        where: { id: { [Op.in]: priorIds } },
+      });
       logger.info('[Payee extraction] promoted from occurrences', {
         userId,
         payeeId: payee.id,
