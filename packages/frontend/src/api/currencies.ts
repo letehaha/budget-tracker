@@ -7,6 +7,7 @@ import {
   UserCurrencyModel,
   UserExchangeRatesModel,
 } from '@bt/shared/types';
+import type { ExchangeRatePairQuery, ExchangeRatePairResponse } from '@bt/shared/types/endpoints';
 
 export const getAllCurrencies = async (): Promise<CurrencyModel[]> => api.get('/models/currencies');
 
@@ -29,6 +30,19 @@ export const loadUserCurrenciesExchangeRates = async (): Promise<UserExchangeRat
  */
 export const loadExchangeRatesForDate = async (date: string): Promise<ExchangeRatesModel[] | null> =>
   api.get(`/currencies/rates/${date}`);
+
+/**
+ * Rate for an arbitrary pair on a calendar date (`yyyy-MM-dd`), covering any ISO
+ * currency rather than only the user's linked ones. Falls back to the nearest
+ * earlier stored rate, and rejects when none exists near the date.
+ */
+export const getExchangeRatePair = async ({
+  from,
+  to,
+  date,
+  silent,
+}: ExchangeRatePairQuery & { silent?: boolean }): Promise<ExchangeRatePairResponse> =>
+  api.get('/currencies/rates/pair', { from, to, date }, { silent });
 
 export const editUserCurrenciesExchangeRates = async (
   pairs: {

@@ -112,6 +112,9 @@ export interface CreateTransactionBody {
   /** True when the caller wants future syncs to leave this row's Payee link alone. */
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  originalAmount?: number;
+  /** Any ISO 4217 code; it does not have to be connected to the user. */
+  originalCurrencyCode?: string;
 }
 
 export interface UpdateTransactionBody {
@@ -141,6 +144,9 @@ export interface UpdateTransactionBody {
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  /** Send both fields as `null` to clear the pair. */
+  originalAmount?: number | null;
+  originalCurrencyCode?: string | null;
 }
 
 export interface UnlinkTransferTransactionsBody {
@@ -720,4 +726,23 @@ export interface BudgetSpendingStatsResponse {
     granularity: 'monthly' | 'weekly';
     periods: BudgetSpendingPeriod[];
   };
+}
+
+// Exchange Rates
+export interface ExchangeRatePairQuery extends QueryPayload {
+  from: string;
+  to: string;
+  date: string; // yyyy-MM-dd
+}
+
+export interface ExchangeRatePairResponse {
+  baseCode: string;
+  quoteCode: string;
+  /** ISO datetime of the rate actually used. Differs from the requested date when
+   *  no rate existed for it and the nearest earlier one was substituted. */
+  date: string;
+  /** Quote units per 1 base unit: `toAmount = fromAmount * rate`. */
+  rate: number;
+  /** Present and true when the value is the user's own manual rate. */
+  custom?: boolean;
 }

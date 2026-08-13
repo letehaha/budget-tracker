@@ -1,6 +1,6 @@
 import type { VerbosePaymentType } from '@/common/const';
 import type { FormattedCategory } from '@/common/types';
-import { AccountModel, PortfolioModel, TransactionModel } from '@bt/shared/types';
+import { AccountModel, CurrencyModel, PortfolioModel, TransactionModel } from '@bt/shared/types';
 
 export enum FORM_TYPES {
   income = 'income',
@@ -56,4 +56,8 @@ export interface UI_FORM_STRUCT {
   categoryUserTouched?: boolean;
   /** Entry for money that hasn't moved yet: no balance impact until it's confirmed. */
   isPlanned?: boolean;
+  /** Decimal amount actually spent, in `originalCurrency`. Reaches the API only as a complete pair. */
+  originalAmount?: number | null;
+  /** Any ISO currency, not only the user's linked ones. Sent to the API as its `code`. */
+  originalCurrency?: CurrencyModel | null;
 }

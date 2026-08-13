@@ -1,6 +1,7 @@
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { PAYMENT_TYPES, type TransactionModel } from '@bt/shared/types';
 import { QueryClient } from '@tanstack/vue-query';
+import { SYSTEM_CURRENCIES } from '@tests/mocks';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { FORM_TYPES, type UI_FORM_STRUCT } from '../types';
@@ -14,6 +15,8 @@ const buildTransaction = (overrides: Record<string, unknown> = {}): TransactionM
     note: 'original',
     ...overrides,
   }) as unknown as TransactionModel;
+
+const JPY = SYSTEM_CURRENCIES.find((item) => item.code === 'JPY')!;
 
 describe('buildOptimisticTransaction', () => {
   const buildForm = (overrides: Partial<UI_FORM_STRUCT> = {}): UI_FORM_STRUCT =>
@@ -59,6 +62,45 @@ describe('buildOptimisticTransaction', () => {
     });
 
     expect(result.isPlanned).toBe(false);
+  });
+
+  it('carries a complete original-currency pair onto the row', () => {
+    const transaction = buildTransaction({ originalAmount: null, originalCurrencyCode: null });
+
+    const result = buildOptimisticTransaction({
+      form: buildForm({ originalAmount: 1500, originalCurrency: JPY }),
+      transaction,
+      isRecordExternal: false,
+    });
+
+    expect(result.originalAmount).toBe(1500);
+    expect(result.originalCurrencyCode).toBe('JPY');
+  });
+
+  it('clears the pair when both form fields are empty', () => {
+    const transaction = buildTransaction({ originalAmount: 1500, originalCurrencyCode: 'JPY' });
+
+    const result = buildOptimisticTransaction({
+      form: buildForm({ originalAmount: null, originalCurrency: null }),
+      transaction,
+      isRecordExternal: false,
+    });
+
+    expect(result.originalAmount).toBeNull();
+    expect(result.originalCurrencyCode).toBeNull();
+  });
+
+  it('keeps the stored pair when the transaction becomes a transfer', () => {
+    const transaction = buildTransaction({ originalAmount: 1500, originalCurrencyCode: 'JPY' });
+
+    const result = buildOptimisticTransaction({
+      form: buildForm({ type: FORM_TYPES.transfer, originalAmount: 9999, originalCurrency: JPY }),
+      transaction,
+      isRecordExternal: false,
+    });
+
+    expect(result.originalAmount).toBe(1500);
+    expect(result.originalCurrencyCode).toBe('JPY');
   });
 });
 

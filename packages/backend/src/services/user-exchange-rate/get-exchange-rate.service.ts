@@ -1,7 +1,7 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
-import { UnexpectedError } from '@js/errors';
+import { ExchangeRateUnavailableError } from '@js/errors';
 import { logger } from '@js/utils';
 import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/currencies.model';
@@ -45,6 +45,7 @@ export async function getExchangeRate({
   baseCode,
   quoteCode,
   bypassCache = false,
+  requireUserConnection = true,
 }: ExchangeRateParams): Promise<ExchangeRateReturnType> {
   const pair = {
     baseCode: baseCode.toUpperCase(),
@@ -56,13 +57,15 @@ export async function getExchangeRate({
     return { ...pair, rate: 1, date };
   }
 
-  // Order matters: auth and the custom-rate override both run before the global
-  // cache, so a cache hit can never skip the "is the user allowed this currency?"
-  // check or the user's own manual rate.
-  const { liveRateUpdate } = await assertUserConnectedTo({ userId, code: pair.baseCode });
+  // Runs before the global cache so a cache hit can never skip the permission
+  // check or the user's own manual rate. An unconnected base under
+  // `requireUserConnection: false` has neither; market cross-rates aren't user-scoped.
+  const userConnection = await resolveUserConnection({ userId, code: pair.baseCode, required: requireUserConnection });
 
-  const customRate = await resolveCustomRate({ userId, pair, liveRateUpdate });
-  if (customRate) return customRate;
+  if (userConnection) {
+    const customRate = await resolveCustomRate({ userId, pair, liveRateUpdate: userConnection.liveRateUpdate });
+    if (customRate) return customRate;
+  }
 
   const cacheKey = buildCacheKey({ date, baseCode: pair.baseCode, quoteCode: pair.quoteCode });
   if (!bypassCache) {
@@ -72,7 +75,7 @@ export async function getExchangeRate({
     }
   }
 
-  const { result, cacheable } = await computeCrossRate({ pair, date });
+  const { result, cacheable } = await computeCrossRate({ pair, date, requireUserConnection });
   // `bypassCache` also suppresses the write-back: these callers run inside the
   // uncommitted rate-write transaction, so caching a freshly computed rate now
   // would poison the 4h-TTL cache with a value that may still roll back.
@@ -84,23 +87,33 @@ export async function getExchangeRate({
 }
 
 /**
- * Assert the user is connected to `code` and return their live-rate preference.
- * Throws not-found if they aren't – which is why it has to run before the cache.
+ * The user's live-rate preference for `code`, or `null` when they aren't
+ * connected to it and `required` is false. With `required`, a missing
+ * connection throws not-found.
  */
-async function assertUserConnectedTo({
+async function resolveUserConnection({
   userId,
   code,
+  required,
 }: {
   userId: number;
   code: string;
-}): Promise<{ liveRateUpdate: boolean | null }> {
+  required: boolean;
+}): Promise<{ liveRateUpdate: boolean | null } | null> {
+  const query = UsersCurrencies.findOne({
+    where: { userId },
+    attributes: ['liveRateUpdate'],
+    include: [{ model: Currencies.default, where: { code }, attributes: [] }],
+    raw: true,
+  });
+
+  if (!required) {
+    const userCurrency = await query;
+    return userCurrency ? { liveRateUpdate: userCurrency.liveRateUpdate } : null;
+  }
+
   const userCurrency = await findOrThrowNotFound({
-    query: UsersCurrencies.findOne({
-      where: { userId },
-      attributes: ['liveRateUpdate'],
-      include: [{ model: Currencies.default, where: { code }, attributes: [] }],
-      raw: true,
-    }),
+    query,
     message: t({ key: 'currencies.currencyNotConnected' }),
     // Machine-readable code + the offending currency: callers that convert on
     // behalf of other records (e.g. subscriptions summary) surface this to the
@@ -147,9 +160,11 @@ async function resolveCustomRate({
 async function computeCrossRate({
   pair,
   date,
+  requireUserConnection,
 }: {
   pair: { baseCode: string; quoteCode: string };
   date: Date;
+  requireUserConnection: boolean;
 }): Promise<{ result: ExchangeRateReturnType; cacheable: boolean }> {
   const lookups = await resolveUsdRates({ codes: [pair.baseCode, pair.quoteCode], date });
   const baseLookup = lookups.get(pair.baseCode)!;
@@ -161,10 +176,16 @@ async function computeCrossRate({
     (baseLookup.kind === 'missing' && pair.baseCode !== API_LAYER_BASE_CURRENCY_CODE) ||
     (quoteLookup.kind === 'missing' && pair.quoteCode !== API_LAYER_BASE_CURRENCY_CODE)
   ) {
-    logger.error(
-      `[getExchangeRate] Rate unavailable: pair=${pair.baseCode}/${pair.quoteCode}, date=${date.toISOString()}`,
-    );
-    throw new UnexpectedError({
+    const message = `[getExchangeRate] Rate unavailable: pair=${pair.baseCode}/${pair.quoteCode}, date=${date.toISOString()}`;
+    // A miss on an arbitrary market lookup is an ordinary outcome; a conversion the
+    // user's own records depend on losing its rate is an incident.
+    if (requireUserConnection) {
+      logger.error(message);
+    } else {
+      logger.warn(message);
+    }
+
+    throw new ExchangeRateUnavailableError({
       message: t({
         key: 'currencies.exchangeRateNotAvailable',
         variables: { baseCode: pair.baseCode, quoteCode: pair.quoteCode, date: date.toISOString() },
@@ -215,6 +236,12 @@ type ExchangeRateParams = {
    * the fresh rate back would poison the cache with a value that may still roll back.
    */
   bypassCache?: boolean;
+  /**
+   * Require `baseCode` to be one of the user's connected currencies (default).
+   * With `false`, an unconnected base skips the custom-rate override and falls
+   * straight to the market cross-rate.
+   */
+  requireUserConnection?: boolean;
 };
 
 type ExchangeRateReturnType = {

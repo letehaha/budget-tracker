@@ -17,6 +17,7 @@ import {
   isOutOfWalletAccount,
   isTxEditableAsManual,
   resolveFormIsPlanned,
+  resolveOriginalCurrencyPair,
 } from '../helpers';
 import { type FormSplit, UI_FORM_STRUCT } from '../types';
 
@@ -233,6 +234,24 @@ export const prepareTxUpdationParams = ({
 
     if (apiSplits !== undefined) {
       editionParams.splits = apiSplits;
+    }
+
+    // Delta only: an unchanged pair must not be re-sent.
+    const originalPair = resolveOriginalCurrencyPair({ form });
+    const txOriginalAmount = transaction.originalAmount ?? null;
+    const txOriginalCurrencyCode = transaction.originalCurrencyCode ?? null;
+
+    if (originalPair.state === 'pair') {
+      if (
+        originalPair.originalAmount !== txOriginalAmount ||
+        originalPair.originalCurrencyCode !== txOriginalCurrencyCode
+      ) {
+        editionParams.originalAmount = originalPair.originalAmount;
+        editionParams.originalCurrencyCode = originalPair.originalCurrencyCode;
+      }
+    } else if (originalPair.state === 'clear' && (txOriginalAmount !== null || txOriginalCurrencyCode !== null)) {
+      editionParams.originalAmount = null;
+      editionParams.originalCurrencyCode = null;
     }
   }
 

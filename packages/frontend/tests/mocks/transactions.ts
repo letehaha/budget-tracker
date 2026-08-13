@@ -41,6 +41,8 @@ const buildCommonTxBody = (overrides: Partial<TransactionModel> = {}): Transacti
     commissionRate: 0,
     refCommissionRate: 0,
     cashbackAmount: 0,
+    originalAmount: null,
+    originalCurrencyCode: null,
     refundLinked: false,
     isPlanned: false,
     creatorSnapshot: null,
