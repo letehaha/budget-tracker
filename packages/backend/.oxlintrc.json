@@ -4,7 +4,10 @@
     "correctness": "error",
     "suspicious": "warn"
   },
+  "jsPlugins": ["./lint/transactions-boundary-plugin.mjs"],
   "rules": {
+    "boundary/no-direct-transactions-queries": "error",
+    "boundary/raw-sql-transactions": "error",
     "typescript/no-empty-object-type": "off",
     "no-underscore-dangle": [
       "warn",
@@ -28,5 +31,36 @@
     "unicorn/no-invalid-fetch-options": "warn",
     "unicorn/prefer-optional-catch-binding": "warn"
   },
+  "overrides": [
+    {
+      "files": [
+        "src/models/transactions-query/**",
+        "src/models/transactions.model.ts",
+        "src/services/transactions/planned-matching/**",
+        "src/services/transactions/create-transaction.ts",
+        "src/services/transactions/update-transaction.ts",
+        "src/services/transactions/delete-transaction.ts",
+        "src/services/transactions/bulk-delete.ts",
+        "src/services/transactions/bulk-update.ts"
+      ],
+      "rules": {
+        "boundary/no-direct-transactions-queries": "off"
+      }
+    },
+    {
+      "files": ["src/migrations/**"],
+      "rules": {
+        "boundary/no-direct-transactions-queries": "off",
+        "boundary/raw-sql-transactions": "off"
+      }
+    },
+    {
+      "files": ["**/*.e2e.ts", "**/*.spec.ts", "**/*.unit.ts", "src/tests/**"],
+      "rules": {
+        "boundary/no-direct-transactions-queries": "off",
+        "boundary/raw-sql-transactions": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["src/seeders/**/*.js", "src/migrations/**/*.js", "config/**", "dist"]
 }
