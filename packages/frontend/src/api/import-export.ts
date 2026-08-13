@@ -7,6 +7,7 @@ import type {
   ExecuteImportRequest,
   ExecuteImportResponse,
   ExtractUniqueValuesResponse,
+  ImportBatchesHistoryResponse,
   StatementCostEstimate,
   StatementCostEstimateFailure,
   StatementExtractRequest,
@@ -55,6 +56,15 @@ export const executeImport = async (payload: ExecuteImportRequest): Promise<Exec
 
 export const getCsvImportStatus = async ({ jobId }: { jobId: string }): Promise<CsvImportProgress> => {
   return api.get(`/import/csv/execute/status/${jobId}`);
+};
+
+// Import Batches History API
+
+export const getBatchesHistory = async (params: {
+  limit?: number;
+  offset?: number;
+}): Promise<ImportBatchesHistoryResponse> => {
+  return api.get('/import/batches-history', params);
 };
 
 // Statement Parser API (supports PDF, CSV, TXT)

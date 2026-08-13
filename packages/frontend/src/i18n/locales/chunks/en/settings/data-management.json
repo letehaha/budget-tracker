@@ -38,11 +38,16 @@
         "title": "Microsoft Money",
         "listDescription": "Import a .mny file from Microsoft Money"
       },
+      "importHistory": {
+        "title": "Import History",
+        "listDescription": "View past imports and what they created"
+      },
       "import": {
         "back": "Back to Import",
         "groups": {
           "filesAndText": "Files & text",
-          "fromOtherApps": "From other apps"
+          "fromOtherApps": "From other apps",
+          "history": "History"
         },
         "requestMore": {
           "title": "Want more options? Request here"
