@@ -9,6 +9,7 @@ import {
   type TransactionModel,
   type RecordId,
 } from '@bt/shared/types';
+import { SYSTEM_CURRENCIES } from '@tests/mocks';
 import { describe, expect, it } from 'vitest';
 
 import { FORM_TYPES, UI_FORM_STRUCT } from '../types';
@@ -58,6 +59,7 @@ const createBaseForm = (overrides: Partial<UI_FORM_STRUCT> = {}): UI_FORM_STRUCT
   targetAmount: undefined,
   refundedByTxs: undefined,
   refundsTx: undefined,
+  originalCurrency: null,
   ...overrides,
 });
 
@@ -398,6 +400,54 @@ describe('prepareTxCreationParams', () => {
       });
 
       expect(result).not.toHaveProperty('isPlanned');
+    });
+  });
+
+  describe('original currency pair', () => {
+    const JPY = SYSTEM_CURRENCIES.find((item) => item.code === 'JPY')!;
+
+    it('sends both fields when the pair is complete', () => {
+      const form = createBaseForm({ originalAmount: 1500, originalCurrency: JPY });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result.originalAmount).toBe(1500);
+      expect(result.originalCurrencyCode).toBe('JPY');
+    });
+
+    it('drops a half-filled pair', () => {
+      const form = createBaseForm({ originalAmount: 1500, originalCurrency: null });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result).not.toHaveProperty('originalAmount');
+      expect(result).not.toHaveProperty('originalCurrencyCode');
+    });
+
+    it('never sends the pair in a transfer payload', () => {
+      const form = createBaseForm({
+        type: FORM_TYPES.transfer,
+        toAccount: createMockAccount({ id: '00000000-0000-0000-0000-000000000002' as RecordId }),
+        originalAmount: 1500,
+        originalCurrency: JPY,
+      });
+
+      const result = prepareTxCreationParams({
+        form,
+        isTransferTx: true,
+        isCurrenciesDifferent: false,
+      });
+
+      expect(result).not.toHaveProperty('originalAmount');
+      expect(result).not.toHaveProperty('originalCurrencyCode');
     });
   });
 });

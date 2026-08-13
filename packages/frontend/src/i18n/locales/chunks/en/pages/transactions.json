@@ -186,6 +186,7 @@
         "payee": "Payee",
         "amount": "Amount",
         "refAmount": "Base amount",
+        "originalAmount": "Original amount",
         "note": "Note",
         "tags": "Tags",
         "categorizationSource": "Categorized by",

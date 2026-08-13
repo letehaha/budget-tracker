@@ -1,3 +1,4 @@
+import { type endpointsTypes } from '@bt/shared/types';
 import { getExchangeRatesForDate } from '@root/services/exchange-rates';
 import { editUserExchangeRates, removeUserExchangeRates } from '@root/services/user-exchange-rate';
 
@@ -57,6 +58,25 @@ export async function getExchangeRates<R extends boolean | undefined = undefined
   });
 
   return response;
+}
+
+export async function getExchangeRatePair<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  date,
+  raw,
+}: {
+  from: string;
+  to: string;
+  date: string; // yyyy-mm-dd
+  raw?: R;
+}) {
+  return makeRequest<endpointsTypes.ExchangeRatePairResponse, R>({
+    method: 'get',
+    url: '/currencies/rates/pair',
+    payload: { from, to, date },
+    raw,
+  });
 }
 
 export async function syncExchangeRates() {

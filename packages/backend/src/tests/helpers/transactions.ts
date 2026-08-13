@@ -95,13 +95,18 @@ interface SplitInput {
 
 interface UpdateTransactionBasePayload {
   id: RecordId;
-  payload?: Omit<Partial<ReturnType<typeof buildTransactionPayload>>, 'splits'> & {
+  payload?: Omit<
+    Partial<ReturnType<typeof buildTransactionPayload>>,
+    'splits' | 'originalAmount' | 'originalCurrencyCode'
+  > & {
     destinationAmount?: number;
     destinationAccountId?: string;
     destinationTransactionId?: string;
     refundsTxId?: string | null;
     refundedByTxIds?: string[] | null;
     splits?: SplitInput[] | null;
+    originalAmount?: number | null;
+    originalCurrencyCode?: string | null;
   };
 }
 

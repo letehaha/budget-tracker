@@ -8,6 +8,7 @@ import {
   type RecordId,
 } from '@bt/shared/types';
 import {
+  SYSTEM_CURRENCIES,
   USER_CATEGORIES,
   buildExternalExpenseTransaction,
   buildOutOfWalletTransaction,
@@ -23,13 +24,17 @@ import { prepareTxUpdationParams } from './prepare-tx-updation-params';
 
 const buildBaseFormMock = (
   transaction: TransactionModel,
-): Pick<UI_FORM_STRUCT, 'time' | 'note' | 'paymentType' | 'refundedByTxs' | 'category' | 'refundsTx'> => ({
+): Pick<
+  UI_FORM_STRUCT,
+  'time' | 'note' | 'paymentType' | 'refundedByTxs' | 'category' | 'refundsTx' | 'originalCurrency'
+> => ({
   time: transaction.time,
   note: undefined,
   paymentType: VERBOSE_PAYMENT_TYPES.find((i) => i.value === transaction.paymentType) ?? null,
   refundedByTxs: undefined,
   category: undefined as unknown as UI_FORM_STRUCT['category'],
   refundsTx: undefined,
+  originalCurrency: null,
 });
 
 describe('prepareTxUpdationParams', () => {
@@ -929,6 +934,91 @@ describe('prepareTxUpdationParams', () => {
         destinationTransactionId: linkedTx.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       });
+    });
+  });
+
+  describe('original currency pair', () => {
+    const JPY = SYSTEM_CURRENCIES.find((item) => item.code === 'JPY')!;
+
+    const buildForm = ({
+      transaction,
+      ...overrides
+    }: { transaction: TransactionModel } & Partial<UI_FORM_STRUCT>): UI_FORM_STRUCT => ({
+      ...buildBaseFormMock(transaction),
+      type: FORM_TYPES.expense,
+      account: getUahAccount() as AccountModel,
+      amount: transaction.amount,
+      toAccount: null,
+      targetAmount: null,
+      ...overrides,
+    });
+
+    const update = ({ form, transaction }: { form: UI_FORM_STRUCT; transaction: TransactionModel }) =>
+      prepareTxUpdationParams({
+        form,
+        transaction,
+        linkedTransaction: null,
+        isTransferTx: form.type === FORM_TYPES.transfer,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+    it('sends both fields when a pair is added', () => {
+      const transaction = buildSystemExpenseTransaction();
+      const form = buildForm({ transaction, originalAmount: 1500, originalCurrency: JPY });
+
+      const result = update({ form, transaction });
+
+      expect(result.originalAmount).toBe(1500);
+      expect(result.originalCurrencyCode).toBe('JPY');
+    });
+
+    it('sends both fields as null when a stored pair is cleared', () => {
+      const transaction = buildSystemExpenseTransaction({ originalAmount: 1500, originalCurrencyCode: 'JPY' });
+      const form = buildForm({ transaction, originalAmount: null, originalCurrency: null });
+
+      const result = update({ form, transaction });
+
+      expect(result.originalAmount).toBeNull();
+      expect(result.originalCurrencyCode).toBeNull();
+    });
+
+    it('omits both fields when the pair is untouched', () => {
+      const transaction = buildSystemExpenseTransaction({ originalAmount: 1500, originalCurrencyCode: 'JPY' });
+      const form = buildForm({ transaction, originalAmount: 1500, originalCurrency: JPY });
+
+      const result = update({ form, transaction });
+
+      expect(result).not.toHaveProperty('originalAmount');
+      expect(result).not.toHaveProperty('originalCurrencyCode');
+    });
+
+    it('leaves a stored pair alone when the form pair is half-filled', () => {
+      const transaction = buildSystemExpenseTransaction({ originalAmount: 1500, originalCurrencyCode: 'JPY' });
+      const form = buildForm({ transaction, originalAmount: 2000, originalCurrency: null });
+
+      const result = update({ form, transaction });
+
+      expect(result).not.toHaveProperty('originalAmount');
+      expect(result).not.toHaveProperty('originalCurrencyCode');
+    });
+
+    it('never sends the pair in a transfer payload', () => {
+      const transaction = buildSystemExpenseTransaction();
+      const form = buildForm({
+        transaction,
+        type: FORM_TYPES.transfer,
+        toAccount: getUah2Account() as AccountModel,
+        targetAmount: transaction.amount,
+        originalAmount: 1500,
+        originalCurrency: JPY,
+      });
+
+      const result = update({ form, transaction });
+
+      expect(result).not.toHaveProperty('originalAmount');
+      expect(result).not.toHaveProperty('originalCurrencyCode');
     });
   });
 });

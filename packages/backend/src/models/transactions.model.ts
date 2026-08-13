@@ -102,6 +102,8 @@ export interface TransactionsAttributes {
   commissionRate: Money;
   refCommissionRate: Money;
   cashbackAmount: Money;
+  originalAmount: Money | null;
+  originalCurrencyCode: string | null;
   refundLinked: boolean;
   isPlanned: boolean;
   categorizationMeta: CategorizationMeta | null;
@@ -247,6 +249,15 @@ export default class Transactions extends Model {
   @MoneyField({ storage: 'cents' })
   declare cashbackAmount: Money;
 
+  // Metadata only: no balance, statistics or budget path reads these. What the user spent in a
+  // foreign currency, with its ISO 4217 code. Both hold a value or both stay null.
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare originalAmount: Money | null;
+
+  @ForeignKey(() => Currencies)
+  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING(3) })
+  originalCurrencyCode!: string | null;
+
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is tored in the "RefundTransactions"
   // table
@@ -329,6 +340,7 @@ export default class Transactions extends Model {
       case TRANSACTION_TRANSFER_NATURE.transfer_out_wallet:
         return;
       default: {
+        // oxlint-disable-next-line no-underscore-dangle
         const _exhaustiveCheck: never = transferNature;
         throw new Error(`Unhandled transferNature in validateTransferRelatedFields: ${_exhaustiveCheck}`);
       }
@@ -1211,6 +1223,8 @@ type CreateTxOptionalParams = Partial<
     | 'payeeId'
     | 'payeeLocked'
     | 'isPlanned'
+    | 'originalAmount'
+    | 'originalCurrencyCode'
   >
 >;
 
@@ -1247,6 +1261,8 @@ export interface UpdateTransactionByIdParams {
   payeeId?: string | null;
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  originalAmount?: Money | null;
+  originalCurrencyCode?: string | null;
 }
 
 export const updateTransactionById = async (

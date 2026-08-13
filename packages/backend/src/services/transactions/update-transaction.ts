@@ -198,6 +198,8 @@ const makeBasicBaseTxUpdation = async (
     currencyCode: prevData.currencyCode,
     refundLinked: prevData.refundLinked,
     isPlanned: newData.isPlanned,
+    originalAmount: newData.originalAmount,
+    originalCurrencyCode: newData.originalCurrencyCode,
   };
 
   // Only a real category change restamps the row — re-sending the same category, or

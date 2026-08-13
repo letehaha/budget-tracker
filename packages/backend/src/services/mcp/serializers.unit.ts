@@ -42,6 +42,8 @@ const fullTransaction: TransactionApiResponse = {
   commissionRate: 0,
   refCommissionRate: 0,
   cashbackAmount: 0,
+  originalAmount: 5000,
+  originalCurrencyCode: 'JPY',
   note: 'Coffee',
   time: new Date('2026-01-01T10:00:00.000Z'),
   userId: 42,

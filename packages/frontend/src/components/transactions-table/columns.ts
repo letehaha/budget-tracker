@@ -17,6 +17,7 @@ export enum TABLE_COLUMN {
   payee = 'payee',
   amount = 'amount',
   refAmount = 'refAmount',
+  originalAmount = 'originalAmount',
   note = 'note',
   tags = 'tags',
   categorizationSource = 'categorizationSource',
@@ -41,7 +42,9 @@ export interface ColumnDefinition {
 /**
  * Registry of every column the transactions table can render, in default order.
  * The Amount column sorts by refAmount on purpose: raw multi-currency amounts
- * have no meaningful order (1,000,000 IDR would outrank 1,000 USD).
+ * have no meaningful order (1,000,000 IDR would outrank 1,000 USD). Original
+ * amount gets no sortField for the same reason, and has no refAmount to fall
+ * back on.
  */
 const COLUMN_DEFINITIONS: ColumnDefinition[] = [
   {
@@ -70,6 +73,12 @@ const COLUMN_DEFINITIONS: ColumnDefinition[] = [
     labelKey: 'transactions.table.columns.refAmount',
     sortField: TRANSACTION_SORT_FIELD.refAmount,
     widthPx: 128,
+    align: 'right',
+  },
+  {
+    id: TABLE_COLUMN.originalAmount,
+    labelKey: 'transactions.table.columns.originalAmount',
+    widthPx: 144,
     align: 'right',
   },
   {
