@@ -270,6 +270,9 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     refCurrencyCode: destOwnerBaseCurrency.currency.code,
     transferNature: oppositeTransferNature,
     transferId,
+    // Metadata stamped on the source leg (e.g. import batchId) must carry to
+    // the opposite leg too, or it only describes half of the transfer.
+    externalData: baseTransaction.externalData,
   });
 
   return { baseTx, oppositeTx: oppositeTx! };

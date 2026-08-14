@@ -12,6 +12,7 @@ import { expectCsvImportCompleted, waitForCsvImportCompletion } from '@tests/hel
 async function runYnabImport() {
   const fileContent = helpers.loadYnabFixture('register-basic.csv');
   const parsed = await helpers.parseYnab({ payload: { fileContent }, raw: true });
+  const accountNames = parsed.result.accounts.map((a) => a.originalName);
   const accountMapping = Object.fromEntries(
     parsed.result.accounts.map((a) => [a.originalName, { currencyCode: a.detectedCurrency! }]),
   );
@@ -26,7 +27,7 @@ async function runYnabImport() {
   if (status.status !== 'completed') {
     throw new Error(`Expected completed YNAB import, got status="${status.status}".`);
   }
-  return status.summary;
+  return { summary: status.summary, accountNames };
 }
 
 describe('GET /import/batches-history', () => {
@@ -78,7 +79,7 @@ describe('GET /import/batches-history', () => {
   it('lists batches from different sources with correct source, count, and accountIds', async () => {
     const account = await helpers.createAccount({ raw: true });
     const csvSummary = await runCsvImport({ accountId: account.id, currencyCode: account.currencyCode });
-    const ynabSummary = await runYnabImport();
+    const { summary: ynabSummary, accountNames: ynabAccountNames } = await runYnabImport();
 
     const result = await helpers.getBatchesHistory({ raw: true });
 
@@ -95,7 +96,16 @@ describe('GET /import/batches-history', () => {
     // feature: the batch must be tagged `ynab`, not `csv`.
     const ynabBatch = result.items.find((b) => b.source === ImportSource.ynab);
     expect(ynabBatch).toBeDefined();
-    expect(ynabBatch!.transactionCount).toBe(ynabSummary.transactionsImported + ynabSummary.transfersImported);
+    // The fixture's one transfer creates two linked rows (both legs stamped with
+    // the batch), so the row count is transactions + 2x transfers, not + transfers.
+    expect(ynabBatch!.transactionCount).toBe(ynabSummary.transactionsImported + 2 * ynabSummary.transfersImported);
+
+    // Every account the import touched or created — including a transfer's
+    // destination account — must show up, not just the source leg's account.
+    const allAccounts = await helpers.getAccounts();
+    const expectedYnabAccountIds = allAccounts.filter((a) => ynabAccountNames.includes(a.name)).map((a) => a.id);
+    expect(expectedYnabAccountIds).toHaveLength(ynabAccountNames.length);
+    expect(new Set(ynabBatch!.accountIds)).toEqual(new Set(expectedYnabAccountIds));
   });
 
   it('paginates: totalCount is populated on the first page and null on later pages', async () => {
