@@ -398,6 +398,20 @@ export interface GetNetWorthDriversPayload extends QueryPayload {
   portfolioIds?: string;
 }
 
+// One portfolio's growth within a single bucket. Decimal, user base currency.
+export interface NetWorthDriversPortfolioSlice {
+  portfolioId: string;
+  // This portfolio's share of the bucket's `growth`. Signed: negative in a losing period.
+  growth: number;
+}
+
+// Legend entry for the per-portfolio growth split: every in-scope portfolio with
+// investment activity anywhere in the window.
+export interface NetWorthDriversPortfolioMeta {
+  portfolioId: string;
+  name: string;
+}
+
 // Every amount below is a decimal in the user's base currency.
 export interface NetWorthDriversBucket {
   // yyyy-mm-dd — clamped to the requested range, so the first and last bucket can
@@ -420,6 +434,10 @@ export interface NetWorthDriversBucket {
     dividends: number;
     // Trade-embedded fees plus standalone fee/tax rows. Positive number — a cost.
     feesAndTaxes: number;
+    // Sparse per-portfolio split of `growth` — only portfolios with non-zero growth
+    // this bucket. Slices sum to `growth` exactly. Read the top-level `portfolios`
+    // list for the full, ordered legend.
+    byPortfolio: NetWorthDriversPortfolioSlice[];
   };
   // Levels at periodEnd (not flows), used for the holdings-share cards.
   composition: {
@@ -456,6 +474,10 @@ export interface NetWorthDriversDegraded {
 
 export interface GetNetWorthDriversResponse {
   buckets: NetWorthDriversBucket[];
+  // Portfolios with investment activity anywhere in the window, ordered by absolute
+  // total growth descending — a stable order so the client can assign each a
+  // consistent colour across renders and fold the tail into "Others".
+  portfolios: NetWorthDriversPortfolioMeta[];
   // Absent whenever the range valued cleanly, so a truthiness check on `degraded`
   // alone decides whether to render a data-quality warning. Present only when at
   // least one field inside it is non-empty — an empty object is never sent.

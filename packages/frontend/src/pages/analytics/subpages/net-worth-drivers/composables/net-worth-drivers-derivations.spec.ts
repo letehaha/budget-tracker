@@ -2,6 +2,9 @@ import type { endpointsTypes } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
 import {
+  MAX_PORTFOLIO_SERIES,
+  OTHERS_SERIES_ID,
+  buildBreakdownModel,
   buildCumulativeSeries,
   computeAllocationContext,
   computeHoldingsSharePct,
@@ -20,6 +23,7 @@ const buildBucket = ({
   feesAndTaxes = 0,
   holdingsValue = 0,
   cashValue = 0,
+  byPortfolio = [],
 }: {
   periodStart: string;
   periodEnd: string;
@@ -30,19 +34,31 @@ const buildBucket = ({
   feesAndTaxes?: number;
   holdingsValue?: number;
   cashValue?: number;
+  byPortfolio?: endpointsTypes.NetWorthDriversPortfolioSlice[];
 }): endpointsTypes.NetWorthDriversBucket => ({
   periodStart,
   periodEnd,
   savings: { income: Math.max(savingsNet, 0), expenses: Math.max(-savingsNet, 0), net: savingsNet },
-  investments: { growth, priceEffect: priceEffect ?? growth, dividends, feesAndTaxes },
+  investments: { growth, priceEffect: priceEffect ?? growth, dividends, feesAndTaxes, byPortfolio },
   composition: { holdingsValue, cashValue },
 });
 
-const monthlyBucket = ({ month, ...rest }: { month: number; savingsNet?: number; growth?: number }) => {
+const monthlyBucket = ({
+  month,
+  ...rest
+}: {
+  month: number;
+  savingsNet?: number;
+  growth?: number;
+  byPortfolio?: endpointsTypes.NetWorthDriversPortfolioSlice[];
+}) => {
   const padded = String(month).padStart(2, '0');
   const lastDay = month === 2 ? '28' : '30';
   return buildBucket({ periodStart: `2026-${padded}-01`, periodEnd: `2026-${padded}-${lastDay}`, ...rest });
 };
+
+const buildPortfolios = ({ count }: { count: number }): endpointsTypes.NetWorthDriversPortfolioMeta[] =>
+  Array.from({ length: count }, (_, index) => ({ portfolioId: `p${index + 1}`, name: `Portfolio ${index + 1}` }));
 
 describe('buildCumulativeSeries', () => {
   it('accumulates both series across buckets', () => {
@@ -291,5 +307,144 @@ describe('computeAllocationContext', () => {
     expect(context.currentSharePct).toBeCloseTo(55, 5);
     expect(context.referenceSharePct).toBeCloseTo(50, 5);
     expect(context.referencePeriodEnd).toBe('2026-01-31');
+  });
+});
+
+describe('buildBreakdownModel', () => {
+  it('gives every portfolio its own legend colour and no Others entry when they fit', () => {
+    const { legend } = buildBreakdownModel({
+      buckets: [monthlyBucket({ month: 1, growth: 30, byPortfolio: [{ portfolioId: 'p1', growth: 30 }] })],
+      portfolios: buildPortfolios({ count: 3 }),
+    });
+
+    expect(legend.map((entry) => entry.portfolioId)).toEqual(['p1', 'p2', 'p3']);
+    expect(new Set(legend.map((entry) => entry.color)).size).toBe(3);
+  });
+
+  it('never colours a portfolio with the emerald reserved for Saved', () => {
+    const { legend } = buildBreakdownModel({
+      buckets: [],
+      portfolios: buildPortfolios({ count: MAX_PORTFOLIO_SERIES }),
+    });
+
+    expect(legend.map((entry) => entry.color)).not.toContain('rgb(16, 185, 129)');
+  });
+
+  it('carries saved and growth totals through per bucket', () => {
+    const { bars } = buildBreakdownModel({
+      buckets: [
+        monthlyBucket({ month: 1, savingsNet: 500, growth: 30, byPortfolio: [{ portfolioId: 'p1', growth: 30 }] }),
+        monthlyBucket({ month: 2, savingsNet: -200, growth: 0 }),
+      ],
+      portfolios: buildPortfolios({ count: 1 }),
+    });
+
+    expect(bars.map((bar) => bar.savedNet)).toEqual([500, -200]);
+    expect(bars.map((bar) => bar.growthTotal)).toEqual([30, 0]);
+    expect(bars.map((bar) => bar.periodStart)).toEqual(['2026-01-01', '2026-02-01']);
+  });
+
+  it('fills a zero segment for every portfolio missing from a sparse bucket', () => {
+    const { bars } = buildBreakdownModel({
+      buckets: [monthlyBucket({ month: 1, growth: 40, byPortfolio: [{ portfolioId: 'p2', growth: 40 }] })],
+      portfolios: buildPortfolios({ count: 3 }),
+    });
+
+    expect(bars[0]!.segments.map((segment) => [segment.portfolioId, segment.growth])).toEqual([
+      ['p1', 0],
+      ['p2', 40],
+      ['p3', 0],
+    ]);
+  });
+
+  it('keeps segments in legend order so a colour means the same portfolio across bars', () => {
+    const { legend, bars } = buildBreakdownModel({
+      buckets: [
+        monthlyBucket({ month: 1, growth: 10, byPortfolio: [{ portfolioId: 'p3', growth: 10 }] }),
+        monthlyBucket({ month: 2, growth: 20, byPortfolio: [{ portfolioId: 'p1', growth: 20 }] }),
+      ],
+      portfolios: buildPortfolios({ count: 3 }),
+    });
+
+    for (const bar of bars) {
+      expect(bar.segments.map((segment) => segment.portfolioId)).toEqual(legend.map((entry) => entry.portfolioId));
+      expect(bar.segments.map((segment) => segment.color)).toEqual(legend.map((entry) => entry.color));
+    }
+  });
+
+  it('folds everything past the top eight into a single Others segment', () => {
+    const portfolios = buildPortfolios({ count: 11 });
+    const { legend, bars } = buildBreakdownModel({
+      buckets: [
+        monthlyBucket({
+          month: 1,
+          growth: 60,
+          byPortfolio: [
+            { portfolioId: 'p1', growth: 30 },
+            { portfolioId: 'p9', growth: 10 },
+            { portfolioId: 'p10', growth: 15 },
+            { portfolioId: 'p11', growth: 5 },
+          ],
+        }),
+      ],
+      portfolios,
+    });
+
+    expect(legend).toHaveLength(MAX_PORTFOLIO_SERIES + 1);
+    expect(legend[legend.length - 1]).toMatchObject({ portfolioId: OTHERS_SERIES_ID, name: '' });
+
+    const segments = bars[0]!.segments;
+    expect(segments[segments.length - 1]).toMatchObject({ portfolioId: OTHERS_SERIES_ID, growth: 30 });
+    expect(segments.reduce((sum, segment) => sum + segment.growth, 0)).toBe(60);
+  });
+
+  it('nets a losing tail portfolio against a winning one inside Others', () => {
+    const { bars } = buildBreakdownModel({
+      buckets: [
+        monthlyBucket({
+          month: 1,
+          growth: -20,
+          byPortfolio: [
+            { portfolioId: 'p9', growth: 40 },
+            { portfolioId: 'p10', growth: -60 },
+          ],
+        }),
+      ],
+      portfolios: buildPortfolios({ count: 10 }),
+    });
+
+    const others = bars[0]!.segments.find((segment) => segment.portfolioId === OTHERS_SERIES_ID);
+    expect(others?.growth).toBe(-20);
+  });
+
+  it('keeps negative portfolio growth signed', () => {
+    const { bars } = buildBreakdownModel({
+      buckets: [
+        monthlyBucket({
+          month: 1,
+          savingsNet: 100,
+          growth: -50,
+          byPortfolio: [
+            { portfolioId: 'p1', growth: -80 },
+            { portfolioId: 'p2', growth: 30 },
+          ],
+        }),
+      ],
+      portfolios: buildPortfolios({ count: 2 }),
+    });
+
+    expect(bars[0]!.segments.map((segment) => segment.growth)).toEqual([-80, 30]);
+    expect(bars[0]!.growthTotal).toBe(-50);
+  });
+
+  it('returns no bars for an empty window but keeps the legend', () => {
+    const model = buildBreakdownModel({ buckets: [], portfolios: buildPortfolios({ count: 2 }) });
+
+    expect(model.bars).toEqual([]);
+    expect(model.legend).toHaveLength(2);
+  });
+
+  it('returns an empty model when there is nothing at all', () => {
+    expect(buildBreakdownModel({ buckets: [], portfolios: [] })).toEqual({ legend: [], bars: [] });
   });
 });
