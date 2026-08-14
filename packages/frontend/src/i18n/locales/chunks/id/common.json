@@ -1,8 +1,6 @@
 {
   "common": {
     "loading": "Memuat...",
-    "from": "Dari",
-    "to": "Ke",
     "new": "Baru",
     "actions": {
       "loading": "Memuat...",
@@ -13,7 +11,6 @@
       "accept": "Terima",
       "delete": "Hapus",
       "edit": "Sunting",
-      "create": "Buat",
       "addSubcategory": "Tambah subkategori",
       "settings": "Pengaturan",
       "confirm": "Konfirmasi",
@@ -21,13 +18,11 @@
       "viewAnalytics": "Lihat analitik",
       "saving": "Menyimpan...",
       "saveChanges": "Simpan Perubahan",
-      "scrollToTop": "Atas",
       "done": "Selesai",
       "failed": "Gagal",
       "viewAll": "Lihat semua",
       "scan": "Pindai",
       "link": "Tautkan",
-      "loadMore": "Muat lebih banyak",
       "clear": "Bersihkan",
       "apply": "Terapkan",
       "retry": "Coba lagi"
@@ -65,7 +60,6 @@
     "labels": {
       "email": "Email",
       "password": "Kata Sandi",
-      "username": "Nama Pengguna",
       "system": "sistem",
       "unknown": "Tidak Diketahui",
       "total": "Total"
@@ -344,20 +338,7 @@
     "onlyFirstFileTaken": "Beberapa file dijatuhkan — hanya file pertama yang digunakan."
   },
   "demo": {
-    "loadingOverlay": {
-      "messages": [
-        "Menghitung angka khusus untuk Anda...",
-        "Menyiapkan akun pribadi Anda...",
-        "Menambahkan transaksi realistis...",
-        "Menyempurnakan dasbor Anda...",
-        "Hampir selesai, sentuhan akhir..."
-      ]
-    },
     "featureNotAvailable": "Fitur ini tidak tersedia dalam mode demo",
-    "bankConnectionsRestricted": {
-      "title": "Koneksi Bank"
-    },
-    "signUpToUnlock": "Daftar untuk membuka fitur ini",
     "passwordChangeRestricted": "Perubahan kata sandi tidak tersedia dalam mode demo",
     "investmentsRestricted": {
       "title": "Investasi Tidak Tersedia di Demo",
@@ -415,10 +396,8 @@
       "noteLabel": "Catatan (opsional)",
       "notePlaceholder": "Catatan opsional...",
       "loadingText": "Memuat...",
-      "savingText": "Menyimpan...",
       "savingAction": "Simpan",
       "cancelButton": "Batal",
-      "deletingText": "Menghapus...",
       "editAction": "Sunting",
       "deleteAction": "Hapus Grup",
       "transactionsLabel": "Transaksi",
@@ -429,7 +408,6 @@
       "removeTransactionDescriptionNormal": "Apakah Anda yakin ingin mengeluarkan transaksi ini dari grup?",
       "removeButtonText": "Keluarkan",
       "removeAndDeleteButtonText": "Keluarkan & Hapus Grup",
-      "transactionCountSuffix": "transaksi",
       "summary": {
         "transactions": "Transaksi",
         "net": "Bersih",

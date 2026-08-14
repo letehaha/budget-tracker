@@ -79,16 +79,10 @@
       "badge": "Diarsipkan",
       "outstanding": "Tertunggak"
     },
-    "page": {
-      "overline": "Kewajiban"
-    },
     "aggregate": {
-      "overline": "Portofolio Kewajiban",
-      "activePill": "Aktif",
       "avgApr": "Rata-rata APR",
       "monthlyObligation": "Kewajiban bulanan",
       "interestProjected": "Proyeksi bunga",
-      "title": "Ikhtisar kewajiban",
       "totalOutstanding": "Total tertunggak",
       "principalRepaid": "{percent}% dari {amount} pokok dilunasi",
       "debtFree": "Bebas utang"
@@ -232,7 +226,6 @@
         "titleHint": "Memprediksi kapan pinjaman Anda akan dilunasi sepenuhnya dengan pembayaran minimum, terencana, dan kustom bulanan, dengan tanggal pelunasan dan total bunga setiap skenario. Ketik jumlah berapa pun di bidang pembayaran kustom untuk bermain dengan angka dan langsung melihat bagaimana perubahan tanggal pelunasan dan total bunga.",
         "customPaymentLabel": "Pembayaran kustom",
         "applyAsPlanned": "Terapkan sebagai pembayaran terencana",
-        "applyAsPlannedShort": "Terapkan sebagai terencana",
         "applyConfirmTitle": "Terapkan sebagai pembayaran terencana?",
         "applyConfirmDescription": "Ini menetapkan pembayaran bulanan terencana pinjaman menjadi {amount}.",
         "applySuccess": "Pembayaran terencana diperbarui.",

@@ -9,10 +9,7 @@
       },
       "textSource": {
         "title": "Impor dari Sumber Teks Apa Pun",
-        "description": "Parsing dan impor transaksi dari laporan bank, email, atau sumber teks apa pun. Menggunakan AI untuk mengekstrak data transaksi secara otomatis.",
-        "button": "Impor dari Teks (PDF, CSV, TXT, dll)",
         "aiBadge": "Ditenagai AI",
-        "cta": "Impor dari teks",
         "listDescription": "Laporan bank, email, atau sumber teks apa pun"
       },
       "csv": {
@@ -24,14 +21,10 @@
       },
       "ynab": {
         "title": "Impor dari YNAB",
-        "description": "Upload Register.csv YNAB Anda untuk memigrasikan akun, transaksi, kategori, penerima, dan flag.",
-        "cta": "Impor dari YNAB",
         "listDescription": "Akun, transaksi, kategori, dan penerima"
       },
       "budget-bakers-wallet": {
         "title": "Wallet (BudgetBakers)",
-        "description": "Impor transaksi yang diekspor dari aplikasi Wallet oleh BudgetBakers. Mendukung akun multi-mata uang dan pemasangan transfer otomatis.",
-        "cta": "Impor dari Wallet",
         "listDescription": "Multi-mata uang dengan pemasangan transfer otomatis"
       },
       "import": {
@@ -46,8 +39,6 @@
       },
       "export": {
         "cardTitle": "Ekspor data Anda",
-        "cardDescription": "Unduh zip berisi transaksi, akun, anggaran, dan data lainnya. Berguna untuk analisis spreadsheet, persiapan pajak, atau migrasi ke aplikasi anggaran lain.",
-        "cta": "Konfigurasi ekspor",
         "form": {
           "title": "Ekspor data Anda",
           "description": "Pilih format dan bagian data yang Anda inginkan. Unduhan dimulai setelah Anda mengonfirmasi.",

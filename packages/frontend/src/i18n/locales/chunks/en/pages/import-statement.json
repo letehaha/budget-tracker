@@ -12,14 +12,8 @@
         }
       },
       "steps": {
-        "uploadTitle": "Upload & Extract",
-        "uploadDescription": "Upload statement and extract transactions with AI",
         "accountTitle": "Select Account",
-        "accountDescription": "Choose or create an account for the transactions",
-        "reviewTitle": "Review Transactions",
-        "reviewDescription": "Review and handle duplicate transactions",
-        "importTitle": "Import",
-        "importDescription": "Execute import and view results"
+        "accountDescription": "Choose or create an account for the transactions"
       },
       "selectCurrency": "Select currency",
       "selectExistingAccount": "Select existing account",
@@ -27,10 +21,7 @@
       "selectAccount": "Select an account",
       "searchAccounts": "Search accounts...",
       "uploadExtract": {
-        "dragDropText": "Drag and drop your statement file here, or",
-        "browseButton": "Browse Files",
         "supportedFormats": "Supported formats: PDF, CSV, TXT (max 10MB)",
-        "removeButton": "Remove",
         "analyzeButton": "Analyze File",
         "tryAgain": "Try Again",
         "modelLabel": "Model",
@@ -69,7 +60,6 @@
           "almostDone": "Almost done..."
         },
         "tokenFormat": "{inputTokens}K input, ~{outputTokens}K output",
-        "fileSize": "{size} KB",
         "pdfPasswordLabel": "PDF password",
         "pdfPasswordPlaceholder": "Enter the document password",
         "pdfPasswordSubmit": "Unlock and analyze"

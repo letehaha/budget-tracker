@@ -34,7 +34,6 @@
         "summary": "{spent} of {limit} limit",
         "na": "N/A"
       },
-      "backToBudgets": "Back to Budgets",
       "noTransactionsYet": "No transactions yet",
       "transactions": "Transactions",
       "transactionsLinked": "{count} transaction linked to this budget | {count} transactions linked to this budget",

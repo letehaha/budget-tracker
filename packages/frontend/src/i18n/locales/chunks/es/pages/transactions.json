@@ -6,14 +6,7 @@
       "reset": "Restablecer",
       "apply": "Aplicar",
       "dateRange": {
-        "tabs": {
-          "range": "Rango",
-          "single": "Individual"
-        },
         "placeholder": "Fecha o rango",
-        "fromDate": "Desde",
-        "toDate": "Hasta",
-        "clear": "Limpiar",
         "presets": {
           "thisMonth": "Este mes",
           "last3Months": "Últimos 3 meses",
@@ -23,7 +16,6 @@
       },
       "transactionType": {
         "label": "Tipo de transacción:",
-        "both": "Ambos",
         "income": "Ingreso",
         "expense": "Gasto",
         "allTypes": "Todos los tipos"
@@ -62,10 +54,8 @@
         "selected": "seleccionadas",
         "searchPlaceholder": "Buscar etiquetas…"
       },
-      "payeeChip": "Beneficiario",
       "payees": {
         "label": "Beneficiarios",
-        "searchPlaceholder": "Buscar beneficiarios",
         "selectedOne": "1 beneficiario seleccionado",
         "selectedMany": "{n} beneficiarios seleccionados"
       },
@@ -139,7 +129,6 @@
         "searchPlaceholder": "Buscar grupos…",
         "noGroupsMessage": "Aún no hay grupos. Cree uno primero.",
         "noSearchResultsMessage": "Ningún grupo coincide con su búsqueda.",
-        "loadingText": "Cargando grupos…",
         "addingText": "Añadiendo…",
         "buttonLabel": "Añadir al grupo",
         "cancelButton": "Cancelar",
@@ -163,37 +152,6 @@
         "emptyStateHint": "Seleccione transacciones en la página de Transacciones y haga clic en \"Crear grupo\" para empezar.",
         "transactionCountLabel": "transacciones"
       },
-      "groupDialog": {
-        "editTitle": "Editar grupo",
-        "nameLabel": "Nombre",
-        "noteLabel": "Nota (opcional)",
-        "notePlaceholder": "Nota opcional…",
-        "loadingText": "Cargando…",
-        "savingText": "Guardando…",
-        "savingAction": "Guardar",
-        "cancelButton": "Cancelar",
-        "deletingText": "Eliminando…",
-        "editAction": "Editar",
-        "deleteAction": "Eliminar grupo",
-        "transactionsLabel": "Transacciones",
-        "deleteGroupTitle": "Eliminar grupo",
-        "deleteGroupDescription": "¿Está seguro de que desea eliminar \"{groupName}\"? Las transacciones no se eliminarán.",
-        "removeTransactionTitle": "Eliminar transacción del grupo",
-        "removeTransactionDescription": "Esto dejará menos de 2 transacciones en el grupo, por lo que el grupo se eliminará. ¿Continuar?",
-        "removeTransactionDescriptionNormal": "¿Está seguro de que desea eliminar esta transacción del grupo?",
-        "removeButtonText": "Eliminar",
-        "removeAndDeleteButtonText": "Eliminar y eliminar grupo",
-        "transactionCountSuffix": "transacciones",
-        "summary": {
-          "transactions": "Transacciones",
-          "net": "Neto",
-          "moneyIn": "Dinero entrante",
-          "moneyOut": "Dinero saliente"
-        }
-      },
-      "transactionGroupRecord": {
-        "transactionCountLabel": "transacciones"
-      },
       "errors": {
         "nameRequired": "El nombre del grupo es obligatorio",
         "minTransactions": "Seleccione al menos {min} transacciones",
@@ -209,10 +167,6 @@
       "expiredTooltip": "Se esperaba hace {days} días, sin transacción bancaria coincidente",
       "mergedTooltip": "Confirmada a partir de un movimiento planificado del {date}"
     },
-    "transfer": {
-      "hiddenAccount": "Cuenta oculta"
-    },
-    "addedByTooltip": "Esta transacción fue añadida al presupuesto por {handle}",
     "table": {
       "columns": {
         "date": "Fecha",
@@ -221,6 +175,7 @@
         "payee": "Beneficiario",
         "amount": "Importe",
         "refAmount": "Importe base",
+        "originalAmount": "Importe original",
         "note": "Nota",
         "tags": "Etiquetas",
         "categorizationSource": "Categorizado por",

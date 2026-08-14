@@ -28,8 +28,7 @@
       "leaveError": "Tidak dapat keluar dari berbagi.",
       "pending": {
         "heading": "Undangan tertunda",
-        "review": "Tinjau",
-        "empty": "Tidak ada undangan tertunda."
+        "review": "Tinjau"
       }
     }
   }

@@ -53,8 +53,6 @@
     "duplicatesTable": {
       "columnHeaders": {
         "row": "Row",
-        "problem": "Problem",
-        "data": "Data",
         "match": "Match",
         "csvTransaction": "CSV transaction",
         "existingTransaction": "Existing transaction",

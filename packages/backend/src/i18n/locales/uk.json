@@ -25,7 +25,6 @@
     "groupNotFound": "Групу не знайдено",
     "parentGroupNotExist": "Батьківська група з таким id не існує.",
     "parentGroupDoesNotExist": "Батьківська група не існує.",
-    "operationNotAllowed": "Операція не дозволена",
     "accountNotFound": "Рахунок з таким id не знайдено.",
     "accountGroupNotFound": "Групу рахунків з таким id не знайдено.",
     "groupUpdateFailed": "Не вдалося оновити групу"
@@ -115,7 +114,6 @@
     "reminderAlreadyExists": "Ідентичне нагадування вже існує для цього тегу",
     "amountThresholdRequired": "Порогова сума обов'язкова для нагадувань про перевищення суми",
     "maxRemindersReached": "Досягнуто максимальну кількість нагадувань (50)",
-    "repeatScheduleIncomplete": "repeatEvery та repeatPeriod повинні бути вказані разом або обидва пропущені",
     "notifications": {
       "thresholdExceeded": {
         "title": "Сповіщення про витрати по тегу",
@@ -191,9 +189,6 @@
     "missingRequiredProviders": "Відсутні необхідні банківські провайдери: {{missing}}. Переконайтеся, що ці провайдери зареєстровані при запуску програми."
   },
   "validation": {
-    "fromDateInvalid": "\"from\" є недійсною датою.",
-    "toDateInvalid": "\"to\" є недійсною датою.",
-    "fromGreaterThanTo": "\"from\" не може бути більше за \"to\".",
     "dateInvalid": "\"date\" є недійсною датою."
   },
   "bankDataProviders": {
@@ -207,7 +202,6 @@
     "fromAfterTo": "Дата \"from\" повинна бути раніше дати \"to\"",
     "fromMustBeValidDate": "\"from\" повинен бути дійсним рядком дати",
     "toMustBeValidDate": "\"to\" повинен бути дійсним рядком дати",
-    "onlySupportedForMonobank": "Завантаження транзакцій за період підтримується лише для Monobank",
     "reconciliationOnlyForEnableBanking": "Узгодження дублікатів доступне лише для з'єднань Enable Banking",
     "transactionLoadingQueued": "Завантаження транзакцій додано в чергу. Орієнтовний час: {{minutes}} хв.",
     "noValidAccountIds": "Жоден з обраних ID рахунків не є дійсним",
@@ -311,7 +305,6 @@
     "baseCurrencyChangeInProgressOtherUser": "Інший учасник наразі змінює свою базову валюту. Спробуйте ще раз, коли його міграція завершиться."
   },
   "userSettings": {
-    "excludedCategoriesNotFound": "Одну або декілька виключених категорій не знайдено",
     "userSettingsNotFound": "Налаштування користувача не знайдено"
   },
   "users": {

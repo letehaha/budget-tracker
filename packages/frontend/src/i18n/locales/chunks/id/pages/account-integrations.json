@@ -1,20 +1,6 @@
 {
   "pages": {
     "integrations": {
-      "title": "Integrasi Bank",
-      "addButton": "Tambah",
-      "addButtonFull": "Integrasi",
-      "loading": "Memuat...",
-      "empty": {
-        "title": "Belum Ada Integrasi Bank",
-        "description": "Hubungkan akun bank Anda untuk mengimpor transaksi secara otomatis dan menjaga keuangan Anda tetap terkini.",
-        "addFirstButton": "Tambah Integrasi Pertama Anda"
-      },
-      "card": {
-        "connectedAccounts": "Akun terhubung:",
-        "lastSync": "Sinkronisasi terakhir: {date}",
-        "disconnectButton": "Putuskan"
-      },
       "addDialog": {
         "titleSelect": "Tambah Integrasi",
         "titleConnect": "Hubungkan {provider}",
@@ -227,7 +213,6 @@
         "backfillNote": "Kami akan memuat 6 bulan terakhir transaksi sekarang. Anda dapat memuat riwayat yang lebih lama kapan saja dari halaman akun menggunakan pemilih rentang tanggal.",
         "importButton": "Impor {count} akun",
         "importingButton": "Mengimpor...",
-        "importSuccess": "Berhasil mengimpor {count} akun",
         "errors": {
           "connectFailed": "Gagal terhubung ke SimpleFIN. Periksa token pengaturan Anda dan coba lagi.",
           "importFailed": "Gagal mengimpor akun. Silakan coba lagi."
@@ -287,7 +272,6 @@
         "connectionEstablished": "Koneksi bank berhasil dibuat!"
       },
       "details": {
-        "loading": "Memuat...",
         "error": {
           "loadFailed": "Gagal memuat detail integrasi. Silakan coba lagi.",
           "notFoundTitle": "Integrasi tidak ditemukan",

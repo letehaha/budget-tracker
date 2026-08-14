@@ -1,20 +1,6 @@
 {
   "pages": {
     "integrations": {
-      "title": "Bank Integrations",
-      "addButton": "Add",
-      "addButtonFull": "Integration",
-      "loading": "Loading...",
-      "empty": {
-        "title": "No Bank Integrations Yet",
-        "description": "Connect your bank accounts to automatically import transactions and keep your finances up to date.",
-        "addFirstButton": "Add Your First Integration"
-      },
-      "card": {
-        "connectedAccounts": "Connected accounts:",
-        "lastSync": "Last sync: {date}",
-        "disconnectButton": "Disconnect"
-      },
       "addDialog": {
         "titleSelect": "Add Integration",
         "titleConnect": "Connect {provider}",
@@ -227,7 +213,6 @@
         "backfillNote": "We'll load the last 6 months of transactions now. You can load older history anytime from the account's page using the date-range picker.",
         "importButton": "Import {count} account(s)",
         "importingButton": "Importing…",
-        "importSuccess": "Successfully imported {count} account(s)",
         "errors": {
           "connectFailed": "Failed to connect to SimpleFIN. Check your setup token and try again.",
           "importFailed": "Failed to import accounts. Please try again."
@@ -287,7 +272,6 @@
         "connectionEstablished": "Bank connection established successfully!"
       },
       "details": {
-        "loading": "Loading...",
         "error": {
           "loadFailed": "Failed to load integration details. Please try again.",
           "notFoundTitle": "Integration not found",

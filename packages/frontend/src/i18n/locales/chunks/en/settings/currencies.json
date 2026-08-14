@@ -9,8 +9,6 @@
         "loading": "Loading...",
         "selectCurrency": "Select currency",
         "addButton": "Add",
-        "howItWorks": "How it works?",
-        "tooltip": "By adding custom currencies, you can create and manage accounts and transactions in those currencies. You'll also be able to adjust and update their exchange rates relative to your base currency. Linked accounts will automatically create required currencies.",
         "sectionLabel": "Add a currency",
         "successfullyAdded": "Currency added",
         "errors": {
@@ -31,11 +29,6 @@
       "empty": {
         "title": "No other currencies yet",
         "description": "Add a currency above to track balances and exchange rates alongside your base currency."
-      },
-      "list": {
-        "editCurrency": "Edit currency",
-        "baseCurrencyBadge": "Base currency",
-        "baseCurrencyTooltip": "Your base currency. All information on dashboard is displayed in this currency"
       },
       "exchangeRate": {
         "disableLiveUpdate": "Disable live updation to be able to set custom exchange rate.",
@@ -62,7 +55,6 @@
         }
       },
       "setBase": {
-        "label": "Set as base currency",
         "button": "Set as base currency",
         "buttonShort": "Set as base",
         "processing": "Processing...",

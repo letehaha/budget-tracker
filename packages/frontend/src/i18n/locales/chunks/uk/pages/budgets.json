@@ -85,7 +85,6 @@
       "clearSelection": "Очистити вибір"
     },
     "categoryBudget": {
-      "backToBudgets": "Назад до бюджетів",
       "trackedCategories": "Відстежувані категорії",
       "categoriesCount": "{count} категорій відстежується",
       "autoTrackedInfo": "Транзакції автоматично відстежуються на основі категорій",

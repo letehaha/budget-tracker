@@ -88,7 +88,6 @@
       },
       "notifications": {
         "created": "Event created",
-        "updated": "Event updated",
         "deleted": "Event deleted",
         "error": "Something went wrong"
       },

@@ -85,7 +85,6 @@
       "clearSelection": "Clear selection"
     },
     "categoryBudget": {
-      "backToBudgets": "Back to Budgets",
       "trackedCategories": "Tracked Categories",
       "categoriesCount": "{count} categories tracked",
       "autoTrackedInfo": "Transactions are automatically tracked based on categories",

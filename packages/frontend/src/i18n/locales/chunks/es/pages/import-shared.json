@@ -45,8 +45,6 @@
     "duplicatesTable": {
       "columnHeaders": {
         "row": "Fila",
-        "problem": "Problema",
-        "data": "Datos",
         "match": "Coincidencia",
         "csvTransaction": "Transacción CSV",
         "existingTransaction": "Transacción existente",

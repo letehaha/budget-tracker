@@ -25,7 +25,6 @@
     "groupNotFound": "Grupo no encontrado",
     "parentGroupNotExist": "El grupo padre con ese id no existe.",
     "parentGroupDoesNotExist": "El grupo padre no existe.",
-    "operationNotAllowed": "La operación no está permitida",
     "accountNotFound": "Cuenta con ese id no encontrada.",
     "accountGroupNotFound": "Grupo de cuentas con ese id no encontrado.",
     "groupUpdateFailed": "No se pudo actualizar el grupo"
@@ -115,7 +114,6 @@
     "reminderAlreadyExists": "Ya existe un recordatorio idéntico para esta etiqueta",
     "amountThresholdRequired": "El umbral de importe es obligatorio para los recordatorios de umbral de importe",
     "maxRemindersReached": "Se ha alcanzado el número máximo de recordatorios (50)",
-    "repeatScheduleIncomplete": "Tanto repeatEvery como repeatPeriod deben proporcionarse juntos o ambos omitirse",
     "notifications": {
       "thresholdExceeded": {
         "title": "Alerta de gasto por etiqueta",
@@ -191,9 +189,6 @@
     "missingRequiredProviders": "Faltan proveedores de datos bancarios requeridos: {{missing}}. Asegúrese de que estos proveedores estén registrados al iniciar la aplicación."
   },
   "validation": {
-    "fromDateInvalid": "\"from\" es una fecha no válida.",
-    "toDateInvalid": "\"to\" es una fecha no válida.",
-    "fromGreaterThanTo": "\"from\" no puede ser mayor que la fecha \"to\".",
     "dateInvalid": "\"date\" es una fecha no válida."
   },
   "bankDataProviders": {
@@ -208,7 +203,6 @@
     "fromAfterTo": "La fecha \"from\" debe ser anterior a la fecha \"to\"",
     "fromMustBeValidDate": "\"from\" debe ser una cadena de fecha válida",
     "toMustBeValidDate": "\"to\" debe ser una cadena de fecha válida",
-    "onlySupportedForMonobank": "La carga de transacciones por período solo está soportada para Monobank",
     "reconciliationOnlyForEnableBanking": "La conciliación solo está disponible para conexiones de Enable Banking",
     "transactionLoadingQueued": "Carga de transacciones en cola. Tiempo estimado: {{minutes}} minuto(s)",
     "noValidAccountIds": "Ninguno de los IDs de cuenta seleccionados es válido",
@@ -311,7 +305,6 @@
     "baseCurrencyChangeInProgressOtherUser": "El otro participante está cambiando actualmente su moneda base. Inténtelo de nuevo cuando finalice su migración."
   },
   "userSettings": {
-    "excludedCategoriesNotFound": "Una o más categorías excluidas no encontradas",
     "userSettingsNotFound": "Configuración de usuario no encontrada"
   },
   "users": {

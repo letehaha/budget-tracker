@@ -246,7 +246,9 @@ function cmdUnused() {
   console.log(`Total en keys: ${all.length}`);
   console.log(`\nUNUSED (${unused.length}) — no reference found anywhere:`);
   for (const e of unused) console.log(`  ${e.id}  (${e.relPath})`);
-  console.log(`\nPOSSIBLY DYNAMIC (${dynamic.length}) — only matched via dynamic key construction, review before stripping:`);
+  console.log(
+    `\nPOSSIBLY DYNAMIC (${dynamic.length}) — only matched via dynamic key construction, review before stripping:`,
+  );
   for (const e of dynamic) console.log(`  ${e.id}  (${e.relPath})`);
 }
 
@@ -343,7 +345,8 @@ function cmdMissing() {
     const count = Object.values(perFile).reduce((n, m) => n + Object.keys(m).length, 0);
     total += count;
     console.log(`frontend/${locale}: ${count} missing key(s) across ${Object.keys(perFile).length} file(s)`);
-    for (const [relPath, missing] of Object.entries(perFile)) console.log(`  ${relPath}: ${Object.keys(missing).length}`);
+    for (const [relPath, missing] of Object.entries(perFile))
+      console.log(`  ${relPath}: ${Object.keys(missing).length}`);
   }
   for (const [locale, missing] of Object.entries(report.backend)) {
     total += Object.keys(missing).length;
@@ -402,7 +405,9 @@ function cmdPruneExtra() {
 
 const commands = { unused: cmdUnused, strip: cmdStrip, missing: cmdMissing, 'prune-extra': cmdPruneExtra };
 if (!commands[cmd]) {
-  console.error('Usage: i18n-audit.mjs <unused|strip|missing|prune-extra> [--json] [--locale <code>] [--keys-file <path>]');
+  console.error(
+    'Usage: i18n-audit.mjs <unused|strip|missing|prune-extra> [--json] [--locale <code>] [--keys-file <path>]',
+  );
   process.exit(1);
 }
 commands[cmd]();
