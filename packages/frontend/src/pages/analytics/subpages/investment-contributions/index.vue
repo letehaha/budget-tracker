@@ -36,7 +36,9 @@
       </div>
 
       <template v-if="isLoading">
-        <div class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-3">
+        <div
+          class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-2 @xl/investment-contributions:grid-cols-3"
+        >
           <div v-for="n in 3" :key="`card-skeleton-${n}`" class="border-border bg-card rounded-lg border p-4">
             <div class="bg-muted mb-2 h-4 w-24 animate-pulse rounded" />
             <div class="bg-muted h-7 w-16 animate-pulse rounded" />
@@ -53,7 +55,9 @@
       </div>
 
       <template v-else>
-        <div class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-3">
+        <div
+          class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-2 @xl/investment-contributions:grid-cols-3"
+        >
           <SummaryCard
             :title="$t('investmentContributions.cards.totalContributed')"
             :value="model.rangeTotal"
