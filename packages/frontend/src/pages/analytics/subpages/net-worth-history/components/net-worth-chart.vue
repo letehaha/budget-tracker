@@ -6,57 +6,49 @@
       <div
         v-show="tooltip.visible"
         ref="tooltipRef"
-        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-60 rounded-lg border px-3 py-2 text-sm shadow-lg"
+        class="pointer-events-none absolute z-10"
         :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
       >
-        <div class="mb-1.5 font-medium">{{ tooltip.periodLabel }}</div>
+        <ChartTooltip>
+          <ChartTooltipHeader>{{ tooltip.periodLabel }}</ChartTooltipHeader>
 
-        <div class="text-muted-foreground text-xs">{{ $t('netWorthHistory.chart.assets') }}</div>
-        <div class="text-app-income-color mb-1 text-base font-semibold tabular-nums">
-          {{ formatBaseCurrency(tooltip.assetsTotal) }}
-        </div>
-        <div class="space-y-1">
-          <div v-for="entry in tooltip.assetKinds" :key="entry.kind" class="flex items-center justify-between gap-4">
-            <span class="flex items-center gap-2">
-              <span
-                class="inline-block size-2.5 rounded-full"
-                :style="{ backgroundColor: NET_WORTH_ASSET_KIND_COLORS[entry.kind] }"
-              />
-              <span class="text-muted-foreground">{{ $t(NET_WORTH_ASSET_KIND_LABEL_KEYS[entry.kind]) }}</span>
-            </span>
-            <span class="font-medium tabular-nums">{{ formatBaseCurrency(entry.value) }}</span>
-          </div>
-        </div>
+          <ChartTooltipSection
+            :label="$t('netWorthHistory.chart.assets')"
+            :value="formatBaseCurrency(tooltip.assetsTotal)"
+            value-class="text-app-income-color"
+          />
+          <ChartTooltipRow
+            v-for="entry in tooltip.assetKinds"
+            :key="entry.kind"
+            :color="NET_WORTH_ASSET_KIND_COLORS[entry.kind]"
+            :label="$t(NET_WORTH_ASSET_KIND_LABEL_KEYS[entry.kind])"
+            :value="formatBaseCurrency(entry.value)"
+          />
 
-        <div v-if="tooltip.liabilityKinds.length" class="border-border mt-1.5 border-t pt-1.5">
-          <div class="flex items-center justify-between gap-4">
-            <span class="text-muted-foreground">{{ $t('netWorthHistory.chart.liabilities') }}</span>
-            <span class="font-medium tabular-nums">{{ formatLiabilityValue(tooltip.liabilitiesTotal) }}</span>
-          </div>
-          <div class="mt-1 space-y-1">
-            <div
+          <template v-if="tooltip.liabilityKinds.length">
+            <ChartTooltipSection
+              :label="$t('netWorthHistory.chart.liabilities')"
+              :value="formatLiabilityValue(tooltip.liabilitiesTotal)"
+              value-class="text-app-expense-color"
+            />
+            <ChartTooltipRow
               v-for="entry in tooltip.liabilityKinds"
               :key="entry.kind"
-              class="flex items-center justify-between gap-4 pl-4.5"
-            >
-              <span class="flex items-center gap-2">
-                <span class="bg-app-expense-color inline-block size-2.5 rounded-full" />
-                <span class="text-muted-foreground">{{ $t(ACCOUNT_CATEGORIES_TRANSLATION_KEYS[entry.kind]) }}</span>
-              </span>
-              <span class="font-medium tabular-nums">{{ formatLiabilityValue(entry.value) }}</span>
-            </div>
-          </div>
-        </div>
+              color="var(--app-expense-color)"
+              :label="$t(ACCOUNT_CATEGORIES_TRANSLATION_KEYS[entry.kind])"
+              :value="formatLiabilityValue(entry.value)"
+            />
+          </template>
 
-        <div class="border-border mt-1.5 flex items-center justify-between gap-4 border-t pt-1.5">
-          <span class="text-muted-foreground">{{ $t('netWorthHistory.chart.netWorth') }}</span>
-          <span
-            class="font-medium tabular-nums"
-            :class="tooltip.netWorth >= 0 ? 'text-app-income-color' : 'text-app-expense-color'"
-          >
-            {{ formatBaseCurrency(tooltip.netWorth) }}
-          </span>
-        </div>
+          <ChartTooltipDivider />
+
+          <ChartTooltipRow
+            total
+            :label="$t('netWorthHistory.chart.netWorth')"
+            :value="formatBaseCurrency(tooltip.netWorth)"
+            :value-class="tooltip.netWorth >= 0 ? 'text-app-income-color' : 'text-app-expense-color'"
+          />
+        </ChartTooltip>
       </div>
     </div>
 
@@ -87,6 +79,13 @@
 <script setup lang="ts">
 import { currentTheme } from '@/common/utils/color-theme';
 import { ACCOUNT_CATEGORIES_TRANSLATION_KEYS } from '@/common/const/account-categories-verbose';
+import {
+  ChartTooltip,
+  ChartTooltipDivider,
+  ChartTooltipHeader,
+  ChartTooltipRow,
+  ChartTooltipSection,
+} from '@/components/common/charts/chart-tooltip';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';

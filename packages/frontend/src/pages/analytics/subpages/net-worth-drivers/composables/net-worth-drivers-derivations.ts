@@ -1,5 +1,8 @@
+import { CATEGORICAL_SERIES_PALETTE, OTHERS_SERIES_COLOR } from '@/composable/charts/categorical-series-palette';
 import type { endpointsTypes } from '@bt/shared/types';
 import { differenceInCalendarMonths, differenceInDays, parseISO } from 'date-fns';
+
+import { NET_WORTH_ASSET_KIND_COLORS } from '../../net-worth-history/composables/net-worth-history-derivations';
 
 const DAYS_PER_YEAR = 365.25;
 
@@ -183,4 +186,90 @@ export const computeAllocationContext = ({
     referenceSharePct: reference.sharePct,
     referencePeriodEnd: reference.periodEnd,
   };
+};
+
+/** Beyond this many portfolio colours the stack stops being readable, so the tail folds into one segment. */
+export const MAX_PORTFOLIO_SERIES = 8;
+
+/** Stands in for a portfolio id on the folded-tail entry; its label comes from i18n, not the API. */
+export const OTHERS_SERIES_ID = '__others__';
+
+// Green is reserved for the Saved bar, so the palette's emerald never lands on a portfolio.
+const PORTFOLIO_SERIES_PALETTE = CATEGORICAL_SERIES_PALETTE.filter(
+  (color) => color !== NET_WORTH_ASSET_KIND_COLORS.cash,
+);
+
+export interface BreakdownLegendEntry {
+  portfolioId: string;
+  /** Empty on the Others entry — the caller labels it from i18n. */
+  name: string;
+  color: string;
+}
+
+export interface BreakdownBar {
+  periodStart: string;
+  periodEnd: string;
+  savedNet: number;
+  growthTotal: number;
+  /** Dense in legend order, so the stacked renderer never has to look up a missing slice. */
+  segments: (BreakdownLegendEntry & { growth: number })[];
+}
+
+export interface BreakdownModel {
+  legend: BreakdownLegendEntry[];
+  bars: BreakdownBar[];
+}
+
+/**
+ * The grouped Saved/Grown bars, with the Grown half split per portfolio.
+ *
+ * `portfolios` arrives ordered by absolute total growth, so the first
+ * MAX_PORTFOLIO_SERIES get their own colour and everything behind them collapses
+ * into a single Others segment.
+ */
+export const buildBreakdownModel = ({
+  buckets,
+  portfolios,
+}: {
+  buckets: endpointsTypes.NetWorthDriversBucket[];
+  portfolios: endpointsTypes.NetWorthDriversPortfolioMeta[];
+}): BreakdownModel => {
+  const named = portfolios.slice(0, MAX_PORTFOLIO_SERIES);
+
+  const legend: BreakdownLegendEntry[] = named.map((portfolio, index) => ({
+    portfolioId: portfolio.portfolioId,
+    name: portfolio.name,
+    color: PORTFOLIO_SERIES_PALETTE[index % PORTFOLIO_SERIES_PALETTE.length]!,
+  }));
+
+  if (portfolios.length > MAX_PORTFOLIO_SERIES) {
+    legend.push({ portfolioId: OTHERS_SERIES_ID, name: '', color: OTHERS_SERIES_COLOR });
+  }
+
+  const namedIds = new Set(named.map((portfolio) => portfolio.portfolioId));
+
+  const bars = buckets.map((bucket) => {
+    const growthByPortfolioId = new Map(
+      bucket.investments.byPortfolio.map((slice) => [slice.portfolioId, slice.growth]),
+    );
+    const othersGrowth = bucket.investments.byPortfolio.reduce(
+      (sum, slice) => (namedIds.has(slice.portfolioId) ? sum : sum + slice.growth),
+      0,
+    );
+
+    const segments = legend.map((entry) => ({
+      ...entry,
+      growth: entry.portfolioId === OTHERS_SERIES_ID ? othersGrowth : (growthByPortfolioId.get(entry.portfolioId) ?? 0),
+    }));
+
+    return {
+      periodStart: bucket.periodStart,
+      periodEnd: bucket.periodEnd,
+      savedNet: bucket.savings.net,
+      growthTotal: bucket.investments.growth,
+      segments,
+    };
+  });
+
+  return { legend, bars };
 };

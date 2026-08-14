@@ -7,27 +7,29 @@
       <div
         v-show="tooltip.visible"
         ref="tooltipRef"
-        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 rounded-lg border px-3 py-2 text-sm shadow-lg"
+        class="pointer-events-none absolute z-10"
         :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
       >
-        <div class="mb-1 font-medium">
-          {{ $t('analytics.investmentCalculator.yearN', { n: tooltip.year }) }}
-        </div>
-        <div class="flex items-center gap-2 whitespace-nowrap">
-          <span class="inline-block size-2.5 rounded-full" :style="{ backgroundColor: chartColors.nominal }" />
-          <span>{{ indicatorLabel }}:</span>
-          <span class="font-medium">{{ formatBaseCurrency(tooltip.nominal) }}</span>
-        </div>
-        <div class="flex items-center gap-2 whitespace-nowrap">
-          <span class="inline-block size-2.5 rounded-full" :style="{ backgroundColor: chartColors.real }" />
-          <span>{{ indicatorLabel }} {{ $t('analytics.investmentCalculator.inflationAdjustedSuffix') }}:</span>
-          <span class="font-medium">{{ formatBaseCurrency(tooltip.real) }}</span>
-        </div>
-        <div class="flex items-center gap-2 whitespace-nowrap">
-          <span class="inline-block size-2.5 rounded-full" :style="{ backgroundColor: chartColors.totalInvested }" />
-          <span>{{ $t('analytics.investmentCalculator.totalInvested') }}:</span>
-          <span class="font-medium">{{ formatBaseCurrency(tooltip.totalInvested) }}</span>
-        </div>
+        <ChartTooltip>
+          <ChartTooltipHeader>
+            {{ $t('analytics.investmentCalculator.yearN', { n: tooltip.year }) }}
+          </ChartTooltipHeader>
+          <ChartTooltipRow
+            :color="chartColors.nominal"
+            :label="indicatorLabel"
+            :value="formatBaseCurrency(tooltip.nominal)"
+          />
+          <ChartTooltipRow
+            :color="chartColors.real"
+            :label="`${indicatorLabel} ${$t('analytics.investmentCalculator.inflationAdjustedSuffix')}`"
+            :value="formatBaseCurrency(tooltip.real)"
+          />
+          <ChartTooltipRow
+            :color="chartColors.totalInvested"
+            :label="$t('analytics.investmentCalculator.totalInvested')"
+            :value="formatBaseCurrency(tooltip.totalInvested)"
+          />
+        </ChartTooltip>
       </div>
     </div>
 
@@ -56,6 +58,7 @@
 
 <script setup lang="ts">
 import { currentTheme } from '@/common/utils/color-theme';
+import { ChartTooltip, ChartTooltipHeader, ChartTooltipRow } from '@/components/common/charts/chart-tooltip';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';

@@ -1,8 +1,10 @@
 <script lang="ts" setup>
+import { CHART_TOOLTIP_SIZING_CLASS, CHART_TOOLTIP_SURFACE_CLASS } from '@/components/common/charts/chart-tooltip';
 import * as Popover from '@/components/lib/ui/popover';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { createReusableTemplate, useMediaQuery } from '@vueuse/core';
+import { computed } from 'vue';
 
 defineOptions({ inheritAttrs: false });
 
@@ -10,14 +12,20 @@ const [UseTemplate, SlotContent] = createReusableTemplate();
 // Detect touch-primary devices (coarse pointer = finger/stylus)
 const isTouch = useMediaQuery('(pointer: coarse)');
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     content?: string;
     contentClassName?: string;
     delayDuration?: number;
     disabled?: boolean;
+    /** `chart` swaps the popover surface for the shared chart-tooltip one, for data readouts. */
+    variant?: 'default' | 'chart';
   }>(),
-  { delayDuration: 300 },
+  { delayDuration: 300, variant: 'default' },
+);
+
+const contentClass = computed(() =>
+  cn(props.variant === 'chart' && [CHART_TOOLTIP_SURFACE_CLASS, CHART_TOOLTIP_SIZING_CLASS], props.contentClassName),
 );
 </script>
 
@@ -37,7 +45,7 @@ withDefaults(
         <slot />
       </Popover.PopoverTrigger>
 
-      <Popover.PopoverContent :class="cn('w-max max-w-62.5 p-2 text-sm', contentClassName)">
+      <Popover.PopoverContent :class="cn('w-max max-w-62.5 p-2 text-sm', contentClass)">
         <SlotContent />
       </Popover.PopoverContent>
     </Popover.Popover>
@@ -51,7 +59,7 @@ withDefaults(
           <slot />
         </Tooltip.TooltipTrigger>
 
-        <Tooltip.TooltipContent :class="contentClassName">
+        <Tooltip.TooltipContent :class="contentClass">
           <SlotContent />
         </Tooltip.TooltipContent>
       </Tooltip.Tooltip>

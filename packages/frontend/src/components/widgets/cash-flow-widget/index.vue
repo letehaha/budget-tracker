@@ -5,6 +5,7 @@ import { calculatePercentageDifference } from '@/js/helpers/math/calculate-perce
 import ExcludeCategoriesMenu from '@/components/common/category-exclusions/exclude-categories-menu.vue';
 import ExcludedCountBadge from '@/components/common/category-exclusions/excluded-count-badge.vue';
 import { useCategoryExclusionsConfig } from '@/components/common/category-exclusions/use-category-exclusions-config';
+import { ChartTooltipHeader } from '@/components/common/charts/chart-tooltip';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { buttonVariants } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -273,7 +274,13 @@ const trendBars = computed(() => {
             {{ $t('dashboard.widgets.cashFlow.previousPeriodsTrend') }}
           </div>
           <div class="flex h-25 items-end gap-2.5">
-            <ResponsiveTooltip v-for="(bar, index) in trendBars" :key="index" :delay-duration="100">
+            <ResponsiveTooltip
+              v-for="(bar, index) in trendBars"
+              :key="index"
+              variant="chart"
+              content-class-name="min-w-0"
+              :delay-duration="100"
+            >
               <div class="flex flex-1 flex-col items-center gap-1">
                 <div class="flex h-22 w-full max-w-10 items-end justify-center">
                   <div
@@ -285,13 +292,13 @@ const trendBars = computed(() => {
                 <span class="text-muted-foreground text-[9px] leading-none">{{ bar.shortLabel }}</span>
               </div>
               <template #content>
-                <span>{{ bar.label }}: </span>
-                <span
-                  class="font-semibold"
+                <ChartTooltipHeader>{{ bar.label }}</ChartTooltipHeader>
+                <div
+                  class="font-semibold whitespace-nowrap tabular-nums"
                   :class="bar.isPositive ? 'text-app-income-color' : 'text-app-expense-color'"
                 >
                   {{ bar.formatted }}
-                </span>
+                </div>
               </template>
             </ResponsiveTooltip>
           </div>

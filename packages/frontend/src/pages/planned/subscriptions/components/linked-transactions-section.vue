@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type SubscriptionDetail, unlinkTransactionsFromSubscription } from '@/api/subscriptions';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { ChartTooltipHeader } from '@/components/common/charts/chart-tooltip';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -16,7 +17,6 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import {
-  type LinkedPaymentsChartBar,
   type LinkedPaymentsChartGap,
   type LinkedPaymentsCurrencyTotal,
   buildLinkedPaymentsSummary,
@@ -163,12 +163,6 @@ const driftKeypath = computed(() =>
     : 'planned.subscriptions.linked.driftUp',
 );
 
-const formatBarTooltip = ({ bar }: { bar: LinkedPaymentsChartBar }): string => {
-  const base = `${bar.monthLabel} · ${formatAmountByCurrencyCode(bar.amount, bar.currencyCode)}`;
-  if (bar.currencyCode === bar.refCurrencyCode) return base;
-  return `${base} ≈ ${formatAmountByCurrencyCode(bar.refAmount, bar.refCurrencyCode)}`;
-};
-
 /** Grows the gap block to the width its skipped slots would occupy as bars. */
 const gapBlockStyle = ({ gap }: { gap: LinkedPaymentsChartGap }) => ({ flex: `${gap.slotCount} 1 0%` });
 
@@ -278,18 +272,32 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
             :aria-label="$t('planned.subscriptions.linked.chartLabel')"
           >
             <template v-for="chartSlot in summary.chart" :key="chartSlot.id">
-              <ResponsiveTooltip v-if="chartSlot.kind === 'payment'" :delay-duration="100">
+              <ResponsiveTooltip
+                v-if="chartSlot.kind === 'payment'"
+                variant="chart"
+                content-class-name="min-w-0"
+                :delay-duration="100"
+              >
                 <div
                   class="max-w-9 min-w-2 flex-1 rounded-t-sm"
                   :class="chartSlot.isLatest ? 'bg-app-expense-color' : 'bg-app-expense-color/30'"
                   :style="{ height: `${chartSlot.heightPct}%` }"
                 />
                 <template #content>
-                  <span class="tabular-nums">{{ formatBarTooltip({ bar: chartSlot }) }}</span>
+                  <ChartTooltipHeader>{{ chartSlot.monthLabel }}</ChartTooltipHeader>
+                  <div class="font-semibold whitespace-nowrap tabular-nums">
+                    {{ formatAmountByCurrencyCode(chartSlot.amount, chartSlot.currencyCode) }}
+                  </div>
+                  <div
+                    v-if="chartSlot.currencyCode !== chartSlot.refCurrencyCode"
+                    class="text-card-tooltip-muted mt-0.5 whitespace-nowrap tabular-nums"
+                  >
+                    ≈ {{ formatAmountByCurrencyCode(chartSlot.refAmount, chartSlot.refCurrencyCode) }}
+                  </div>
                 </template>
               </ResponsiveTooltip>
 
-              <ResponsiveTooltip v-else :delay-duration="100">
+              <ResponsiveTooltip v-else variant="chart" content-class-name="min-w-0" :delay-duration="100">
                 <div class="flex h-full items-end gap-1 @lg/linked:gap-1.5" :style="gapBlockStyle({ gap: chartSlot })">
                   <div
                     v-for="index in chartSlot.slotCount"

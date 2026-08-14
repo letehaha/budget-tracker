@@ -18,17 +18,22 @@
         <div
           v-show="tooltip.visible"
           ref="tooltipRef"
-          class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 rounded-lg border px-3 py-2 text-xs shadow-lg"
+          class="pointer-events-none absolute z-10"
           :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
         >
-          <div class="text-muted-foreground mb-1 text-[10px] tracking-wide uppercase">{{ tooltip.dateLabel }}</div>
-          <div v-for="entry in tooltip.entries" :key="entry.key" class="flex items-center gap-2 whitespace-nowrap">
-            <span class="inline-block size-2 rounded-full" :style="{ backgroundColor: entry.color }" />
-            <span class="text-muted-foreground">{{ entry.label }}:</span>
-            <span class="font-medium tabular-nums">
-              {{ entry.paidOff ? $t('loans.detail.payoffChart.paidOffShort') : formatCurrency(entry.value) }}
-            </span>
-          </div>
+          <ChartTooltip>
+            <ChartTooltipHeader>{{ tooltip.dateLabel }}</ChartTooltipHeader>
+            <ChartTooltipRow
+              v-for="entry in tooltip.entries"
+              :key="entry.key"
+              :color="entry.color"
+              :label="entry.label"
+            >
+              <template #value>
+                {{ entry.paidOff ? $t('loans.detail.payoffChart.paidOffShort') : formatCurrency(entry.value) }}
+              </template>
+            </ChartTooltipRow>
+          </ChartTooltip>
         </div>
       </div>
 
@@ -51,6 +56,7 @@
 import { type LoanApi, getLoanBalanceHistory } from '@/api/loans';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { currentTheme } from '@/common/utils/color-theme';
+import { ChartTooltip, ChartTooltipHeader, ChartTooltipRow } from '@/components/common/charts/chart-tooltip';
 import HintIcon from '@/components/common/hint-icon.vue';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';

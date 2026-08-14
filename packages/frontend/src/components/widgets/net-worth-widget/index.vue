@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { ChartTooltipHeader, ChartTooltipRow } from '@/components/common/charts/chart-tooltip';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { buttonVariants } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
@@ -270,7 +271,7 @@ const trendBars = computed(() => {
             {{ $t('dashboard.widgets.netWorth.previousPeriodsTrend') }}
           </div>
           <div class="flex h-25 items-end gap-2.5">
-            <ResponsiveTooltip v-for="(bar, index) in trendBars" :key="index" :delay-duration="100">
+            <ResponsiveTooltip v-for="(bar, index) in trendBars" :key="index" variant="chart" :delay-duration="100">
               <div class="flex flex-1 flex-col items-center gap-1">
                 <div class="flex h-22 w-full max-w-10 items-end justify-center">
                   <div
@@ -286,26 +287,23 @@ const trendBars = computed(() => {
                 <span class="text-muted-foreground text-[9px] leading-none">{{ bar.shortLabel }}</span>
               </div>
               <template #content>
-                <div class="font-medium">{{ bar.label }}</div>
+                <ChartTooltipHeader>{{ bar.label }}</ChartTooltipHeader>
 
-                <div v-if="!bar.hasData" class="text-muted-foreground">
+                <div v-if="!bar.hasData" class="text-card-tooltip-muted">
                   {{ $t('dashboard.widgets.netWorth.trendTooltip.noData') }}
                 </div>
 
                 <template v-else>
-                  <div class="flex items-center justify-between gap-2">
-                    <span>{{ $t('dashboard.widgets.netWorth.trendTooltip.change') }}</span>
-                    <span
-                      class="font-semibold"
-                      :class="bar.isPositive ? 'text-app-income-color' : 'text-app-expense-color'"
-                    >
-                      {{ bar.formattedDelta }}
-                    </span>
-                  </div>
-                  <div class="flex items-center justify-between gap-2">
-                    <span>{{ $t('dashboard.widgets.netWorth.trendTooltip.netWorth') }}</span>
-                    <span class="font-semibold">{{ bar.formattedNetWorth }}</span>
-                  </div>
+                  <ChartTooltipRow
+                    :label="$t('dashboard.widgets.netWorth.trendTooltip.change')"
+                    :value="bar.formattedDelta"
+                    :value-class="bar.isPositive ? 'text-app-income-color' : 'text-app-expense-color'"
+                  />
+                  <ChartTooltipRow
+                    total
+                    :label="$t('dashboard.widgets.netWorth.trendTooltip.netWorth')"
+                    :value="bar.formattedNetWorth"
+                  />
                 </template>
               </template>
             </ResponsiveTooltip>

@@ -11,24 +11,29 @@
       <div
         v-show="tooltip.visible"
         ref="tooltipRef"
-        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 rounded-lg border px-3 py-2 text-sm shadow-lg"
+        class="pointer-events-none absolute z-10"
         :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
       >
-        <div class="mb-1 font-medium">{{ tooltip.monthLabel }}</div>
-        <div class="flex items-center gap-2">
-          <span class="inline-block size-2.5 rounded-full" :style="{ backgroundColor: metricColor }"></span>
-          <span>{{ t('analytics.trends.chart.selectedPeriod') }}:</span>
-          <span class="font-medium">{{ formatBaseCurrency(tooltip.currentValue) }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span
-            class="inline-block size-2.5 rounded-full border-2 bg-transparent"
-            :style="{ borderColor: metricColorFaded }"
-          ></span>
-          <span>{{ t('analytics.trends.chart.comparisonPeriod') }}:</span>
-          <span class="font-medium">{{ formatBaseCurrency(tooltip.previousValue) }}</span>
-        </div>
-        <div class="text-muted-foreground mt-1 text-xs italic">{{ t('analytics.trends.chart.cumulativeNote') }}</div>
+        <ChartTooltip>
+          <ChartTooltipHeader>{{ tooltip.monthLabel }}</ChartTooltipHeader>
+          <ChartTooltipRow
+            :color="metricColor"
+            :label="t('analytics.trends.chart.selectedPeriod')"
+            :value="formatBaseCurrency(tooltip.currentValue)"
+          />
+          <ChartTooltipRow :value="formatBaseCurrency(tooltip.previousValue)">
+            <template #label>
+              <span
+                class="mr-2 inline-block size-2 shrink-0 rounded-full border-2 bg-transparent"
+                :style="{ borderColor: metricColorFaded }"
+              />
+              {{ t('analytics.trends.chart.comparisonPeriod') }}
+            </template>
+          </ChartTooltipRow>
+          <div class="text-card-tooltip-muted mt-1 text-xs italic">
+            {{ t('analytics.trends.chart.cumulativeNote') }}
+          </div>
+        </ChartTooltip>
       </div>
     </div>
 
@@ -51,6 +56,7 @@
 
 <script setup lang="ts">
 import { currentTheme } from '@/common/utils/color-theme';
+import { ChartTooltip, ChartTooltipHeader, ChartTooltipRow } from '@/components/common/charts/chart-tooltip';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';

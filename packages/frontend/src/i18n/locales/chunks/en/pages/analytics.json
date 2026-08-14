@@ -248,6 +248,13 @@
       "allocationContext": "{share}% of your net worth sits in investments (was {reference}% in {date})",
       "allocationContextNoReference": "{share}% of your net worth sits in investments"
     },
+    "breakdownChart": {
+      "title": "Per-period breakdown",
+      "subtitle": "How much you saved and how much the market returned in each period.",
+      "periodTotal": "Gained this period",
+      "others": "Others",
+      "grownTotal": "Grown total"
+    },
     "degraded": {
       "title": "Some values are estimated",
       "unpricedSecurities": "No recent price data for {securities}, so their growth is estimated from cost.",
