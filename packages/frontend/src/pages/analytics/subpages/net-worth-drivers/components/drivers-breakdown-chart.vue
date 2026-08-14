@@ -5,67 +5,59 @@
     <div
       v-show="tooltip.visible"
       ref="tooltipRef"
-      class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-[16rem] rounded-xl border px-4 py-3 text-sm shadow-xl"
+      class="pointer-events-none absolute z-10"
       :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
     >
-      <div class="text-muted-foreground mb-2.5 text-xs font-medium tracking-wide uppercase">
-        {{ tooltip.periodLabel }}
-      </div>
+      <ChartTooltip class="min-w-64">
+        <ChartTooltipHeader>{{ tooltip.periodLabel }}</ChartTooltipHeader>
 
-      <div class="mb-3">
-        <div class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.breakdownChart.periodTotal') }}</div>
-        <div
-          class="text-xl font-semibold tabular-nums"
-          :class="deltaColorClass({ value: tooltip.savedNet + tooltip.growthTotal })"
+        <ChartTooltipHero
+          :label="$t('netWorthDrivers.breakdownChart.periodTotal')"
+          :value-class="deltaColorClass({ value: tooltip.savedNet + tooltip.growthTotal })"
         >
           {{ formatBaseCurrency(tooltip.savedNet + tooltip.growthTotal) }}
-        </div>
-      </div>
+        </ChartTooltipHero>
 
-      <div class="space-y-1.5">
-        <div class="flex items-center justify-between gap-4">
-          <span class="flex items-center gap-2">
-            <span class="size-2.5 rounded-full" :style="{ backgroundColor: seriesColors.saved }" />
-            <span class="text-muted-foreground">{{ $t('netWorthDrivers.chart.saved') }}</span>
-          </span>
-          <span class="font-medium tabular-nums" :class="deltaColorClass({ value: tooltip.savedNet })">
-            {{ formatBaseCurrency(tooltip.savedNet) }}
-          </span>
-        </div>
+        <ChartTooltipRow
+          :color="seriesColors.saved"
+          :label="$t('netWorthDrivers.chart.saved')"
+          :value="formatBaseCurrency(tooltip.savedNet)"
+          :value-class="deltaColorClass({ value: tooltip.savedNet })"
+        />
 
-        <div class="flex items-center justify-between gap-4">
-          <span class="text-muted-foreground">{{ $t('netWorthDrivers.breakdownChart.grownTotal') }}</span>
-          <span class="font-medium tabular-nums" :class="deltaColorClass({ value: tooltip.growthTotal })">
-            {{ formatBaseCurrency(tooltip.growthTotal) }}
-          </span>
-        </div>
-      </div>
+        <ChartTooltipRow
+          :label="$t('netWorthDrivers.breakdownChart.grownTotal')"
+          :value="formatBaseCurrency(tooltip.growthTotal)"
+          :value-class="deltaColorClass({ value: tooltip.growthTotal })"
+        />
 
-      <div v-if="tooltip.segments.length" class="border-border/60 mt-3 space-y-1.5 border-t pt-3">
-        <div
-          v-for="segment in tooltip.segments"
-          :key="segment.portfolioId"
-          class="flex items-center justify-between gap-4"
-        >
-          <span class="flex min-w-0 items-center gap-2">
-            <span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: segment.color }" />
-            <span class="text-muted-foreground truncate">
-              {{
-                segment.portfolioId === OTHERS_SERIES_ID ? $t('netWorthDrivers.breakdownChart.others') : segment.name
-              }}
-            </span>
-          </span>
-          <span class="font-medium tabular-nums" :class="deltaColorClass({ value: segment.growth })">
-            {{ formatBaseCurrency(segment.growth) }}
-          </span>
-        </div>
-      </div>
+        <template v-if="tooltip.segments.length">
+          <ChartTooltipDivider />
+          <ChartTooltipRow
+            v-for="segment in tooltip.segments"
+            :key="segment.portfolioId"
+            :color="segment.color"
+            :label="
+              segment.portfolioId === OTHERS_SERIES_ID ? $t('netWorthDrivers.breakdownChart.others') : segment.name
+            "
+            :value="formatBaseCurrency(segment.growth)"
+            :value-class="deltaColorClass({ value: segment.growth })"
+          />
+        </template>
+      </ChartTooltip>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { currentTheme } from '@/common/utils/color-theme';
+import {
+  ChartTooltip,
+  ChartTooltipDivider,
+  ChartTooltipHeader,
+  ChartTooltipHero,
+  ChartTooltipRow,
+} from '@/components/common/charts/chart-tooltip';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';

@@ -91,30 +91,41 @@
           <div
             v-show="tooltip.visible"
             ref="tooltipRef"
-            class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none fixed z-50 min-w-37.5 rounded-lg border px-3 py-2 text-sm shadow-lg"
+            class="pointer-events-none fixed z-50"
             :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
           >
-            <div class="mb-1 font-medium">{{ tooltip.date }}</div>
-            <div v-for="row in tooltipComponentRows" :key="row.key">
-              {{ row.label }} {{ formatTooltipMoney(row.value)
-              }}<span
-                v-if="shouldDisplayBalanceDelta({ delta: row.delta })"
-                class="ml-1"
-                :class="deltaColorClass(row.delta)"
-                >({{ formatBalanceDelta({ delta: row.delta, currency: tooltipCurrency }) }})</span
+            <ChartTooltip>
+              <ChartTooltipHeader>{{ tooltip.date }}</ChartTooltipHeader>
+
+              <ChartTooltipRow v-for="row in tooltipComponentRows" :key="row.key" :label="row.label">
+                <template #value>
+                  {{ formatTooltipMoney(row.value)
+                  }}<span
+                    v-if="shouldDisplayBalanceDelta({ delta: row.delta })"
+                    class="ml-1 text-xs font-medium"
+                    :class="deltaColorClass(row.delta)"
+                    >({{ formatBalanceDelta({ delta: row.delta, currency: tooltipCurrency }) }})</span
+                  >
+                </template>
+              </ChartTooltipRow>
+
+              <ChartTooltipDivider />
+
+              <ChartTooltipRow
+                total
+                :label="$t('dashboard.widgets.balanceTrend.tooltip.total')"
+                :value="formatTooltipMoney(tooltip.totalBalance)"
+              />
+
+              <div
+                v-if="tooltip.hasDelta"
+                class="mt-1 text-xs font-semibold tabular-nums"
+                :class="deltaColorClass(tooltip.deltaAbsolute)"
               >
-            </div>
-            <div class="font-medium">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }} {{ formatTooltipMoney(tooltip.totalBalance) }}
-            </div>
-            <div
-              v-if="tooltip.hasDelta"
-              class="mt-1 border-t pt-1 text-xs font-medium"
-              :class="deltaColorClass(tooltip.deltaAbsolute)"
-            >
-              {{ formatBalanceDelta({ delta: tooltip.deltaAbsolute, currency: tooltipCurrency }) }}
-              ({{ formatBalanceDeltaPercent({ percent: tooltip.deltaPercent }) }})
-            </div>
+                {{ formatBalanceDelta({ delta: tooltip.deltaAbsolute, currency: tooltipCurrency }) }}
+                ({{ formatBalanceDeltaPercent({ percent: tooltip.deltaPercent }) }})
+              </div>
+            </ChartTooltip>
           </div>
 
           <!-- Spike transactions panel -->
@@ -147,6 +158,12 @@
 import { loadTransactions } from '@/api/transactions';
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import {
+  ChartTooltip,
+  ChartTooltipDivider,
+  ChartTooltipHeader,
+  ChartTooltipRow,
+} from '@/components/common/charts/chart-tooltip';
 import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
@@ -433,7 +450,7 @@ const formatTooltipMoney = (value: number) =>
 const deltaColorClass = (delta: number) => ({
   'text-success-text': delta > 0,
   'text-app-expense-color': delta < 0,
-  'text-muted-foreground': delta === 0,
+  'text-card-tooltip-muted': delta === 0,
 });
 
 // Component breakdown shown in the tooltip, gated the same way as the standalone
