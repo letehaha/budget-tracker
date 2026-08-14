@@ -69,9 +69,7 @@
       "deleteAndIgnoreDescription": "Menghapus Penerima ini DAN menambahkan namanya (kanonik + semua alias) ke daftar blokir nama yang diabaikan. Sinkronisasi masa depan tidak akan membuatnya ulang dari teks pedagang mentah. Transaksi yang terhubung tetap ada tetapi kehilangan tautan penerima.",
       "mergeTitle": "Gabungkan ke penerima lain",
       "mergeDescription": "Pilih penerima target. Semua transaksi dan alias dipindahkan ke target; penerima ini dihapus.",
-      "mergeButton": "Gabungkan",
       "confirmMerge": "Gabungkan",
-      "noTransactions": "Belum ada transaksi",
       "topCategoryHint": "Kategori yang paling sering digunakan dalam transaksi yang terhubung ke penerima ini. Digunakan sebagai cadangan ketika tidak ada kategori bawaan yang ditetapkan.",
       "defaultCategoryPlaceholder": "Pilih kategori",
       "defaultTagsLabel": "Terapkan tag otomatis",
@@ -83,16 +81,11 @@
       "change": "Ubah logo",
       "dialogTitle": "Ubah Logo",
       "dialogDescription": "Cari logo merek untuk mewakili penerima ini.",
-      "searchPlaceholder": "Nama merek atau domain",
-      "noResults": "Tidak ada merek yang cocok ditemukan.",
       "resetToAuto": "Kembalikan ke otomatis",
       "updatedToast": "Logo diperbarui.",
       "resetToast": "Logo dikembalikan ke otomatis.",
       "fieldLabel": "Logo",
-      "domainHint": "Untuk menemukan merek yang tepat, ketik domain situs web perusahaan (mis. amazon.com) — itu selalu mencocokkan logo yang tepat.",
-      "useDomainDirectly": "Gunakan {domain}",
-      "searchHint": "Ketik nama merek, atau domain seperti amazon.com",
-      "autoLabel": "Otomatis (dari nama)"
+      "domainHint": "Untuk menemukan merek yang tepat, ketik domain situs web perusahaan (mis. amazon.com) — itu selalu mencocokkan logo yang tepat."
     },
     "transactionsDialog": {
       "title": "{name} — transaksi",

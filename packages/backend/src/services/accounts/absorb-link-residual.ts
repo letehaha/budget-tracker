@@ -39,9 +39,11 @@ export const absorbLinkResidualIntoOpeningBalance = withTransaction(
       return 0;
     }
 
+    // Every row that moved the balance counts, adjustments included; `real_transactions`
+    // drops the planned rows, which by definition moved nothing.
     const [row] = await Transactions.sequelize!.query<{ signedSum: string }>(
       `SELECT COALESCE(SUM(CASE WHEN "transactionType" = :incomeType THEN "amount" ELSE -"amount" END), 0) AS "signedSum"
-       FROM "Transactions" WHERE "accountId" = :accountId AND "isPlanned" = false`,
+       FROM real_transactions WHERE "accountId" = :accountId`,
       {
         replacements: { accountId, incomeType: TRANSACTION_TYPES.income },
         type: QueryTypes.SELECT,

@@ -2,7 +2,7 @@ import { API_ERROR_CODES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ConflictError, ValidationError } from '@js/errors';
 import * as Categories from '@models/categories.model';
-import Transactions, * as TransactionsModel from '@models/transactions.model';
+import { countTransactions, updateTransactions } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
@@ -26,11 +26,13 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
     });
   }
 
-  const transactionCount = await Transactions.count({
-    where: {
-      userId: payload.userId,
-      categoryId: payload.categoryId,
-    },
+  // Total reach on both axes: every row pointing at the category must be reassigned
+  // before it can be dropped, so anything this count misses becomes an FK violation.
+  const transactionCount = await countTransactions({
+    where: { categoryId: payload.categoryId },
+    planned: 'include',
+    access: { creator: payload.userId },
+    balanceAdjustments: 'include',
   });
 
   if (transactionCount > 0) {
@@ -49,11 +51,13 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
       message: 'Replacement category does not exist.',
     });
 
-    await TransactionsModel.updateTransactions(
-      { categoryId: payload.replaceWithCategoryId },
-      { userId: payload.userId, categoryId: payload.categoryId },
-      { individualHooks: false },
-    );
+    await updateTransactions({
+      values: { categoryId: payload.replaceWithCategoryId },
+      where: { categoryId: payload.categoryId },
+      planned: 'include',
+      access: { creator: payload.userId },
+      balanceAdjustments: 'include',
+    });
   }
 
   await Categories.deleteCategory(payload);

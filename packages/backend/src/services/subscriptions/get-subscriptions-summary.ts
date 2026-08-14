@@ -1,20 +1,13 @@
-import {
-  API_ERROR_CODES,
-  SUBSCRIPTION_FREQUENCIES,
-  SUBSCRIPTION_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-} from '@bt/shared/types';
+import { API_ERROR_CODES, SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { CustomError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
-import Accounts from '@models/accounts.model';
 import Subscriptions from '@models/subscriptions.model';
-import Transactions from '@models/transactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { ensureUserBaseCurrency } from '@services/currencies/ensure-base-currency.service';
+import { statsTransactions } from '@services/stats/stats-transactions';
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
 import { Op } from 'sequelize';
 
@@ -33,14 +26,12 @@ const getAverageMonthlyIncome = async ({
   const from = startOfMonth(subMonths(now, lookbackMonths));
   const to = endOfMonth(subMonths(now, 1));
 
-  const incomeTxs = await Transactions.findAll({
-    where: {
-      userId,
-      transactionType: TRANSACTION_TYPES.income,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      time: { [Op.between]: [from, to] },
-    },
-    include: [{ model: Accounts, where: { excludeFromStats: false }, attributes: [] }],
+  const { rows: incomeTxs } = await statsTransactions({
+    access: { creator: userId },
+    planned: 'exclude',
+    refunds: 'ignore',
+    window: { from, to },
+    where: { transactionType: TRANSACTION_TYPES.income },
     attributes: ['refAmount'],
   });
 

@@ -6,17 +6,19 @@
       <div
         v-show="tooltip.visible"
         ref="tooltipRef"
-        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 rounded-lg border px-3 py-2 text-xs shadow-lg"
+        class="pointer-events-none absolute z-10"
         :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
       >
-        <div class="text-muted-foreground mb-1 text-[10px] tracking-wide uppercase">{{ tooltip.dateLabel }}</div>
-        <div class="flex items-center gap-2 whitespace-nowrap">
-          <span class="bg-primary inline-block size-2 rounded-full" />
-          <span class="font-medium tabular-nums">{{ formatAmountByCurrencyCode(tooltip.value, currencyCode) }}</span>
-        </div>
-        <div class="text-muted-foreground mt-0.5 text-[10px]">
-          {{ tooltip.relativeLabel }}
-        </div>
+        <ChartTooltip>
+          <ChartTooltipHeader>{{ tooltip.dateLabel }}</ChartTooltipHeader>
+          <div class="flex items-center gap-2">
+            <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: 'var(--primary)' }" />
+            <span class="font-medium tabular-nums">{{ formatAmountByCurrencyCode(tooltip.value, currencyCode) }}</span>
+          </div>
+          <div class="text-card-tooltip-muted mt-0.5 text-xs">
+            {{ tooltip.relativeLabel }}
+          </div>
+        </ChartTooltip>
       </div>
     </div>
 
@@ -47,6 +49,7 @@
 
 <script setup lang="ts">
 import { currentTheme } from '@/common/utils/color-theme';
+import { ChartTooltip, ChartTooltipHeader } from '@/components/common/charts/chart-tooltip';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';

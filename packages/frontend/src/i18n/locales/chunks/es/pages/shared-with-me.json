@@ -28,8 +28,7 @@
       "leaveError": "No se pudo abandonar el recurso compartido.",
       "pending": {
         "heading": "Invitaciones pendientes",
-        "review": "Revisar",
-        "empty": "No hay invitaciones pendientes."
+        "review": "Revisar"
       }
     }
   }

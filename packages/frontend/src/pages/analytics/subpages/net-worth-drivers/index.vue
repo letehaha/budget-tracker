@@ -95,6 +95,34 @@
           </template>
         </div>
 
+        <div v-if="hasData" class="border-border bg-card space-y-3 rounded-lg border p-3">
+          <div class="space-y-0.5">
+            <h2 class="text-sm font-semibold">{{ $t('netWorthDrivers.breakdownChart.title') }}</h2>
+            <p class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.breakdownChart.subtitle') }}</p>
+          </div>
+
+          <DriversBreakdownChart
+            :bars="breakdownModel.bars"
+            :legend="breakdownModel.legend"
+            :granularity="selectedGranularity"
+          />
+
+          <div class="flex flex-wrap items-center justify-center gap-4 px-1">
+            <span class="text-muted-foreground flex items-center gap-1.5 text-xs">
+              <span class="size-2 rounded-full" :style="{ backgroundColor: seriesColors.saved }" />
+              {{ $t('netWorthDrivers.chart.saved') }}
+            </span>
+            <span
+              v-for="entry in breakdownModel.legend"
+              :key="entry.portfolioId"
+              class="text-muted-foreground flex items-center gap-1.5 text-xs"
+            >
+              <span class="size-2 rounded-full" :style="{ backgroundColor: entry.color }" />
+              {{ entry.portfolioId === OTHERS_SERIES_ID ? $t('netWorthDrivers.breakdownChart.others') : entry.name }}
+            </span>
+          </div>
+        </div>
+
         <TargetPanel
           v-if="hasPortfolioActivity"
           :current-portfolio-value="targetSeeds.currentPortfolioValue"
@@ -130,9 +158,12 @@ import GranularitySelector from '../../components/granularity-selector.vue';
 import NoPortfoliosPlaceholder from '../../components/no-portfolios-placeholder.vue';
 import PortfolioFilter from '../../components/portfolio-filter.vue';
 import { usePortfolioGatedReport } from '../../composables/use-portfolio-gated-report';
+import DriversBreakdownChart from './components/drivers-breakdown-chart.vue';
 import DriversChart from './components/drivers-chart.vue';
 import TargetPanel from './components/target-panel.vue';
 import {
+  OTHERS_SERIES_ID,
+  buildBreakdownModel,
   buildCumulativeSeries,
   computeAllocationContext,
   deriveTargetSeeds,
@@ -178,8 +209,11 @@ const query = useQuery({
 });
 
 const buckets = computed(() => query.data.value?.buckets ?? []);
+const portfolios = computed(() => query.data.value?.portfolios ?? []);
 
 const cumulativePoints = computed(() => buildCumulativeSeries({ buckets: buckets.value }));
+
+const breakdownModel = computed(() => buildBreakdownModel({ buckets: buckets.value, portfolios: portfolios.value }));
 
 const { t } = useI18n();
 const { format: formatDate } = useDateLocale();

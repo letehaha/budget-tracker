@@ -107,7 +107,6 @@
         "actionTransfer": "transfer",
         "actionWithdrawal": "withdrawal",
         "actionDeposit": "deposit",
-        "warning": "This action cannot be undone.",
         "cancelButton": "Cancel",
         "confirmButton": "Confirm Transfer"
       },

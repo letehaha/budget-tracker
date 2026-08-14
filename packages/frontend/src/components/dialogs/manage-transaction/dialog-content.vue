@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { getExchangeRatePair } from '@/api/currencies';
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
@@ -14,10 +15,11 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
-import { useFormatCurrency } from '@/composable/formatters';
+import { useCurrencyName, useFormatCurrency } from '@/composable/formatters';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
@@ -29,12 +31,13 @@ import {
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
+  type CurrencyModel,
   type TransactionModel,
 } from '@bt/shared/types';
 import { helpers, minValue } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
-import { endOfDay } from 'date-fns';
-import { SplitIcon } from '@lucide/vue';
+import { endOfDay, format } from 'date-fns';
+import { Loader2Icon, SparklesIcon, SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -69,6 +72,7 @@ import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
 
 import { canDeleteTransaction, isTxEditableAsManual, prepopulateForm } from './helpers';
 import { FORM_TYPES, UI_FORM_STRUCT } from './types';
+import { canSuggestOriginalAmount, resolveSuggestedOriginalAmount } from './utils/suggest-original-amount';
 
 defineOptions({
   name: 'record-form',
@@ -108,7 +112,7 @@ const route = useRoute();
 const { t } = useI18n();
 watch(() => route.path, closeModal);
 
-const { currenciesMap } = storeToRefs(useCurrenciesStore());
+const { currenciesMap, systemCurrencies } = storeToRefs(useCurrenciesStore());
 const {
   accounts: allAccounts,
   accountsRecord,
@@ -154,6 +158,8 @@ const form = ref<UI_FORM_STRUCT>({
   payeeId: null,
   categoryUserTouched: false,
   isPlanned: false,
+  originalAmount: null,
+  originalCurrency: null,
 });
 
 // PayeeField → category auto-fill (one-shot) + tag auto-apply.
@@ -203,7 +209,7 @@ const transferDestinationType = ref<TransferDestinationType>('account');
 
 const { data: portfolios } = usePortfolios();
 
-const { addInfoNotification } = useNotificationCenter();
+const { addInfoNotification, addWarningNotification } = useNotificationCenter();
 
 const {
   isInitialRefundsDataLoaded,
@@ -766,6 +772,59 @@ const onAmountBlur = () => {
   prefillLoanTargetAmount();
 };
 
+const { formatCurrencyLabel } = useCurrencyName();
+const currencyOptionLabel = (item: CurrencyModel) =>
+  formatCurrencyLabel({ code: item.code, fallbackName: item.currency });
+
+const isOriginalAmountSuggestVisible = computed(
+  () =>
+    !isFormFieldsDisabled.value &&
+    canSuggestOriginalAmount({
+      amount: form.value.amount,
+      accountCurrencyCode: form.value.account?.currencyCode,
+      originalCurrencyCode: form.value.originalCurrency?.code,
+      originalAmount: form.value.originalAmount,
+    }),
+);
+
+const isSuggestingOriginalAmount = ref(false);
+
+// Use the pair endpoint here, not `useExchangeRates().convert`: convert only knows the
+// user's linked currencies, and the original currency can be any ISO code.
+const suggestOriginalAmount = async () => {
+  const from = form.value.account?.currencyCode;
+  const to = form.value.originalCurrency?.code;
+  if (!from || !to) return;
+
+  isSuggestingOriginalAmount.value = true;
+  try {
+    const { rate } = await getExchangeRatePair({
+      from,
+      to,
+      date: format(form.value.time, 'yyyy-MM-dd'),
+      silent: true,
+    });
+
+    const suggested = resolveSuggestedOriginalAmount({
+      amount: Number(form.value.amount),
+      rate,
+      currencyDigits: form.value.originalCurrency?.digits,
+    });
+
+    if (suggested === null) {
+      addWarningNotification(t('dialogs.manageTransaction.form.originalAmountSuggestFailed'));
+      return;
+    }
+
+    // An amount typed while the lookup was in flight wins over the suggestion.
+    if (form.value.originalAmount == null) form.value.originalAmount = suggested;
+  } catch {
+    addWarningNotification(t('dialogs.manageTransaction.form.originalAmountSuggestFailed'));
+  } finally {
+    isSuggestingOriginalAmount.value = false;
+  }
+};
+
 // The field echoes every programmatic write back as an update, so an unchanged
 // value must not count as user input.
 const onDateUpdate = (value: Date) => {
@@ -854,6 +913,7 @@ const prepopulateIfReady = () => {
     accounts: accountsRecord.value,
     categories: effectiveCategoriesMap.value,
     formattedCategories: effectiveFormattedCategories.value,
+    systemCurrencies: systemCurrencies.value,
   });
   if (data) form.value = data;
   // Edit fallback: when the resolved opposite leg is a loan account, switch the picker to the Loan pill so it matches the row.
@@ -911,6 +971,47 @@ onUnmounted(() => {
         :label="$t('dialogs.manageTransaction.form.tagsLabel')"
         :disabled="isFormFieldsDisabled"
       />
+    </FormRow>
+    <FormRow v-if="!isTransferTx">
+      <div class="grid grid-cols-2 items-start gap-3">
+        <InputField
+          v-model="form.originalAmount"
+          type="number"
+          only-positive
+          :label="$t('dialogs.manageTransaction.form.originalAmountLabel')"
+          :placeholder="$t('dialogs.manageTransaction.form.originalAmountPlaceholder')"
+          :disabled="isFormFieldsDisabled"
+          trailing-icon-css-class="px-1"
+        >
+          <template v-if="isOriginalAmountSuggestVisible" #iconTrailing>
+            <DesktopOnlyTooltip :content="$t('dialogs.manageTransaction.form.originalAmountSuggest')">
+              <Button
+                type="button"
+                variant="ghost-primary"
+                size="icon-sm"
+                :disabled="isSuggestingOriginalAmount"
+                :aria-label="$t('dialogs.manageTransaction.form.originalAmountSuggest')"
+                @click="suggestOriginalAmount"
+              >
+                <Loader2Icon v-if="isSuggestingOriginalAmount" class="size-4 animate-spin" />
+                <SparklesIcon v-else class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </template>
+        </InputField>
+        <SelectField
+          :model-value="form.originalCurrency ?? null"
+          :values="systemCurrencies"
+          value-key="code"
+          :label-key="currencyOptionLabel"
+          :label="$t('dialogs.manageTransaction.form.originalCurrencyLabel')"
+          :placeholder="$t('dialogs.manageTransaction.form.originalCurrencyPlaceholder')"
+          :disabled="isFormFieldsDisabled"
+          with-search
+          clearable
+          @update:model-value="(value) => (form.originalCurrency = value)"
+        />
+      </div>
     </FormRow>
     <!-- Refund linking on accounts shared *with* the caller isn't supported by the
          backend yet — hide the field rather than offering a button that errors on

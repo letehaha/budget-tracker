@@ -1,7 +1,7 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import RefundTransactions from '@models/refund-transactions.model';
 import Tags from '@models/tags.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { Op } from 'sequelize';
 
 /** A refund resolved for a whole-transaction dimension (payee / tag). */
@@ -51,8 +51,18 @@ export const resolveWholeTxRefunds = async ({
     neededTxIds.add(refund.refundTxId);
   }
 
-  const txs = await Transactions.findAll({
-    where: { id: { [Op.in]: [...neededTxIds] } },
+  // A refund link and both of its transactions always belong to one user, so scoping the lookup to
+  // the links' owners keeps it inside the scope the caller's rows came from. Planned rows never
+  // count as a refund leg — stats read money that actually moved.
+  const txs = await findTransactions({
+    planned: 'exclude',
+    access: 'unscoped-internal',
+    balanceAdjustments: 'include',
+    completeness: 'all',
+    where: {
+      id: { [Op.in]: [...neededTxIds] },
+      userId: { [Op.in]: [...new Set(refunds.map((refund) => refund.userId))] },
+    },
     attributes: ['id', 'refAmount', 'transactionType', 'payeeId', 'time'],
     include: needTags ? [{ model: Tags, through: { attributes: [] }, attributes: ['id'], required: false }] : [],
   });

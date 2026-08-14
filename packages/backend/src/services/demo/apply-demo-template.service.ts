@@ -357,6 +357,10 @@ function reportMisses({ misses }: { misses: DemoApplyMisses }): void {
 
 /**
  * Update account currentBalance and refCurrentBalance based on actual transactions.
+ *
+ * Reads the `real_transactions` view: a balance is money that has moved, so plans must not
+ * count, while balance adjustments and both legs of every transfer must — which is exactly
+ * the one filter the view applies.
  */
 async function updateAccountBalances({ userId }: { userId: number }): Promise<void> {
   const sequelize = connection.sequelize;
@@ -367,12 +371,12 @@ async function updateAccountBalances({ userId }: { userId: number }): Promise<vo
       "currentBalance" = "initialBalance" + COALESCE((
         SELECT SUM(
           CASE WHEN t."transactionType" = :incomeType THEN t.amount ELSE -t.amount END
-        ) FROM "Transactions" t WHERE t."accountId" = "Accounts".id
+        ) FROM real_transactions t WHERE t."accountId" = "Accounts".id
       ), 0),
       "refCurrentBalance" = "refInitialBalance" + COALESCE((
         SELECT SUM(
           CASE WHEN t."transactionType" = :incomeType THEN t."refAmount" ELSE -t."refAmount" END
-        ) FROM "Transactions" t WHERE t."accountId" = "Accounts".id
+        ) FROM real_transactions t WHERE t."accountId" = "Accounts".id
       ), 0)
     WHERE "userId" = :userId
     `,
@@ -387,6 +391,8 @@ async function updateAccountBalances({ userId }: { userId: number }): Promise<vo
  * Rebuild the Balances history table for a user's accounts.
  * Deletes initial balance records created by account creation hooks,
  * then rebuilds with running balances including first-of-month entries.
+ *
+ * Same reasoning as `updateAccountBalances` for reading `real_transactions`.
  */
 async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<void> {
   const sequelize = connection.sequelize;
@@ -412,11 +418,11 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
     `
     WITH tx_dates AS (
       SELECT "accountId", DATE("time") as "date"
-      FROM "Transactions" WHERE "userId" = :userId
+      FROM real_transactions WHERE "userId" = :userId
       GROUP BY "accountId", DATE("time")
       UNION
       SELECT "accountId", DATE_TRUNC('month', "time")::date as "date"
-      FROM "Transactions" WHERE "userId" = :userId
+      FROM real_transactions WHERE "userId" = :userId
       GROUP BY "accountId", DATE_TRUNC('month', "time")
     ),
     daily_deltas AS (
@@ -426,7 +432,7 @@ async function rebuildBalancesHistory({ userId }: { userId: number }): Promise<v
           CASE WHEN t."transactionType" = :incomeType THEN t."refAmount" ELSE -t."refAmount" END
         ), 0) as delta
       FROM tx_dates d
-      LEFT JOIN "Transactions" t
+      LEFT JOIN real_transactions t
         ON t."accountId" = d."accountId"
         AND DATE(t."time") = d."date"
         AND t."userId" = :userId

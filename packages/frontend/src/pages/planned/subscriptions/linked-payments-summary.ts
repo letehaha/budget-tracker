@@ -45,6 +45,7 @@ export interface LinkedPaymentLike {
   currencyCode: string;
   refCurrencyCode: string;
   time: Date | string;
+  isPlanned: boolean;
 }
 
 export interface LinkedPaymentsCurrencyTotal {
@@ -52,8 +53,9 @@ export interface LinkedPaymentsCurrencyTotal {
   total: number;
 }
 
-export interface LinkedPaymentsYearGroup<T> {
+interface LinkedPaymentsYearGroup<T> {
   year: number;
+  /** The year's linked rows, planned ones included — this is what the ledger lists. */
   payments: T[];
   /** Sum of refAmount — the year's single comparable total in the base currency. */
   refTotal: number;
@@ -85,13 +87,13 @@ export interface LinkedPaymentsChartGap {
 
 export type LinkedPaymentsChartSlot = LinkedPaymentsChartBar | LinkedPaymentsChartGap;
 
-export interface LinkedPaymentsDrift {
+interface LinkedPaymentsDrift {
   percent: number;
   direction: 'up' | 'down';
   firstPaymentTime: Date;
 }
 
-export interface LinkedPaymentsAverage {
+interface LinkedPaymentsAverage {
   amount: number;
   currencyCode: string;
 }
@@ -101,7 +103,7 @@ export interface LinkedPaymentsAverage {
  * history adds up to one number, on the same basis budgets use. Native amounts stay
  * available per-currency in `totalsByCurrency` for secondary display.
  */
-export interface LinkedPaymentsStats {
+interface LinkedPaymentsStats {
   /** Sum of refAmount across all payments, in the base currency. */
   refTotal: number;
   /** Base currency code; null only when nothing is linked. */
@@ -121,7 +123,8 @@ export interface LinkedPaymentsStats {
   lastPaymentTime: Date | null;
 }
 
-export interface LinkedPaymentsSummary<T> {
+interface LinkedPaymentsSummary<T> {
+  /** Every linked row, planned ones included — this is what the ledger lists. */
   payments: T[];
   yearGroups: LinkedPaymentsYearGroup<T>[];
   stats: LinkedPaymentsStats;
@@ -130,6 +133,10 @@ export interface LinkedPaymentsSummary<T> {
 }
 
 const toDate = ({ time }: { time: Date | string }): Date => (time instanceof Date ? time : new Date(time));
+
+/** A planned row is a commitment, not spend, so no amount aggregate may count it. */
+const settledOnly = <T extends LinkedPaymentLike>({ payments }: { payments: T[] }): T[] =>
+  payments.filter((payment) => !payment.isPlanned);
 
 const sumRefAmounts = <T extends LinkedPaymentLike>({ payments }: { payments: T[] }): number =>
   payments.reduce((sum, payment) => sum + payment.refAmount, 0);
@@ -210,7 +217,8 @@ const buildGap = <T extends LinkedPaymentLike>({
  * Everything the linked-payments UI renders, derived in one pass: the ledger
  * (newest-first, grouped by year), the headline stats, the amount chart and the
  * price drift. Totals, averages, chart heights and drift all compare `refAmount`,
- * so payments booked in different currencies stay comparable.
+ * so payments booked in different currencies stay comparable. The ledger lists
+ * planned rows; every aggregate is computed over the settled ones only.
  */
 export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
   transactions,
@@ -222,7 +230,8 @@ export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
   const payments = [...transactions].sort(
     (a, b) => toDate({ time: b.time }).getTime() - toDate({ time: a.time }).getTime(),
   );
-  const oldestFirst = [...payments].reverse();
+  const settled = settledOnly({ payments });
+  const oldestFirst = [...settled].reverse();
 
   const yearBuckets = new Map<number, T[]>();
   for (const payment of payments) {
@@ -237,15 +246,19 @@ export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
 
   const yearGroups = [...yearBuckets.entries()]
     .sort(([a], [b]) => b - a)
-    .map(([year, yearPayments]) => ({
-      year,
-      payments: yearPayments,
-      refTotal: sumRefAmounts({ payments: yearPayments }),
-      isConverted: hasConvertedPayment({ payments: yearPayments }),
-      totalsByCurrency: sumByCurrency({ payments: yearPayments }),
-    }));
+    .map(([year, yearPayments]) => {
+      const yearSettled = settledOnly({ payments: yearPayments });
 
-  const latest = payments[0];
+      return {
+        year,
+        payments: yearPayments,
+        refTotal: sumRefAmounts({ payments: yearSettled }),
+        isConverted: hasConvertedPayment({ payments: yearSettled }),
+        totalsByCurrency: sumByCurrency({ payments: yearSettled }),
+      };
+    });
+
+  const latest = settled[0];
 
   const buildChart = (): LinkedPaymentsChartSlot[] | null => {
     if (oldestFirst.length < MIN_PAYMENTS_FOR_CHART) return null;
@@ -287,8 +300,8 @@ export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
     });
   };
 
-  const totalsByCurrency = sumByCurrency({ payments });
-  const refTotal = sumRefAmounts({ payments });
+  const totalsByCurrency = sumByCurrency({ payments: settled });
+  const refTotal = sumRefAmounts({ payments: settled });
   const singleNativeCurrency = totalsByCurrency.length === 1 ? totalsByCurrency[0] : undefined;
 
   return {
@@ -297,15 +310,15 @@ export const buildLinkedPaymentsSummary = <T extends LinkedPaymentLike>({
     stats: {
       refTotal,
       refCurrencyCode: latest ? latest.refCurrencyCode : null,
-      isConverted: hasConvertedPayment({ payments }),
+      isConverted: hasConvertedPayment({ payments: settled }),
       totalsByCurrency,
-      refAverage: payments.length ? refTotal / payments.length : null,
+      refAverage: settled.length ? refTotal / settled.length : null,
       nativeAverage: singleNativeCurrency
-        ? { amount: singleNativeCurrency.total / payments.length, currencyCode: singleNativeCurrency.currencyCode }
+        ? { amount: singleNativeCurrency.total / settled.length, currencyCode: singleNativeCurrency.currencyCode }
         : null,
       lastPaymentTime: latest ? toDate({ time: latest.time }) : null,
     },
     chart: buildChart(),
-    drift: buildDrift({ first: oldestFirst[0], latest, paymentsCount: payments.length }),
+    drift: buildDrift({ first: oldestFirst[0], latest, paymentsCount: settled.length }),
   };
 };

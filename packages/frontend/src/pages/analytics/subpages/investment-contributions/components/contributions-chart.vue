@@ -7,54 +7,45 @@
       <div
         v-show="tooltip.visible"
         ref="tooltipRef"
-        class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-[18rem] rounded-xl border px-4 py-3 text-sm shadow-xl"
+        class="pointer-events-none absolute z-10"
         :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
       >
-        <div v-if="tooltip.isAverage">
-          <div class="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">
-            {{ t('investmentContributions.average') }}
-          </div>
-          <div class="text-lg font-semibold tracking-tight tabular-nums">
-            {{ formatBaseCurrency(tooltip.averageValue) }}
-          </div>
-        </div>
+        <ChartTooltip class="min-w-72">
+          <template v-if="tooltip.isAverage">
+            <ChartTooltipHeader>{{ t('investmentContributions.average') }}</ChartTooltipHeader>
+            <ChartTooltipHero>{{ formatBaseCurrency(tooltip.averageValue) }}</ChartTooltipHero>
+          </template>
 
-        <template v-else>
-          <div class="text-muted-foreground text-[11px] font-medium tracking-widest uppercase">
-            {{ tooltip.period }}
-          </div>
+          <template v-else>
+            <ChartTooltipHeader>{{ tooltip.period }}</ChartTooltipHeader>
 
-          <div class="mt-1 flex items-baseline justify-between gap-6">
-            <span class="text-xl font-semibold tracking-tight tabular-nums">
-              {{ formatBaseCurrency(tooltip.total) }}
-            </span>
-            <span
-              v-if="tooltip.showMomChange && tooltip.momChangePct !== undefined"
-              class="flex items-baseline gap-1.5"
-            >
-              <span class="text-muted-foreground text-[11px]">
-                {{ t('investmentContributions.chart.vsPrevious') }}
+            <div class="flex items-baseline justify-between gap-6">
+              <ChartTooltipHero>{{ formatBaseCurrency(tooltip.total) }}</ChartTooltipHero>
+              <span
+                v-if="tooltip.showMomChange && tooltip.momChangePct !== undefined"
+                class="flex items-baseline gap-1.5"
+              >
+                <span class="text-card-tooltip-muted text-[11px]">
+                  {{ t('investmentContributions.chart.vsPrevious') }}
+                </span>
+                <span :class="['text-sm font-semibold tabular-nums', changeColorClass(tooltip.momChangePct)]">
+                  {{ tooltip.momChangePct > 0 ? '+' : '' }}{{ tooltip.momChangePct }}%
+                </span>
               </span>
-              <span :class="['text-sm font-semibold tabular-nums', changeColorClass(tooltip.momChangePct)]">
-                {{ tooltip.momChangePct > 0 ? '+' : '' }}{{ tooltip.momChangePct }}%
-              </span>
-            </span>
-          </div>
-
-          <div v-if="tooltip.segments.length" class="border-border/60 mt-3 space-y-2 border-t pt-3">
-            <div
-              v-for="segment in tooltip.segments"
-              :key="segment.portfolioId"
-              class="flex items-center justify-between gap-6"
-            >
-              <span class="flex min-w-0 items-center gap-2">
-                <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: segment.color }"></span>
-                <span class="truncate">{{ segment.name }}</span>
-              </span>
-              <span class="font-medium tabular-nums">{{ formatBaseCurrency(segment.amount) }}</span>
             </div>
-          </div>
-        </template>
+
+            <template v-if="tooltip.segments.length">
+              <ChartTooltipDivider />
+              <ChartTooltipRow
+                v-for="segment in tooltip.segments"
+                :key="segment.portfolioId"
+                :color="segment.color"
+                :label="segment.name"
+                :value="formatBaseCurrency(segment.amount)"
+              />
+            </template>
+          </template>
+        </ChartTooltip>
       </div>
     </div>
   </div>
@@ -62,6 +53,13 @@
 
 <script setup lang="ts">
 import { currentTheme } from '@/common/utils/color-theme';
+import {
+  ChartTooltip,
+  ChartTooltipDivider,
+  ChartTooltipHeader,
+  ChartTooltipHero,
+  ChartTooltipRow,
+} from '@/components/common/charts/chart-tooltip';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
@@ -179,7 +177,7 @@ const formatAxisValue = (value: number) => formatAxisCurrency({ value, symbol: g
 const changeColorClass = (pct: number): string => {
   if (pct > 0) return 'text-app-income-color';
   if (pct < 0) return 'text-app-expense-color';
-  return 'text-muted-foreground';
+  return 'text-card-tooltip-muted';
 };
 
 const renderChart = () => {

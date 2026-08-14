@@ -33,7 +33,7 @@
     </div>
 
     <template v-if="query.isLoading.value">
-      <div class="grid grid-cols-1 gap-4 @sm/net-worth-history:grid-cols-3">
+      <div class="grid grid-cols-1 gap-4 @sm/net-worth-history:grid-cols-2 @xl/net-worth-history:grid-cols-3">
         <div v-for="n in 3" :key="`card-skeleton-${n}`" class="border-border bg-card rounded-lg border p-4">
           <div class="bg-muted mb-2 h-4 w-24 animate-pulse rounded" />
           <div class="bg-muted h-7 w-16 animate-pulse rounded" />
@@ -68,7 +68,10 @@
         </ul>
       </Callout>
 
-      <div v-if="hasData" class="grid grid-cols-1 gap-4 @sm/net-worth-history:grid-cols-3">
+      <div
+        v-if="hasData"
+        class="grid grid-cols-1 gap-4 @sm/net-worth-history:grid-cols-2 @xl/net-worth-history:grid-cols-3"
+      >
         <SummaryCard :title="$t('netWorthHistory.cards.currentNetWorth')" :value="currentNetWorth" />
 
         <div class="border-border bg-card rounded-lg border p-4">
@@ -76,7 +79,7 @@
             {{ $t('netWorthHistory.cards.periodChange') }}
           </div>
           <div
-            class="text-lg font-semibold @sm/net-worth-history:text-2xl"
+            class="text-lg font-semibold @xl/net-worth-history:text-2xl"
             :class="periodChange.amount >= 0 ? 'text-app-income-color' : 'text-app-expense-color'"
           >
             {{ formattedPeriodChange }}

@@ -7,7 +7,7 @@
  */
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import type { CategorizationMeta, RecordId } from '@bt/shared/types';
-import { Money, centsToApiDecimal } from '@common/types/money';
+import { Money, centsToApiDecimal, centsToApiDecimalOrNull } from '@common/types/money';
 import type Tags from '@models/tags.model';
 import type TransactionGroups from '@models/transaction-groups.model';
 import type TransactionSplits from '@models/transaction-splits.model';
@@ -38,6 +38,8 @@ export interface TransactionApiResponse {
   commissionRate: number;
   refCommissionRate: number;
   cashbackAmount: number;
+  originalAmount: number | null;
+  originalCurrencyCode: string | null;
   note: string | null;
   time: Date;
   userId: number;
@@ -117,6 +119,8 @@ interface CreateTransactionRequest {
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  originalAmount?: number; // decimal from API
+  originalCurrencyCode?: string;
 }
 
 // ============================================================================
@@ -148,6 +152,8 @@ interface CreateTransactionInternal {
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  originalAmount?: Money;
+  originalCurrencyCode?: string;
 }
 
 // ============================================================================
@@ -201,6 +207,8 @@ export function serializeTransaction(
     commissionRate: centsToApiDecimal(tx.commissionRate),
     refCommissionRate: centsToApiDecimal(tx.refCommissionRate),
     cashbackAmount: centsToApiDecimal(tx.cashbackAmount),
+    originalAmount: centsToApiDecimalOrNull(tx.originalAmount),
+    originalCurrencyCode: tx.originalCurrencyCode ?? null,
     note: tx.note,
     time: tx.time,
     userId: tx.userId,
@@ -322,5 +330,7 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     payeeId: req.payeeId,
     payeeLocked: req.payeeLocked,
     isPlanned: req.isPlanned,
+    originalAmount: req.originalAmount !== undefined ? Money.fromDecimal(req.originalAmount) : undefined,
+    originalCurrencyCode: req.originalCurrencyCode,
   };
 }

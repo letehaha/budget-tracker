@@ -84,7 +84,9 @@ export const getInvestmentContributions = async ({
       fetchSavingsTransactions({ userId, from, to }),
     ]);
 
-    return { portfolios: scopedPortfolios, transfers: transferRows, savingsTransactions: savingsRows };
+    // Only the net of the intake is read here, and refund netting subtracts the same
+    // amount from both sides of a bucket, so the resolved pairs cannot move it.
+    return { portfolios: scopedPortfolios, transfers: transferRows, savingsTransactions: savingsRows.rows };
   })();
 
   const scope = new Set<string>(portfolios.map((portfolio) => portfolio.id));

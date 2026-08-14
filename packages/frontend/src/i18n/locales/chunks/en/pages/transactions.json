@@ -6,14 +6,7 @@
       "reset": "Reset",
       "apply": "Apply",
       "dateRange": {
-        "tabs": {
-          "range": "Range",
-          "single": "Single"
-        },
         "placeholder": "Date or range",
-        "fromDate": "From date",
-        "toDate": "To date",
-        "clear": "Clear",
         "presets": {
           "thisMonth": "This month",
           "last3Months": "Last 3 months",
@@ -23,7 +16,6 @@
       },
       "transactionType": {
         "label": "Transaction type:",
-        "both": "Both",
         "income": "Income",
         "expense": "Expense",
         "allTypes": "All types"
@@ -62,10 +54,8 @@
         "selected": "selected",
         "searchPlaceholder": "Search tags..."
       },
-      "payeeChip": "Payee",
       "payees": {
         "label": "Payees",
-        "searchPlaceholder": "Search payees",
         "selectedOne": "1 Payee selected",
         "selectedMany": "{n} Payees selected"
       },
@@ -139,7 +129,6 @@
         "searchPlaceholder": "Search groups...",
         "noGroupsMessage": "No groups yet. Create one first.",
         "noSearchResultsMessage": "No groups match your search.",
-        "loadingText": "Loading groups...",
         "addingText": "Adding...",
         "buttonLabel": "Add to Group",
         "cancelButton": "Cancel",
@@ -186,6 +175,7 @@
         "payee": "Payee",
         "amount": "Amount",
         "refAmount": "Base amount",
+        "originalAmount": "Original amount",
         "note": "Note",
         "tags": "Tags",
         "categorizationSource": "Categorized by",

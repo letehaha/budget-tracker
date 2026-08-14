@@ -1,8 +1,6 @@
 {
   "common": {
     "loading": "Cargando...",
-    "from": "Desde",
-    "to": "Hasta",
     "new": "Nuevo",
     "actions": {
       "loading": "Cargando...",
@@ -13,7 +11,6 @@
       "accept": "Aceptar",
       "delete": "Eliminar",
       "edit": "Editar",
-      "create": "Crear",
       "addSubcategory": "Añadir subcategoría",
       "settings": "Ajustes",
       "confirm": "Confirmar",
@@ -21,13 +18,11 @@
       "viewAnalytics": "Ver análisis",
       "saving": "Guardando...",
       "saveChanges": "Guardar cambios",
-      "scrollToTop": "Arriba",
       "done": "Hecho",
       "failed": "Error",
       "viewAll": "Ver todo",
       "scan": "Escanear",
       "link": "Vincular",
-      "loadMore": "Cargar más",
       "clear": "Limpiar",
       "apply": "Aplicar",
       "retry": "Reintentar"
@@ -65,7 +60,6 @@
     "labels": {
       "email": "Correo electrónico",
       "password": "Contraseña",
-      "username": "Nombre de usuario",
       "system": "sistema",
       "unknown": "Desconocido",
       "total": "Total"
@@ -344,20 +338,7 @@
     "onlyFirstFileTaken": "Se soltaron varios archivos – solo se usó el primero."
   },
   "demo": {
-    "loadingOverlay": {
-      "messages": [
-        "Procesando números para usted...",
-        "Creando sus cuentas personales...",
-        "Añadiendo transacciones realistas...",
-        "Ajustando su panel...",
-        "Casi listo, aplicando los últimos retoques..."
-      ]
-    },
     "featureNotAvailable": "Esta función no está disponible en el modo de demostración",
-    "bankConnectionsRestricted": {
-      "title": "Conexiones bancarias"
-    },
-    "signUpToUnlock": "Regístrese para desbloquear esta función",
     "passwordChangeRestricted": "Los cambios de contraseña no están disponibles en el modo de demostración",
     "investmentsRestricted": {
       "title": "Inversiones no disponibles en la demostración",
@@ -415,10 +396,8 @@
       "noteLabel": "Nota (opcional)",
       "notePlaceholder": "Nota opcional…",
       "loadingText": "Cargando…",
-      "savingText": "Guardando…",
       "savingAction": "Guardar",
       "cancelButton": "Cancelar",
-      "deletingText": "Eliminando…",
       "editAction": "Editar",
       "deleteAction": "Eliminar grupo",
       "transactionsLabel": "Transacciones",
@@ -429,7 +408,6 @@
       "removeTransactionDescriptionNormal": "¿Está seguro de que desea quitar esta transacción del grupo?",
       "removeButtonText": "Quitar",
       "removeAndDeleteButtonText": "Quitar y eliminar el grupo",
-      "transactionCountSuffix": "transacciones",
       "summary": {
         "transactions": "Transacciones",
         "net": "Neto",

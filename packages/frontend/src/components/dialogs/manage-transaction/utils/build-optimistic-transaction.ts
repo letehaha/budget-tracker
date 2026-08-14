@@ -3,8 +3,13 @@ import type { TagModel, TransactionModel, RecordId } from '@bt/shared/types';
 import type { InfiniteData, QueryClient } from '@tanstack/vue-query';
 import { toRaw } from 'vue';
 
-import { getTxTypeFromFormType, isTxEditableAsManual, resolveFormIsPlanned } from '../helpers';
-import type { UI_FORM_STRUCT } from '../types';
+import {
+  getTxTypeFromFormType,
+  isTxEditableAsManual,
+  resolveFormIsPlanned,
+  resolveOriginalCurrencyPair,
+} from '../helpers';
+import { FORM_TYPES, type UI_FORM_STRUCT } from '../types';
 
 interface BuildOptimisticTransactionParams {
   form: UI_FORM_STRUCT;
@@ -46,6 +51,19 @@ export const buildOptimisticTransaction = ({
   // Update category if not a transfer
   if (form.category?.id) {
     updatedTransaction.categoryId = form.category.id;
+  }
+
+  // Never touch the pair on a transfer: the payload omits both fields there, so writing the
+  // form values would show a pair the save never stored.
+  if (form.type !== FORM_TYPES.transfer) {
+    const originalPair = resolveOriginalCurrencyPair({ form });
+    if (originalPair.state === 'pair') {
+      updatedTransaction.originalAmount = originalPair.originalAmount;
+      updatedTransaction.originalCurrencyCode = originalPair.originalCurrencyCode;
+    } else if (originalPair.state === 'clear') {
+      updatedTransaction.originalAmount = null;
+      updatedTransaction.originalCurrencyCode = null;
+    }
   }
 
   // Update tags optimistically

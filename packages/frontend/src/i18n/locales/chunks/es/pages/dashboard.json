@@ -118,7 +118,6 @@
       "categoryTracker": {
         "title": "Lista de seguimiento de categorías",
         "addCategory": "Añadir categoría",
-        "addCategories": "Añadir categorías para seguir",
         "selectCategories": "Seleccionar categorías"
       },
       "cashFlow": {
@@ -213,8 +212,6 @@
       }
     },
     "periodSelector": {
-      "quickSelect": "Selección rápida",
-      "year": "{year}",
       "presets": {
         "currentMonth": "Mes actual",
         "last3Months": "Últimos 3 meses",
@@ -239,7 +236,6 @@
       "config": {
         "includeScheduled": {
           "label": "Incluir pagos programados",
-          "description": "Mostrar recordatorios de pagos próximos y vencidos encima de las transacciones recientes",
           "on": "Activado",
           "off": "Desactivado"
         }

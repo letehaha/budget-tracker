@@ -35,7 +35,6 @@
         },
         "fileUpload": {
           "title": "Upload File",
-          "dragText": "Click to upload or drag and drop",
           "supportedFormats": "CSV or JSON files supported",
           "errors": {
             "unsupportedFormat": "Unsupported file format. Please upload CSV or JSON file.",

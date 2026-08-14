@@ -1,6 +1,6 @@
 import { connection } from '@models/connection';
 import Subscriptions from '@models/subscriptions.model';
-import Transactions from '@models/transactions.model';
+import { updateTransactions } from '@models/transactions-query';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op, QueryTypes } from 'sequelize';
@@ -16,16 +16,24 @@ interface StampParams {
  * Payee is written only where the row has none and payeeLocked is false: an
  * explicit payee, or one the user deliberately cleared, outranks the
  * subscription. Tags are an add-only merge, existing row tags are kept.
+ *
+ * Planned rows are skipped by both writes. Most callers hand over ids they
+ * already know are real, but the manual link path passes whatever the user
+ * (or the MCP client) selected, so the guard lives here rather than in each
+ * caller.
  */
 export const stampSubscriptionPayeeAndTags = withTransaction(
   async ({ subscription, transactionIds }: StampParams): Promise<void> => {
     if (transactionIds.length === 0) return;
 
     if (subscription.payeeId) {
-      await Transactions.update(
-        { payeeId: subscription.payeeId },
-        { where: { id: { [Op.in]: transactionIds }, payeeId: null, payeeLocked: false } },
-      );
+      await updateTransactions({
+        values: { payeeId: subscription.payeeId },
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        where: { id: { [Op.in]: transactionIds }, payeeId: null, payeeLocked: false },
+      });
     }
 
     const tagIds = await getSubscriptionTagIds({ subscriptionId: subscription.id });
@@ -37,7 +45,7 @@ export const stampSubscriptionPayeeAndTags = withTransaction(
       `
       INSERT INTO "TransactionTags" ("tagId", "transactionId")
       SELECT st."tagId", t."id"
-        FROM "Transactions" t
+        FROM real_transactions t
         CROSS JOIN "SubscriptionTags" st
        WHERE t."id" IN (:transactionIds)
          AND st."subscriptionId" = :subscriptionId

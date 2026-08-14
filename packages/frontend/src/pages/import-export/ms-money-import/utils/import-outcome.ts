@@ -7,7 +7,7 @@ import type { MsMoneyImportSummary } from '@bt/shared/types';
  * - `empty`   — nothing failed and nothing landed (every row was skipped or already existed)
  * - `failure` — nothing landed and something failed
  */
-export type MsMoneyImportOutcome = 'success' | 'partial' | 'empty' | 'failure';
+type MsMoneyImportOutcome = 'success' | 'partial' | 'empty' | 'failure';
 
 /** Rows the import landed. Voided rows (zero-amount transactions) and rows that
  *  confirmed an existing planned transaction are counted separately from

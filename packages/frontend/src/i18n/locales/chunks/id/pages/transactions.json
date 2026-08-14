@@ -6,14 +6,7 @@
       "reset": "Atur Ulang",
       "apply": "Terapkan",
       "dateRange": {
-        "tabs": {
-          "range": "Rentang",
-          "single": "Tunggal"
-        },
         "placeholder": "Tanggal atau rentang",
-        "fromDate": "Dari tanggal",
-        "toDate": "Sampai tanggal",
-        "clear": "Hapus",
         "presets": {
           "thisMonth": "Bulan ini",
           "last3Months": "3 bulan terakhir",
@@ -23,7 +16,6 @@
       },
       "transactionType": {
         "label": "Jenis transaksi:",
-        "both": "Keduanya",
         "income": "Pemasukan",
         "expense": "Pengeluaran",
         "allTypes": "Semua jenis"
@@ -62,10 +54,8 @@
         "selected": "dipilih",
         "searchPlaceholder": "Cari tag..."
       },
-      "payeeChip": "Penerima",
       "payees": {
         "label": "Penerima",
-        "searchPlaceholder": "Cari penerima",
         "selectedOne": "1 Penerima dipilih",
         "selectedMany": "{n} Penerima dipilih"
       },
@@ -139,7 +129,6 @@
         "searchPlaceholder": "Cari grup...",
         "noGroupsMessage": "Belum ada grup. Buat satu terlebih dahulu.",
         "noSearchResultsMessage": "Tidak ada grup yang cocok dengan pencarian Anda.",
-        "loadingText": "Memuat grup...",
         "addingText": "Menambahkan...",
         "buttonLabel": "Tambahkan ke Grup",
         "cancelButton": "Batal",
@@ -163,37 +152,6 @@
         "emptyStateHint": "Pilih transaksi di halaman Transaksi dan klik \"Buat Grup\" untuk memulai.",
         "transactionCountLabel": "transaksi"
       },
-      "groupDialog": {
-        "editTitle": "Edit Grup",
-        "nameLabel": "Nama",
-        "noteLabel": "Catatan (opsional)",
-        "notePlaceholder": "Catatan opsional...",
-        "loadingText": "Memuat...",
-        "savingText": "Menyimpan...",
-        "savingAction": "Simpan",
-        "cancelButton": "Batal",
-        "deletingText": "Menghapus...",
-        "editAction": "Sunting",
-        "deleteAction": "Hapus Grup",
-        "transactionsLabel": "Transaksi",
-        "deleteGroupTitle": "Hapus grup",
-        "deleteGroupDescription": "Apakah Anda yakin ingin menghapus \"{groupName}\"? Transaksi tidak akan dihapus.",
-        "removeTransactionTitle": "Hapus transaksi dari grup",
-        "removeTransactionDescription": "Ini akan menyisakan kurang dari 2 transaksi dalam grup, sehingga grup akan dihapus. Lanjutkan?",
-        "removeTransactionDescriptionNormal": "Apakah Anda yakin ingin menghapus transaksi ini dari grup?",
-        "removeButtonText": "Hapus",
-        "removeAndDeleteButtonText": "Hapus & Hapus Grup",
-        "transactionCountSuffix": "transaksi",
-        "summary": {
-          "transactions": "Transaksi",
-          "net": "Bersih",
-          "moneyIn": "Uang masuk",
-          "moneyOut": "Uang keluar"
-        }
-      },
-      "transactionGroupRecord": {
-        "transactionCountLabel": "transaksi"
-      },
       "errors": {
         "nameRequired": "Nama grup wajib diisi",
         "minTransactions": "Pilih setidaknya {min} transaksi",
@@ -209,10 +167,6 @@
       "expiredTooltip": "Diharapkan {days} hari lalu, tidak ada transaksi bank yang cocok",
       "mergedTooltip": "Dikonfirmasi dari entri terencana pada {date}"
     },
-    "transfer": {
-      "hiddenAccount": "Akun tersembunyi"
-    },
-    "addedByTooltip": "Transaksi ini dilampirkan ke anggaran oleh {handle}",
     "table": {
       "columns": {
         "date": "Tanggal",
@@ -221,6 +175,7 @@
         "payee": "Penerima",
         "amount": "Jumlah",
         "refAmount": "Jumlah dasar",
+        "originalAmount": "Jumlah asli",
         "note": "Catatan",
         "tags": "Tag",
         "categorizationSource": "Dikategorikan oleh",

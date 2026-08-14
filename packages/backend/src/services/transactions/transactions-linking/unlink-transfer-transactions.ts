@@ -2,6 +2,7 @@ import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
+import { findTransactions, updateTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { assertTxWriteAccess } from '@services/sharing/auth/authorize-account-write.service';
@@ -13,7 +14,11 @@ export const unlinkTransferTransactions = withTransaction(
       // Fetch all rows for the given transferIds without a userId filter – both sides of a
       // shared-account transfer can belong to different users. The per-tx auth gate below
       // verifies the caller has `write` on each side's parent account before mutating.
-      const transactions = await Transactions.default.findAll({
+      const transactions = await findTransactions({
+        planned: 'include',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        completeness: 'all',
         where: { transferId: { [Op.in]: payload.transferIds } },
       });
 
@@ -33,19 +38,22 @@ export const unlinkTransferTransactions = withTransaction(
       }
 
       const txIds = transactions.map((tx) => tx.id);
-      await Transactions.default.update(
-        {
+      await updateTransactions({
+        planned: 'include',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        values: {
           transferId: null,
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         },
-        {
-          where: {
-            id: { [Op.in]: txIds },
-          },
-        },
-      );
+        where: { id: { [Op.in]: txIds } },
+      });
 
-      const updatedTxs = await Transactions.default.findAll({
+      const updatedTxs = await findTransactions({
+        planned: 'include',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        completeness: 'all',
         where: { id: { [Op.in]: txIds } },
       });
 

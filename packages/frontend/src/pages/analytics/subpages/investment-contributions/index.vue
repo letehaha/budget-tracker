@@ -36,7 +36,9 @@
       </div>
 
       <template v-if="isLoading">
-        <div class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-3">
+        <div
+          class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-2 @xl/investment-contributions:grid-cols-3"
+        >
           <div v-for="n in 3" :key="`card-skeleton-${n}`" class="border-border bg-card rounded-lg border p-4">
             <div class="bg-muted mb-2 h-4 w-24 animate-pulse rounded" />
             <div class="bg-muted h-7 w-16 animate-pulse rounded" />
@@ -53,7 +55,9 @@
       </div>
 
       <template v-else>
-        <div class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-3">
+        <div
+          class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-2 @xl/investment-contributions:grid-cols-3"
+        >
           <SummaryCard
             :title="$t('investmentContributions.cards.totalContributed')"
             :value="model.rangeTotal"
@@ -98,6 +102,7 @@
 <script setup lang="ts">
 import { getInvestmentContributions } from '@/api';
 import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { CATEGORICAL_SERIES_PALETTE } from '@/composable/charts/categorical-series-palette';
 import type { Period } from '@/composable/use-period-navigation';
 import { endpointsTypes } from '@bt/shared/types';
 import { keepPreviousData, useQuery } from '@tanstack/vue-query';
@@ -115,7 +120,6 @@ import PortfolioFilter from '../../components/portfolio-filter.vue';
 import { usePortfolioGatedReport } from '../../composables/use-portfolio-gated-report';
 import ContributionsChart from './components/contributions-chart.vue';
 import {
-  CONTRIBUTION_SERIES_PALETTE,
   buildContributionsChartModel,
   computeVsPreviousPeriodPct,
   sharePctOfSavings,
@@ -187,12 +191,12 @@ const previousQuery = useQuery({
 const EMPTY_RESPONSE: endpointsTypes.GetInvestmentContributionsResponse = { buckets: [], portfolios: [] };
 
 const model = computed(() =>
-  buildContributionsChartModel({ response: query.data.value ?? EMPTY_RESPONSE, palette: CONTRIBUTION_SERIES_PALETTE }),
+  buildContributionsChartModel({ response: query.data.value ?? EMPTY_RESPONSE, palette: CATEGORICAL_SERIES_PALETTE }),
 );
 const previousModel = computed(() =>
   buildContributionsChartModel({
     response: previousQuery.data.value ?? EMPTY_RESPONSE,
-    palette: CONTRIBUTION_SERIES_PALETTE,
+    palette: CATEGORICAL_SERIES_PALETTE,
   }),
 );
 

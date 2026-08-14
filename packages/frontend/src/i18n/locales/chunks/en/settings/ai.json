@@ -90,7 +90,6 @@
             "override": "You can always manually override AI-suggested categories."
           }
         },
-        "payeeTip": "Tip: setting a default category on a payee skips the AI for those transactions entirely.",
         "loading": "Loading models..."
       },
       "statementParsing": {
@@ -261,7 +260,6 @@
         "title": "Custom Instructions",
         "description": "Provide context to help AI categorize your transactions. These instructions are included when categorizing transactions during bank sync and manual import.",
         "placeholder": "e.g., Transactions from 'Starbucks' should be 'Coffee'. My freelance income comes from 'Acme Corp'.",
-        "requiresApiKey": "Add a personal API key to use custom instructions.",
         "requiresOwnCredentials": "Add your own API key or a custom endpoint to use custom instructions.",
         "credentialsCheckFailed": "We couldn't check whether you have your own AI credentials. Try again to unlock custom instructions.",
         "retryCredentialsCheck": "Try again",

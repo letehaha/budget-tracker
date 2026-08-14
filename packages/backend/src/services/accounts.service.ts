@@ -16,7 +16,7 @@ import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import Transactions from '@models/transactions.model';
+import { countTransactions } from '@models/transactions-query';
 import Users from '@models/users.model';
 import { applyManualLogoPatch } from '@services/brand-logos';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -430,8 +430,12 @@ const deleteAccountByIdInTx = withTransaction(
     // Cascade-deleting would wipe the source legs of loan payments made from this
     // account; the model hooks would treat that as reversals and silently restore
     // the loan's owed balance. Block until those payments are cleared.
-    const loanPaymentCount = await Transactions.count({
-      where: { accountId: id, userId, transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan },
+    const loanPaymentCount = await countTransactions({
+      planned: 'exclude',
+      access: { creator: userId },
+      transfers: { natures: [TRANSACTION_TRANSFER_NATURE.transfer_to_loan] },
+      balanceAdjustments: 'include',
+      where: { accountId: id },
     });
     if (loanPaymentCount > 0) {
       throw new ValidationError({

@@ -4,7 +4,7 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import BudgetTransactions, { BudgetTransactionMetadata } from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
@@ -42,11 +42,15 @@ export const addTransactionsToBudget = withTransaction(async (payload: AddTransa
   // budget's category list (per "Category mismatch on attach" decision — category list
   // governs auto-include, not manual attachment).
   const txOwnerUserId = isOwner ? ownerUserId : userId;
-  const transactions = await Transactions.findAll({
-    where: {
-      id: { [Op.in]: transactionIds },
-      userId: txOwnerUserId,
-    },
+  // Plans are attachable on purpose: owners track their own planned spend in manual
+  // budgets; recipients never see them via stats scoping.
+  const transactions = await findTransactions({
+    planned: 'include',
+    access: { creator: txOwnerUserId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
+    where: { id: { [Op.in]: transactionIds } },
+    attributes: ['id'],
   });
 
   if (transactions.length !== transactionIds.length) {

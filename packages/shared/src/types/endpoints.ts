@@ -112,6 +112,9 @@ export interface CreateTransactionBody {
   /** True when the caller wants future syncs to leave this row's Payee link alone. */
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  originalAmount?: number;
+  /** Any ISO 4217 code; it does not have to be connected to the user. */
+  originalCurrencyCode?: string;
 }
 
 export interface UpdateTransactionBody {
@@ -141,6 +144,9 @@ export interface UpdateTransactionBody {
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  /** Send both fields as `null` to clear the pair. */
+  originalAmount?: number | null;
+  originalCurrencyCode?: string | null;
 }
 
 export interface UnlinkTransferTransactionsBody {
@@ -392,6 +398,20 @@ export interface GetNetWorthDriversPayload extends QueryPayload {
   portfolioIds?: string;
 }
 
+// One portfolio's growth within a single bucket. Decimal, user base currency.
+export interface NetWorthDriversPortfolioSlice {
+  portfolioId: string;
+  // This portfolio's share of the bucket's `growth`. Signed: negative in a losing period.
+  growth: number;
+}
+
+// Legend entry for the per-portfolio growth split: every in-scope portfolio with
+// investment activity anywhere in the window.
+export interface NetWorthDriversPortfolioMeta {
+  portfolioId: string;
+  name: string;
+}
+
 // Every amount below is a decimal in the user's base currency.
 export interface NetWorthDriversBucket {
   // yyyy-mm-dd — clamped to the requested range, so the first and last bucket can
@@ -414,6 +434,10 @@ export interface NetWorthDriversBucket {
     dividends: number;
     // Trade-embedded fees plus standalone fee/tax rows. Positive number — a cost.
     feesAndTaxes: number;
+    // Sparse per-portfolio split of `growth` — only portfolios with non-zero growth
+    // this bucket. Slices sum to `growth` exactly. Read the top-level `portfolios`
+    // list for the full, ordered legend.
+    byPortfolio: NetWorthDriversPortfolioSlice[];
   };
   // Levels at periodEnd (not flows), used for the holdings-share cards.
   composition: {
@@ -450,6 +474,10 @@ export interface NetWorthDriversDegraded {
 
 export interface GetNetWorthDriversResponse {
   buckets: NetWorthDriversBucket[];
+  // Portfolios with investment activity anywhere in the window, ordered by absolute
+  // total growth descending — a stable order so the client can assign each a
+  // consistent colour across renders and fold the tail into "Others".
+  portfolios: NetWorthDriversPortfolioMeta[];
   // Absent whenever the range valued cleanly, so a truthiness check on `degraded`
   // alone decides whether to render a data-quality warning. Present only when at
   // least one field inside it is non-empty — an empty object is never sent.
@@ -720,4 +748,23 @@ export interface BudgetSpendingStatsResponse {
     granularity: 'monthly' | 'weekly';
     periods: BudgetSpendingPeriod[];
   };
+}
+
+// Exchange Rates
+export interface ExchangeRatePairQuery extends QueryPayload {
+  from: string;
+  to: string;
+  date: string; // yyyy-MM-dd
+}
+
+export interface ExchangeRatePairResponse {
+  baseCode: string;
+  quoteCode: string;
+  /** ISO datetime of the rate actually used. Differs from the requested date when
+   *  no rate existed for it and the nearest earlier one was substituted. */
+  date: string;
+  /** Quote units per 1 base unit: `toAmount = fromAmount * rate`. */
+  rate: number;
+  /** Present and true when the value is the user's own manual rate. */
+  custom?: boolean;
 }

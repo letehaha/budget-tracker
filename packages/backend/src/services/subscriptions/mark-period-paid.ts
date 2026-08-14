@@ -3,7 +3,7 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ConflictError, ValidationError } from '@js/errors';
 import SubscriptionPeriods from '@models/subscription-periods.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
 import { createTransaction } from '@services/transactions/create-transaction';
 
@@ -88,8 +88,13 @@ export const markPeriodPaid = withTransaction(
     } else if (transactionId != null) {
       // Validate the caller-supplied transaction.
       const linkedTransaction = await findOrThrowNotFound({
-        query: Transactions.findOne({
-          where: { id: transactionId, userId },
+        // `planned: 'include'` so a plan is fetched and rejected by name below,
+        // rather than disappearing into a generic "not found".
+        query: findOneTransaction({
+          where: { id: transactionId },
+          planned: 'include',
+          access: { creator: userId },
+          balanceAdjustments: 'include',
         }),
         message: 'Transaction not found.',
       });

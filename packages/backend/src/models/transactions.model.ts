@@ -19,6 +19,7 @@ import { MoneyField } from '@common/types/money-column';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
+import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BudgetTransactions from '@models/budget-transactions.model';
@@ -33,6 +34,23 @@ import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
 import { hasBalanceRelevantChange } from '@models/transactions-balance-relevance';
+import {
+  BalanceAdjustmentsPolicy,
+  CompletenessPolicy,
+  ExcludedAccountsPolicy,
+  PlannedPolicy,
+  WhereAccessPolicy,
+} from '@models/transactions-query/policies';
+// `where-builders` is model-free by design, so the model can share the boundary's policy
+// clauses without an import cycle through `transactions-query/index`.
+import {
+  balanceAdjustmentsWhere,
+  callerFrame,
+  capPolicy,
+  completenessToPagination,
+  isEmptyFragment,
+  plannedWhere,
+} from '@models/transactions-query/where-builders';
 import Users from '@models/users.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
 import { Op, Includeable, Order, WhereOptions, literal } from 'sequelize';
@@ -102,6 +120,8 @@ export interface TransactionsAttributes {
   commissionRate: Money;
   refCommissionRate: Money;
   cashbackAmount: Money;
+  originalAmount: Money | null;
+  originalCurrencyCode: string | null;
   refundLinked: boolean;
   isPlanned: boolean;
   categorizationMeta: CategorizationMeta | null;
@@ -247,6 +267,15 @@ export default class Transactions extends Model {
   @MoneyField({ storage: 'cents' })
   declare cashbackAmount: Money;
 
+  // Metadata only: no balance, statistics or budget path reads these. What the user spent in a
+  // foreign currency, with its ISO 4217 code. Both hold a value or both stay null.
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare originalAmount: Money | null;
+
+  @ForeignKey(() => Currencies)
+  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING(3) })
+  originalCurrencyCode!: string | null;
+
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is tored in the "RefundTransactions"
   // table
@@ -329,6 +358,7 @@ export default class Transactions extends Model {
       case TRANSACTION_TRANSFER_NATURE.transfer_out_wallet:
         return;
       default: {
+        // oxlint-disable-next-line no-underscore-dangle
         const _exhaustiveCheck: never = transferNature;
         throw new Error(`Unhandled transferNature in validateTransferRelatedFields: ${_exhaustiveCheck}`);
       }
@@ -739,8 +769,11 @@ function buildRefundCondition(filter: FILTER_OPERATION | undefined): Record<stri
 }
 
 export const findWithFilters = async ({
-  from = 0,
-  limit = 20,
+  planned,
+  access,
+  completeness,
+  balanceAdjustments,
+  excludedAccounts = 'include',
   accountType,
   accountIds,
   excludeAccountIds,
@@ -748,7 +781,6 @@ export const findWithFilters = async ({
   excludedBudgetIds,
   tagIds,
   excludedTagIds,
-  userId,
   order = SORT_DIRECTIONS.desc,
   sortBy,
   transferNatures,
@@ -773,12 +805,17 @@ export const findWithFilters = async ({
   attributes,
   categorizationSource,
   categorizedAt,
-  excludeBalanceAdjustments,
-  isPlanned,
-  plannedVisibleToUserId,
 }: {
-  from: number;
-  limit?: number;
+  /** How planned rows are treated. `{ visibleTo }` keeps other users' plans out while leaving the caller's own visible. */
+  planned: PlannedPolicy;
+  /** Row-visibility scope; `'pre-scoped'` when the caller narrowed the rows upstream. */
+  access: WhereAccessPolicy;
+  /** Result completeness. No default: every caller states whether it needs the full set. */
+  completeness: CompletenessPolicy;
+  /** Whether balance-adjustment rows (`externalData.balanceAdjustment`) count. No default. */
+  balanceAdjustments: BalanceAdjustmentsPolicy;
+  /** `'exclude'` INNER JOINs Accounts to drop rows on accounts flagged `excludeFromStats`. */
+  excludedAccounts?: ExcludedAccountsPolicy;
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
   accountIds?: string[];
@@ -788,13 +825,6 @@ export const findWithFilters = async ({
   excludedBudgetIds?: string[];
   tagIds?: string[];
   excludedTagIds?: string[];
-  /**
-   * Creator scope. Optional because the public-facing read-path uses an account-scoped
-   * query (see `services/sharing/get-accessible-account-ids.service.ts`) so it can
-   * surface transactions on shared accounts regardless of who created them. Internal
-   * callers pass `userId` to keep their owner-scoped semantics.
-   */
-  userId?: number;
   order?: SORT_DIRECTIONS;
   /** Sort field; defaults to `time`. Name-based fields sort via correlated subqueries. */
   sortBy?: TRANSACTION_SORT_FIELD;
@@ -829,15 +859,17 @@ export const findWithFilters = async ({
   categorizationSource?: CATEGORIZATION_SOURCE;
   /** Exact `categorizationMeta.categorizedAt` stamp, which identifies one categorization run. */
   categorizedAt?: string;
-  /** Hide transactions created by the balance-adjustment flow (`externalData.balanceAdjustment`). */
-  excludeBalanceAdjustments?: boolean;
-  /** Exact `isPlanned` match. */
-  isPlanned?: boolean;
-  /** Keeps planned rows authored by other users out of the result while leaving the
-   * caller's own plans visible. */
-  plannedVisibleToUserId?: number;
 }) => {
+  const cap = capPolicy({ completeness });
+  // Created before the first await so the stack still holds the frames of the site that
+  // set the cap; only read when the result comes back full.
+  const truncationProbe = cap ? new Error() : null;
+
   const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
+
+  if (excludedAccounts === 'exclude') {
+    queryInclude.push({ model: Accounts, where: { excludeFromStats: false }, attributes: [], required: true });
+  }
 
   // New enum params take priority over legacy booleans
   const resolvedTransferFilter = transferFilter ?? (excludeTransfer ? FILTER_OPERATION.exclude : undefined);
@@ -851,7 +883,7 @@ export const findWithFilters = async ({
   const refundCondition = buildRefundCondition(resolvedRefundFilter);
 
   const whereClause: WhereOptions<Transactions> = {
-    ...(userId !== undefined ? { userId } : {}),
+    ...(access === 'pre-scoped' ? {} : { userId: access.creator }),
     ...removeUndefinedKeys({
       accountType,
       transactionType,
@@ -875,11 +907,11 @@ export const findWithFilters = async ({
 
   if (categoryIds && categoryIds.length > 0) {
     // Find transactions that have splits with any of the requested category IDs.
-    // When `userId` is unset (account-scoped public read-path), we widen the lookup to
-    // any user's splits — the outer accountId filter constrains the final rows to the
-    // caller's accessible accounts, so this stays safe.
+    // Under `access: 'pre-scoped'` we widen the lookup to any user's splits — the caller's
+    // upstream scoping (accessible accountIds / budget ids) constrains the final rows, so
+    // this stays safe.
     const splitsWhere: Record<string, unknown> = { categoryId: { [Op.in]: categoryIds } };
-    if (userId !== undefined) splitsWhere.userId = userId;
+    if (access !== 'pre-scoped') splitsWhere.userId = access.creator;
     const transactionIdsWithMatchingSplits = await TransactionSplits.findAll({
       attributes: ['transactionId'],
       where: splitsWhere,
@@ -1086,16 +1118,13 @@ export const findWithFilters = async ({
     });
   }
 
-  if (excludeBalanceAdjustments) {
-    // `NULL @> ...` yields NULL (not false), so the IS NULL branch is required to
-    // keep rows that have no externalData at all.
-    const notBalanceAdjustment = literal(
-      `("Transactions"."externalData" IS NULL OR NOT ("Transactions"."externalData" @> '{"balanceAdjustment": true}'))`,
-    );
+  // Op.and, never a bare key: the policy clauses must not collide with (or be clobbered
+  // by) the caller's own keys and Op.or branches built above.
+  for (const fragment of [plannedWhere({ policy: planned }), balanceAdjustmentsWhere({ policy: balanceAdjustments })]) {
+    if (isEmptyFragment(fragment)) continue;
+
     const existingAnd = whereClause[Op.and as unknown as string] as unknown[] | undefined;
-    whereClause[Op.and as unknown as string] = existingAnd
-      ? [...existingAnd, notBalanceAdjustment]
-      : [notBalanceAdjustment];
+    whereClause[Op.and as unknown as string] = existingAnd ? [...existingAnd, fragment] : [fragment];
   }
 
   // Filter by categorization source (stored in JSONB field)
@@ -1107,28 +1136,28 @@ export const findWithFilters = async ({
     whereClause['categorizationMeta.categorizedAt'] = categorizedAt;
   }
 
-  if (isPlanned !== undefined) {
-    whereClause.isPlanned = isPlanned;
-  }
-
-  if (plannedVisibleToUserId !== undefined) {
-    const andKey = Op.and as unknown as string;
-    const existingAnd = (whereClause as Record<string, unknown>)[andKey] as unknown[] | undefined;
-    const plannedVisibility = { [Op.or]: [{ isPlanned: false }, { userId: plannedVisibleToUserId }] };
-    whereClause[andKey] = existingAnd ? [...existingAnd, plannedVisibility] : [plannedVisibility];
-  }
+  const { limit, offset } = completenessToPagination({ completeness });
 
   const transactions = await Transactions.findAll({
     include: queryInclude,
     where: whereClause,
-    offset: from,
-    limit: Number.isFinite(limit) ? limit : undefined,
+    offset,
+    limit,
     order: buildOrderClause({ sortBy, order }),
     raw: isRaw,
     // When raw is true and includeSplits/includeTags is requested, use nest to preserve nested structure
     nest: isRaw && (includeSplits || includeTags) ? true : undefined,
     attributes,
   });
+
+  // `info`, not `warn`: warn ships every occurrence to Sentry as its own event.
+  if (cap && truncationProbe && cap.onTruncated === 'log' && transactions.length === cap.limit) {
+    logger.info(`[findWithFilters] read hit its cap of ${cap.limit} rows, the result is likely truncated`, {
+      cap: cap.limit,
+      caller: callerFrame({ probe: truncationProbe, ignoreFile: __filename }),
+      ...cap.context,
+    });
+  }
 
   return transactions;
 };
@@ -1211,6 +1240,8 @@ type CreateTxOptionalParams = Partial<
     | 'payeeId'
     | 'payeeLocked'
     | 'isPlanned'
+    | 'originalAmount'
+    | 'originalCurrencyCode'
   >
 >;
 
@@ -1247,6 +1278,8 @@ export interface UpdateTransactionByIdParams {
   payeeId?: string | null;
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  originalAmount?: Money | null;
+  originalCurrencyCode?: string | null;
 }
 
 export const updateTransactionById = async (

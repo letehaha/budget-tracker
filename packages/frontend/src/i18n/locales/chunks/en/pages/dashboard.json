@@ -118,7 +118,6 @@
       "categoryTracker": {
         "title": "Categories Watchlist",
         "addCategory": "Add category",
-        "addCategories": "Add categories to track",
         "selectCategories": "Select Categories"
       },
       "cashFlow": {
@@ -213,8 +212,6 @@
       }
     },
     "periodSelector": {
-      "quickSelect": "Quick Select",
-      "year": "{year}",
       "presets": {
         "currentMonth": "Current Month",
         "last3Months": "Last 3 Months",
@@ -239,7 +236,6 @@
       "config": {
         "includeScheduled": {
           "label": "Include scheduled payments",
-          "description": "Show upcoming and overdue payment reminders above your recent transactions",
           "on": "On",
           "off": "Off"
         }

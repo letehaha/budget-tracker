@@ -1,5 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { createController } from '@controllers/helpers/controller-factory';
 import { removeUndefinedKeys } from '@js/helpers';
@@ -30,6 +30,8 @@ const bodyZodSchema = z
     payeeId: recordId().nullable().optional(),
     payeeLocked: z.boolean().optional(),
     isPlanned: z.boolean().optional(),
+    originalAmount: nonNegativeAmountSchema().nullable().optional(),
+    originalCurrencyCode: currencyCode().nullable().optional(),
   })
   .refine((data) => !(data.refundsSplitId && !data.refundsTxId), {
     message: '"refundsSplitId" can only be provided when "refundsTxId" is specified',
@@ -89,6 +91,26 @@ const bodyZodSchema = z
       message: 'Splits cannot be added to transfer transactions',
       path: ['splits', 'transferNature'],
     },
+  )
+  .refine(
+    (data) =>
+      (data.originalAmount === undefined) === (data.originalCurrencyCode === undefined) &&
+      (data.originalAmount === null) === (data.originalCurrencyCode === null),
+    {
+      message: '"originalAmount" and "originalCurrencyCode" must be set, or cleared, together',
+      path: ['originalAmount', 'originalCurrencyCode'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.originalAmount == null) return true;
+      if (data.transferNature && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer) return false;
+      return !(data.destinationAccountId || data.destinationAmount || data.destinationTransactionId);
+    },
+    {
+      message: 'Original currency metadata cannot be added to transfer transactions',
+      path: ['originalAmount', 'transferNature'],
+    },
   );
 
 const paramsZodSchema = z.object({
@@ -122,6 +144,8 @@ export default createController(schema, async ({ user, params, body }) => {
     payeeId,
     payeeLocked,
     isPlanned,
+    originalAmount,
+    originalCurrencyCode,
   } = body;
   const { id: userId } = user;
 
@@ -156,6 +180,12 @@ export default createController(schema, async ({ user, params, body }) => {
     }),
     // payeeId can be null to clear the link, so don't strip undefined here.
     ...(payeeId !== undefined ? { payeeId } : {}),
+    // Both original-currency fields can be null to clear the metadata, so keep them out of
+    // removeUndefinedKeys too.
+    ...(originalAmount !== undefined
+      ? { originalAmount: originalAmount === null ? null : Money.fromDecimal(originalAmount) }
+      : {}),
+    ...(originalCurrencyCode !== undefined ? { originalCurrencyCode } : {}),
     // splits can be null to clear all splits, so don't use removeUndefinedKeys
     ...(splits !== undefined ? { splits: splits === null ? null : splitsAsMoney } : {}),
     // tagIds can be null to clear all tags, so don't use removeUndefinedKeys

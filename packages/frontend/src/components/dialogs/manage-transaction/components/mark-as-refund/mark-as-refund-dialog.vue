@@ -311,7 +311,7 @@ const hasSmallOptions = computed(() => {
       </div>
 
       <!-- Scrollable content area with records list -->
-      <div class="flex min-h-0 flex-col overflow-y-auto">
+      <div class="flex min-h-0 flex-col">
         <RecordsList
           :transaction-type="transactionType"
           :on-select="onSelectValue"

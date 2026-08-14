@@ -149,16 +149,11 @@
         "selectAction": "Select action..."
       },
       "transactionTypeMapping": {
-        "title": "Transaction Type Determination",
-        "methodLabel": "Method",
-        "methodDescription": "Choose how transaction types (income/expense) should be determined",
         "columnLabel": "Transaction Type Column",
-        "columnDescription": "Select the CSV column that contains transaction type information",
         "incomeValuesLabel": "Income Values",
         "expenseValuesLabel": "Expense Values",
         "commaSeparatedHint": "Comma-separated values",
         "uncoveredValues": "These values in the type column aren't assigned to Income or Expense yet: {values}. Add each one to a list above to continue.",
-        "selectMethod": "Select method...",
         "selectColumn": "Select column...",
         "incomeValuesPlaceholder": "e.g., Credit, Deposit, Income",
         "expenseValuesPlaceholder": "e.g., Debit, Withdrawal, Expense",
@@ -169,19 +164,11 @@
         "amountSignInfo": "ℹ️ Transaction types will be determined automatically: negative amounts = expenses, positive amounts = income"
       },
       "currencyMapping": {
-        "title": "Currency Assignment",
-        "optionLabel": "How do you want to assign currencies?",
-        "optionDescription": "Choose how currencies should be assigned to imported transactions",
-        "columnLabel": "Currency Column",
-        "columnDescription": "Select the CSV column that contains currency codes",
-        "currencyLabel": "Currency",
-        "currencyDescription": "All imported transactions will use this currency",
         "selectCurrency": "Select currency...",
         "methodOptions": {
           "dataSourceColumn": "Map from CSV column",
           "existingCurrency": "Use same currency for all transactions"
-        },
-        "dataSourceColumnInfo": "ℹ️ Each transaction will use the currency specified in the selected CSV column"
+        }
       },
       "categoryMapping": {
         "selectCategory": "Select category..."
@@ -221,64 +208,17 @@
         "selectAccount": "Select account..."
       },
       "categoryMappingTable": {
-        "title": "Category Mapping",
-        "description": "Map CSV category names to your existing categories or create new ones.",
-        "csvCategoryName": "CSV Category Name",
-        "action": "Action",
-        "targetCategory": "Target Category",
-        "actions": {
-          "createNew": "Create New Category",
-          "mapToExisting": "Map to Existing Category"
-        },
-        "willBeCreatedOrMerged": "{name} will be {action} with an existing category of the same name",
-        "createdOrMergedAction": "created, or merged",
-        "mappedTo": "mapped to \"{name}\"",
-        "selectCategory": "Select category..."
+        "csvCategoryName": "CSV Category Name"
       },
       "categoryAssignment": {
-        "title": "Category Assignment",
-        "howToAssign": "How do you want to assign categories?",
-        "description": "Choose how categories should be assigned to imported transactions",
-        "categoryColumn": "Category Column",
-        "columnDescription": "Select the CSV column that contains category names",
-        "categoryLabel": "Category",
-        "singleCategoryDescription": "All imported transactions will be assigned to this category",
-        "mapOnNextStep": "You'll map each CSV category to your existing categories on the next step",
-        "createFromCSV": "New high-level categories will be created automatically from unique values in your CSV file",
         "options": {
           "mapToExisting": "Map each CSV category to existing categories (on next step)",
           "createNew": "Create new categories from CSV values",
           "assignToSingle": "Assign all to single existing category"
         }
       },
-      "tagAssignment": {
-        "title": "Tag Assignment",
-        "howToAssign": "How to assign tags",
-        "description": "Tags allow you to categorize transactions with multiple labels.",
-        "noTagsOption": "Don't import tags",
-        "tagColumn": "Tags Column",
-        "columnDescription": "Select the CSV column whose values will be used as tags for each transaction.",
-        "mapOnNextStep": "Each distinct tag value found in this column will appear below for you to map or create.",
-        "options": {
-          "mapToColumn": "Map from CSV column"
-        }
-      },
       "tagMappingTable": {
-        "title": "Tag Mapping",
-        "description": "For each tag value found in your CSV, choose whether to create a new tag, link to an existing one, or skip it.",
-        "csvTagName": "CSV Tag Value",
-        "action": "Action",
-        "targetTag": "Target Tag",
-        "selectTag": "Select a tag",
-        "willBeCreated": "Will create new tag \"{name}\"",
-        "willBeSkipped": "Will be skipped",
-        "actions": {
-          "createNew": "Create new",
-          "mapToExisting": "Link to existing",
-          "skip": "Skip"
-        },
-        "tagsLoadFailed": "Couldn't load your tags. Try again later.",
-        "noExistingTags": "You don't have any tags yet."
+        "csvTagName": "CSV Tag Value"
       },
       "resolveValues": {
         "selectAction": "Select action",
@@ -319,13 +259,7 @@
         },
         "categories": {
           "sectionTitle": "Category Mapping",
-          "resolvedCount": "{resolved} of {total} resolved",
-          "csvName": "CSV Category",
-          "action": "Action",
-          "target": "Target Category",
-          "selectTarget": "Select a category",
-          "willCreate": "Will create or merge \"{name}\"",
-          "empty": "No categories found in CSV"
+          "csvName": "CSV Category"
         },
         "tags": {
           "sectionTitle": "Tag Mapping",

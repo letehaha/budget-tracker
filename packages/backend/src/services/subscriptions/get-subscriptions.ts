@@ -10,7 +10,8 @@ import Categories from '@models/categories.model';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
-import Transactions, { type TransactionsAttributes } from '@models/transactions.model';
+import { transactionsInclude } from '@models/transactions-query';
+import type { TransactionsAttributes } from '@models/transactions.model';
 import { applyCachedLogos, enqueueLogoResolution } from '@services/brand-logos';
 import { col, fn, literal, Op } from 'sequelize';
 
@@ -170,11 +171,14 @@ export const getSubscriptions = async ({
     include: [
       { model: Accounts, attributes: ['id', 'name', 'currencyCode'] },
       { model: Categories, attributes: ['id', 'name', 'color', 'icon'] },
-      {
-        model: Transactions,
+      transactionsInclude({
+        planned: 'exclude',
         attributes: [],
         through: { attributes: [] },
-      },
+        // The boundary composes a where onto the include, which Sequelize would otherwise
+        // read as INNER JOIN and drop subscriptions whose only links are planned rows.
+        required: false,
+      }),
     ],
     group: ['Subscriptions.id', 'account.id', 'category.id'],
     order: [['createdAt', 'DESC']],
@@ -244,13 +248,12 @@ export const getSubscriptions = async ({
     where: { id: { [Op.in]: subscriptionIds } },
     attributes: ['id', [fn('MAX', col('transactions.time')), 'latestTime']],
     include: [
-      {
-        model: Transactions,
+      transactionsInclude({
+        planned: 'exclude',
         attributes: [],
         through: { attributes: [], where: { status: SUBSCRIPTION_LINK_STATUS.active } },
-        where: { isPlanned: false },
         required: false,
-      },
+      }),
     ],
     group: ['Subscriptions.id'],
     subQuery: false,
@@ -296,13 +299,16 @@ export const getSubscriptionById = async ({
       include: [
         { model: Accounts, attributes: ['id', 'name', 'currencyCode'] },
         { model: Categories, attributes: ['id', 'name', 'color', 'icon'] },
-        {
-          model: Transactions,
+        // The detail dialog is the only place a planned link can be unlinked, so its
+        // payload keeps planned rows.
+        transactionsInclude({
+          planned: 'include',
+          required: false,
           through: {
             attributes: ['matchSource', 'matchedAt', 'status'],
             where: { status: SUBSCRIPTION_LINK_STATUS.active },
           },
-        },
+        }),
         {
           model: SubscriptionPeriods,
           as: 'periods',

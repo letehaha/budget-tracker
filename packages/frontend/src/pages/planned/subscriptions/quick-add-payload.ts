@@ -17,7 +17,7 @@ export interface QuickAddFormState {
   accountId: string | null;
 }
 
-export type QuickAddPayload = Parameters<typeof createSubscription>[0];
+type QuickAddPayload = Parameters<typeof createSubscription>[0];
 
 const API_DATE_FORMAT = 'yyyy-MM-dd';
 

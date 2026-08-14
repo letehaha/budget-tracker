@@ -107,7 +107,6 @@
         "actionTransfer": "transferencia",
         "actionWithdrawal": "retirada",
         "actionDeposit": "depósito",
-        "warning": "Esta acción no se puede deshacer.",
         "cancelButton": "Cancelar",
         "confirmButton": "Confirmar transferencia"
       },

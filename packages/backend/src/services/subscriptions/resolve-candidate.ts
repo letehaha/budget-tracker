@@ -3,7 +3,7 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ConflictError } from '@js/errors';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
 import { Op } from 'sequelize';
 
@@ -45,9 +45,15 @@ export const resolveCandidate = withTransaction(
       if (sampleTxIds.length > 0) {
         // `sampleTransactionIds` is a snapshot taken at detection time. Any of those
         // transactions may have been deleted since (directly, or cascaded from an
-        // account delete), so link only the ones that still exist.
-        const existing = await Transactions.findAll({
-          where: { id: { [Op.in]: sampleTxIds }, userId },
+        // account delete), so link only the ones that still exist. Detection reads
+        // real history only, so the same policy is what makes "still exists" mean
+        // the same row it sampled.
+        const existing = await findTransactions({
+          where: { id: { [Op.in]: sampleTxIds } },
+          planned: 'exclude',
+          access: { creator: userId },
+          balanceAdjustments: 'include',
+          completeness: 'all',
           attributes: ['id'],
           raw: true,
         });

@@ -8,11 +8,11 @@ import { ValidationError } from '@js/errors';
 
 // The module imports the account model, the absorb-adjustment service (linked
 // accounts), the accounts service (created-account targets), and the
-// transactions model for its capture/finalize database work; stubbing them
-// keeps this unit run free of the database/queue connections their real import
-// graph opens.
+// transactions query boundary for its capture/finalize database work; stubbing
+// them keeps this unit run free of the database/queue connections their real
+// import graph opens.
 jest.mock('@models/accounts.model', () => ({ __esModule: true, getAccountById: jest.fn() }));
-jest.mock('@models/transactions.model', () => ({ __esModule: true, default: { findOne: jest.fn() } }));
+jest.mock('@models/transactions-query', () => ({ __esModule: true, findOneTransaction: jest.fn() }));
 jest.mock('@services/accounts.service', () => ({ __esModule: true, updateAccount: jest.fn() }));
 jest.mock('@services/accounts/absorb-balance-adjustment', () => ({
   __esModule: true,
@@ -21,7 +21,7 @@ jest.mock('@services/accounts/absorb-balance-adjustment', () => ({
 
 /* eslint-disable import/first */
 import * as Accounts from '@models/accounts.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import { updateAccount } from '@services/accounts.service';
 import { absorbBalanceAdjustment } from '@services/accounts/absorb-balance-adjustment';
 
@@ -29,12 +29,12 @@ import { startBalanceReconciliation } from './reconcile-account-balances';
 /* eslint-enable import/first */
 
 const getAccountByIdMock = jest.mocked(Accounts.getAccountById);
-const findOneMock = jest.mocked(Transactions.findOne);
+const findOneMock = jest.mocked(findOneTransaction);
 const updateAccountMock = jest.mocked(updateAccount);
 const absorbMock = jest.mocked(absorbBalanceAdjustment);
 
 type AccountRow = NonNullable<Awaited<ReturnType<typeof Accounts.getAccountById>>>;
-type TransactionRow = Awaited<ReturnType<typeof Transactions.findOne>>;
+type TransactionRow = Awaited<ReturnType<typeof findOneTransaction>>;
 
 const USER_ID = 42;
 
@@ -55,7 +55,7 @@ function buildAccount({
 
 /**
  * Wire the account/boundary mocks for a set of accounts: `getAccountById`
- * resolves per id and `Transactions.findOne` returns each account's latest
+ * resolves per id and `findOneTransaction` returns each account's latest
  * transaction time (null → the account has no transactions, hence no boundary).
  */
 function mockAccounts(accounts: { account: AccountRow; latestTxIso?: string }[]) {
@@ -65,7 +65,7 @@ function mockAccounts(accounts: { account: AccountRow; latestTxIso?: string }[])
     const entry = byId.get(options.where.accountId);
     if (!entry?.latestTxIso) return null;
     return { time: new Date(entry.latestTxIso) } as unknown as TransactionRow;
-  }) as typeof Transactions.findOne);
+  }) as unknown as typeof findOneTransaction);
 }
 
 /**

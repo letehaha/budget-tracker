@@ -1,8 +1,6 @@
 {
   "common": {
     "loading": "Loading...",
-    "from": "From",
-    "to": "To",
     "new": "New",
     "actions": {
       "loading": "Loading...",
@@ -13,7 +11,6 @@
       "accept": "Accept",
       "delete": "Delete",
       "edit": "Edit",
-      "create": "Create",
       "addSubcategory": "Add subcategory",
       "settings": "Settings",
       "confirm": "Confirm",
@@ -21,13 +18,11 @@
       "viewAnalytics": "View analytics",
       "saving": "Saving...",
       "saveChanges": "Save Changes",
-      "scrollToTop": "Top",
       "done": "Done",
       "failed": "Failed",
       "viewAll": "View all",
       "scan": "Scan",
       "link": "Link",
-      "loadMore": "Load more",
       "clear": "Clear",
       "apply": "Apply",
       "retry": "Try again"
@@ -65,7 +60,6 @@
     "labels": {
       "email": "Email",
       "password": "Password",
-      "username": "Username",
       "system": "system",
       "unknown": "Unknown",
       "total": "Total"
@@ -344,20 +338,7 @@
     "onlyFirstFileTaken": "Multiple files dropped – only the first was used."
   },
   "demo": {
-    "loadingOverlay": {
-      "messages": [
-        "Crunching numbers just for you...",
-        "Crafting your personal accounts...",
-        "Sprinkling in realistic transactions...",
-        "Fine-tuning your dashboard...",
-        "Almost there, putting final touches..."
-      ]
-    },
     "featureNotAvailable": "This feature is not available in demo mode",
-    "bankConnectionsRestricted": {
-      "title": "Bank Connections"
-    },
-    "signUpToUnlock": "Sign up to unlock this feature",
     "passwordChangeRestricted": "Password changes are not available in demo mode",
     "investmentsRestricted": {
       "title": "Investments Unavailable in Demo",
@@ -415,10 +396,8 @@
       "noteLabel": "Note (optional)",
       "notePlaceholder": "Optional note...",
       "loadingText": "Loading...",
-      "savingText": "Saving...",
       "savingAction": "Save",
       "cancelButton": "Cancel",
-      "deletingText": "Deleting...",
       "editAction": "Edit",
       "deleteAction": "Delete Group",
       "transactionsLabel": "Transactions",
@@ -429,7 +408,6 @@
       "removeTransactionDescriptionNormal": "Are you sure you want to remove this transaction from the group?",
       "removeButtonText": "Remove",
       "removeAndDeleteButtonText": "Remove & Delete Group",
-      "transactionCountSuffix": "transactions",
       "summary": {
         "transactions": "Transactions",
         "net": "Net",

@@ -2,10 +2,13 @@ import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@b
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import TransactionSplits from '@models/transaction-splits.model';
+import { PlannedPolicy, transactionsInclude } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
+import { statsTransactions } from '@services/stats/stats-transactions';
 import { Op } from 'sequelize';
 
 import { authorizeBudgetRead } from './authorize-budget-access';
@@ -50,23 +53,20 @@ export const getCategoryBudgetTransactions = async ({
 
   // Planned rows are owner-only: they count as spent for the owner, but a share
   // recipient must never see them.
-  const plannedFilter = isOwner ? {} : { isPlanned: false };
+  const planned: PlannedPolicy = isOwner ? 'include' : 'exclude';
 
   // Get transactions where primary category matches and have no splits
-  const primaryCategoryTransactions = await Transactions.default.findAll({
-    where: {
-      userId: ownerUserId,
-      categoryId: { [Op.in]: categoryIds },
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      ...plannedFilter,
-      ...dateFilter,
-    },
+  const { rows: primaryCategoryTransactions } = await statsTransactions({
+    access: { creator: ownerUserId },
+    planned,
+    refunds: 'ignore',
+    window: { from: budget.startDate ?? undefined, to: budget.endDate ?? undefined },
+    where: { categoryId: { [Op.in]: categoryIds } },
     include: [
       { model: TransactionSplits, as: 'splits', required: false },
       { model: Categories, as: 'category', attributes: ['id', 'name', 'color'] },
     ],
     order: [['time', 'DESC']],
-    raw: false,
   });
 
   // Get splits that match the categories
@@ -76,16 +76,17 @@ export const getCategoryBudgetTransactions = async ({
       categoryId: { [Op.in]: categoryIds },
     },
     include: [
-      {
-        model: Transactions.default,
+      transactionsInclude({
+        planned,
+        required: true,
         as: 'transaction',
         where: {
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-          ...plannedFilter,
           ...dateFilter,
         },
         attributes: ['id', 'time', 'transactionType', 'note', 'accountId'],
-      },
+        include: [{ model: Accounts, where: { excludeFromStats: false }, attributes: [] }],
+      }),
       {
         model: Categories,
         as: 'category',

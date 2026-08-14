@@ -107,7 +107,6 @@
         "actionTransfer": "переказ",
         "actionWithdrawal": "зняття",
         "actionDeposit": "поповнення",
-        "warning": "Цю дію неможливо скасувати.",
         "cancelButton": "Скасувати",
         "confirmButton": "Підтвердити переказ"
       },

@@ -149,16 +149,11 @@
         "selectAction": "Pilih tindakan..."
       },
       "transactionTypeMapping": {
-        "title": "Penentuan Tipe Transaksi",
-        "methodLabel": "Metode",
-        "methodDescription": "Pilih bagaimana tipe transaksi (pemasukan/pengeluaran) harus ditentukan",
         "columnLabel": "Kolom Tipe Transaksi",
-        "columnDescription": "Pilih kolom CSV yang berisi informasi tipe transaksi",
         "incomeValuesLabel": "Nilai Pemasukan",
         "expenseValuesLabel": "Nilai Pengeluaran",
         "commaSeparatedHint": "Nilai dipisahkan koma",
         "uncoveredValues": "Nilai-nilai ini di kolom tipe belum ditetapkan ke Pemasukan atau Pengeluaran: {values}. Tambahkan masing-masing ke daftar di atas untuk melanjutkan.",
-        "selectMethod": "Pilih metode...",
         "selectColumn": "Pilih kolom...",
         "incomeValuesPlaceholder": "Mis: Credit, Deposit, Income",
         "expenseValuesPlaceholder": "Mis: Debit, Withdrawal, Expense",
@@ -169,19 +164,11 @@
         "amountSignInfo": "ℹ️ Tipe transaksi akan ditentukan secara otomatis: jumlah negatif = pengeluaran, jumlah positif = pemasukan"
       },
       "currencyMapping": {
-        "title": "Penetapan Mata Uang",
-        "optionLabel": "Bagaimana Anda ingin menetapkan mata uang?",
-        "optionDescription": "Pilih bagaimana mata uang ditetapkan ke transaksi yang diimpor",
-        "columnLabel": "Kolom Mata Uang",
-        "columnDescription": "Pilih kolom CSV yang berisi kode mata uang",
-        "currencyLabel": "Mata Uang",
-        "currencyDescription": "Semua transaksi yang diimpor akan menggunakan mata uang ini",
         "selectCurrency": "Pilih mata uang...",
         "methodOptions": {
           "dataSourceColumn": "Petakan dari kolom CSV",
           "existingCurrency": "Gunakan mata uang yang sama untuk semua transaksi"
-        },
-        "dataSourceColumnInfo": "ℹ️ Setiap transaksi akan menggunakan mata uang yang ditentukan dalam kolom CSV yang dipilih"
+        }
       },
       "categoryMapping": {
         "selectCategory": "Pilih kategori..."
@@ -221,64 +208,17 @@
         "selectAccount": "Pilih akun..."
       },
       "categoryMappingTable": {
-        "title": "Pemetaan Kategori",
-        "description": "Petakan nama kategori CSV ke kategori yang ada atau buat yang baru.",
-        "csvCategoryName": "Nama Kategori CSV",
-        "action": "Tindakan",
-        "targetCategory": "Kategori Target",
-        "actions": {
-          "createNew": "Buat Kategori Baru",
-          "mapToExisting": "Petakan ke Kategori yang Ada"
-        },
-        "willBeCreatedOrMerged": "{name} akan {action} dengan kategori yang ada dengan nama yang sama",
-        "createdOrMergedAction": "dibuat, atau digabungkan",
-        "mappedTo": "dipetakan ke \"{name}\"",
-        "selectCategory": "Pilih kategori..."
+        "csvCategoryName": "Nama Kategori CSV"
       },
       "categoryAssignment": {
-        "title": "Penetapan Kategori",
-        "howToAssign": "Bagaimana Anda ingin menetapkan kategori?",
-        "description": "Pilih bagaimana kategori ditetapkan ke transaksi yang diimpor",
-        "categoryColumn": "Kolom Kategori",
-        "columnDescription": "Pilih kolom CSV yang berisi nama kategori",
-        "categoryLabel": "Kategori",
-        "singleCategoryDescription": "Semua transaksi yang diimpor akan ditetapkan ke kategori ini",
-        "mapOnNextStep": "Anda akan memetakan setiap kategori CSV ke kategori yang ada pada langkah berikutnya",
-        "createFromCSV": "Kategori tingkat tinggi baru akan dibuat secara otomatis dari nilai unik di file CSV Anda",
         "options": {
           "mapToExisting": "Petakan setiap kategori CSV ke kategori yang ada (pada langkah berikutnya)",
           "createNew": "Buat kategori baru dari nilai CSV",
           "assignToSingle": "Tetapkan semua ke satu kategori yang ada"
         }
       },
-      "tagAssignment": {
-        "title": "Penetapan Tag",
-        "howToAssign": "Cara menetapkan tag",
-        "description": "Tag memungkinkan Anda mengkategorikan transaksi dengan beberapa label.",
-        "noTagsOption": "Jangan impor tag",
-        "tagColumn": "Kolom Tag",
-        "columnDescription": "Pilih kolom CSV yang nilainya akan digunakan sebagai tag untuk setiap transaksi.",
-        "mapOnNextStep": "Setiap nilai tag berbeda yang ditemukan di kolom ini akan muncul di bawah untuk dipetakan atau dibuat.",
-        "options": {
-          "mapToColumn": "Petakan dari kolom CSV"
-        }
-      },
       "tagMappingTable": {
-        "title": "Pemetaan Tag",
-        "description": "Untuk setiap nilai tag yang ditemukan di CSV Anda, pilih apakah akan membuat tag baru, menautkan ke yang ada, atau melewatinya.",
-        "csvTagName": "Nilai Tag CSV",
-        "action": "Tindakan",
-        "targetTag": "Tag Target",
-        "selectTag": "Pilih tag",
-        "willBeCreated": "Akan membuat tag baru \"{name}\"",
-        "willBeSkipped": "Akan dilewati",
-        "actions": {
-          "createNew": "Buat baru",
-          "mapToExisting": "Tautkan ke yang ada",
-          "skip": "Lewati"
-        },
-        "tagsLoadFailed": "Tidak dapat memuat tag Anda. Coba lagi nanti.",
-        "noExistingTags": "Anda belum memiliki tag."
+        "csvTagName": "Nilai Tag CSV"
       },
       "resolveValues": {
         "selectAction": "Pilih tindakan",
@@ -319,13 +259,7 @@
         },
         "categories": {
           "sectionTitle": "Pemetaan Kategori",
-          "resolvedCount": "{resolved} dari {total} terselesaikan",
-          "csvName": "Kategori CSV",
-          "action": "Tindakan",
-          "target": "Kategori Target",
-          "selectTarget": "Pilih kategori",
-          "willCreate": "Akan membuat atau menggabungkan \"{name}\"",
-          "empty": "Tidak ada kategori ditemukan di CSV"
+          "csvName": "Kategori CSV"
         },
         "tags": {
           "sectionTitle": "Pemetaan Tag",

@@ -27,10 +27,8 @@
     },
     "cashBalances": {
       "title": "Saldos en efectivo",
-      "subtitle": "{count} monedas",
       "emptyState": "Sin saldos en efectivo",
       "tabs": {
-        "overview": "Resumen",
         "balances": "Saldos",
         "cashTransactions": "Transacciones",
         "buysSells": "Compras y ventas"

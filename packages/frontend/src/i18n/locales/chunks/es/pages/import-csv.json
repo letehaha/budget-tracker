@@ -149,16 +149,11 @@
         "selectAction": "Seleccione una acción..."
       },
       "transactionTypeMapping": {
-        "title": "Determinación del tipo de transacción",
-        "methodLabel": "Método",
-        "methodDescription": "Elija cómo deben determinarse los tipos de transacción (ingreso/gasto)",
         "columnLabel": "Columna de tipo de transacción",
-        "columnDescription": "Seleccione la columna CSV que contiene la información del tipo de transacción",
         "incomeValuesLabel": "Valores de ingreso",
         "expenseValuesLabel": "Valores de gasto",
         "commaSeparatedHint": "Valores separados por coma",
         "uncoveredValues": "Estos valores en la columna de tipo aún no están asignados a Ingreso o Gasto: {values}. Añade cada uno a una lista de arriba para continuar.",
-        "selectMethod": "Seleccione un método...",
         "selectColumn": "Seleccione una columna...",
         "incomeValuesPlaceholder": "p. ej., Crédito, Depósito, Ingreso",
         "expenseValuesPlaceholder": "p. ej., Débito, Retiro, Gasto",
@@ -169,19 +164,11 @@
         "amountSignInfo": "ℹ️ Los tipos de transacción se determinarán automáticamente: importes negativos = gastos, importes positivos = ingresos"
       },
       "currencyMapping": {
-        "title": "Asignación de moneda",
-        "optionLabel": "¿Cómo desea asignar las monedas?",
-        "optionDescription": "Elija cómo deben asignarse las monedas a las transacciones importadas",
-        "columnLabel": "Columna de moneda",
-        "columnDescription": "Seleccione la columna CSV que contiene los códigos de moneda",
-        "currencyLabel": "Moneda",
-        "currencyDescription": "Todas las transacciones importadas usarán esta moneda",
         "selectCurrency": "Seleccione una moneda...",
         "methodOptions": {
           "dataSourceColumn": "Mapear desde columna CSV",
           "existingCurrency": "Usar la misma moneda para todas las transacciones"
-        },
-        "dataSourceColumnInfo": "ℹ️ Cada transacción usará la moneda especificada en la columna CSV seleccionada"
+        }
       },
       "categoryMapping": {
         "selectCategory": "Seleccione una categoría..."
@@ -221,64 +208,17 @@
         "selectAccount": "Seleccione una cuenta..."
       },
       "categoryMappingTable": {
-        "title": "Mapeo de categorías",
-        "description": "Relacione los nombres de categoría del CSV con sus categorías existentes o cree nuevas.",
-        "csvCategoryName": "Nombre de categoría CSV",
-        "action": "Acción",
-        "targetCategory": "Categoría destino",
-        "actions": {
-          "createNew": "Crear nueva categoría",
-          "mapToExisting": "Mapear a categoría existente"
-        },
-        "willBeCreatedOrMerged": "{name} será {action} con una categoría existente del mismo nombre",
-        "createdOrMergedAction": "creada, o combinada",
-        "mappedTo": "mapeada a \"{name}\"",
-        "selectCategory": "Seleccione una categoría..."
+        "csvCategoryName": "Nombre de categoría CSV"
       },
       "categoryAssignment": {
-        "title": "Asignación de categoría",
-        "howToAssign": "¿Cómo desea asignar las categorías?",
-        "description": "Elija cómo deben asignarse las categorías a las transacciones importadas",
-        "categoryColumn": "Columna de categoría",
-        "columnDescription": "Seleccione la columna CSV que contiene los nombres de categoría",
-        "categoryLabel": "Categoría",
-        "singleCategoryDescription": "Todas las transacciones importadas serán asignadas a esta categoría",
-        "mapOnNextStep": "En el siguiente paso mapeará cada categoría CSV a sus categorías existentes",
-        "createFromCSV": "Se crearán automáticamente nuevas categorías de alto nivel a partir de los valores únicos de su archivo CSV",
         "options": {
           "mapToExisting": "Mapear cada categoría CSV a categorías existentes (en el siguiente paso)",
           "createNew": "Crear nuevas categorías a partir de los valores del CSV",
           "assignToSingle": "Asignar todas a una sola categoría existente"
         }
       },
-      "tagAssignment": {
-        "title": "Asignación de etiquetas",
-        "howToAssign": "Cómo asignar etiquetas",
-        "description": "Las etiquetas permiten categorizar transacciones con múltiples etiquetas.",
-        "noTagsOption": "No importar etiquetas",
-        "tagColumn": "Columna de etiquetas",
-        "columnDescription": "Seleccione la columna CSV cuyos valores se utilizarán como etiquetas para cada transacción.",
-        "mapOnNextStep": "Cada valor de etiqueta distinto encontrado en esta columna aparecerá a continuación para que pueda mapearlo o crearlo.",
-        "options": {
-          "mapToColumn": "Mapear desde columna CSV"
-        }
-      },
       "tagMappingTable": {
-        "title": "Mapeo de etiquetas",
-        "description": "Para cada valor de etiqueta encontrado en su CSV, elija si crear una nueva etiqueta, vincularla a una existente u omitirla.",
-        "csvTagName": "Valor de etiqueta CSV",
-        "action": "Acción",
-        "targetTag": "Etiqueta destino",
-        "selectTag": "Seleccionar una etiqueta",
-        "willBeCreated": "Se creará una nueva etiqueta \"{name}\"",
-        "willBeSkipped": "Será omitida",
-        "actions": {
-          "createNew": "Crear nuevo",
-          "mapToExisting": "Vincular a existente",
-          "skip": "Omitir"
-        },
-        "tagsLoadFailed": "No se pudieron cargar sus etiquetas. Inténtelo más tarde.",
-        "noExistingTags": "Aún no tiene etiquetas."
+        "csvTagName": "Valor de etiqueta CSV"
       },
       "resolveValues": {
         "selectAction": "Seleccionar acción",
@@ -319,13 +259,7 @@
         },
         "categories": {
           "sectionTitle": "Mapeo de categorías",
-          "resolvedCount": "{resolved} de {total} resueltos",
-          "csvName": "Categoría CSV",
-          "action": "Acción",
-          "target": "Categoría destino",
-          "selectTarget": "Seleccionar una categoría",
-          "willCreate": "Se creará o combinará \"{name}\"",
-          "empty": "No se encontraron categorías en el CSV"
+          "csvName": "Categoría CSV"
         },
         "tags": {
           "sectionTitle": "Mapeo de etiquetas",

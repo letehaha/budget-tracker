@@ -5,6 +5,7 @@ import {
   ACCOUNT_TYPES,
   AccountModel,
   CategoryModel,
+  CurrencyModel,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionModel,
@@ -106,6 +107,27 @@ export const isTxEditableAsManual = ({
 export const resolveFormIsPlanned = ({ form }: { form: UI_FORM_STRUCT }): boolean =>
   form.type !== FORM_TYPES.transfer && !!form.isPlanned;
 
+export type OriginalCurrencyPairResolution =
+  | { state: 'untouched' }
+  | { state: 'clear' }
+  | { state: 'pair'; originalAmount: number; originalCurrencyCode: string };
+
+/**
+ * What the form says the original-amount pair should become. A half-filled form resolves to
+ * `untouched`, never `clear`: a currency the store has not resolved yet must not wipe the
+ * stored amount.
+ */
+export const resolveOriginalCurrencyPair = ({ form }: { form: UI_FORM_STRUCT }): OriginalCurrencyPairResolution => {
+  const originalAmount = form.originalAmount ?? null;
+  const originalCurrencyCode = form.originalCurrency?.code ?? null;
+
+  if (originalAmount !== null && originalCurrencyCode !== null) {
+    return { state: 'pair', originalAmount, originalCurrencyCode };
+  }
+  if (originalAmount === null && originalCurrencyCode === null) return { state: 'clear' };
+  return { state: 'untouched' };
+};
+
 // The backend cascades a transfer delete across both legs, so an external-bank
 // partner (which can't be removed) would orphan the call — hide the button instead.
 export const canDeleteTransaction = ({
@@ -154,12 +176,15 @@ export const prepopulateForm = ({
   categories,
   accounts,
   formattedCategories,
+  systemCurrencies,
 }: {
   transaction: TransactionModel | undefined;
   oppositeTransaction: TransactionModel | undefined;
   categories: Record<string, CategoryModel>;
   accounts: Record<string, AccountModel>;
   formattedCategories: FormattedCategory[];
+  /** Resolves `originalCurrencyCode` to the picker's option. Loads async, so it can be empty. */
+  systemCurrencies: CurrencyModel[];
 }) => {
   if (transaction) {
     // Build a flat map from formattedCategories for split conversion
@@ -192,6 +217,10 @@ export const prepopulateForm = ({
       // to prevent later Payee selections from silently overwriting it.
       categoryUserTouched: transaction.categoryId !== null && transaction.categoryId !== undefined,
       isPlanned: Boolean(transaction.isPlanned),
+      originalAmount: transaction.originalAmount ?? null,
+      originalCurrency: transaction.originalCurrencyCode
+        ? (systemCurrencies.find((item) => item.code === transaction.originalCurrencyCode) ?? null)
+        : null,
     } as UI_FORM_STRUCT;
 
     // Convert transaction splits to form splits

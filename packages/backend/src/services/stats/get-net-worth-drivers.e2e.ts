@@ -194,6 +194,73 @@ describe('GET /stats/net-worth-drivers', () => {
 
       expect(buckets[0]!.savings.income).toBe(0);
     });
+
+    it('nets a refunded expense out of both sides of savings', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 5000,
+          transactionType: TRANSACTION_TYPES.income,
+          time: `${JAN.start}T10:00:00.000Z`,
+        }),
+        raw: true,
+      });
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2026-01-10T10:00:00.000Z',
+        }),
+        raw: true,
+      });
+      const [refundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 2000,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2026-01-20T10:00:00.000Z',
+        }),
+        raw: true,
+      });
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+      const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
+
+      // Money that came back was never spent and is not earnings, so only the 5,000 salary
+      // survives on the income side and the expense side clears.
+      expect(buckets[0]!.savings).toEqual({ income: 5000, expenses: 0, net: 5000 });
+    });
+
+    it('leaves only the amount actually spent after a partial refund', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1000,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2026-01-10T10:00:00.000Z',
+        }),
+        raw: true,
+      });
+      const [refundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 400,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2026-01-20T10:00:00.000Z',
+        }),
+        raw: true,
+      });
+      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+      const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
+
+      expect(buckets[0]!.savings).toEqual({ income: 0, expenses: 600, net: -600 });
+    });
   });
 
   describe('investment growth', () => {
@@ -875,6 +942,127 @@ describe('GET /stats/net-worth-drivers', () => {
     });
   });
 
+  describe('per-portfolio growth breakdown', () => {
+    /**
+     * Three named portfolios on one base-currency security priced 100 at the opening
+     * snapshot, 120 at the end of January and 110 at the end of February:
+     *  - Alpha holds 10 shares from before the window: +200 in Jan, -100 in Feb;
+     *  - Beta holds 5: +100 in Jan, -50 in Feb;
+     *  - Gamma buys 4 at 115 mid-February only: nothing in Jan, -20 in Feb.
+     * Every number is distinct, so a slice landing on the wrong portfolio is visible.
+     */
+    const seedThreePortfolios = async () => {
+      const security = await createBaseCurrencySecurity();
+
+      const openPortfolio = async ({ name, quantity }: { name: string; quantity: string }) => {
+        const portfolio = await helpers.createPortfolio({ payload: { name }, raw: true });
+        await seedHolding({ portfolioId: portfolio.id, securityId: security.id });
+        await fundPortfolio({ portfolioId: portfolio.id, amount: '2000', date: '2025-12-15' });
+        await helpers.createInvestmentTransaction({
+          payload: {
+            portfolioId: portfolio.id,
+            securityId: security.id,
+            category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+            date: '2025-12-20',
+            quantity,
+            price: '100',
+            fees: '0',
+          },
+          raw: true,
+        });
+        return portfolio;
+      };
+
+      const alpha = await openPortfolio({ name: 'Alpha', quantity: '10' });
+      const beta = await openPortfolio({ name: 'Beta', quantity: '5' });
+
+      const gamma = await helpers.createPortfolio({ payload: { name: 'Gamma' }, raw: true });
+      await seedHolding({ portfolioId: gamma.id, securityId: security.id });
+      await fundPortfolio({ portfolioId: gamma.id, amount: '2000', date: '2025-12-15' });
+      await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: gamma.id,
+          securityId: security.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          date: '2026-02-10',
+          quantity: '4',
+          price: '115',
+          fees: '0',
+        },
+        raw: true,
+      });
+
+      await setPrice({ securityId: security.id, date: '2025-12-31', price: '100' });
+      await setPrice({ securityId: security.id, date: JAN.end, price: '120' });
+      await setPrice({ securityId: security.id, date: FEB.end, price: '110' });
+
+      return { alpha, beta, gamma };
+    };
+
+    it('splits each bucket growth across the portfolios that produced it', async () => {
+      const { alpha, beta, gamma } = await seedThreePortfolios();
+
+      const { buckets, portfolios } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
+
+      const january = buckets[0]!;
+      const february = buckets[1]!;
+
+      expect(january.investments.growth).toBe(300);
+      expect(january.investments.byPortfolio).toEqual(
+        expect.arrayContaining([
+          { portfolioId: alpha.id, growth: 200 },
+          { portfolioId: beta.id, growth: 100 },
+        ]),
+      );
+      // Gamma bought nothing until February, so January carries no slice for it at
+      // all rather than a zero one.
+      expect(january.investments.byPortfolio).toHaveLength(2);
+
+      expect(february.investments.growth).toBe(-170);
+      expect(february.investments.byPortfolio).toEqual(
+        expect.arrayContaining([
+          { portfolioId: alpha.id, growth: -100 },
+          { portfolioId: beta.id, growth: -50 },
+          // 4 shares bought at 115 and worth 110 at the close: the loss on the new position.
+          { portfolioId: gamma.id, growth: -20 },
+        ]),
+      );
+      expect(february.investments.byPortfolio).toHaveLength(3);
+
+      for (const bucket of buckets) {
+        const sliceSum = bucket.investments.byPortfolio.reduce((sum, slice) => sum + slice.growth, 0);
+        expect(sliceSum).toBe(bucket.investments.growth);
+        expect(bucket.investments.byPortfolio.every((slice) => slice.growth !== 0)).toBe(true);
+      }
+
+      // Totals across the window: Alpha +100, Beta +50, Gamma -20 — ordered by how
+      // far each moved, regardless of direction.
+      expect(portfolios).toEqual([
+        { portfolioId: alpha.id, name: 'Alpha' },
+        { portfolioId: beta.id, name: 'Beta' },
+        { portfolioId: gamma.id, name: 'Gamma' },
+      ]);
+    });
+
+    it('narrows the breakdown and the legend to the filtered portfolio', async () => {
+      const { alpha } = await seedThreePortfolios();
+
+      const { buckets, portfolios } = await helpers.getNetWorthDrivers({
+        ...RANGE,
+        portfolioIds: [alpha.id],
+        raw: true,
+      });
+
+      expect(portfolios).toEqual([{ portfolioId: alpha.id, name: 'Alpha' }]);
+      // With one portfolio in scope the bucket total is that portfolio's slice —
+      // the other two contribute to neither the split nor the total.
+      expect(buckets[0]!.investments.growth).toBe(200);
+      expect(buckets[0]!.investments.byPortfolio).toEqual([{ portfolioId: alpha.id, growth: 200 }]);
+      expect(buckets[1]!.investments.growth).toBe(-100);
+      expect(buckets[1]!.investments.byPortfolio).toEqual([{ portfolioId: alpha.id, growth: -100 }]);
+    });
+  });
+
   describe('degraded data quality', () => {
     it('omits the degraded field when every holding is priced', async () => {
       const portfolio = await helpers.createPortfolio({ raw: true });
@@ -1326,12 +1514,19 @@ describe('GET /stats/net-worth-drivers', () => {
 
   describe('empty states', () => {
     it('returns zeroed buckets for a user with no data', async () => {
-      const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
+      const { buckets, portfolios } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
 
       expect(buckets).toHaveLength(2);
       expect(buckets[0]!.savings).toEqual({ income: 0, expenses: 0, net: 0 });
-      expect(buckets[0]!.investments).toEqual({ growth: 0, priceEffect: 0, dividends: 0, feesAndTaxes: 0 });
+      expect(buckets[0]!.investments).toEqual({
+        growth: 0,
+        priceEffect: 0,
+        dividends: 0,
+        feesAndTaxes: 0,
+        byPortfolio: [],
+      });
       expect(buckets[0]!.composition).toEqual({ holdingsValue: 0, cashValue: 0 });
+      expect(portfolios).toEqual([]);
     });
 
     it('reports savings with zero growth for a user with no portfolios', async () => {
@@ -1347,11 +1542,15 @@ describe('GET /stats/net-worth-drivers', () => {
         raw: true,
       });
 
-      const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
+      const { buckets, portfolios } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
 
       expect(buckets[0]!.savings.net).toBe(900);
       expect(buckets[0]!.investments.growth).toBe(0);
       expect(buckets[0]!.composition.holdingsValue).toBe(0);
+      // Nothing to attribute growth to, so both the split and the legend stay empty
+      // rather than being absent from the response.
+      expect(buckets.every((bucket) => bucket.investments.byPortfolio.length === 0)).toBe(true);
+      expect(portfolios).toEqual([]);
     });
   });
 

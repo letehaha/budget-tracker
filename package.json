@@ -45,10 +45,11 @@
     "husky": "9.1.7",
     "knip": "^5.85.0",
     "oxfmt": "^0.35.0",
-    "oxlint": "^1.50.0",
+    "oxlint": "1.78.0",
     "typescript": "^5.9.3"
   },
   "volta": {
     "node": "23.10.0"
-  }
+  },
+  "//oxlint-pin": "oxlint is pinned to an exact version because packages/backend/lint/transactions-boundary-plugin.mjs uses its jsPlugins API, which is alpha and not covered by semver. Upgrade deliberately and re-verify the boundary rules still load."
 }

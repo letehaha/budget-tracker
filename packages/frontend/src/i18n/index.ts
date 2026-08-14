@@ -301,9 +301,17 @@ async function loadChunk({ locale, chunk }: { locale: string; chunk: I18nChunkNa
 
   try {
     const messages = await loader();
+    const payload = messages?.default;
+
+    // A module that resolves without message content means the asset came back as
+    // something other than the JSON chunk. Raised as an error so it takes the same
+    // path as a failed fetch and the chunk stays retryable.
+    if (!payload || typeof payload !== 'object') {
+      throw new Error(`Chunk "${chunk}" for locale "${locale}" resolved without message content`);
+    }
 
     // Merge into existing messages
-    i18n.global.mergeLocaleMessage(locale as SupportedLocale, messages.default as Record<string, unknown>);
+    i18n.global.mergeLocaleMessage(locale as SupportedLocale, payload as Record<string, unknown>);
 
     // Track as loaded
     localeChunks.add(chunk);

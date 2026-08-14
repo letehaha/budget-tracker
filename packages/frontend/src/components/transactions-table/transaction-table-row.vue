@@ -105,6 +105,13 @@
         <span :class="['text-amount tabular-nums', amountColorClass]">{{ formattedRefAmount }}</span>
       </template>
 
+      <!-- Original amount (foreign currency the user paid in) -->
+      <template v-else-if="column.id === TABLE_COLUMN.originalAmount">
+        <span v-if="formattedOriginalAmount" class="text-amount text-muted-foreground tabular-nums">
+          {{ formattedOriginalAmount }}
+        </span>
+      </template>
+
       <!-- Note -->
       <template v-else-if="column.id === TABLE_COLUMN.note">
         <DesktopOnlyTooltip v-if="tx.note" :content="tx.note">
@@ -261,6 +268,12 @@ const formattedAmount = computed(() =>
   formatUIAmount(signedAmount(props.tx.amount), { currency: props.tx.currencyCode }),
 );
 const formattedRefAmount = computed(() => formatBaseCurrency(signedAmount(props.tx.refAmount)));
+
+const formattedOriginalAmount = computed(() => {
+  const { originalAmount, originalCurrencyCode } = props.tx;
+  if (originalAmount == null || !originalCurrencyCode) return '';
+  return formatUIAmount(originalAmount, { currency: originalCurrencyCode });
+});
 
 const txTags = computed(() => props.tx.tags ?? []);
 const hiddenTagsCount = computed(() => Math.max(0, txTags.value.length - MAX_VISIBLE_TAGS));

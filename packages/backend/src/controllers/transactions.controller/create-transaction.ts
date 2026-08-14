@@ -1,5 +1,5 @@
 import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
-import { recordId } from '@common/lib/zod/custom-types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deserializeCreateTransaction, serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
@@ -29,6 +29,8 @@ const schema = z.object({
       payeeId: recordId().nullable().optional(),
       payeeLocked: z.boolean().optional(),
       isPlanned: z.boolean().optional().default(false),
+      originalAmount: nonNegativeAmountSchema().optional(),
+      originalCurrencyCode: currencyCode().optional(),
     })
     .refine(
       (data) =>
@@ -126,6 +128,18 @@ const schema = z.object({
       {
         message: 'Splits cannot be added to transfer transactions',
         path: ['splits', 'transferNature'],
+      },
+    )
+    .refine((data) => (data.originalAmount === undefined) === (data.originalCurrencyCode === undefined), {
+      message: '"originalAmount" and "originalCurrencyCode" must be provided together',
+      path: ['originalAmount', 'originalCurrencyCode'],
+    })
+    .refine(
+      (data) =>
+        !(data.originalAmount !== undefined && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer),
+      {
+        message: 'Original currency metadata cannot be added to transfer transactions',
+        path: ['originalAmount', 'transferNature'],
       },
     ),
 });

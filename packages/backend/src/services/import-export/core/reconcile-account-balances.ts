@@ -4,7 +4,7 @@ import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import { updateAccount } from '@services/accounts.service';
 import { absorbBalanceAdjustment } from '@services/accounts/absorb-balance-adjustment';
 import { importDayKey } from '@services/import-export/core/duplicates/import-day-key';
@@ -393,8 +393,12 @@ export async function startBalanceReconciliation({
 
     // A future-dated planned row would push this boundary forward and make every imported
     // row count as historical, folding the whole import into the opening balance.
-    const latestTx = await Transactions.findOne({
-      where: { userId, accountId, isPlanned: false },
+    // Adjustment rows are ledger rows like any other, so they can be the boundary.
+    const latestTx = await findOneTransaction({
+      planned: 'exclude',
+      access: { creator: userId },
+      balanceAdjustments: 'include',
+      where: { accountId },
       attributes: ['time'],
       order: [['time', 'DESC']],
     });

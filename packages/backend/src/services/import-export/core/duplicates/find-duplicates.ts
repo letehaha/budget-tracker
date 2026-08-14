@@ -46,14 +46,14 @@ export async function findDuplicates({
 
   // Fetch existing transactions in the date range for these accounts
   const existingTransactions = await Transactions.findWithFilters({
-    userId,
+    access: { creator: userId },
     accountIds: Array.from(existingAccountIds),
     startDate: `${minDay}T00:00:00.000Z`,
     endDate: `${maxDay}T23:59:59.999Z`,
-    from: 0,
-    limit: 10000,
+    completeness: { cap: { limit: 10000, onTruncated: 'log' } },
     // Planned rows are merge targets for incoming rows, not duplicates of them.
-    isPlanned: false,
+    planned: 'exclude',
+    balanceAdjustments: 'include',
   });
 
   // Build lookup maps for efficient matching

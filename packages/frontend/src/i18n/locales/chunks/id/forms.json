@@ -107,7 +107,6 @@
         "actionTransfer": "transfer",
         "actionWithdrawal": "penarikan",
         "actionDeposit": "setoran",
-        "warning": "Tindakan ini tidak dapat dibatalkan.",
         "cancelButton": "Batal",
         "confirmButton": "Konfirmasi Transfer"
       },

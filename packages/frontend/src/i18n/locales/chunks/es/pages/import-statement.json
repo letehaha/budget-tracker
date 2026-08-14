@@ -12,14 +12,8 @@
         }
       },
       "steps": {
-        "uploadTitle": "Subir y extraer",
-        "uploadDescription": "Suba el extracto y extraiga las transacciones con IA",
         "accountTitle": "Seleccionar cuenta",
-        "accountDescription": "Elija o cree una cuenta para las transacciones",
-        "reviewTitle": "Revisar transacciones",
-        "reviewDescription": "Revise y gestione las transacciones duplicadas",
-        "importTitle": "Importar",
-        "importDescription": "Ejecute la importación y vea los resultados"
+        "accountDescription": "Elija o cree una cuenta para las transacciones"
       },
       "selectCurrency": "Seleccionar moneda",
       "selectExistingAccount": "Seleccionar cuenta existente",
@@ -27,10 +21,7 @@
       "selectAccount": "Seleccione una cuenta",
       "searchAccounts": "Buscar cuentas...",
       "uploadExtract": {
-        "dragDropText": "Arrastre y suelte su archivo de extracto aquí, o",
-        "browseButton": "Explorar archivos",
         "supportedFormats": "Formatos admitidos: PDF, CSV, TXT (máx. 10 MB)",
-        "removeButton": "Eliminar",
         "analyzeButton": "Analizar archivo",
         "tryAgain": "Intentar de nuevo",
         "modelLabel": "Modelo",
@@ -69,7 +60,6 @@
           "almostDone": "Casi listo..."
         },
         "tokenFormat": "{inputTokens}K entrada, ~{outputTokens}K salida",
-        "fileSize": "{size} KB",
         "pdfPasswordLabel": "Contraseña del PDF",
         "pdfPasswordPlaceholder": "Introduzca la contraseña del documento",
         "pdfPasswordSubmit": "Desbloquear y analizar"

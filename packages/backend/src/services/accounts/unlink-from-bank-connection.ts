@@ -2,7 +2,7 @@ import { ACCOUNT_TYPES } from '@bt/shared/types';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts, { getAccountById } from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions, updateTransactions } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UnlinkAccountFromBankConnectionPayload {
@@ -65,7 +65,11 @@ export const unlinkAccountFromBankConnection = withTransaction(
     // Capture each transaction's original bank metadata (originalId + accountType)
     // BEFORE the bulk wipe below, so the per-row externalData snapshot still has
     // the pre-unlink values to record in `originalSource`.
-    const transactions = await Transactions.findAll({
+    const transactions = await findTransactions({
+      planned: 'include',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: { accountId },
     });
 
@@ -78,13 +82,17 @@ export const unlinkAccountFromBankConnection = withTransaction(
     // runs a `findOne` + `update` per row, serialised on one PG connection.
     // For an account with N transactions that turns into O(N) wasted DB ops
     // (~5/tx) and pushed real-world unlinks past 80 seconds for ~350 rows.
-    // `Transactions.update(...)` (static bulk) skips instance hooks by default,
-    // but `hooks: false` makes the intent explicit and also blocks any future
-    // `@BeforeBulkUpdate` hook from sneaking back in.
-    await Transactions.update(
-      { accountType: ACCOUNT_TYPES.system, originalId: null },
-      { where: { accountId }, hooks: false },
-    );
+    // A static bulk update skips instance hooks by default, but `hooks: false`
+    // makes the intent explicit and also blocks any future `@BeforeBulkUpdate`
+    // hook from sneaking back in.
+    await updateTransactions({
+      planned: 'include',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      values: { accountType: ACCOUNT_TYPES.system, originalId: null },
+      where: { accountId },
+      hooks: false,
+    });
 
     // Per-row `externalData` merge — JSONB shape differs per row (the
     // `originalSource` snapshot only applies to txs that came from the bank,
@@ -103,10 +111,14 @@ export const unlinkAccountFromBankConnection = withTransaction(
         },
       };
 
-      await Transactions.update(
-        { externalData: updatedTxExternalData },
-        { where: { id: transaction.id }, hooks: false },
-      );
+      await updateTransactions({
+        planned: 'include',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        values: { externalData: updatedTxExternalData },
+        where: { id: transaction.id },
+        hooks: false,
+      });
     }
 
     // Fetch and return the updated account

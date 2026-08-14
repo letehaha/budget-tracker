@@ -64,12 +64,7 @@
       }
     },
     "done": {
-      "title": "Імпорт завершено",
-      "transactions": "Транзакцій додано",
-      "holdingsCreated": "Активи створено",
-      "holdingsMerged": "Активи оновлено",
-      "skipped": "Пропущено дублікати",
-      "close": "Закрити"
+      "transactions": "Транзакцій додано"
     },
     "notifications": {
       "imported": "Імпортовано {count} транзакцій",

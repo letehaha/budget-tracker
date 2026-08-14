@@ -40,6 +40,8 @@ export const applyPayeeTagsToExisting = withTransaction(
       `
       INSERT INTO "TransactionTags" ("tagId", "transactionId")
       SELECT pt."tagId", t."id"
+        -- planned-ok: the user asked for every row already linked to this payee,
+        -- and a plan they linked by hand owns tags like any other row
         FROM "Transactions" t
         CROSS JOIN "PayeeTags" pt
        WHERE t."payeeId" = :payeeId

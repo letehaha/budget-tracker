@@ -27,10 +27,8 @@
     },
     "cashBalances": {
       "title": "Saldo Kas",
-      "subtitle": "{count} mata uang",
       "emptyState": "Tidak ada saldo kas",
       "tabs": {
-        "overview": "Ikhtisar",
         "balances": "Saldo",
         "cashTransactions": "Transaksi",
         "buysSells": "Beli & Jual"

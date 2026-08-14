@@ -1,7 +1,8 @@
-import { ACCOUNT_TYPES, type RecordId, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, type RecordId, TRANSACTION_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import { connection } from '@models/connection';
+import { findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
@@ -10,7 +11,6 @@ import { addDays, subDays } from 'date-fns';
 import { DatabaseError, Op, QueryTypes } from 'sequelize';
 
 import { getCounterpartyIban, hasSettledStatus } from '../enablebanking/utils/transaction-metadata';
-import { REAL_TRANSACTIONS_WHERE } from './real-transactions-where';
 import { TRANSFER_DATE_WINDOW_DAYS, normalizeIban } from './transfer-matching';
 
 /** Walutomat rows must not auto-link here: that provider's own FX/IBAN matchers own them. */
@@ -69,14 +69,16 @@ async function findLinkableCandidates({
   userId: number;
   excludedAccountTypes: ACCOUNT_TYPES[];
 }): Promise<Transactions[]> {
-  const candidates = await Transactions.findAll({
+  const candidates = await findTransactions({
+    planned: 'exclude',
+    access: { creator: userId },
+    transfers: 'exclude',
+    balanceAdjustments: 'include',
+    completeness: 'all',
     where: {
-      ...REAL_TRANSACTIONS_WHERE,
-      userId,
       accountId: { [Op.ne]: tx.accountId },
       accountType: { [Op.notIn]: excludedAccountTypes },
       transactionType: oppositeType({ type: tx.transactionType }),
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       refundLinked: false,
       currencyCode: tx.currencyCode,
       amount: tx.amount.toCents(),
@@ -143,12 +145,14 @@ const linkTransfersInTransaction = withTransaction(
         }
       }
 
-      const syncedTxs = await Transactions.findAll({
+      const syncedTxs = await findTransactions({
+        planned: 'exclude',
+        access: { creator: userId },
+        transfers: 'exclude',
+        balanceAdjustments: 'include',
+        completeness: 'all',
         where: {
-          ...REAL_TRANSACTIONS_WHERE,
           id: { [Op.in]: transactionIds },
-          userId,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           refundLinked: false,
         },
         order: [['time', 'ASC']],

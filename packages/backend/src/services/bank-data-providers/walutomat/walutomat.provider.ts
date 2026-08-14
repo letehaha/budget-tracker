@@ -12,6 +12,7 @@ import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { findOneTransaction, findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import {
@@ -29,7 +30,6 @@ import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
 import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
-import { REAL_TRANSACTIONS_WHERE } from '../utils/real-transactions-where';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { type HistoryItem, type WalletBalance, WalutomatApiClient, WalutomatHttpError } from './api-client';
 import { linkCrossProviderTransfers } from './cross-provider-linking';
@@ -303,8 +303,11 @@ export class WalutomatProvider extends BaseBankDataProvider {
         const currency = currencyFromExternalId(account.externalId);
 
         // Determine sync start date
-        const latestTransaction = await Transactions.findOne({
-          where: { accountId: account.id, ...REAL_TRANSACTIONS_WHERE },
+        const latestTransaction = await findOneTransaction({
+          planned: 'exclude',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
+          where: { accountId: account.id },
           order: [['time', 'DESC']],
         });
 
@@ -347,7 +350,10 @@ export class WalutomatProvider extends BaseBankDataProvider {
           await checkpoint();
 
           // Primary dedup: check by originalId
-          const existingTx = await Transactions.findOne({
+          const existingTx = await findOneTransaction({
+            planned: 'exclude',
+            access: 'unscoped-internal',
+            balanceAdjustments: 'include',
             where: {
               accountId: account.id,
               originalId: item.transactionId,
@@ -360,7 +366,10 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
           // Secondary dedup: check externalData.originalSource.originalId
           // Covers the unlink→relink flow where originalId was cleared
-          const existingByOriginalSource = await Transactions.findOne({
+          const existingByOriginalSource = await findOneTransaction({
+            planned: 'exclude',
+            access: 'unscoped-internal',
+            balanceAdjustments: 'include',
             where: Sequelize.and(
               { accountId: account.id, originalId: null },
               Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), item.transactionId),
@@ -509,11 +518,14 @@ export class WalutomatProvider extends BaseBankDataProvider {
   private async linkFxTransfers({ userId }: { userId: number }): Promise<void> {
     try {
       // Find all unlinked MARKET_FX and DIRECT_FX walutomat transactions for this user
-      const unlinkedFxTxs = await Transactions.findAll({
+      const unlinkedFxTxs = await findTransactions({
+        planned: 'exclude',
+        access: { creator: userId },
+        balanceAdjustments: 'include',
+        transfers: 'exclude',
+        completeness: 'all',
         where: {
-          userId,
           accountType: ACCOUNT_TYPES.walutomat,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           originalId: { [Op.not]: null },
           [Op.or]: [
             Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'MARKET_FX'),

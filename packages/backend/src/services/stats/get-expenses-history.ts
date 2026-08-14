@@ -1,9 +1,7 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
-
-import { getWhereConditionForTime } from './utils';
+import { statsTransactions } from '@services/stats/stats-transactions';
 
 type GetExpensesHistoryResponseSchema = Pick<
   Transactions.default,
@@ -64,25 +62,17 @@ export const getExpensesHistory = async ({
     'transactionType',
   ];
 
-  const transactions = await Transactions.default.findAll({
-    where: removeUndefinedKeys({
-      accountId,
-      userId,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      transactionType,
-      ...(excludePlanned ? { isPlanned: false } : {}),
-      ...getWhereConditionForTime({ from, to, columnName: 'time' }),
-    }),
-    include: [
-      {
-        model: Accounts,
-        where: { excludeFromStats: false },
-        attributes: [],
-      },
-    ],
+  // Refunds are left gross here: the caller runs them through the category-allocation engine,
+  // which resolves the pairs itself.
+  const { rows } = await statsTransactions({
+    access: { creator: userId },
+    planned: excludePlanned ? 'exclude' : 'include',
+    refunds: 'ignore',
+    window: { from, to },
+    where: removeUndefinedKeys({ accountId, transactionType }),
     order: [['time', 'ASC']],
     attributes: dataAttributes,
   });
 
-  return transactions;
+  return rows;
 };

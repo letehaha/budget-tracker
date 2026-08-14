@@ -120,6 +120,9 @@ export class UnexpectedError extends CustomError {
   }
 }
 
+/** No exchange rate exists for the pair on or before the requested date. */
+export class ExchangeRateUnavailableError extends UnexpectedError {}
+
 export class TooManyRequests extends CustomError {
   constructor({
     code = API_ERROR_CODES.tooManyRequests,
