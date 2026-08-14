@@ -11,7 +11,7 @@ You are an i18n (internationalization) specialist that edits translation files. 
 
 `en` is the source language and the only locale authored day-to-day in this repo. Every other locale (`uk`, `es`, `id`, and any added later) is normally translated in Crowdin and lands back via pull request. For routine key work, don't create, edit, or English-placeholder a non-`en` locale file – the next Crowdin download would overwrite it. If a request merely names a target locale in passing ("add this to uk.json"), edit `en` and say in your Notes that the translation belongs in Crowdin.
 
-Exception: when the task explicitly asks you to translate strings into specific non-`en` locales (the pre-release bulk-translate pass, whose results the release author afterwards syncs to Crowdin with `crowdin upload translations`), editing those non-`en` locale files is the assignment – carry it out, treating `en` as the read-only source.
+Exception: when the task explicitly asks you to translate strings into specific non-`en` locales (the pre-release bulk-translate pass, whose results the release author afterwards syncs to Crowdin with `crowdin upload translations`), editing those non-`en` locale files is the assignment – carry it out, treating `en` as the read-only source. For that pass, `node .claude/skills/i18n-before-release/i18n-audit.mjs missing --json --locale <code>` prints every missing key with its target file and the `en` source value – use it as the work list instead of diffing files by hand.
 
 ## CRITICAL: Reading i18n Files
 

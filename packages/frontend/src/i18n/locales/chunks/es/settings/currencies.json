@@ -5,18 +5,11 @@
         "loading": "Cargando...",
         "selectCurrency": "Seleccionar moneda",
         "addButton": "Añadir",
-        "howItWorks": "¿Cómo funciona?",
-        "tooltip": "Al añadir monedas personalizadas, puede crear y gestionar cuentas y transacciones en esas monedas. También podrá ajustar y actualizar sus tipos de cambio relativos a su moneda base. Las cuentas vinculadas crearán automáticamente las monedas necesarias.",
         "errors": {
           "addFailed": "Error inesperado. La moneda no ha sido añadida."
         },
         "sectionLabel": "Añadir una moneda",
         "successfullyAdded": "Moneda añadida"
-      },
-      "list": {
-        "editCurrency": "Editar moneda",
-        "baseCurrencyBadge": "Moneda base",
-        "baseCurrencyTooltip": "Su moneda base. Toda la información del panel se muestra en esta moneda"
       },
       "exchangeRate": {
         "disableLiveUpdate": "Deshabilite la actualización en tiempo real para poder establecer un tipo de cambio personalizado.",
@@ -43,7 +36,6 @@
         "buttonShort": "Eliminar"
       },
       "setBase": {
-        "label": "Establecer como moneda base",
         "button": "Establecer como moneda base",
         "processing": "Procesando...",
         "tooltip": "Marcar como moneda base. Todas las estadísticas e información del panel se mostrarán en esta moneda.\n\nLas transacciones se recalcularán según el tipo de cambio de la fecha en que se registró cada transacción.",

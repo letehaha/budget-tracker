@@ -149,16 +149,11 @@
         "selectAction": "Вибрати дію..."
       },
       "transactionTypeMapping": {
-        "title": "Визначення типу транзакції",
-        "methodLabel": "Метод",
-        "methodDescription": "Виберіть як визначати тип транзакції (дохід/витрата)",
         "columnLabel": "Стовпець типу транзакції",
-        "columnDescription": "Виберіть стовпець CSV, що містить інформацію про тип транзакції",
         "incomeValuesLabel": "Значення доходу",
         "expenseValuesLabel": "Значення витрат",
         "commaSeparatedHint": "Значення, розділені комами",
         "uncoveredValues": "Ці значення у стовпці типу ще не призначені до Доходу або Витрати: {values}. Додайте кожне до відповідного списку вище, щоб продовжити.",
-        "selectMethod": "Вибрати метод...",
         "selectColumn": "Вибрати стовпець...",
         "incomeValuesPlaceholder": "напр., Credit, Deposit, Income",
         "expenseValuesPlaceholder": "напр., Debit, Withdrawal, Expense",
@@ -169,19 +164,11 @@
         "amountSignInfo": "ℹ️ Типи транзакцій визначатимуться автоматично: від'ємні суми = витрати, додатні суми = доходи"
       },
       "currencyMapping": {
-        "title": "Призначення валюти",
-        "optionLabel": "Як ви хочете призначити валюти?",
-        "optionDescription": "Виберіть як призначати валюти імпортованим транзакціям",
-        "columnLabel": "Стовпець валюти",
-        "columnDescription": "Виберіть стовпець CSV, що містить коди валют",
-        "currencyLabel": "Валюта",
-        "currencyDescription": "Всі імпортовані транзакції використовуватимуть цю валюту",
         "selectCurrency": "Вибрати валюту...",
         "methodOptions": {
           "dataSourceColumn": "Зі стовпця CSV",
           "existingCurrency": "Використовувати одну валюту для всіх транзакцій"
-        },
-        "dataSourceColumnInfo": "ℹ️ Кожна транзакція використовуватиме валюту, вказану у вибраному стовпці CSV"
+        }
       },
       "categoryMapping": {
         "selectCategory": "Вибрати категорію..."
@@ -221,64 +208,17 @@
         "selectAccount": "Вибрати рахунок..."
       },
       "categoryMappingTable": {
-        "title": "Зіставлення категорій",
-        "description": "Зіставте назви категорій CSV з вашими існуючими категоріями або створіть нові.",
-        "csvCategoryName": "Назва категорії CSV",
-        "action": "Дія",
-        "targetCategory": "Цільова категорія",
-        "actions": {
-          "createNew": "Створити нову категорію",
-          "mapToExisting": "Зіставити з існуючою категорією"
-        },
-        "willBeCreatedOrMerged": "{name} буде {action} з наявною категорією з такою ж назвою",
-        "createdOrMergedAction": "створена, або об'єднана",
-        "mappedTo": "зіставлена з \"{name}\"",
-        "selectCategory": "Вибрати категорію..."
+        "csvCategoryName": "Назва категорії CSV"
       },
       "categoryAssignment": {
-        "title": "Призначення категорій",
-        "howToAssign": "Як ви хочете призначити категорії?",
-        "description": "Виберіть, як категорії повинні бути призначені імпортованим транзакціям",
-        "categoryColumn": "Стовпець категорій",
-        "columnDescription": "Виберіть стовпець CSV, який містить назви категорій",
-        "categoryLabel": "Категорія",
-        "singleCategoryDescription": "Всі імпортовані транзакції будуть призначені цій категорії",
-        "mapOnNextStep": "На наступному кроці ви зіставите кожну категорію CSV з вашими існуючими категоріями",
-        "createFromCSV": "Нові категорії верхнього рівня будуть створені автоматично з унікальних значень у вашому CSV файлі",
         "options": {
           "mapToExisting": "Зіставити кожну категорію CSV з існуючими категоріями (на наступному кроці)",
           "createNew": "Створити нові категорії з значень CSV",
           "assignToSingle": "Призначити всім одну існуючу категорію"
         }
       },
-      "tagAssignment": {
-        "title": "Призначення тегів",
-        "howToAssign": "Як призначити теги",
-        "description": "Теги дозволяють категоризувати транзакції з кількома мітками.",
-        "noTagsOption": "Не імпортувати теги",
-        "tagColumn": "Стовпець тегів",
-        "columnDescription": "Виберіть стовпець CSV, значення якого будуть використовуватися як теги для кожної транзакції.",
-        "mapOnNextStep": "Кожне унікальне значення тегу, знайдене в цьому стовпці, з'явиться нижче, щоб ви могли його зіставити або створити.",
-        "options": {
-          "mapToColumn": "Зіставити зі стовпця CSV"
-        }
-      },
       "tagMappingTable": {
-        "title": "Зіставлення тегів",
-        "description": "Для кожного значення тегу, знайденого у вашому CSV, виберіть, чи створити новий тег, пов'язати з існуючим або пропустити його.",
-        "csvTagName": "Значення тегу CSV",
-        "action": "Дія",
-        "targetTag": "Цільовий тег",
-        "selectTag": "Вибрати тег",
-        "willBeCreated": "Буде створений новий тег \"{name}\"",
-        "willBeSkipped": "Буде пропущено",
-        "actions": {
-          "createNew": "Створити новий",
-          "mapToExisting": "Пов'язати з існуючим",
-          "skip": "Пропустити"
-        },
-        "tagsLoadFailed": "Не вдалося завантажити ваші теги. Спробуйте пізніше.",
-        "noExistingTags": "У вас ще немає тегів."
+        "csvTagName": "Значення тегу CSV"
       },
       "resolveValues": {
         "selectAction": "Вибрати дію",
@@ -319,13 +259,7 @@
         },
         "categories": {
           "sectionTitle": "Зіставлення категорій",
-          "resolvedCount": "{resolved} з {total} вирішено",
-          "csvName": "Категорія CSV",
-          "action": "Дія",
-          "target": "Цільова категорія",
-          "selectTarget": "Вибрати категорію",
-          "willCreate": "Буде створено або об'єднано \"{name}\"",
-          "empty": "У CSV не знайдено категорій"
+          "csvName": "Категорія CSV"
         },
         "tags": {
           "sectionTitle": "Зіставлення тегів",

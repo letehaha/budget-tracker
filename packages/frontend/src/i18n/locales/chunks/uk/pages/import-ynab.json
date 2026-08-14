@@ -11,16 +11,6 @@
             "results": "Готово"
           }
         },
-        "steps": {
-          "uploadTitle": "Завантажити файл",
-          "uploadDescription": "Виберіть Register.csv із вашого експорту YNAB.",
-          "previewTitle": "Перегляньте, що буде імпортовано",
-          "previewDescription": "Перевірте рахунки, валюти та попередження перед тим, як ми щось змінимо.",
-          "executeTitle": "Імпортування",
-          "executeDescription": "Ми запишемо ваші дані в MoneyMatter.",
-          "doneTitle": "Готово",
-          "doneDescription": "Подивіться на те, що прибуло."
-        },
         "fileUpload": {
           "stepTitle": "Перетягніть Register.csv сюди",
           "description": "YNAB → Budget → Export budget → розпакуйте → використовуйте файл Register.csv.",
@@ -34,11 +24,7 @@
         "preview": {
           "emptyList": "Тут немає чого імпортувати.",
           "accounts": "Рахунки",
-          "categories": "Категорії",
-          "payees": "Отримувачі",
           "transactions": "Транзакції",
-          "transfers": "Перекази",
-          "tags": "Теги",
           "dateRange": "Діапазон: {from} → {to}",
           "accountsHelper": "Для кожного рахунку YNAB підтвердіть валюту.",
           "warningsTitle": "Попередження",

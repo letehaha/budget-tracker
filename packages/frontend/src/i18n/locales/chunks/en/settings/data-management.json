@@ -9,10 +9,7 @@
       },
       "textSource": {
         "title": "Import from any Text Source",
-        "description": "Parse and import transactions from bank statements, emails, or any text source. Uses AI to automatically extract transaction data.",
-        "button": "Import from Text (PDF, CSV, TXT, etc)",
         "aiBadge": "AI-powered",
-        "cta": "Import from text",
         "listDescription": "Bank statements, emails, or any text source"
       },
       "csv": {
@@ -24,14 +21,10 @@
       },
       "ynab": {
         "title": "Import from YNAB",
-        "description": "Upload your YNAB Register.csv to migrate accounts, transactions, categories, payees and flags.",
-        "cta": "Import from YNAB",
         "listDescription": "Accounts, transactions, categories, and payees"
       },
       "budget-bakers-wallet": {
         "title": "Wallet (BudgetBakers)",
-        "description": "Import transactions exported from the Wallet app by BudgetBakers. Supports multi-currency accounts and automatic transfer pairing.",
-        "cta": "Import from Wallet",
         "listDescription": "Multi-currency with automatic transfer pairing"
       },
       "ms-money": {
@@ -50,8 +43,6 @@
       },
       "export": {
         "cardTitle": "Export your data",
-        "cardDescription": "Download a zip with your transactions, accounts, budgets, and other data. Useful for spreadsheet analysis, tax prep, or migrating to another budgeting app.",
-        "cta": "Configure export",
         "form": {
           "title": "Export your data",
           "description": "Pick a format and the parts of your data you want. The download starts as soon as you confirm.",

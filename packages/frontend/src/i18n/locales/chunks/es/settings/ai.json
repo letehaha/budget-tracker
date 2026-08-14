@@ -85,7 +85,6 @@
             "override": "Siempre puede anular manualmente las categorías sugeridas por la IA."
           }
         },
-        "payeeTip": "Consejo: asignar una categoría predeterminada a un beneficiario omite la IA para esas transacciones por completo.",
         "loading": "Cargando modelos..."
       },
       "statementParsing": {
@@ -164,7 +163,6 @@
         "title": "Instrucciones personalizadas",
         "description": "Proporcione contexto para ayudar a la IA a categorizar sus transacciones. Estas instrucciones se incluyen al categorizar transacciones durante la sincronización bancaria y la importación manual.",
         "placeholder": "Ej.: las transacciones de «Starbucks» deben ser «Café». Mis ingresos como autónomo provienen de «Acme Corp».",
-        "requiresApiKey": "Añada una clave de API personal para usar instrucciones personalizadas.",
         "save": "Guardar",
         "saved": "¡Guardado!",
         "saveFailed": "Error al guardar las instrucciones personalizadas. Inténtelo de nuevo.",

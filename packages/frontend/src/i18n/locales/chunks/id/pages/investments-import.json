@@ -64,12 +64,7 @@
       }
     },
     "done": {
-      "title": "Impor selesai",
-      "transactions": "Transaksi ditambahkan",
-      "holdingsCreated": "Kepemilikan dibuat",
-      "holdingsMerged": "Kepemilikan diperbarui",
-      "skipped": "Duplikat dilewati",
-      "close": "Tutup"
+      "transactions": "Transaksi ditambahkan"
     },
     "notifications": {
       "imported": "Mengimpor {count} transaksi",

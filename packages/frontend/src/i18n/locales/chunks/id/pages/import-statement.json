@@ -12,14 +12,8 @@
         }
       },
       "steps": {
-        "uploadTitle": "Upload & Ekstrak",
-        "uploadDescription": "Upload laporan dan ekstrak transaksi dengan AI",
         "accountTitle": "Pilih Akun",
-        "accountDescription": "Pilih atau buat akun untuk transaksi",
-        "reviewTitle": "Tinjau Transaksi",
-        "reviewDescription": "Tinjau dan tangani transaksi duplikat",
-        "importTitle": "Impor",
-        "importDescription": "Jalankan impor dan lihat hasil"
+        "accountDescription": "Pilih atau buat akun untuk transaksi"
       },
       "selectCurrency": "Pilih mata uang",
       "selectExistingAccount": "Pilih akun yang ada",
@@ -27,10 +21,7 @@
       "selectAccount": "Pilih akun",
       "searchAccounts": "Cari akun...",
       "uploadExtract": {
-        "dragDropText": "Seret dan lepas file laporan Anda di sini, atau",
-        "browseButton": "Cari File",
         "supportedFormats": "Format yang didukung: PDF, CSV, TXT (maks 10MB)",
-        "removeButton": "Hapus",
         "analyzeButton": "Analisis File",
         "tryAgain": "Coba Lagi",
         "modelLabel": "Model",
@@ -69,7 +60,6 @@
           "almostDone": "Hampir selesai..."
         },
         "tokenFormat": "{inputTokens}K masukan, ~{outputTokens}K keluaran",
-        "fileSize": "{size} KB",
         "pdfPasswordLabel": "Kata sandi PDF",
         "pdfPasswordPlaceholder": "Masukkan kata sandi dokumen",
         "pdfPasswordSubmit": "Buka Kunci dan Analisis"

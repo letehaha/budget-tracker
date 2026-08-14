@@ -5,10 +5,7 @@
       "description": "Importe sus datos financieros desde diversas fuentes",
       "textSource": {
         "title": "Importar desde cualquier fuente de texto",
-        "description": "Analice e importe transacciones desde extractos bancarios, correos electrónicos o cualquier fuente de texto. Utiliza IA para extraer datos de transacciones automáticamente.",
-        "button": "Importar desde texto (PDF, CSV, TXT, etc.)",
         "aiBadge": "Impulsado por IA",
-        "cta": "Importar desde texto",
         "listDescription": "Extractos bancarios, correos o cualquier fuente de texto"
       },
       "csv": {
@@ -20,14 +17,10 @@
       },
       "ynab": {
         "title": "Importar desde YNAB",
-        "description": "Carga tu Register.csv YNAB para migrar cuentas, transacciones, categorías, beneficiarios y etiquetas.",
-        "cta": "Importar desde YNAB",
         "listDescription": "Cuentas, transacciones, categorías y beneficiarios"
       },
       "budget-bakers-wallet": {
         "title": "Wallet (BudgetBakers)",
-        "description": "Importe transacciones exportadas desde la app Wallet de BudgetBakers. Compatible con cuentas multidivisa y emparejamiento automático de transferencias.",
-        "cta": "Importar desde Wallet",
         "listDescription": "Multidivisa con emparejamiento automático de transferencias"
       },
       "import": {
@@ -46,8 +39,6 @@
       },
       "export": {
         "cardTitle": "Exporta tus datos",
-        "cardDescription": "Descarga un archivo ZIP con tus transacciones, cuentas, presupuestos y otros datos. Útil para análisis en hojas de cálculo, preparación de impuestos o migración a otra aplicación de presupuestos.",
-        "cta": "Configurar exportación",
         "form": {
           "title": "Exporta tus datos",
           "description": "Elige un formato y las partes de tus datos que deseas. La descarga comenzará tan pronto como confirmes.",

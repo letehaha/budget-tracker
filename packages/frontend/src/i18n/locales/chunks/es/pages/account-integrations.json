@@ -1,20 +1,6 @@
 {
   "pages": {
     "integrations": {
-      "title": "Integraciones bancarias",
-      "addButton": "Añadir",
-      "addButtonFull": "Integración",
-      "loading": "Cargando...",
-      "empty": {
-        "title": "Aún no hay integraciones bancarias",
-        "description": "Conecte sus cuentas bancarias para importar transacciones automáticamente y mantener sus finanzas al día.",
-        "addFirstButton": "Añadir su primera integración"
-      },
-      "card": {
-        "connectedAccounts": "Cuentas conectadas:",
-        "lastSync": "Última sincronización: {date}",
-        "disconnectButton": "Desconectar"
-      },
       "addDialog": {
         "titleSelect": "Añadir integración",
         "titleConnect": "Conectar {provider}",
@@ -227,7 +213,6 @@
         "backfillNote": "Cargaremos los últimos 6 meses de transacciones ahora. Puede cargar el historial más antiguo en cualquier momento desde la página de la cuenta usando el selector de rango de fechas.",
         "importButton": "Importar {count} cuenta(s)",
         "importingButton": "Importando…",
-        "importSuccess": "{count} cuenta(s) importada(s) correctamente",
         "errors": {
           "connectFailed": "Error al conectar con SimpleFIN. Compruebe su token de configuración e inténtelo de nuevo.",
           "importFailed": "Error al importar las cuentas. Por favor, inténtelo de nuevo."
@@ -287,7 +272,6 @@
         "connectionEstablished": "¡Conexión bancaria establecida correctamente!"
       },
       "details": {
-        "loading": "Cargando...",
         "error": {
           "loadFailed": "Error al cargar los detalles de la integración. Por favor, inténtelo de nuevo.",
           "notFoundTitle": "Integración no encontrada",

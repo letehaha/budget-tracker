@@ -21,7 +21,6 @@
     "trash": {
       "title": "Trash",
       "retentionHint": "Items here are permanently deleted after {days} days",
-      "loading": "Loading trash…",
       "loadError": "Couldn't load trashed portfolios.",
       "deletedAgo": "Deleted {time}",
       "restoreButton": "Restore",

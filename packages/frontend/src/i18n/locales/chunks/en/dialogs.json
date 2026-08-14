@@ -296,7 +296,6 @@
       "title": "Add Symbols",
       "searchLabel": "Search symbol or name",
       "searchPlaceholder": "AAPL",
-      "searching": "Searching…",
       "searchError": "Failed to search securities.",
       "addedIndicator": "(Added)",
       "noResults": "No results.",
@@ -349,8 +348,6 @@
       "iconLabel": "Icon",
       "iconPlaceholder": "Select icon",
       "settingsDivider": "Settings",
-      "excludeFromStatsLabel": "Exclude from expense stats",
-      "excludeFromStatsTooltip": "Transactions in this category won't be counted in spending statistics and reports.",
       "saveButton": "Save",
       "createButton": "Create",
       "notifications": {

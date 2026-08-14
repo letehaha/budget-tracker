@@ -3,7 +3,6 @@
     "dashboard": "Dasbor",
     "accounts": "Akun",
     "accountsList": "Semua Akun",
-    "bankIntegrations": "Integrasi Bank",
     "investments": "Investasi",
     "loans": "Pinjaman",
     "allTransactions": "Semua Transaksi",
@@ -81,7 +80,6 @@
     }
   },
   "themeSelector": {
-    "toggle": "Ganti tema",
     "light": "Terang",
     "dark": "Gelap",
     "system": "Sistem"

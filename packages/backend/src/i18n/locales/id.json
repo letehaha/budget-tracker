@@ -25,7 +25,6 @@
     "groupNotFound": "Grup tidak ditemukan",
     "parentGroupNotExist": "Induk dengan id tersebut tidak ada.",
     "parentGroupDoesNotExist": "Grup induk tidak ada.",
-    "operationNotAllowed": "Operasi tidak diizinkan",
     "accountNotFound": "Akun dengan id tersebut tidak ditemukan.",
     "accountGroupNotFound": "Grup akun dengan id tersebut tidak ditemukan.",
     "groupUpdateFailed": "Pembaruan grup tidak berhasil"
@@ -115,7 +114,6 @@
     "reminderAlreadyExists": "Pengingat yang identik sudah ada untuk tag ini",
     "amountThresholdRequired": "Ambang batas jumlah diperlukan untuk pengingat ambang batas jumlah",
     "maxRemindersReached": "Jumlah maksimal pengingat (50) telah tercapai",
-    "repeatScheduleIncomplete": "repeatEvery dan repeatPeriod harus diisi bersamaan atau keduanya dikosongkan",
     "notifications": {
       "thresholdExceeded": {
         "title": "Peringatan Pengeluaran Tag",
@@ -191,9 +189,6 @@
     "missingRequiredProviders": "Provider data bank yang diperlukan tidak ada: {{missing}}. Pastikan provider ini terdaftar saat aplikasi dimulai."
   },
   "validation": {
-    "fromDateInvalid": "\"from\" adalah tanggal tidak valid.",
-    "toDateInvalid": "\"to\" adalah tanggal tidak valid.",
-    "fromGreaterThanTo": "\"from\" tidak boleh lebih besar dari tanggal \"to\".",
     "dateInvalid": "\"date\" adalah tanggal tidak valid."
   },
   "bankDataProviders": {
@@ -207,7 +202,6 @@
     "fromAfterTo": "Tanggal \"from\" harus sebelum tanggal \"to\"",
     "fromMustBeValidDate": "\"from\" harus berupa string tanggal yang valid",
     "toMustBeValidDate": "\"to\" harus berupa string tanggal yang valid",
-    "onlySupportedForMonobank": "Memuat transaksi untuk periode tertentu hanya didukung untuk Monobank",
     "reconciliationOnlyForEnableBanking": "Rekonsiliasi hanya tersedia untuk koneksi Enable Banking",
     "transactionLoadingQueued": "Proses pemuatan transaksi diantrekan. Estimasi waktu: {{minutes}} menit",
     "noValidAccountIds": "Tidak ada ID akun yang dipilih yang valid",
@@ -311,7 +305,6 @@
     "baseCurrencyChangeInProgressOtherUser": "Peserta lain sedang mengubah mata uang dasar mereka. Silakan coba lagi setelah proses migrasi mereka selesai."
   },
   "userSettings": {
-    "excludedCategoriesNotFound": "Satu atau lebih kategori yang dikecualikan tidak ditemukan",
     "userSettingsNotFound": "Pengaturan pengguna tidak ditemukan"
   },
   "users": {

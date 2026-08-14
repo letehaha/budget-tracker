@@ -69,9 +69,7 @@
       "deleteAndIgnoreDescription": "Deletes this Payee AND adds its names (canonical + all aliases) to the ignored-names blocklist. Future syncs won't recreate it from raw merchant text. Linked transactions stay but lose their payee link.",
       "mergeTitle": "Merge into another payee",
       "mergeDescription": "Pick the target payee. All transactions and aliases move to the target; this payee is deleted.",
-      "mergeButton": "Merge",
       "confirmMerge": "Merge",
-      "noTransactions": "No transactions yet",
       "topCategoryHint": "The category most frequently used in transactions linked to this payee. Used as a fallback when no default category is set.",
       "defaultCategoryPlaceholder": "Select a category",
       "defaultTagsLabel": "Auto-apply tags",
@@ -83,16 +81,11 @@
       "change": "Change logo",
       "dialogTitle": "Change Logo",
       "dialogDescription": "Search for a brand logo to represent this payee.",
-      "searchPlaceholder": "Brand name or domain",
-      "noResults": "No matching brands found.",
       "resetToAuto": "Reset to automatic",
       "updatedToast": "Logo updated.",
       "resetToast": "Logo reset to automatic.",
       "fieldLabel": "Logo",
-      "domainHint": "To find the exact brand, type the company's website domain (e.g. amazon.com) — that always matches the right logo.",
-      "useDomainDirectly": "Use {domain}",
-      "searchHint": "Type a brand name, or a domain like amazon.com",
-      "autoLabel": "Automatic (from name)"
+      "domainHint": "To find the exact brand, type the company's website domain (e.g. amazon.com) — that always matches the right logo."
     },
     "transactionsDialog": {
       "title": "{name} — transactions",

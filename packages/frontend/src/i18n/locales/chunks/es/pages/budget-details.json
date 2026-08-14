@@ -34,7 +34,6 @@
         "summary": "{spent} de {limit} de límite",
         "na": "N/D"
       },
-      "backToBudgets": "Volver a presupuestos",
       "noTransactionsYet": "Aún no hay transacciones",
       "transactions": "Transacciones",
       "transactionsLinked": "{count} transacción vinculada a este presupuesto | {count} transacciones vinculadas a este presupuesto",

@@ -64,12 +64,7 @@
       }
     },
     "done": {
-      "title": "Importación completada",
-      "transactions": "Transacciones añadidas",
-      "holdingsCreated": "Posiciones creadas",
-      "holdingsMerged": "Posiciones actualizadas",
-      "skipped": "Duplicados omitidos",
-      "close": "Cerrar"
+      "transactions": "Transacciones añadidas"
     },
     "notifications": {
       "imported": "Se importaron {count} transacciones",

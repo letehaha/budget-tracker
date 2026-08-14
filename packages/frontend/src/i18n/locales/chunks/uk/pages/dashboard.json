@@ -118,7 +118,6 @@
       "categoryTracker": {
         "title": "Спостереження Категорій",
         "addCategory": "Додати категорію",
-        "addCategories": "Додати категорії для відстеження",
         "selectCategories": "Обрати категорії"
       },
       "cashFlow": {
@@ -213,8 +212,6 @@
       }
     },
     "periodSelector": {
-      "quickSelect": "Швидкий вибір",
-      "year": "{year}",
       "presets": {
         "currentMonth": "Поточний місяць",
         "last3Months": "Останні 3 місяці",
@@ -239,7 +236,6 @@
       "config": {
         "includeScheduled": {
           "label": "Включити заплановані платежі",
-          "description": "Показувати майбутні та прострочені нагадування про платежі вище останніх транзакцій",
           "on": "Увім.",
           "off": "Вимк."
         }

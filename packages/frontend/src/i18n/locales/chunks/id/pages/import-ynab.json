@@ -11,16 +11,6 @@
             "results": "Selesai"
           }
         },
-        "steps": {
-          "uploadTitle": "Unggah file",
-          "uploadDescription": "Pilih Register.csv dari ekspor YNAB Anda.",
-          "previewTitle": "Tinjau apa yang akan diimpor",
-          "previewDescription": "Periksa akun, mata uang, dan peringatan sebelum memproses.",
-          "executeTitle": "Mengimpor",
-          "executeDescription": "Kami akan menulis data Anda ke MoneyMatter.",
-          "doneTitle": "Selesai",
-          "doneDescription": "Lihat hasilnya."
-        },
         "fileUpload": {
           "stepTitle": "Letakkan Register.csv Anda di sini",
           "description": "YNAB → Budget → Export budget → unzip → gunakan file Register.csv.",
@@ -34,11 +24,7 @@
         "preview": {
           "emptyList": "Tidak ada yang diimpor di sini.",
           "accounts": "Akun",
-          "categories": "Kategori",
-          "payees": "Penerima",
           "transactions": "Transaksi",
-          "transfers": "Transfer",
-          "tags": "Tag",
           "dateRange": "Rentang: {from} → {to}",
           "accountsHelper": "Untuk setiap akun YNAB, konfirmasi mata uangnya.",
           "warningsTitle": "Peringatan",
