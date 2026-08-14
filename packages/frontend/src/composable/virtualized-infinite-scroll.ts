@@ -14,6 +14,8 @@ interface UseVirtualizedInfiniteScrollOptions<T> {
   estimateSize?: () => number;
   overscan?: number;
   enabled?: Ref<boolean>;
+  /** Distance from the scroll element's top to the list's top, when the list is not the first thing inside it. */
+  scrollMargin?: Ref<number>;
 
   getItemKey?: (index: number) => string | number;
 }
@@ -27,6 +29,7 @@ export function useVirtualizedInfiniteScroll<T>({
   estimateSize = () => 52,
   overscan = 10,
   enabled = ref(true),
+  scrollMargin = ref(0),
   getItemKey = (index: number) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (items?.value?.[index] as any)?.id ?? index;
@@ -39,6 +42,7 @@ export function useVirtualizedInfiniteScroll<T>({
       estimateSize,
       overscan,
       enabled: enabled.value,
+      scrollMargin: scrollMargin.value,
       getItemKey: (index) => {
         try {
           return getItemKey(index);
