@@ -60,6 +60,7 @@
   --color-card-tooltip-glass: var(--card-tooltip-glass);
   --color-card-tooltip-muted: var(--card-tooltip-muted);
   --color-card-tooltip-border: var(--card-tooltip-border);
+  --shadow-card-tooltip: var(--card-tooltip-shadow);
 
   --color-input-background: var(--input-background);
 
@@ -248,12 +249,14 @@
     --card: rgb(255, 255, 255);
     --card-foreground: rgb(32, 28, 22);
 
-    /* --card-tooltip is the opaque fallback; -glass applies only where backdrop-filter is supported. */
+    /* --card-tooltip is the opaque fallback; -glass applies only where backdrop-filter is supported.
+       White-on-white needs a near-opaque glass plus a strong border and shadow to separate. */
     --card-tooltip: rgb(255, 255, 255);
     --card-tooltip-foreground: rgb(32, 28, 22);
-    --card-tooltip-glass: rgb(255 255 255 / 0.78);
+    --card-tooltip-glass: rgb(255 255 255 / 0.9);
     --card-tooltip-muted: rgb(110, 104, 97);
-    --card-tooltip-border: rgb(0 0 0 / 0.08);
+    --card-tooltip-border: rgb(30 25 18 / 0.14);
+    --card-tooltip-shadow: 0 16px 40px rgb(28 22 12 / 0.16), 0 4px 12px rgb(28 22 12 / 0.1);
 
     --popover: rgb(255, 255, 255);
     --popover-foreground: rgb(32, 28, 22);
@@ -359,6 +362,8 @@
     --card-tooltip-glass: rgb(12 11 10 / 0.72);
     --card-tooltip-muted: rgb(156, 152, 147);
     --card-tooltip-border: rgb(255 255 255 / 0.1);
+    /* = Tailwind's shadow-xl */
+    --card-tooltip-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
     --popover: rgb(22, 20, 19);
     --popover-foreground: rgb(245, 243, 240);
