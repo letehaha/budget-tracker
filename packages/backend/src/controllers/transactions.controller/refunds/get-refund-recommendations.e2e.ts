@@ -295,6 +295,34 @@ describe('getRefundRecommendations', () => {
         expect(ids).not.toContain(refundIncome.id);
       });
 
+      it('does not recommend planned transactions', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        const [plannedIncome] = await helpers.createPlannedTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+        const [currentExpense] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        const response = await helpers.getRefundRecommendations({
+          transactionId: currentExpense.id,
+          raw: true,
+        });
+
+        expect(response.map((tx) => tx.id)).not.toContain(plannedIncome.id);
+      });
+
       it('still recommends originals that already carry refunds (partial refunds)', async () => {
         const account = await helpers.createAccount({ raw: true });
 

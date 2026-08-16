@@ -388,6 +388,31 @@ describe('Retrieve transactions with filters', () => {
     expect(ids).toContain(otherOriginal!.id);
   });
 
+  it('keepRefundsForTxId keeps out-of-system refunds (null original) excluded', async () => {
+    const { refundOriginal, refundTx } = await createMockTransactions();
+
+    const account = await helpers.createAccount({ raw: true });
+    const [orphanRefund] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 300,
+        transactionType: TRANSACTION_TYPES.expense,
+      }),
+      raw: true,
+    });
+    await helpers.createSingleRefund({ originalTxId: null, refundTxId: orphanRefund!.id });
+
+    const res = await helpers.getTransactions({
+      excludeRefundTxs: true,
+      keepRefundsForTxId: refundOriginal.id,
+      raw: true,
+    });
+
+    const ids = res.map((t) => t.id);
+    expect(ids).toContain(refundTx.id);
+    expect(ids).not.toContain(orphanRefund!.id);
+  });
+
   it('should retrieve only transfers using transferFilter=only', async () => {
     await createMockTransactions();
 

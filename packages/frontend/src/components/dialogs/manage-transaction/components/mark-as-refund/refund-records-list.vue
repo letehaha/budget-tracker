@@ -138,6 +138,8 @@ const fetchTransactions = ({
         // which must stay visible so their links can be toggled off.
         excludeRefundTxs: true,
         keepRefundsForTxId: props.originTransactionId,
+        // Planned rows can't be refund-linked, so they are not valid candidates either.
+        isPlanned: false,
         includeSplits: true, // Include splits so we can show split selector
         noteSearch: search,
         to: isDate(filter.end) ? filter.end!.toISOString() : undefined,
