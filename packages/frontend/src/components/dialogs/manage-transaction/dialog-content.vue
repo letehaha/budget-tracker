@@ -37,7 +37,7 @@ import { useQuery } from '@tanstack/vue-query';
 import { helpers, minValue } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { endOfDay, format } from 'date-fns';
-import { SplitIcon } from '@lucide/vue';
+import { ChevronUpIcon, SlidersHorizontalIcon, SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -903,6 +903,24 @@ const previouslyFocusedElement = ref(document.activeElement);
 
 const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
+// Mirrors the visibility conditions of the fields inside "More options" so the
+// mobile trigger never counts a field the drawer doesn't render. Payment type is
+// excluded – it's always preselected, so it carries no "user filled this" signal.
+const moreOptionsFilledCount = computed(() => {
+  let count = 0;
+  if (form.value.note?.trim()) count += 1;
+  if (!isLoanDestination.value && form.value.tagIds?.length) count += 1;
+  if (!isTransferTx.value && form.value.originalAmount) count += 1;
+  if (
+    !isTransferTx.value &&
+    !isAccountSharedWithCaller.value &&
+    (form.value.refundsTx || form.value.refundedByTxs?.length)
+  ) {
+    count += 1;
+  }
+  return count;
+});
+
 // Tx prepopulation has to wait for the right category map. For owner-side / unshared txs
 // the global Pinia map is loaded synchronously on app boot; for shared-with-caller txs
 // we route through `useAccountCategories`, which fires after mount – populate then.
@@ -1024,7 +1042,7 @@ onUnmounted(() => {
   <PortfolioLinkedView v-if="isPortfolioLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VentureLinkedView v-else-if="isVentureLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VehicleLinkedView v-else-if="isVehicleLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
-  <div v-else class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-t-xl">
+  <div v-else class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto_auto] overflow-hidden rounded-t-xl">
     <!-- Striped while planned, so the mode stays readable once the toggle scrolls away. -->
     <div
       :class="[
@@ -1055,7 +1073,7 @@ onUnmounted(() => {
     </div>
     <ScrollArea class="min-h-0">
       <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
-        <div class="px-6 pb-6">
+        <div :class="['px-6', isMobileView ? 'pb-1' : 'pb-6']">
           <type-selector
             :is-form-creation="isFormCreation"
             :selected-transaction-type="currentTxType"
@@ -1292,24 +1310,6 @@ onUnmounted(() => {
               </form-row>
             </template>
           </div>
-
-          <template v-if="isMobileView">
-            <Drawer.Drawer>
-              <Drawer.DrawerTrigger class="w-full" as-child>
-                <Button variant="secondary" size="default" class="w-full">
-                  {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
-                </Button>
-              </Drawer.DrawerTrigger>
-
-              <Drawer.DrawerContent custom-indicator class="pb-0">
-                <Drawer.DrawerTitle></Drawer.DrawerTitle>
-                <div class="bg-muted rounded-t-[10px] px-6 pb-[env(safe-area-inset-bottom)] dark:bg-black/20">
-                  <Drawer.DrawerIndicator class="mb-6" />
-                  <ReuseMoreOptions />
-                </div>
-              </Drawer.DrawerContent>
-            </Drawer.Drawer>
-          </template>
         </div>
 
         <div v-if="!isMobileView" class="bg-muted border-border border-l px-6 py-6 dark:bg-black/20">
@@ -1317,6 +1317,37 @@ onUnmounted(() => {
         </div>
       </div>
     </ScrollArea>
+
+    <template v-if="isMobileView">
+      <Drawer.Drawer>
+        <Drawer.DrawerTrigger as-child>
+          <Button
+            variant="ghost"
+            class="border-border bg-muted h-auto w-full justify-between rounded-none border-t px-6 py-2.5 font-normal dark:bg-black/20"
+          >
+            <span class="flex items-center gap-2">
+              <SlidersHorizontalIcon class="text-muted-foreground size-4" />
+              {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
+              <span
+                v-if="moreOptionsFilledCount"
+                class="bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold tabular-nums"
+              >
+                {{ moreOptionsFilledCount }}
+              </span>
+            </span>
+            <ChevronUpIcon class="text-muted-foreground size-4" />
+          </Button>
+        </Drawer.DrawerTrigger>
+
+        <Drawer.DrawerContent custom-indicator class="pb-0">
+          <Drawer.DrawerTitle></Drawer.DrawerTitle>
+          <div class="bg-muted rounded-t-[10px] px-6 pb-[env(safe-area-inset-bottom)] dark:bg-black/20">
+            <Drawer.DrawerIndicator class="mb-6" />
+            <ReuseMoreOptions />
+          </div>
+        </Drawer.DrawerContent>
+      </Drawer.Drawer>
+    </template>
 
     <div v-if="!isReadOnly || canDelete" class="border-border bg-dialog flex items-center gap-3 border-t px-6 py-4">
       <Button
