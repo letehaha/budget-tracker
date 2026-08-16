@@ -421,7 +421,7 @@ function handleTransactionClick(tx: TransactionModel, oppositeTx: TransactionMod
       <Dialog.Dialog v-model:open="isDialogVisible">
         <Dialog.DialogContent
           custom-close
-          :class="cn('bg-card max-h-[90dvh] w-full overflow-hidden p-0', isCompactDialog ? 'max-w-lg' : 'max-w-225')"
+          :class="cn('max-h-[90dvh] w-full overflow-hidden p-0', isCompactDialog ? 'max-w-lg' : 'max-w-225')"
         >
           <Dialog.DialogTitle class="sr-only">{{ $t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
           <Dialog.DialogDescription class="sr-only">{{

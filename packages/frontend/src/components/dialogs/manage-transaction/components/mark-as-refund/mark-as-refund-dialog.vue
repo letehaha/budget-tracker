@@ -62,19 +62,34 @@ const isSaveDisabled = computed(() => {
 const isDialogOpen = ref(false);
 const isSplitDialogOpen = ref(false);
 
+const openDialog = () => {
+  isDialogOpen.value = true;
+};
+
 const selectedOption = ref<'refunds' | 'refunded'>('refunds');
 
-// Reset state when switching modes
-watch(selectedOption, () => {
-  selectionState.refunds = undefined;
-  selectionState.refundedBy = undefined;
-  selectedSplitId.value = null;
-  pendingTransaction.value = null;
-});
+// Keep flush 'sync': with the default flush this wipe runs after the open handler
+// and clobbers the selection it just seeded from props.
+watch(
+  selectedOption,
+  () => {
+    selectionState.refunds = undefined;
+    selectionState.refundedBy = undefined;
+    selectedSplitId.value = null;
+    pendingTransaction.value = null;
+  },
+  { flush: 'sync' },
+);
 
-// Reset pending state when main dialog closes
 watch(isDialogOpen, (open) => {
-  if (!open) {
+  if (open) {
+    selectedOption.value = props.refundedBy?.length ? 'refunded' : 'refunds';
+    selectionState.refunds = props.refunds ?? undefined;
+    selectionState.refundedBy = props.refundedBy?.length ? [...props.refundedBy] : undefined;
+    selectedSplitId.value = props.refunds?.splitId ?? null;
+  } else {
+    selectionState.refunds = undefined;
+    selectionState.refundedBy = undefined;
     selectedSplitId.value = null;
     pendingTransaction.value = null;
   }
@@ -255,10 +270,11 @@ const hasSmallOptions = computed(() => {
 
 <template>
   <div>
-    <!-- Trigger button -->
-    <Button class="w-full" :disabled="disabled" variant="secondary" @click="isDialogOpen = true">
-      {{ $t('dialogs.manageTransaction.markAsRefund.linkRefund') }}
-    </Button>
+    <slot name="trigger" :open="openDialog">
+      <Button class="w-full" :disabled="disabled" variant="secondary" @click="openDialog">
+        {{ $t('dialogs.manageTransaction.markAsRefund.linkRefund') }}
+      </Button>
+    </slot>
 
     <!-- Main Dialog -->
     <ResponsiveDialog

@@ -1,15 +1,13 @@
 <script lang="ts" setup>
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import { FieldLabel } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
-import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
 import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
+import LinkedTransactionRow from './linked-transaction-row.vue';
 import TransferRecordsList from './transfer-records-list.vue';
 import FormRow from './form-row.vue';
-
-const { t } = useI18n();
 
 interface Props {
   isTransferTx: boolean;
@@ -68,12 +66,12 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
       >
         <template #trigger>
           <Button class="w-full" :disabled="disabled" size="sm">{{
-            t('dialogs.manageTransaction.linkSection.linkButton')
+            $t('dialogs.manageTransaction.linkSection.linkButton')
           }}</Button>
         </template>
 
-        <template #title>{{ t('dialogs.manageTransaction.linkSection.title') }}</template>
-        <template #description>{{ t('dialogs.manageTransaction.linkSection.description') }}</template>
+        <template #title>{{ $t('dialogs.manageTransaction.linkSection.title') }}</template>
+        <template #description>{{ $t('dialogs.manageTransaction.linkSection.description') }}</template>
 
         <TransferRecordsList
           :transaction-type="oppositeTransactionType"
@@ -89,23 +87,21 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
   <template v-if="showUnlinkButton">
     <FormRow>
       <Button class="w-full" :disabled="disabled" size="sm" @click="$emit('unlink')">{{
-        t('dialogs.manageTransaction.linkSection.unlinkButton')
+        $t('dialogs.manageTransaction.linkSection.unlinkButton')
       }}</Button>
     </FormRow>
   </template>
 
   <template v-if="showLinkedTransaction">
-    <FormRow class="flex items-center gap-2.5">
-      <TransactionRecord class="bg-background" :tx="linkedTransaction!" />
-
-      <Button
-        :aria-label="t('dialogs.manageTransaction.linkSection.cancelLinkingAriaLabel')"
-        :disabled="disabled"
-        size="sm"
-        @click="clearLinkedTransaction"
-      >
-        {{ t('common.actions.cancel') }}
-      </Button>
+    <FormRow>
+      <FieldLabel :label="$t('dialogs.manageTransaction.linkSection.linkedTransactionLabel')" only-template>
+        <LinkedTransactionRow
+          :transaction="linkedTransaction!"
+          :disabled="disabled"
+          :remove-label="$t('dialogs.manageTransaction.linkSection.cancelLinkingAriaLabel')"
+          @remove="clearLinkedTransaction"
+        />
+      </FieldLabel>
     </FormRow>
   </template>
 </template>

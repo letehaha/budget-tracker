@@ -39,6 +39,8 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   baseCurrency: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'base'] as const,
   // append the yyyy-MM-dd date when using
   exchangeRatesForDate: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'rates-for-date'] as const,
+  // append from, to, and the yyyy-MM-dd date when using
+  exchangeRatePair: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'rate-pair'] as const,
 
   // widget balance trend
   widgetBalanceTrend: [transactionChange, securityPriceChange, ventureChange, 'widget-balance-trend'] as const,

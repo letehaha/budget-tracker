@@ -1,15 +1,14 @@
 <script lang="ts" setup>
-import { Button } from '@/components/lib/ui/button';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
-import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
+import { FieldLabel } from '@/components/fields';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, TransactionSplitModel } from '@bt/shared/types';
-import { SplitIcon, Unlink2Icon } from '@lucide/vue';
+import { SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { RefundWithSplit, RefundedByAnotherTxs, RefundsAnoterTx } from '../../types';
+import LinkedTransactionRow from '../linked-transaction-row.vue';
 import MarkAsRefundDialog from './mark-as-refund-dialog.vue';
 
 const { t } = useI18n();
@@ -39,9 +38,28 @@ const emit = defineEmits<{
 
 const { categoriesMap } = storeToRefs(useCategoriesStore());
 
-const emptyField = () => {
-  emit('update:refunds', props.isThereOriginalRefunds && props.refunds ? null : undefined);
-  emit('update:refundedBy', props.isThereOriginalRefunds && props.refundedBy ? null : undefined);
+// `null` marks an existing link as deliberately removed; `undefined` means "never had one".
+const clearedValue = () => (props.isThereOriginalRefunds ? null : undefined);
+
+const removeRefund = (removed: RefundWithSplit) => {
+  if (props.refunds) {
+    emit('update:refunds', clearedValue());
+    return;
+  }
+  const remaining = (props.refundedBy ?? []).filter((item) => item.transaction.id !== removed.transaction.id);
+  emit('update:refundedBy', remaining.length > 0 ? remaining : clearedValue());
+};
+
+// The picker only ever reports the side it was saved in, so the opposite side has to be
+// dropped here; otherwise reopening a linked row and switching mode submits both.
+const onRefundsUpdate = (value: RefundsAnoterTx) => {
+  emit('update:refunds', value);
+  if (props.refundedBy) emit('update:refundedBy', clearedValue());
+};
+
+const onRefundedByUpdate = (value: RefundedByAnotherTxs) => {
+  emit('update:refundedBy', value);
+  if (props.refunds) emit('update:refunds', clearedValue());
 };
 
 const refundTransactions = computed<RefundWithSplit[]>(() => {
@@ -49,6 +67,10 @@ const refundTransactions = computed<RefundWithSplit[]>(() => {
   if (props.refundedBy) return props.refundedBy;
   return [];
 });
+
+// An empty `refundedBy` array must fall back to the default trigger: rendering the
+// linked layout with zero rows would leave no way to open the picker or unlink.
+const isLinked = computed(() => refundTransactions.value.length > 0);
 
 // Get split category info for display
 const getSplitInfo = (refund: RefundWithSplit) => {
@@ -68,56 +90,48 @@ const getSplitInfo = (refund: RefundWithSplit) => {
 </script>
 
 <template>
-  <template v-if="refunds || refundedBy">
-    <p class="text-sm">{{ t('dialogs.manageTransaction.markAsRefund.linkedRefunds') }}</p>
-    <div class="flex items-center justify-between gap-2">
-      <div class="grid w-full gap-1">
-        <template v-for="refund of refundTransactions" :key="refund.transaction.id">
-          <div>
-            <TransactionRecord :tx="refund.transaction" />
-            <!-- Show split info if refund targets a specific split -->
+  <MarkAsRefundDialog
+    :key="transactionType"
+    :refunds="refunds"
+    :refunded-by="refundedBy"
+    :transaction-type="transactionType"
+    :disabled="disabled"
+    :is-record-creation="isRecordCreation"
+    :current-transaction-splits="currentTransactionSplits"
+    :current-amount="currentAmount"
+    :current-currency-code="currentCurrencyCode"
+    :current-account-id="currentAccountId"
+    :current-transaction-id="transactionId"
+    @update:refunds="onRefundsUpdate"
+    @update:refunded-by="onRefundedByUpdate"
+  >
+    <template v-if="isLinked" #trigger="{ open }">
+      <FieldLabel :label="$t('dialogs.manageTransaction.markAsRefund.linkedRefunds')" only-template>
+        <div class="flex flex-col gap-1.5">
+          <div v-for="refund of refundTransactions" :key="refund.transaction.id" class="min-w-0">
+            <LinkedTransactionRow
+              selectable
+              :transaction="refund.transaction"
+              :disabled="disabled"
+              :remove-label="$t('dialogs.manageTransaction.markAsRefund.unlinkRefund')"
+              @select="open"
+              @remove="removeRefund(refund)"
+            />
+
             <template v-if="refund.splitId && getSplitInfo(refund)">
               <div class="border-border/50 bg-muted/20 mt-1 ml-4 flex items-center gap-2 rounded border px-2 py-1">
                 <SplitIcon class="text-muted-foreground size-3" />
                 <div class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: getSplitInfo(refund)!.color }" />
                 <span class="text-muted-foreground text-xs">
-                  {{ t('dialogs.manageTransaction.markAsRefund.refundsPortion', { name: getSplitInfo(refund)!.name }) }}
+                  {{
+                    $t('dialogs.manageTransaction.markAsRefund.refundsPortion', { name: getSplitInfo(refund)!.name })
+                  }}
                 </span>
               </div>
             </template>
           </div>
-        </template>
-      </div>
-
-      <DesktopOnlyTooltip :content="t('dialogs.manageTransaction.markAsRefund.unlinkRefund')">
-        <Button
-          variant="ghost-destructive"
-          size="icon"
-          :disabled="disabled"
-          :aria-label="t('dialogs.manageTransaction.markAsRefund.unlinkRefund')"
-          class="shrink-0"
-          @click="emptyField"
-        >
-          <Unlink2Icon class="size-5" />
-        </Button>
-      </DesktopOnlyTooltip>
-    </div>
-  </template>
-  <template v-else>
-    <MarkAsRefundDialog
-      :key="transactionType"
-      :refunds="refunds"
-      :refunded-by="refundedBy"
-      :transaction-type="transactionType"
-      :disabled="disabled"
-      :is-record-creation="isRecordCreation"
-      :current-transaction-splits="currentTransactionSplits"
-      :current-amount="currentAmount"
-      :current-currency-code="currentCurrencyCode"
-      :current-account-id="currentAccountId"
-      :current-transaction-id="transactionId"
-      @update:refunds="emit('update:refunds', $event)"
-      @update:refunded-by="emit('update:refundedBy', $event)"
-    />
-  </template>
+        </div>
+      </FieldLabel>
+    </template>
+  </MarkAsRefundDialog>
 </template>

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { getExchangeRatePair } from '@/api/currencies';
 import { loadTransactionById } from '@/api/transactions';
-import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
@@ -15,7 +15,6 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
@@ -34,10 +33,11 @@ import {
   type CurrencyModel,
   type TransactionModel,
 } from '@bt/shared/types';
+import { useQuery } from '@tanstack/vue-query';
 import { helpers, minValue } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { endOfDay, format } from 'date-fns';
-import { Loader2Icon, SparklesIcon, SplitIcon } from '@lucide/vue';
+import { SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -53,6 +53,8 @@ import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import VehicleLinkedView from './components/vehicle-linked-view.vue';
 import VentureLinkedView from './components/venture-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
+import AmountWithCurrencyField from './components/amount-with-currency-field.vue';
+import LabelPill from './components/label-pill.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
 import { useAccountAccess } from '@/composable/use-account-access';
@@ -825,6 +827,49 @@ const suggestOriginalAmount = async () => {
   }
 };
 
+const suggestionRateDateStr = computed(() => format(form.value.time, 'yyyy-MM-dd'));
+
+// Background lookup for the inline hint; failures stay silent (no retry, no notification).
+const suggestionRateQuery = useQuery({
+  queryKey: computed(() => [
+    ...VUE_QUERY_CACHE_KEYS.exchangeRatePair,
+    form.value.account?.currencyCode,
+    form.value.originalCurrency?.code,
+    suggestionRateDateStr.value,
+  ]),
+  // `enabled` guarantees both currency codes are set
+  queryFn: () =>
+    getExchangeRatePair({
+      from: form.value.account!.currencyCode,
+      to: form.value.originalCurrency!.code,
+      date: suggestionRateDateStr.value,
+      silent: true,
+    }),
+  enabled: isOriginalAmountSuggestVisible,
+  // Historical rates for a fixed date never change
+  staleTime: Infinity,
+  retry: false,
+});
+
+const suggestedOriginalAmount = computed(() => {
+  if (!isOriginalAmountSuggestVisible.value) return null;
+  const rate = suggestionRateQuery.data.value?.rate;
+  if (rate == null) return null;
+  return resolveSuggestedOriginalAmount({
+    amount: Number(form.value.amount),
+    rate,
+    currencyDigits: form.value.originalCurrency?.digits,
+  });
+});
+
+const applySuggestedOriginalAmount = () => {
+  if (suggestedOriginalAmount.value != null) {
+    form.value.originalAmount = suggestedOriginalAmount.value;
+    return;
+  }
+  void suggestOriginalAmount();
+};
+
 // The field echoes every programmatic write back as an update, so an unchanged
 // value must not count as user input.
 const onDateUpdate = (value: Date) => {
@@ -947,6 +992,9 @@ onUnmounted(() => {
 <template>
   <!-- Define reusable template for "More Options" section (payment type, note, refund) -->
   <DefineMoreOptions>
+    <p class="text-muted-foreground mb-3 text-[10px] font-medium tracking-[0.16em] uppercase">
+      {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
+    </p>
     <FormRow v-if="!isLoanDestination">
       <SelectField
         v-model="form.paymentType"
@@ -973,45 +1021,20 @@ onUnmounted(() => {
       />
     </FormRow>
     <FormRow v-if="!isTransferTx">
-      <div class="grid grid-cols-2 items-start gap-3">
-        <InputField
-          v-model="form.originalAmount"
-          type="number"
-          only-positive
-          :label="$t('dialogs.manageTransaction.form.originalAmountLabel')"
-          :placeholder="$t('dialogs.manageTransaction.form.originalAmountPlaceholder')"
-          :disabled="isFormFieldsDisabled"
-          trailing-icon-css-class="px-1"
-        >
-          <template v-if="isOriginalAmountSuggestVisible" #iconTrailing>
-            <DesktopOnlyTooltip :content="$t('dialogs.manageTransaction.form.originalAmountSuggest')">
-              <Button
-                type="button"
-                variant="ghost-primary"
-                size="icon-sm"
-                :disabled="isSuggestingOriginalAmount"
-                :aria-label="$t('dialogs.manageTransaction.form.originalAmountSuggest')"
-                @click="suggestOriginalAmount"
-              >
-                <Loader2Icon v-if="isSuggestingOriginalAmount" class="size-4 animate-spin" />
-                <SparklesIcon v-else class="size-4" />
-              </Button>
-            </DesktopOnlyTooltip>
-          </template>
-        </InputField>
-        <SelectField
-          :model-value="form.originalCurrency ?? null"
-          :values="systemCurrencies"
-          value-key="code"
-          :label-key="currencyOptionLabel"
-          :label="$t('dialogs.manageTransaction.form.originalCurrencyLabel')"
-          :placeholder="$t('dialogs.manageTransaction.form.originalCurrencyPlaceholder')"
-          :disabled="isFormFieldsDisabled"
-          with-search
-          clearable
-          @update:model-value="(value) => (form.originalCurrency = value)"
-        />
-      </div>
+      <AmountWithCurrencyField
+        v-model:amount="form.originalAmount"
+        v-model:currency="form.originalCurrency"
+        :currencies="systemCurrencies"
+        :option-label="currencyOptionLabel"
+        :label="$t('dialogs.manageTransaction.form.originalAmountLabel')"
+        :placeholder="$t('dialogs.manageTransaction.form.originalAmountPlaceholder')"
+        :disabled="isFormFieldsDisabled"
+        :suggest-visible="isOriginalAmountSuggestVisible"
+        :suggest-pending="isSuggestingOriginalAmount"
+        :suggested-amount="suggestedOriginalAmount"
+        :suggested-date="form.time"
+        @apply-suggestion="applySuggestedOriginalAmount"
+      />
     </FormRow>
     <!-- Refund linking on accounts shared *with* the caller isn't supported by the
          backend yet — hide the field rather than offering a button that errors on
@@ -1050,9 +1073,9 @@ onUnmounted(() => {
           'bg-[repeating-linear-gradient(115deg,transparent_0_7px,var(--planned-stripe)_7px_14px)] bg-size-[14px_14px]',
       ]"
     />
-    <div class="mb-4 flex items-center justify-between px-6 py-3">
+    <div class="mb-2 flex items-center justify-between px-6 py-2.5">
       <DialogTitle>
-        <span class="text-2xl">
+        <span class="text-xl">
           {{
             isReadOnly
               ? $t('dialogs.manageTransaction.detailsTitle')
@@ -1149,49 +1172,41 @@ onUnmounted(() => {
                   label-key="name"
                   :disabled="isFormFieldsDisabled"
                   @update:model-value="handleCategoryUserTouched"
-                />
-              </form-row>
+                >
+                  <template #label-right>
+                    <LabelPill
+                      data-test="split-toggle"
+                      :active="hasSplits"
+                      :disabled="isFormFieldsDisabled"
+                      :aria-label="$t('dialogs.manageTransaction.form.splitPillLabel')"
+                      @click="isSplitDialogOpen = true"
+                    >
+                      <SplitIcon class="size-3" />
+                      {{ $t('dialogs.manageTransaction.form.splitPillLabel') }}
+                    </LabelPill>
+                  </template>
+                </category-select-field>
 
-              <!-- Split button and summary -->
-              <form-row>
-                <template v-if="hasSplits">
-                  <!-- Splits summary -->
-                  <button
-                    type="button"
-                    class="bg-muted/30 hover:bg-muted/50 border-border group flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors"
-                    :disabled="isFormFieldsDisabled"
-                    @click="isSplitDialogOpen = true"
-                  >
-                    <div class="flex items-center gap-2">
-                      <SplitIcon class="text-muted-foreground size-4" />
-                      <span class="text-sm font-medium">
-                        {{ $t('dialogs.manageTransaction.form.splitInfo', { count: (form.splits?.length ?? 0) + 1 }) }}
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-muted-foreground text-sm tabular-nums">
-                        {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
-                      </span>
-                      <span class="text-muted-foreground text-xs">{{
-                        $t('dialogs.manageTransaction.form.editSplit')
-                      }}</span>
-                    </div>
-                  </button>
-                </template>
-                <template v-else>
-                  <!-- Add splits button -->
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    class="w-full border-dashed"
-                    :disabled="isFormFieldsDisabled"
-                    @click="isSplitDialogOpen = true"
-                  >
-                    <SplitIcon class="mr-2 size-4 opacity-70" />
-                    {{ $t('dialogs.manageTransaction.form.addSplitButton') }}
-                  </Button>
-                </template>
+                <Button
+                  v-if="hasSplits"
+                  type="button"
+                  variant="ghost"
+                  class="border-border bg-muted/30 hover:bg-muted/50 mt-2 h-auto w-full justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-normal transition-colors"
+                  :disabled="isFormFieldsDisabled"
+                  @click="isSplitDialogOpen = true"
+                >
+                  <span class="flex items-center gap-1.5">
+                    <SplitIcon class="text-muted-foreground size-3.5" />
+                    <span class="font-medium">
+                      {{ $t('dialogs.manageTransaction.form.splitInfo', { count: (form.splits?.length ?? 0) + 1 }) }}
+                    </span>
+                  </span>
+                  <span class="text-muted-foreground flex items-center gap-1.5 tabular-nums">
+                    {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
+                    <span aria-hidden="true">·</span>
+                    {{ $t('dialogs.manageTransaction.form.editSplit') }}
+                  </span>
+                </Button>
               </form-row>
 
               <!-- Split Dialog -->
@@ -1287,7 +1302,7 @@ onUnmounted(() => {
 
               <Drawer.DrawerContent>
                 <Drawer.DrawerTitle></Drawer.DrawerTitle>
-                <div class="bg-card dark:bg-muted dark:shadow-foreground/10 px-6 pt-6 dark:shadow-[inset_2px_4px_12px]">
+                <div class="bg-muted px-6 pt-6 dark:bg-black/20">
                   <ReuseMoreOptions />
                 </div>
               </Drawer.DrawerContent>
@@ -1295,16 +1310,13 @@ onUnmounted(() => {
           </template>
         </div>
 
-        <div
-          v-if="!isMobileView"
-          class="bg-muted shadow-foreground/10 px-6 py-6 shadow-[inset_2px_4px_12px] dark:bg-black/20 dark:shadow-black/40"
-        >
+        <div v-if="!isMobileView" class="bg-muted border-border border-l px-6 py-6 dark:bg-black/20">
           <ReuseMoreOptions />
         </div>
       </div>
     </ScrollArea>
 
-    <div v-if="!isReadOnly || canDelete" class="border-border bg-card flex items-center gap-3 border-t px-6 py-4">
+    <div v-if="!isReadOnly || canDelete" class="border-border bg-dialog flex items-center gap-3 border-t px-6 py-4">
       <Button
         v-if="canDelete"
         class="min-w-25"

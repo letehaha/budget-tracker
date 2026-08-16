@@ -30,7 +30,7 @@ defineProps<{
   <Dialog.Dialog v-else v-model:open="open">
     <Dialog.DialogContent
       custom-close
-      :class="['bg-card max-h-[90dvh] w-full overflow-hidden p-0', isCompact ? 'max-w-lg' : 'max-w-225']"
+      :class="['max-h-[90dvh] w-full overflow-hidden p-0', isCompact ? 'max-w-lg' : 'max-w-225']"
     >
       <Dialog.DialogTitle class="sr-only">{{ $t('transactions.list.detailsTitle') }}</Dialog.DialogTitle>
       <Dialog.DialogDescription class="sr-only">{{

@@ -8,9 +8,10 @@
       </template>
 
       <textarea
+        ref="textareaRef"
         :class="
           cn(
-            'border-input bg-input-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+            'border-input bg-input-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex max-h-48 w-full resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
             $attrs.class ?? '',
           )
         "
@@ -40,7 +41,7 @@
 <script lang="ts" setup>
 import { FieldError, FieldLabel } from '@/components/fields';
 import { cn } from '@/lib/utils';
-import { computed } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 const MODEL_EVENTS = Object.freeze({
   input: 'update:modelValue',
@@ -73,7 +74,7 @@ const props = withDefaults(
     label: undefined,
     autocomplete: 'off',
     autofocus: false,
-    rows: 4,
+    rows: 2,
     modelValue: '',
     errorMessage: undefined,
     name: undefined,
@@ -86,8 +87,27 @@ const props = withDefaults(
 
 const currentLength = computed(() => String(props.modelValue ?? '').length);
 
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
+
+// scrollHeight excludes the border but the border-box height includes it, so the
+// offsetHeight/clientHeight delta goes back on top or the field stays scrollable.
+const resize = () => {
+  const el = textareaRef.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+};
+
+onMounted(resize);
+// Programmatic writes reach the DOM a tick later; user input resizes synchronously in onInput.
+watch(
+  () => props.modelValue,
+  () => nextTick(resize),
+);
+
 const onInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   emit(MODEL_EVENTS.input, target.value);
+  resize();
 };
 </script>
