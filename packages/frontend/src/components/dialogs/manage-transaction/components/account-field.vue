@@ -134,8 +134,11 @@
           <template #item="{ item, label }">
             <AccountOptionRow :account="item" :label="label" archived-class="text-muted-foreground" />
           </template>
-          <template v-if="$slots['account-label-right']" #label-right>
+          <template v-if="$slots['account-label-right'] && !$slots['account-field-right']" #label-right>
             <slot name="account-label-right" />
+          </template>
+          <template v-if="$slots['account-field-right']" #field-right>
+            <slot name="account-field-right" />
           </template>
           <template #select-bottom-content>
             <CreateAccountDialog>

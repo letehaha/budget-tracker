@@ -1145,6 +1145,20 @@ onUnmounted(() => {
               :portfolios="portfolios ?? []"
               :loan-accounts="loanDestinationAccounts"
             >
+              <template v-if="isPlannedToggleVisible || isPlannedBadgeVisible" #account-field-right>
+                <PlannedToggle
+                  variant="addon"
+                  :model-value="Boolean(form.isPlanned)"
+                  :readonly="isPlannedBadgeVisible"
+                  :disabled="isFormFieldsDisabled"
+                  :tooltip-override="isPlannedBadgeVisible ? undefined : plannedTooltipOverride"
+                  @update:model-value="(value) => (form.isPlanned = value)"
+                />
+              </template>
+
+              <!-- The zero-accounts fallback renders an input-field, which has no field-right
+                   slot — the toggle stays in its label row (and toggling planned there is the
+                   path that unlocks connected accounts). -->
               <template v-if="isPlannedToggleVisible || isPlannedBadgeVisible" #account-label-right>
                 <PlannedToggle
                   :model-value="Boolean(form.isPlanned)"
@@ -1174,15 +1188,16 @@ onUnmounted(() => {
                   :disabled="isFormFieldsDisabled"
                   @update:model-value="handleCategoryUserTouched"
                 >
-                  <template #label-right>
+                  <template #field-right>
                     <LabelPill
                       data-test="split-toggle"
+                      variant="addon"
                       :active="hasSplits"
                       :disabled="isFormFieldsDisabled"
                       :aria-label="$t('dialogs.manageTransaction.form.splitPillLabel')"
                       @click="isSplitDialogOpen = true"
                     >
-                      <SplitIcon class="size-3" />
+                      <SplitIcon class="size-3.5" />
                       {{ $t('dialogs.manageTransaction.form.splitPillLabel') }}
                     </LabelPill>
                   </template>
