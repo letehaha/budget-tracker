@@ -62,6 +62,8 @@ export const loadTransactions = async ({
   to?: string;
   amountLte?: number;
   amountGte?: number;
+  /** Case-insensitive substring match on the note field. Comma-separated terms are OR-ed. */
+  noteSearch?: string;
   includeSplits?: boolean;
   includeTags?: boolean;
   includeGroups?: boolean;

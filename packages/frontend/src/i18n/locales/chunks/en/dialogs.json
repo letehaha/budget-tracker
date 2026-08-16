@@ -171,7 +171,11 @@
         "noTransactions": "There's no transactions to select. Create some to proceed",
         "resetFiltersButton": "Reset filters",
         "recommendedLabel": "Recommended",
-        "allTransactionsLabel": "All transactions"
+        "allTransactionsLabel": "All transactions",
+        "searchPlaceholder": "Search notes…",
+        "filtersLabel": "Filters",
+        "noSearchResults": "Nothing matches “{query}”",
+        "clearSearchButton": "Clear search"
       },
       "splitDialog": {
         "title": "Split into categories",
@@ -215,7 +219,27 @@
         "amountMayBeSmaller": "Some options may be smaller than your refund amount",
         "finalValidationWarning": "Final validation will use converted amounts.",
         "mainCategoryLabel": "(main)",
-        "linkRemovedOnTypeChange": "Refund link removed because the transaction type changed."
+        "linkRemovedOnTypeChange": "Refund link removed because the transaction type changed.",
+        "modeRefunds": "Refunds a transaction",
+        "helperRefunds": "This entry is the refund — pick the one transaction it refunds.",
+        "helperRefundedBy": "Other entries refund this one — pick any number, together up to {amount}.",
+        "helperRefundedByNoLimit": "Other entries refund this one — you can pick several.",
+        "thisEntry": "This entry",
+        "linkWordRefunds": "refunds",
+        "linkWordRefundedBy": "refunded by",
+        "slotEmptyRefunds": "Select the original transaction below",
+        "slotEmptyRefundedBy": "Select the refunding transactions below",
+        "slotSelectedCount": "{count} transaction | {count} transactions",
+        "clearSelection": "Clear selection",
+        "linkedAmountLabel": "{amount} linked",
+        "linkedOfLimit": "of {amount}",
+        "limitExceeded": "limit {amount} exceeded",
+        "summaryEmpty": "Nothing selected yet",
+        "summaryCountOnly": "{count} selected",
+        "summarySelected": "{count} selected · {amount}",
+        "summaryOfLimit": "{count} selected · {amount} of {limit}",
+        "summaryExceedsBy": "{count} selected · {amount} — exceeds the original by {excess}",
+        "summaryExceeds": "{count} selected · {amount} — exceeds the original amount"
       },
       "refundInfo": {
         "trigger": "How it works?",

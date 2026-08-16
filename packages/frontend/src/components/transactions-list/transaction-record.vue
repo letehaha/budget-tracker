@@ -30,7 +30,7 @@
         <CategoryCircle :category="category" />
       </template>
 
-      <div class="w-full text-left">
+      <div :class="isCompactInline ? 'flex w-full min-w-0 items-center gap-2 text-left' : 'w-full text-left'">
         <template v-if="isLoadingGroupedTransfer">
           <!-- Loading skeleton: known leg renders on its side (source left, dest
                right); the still-loading opposite leg is a placeholder. -->
@@ -85,7 +85,7 @@
           </div>
         </template>
         <template v-else-if="isPortfolioLinked">
-          <div class="flex items-center gap-1.5">
+          <div :class="['flex items-center gap-1.5', compact && 'min-w-0']">
             <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
             <span class="line-clamp-1 text-sm tracking-wider">
               {{ accountFrom?.name }}
@@ -107,7 +107,7 @@
           </div>
         </template>
         <template v-else-if="isTransferTransaction">
-          <div class="flex items-center gap-1.5 text-sm tracking-wider">
+          <div :class="['flex items-center gap-1.5 text-sm tracking-wider', compact && 'min-w-0']">
             <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
             <span class="line-clamp-1">{{ transferFromLabel }}</span>
             <span class="shrink-0">{{ transferSeparator }}</span>
@@ -116,7 +116,7 @@
           </div>
         </template>
         <template v-else>
-          <div class="flex items-center gap-2">
+          <div :class="['flex items-center gap-2', compact && 'shrink-0']">
             <span class="text-sm tracking-wider whitespace-nowrap">
               {{ category ? category.name : t('common.ui.other') }}
             </span>
@@ -136,7 +136,11 @@
         </template>
         <span
           v-if="!shouldShowGroupedTransfer && !isLoadingGroupedTransfer"
-          class="text-muted-foreground line-clamp-1 text-sm tracking-wider [word-break:break-word]"
+          :class="
+            compact
+              ? 'text-muted-foreground min-w-0 truncate text-sm'
+              : 'text-muted-foreground line-clamp-1 text-sm tracking-wider [word-break:break-word]'
+          "
         >
           {{ transaction.note }}
         </span>
@@ -145,6 +149,20 @@
     <div v-if="shouldShowGroupedTransfer || isLoadingGroupedTransfer" class="flex items-start pt-0.5">
       <div class="text-muted-foreground text-right text-xs whitespace-nowrap tabular-nums">
         {{ formateDate(transaction.time) }}
+      </div>
+    </div>
+    <div v-else-if="compact" class="flex items-baseline justify-end gap-2">
+      <div class="text-muted-foreground text-xs whitespace-nowrap">
+        {{ formateDate(transaction.time) }}
+      </div>
+      <div
+        :class="[
+          'text-amount text-right text-sm whitespace-nowrap',
+          transaction.transactionType === TRANSACTION_TYPES.income && 'text-app-income-color',
+          transaction.transactionType === TRANSACTION_TYPES.expense && 'text-app-expense-color',
+        ]"
+      >
+        {{ formattedAmount }}
       </div>
     </div>
     <div v-else>
@@ -205,6 +223,8 @@ const props = withDefaults(
     /** Shown as an explainer tooltip in place of the checkbox when not selectable. */
     unselectableReason?: BulkUnselectableReason | null;
     index?: number;
+    /** Single-line row: the note renders inline, amount and date share one line. */
+    compact?: boolean;
   }>(),
   {
     asButton: true,
@@ -213,6 +233,7 @@ const props = withDefaults(
     isSelectable: true,
     unselectableReason: null,
     index: 0,
+    compact: false,
   },
 );
 
@@ -259,6 +280,11 @@ const shouldShowGroupedTransfer = computed(() => {
 const isLoadingGroupedTransfer = computed(() => {
   return isTransferTransaction.value && isTwoLegTransfer(transaction.value.transferNature) && isLoadingOpposite.value;
 });
+
+// Grouped transfers are intrinsically two-line, so they keep the stacked layout even in compact mode.
+const isCompactInline = computed(
+  () => props.compact && !shouldShowGroupedTransfer.value && !isLoadingGroupedTransfer.value,
+);
 
 const category = computed(() => categoriesMap.value[transaction.value.categoryId]);
 const accountFrom = computed(() => accountsRecord.value[transaction.value.accountId]);

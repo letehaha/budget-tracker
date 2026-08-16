@@ -6,21 +6,25 @@ import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import TransactionRecordSkeleton from '@/components/transactions-list/transaction-record-skeleton.vue';
 import TransactionRecrod from '@/components/transactions-list/transaction-record.vue';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { cn } from '@/lib/utils';
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
-import { useResizeObserver } from '@vueuse/core';
+import { refDebounced, useResizeObserver } from '@vueuse/core';
 import { isDate } from 'date-fns';
 import { isEqual, isNil, omitBy } from 'lodash-es';
-import { CircleAlert, ListFilterIcon, SparklesIcon } from '@lucide/vue';
+import { CircleAlert, ListFilterIcon, SearchIcon, SparklesIcon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface RecordListModalProps {
   transactionType: TRANSACTION_TYPES;
   selectedTransactions: TransactionModel[];
   onSelect: (item: TransactionModel) => void;
+  /** Renders per-row checkboxes for the "refunded by" multi-selection mode. */
+  multiSelect?: boolean;
   /** Origin transaction ID (for recommendations when editing) */
   originTransactionId?: string;
   /** Origin transaction amount for recommendations (used when creating new tx) */
@@ -48,6 +52,12 @@ const DEFAULT_FILTERS: {
 const isFiltersDialogOpen = ref(false);
 const filters = ref({ ...DEFAULT_FILTERS });
 const appliedFilters = ref({ ...DEFAULT_FILTERS });
+
+const SEARCH_DEBOUNCE_MS = 350;
+const searchQuery = ref('');
+const debouncedSearchQuery = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS);
+const noteSearch = computed(() => debouncedSearchQuery.value.trim() || undefined);
+const isSearchActive = computed(() => Boolean(noteSearch.value));
 
 const isResetButtonDisabled = computed(() => isEqual(filters.value, DEFAULT_FILTERS));
 const isAnyFiltersApplied = computed(() => !isEqual(appliedFilters.value, DEFAULT_FILTERS));
@@ -105,7 +115,15 @@ const { data: recommendations } = useQuery({
 const recommendationIds = computed(() => new Set(recommendations.value?.map((r) => r.id) ?? []));
 
 const limit = 15;
-const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: typeof appliedFilters.value }) => {
+const fetchTransactions = ({
+  pageParam,
+  filter,
+  search,
+}: {
+  pageParam: number;
+  filter: typeof appliedFilters.value;
+  search: string | undefined;
+}) => {
   const offset = pageParam * limit;
 
   return loadTransactions(
@@ -117,6 +135,7 @@ const fetchTransactions = ({ pageParam, filter }: { pageParam: number; filter: t
         excludeTransfer: true,
         excludeRefunds: false, // Allow transactions that already have refunds
         includeSplits: true, // Include splits so we can show split selector
+        noteSearch: search,
         to: isDate(filter.end) ? filter.end!.toISOString() : undefined,
         from: isDate(filter.start) ? filter.start!.toISOString() : undefined,
         amountGte: filter.amountGte ?? undefined,
@@ -134,8 +153,8 @@ const {
   isFetchingNextPage,
   isFetched,
 } = useInfiniteQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList, props.transactionType, appliedFilters],
-  queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value }),
+  queryKey: [...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList, props.transactionType, appliedFilters, noteSearch],
+  queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value, search: noteSearch.value }),
   initialPageParam: 0,
   getNextPageParam: (lastPage, pages) => {
     // No more pages to load
@@ -146,10 +165,14 @@ const {
   staleTime: Infinity,
 });
 
-// Filter out recommendations from the main list to avoid duplicates
+const showRecommendations = computed(
+  () => Boolean(recommendations.value?.length) && !isAnyFiltersApplied.value && !isSearchActive.value,
+);
+
+// Recommendations are excluded from the main list only while their own section renders them.
 const filteredTransactions = computed(() => {
   const allTransactions = transactionsPages.value?.pages?.flat() ?? [];
-  if (!recommendations.value?.length) return allTransactions;
+  if (!showRecommendations.value) return allTransactions;
   return allTransactions.filter((tx) => !recommendationIds.value.has(tx.id));
 });
 
@@ -163,8 +186,8 @@ const hasAnyTransactions = computed(
   () => (recommendations.value?.length ?? 0) > 0 || filteredTransactions.value.length > 0,
 );
 
-// 52px record + the 1px selection border it is wrapped in
-const TRANSACTION_ROW_HEIGHT = 54;
+// 32px compact record (24px category circle + py-1) + the 1px selection border it is wrapped in
+const TRANSACTION_ROW_HEIGHT = 34;
 
 const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
 const parentRef = computed<HTMLElement | null>(() => scrollAreaRef.value?.viewportRef?.viewportElement ?? null);
@@ -195,70 +218,94 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
 
 <template>
   <div class="flex min-h-0 grow flex-col gap-2">
-    <div class="flex">
-      <ResponsiveDialog v-model:open="isFiltersDialogOpen" dialog-content-class="max-w-[350px]">
-        <template #trigger>
-          <Button variant="ghost" size="icon" class="ml-auto">
-            <div class="relative">
-              <ListFilterIcon />
+    <div class="flex items-center gap-2 px-2 pt-1">
+      <div class="min-w-0 flex-1">
+        <InputField
+          v-model="searchQuery"
+          :placeholder="$t('dialogs.manageTransaction.refundRecordsList.searchPlaceholder')"
+        >
+          <template #iconLeading>
+            <SearchIcon class="text-muted-foreground size-4" />
+          </template>
+        </InputField>
+      </div>
 
-              <template v-if="isAnyFiltersApplied">
-                <div class="bg-primary absolute -top-1 -right-1 size-3 rounded-full" />
-              </template>
-            </div>
-          </Button>
-        </template>
+      <DesktopOnlyTooltip :content="$t('dialogs.manageTransaction.refundRecordsList.filtersLabel')">
+        <span class="inline-flex">
+          <ResponsiveDialog v-model:open="isFiltersDialogOpen" dialog-content-class="max-w-[350px]">
+            <template #trigger>
+              <Button
+                variant="ghost"
+                size="icon"
+                :aria-label="$t('dialogs.manageTransaction.refundRecordsList.filtersLabel')"
+              >
+                <div class="relative">
+                  <ListFilterIcon />
 
-        <template #title>{{ $t('dialogs.manageTransaction.refundRecordsList.filtersDialogTitle') }}</template>
-
-        <div class="grid gap-4">
-          <DateField
-            v-model="filters.start"
-            :calendar-options="{
-              maxDate: filters.end,
-            }"
-            :label="$t('dialogs.manageTransaction.refundRecordsList.fromDateLabel')"
-          />
-          <DateField
-            v-model="filters.end"
-            :calendar-options="{
-              minDate: filters.start,
-            }"
-            :label="$t('dialogs.manageTransaction.refundRecordsList.toDateLabel')"
-          />
-
-          <div class="flex gap-2">
-            <InputField
-              v-model="filters.amountGte"
-              :label="$t('dialogs.manageTransaction.refundRecordsList.amountFromLabel')"
-              :placeholder="$t('dialogs.manageTransaction.refundRecordsList.amountFromPlaceholder')"
-            />
-            <InputField
-              v-model="filters.amountLte"
-              :label="$t('dialogs.manageTransaction.refundRecordsList.amountToLabel')"
-              :placeholder="$t('dialogs.manageTransaction.refundRecordsList.amountToPlaceholder')"
-            />
-          </div>
-
-          <div class="flex gap-2">
-            <Button variant="secondary" :disabled="isResetButtonDisabled" class="w-full shrink" @click="resetFilters">
-              {{ $t('dialogs.manageTransaction.refundRecordsList.resetButton') }}
-            </Button>
-
-            <template v-if="isFiltersOutOfSync">
-              <Button variant="default" class="w-full shrink" @click="applyFilters">
-                {{ $t('dialogs.manageTransaction.refundRecordsList.applyButton') }}
+                  <template v-if="isAnyFiltersApplied">
+                    <div class="bg-primary absolute -top-1 -right-1 size-3 rounded-full" />
+                  </template>
+                </div>
               </Button>
             </template>
-          </div>
-        </div>
-      </ResponsiveDialog>
+
+            <template #title>{{ $t('dialogs.manageTransaction.refundRecordsList.filtersDialogTitle') }}</template>
+
+            <div class="grid gap-4">
+              <DateField
+                v-model="filters.start"
+                :calendar-options="{
+                  maxDate: filters.end,
+                }"
+                :label="$t('dialogs.manageTransaction.refundRecordsList.fromDateLabel')"
+              />
+              <DateField
+                v-model="filters.end"
+                :calendar-options="{
+                  minDate: filters.start,
+                }"
+                :label="$t('dialogs.manageTransaction.refundRecordsList.toDateLabel')"
+              />
+
+              <div class="flex gap-2">
+                <InputField
+                  v-model="filters.amountGte"
+                  :label="$t('dialogs.manageTransaction.refundRecordsList.amountFromLabel')"
+                  :placeholder="$t('dialogs.manageTransaction.refundRecordsList.amountFromPlaceholder')"
+                />
+                <InputField
+                  v-model="filters.amountLte"
+                  :label="$t('dialogs.manageTransaction.refundRecordsList.amountToLabel')"
+                  :placeholder="$t('dialogs.manageTransaction.refundRecordsList.amountToPlaceholder')"
+                />
+              </div>
+
+              <div class="flex gap-2">
+                <Button
+                  variant="secondary"
+                  :disabled="isResetButtonDisabled"
+                  class="w-full shrink"
+                  @click="resetFilters"
+                >
+                  {{ $t('dialogs.manageTransaction.refundRecordsList.resetButton') }}
+                </Button>
+
+                <template v-if="isFiltersOutOfSync">
+                  <Button variant="default" class="w-full shrink" @click="applyFilters">
+                    {{ $t('dialogs.manageTransaction.refundRecordsList.applyButton') }}
+                  </Button>
+                </template>
+              </div>
+            </div>
+          </ResponsiveDialog>
+        </span>
+      </DesktopOnlyTooltip>
     </div>
 
     <ScrollArea ref="scrollAreaRef" class="min-h-0 flex-1" viewport-class="h-full">
       <div ref="scrollContentRef">
         <!-- Recommendations section -->
-        <template v-if="recommendations?.length && !isAnyFiltersApplied">
+        <template v-if="showRecommendations">
           <div class="mb-3">
             <div class="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
               <SparklesIcon class="size-3.5" />
@@ -268,10 +315,20 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
               <template v-for="item in recommendations" :key="item.id">
                 <div
                   :class="
-                    cn('rounded-xl border border-transparent', selectedTxsIds.has(item.id) && 'border-primary/70')
+                    cn(
+                      'rounded-xl border border-transparent transition-colors',
+                      selectedTxsIds.has(item.id) && 'border-primary/70 bg-primary/10',
+                    )
                   "
                 >
-                  <TransactionRecrod :tx="item" @record-click="(payload) => handlerRecordClick(payload[0])" />
+                  <TransactionRecrod
+                    :tx="item"
+                    compact
+                    :show-checkbox="multiSelect"
+                    :is-selected="selectedTxsIds.has(item.id)"
+                    @record-click="(payload) => handlerRecordClick(payload[0])"
+                    @selection-change="handlerRecordClick(item)"
+                  />
                 </div>
               </template>
             </div>
@@ -306,46 +363,65 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
               v-if="filteredTransactions[virtualRow.index]"
               :class="
                 cn(
-                  'rounded-xl border border-transparent',
-                  selectedTxsIds.has(filteredTransactions[virtualRow.index]!.id) && 'border-primary/70',
+                  'rounded-xl border border-transparent transition-colors',
+                  selectedTxsIds.has(filteredTransactions[virtualRow.index]!.id) && 'border-primary/70 bg-primary/10',
                 )
               "
             >
               <TransactionRecrod
                 :tx="filteredTransactions[virtualRow.index]!"
+                compact
+                :show-checkbox="multiSelect"
+                :is-selected="selectedTxsIds.has(filteredTransactions[virtualRow.index]!.id)"
                 @record-click="(payload) => handlerRecordClick(payload[0])"
+                @selection-change="handlerRecordClick(filteredTransactions[virtualRow.index]!)"
               />
             </div>
-            <div v-else class="flex h-13 items-center justify-center text-sm">
+            <div v-else class="flex h-8 items-center justify-center text-sm">
               {{ $t('transactions.list.loadingMore') }}
             </div>
           </div>
         </div>
+        <div v-else class="space-y-1">
+          <TransactionRecordSkeleton v-for="i in 6" :key="i" compact />
+        </div>
 
-        <template v-if="!hasNextPage && hasAnyTransactions">
+        <template v-if="isFetched && !hasNextPage && hasAnyTransactions">
           <p class="mt-4 text-center text-sm">
             {{ $t('dialogs.manageTransaction.refundRecordsList.noMoreTransactions') }}
           </p>
         </template>
-        <template v-else-if="!hasNextPage">
-          <p class="mx-auto max-w-[80%] text-center text-sm text-white/80">
-            <CircleAlert :size="48" class="m-auto mb-4" />
-            <template v-if="transactionType === TRANSACTION_TYPES.income">
-              {{ $t('dialogs.manageTransaction.refundRecordsList.noIncomeTransactions') }}
-            </template>
-            <template v-else-if="transactionType === TRANSACTION_TYPES.expense">
-              {{ $t('dialogs.manageTransaction.refundRecordsList.noExpenseTransactions') }}
-            </template>
-            <template v-else>
-              {{ $t('dialogs.manageTransaction.refundRecordsList.noTransactions') }}
-            </template>
+        <template v-else-if="isFetched && !hasNextPage">
+          <div
+            class="text-muted-foreground flex min-h-[min(20rem,50dvh)] flex-col items-center justify-center gap-4 px-6 text-center text-sm"
+          >
+            <CircleAlert :size="48" />
+            <p>
+              <template v-if="isSearchActive">
+                {{ $t('dialogs.manageTransaction.refundRecordsList.noSearchResults', { query: noteSearch }) }}
+              </template>
+              <template v-else-if="transactionType === TRANSACTION_TYPES.income">
+                {{ $t('dialogs.manageTransaction.refundRecordsList.noIncomeTransactions') }}
+              </template>
+              <template v-else-if="transactionType === TRANSACTION_TYPES.expense">
+                {{ $t('dialogs.manageTransaction.refundRecordsList.noExpenseTransactions') }}
+              </template>
+              <template v-else>
+                {{ $t('dialogs.manageTransaction.refundRecordsList.noTransactions') }}
+              </template>
+            </p>
 
-            <template v-if="isAnyFiltersApplied">
-              <Button class="mt-4 w-full" variant="secondary" @click="resetFilters">
+            <template v-if="isSearchActive">
+              <Button class="w-auto" variant="secondary" @click="searchQuery = ''">
+                {{ $t('dialogs.manageTransaction.refundRecordsList.clearSearchButton') }}
+              </Button>
+            </template>
+            <template v-else-if="isAnyFiltersApplied">
+              <Button class="w-auto" variant="secondary" @click="resetFilters">
                 {{ $t('dialogs.manageTransaction.refundRecordsList.resetFiltersButton') }}
               </Button>
             </template>
-          </p>
+          </div>
         </template>
       </div>
     </ScrollArea>

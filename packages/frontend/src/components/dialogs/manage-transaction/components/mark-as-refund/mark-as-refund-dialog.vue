@@ -1,17 +1,22 @@
 <script lang="ts" setup>
+import type { FormattedCategory } from '@/common/types';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
+import { PillTabs, type PillTabItem } from '@/components/lib/ui/pill-tabs';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
+import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
-import { useCategoriesStore } from '@/stores';
+import { useCategoriesStore, useCurrenciesStore } from '@/stores';
 import { TRANSACTION_TYPES, TransactionModel, TransactionSplitModel } from '@bt/shared/types';
 import { CheckIcon, SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { RefundedByAnotherTxs, RefundsAnoterTx } from '../../types';
+import { computeRefundLinkTotals } from '../../utils/refund-link-totals';
 import MarkAsRefundInfoPopover from './mark-as-refund-info-popover.vue';
+import RefundLinkCard from './refund-link-card.vue';
 import RecordsList from './refund-records-list.vue';
 
 const props = defineProps<{
@@ -26,6 +31,8 @@ const props = defineProps<{
   currentAmount?: number | null;
   /** Current form's currency code */
   currentCurrencyCode?: string;
+  /** Current form's category (shown in the link card) */
+  currentCategory?: FormattedCategory | null;
   /** Current account ID (for recommendations) */
   currentAccountId?: string | null;
   /** Current transaction ID (for recommendations when editing) */
@@ -37,8 +44,11 @@ const emit = defineEmits<{
   'update:refundedBy': [value: RefundedByAnotherTxs];
 }>();
 
+const { t } = useI18n();
 const { categoriesMap } = storeToRefs(useCategoriesStore());
+const { baseCurrency } = storeToRefs(useCurrenciesStore());
 const { ratesMap } = useExchangeRates();
+const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
 const selectionState = reactive<{
   refunds: RefundsAnoterTx;
@@ -55,10 +65,6 @@ const pendingTransaction = ref<TransactionModel | null>(null);
 // Temporary split selection state (before confirming in split dialog)
 const tempSplitSelection = ref<{ splitId: string | null } | null>(null);
 
-const isSaveDisabled = computed(() => {
-  return selectionState.refunds === undefined && selectionState.refundedBy === undefined;
-});
-
 const isDialogOpen = ref(false);
 const isSplitDialogOpen = ref(false);
 
@@ -67,6 +73,24 @@ const openDialog = () => {
 };
 
 const selectedOption = ref<'refunds' | 'refunded'>('refunds');
+
+const onModeChange = (value: string) => {
+  selectedOption.value = value as 'refunds' | 'refunded';
+};
+
+const modeItems = computed<PillTabItem[]>(() => [
+  { value: 'refunds', label: t('dialogs.manageTransaction.markAsRefund.modeRefunds') },
+  {
+    value: 'refunded',
+    label: t('dialogs.manageTransaction.markAsRefund.refundedByLabel'),
+    disabled: props.isRecordCreation,
+  },
+]);
+
+// The picker lists candidates of the opposite type, so the current entry's own type is the inverse.
+const currentEntryType = computed(() =>
+  props.transactionType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,
+);
 
 // Keep flush 'sync': with the default flush this wipe runs after the open handler
 // and clobbers the selection it just seeded from props.
@@ -142,6 +166,13 @@ const onSelectValue = (v: TransactionModel) => {
   }
 };
 
+const clearSelection = () => {
+  selectionState.refunds = undefined;
+  selectionState.refundedBy = undefined;
+  selectedSplitId.value = null;
+  pendingTransaction.value = null;
+};
+
 // Handle temporary split selection in the dialog
 const selectTempSplit = (splitId: string | null) => {
   tempSplitSelection.value = { splitId };
@@ -167,6 +198,63 @@ const selectedTransactions = computed(() => {
   if (selectionState.refunds) return [selectionState.refunds.transaction];
   if (selectionState.refundedBy) return selectionState.refundedBy.map((r) => r.transaction);
   return [];
+});
+
+const totals = computed(() =>
+  computeRefundLinkTotals({
+    transactions: selectedTransactions.value,
+    currentAmount: props.currentAmount,
+    currentCurrencyCode: props.currentCurrencyCode,
+    ratesMap: ratesMap.value,
+    baseCurrencyCode: baseCurrency.value?.currencyCode,
+  }),
+);
+
+const totalLabel = computed(() => {
+  if (totals.value.total === null || !totals.value.currencyCode) return null;
+  const formatted = formatUIAmount(totals.value.total, { currency: totals.value.currencyCode });
+  return totals.value.isTotalConverted ? `≈ ${formatted}` : formatted;
+});
+
+const limitLabel = computed(() => {
+  if (!props.currentAmount || props.currentAmount <= 0) return null;
+  return formatUIAmount(props.currentAmount, { currency: props.currentCurrencyCode });
+});
+
+const helperText = computed(() => {
+  if (selectedOption.value === 'refunds') return t('dialogs.manageTransaction.markAsRefund.helperRefunds');
+  if (limitLabel.value) {
+    return t('dialogs.manageTransaction.markAsRefund.helperRefundedBy', { amount: limitLabel.value });
+  }
+  return t('dialogs.manageTransaction.markAsRefund.helperRefundedByNoLimit');
+});
+
+const summaryText = computed(() => {
+  const count = selectedTransactions.value.length;
+  const keyBase = 'dialogs.manageTransaction.markAsRefund';
+  if (!count) return t(`${keyBase}.summaryEmpty`);
+  if (!totalLabel.value) return t(`${keyBase}.summaryCountOnly`, { count });
+
+  const amount = totalLabel.value;
+  if (selectedOption.value === 'refunds') return t(`${keyBase}.summarySelected`, { count, amount });
+
+  if (totals.value.isOverLimit) {
+    if (totals.value.isExactComparison && totals.value.total !== null && props.currentAmount) {
+      const excess = formatUIAmount(totals.value.total - props.currentAmount, {
+        currency: props.currentCurrencyCode,
+      });
+      return t(`${keyBase}.summaryExceedsBy`, { count, amount, excess });
+    }
+    return t(`${keyBase}.summaryExceeds`, { count, amount });
+  }
+  if (limitLabel.value) return t(`${keyBase}.summaryOfLimit`, { count, amount, limit: limitLabel.value });
+  return t(`${keyBase}.summarySelected`, { count, amount });
+});
+
+const isSaveDisabled = computed(() => {
+  if (selectionState.refunds === undefined && selectionState.refundedBy === undefined) return true;
+  // Cross-currency totals only warn — the backend re-validates with converted amounts on save.
+  return totals.value.isOverLimit && totals.value.isExactComparison;
 });
 
 // Get main category info for transaction
@@ -280,62 +368,83 @@ const hasSmallOptions = computed(() => {
     <ResponsiveDialog
       v-model:open="isDialogOpen"
       custom-close
+      sr-only-header
       no-internal-scroll
-      dialog-content-class="grid max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)]"
-      drawer-content-class="max-h-[85dvh]"
+      dialog-content-class="h-[min(85dvh,46rem)] max-h-[90dvh] gap-0 overflow-hidden p-0"
+      drawer-content-class="h-[calc(100dvh-1.25rem)] max-h-[calc(100dvh-1.25rem)] px-0"
     >
-      <template #title>{{ $t('dialogs.manageTransaction.markAsRefund.selectTransaction') }}</template>
-      <template #description>
-        <template v-if="selectedOption === 'refunds'">
-          <span> {{ $t('dialogs.manageTransaction.markAsRefund.selectRefundingTransaction') }} </span>
-        </template>
-        <template v-else-if="selectedOption === 'refunded'">
-          <span> {{ $t('dialogs.manageTransaction.markAsRefund.selectRefundedByTransactions') }} </span>
-        </template>
+      <template #title>{{ $t('dialogs.manageTransaction.markAsRefund.linkRefund') }}</template>
+      <template #description>{{ helperText }}</template>
 
-        <MarkAsRefundInfoPopover />
-      </template>
+      <div class="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+        <!-- Chrome: strip, header, mode switch, link card -->
+        <div class="px-4 pt-3 pb-3 md:px-6 md:pt-0">
+          <div
+            v-if="!isMobileView"
+            :class="[
+              '-mx-6 mb-4 h-3 rounded-t-lg',
+              currentEntryType === TRANSACTION_TYPES.income ? 'bg-app-income-color' : 'bg-app-expense-color',
+            ]"
+          />
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-lg leading-none font-semibold tracking-tight">
+                {{ $t('dialogs.manageTransaction.markAsRefund.linkRefund') }}
+              </p>
+              <p class="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                {{ helperText }}
+                <MarkAsRefundInfoPopover />
+              </p>
+            </div>
+            <Button variant="ghost" class="-mt-1.5 -mr-2 shrink-0" @click="isDialogOpen = false">
+              {{ $t('common.ui.close') }}
+            </Button>
+          </div>
 
-      <div class="mb-4 grid gap-2">
-        <div class="flex items-center justify-between">
-          <RadioGroup v-model="selectedOption" default-value="refunds" class="flex gap-6">
-            <label class="flex cursor-pointer items-center gap-2">
-              <RadioGroupItem value="refunds" />
-              <p class="text-sm">{{ $t('dialogs.manageTransaction.markAsRefund.refundsLabel') }}</p>
-            </label>
-            <label
-              :class="['flex cursor-pointer items-center gap-2', isRecordCreation && 'cursor-not-allowed opacity-70']"
-            >
-              <RadioGroupItem :disabled="isRecordCreation" value="refunded" />
-              <p class="text-sm">{{ $t('dialogs.manageTransaction.markAsRefund.refundedByLabel') }}</p>
-            </label>
-          </RadioGroup>
+          <PillTabs
+            :model-value="selectedOption"
+            :items="modeItems"
+            size="lg"
+            full-width
+            class="mt-4"
+            @update:model-value="onModeChange"
+          />
 
-          <Button :disabled="isSaveDisabled" @click="saveState">
+          <RefundLinkCard
+            class="mt-3"
+            :mode="selectedOption"
+            :current-entry-type="currentEntryType"
+            :current-amount="currentAmount"
+            :current-currency-code="currentCurrencyCode"
+            :current-category="currentCategory"
+            :selected="selectedTransactions"
+            :totals="totals"
+            @clear="clearSelection"
+          />
+        </div>
+
+        <!-- Scrollable records list -->
+        <div class="flex min-h-0 flex-col px-2 md:px-4">
+          <RecordsList
+            :transaction-type="transactionType"
+            :on-select="onSelectValue"
+            :selected-transactions="selectedTransactions"
+            :multi-select="selectedOption === 'refunded'"
+            :origin-amount="currentAmount"
+            :origin-account-id="currentAccountId"
+            :origin-transaction-id="currentTransactionId"
+          />
+        </div>
+
+        <!-- Footer -->
+        <div class="border-border bg-dialog flex items-center gap-3 border-t px-4 py-3 md:px-6">
+          <p :class="['min-w-0 text-[13px]', totals.isOverLimit ? 'text-destructive-text' : 'text-muted-foreground']">
+            {{ summaryText }}
+          </p>
+          <Button class="ml-auto min-w-25 shrink-0" :disabled="isSaveDisabled" @click="saveState">
             {{ $t('dialogs.manageTransaction.markAsRefund.saveButton') }}
           </Button>
         </div>
-
-        <template v-if="selectedOption === 'refunds'">
-          <p class="text-muted-foreground text-xs">{{ $t('dialogs.manageTransaction.markAsRefund.selectOnlyOne') }}</p>
-        </template>
-        <template v-else-if="selectedOption === 'refunded'">
-          <p class="text-muted-foreground text-xs">
-            {{ $t('dialogs.manageTransaction.markAsRefund.selectMultipleWithLimit') }}
-          </p>
-        </template>
-      </div>
-
-      <!-- Scrollable content area with records list -->
-      <div class="flex min-h-0 flex-col">
-        <RecordsList
-          :transaction-type="transactionType"
-          :on-select="onSelectValue"
-          :selected-transactions="selectedTransactions"
-          :origin-amount="currentAmount"
-          :origin-account-id="currentAccountId"
-          :origin-transaction-id="currentTransactionId"
-        />
       </div>
     </ResponsiveDialog>
 

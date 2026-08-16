@@ -1052,6 +1052,7 @@ onUnmounted(() => {
           :current-transaction-splits="transaction?.splits"
           :current-amount="form.amount ? Number(form.amount) : null"
           :current-currency-code="form.account?.currencyCode"
+          :current-category="form.category"
           :current-account-id="form.account?.id"
         />
       </FormRow>

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { FormattedCategory } from '@/common/types';
 import { FieldLabel } from '@/components/fields';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, TransactionSplitModel } from '@bt/shared/types';
@@ -27,6 +28,8 @@ const props = defineProps<{
   currentAmount?: number | null;
   /** Current form's currency code */
   currentCurrencyCode?: string;
+  /** Current form's category (shown in the picker's link card) */
+  currentCategory?: FormattedCategory | null;
   /** Current account ID (for recommendations) */
   currentAccountId?: string | null;
 }>();
@@ -100,6 +103,7 @@ const getSplitInfo = (refund: RefundWithSplit) => {
     :current-transaction-splits="currentTransactionSplits"
     :current-amount="currentAmount"
     :current-currency-code="currentCurrencyCode"
+    :current-category="currentCategory"
     :current-account-id="currentAccountId"
     :current-transaction-id="transactionId"
     @update:refunds="onRefundsUpdate"

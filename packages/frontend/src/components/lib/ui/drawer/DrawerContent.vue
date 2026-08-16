@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import type { DialogContentEmits, DialogContentProps } from 'reka-ui';
 import { useForwardPropsEmits } from 'reka-ui';
 import { DrawerContent, DrawerPortal } from 'vaul-vue';
-import type { HtmlHTMLAttributes } from 'vue';
+import { type HtmlHTMLAttributes, computed } from 'vue';
 
 import DrawerIndicator from './DrawerIndicator.vue';
 import DrawerOverlay from './DrawerOverlay.vue';
@@ -16,7 +16,14 @@ const props = defineProps<
 >();
 const emits = defineEmits<DialogContentEmits>();
 
-const forwarded = useForwardPropsEmits(props, emits);
+const delegatedProps = computed(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { class: _, ...delegated } = props;
+
+  return delegated;
+});
+
+const forwarded = useForwardPropsEmits(delegatedProps, emits);
 </script>
 
 <template>
