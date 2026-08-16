@@ -89,7 +89,7 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
     await expect(transferBtn).toBeVisible();
 
     // The "Link" button should be visible (not "Unlink")
-    await expect(dialog.getByRole('button', { name: /link existing transaction/i })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /link the other side/i })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /unlink/i })).not.toBeVisible();
   });
 
@@ -105,7 +105,7 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
     await expect(dialog).toBeVisible({ timeout: 5_000 });
 
     // Click the "Link" button to open the transaction picker
-    await dialog.getByRole('button', { name: /link existing transaction/i }).click();
+    await dialog.getByRole('button', { name: /link the other side/i }).click();
 
     // A nested dialog/picker should appear with available transactions
     // Wait for the picker content to load (it should show income transactions from other accounts)
@@ -154,7 +154,7 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
     await expect(dialog.getByRole('button', { name: /unlink/i })).toBeVisible({ timeout: 10_000 });
 
     // "Link" button should NOT be visible
-    await expect(dialog.getByRole('button', { name: /link existing transaction/i })).not.toBeVisible();
+    await expect(dialog.getByRole('button', { name: /link the other side/i })).not.toBeVisible();
   });
 
   test('unlinking common_transfer reverts both transactions', async ({ page }) => {
@@ -195,7 +195,7 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
     await expect(transferSelected).not.toBeVisible();
 
     // Neither Link nor Unlink buttons should be visible (it's a regular expense now)
-    await expect(dialogAfter.getByRole('button', { name: /link existing transaction/i })).not.toBeVisible();
+    await expect(dialogAfter.getByRole('button', { name: /link the other side/i })).not.toBeVisible();
     await expect(dialogAfter.getByRole('button', { name: /unlink/i })).not.toBeVisible();
   });
 
