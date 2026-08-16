@@ -15,8 +15,10 @@ const props = withDefaults(
     modelValue: string;
     size?: PillTabsSize;
     disabled?: boolean;
+    /** Stretch the track to the parent width with equal-width triggers. */
+    fullWidth?: boolean;
   }>(),
-  { size: 'default', disabled: false },
+  { size: 'default', disabled: false, fullWidth: false },
 );
 
 const emit = defineEmits<{
@@ -51,7 +53,7 @@ watch(
 </script>
 
 <template>
-  <div ref="containerRef" :class="cn(pillTabsContainerVariants({ size }))">
+  <div ref="containerRef" :class="cn(pillTabsContainerVariants({ size }), fullWidth && 'flex w-full self-auto')">
     <!-- Sliding indicator -->
     <div :class="cn(pillTabsIndicatorVariants({ size }))" :style="indicatorStyle" />
     <!-- Buttons -->
@@ -60,12 +62,13 @@ watch(
       :key="item.value"
       type="button"
       :data-value="item.value"
-      :disabled="disabled"
+      :disabled="disabled || item.disabled"
       :class="
         cn(
           pillTabsTriggerVariants({ size }),
           modelValue === item.value ? 'text-foreground' : 'text-muted-foreground',
-          disabled && 'cursor-not-allowed opacity-50',
+          (disabled || item.disabled) && 'cursor-not-allowed opacity-50',
+          fullWidth && 'flex-1',
         )
       "
       @click="emit('update:modelValue', item.value)"

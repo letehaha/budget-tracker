@@ -244,6 +244,180 @@ describe('getRefundRecommendations', () => {
       });
     });
 
+    describe('refund transactions filtering', () => {
+      it('does not recommend transactions that are already refunds of another transaction', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        const [refundedExpense] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+        // Income that IS the refund of that expense — cannot be linked again
+        const [refundIncome] = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 50,
+              transactionType: TRANSACTION_TYPES.income,
+            }),
+            refundForTxId: refundedExpense.id,
+          },
+          raw: true,
+        });
+        const [plainIncome] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+        const [currentExpense] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        const response = await helpers.getRefundRecommendations({
+          transactionId: currentExpense.id,
+          raw: true,
+        });
+
+        const ids = response.map((tx) => tx.id);
+        expect(ids).toContain(plainIncome.id);
+        expect(ids).not.toContain(refundIncome.id);
+      });
+
+      it('does not recommend planned transactions', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        const [plannedIncome] = await helpers.createPlannedTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+        const [currentExpense] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        const response = await helpers.getRefundRecommendations({
+          transactionId: currentExpense.id,
+          raw: true,
+        });
+
+        expect(response.map((tx) => tx.id)).not.toContain(plannedIncome.id);
+      });
+
+      it('still recommends originals that already carry refunds (partial refunds)', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        const [refundedIncome] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+        await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 20,
+              transactionType: TRANSACTION_TYPES.expense,
+            }),
+            refundForTxId: refundedIncome.id,
+          },
+          raw: true,
+        });
+        const [currentExpense] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        const response = await helpers.getRefundRecommendations({
+          transactionId: currentExpense.id,
+          raw: true,
+        });
+
+        expect(response.map((tx) => tx.id)).toContain(refundedIncome.id);
+      });
+
+      it('keeps recommending refunds already linked to the requested transaction', async () => {
+        const account = await helpers.createAccount({ raw: true });
+
+        const [currentExpense] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+        // Income already refunding the requested transaction — must stay visible so the
+        // edit dialog can list/deselect the existing link
+        const [ownRefundIncome] = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 50,
+              transactionType: TRANSACTION_TYPES.income,
+            }),
+            refundForTxId: currentExpense.id,
+          },
+          raw: true,
+        });
+
+        const [otherExpense] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 50,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+        const [otherRefundIncome] = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 50,
+              transactionType: TRANSACTION_TYPES.income,
+            }),
+            refundForTxId: otherExpense.id,
+          },
+          raw: true,
+        });
+
+        const response = await helpers.getRefundRecommendations({
+          transactionId: currentExpense.id,
+          raw: true,
+        });
+
+        const ids = response.map((tx) => tx.id);
+        expect(ids).toContain(ownRefundIncome.id);
+        expect(ids).not.toContain(otherRefundIncome.id);
+      });
+    });
+
     describe('result limiting', () => {
       it('returns maximum 5 recommendations', async () => {
         const account = await helpers.createAccount({ raw: true });

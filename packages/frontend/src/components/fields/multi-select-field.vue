@@ -6,7 +6,7 @@
           :disabled="disabled"
           :class="
             cn(
-              'border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 overflow-hidden rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+              'border-input bg-input-background ring-offset-background focus-visible:ring-ring flex h-10 w-full items-center gap-2 overflow-hidden rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none md:h-9',
               disabled && 'cursor-not-allowed opacity-50',
               triggerClass,
             )

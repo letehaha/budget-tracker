@@ -2,6 +2,7 @@
 import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
+import { cn } from '@/lib/utils';
 import { debounce } from 'lodash-es';
 import { XIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -151,9 +152,14 @@ watch(
       </FieldLabel>
     </template>
 
-    <div>
+    <!-- SelectRoot renders no DOM element, so with `field-right` content the trigger button
+         and the addon become direct flex children and share one joined outline. -->
+    <div :class="cn($slots['field-right'] && 'flex items-stretch')">
       <Select.Select v-model="selectedKey" :disabled="disabled" @update:open="onOpenChange">
-        <Select.SelectTrigger class="w-full" :aria-required="required || undefined">
+        <Select.SelectTrigger
+          :class="cn('w-full', $slots['field-right'] && 'min-w-0 flex-1 rounded-r-none border-r-0')"
+          :aria-required="required || undefined"
+        >
           <Select.SelectValue :placeholder="placeholder ?? t('fields.select.selectOption')">
             <template v-if="displayItem">
               <slot name="trigger" :item="displayItem" :label="getLabelFromValue(displayItem)">
@@ -212,6 +218,8 @@ watch(
           <slot name="select-bottom-content" />
         </Select.SelectContent>
       </Select.Select>
+
+      <slot name="field-right" />
     </div>
 
     <FieldError :error-message="errorMessage" />

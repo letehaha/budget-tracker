@@ -49,6 +49,10 @@ export const loadTransactions = async ({
   sortBy?: TRANSACTION_SORT_FIELD;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  /** Excludes transactions that are the refund side of a refund link (they cannot be linked again). */
+  excludeRefundTxs?: boolean;
+  /** With `excludeRefundTxs`: keep refunds linked to this transaction visible. */
+  keepRefundsForTxId?: string;
   /** Hide transactions created by the balance-adjustment flow. */
   excludeBalanceAdjustments?: boolean;
   excludeAccountIds?: string[];
@@ -62,6 +66,8 @@ export const loadTransactions = async ({
   to?: string;
   amountLte?: number;
   amountGte?: number;
+  /** Case-insensitive substring match on the note field. Comma-separated terms are OR-ed. */
+  noteSearch?: string;
   includeSplits?: boolean;
   includeTags?: boolean;
   includeGroups?: boolean;

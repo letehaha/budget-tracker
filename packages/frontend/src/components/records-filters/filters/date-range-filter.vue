@@ -3,7 +3,10 @@
     <template #trigger="{ triggerText }">
       <Button
         variant="outline"
-        :class="['w-full justify-start text-left font-normal', !hasDates && 'text-muted-foreground']"
+        :class="[
+          'bg-input-background w-full justify-start text-left font-normal',
+          !hasDates && 'text-muted-foreground',
+        ]"
       >
         <CalendarIcon class="mr-2 size-4 shrink-0" />
         <span class="min-w-0 flex-1 truncate">
