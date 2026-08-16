@@ -134,6 +134,7 @@
                 v-model:filters="filters"
                 :is-reset-button-disabled="isResetButtonDisabled"
                 :is-filters-out-of-sync="false"
+                surface="card"
                 @reset-filters="resetFilters"
               />
             </div>

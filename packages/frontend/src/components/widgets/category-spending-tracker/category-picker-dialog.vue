@@ -119,7 +119,7 @@ const handleSelect = ({ categoryId }: { categoryId: string }) => {
         ref="inputRef"
         v-model="searchQuery"
         type="text"
-        class="bg-background min-w-0 flex-1 text-sm outline-none"
+        class="bg-dialog min-w-0 flex-1 text-sm outline-none"
         :placeholder="t('fields.categorySelect.searchPlaceholder')"
       />
       <button

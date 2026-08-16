@@ -107,7 +107,7 @@ export const isTxEditableAsManual = ({
 export const resolveFormIsPlanned = ({ form }: { form: UI_FORM_STRUCT }): boolean =>
   form.type !== FORM_TYPES.transfer && !!form.isPlanned;
 
-export type OriginalCurrencyPairResolution =
+type OriginalCurrencyPairResolution =
   | { state: 'untouched' }
   | { state: 'clear' }
   | { state: 'pair'; originalAmount: number; originalCurrencyCode: string };

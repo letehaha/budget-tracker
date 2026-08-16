@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { getExchangeRatePair } from '@/api/currencies';
 import { loadTransactionById } from '@/api/transactions';
-import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES } from '@/common/const';
+import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
@@ -15,7 +15,6 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
@@ -34,10 +33,11 @@ import {
   type CurrencyModel,
   type TransactionModel,
 } from '@bt/shared/types';
+import { useQuery } from '@tanstack/vue-query';
 import { helpers, minValue } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { endOfDay, format } from 'date-fns';
-import { Loader2Icon, SparklesIcon, SplitIcon } from '@lucide/vue';
+import { ChevronUpIcon, SlidersHorizontalIcon, SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -46,6 +46,7 @@ import { useRoute } from 'vue-router';
 
 import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
+import DestinationPanel from './components/destination-panel.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
 import PlannedToggle from './components/planned-toggle.vue';
 import PlannedUnlockHint from './components/planned-unlock-hint.vue';
@@ -53,6 +54,8 @@ import PortfolioLinkedView from './components/portfolio-linked-view.vue';
 import VehicleLinkedView from './components/vehicle-linked-view.vue';
 import VentureLinkedView from './components/venture-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
+import AmountWithCurrencyField from './components/amount-with-currency-field.vue';
+import LabelPill from './components/label-pill.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
 import { useAccountAccess } from '@/composable/use-account-access';
@@ -209,7 +212,7 @@ const transferDestinationType = ref<TransferDestinationType>('account');
 
 const { data: portfolios } = usePortfolios();
 
-const { addInfoNotification, addWarningNotification } = useNotificationCenter();
+const { addInfoNotification } = useNotificationCenter();
 
 const {
   isInitialRefundsDataLoaded,
@@ -787,41 +790,46 @@ const isOriginalAmountSuggestVisible = computed(
     }),
 );
 
-const isSuggestingOriginalAmount = ref(false);
+const suggestionRateDateStr = computed(() => format(form.value.time, 'yyyy-MM-dd'));
 
-// Use the pair endpoint here, not `useExchangeRates().convert`: convert only knows the
+// Background lookup for the inline hint; failures stay silent (no retry, no notification).
+// Uses the pair endpoint, not `useExchangeRates().convert`: convert only knows the
 // user's linked currencies, and the original currency can be any ISO code.
-const suggestOriginalAmount = async () => {
-  const from = form.value.account?.currencyCode;
-  const to = form.value.originalCurrency?.code;
-  if (!from || !to) return;
-
-  isSuggestingOriginalAmount.value = true;
-  try {
-    const { rate } = await getExchangeRatePair({
-      from,
-      to,
-      date: format(form.value.time, 'yyyy-MM-dd'),
+const suggestionRateQuery = useQuery({
+  queryKey: computed(() => [
+    ...VUE_QUERY_CACHE_KEYS.exchangeRatePair,
+    form.value.account?.currencyCode,
+    form.value.originalCurrency?.code,
+    suggestionRateDateStr.value,
+  ]),
+  // `enabled` guarantees both currency codes are set
+  queryFn: () =>
+    getExchangeRatePair({
+      from: form.value.account!.currencyCode,
+      to: form.value.originalCurrency!.code,
+      date: suggestionRateDateStr.value,
       silent: true,
-    });
+    }),
+  enabled: isOriginalAmountSuggestVisible,
+  // Historical rates for a fixed date never change
+  staleTime: Infinity,
+  retry: false,
+});
 
-    const suggested = resolveSuggestedOriginalAmount({
-      amount: Number(form.value.amount),
-      rate,
-      currencyDigits: form.value.originalCurrency?.digits,
-    });
+const suggestedOriginalAmount = computed(() => {
+  if (!isOriginalAmountSuggestVisible.value) return null;
+  const rate = suggestionRateQuery.data.value?.rate;
+  if (rate == null) return null;
+  return resolveSuggestedOriginalAmount({
+    amount: Number(form.value.amount),
+    rate,
+    currencyDigits: form.value.originalCurrency?.digits,
+  });
+});
 
-    if (suggested === null) {
-      addWarningNotification(t('dialogs.manageTransaction.form.originalAmountSuggestFailed'));
-      return;
-    }
-
-    // An amount typed while the lookup was in flight wins over the suggestion.
-    if (form.value.originalAmount == null) form.value.originalAmount = suggested;
-  } catch {
-    addWarningNotification(t('dialogs.manageTransaction.form.originalAmountSuggestFailed'));
-  } finally {
-    isSuggestingOriginalAmount.value = false;
+const applySuggestedOriginalAmount = () => {
+  if (suggestedOriginalAmount.value != null) {
+    form.value.originalAmount = suggestedOriginalAmount.value;
   }
 };
 
@@ -895,6 +903,24 @@ const previouslyFocusedElement = ref(document.activeElement);
 
 const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
+// Mirrors the visibility conditions of the fields inside "More options" so the
+// mobile trigger never counts a field the drawer doesn't render. Payment type is
+// excluded – it's always preselected, so it carries no "user filled this" signal.
+const moreOptionsFilledCount = computed(() => {
+  let count = 0;
+  if (form.value.note?.trim()) count += 1;
+  if (!isLoanDestination.value && form.value.tagIds?.length) count += 1;
+  if (!isTransferTx.value && form.value.originalAmount) count += 1;
+  if (
+    !isTransferTx.value &&
+    !isAccountSharedWithCaller.value &&
+    (form.value.refundsTx || form.value.refundedByTxs?.length)
+  ) {
+    count += 1;
+  }
+  return count;
+});
+
 // Tx prepopulation has to wait for the right category map. For owner-side / unshared txs
 // the global Pinia map is loaded synchronously on app boot; for shared-with-caller txs
 // we route through `useAccountCategories`, which fires after mount – populate then.
@@ -947,6 +973,9 @@ onUnmounted(() => {
 <template>
   <!-- Define reusable template for "More Options" section (payment type, note, refund) -->
   <DefineMoreOptions>
+    <p class="text-muted-foreground mb-3 text-[10px] font-medium tracking-[0.16em] uppercase">
+      {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
+    </p>
     <FormRow v-if="!isLoanDestination">
       <SelectField
         v-model="form.paymentType"
@@ -973,45 +1002,19 @@ onUnmounted(() => {
       />
     </FormRow>
     <FormRow v-if="!isTransferTx">
-      <div class="grid grid-cols-2 items-start gap-3">
-        <InputField
-          v-model="form.originalAmount"
-          type="number"
-          only-positive
-          :label="$t('dialogs.manageTransaction.form.originalAmountLabel')"
-          :placeholder="$t('dialogs.manageTransaction.form.originalAmountPlaceholder')"
-          :disabled="isFormFieldsDisabled"
-          trailing-icon-css-class="px-1"
-        >
-          <template v-if="isOriginalAmountSuggestVisible" #iconTrailing>
-            <DesktopOnlyTooltip :content="$t('dialogs.manageTransaction.form.originalAmountSuggest')">
-              <Button
-                type="button"
-                variant="ghost-primary"
-                size="icon-sm"
-                :disabled="isSuggestingOriginalAmount"
-                :aria-label="$t('dialogs.manageTransaction.form.originalAmountSuggest')"
-                @click="suggestOriginalAmount"
-              >
-                <Loader2Icon v-if="isSuggestingOriginalAmount" class="size-4 animate-spin" />
-                <SparklesIcon v-else class="size-4" />
-              </Button>
-            </DesktopOnlyTooltip>
-          </template>
-        </InputField>
-        <SelectField
-          :model-value="form.originalCurrency ?? null"
-          :values="systemCurrencies"
-          value-key="code"
-          :label-key="currencyOptionLabel"
-          :label="$t('dialogs.manageTransaction.form.originalCurrencyLabel')"
-          :placeholder="$t('dialogs.manageTransaction.form.originalCurrencyPlaceholder')"
-          :disabled="isFormFieldsDisabled"
-          with-search
-          clearable
-          @update:model-value="(value) => (form.originalCurrency = value)"
-        />
-      </div>
+      <AmountWithCurrencyField
+        v-model:amount="form.originalAmount"
+        v-model:currency="form.originalCurrency"
+        :currencies="systemCurrencies"
+        :option-label="currencyOptionLabel"
+        :label="$t('dialogs.manageTransaction.form.originalAmountLabel')"
+        :placeholder="$t('dialogs.manageTransaction.form.originalAmountPlaceholder')"
+        :disabled="isFormFieldsDisabled"
+        :suggest-visible="isOriginalAmountSuggestVisible"
+        :suggested-amount="suggestedOriginalAmount"
+        :suggested-date="form.time"
+        @apply-suggestion="applySuggestedOriginalAmount"
+      />
     </FormRow>
     <!-- Refund linking on accounts shared *with* the caller isn't supported by the
          backend yet — hide the field rather than offering a button that errors on
@@ -1029,6 +1032,7 @@ onUnmounted(() => {
           :current-transaction-splits="transaction?.splits"
           :current-amount="form.amount ? Number(form.amount) : null"
           :current-currency-code="form.account?.currencyCode"
+          :current-category="form.category"
           :current-account-id="form.account?.id"
         />
       </FormRow>
@@ -1038,7 +1042,7 @@ onUnmounted(() => {
   <PortfolioLinkedView v-if="isPortfolioLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VentureLinkedView v-else-if="isVentureLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VehicleLinkedView v-else-if="isVehicleLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
-  <div v-else class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden rounded-t-xl">
+  <div v-else class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto_auto] overflow-hidden rounded-t-xl">
     <!-- Striped while planned, so the mode stays readable once the toggle scrolls away. -->
     <div
       :class="[
@@ -1050,9 +1054,9 @@ onUnmounted(() => {
           'bg-[repeating-linear-gradient(115deg,transparent_0_7px,var(--planned-stripe)_7px_14px)] bg-size-[14px_14px]',
       ]"
     />
-    <div class="mb-4 flex items-center justify-between px-6 py-3">
+    <div class="mb-2 flex items-center justify-between px-6 py-2.5">
       <DialogTitle>
-        <span class="text-2xl">
+        <span class="text-xl">
           {{
             isReadOnly
               ? $t('dialogs.manageTransaction.detailsTitle')
@@ -1069,7 +1073,7 @@ onUnmounted(() => {
     </div>
     <ScrollArea class="min-h-0">
       <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
-        <div class="px-6 pb-6">
+        <div :class="['px-6', isMobileView ? 'pb-1' : 'pb-6']">
           <type-selector
             :is-form-creation="isFormCreation"
             :selected-transaction-type="currentTxType"
@@ -1121,6 +1125,20 @@ onUnmounted(() => {
               :portfolios="portfolios ?? []"
               :loan-accounts="loanDestinationAccounts"
             >
+              <template v-if="isPlannedToggleVisible || isPlannedBadgeVisible" #account-field-right>
+                <PlannedToggle
+                  variant="addon"
+                  :model-value="Boolean(form.isPlanned)"
+                  :readonly="isPlannedBadgeVisible"
+                  :disabled="isFormFieldsDisabled"
+                  :tooltip-override="isPlannedBadgeVisible ? undefined : plannedTooltipOverride"
+                  @update:model-value="(value) => (form.isPlanned = value)"
+                />
+              </template>
+
+              <!-- The zero-accounts fallback renders an input-field, which has no field-right
+                   slot — the toggle stays in its label row (and toggling planned there is the
+                   path that unlocks connected accounts). -->
               <template v-if="isPlannedToggleVisible || isPlannedBadgeVisible" #account-label-right>
                 <PlannedToggle
                   :model-value="Boolean(form.isPlanned)"
@@ -1136,7 +1154,67 @@ onUnmounted(() => {
                   {{ $t('dialogs.manageTransaction.form.plannedAccountsUnlockedHint') }}
                 </PlannedUnlockHint>
               </template>
+
+              <template #destination-bottom>
+                <template v-if="isTargetFieldVisible">
+                  <form-row>
+                    <input-field
+                      v-model="form.targetAmount"
+                      :disabled="isFormFieldsDisabled || isTargetAmountFieldDisabled"
+                      only-positive
+                      :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
+                      :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
+                      type="number"
+                      :error-message="targetAmountErrorMessage"
+                      @blur="touchField('form.targetAmount')"
+                    >
+                      <template #iconTrailing>
+                        <span>{{ targetCurrency?.currency?.code }}</span>
+                      </template>
+                    </input-field>
+                  </form-row>
+                </template>
+
+                <!-- Transfer linking on accounts shared *with* the caller isn't supported by
+                   the backend yet – hide the linker for recipients rather than letting
+                   them trigger a confusing server error. Loan payments never link two
+                   pre-existing legs (single source → one loan), so it's irrelevant here. -->
+                <LinkTransactionSection
+                  v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
+                  v-model:linked-transaction="linkedTransaction"
+                  :is-transfer-tx="isTransferTx"
+                  :is-form-creation="isFormCreation"
+                  :opposite-transaction="oppositeTransaction"
+                  :transaction-type="transaction?.transactionType"
+                  :disabled="isFormFieldsDisabled"
+                  :origin-transaction-id="transaction?.id"
+                  :origin-amount="form.amount ? Number(form.amount) : null"
+                  :origin-account-id="form.account?.id"
+                  @unlink="unlinkTransactions"
+                />
+              </template>
             </account-field>
+
+            <!-- Picking a transaction to link collapses account-field to its single-account
+               branch (no destination panel), so the pending linked leg gets its own panel. -->
+            <template v-if="isTransferTx && linkedTransaction">
+              <form-row>
+                <DestinationPanel :label="$t('dialogs.manageTransaction.form.destinationGroupLabel')">
+                  <LinkTransactionSection
+                    v-model:linked-transaction="linkedTransaction"
+                    :is-transfer-tx="isTransferTx"
+                    :is-form-creation="isFormCreation"
+                    :opposite-transaction="oppositeTransaction"
+                    :transaction-type="transaction?.transactionType"
+                    :disabled="isFormFieldsDisabled"
+                    :origin-transaction-id="transaction?.id"
+                    :origin-amount="form.amount ? Number(form.amount) : null"
+                    :origin-account-id="form.account?.id"
+                    @unlink="unlinkTransactions"
+                  />
+                </DestinationPanel>
+              </form-row>
+            </template>
 
             <template v-if="!isTransferTx">
               <form-row>
@@ -1149,49 +1227,42 @@ onUnmounted(() => {
                   label-key="name"
                   :disabled="isFormFieldsDisabled"
                   @update:model-value="handleCategoryUserTouched"
-                />
-              </form-row>
+                >
+                  <template #field-right>
+                    <LabelPill
+                      data-test="split-toggle"
+                      variant="addon"
+                      :active="hasSplits"
+                      :disabled="isFormFieldsDisabled"
+                      :aria-label="$t('dialogs.manageTransaction.form.splitPillLabel')"
+                      @click="isSplitDialogOpen = true"
+                    >
+                      <SplitIcon class="size-3.5" />
+                      {{ $t('dialogs.manageTransaction.form.splitPillLabel') }}
+                    </LabelPill>
+                  </template>
+                </category-select-field>
 
-              <!-- Split button and summary -->
-              <form-row>
-                <template v-if="hasSplits">
-                  <!-- Splits summary -->
-                  <button
-                    type="button"
-                    class="bg-muted/30 hover:bg-muted/50 border-border group flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors"
-                    :disabled="isFormFieldsDisabled"
-                    @click="isSplitDialogOpen = true"
-                  >
-                    <div class="flex items-center gap-2">
-                      <SplitIcon class="text-muted-foreground size-4" />
-                      <span class="text-sm font-medium">
-                        {{ $t('dialogs.manageTransaction.form.splitInfo', { count: (form.splits?.length ?? 0) + 1 }) }}
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-muted-foreground text-sm tabular-nums">
-                        {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
-                      </span>
-                      <span class="text-muted-foreground text-xs">{{
-                        $t('dialogs.manageTransaction.form.editSplit')
-                      }}</span>
-                    </div>
-                  </button>
-                </template>
-                <template v-else>
-                  <!-- Add splits button -->
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    class="w-full border-dashed"
-                    :disabled="isFormFieldsDisabled"
-                    @click="isSplitDialogOpen = true"
-                  >
-                    <SplitIcon class="mr-2 size-4 opacity-70" />
-                    {{ $t('dialogs.manageTransaction.form.addSplitButton') }}
-                  </Button>
-                </template>
+                <Button
+                  v-if="hasSplits"
+                  type="button"
+                  variant="ghost"
+                  class="border-border bg-muted/30 hover:bg-muted/50 mt-2 h-auto w-full justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-normal transition-colors"
+                  :disabled="isFormFieldsDisabled"
+                  @click="isSplitDialogOpen = true"
+                >
+                  <span class="flex items-center gap-1.5">
+                    <SplitIcon class="text-muted-foreground size-3.5" />
+                    <span class="font-medium">
+                      {{ $t('dialogs.manageTransaction.form.splitInfo', { count: (form.splits?.length ?? 0) + 1 }) }}
+                    </span>
+                  </span>
+                  <span class="text-muted-foreground flex items-center gap-1.5 tabular-nums">
+                    {{ formatUIAmount(splitsTotal, { currency: currencyCode }) }}
+                    <span aria-hidden="true">·</span>
+                    {{ $t('dialogs.manageTransaction.form.editSplit') }}
+                  </span>
+                </Button>
               </form-row>
 
               <!-- Split Dialog -->
@@ -1204,43 +1275,6 @@ onUnmounted(() => {
                 :categories="effectiveFormattedCategories"
               />
             </template>
-
-            <template v-if="isTargetFieldVisible">
-              <form-row>
-                <input-field
-                  v-model="form.targetAmount"
-                  :disabled="isFormFieldsDisabled || isTargetAmountFieldDisabled"
-                  only-positive
-                  :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
-                  :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
-                  type="number"
-                  :error-message="targetAmountErrorMessage"
-                  @blur="touchField('form.targetAmount')"
-                >
-                  <template #iconTrailing>
-                    <span>{{ targetCurrency?.currency?.code }}</span>
-                  </template>
-                </input-field>
-              </form-row>
-            </template>
-
-            <!-- Transfer linking on accounts shared *with* the caller isn't supported by
-               the backend yet – hide the linker for recipients rather than letting
-               them trigger a confusing server error. Loan payments never link two
-               pre-existing legs (single source → one loan), so it's irrelevant here. -->
-            <LinkTransactionSection
-              v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
-              v-model:linked-transaction="linkedTransaction"
-              :is-transfer-tx="isTransferTx"
-              :is-form-creation="isFormCreation"
-              :opposite-transaction="oppositeTransaction"
-              :transaction-type="transaction?.transactionType"
-              :disabled="isFormFieldsDisabled"
-              :origin-transaction-id="transaction?.id"
-              :origin-amount="form.amount ? Number(form.amount) : null"
-              :origin-account-id="form.account?.id"
-              @unlink="unlinkTransactions"
-            />
 
             <form-row>
               <date-field
@@ -1276,35 +1310,46 @@ onUnmounted(() => {
               </form-row>
             </template>
           </div>
-
-          <template v-if="isMobileView">
-            <Drawer.Drawer>
-              <Drawer.DrawerTrigger class="w-full" as-child>
-                <Button variant="secondary" size="default" class="w-full">
-                  {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
-                </Button>
-              </Drawer.DrawerTrigger>
-
-              <Drawer.DrawerContent>
-                <Drawer.DrawerTitle></Drawer.DrawerTitle>
-                <div class="bg-card dark:bg-muted dark:shadow-foreground/10 px-6 pt-6 dark:shadow-[inset_2px_4px_12px]">
-                  <ReuseMoreOptions />
-                </div>
-              </Drawer.DrawerContent>
-            </Drawer.Drawer>
-          </template>
         </div>
 
-        <div
-          v-if="!isMobileView"
-          class="bg-muted shadow-foreground/10 px-6 py-6 shadow-[inset_2px_4px_12px] dark:bg-black/20 dark:shadow-black/40"
-        >
+        <div v-if="!isMobileView" class="bg-muted border-border border-l px-6 py-6 dark:bg-black/20">
           <ReuseMoreOptions />
         </div>
       </div>
     </ScrollArea>
 
-    <div v-if="!isReadOnly || canDelete" class="border-border bg-card flex items-center gap-3 border-t px-6 py-4">
+    <template v-if="isMobileView">
+      <Drawer.Drawer>
+        <Drawer.DrawerTrigger as-child>
+          <Button
+            variant="ghost"
+            class="border-border bg-muted h-auto w-full justify-between rounded-none border-t px-6 py-2.5 font-normal dark:bg-black/20"
+          >
+            <span class="flex items-center gap-2">
+              <SlidersHorizontalIcon class="text-muted-foreground size-4" />
+              {{ $t('dialogs.manageTransaction.form.moreOptionsButton') }}
+              <span
+                v-if="moreOptionsFilledCount"
+                class="bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold tabular-nums"
+              >
+                {{ moreOptionsFilledCount }}
+              </span>
+            </span>
+            <ChevronUpIcon class="text-muted-foreground size-4" />
+          </Button>
+        </Drawer.DrawerTrigger>
+
+        <Drawer.DrawerContent custom-indicator class="pb-0">
+          <Drawer.DrawerTitle></Drawer.DrawerTitle>
+          <div class="bg-muted rounded-t-[10px] px-6 pb-[env(safe-area-inset-bottom)] dark:bg-black/20">
+            <Drawer.DrawerIndicator class="mb-6" />
+            <ReuseMoreOptions />
+          </div>
+        </Drawer.DrawerContent>
+      </Drawer.Drawer>
+    </template>
+
+    <div v-if="!isReadOnly || canDelete" class="border-border bg-dialog flex items-center gap-3 border-t px-6 py-4">
       <Button
         v-if="canDelete"
         class="min-w-25"

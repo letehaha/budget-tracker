@@ -55,6 +55,8 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
 
+  --color-dialog: var(--dialog);
+
   --color-card-tooltip: var(--card-tooltip);
   --color-card-tooltip-foreground: var(--card-tooltip-foreground);
   --color-card-tooltip-glass: var(--card-tooltip-glass);
@@ -249,6 +251,8 @@
     --card: rgb(255, 255, 255);
     --card-foreground: rgb(32, 28, 22);
 
+    --dialog: rgb(255, 255, 255);
+
     /* --card-tooltip is the opaque fallback; -glass applies only where backdrop-filter is supported.
        White-on-white needs a near-opaque glass plus a strong border and shadow to separate. */
     --card-tooltip: rgb(255, 255, 255);
@@ -283,7 +287,7 @@
     --destructive-text: rgb(172, 60, 38);
 
     --border: rgb(232, 223, 205);
-    --input: rgb(210, 208, 204);
+    --input: rgb(30 25 18 / 0.16);
     --ring: rgba(115, 85, 190, 0.6);
     --radius: 0.75rem;
 
@@ -356,6 +360,9 @@
     --card: rgb(27, 25, 23);
     --card-foreground: rgb(245, 243, 240);
 
+    /* A subtle step above --background; input fields inside dialogs read through their border, not surface contrast. */
+    --dialog: rgb(20, 18, 17);
+
     /* Darker than --card so tooltips separate from chart cards by depth, not lightness. */
     --card-tooltip: rgb(18, 17, 16);
     --card-tooltip-foreground: rgb(250, 249, 247);
@@ -368,6 +375,7 @@
     --popover: rgb(22, 20, 19);
     --popover-foreground: rgb(245, 243, 240);
 
+    /* Matches --background; field edges come from the --input border rather than a surface step. */
     --input-background: rgb(11, 9, 8);
 
     --primary: rgb(130, 100, 205);
@@ -391,7 +399,7 @@
     --destructive-text: oklch(0.704 0.191 22.216);
 
     --border: rgb(42, 40, 37);
-    --input: rgb(42, 40, 37);
+    --input: rgb(255 255 255 / 0.12);
     --ring: rgb(115, 85, 190);
 
     --success: rgb(16, 59, 49);

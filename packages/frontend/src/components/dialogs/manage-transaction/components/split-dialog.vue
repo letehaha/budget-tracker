@@ -4,7 +4,9 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { formatUIAmount } from '@/js/helpers';
+import { cn } from '@/lib/utils';
 import { PlusIcon, SplitIcon, XIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -184,18 +186,18 @@ const handleClearAll = () => {
 
     <div class="max-h-[50vh] overflow-y-auto py-4">
       <!-- Main category display -->
-      <div class="bg-muted/40 border-border mb-4 rounded-lg border p-3">
-        <div class="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
+      <div class="border-input bg-input-background mb-4 rounded-md border px-3 py-2.5">
+        <div class="text-muted-foreground mb-1.5 text-[11px] font-medium tracking-wider uppercase">
           {{ $t('dialogs.manageTransaction.splitDialog.mainCategoryLabel') }}
         </div>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <div class="size-3 rounded-full" :style="{ backgroundColor: mainCategory?.color || '#666' }" />
-            <span class="font-medium">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-2">
+            <div class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: mainCategory?.color || '#666' }" />
+            <span class="truncate font-medium">
               {{ mainCategory?.name || $t('dialogs.manageTransaction.splitDialog.selectCategoryPlaceholder') }}
             </span>
           </div>
-          <span class="text-muted-foreground text-sm tabular-nums">
+          <span class="shrink-0 text-sm font-medium tabular-nums">
             {{ formatUIAmount(mainCategoryAmount, { currency: currencyCode }) }}
           </span>
         </div>
@@ -205,51 +207,71 @@ const handleClearAll = () => {
       <div class="space-y-3">
         <div v-for="(split, index) in localSplits" :key="split.tempId ?? split.id ?? `split-${index}`" class="group">
           <div
-            class="bg-muted/20 border-border/60 grid grid-cols-[1fr_9rem_auto] items-start gap-2 rounded-lg border p-3 transition-colors"
-            :class="{ 'border-destructive/50 bg-destructive/5': getSplitError(index) }"
+            :class="
+              cn(
+                'border-input bg-input-background focus-within:border-ring flex items-stretch overflow-hidden rounded-md border transition-colors',
+                getSplitError(index) && 'border-destructive/60',
+              )
+            "
           >
             <!-- Category selector -->
-            <div class="min-w-0">
+            <div class="grid min-w-0 flex-1 items-center">
               <CategorySelectField
                 :model-value="split.category"
                 :values="categories"
                 :placeholder="$t('dialogs.manageTransaction.splitDialog.selectCategoryPlaceholder')"
-                class="[&_button]:h-10 [&_button]:text-sm"
+                class="rounded-none border-0 bg-transparent text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
                 @update:model-value="(cat) => updateSplit(index, { category: cat })"
               />
             </div>
 
             <!-- Amount input -->
-            <InputField
-              :model-value="split.amount"
-              type="number"
-              only-positive
-              :placeholder="$t('dialogs.manageTransaction.splitDialog.amountPlaceholder')"
-              trailing-icon-css-class="px-3"
-              class="[&_input]:tabular-nums"
-              @update:model-value="(val) => updateSplitAmount(index, val)"
-            >
-              <template #iconTrailing>
-                <span class="text-muted-foreground text-xs">{{ currencyCode }}</span>
-              </template>
-            </InputField>
+            <div class="border-input w-32 shrink-0 border-l">
+              <InputField
+                :model-value="split.amount"
+                type="number"
+                only-positive
+                :placeholder="$t('dialogs.manageTransaction.splitDialog.amountPlaceholder')"
+                trailing-icon-css-class="px-3"
+                class="rounded-none border-0 bg-transparent tabular-nums focus-visible:ring-0 focus-visible:ring-offset-0"
+                @update:model-value="(val) => updateSplitAmount(index, val)"
+              >
+                <template #iconTrailing>
+                  <span class="text-muted-foreground text-xs">{{ currencyCode }}</span>
+                </template>
+              </InputField>
+            </div>
 
             <!-- Remove button -->
-            <Button variant="ghost-destructive" size="icon" type="button" @click="removeSplit(index)">
-              <XIcon class="size-4" />
-            </Button>
+            <DesktopOnlyTooltip :content="$t('dialogs.manageTransaction.splitDialog.removeRowLabel')">
+              <Button
+                variant="ghost"
+                type="button"
+                class="border-input text-muted-foreground hover:bg-destructive/10 hover:text-destructive-text h-auto self-stretch rounded-none border-l px-2.5"
+                :aria-label="$t('dialogs.manageTransaction.splitDialog.removeRowLabel')"
+                @click="removeSplit(index)"
+              >
+                <XIcon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
           </div>
 
           <!-- Split error message -->
-          <p v-if="getSplitError(index)" class="text-destructive mt-1 px-1 text-xs">
+          <p v-if="getSplitError(index)" class="text-destructive-text mt-1 px-1 text-xs">
             {{ getSplitError(index) }}
           </p>
         </div>
       </div>
 
       <!-- Add split button -->
-      <Button variant="outline" size="sm" type="button" class="mt-3 w-full border-dashed" @click="addSplit">
-        <PlusIcon class="mr-1.5 size-3.5" />
+      <Button
+        variant="outline"
+        size="sm"
+        type="button"
+        class="mt-3 w-full border-dashed bg-transparent"
+        @click="addSplit"
+      >
+        <PlusIcon class="size-3.5" />
         {{ $t('dialogs.manageTransaction.splitDialog.addCategoryButton') }}
       </Button>
 

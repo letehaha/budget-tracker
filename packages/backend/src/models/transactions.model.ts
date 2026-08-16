@@ -768,6 +768,21 @@ function buildRefundCondition(filter: FILTER_OPERATION | undefined): Record<stri
   return null;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// `refundLinked` can't express this filter: it is true for BOTH sides of a link, while
+// only the refund side is barred from being linked again.
+function buildExcludeRefundTxsCondition({ keepRefundsForTxId }: { keepRefundsForTxId?: string }) {
+  if (keepRefundsForTxId && !UUID_PATTERN.test(keepRefundsForTxId)) {
+    throw new ValidationError({ message: '"keepRefundsForTxId" must be a valid record id' });
+  }
+  // IS DISTINCT FROM: links with a null originalTxId (out-of-system originals) must stay excluded.
+  const keepClause = keepRefundsForTxId ? ` AND rt."originalTxId" IS DISTINCT FROM '${keepRefundsForTxId}'` : '';
+  return literal(
+    `NOT EXISTS (SELECT 1 FROM "RefundTransactions" rt WHERE rt."refundTxId" = "Transactions"."id"${keepClause})`,
+  );
+}
+
 export const findWithFilters = async ({
   planned,
   access,
@@ -791,6 +806,8 @@ export const findWithFilters = async ({
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
+  excludeRefundTxs,
+  keepRefundsForTxId,
   transferFilter,
   refundFilter,
   startDate,
@@ -840,6 +857,12 @@ export const findWithFilters = async ({
   isRaw?: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  /** Excludes the refund side of refund links — those rows can never be linked again.
+   *  Originals that merely HAVE refunds stay (partial refunds are allowed). */
+  excludeRefundTxs?: boolean;
+  /** With `excludeRefundTxs`: keep refunds linked to this original, so an edit dialog
+   *  can still list and deselect its own links. */
+  keepRefundsForTxId?: string;
   transferFilter?: FILTER_OPERATION;
   refundFilter?: FILTER_OPERATION;
   startDate?: string;
@@ -903,6 +926,12 @@ export const findWithFilters = async ({
   } else {
     if (transferCondition) Object.assign(whereClause, transferCondition);
     if (refundCondition) Object.assign(whereClause, refundCondition);
+  }
+
+  if (excludeRefundTxs) {
+    const andConditions = (whereClause[Op.and as unknown as string] as unknown[] | undefined) ?? [];
+    andConditions.push(buildExcludeRefundTxsCondition({ keepRefundsForTxId }));
+    whereClause[Op.and as unknown as string] = andConditions;
   }
 
   if (categoryIds && categoryIds.length > 0) {

@@ -145,9 +145,7 @@ watch(mode, () => {
           :class="
             cn(
               'flex-1 cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-all',
-              mode === 'set-to'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
+              mode === 'set-to' ? 'bg-dialog text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
             )
           "
           @click="mode = 'set-to'"
@@ -160,7 +158,7 @@ watch(mode, () => {
             cn(
               'flex-1 cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-all',
               mode === 'adjust-by'
-                ? 'bg-background text-foreground shadow-sm'
+                ? 'bg-dialog text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )
           "

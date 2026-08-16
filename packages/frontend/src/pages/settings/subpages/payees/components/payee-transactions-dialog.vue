@@ -1,5 +1,5 @@
 <template>
-  <ResponsiveDialog v-model:open="isOpen" :dialog-content-class="cn('bg-card max-h-[90dvh] w-full max-w-3xl p-6')">
+  <ResponsiveDialog v-model:open="isOpen" :dialog-content-class="cn('max-h-[90dvh] w-full max-w-3xl p-6')">
     <template #title>
       <span class="text-lg font-semibold">{{ $t('payees.transactionsDialog.title', { name: payeeName ?? '' }) }}</span>
     </template>

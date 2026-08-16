@@ -19,7 +19,7 @@
             :class="
               cn(
                 'datetime-local-raw-input',
-                'border-input bg-input-background ring-offset-background flex h-10 w-full rounded-md border px-3 py-2 text-sm',
+                'border-input bg-input-background ring-offset-background flex h-10 w-full rounded-md border px-3 py-2 text-sm md:h-9',
                 'file:border-0 file:bg-transparent file:text-sm file:font-medium',
                 'placeholder:text-muted-foreground',
                 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
@@ -33,7 +33,7 @@
           />
           <template v-if="isSafariMobile">
             <Button
-              class="absolute top-0 right-0 flex h-10 w-16 items-center justify-center"
+              class="absolute top-0 right-0 flex h-10 w-16 items-center justify-center md:h-9"
               variant="ghost"
               size="icon"
               disabled
@@ -44,7 +44,7 @@
           <template v-else>
             <Popover.PopoverTrigger as-child>
               <Button
-                class="absolute top-0 right-0 flex h-10 w-16 items-center justify-center"
+                class="absolute top-0 right-0 flex h-10 w-16 items-center justify-center md:h-9"
                 variant="ghost"
                 size="icon"
                 :disabled="disabled"

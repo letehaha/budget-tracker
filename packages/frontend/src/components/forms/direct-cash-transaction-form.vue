@@ -556,7 +556,7 @@ const accountLabel = computed(() =>
           <!-- "or" separator -->
           <div class="relative flex items-center py-2">
             <Separator class="flex-1" />
-            <span class="text-muted-foreground bg-background px-4 text-sm">
+            <span class="text-muted-foreground bg-dialog px-4 text-sm">
               {{ $t('forms.directCashTransaction.orSeparator') }}
             </span>
             <Separator class="flex-1" />
