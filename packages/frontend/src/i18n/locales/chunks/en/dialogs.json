@@ -77,9 +77,11 @@
       "title": "Manage transaction",
       "description": "Create or edit a transaction",
       "linkSection": {
-        "linkButton": "Link existing transaction",
-        "title": "Link existing transaction",
-        "description": "Select a transaction to link",
+        "linkButton": "Link the other side",
+        "title": "Find the other side of this transfer",
+        "description": "Pick the matching transaction from the other account. The two records become one transfer — nothing is deleted.",
+        "orDivider": "or",
+        "linkHint": "Already recorded in another account? Join the two records instead.",
         "unlinkButton": "Unlink transactions",
         "cancelLinkingAriaLabel": "Cancel linking",
         "linkedTransactionLabel": "Linked transaction"
@@ -95,6 +97,7 @@
       "recordList": {},
       "form": {
         "payeeLabel": "Payee",
+        "destinationGroupLabel": "Where the money goes",
         "paymentTypeLabel": "Payment type",
         "noteLabel": "Note",
         "notePlaceholder": "Note",

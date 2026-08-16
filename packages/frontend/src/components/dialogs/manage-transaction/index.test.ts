@@ -86,7 +86,7 @@ const fillCategoryField = async (wrapper: ReturnType<typeof mountComponent>, cat
 };
 
 const getTransactionsLinkingButton = (wrapper: ReturnType<typeof mountComponent>) =>
-  wrapper.findAll('button').find((btn) => btn.text().includes('Link existing transaction'));
+  wrapper.findAll('button').find((btn) => btn.text().includes('Link the other side'));
 
 const getTransactionsUnlinkingButton = (wrapper: ReturnType<typeof mountComponent>) =>
   wrapper.findAll('button').find((btn) => btn.text().includes('Unlink transactions'));

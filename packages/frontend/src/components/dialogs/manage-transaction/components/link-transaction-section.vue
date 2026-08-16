@@ -3,6 +3,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { FieldLabel } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import { TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
+import { Link2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 import LinkedTransactionRow from './linked-transaction-row.vue';
@@ -58,6 +59,15 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
 <template>
   <template v-if="showLinkButton">
     <FormRow>
+      <div
+        class="text-muted-foreground mb-3.5 flex items-center gap-3 text-xs tracking-wide uppercase"
+        aria-hidden="true"
+      >
+        <div class="bg-border h-px flex-1" />
+        {{ $t('dialogs.manageTransaction.linkSection.orDivider') }}
+        <div class="bg-border h-px flex-1" />
+      </div>
+
       <ResponsiveDialog
         v-model:open="isDialogOpen"
         custom-close
@@ -65,9 +75,10 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
         drawer-content-class="max-h-[85dvh]"
       >
         <template #trigger>
-          <Button class="w-full" :disabled="disabled" size="sm">{{
-            $t('dialogs.manageTransaction.linkSection.linkButton')
-          }}</Button>
+          <Button class="w-full" :disabled="disabled" variant="outline" size="sm">
+            <Link2Icon class="size-4" />
+            {{ $t('dialogs.manageTransaction.linkSection.linkButton') }}
+          </Button>
         </template>
 
         <template #title>{{ $t('dialogs.manageTransaction.linkSection.title') }}</template>
@@ -81,6 +92,10 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
           @select="handleSelectTransaction"
         />
       </ResponsiveDialog>
+
+      <p class="text-muted-foreground mt-2 px-1 text-xs">
+        {{ $t('dialogs.manageTransaction.linkSection.linkHint') }}
+      </p>
     </FormRow>
   </template>
 

@@ -46,6 +46,7 @@ import { useRoute } from 'vue-router';
 
 import AccountField from './components/account-field.vue';
 import FormRow from './components/form-row.vue';
+import DestinationPanel from './components/destination-panel.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
 import PlannedToggle from './components/planned-toggle.vue';
 import PlannedUnlockHint from './components/planned-unlock-hint.vue';
@@ -1135,7 +1136,67 @@ onUnmounted(() => {
                   {{ $t('dialogs.manageTransaction.form.plannedAccountsUnlockedHint') }}
                 </PlannedUnlockHint>
               </template>
+
+              <template #destination-bottom>
+                <template v-if="isTargetFieldVisible">
+                  <form-row>
+                    <input-field
+                      v-model="form.targetAmount"
+                      :disabled="isFormFieldsDisabled || isTargetAmountFieldDisabled"
+                      only-positive
+                      :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
+                      :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
+                      type="number"
+                      :error-message="targetAmountErrorMessage"
+                      @blur="touchField('form.targetAmount')"
+                    >
+                      <template #iconTrailing>
+                        <span>{{ targetCurrency?.currency?.code }}</span>
+                      </template>
+                    </input-field>
+                  </form-row>
+                </template>
+
+                <!-- Transfer linking on accounts shared *with* the caller isn't supported by
+                   the backend yet – hide the linker for recipients rather than letting
+                   them trigger a confusing server error. Loan payments never link two
+                   pre-existing legs (single source → one loan), so it's irrelevant here. -->
+                <LinkTransactionSection
+                  v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
+                  v-model:linked-transaction="linkedTransaction"
+                  :is-transfer-tx="isTransferTx"
+                  :is-form-creation="isFormCreation"
+                  :opposite-transaction="oppositeTransaction"
+                  :transaction-type="transaction?.transactionType"
+                  :disabled="isFormFieldsDisabled"
+                  :origin-transaction-id="transaction?.id"
+                  :origin-amount="form.amount ? Number(form.amount) : null"
+                  :origin-account-id="form.account?.id"
+                  @unlink="unlinkTransactions"
+                />
+              </template>
             </account-field>
+
+            <!-- Picking a transaction to link collapses account-field to its single-account
+               branch (no destination panel), so the pending linked leg gets its own panel. -->
+            <template v-if="isTransferTx && linkedTransaction">
+              <form-row>
+                <DestinationPanel :label="$t('dialogs.manageTransaction.form.destinationGroupLabel')">
+                  <LinkTransactionSection
+                    v-model:linked-transaction="linkedTransaction"
+                    :is-transfer-tx="isTransferTx"
+                    :is-form-creation="isFormCreation"
+                    :opposite-transaction="oppositeTransaction"
+                    :transaction-type="transaction?.transactionType"
+                    :disabled="isFormFieldsDisabled"
+                    :origin-transaction-id="transaction?.id"
+                    :origin-amount="form.amount ? Number(form.amount) : null"
+                    :origin-account-id="form.account?.id"
+                    @unlink="unlinkTransactions"
+                  />
+                </DestinationPanel>
+              </form-row>
+            </template>
 
             <template v-if="!isTransferTx">
               <form-row>
@@ -1196,43 +1257,6 @@ onUnmounted(() => {
                 :categories="effectiveFormattedCategories"
               />
             </template>
-
-            <template v-if="isTargetFieldVisible">
-              <form-row>
-                <input-field
-                  v-model="form.targetAmount"
-                  :disabled="isFormFieldsDisabled || isTargetAmountFieldDisabled"
-                  only-positive
-                  :label="$t('dialogs.manageTransaction.form.targetAmountLabel')"
-                  :placeholder="$t('dialogs.manageTransaction.form.targetAmountPlaceholder')"
-                  type="number"
-                  :error-message="targetAmountErrorMessage"
-                  @blur="touchField('form.targetAmount')"
-                >
-                  <template #iconTrailing>
-                    <span>{{ targetCurrency?.currency?.code }}</span>
-                  </template>
-                </input-field>
-              </form-row>
-            </template>
-
-            <!-- Transfer linking on accounts shared *with* the caller isn't supported by
-               the backend yet – hide the linker for recipients rather than letting
-               them trigger a confusing server error. Loan payments never link two
-               pre-existing legs (single source → one loan), so it's irrelevant here. -->
-            <LinkTransactionSection
-              v-if="transferDestinationType === 'account' && !isAccountSharedWithCaller"
-              v-model:linked-transaction="linkedTransaction"
-              :is-transfer-tx="isTransferTx"
-              :is-form-creation="isFormCreation"
-              :opposite-transaction="oppositeTransaction"
-              :transaction-type="transaction?.transactionType"
-              :disabled="isFormFieldsDisabled"
-              :origin-transaction-id="transaction?.id"
-              :origin-amount="form.amount ? Number(form.amount) : null"
-              :origin-account-id="form.account?.id"
-              @unlink="unlinkTransactions"
-            />
 
             <form-row>
               <date-field
