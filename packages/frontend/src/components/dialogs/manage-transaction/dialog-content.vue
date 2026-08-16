@@ -211,7 +211,7 @@ const transferDestinationType = ref<TransferDestinationType>('account');
 
 const { data: portfolios } = usePortfolios();
 
-const { addInfoNotification, addWarningNotification } = useNotificationCenter();
+const { addInfoNotification } = useNotificationCenter();
 
 const {
   isInitialRefundsDataLoaded,
@@ -789,47 +789,11 @@ const isOriginalAmountSuggestVisible = computed(
     }),
 );
 
-const isSuggestingOriginalAmount = ref(false);
-
-// Use the pair endpoint here, not `useExchangeRates().convert`: convert only knows the
-// user's linked currencies, and the original currency can be any ISO code.
-const suggestOriginalAmount = async () => {
-  const from = form.value.account?.currencyCode;
-  const to = form.value.originalCurrency?.code;
-  if (!from || !to) return;
-
-  isSuggestingOriginalAmount.value = true;
-  try {
-    const { rate } = await getExchangeRatePair({
-      from,
-      to,
-      date: format(form.value.time, 'yyyy-MM-dd'),
-      silent: true,
-    });
-
-    const suggested = resolveSuggestedOriginalAmount({
-      amount: Number(form.value.amount),
-      rate,
-      currencyDigits: form.value.originalCurrency?.digits,
-    });
-
-    if (suggested === null) {
-      addWarningNotification(t('dialogs.manageTransaction.form.originalAmountSuggestFailed'));
-      return;
-    }
-
-    // An amount typed while the lookup was in flight wins over the suggestion.
-    if (form.value.originalAmount == null) form.value.originalAmount = suggested;
-  } catch {
-    addWarningNotification(t('dialogs.manageTransaction.form.originalAmountSuggestFailed'));
-  } finally {
-    isSuggestingOriginalAmount.value = false;
-  }
-};
-
 const suggestionRateDateStr = computed(() => format(form.value.time, 'yyyy-MM-dd'));
 
 // Background lookup for the inline hint; failures stay silent (no retry, no notification).
+// Uses the pair endpoint, not `useExchangeRates().convert`: convert only knows the
+// user's linked currencies, and the original currency can be any ISO code.
 const suggestionRateQuery = useQuery({
   queryKey: computed(() => [
     ...VUE_QUERY_CACHE_KEYS.exchangeRatePair,
@@ -865,9 +829,7 @@ const suggestedOriginalAmount = computed(() => {
 const applySuggestedOriginalAmount = () => {
   if (suggestedOriginalAmount.value != null) {
     form.value.originalAmount = suggestedOriginalAmount.value;
-    return;
   }
-  void suggestOriginalAmount();
 };
 
 // The field echoes every programmatic write back as an update, so an unchanged
@@ -1030,7 +992,6 @@ onUnmounted(() => {
         :placeholder="$t('dialogs.manageTransaction.form.originalAmountPlaceholder')"
         :disabled="isFormFieldsDisabled"
         :suggest-visible="isOriginalAmountSuggestVisible"
-        :suggest-pending="isSuggestingOriginalAmount"
         :suggested-amount="suggestedOriginalAmount"
         :suggested-date="form.time"
         @apply-suggestion="applySuggestedOriginalAmount"

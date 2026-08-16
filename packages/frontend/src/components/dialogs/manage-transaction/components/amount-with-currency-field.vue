@@ -1,17 +1,15 @@
 <script lang="ts" setup>
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { FieldLabel, InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { formatUIAmount } from '@/js/helpers';
 import { cn } from '@/lib/utils';
 import { type CurrencyModel } from '@bt/shared/types';
 import { format } from 'date-fns';
 import { debounce } from 'lodash-es';
-import { Loader2Icon, SparklesIcon, XIcon } from '@lucide/vue';
+import { InfoIcon, SparklesIcon, XIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
-
-import LabelPill from './label-pill.vue';
 
 const NONE_KEY = '__none__';
 
@@ -25,7 +23,6 @@ const props = withDefaults(
     placeholder?: string;
     disabled?: boolean;
     suggestVisible?: boolean;
-    suggestPending?: boolean;
     suggestedAmount?: number | null;
     suggestedDate?: Date;
   }>(),
@@ -35,7 +32,6 @@ const props = withDefaults(
     placeholder: undefined,
     disabled: false,
     suggestVisible: false,
-    suggestPending: false,
     suggestedAmount: null,
     suggestedDate: undefined,
   },
@@ -105,18 +101,13 @@ watch(
 
 <template>
   <FieldLabel :label="label" only-template>
-    <template v-if="suggestVisible" #label-right>
-      <DesktopOnlyTooltip :content="$t('dialogs.manageTransaction.form.originalAmountSuggest')">
-        <LabelPill
-          :disabled="disabled || suggestPending"
-          :aria-label="$t('dialogs.manageTransaction.form.originalAmountSuggest')"
-          @click="emit('apply-suggestion')"
-        >
-          <Loader2Icon v-if="suggestPending" class="size-3 animate-spin" />
-          <SparklesIcon v-else class="size-3" />
-          {{ $t('dialogs.manageTransaction.form.originalAmountSuggestPill') }}
-        </LabelPill>
-      </DesktopOnlyTooltip>
+    <template #label-after>
+      <ResponsiveTooltip
+        :content="$t('dialogs.manageTransaction.form.originalAmountTooltip')"
+        content-class-name="max-w-64"
+      >
+        <InfoIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" />
+      </ResponsiveTooltip>
     </template>
 
     <div
