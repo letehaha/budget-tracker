@@ -1277,9 +1277,10 @@ onUnmounted(() => {
                 </Button>
               </Drawer.DrawerTrigger>
 
-              <Drawer.DrawerContent>
+              <Drawer.DrawerContent custom-indicator class="pb-0">
                 <Drawer.DrawerTitle></Drawer.DrawerTitle>
-                <div class="bg-muted px-6 pt-6 dark:bg-black/20">
+                <div class="bg-muted rounded-t-[10px] px-6 pb-[env(safe-area-inset-bottom)] dark:bg-black/20">
+                  <Drawer.DrawerIndicator class="mb-6" />
                   <ReuseMoreOptions />
                 </div>
               </Drawer.DrawerContent>
