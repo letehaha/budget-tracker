@@ -15,11 +15,12 @@ import {
   type YnabParseWarning,
 } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
+import { detectDateColumnFormat } from '@services/import-export/core/parse/date-engine';
 import { roundCurrency } from '@services/import-export/core/round-currency';
 import { parse } from 'csv-parse/sync';
 
-import { parseYnabAmount } from './parse-amount';
-import { parseYnabDate } from './parse-date';
+import { detectYnabDecimalSeparator, parseYnabAmount } from './parse-amount';
+import { hasAmbiguousDateFieldOrder, parseYnabDate } from './parse-date';
 
 /** Headers we require to exist (case-sensitive — YNAB's are stable). */
 const REQUIRED_HEADERS = [
@@ -105,6 +106,30 @@ export function parseYnabRegister({ fileContent }: { fileContent: string }): Yna
   const warnings: YnabParseWarning[] = [];
   const classifiedRows: ClassifiedRow[] = [];
 
+  // One budget = one date format and one currency format, so both are resolved
+  // over the whole file before any row is read.
+  const dateValues = records.map((record) => (record['Date'] ?? '').trim());
+  const detectedDateFormat = detectDateColumnFormat({ values: dateValues, locale: 'en' });
+  if (!detectedDateFormat.ok) {
+    throw new ValidationError({
+      message:
+        'The Date column in YNAB Register.csv mixes contradictory day/month orders — some rows only make sense as DD/MM/YYYY and others only as MM/DD/YYYY. Re-export the budget with a single date format.',
+    });
+  }
+  const { fieldOrder } = detectedDateFormat.format;
+
+  if (hasAmbiguousDateFieldOrder({ values: dateValues })) {
+    warnings.push({
+      code: 'ambiguous-date-order',
+      message:
+        'No row in the Date column settles whether it is day-first or month-first; dates were interpreted as MM/DD/YYYY. Check a few transactions after import.',
+    });
+  }
+
+  const decimalSeparator = detectYnabDecimalSeparator({
+    values: records.flatMap((record) => [record['Outflow'], record['Inflow']]),
+  });
+
   records.forEach((record, idx) => {
     // CSV row index that maps to the file's line number (header = line 1).
     const rowIndex = idx + 2;
@@ -115,7 +140,7 @@ export function parseYnabRegister({ fileContent }: { fileContent: string }): Yna
       return;
     }
 
-    const date = parseYnabDate(record['Date']);
+    const date = parseYnabDate({ raw: record['Date'], fieldOrder });
     if (!date) {
       warnings.push({
         rowIndex,
@@ -125,8 +150,8 @@ export function parseYnabRegister({ fileContent }: { fileContent: string }): Yna
       return;
     }
 
-    const outflowParsed = parseYnabAmount(record['Outflow']);
-    const inflowParsed = parseYnabAmount(record['Inflow']);
+    const outflowParsed = parseYnabAmount({ raw: record['Outflow'], decimalSeparator });
+    const inflowParsed = parseYnabAmount({ raw: record['Inflow'], decimalSeparator });
     const outflowUnparseable = !!record['Outflow'] && outflowParsed === null;
     const inflowUnparseable = !!record['Inflow'] && inflowParsed === null;
     if (outflowUnparseable) {
@@ -190,8 +215,11 @@ export function parseYnabRegister({ fileContent }: { fileContent: string }): Yna
   });
 
   if (classifiedRows.length === 0) {
+    const firstProblem = warnings.find((w) => w.rowIndex !== undefined);
     throw new ValidationError({
-      message: 'No usable rows found in YNAB Register.csv (all rows were skipped or unparseable).',
+      message:
+        'No usable rows found in YNAB Register.csv (all rows were skipped or unparseable).' +
+        (firstProblem ? ` First problem: ${firstProblem.message}` : ''),
     });
   }
 
