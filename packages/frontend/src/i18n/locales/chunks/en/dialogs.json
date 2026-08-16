@@ -203,6 +203,7 @@
         "selectRefundedByTransactions": "Select transactions which refund current entry.",
         "refundsLabel": "Refunds",
         "refundedByLabel": "Refunded by",
+        "refundedByCreationHint": "\"Refunded by\" becomes available after the transaction is created.",
         "saveButton": "Save",
         "confirmButton": "Confirm",
         "linkedRefunds": "Linked refunds",

@@ -15,7 +15,7 @@ import { useI18n } from 'vue-i18n';
 
 import { RefundedByAnotherTxs, RefundsAnoterTx } from '../../types';
 import { computeRefundLinkTotals } from '../../utils/refund-link-totals';
-import MarkAsRefundInfoPopover from './mark-as-refund-info-popover.vue';
+import MarkAsRefundInfo from './mark-as-refund-info.vue';
 import RefundLinkCard from './refund-link-card.vue';
 import RecordsList from './refund-records-list.vue';
 
@@ -393,7 +393,7 @@ const hasSmallOptions = computed(() => {
               </p>
               <p class="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
                 {{ helperText }}
-                <MarkAsRefundInfoPopover />
+                <MarkAsRefundInfo />
               </p>
             </div>
             <Button variant="ghost" class="-mt-1.5 -mr-2 shrink-0" @click="isDialogOpen = false">
@@ -409,6 +409,9 @@ const hasSmallOptions = computed(() => {
             class="mt-4"
             @update:model-value="onModeChange"
           />
+          <p v-if="isRecordCreation" class="text-muted-foreground mt-1.5 text-xs">
+            {{ $t('dialogs.manageTransaction.markAsRefund.refundedByCreationHint') }}
+          </p>
 
           <RefundLinkCard
             class="mt-3"
