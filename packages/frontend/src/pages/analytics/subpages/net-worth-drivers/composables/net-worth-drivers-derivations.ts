@@ -215,7 +215,7 @@ export interface BreakdownBar {
   segments: (BreakdownLegendEntry & { growth: number })[];
 }
 
-export interface BreakdownModel {
+interface BreakdownModel {
   legend: BreakdownLegendEntry[];
   bars: BreakdownBar[];
 }
