@@ -104,7 +104,11 @@ export default createController(schema, async ({ user, query }) => {
     limit: RECOMMENDATION_LIMIT,
     transactionType: searchTransactionType,
     excludeTransfer: true,
-    excludeRefunds: false, // Allow transactions that already have refunds
+    // Rows already acting as a refund can't be linked again, so they are dropped —
+    // except refunds of the requested tx itself, which the edit dialog still lists.
+    // Originals that merely carry partial refunds remain valid candidates.
+    excludeRefundTxs: true,
+    keepRefundsForTxId: query.transactionId,
     includeSplits: true,
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),

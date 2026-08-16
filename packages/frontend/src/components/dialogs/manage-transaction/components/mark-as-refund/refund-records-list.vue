@@ -133,7 +133,11 @@ const fetchTransactions = ({
         offset,
         transactionType: props.transactionType,
         excludeTransfer: true,
-        excludeRefunds: false, // Allow transactions that already have refunds
+        // Originals that already carry partial refunds stay listed; only transactions
+        // already acting as a refund are dropped — except refunds of the edited tx,
+        // which must stay visible so their links can be toggled off.
+        excludeRefundTxs: true,
+        keepRefundsForTxId: props.originTransactionId,
         includeSplits: true, // Include splits so we can show split selector
         noteSearch: search,
         to: isDate(filter.end) ? filter.end!.toISOString() : undefined,
@@ -153,7 +157,15 @@ const {
   isFetchingNextPage,
   isFetched,
 } = useInfiniteQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList, props.transactionType, appliedFilters, noteSearch],
+  // originTransactionId is part of the key: the request keeps that tx's own refunds
+  // in the results, so pages cached for one tx must not serve another.
+  queryKey: [
+    ...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList,
+    props.transactionType,
+    props.originTransactionId,
+    appliedFilters,
+    noteSearch,
+  ],
   queryFn: ({ pageParam }) => fetchTransactions({ pageParam, filter: appliedFilters.value, search: noteSearch.value }),
   initialPageParam: 0,
   getNextPageParam: (lastPage, pages) => {
