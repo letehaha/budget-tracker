@@ -20,6 +20,7 @@
         "passwordTooLong": "La contraseña es demasiado larga.",
         "invalidPassword": "Contraseña no válida.",
         "userExists": "Ya existe un usuario con ese correo electrónico.",
+        "signupsDisabled": "Los registros están deshabilitados por el administrador de esta instancia.",
         "genericErrorRetry": "Se ha producido un error. Por favor, inténtelo de nuevo.",
         "oauthFailed": "No se pudo registrar con {provider}. Por favor, inténtelo de nuevo.",
         "oauthNotConfigured": "El inicio de sesión con {provider} no está configurado en este servidor."

@@ -5,6 +5,7 @@
       "divider": "O continúe con su correo electrónico",
       "submitButton": "Iniciar sesión",
       "noAccount": "¿No tiene una cuenta?",
+      "signupsDisabledTooltip": "Los nuevos registros están deshabilitados por el administrador de esta instancia",
       "errors": {
         "incorrectEmailOrPassword": "Correo electrónico o contraseña incorrectos.",
         "incorrectPassword": "Contraseña incorrecta.",
