@@ -12,6 +12,7 @@ import * as Users from '@models/users.model';
 
 import { withTransaction } from './common/with-transaction';
 import { addUserCurrencies } from './currencies/add-user-currency';
+import { revalueAccountsInCurrencies } from './user-exchange-rate/revalue-accounts-in-currencies';
 
 export const getUser = async (id: number) => {
   const user = await Users.default.findOne({
@@ -166,6 +167,12 @@ export const editUserCurrency = withTransaction(
       exchangeRate,
       liveRateUpdate,
     });
+
+    // `liveRateUpdate` picks between a flat manual rate and per-day market rates for
+    // every stored balance row in this currency, so the whole history must be rebuilt.
+    if (liveRateUpdate !== undefined && liveRateUpdate !== passedCurrency.liveRateUpdate) {
+      await revalueAccountsInCurrencies({ userId, pairs: [{ baseCode: currencyCode, quoteCode: currencyCode }] });
+    }
 
     return result;
   },

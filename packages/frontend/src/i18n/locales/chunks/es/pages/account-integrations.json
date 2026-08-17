@@ -273,7 +273,6 @@
       },
       "details": {
         "error": {
-          "loadFailed": "Error al cargar los detalles de la integración. Por favor, inténtelo de nuevo.",
           "notFoundTitle": "Integración no encontrada",
           "notFoundDescription": "Es posible que esta integración haya sido eliminada o que el enlace sea incorrecto. Consulte su lista de integraciones para encontrar lo que busca.",
           "unexpectedTitle": "Algo salió mal",
@@ -281,44 +280,37 @@
           "backButton": "Volver a integraciones"
         },
         "connectionDetails": {
-          "title": "Detalles de la conexión",
-          "type": "Tipo",
-          "status": "Estado",
           "statusActive": "Activa",
           "statusInactive": "Inactiva",
-          "autoSync": "Sincronización automática",
-          "autoSyncTooltip": "La sincronización automática se activa cada vez que inicia sesión, si han pasado más de 12 horas desde la última sincronización. También puede activar una sincronización manual desde el encabezado en cualquier momento.",
-          "every12Hours": "Cada 12 horas",
-          "lastSync": "(última vez {time})",
-          "connectedAccounts": "Cuentas conectadas"
+          "autoSync": "Sincronización automática"
         },
         "connectionValidity": {
-          "title": "Validez de la conexión",
           "statusExpired": "Caducada",
-          "statusExpiringSoon": "Próxima a caducar",
           "statusActive": "Activa",
-          "expiredTitle": "Conexión caducada",
-          "expiredDescription": "Su conexión bancaria ha caducado. Reconéctese para continuar sincronizando transacciones.",
-          "expiringSoonTitle": "⚠️ Próxima a caducar",
-          "expiringSoonDescription": "Su conexión bancaria caducará en {days} día(s). Reconéctese pronto para evitar interrupciones.",
-          "validFrom": "Válida desde",
-          "validUntil": "Válida hasta",
-          "daysRemaining": "Días restantes",
           "daysCount": "{count} día | {count} días",
           "notAvailable": "N/D",
-          "validConnectionHint": "La conexión es válida. Aún puede reconectarse para actualizar las cuentas disponibles o ampliar la validez de la conexión.",
           "reconnectButton": "Reconectar ahora"
         },
         "connectedAccounts": {
           "title": "Cuentas conectadas",
-          "connectRemainingButton": "Conectar cuentas restantes",
           "empty": "Aún no hay cuentas conectadas.",
           "connectButton": "Conectar cuentas",
-          "externalId": "ID externo: {id}"
+          "currencyFallback": "El banco no indicó ninguna moneda, por lo que se usó su moneda base ({currency})",
+          "columnAccount": "Cuenta",
+          "columnExternalId": "ID externo",
+          "columnBalance": "Saldo",
+          "currencyFallbackChip": "Moneda: {currency}",
+          "syncNow": "Sincronizar ahora",
+          "connectRemainingWithCount": "Conectar cuentas restantes ({count})",
+          "needsAttention": "{count} requiere atención | {count} requieren atención",
+          "totalLabel": "{amount} en total",
+          "syncStarted": "Sincronización iniciada",
+          "syncFailed": "Error al iniciar la sincronización"
         },
         "actions": {
-          "title": "Acciones",
-          "disconnectButton": "Desconectar integración"
+          "renameButton": "Renombrar conexión",
+          "disconnectButton": "Desconectar integración",
+          "manage": "Gestionar"
         },
         "fetchAccountsDialog": {
           "title": "Conectar cuentas restantes",
@@ -328,20 +320,37 @@
           "missingAccountsSectionName": "Validez de la conexión",
           "missingAccountsButtonName": "Reconectar ahora",
           "missingAccountsPersist": "Si el problema persiste, repórtelo para una investigación más detallada.",
-          "loadingAccounts": "Cargando cuentas disponibles...",
           "sessionExpired": "Su sesión ha caducado. Reconecte su conexión bancaria para continuar.",
           "loadFailed": "Error al cargar las cuentas disponibles. Por favor, inténtelo de nuevo.",
           "noAdditionalAccounts": "No hay cuentas adicionales disponibles para conectar.",
-          "connectedBadge": "Conectada",
           "connectSelectedButton": "Conectar cuentas seleccionadas ({count})",
-          "selectAccountsButton": "Seleccionar cuentas"
+          "selectAccountsButton": "Seleccionar cuentas",
+          "availableLabel": "Disponibles",
+          "clearAll": "Borrar todo",
+          "alreadyConnected": "Ya conectada",
+          "creditLimitMeta": "Límite {amount}"
+        },
+        "meta": {
+          "connectedSince": "Conectada el {date}"
+        },
+        "summary": {
+          "totalBalance": "Saldo total",
+          "accounts": "Cuentas",
+          "accountsCount": "sin cuentas | {count} cuenta | {count} cuentas",
+          "lastSync": "Última sincronización",
+          "consent": "Consentimiento",
+          "every": "Cada {hours} h",
+          "autoSyncOff": "Desactivada",
+          "connectedOf": "{connected} de {total}",
+          "connectedSub": "conectadas",
+          "accountsFailed": "{count} cuenta falló | {count} cuentas fallaron"
+        },
+        "consentStrip": {
+          "expiring": "El consentimiento caduca en {days} día · {date} | El consentimiento caduca en {days} días · {date}",
+          "expired": "El consentimiento ha caducado. Reconecte para reanudar la sincronización."
         },
         "relativeTime": {
-          "never": "nunca",
-          "justNow": "ahora mismo",
-          "minutesAgo": "hace {count} min",
-          "hoursAgo": "hace {count} hora | hace {count} horas",
-          "daysAgo": "hace {count} día | hace {count} días"
+          "never": "nunca"
         },
         "errors": {
           "reauthorizationFailed": "Error al iniciar la reautorización"
@@ -372,7 +381,6 @@
         }
       },
       "authFailure": {
-        "title": "Autenticación fallida",
         "description": "Sus credenciales han caducado. Por favor, actualícelas para continuar sincronizando transacciones.",
         "updateButton": "Actualizar credenciales"
       },

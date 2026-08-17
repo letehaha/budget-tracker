@@ -41,6 +41,9 @@ export interface ConnectionDetailsResponse {
     currentBalance: number;
     currencyCode: string;
     type: string;
+    // Present when the provider reported no currency (ISO "XXX") and the
+    // user's base currency was assigned instead.
+    currencyFallback: { providerCurrency: string; assignedCurrency: string } | null;
   }>;
   consent?: {
     validFrom: string | null;
@@ -66,7 +69,7 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
         {
           model: Accounts,
           as: 'accounts',
-          attributes: ['id', 'name', 'externalId', 'currentBalance', 'currencyCode', 'type'],
+          attributes: ['id', 'name', 'externalId', 'currentBalance', 'currencyCode', 'type', 'externalData'],
         },
       ],
     }),
@@ -111,6 +114,9 @@ export async function getConnectionDetails(params: GetConnectionDetailsParams): 
       currentBalance: account.currentBalance?.toNumber() ?? 0,
       currencyCode: account.currencyCode,
       type: account.type,
+      currencyFallback:
+        (account.externalData as { currencyFallback?: { providerCurrency: string; assignedCurrency: string } } | null)
+          ?.currencyFallback ?? null,
     })),
     consent: consentInfo,
     deactivationReason: metadata?.deactivationReason || null,

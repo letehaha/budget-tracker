@@ -64,6 +64,7 @@ interface BankConnectionDetails {
     currentBalance: number;
     currencyCode: string;
     type: string;
+    currencyFallback: { providerCurrency: string; assignedCurrency: string } | null;
   }>;
   consent?: {
     validFrom: string | null;

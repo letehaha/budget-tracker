@@ -78,7 +78,7 @@ interface ExecuteImportParams {
  * account, category, and tag creation each wrap themselves in `withTransaction`
  * further down the call stack, so they commit independently of the row loop too.
  */
-async function executeImportImpl({
+export async function executeImport({
   userId,
   validRows,
   accountMapping,
@@ -433,5 +433,3 @@ async function executeImportImpl({
     accountBalanceChanges,
   };
 }
-
-export const executeImport = executeImportImpl;

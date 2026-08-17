@@ -15,6 +15,7 @@ import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { NON_CURRENCY_CODES, getCurrency } from '@models/currencies.model';
+import { getBaseCurrency } from '@models/users-currencies.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
@@ -124,10 +125,23 @@ const createAccountsForConnection = withTransaction(
         });
         createdAccounts.push(existingAccount);
       } else {
-        // Ensure user has the currency for this account. Reject both unknown codes
-        // and ISO 4217 non-currencies (XXX "no currency", precious metals, test
-        // codes): none have an exchange rate, so the calculateRefAmount call below
-        // would throw "Exchange rate not available" and surface as a 500 mid-sync.
+        // ISO "XXX" means the provider could not determine the currency.
+        // Fall back to the user's base currency instead of failing the connect,
+        // and record the substitution so the UI can explain it.
+        let currencyFallback: { providerCurrency: string; assignedCurrency: string } | undefined;
+        if (providerAccount.currency.toUpperCase() === 'XXX') {
+          const baseCurrency = await getBaseCurrency({ userId });
+          if (baseCurrency) {
+            currencyFallback = {
+              providerCurrency: providerAccount.currency,
+              assignedCurrency: baseCurrency.currencyCode,
+            };
+            providerAccount.currency = baseCurrency.currencyCode;
+          }
+        }
+
+        // Reject unknown codes and ISO 4217 non-currencies (metals, test codes):
+        // they have no exchange rate, so calculateRefAmount below would throw a 500.
         const currency = await getCurrency({ code: providerAccount.currency.toUpperCase() });
         if (!currency || NON_CURRENCY_CODES.includes(currency.code)) {
           throw new BadRequestError({
@@ -177,7 +191,7 @@ const createAccountsForConnection = withTransaction(
           creditLimit: creditLimitCents,
           refCreditLimit,
           externalId: providerAccount.externalId,
-          externalData: providerAccount.metadata || {},
+          externalData: { ...(providerAccount.metadata || {}), ...(currencyFallback && { currencyFallback }) },
           bankDataProviderConnectionId: connectionId,
         });
         createdAccounts.push(newAccount);

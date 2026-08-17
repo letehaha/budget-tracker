@@ -197,13 +197,11 @@ describe('Enable Banking Data Provider E2E', () => {
     });
   });
 
-  // Regression (Sentry MONEY-MATTER-BACKEND-82/83): a bank account whose currency
-  // is an ISO 4217 non-currency (e.g. "XXX" = no currency) has no exchange rate, so
-  // connecting it used to reach calculateRefAmount and throw "Exchange rate not
-  // available for XXX/EUR", surfacing as a 500 mid-sync. The connect must now reject
-  // with a clear 400 and create nothing.
+  // "XXX" (ISO no-currency) means the bank omitted the account currency: connect
+  // must fall back to the user's base currency. Other ISO non-currency codes
+  // still reject with 400.
   describe('unsupported account currency', () => {
-    it('rejects an account whose currency is an ISO non-currency (XXX) with a 400, creating nothing', async () => {
+    const connectWithMockedCurrency = async (currency: string) => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
@@ -220,12 +218,12 @@ describe('Enable Banking Data Provider E2E', () => {
         },
       });
 
-      // Force every fetched account's currency to XXX while preserving its stable
-      // identification_hash, so the selected account routes an XXX currency into the
-      // connect path.
+      // Force every fetched account's currency while preserving its stable
+      // identification_hash, so the selected account routes that currency into
+      // the connect path.
       global.mswMockServer.use(
         http.get('https://api.enablebanking.com/accounts/:accountId/details', ({ params }) =>
-          HttpResponse.json({ ...getMockedAccountDetails(params.accountId as string), currency: 'XXX' }),
+          HttpResponse.json({ ...getMockedAccountDetails(params.accountId as string), currency }),
         ),
       );
 
@@ -233,11 +231,32 @@ describe('Enable Banking Data Provider E2E', () => {
         connectionId: connectResult.connectionId,
         accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
       });
+      return { connectionId: connectResult.connectionId, result };
+    };
+
+    it('falls back to the user base currency when the bank reports "XXX" (no currency)', async () => {
+      const { connectionId, result } = await connectWithMockedCurrency('XXX');
+      expect(result.status).toEqual(200);
+
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+      expect(connection.accounts.length).toBe(1);
+      expect(connection.accounts[0]!.currencyCode).toBe(global.BASE_CURRENCY.code);
+      expect(connection.accounts[0]!.currencyFallback).toEqual({
+        providerCurrency: 'XXX',
+        assignedCurrency: global.BASE_CURRENCY.code,
+      });
+    });
+
+    it('rejects an account whose currency is another ISO non-currency (XAU) with a 400, creating nothing', async () => {
+      const { connectionId, result } = await connectWithMockedCurrency('XAU');
       expect(result.status).toEqual(ERROR_CODES.BadRequest);
 
-      // The account-creation transaction must have rolled back — nothing linked.
+      // The account-creation transaction rolled back, so nothing is linked.
       const { connection } = await helpers.bankDataProviders.getConnectionDetails({
-        connectionId: connectResult.connectionId,
+        connectionId,
         raw: true,
       });
       expect(connection.accounts.length).toBe(0);

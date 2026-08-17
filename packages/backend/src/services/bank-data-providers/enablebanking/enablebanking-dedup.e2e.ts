@@ -1520,4 +1520,73 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       expect(requested!.dateFrom! <= requested!.dateTo!).toBe(true);
     });
   });
+
+  // ==========================================================================
+  // #8 — account unlink → reconnect
+  // ==========================================================================
+  describe('#8 unlink → reconnect dedup', () => {
+    it('does not duplicate reference-less transactions after account unlink → reconnect', async () => {
+      // Unlink nulls originalId on every row (preserving it only in
+      // externalData.originalSource.originalId). A reference-less, IBAN-less row
+      // — the "Prel" card-purchase shape — then has no surviving match key
+      // except that snapshot.
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '43.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-03-15',
+          counterpartyIban: null,
+          remittanceInformation: ['Prel card purchase'],
+        },
+        {
+          amount: '250.00',
+          currency: 'EUR',
+          isExpense: false,
+          bookingDate: '2024-03-15',
+          counterpartyIban: null,
+          entryReference: 'ref_reconnect_control',
+        },
+      ]);
+      const { accountId } = await setupConnectionWithAccount();
+
+      const txsBefore = await listTransactions({ accountId });
+      expect(txsBefore.length).toBe(2);
+
+      await helpers.unlinkAccountFromBankConnection({ id: String(accountId), raw: true });
+
+      // Reconnect through a brand-new connection, same bank account.
+      const reconnectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+      const state = await helpers.enablebanking.getConnectionState(reconnectResult.connectionId);
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: {
+          connectionId: reconnectResult.connectionId,
+          code: helpers.enablebanking.mockAuthCode,
+          state,
+        },
+      });
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: reconnectResult.connectionId,
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+        raw: true,
+      });
+
+      // The disconnected account row is re-linked, not recreated
+      expect(syncedAccounts[0]!.id).toBe(accountId);
+
+      const txsAfter = await listTransactions({ accountId });
+      expect(txsAfter.length).toBe(2);
+
+      // Matched rows get originalId restored so future syncs use the fast path
+      for (const tx of txsAfter) {
+        expect(tx.originalId).not.toBeNull();
+      }
+    });
+  });
 });

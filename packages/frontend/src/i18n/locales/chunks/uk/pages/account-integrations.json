@@ -273,7 +273,6 @@
       },
       "details": {
         "error": {
-          "loadFailed": "Не вдалося завантажити деталі інтеграції. Спробуйте ще раз.",
           "notFoundTitle": "Інтеграцію не знайдено",
           "notFoundDescription": "Ця інтеграція могла бути видалена або посилання є некоректним. Перевірте список інтеграцій, щоб знайти потрібне.",
           "unexpectedTitle": "Щось пішло не так",
@@ -281,44 +280,37 @@
           "backButton": "До списку інтеграцій"
         },
         "connectionDetails": {
-          "title": "Деталі підключення",
-          "type": "Тип",
-          "status": "Статус",
           "statusActive": "Активний",
           "statusInactive": "Неактивний",
-          "autoSync": "Автосинхронізація",
-          "autoSyncTooltip": "Автосинхронізація запускається при кожному вході в систему, якщо минуло більше 12 годин з моменту останньої синхронізації. Ви також можете запустити синхронізацію вручну з заголовка в будь-який час.",
-          "every12Hours": "Кожні 12 годин",
-          "lastSync": "(останній раз {time})",
-          "connectedAccounts": "Підключені рахунки"
+          "autoSync": "Автосинхронізація"
         },
         "connectionValidity": {
-          "title": "Термін дії підключення",
           "statusExpired": "Закінчився",
-          "statusExpiringSoon": "Скоро закінчиться",
           "statusActive": "Активний",
-          "expiredTitle": "Підключення закінчилось",
-          "expiredDescription": "Термін дії вашого банківського підключення закінчився. Будь ласка, перепідключіться, щоб продовжити синхронізацію транзакцій.",
-          "expiringSoonTitle": "⚠️ Скоро закінчиться",
-          "expiringSoonDescription": "Термін дії вашого банківського підключення закінчиться через {days} днів. Будь ласка, перепідключіться найближчим часом, щоб уникнути переривання.",
-          "validFrom": "Дійсний з",
-          "validUntil": "Дійсний до",
-          "daysRemaining": "Залишилось днів",
           "daysCount": "{count} день | {count} дні | {count} днів",
           "notAvailable": "Н/Д",
-          "validConnectionHint": "Підключення дійсне. Ви все ще можете перепідключитися, щоб оновити доступні рахунки або продовжити термін дії підключення.",
           "reconnectButton": "Перепідключитися зараз"
         },
         "connectedAccounts": {
           "title": "Підключені рахунки",
-          "connectRemainingButton": "Підключити решту рахунків",
           "empty": "Рахунки ще не підключено.",
           "connectButton": "Підключити рахунки",
-          "externalId": "Зовнішній ID: {id}"
+          "currencyFallback": "Банк не повідомив валюту, тому використано вашу базову валюту ({currency})",
+          "columnAccount": "Рахунок",
+          "columnExternalId": "Зовнішній ID",
+          "columnBalance": "Баланс",
+          "currencyFallbackChip": "Валюта: {currency}",
+          "syncNow": "Синхронізувати зараз",
+          "connectRemainingWithCount": "Підключити решту рахунків ({count})",
+          "needsAttention": "{count} потребує уваги | {count} потребують уваги | {count} потребують уваги",
+          "totalLabel": "{amount} загалом",
+          "syncStarted": "Синхронізацію розпочато",
+          "syncFailed": "Не вдалося розпочати синхронізацію"
         },
         "actions": {
-          "title": "Дії",
-          "disconnectButton": "Відключити інтеграцію"
+          "renameButton": "Перейменувати підключення",
+          "disconnectButton": "Відключити інтеграцію",
+          "manage": "Керувати"
         },
         "fetchAccountsDialog": {
           "title": "Підключити решту рахунків",
@@ -328,20 +320,37 @@
           "missingAccountsSectionName": "Термін дії підключення",
           "missingAccountsButtonName": "Перепідключитися зараз",
           "missingAccountsPersist": "Якщо проблема не зникає, будь ласка, повідомте про це для подальшого розслідування.",
-          "loadingAccounts": "Завантаження доступних рахунків...",
           "sessionExpired": "Ваша сесія закінчилася. Будь ласка, перепідключіть банківське з'єднання, щоб продовжити.",
           "loadFailed": "Не вдалося завантажити доступні рахунки. Спробуйте ще раз.",
           "noAdditionalAccounts": "Немає додаткових рахунків для підключення.",
-          "connectedBadge": "Підключено",
           "connectSelectedButton": "Підключити вибрані рахунки ({count})",
-          "selectAccountsButton": "Виберіть рахунки"
+          "selectAccountsButton": "Виберіть рахунки",
+          "availableLabel": "Доступні",
+          "clearAll": "Очистити все",
+          "alreadyConnected": "Вже підключено",
+          "creditLimitMeta": "Ліміт {amount}"
+        },
+        "meta": {
+          "connectedSince": "Підключено {date}"
+        },
+        "summary": {
+          "totalBalance": "Загальний баланс",
+          "accounts": "Рахунки",
+          "accountsCount": "немає рахунків | {count} рахунок | {count} рахунків",
+          "lastSync": "Остання синхронізація",
+          "consent": "Згода",
+          "every": "Кожні {hours} год",
+          "autoSyncOff": "Вимкнено",
+          "connectedOf": "{connected} з {total}",
+          "connectedSub": "підключено",
+          "accountsFailed": "{count} рахунок з помилкою | {count} рахунки з помилками | {count} рахунків з помилками"
+        },
+        "consentStrip": {
+          "expiring": "Термін дії згоди спливає через {days} день · {date} | Термін дії згоди спливає через {days} дні · {date} | Термін дії згоди спливає через {days} днів · {date}",
+          "expired": "Термін дії згоди сплив. Перепідключіться, щоб відновити синхронізацію."
         },
         "relativeTime": {
-          "never": "ніколи",
-          "justNow": "щойно",
-          "minutesAgo": "{count} хв тому",
-          "hoursAgo": "{count} годину тому | {count} години тому | {count} годин тому",
-          "daysAgo": "{count} день тому | {count} дні тому | {count} днів тому"
+          "never": "ніколи"
         },
         "errors": {
           "reauthorizationFailed": "Не вдалося розпочати повторну авторизацію"
@@ -372,7 +381,6 @@
         }
       },
       "authFailure": {
-        "title": "Автентифікація не вдалась",
         "description": "Ваші облікові дані закінчилися. Будь ласка, оновіть їх, щоб продовжити синхронізацію транзакцій.",
         "updateButton": "Оновити облікові дані"
       },

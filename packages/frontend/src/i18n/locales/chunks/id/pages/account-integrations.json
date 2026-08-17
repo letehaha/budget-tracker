@@ -273,7 +273,6 @@
       },
       "details": {
         "error": {
-          "loadFailed": "Gagal memuat detail integrasi. Silakan coba lagi.",
           "notFoundTitle": "Integrasi tidak ditemukan",
           "notFoundDescription": "Integrasi ini mungkin telah dihapus atau tautannya salah. Periksa daftar integrasi Anda untuk menemukan yang Anda cari.",
           "unexpectedTitle": "Terjadi kesalahan",
@@ -281,44 +280,37 @@
           "backButton": "Kembali ke Integrasi"
         },
         "connectionDetails": {
-          "title": "Detail Koneksi",
-          "type": "Tipe",
-          "status": "Status",
           "statusActive": "Aktif",
           "statusInactive": "Nonaktif",
-          "autoSync": "Sinkronisasi Otomatis",
-          "autoSyncTooltip": "Sinkronisasi otomatis dipicu setiap kali Anda login, jika lebih dari 12 jam telah berlalu sejak sinkronisasi terakhir. Anda juga dapat memicu sinkronisasi secara manual dari header kapan saja.",
-          "every12Hours": "Setiap 12 jam",
-          "lastSync": "(terakhir {time})",
-          "connectedAccounts": "Akun Terhubung"
+          "autoSync": "Sinkronisasi Otomatis"
         },
         "connectionValidity": {
-          "title": "Validitas Koneksi",
           "statusExpired": "Kedaluwarsa",
-          "statusExpiringSoon": "Segera Kedaluwarsa",
           "statusActive": "Aktif",
-          "expiredTitle": "Koneksi Kedaluwarsa",
-          "expiredDescription": "Koneksi bank Anda telah kedaluwarsa. Harap hubungkan kembali untuk melanjutkan sinkronisasi transaksi.",
-          "expiringSoonTitle": "⚠️ Segera Kedaluwarsa",
-          "expiringSoonDescription": "Koneksi bank Anda akan kedaluwarsa dalam {days} hari. Harap hubungkan kembali segera untuk menghindari gangguan.",
-          "validFrom": "Berlaku Dari",
-          "validUntil": "Berlaku Hingga",
-          "daysRemaining": "Sisa Hari",
           "daysCount": "{count} hari | {count} hari",
           "notAvailable": "N/A",
-          "validConnectionHint": "Koneksi valid. Anda masih dapat menghubungkan kembali untuk menyegarkan akun yang tersedia atau memperpanjang validitas koneksi.",
           "reconnectButton": "Hubungkan Kembali Sekarang"
         },
         "connectedAccounts": {
           "title": "Akun Terhubung",
-          "connectRemainingButton": "Hubungkan Sisa Akun",
           "empty": "Belum ada akun yang terhubung.",
           "connectButton": "Hubungkan Akun",
-          "externalId": "ID Eksternal: {id}"
+          "currencyFallback": "Bank tidak melaporkan mata uang, jadi mata uang dasar Anda ({currency}) yang digunakan",
+          "columnAccount": "Akun",
+          "columnExternalId": "ID Eksternal",
+          "columnBalance": "Saldo",
+          "currencyFallbackChip": "Mata uang: {currency}",
+          "syncNow": "Sinkronkan sekarang",
+          "connectRemainingWithCount": "Hubungkan sisa akun ({count})",
+          "needsAttention": "{count} perlu perhatian | {count} perlu perhatian",
+          "totalLabel": "Total {amount}",
+          "syncStarted": "Sinkronisasi dimulai",
+          "syncFailed": "Gagal memulai sinkronisasi"
         },
         "actions": {
-          "title": "Tindakan",
-          "disconnectButton": "Putuskan Integrasi"
+          "renameButton": "Ganti nama koneksi",
+          "disconnectButton": "Putuskan Integrasi",
+          "manage": "Kelola"
         },
         "fetchAccountsDialog": {
           "title": "Hubungkan Sisa Akun",
@@ -328,20 +320,37 @@
           "missingAccountsSectionName": "Validitas Koneksi",
           "missingAccountsButtonName": "Hubungkan Kembali Sekarang",
           "missingAccountsPersist": "Jika masalah berlanjut, harap laporkan untuk investigasi lebih lanjut.",
-          "loadingAccounts": "Memuat akun yang tersedia...",
           "sessionExpired": "Sesi Anda telah kedaluwarsa. Harap hubungkan kembali koneksi bank Anda untuk melanjutkan.",
           "loadFailed": "Gagal memuat akun yang tersedia. Silakan coba lagi.",
           "noAdditionalAccounts": "Tidak ada akun tambahan yang tersedia untuk dihubungkan.",
-          "connectedBadge": "Terhubung",
           "connectSelectedButton": "Hubungkan Akun Terpilih ({count})",
-          "selectAccountsButton": "Pilih Akun"
+          "selectAccountsButton": "Pilih Akun",
+          "availableLabel": "Tersedia",
+          "clearAll": "Hapus semua",
+          "alreadyConnected": "Sudah terhubung",
+          "creditLimitMeta": "Limit {amount}"
+        },
+        "meta": {
+          "connectedSince": "Terhubung {date}"
+        },
+        "summary": {
+          "totalBalance": "Total saldo",
+          "accounts": "Akun",
+          "accountsCount": "tidak ada akun | {count} akun | {count} akun",
+          "lastSync": "Sinkronisasi terakhir",
+          "consent": "Persetujuan",
+          "every": "Setiap {hours} jam",
+          "autoSyncOff": "Nonaktif",
+          "connectedOf": "{connected} dari {total}",
+          "connectedSub": "terhubung",
+          "accountsFailed": "{count} akun gagal | {count} akun gagal"
+        },
+        "consentStrip": {
+          "expiring": "Persetujuan berakhir dalam {days} hari · {date} | Persetujuan berakhir dalam {days} hari · {date}",
+          "expired": "Persetujuan telah kedaluwarsa. Hubungkan kembali untuk melanjutkan sinkronisasi."
         },
         "relativeTime": {
-          "never": "tidak pernah",
-          "justNow": "baru saja",
-          "minutesAgo": "{count} menit yang lalu",
-          "hoursAgo": "{count} jam yang lalu | {count} jam yang lalu",
-          "daysAgo": "{count} hari yang lalu | {count} hari yang lalu"
+          "never": "tidak pernah"
         },
         "errors": {
           "reauthorizationFailed": "Gagal memulai otorisasi ulang"
@@ -372,7 +381,6 @@
         }
       },
       "authFailure": {
-        "title": "Otentikasi Gagal",
         "description": "Kredensial Anda telah kedaluwarsa. Harap perbarui untuk melanjutkan sinkronisasi transaksi.",
         "updateButton": "Perbarui Kredensial"
       },

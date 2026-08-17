@@ -1588,6 +1588,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // consistently returns the same fields (or no entry_reference at all).
     // `pendingHash` is the hash a row carried while it was pending, kept so a
     // pending entry the ASPSP re-sends after booking still lands on the same row.
+    // `originalSource.originalId` is the snapshot account-unlink takes before
+    // nulling originalId; matching it dedups the unlink → reconnect flow, and the
+    // caller's re-anchor restores originalId for future syncs.
     const byOriginalId = await findOneTransaction({
       planned: 'exclude',
       access: 'unscoped-internal',
@@ -1597,6 +1600,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
         [Op.or]: [
           { originalId: tx.externalId },
           Sequelize.where(Sequelize.literal(`"externalData"->>'pendingHash'`), tx.externalId),
+          Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), tx.externalId),
         ],
       },
     });

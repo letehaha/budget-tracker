@@ -17,7 +17,9 @@ import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { countTransactions } from '@models/transactions-query';
+import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
+import { isRevaluedAccount, scheduleBalanceRevalue } from '@services/balances/revalue-balance-history.service';
 import { applyManualLogoPatch } from '@services/brand-logos';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
@@ -376,10 +378,18 @@ export const updateAccount = withTransaction(
       throw new UnexpectedError({ message: t({ key: 'accounts.accountUpdateFailed' }) });
     }
 
-    await Balances.handleAccountChange({
-      account: result,
-      prevAccount: accountData,
-    });
+    // A foreign-currency opening balance can't be shifted through history as a flat
+    // `refInitialBalance` diff: every day has to be re-valued at its own rate.
+    const baseCurrency = await getBaseCurrency({ userId: accountData.userId });
+    const revalueOwnsHistory =
+      !!baseCurrency && isRevaluedAccount({ account: result, baseCurrencyCode: baseCurrency.currencyCode });
+
+    if (!revalueOwnsHistory) {
+      await Balances.handleAccountChange({
+        account: result,
+        prevAccount: accountData,
+      });
+    }
 
     let finalAccount = result;
     // The opening balance changed → its base-currency stamp must be re-derived at
@@ -404,8 +414,12 @@ export const updateAccount = withTransaction(
 
     // Today's net-worth row is a stock equal to the spot `refCurrentBalance`. Pin it
     // last, after the restamp's history cascade, so the spot value wins.
-    if (currentBalanceIsChanging) {
+    if (currentBalanceIsChanging && !revalueOwnsHistory) {
       await Balances.setTodayRowToSpot({ account: finalAccount });
+    }
+
+    if (revalueOwnsHistory) {
+      await scheduleBalanceRevalue({ accountId: finalAccount.id });
     }
 
     return finalAccount;

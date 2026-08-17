@@ -7,7 +7,7 @@ import { CronJob } from 'cron';
  * factory only needs the counts for logging; richer typing would couple this
  * module to securities-daily-sync internals.
  */
-interface SyncResult {
+export interface SyncResult {
   totalProcessed: number;
   successfulUpdates: number;
   failedUpdates: number;

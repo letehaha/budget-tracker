@@ -64,7 +64,12 @@
       <card-footer class="text-center text-sm">
         {{ $t('auth.login.noAccount') }}
 
-        <router-link :to="{ name: ROUTES_NAMES.signUp }">
+        <ResponsiveTooltip v-if="!signupsOpen" :content="$t('auth.login.signupsDisabledTooltip')">
+          <span tabindex="0">
+            <Button variant="link" disabled> {{ $t('common.actions.signUp') }} </Button>
+          </span>
+        </ResponsiveTooltip>
+        <router-link v-else :to="{ name: ROUTES_NAMES.signUp }">
           <Button as="span" variant="link"> {{ $t('common.actions.signUp') }} </Button>
         </router-link>
       </card-footer>
@@ -73,8 +78,11 @@
 </template>
 
 <script lang="ts" setup>
+import { getSignupsOpen } from '@/api/auth';
 import { getOAuthAuthorizeUrl } from '@/api/mcp';
 import { DEMO_SESSION_EXPIRED_REASON } from '@/common/const';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const/vue-query';
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import {
   AuthDivider,
   GithubIcon,
@@ -95,7 +103,8 @@ import { email, minLength, required } from '@/js/helpers/validators';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
 import { OAUTH_PROVIDER } from '@bt/shared/types';
-import { Ref, ref, watch } from 'vue';
+import { useQuery } from '@tanstack/vue-query';
+import { Ref, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -123,6 +132,13 @@ const formError: Ref<string | null> = ref(null);
 
 const isOAuthLoading = ref(false);
 const isPasskeyLoading = ref(false);
+
+// Optimistic default (open) so the link doesn't flash disabled while loading.
+const { data: signupsStatus } = useQuery({
+  queryKey: VUE_QUERY_CACHE_KEYS.signupsOpen,
+  queryFn: getSignupsOpen,
+});
+const signupsOpen = computed(() => signupsStatus.value?.signupsOpen ?? true);
 
 // Check for OAuth error from callback redirect
 const oauthError = route.query.oauth_error as string | undefined;

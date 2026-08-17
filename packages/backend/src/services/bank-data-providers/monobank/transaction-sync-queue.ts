@@ -18,6 +18,7 @@ import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes
 import * as Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
 import { runPendingLinkAbsorb } from '@services/accounts/absorb-link-residual';
+import { runWithBalanceRevalueBatch } from '@services/balances/revalue-balance-history.service';
 import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import * as transactionsService from '@services/transactions';
 import { accountHasPlannedRows } from '@services/transactions/planned-matching';
@@ -341,17 +342,22 @@ function createBundle(tokenHash: string): QueueBundle {
     }
   });
 
-  const worker = new Worker<TransactionSyncJobData>(queueName, buildJobProcessor(queueName), {
-    connection,
-    concurrency: 1, // Process one job at a time per worker (one token's rate-limit lane)
-    // Only enable rate limiter in production (not in tests)
-    ...(process.env.NODE_ENV !== 'test' && {
-      limiter: {
-        max: 1, // Max jobs per duration
-        duration: 60000, // 60 seconds - Monobank per-token rate limit
-      },
-    }),
-  });
+  const processJob = buildJobProcessor(queueName);
+  const worker = new Worker<TransactionSyncJobData>(
+    queueName,
+    (job) => runWithBalanceRevalueBatch(() => processJob(job)),
+    {
+      connection,
+      concurrency: 1, // Process one job at a time per worker (one token's rate-limit lane)
+      // Only enable rate limiter in production (not in tests)
+      ...(process.env.NODE_ENV !== 'test' && {
+        limiter: {
+          max: 1, // Max jobs per duration
+          duration: 60000, // 60 seconds - Monobank per-token rate limit
+        },
+      }),
+    },
+  );
 
   worker.on('completed', (job) => handleCompletedBatch(job));
 

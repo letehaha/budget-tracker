@@ -7,11 +7,9 @@ import { CacheClient } from '@js/utils/cache';
 import * as Currencies from '@models/currencies.model';
 import * as UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies, { getBaseCurrency } from '@models/users-currencies.model';
+import { formatRate } from '@services/exchange-rates/build-daily-pair-rate-resolver';
 import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
 import { type RateLookup, resolveUsdRates } from '@services/exchange-rates/resolve-usd-rates';
-
-// Round to 5 precision
-const formatRate = (rate: number) => Math.trunc(rate * 100000) / 100000;
 
 /**
  * Global cache for computed cross-rates.
@@ -131,7 +129,7 @@ async function resolveUserConnection({
  * custom rate and the caller falls through to the market cross-rate. Never
  * cached globally – it belongs to one user.
  */
-async function resolveCustomRate({
+export async function resolveCustomRate({
   userId,
   pair,
   liveRateUpdate,
