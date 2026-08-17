@@ -314,7 +314,8 @@
           "connectRemainingButton": "Connect Remaining Accounts",
           "empty": "No accounts connected yet.",
           "connectButton": "Connect Accounts",
-          "externalId": "External ID: {id}"
+          "externalId": "External ID: {id}",
+          "currencyFallback": "The bank didn't report a currency, so your base currency ({currency}) was used"
         },
         "actions": {
           "title": "Actions",
