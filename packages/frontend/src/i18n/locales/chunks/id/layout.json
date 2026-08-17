@@ -71,12 +71,12 @@
       "categorizing": "Mengkategorisasi...",
       "completed": "AI mengkategorisasi {count} transaksi | AI mengkategorisasi {count} transaksi",
       "completedShort": "Kategorisasi selesai",
+      "completedWithSkipped": "Mengkategorisasi {count} transaksi ({skipped} dilewati)",
       "failed": "Kategorisasi gagal",
       "failedShort": "Gagal",
+      "allSkipped": "AI tidak dapat mengategorikan {count} transaksi dengan yakin",
       "queued": "Menunggu untuk mulai...",
-      "transactions": "transaksi",
-      "completedWithSkipped": "Mengkategorisasi {count} transaksi ({skipped} dilewati)",
-      "allSkipped": "AI tidak dapat mengategorikan {count} transaksi dengan yakin"
+      "transactions": "transaksi"
     }
   },
   "themeSelector": {

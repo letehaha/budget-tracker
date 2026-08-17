@@ -76,6 +76,12 @@
         "typeLabel": "Tipo",
         "typeSubscriptionDesc": "Pago recurrente de servicio",
         "typeBillDesc": "Factura o suministro recurrente",
+        "transactionTypeLabel": "Tipo de transacción",
+        "transactionTypeExpense": "Gasto",
+        "transactionTypeIncome": "Ingreso",
+        "transactionTypeExpenseDesc": "Salida de efectivo recurrente",
+        "transactionTypeIncomeDesc": "Nómina recurrente, honorario fijo o depósito programado",
+        "transactionTypeLockedTooltip": "El tipo de transacción no se puede cambiar después de crear la suscripción",
         "amountLabel": "Importe esperado",
         "amountPlaceholder": "0.00",
         "currencyLabel": "Moneda",
@@ -122,13 +128,7 @@
           "1_week": "1 semana antes",
           "2_weeks": "2 semanas antes",
           "1_month": "1 mes antes"
-        },
-        "transactionTypeLabel": "Tipo de transacción",
-        "transactionTypeExpense": "Gasto",
-        "transactionTypeIncome": "Ingreso",
-        "transactionTypeExpenseDesc": "Salida de efectivo recurrente",
-        "transactionTypeIncomeDesc": "Nómina recurrente, honorario fijo o depósito programado",
-        "transactionTypeLockedTooltip": "El tipo de transacción no se puede cambiar después de crear la suscripción"
+        }
       },
       "progress": {
         "title": "Progreso de cuotas",
@@ -207,8 +207,8 @@
         "filterSubscriptions": "Suscripciones",
         "filterBills": "Facturas",
         "filterInstallments": "A plazos",
-        "monthlyCost": "~{amount}/mes",
         "spendingLabel": "Gasto mensual",
+        "monthlyCost": "~{amount}/mes",
         "incomeLabel": "Ingreso esperado",
         "monthlyIncome": "~{amount}/mes",
         "acrossIncome": "entre {count} ingreso activo | entre {count} ingresos activos",

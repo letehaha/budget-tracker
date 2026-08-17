@@ -1,4 +1,12 @@
 {
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "El trabajo de importación caducó o no se pudo encontrar.",
+        "lostContact": "Se perdió el contacto con el trabajo de importación."
+      }
+    }
+  },
   "importShared": {
     "action": {
       "createNew": "Crear nuevo",
@@ -63,14 +71,6 @@
         "category": "Categoría"
       },
       "importAnywayAriaLabel": "Importar fila {row} de todas formas"
-    }
-  },
-  "pages": {
-    "importExport": {
-      "progress": {
-        "jobExpired": "El trabajo de importación caducó o no se pudo encontrar.",
-        "lostContact": "Se perdió el contacto con el trabajo de importación."
-      }
     }
   }
 }

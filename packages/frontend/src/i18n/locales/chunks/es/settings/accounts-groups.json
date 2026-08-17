@@ -23,6 +23,12 @@
         "inParent": "en {name}",
         "manageConnection": "Gestionar conexión"
       },
+      "update": {
+        "label": "Nombre del grupo",
+        "placeholder": "Introduzca el nombre del grupo",
+        "saveButton": "Guardar",
+        "emptyNameError": "El nombre del grupo no puede estar vacío"
+      },
       "accounts": {
         "heading": "Cuentas de este grupo",
         "empty": "Aún no hay cuentas en este grupo. Añada cuentas a un grupo desde la página de la cuenta.",
@@ -34,12 +40,6 @@
         "confirmTitle": "¿Eliminar este grupo?",
         "description": "El grupo se eliminará. Sus cuentas no se eliminan, simplemente dejan de estar agrupadas.",
         "affectedAccounts": "Estas cuentas se quitarán del grupo:"
-      },
-      "update": {
-        "label": "Nombre del grupo",
-        "placeholder": "Introduzca el nombre del grupo",
-        "saveButton": "Guardar",
-        "emptyNameError": "El nombre del grupo no puede estar vacío"
       }
     }
   }

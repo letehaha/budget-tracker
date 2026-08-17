@@ -5,6 +5,14 @@
       "notFound": "Cuenta no encontrada",
       "notFoundDescription": "La cuenta que busca no existe o ha sido eliminada.",
       "goToAccounts": "Ir a Cuentas",
+      "logo": {
+        "change": "Cambiar logo",
+        "dialogTitle": "Logo de la cuenta",
+        "dialogDescription": "Busque un logo de marca o elija letras personalizadas.",
+        "updatedToast": "Logo de la cuenta actualizado",
+        "resetToast": "Logo eliminado",
+        "error": "Se produjo un error al intentar actualizar el logo de la cuenta"
+      },
       "header": {
         "updateSuccess": "Datos de la cuenta actualizados correctamente",
         "updateError": "Se produjo un error al intentar actualizar la cuenta",
@@ -257,14 +265,6 @@
           "cancelSuccess": "Invitación cancelada.",
           "cancelError": "No se pudo cancelar la invitación."
         }
-      },
-      "logo": {
-        "change": "Cambiar logo",
-        "dialogTitle": "Logo de la cuenta",
-        "dialogDescription": "Busque un logo de marca o elija letras personalizadas.",
-        "updatedToast": "Logo de la cuenta actualizado",
-        "resetToast": "Logo eliminado",
-        "error": "Se produjo un error al intentar actualizar el logo de la cuenta"
       }
     },
     "vehicleDetails": {

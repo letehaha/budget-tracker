@@ -177,31 +177,6 @@
       "description": "Нова версія готова. Перезавантажте, щоб отримати останні покращення.",
       "reload": "Перезавантажити"
     },
-    "logo": {
-      "searchPlaceholder": "Назва бренду або домен",
-      "searchHint": "Введіть назву бренду або домен, як-от amazon.com",
-      "noResults": "Збіг не знайдено.",
-      "useDomainDirectly": "Використати {domain}",
-      "autoLabel": "Автоматично (з назви)",
-      "domainHint": "Щоб знайти точний бренд, введіть домен сайту компанії (напр. amazon.com) – це завжди дає правильний логотип.",
-      "searchError": "Не вдалося завантажити логотипи – спробуйте ще раз",
-      "editAriaLabel": "Редагувати логотип",
-      "dialogTitle": "Змінити логотип",
-      "resetToAuto": "Скинути на автоматичний",
-      "tabs": {
-        "brand": "Бренд",
-        "letters": "Літери"
-      },
-      "noResultsLettersHint": "Використати літери натомість",
-      "lettersLabel": "Літери (1–2)",
-      "lettersPlaceholder": "АБ",
-      "colorLabel": "Колір",
-      "colorSwatchAriaLabel": "Використати колір {color}",
-      "customColorAriaLabel": "Вибрати власний колір",
-      "applyLetters": "Застосувати",
-      "lettersSelectedLabel": "Літери «{letters}»",
-      "remove": "Видалити логотип"
-    },
     "resourceLease": {
       "activeLabel": "Сесія активна",
       "expiredLabel": "Сесія закінчилася",
@@ -220,11 +195,40 @@
         "minutes": "{count} хвилина | {count} хвилини | {count} хвилин",
         "hours": "{count} година | {count} години | {count} годин"
       }
+    },
+    "logo": {
+      "tabs": {
+        "brand": "Бренд",
+        "letters": "Літери"
+      },
+      "searchPlaceholder": "Назва бренду або домен",
+      "searchHint": "Введіть назву бренду або домен, як-от amazon.com",
+      "noResults": "Збіг не знайдено.",
+      "noResultsLettersHint": "Використати літери натомість",
+      "useDomainDirectly": "Використати {domain}",
+      "autoLabel": "Автоматично (з назви)",
+      "domainHint": "Щоб знайти точний бренд, введіть домен сайту компанії (напр. amazon.com) – це завжди дає правильний логотип.",
+      "searchError": "Не вдалося завантажити логотипи – спробуйте ще раз",
+      "editAriaLabel": "Редагувати логотип",
+      "dialogTitle": "Змінити логотип",
+      "resetToAuto": "Скинути на автоматичний",
+      "remove": "Видалити логотип",
+      "lettersLabel": "Літери (1–2)",
+      "lettersPlaceholder": "АБ",
+      "colorLabel": "Колір",
+      "colorSwatchAriaLabel": "Використати колір {color}",
+      "customColorAriaLabel": "Вибрати власний колір",
+      "applyLetters": "Застосувати",
+      "lettersSelectedLabel": "Літери «{letters}»"
     }
   },
   "accountGroups": {
     "create": {
       "error": "Не вдалося створити групу"
+    },
+    "update": {
+      "success": "Групу оновлено",
+      "error": "Не вдалося оновити групу"
     },
     "delete": {
       "success": "Групу видалено",
@@ -237,10 +241,6 @@
     "unlink": {
       "success": "Рахунок видалено з групи",
       "error": "Не вдалося видалити рахунок з групи"
-    },
-    "update": {
-      "success": "Групу оновлено",
-      "error": "Не вдалося оновити групу"
     }
   },
   "validation": {
@@ -252,6 +252,8 @@
     "title": "Сповіщення",
     "markAllAsRead": "Позначити всі як прочитані",
     "empty": "Сповіщень ще немає",
+    "containerAriaLabel": "Сповіщення",
+    "closeToast": "Закрити сповіщення",
     "viewOnGitHub": "Переглянути на GitHub",
     "newVersion": "Нова версія {version}",
     "newRelease": "Новий реліз",
@@ -261,9 +263,7 @@
     },
     "share": {
       "sendFailedHint": "Відкрийте панель спільного доступу, щоб надіслати повторно."
-    },
-    "containerAriaLabel": "Сповіщення",
-    "closeToast": "Закрити сповіщення"
+    }
   },
   "currencyNames": {
     "UAH": "Українська гривня",

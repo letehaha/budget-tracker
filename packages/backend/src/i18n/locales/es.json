@@ -23,11 +23,11 @@
   },
   "accountGroups": {
     "groupNotFound": "Grupo no encontrado",
+    "groupUpdateFailed": "No se pudo actualizar el grupo",
     "parentGroupNotExist": "El grupo padre con ese id no existe.",
     "parentGroupDoesNotExist": "El grupo padre no existe.",
     "accountNotFound": "Cuenta con ese id no encontrada.",
-    "accountGroupNotFound": "Grupo de cuentas con ese id no encontrado.",
-    "groupUpdateFailed": "No se pudo actualizar el grupo"
+    "accountGroupNotFound": "Grupo de cuentas con ese id no encontrado."
   },
   "transactions": {
     "notFound": "Transacción no encontrada",
@@ -86,12 +86,12 @@
       "amountTooSmall": "El importe de la división debe ser al menos {{min}} (mínimo del sistema)",
       "noteTooLong": "La nota de la división no puede superar {{max}} caracteres",
       "invalidCategory": "Categoría con id {{categoryId}} no encontrada o no pertenece al usuario",
+      "duplicateCategory": "Cada división debe usar una categoría diferente",
       "exceedTotal": "El importe total de las divisiones ({{total}}) supera el importe de la transacción ({{transactionAmount}})",
       "invalidData": "Datos de división no válidos",
       "splitNotFound": "División no encontrada",
       "cannotDeleteWithRefunds": "No se puede eliminar una división que tiene reembolsos asociados",
-      "cannotReduceBelowRefunded": "Esta división tiene reembolsos por un total de {{refundsText}}. No puede reducirla por debajo del importe reembolsado. Para reducir más, primero desvincule los reembolsos.",
-      "duplicateCategory": "Cada división debe usar una categoría diferente"
+      "cannotReduceBelowRefunded": "Esta división tiene reembolsos por un total de {{refundsText}}. No puede reducirla por debajo del importe reembolsado. Para reducir más, primero desvincule los reembolsos."
     }
   },
   "budgets": {
@@ -191,8 +191,16 @@
   "validation": {
     "dateInvalid": "\"date\" es una fecha no válida."
   },
+  "urlGuard": {
+    "invalidUrl": "Esto no es una URL válida.",
+    "unsupportedProtocol": "Solo se permiten URLs http:// y https://.",
+    "credentialsInUrlNotAllowed": "La URL no debe contener un nombre de usuario ni una contraseña. Use el campo de clave de API en su lugar.",
+    "privateAddressBlocked": "{{host}} apunta a una dirección de red privada o reservada, lo cual no está permitido.",
+    "hostnameNotResolvable": "No se pudo resolver {{host}}. Verifique que la dirección no tenga errores tipográficos.",
+    "redirectNotAllowed": "El endpoint respondió con una redirección. Introduzca la URL final en su lugar.",
+    "hostnameLookupUnavailable": "No pudimos verificar {{host}} en este momento. Por favor, inténtelo de nuevo en unos instantes."
+  },
   "bankDataProviders": {
-    "apiError": "Error de API de {{provider}}: {{message}}",
     "reauthorizationStarted": "Reautorización iniciada. Por favor, complete el flujo de OAuth.",
     "connectionEstablished": "Conexión establecida correctamente",
     "failedToFetchBanks": "No se pudieron obtener los bancos. Por favor, verifique sus credenciales y el código de país.",
@@ -209,16 +217,17 @@
     "accountCurrencyNotSupported": "La moneda de la cuenta \"{{currency}}\" no está soportada por este sistema.",
     "periodLoadNotSupported": "La carga de transacciones para un período personalizado no está soportada por este proveedor.",
     "transactionsLoadedCount": "Se cargaron {{count}} transacciones.",
+    "apiError": "Error de API de {{provider}}: {{message}}",
     "monobank": {
       "invalidCredentialsFormat": "Formato de credenciales no válido para Monobank",
       "invalidApiToken": "Token de API de Monobank no válido",
       "rateLimitExceeded": "Se superó el límite de solicitudes de la API de Monobank. Por favor, inténtelo de nuevo en un minuto.",
       "accountNotFound": "Cuenta {{accountExternalId}} no encontrada en Monobank",
+      "accountReconnectRequired": "Esta cuenta ya no está disponible en Monobank. Por favor, reconecte su conexión con Monobank para reanudar la sincronización.",
       "webhookNotImplemented": "handleWebhook aún no está implementado para Monobank",
       "unknownCurrencyCode": "Código de moneda desconocido: {{numericCode}}",
       "geoBlocked": "Monobank está bloqueando las solicitudes desde la IP de este servidor. Desactive la VPN o use una dirección IP ucraniana.",
-      "geoBlockedProduction": "La sincronización con Monobank no está disponible temporalmente. Hemos sido notificados y estamos trabajando en ello. Por favor, contacte con soporte si es urgente.",
-      "accountReconnectRequired": "Esta cuenta ya no está disponible en Monobank. Por favor, reconecte su conexión con Monobank para reanudar la sincronización."
+      "geoBlockedProduction": "La sincronización con Monobank no está disponible temporalmente. Hemos sido notificados y estamos trabajando en ello. Por favor, contacte con soporte si es urgente."
     },
     "enableBanking": {
       "invalidCredentialsFormat": "Formato de credenciales no válido para Enable Banking",
@@ -295,14 +304,14 @@
     "alreadyBaseCurrency": "La moneda seleccionada ya es la moneda base",
     "baseCurrencyLockedByShares": "No se puede cambiar la moneda base mientras tenga recursos compartidos activos. Revóquelos o abandónelos primero.",
     "baseCurrencyLockedByHousehold": "No se puede cambiar la moneda base mientras forme parte de un hogar activo. Revoque o abandone su membresía en el hogar primero.",
-    "cannotFindForRefAmount": "¡No se puede encontrar la moneda para calcular el importe de referencia!",
-    "cannotCalculateRefAmount": "No se puede calcular el importe de referencia",
-    "currencyNotConnected": "La moneda solicitada no está conectada",
-    "exchangeRateNotAvailable": "Tipo de cambio no disponible para {{baseCode}}/{{quoteCode}} en {{date}}",
     "baseCurrencyChangeInProgress": "El cambio de moneda base está en curso. Espere a que finalice.",
     "baseCurrencyChangeSyncInProgress": "Una sincronización bancaria todavía se está completando. Inténtelo de nuevo dentro de unos minutos.",
     "baseCurrencyChangeDrainCheckFailed": "No se pudo verificar que las sincronizaciones bancarias estén inactivas. Inténtelo de nuevo.",
-    "baseCurrencyChangeInProgressOtherUser": "El otro participante está cambiando actualmente su moneda base. Inténtelo de nuevo cuando finalice su migración."
+    "baseCurrencyChangeInProgressOtherUser": "El otro participante está cambiando actualmente su moneda base. Inténtelo de nuevo cuando finalice su migración.",
+    "cannotFindForRefAmount": "¡No se puede encontrar la moneda para calcular el importe de referencia!",
+    "cannotCalculateRefAmount": "No se puede calcular el importe de referencia",
+    "currencyNotConnected": "La moneda solicitada no está conectada",
+    "exchangeRateNotAvailable": "Tipo de cambio no disponible para {{baseCode}}/{{quoteCode}} en {{date}}"
   },
   "userSettings": {
     "userSettingsNotFound": "Configuración de usuario no encontrada"
@@ -451,6 +460,7 @@
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Una o más transacciones no encontradas o no pertenecen al usuario.",
+    "cannotLinkDifferentTransactionType": "No se pueden vincular transacciones con un tipo diferente al de la suscripción.",
     "summaryCurrencyNotConnected": "No se puede calcular el resumen de suscripciones: la moneda {{currencyCodes}} no está conectada a su cuenta. Conéctela en Ajustes → Monedas.",
     "summaryBaseCurrencyNotSet": "Moneda base no configurada. Establezca una moneda predeterminada en su configuración para ver el resumen de suscripciones.",
     "payeeNotFoundOrNotBelongToUser": "Beneficiario no encontrado o no pertenece al usuario.",
@@ -464,8 +474,7 @@
         "requiresAmountField": "El registro automático requiere expectedAmount y expectedCurrencyCode.",
         "excludesMatchingField": "El registro automático y las reglas de coincidencia son mutuamente excluyentes."
       }
-    },
-    "cannotLinkDifferentTransactionType": "No se pueden vincular transacciones con un tipo diferente al de la suscripción."
+    }
   },
   "payees": {
     "aliasNameRequired": "El nombre del alias es obligatorio",
@@ -484,25 +493,16 @@
     "notFound": "Beneficiario no encontrado",
     "renameCollision": "Otro beneficiario ya usa este nombre – fusiónelos en su lugar"
   },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "No se pueden establecer un logotipo de marca y letras personalizadas al mismo tiempo.",
+    "colorRequiresInitials": "Un color de monograma requiere letras de monograma."
+  },
   "venture": {
     "dealNotFound": "Trato de inversión no encontrado",
     "eventNotFound": "Evento de inversión no encontrado"
   },
   "vehicles": {
     "notFound": "Vehículo no encontrado"
-  },
-  "urlGuard": {
-    "invalidUrl": "Esto no es una URL válida.",
-    "unsupportedProtocol": "Solo se permiten URLs http:// y https://.",
-    "credentialsInUrlNotAllowed": "La URL no debe contener un nombre de usuario ni una contraseña. Use el campo de clave de API en su lugar.",
-    "privateAddressBlocked": "{{host}} apunta a una dirección de red privada o reservada, lo cual no está permitido.",
-    "hostnameNotResolvable": "No se pudo resolver {{host}}. Verifique que la dirección no tenga errores tipográficos.",
-    "redirectNotAllowed": "El endpoint respondió con una redirección. Introduzca la URL final en su lugar.",
-    "hostnameLookupUnavailable": "No pudimos verificar {{host}} en este momento. Por favor, inténtelo de nuevo en unos instantes."
-  },
-  "brandLogos": {
-    "domainAndInitialsExclusive": "No se pueden establecer un logotipo de marca y letras personalizadas al mismo tiempo.",
-    "colorRequiresInitials": "Un color de monograma requiere letras de monograma."
   },
   "stats": {
     "netWorthHistoryTooManyPoints": "Este rango de fechas y esta granularidad producen demasiados puntos de datos. Elija una granularidad más amplia o un rango más corto."
