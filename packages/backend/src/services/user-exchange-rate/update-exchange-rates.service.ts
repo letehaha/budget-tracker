@@ -2,6 +2,7 @@ import * as UserExchangeRates from '@models/user-exchange-rates.model';
 import { remeasureRefBalances } from '@services/accounts/remeasure-ref-balances';
 
 import { withTransaction } from '../common/with-transaction';
+import { revalueAccountsInCurrencies } from './revalue-accounts-in-currencies';
 
 export const editUserExchangeRates = withTransaction(
   async ({ userId, pairs }: { userId: number; pairs: UserExchangeRates.UpdateExchangeRatePair[] }) => {
@@ -16,6 +17,8 @@ export const editUserExchangeRates = withTransaction(
     // committed and throwing would roll it back. Return the counts so the caller can
     // warn the user; the daily sync re-anchors the lagging ones later.
     const remeasure = await remeasureRefBalances({ userId });
+
+    await revalueAccountsInCurrencies({ userId, pairs });
 
     return { rates, remeasure };
   },

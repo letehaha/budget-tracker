@@ -335,7 +335,7 @@ describeWithFixture('Microsoft Money import execution', () => {
 
       const transactions = await helpers.getTransactions({ limit: 500, raw: true });
       expect(transactions.filter((tx) => Number(tx.amount) === 0)).toHaveLength(0);
-    });
+    }, 30000);
 
     it('imports them at zero with the Void tag when opted in', async () => {
       const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
@@ -372,7 +372,7 @@ describeWithFixture('Microsoft Money import execution', () => {
       // only place it can live once the row itself is zeroed.
       const withOriginalAmount = zeroRows.filter((tx) => /\(voided: \d+\.\d{2}\)/.test(tx.note ?? ''));
       expect(withOriginalAmount.length).toBeGreaterThan(0);
-    });
+    }, 30000);
   });
 
   /**

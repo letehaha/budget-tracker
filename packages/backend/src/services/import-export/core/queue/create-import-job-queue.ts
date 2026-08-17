@@ -2,6 +2,7 @@ import { SSEEventPayload, SSEEventType } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
+import { runWithBalanceRevalueBatch } from '@services/balances/revalue-balance-history.service';
 import { sseManager } from '@services/common/sse';
 import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import { Job, Queue, Worker } from 'bullmq';
@@ -239,33 +240,35 @@ export function createImportJobQueue<
 
           let lastEmittedAt = 0;
           let lastTotal = 0;
-          const summary = await processJob({
-            job,
-            onProgress: async (processedCount, totalCount) => {
-              lastTotal = totalCount;
-              // Progress reporting is best-effort: a committed row must not be
-              // failed and the job must not abort because persisting progress or
-              // pushing the SSE update threw (Redis hiccup, dropped SSE channel).
-              // Swallow and log so the import keeps writing rows.
-              try {
-                // Persist progress on the job itself so /status polling works even
-                // with no SSE listener (e.g. user closed the tab).
-                await job.updateProgress({ processedCount, totalCount });
-                if (processedCount - lastEmittedAt >= PROGRESS_SSE_THROTTLE || processedCount === totalCount) {
-                  lastEmittedAt = processedCount;
-                  sendProgress({
-                    userId,
-                    payload: buildRunningPayload({ jobId: job.id!, processedCount, totalCount }),
+          const summary = await runWithBalanceRevalueBatch(() =>
+            processJob({
+              job,
+              onProgress: async (processedCount, totalCount) => {
+                lastTotal = totalCount;
+                // Progress reporting is best-effort: a committed row must not be
+                // failed and the job must not abort because persisting progress or
+                // pushing the SSE update threw (Redis hiccup, dropped SSE channel).
+                // Swallow and log so the import keeps writing rows.
+                try {
+                  // Persist progress on the job itself so /status polling works even
+                  // with no SSE listener (e.g. user closed the tab).
+                  await job.updateProgress({ processedCount, totalCount });
+                  if (processedCount - lastEmittedAt >= PROGRESS_SSE_THROTTLE || processedCount === totalCount) {
+                    lastEmittedAt = processedCount;
+                    sendProgress({
+                      userId,
+                      payload: buildRunningPayload({ jobId: job.id!, processedCount, totalCount }),
+                    });
+                  }
+                } catch (err) {
+                  logger.error({
+                    message: `[${logLabel} Worker] Progress update failed for job ${job.id}`,
+                    error: err instanceof Error ? err : new Error(String(err)),
                   });
                 }
-              } catch (err) {
-                logger.error({
-                  message: `[${logLabel} Worker] Progress update failed for job ${job.id}`,
-                  error: err instanceof Error ? err : new Error(String(err)),
-                });
-              }
-            },
-          });
+              },
+            }),
+          );
 
           return { summary, totalCount: lastTotal };
         },

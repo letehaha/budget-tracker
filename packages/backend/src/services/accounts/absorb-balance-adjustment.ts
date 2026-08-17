@@ -5,7 +5,9 @@ import { logger } from '@js/utils/logger';
 import Accounts, * as AccountsModel from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
+import { getBaseCurrency } from '@models/users-currencies.model';
 import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
+import { isRevaluedAccount, scheduleBalanceRevalue } from '@services/balances/revalue-balance-history.service';
 
 import { withTransaction } from '../common/with-transaction';
 import { measureSpotRefBalance } from './measure-spot-ref-balance';
@@ -21,7 +23,8 @@ import { restampRefInitialBalance } from './restamp-ref-initial-balance';
  * rate, and `refInitialBalance` is restamped at the ledger-boundary rate (which
  * cascades the change into the Balances history). Summing a caller-supplied
  * `refAmountDelta` from historical per-row `refAmount`s instead would keep the
- * opening ref balance a blend of historical rates.
+ * opening ref balance a blend of historical rates. A system account held outside its
+ * owner's base currency skips the spot pin and is rebuilt at per-day rates instead.
  *
  * Deltas compose: the account row is read under SELECT ... FOR UPDATE, so
  * concurrent absorbs (two imports finalizing into one account, or an import racing
@@ -76,6 +79,10 @@ export const absorbBalanceAdjustment = withTransaction(
       throw new ValidationError({ message: `Account with ID ${accountId} could not be updated` });
     }
 
+    const baseCurrency = isSystem && !amountDelta.isZero() ? await getBaseCurrency({ userId }) : null;
+    const revalueOwnsHistory =
+      !!baseCurrency && isRevaluedAccount({ account: updated, baseCurrencyCode: baseCurrency.currencyCode });
+
     let result = updated;
     if (isSystem && !amountDelta.isZero()) {
       // The opening balance moved → re-derive its boundary-rate ref stamp; the
@@ -101,10 +108,14 @@ export const absorbBalanceAdjustment = withTransaction(
       }
     }
 
-    // Today's net-worth row is a stock equal to the spot `refCurrentBalance`. Pin
-    // it last — after the restamp cascade shifts today's row by the opening-balance
-    // diff — so the spot value survives.
-    await Balances.setTodayRowToSpot({ account: result });
+    // Today's net-worth row is a stock equal to the spot `refCurrentBalance`. Pin it
+    // last, after the restamp cascade shifts today's row by the opening-balance diff,
+    // so the spot value survives. A revalued account gets today's row from the rebuild.
+    if (revalueOwnsHistory) {
+      await scheduleBalanceRevalue({ accountId });
+    } else {
+      await Balances.setTodayRowToSpot({ account: result });
+    }
 
     return result;
   },

@@ -25,7 +25,9 @@ import ResourceShares from '@models/resource-shares.model';
 import { findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { getBaseCurrency, updateCurrencies } from '@models/users-currencies.model';
+import { isRevaluedAccount, revalueBalanceHistory } from '@services/balances/revalue-balance-history.service';
 import { calculateRefAmountFromParams } from '@services/calculate-ref-amount.service';
+import { buildDailyPairRateResolver, toDayKey } from '@services/exchange-rates/build-daily-pair-rate-resolver';
 import * as userExchangeRateService from '@services/user-exchange-rate';
 import { Op, QueryTypes, Transaction as SequelizeTransaction } from 'sequelize';
 
@@ -177,6 +179,9 @@ export async function validateBaseCurrencyChange({ userId, newCurrencyCode }: Ch
  * (in-job re-check), then sweeps the eight tables in order, invoking `onProgress`
  * before each so the running job reports its current step.
  *
+ * Foreign-currency accounts' balance history is rebuilt after that transaction
+ * commits: a rebuild inside it would still read the old base currency.
+ *
  * Runs in the base-currency-change worker with the lock already held — it does NOT
  * acquire one itself. Progress reporting is best-effort and must never throw here,
  * or a Redis hiccup would roll back the whole recalculation.
@@ -221,7 +226,7 @@ export async function changeBaseCurrencyImpl({
     });
 
     await onProgress?.({ step: 'balances' });
-    const balancesRebuilt = await rebuildBalances({
+    const { totalBalancesRecalculated: balancesRebuilt, revaluedAccountIds } = await rebuildBalances({
       userId,
       oldCurrencyCode: oldBaseCurrency.currencyCode,
       newCurrencyCode,
@@ -295,10 +300,14 @@ export async function changeBaseCurrencyImpl({
       portfolioTransfersUpdated,
       holdingsUpdated,
       portfolioBalancesUpdated,
+      revaluedAccountIds,
     };
   });
 
-  return result;
+  const { revaluedAccountIds, ...counts } = result;
+  await revalueForeignAccountHistories({ accountIds: revaluedAccountIds });
+
+  return counts;
 }
 
 const localCalculateRefAmount = async ({
@@ -526,22 +535,52 @@ async function recalculateLoanDetails(params: {
   return loans.length;
 }
 
+const ROWS_PER_UPDATE = 500;
+
+async function writeBalanceAmounts({
+  rows,
+  transaction,
+}: {
+  rows: { id: string; amountCents: number }[];
+  transaction: SequelizeTransaction;
+}): Promise<void> {
+  for (let offset = 0; offset < rows.length; offset += ROWS_PER_UPDATE) {
+    const chunk = rows.slice(offset, offset + ROWS_PER_UPDATE);
+    const replacements: Record<string, unknown> = {};
+    const values = chunk.map((row, index) => {
+      replacements[`id${index}`] = row.id;
+      replacements[`amount${index}`] = row.amountCents;
+      return `(:id${index}::uuid, :amount${index}::bigint)`;
+    });
+
+    await Transactions.sequelize!.query(
+      `UPDATE "Balances" AS b
+          SET "amount" = v.amount, "updatedAt" = NOW()
+         FROM (VALUES ${values.join(', ')}) AS v(id, amount)
+        WHERE b."id" = v.id`,
+      { replacements, transaction },
+    );
+  }
+}
+
 /**
- * Recalculates all balance amounts by converting from old base currency to new base currency.
- * Much simpler than rebuilding from scratch - just recalculates the amounts using exchange rates.
+ * Re-values every stored `Balances` row into the new base currency.
  *
- * Key insight: Balances.amount is ALWAYS stored in the base currency.
- * So we convert from OLD base → NEW base for each balance record.
+ * A row is always denominated in the owner's base currency, so an account whose
+ * currency will EQUAL the new base converts row by row at each row's own date.
+ *
+ * An account whose currency DIFFERS from the new base is returned to the caller
+ * instead, to be rebuilt with `revalueBalanceHistory` once this transaction commits.
+ * Converting its rows one by one would re-derive a blend of historical rates.
  */
 async function rebuildBalances(params: {
   userId: number;
   oldCurrencyCode: string;
   newCurrencyCode: string;
   transaction: SequelizeTransaction;
-}): Promise<number> {
+}): Promise<{ totalBalancesRecalculated: number; revaluedAccountIds: string[] }> {
   const { userId, oldCurrencyCode, newCurrencyCode, transaction } = params;
 
-  // Get all user accounts with their balances
   const accounts = await Accounts.findAll({
     where: { userId },
     transaction,
@@ -549,34 +588,79 @@ async function rebuildBalances(params: {
 
   logger.info(`Recalculating balances for ${accounts.length} accounts for user ${userId}`);
 
+  const convertedAccounts: Accounts[] = [];
+  const revaluedAccountIds: string[] = [];
   let totalBalancesRecalculated = 0;
 
   for (const account of accounts) {
-    const balances = await Balances.findAll({
-      where: { accountId: account.id },
-      transaction,
-    });
-
-    // For each existing balance record, recalculate the amount
-    // Balance amounts are in OLD base currency, convert to NEW base currency
-    for (const balance of balances) {
-      // Convert: OLD base currency → NEW base currency
-      const newAmount = await localCalculateRefAmount({
-        amount: balance.amount, // This is in OLD base currency
-        userId,
-        baseCode: oldCurrencyCode,
-        quoteCode: newCurrencyCode,
-        date: balance.date,
-      });
-
-      balance.amount = newAmount;
-      await balance.save({ transaction, hooks: false });
-
-      totalBalancesRecalculated++;
+    if (isRevaluedAccount({ account, baseCurrencyCode: newCurrencyCode })) {
+      revaluedAccountIds.push(account.id);
+      continue;
     }
+
+    convertedAccounts.push(account);
   }
 
-  return totalBalancesRecalculated;
+  if (!convertedAccounts.length) return { totalBalancesRecalculated, revaluedAccountIds };
+
+  const balances: Balances[] = [];
+  for (const account of convertedAccounts) {
+    balances.push(...(await Balances.findAll({ where: { accountId: account.id }, transaction })));
+  }
+
+  const times = balances.map((balance) => +new Date(balance.date));
+  if (!times.length) return { totalBalancesRecalculated, revaluedAccountIds };
+
+  // A user's manual rate can't apply to this pair: it only fires when the quote is the
+  // user's CURRENT base, and the flip to `newCurrencyCode` happens after this sweep.
+  const resolveRate = await buildDailyPairRateResolver({
+    baseCode: oldCurrencyCode,
+    quoteCode: newCurrencyCode,
+    from: new Date(Math.min(...times)),
+    to: new Date(Math.max(...times)),
+    transaction,
+  });
+
+  const updates: { id: string; amountCents: number }[] = [];
+
+  for (const balance of balances) {
+    const rate = resolveRate?.(toDayKey(balance.date)) ?? null;
+    const newAmount =
+      rate === null
+        ? await localCalculateRefAmount({
+            amount: balance.amount,
+            userId,
+            baseCode: oldCurrencyCode,
+            quoteCode: newCurrencyCode,
+            date: balance.date,
+          })
+        : calculateRefAmountFromParams({ amount: balance.amount, rate });
+
+    updates.push({ id: balance.id, amountCents: newAmount.toCents() });
+    totalBalancesRecalculated++;
+  }
+
+  await writeBalanceAmounts({ rows: updates, transaction });
+
+  return { totalBalancesRecalculated, revaluedAccountIds };
+}
+
+/** One account failing must not abandon the rest: the nightly sweep rebuilds whatever
+ *  is left stale. */
+async function revalueForeignAccountHistories({ accountIds }: { accountIds: string[] }): Promise<void> {
+  for (const accountId of accountIds) {
+    try {
+      await revalueBalanceHistory({ accountId });
+    } catch (error) {
+      logger.error(
+        {
+          message: `Balance history rebuild failed after base currency change for account ${accountId}`,
+          error: error as Error,
+        },
+        { code: 'BASE_CURRENCY_CHANGE_REVALUE_FAILED', accountId },
+      );
+    }
+  }
 }
 
 /**
