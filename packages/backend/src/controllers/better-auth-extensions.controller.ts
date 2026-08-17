@@ -3,7 +3,12 @@
  */
 import { auth } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
+import { areSignupsOpen } from '@services/user/signups-open.service';
 import { z } from 'zod';
+
+export const signupsOpen = createController(z.object({}), async () => {
+  return { data: { signupsOpen: await areSignupsOpen() } };
+});
 
 /**
  * Set password for OAuth-only users.

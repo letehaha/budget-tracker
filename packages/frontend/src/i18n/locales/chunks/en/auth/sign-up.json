@@ -20,6 +20,7 @@
         "passwordTooLong": "Password is too long.",
         "invalidPassword": "Invalid password.",
         "userExists": "User with that email already exists.",
+        "signupsDisabled": "Sign-ups are disabled by the administrator of this instance.",
         "genericErrorRetry": "An error occurred. Please try again.",
         "oauthFailed": "Failed to sign up with {provider}. Please try again.",
         "oauthNotConfigured": "{provider} sign-in is not configured on this server."

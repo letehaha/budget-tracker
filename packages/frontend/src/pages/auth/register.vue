@@ -91,7 +91,7 @@ import FormWrapper from '@/components/fields/form-wrapper.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/lib/ui/card';
 import { useFormValidation } from '@/composable';
-import { ApiErrorResponseError, OAuthProviderNotConfiguredError } from '@/js/errors';
+import { ApiErrorResponseError, OAuthProviderNotConfiguredError, UnexpectedError } from '@/js/errors';
 import { email, minLength, required, sameAs } from '@/js/helpers/validators';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
@@ -114,6 +114,7 @@ const BETTER_AUTH_ERROR_MESSAGES: Record<string, string> = {
   PASSWORD_TOO_SHORT: t('auth.signup.errors.passwordTooShort'),
   PASSWORD_TOO_LONG: t('auth.signup.errors.passwordTooLong'),
   INVALID_PASSWORD: t('auth.signup.errors.invalidPassword'),
+  SIGNUPS_DISABLED: t('auth.signup.errors.signupsDisabled'),
 };
 const form = reactive({
   email: '',
@@ -175,8 +176,10 @@ const { mutate: registerUser, isPending: isFormLoading } = useMutation({
     }
 
     // Check for better-auth error codes in the message
+    const betterAuthCode =
+      error instanceof UnexpectedError ? (error.data as { code?: string } | undefined)?.code : undefined;
     for (const [code, message] of Object.entries(BETTER_AUTH_ERROR_MESSAGES)) {
-      if (error.message?.includes(code)) {
+      if (betterAuthCode === code || error.message?.includes(code)) {
         formError.value = message;
         return;
       }

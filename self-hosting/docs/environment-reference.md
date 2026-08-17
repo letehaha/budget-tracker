@@ -41,21 +41,22 @@ Ignored unless you use the [Traefik overlay](traefik-overlay.md)
 
 ## Optional features (backend runtime; off until set)
 
-| Variable                                                                       | Enables                                      |
-| ------------------------------------------------------------------------------ | -------------------------------------------- |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL`                                          | Email verification & notifications           |
-| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`                                    | Google sign-in                               |
-| `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET`                                    | GitHub sign-in                               |
-| `ENABLE_BANKING_REDIRECT_URL`                                                  | Open-banking integrations                    |
-| `POLYGON_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `FMP_API_KEY`, `COINGECKO_API_KEY` | Investments / market data                    |
-| `CRYPTO_PRICES_SYNC_INTERVAL_MINUTES`                                          | Crypto price sync cadence (1–59, default 15) |
-| `API_LAYER_API_KEYS`                                                           | APILayer paid currency-rate fallback         |
-| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY`     | AI transaction categorisation                |
-| `LOGO_DEV_SECRET_KEY`                                                          | Server-side payee brand-logo search          |
-| `ADMIN_USERS`                                                                  | Comma-separated admin usernames              |
-| `AUTH_RP_ID`, `AUTH_RP_NAME`                                                   | WebAuthn / passkey support                   |
-| `ALLOWED_ORIGINS`                                                              | Extra CORS origins beyond `AUTH_ORIGIN`      |
-| `SENTRY_DSN`                                                                   | Backend error tracking                       |
+| Variable                                                                       | Enables                                                                                                                                                                   |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL`                                          | Email verification & notifications                                                                                                                                        |
+| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`                                    | Google sign-in                                                                                                                                                            |
+| `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET`                                    | GitHub sign-in                                                                                                                                                            |
+| `ENABLE_BANKING_REDIRECT_URL`                                                  | Open-banking integrations                                                                                                                                                 |
+| `POLYGON_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `FMP_API_KEY`, `COINGECKO_API_KEY` | Investments / market data                                                                                                                                                 |
+| `CRYPTO_PRICES_SYNC_INTERVAL_MINUTES`                                          | Crypto price sync cadence (1–59, default 15)                                                                                                                              |
+| `API_LAYER_API_KEYS`                                                           | APILayer paid currency-rate fallback                                                                                                                                      |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY`     | AI transaction categorisation                                                                                                                                             |
+| `LOGO_DEV_SECRET_KEY`                                                          | Server-side payee brand-logo search                                                                                                                                       |
+| `ADMIN_USERS`                                                                  | Comma-separated admin usernames                                                                                                                                           |
+| `AUTH_RP_ID`, `AUTH_RP_NAME`                                                   | WebAuthn / passkey support                                                                                                                                                |
+| `ALLOWED_ORIGINS`                                                              | Extra CORS origins beyond `AUTH_ORIGIN`                                                                                                                                   |
+| `SENTRY_DSN`                                                                   | Backend error tracking                                                                                                                                                    |
+| `SYSTEM_MAX_SIGNUPS_ALLOWED`                                                   | Cap on user accounts: signups are rejected once the instance has this many users (`0` disables signups, `1` = "just me"). Deleting a user frees a slot. Unset = unlimited |
 
 ## Frontend runtime (optional)
 
