@@ -374,11 +374,18 @@
                   :to="`/account/${account.id}`"
                   class="flex items-center justify-between gap-4 rounded-lg border p-4"
                 >
-                  <div class="flex-1 truncate">
-                    <p class="font-medium">{{ account.name }}</p>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-medium">{{ account.name }}</p>
                     <p class="text-muted-foreground text-sm">{{ account.type }}</p>
                     <p class="text-muted-foreground truncate text-sm whitespace-nowrap">
                       {{ $t('pages.integrations.details.connectedAccounts.externalId', { id: account.externalId }) }}
+                    </p>
+                    <p v-if="account.currencyFallback" class="text-warning-text text-sm">
+                      {{
+                        $t('pages.integrations.details.connectedAccounts.currencyFallback', {
+                          currency: account.currencyFallback.assignedCurrency,
+                        })
+                      }}
                     </p>
                   </div>
                   <div class="text-right whitespace-nowrap">
