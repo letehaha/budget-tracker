@@ -139,6 +139,29 @@ export default class Balances extends Model {
           break;
         }
 
+        // Lazy import: the service reads accounts and rates, so a static import
+        // would close a model→service→model cycle at load time.
+        const { isRevaluedAccount, scheduleBalanceRevalue } =
+          await import('@services/balances/revalue-balance-history.service');
+
+        // A foreign-currency account can't be cascaded: every later day has to be
+        // re-valued at its own rate, so it is rebuilt wholesale instead.
+        const affectedAccounts = new Map<
+          string,
+          { account: Accounts; ownerBaseCode: string | undefined; isRevalued: boolean }
+        >();
+        for (const affectedAccountId of new Set([accountId, ...(prevData ? [prevData.accountId] : [])])) {
+          const account = await Accounts.findOne({ where: { id: affectedAccountId } });
+          if (!account) continue;
+
+          const ownerBaseCode = (await getBaseCurrency({ userId: account.userId }))?.currencyCode;
+          affectedAccounts.set(affectedAccountId, {
+            account,
+            ownerBaseCode,
+            isRevalued: !!ownerBaseCode && isRevaluedAccount({ account, baseCurrencyCode: ownerBaseCode }),
+          });
+        }
+
         if (isDelete) {
           amount = amount.negate(); // Reverse the amount if it's a deletion
         } else if (prevData) {
@@ -157,20 +180,24 @@ export default class Balances extends Model {
             !amount.isZero()
             // THEN remove the original transaction
           ) {
-            await this.updateBalanceIncremental({
-              accountId: prevData.accountId,
-              date: originalDate,
-              amount: originalAmount.negate(),
-            });
+            if (!affectedAccounts.get(prevData.accountId)?.isRevalued) {
+              await this.updateBalanceIncremental({
+                accountId: prevData.accountId,
+                date: originalDate,
+                amount: originalAmount.negate(),
+              });
+            }
           }
         }
 
         // Update the balance for the current account and date
-        await this.updateBalanceIncremental({
-          accountId,
-          date,
-          amount,
-        });
+        if (!affectedAccounts.get(accountId)?.isRevalued) {
+          await this.updateBalanceIncremental({
+            accountId,
+            date,
+            amount,
+          });
+        }
 
         // The incremental cascade folded this transaction's historical-rate
         // `refAmount` into today's row, but today's row is a STOCK: it must equal
@@ -178,13 +205,12 @@ export default class Balances extends Model {
         // each affected account to the spot value already written by the
         // account-balance hook. A moved transaction touches its old and new account,
         // so both are re-pinned.
-        const clampAccountIds = new Set<string>([accountId]);
-        if (prevData && prevData.accountId !== accountId) {
-          clampAccountIds.add(prevData.accountId);
-        }
-        for (const clampAccountId of clampAccountIds) {
-          const clampAccount = await Accounts.findOne({ where: { id: clampAccountId } });
-          if (!clampAccount) continue;
+        for (const [clampAccountId, { account: clampAccount, ownerBaseCode, isRevalued }] of affectedAccounts) {
+          // A revalued account gets its whole grid, today's row included, from the rebuild.
+          if (isRevalued) {
+            await scheduleBalanceRevalue({ accountId: clampAccountId });
+            continue;
+          }
 
           // Whether today's row still needs re-pinning. The one case that does NOT
           // is an identity-rate cascade in the OWNER's base currency: the account is
@@ -196,15 +222,10 @@ export default class Balances extends Model {
           // base, not the owner's. The skip therefore requires the account currency,
           // the row's ref currency, AND the owner's actual base to all agree. Loans
           // no-op inside `setTodayRowToSpot`.
-          let shouldPin = true;
-          if (clampAccount.currencyCode === data.refCurrencyCode) {
-            const ownerBaseCurrency = await getBaseCurrency({ userId: clampAccount.userId });
-            if (clampAccount.currencyCode === ownerBaseCurrency?.currencyCode) {
-              shouldPin = false;
-            }
-          }
+          const isOwnerBaseIdentityCascade =
+            clampAccount.currencyCode === data.refCurrencyCode && clampAccount.currencyCode === ownerBaseCode;
 
-          if (shouldPin) {
+          if (!isOwnerBaseIdentityCascade) {
             await this.setTodayRowToSpot({ account: clampAccount });
           }
         }

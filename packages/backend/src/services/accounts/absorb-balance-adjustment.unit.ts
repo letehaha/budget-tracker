@@ -35,6 +35,18 @@ jest.mock('@models/balances.model', () => ({
   default: { setTodayRowToSpot: jest.fn() },
 }));
 
+// The owner's base currency decides between the spot pin and a full history
+// rebuild. Every case here is same-currency (USD), so the pin path runs.
+jest.mock('@models/users-currencies.model', () => ({
+  __esModule: true,
+  getBaseCurrency: jest.fn(async () => ({ currencyCode: 'USD' })),
+}));
+jest.mock('@services/balances/revalue-balance-history.service', () => ({
+  __esModule: true,
+  isRevaluedAccount: jest.fn(() => false),
+  scheduleBalanceRevalue: jest.fn(),
+}));
+
 // `withTransaction` (imported by the service via ../common/with-transaction)
 // reads the ambient CLS transaction from this namespace and, finding none,
 // runs the body inside `connection.sequelize.transaction`. The stub runs the

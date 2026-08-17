@@ -4,6 +4,7 @@ import {
   getEarliestTransactionDate as _getEarliestTransactionDate,
 } from '@root/services/stats';
 import * as helpers from '@tests/helpers';
+import { format } from 'date-fns';
 
 export async function getBalanceHistory<R extends boolean | undefined = undefined>({
   from,
@@ -29,6 +30,19 @@ export async function getBalanceHistory<R extends boolean | undefined = undefine
 
   return result;
 }
+
+const dateKey = (date: string | Date) => (typeof date === 'string' ? date.slice(0, 10) : format(date, 'yyyy-MM-dd'));
+
+/** What the chart reads on `date`: the latest row dated on or before it, in cents. */
+export const balanceCentsOn = ({ rows, date }: { rows: { date: string | Date; amount: unknown }[]; date: Date }) => {
+  const key = format(date, 'yyyy-MM-dd');
+  const latest = rows
+    .filter((row) => dateKey(row.date) <= key)
+    .toSorted((a, b) => dateKey(a.date).localeCompare(dateKey(b.date)))
+    .at(-1);
+
+  return latest ? Math.round(Number(latest.amount) * 100) : 0;
+};
 
 export const getSpendingsByCategories = async ({
   raw = false,

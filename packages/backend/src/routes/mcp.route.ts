@@ -1,6 +1,7 @@
 import { CustomError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { runWithBalanceRevalueBatch } from '@services/balances/revalue-balance-history.service';
 import { McpAuthInfo, verifyMcpToken } from '@services/mcp/auth';
 import { createMcpServer } from '@services/mcp/server';
 import {
@@ -129,13 +130,15 @@ router.post('/', async (req: Request, res: Response) => {
 
   const sessionId = getSessionId({ req });
 
+  // Tool calls mutate data, so each request gets its own revalue scope: the queued
+  // rebuilds must run after the tool's writes, not inline from inside a model hook.
   try {
     // Reuse existing transport for established sessions
     if (sessionId) {
       const transport = resolveSessionTransport({ req, res });
       if (!transport) return;
 
-      await transport.handleRequest(req, res, req.body);
+      await runWithBalanceRevalueBatch(() => transport.handleRequest(req, res, req.body));
       return;
     }
 
@@ -158,7 +161,7 @@ router.post('/', async (req: Request, res: Response) => {
 
       const server = createMcpServer();
       await server.connect(transport);
-      await transport.handleRequest(req, res, req.body);
+      await runWithBalanceRevalueBatch(() => transport.handleRequest(req, res, req.body));
       return;
     }
 

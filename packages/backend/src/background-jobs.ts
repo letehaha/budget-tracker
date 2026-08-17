@@ -1,6 +1,7 @@
 import { logger } from '@js/utils/logger';
 import { shutdownPostHog } from '@js/utils/posthog';
 
+import { balanceRevalueSweepCron } from './crons/balance-revalue-sweep';
 import { cryptoPricesSyncCron } from './crons/crypto-prices-sync';
 import { demoCleanupCron } from './crons/demo-cleanup';
 import { demoTemplateRefreshCron } from './crons/demo-template-refresh';
@@ -41,6 +42,7 @@ export function initializeBackgroundJobs() {
       shareInvitationsExpireCron.startCron();
       shareResourceOrphanCleanupCron.startCron();
       purgeDeletedPortfoliosCron.startCron();
+      balanceRevalueSweepCron.startCron();
     }
   }
 }
@@ -57,6 +59,7 @@ export async function shutdownBackgroundJobs() {
   shareInvitationsExpireCron.stopCron();
   shareResourceOrphanCleanupCron.stopCron();
   purgeDeletedPortfoliosCron.stopCron();
+  balanceRevalueSweepCron.stopCron();
   loadCurrencyRatesJob.stop();
   // Flush remaining PostHog events before exit
   await shutdownPostHog();

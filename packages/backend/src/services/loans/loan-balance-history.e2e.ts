@@ -183,6 +183,34 @@ describe('Loan Balances history rebuild', () => {
     const history = await getLoanHistory({ loanId: loan.id });
     expect(history).toEqual([{ date: TODAY, amount: -9_200 }]);
   });
+
+  it('keeps a foreign-currency loan on its own event-shaped history while the FX source account is revalued', async () => {
+    // USD under the AED test base: both accounts are foreign-currency, but only the
+    // non-loan one becomes a per-day revaluation grid. The loan owns its own rows.
+    const { account: sourceAccount } = await helpers.createAccountWithNewCurrency({ currency: 'USD' });
+    const loan = await helpers.createLoan({
+      payload: helpers.buildCreateLoanPayload({
+        currencyCode: 'USD',
+        initialBalance: 10_000,
+        originalPrincipal: 10_000,
+      }),
+      raw: true,
+    });
+
+    await reAnchorLoan({ loanId: loan.id, balance: 10_000, asOf: DAY_30_AGO });
+    await payLoan({
+      loanId: loan.id,
+      sourceAccountId: sourceAccount.id as RecordId,
+      amount: 2_000,
+      time: subDays(new Date(), 20).toISOString(),
+    });
+
+    const loanHistory = await getLoanHistory({ loanId: loan.id });
+    expect(loanHistory.map((row) => row.date)).toEqual([DAY_30_AGO, DAY_20_AGO]);
+
+    const sourceHistory = await helpers.getBalanceHistory({ accountId: sourceAccount.id, raw: true });
+    expect(sourceHistory.length).toBeGreaterThan(loanHistory.length);
+  });
 });
 
 /** Runs `fn` authenticated as the user owning `cookies`, restoring the default test user afterwards. */
