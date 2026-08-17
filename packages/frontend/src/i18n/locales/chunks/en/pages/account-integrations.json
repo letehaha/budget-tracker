@@ -326,7 +326,11 @@
           "noAdditionalAccounts": "No additional accounts available to connect.",
           "connectedBadge": "Connected",
           "connectSelectedButton": "Connect Selected Accounts ({count})",
-          "selectAccountsButton": "Select Accounts"
+          "selectAccountsButton": "Select Accounts",
+          "availableLabel": "Available",
+          "clearAll": "Clear all",
+          "alreadyConnected": "Already connected",
+          "creditLimitMeta": "Limit {amount}"
         },
         "meta": {
           "connectedSince": "Connected {date}"

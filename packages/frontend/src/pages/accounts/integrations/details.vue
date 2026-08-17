@@ -102,7 +102,7 @@
 
         <!-- pl-[84px] = back button (32) + logo (28) + two gap-3 (24), aligning with the title. -->
         <div
-          class="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs tabular-nums @md/connection:mt-1 @md/connection:pl-[84px]"
+          class="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs tabular-nums @md/connection:mt-1 @md/connection:pl-21"
         >
           <span class="inline-flex items-center gap-1.5">
             <BankProviderLogo class="size-4 rounded-sm" :provider="connectionDetails.providerType" />
@@ -291,128 +291,17 @@
     </template>
 
     <!-- Fetch Accounts Dialog -->
-    <Dialog v-model:open="isFetchAccountsDialogOpen">
-      <DialogContent class="max-h-screen max-w-2xl overflow-y-auto">
-        <DialogHeader class="mb-4">
-          <DialogTitle>{{ $t('pages.integrations.details.fetchAccountsDialog.title') }}</DialogTitle>
-
-          <DialogDescription class="mt-2">
-            {{
-              $t('pages.integrations.details.fetchAccountsDialog.description', {
-                providerName: connectionDetails?.providerName,
-              })
-            }}
-
-            <div class="mt-2">
-              <Popover.Popover>
-                <Popover.PopoverTrigger class="text-primary-text flex cursor-pointer items-center gap-2 text-sm">
-                  {{ $t('pages.integrations.details.fetchAccountsDialog.missingAccountsQuestion') }}
-                  <InfoIcon class="size-4" />
-                </Popover.PopoverTrigger>
-                <Popover.PopoverContent class="max-w-[320px]">
-                  <i18n-t
-                    keypath="pages.integrations.details.fetchAccountsDialog.missingAccountsHint"
-                    tag="p"
-                    class="text-sm leading-6"
-                  >
-                    <template #section>
-                      <strong>{{
-                        $t('pages.integrations.details.fetchAccountsDialog.missingAccountsSectionName')
-                      }}</strong>
-                    </template>
-                    <template #button>
-                      <strong>{{
-                        $t('pages.integrations.details.fetchAccountsDialog.missingAccountsButtonName')
-                      }}</strong>
-                    </template>
-                  </i18n-t>
-                  <p class="text-muted-foreground mt-2 text-sm">
-                    {{ $t('pages.integrations.details.fetchAccountsDialog.missingAccountsPersist') }}
-                  </p>
-                </Popover.PopoverContent>
-              </Popover.Popover>
-            </div>
-          </DialogDescription>
-        </DialogHeader>
-
-        <div v-if="isLoadingAvailableAccounts" class="py-8 text-center">
-          {{ $t('pages.integrations.details.fetchAccountsDialog.loadingAccounts') }}
-        </div>
-
-        <div v-else-if="availableAccountsError" class="border-destructive text-destructive-text rounded-lg border p-4">
-          <p v-if="isForbiddenError">{{ $t('pages.integrations.details.fetchAccountsDialog.sessionExpired') }}</p>
-          <p v-else>{{ $t('pages.integrations.details.fetchAccountsDialog.loadFailed') }}</p>
-        </div>
-
-        <div v-else-if="availableAccounts && availableAccounts.length === 0" class="py-8 text-center">
-          <p class="text-muted-foreground">
-            {{ $t('pages.integrations.details.fetchAccountsDialog.noAdditionalAccounts') }}
-          </p>
-        </div>
-
-        <div v-else-if="availableAccounts && availableAccounts.length > 0" class="grid gap-3">
-          <label
-            v-for="account in availableAccounts"
-            :key="account.externalId"
-            class="flex gap-3 rounded-lg border p-3 max-sm:flex-col sm:items-center sm:justify-between"
-            :class="{
-              'opacity-60': isAccountConnected(account.externalId),
-              'cursor-pointer': !isAccountConnected(account.externalId),
-            }"
-          >
-            <div class="grow">
-              <div class="flex items-center gap-2 overflow-hidden">
-                <p class="shrink truncate font-medium whitespace-nowrap">{{ account.name }}</p>
-
-                <StatusBadge v-if="isAccountConnected(account.externalId)" variant="success">
-                  {{ $t('pages.integrations.details.fetchAccountsDialog.connectedBadge') }}
-                </StatusBadge>
-              </div>
-              <p class="text-muted-foreground text-sm">{{ account.type }}</p>
-            </div>
-
-            <div class="flex items-center gap-4">
-              <div class="text-right">
-                <p class="font-semibold whitespace-nowrap">
-                  {{ formatCurrency(account.balance) }} {{ account.currency }}
-                </p>
-              </div>
-
-              <input
-                v-model="selectedAccountIds"
-                type="checkbox"
-                :value="account.externalId"
-                :disabled="isAccountConnected(account.externalId)"
-                class="size-4 rounded border-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-          </label>
-        </div>
-
-        <DialogFooter class="mt-8 grid gap-3 sm:grid-cols-2">
-          <UiButton variant="outline" @click="isFetchAccountsDialogOpen = false">{{
-            $t('common.actions.cancel')
-          }}</UiButton>
-          <UiButton
-            :disabled="isSyncingAccounts || selectedAccountIds.length === 0"
-            @click="handleSyncSelectedAccounts"
-          >
-            <template v-if="selectedAccountIds.length">
-              <span>
-                {{
-                  $t('pages.integrations.details.fetchAccountsDialog.connectSelectedButton', {
-                    count: selectedAccountIds.length,
-                  })
-                }}
-              </span>
-            </template>
-            <template v-else>
-              <span>{{ $t('pages.integrations.details.fetchAccountsDialog.selectAccountsButton') }}</span>
-            </template>
-          </UiButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConnectAccountsDialog
+      v-model:open="isFetchAccountsDialogOpen"
+      :accounts="availableAccounts"
+      :is-loading="isLoadingAvailableAccounts"
+      :error-type="availableAccountsErrorType"
+      :connected-external-ids="connectedExternalIds"
+      :provider-name="connectionDetails?.providerName ?? ''"
+      :provider-type="connectionDetails?.providerType"
+      :is-connecting="isSyncingAccounts"
+      @connect="handleSyncSelectedAccounts"
+    />
 
     <!-- Disconnect Dialog -->
     <DisconnectIntegrationDialog
@@ -465,15 +354,7 @@ import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card } from '@/components/lib/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/lib/ui/dialog';
-import * as Popover from '@/components/lib/ui/popover';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/lib/ui/dialog';
 import { StatusBadge } from '@/components/lib/ui/status-badge';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -493,7 +374,6 @@ import {
   ArrowLeftIcon,
   CircleAlertIcon,
   EllipsisIcon,
-  InfoIcon,
   KeyRoundIcon,
   PencilIcon,
   RefreshCwIcon,
@@ -502,10 +382,11 @@ import {
   UnlinkIcon,
 } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import ConnectAccountsDialog from './components/connect-accounts-dialog.vue';
 import ConnectionAccountsTable from './components/connection-accounts-table.vue';
 import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';
 import EditConnectionNameDialog from './components/edit-connection-name-dialog.vue';
@@ -525,7 +406,6 @@ const isDisconnectDialogOpen = ref(false);
 const isEditNameDialogOpen = ref(false);
 const isReconnectDialogOpen = ref(false);
 const isUpdateCredentialsDialogOpen = ref(false);
-const selectedAccountIds = ref<string[]>([]);
 const newApiKey = ref('');
 const newPrivateKey = ref('');
 
@@ -758,7 +638,6 @@ const { mutate: syncAccountsMutation, isPending: isSyncingAccounts } = useMutati
       },
     });
     isFetchAccountsDialogOpen.value = false;
-    selectedAccountIds.value = [];
   },
   onError: () => {
     addErrorNotification(t('pages.integrations.notifications.connectAccountsFailed'));
@@ -805,16 +684,21 @@ const { mutate: updateNameMutation, isPending: isSavingName } = useMutation({
   },
 });
 
-const isAccountConnected = (externalId: string): boolean => {
-  return connectionDetails.value?.accounts.some((account) => account.externalId === externalId) ?? false;
-};
+const connectedExternalIds = computed(
+  () => new Set((connectionDetails.value?.accounts ?? []).map((account) => account.externalId)),
+);
 
-const isForbiddenError = computed(() => {
-  if (!availableAccountsError.value) return false;
-  if (availableAccountsError.value instanceof ApiErrorResponseError) {
-    return availableAccountsError.value.data.code === API_ERROR_CODES.forbidden;
+const isAccountConnected = (externalId: string): boolean => connectedExternalIds.value.has(externalId);
+
+const availableAccountsErrorType = computed<'forbidden' | 'generic' | null>(() => {
+  if (!availableAccountsError.value) return null;
+  if (
+    availableAccountsError.value instanceof ApiErrorResponseError &&
+    availableAccountsError.value.data.code === API_ERROR_CODES.forbidden
+  ) {
+    return 'forbidden';
   }
-  return false;
+  return 'generic';
 });
 
 const openFetchAccountsDialog = () => {
@@ -837,9 +721,9 @@ const handleSaveConnectionName = (providerName: string) => {
   updateNameMutation({ connectionId: connectionId.value, providerName });
 };
 
-const handleSyncSelectedAccounts = () => {
-  if (selectedAccountIds.value.length === 0) return;
-  syncAccountsMutation(selectedAccountIds.value);
+const handleSyncSelectedAccounts = (externalIds: string[]) => {
+  if (externalIds.length === 0) return;
+  syncAccountsMutation(externalIds);
 };
 
 const handleDisconnectConfirm = (removeAssociatedAccounts: boolean) => {
@@ -847,13 +731,6 @@ const handleDisconnectConfirm = (removeAssociatedAccounts: boolean) => {
     connectionId: connectionId.value,
     removeAssociatedAccounts,
   });
-};
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
 };
 
 const handleReconnect = async () => {
@@ -874,11 +751,4 @@ const handleReconnect = async () => {
     addErrorNotification(message);
   }
 };
-
-// Reset selected accounts when dialog closes
-watch(isFetchAccountsDialogOpen, (isOpen) => {
-  if (!isOpen) {
-    selectedAccountIds.value = [];
-  }
-});
 </script>
