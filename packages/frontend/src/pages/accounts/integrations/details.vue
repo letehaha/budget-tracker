@@ -1,5 +1,5 @@
 <template>
-  <PageWrapper>
+  <PageWrapper class="w-full max-w-5xl">
     <IntegrationDetailsSkeleton v-if="isLoading" />
 
     <ResourceNotFound
@@ -30,129 +30,228 @@
     </div>
 
     <template v-else-if="connectionDetails">
-      <!-- Header with back button -->
-      <div class="mb-6 flex items-center gap-4">
-        <UiButton variant="ghost" size="icon" @click="router.push({ name: ROUTES_NAMES.accounts })">
-          <span class="text-xl">←</span>
-        </UiButton>
-        <BankConnectionLogo :connection-id="connectionId" :alt="connectionDetails.providerName" size="size-7" />
-        <h1 class="text-2xl tracking-wider">{{ connectionDetails.providerName }}</h1>
-        <UiButton variant="ghost" size="icon" @click="openEditNameDialog">
-          <PencilIcon class="size-4" />
-        </UiButton>
-      </div>
+      <div class="@container/connection">
+        <div class="flex items-center gap-3">
+          <UiButton
+            variant="ghost"
+            size="icon-sm"
+            :aria-label="$t('pages.integrations.details.error.backButton')"
+            @click="router.push({ name: ROUTES_NAMES.accounts })"
+          >
+            <ArrowLeftIcon class="size-4" />
+          </UiButton>
 
-      <!-- Connection Details Card -->
-      <Card class="mb-6">
-        <Collapsible v-model:open="isConnectionDetailsOpen">
-          <CollapsibleTrigger class="flex w-full cursor-pointer items-center justify-between p-6">
-            <h2 class="text-lg font-semibold tracking-wide">
-              {{ $t('pages.integrations.details.connectionDetails.title') }}
-            </h2>
-            <ChevronDownIcon
-              class="size-5 transition-transform duration-200"
-              :class="{ 'rotate-180': isConnectionDetailsOpen }"
-            />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent class="pt-0 max-sm:px-4 max-sm:pb-4">
-              <div class="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p class="text-muted-foreground text-sm">
-                    {{ $t('pages.integrations.details.connectionDetails.type') }}
-                  </p>
-                  <p class="mt-1 flex items-center gap-2 font-medium">
-                    <BankProviderLogo class="size-5" :provider="connectionDetails.providerType" />
+          <BankConnectionLogo
+            :connection-id="connectionId"
+            :alt="connectionDetails.providerName"
+            size="size-7"
+            class="rounded-md"
+          />
 
-                    {{
-                      t(METAINFO_FROM_TYPE[connectionDetails.providerType as keyof typeof METAINFO_FROM_TYPE]!.nameKey)
-                    }}
-                  </p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground text-sm">
-                    {{ $t('pages.integrations.details.connectionDetails.status') }}
-                  </p>
-                  <p class="font-medium">
-                    {{
-                      connectionDetails.isActive
-                        ? $t('pages.integrations.details.connectionDetails.statusActive')
-                        : $t('pages.integrations.details.connectionDetails.statusInactive')
-                    }}
-                  </p>
-                </div>
-                <div>
-                  <p class="text-muted-foreground flex items-center gap-1 text-sm">
-                    {{ $t('pages.integrations.details.connectionDetails.autoSync') }}
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 class="truncate text-xl font-semibold tracking-tight">{{ connectionDetails.providerName }}</h1>
 
-                    <ResponsiveTooltip
-                      :content="$t('pages.integrations.details.connectionDetails.autoSyncTooltip')"
-                      content-class-name="max-w-[300px] text-sm leading-6 text-white/90"
-                    >
-                      <InfoIcon class="text-primary-text size-4 cursor-pointer" />
-                    </ResponsiveTooltip>
-                  </p>
-                  <p class="font-medium">
-                    {{ $t('pages.integrations.details.connectionDetails.every12Hours') }}
-                    <span class="text-muted-foreground font-normal">
-                      {{
-                        $t('pages.integrations.details.connectionDetails.lastSync', {
-                          time: formatRelativeTime(connectionDetails.lastSyncAt),
-                        })
-                      }}
-                    </span>
-                  </p>
+              <DesktopOnlyTooltip :content="$t('pages.integrations.details.actions.renameButton')">
+                <UiButton
+                  variant="ghost"
+                  size="icon-sm"
+                  :aria-label="$t('pages.integrations.details.actions.renameButton')"
+                  @click="openEditNameDialog"
+                >
+                  <PencilIcon class="size-3.5" />
+                </UiButton>
+              </DesktopOnlyTooltip>
+
+              <StatusBadge :variant="connectionDetails.isActive ? 'success' : 'destructive'">
+                {{
+                  connectionDetails.isActive
+                    ? $t('pages.integrations.details.connectionDetails.statusActive')
+                    : $t('pages.integrations.details.connectionDetails.statusInactive')
+                }}
+              </StatusBadge>
+            </div>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <UiButton variant="outline" size="sm" :aria-label="$t('common.ui.actions')">
+                <EllipsisIcon class="size-4" />
+                <span class="hidden @md/connection:inline">
+                  {{ $t('pages.integrations.details.actions.manage') }}
+                </span>
+              </UiButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="min-w-48">
+              <DropdownMenuItem @select="openEditNameDialog">
+                <PencilIcon class="size-4" />
+                {{ $t('pages.integrations.details.actions.renameButton') }}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                class="text-destructive-text"
+                :disabled="isDisconnecting"
+                @select="openDisconnectDialog"
+              >
+                <UnlinkIcon class="size-4" />
+                {{ $t('pages.integrations.details.actions.disconnectButton') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <!-- pl-[84px] = back button (32) + logo (28) + two gap-3 (24), aligning with the title. -->
+        <div
+          class="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs tabular-nums @md/connection:mt-1 @md/connection:pl-[84px]"
+        >
+          <span class="inline-flex items-center gap-1.5">
+            <BankProviderLogo class="size-4 rounded-sm" :provider="connectionDetails.providerType" />
+            {{ providerDisplayName }}
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>{{ $t('pages.integrations.details.meta.connectedSince', { date: connectedSinceLabel }) }}</span>
+        </div>
+
+        <Card class="@container/summary mt-4">
+          <div class="flex flex-col @2xl/summary:flex-row @2xl/summary:items-center">
+            <div
+              class="border-border/60 shrink-0 border-b p-4 @2xl/summary:border-b-0 @2xl/summary:p-5 @2xl/summary:pr-8"
+            >
+              <div class="text-muted-foreground text-[11px] font-semibold tracking-[0.14em] uppercase">
+                {{
+                  leadTotalLabel === null
+                    ? $t('pages.integrations.details.summary.accounts')
+                    : $t('pages.integrations.details.summary.totalBalance')
+                }}
+              </div>
+              <div class="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
+                {{ leadTotalLabel ?? connectionDetails.accounts.length }}
+              </div>
+              <div class="text-muted-foreground mt-1 text-xs">{{ summarySubtitle }}</div>
+            </div>
+
+            <div
+              :class="
+                cn(
+                  'grid grid-cols-2',
+                  '@max-2xl/summary:[&>div]:border-border/60 @max-2xl/summary:[&>div]:p-4 @max-2xl/summary:[&>div:nth-child(n+3)]:border-t @max-2xl/summary:[&>div:nth-child(odd):last-child]:col-span-2 @max-2xl/summary:[&>div:nth-child(odd):not(:last-child)]:border-r',
+                  '@2xl/summary:border-border/60 @2xl/summary:flex-1 @2xl/summary:gap-x-6 @2xl/summary:border-l @2xl/summary:p-5',
+                  connectionDetails.consent ? '@2xl/summary:grid-cols-4' : '@2xl/summary:grid-cols-3',
+                )
+              "
+            >
+              <div>
+                <div class="text-muted-foreground text-[11px] font-semibold tracking-[0.14em] uppercase">
+                  {{ $t('pages.integrations.details.summary.accounts') }}
                 </div>
-                <div>
-                  <p class="text-muted-foreground text-sm">
-                    {{ $t('pages.integrations.details.connectionDetails.connectedAccounts') }}
-                  </p>
-                  <p class="font-medium">{{ connectionDetails.accounts.length }}</p>
+                <div class="mt-1 text-base font-semibold tabular-nums">{{ accountsStatValue }}</div>
+                <div v-if="totalAvailableCount" class="text-muted-foreground mt-0.5 text-xs">
+                  {{ $t('pages.integrations.details.summary.connectedSub') }}
                 </div>
               </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </Card>
-
-      <!-- Reconnect-required banner (for LunchFlow and other API key providers).
-           Shown for auth-failure and backup-restored connections alike.
-           Excluded for Enable Banking because OAuth providers can't re-supply
-           credentials inline — they reconnect via the Connection Validity card. -->
-      <Card
-        v-if="needsReconnect && connectionDetails.providerType !== BANK_PROVIDER_TYPE.ENABLE_BANKING"
-        class="border-destructive/60 bg-destructive/5 @container/reconnect mb-6"
-      >
-        <CardContent class="p-5 @md/reconnect:p-6">
-          <div
-            class="flex flex-col gap-4 @md/reconnect:flex-row @md/reconnect:items-center @md/reconnect:justify-between"
-          >
-            <div class="flex items-start gap-4">
-              <span
-                class="bg-destructive/15 text-destructive-text flex size-10 shrink-0 items-center justify-center rounded-full"
-              >
-                <CircleAlertIcon class="size-5" />
-              </span>
-              <div class="min-w-0">
-                <p class="text-destructive-text font-semibold">
-                  {{ $t('pages.integrations.authFailure.title') }}
-                </p>
-                <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
-                  {{ $t('pages.integrations.authFailure.description') }}
-                </p>
+              <div>
+                <div class="text-muted-foreground text-[11px] font-semibold tracking-[0.14em] uppercase">
+                  {{ $t('pages.integrations.details.connectionDetails.autoSync') }}
+                </div>
+                <div class="mt-1 text-base font-semibold tabular-nums">{{ autoSyncStatLabel }}</div>
+              </div>
+              <div>
+                <div class="text-muted-foreground text-[11px] font-semibold tracking-[0.14em] uppercase">
+                  {{ $t('pages.integrations.details.summary.lastSync') }}
+                </div>
+                <div class="mt-1 text-base font-semibold tabular-nums">{{ lastSyncLabel }}</div>
+                <div v-if="failedSyncCount" class="text-destructive-text mt-0.5 text-xs">
+                  {{ $t('pages.integrations.details.summary.accountsFailed', failedSyncCount) }}
+                </div>
+              </div>
+              <div v-if="connectionDetails.consent">
+                <div class="text-muted-foreground text-[11px] font-semibold tracking-[0.14em] uppercase">
+                  {{ $t('pages.integrations.details.summary.consent') }}
+                </div>
+                <div class="mt-1 text-base font-semibold tabular-nums" :class="consentStatClass">
+                  {{ consentStatLabel }}
+                </div>
               </div>
             </div>
-            <UiButton
-              variant="default"
-              class="w-full shrink-0 @md/reconnect:w-auto"
-              @click="isUpdateCredentialsDialogOpen = true"
-            >
-              <KeyRoundIcon class="size-4" />
-              {{ $t('pages.integrations.authFailure.updateButton') }}
-            </UiButton>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+
+        <div
+          v-if="
+            connectionDetails.consent &&
+            (connectionDetails.consent.isExpired || connectionDetails.consent.isExpiringSoon)
+          "
+          :class="
+            cn(
+              'mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-3 py-2.5 text-sm',
+              connectionDetails.consent.isExpired
+                ? 'border-destructive/25 bg-destructive/5 text-destructive-text'
+                : 'border-warning/25 bg-warning/10 text-warning-text',
+            )
+          "
+        >
+          <TriangleAlertIcon class="size-4 shrink-0" />
+          <p class="min-w-40 flex-1 tabular-nums">
+            {{
+              connectionDetails.consent.isExpired
+                ? $t('pages.integrations.details.consentStrip.expired')
+                : $t(
+                    'pages.integrations.details.consentStrip.expiring',
+                    {
+                      days: connectionDetails.consent.daysRemaining ?? 0,
+                      date: consentValidUntilLabel,
+                    },
+                    connectionDetails.consent.daysRemaining ?? 0,
+                  )
+            }}
+          </p>
+          <UiButton variant="outline" size="sm" class="w-full @sm/connection:w-auto" @click="openReconnectDialog">
+            {{ $t('pages.integrations.details.connectionValidity.reconnectButton') }}
+          </UiButton>
+        </div>
+
+        <!-- Enable Banking is excluded: OAuth credentials can't be re-supplied inline. -->
+        <div
+          v-if="needsReconnect && connectionDetails.providerType !== BANK_PROVIDER_TYPE.ENABLE_BANKING"
+          class="border-destructive/25 bg-destructive/5 text-destructive-text mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-3 py-2.5 text-sm"
+        >
+          <CircleAlertIcon class="size-4 shrink-0" />
+          <p class="min-w-40 flex-1">{{ $t('pages.integrations.authFailure.description') }}</p>
+          <UiButton
+            variant="outline"
+            size="sm"
+            class="w-full @sm/connection:w-auto"
+            @click="isUpdateCredentialsDialogOpen = true"
+          >
+            <KeyRoundIcon class="size-4" />
+            {{ $t('pages.integrations.authFailure.updateButton') }}
+          </UiButton>
+        </div>
+
+        <div class="mt-6 mb-2 flex min-h-8 flex-wrap items-center justify-between gap-2 px-1">
+          <div class="flex items-center gap-2">
+            <h2 class="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
+              {{ $t('pages.integrations.details.connectedAccounts.title') }}
+            </h2>
+            <span class="text-muted-foreground/70 text-xs font-medium tabular-nums">
+              {{ connectionDetails.accounts.length }}
+            </span>
+          </div>
+
+          <UiButton v-if="canSyncNow" variant="ghost-primary" size="sm" :disabled="isSyncingNow" @click="handleSyncNow">
+            <RefreshCwIcon :class="cn('size-4', isSyncingNow && 'animate-spin')" />
+            {{ $t('pages.integrations.details.connectedAccounts.syncNow') }}
+          </UiButton>
+        </div>
+
+        <ConnectionAccountsTable
+          :accounts="connectionDetails.accounts"
+          :remaining-count="remainingAccountsCount"
+          :needs-attention-count="failedSyncCount"
+          :total-label="leadTotalLabel"
+          @connect-remaining="openFetchAccountsDialog"
+        />
+      </div>
 
       <!-- Update Credentials Dialog -->
       <Dialog v-model:open="isUpdateCredentialsDialogOpen">
@@ -161,29 +260,19 @@
             <DialogTitle>{{ $t('pages.integrations.updateCredentials.title') }}</DialogTitle>
           </DialogHeader>
           <div class="space-y-4">
-            <div>
-              <label class="mb-2 block text-sm font-medium">
-                {{ $t('pages.integrations.updateCredentials.apiKeyLabel') }}
-              </label>
-              <input
-                v-model="newApiKey"
-                type="password"
-                class="w-full rounded-md border px-3 py-2"
-                :placeholder="$t('pages.integrations.updateCredentials.apiKeyPlaceholder')"
-              />
-            </div>
-            <!-- Private key field for Walutomat -->
-            <div v-if="connectionDetails.providerType === BANK_PROVIDER_TYPE.WALUTOMAT">
-              <label class="mb-2 block text-sm font-medium">{{
-                $t('pages.integrations.walutomat.privateKeyLabel')
-              }}</label>
-              <textarea
-                v-model="newPrivateKey"
-                class="w-full rounded-md border px-3 py-2 font-mono text-xs"
-                rows="6"
-                :placeholder="$t('pages.integrations.walutomat.privateKeyPlaceholder')"
-              />
-            </div>
+            <InputField
+              v-model="newApiKey"
+              type="password"
+              :label="$t('pages.integrations.updateCredentials.apiKeyLabel')"
+              :placeholder="$t('pages.integrations.updateCredentials.apiKeyPlaceholder')"
+            />
+            <TextareaField
+              v-if="connectionDetails.providerType === BANK_PROVIDER_TYPE.WALUTOMAT"
+              v-model="newPrivateKey"
+              :rows="6"
+              :label="$t('pages.integrations.walutomat.privateKeyLabel')"
+              :placeholder="$t('pages.integrations.walutomat.privateKeyPlaceholder')"
+            />
           </div>
           <DialogFooter class="mt-6 grid gap-3 sm:grid-cols-2">
             <UiButton variant="outline" @click="isUpdateCredentialsDialogOpen = false">
@@ -199,219 +288,6 @@
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <!-- Consent Validity Card (for Enable Banking) -->
-      <Card
-        v-if="connectionDetails.consent"
-        class="mb-6"
-        :class="{
-          'border-yellow-500': connectionDetails.consent.isExpiringSoon,
-        }"
-      >
-        <Collapsible v-model:open="isConnectionValidityOpen">
-          <CollapsibleTrigger class="flex w-full cursor-pointer items-center justify-between p-6">
-            <div class="flex items-center gap-3">
-              <h2 class="text-lg font-semibold tracking-wide">
-                {{ $t('pages.integrations.details.connectionValidity.title') }}
-              </h2>
-              <span
-                class="rounded-full px-2 py-0.5 text-xs font-medium"
-                :class="{
-                  'bg-success text-success-text':
-                    !connectionDetails.consent.isExpired && !connectionDetails.consent.isExpiringSoon,
-                  'bg-yellow-500/40 text-white': connectionDetails.consent.isExpiringSoon,
-                  'bg-destructive/20 text-destructive-text': connectionDetails.consent.isExpired,
-                }"
-              >
-                {{
-                  connectionDetails.consent.isExpired
-                    ? $t('pages.integrations.details.connectionValidity.statusExpired')
-                    : connectionDetails.consent.isExpiringSoon
-                      ? $t('pages.integrations.details.connectionValidity.statusExpiringSoon')
-                      : $t('pages.integrations.details.connectionValidity.statusActive')
-                }}
-              </span>
-            </div>
-            <ChevronDownIcon
-              class="size-5 transition-transform duration-200"
-              :class="{ 'rotate-180': isConnectionValidityOpen }"
-            />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent class="pt-0 max-sm:px-4 max-sm:pb-4">
-              <div class="space-y-4">
-                <!-- Expiration Warning -->
-                <Callout
-                  v-if="connectionDetails.consent.isExpired"
-                  variant="destructive"
-                  :title="$t('pages.integrations.details.connectionValidity.expiredTitle')"
-                >
-                  <p class="text-muted-foreground text-sm">
-                    {{ $t('pages.integrations.details.connectionValidity.expiredDescription') }}
-                  </p>
-                </Callout>
-                <div
-                  v-else-if="connectionDetails.consent.isExpiringSoon"
-                  class="rounded-lg bg-yellow-100 p-4 text-yellow-800"
-                >
-                  <p class="font-semibold">
-                    {{ $t('pages.integrations.details.connectionValidity.expiringSoonTitle') }}
-                  </p>
-                  <p class="mt-1 text-sm">
-                    {{
-                      $t('pages.integrations.details.connectionValidity.expiringSoonDescription', {
-                        days: connectionDetails.consent.daysRemaining,
-                      })
-                    }}
-                  </p>
-                </div>
-
-                <!-- Validity Details -->
-                <div class="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p class="text-muted-foreground text-sm">
-                      {{ $t('pages.integrations.details.connectionValidity.validFrom') }}
-                    </p>
-                    <p class="font-medium">
-                      {{
-                        connectionDetails.consent.validFrom
-                          ? formatDate(connectionDetails.consent.validFrom)
-                          : $t('pages.integrations.details.connectionValidity.notAvailable')
-                      }}
-                    </p>
-                  </div>
-                  <div>
-                    <p class="text-muted-foreground text-sm">
-                      {{ $t('pages.integrations.details.connectionValidity.validUntil') }}
-                    </p>
-                    <p class="font-medium">
-                      {{ formatDate(connectionDetails.consent.validUntil!) }}
-                    </p>
-                  </div>
-                  <div>
-                    <p class="text-muted-foreground text-sm">
-                      {{ $t('pages.integrations.details.connectionValidity.daysRemaining') }}
-                    </p>
-                    <p
-                      class="font-medium"
-                      :class="{
-                        'text-destructive-text': connectionDetails.consent.isExpired,
-                        'text-yellow-600': connectionDetails.consent.isExpiringSoon,
-                      }"
-                    >
-                      {{
-                        $t(
-                          'pages.integrations.details.connectionValidity.daysCount',
-                          connectionDetails.consent.daysRemaining ?? 0,
-                        )
-                      }}
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Reconnect Button -->
-                <div class="pt-2">
-                  <p
-                    v-if="!connectionDetails.consent.isExpired && !connectionDetails.consent.isExpiringSoon"
-                    class="text-muted-foreground mb-3 text-sm"
-                  >
-                    {{ $t('pages.integrations.details.connectionValidity.validConnectionHint') }}
-                  </p>
-                  <UiButton variant="default" @click="openReconnectDialog">
-                    {{ $t('pages.integrations.details.connectionValidity.reconnectButton') }}
-                  </UiButton>
-                </div>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </Card>
-
-      <!-- Connected Accounts Card -->
-      <Card class="mb-6">
-        <Collapsible class="@container/connect-accounts" v-model:open="isConnectedAccountsOpen">
-          <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 p-6">
-            <CollapsibleTrigger class="flex flex-1 cursor-pointer items-center justify-between gap-2">
-              <h2 class="text-lg font-semibold tracking-wide whitespace-nowrap">
-                {{ $t('pages.integrations.details.connectedAccounts.title') }}
-              </h2>
-
-              <ChevronDownIcon
-                class="size-5 transition-transform duration-200"
-                :class="{ 'rotate-180': isConnectedAccountsOpen }"
-              />
-            </CollapsibleTrigger>
-
-            <UiButton class="ml-auto hidden @[550px]/connect-accounts:block" size="sm" @click="openFetchAccountsDialog">
-              {{ $t('pages.integrations.details.connectedAccounts.connectRemainingButton') }}
-            </UiButton>
-          </div>
-          <CollapsibleContent>
-            <CardContent class="pt-0">
-              <UiButton
-                class="mb-4 ml-auto block @[550px]/connect-accounts:hidden"
-                size="sm"
-                @click="openFetchAccountsDialog"
-              >
-                {{ $t('pages.integrations.details.connectedAccounts.connectRemainingButton') }}
-              </UiButton>
-
-              <div
-                v-if="connectionDetails.accounts.length === 0"
-                class="text-muted-foreground space-y-4 py-8 text-center"
-              >
-                <p>{{ $t('pages.integrations.details.connectedAccounts.empty') }}</p>
-
-                <UiButton size="sm" @click="openFetchAccountsDialog">{{
-                  $t('pages.integrations.details.connectedAccounts.connectButton')
-                }}</UiButton>
-              </div>
-
-              <div v-else class="space-y-3">
-                <router-link
-                  v-for="account in connectionDetails.accounts"
-                  :key="account.id"
-                  :to="`/account/${account.id}`"
-                  class="flex items-center justify-between gap-4 rounded-lg border p-4"
-                >
-                  <div class="min-w-0 flex-1">
-                    <p class="truncate font-medium">{{ account.name }}</p>
-                    <p class="text-muted-foreground text-sm">{{ account.type }}</p>
-                    <p class="text-muted-foreground truncate text-sm whitespace-nowrap">
-                      {{ $t('pages.integrations.details.connectedAccounts.externalId', { id: account.externalId }) }}
-                    </p>
-                    <p v-if="account.currencyFallback" class="text-warning-text text-sm">
-                      {{
-                        $t('pages.integrations.details.connectedAccounts.currencyFallback', {
-                          currency: account.currencyFallback.assignedCurrency,
-                        })
-                      }}
-                    </p>
-                  </div>
-                  <div class="text-right whitespace-nowrap">
-                    <p class="font-semibold">{{ formatCurrency(account.currentBalance) }} {{ account.currencyCode }}</p>
-                  </div>
-                </router-link>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </Card>
-
-      <!-- Actions Card -->
-      <Card>
-        <CardHeader>
-          <h2 class="text-lg font-semibold tracking-wide">{{ $t('pages.integrations.details.actions.title') }}</h2>
-        </CardHeader>
-
-        <CardContent>
-          <div class="flex gap-4 max-sm:p-4">
-            <UiButton variant="destructive" :disabled="isDisconnecting" @click="openDisconnectDialog">
-              {{ $t('pages.integrations.details.actions.disconnectButton') }}
-            </UiButton>
-          </div>
-        </CardContent>
-      </Card>
     </template>
 
     <!-- Fetch Accounts Dialog -->
@@ -488,12 +364,9 @@
               <div class="flex items-center gap-2 overflow-hidden">
                 <p class="shrink truncate font-medium whitespace-nowrap">{{ account.name }}</p>
 
-                <span
-                  v-if="isAccountConnected(account.externalId)"
-                  class="bg-success rounded px-2 py-0.5 text-xs font-medium text-white"
-                >
+                <StatusBadge v-if="isAccountConnected(account.externalId)" variant="success">
                   {{ $t('pages.integrations.details.fetchAccountsDialog.connectedBadge') }}
-                </span>
+                </StatusBadge>
               </div>
               <p class="text-muted-foreground text-sm">{{ account.type }}</p>
             </div>
@@ -567,23 +440,31 @@
 
 <script lang="ts" setup>
 import {
+  SyncStatus,
   disconnectProvider,
   getAvailableAccounts,
   reauthorizeConnection,
   syncSelectedAccounts,
+  syncTransactions,
   updateConnectionDetails,
 } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { METAINFO_FROM_TYPE } from '@/common/const/bank-providers';
+import InputField from '@/components/fields/input-field.vue';
+import TextareaField from '@/components/fields/textarea-field.vue';
 import BankConnectionLogo from '@/components/common/bank-connection-logo.vue';
 import BankProviderLogo from '@/components/common/bank-providers/bank-provider-logo.vue';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/common/dropdown-menu';
 import PageWrapper from '@/components/common/page-wrapper.vue';
 import ResourceNotFound from '@/components/common/resource-not-found.vue';
-import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { Callout } from '@/components/lib/ui/callout';
-import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
+import { Card } from '@/components/lib/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -593,26 +474,39 @@ import {
   DialogTitle,
 } from '@/components/lib/ui/dialog';
 import * as Popover from '@/components/lib/ui/popover';
+import { StatusBadge } from '@/components/lib/ui/status-badge';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useBankConnectionDetails } from '@/composable/data-queries/bank-providers/bank-connection-details';
+import { useFormatCurrency } from '@/composable/formatters';
+import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
+import { useDateLocale } from '@/composable/use-date-locale';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { ApiErrorResponseError, isNotFoundError } from '@/js/errors';
+import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
+import { useAccountsStore } from '@/stores';
 import { BANK_PROVIDER_TYPE, DEACTIVATION_REASON } from '@bt/shared/types';
 import { API_ERROR_CODES } from '@bt/shared/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import {
   ArrowLeftIcon,
-  ChevronDownIcon,
   CircleAlertIcon,
+  EllipsisIcon,
   InfoIcon,
   KeyRoundIcon,
   PencilIcon,
+  RefreshCwIcon,
   SearchXIcon,
+  TriangleAlertIcon,
+  UnlinkIcon,
 } from '@lucide/vue';
+import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import ConnectionAccountsTable from './components/connection-accounts-table.vue';
 import DisconnectIntegrationDialog from './components/disconnect-integration-dialog.vue';
 import EditConnectionNameDialog from './components/edit-connection-name-dialog.vue';
 import IntegrationDetailsSkeleton from './components/integration-details-skeleton.vue';
@@ -635,11 +529,10 @@ const selectedAccountIds = ref<string[]>([]);
 const newApiKey = ref('');
 const newPrivateKey = ref('');
 
-// Collapsible states
-const isConnectionDetailsOpen = ref(true);
-const isConnectedAccountsOpen = ref(true);
-const isConnectionValidityOpen = ref(false);
 const isReconnectPending = ref(false);
+
+const { format: formatDateLocale, formatDistanceToNow } = useDateLocale();
+const { formatAmountByCurrencyCode, formatBaseCurrency } = useFormatCurrency();
 
 const {
   data: connectionDetails,
@@ -649,9 +542,87 @@ const {
 
 const isConnectionNotFound = computed(() => isNotFoundError(error.value));
 
+const providerDisplayName = computed(() => {
+  const meta = METAINFO_FROM_TYPE[connectionDetails.value?.providerType ?? ''];
+  return meta ? t(meta.nameKey) : (connectionDetails.value?.provider.name ?? '');
+});
+
+const MS_PER_HOUR = 60 * 60 * 1000;
+
+const autoSyncIntervalHours = computed(() => {
+  const features = connectionDetails.value?.provider.features;
+  if (!features?.supportsAutoSync || !features.defaultSyncInterval) return null;
+  return Math.round(features.defaultSyncInterval / MS_PER_HOUR);
+});
+
+const autoSyncStatLabel = computed(() =>
+  autoSyncIntervalHours.value === null
+    ? t('pages.integrations.details.summary.autoSyncOff')
+    : t('pages.integrations.details.summary.every', { hours: autoSyncIntervalHours.value }),
+);
+
+const lastSyncLabel = computed(() => {
+  const lastSyncAt = connectionDetails.value?.lastSyncAt;
+  if (!lastSyncAt) return t('pages.integrations.details.relativeTime.never');
+  return formatDistanceToNow(new Date(lastSyncAt), { addSuffix: true });
+});
+
+const connectedSinceLabel = computed(() =>
+  connectionDetails.value ? formatDateLocale(connectionDetails.value.createdAt, 'MMM yyyy') : '',
+);
+
+const consentValidUntilLabel = computed(() => {
+  const validUntil = connectionDetails.value?.consent?.validUntil;
+  return validUntil
+    ? formatDateLocale(validUntil, 'PP')
+    : t('pages.integrations.details.connectionValidity.notAvailable');
+});
+
+const consentStatLabel = computed(() => {
+  const consent = connectionDetails.value?.consent;
+  if (!consent) return '';
+  if (consent.isExpired) return t('pages.integrations.details.connectionValidity.statusExpired');
+  if (consent.daysRemaining === null) return t('pages.integrations.details.connectionValidity.statusActive');
+  return t('pages.integrations.details.connectionValidity.daysCount', consent.daysRemaining);
+});
+
+const consentStatClass = computed(() => {
+  const consent = connectionDetails.value?.consent;
+  if (!consent) return '';
+  if (consent.isExpired) return 'text-destructive-text';
+  if (consent.isExpiringSoon) return 'text-warning-text';
+  return 'text-success-text';
+});
+
+const { accountsRecord } = storeToRefs(useAccountsStore());
+const { sumBaseBalance } = useBaseBalanceTotals();
+
+// When some accounts aren't in the store yet, fall back to a plain sum if all share one currency.
+const leadTotalLabel = computed(() => {
+  const accounts = connectionDetails.value?.accounts ?? [];
+  if (!accounts.length) return null;
+
+  const storeAccounts = accounts.map((account) => accountsRecord.value[account.id]).filter((account) => !!account);
+  if (storeAccounts.length === accounts.length) {
+    const { total, isApprox } = sumBaseBalance({ accounts: storeAccounts });
+    return `${isApprox ? '≈ ' : ''}${formatBaseCurrency(total)}`;
+  }
+
+  const codes = new Set(accounts.map((account) => account.currencyCode));
+  if (codes.size !== 1) return null;
+  const total = accounts.reduce((sum, account) => sum + account.currentBalance, 0);
+  return formatAmountByCurrencyCode(total, [...codes][0]!);
+});
+
+const summarySubtitle = computed(() => {
+  const accounts = connectionDetails.value?.accounts ?? [];
+  const countLabel = t('pages.integrations.details.summary.accountsCount', accounts.length);
+  const codes = [...new Set(accounts.map((account) => account.currencyCode))];
+  return codes.length > 1 ? `${codes.join(', ')} · ${countLabel}` : countLabel;
+});
+
 // A connection needs manual reconnection either after an auth failure or after a
 // data-backup restore (restored connections come in with an empty credential stub).
-// The banner copy is generic so it reads correctly for both.
 const needsReconnect = computed(
   () =>
     connectionDetails.value &&
@@ -700,18 +671,8 @@ const handleUpdateCredentials = () => {
   updateCredentialsMutation(credentials);
 };
 
-// Initialize connection validity open state based on consent status
-watch(
-  () => connectionDetails.value?.consent,
-  (consent) => {
-    if (consent) {
-      isConnectionValidityOpen.value = consent.isExpired || consent.isExpiringSoon;
-    }
-  },
-  { immediate: true },
-);
-
-// Query for available accounts (only when dialog is open)
+// Loaded eagerly so the "N of M" stat and the connect-remaining count render without
+// opening the dialog. Failures (e.g. expired provider session) just hide the counts.
 const {
   data: availableAccounts,
   isLoading: isLoadingAvailableAccounts,
@@ -719,10 +680,66 @@ const {
 } = useQuery({
   queryKey: [...VUE_QUERY_CACHE_KEYS.bankAvailableExternalAccounts, connectionId.value],
   queryFn: () => getAvailableAccounts(connectionId.value),
-  enabled: isFetchAccountsDialogOpen,
+  enabled: computed(() => isFetchAccountsDialogOpen.value || !!connectionDetails.value?.isActive),
   retry: false,
-  staleTime: 60 * 1000, // 30 seconds
+  staleTime: 5 * 60 * 1000,
 });
+
+const totalAvailableCount = computed(() => availableAccounts.value?.length ?? null);
+
+const remainingAccountsCount = computed(() => {
+  if (!availableAccounts.value) return null;
+  return availableAccounts.value.filter((account) => !isAccountConnected(account.externalId)).length;
+});
+
+const accountsStatValue = computed(() => {
+  const connected = connectionDetails.value?.accounts.length ?? 0;
+  if (totalAvailableCount.value === null) return String(connected);
+  return t('pages.integrations.details.summary.connectedOf', {
+    connected,
+    total: Math.max(totalAvailableCount.value, connected),
+  });
+});
+
+const { accountStatuses } = useSyncStatus();
+
+const connectionAccountIds = computed(() => new Set((connectionDetails.value?.accounts ?? []).map((a) => a.id)));
+
+const failedSyncCount = computed(
+  () =>
+    accountStatuses.value.filter(
+      (status) => connectionAccountIds.value.has(status.accountId) && status.status === SyncStatus.FAILED,
+    ).length,
+);
+
+const canSyncNow = computed(
+  () =>
+    !!connectionDetails.value?.isActive &&
+    !!connectionDetails.value.provider.features.supportsManualSync &&
+    connectionDetails.value.accounts.length > 0,
+);
+
+const { mutate: syncNowMutation, isPending: isSyncingNow } = useMutation({
+  mutationFn: () =>
+    Promise.all(connectionDetails.value!.accounts.map((account) => syncTransactions(connectionId.value, account.id))),
+  onSuccess: () => {
+    addSuccessNotification(t('pages.integrations.details.connectedAccounts.syncStarted'));
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return (
+          queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange) ||
+          queryKey.includes(VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange)
+        );
+      },
+    });
+  },
+  onError: () => {
+    addErrorNotification(t('pages.integrations.details.connectedAccounts.syncFailed'));
+  },
+});
+
+const handleSyncNow = () => syncNowMutation();
 
 // Mutation for syncing selected accounts
 const { mutate: syncAccountsMutation, isPending: isSyncingAccounts } = useMutation({
@@ -830,32 +847,6 @@ const handleDisconnectConfirm = (removeAssociatedAccounts: boolean) => {
     connectionId: connectionId.value,
     removeAssociatedAccounts,
   });
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-const formatRelativeTime = (dateString: string | null | undefined) => {
-  if (!dateString) return t('pages.integrations.details.relativeTime.never');
-
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMinutes < 1) return t('pages.integrations.details.relativeTime.justNow');
-  if (diffMinutes < 60) return t('pages.integrations.details.relativeTime.minutesAgo', { count: diffMinutes });
-  if (diffHours < 24) return t('pages.integrations.details.relativeTime.hoursAgo', diffHours);
-  return t('pages.integrations.details.relativeTime.daysAgo', diffDays);
 };
 
 const formatCurrency = (amount: number) => {

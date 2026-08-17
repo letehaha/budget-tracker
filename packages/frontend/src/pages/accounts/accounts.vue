@@ -46,7 +46,7 @@
       </div>
 
       <template v-if="isInitialLoading">
-        <div class="grid gap-8">
+        <div class="grid grid-cols-1 gap-8">
           <Card>
             <div class="flex flex-wrap items-center justify-between gap-6 px-6 py-5">
               <div class="space-y-2">
@@ -76,7 +76,7 @@
       </template>
 
       <template v-else-if="accounts?.length || vehicles?.length">
-        <div class="grid gap-5 @[30rem]/accounts-page:gap-8">
+        <div class="grid grid-cols-1 gap-5 @[30rem]/accounts-page:gap-8">
           <AccountsOverviewCard
             v-if="baseCurrencyCode"
             :overview="overview"
