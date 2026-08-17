@@ -2,17 +2,15 @@
   <RouterLink
     v-if="isActionable"
     :to="{ name: ROUTES_NAMES.accountIntegrationDetails, params: { connectionId: connectionId! } }"
-    :class="pillClass"
+    class="shrink-0"
   >
-    {{ label }}
+    <StatusBadge :variant="variant">{{ label }}</StatusBadge>
   </RouterLink>
-  <span v-else :class="pillClass">
-    {{ label }}
-  </span>
+  <StatusBadge v-else :variant="variant">{{ label }}</StatusBadge>
 </template>
 
 <script setup lang="ts">
-import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/lib/ui/status-badge';
 import type { ConnectionStatusKind } from '@/pages/accounts/connection-status';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { computed } from 'vue';
@@ -31,15 +29,16 @@ const { t } = useI18n();
 // With no connectionId the badge is a plain, non-linking pill.
 const isActionable = computed(() => props.kind !== 'active' && props.connectionId != null);
 
-const BASE_PILL_CLASS = 'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold';
-
-const pillClass = computed(() =>
-  cn(BASE_PILL_CLASS, {
-    'bg-success/20 text-success-text': props.kind === 'active',
-    'bg-warning/20 text-warning-text': props.kind === 'expiring-soon',
-    'bg-destructive/20 text-destructive-text': props.kind === 'expired' || props.kind === 'reauth',
-  }),
-);
+const variant = computed(() => {
+  switch (props.kind) {
+    case 'active':
+      return 'success' as const;
+    case 'expiring-soon':
+      return 'warning' as const;
+    default:
+      return 'destructive' as const;
+  }
+});
 
 const label = computed(() => {
   switch (props.kind) {
