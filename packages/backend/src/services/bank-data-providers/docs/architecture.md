@@ -395,8 +395,8 @@ This is the per-account unlink/relink flow (distinct from full provider disconne
    Two-tier deduplication prevents duplicates (LunchFlow, SimpleFIN, Walutomat):
      Primary: check by originalId (fast path)
      Secondary: check externalData.originalSource.originalId (covers unlink→relink)
-     Enable Banking has no originalSource check — its four-tier matcher
-     re-anchors originalId from entry_reference / IBAN evidence instead
+     Enable Banking folds the originalSource check into tier 2 of its
+     four-tier matcher (see Flow 3)
        ↓
    Date-based filtering (all providers):
      Find latest existing transaction date → skip older API transactions
@@ -494,7 +494,7 @@ Each provider generates a unique `externalId` for transactions:
 
 If secondary dedup finds a match, it restores `originalId` so future syncs use the fast primary path.
 
-**Enable Banking implements no `originalSource` check.** It relies on its own four-tier matcher instead (entry_reference → originalId hash → IBAN fingerprint → pending upgrade, see Flow 3). It exists because some ASPSPs populate `entry_reference` only on later syncs, shift the date that feeds the hash, and re-issue a `PDNG` card purchase as a `BOOK` row with a fresh reference and different remittance text — each of which would otherwise produce a duplicate.
+**Enable Banking folds the `originalSource` check into its own four-tier matcher** (entry_reference → originalId hash / pendingHash / originalSource → IBAN fingerprint → pending upgrade, see Flow 3). The matcher exists because some ASPSPs populate `entry_reference` only on later syncs, shift the date that feeds the hash, and re-issue a `PDNG` card purchase as a `BOOK` row with a fresh reference and different remittance text — each of which would otherwise produce a duplicate. The `originalSource` branch covers unlink→relink for rows with no `entry_reference` and no counterparty IBAN, which no other tier can match; the sync loop's re-anchor step then restores `originalId`.
 
 **Reconciliation of pre-existing duplicates:** `POST /connections/:id/reconcile-duplicates` runs `reconcileDuplicateTransactionsForAccount`, which buckets an account's transactions by (amount, currency, transactionType) and makes two passes:
 
