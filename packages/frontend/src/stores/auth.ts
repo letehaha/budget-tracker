@@ -256,7 +256,7 @@ export const useAuthStore = defineStore('auth', () => {
     });
 
     if (result.error) {
-      throw new UnexpectedError(result.error.message || 'Signup failed');
+      throw new UnexpectedError(result.error.message || 'Signup failed', result.error);
     }
 
     // Don't auto-login - user needs to verify email first
