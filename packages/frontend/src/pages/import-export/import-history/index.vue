@@ -17,7 +17,7 @@
       </p>
     </div>
 
-    <Card class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <Card class="flex flex-col overflow-hidden">
       <div v-if="isLoadingError" class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
         <TriangleAlertIcon class="text-destructive-text size-8" />
         <p class="text-destructive-text text-sm">{{ $t('pages.importExport.importHistory.loadError') }}</p>
@@ -46,7 +46,7 @@
         </Button>
       </div>
 
-      <ScrollArea v-else class="min-h-0 flex-1">
+      <ScrollArea v-else>
         <ul class="divide-y">
           <li v-for="batch in batches" :key="batch.batchId">
             <Button
@@ -134,7 +134,7 @@ const { batches, isFetched, isLoadingError, hasNextPage, isFetchingNextPage, fet
   useBatchesHistory();
 
 const formatBatchDate = ({ importedAt }: { importedAt: string }) => format(importedAt, BATCH_DATE_FORMAT);
-const sourceLabel = (source: ImportSource) => t(`settings.dataManagement.${SOURCE_ID_MAP[source]}.title`);
+const sourceLabel = (source: ImportSource) => t(`settings.dataManagement.${SOURCE_ID_MAP[source] ?? 'csv'}.title`);
 
 const openBatch = (batch: ImportBatchSummary) => {
   router.push({ name: ROUTES_NAMES.transactions, query: { batchId: batch.batchId } });
