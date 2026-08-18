@@ -206,6 +206,27 @@ describe('Share membership (S5)', () => {
       expect(res.statusCode).toBe(422);
     });
 
+    it('rejects self-escalation (manage recipient widening their own membership)', async () => {
+      const { account, recipient, recipientApp } = await setupAcceptedShare({
+        permission: SHARE_PERMISSIONS.manage,
+      });
+
+      const res = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.updateShareMember({
+            resourceType: RESOURCE_TYPES.account,
+            resourceId: account.id,
+            memberUserId: recipientApp.id,
+            policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all },
+            raw: false,
+          }),
+      });
+      expect(res.statusCode).toBe(422);
+      const err = res.body.response as unknown as ErrorResponse;
+      expect(err.message).toMatch(/own membership/i);
+    });
+
     it('404s for a stranger', async () => {
       const { account, recipientApp } = await setupAcceptedShare();
       const stranger = await helpers.provisionSecondUserWithBaseCurrency();
