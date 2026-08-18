@@ -8,6 +8,7 @@ import Subscriptions from '@models/subscriptions.model';
 import Tags from '@models/tags.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
+import { findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
@@ -53,8 +54,15 @@ export async function transformTransactions({
   userId: number;
   dateRange?: ExportDateRange;
 }): Promise<TransactionRow[]> {
-  const transactions = await Transactions.findAll({
-    where: { userId, ...buildDateRangeClause({ field: 'time', dateRange }) },
+  // An export is the user's own copy of their data: everything they can see in the app
+  // ships, plans included (the row carries an `isPlanned` column so they stay readable
+  // as plans), balance adjustments included.
+  const transactions = await findTransactions({
+    where: buildDateRangeClause({ field: 'time', dateRange }),
+    planned: 'include',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
     order: [['time', 'ASC']],
   });
   if (transactions.length === 0) return [];
@@ -276,6 +284,7 @@ export async function transformTransactions({
       refundOf,
       linkedTransfer,
       subscription: subNameByTxId.get(tx.id) ?? '',
+      isPlanned: tx.isPlanned,
     };
   });
 }

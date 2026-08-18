@@ -35,7 +35,7 @@ watch(isOpen, (open) => {
     <Dialog.DialogTrigger as-child>
       <slot />
     </Dialog.DialogTrigger>
-    <Dialog.DialogContent custom-close class="bg-card max-h-[90dvh] w-full max-w-225 overflow-hidden p-0">
+    <Dialog.DialogContent custom-close class="max-h-[90dvh] w-full max-w-225 overflow-hidden p-0">
       <Dialog.DialogTitle class="sr-only">{{ t('dialogs.manageTransaction.title') }}</Dialog.DialogTitle>
       <Dialog.DialogDescription class="sr-only">
         {{ t('dialogs.manageTransaction.description') }}

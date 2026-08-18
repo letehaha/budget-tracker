@@ -24,8 +24,6 @@
       "loadError": "Gagal memuat data arus kas",
       "noData": "Tidak ada transaksi ditemukan",
       "noDataHint": "Coba pilih periode yang berbeda atau periksa apakah Anda memiliki transaksi",
-      "excludeCategories": "Terapkan pengecualian kategori",
-      "excludeCategoriesHint": "Menggunakan pengecualian dari Pengaturan → Statistik",
       "showTrendLine": "Tampilkan garis tren",
       "showTrendLineHint": "Rata-rata halus dari arus kas bersih",
       "trendLine": "Garis Tren",
@@ -47,10 +45,6 @@
         "thisYear": "Tahun ini",
         "previousYear": "Tahun sebelumnya",
         "allTime": "Sepanjang waktu"
-      },
-      "periodSelector": {
-        "quickSelect": "Pilih Cepat",
-        "year": "Tahun {year}"
       }
     },
     "trends": {
@@ -73,9 +67,6 @@
       "monthlyComparison": {
         "title": "Perbandingan Bulanan",
         "allCategories": "Semua Kategori",
-        "categorySelected": "{count} kategori",
-        "categoriesSelected": "{count} kategori",
-        "searchCategories": "Cari kategori...",
         "average": "Rata-rata",
         "total": "Total",
         "vsLastMonth": "vs bulan sebelumnya",
@@ -95,10 +86,8 @@
       "monthlyContribution": "Kontribusi bulanan",
       "useAvgNetIncome": "Gunakan rata-rata pemasukan bersih →",
       "timeHorizon": "Cakrawala waktu (tahun)",
-      "years": "Tahun",
       "annualReturn": "Pengembalian tahunan (%)",
       "annualInflation": "Inflasi tahunan (%)",
-      "perMonth": "per bulan",
       "totalInvested": "Total diinvestasikan",
       "nominalFinalValue": "Nilai akhir nominal",
       "growth": "pertumbuhan",
@@ -109,13 +98,6 @@
       "ofMoneyInvested": "dari uang yang diinvestasikan",
       "customIndicator": "Kustom",
       "customReturnRate": "Masukkan tingkat (%)",
-      "customInflationRate": "Masukkan tingkat (%)",
-      "inflationPresets": {
-        "low": "Rendah — Target bank sentral (Fed, ECB)",
-        "moderate": "Sedang — Rata-rata jangka panjang AS/UE",
-        "elevated": "Tinggi — Level pasca-2020, pasar berkembang",
-        "high": "Sangat Tinggi — Ekonomi dengan inflasi tinggi"
-      },
       "inflationAdjustedSuffix": "(Disesuaikan dengan Inflasi)",
       "yearN": "Tahun {n}",
       "disclaimer": "Berdasarkan pengembalian konstan {rate}%/tahun. Rata-rata historis S&P 500 adalah ~10%/tahun. Tidak memperhitungkan pajak atau biaya.",
@@ -162,7 +144,6 @@
       "income": "Pemasukan"
     },
     "display": {
-      "trigger": "Tampilan",
       "title": "Opsi tampilan"
     },
     "toggles": {
@@ -171,9 +152,7 @@
     },
     "filters": {
       "period": "Periode",
-      "categories": "Kategori",
       "allCategories": "Semua",
-      "payees": "Penerima",
       "accounts": "Akun",
       "reset": "Atur Ulang",
       "resetTooltip": "Kembalikan ke bawaan"
@@ -248,6 +227,13 @@
       "allocationContext": "{share}% dari kekayaan bersih Anda berada dalam investasi (sebelumnya {reference}% pada {date})",
       "allocationContextNoReference": "{share}% dari kekayaan bersih Anda berada dalam investasi"
     },
+    "breakdownChart": {
+      "title": "Rincian per periode",
+      "subtitle": "Seberapa besar yang Anda tabung dan seberapa besar hasil pasar di setiap periode.",
+      "periodTotal": "Diperoleh pada periode ini",
+      "others": "Lainnya",
+      "grownTotal": "Total bertumbuh"
+    },
     "degraded": {
       "title": "Beberapa nilai diperkirakan",
       "unpricedSecurities": "Tidak ada data harga terbaru untuk {securities}, sehingga pertumbuhannya diperkirakan dari biaya perolehan.",
@@ -304,7 +290,6 @@
       "averagePerPeriod": "Rata-rata per periode"
     },
     "chart": {
-      "total": "Total",
       "vsPrevious": "vs sebelumnya"
     },
     "states": {
@@ -353,7 +338,6 @@
     "chart": {
       "assets": "Aset",
       "liabilities": "Kewajiban",
-      "liabilitiesTotal": "Total kewajiban",
       "netWorth": "Kekayaan bersih",
       "averageLiabilities": "Rata-rata kewajiban",
       "liabilitiesZoomed": "Skala kewajiban diperbesar"

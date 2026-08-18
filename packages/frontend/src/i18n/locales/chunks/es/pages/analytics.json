@@ -24,8 +24,6 @@
       "loadError": "Error al cargar los datos de flujo de caja",
       "noData": "No se encontraron transacciones",
       "noDataHint": "Pruebe a seleccionar un período diferente o compruebe si tiene alguna transacción",
-      "excludeCategories": "Aplicar exclusiones de categorías",
-      "excludeCategoriesHint": "Usa las exclusiones de Ajustes → Estadísticas",
       "showTrendLine": "Mostrar línea de tendencia",
       "showTrendLineHint": "Media suavizada del flujo de caja neto",
       "trendLine": "Línea de tendencia",
@@ -47,10 +45,6 @@
         "thisYear": "Este año",
         "previousYear": "Año anterior",
         "allTime": "Todo el tiempo"
-      },
-      "periodSelector": {
-        "quickSelect": "Selección rápida",
-        "year": "Año {year}"
       }
     },
     "trends": {
@@ -73,9 +67,6 @@
       "monthlyComparison": {
         "title": "Comparación mensual",
         "allCategories": "Todas las categorías",
-        "categorySelected": "{count} categoría",
-        "categoriesSelected": "{count} categorías",
-        "searchCategories": "Buscar categorías...",
         "average": "Media",
         "total": "Total",
         "vsLastMonth": "vs mes anterior",
@@ -95,10 +86,8 @@
       "monthlyContribution": "Aportación mensual",
       "useAvgNetIncome": "Usar ingreso neto promedio →",
       "timeHorizon": "Horizonte temporal (años)",
-      "years": "Años",
       "annualReturn": "Rentabilidad anual (%)",
       "annualInflation": "Inflación anual (%)",
-      "perMonth": "al mes",
       "totalInvested": "Total invertido",
       "nominalFinalValue": "Valor final nominal",
       "growth": "crecimiento",
@@ -109,13 +98,6 @@
       "ofMoneyInvested": "del dinero invertido",
       "customIndicator": "Personalizado",
       "customReturnRate": "Introduzca la tasa (%)",
-      "customInflationRate": "Introduzca la tasa (%)",
-      "inflationPresets": {
-        "low": "Baja — Objetivos de los bancos centrales (Fed, BCE)",
-        "moderate": "Moderada — Promedio histórico de EE. UU./UE a largo plazo",
-        "elevated": "Elevada — Niveles post-2020, mercados emergentes",
-        "high": "Alta — Economías con alta inflación"
-      },
       "inflationAdjustedSuffix": "(ajustado por inflación)",
       "yearN": "Año {n}",
       "disclaimer": "Basado en una rentabilidad constante del {rate}%/año. La media histórica del S&P 500 es ~10%/año. No tiene en cuenta impuestos ni comisiones.",
@@ -162,7 +144,6 @@
       "income": "Ingresos"
     },
     "display": {
-      "trigger": "Visualización",
       "title": "Opciones de visualización"
     },
     "toggles": {
@@ -171,9 +152,7 @@
     },
     "filters": {
       "period": "Período",
-      "categories": "Categorías",
       "allCategories": "Todo",
-      "payees": "Beneficiarios",
       "accounts": "Cuentas",
       "reset": "Restablecer",
       "resetTooltip": "Restablecer a valores predeterminados"
@@ -248,6 +227,13 @@
       "allocationContext": "El {share}% de su patrimonio neto está en inversiones (era el {reference}% en {date})",
       "allocationContextNoReference": "El {share}% de su patrimonio neto está en inversiones"
     },
+    "breakdownChart": {
+      "title": "Desglose por período",
+      "subtitle": "Cuánto ahorró y cuánto rindió el mercado en cada período.",
+      "periodTotal": "Ganado en este período",
+      "others": "Otros",
+      "grownTotal": "Total de crecimiento"
+    },
     "degraded": {
       "title": "Algunos valores son estimados",
       "unpricedSecurities": "No hay datos de precio recientes para {securities}, por lo que su crecimiento se estima a partir del coste.",
@@ -304,7 +290,6 @@
       "averagePerPeriod": "Media por período"
     },
     "chart": {
-      "total": "Total",
       "vsPrevious": "vs anterior"
     },
     "states": {
@@ -353,7 +338,6 @@
     "chart": {
       "assets": "Activos",
       "liabilities": "Pasivos",
-      "liabilitiesTotal": "Total de pasivos",
       "netWorth": "Patrimonio neto",
       "averageLiabilities": "Pasivos prom.",
       "liabilitiesZoomed": "Escala de pasivos ampliada"

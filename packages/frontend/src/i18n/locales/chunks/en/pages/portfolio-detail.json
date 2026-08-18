@@ -27,10 +27,8 @@
     },
     "cashBalances": {
       "title": "Cash Balances",
-      "subtitle": "{count} currencies",
       "emptyState": "No cash balances",
       "tabs": {
-        "overview": "Overview",
         "balances": "Balances",
         "cashTransactions": "Transactions",
         "buysSells": "Buys & Sells"

@@ -30,6 +30,12 @@ import { withTransaction } from '../common/with-transaction';
 import { calcTransferTransactionRefAmount, createOppositeTransaction } from './create-transaction';
 import { getWritableTransactionById } from './get-by-id';
 import { buildManualCategorizationMeta } from './manual-categorization-meta';
+import {
+  assertAccountCanHoldPlans,
+  assertPlannedFlipAllowed,
+  assertPlannedStandalone,
+  assertPlannedWriteAllowed,
+} from './planned-matching/assert-planned-invariants';
 import { manageSplits } from './splits';
 import { linkTransactions } from './transactions-linking';
 import { type UpdateTransactionParams } from './types';
@@ -72,7 +78,9 @@ const validateTransaction = async (
     message: t({ key: 'accounts.accountNotFoundForTransaction' }),
   });
 
-  const isExternalAccount = account.type !== ACCOUNT_TYPES.system;
+  // A planned row holds user-entered intent, not provider data, so the provider-account
+  // field locks stay off until it merges into a real transaction.
+  const isExternalAccount = account.type !== ACCOUNT_TYPES.system && !prevData.isPlanned;
 
   if (isExternalAccount) {
     if (EXTERNAL_ACCOUNT_RESTRICTED_UPDATION_FIELDS.some((field) => newData[field] !== undefined)) {
@@ -85,6 +93,23 @@ const validateTransaction = async (
   if (newData.transactionType && isExternalAccount && newData.transactionType !== prevData.transactionType) {
     throw new ValidationError({
       message: t({ key: 'transactions.changeTypeNotAllowed' }),
+    });
+  }
+
+  // Unchecking Planned claims the money has already moved. On a provider account only the
+  // provider gets to make that claim, by syncing the real transaction into this row. A
+  // request that also moves the row elsewhere is judged on where it lands instead, which
+  // the destination check in `updateTransaction` owns.
+  const isMovingToAnotherAccount = Boolean(newData.accountId && newData.accountId !== prevData.accountId);
+
+  if (
+    newData.isPlanned === false &&
+    prevData.isPlanned &&
+    account.type !== ACCOUNT_TYPES.system &&
+    !isMovingToAnotherAccount
+  ) {
+    throw new ValidationError({
+      message: t({ key: 'transactions.plannedUnflipOnConnectedAccount' }),
     });
   }
 
@@ -144,7 +169,8 @@ const makeBasicBaseTxUpdation = async (
     id: prevData.accountId,
   });
 
-  const isSystemAccount = account?.type === ACCOUNT_TYPES.system;
+  // Planned rows stay editable like manual ones until they merge — see `validateTransaction`.
+  const isSystemAccount = account?.type === ACCOUNT_TYPES.system || prevData.isPlanned;
 
   // Never update "transactionType" of non-system transactions. Just an additional guard
   const transactionType = isSystemAccount ? newData.transactionType : prevData.transactionType;
@@ -171,6 +197,9 @@ const makeBasicBaseTxUpdation = async (
     transferNature: newData.transferNature,
     currencyCode: prevData.currencyCode,
     refundLinked: prevData.refundLinked,
+    isPlanned: newData.isPlanned,
+    originalAmount: newData.originalAmount,
+    originalCurrencyCode: newData.originalCurrencyCode,
   };
 
   // Only a real category change restamps the row — re-sending the same category, or
@@ -215,12 +244,23 @@ const makeBasicBaseTxUpdation = async (
     // Since accountId is changed, we need to change currency too. The destination
     // account's owner equals the caller in the owner case (the only case where
     // changing accountId is allowed in Phase 1; recipients are blocked at the entry).
-    const { currency: baseTxCurrency } = await Accounts.getAccountCurrency({
-      userId: ctx.callerUserId,
-      id: newData.accountId!,
+    const destinationAccount = await findOrThrowNotFound({
+      query: Accounts.getAccountCurrency({
+        userId: ctx.callerUserId,
+        id: newData.accountId!,
+      }),
+      message: t({ key: 'accounts.accountNotFoundForTransaction' }),
     });
 
-    baseTransactionUpdateParams.currencyCode = baseTxCurrency.code;
+    baseTransactionUpdateParams.currencyCode = destinationAccount.currency.code;
+
+    const staysPlanned = newData.isPlanned ?? prevData.isPlanned;
+
+    if (destinationAccount.type !== ACCOUNT_TYPES.system && !staysPlanned) {
+      throw new ValidationError({ message: t({ key: 'transactions.manualOnConnectedAccount' }) });
+    }
+
+    baseTransactionUpdateParams.accountType = destinationAccount.type;
   }
 
   if (defaultUserCurrency.code !== baseTransactionUpdateParams.currencyCode) {
@@ -273,8 +313,18 @@ const makeBasicBaseTxUpdation = async (
               [Op.in]: refundedByTxIds,
             },
           },
-          attributes: ['refAmount'],
+          attributes: ['refAmount', 'isPlanned'],
         });
+
+        // A plan holds no money, so its refAmount must never take part in the
+        // sum check below — otherwise an oversized plan is rejected for the
+        // wrong reason and the caller never learns plans cannot be linked.
+        if (newTransactions.some((tx) => tx.isPlanned)) {
+          throw new ValidationError({
+            message: t({ key: 'transactions.plannedCannotBeRefundLinked' }),
+          });
+        }
+
         const sum = Money.sum(newTransactions.map((curr) => curr.refAmount));
 
         if (sum.greaterThan(baseTransactionUpdateParams.refAmount)) {
@@ -546,6 +596,30 @@ export const updateTransaction = withTransaction(
         txCreatorUserId: prevData.userId,
         isOwner: authCtx.isOwner,
       };
+
+      assertPlannedWriteAllowed({ transaction: prevData, callerUserId: payload.userId });
+
+      if (payload.isPlanned === true && !prevData.isPlanned) {
+        await assertPlannedFlipAllowed({ transaction: prevData, callerUserId: payload.userId });
+      }
+
+      // A row that ends up planned must satisfy the create-time invariants, whether it was
+      // planned before or flips in this request: the same edit can move it onto an account
+      // whose balance is replayed from its transactions, or pair it with another row
+      // (loan linking reaches this path with transfer fields).
+      const endsPlanned = payload.isPlanned ?? prevData.isPlanned;
+
+      if (endsPlanned) {
+        if (payload.accountId && payload.accountId !== prevData.accountId) {
+          await assertAccountCanHoldPlans({ accountId: payload.accountId, callerUserId: payload.userId });
+        }
+
+        await assertPlannedStandalone({
+          transaction: prevData,
+          update: payload,
+          message: t({ key: 'transactions.plannedMustBeStandalone' }),
+        });
+      }
 
       // Only an explicit nature change — promoting a non-transfer to a transfer, or
       // explicitly discarding a transfer link — has its own broken cross-user

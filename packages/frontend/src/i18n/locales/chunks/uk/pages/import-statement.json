@@ -12,14 +12,8 @@
         }
       },
       "steps": {
-        "uploadTitle": "Завантажити та вилучити",
-        "uploadDescription": "Завантажте виписку та вилучіть транзакції за допомогою ШІ",
         "accountTitle": "Вибрати рахунок",
-        "accountDescription": "Виберіть або створіть рахунок для транзакцій",
-        "reviewTitle": "Переглянути транзакції",
-        "reviewDescription": "Перегляньте та обробіть дубльовані транзакції",
-        "importTitle": "Імпорт",
-        "importDescription": "Виконайте імпорт та перегляньте результати"
+        "accountDescription": "Виберіть або створіть рахунок для транзакцій"
       },
       "selectCurrency": "Вибрати валюту",
       "selectExistingAccount": "Вибрати існуючий рахунок",
@@ -27,10 +21,7 @@
       "selectAccount": "Виберіть рахунок",
       "searchAccounts": "Шукати рахунки...",
       "uploadExtract": {
-        "dragDropText": "Перетягніть файл виписки сюди, або",
-        "browseButton": "Вибрати файл",
         "supportedFormats": "Підтримувані формати: PDF, CSV, TXT (макс. 10МБ)",
-        "removeButton": "Видалити",
         "analyzeButton": "Аналізувати файл",
         "tryAgain": "Спробувати ще раз",
         "modelLabel": "Модель",
@@ -69,7 +60,6 @@
           "almostDone": "Майже готово..."
         },
         "tokenFormat": "{inputTokens}K входу, ~{outputTokens}K виходу",
-        "fileSize": "{size} КБ",
         "pdfPasswordLabel": "Пароль PDF",
         "pdfPasswordPlaceholder": "Введіть пароль документа",
         "pdfPasswordSubmit": "Розблокувати та аналізувати"

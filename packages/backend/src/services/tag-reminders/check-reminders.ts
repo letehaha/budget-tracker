@@ -189,12 +189,14 @@ async function checkReminder({
   }
 
   const transactions = await Transactions.findWithFilters({
-    userId: reminder.userId,
+    access: { creator: reminder.userId },
     startDate: effectiveFrom.toISOString(),
     endDate: to.toISOString(),
     tagIds: [reminder.tagId],
-    from: 0,
-    limit: isExistenceCheck ? 1 : undefined, // No limit for amount calculation, limit 1 for existence check
+    planned: 'exclude',
+    balanceAdjustments: 'include',
+    // 'all', not a page: the amount threshold sums every matching row.
+    completeness: isExistenceCheck ? 'probe' : 'all',
   });
 
   switch (reminder.type) {

@@ -3,7 +3,7 @@
     <Card class="w-full max-w-112.5">
       <CardHeader class="text-center">
         <div class="bg-primary/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-          <MailIcon class="text-primary h-8 w-8" />
+          <MailIcon class="text-primary-text h-8 w-8" />
         </div>
         <h1 class="text-2xl font-semibold tracking-tight">{{ $t('auth.verifyEmail.title') }}</h1>
       </CardHeader>
@@ -19,7 +19,7 @@
           <p>{{ $t('auth.verifyEmail.didntReceive') }}</p>
           <Button
             variant="link"
-            class="text-primary h-auto p-0"
+            class="text-primary-text h-auto p-0"
             :disabled="isResending || resendCooldown > 0"
             @click="handleResend"
           >

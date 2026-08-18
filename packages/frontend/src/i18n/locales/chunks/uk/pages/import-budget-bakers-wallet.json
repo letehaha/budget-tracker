@@ -4,24 +4,11 @@
       "budgetBakersWalletImport": {
         "pageTitle": "Імпорт з Wallet (BudgetBakers)",
         "pageDescription": "Імпортуйте транзакції, експортовані з додатку Wallet від BudgetBakers.",
-        "steps": {
-          "uploadTitle": "Завантажити файл",
-          "uploadDescription": "Оберіть CSV-файл експорту Wallet.",
-          "previewTitle": "Перегляд та прив'язка рахунків",
-          "previewDescription": "Перевірте виявлені дані та налаштуйте прив'язку рахунків.",
-          "duplicatesTitle": "Перегляд дублікатів",
-          "duplicatesDescription": "Вирішіть, як обробити можливі дублікати транзакцій.",
-          "executeTitle": "Імпорт",
-          "executeDescription": "Імпортуємо ваші транзакції.",
-          "doneTitle": "Готово",
-          "doneDescription": "Імпорт завершено."
-        },
         "fileUpload": {
           "stepTitle": "Завантажте CSV-файл Wallet",
           "description": "Завантажте один або кілька CSV-файлів експорту Wallet для імпорту транзакцій. Усі файли повинні мати однакові стовпці.",
           "maxSize": "Максимальний розмір файлу: 10 МБ",
           "parsing": "Обробка…",
-          "continueToPreview": "Перейти до перегляду",
           "errors": {
             "invalidFormatNamed": "\"{name}\" не є CSV-файлом.",
             "parseFailed": "Не вдалося розібрати файл. Перевірте формат та спробуйте знову.",
@@ -39,20 +26,10 @@
           "continue": "Продовжити"
         },
         "preview": {
-          "dateRange": "Транзакції з {from} по {to}",
           "accountsHelper": "Налаштуйте, як кожен виявлений рахунок буде оброблятися під час імпорту.",
-          "emptyList": "Нічого для відображення.",
           "accounts": "Рахунки",
-          "categories": "Категорії",
-          "tags": "Теги",
           "transactions": "Транзакції",
-          "transfers": "Перекази",
-          "outOfWalletBadge": "Поза Wallet",
-          "warningsTitle": "Попередження",
-          "rowPrefix": "Рядок {rowIndex}: ",
-          "startOver": "Почати спочатку",
-          "detecting": "Пошук дублікатів…",
-          "continueToImport": "Продовжити"
+          "rowPrefix": "Рядок {rowIndex}: "
         },
         "accountRow": {
           "transactionsCount": "немає транзакцій | {count} транзакція | {count} транзакцій",
@@ -66,15 +43,6 @@
           "linkTargetLabel": "Наявний рахунок",
           "linkTargetPlaceholder": "Оберіть рахунок",
           "keepBalanceNote": "Поточний баланс наявного рахунку буде збережено. Історію буде дозаповнено."
-        },
-        "duplicates": {
-          "title": "виявлено {count} можливих дублікатів | виявлено {count} можливий дублікат | виявлено {count} можливих дублікатів",
-          "hint": "Ці імпортовані рядки дуже схожі на наявні транзакції. Непозначені рядки буде пропущено.",
-          "willBeImported": "буде імпортовано",
-          "duplicatesWillBeSkipped": "дублікат(и) буде пропущено",
-          "back": "Назад",
-          "importing": "Імпортування…",
-          "continueButton": "Імпортувати"
         },
         "execute": {
           "starting": "Початок імпорту…",
@@ -100,6 +68,7 @@
           "transactionsImported": "Транзакцій імпортовано",
           "transfersImported": "Переказів імпортовано",
           "outOfWalletImported": "Поза Wallet імпортовано",
+          "mergedIntoPlanned": "Об'єднано із запланованими",
           "duplicatesSkipped": "Дублікатів пропущено",
           "errorsTitle": "Не вдалося імпортувати {count} рядків | Не вдалося імпортувати {count} рядок | Не вдалося імпортувати {count} рядків",
           "errorsOverflow": "+{count} більше",

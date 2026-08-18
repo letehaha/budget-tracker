@@ -6,14 +6,7 @@
       "reset": "Скинути",
       "apply": "Застосувати",
       "dateRange": {
-        "tabs": {
-          "range": "Діапазон",
-          "single": "Дати окремо"
-        },
         "placeholder": "Дата або діапазон",
-        "fromDate": "Від дати",
-        "toDate": "До дати",
-        "clear": "Очистити",
         "presets": {
           "thisMonth": "Цей місяць",
           "last3Months": "Останні 3 місяці",
@@ -23,7 +16,6 @@
       },
       "transactionType": {
         "label": "Тип транзакції:",
-        "both": "Всі",
         "income": "Доходи",
         "expense": "Витрати",
         "allTypes": "Всі типи"
@@ -42,6 +34,9 @@
       "transferFilter": {
         "label": "Перекази"
       },
+      "plannedFilter": {
+        "label": "Заплановані"
+      },
       "filterOperation": {
         "all": "Всі",
         "exclude": "Виключити",
@@ -59,10 +54,8 @@
         "selected": "обрано",
         "searchPlaceholder": "Шукати теги..."
       },
-      "payeeChip": "Отримувач платежу",
       "payees": {
         "label": "Отримувачі",
-        "searchPlaceholder": "Пошук отримувачів",
         "selectedOne": "1 отримувач вибраний",
         "selectedMany": "{n} отримувачів вибрано"
       },
@@ -136,7 +129,6 @@
         "searchPlaceholder": "Шукати групи...",
         "noGroupsMessage": "Груп ще немає. Спочатку створіть одну.",
         "noSearchResultsMessage": "Жодна група не відповідає вашому пошуку.",
-        "loadingText": "Завантаження груп...",
         "addingText": "Додавання...",
         "buttonLabel": "Додати до групи",
         "cancelButton": "Скасувати",
@@ -160,37 +152,6 @@
         "emptyStateHint": "Виберіть транзакції на сторінці \"Транзакції\" і натисніть \"Створити групу\" для початку.",
         "transactionCountLabel": "транзакцій"
       },
-      "groupDialog": {
-        "editTitle": "Редагувати групу",
-        "nameLabel": "Назва",
-        "noteLabel": "Примітка (необов'язково)",
-        "notePlaceholder": "Необов'язкова примітка...",
-        "loadingText": "Завантаження...",
-        "savingText": "Збереження...",
-        "savingAction": "Зберегти",
-        "cancelButton": "Скасувати",
-        "deletingText": "Видалення...",
-        "editAction": "Редагувати",
-        "deleteAction": "Видалити групу",
-        "transactionsLabel": "Транзакції",
-        "deleteGroupTitle": "Видалити групу",
-        "deleteGroupDescription": "Ви впевнені, що хочете видалити \"{groupName}\"? Транзакції не будуть видалені.",
-        "removeTransactionTitle": "Видалити транзакцію з групи",
-        "removeTransactionDescription": "Це залишить менше 2 транзакцій у групі, тому група буде видалена. Продовжити?",
-        "removeTransactionDescriptionNormal": "Ви впевнені, що хочете видалити цю транзакцію з групи?",
-        "removeButtonText": "Видалити",
-        "removeAndDeleteButtonText": "Видалити й видалити групу",
-        "transactionCountSuffix": "транзакцій",
-        "summary": {
-          "transactions": "Транзакції",
-          "net": "Нетто",
-          "moneyIn": "Надходження",
-          "moneyOut": "Видатки"
-        }
-      },
-      "transactionGroupRecord": {
-        "transactionCountLabel": "транзакцій"
-      },
       "errors": {
         "nameRequired": "Назва групи обов'язкова",
         "minTransactions": "Виберіть щонайменше {min} транзакцій",
@@ -199,10 +160,13 @@
         "addFailed": "Не вдалося додати транзакції до групи"
       }
     },
-    "transfer": {
-      "hiddenAccount": "Прихований рахунок"
+    "planned": {
+      "label": "Заплановано",
+      "confirmedLabel": "Підтверджено",
+      "plannedTooltip": "Запланована транзакція",
+      "expiredTooltip": "Очікувалася {days} дн. тому, відповідної банківської транзакції немає",
+      "mergedTooltip": "Підтверджено із запланованого запису від {date}"
     },
-    "addedByTooltip": "Цю транзакцію додав до бюджету {handle}",
     "table": {
       "columns": {
         "date": "Дата",
@@ -211,6 +175,7 @@
         "payee": "Отримувач",
         "amount": "Сума",
         "refAmount": "Базова сума",
+        "originalAmount": "Оригінальна сума",
         "note": "Примітка",
         "tags": "Теги",
         "categorizationSource": "Категоризовано",
@@ -261,7 +226,14 @@
       "overdueBadge": "Прострочено",
       "scheduledBadge": "Заплановано",
       "payAction": "Позначити як сплачено",
-      "hideToggle": "Сховати заплановані платежі"
+      "hideToggle": "Сховати заплановані платежі",
+      "expectedBadge": "Очікується",
+      "unconfirmedBadge": "Не підтверджено",
+      "morePlans": "+{count} запланованих",
+      "morePlansAtLeast": "+{count}+ запланованих",
+      "deletePlanTitle": "Видалити заплановану транзакцію?",
+      "deletePlanDescription": "Цю дію неможливо скасувати.",
+      "plansLoadFailed": "Не вдалося завантажити заплановані транзакції"
     }
   }
 }

@@ -24,6 +24,8 @@ interface BulkDeleteResult {
  * structured error listing the offending ids — the API must enforce this
  * regardless of what the client sends, since external transactions are owned
  * by the bank sync and deleting them would desync balances on the next sync.
+ * A plan on a provider account is exempt: the bank has never reported it, so
+ * deleting it takes nothing away from the sync.
  *
  * Each row goes through `deleteTransaction`, which handles per-row write
  * authorization, transfer-pair cleanup, refund unlinking, and portfolio
@@ -35,15 +37,22 @@ const bulkDeleteImpl = async ({ userId, transactionIds }: BulkDeleteParams): Pro
 
   const rows = (await Transactions.default.findAll({
     where: { id: { [Op.in]: uniqueIds }, userId },
-    attributes: ['id', 'accountType', 'transferId'],
+    attributes: ['id', 'accountType', 'transferId', 'isPlanned'],
     raw: true,
-  })) as unknown as Array<{ id: string; accountType: ACCOUNT_TYPES; transferId: string | null }>;
+  })) as unknown as Array<{
+    id: string;
+    accountType: ACCOUNT_TYPES;
+    transferId: string | null;
+    isPlanned: boolean;
+  }>;
 
   if (rows.length === 0) {
     throw new NotFoundError({ message: 'No valid transactions found' });
   }
 
-  const disallowedIds = rows.filter((row) => row.accountType !== ACCOUNT_TYPES.system).map((row) => row.id);
+  const disallowedIds = rows
+    .filter((row) => row.accountType !== ACCOUNT_TYPES.system && !row.isPlanned)
+    .map((row) => row.id);
   if (disallowedIds.length > 0) {
     throw new ValidationError({
       message: t({ key: 'transactions.cannotDeleteExternal' }),

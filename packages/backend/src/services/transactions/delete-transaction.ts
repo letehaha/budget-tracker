@@ -12,6 +12,7 @@ import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { getWritableTransactionById } from './get-by-id';
+import { assertPlannedWriteAllowed } from './planned-matching/assert-planned-invariants';
 
 export const deleteTransaction = withTransaction(
   async ({ id, userId }: { id: string; userId: number }): Promise<void> => {
@@ -21,6 +22,8 @@ export const deleteTransaction = withTransaction(
       // pre-resolved `ctx` so the call site doesn't reassemble auth primitives.
       const { tx, ctx } = await getWritableTransactionById({ id, userId });
       const { accountType, transferNature, transferId, refundLinked } = tx;
+
+      assertPlannedWriteAllowed({ transaction: tx, callerUserId: userId });
 
       // Phase-1 guards block recipient deletes that cross into linking semantics
       // (transfers, refunds) — owners pass through and use the existing flows.
@@ -33,7 +36,9 @@ export const deleteTransaction = withTransaction(
         involvesRefund: Boolean(refundLinked),
       });
 
-      if (accountType !== ACCOUNT_TYPES.system) {
+      // A plan on a provider account is the user's own row that the bank has never reported,
+      // so deleting it takes nothing away from the sync.
+      if (accountType !== ACCOUNT_TYPES.system && !tx.isPlanned) {
         throw new ValidationError({
           message: t({ key: 'transactions.cannotDeleteExternal' }),
         });

@@ -26,7 +26,7 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center gap-3">
             <div class="bg-primary/10 flex size-10 items-center justify-center rounded-lg">
-              <BriefcaseIcon class="text-primary size-5" />
+              <BriefcaseIcon class="text-primary-text size-5" />
             </div>
             <div>
               <h1 v-if="portfolio" class="text-2xl font-semibold tracking-tight">{{ portfolio.name }}</h1>

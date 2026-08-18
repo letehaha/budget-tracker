@@ -30,7 +30,7 @@
         <CategoryCircle :category="category" />
       </template>
 
-      <div class="w-full text-left">
+      <div :class="isCompactInline ? 'flex w-full min-w-0 items-center gap-2 text-left' : 'w-full text-left'">
         <template v-if="isLoadingGroupedTransfer">
           <!-- Loading skeleton: known leg renders on its side (source left, dest
                right); the still-loading opposite leg is a placeholder. -->
@@ -85,7 +85,7 @@
           </div>
         </template>
         <template v-else-if="isPortfolioLinked">
-          <div class="flex items-center gap-1.5">
+          <div :class="['flex items-center gap-1.5', compact && 'min-w-0']">
             <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
             <span class="line-clamp-1 text-sm tracking-wider">
               {{ accountFrom?.name }}
@@ -107,7 +107,7 @@
           </div>
         </template>
         <template v-else-if="isTransferTransaction">
-          <div class="flex items-center gap-1.5 text-sm tracking-wider">
+          <div :class="['flex items-center gap-1.5 text-sm tracking-wider', compact && 'min-w-0']">
             <AccountLogo v-if="accountFrom" :account="accountFrom" class="size-5 shrink-0" />
             <span class="line-clamp-1">{{ transferFromLabel }}</span>
             <span class="shrink-0">{{ transferSeparator }}</span>
@@ -116,7 +116,7 @@
           </div>
         </template>
         <template v-else>
-          <div class="flex items-center gap-2">
+          <div :class="['flex items-center gap-2', compact && 'shrink-0']">
             <span class="text-sm tracking-wider whitespace-nowrap">
               {{ category ? category.name : t('common.ui.other') }}
             </span>
@@ -128,6 +128,7 @@
             >
               <UsersIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" :aria-label="addedByTooltip" />
             </ResponsiveTooltip>
+            <PlannedIndicator :transaction="transaction" />
             <SplitIndicator :transaction="transaction" />
             <RefundIndicator :transaction="transaction" />
             <TagsIndicator :transaction="transaction" />
@@ -135,7 +136,11 @@
         </template>
         <span
           v-if="!shouldShowGroupedTransfer && !isLoadingGroupedTransfer"
-          class="text-muted-foreground line-clamp-1 text-sm tracking-wider [word-break:break-word]"
+          :class="
+            compact
+              ? 'text-muted-foreground min-w-0 truncate text-sm'
+              : 'text-muted-foreground line-clamp-1 text-sm tracking-wider [word-break:break-word]'
+          "
         >
           {{ transaction.note }}
         </span>
@@ -144,6 +149,20 @@
     <div v-if="shouldShowGroupedTransfer || isLoadingGroupedTransfer" class="flex items-start pt-0.5">
       <div class="text-muted-foreground text-right text-xs whitespace-nowrap tabular-nums">
         {{ formateDate(transaction.time) }}
+      </div>
+    </div>
+    <div v-else-if="compact" class="flex items-baseline justify-end gap-2">
+      <div class="text-muted-foreground text-xs whitespace-nowrap">
+        {{ formateDate(transaction.time) }}
+      </div>
+      <div
+        :class="[
+          'text-amount text-right text-sm whitespace-nowrap',
+          transaction.transactionType === TRANSACTION_TYPES.income && 'text-app-income-color',
+          transaction.transactionType === TRANSACTION_TYPES.expense && 'text-app-expense-color',
+        ]"
+      >
+        {{ formattedAmount }}
       </div>
     </div>
     <div v-else>
@@ -187,6 +206,7 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import PlannedIndicator from './indicators/planned-indicator.vue';
 import RefundIndicator from './indicators/refund-indicator.vue';
 import SplitIndicator from './indicators/split-indicator.vue';
 import TagsIndicator from './indicators/tags-indicator.vue';
@@ -203,6 +223,8 @@ const props = withDefaults(
     /** Shown as an explainer tooltip in place of the checkbox when not selectable. */
     unselectableReason?: BulkUnselectableReason | null;
     index?: number;
+    /** Single-line row: the note renders inline, amount and date share one line. */
+    compact?: boolean;
   }>(),
   {
     asButton: true,
@@ -211,6 +233,7 @@ const props = withDefaults(
     isSelectable: true,
     unselectableReason: null,
     index: 0,
+    compact: false,
   },
 );
 
@@ -258,6 +281,11 @@ const isLoadingGroupedTransfer = computed(() => {
   return isTransferTransaction.value && isTwoLegTransfer(transaction.value.transferNature) && isLoadingOpposite.value;
 });
 
+// Grouped transfers are intrinsically two-line, so they keep the stacked layout even in compact mode.
+const isCompactInline = computed(
+  () => props.compact && !shouldShowGroupedTransfer.value && !isLoadingGroupedTransfer.value,
+);
+
 const category = computed(() => categoriesMap.value[transaction.value.categoryId]);
 const accountFrom = computed(() => accountsRecord.value[transaction.value.accountId]);
 
@@ -268,7 +296,7 @@ const accountFrom = computed(() => accountsRecord.value[transaction.value.accoun
 const addedByTooltip = computed(() => {
   const addedBy = transaction.value.addedBy;
   if (!addedBy || addedBy.id === currentUser.value?.id) return undefined;
-  return t('transactions.addedByTooltip', { handle: `@${addedBy.username}` });
+  return t('common.transactions.record.addedByTooltip', { handle: `@${addedBy.username}` });
 });
 const accountTo = computed(() =>
   oppositeTransferTransaction.value ? accountsRecord.value[oppositeTransferTransaction.value.accountId] : undefined,
@@ -299,12 +327,12 @@ const transferSeparator = computed(() =>
 // Accounts can be undefined when hidden from the caller — e.g. a recipient viewing a
 // transfer on a shared account whose other side lives in an unshared private account of
 // the owner. Fall back to a labeled placeholder rather than rendering "undefined".
-const transferFromLabel = computed(() => accountFrom.value?.name ?? t('transactions.transfer.hiddenAccount'));
+const transferFromLabel = computed(() => accountFrom.value?.name ?? t('common.transactions.record.hiddenAccount'));
 const transferToLabel = computed(() => {
   if (transaction.value.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet) {
     return t('common.outOfWallet');
   }
-  return accountTo.value?.name ?? t('transactions.transfer.hiddenAccount');
+  return accountTo.value?.name ?? t('common.transactions.record.hiddenAccount');
 });
 
 const formateDate = (date: string | number | Date) => format(new Date(date), 'd MMM y');

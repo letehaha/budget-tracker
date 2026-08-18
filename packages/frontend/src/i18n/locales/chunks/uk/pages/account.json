@@ -23,7 +23,8 @@
           "writeOwn": "Може редагувати свої транзакції",
           "writeAll": "Може редагувати транзакції",
           "manage": "Менеджер"
-        }
+        },
+        "projectedBalance": "Прогнозований баланс {amount} · {count} запланований запис до {date} | Прогнозований баланс {amount} · {count} заплановані записи до {date} | Прогнозований баланс {amount} · {count} запланованих записів до {date}"
       },
       "balanceAdjustmentDialog": {
         "title": "Коригування балансу",
@@ -271,11 +272,9 @@
       "backToAccounts": "Назад до рахунків",
       "editButton": "Редагувати",
       "overrideValueButton": "Змінити вартість",
-      "overrideValueNote": "Переоцінка транспорту",
       "currentValue": "Поточна вартість",
       "purchasePrice": "Ціна придбання",
       "totalDepreciation": "Загальна амортизація",
-      "metadata": "Деталі транспорту",
       "vehicleClass": "Тип",
       "depreciationPreset": "Амортизація",
       "customAnnualRate": "Річна ставка",

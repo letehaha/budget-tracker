@@ -51,7 +51,7 @@ const I18N_CHUNKS = [
   'settings/data-management',
   'settings/appearance',
   'settings/language',
-  'settings/statistics',
+  'settings/general',
   'settings/ai',
   'settings/security',
   'settings/admin',

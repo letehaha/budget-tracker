@@ -12,6 +12,7 @@ import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { findOneTransaction, findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import {
@@ -23,10 +24,12 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
+import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
 import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
+import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { type HistoryItem, type WalletBalance, WalutomatApiClient, WalutomatHttpError } from './api-client';
 import { linkCrossProviderTransfers } from './cross-provider-linking';
@@ -300,7 +303,10 @@ export class WalutomatProvider extends BaseBankDataProvider {
         const currency = currencyFromExternalId(account.externalId);
 
         // Determine sync start date
-        const latestTransaction = await Transactions.findOne({
+        const latestTransaction = await findOneTransaction({
+          planned: 'exclude',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
           where: { accountId: account.id },
           order: [['time', 'DESC']],
         });
@@ -333,13 +339,21 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
         const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
         const createdTransactionIds: string[] = [];
+        let mergedIntoPlannedCount = 0;
         const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
+
+        // One probe per run instead of one per row. Anchorless runs are backfills
+        // and must not consume plans.
+        const matchPlanned = Boolean(latestTransaction) && (await accountHasPlannedRows({ accountId: account.id }));
 
         for (const item of historyItems) {
           await checkpoint();
 
           // Primary dedup: check by originalId
-          const existingTx = await Transactions.findOne({
+          const existingTx = await findOneTransaction({
+            planned: 'exclude',
+            access: 'unscoped-internal',
+            balanceAdjustments: 'include',
             where: {
               accountId: account.id,
               originalId: item.transactionId,
@@ -352,7 +366,10 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
           // Secondary dedup: check externalData.originalSource.originalId
           // Covers the unlink→relink flow where originalId was cleared
-          const existingByOriginalSource = await Transactions.findOne({
+          const existingByOriginalSource = await findOneTransaction({
+            planned: 'exclude',
+            access: 'unscoped-internal',
+            balanceAdjustments: 'include',
             where: Sequelize.and(
               { accountId: account.id, originalId: null },
               Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), item.transactionId),
@@ -367,7 +384,7 @@ export class WalutomatProvider extends BaseBankDataProvider {
           const operationAmount = parseFloat(item.operationAmount);
           const isExpense = operationAmount < 0;
 
-          const [createdTx] = await createTransaction({
+          const createResult = await createTransaction({
             originalId: item.transactionId,
             note: buildTransactionDescription(item),
             amount: Money.fromDecimal(Math.abs(operationAmount)),
@@ -389,15 +406,27 @@ export class WalutomatProvider extends BaseBankDataProvider {
             categoryId: defaultCategoryId,
             transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
             accountType: ACCOUNT_TYPES.walutomat,
+            matchPlanned,
           });
 
-          createdTransactionIds.push(createdTx.id);
+          // A merged row is not a new row: it keeps the user's category and payee, which the
+          // post-sync listeners on the emitted ids would overwrite.
+          if (createResult.mergedIntoPlanned) {
+            mergedIntoPlannedCount += 1;
+          } else {
+            createdTransactionIds.push(createResult[0].id);
+          }
         }
 
-        if (createdTransactionIds.length > 0) {
+        if (createdTransactionIds.length > 0 || mergedIntoPlannedCount > 0) {
           logger.info(
-            `[Walutomat] Sync: ${createdTransactionIds.length} transactions created for account ${account.id}`,
+            `[Walutomat] Sync: ${createdTransactionIds.length} transactions created, ${mergedIntoPlannedCount} planned confirmed for account ${account.id}`,
           );
+          await notifyPlannedConfirmations({
+            userId: connection.userId,
+            accountId: account.id,
+            mergedCount: mergedIntoPlannedCount,
+          });
         }
 
         // Update account balance
@@ -489,11 +518,14 @@ export class WalutomatProvider extends BaseBankDataProvider {
   private async linkFxTransfers({ userId }: { userId: number }): Promise<void> {
     try {
       // Find all unlinked MARKET_FX and DIRECT_FX walutomat transactions for this user
-      const unlinkedFxTxs = await Transactions.findAll({
+      const unlinkedFxTxs = await findTransactions({
+        planned: 'exclude',
+        access: { creator: userId },
+        balanceAdjustments: 'include',
+        transfers: 'exclude',
+        completeness: 'all',
         where: {
-          userId,
           accountType: ACCOUNT_TYPES.walutomat,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           originalId: { [Op.not]: null },
           [Op.or]: [
             Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'MARKET_FX'),
@@ -537,9 +569,21 @@ export class WalutomatProvider extends BaseBankDataProvider {
 
       if (pairsToLink.length === 0) return;
 
-      await linkTransactions({ userId, ids: pairsToLink });
+      // One rejected pair (planned or split-bearing leg) must not abort the rest of the batch.
+      let linkedCount = 0;
+      for (const pair of pairsToLink) {
+        try {
+          await linkTransactions({ userId, ids: [pair] });
+          linkedCount += 1;
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          logger.warn(`[Walutomat] Failed to auto-link FX pair ${pair[0]} <-> ${pair[1]}: ${errorMsg}`);
+        }
+      }
 
-      logger.info(`[Walutomat] Auto-linked ${pairsToLink.length} FX transfer pair(s) for user ${userId}`);
+      if (linkedCount === 0) return;
+
+      logger.info(`[Walutomat] Auto-linked ${linkedCount} FX transfer pair(s) for user ${userId}`);
     } catch (error) {
       // Non-critical — don't fail the sync if linking fails
       const errorMsg = error instanceof Error ? error.message : String(error);

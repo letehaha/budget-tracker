@@ -1,8 +1,6 @@
 {
   "common": {
     "loading": "Cargando...",
-    "from": "Desde",
-    "to": "Hasta",
     "new": "Nuevo",
     "actions": {
       "loading": "Cargando...",
@@ -13,7 +11,6 @@
       "accept": "Aceptar",
       "delete": "Eliminar",
       "edit": "Editar",
-      "create": "Crear",
       "addSubcategory": "Añadir subcategoría",
       "settings": "Ajustes",
       "confirm": "Confirmar",
@@ -21,13 +18,11 @@
       "viewAnalytics": "Ver análisis",
       "saving": "Guardando...",
       "saveChanges": "Guardar cambios",
-      "scrollToTop": "Arriba",
       "done": "Hecho",
       "failed": "Error",
       "viewAll": "Ver todo",
       "scan": "Escanear",
       "link": "Vincular",
-      "loadMore": "Cargar más",
       "clear": "Limpiar",
       "apply": "Aplicar",
       "retry": "Reintentar"
@@ -38,7 +33,8 @@
       "chooseAction": "Elija una acción",
       "other": "Otro",
       "refund": "Reembolso",
-      "split": "Dividir"
+      "split": "Dividir",
+      "deletedBadge": "Eliminado"
     },
     "components": {
       "statusIndicator": {
@@ -64,7 +60,6 @@
     "labels": {
       "email": "Correo electrónico",
       "password": "Contraseña",
-      "username": "Nombre de usuario",
       "system": "sistema",
       "unknown": "Desconocido",
       "total": "Total"
@@ -142,6 +137,10 @@
       },
       "unlink": {
         "error": "Error al desvincular las transacciones"
+      },
+      "record": {
+        "addedByTooltip": "{handle} adjuntó esta transacción al presupuesto",
+        "hiddenAccount": "Cuenta oculta"
       }
     },
     "outOfWallet": "Fuera de cartera",
@@ -339,20 +338,7 @@
     "onlyFirstFileTaken": "Se soltaron varios archivos – solo se usó el primero."
   },
   "demo": {
-    "loadingOverlay": {
-      "messages": [
-        "Procesando números para usted...",
-        "Creando sus cuentas personales...",
-        "Añadiendo transacciones realistas...",
-        "Ajustando su panel...",
-        "Casi listo, aplicando los últimos retoques..."
-      ]
-    },
     "featureNotAvailable": "Esta función no está disponible en el modo de demostración",
-    "bankConnectionsRestricted": {
-      "title": "Conexiones bancarias"
-    },
-    "signUpToUnlock": "Regístrese para desbloquear esta función",
     "passwordChangeRestricted": "Los cambios de contraseña no están disponibles en el modo de demostración",
     "investmentsRestricted": {
       "title": "Inversiones no disponibles en la demostración",
@@ -401,6 +387,36 @@
     "estimatedCost": {
       "yourApiKey": "(su clave de API)",
       "setByEndpoint": "Definido por su endpoint"
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "Editar grupo",
+      "nameLabel": "Nombre",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "Nota opcional…",
+      "loadingText": "Cargando…",
+      "savingAction": "Guardar",
+      "cancelButton": "Cancelar",
+      "editAction": "Editar",
+      "deleteAction": "Eliminar grupo",
+      "transactionsLabel": "Transacciones",
+      "deleteGroupTitle": "Eliminar grupo",
+      "deleteGroupDescription": "¿Está seguro de que desea eliminar \"{groupName}\"? Las transacciones no se eliminarán.",
+      "removeTransactionTitle": "Quitar transacción del grupo",
+      "removeTransactionDescription": "Esto dejará menos de 2 transacciones en el grupo, por lo que el grupo se eliminará. ¿Continuar?",
+      "removeTransactionDescriptionNormal": "¿Está seguro de que desea quitar esta transacción del grupo?",
+      "removeButtonText": "Quitar",
+      "removeAndDeleteButtonText": "Quitar y eliminar el grupo",
+      "summary": {
+        "transactions": "Transacciones",
+        "net": "Neto",
+        "moneyIn": "Dinero entrante",
+        "moneyOut": "Dinero saliente"
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": "transacciones"
     }
   }
 }

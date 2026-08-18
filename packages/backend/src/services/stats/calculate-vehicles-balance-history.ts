@@ -3,6 +3,7 @@ import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import ExchangeRates from '@models/exchange-rates.model';
+import { findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
@@ -108,10 +109,16 @@ export const calculateVehiclesBalanceHistory = async ({
 
   const accountIds = activeVehicles.map((v) => v.accountId);
 
-  const overrideTxs = await Transactions.findAll({
+  // Overrides are written by the balance-adjustment flow, which stamps them as adjustments —
+  // excluding those (the boundary's default) would erase every anchor after the purchase.
+  const overrideTxs = await findTransactions({
+    planned: 'exclude',
+    access: { accountOwner: userId },
+    balanceAdjustments: 'include',
+    transfers: { natures: [TRANSACTION_TRANSFER_NATURE.transfer_out_wallet] },
+    completeness: 'all',
     where: {
       accountId: { [Op.in]: accountIds },
-      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
       time: { [Op.lte]: endOfDay(parseISO(maxDate)) },
     },
     order: [

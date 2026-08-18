@@ -32,85 +32,91 @@
       </form-row>
 
       <form-row>
-        <PillTabs
-          :model-value="destinationType"
-          :items="destinationTypeItems"
-          size="sm"
-          :disabled="disabled || toAccountDisabled || destinationTypeDisabled"
-          class="w-full"
-          @update:model-value="updateDestinationType"
-        />
-      </form-row>
+        <DestinationPanel :label="$t('dialogs.manageTransaction.form.destinationGroupLabel')">
+          <form-row>
+            <PillTabs
+              :model-value="destinationType"
+              :items="destinationTypeItems"
+              size="sm"
+              :disabled="disabled || toAccountDisabled || destinationTypeDisabled"
+              class="w-full"
+              @update:model-value="updateDestinationType"
+            />
+          </form-row>
 
-      <form-row v-if="destinationType === 'account'">
-        <select-field
-          :label="$t('dialogs.manageTransaction.form.toAccountLabel')"
-          :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
-          :values="filteredAccounts"
-          :label-key="getAccountLabel"
-          value-key="id"
-          with-search
-          :disabled="disabled || toAccountDisabled"
-          :model-value="toAccount"
-          @update:model-value="updateToAccount"
-        >
-          <template #trigger="{ item, label }">
-            <AccountOptionRow :account="item" :label="label" variant="trigger" />
-          </template>
-          <template #item="{ item, label }">
-            <AccountOptionRow :account="item" :label="label" />
-          </template>
-          <template #select-bottom-content>
-            <CreateAccountDialog>
-              <UiButton type="button" class="mt-4 w-full" variant="link">
-                {{ $t('dialogs.manageTransaction.form.addNewAccountButton') }}
-              </UiButton>
-            </CreateAccountDialog>
-          </template>
-        </select-field>
-      </form-row>
+          <form-row v-if="destinationType === 'account'">
+            <select-field
+              :label="$t('dialogs.manageTransaction.form.toAccountLabel')"
+              :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
+              :values="filteredAccounts"
+              :label-key="getAccountLabel"
+              value-key="id"
+              with-search
+              :disabled="disabled || toAccountDisabled"
+              :model-value="toAccount"
+              @update:model-value="updateToAccount"
+            >
+              <template #trigger="{ item, label }">
+                <AccountOptionRow :account="item" :label="label" variant="trigger" />
+              </template>
+              <template #item="{ item, label }">
+                <AccountOptionRow :account="item" :label="label" />
+              </template>
+              <template #select-bottom-content>
+                <CreateAccountDialog>
+                  <UiButton type="button" class="mt-4 w-full" variant="link">
+                    {{ $t('dialogs.manageTransaction.form.addNewAccountButton') }}
+                  </UiButton>
+                </CreateAccountDialog>
+              </template>
+            </select-field>
+          </form-row>
 
-      <form-row v-else-if="destinationType === 'portfolio'">
-        <select-field
-          :label="$t('dialogs.manageTransaction.form.toPortfolioLabel')"
-          :placeholder="
-            portfolios.length
-              ? $t('dialogs.manageTransaction.form.selectPortfolioPlaceholder')
-              : $t('dialogs.manageTransaction.form.noPortfoliosExist')
-          "
-          :values="portfolios"
-          label-key="name"
-          value-key="id"
-          with-search
-          :disabled="disabled || toAccountDisabled || !portfolios.length"
-          :model-value="toPortfolio"
-          @update:model-value="updateToPortfolio"
-        />
-      </form-row>
+          <form-row v-else-if="destinationType === 'portfolio'">
+            <select-field
+              :label="$t('dialogs.manageTransaction.form.toPortfolioLabel')"
+              :placeholder="
+                portfolios.length
+                  ? $t('dialogs.manageTransaction.form.selectPortfolioPlaceholder')
+                  : $t('dialogs.manageTransaction.form.noPortfoliosExist')
+              "
+              :values="portfolios"
+              label-key="name"
+              value-key="id"
+              with-search
+              :disabled="disabled || toAccountDisabled || !portfolios.length"
+              :model-value="toPortfolio"
+              @update:model-value="updateToPortfolio"
+            />
+          </form-row>
 
-      <form-row v-else>
-        <select-field
-          :label="$t('dialogs.manageTransaction.form.toLoanLabel')"
-          :placeholder="
-            loanAccounts.length
-              ? $t('dialogs.manageTransaction.form.selectLoanPlaceholder')
-              : $t('dialogs.manageTransaction.form.noLoansExist')
-          "
-          :values="loanAccounts"
-          :label-key="getAccountLabel"
-          value-key="id"
-          with-search
-          :disabled="disabled || toAccountDisabled || !loanAccounts.length"
-          :model-value="toAccount"
-          @update:model-value="updateToAccount"
-        >
-          <template #trigger="{ item, label }">
-            <AccountOptionRow :account="item" :label="label" variant="trigger" />
-          </template>
-          <template #item="{ item, label }">
-            <AccountOptionRow :account="item" :label="label" />
-          </template>
-        </select-field>
+          <form-row v-else>
+            <select-field
+              :label="$t('dialogs.manageTransaction.form.toLoanLabel')"
+              :placeholder="
+                loanAccounts.length
+                  ? $t('dialogs.manageTransaction.form.selectLoanPlaceholder')
+                  : $t('dialogs.manageTransaction.form.noLoansExist')
+              "
+              :values="loanAccounts"
+              :label-key="getAccountLabel"
+              value-key="id"
+              with-search
+              :disabled="disabled || toAccountDisabled || !loanAccounts.length"
+              :model-value="toAccount"
+              @update:model-value="updateToAccount"
+            >
+              <template #trigger="{ item, label }">
+                <AccountOptionRow :account="item" :label="label" variant="trigger" />
+              </template>
+              <template #item="{ item, label }">
+                <AccountOptionRow :account="item" :label="label" />
+              </template>
+            </select-field>
+          </form-row>
+
+          <slot name="destination-bottom" />
+        </DestinationPanel>
       </form-row>
     </template>
     <template v-else>
@@ -134,6 +140,12 @@
           <template #item="{ item, label }">
             <AccountOptionRow :account="item" :label="label" archived-class="text-muted-foreground" />
           </template>
+          <template v-if="$slots['account-label-right'] && !$slots['account-field-right']" #label-right>
+            <slot name="account-label-right" />
+          </template>
+          <template v-if="$slots['account-field-right']" #field-right>
+            <slot name="account-field-right" />
+          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
               <UiButton type="button" class="mt-4 w-full" variant="link">
@@ -142,6 +154,8 @@
             </CreateAccountDialog>
           </template>
         </select-field>
+
+        <slot name="account-hint" />
       </form-row>
     </template>
   </template>
@@ -151,14 +165,18 @@
         :model-value="$t('dialogs.manageTransaction.form.noAccountExists')"
         :label="$t('dialogs.manageTransaction.form.accountLabel')"
         readonly
+        non-label-wrapper
         :disabled="disabled"
       >
         <template #label-right>
-          <CreateAccountDialog>
-            <div class="text-primary cursor-pointer hover:underline">
-              {{ $t('dialogs.manageTransaction.form.createAccountLink') }}
-            </div>
-          </CreateAccountDialog>
+          <div class="flex items-center gap-3">
+            <slot name="account-label-right" />
+            <CreateAccountDialog>
+              <div class="text-primary-text cursor-pointer hover:underline">
+                {{ $t('dialogs.manageTransaction.form.createAccountLink') }}
+              </div>
+            </CreateAccountDialog>
+          </div>
         </template>
       </input-field>
     </form-row>
@@ -180,6 +198,7 @@ import { useI18n } from 'vue-i18n';
 import { getAvailableTransferDestinationTypes } from '../helpers';
 import type { TransferDestinationType } from '../composables/transfer-form';
 import AccountOptionRow from './account-option-row.vue';
+import DestinationPanel from './destination-panel.vue';
 import FormRow from './form-row.vue';
 
 const { t } = useI18n();

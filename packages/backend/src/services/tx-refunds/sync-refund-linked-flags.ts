@@ -1,4 +1,4 @@
-import Transactions from '@models/transactions.model';
+import { updateTransactions } from '@models/transactions-query';
 import { Op, literal } from 'sequelize';
 
 /**
@@ -21,13 +21,16 @@ export const syncRefundLinkedFlags = async ({ transactionIds }: { transactionIds
   const ids = [...new Set(transactionIds.filter((id): id is string => Boolean(id)))];
   if (ids.length === 0) return;
 
-  await Transactions.update(
-    {
+  await updateTransactions({
+    values: {
       refundLinked: literal(`EXISTS (
         SELECT 1 FROM "RefundTransactions" r
         WHERE r."refundTxId" = "Transactions".id OR r."originalTxId" = "Transactions".id
-      )`) as unknown as boolean,
+      )`),
     },
-    { where: { id: { [Op.in]: ids } } },
-  );
+    where: { id: { [Op.in]: ids } },
+    planned: 'include',
+    access: 'unscoped-internal',
+    balanceAdjustments: 'include',
+  });
 };

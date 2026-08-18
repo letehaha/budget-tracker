@@ -293,7 +293,12 @@ export interface TransactionModel {
   commissionRate: number; // should be comission calculated as refAmount
   refCommissionRate: number; // should be comission calculated as refAmount
   cashbackAmount: number; // add to unified
+  originalAmount: number | null;
+  originalCurrencyCode: string | null;
   refundLinked: boolean;
+  isPlanned: boolean;
+  /** Serializer-derived: set when a bank transaction merged into this row while it was planned. */
+  plannedMerge?: { mergedAt: string } | null;
   /** Metadata about how this transaction was categorized */
   categorizationMeta?: CategorizationMeta | null;
   /** Linked Payee. Null when no Payee resolved (raw merchant missing/unmatched). */

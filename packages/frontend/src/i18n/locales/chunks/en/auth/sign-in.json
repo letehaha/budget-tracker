@@ -5,6 +5,7 @@
       "divider": "Or continue with email",
       "submitButton": "Log in",
       "noAccount": "Don't have an account?",
+      "signupsDisabledTooltip": "New signups are disabled by the administrator of this instance",
       "errors": {
         "incorrectEmailOrPassword": "Incorrect email or password.",
         "incorrectPassword": "Incorrect password.",

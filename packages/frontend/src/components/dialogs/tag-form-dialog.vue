@@ -12,14 +12,14 @@
     <template v-if="isEditMode && tag">
       <Tabs v-model="activeTab" class="mt-4 mb-auto">
         <TabsList class="grid w-full grid-cols-2">
-          <TabsTrigger value="details">
+          <TabsTrigger value="details" class="data-[state=active]:bg-dialog">
             {{ $t('settings.tags.tabs.details') }}
           </TabsTrigger>
-          <TabsTrigger value="reminders">
+          <TabsTrigger value="reminders" class="data-[state=active]:bg-dialog">
             {{ $t('settings.tags.tabs.reminders') }}
             <span
               v-if="reminders.length > 0"
-              class="bg-primary/10 text-primary ml-1.5 inline-flex size-5 items-center justify-center rounded-full text-xs font-medium"
+              class="bg-primary/10 text-primary-text ml-1.5 inline-flex size-5 items-center justify-center rounded-full text-xs font-medium"
             >
               {{ reminders.length }}
             </span>
@@ -39,7 +39,7 @@
         </TabsContent>
 
         <TabsContent value="reminders" class="relative h-100 overflow-auto pb-2">
-          <div class="bg-background sticky top-0 mb-2 flex items-center justify-end py-2">
+          <div class="bg-dialog sticky top-0 mb-2 flex items-center justify-end py-2">
             <Button variant="outline" size="sm" class="gap-1.5" @click="openReminderDialog()">
               <PlusIcon class="size-4" />
               {{ $t('settings.tags.reminders.addButton') }}

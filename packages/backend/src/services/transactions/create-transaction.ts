@@ -24,7 +24,7 @@ import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
 import { applyPayeeCategorization } from '@services/payees/apply-categorization';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
-import { resolvePayeeForRawMerchant } from '@services/payees/extraction.service';
+import { resolvePayeeForIncomingRow } from '@services/payees/resolve-payee-for-incoming-row';
 import {
   assertSharedWritePhase1Guards,
   authorizeAccountWrite,
@@ -32,16 +32,55 @@ import {
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { matchTransactionToSubscriptions } from '@services/subscriptions/matching-engine';
-import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { DatabaseError } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
-import { runInSavepoint } from '../common/run-in-savepoint';
 import { withTransaction } from '../common/with-transaction';
 import { createSingleRefund } from '../tx-refunds/create-single-refund.service';
+import { tryMergeIntoPlanned } from './planned-matching';
+import { assertPlannedCreateAllowed } from './planned-matching/assert-planned-invariants';
 import { manageSplits } from './splits';
 import { linkTransactions } from './transactions-linking';
 import type { CreateTransactionParams, UpdateTransactionParams } from './types';
+
+/**
+ * `mergedIntoPlanned` rides along on the tuple so every existing caller keeps destructuring
+ * `[baseTx, oppositeTx]` untouched. It is set only when the row confirmed an existing plan,
+ * which means no new row was created and post-processing jobs must leave it alone.
+ */
+type CreateTxResult = [baseTx: Transactions.default, oppositeTx?: Transactions.default] & {
+  mergedIntoPlanned?: boolean;
+};
+
+/**
+ * The account row is the only trustworthy source for `accountType`: a caller-supplied one
+ * lets a hand-typed row claim to be bank data, which then drives the balance hooks. Provider
+ * and importer code passes its own type explicitly and keeps it; everything reaching this
+ * without one is a user typing a transaction, and gets the account's real type.
+ *
+ * Only a planned row may sit on a provider account without the provider having reported it,
+ * because it records an intention the sync is expected to confirm later.
+ */
+const resolveAccountTypeForManualWrite = async ({
+  accountId,
+  accountOwnerUserId,
+  isPlanned,
+}: {
+  accountId: string;
+  accountOwnerUserId: number;
+  isPlanned: boolean;
+}): Promise<ACCOUNT_TYPES> => {
+  const account = await findOrThrowNotFound({
+    query: Accounts.getAccountById({ id: accountId, userId: accountOwnerUserId }),
+    message: t({ key: 'accounts.accountNotFoundForTransaction' }),
+  });
+
+  if (account.type !== ACCOUNT_TYPES.system && !isPlanned) {
+    throw new ValidationError({ message: t({ key: 'transactions.manualOnConnectedAccount' }) });
+  }
+
+  return account.type;
+};
 
 type CreateOppositeTransactionParams = [
   creationParams: (CreateTransactionParams | UpdateTransactionParams) & {
@@ -297,9 +336,14 @@ export const createTransaction = withTransaction(
     payeeId: callerPayeeId,
     payeeLocked: callerPayeeLocked,
     categoryIdIsExplicit = false,
+    matchPlanned = false,
     ...payload
-  }: CreateTransactionParams) => {
+  }: CreateTransactionParams): Promise<CreateTxResult> => {
     try {
+      // Captured before the coercion below, which would hide a non-positive amount from
+      // the planned-row invariants.
+      const requestedAmount = amount;
+
       // Detect negative amounts - this is a bug in the caller code
       // Transaction amounts should ALWAYS be positive, with transactionType determining expense/income
       if (amount.isNegative()) {
@@ -334,6 +378,29 @@ export const createTransaction = withTransaction(
         involvesRefund: refundsTxId !== undefined && refundsTxId !== null,
       });
 
+      if (payload.isPlanned) {
+        await assertPlannedCreateAllowed({
+          callerUserId: userId,
+          accountId,
+          amount: requestedAmount,
+          transferNature,
+          refundsTxId,
+          refundsSplitId,
+          originalId: payload.originalId,
+          destinationAccountId: payload.destinationAccountId,
+          destinationAmount: payload.destinationAmount,
+          destinationTransactionId,
+        });
+      }
+
+      const accountType =
+        payload.accountType ??
+        (await resolveAccountTypeForManualWrite({
+          accountId,
+          accountOwnerUserId,
+          isPlanned: Boolean(payload.isPlanned),
+        }));
+
       if (payload.categoryId !== undefined && payload.categoryId !== null) {
         await findOrThrowNotFound({
           query: Categories.findOne({ where: { id: payload.categoryId, userId: accountOwnerUserId } }),
@@ -358,23 +425,41 @@ export const createTransaction = withTransaction(
         await ensureUserCurrencyConnected({ userId, currencyCode: generalTxCurrency.code });
       }
 
+      if (matchPlanned && transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer && !payload.isPlanned) {
+        const merged = await tryMergeIntoPlanned({
+          accountId,
+          amount,
+          transactionType: payload.transactionType,
+          currencyCode: generalTxCurrency.code,
+          incoming: {
+            time: payload.time ?? new Date(),
+            note: payload.note,
+            originalId: payload.originalId,
+            externalData: payload.externalData,
+            commissionRate,
+            cashbackAmount: payload.cashbackAmount,
+            accountType,
+            rawMerchantName,
+          },
+        });
+
+        if (merged) {
+          const mergedResult: CreateTxResult = [merged];
+          mergedResult.mergedIntoPlanned = true;
+          return mergedResult;
+        }
+      }
+
       // Resolve Payee for provider-sync rows. Caller-supplied `payeeId` wins
       // (manual UI assignment); otherwise extract from `rawMerchantName` only
       // when the row isn't locked. Transfers skip extraction entirely — they
       // model internal account moves, not merchant interactions.
       //
-      // When the dedicated merchant field is empty, the user-level
-      // `payeeExtractionUsesDescription` setting can authorize falling back
-      // to the transaction note. Off by default; opt-in for users whose
-      // provider (e.g. Monobank) returns the merchant in `description` only.
-      //
-      // Caller-supplied ids are validated against `accountOwnerUserId`, not
-      // the caller — Payees are scoped to the account owner just like
-      // Categories. On a shared-account write the recipient must pick from
-      // the owner's payee list; their own private payees are out of scope
-      // for rows that live on someone else's account. The owner's user-level
-      // `payeeExtractionUsesDescription` setting also drives the description
-      // fallback so behavior matches what the owner configured.
+      // Both the caller-supplied id and the extraction are scoped to
+      // `accountOwnerUserId`, not the caller — Payees belong to the account
+      // owner just like Categories. On a shared-account write the recipient
+      // must pick from the owner's payee list; their own private payees are
+      // out of scope for rows that live on someone else's account.
       let resolvedPayeeId: string | null = null;
       if (callerPayeeId) {
         const ownedPayee = await Payees.findOne({
@@ -387,34 +472,12 @@ export const createTransaction = withTransaction(
         resolvedPayeeId = callerPayeeId;
       }
       if (!callerPayeeLocked && !resolvedPayeeId && !isTwoLegTransfer(transferNature)) {
-        let effectiveRawMerchant: string | null | undefined = rawMerchantName;
-        if (!effectiveRawMerchant && payload.note) {
-          const settings = await getUserSettings({ userId: accountOwnerUserId });
-          if (settings.payeeExtractionUsesDescription) {
-            effectiveRawMerchant = payload.note;
-          }
-        }
-        if (effectiveRawMerchant) {
-          // Invariant: transaction creation succeeds even if Payee linking
-          // fails. Resolution writes (promotion, alias, backfill) can lose
-          // UNIQUE races under concurrent bank sync; the savepoint scopes such
-          // a failure so it doesn't abort the shared transaction and poison
-          // every later statement in this create.
-          try {
-            const extraction = await runInSavepoint(() =>
-              resolvePayeeForRawMerchant({
-                userId: accountOwnerUserId,
-                rawMerchantName: effectiveRawMerchant,
-              }),
-            );
-            resolvedPayeeId = extraction.payeeId;
-          } catch (error) {
-            logger.error({
-              message: 'Failed to resolve Payee during createTransaction; continuing without link',
-              error: error as Error,
-            });
-          }
-        }
+        resolvedPayeeId = await resolvePayeeForIncomingRow({
+          ownerUserId: accountOwnerUserId,
+          rawMerchantName,
+          note: payload.note,
+          failureLogMessage: 'Failed to resolve Payee during createTransaction; continuing without link',
+        });
       }
 
       const generalTxParams: Transactions.CreateTransactionPayload & {
@@ -428,6 +491,7 @@ export const createTransaction = withTransaction(
         refCommissionRate: commissionRate,
         userId,
         accountId,
+        accountType,
         transferNature,
         currencyCode: generalTxCurrency.code,
         transferId: undefined,
@@ -455,7 +519,7 @@ export const createTransaction = withTransaction(
 
       const baseTransaction = await Transactions.createTransaction(generalTxParams);
 
-      let transactions: [baseTx: Transactions.default, oppositeTx?: Transactions.default] = [baseTransaction!];
+      let transactions: CreateTxResult = [baseTransaction!];
 
       if (refundsTxId && !isTwoLegTransfer(transferNature)) {
         await createSingleRefund({

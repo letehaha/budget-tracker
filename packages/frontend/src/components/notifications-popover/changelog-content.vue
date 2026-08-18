@@ -23,7 +23,7 @@ const handleLinkClick = (event: Event, url: string) => {
     </p>
     <button
       v-if="payload.releaseUrl"
-      class="text-primary mt-1 flex items-center gap-1 text-xs hover:underline"
+      class="text-primary-text mt-1 flex items-center gap-1 text-xs hover:underline"
       @click="handleLinkClick($event, payload.releaseUrl)"
     >
       {{ $t('notifications.viewOnGitHub') }}

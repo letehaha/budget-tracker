@@ -17,7 +17,7 @@
       <div class="mb-4">
         <button
           type="button"
-          class="text-primary flex items-center gap-1 text-xs hover:underline"
+          class="text-primary-text flex items-center gap-1 text-xs hover:underline"
           @click="showModelHint = !showModelHint"
         >
           <LightbulbIcon class="size-3" />

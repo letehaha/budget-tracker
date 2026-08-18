@@ -95,13 +95,23 @@ const spendingsByCategoriesSchema = z.object({
       excludedCategoryIds: optionalCommaSeparatedIds(),
       // When true, ignores `type` and returns per-category income + expense buckets in one response.
       groupByType: booleanQuery().optional(),
+      excludePlanned: booleanQuery().optional(),
     }),
   ),
 });
 
 export const getSpendingsByCategories = createController(spendingsByCategoriesSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, accountId, type: transactionType, categoryIds, excludedCategoryIds, groupByType } = query;
+  const {
+    from,
+    to,
+    accountId,
+    type: transactionType,
+    categoryIds,
+    excludedCategoryIds,
+    groupByType,
+    excludePlanned,
+  } = query;
 
   if (groupByType) {
     const byType = await statsService.getSpendingsByCategoriesByType(
@@ -112,6 +122,7 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
         accountId,
         categoryIds,
         excludedCategoryIds,
+        excludePlanned,
       }),
     );
 
@@ -128,6 +139,7 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
       transactionType,
       categoryIds,
       excludedCategoryIds,
+      excludePlanned,
     }),
   );
 
@@ -141,13 +153,14 @@ const expensesAmountSchema = z.object({
       ...dateRange(),
       accountId: z.string().optional(),
       excludedCategoryIds: optionalCommaSeparatedIds(),
+      excludePlanned: booleanQuery().optional(),
     }),
   ),
 });
 
 export const getExpensesAmountForPeriod = createController(expensesAmountSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, accountId, excludedCategoryIds } = query;
+  const { from, to, accountId, excludedCategoryIds, excludePlanned } = query;
 
   const result = await statsService.getExpensesAmountForPeriod(
     removeUndefinedKeys({
@@ -156,6 +169,7 @@ export const getExpensesAmountForPeriod = createController(expensesAmountSchema,
       to,
       accountId,
       excludedCategoryIds,
+      excludePlanned,
     }),
   );
 
@@ -192,13 +206,14 @@ const cashFlowSchema = z.object({
       accountId: z.string().optional(),
       categoryIds: optionalCommaSeparatedIds(),
       excludedCategoryIds: optionalCommaSeparatedIds(),
+      excludePlanned: booleanQuery().optional(),
     }),
   ),
 });
 
 export const getCashFlow = createController(cashFlowSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, granularity, accountId, categoryIds, excludedCategoryIds } = query;
+  const { from, to, granularity, accountId, categoryIds, excludedCategoryIds, excludePlanned } = query;
 
   const result = await statsService.getCashFlow(
     removeUndefinedKeys({
@@ -209,6 +224,7 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
       accountId,
       categoryIds,
       excludedCategoryIds,
+      excludePlanned,
     }),
   );
 

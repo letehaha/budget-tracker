@@ -106,7 +106,7 @@
                 :class="
                   cn(
                     'flex size-10 items-center justify-center rounded-lg transition-colors',
-                    selectedGroups.has(group) ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                    selectedGroups.has(group) ? 'bg-primary/10 text-primary-text' : 'bg-muted text-muted-foreground',
                   )
                 "
               >

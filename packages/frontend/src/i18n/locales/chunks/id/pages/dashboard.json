@@ -6,6 +6,11 @@
       "emptyState": "Klik Sesuaikan untuk menambah widget"
     },
     "widgets": {
+      "common": {
+        "includePlanned": "Sertakan transaksi terencana",
+        "includePlannedTooltip": "Hitung transaksi terencana yang tertunda dalam angka widget ini.",
+        "includePlannedSaveError": "Tidak dapat menyimpan pengaturan transaksi terencana. Silakan coba lagi."
+      },
       "balanceTrend": {
         "title": "Tren saldo",
         "balanceTypes": {
@@ -54,9 +59,11 @@
           "spikeMarkers": "Penanda lonjakan",
           "fitToLatestData": "Sesuaikan dengan data terbaru",
           "fitToLatestDataTooltip": "Saat aktif, grafik hanya mencakup hingga titik data terbaru Anda. Saat nonaktif, sumbu-x mencakup seluruh periode yang dipilih, menyisakan ruang kosong untuk tanggal mendatang.",
+          "fitToLatestDataLockedTooltip": "Nonaktifkan transaksi terencana untuk mengubah ini — proyeksinya selalu memperpanjang grafik hingga akhir periode.",
           "on": "Aktif",
           "off": "Nonaktif",
-          "includeInTotal": "Sertakan dalam total"
+          "includeInTotal": "Sertakan dalam total",
+          "includePlannedTooltip": "Tampilkan proyeksi bergaris putus-putus dari transaksi terencana yang tertunda di atas garis tren."
         },
         "componentsSettings": {
           "description": "Pilih komponen mana yang dihitung dalam garis Total saldo.",
@@ -66,6 +73,9 @@
           "loansTooltip": "Saat aktif, saldo pinjaman Anda dikurangkan dari total (kekayaan bersih sebenarnya). Saat nonaktif, pinjaman diabaikan sehingga total hanya menunjukkan aset.",
           "allIncluded": "Semua komponen",
           "excluding": "Tidak termasuk {items}"
+        },
+        "projection": {
+          "summary": "Proyeksi {amount} · {count} entri terencana hingga {date} | Proyeksi {amount} · {count} entri terencana hingga {date}"
         }
       },
       "expensesStructure": {
@@ -108,7 +118,6 @@
       "categoryTracker": {
         "title": "Pantauan Kategori",
         "addCategory": "Tambah kategori",
-        "addCategories": "Tambah kategori untuk dipantau",
         "selectCategories": "Pilih Kategori"
       },
       "cashFlow": {
@@ -118,13 +127,49 @@
         "income": "Pemasukan",
         "expenses": "Pengeluaran",
         "saved": "Ditabung",
-        "previousPeriodsTrend": "Tren periode sebelumnya"
+        "previousPeriodsTrend": "Tren periode sebelumnya",
+        "viewDetails": "Lihat detail"
+      },
+      "netWorth": {
+        "title": "Kekayaan Bersih",
+        "description": "Bagaimana kekayaan bersih Anda berubah selama periode yang dipilih. Menghitung setiap perubahan saldo: akun, investasi, pinjaman, dan nilai aset.",
+        "vsPrevious": "vs sebelumnya",
+        "start": "Awal",
+        "end": "Akhir",
+        "growth": "Pertumbuhan",
+        "previousPeriodsTrend": "Tren periode sebelumnya",
+        "excludedTooltip": "Dikecualikan dari kekayaan bersih: {components}",
+        "viewHistory": "Lihat riwayat",
+        "loadFailed": "Tidak dapat memuat data kekayaan bersih.",
+        "components": {
+          "ventures": "Ventura",
+          "vehicles": "Kendaraan",
+          "loans": "Pinjaman"
+        },
+        "settings": {
+          "title": "Sertakan dalam kekayaan bersih",
+          "loans": "Pinjaman",
+          "vehicles": "Kendaraan",
+          "ventures": "Ventura"
+        },
+        "trendTooltip": {
+          "change": "Perubahan",
+          "netWorth": "Kekayaan bersih",
+          "noData": "Tidak ada data untuk periode ini"
+        }
       },
       "creditUtilization": {
         "title": "Penggunaan Kredit",
         "description": "Menunjukkan berapa banyak batas kredit Anda yang saat ini digunakan di semua akun",
         "utilized": "digunakan",
         "noAccounts": "Tidak ada akun dengan batas kredit"
+      },
+      "plannedOverview": {
+        "title": "Terencana",
+        "projectedTotal": "Proyeksi saldo",
+        "pendingCount": "{count} entri terencana | {count} entri terencana",
+        "through": "Hingga {date}",
+        "loadFailed": "Tidak dapat memuat transaksi terencana"
       },
       "emptyState": "Tidak ada data dalam interval waktu yang dipilih.",
       "registry": {
@@ -152,15 +197,21 @@
           "name": "Arus Kas",
           "description": "Pemasukan vs pengeluaran dengan tingkat tabungan"
         },
+        "netWorth": {
+          "name": "Kekayaan Bersih",
+          "description": "Bagaimana total kekayaan bersih Anda berubah dari waktu ke waktu, termasuk investasi, pinjaman, dan aset."
+        },
         "creditUtilization": {
           "name": "Penggunaan Kredit",
           "description": "Penggunaan batas kredit di semua akun Anda"
+        },
+        "plannedOverview": {
+          "name": "Ikhtisar terencana",
+          "description": "Transaksi terencana yang tertunda dan proyeksi saldo Anda"
         }
       }
     },
     "periodSelector": {
-      "quickSelect": "Pilih Cepat",
-      "year": "{year}",
       "presets": {
         "currentMonth": "Bulan Ini",
         "last3Months": "3 Bulan Terakhir",
@@ -185,10 +236,19 @@
       "config": {
         "includeScheduled": {
           "label": "Sertakan pembayaran terjadwal",
-          "description": "Tampilkan pengingat pembayaran mendatang dan terlambat di atas transaksi terbaru Anda",
           "on": "Aktif",
           "off": "Nonaktif"
         }
+      },
+      "settings": {
+        "excludeTitle": "Kecualikan transaksi",
+        "excludeTransfersDescription": "Sembunyikan transfer antar akun Anda sendiri",
+        "excludeOutOfWalletDescription": "Sembunyikan penyesuaian saldo dan transfer di luar dompet lainnya",
+        "balanceAdjustmentsTitle": "Penyesuaian saldo",
+        "excludeBalanceAdjustmentsDescription": "Sembunyikan transaksi penyesuaian saldo",
+        "plannedTitle": "Transaksi terencana",
+        "excludePlannedDescription": "Sembunyikan transaksi terencana yang tertunda dari daftar",
+        "nothingExcluded": "Tidak ada yang dikecualikan"
       },
       "overdueBadge": "Terlambat",
       "scheduledBadge": "Terjadwal",

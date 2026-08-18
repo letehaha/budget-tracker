@@ -1,8 +1,6 @@
 {
   "common": {
     "loading": "Завантаження...",
-    "from": "З",
-    "to": "На",
     "new": "Нове",
     "actions": {
       "loading": "Завантаження...",
@@ -13,7 +11,6 @@
       "accept": "Прийняти",
       "delete": "Видалити",
       "edit": "Редагувати",
-      "create": "Створити",
       "addSubcategory": "Додати підкатегорію",
       "settings": "Налаштування",
       "confirm": "Підтвердити",
@@ -21,13 +18,11 @@
       "viewAnalytics": "Переглянути аналітику",
       "saving": "Збереження...",
       "saveChanges": "Зберегти зміни",
-      "scrollToTop": "Вгору",
       "done": "Готово",
       "failed": "Помилка",
       "viewAll": "Переглянути все",
       "scan": "Сканувати",
       "link": "Прив'язати",
-      "loadMore": "Завантажити ще",
       "clear": "Очистити",
       "apply": "Застосувати",
       "retry": "Спробувати ще раз"
@@ -38,7 +33,8 @@
       "chooseAction": "Оберіть дію",
       "other": "Інше",
       "refund": "Повернення",
-      "split": "Розділення"
+      "split": "Розділення",
+      "deletedBadge": "Видалено"
     },
     "components": {
       "statusIndicator": {
@@ -64,7 +60,6 @@
     "labels": {
       "email": "Електронна пошта",
       "password": "Пароль",
-      "username": "Ім'я користувача",
       "system": "системна",
       "unknown": "Невідомо",
       "total": "Взагалом"
@@ -142,6 +137,10 @@
       },
       "unlink": {
         "error": "Не вдалося відв'язати транзакції!"
+      },
+      "record": {
+        "addedByTooltip": "Цю транзакцію додав до бюджету {handle}",
+        "hiddenAccount": "Прихований рахунок"
       }
     },
     "outOfWallet": "Поза гаманцем",
@@ -339,20 +338,7 @@
     "onlyFirstFileTaken": "Кинуто кілька файлів – використано лише перший."
   },
   "demo": {
-    "loadingOverlay": {
-      "messages": [
-        "Обчислюємо числа спеціально для вас...",
-        "Готуємо ваші особисті рахунки...",
-        "Додаємо реалістичні транзакції...",
-        "Налаштовуємо вашу інформаційну панель...",
-        "Майже готово, завершуємо останні штрихи..."
-      ]
-    },
     "featureNotAvailable": "Цей функціонал недоступний у режимі демо",
-    "bankConnectionsRestricted": {
-      "title": "Підключення банків"
-    },
-    "signUpToUnlock": "Зареєструйтесь, щоб розблокувати цей функціонал",
     "passwordChangeRestricted": "Зміна пароля недоступна в режимі демо",
     "investmentsRestricted": {
       "title": "Інвестиції недоступні в демо-режимі",
@@ -401,6 +387,36 @@
     "estimatedCost": {
       "yourApiKey": "(ваш API ключ)",
       "setByEndpoint": "Визначається вашим ендпоінтом"
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "Редагувати групу",
+      "nameLabel": "Назва",
+      "noteLabel": "Примітка (необов'язково)",
+      "notePlaceholder": "Необов'язкова примітка...",
+      "loadingText": "Завантаження...",
+      "savingAction": "Зберегти",
+      "cancelButton": "Скасувати",
+      "editAction": "Редагувати",
+      "deleteAction": "Видалити групу",
+      "transactionsLabel": "Транзакції",
+      "deleteGroupTitle": "Видалити групу",
+      "deleteGroupDescription": "Ви впевнені, що хочете видалити \"{groupName}\"? Транзакції не будуть видалені.",
+      "removeTransactionTitle": "Видалити транзакцію з групи",
+      "removeTransactionDescription": "Це залишить менше 2 транзакцій у групі, тому група буде видалена. Продовжити?",
+      "removeTransactionDescriptionNormal": "Ви впевнені, що хочете видалити цю транзакцію з групи?",
+      "removeButtonText": "Видалити",
+      "removeAndDeleteButtonText": "Видалити й видалити групу",
+      "summary": {
+        "transactions": "Транзакції",
+        "net": "Нетто",
+        "moneyIn": "Надходження",
+        "moneyOut": "Видатки"
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": "транзакцій"
     }
   }
 }

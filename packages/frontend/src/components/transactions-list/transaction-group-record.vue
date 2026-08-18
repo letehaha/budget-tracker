@@ -39,13 +39,13 @@ const dateRange = computed(() => {
   >
     <div class="flex items-center gap-2 overflow-hidden">
       <div class="bg-primary/10 flex size-8 shrink-0 items-center justify-center rounded-full">
-        <GroupIcon class="text-primary size-4" />
+        <GroupIcon class="text-primary-text size-4" />
       </div>
       <div class="min-w-0 text-left">
         <p class="truncate text-sm font-medium">{{ group.groupName }}</p>
         <p class="text-muted-foreground text-xs">
           {{ group.transactionCount }}
-          {{ t('transactions.transactionGroups.transactionGroupRecord.transactionCountLabel') }}
+          {{ t('transactionGroups.transactionGroupRecord.transactionCountLabel') }}
         </p>
       </div>
     </div>

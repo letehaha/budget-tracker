@@ -80,6 +80,11 @@ export const useFiltersFromQuery = () => {
       filters.refundFilter = refundFilter;
     }
 
+    const plannedFilter = parseFilterOperation(query.plannedFilter as string | undefined);
+    if (plannedFilter) {
+      filters.plannedFilter = plannedFilter;
+    }
+
     return Object.keys(filters).length > 0 ? filters : null;
   };
 

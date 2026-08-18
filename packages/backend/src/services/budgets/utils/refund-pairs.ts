@@ -3,7 +3,7 @@ import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import RefundTransactions from '@models/refund-transactions.model';
 import TransactionSplits from '@models/transaction-splits.model';
-import * as Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { Op } from 'sequelize';
 
 interface RefundTxData {
@@ -71,9 +71,19 @@ export const fetchBudgetRefundPairs = async ({
     if (refund.splitId) splitIdsToFetch.add(refund.splitId);
   }
 
+  // A refund link and both of its transactions always belong to one user, so scoping the lookup to
+  // the links' owners keeps it inside the scope the counted rows came from. Planned rows never
+  // count as a refund leg — budget stats net money that actually moved.
   const [refundTxs, splits] = await Promise.all([
-    Transactions.default.findAll({
-      where: { id: { [Op.in]: [...allRefundTxIds] } },
+    findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
+      where: {
+        id: { [Op.in]: [...allRefundTxIds] },
+        userId: { [Op.in]: [...new Set(refunds.map((refund) => refund.userId))] },
+      },
       attributes: ['id', 'refAmount', 'transactionType', 'time', 'categoryId'],
     }),
     splitIdsToFetch.size > 0

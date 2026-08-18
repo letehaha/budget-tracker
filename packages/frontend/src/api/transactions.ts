@@ -51,6 +51,10 @@ export const loadTransactions = async ({
   sortBy?: TRANSACTION_SORT_FIELD;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  /** Excludes transactions that are the refund side of a refund link (they cannot be linked again). */
+  excludeRefundTxs?: boolean;
+  /** With `excludeRefundTxs`: keep refunds linked to this transaction visible. */
+  keepRefundsForTxId?: string;
   /** Hide transactions created by the balance-adjustment flow. */
   excludeBalanceAdjustments?: boolean;
   excludeAccountIds?: string[];
@@ -64,15 +68,26 @@ export const loadTransactions = async ({
   to?: string;
   amountLte?: number;
   amountGte?: number;
+  /** Case-insensitive substring match on the note field. Comma-separated terms are OR-ed. */
+  noteSearch?: string;
   includeSplits?: boolean;
   includeTags?: boolean;
   includeGroups?: boolean;
+  /** true = only planned rows, false = exclude them, absent = both. */
+  isPlanned?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
   return api.get('/transactions', {
     ...params,
+    // The client drops falsy query values, which would swallow `isPlanned: false`.
+    // Stringifying keeps the "exclude planned" intent on the wire.
+    isPlanned: params.isPlanned === undefined ? undefined : String(params.isPlanned),
     from: from ? new Date(from).toISOString() : undefined,
     to: to ? new Date(to).toISOString() : undefined,
   });
+};
+
+export const loadPlannedSummary = async (): Promise<endpointsTypes.GetPlannedSummaryResponse> => {
+  return api.get('/transactions/planned-summary');
 };
 
 export const loadTransactionsByTransferId = async (transferId: string): Promise<TransactionModel[]> => {

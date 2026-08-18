@@ -35,7 +35,6 @@
         },
         "fileUpload": {
           "title": "Cargar archivo",
-          "dragText": "Haga clic para cargar o arrastre y suelte",
           "supportedFormats": "Formatos admitidos: CSV o JSON",
           "errors": {
             "unsupportedFormat": "Formato de archivo no admitido. Cargue un archivo CSV o JSON.",

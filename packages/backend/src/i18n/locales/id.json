@@ -25,7 +25,6 @@
     "groupNotFound": "Grup tidak ditemukan",
     "parentGroupNotExist": "Induk dengan id tersebut tidak ada.",
     "parentGroupDoesNotExist": "Grup induk tidak ada.",
-    "operationNotAllowed": "Operasi tidak diizinkan",
     "accountNotFound": "Akun dengan id tersebut tidak ditemukan.",
     "accountGroupNotFound": "Grup akun dengan id tersebut tidak ditemukan.",
     "groupUpdateFailed": "Pembaruan grup tidak berhasil"
@@ -56,6 +55,8 @@
     "linkAlreadyTransferNotAllowed": "Mencoba menautkan transaksi yang sudah merupakan transfer.",
     "linkUnexpectedError": "Kesalahan tak terduga. Tidak dapat menautkan transaksi yang diminta.",
     "linkCannotFind": "Tidak dapat menemukan transaksi dasar atau transaksi lawan",
+    "linkPlannedNotAllowed": "Transaksi terencana tidak dapat ditautkan sebagai transfer.",
+    "linkSplitTransactionNotAllowed": "Transaksi yang memiliki split tidak dapat ditautkan sebagai transfer.",
     "invalidTagIds": "Satu atau lebih ID tag tidak valid atau bukan milik pengguna ini",
     "cannotEditPortfolioLinkedTransaction": "Tidak dapat mengedit transaksi yang terhubung ke portofolio. Lepaskan tautannya terlebih dahulu.",
     "refFieldsRequiredForTransferToPortfolio": "Mata uang referensi dan jumlah referensi harus diisi untuk transaksi transfer ke portofolio.",
@@ -66,6 +67,16 @@
     "loanPaymentOverpay": "Pembayaran melebihi sisa saldo pinjaman.",
     "loanAccountReadonly": "Akun pinjaman hanya dapat diubah dengan mencatat pembayaran. Gunakan halaman pinjaman untuk mencatatnya.",
     "loanPaymentMustBeExpense": "Pembayaran pinjaman harus berupa pengeluaran — transaksi pemasukan tidak dapat ditransfer ke pinjaman.",
+    "plannedMustBeStandalone": "Transaksi terencana harus berupa pemasukan atau pengeluaran biasa — transfer, refund, dan catatan hasil impor tidak didukung.",
+    "plannedAmountMustBePositive": "Transaksi terencana harus memiliki jumlah lebih besar dari nol.",
+    "plannedAccountNotSupported": "Transaksi terencana tidak tersedia pada akun pinjaman dan kendaraan.",
+    "plannedOwnerOnly": "Hanya pemilik akun yang dapat membuat transaksi terencana.",
+    "plannedFlipNotAllowed": "Transaksi ini tidak dapat diubah menjadi transaksi terencana.",
+    "plannedCreatorOnly": "Hanya pembuat transaksi terencana yang dapat mengedit atau menghapusnya.",
+    "manualOnConnectedAccount": "Hanya transaksi terencana yang dapat ditambahkan ke akun yang terhubung ke bank. Transaksi nyata datang dari bank Anda.",
+    "plannedUnflipOnConnectedAccount": "Rencana ini berada di akun yang terhubung ke bank, sehingga bank Anda mengonfirmasinya secara otomatis. Hapus jika transaksi tersebut sudah tidak diharapkan lagi.",
+    "plannedCannotConfirmPayment": "Transaksi terencana tidak dapat mengonfirmasi pembayaran. Tunggu hingga dikonfirmasi, lalu tautkan.",
+    "plannedCannotBeRefundLinked": "Transaksi terencana tidak dapat menjadi bagian dari pautan refund.",
     "splits": {
       "splitsOnTransfer": "Tidak dapat menambahkan split ke transaksi transfer",
       "splitLimitExceeded": "Maksimal {{max}} split per transaksi",
@@ -103,7 +114,6 @@
     "reminderAlreadyExists": "Pengingat yang identik sudah ada untuk tag ini",
     "amountThresholdRequired": "Ambang batas jumlah diperlukan untuk pengingat ambang batas jumlah",
     "maxRemindersReached": "Jumlah maksimal pengingat (50) telah tercapai",
-    "repeatScheduleIncomplete": "repeatEvery dan repeatPeriod harus diisi bersamaan atau keduanya dikosongkan",
     "notifications": {
       "thresholdExceeded": {
         "title": "Peringatan Pengeluaran Tag",
@@ -179,9 +189,6 @@
     "missingRequiredProviders": "Provider data bank yang diperlukan tidak ada: {{missing}}. Pastikan provider ini terdaftar saat aplikasi dimulai."
   },
   "validation": {
-    "fromDateInvalid": "\"from\" adalah tanggal tidak valid.",
-    "toDateInvalid": "\"to\" adalah tanggal tidak valid.",
-    "fromGreaterThanTo": "\"from\" tidak boleh lebih besar dari tanggal \"to\".",
     "dateInvalid": "\"date\" adalah tanggal tidak valid."
   },
   "bankDataProviders": {
@@ -195,7 +202,6 @@
     "fromAfterTo": "Tanggal \"from\" harus sebelum tanggal \"to\"",
     "fromMustBeValidDate": "\"from\" harus berupa string tanggal yang valid",
     "toMustBeValidDate": "\"to\" harus berupa string tanggal yang valid",
-    "onlySupportedForMonobank": "Memuat transaksi untuk periode tertentu hanya didukung untuk Monobank",
     "reconciliationOnlyForEnableBanking": "Rekonsiliasi hanya tersedia untuk koneksi Enable Banking",
     "transactionLoadingQueued": "Proses pemuatan transaksi diantrekan. Estimasi waktu: {{minutes}} menit",
     "noValidAccountIds": "Tidak ada ID akun yang dipilih yang valid",
@@ -299,7 +305,6 @@
     "baseCurrencyChangeInProgressOtherUser": "Peserta lain sedang mengubah mata uang dasar mereka. Silakan coba lagi setelah proses migrasi mereka selesai."
   },
   "userSettings": {
-    "excludedCategoriesNotFound": "Satu atau lebih kategori yang dikecualikan tidak ditemukan",
     "userSettingsNotFound": "Pengaturan pengguna tidak ditemukan"
   },
   "users": {

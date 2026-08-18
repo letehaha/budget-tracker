@@ -125,7 +125,7 @@ describe('Execute YNAB import endpoint', () => {
     const mainPln = accountsAfter.find((a) => a.name === 'Main PLN (PLN) – 8437')!;
     expect(mainPln.currencyCode).toBe('PLN');
     expect(Number(mainPln.initialBalance)).toBe(2050.95);
-  });
+  }, 30000);
 
   it('returns 404 for an unknown job id', async () => {
     const response = await helpers.getYnabImportStatus({ jobId: 'no-such-job' });

@@ -23,7 +23,8 @@
           "writeOwn": "Puede editar transacciones propias",
           "writeAll": "Puede editar transacciones",
           "manage": "Gestor"
-        }
+        },
+        "projectedBalance": "Saldo previsto {amount} · {count} movimiento planificado hasta {date} | Saldo previsto {amount} · {count} movimientos planificados hasta {date}"
       },
       "balanceAdjustmentDialog": {
         "title": "Ajustar saldo",
@@ -271,11 +272,9 @@
       "backToAccounts": "Volver a cuentas",
       "editButton": "Editar",
       "overrideValueButton": "Reemplazar valor",
-      "overrideValueNote": "Revalorización del vehículo",
       "currentValue": "Valor actual",
       "purchasePrice": "Precio de compra",
       "totalDepreciation": "Depreciación total",
-      "metadata": "Detalles del vehículo",
       "vehicleClass": "Clase",
       "depreciationPreset": "Depreciación",
       "customAnnualRate": "Tasa anual",

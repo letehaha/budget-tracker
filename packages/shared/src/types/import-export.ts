@@ -448,6 +448,13 @@ export interface ImportSummaryBase {
  */
 export interface CsvImportSummary extends ImportSummaryBase {
   imported: number;
+  /**
+   * Rows that merged into an existing planned transaction instead of creating a
+   * new one. Counted here instead of `imported`, and absent from
+   * `newTransactionIds`. Optional for the same reason as
+   * `accountBalanceChanges`: retained job results predating the field.
+   */
+  merged?: number;
   /** Number of duplicate rows skipped (from skipDuplicateIndices) */
   skipped: number;
   /** Number of unpriceable rows skipped (from skipUnpriceableIndices) */

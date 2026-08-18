@@ -25,7 +25,7 @@ const { t } = useI18n();
   <div class="border-border/60 bg-muted/30 flex items-center justify-between gap-3 rounded-lg border p-3">
     <div class="flex min-w-0 items-center gap-3">
       <div class="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-lg">
-        <FileTextIcon class="text-primary size-4" />
+        <FileTextIcon class="text-primary-text size-4" />
       </div>
       <div class="min-w-0">
         <p class="truncate text-sm font-medium">{{ file.name }}</p>

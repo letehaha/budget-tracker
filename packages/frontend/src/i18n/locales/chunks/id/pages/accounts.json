@@ -1,14 +1,11 @@
 {
   "accounts": {
-    "noNameSet": "Belum ada nama...",
     "title": "Akun",
     "createAccount": "Buat akun",
     "createVehicle": "Tambah kendaraan",
-    "bankIntegrations": "Integrasi Bank",
     "sections": {
       "archived": "Diarsipkan",
       "manual": "Akun manual",
-      "connected": "Akun Terhubung",
       "sharedWithMe": "Dibagikan dengan saya",
       "vehicles": "Kendaraan",
       "bankConnections": "Koneksi Bank"
@@ -26,7 +23,8 @@
       "totalBalance": "Total saldo",
       "assets": "Aset",
       "liabilities": "Kewajiban",
-      "vehicles": "Kendaraan"
+      "vehicles": "Kendaraan",
+      "projected": "Proyeksi {amount} · {count} entri terencana hingga {date} | Proyeksi {amount} · {count} entri terencana hingga {date}"
     },
     "connect": "Hubungkan",
     "connectBank": "Hubungkan bank",

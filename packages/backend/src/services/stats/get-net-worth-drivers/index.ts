@@ -36,9 +36,15 @@ import { buildPriceLookupWithPreWindowAnchors } from '../get-combined-balance-hi
 import { createFindPriceForDate } from '../get-combined-balance-history/security-price-lookup';
 import type { CurrentBalanceRow, SecurityRow, TransferRow } from '../get-combined-balance-history/types';
 import { buildBoundaryDates, buildDenseDateRange } from './date-range';
-import { accumulateInvestmentFlows, computeInvestmentGrowth } from './investment-growth';
+import {
+  type InvestmentGrowthCents,
+  type PortfolioGrowthSeries,
+  accumulateInvestmentFlows,
+  computeInvestmentGrowth,
+  foldPortfolioGrowth,
+} from './investment-growth';
 import { accumulateSavings } from './savings';
-import type { NetWorthDriversResultCents, ReportTransactionRow } from './types';
+import type { NetWorthDriversPortfolioSliceCents, NetWorthDriversResultCents, ReportTransactionRow } from './types';
 
 export type { NetWorthDriversResultCents } from './types';
 
@@ -57,11 +63,19 @@ interface GetNetWorthDriversParams {
 }
 
 interface InvestmentSlice {
-  /** Holdings market value in cents, keyed by the snapshot days only. */
+  /**
+   * Holdings market value in cents, keyed by the snapshot days only. Summed from the
+   * per-portfolio cents so it agrees with the per-portfolio growth split exactly.
+   */
   holdingsCentsByDate: Map<string, Cents>;
   /** Uninvested portfolio cash in cents, keyed by every day in the window. */
   cashCentsByDate: Map<string, Cents>;
-  flows: ReturnType<typeof accumulateInvestmentFlows>;
+  /** Per-bucket growth totals: the elementwise sum of every in-scope portfolio's series. */
+  growth: InvestmentGrowthCents[];
+  /** Sparse per-portfolio split of each bucket's growth, positionally aligned with the buckets. */
+  growthByPortfolio: NetWorthDriversPortfolioSliceCents[][];
+  /** Portfolios active anywhere in the window, largest absolute total growth first. */
+  portfolios: endpointsTypes.NetWorthDriversPortfolioMeta[];
   /**
    * Holdings the replay had no price for and therefore carried at cost basis, so
    * their price movement is understated. Empty when every holding priced.
@@ -75,18 +89,27 @@ interface InvestmentSlice {
 }
 
 /**
- * Slice for a user with nothing invested. `flows` still carries one zeroed entry
- * per bucket rather than being empty — every bucket must line up with a flow
+ * Slice for a user with nothing invested. `growth` still carries one zeroed entry
+ * per bucket rather than being empty — every bucket must line up with a growth
  * entry positionally, and a user with no portfolios still gets a full row of
  * buckets showing their savings.
  */
-const buildEmptySlice = ({ boundaryDates }: { boundaryDates: string[] }): InvestmentSlice => ({
-  holdingsCentsByDate: new Map(),
-  cashCentsByDate: new Map(),
-  flows: accumulateInvestmentFlows({ transactions: [], boundaryDates }),
-  unpricedSecurities: [],
-  fxFallbackCurrencies: [],
-});
+const buildEmptySlice = ({ boundaryDates }: { boundaryDates: string[] }): InvestmentSlice => {
+  const { totals, byBucket, legend } = foldPortfolioGrowth({
+    series: [],
+    bucketCount: Math.max(boundaryDates.length - 1, 0),
+  });
+
+  return {
+    holdingsCentsByDate: new Map(),
+    cashCentsByDate: new Map(),
+    growth: totals,
+    growthByPortfolio: byBucket,
+    portfolios: legend,
+    unpricedSecurities: [],
+    fxFallbackCurrencies: [],
+  };
+};
 
 /**
  * Assemble the `degraded` payload from the two independent data-quality failures,
@@ -111,8 +134,8 @@ const buildDegraded = ({
 
 /**
  * Investment slice: holdings value on each snapshot day, uninvested portfolio
- * cash on every day, and the per-bucket trade flows that separate market growth
- * from money the user put in.
+ * cash on every day, and the per-bucket growth that separates market movement from
+ * money the user put in — derived one portfolio at a time and summed.
  */
 const calculateInvestmentSlice = async ({
   userId,
@@ -336,21 +359,31 @@ const calculateInvestmentSlice = async ({
   const unpricedSecurityIds = new Set<string>();
   const unpricedDates = new Set<string>();
 
+  const transactionsByPortfolio = Map.groupBy(transactions, (tx) => tx.portfolioId);
+
   // Holdings take the sparse snapshot days: the replay folds every transaction
   // dated on or before each day, so skipping days between them changes nothing
   // and saves valuing every holding on every date.
-  const holdingsValueByDate = computeHoldingsValueByDate({
-    uniqueDates: boundaryDates,
-    portfolioIds,
-    transactionsByPortfolio: Map.groupBy(transactions, (tx) => tx.portfolioId),
-    securitiesById,
-    findPriceForDate,
-    getExchangeRate,
-    onMissingPrice: ({ securityId, dateStr }) => {
-      unpricedSecurityIds.add(securityId);
-      unpricedDates.add(dateStr);
-    },
-  });
+  //
+  // Replayed one portfolio at a time so each portfolio's growth is derived from its
+  // own holdings and its own flows. The replay is already per-portfolio internally
+  // and every fold downstream is linear over integer cents, so the totals summed
+  // back up are the same numbers a single whole-scope pass would produce.
+  const perPortfolioHoldings = portfolios.map((portfolio) => ({
+    portfolio,
+    valueByDate: computeHoldingsValueByDate({
+      uniqueDates: boundaryDates,
+      portfolioIds: [portfolio.id],
+      transactionsByPortfolio,
+      securitiesById,
+      findPriceForDate,
+      getExchangeRate,
+      onMissingPrice: ({ securityId, dateStr }) => {
+        unpricedSecurityIds.add(securityId);
+        unpricedDates.add(dateStr);
+      },
+    }),
+  }));
 
   // Cash, by contrast, only adds deltas landing exactly on a listed day, so a
   // sparse list would silently drop every delta in between. It gets every day.
@@ -395,19 +428,47 @@ const calculateInvestmentSlice = async ({
     },
   );
 
-  // The replays traffic in decimals; everything this service returns is cents.
-  const holdingsCentsByDate = new Map<string, Cents>();
-  for (const dateStr of boundaryDates) {
-    const holdingsValue = holdingsValueByDate.get(dateStr);
-    // `computeHoldingsValueByDate` writes a value for every boundary day, so a miss is a
-    // key-derivation bug, not a zero holding — surface it rather than value the day at zero.
-    if (holdingsValue === undefined) {
-      throw new UnexpectedError({
-        message: `Net-worth drivers: holdings value missing for snapshot day ${dateStr}.`,
-      });
+  // The replays traffic in decimals; everything this service returns is cents. The
+  // scope-wide holdings level is the per-date sum of the per-portfolio cents, so the
+  // composition and the growth split are rounded once and identically.
+  const holdingsCentsByDate = new Map<string, Cents>(boundaryDates.map((dateStr) => [dateStr, asCents(0)]));
+  const series: PortfolioGrowthSeries[] = perPortfolioHoldings.map(({ portfolio, valueByDate }) => {
+    const portfolioHoldingsCents = new Map<string, Cents>();
+    let heldAnything = false;
+
+    for (const dateStr of boundaryDates) {
+      const holdingsValue = valueByDate.get(dateStr);
+      // `computeHoldingsValueByDate` writes a value for every boundary day, so a miss is a
+      // key-derivation bug, not a zero holding — surface it rather than value the day at zero.
+      if (holdingsValue === undefined) {
+        throw new UnexpectedError({
+          message: `Net-worth drivers: holdings value missing for snapshot day ${dateStr}.`,
+        });
+      }
+
+      const cents = Money.fromDecimal(holdingsValue).toCents();
+      if (cents !== 0) heldAnything = true;
+      portfolioHoldingsCents.set(dateStr, cents);
+      holdingsCentsByDate.set(dateStr, asCents(holdingsCentsByDate.get(dateStr)! + cents));
     }
-    holdingsCentsByDate.set(dateStr, Money.fromDecimal(holdingsValue).toCents());
-  }
+
+    const flows = accumulateInvestmentFlows({
+      transactions: transactionsByPortfolio.get(portfolio.id) ?? [],
+      boundaryDates,
+    });
+
+    return {
+      portfolioId: portfolio.id,
+      name: portfolio.name,
+      growth: computeInvestmentGrowth({ flows, holdingsCentsByDate: portfolioHoldingsCents, boundaryDates }),
+      hasActivity:
+        heldAnything ||
+        flows.some(
+          (flow) =>
+            flow.buyNotional !== 0 || flow.sellNotional !== 0 || flow.dividendsGross !== 0 || flow.feesAndTaxes !== 0,
+        ),
+    };
+  });
 
   const cashCentsByDate = new Map<string, Cents>();
   for (const dateStr of denseDates) {
@@ -416,10 +477,17 @@ const calculateInvestmentSlice = async ({
     cashCentsByDate.set(dateStr, Money.fromDecimal(cashInBaseByDate.get(dateStr) ?? 0).toCents());
   }
 
+  const { totals, byBucket, legend } = foldPortfolioGrowth({
+    series,
+    bucketCount: Math.max(boundaryDates.length - 1, 0),
+  });
+
   return {
     holdingsCentsByDate,
     cashCentsByDate,
-    flows: accumulateInvestmentFlows({ transactions, boundaryDates }),
+    growth: totals,
+    growthByPortfolio: byBucket,
+    portfolios: legend,
     unpricedSecurities,
     fxFallbackCurrencies: Array.from(missingRateCurrencies),
   };
@@ -454,7 +522,7 @@ export const getNetWorthDrivers = async ({
   const buckets = generatePeriodBuckets({ from, to, granularity });
 
   if (buckets.length === 0) {
-    return { buckets: [] };
+    return { buckets: [], portfolios: [] };
   }
 
   const boundaryDates = buildBoundaryDates({ buckets });
@@ -463,7 +531,7 @@ export const getNetWorthDrivers = async ({
   // One read transaction pins a single Postgres connection across the fan-out
   // below, rather than each branch checking out its own and a burst of report
   // loads draining the pool.
-  const [savingsTransactions, investmentSlice, accountsBalanceHistory] = await withTransaction(async () => {
+  const [savingsIntake, investmentSlice, accountsBalanceHistory] = await withTransaction(async () => {
     const userBaseCurrencyPromise = UsersCurrencies.findOne({
       where: { userId, isDefaultCurrency: true },
       raw: true,
@@ -492,11 +560,10 @@ export const getNetWorthDrivers = async ({
     ]);
   })();
 
-  const savings = accumulateSavings({ transactions: savingsTransactions, buckets });
-  const growth = computeInvestmentGrowth({
-    flows: investmentSlice.flows,
-    holdingsCentsByDate: investmentSlice.holdingsCentsByDate,
-    boundaryDates,
+  const savings = accumulateSavings({
+    transactions: savingsIntake.rows,
+    refundPairs: savingsIntake.refundPairs,
+    buckets,
   });
 
   const accountsCentsByDate = new Map(accountsBalanceHistory.map((item) => [item.date, asCents(item.amount)]));
@@ -527,7 +594,7 @@ export const getNetWorthDrivers = async ({
       periodStart: format(bucket.periodStart, 'yyyy-MM-dd'),
       periodEnd: format(bucket.periodEnd, 'yyyy-MM-dd'),
       savings: savings[index]!,
-      investments: growth[index]!,
+      investments: { ...investmentSlice.growth[index]!, byPortfolio: investmentSlice.growthByPortfolio[index]! },
       composition: {
         // An empty investment slice (no portfolios or no investment data) leaves these two
         // maps empty, so a missing key is legitimately zero here.
@@ -544,5 +611,7 @@ export const getNetWorthDrivers = async ({
     fxFallbackCurrencies: investmentSlice.fxFallbackCurrencies,
   });
 
-  return degraded ? { buckets: resultBuckets, degraded } : { buckets: resultBuckets };
+  const result = { buckets: resultBuckets, portfolios: investmentSlice.portfolios };
+
+  return degraded ? { ...result, degraded } : result;
 };

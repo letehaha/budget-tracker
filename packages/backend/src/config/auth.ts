@@ -9,8 +9,9 @@ import { identifyUser, trackSignup } from '@js/utils/posthog';
 import { captureException } from '@js/utils/sentry';
 import { sendEmail } from '@services/email/send-email';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
+import { areSignupsOpen } from '@services/user/signups-open.service';
 import bcrypt from 'bcryptjs';
-import { betterAuth } from 'better-auth';
+import { APIError, betterAuth } from 'better-auth';
 import { jwt } from 'better-auth/plugins';
 import { Pool } from 'pg';
 
@@ -251,6 +252,17 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // Guard user-create, not the email endpoint: OAuth signups must hit the
+        // cap too. Not race-safe under concurrent signups; fine at self-host scale.
+        before: async (user) => {
+          if (!(await areSignupsOpen())) {
+            throw new APIError('FORBIDDEN', {
+              message: 'Signups are disabled by the administrator',
+              code: 'SIGNUPS_DISABLED',
+            });
+          }
+          return { data: user };
+        },
         // After a new auth user is created, create the matching app user.
         //
         // Better-auth commits ba_user/ba_account BEFORE this hook fires, so

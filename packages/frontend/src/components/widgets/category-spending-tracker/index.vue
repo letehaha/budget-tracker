@@ -2,11 +2,14 @@
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import CategoryCircle from '@/components/common/category-circle.vue';
 import { buttonVariants, Button } from '@/components/lib/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
+import IncludePlannedMenuItem from '@/components/widgets/components/include-planned-menu-item.vue';
+import { useIncludePlannedConfig } from '@/components/widgets/use-include-planned-config';
 import { useFormatCurrency } from '@/composable/formatters';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { format } from 'date-fns';
-import { GripVerticalIcon, PencilIcon, PlusIcon, Trash2Icon, SaveIcon } from '@lucide/vue';
+import { GripVerticalIcon, PencilIcon, PlusIcon, SettingsIcon, Trash2Icon, SaveIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
 import { computed, inject, ref, watch } from 'vue';
@@ -48,9 +51,12 @@ const maxSlots = computed(() => {
   return (config.rowSpan ?? 1) >= 2 ? MAX_SLOTS_LARGE : MAX_SLOTS_SMALL;
 });
 
+const { includePlanned } = useIncludePlannedConfig();
+
 const { spendingByCategory, isFetching, hasData } = useCategorySpendingData({
   selectedPeriod: () => props.selectedPeriod,
   categoryIds: selectedCategoryIds,
+  includePlanned,
 });
 
 const categoryRows = computed(() =>
@@ -244,6 +250,17 @@ const navigateToTransactions = ({ categoryId }: { categoryId: string }) => {
           <PencilIcon class="size-3.5" />
         </template>
       </button>
+
+      <Popover v-if="widgetConfigRef">
+        <PopoverTrigger as-child>
+          <Button size="icon-sm" variant="ghost" data-testid="cst-settings-btn">
+            <SettingsIcon class="text-muted-foreground size-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent class="w-60 p-1" align="end">
+          <IncludePlannedMenuItem test-id-prefix="cst" />
+        </PopoverContent>
+      </Popover>
     </template>
 
     <template v-if="isInitialLoading">

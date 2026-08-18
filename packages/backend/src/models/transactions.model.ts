@@ -19,6 +19,7 @@ import { MoneyField } from '@common/types/money-column';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { removeUndefinedKeys } from '@js/helpers';
+import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BudgetTransactions from '@models/budget-transactions.model';
@@ -33,6 +34,23 @@ import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
 import { hasBalanceRelevantChange } from '@models/transactions-balance-relevance';
+import {
+  BalanceAdjustmentsPolicy,
+  CompletenessPolicy,
+  ExcludedAccountsPolicy,
+  PlannedPolicy,
+  WhereAccessPolicy,
+} from '@models/transactions-query/policies';
+// `where-builders` is model-free by design, so the model can share the boundary's policy
+// clauses without an import cycle through `transactions-query/index`.
+import {
+  balanceAdjustmentsWhere,
+  callerFrame,
+  capPolicy,
+  completenessToPagination,
+  isEmptyFragment,
+  plannedWhere,
+} from '@models/transactions-query/where-builders';
 import Users from '@models/users.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
 import { Op, Includeable, Order, WhereOptions, literal, where as sequelizeWhere } from 'sequelize';
@@ -102,7 +120,10 @@ export interface TransactionsAttributes {
   commissionRate: Money;
   refCommissionRate: Money;
   cashbackAmount: Money;
+  originalAmount: Money | null;
+  originalCurrencyCode: string | null;
   refundLinked: boolean;
+  isPlanned: boolean;
   categorizationMeta: CategorizationMeta | null;
   payeeId: string | null;
   payeeLocked: boolean;
@@ -246,6 +267,15 @@ export default class Transactions extends Model {
   @MoneyField({ storage: 'cents' })
   declare cashbackAmount: Money;
 
+  // Metadata only: no balance, statistics or budget path reads these. What the user spent in a
+  // foreign currency, with its ISO 4217 code. Both hold a value or both stay null.
+  @MoneyField({ storage: 'cents', allowNull: true })
+  declare originalAmount: Money | null;
+
+  @ForeignKey(() => Currencies)
+  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING(3) })
+  originalCurrencyCode!: string | null;
+
   // Represents if the transaction refunds another tx, or is being refunded by other. Added only for
   // optimization purposes. All the related refund information is tored in the "RefundTransactions"
   // table
@@ -255,6 +285,15 @@ export default class Transactions extends Model {
     defaultValue: false,
   })
   refundLinked!: boolean;
+
+  // `defaultValue` is required here, not just in SQL: backup restore rejects an archive that
+  // omits a NOT NULL column unless the model supplies a default.
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  declare isPlanned: boolean;
 
   // Metadata about how this transaction was categorized (manual, ai, mcc_rule, user_rule, subscription_rule, payee_rule)
   @Column({
@@ -319,6 +358,7 @@ export default class Transactions extends Model {
       case TRANSACTION_TRANSFER_NATURE.transfer_out_wallet:
         return;
       default: {
+        // oxlint-disable-next-line no-underscore-dangle
         const _exhaustiveCheck: never = transferNature;
         throw new Error(`Unhandled transferNature in validateTransferRelatedFields: ${_exhaustiveCheck}`);
       }
@@ -421,6 +461,9 @@ export default class Transactions extends Model {
   static async updateAccountBalanceAfterCreate(instance: Transactions) {
     const { accountType, accountId, amount, transactionType } = instance;
 
+    // A planned row records money that hasn't moved yet.
+    if (instance.isPlanned) return;
+
     if (accountType === ACCOUNT_TYPES.system) {
       await updateAccountBalanceForChangedTx({
         accountId,
@@ -434,6 +477,47 @@ export default class Transactions extends Model {
     if (instance.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan) {
       await Transactions.triggerLoanBalanceRecompute(instance.accountId);
     }
+  }
+
+  /**
+   * Balance effect of an `isPlanned` flip: becoming real applies the amount exactly as
+   * `@AfterCreate` does, going back to planned withdraws it exactly as `@BeforeDestroy`
+   * does. The reverse works off `prevData` — the money sat on the pre-update account.
+   */
+  private static async applyPlannedFlipBalanceChange({
+    newData,
+    prevData,
+    becameReal,
+  }: {
+    newData: Transactions;
+    prevData: Transactions;
+    becameReal: boolean;
+  }): Promise<void> {
+    if (becameReal) {
+      if (newData.accountType === ACCOUNT_TYPES.system) {
+        await updateAccountBalanceForChangedTx({
+          accountId: newData.accountId,
+          amount: newData.amount,
+          transactionType: newData.transactionType,
+        });
+      }
+
+      await Balances.handleTransactionChange({ data: newData });
+      return;
+    }
+
+    if (prevData.accountType === ACCOUNT_TYPES.system) {
+      await updateAccountBalanceForChangedTx({
+        accountId: prevData.accountId,
+        prevAmount: prevData.amount,
+        transactionType: prevData.transactionType,
+        // The row survives the flip, so the ledger-boundary lookup has to be told to
+        // ignore it the same way a delete would.
+        removedTransactionId: newData.id,
+      });
+    }
+
+    await Balances.handleTransactionChange({ data: prevData, isDelete: true });
   }
 
   @AfterUpdate
@@ -457,6 +541,17 @@ export default class Transactions extends Model {
       newRaw[field] = Money.fromCents(newRaw[field]);
       prevRaw[field] = Money.fromCents(prevRaw[field]);
     }
+
+    const wasPlanned = Boolean(prevData.isPlanned);
+    const isPlanned = Boolean(newData.isPlanned);
+
+    if (wasPlanned !== isPlanned) {
+      await Transactions.applyPlannedFlipBalanceChange({ newData, prevData, becameReal: wasPlanned });
+      return;
+    }
+
+    // Editing a planned row moves nothing: the money still hasn't happened.
+    if (isPlanned) return;
 
     const isAccountChanged = newData.accountId !== prevData.accountId;
 
@@ -517,16 +612,20 @@ export default class Transactions extends Model {
   static async updateAccountBalanceBeforeDestroy(instance: Transactions) {
     const { accountType, accountId, amount, transactionType } = instance;
 
-    if (accountType === ACCOUNT_TYPES.system) {
-      await updateAccountBalanceForChangedTx({
-        accountId,
-        prevAmount: amount,
-        transactionType,
-        removedTransactionId: instance.id,
-      });
-    }
+    // Planned rows never moved a balance, so there is nothing to take back. Group
+    // bookkeeping below still has to run so groups keep auto-dissolving.
+    if (!instance.isPlanned) {
+      if (accountType === ACCOUNT_TYPES.system) {
+        await updateAccountBalanceForChangedTx({
+          accountId,
+          prevAmount: amount,
+          transactionType,
+          removedTransactionId: instance.id,
+        });
+      }
 
-    await Balances.handleTransactionChange({ data: instance, isDelete: true });
+      await Balances.handleTransactionChange({ data: instance, isDelete: true });
+    }
 
     // Capture group membership BEFORE CASCADE deletes the join rows.
     // Stored on the instance so @AfterDestroy can check only the affected groups.
@@ -669,9 +768,27 @@ function buildRefundCondition(filter: FILTER_OPERATION | undefined): Record<stri
   return null;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// `refundLinked` can't express this filter: it is true for BOTH sides of a link, while
+// only the refund side is barred from being linked again.
+function buildExcludeRefundTxsCondition({ keepRefundsForTxId }: { keepRefundsForTxId?: string }) {
+  if (keepRefundsForTxId && !UUID_PATTERN.test(keepRefundsForTxId)) {
+    throw new ValidationError({ message: '"keepRefundsForTxId" must be a valid record id' });
+  }
+  // IS DISTINCT FROM: links with a null originalTxId (out-of-system originals) must stay excluded.
+  const keepClause = keepRefundsForTxId ? ` AND rt."originalTxId" IS DISTINCT FROM '${keepRefundsForTxId}'` : '';
+  return literal(
+    `NOT EXISTS (SELECT 1 FROM "RefundTransactions" rt WHERE rt."refundTxId" = "Transactions"."id"${keepClause})`,
+  );
+}
+
 export const findWithFilters = async ({
-  from = 0,
-  limit = 20,
+  planned,
+  access,
+  completeness,
+  balanceAdjustments,
+  excludedAccounts = 'include',
   accountType,
   accountIds,
   excludeAccountIds,
@@ -679,7 +796,6 @@ export const findWithFilters = async ({
   excludedBudgetIds,
   tagIds,
   excludedTagIds,
-  userId,
   order = SORT_DIRECTIONS.desc,
   sortBy,
   transferNatures,
@@ -690,6 +806,8 @@ export const findWithFilters = async ({
   isRaw = false,
   excludeTransfer,
   excludeRefunds,
+  excludeRefundTxs,
+  keepRefundsForTxId,
   transferFilter,
   refundFilter,
   startDate,
@@ -707,8 +825,16 @@ export const findWithFilters = async ({
   excludeBalanceAdjustments,
   batchId,
 }: {
-  from: number;
-  limit?: number;
+  /** How planned rows are treated. `{ visibleTo }` keeps other users' plans out while leaving the caller's own visible. */
+  planned: PlannedPolicy;
+  /** Row-visibility scope; `'pre-scoped'` when the caller narrowed the rows upstream. */
+  access: WhereAccessPolicy;
+  /** Result completeness. No default: every caller states whether it needs the full set. */
+  completeness: CompletenessPolicy;
+  /** Whether balance-adjustment rows (`externalData.balanceAdjustment`) count. No default. */
+  balanceAdjustments: BalanceAdjustmentsPolicy;
+  /** `'exclude'` INNER JOINs Accounts to drop rows on accounts flagged `excludeFromStats`. */
+  excludedAccounts?: ExcludedAccountsPolicy;
   accountType?: ACCOUNT_TYPES;
   transactionType?: TRANSACTION_TYPES;
   accountIds?: string[];
@@ -718,13 +844,6 @@ export const findWithFilters = async ({
   excludedBudgetIds?: string[];
   tagIds?: string[];
   excludedTagIds?: string[];
-  /**
-   * Creator scope. Optional because the public-facing read-path uses an account-scoped
-   * query (see `services/sharing/get-accessible-account-ids.service.ts`) so it can
-   * surface transactions on shared accounts regardless of who created them. Internal
-   * callers pass `userId` to keep their owner-scoped semantics.
-   */
-  userId?: number;
   order?: SORT_DIRECTIONS;
   /** Sort field; defaults to `time`. Name-based fields sort via correlated subqueries. */
   sortBy?: TRANSACTION_SORT_FIELD;
@@ -740,6 +859,12 @@ export const findWithFilters = async ({
   isRaw?: boolean;
   excludeTransfer?: boolean;
   excludeRefunds?: boolean;
+  /** Excludes the refund side of refund links — those rows can never be linked again.
+   *  Originals that merely HAVE refunds stay (partial refunds are allowed). */
+  excludeRefundTxs?: boolean;
+  /** With `excludeRefundTxs`: keep refunds linked to this original, so an edit dialog
+   *  can still list and deselect its own links. */
+  keepRefundsForTxId?: string;
   transferFilter?: FILTER_OPERATION;
   refundFilter?: FILTER_OPERATION;
   startDate?: string;
@@ -764,7 +889,16 @@ export const findWithFilters = async ({
   /** Filter to only transactions from one import batch (`externalData.importDetails.batchId`). */
   batchId?: string;
 }) => {
+  const cap = capPolicy({ completeness });
+  // Created before the first await so the stack still holds the frames of the site that
+  // set the cap; only read when the result comes back full.
+  const truncationProbe = cap ? new Error() : null;
+
   const queryInclude: Includeable[] = prepareTXInclude({ includeSplits });
+
+  if (excludedAccounts === 'exclude') {
+    queryInclude.push({ model: Accounts, where: { excludeFromStats: false }, attributes: [], required: true });
+  }
 
   // New enum params take priority over legacy booleans
   const resolvedTransferFilter = transferFilter ?? (excludeTransfer ? FILTER_OPERATION.exclude : undefined);
@@ -778,7 +912,7 @@ export const findWithFilters = async ({
   const refundCondition = buildRefundCondition(resolvedRefundFilter);
 
   const whereClause: WhereOptions<Transactions> = {
-    ...(userId !== undefined ? { userId } : {}),
+    ...(access === 'pre-scoped' ? {} : { userId: access.creator }),
     ...removeUndefinedKeys({
       accountType,
       transactionType,
@@ -800,13 +934,19 @@ export const findWithFilters = async ({
     if (refundCondition) Object.assign(whereClause, refundCondition);
   }
 
+  if (excludeRefundTxs) {
+    const andConditions = (whereClause[Op.and as unknown as string] as unknown[] | undefined) ?? [];
+    andConditions.push(buildExcludeRefundTxsCondition({ keepRefundsForTxId }));
+    whereClause[Op.and as unknown as string] = andConditions;
+  }
+
   if (categoryIds && categoryIds.length > 0) {
     // Find transactions that have splits with any of the requested category IDs.
-    // When `userId` is unset (account-scoped public read-path), we widen the lookup to
-    // any user's splits — the outer accountId filter constrains the final rows to the
-    // caller's accessible accounts, so this stays safe.
+    // Under `access: 'pre-scoped'` we widen the lookup to any user's splits — the caller's
+    // upstream scoping (accessible accountIds / budget ids) constrains the final rows, so
+    // this stays safe.
     const splitsWhere: Record<string, unknown> = { categoryId: { [Op.in]: categoryIds } };
-    if (userId !== undefined) splitsWhere.userId = userId;
+    if (access !== 'pre-scoped') splitsWhere.userId = access.creator;
     const transactionIdsWithMatchingSplits = await TransactionSplits.findAll({
       attributes: ['transactionId'],
       where: splitsWhere,
@@ -1013,16 +1153,13 @@ export const findWithFilters = async ({
     });
   }
 
-  if (excludeBalanceAdjustments) {
-    // `NULL @> ...` yields NULL (not false), so the IS NULL branch is required to
-    // keep rows that have no externalData at all.
-    const notBalanceAdjustment = literal(
-      `("Transactions"."externalData" IS NULL OR NOT ("Transactions"."externalData" @> '{"balanceAdjustment": true}'))`,
-    );
+  // Op.and, never a bare key: the policy clauses must not collide with (or be clobbered
+  // by) the caller's own keys and Op.or branches built above.
+  for (const fragment of [plannedWhere({ policy: planned }), balanceAdjustmentsWhere({ policy: balanceAdjustments })]) {
+    if (isEmptyFragment(fragment)) continue;
+
     const existingAnd = whereClause[Op.and as unknown as string] as unknown[] | undefined;
-    whereClause[Op.and as unknown as string] = existingAnd
-      ? [...existingAnd, notBalanceAdjustment]
-      : [notBalanceAdjustment];
+    whereClause[Op.and as unknown as string] = existingAnd ? [...existingAnd, fragment] : [fragment];
   }
 
   // Filter by categorization source (stored in JSONB field)
@@ -1043,18 +1180,28 @@ export const findWithFilters = async ({
     const existingAnd = whereClause[Op.and as unknown as string] as unknown[] | undefined;
     whereClause[Op.and as unknown as string] = existingAnd ? [...existingAnd, batchIdMatch] : [batchIdMatch];
   }
+  const { limit, offset } = completenessToPagination({ completeness });
 
   const transactions = await Transactions.findAll({
     include: queryInclude,
     where: whereClause,
-    offset: from,
-    limit: Number.isFinite(limit) ? limit : undefined,
+    offset,
+    limit,
     order: buildOrderClause({ sortBy, order }),
     raw: isRaw,
     // When raw is true and includeSplits/includeTags is requested, use nest to preserve nested structure
     nest: isRaw && (includeSplits || includeTags) ? true : undefined,
     attributes,
   });
+
+  // `info`, not `warn`: warn ships every occurrence to Sentry as its own event.
+  if (cap && truncationProbe && cap.onTruncated === 'log' && transactions.length === cap.limit) {
+    logger.info(`[findWithFilters] read hit its cap of ${cap.limit} rows, the result is likely truncated`, {
+      cap: cap.limit,
+      caller: callerFrame({ probe: truncationProbe, ignoreFile: __filename }),
+      ...cap.context,
+    });
+  }
 
   return transactions;
 };
@@ -1136,6 +1283,9 @@ type CreateTxOptionalParams = Partial<
     | 'categorizationMeta'
     | 'payeeId'
     | 'payeeLocked'
+    | 'isPlanned'
+    | 'originalAmount'
+    | 'originalCurrencyCode'
   >
 >;
 
@@ -1161,6 +1311,8 @@ export interface UpdateTransactionByIdParams {
   paymentType?: PAYMENT_TYPES;
   accountId?: string;
   categoryId?: string;
+  /** Moving a row between accounts moves it between account types; the hooks read this one. */
+  accountType?: ACCOUNT_TYPES;
   currencyCode?: string;
   refCurrencyCode?: string;
   transferNature?: TRANSACTION_TRANSFER_NATURE;
@@ -1169,6 +1321,9 @@ export interface UpdateTransactionByIdParams {
   categorizationMeta?: CategorizationMeta | null;
   payeeId?: string | null;
   payeeLocked?: boolean;
+  isPlanned?: boolean;
+  originalAmount?: Money | null;
+  originalCurrencyCode?: string | null;
 }
 
 export const updateTransactionById = async (
@@ -1225,9 +1380,11 @@ export const deleteTransactionById = async ({ id, userId }: { id: string; userId
 
   if (!tx) return true;
 
-  if (tx.accountType !== ACCOUNT_TYPES.system) {
+  // A plan on a provider account is the user's own row that the bank has never reported,
+  // so deleting it takes nothing away from the sync.
+  if (tx.accountType !== ACCOUNT_TYPES.system && !tx.isPlanned) {
     throw new ValidationError({
-      message: "It's not allowed to manually delete external transactions",
+      message: t({ key: 'transactions.cannotDeleteExternal' }),
     });
   }
 

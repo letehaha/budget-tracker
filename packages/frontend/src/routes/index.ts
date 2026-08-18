@@ -265,7 +265,7 @@ const routes: RouteRecordRaw[] = [
             'settings/data-management',
             'settings/appearance',
             'settings/language',
-            'settings/statistics',
+            'settings/general',
             'settings/ai',
             'settings/security',
             'settings/admin',
@@ -412,10 +412,10 @@ const routes: RouteRecordRaw[] = [
             meta: { i18nChunks: ['settings/language'] as I18nChunkName[] },
           },
           {
-            path: 'statistics',
-            name: ROUTES_NAMES.settingsStatistics,
-            component: () => import('@/pages/settings/subpages/statistics/index.vue'),
-            meta: { i18nChunks: ['settings/statistics'] as I18nChunkName[] },
+            path: 'general',
+            name: ROUTES_NAMES.settingsGeneral,
+            component: () => import('@/pages/settings/subpages/general/index.vue'),
+            meta: { i18nChunks: ['settings/general'] as I18nChunkName[] },
           },
           {
             path: 'admin',

@@ -157,5 +157,122 @@ describe('parseYnabRegister', () => {
       expect(cafeTx).toBeDefined();
       expect(cafeTx!.flag).toBeNull();
     });
+
+    it('explains the first row-level problem when every row is skipped', () => {
+      const fileContent = [
+        YNAB_HEADERS,
+        `"Checking (USD) – 1234","","not-a-date","Cafe","Wants: Dining","Wants","Dining","Coffee",$3.50,$0.00,"Cleared"`,
+        '',
+      ].join('\n');
+      expect(() => parseYnabRegister({ fileContent })).toThrow(/No usable rows found/i);
+      expect(() => parseYnabRegister({ fileContent })).toThrow(/First problem: Could not parse date "not-a-date"/);
+    });
+  });
+
+  describe('non-US budget formats', () => {
+    it('parses an INR budget: rupee symbol, lakh grouping and DD/MM/YYYY dates', () => {
+      const fileContent = [
+        YNAB_HEADERS,
+        `"HDFC (INR) – 1234","","01/06/2026","Starting Balance","Inflow: Ready to Assign","Inflow","Ready to Assign","","₹0.00","₹1,00,000.00","Cleared"`,
+        `"HDFC (INR) – 1234","","25/06/2026","Big Bazaar","Needs: Groceries","Needs","Groceries","Weekly shop","₹369.00","₹0.00","Cleared"`,
+        `"HDFC (INR) – 1234","","03/07/2026","Employer","Inflow: Ready to Assign","Inflow","Ready to Assign","Salary","₹0.00","₹1,23,456.78","Cleared"`,
+        '',
+      ].join('\n');
+      const result = parseYnabRegister({ fileContent });
+
+      expect(result.warnings.map((w) => w.code)).not.toContain('unparseable-amount');
+      expect(result.warnings.map((w) => w.code)).not.toContain('unparseable-date');
+      expect(result.accounts[0]!.startingBalance).toBe(100000);
+
+      const groceries = result.transactions.find((t) => t.payeeName === 'Big Bazaar')!;
+      expect(groceries.amount).toBe(-369);
+      // 25/06 can only be day-first, so the whole column reads DD/MM/YYYY.
+      expect(groceries.date).toBe('2026-06-25');
+
+      const salary = result.transactions.find((t) => t.payeeName === 'Employer')!;
+      expect(salary.amount).toBe(123456.78);
+      expect(salary.date).toBe('2026-07-03');
+
+      expect(result.dateRange).toEqual({ from: '2026-06-01', to: '2026-07-03' });
+    });
+
+    it('parses a EUR budget written with comma decimals and dot grouping', () => {
+      const fileContent = [
+        YNAB_HEADERS,
+        `"Konto (EUR) – 1","","01/06/2026","Starting Balance","Inflow: Ready to Assign","Inflow","Ready to Assign","","€0,00","€1.234,56","Cleared"`,
+        `"Konto (EUR) – 1","","25/06/2026","Rewe","Needs: Groceries","Needs","Groceries","Shop","€1.234,56","€0,00","Cleared"`,
+        '',
+      ].join('\n');
+      const result = parseYnabRegister({ fileContent });
+
+      expect(result.accounts[0]!.startingBalance).toBe(1234.56);
+      expect(result.transactions.find((t) => t.payeeName === 'Rewe')!.amount).toBe(-1234.56);
+    });
+
+    it('parses a zero-decimal JPY budget where the only separator is grouping', () => {
+      const fileContent = [
+        YNAB_HEADERS,
+        `"Bank (JPY) – 1","","2026-01-06","Starting Balance","Inflow: Ready to Assign","Inflow","Ready to Assign","","¥0","¥1,234","Cleared"`,
+        `"Bank (JPY) – 1","","2026-01-07","Konbini","Needs: Groceries","Needs","Groceries","Snack","¥1,234","¥0","Cleared"`,
+        '',
+      ].join('\n');
+      const result = parseYnabRegister({ fileContent });
+
+      expect(result.accounts[0]!.startingBalance).toBe(1234);
+      const konbini = result.transactions.find((t) => t.payeeName === 'Konbini')!;
+      expect(konbini.amount).toBe(-1234);
+      expect(konbini.date).toBe('2026-01-07');
+      expect(result.warnings.map((w) => w.code)).not.toContain('ambiguous-date-order');
+    });
+
+    it('parses YYYY-MM-DD dates', () => {
+      const fileContent = [
+        YNAB_HEADERS,
+        `"Checking (USD) – 1234","","2026-06-01","Starting Balance","Inflow: Ready to Assign","Inflow","Ready to Assign","",$0.00,$100.00,"Cleared"`,
+        `"Checking (USD) – 1234","","2026-06-25","Cafe","Wants: Dining","Wants","Dining","Coffee",$3.50,$0.00,"Cleared"`,
+        '',
+      ].join('\n');
+      const result = parseYnabRegister({ fileContent });
+      expect(result.transactions.find((t) => t.payeeName === 'Cafe')!.date).toBe('2026-06-25');
+    });
+
+    it('parses DD.MM.YYYY dates', () => {
+      const fileContent = [
+        YNAB_HEADERS,
+        `"Konto (EUR) – 1","","01.06.2026","Starting Balance","Inflow: Ready to Assign","Inflow","Ready to Assign","","€0,00","€100,00","Cleared"`,
+        `"Konto (EUR) – 1","","25.06.2026","Rewe","Needs: Groceries","Needs","Groceries","Shop","€3,50","€0,00","Cleared"`,
+        '',
+      ].join('\n');
+      const result = parseYnabRegister({ fileContent });
+      const rewe = result.transactions.find((t) => t.payeeName === 'Rewe')!;
+      expect(rewe.date).toBe('2026-06-25');
+      expect(rewe.amount).toBe(-3.5);
+    });
+
+    it('falls back to MM/DD/YYYY and warns once when no row disambiguates the date order', () => {
+      const fileContent = [
+        YNAB_HEADERS,
+        `"Checking (USD) – 1234","","06/01/2026","Starting Balance","Inflow: Ready to Assign","Inflow","Ready to Assign","",$0.00,$100.00,"Cleared"`,
+        `"Checking (USD) – 1234","","05/02/2026","Cafe","Wants: Dining","Wants","Dining","Coffee",$3.50,$0.00,"Cleared"`,
+        '',
+      ].join('\n');
+      const result = parseYnabRegister({ fileContent });
+
+      expect(result.transactions.find((t) => t.payeeName === 'Cafe')!.date).toBe('2026-05-02');
+      const ambiguous = result.warnings.filter((w) => w.code === 'ambiguous-date-order');
+      expect(ambiguous).toHaveLength(1);
+      expect(ambiguous[0]!.rowIndex).toBeUndefined();
+      expect(ambiguous[0]!.message).toMatch(/MM\/DD\/YYYY/);
+    });
+
+    it('throws when the Date column mixes contradictory day/month orders', () => {
+      const fileContent = [
+        YNAB_HEADERS,
+        `"Checking (USD) – 1234","","25/06/2026","Starting Balance","Inflow: Ready to Assign","Inflow","Ready to Assign","",$0.00,$100.00,"Cleared"`,
+        `"Checking (USD) – 1234","","06/25/2026","Cafe","Wants: Dining","Wants","Dining","Coffee",$3.50,$0.00,"Cleared"`,
+        '',
+      ].join('\n');
+      expect(() => parseYnabRegister({ fileContent })).toThrow(/Date column/i);
+    });
   });
 });

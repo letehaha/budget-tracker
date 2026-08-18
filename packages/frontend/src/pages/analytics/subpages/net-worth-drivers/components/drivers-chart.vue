@@ -5,33 +5,30 @@
     <div
       v-show="tooltip.visible"
       ref="tooltipRef"
-      class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 min-w-[18rem] rounded-xl border px-4 py-3 text-sm shadow-xl"
+      class="pointer-events-none absolute z-10"
       :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
     >
-      <div class="text-muted-foreground mb-2.5 text-xs font-medium tracking-wide uppercase">
-        {{ tooltip.periodLabel }}
-      </div>
+      <ChartTooltip class="min-w-72">
+        <ChartTooltipHeader>{{ tooltip.periodLabel }}</ChartTooltipHeader>
 
-      <div class="mb-3">
-        <div class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.chart.totalGained') }}</div>
-        <div class="text-xl font-semibold tabular-nums">
+        <ChartTooltipHero :label="$t('netWorthDrivers.chart.totalGained')">
           {{ formatBaseCurrency(tooltip.savedCumulative + tooltip.grownCumulative) }}
+        </ChartTooltipHero>
+
+        <div v-if="tooltip.hasSplit" class="bg-card-tooltip-border mb-2.5 flex h-2 overflow-hidden rounded-full">
+          <div class="h-full" :style="{ width: `${tooltip.savedPct}%`, backgroundColor: seriesColors.saved }" />
+          <div class="h-full" :style="{ width: `${100 - tooltip.savedPct}%`, backgroundColor: seriesColors.grown }" />
         </div>
-      </div>
 
-      <div v-if="tooltip.hasSplit" class="bg-muted mb-2.5 flex h-2 overflow-hidden rounded-full">
-        <div class="h-full" :style="{ width: `${tooltip.savedPct}%`, backgroundColor: seriesColors.saved }" />
-        <div class="h-full" :style="{ width: `${100 - tooltip.savedPct}%`, backgroundColor: seriesColors.grown }" />
-      </div>
-
-      <div class="space-y-1.5">
-        <div class="flex items-center justify-between gap-4">
-          <span class="flex items-center gap-2">
-            <span class="size-2.5 rounded-full" :style="{ backgroundColor: seriesColors.saved }" />
-            <span class="text-muted-foreground">{{ $t('netWorthDrivers.chart.saved') }}</span>
-            <span v-if="tooltip.hasSplit" class="text-muted-foreground/70 text-xs tabular-nums"
-              >{{ tooltip.savedPct }}%</span
-            >
+        <ChartTooltipRow
+          :color="seriesColors.saved"
+          :label="$t('netWorthDrivers.chart.saved')"
+          :value="formatBaseCurrency(tooltip.savedCumulative)"
+        >
+          <template #label-extra>
+            <span v-if="tooltip.hasSplit" class="text-card-tooltip-muted/70 text-xs tabular-nums">
+              {{ tooltip.savedPct }}%
+            </span>
             <span
               v-if="savedShift"
               class="flex items-center gap-0.5 text-xs tabular-nums"
@@ -39,17 +36,18 @@
             >
               <component :is="savedShift.icon" class="size-3" />{{ savedShift.value }}pp
             </span>
-          </span>
-          <span class="font-medium tabular-nums">{{ formatBaseCurrency(tooltip.savedCumulative) }}</span>
-        </div>
+          </template>
+        </ChartTooltipRow>
 
-        <div class="flex items-center justify-between gap-4">
-          <span class="flex items-center gap-2">
-            <span class="size-2.5 rounded-full" :style="{ backgroundColor: seriesColors.grown }" />
-            <span class="text-muted-foreground">{{ $t('netWorthDrivers.chart.grown') }}</span>
-            <span v-if="tooltip.hasSplit" class="text-muted-foreground/70 text-xs tabular-nums"
-              >{{ 100 - tooltip.savedPct }}%</span
-            >
+        <ChartTooltipRow
+          :color="seriesColors.grown"
+          :label="$t('netWorthDrivers.chart.grown')"
+          :value="formatBaseCurrency(tooltip.grownCumulative)"
+        >
+          <template #label-extra>
+            <span v-if="tooltip.hasSplit" class="text-card-tooltip-muted/70 text-xs tabular-nums">
+              {{ 100 - tooltip.savedPct }}%
+            </span>
             <span
               v-if="grownShift"
               class="flex items-center gap-0.5 text-xs tabular-nums"
@@ -57,33 +55,39 @@
             >
               <component :is="grownShift.icon" class="size-3" />{{ grownShift.value }}pp
             </span>
-          </span>
-          <span class="font-medium tabular-nums">{{ formatBaseCurrency(tooltip.grownCumulative) }}</span>
-        </div>
-      </div>
+          </template>
+        </ChartTooltipRow>
 
-      <div class="border-border mt-3 border-t pt-2.5">
-        <div class="text-muted-foreground mb-1.5 text-xs">{{ $t('netWorthDrivers.chart.thisPeriod') }}</div>
+        <ChartTooltipDivider />
+
+        <div class="text-card-tooltip-muted mb-1.5 text-xs">{{ $t('netWorthDrivers.chart.thisPeriod') }}</div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <div class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.chart.periodSavings') }}</div>
+            <div class="text-card-tooltip-muted text-xs">{{ $t('netWorthDrivers.chart.periodSavings') }}</div>
             <div class="font-medium tabular-nums" :class="deltaColorClass({ value: tooltip.savingsNet })">
               {{ formatBaseCurrency(tooltip.savingsNet) }}
             </div>
           </div>
           <div>
-            <div class="text-muted-foreground text-xs">{{ $t('netWorthDrivers.chart.periodGrowth') }}</div>
+            <div class="text-card-tooltip-muted text-xs">{{ $t('netWorthDrivers.chart.periodGrowth') }}</div>
             <div class="font-medium tabular-nums" :class="deltaColorClass({ value: tooltip.growth })">
               {{ formatBaseCurrency(tooltip.growth) }}
             </div>
           </div>
         </div>
-      </div>
+      </ChartTooltip>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import {
+  ChartTooltip,
+  ChartTooltipDivider,
+  ChartTooltipHeader,
+  ChartTooltipHero,
+  ChartTooltipRow,
+} from '@/components/common/charts/chart-tooltip';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';

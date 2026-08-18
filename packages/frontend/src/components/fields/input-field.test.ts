@@ -342,6 +342,27 @@ describe('InputField component', () => {
       );
       expect(wrapper.find('.label-right').exists()).toBe(true);
     });
+
+    it('keeps the label wrapper when label-right is slotted', () => {
+      const wrapper = mountComponent(
+        { label: 'Field' },
+        { 'label-right': () => h('span', { class: 'label-right' }, 'Optional') },
+      );
+      expect(wrapper.find('label.field-label').exists()).toBe(true);
+    });
+  });
+
+  describe('nonLabelWrapper', () => {
+    it('wraps the field in a label by default', () => {
+      const wrapper = mountComponent({ label: 'Field' });
+      expect(wrapper.find('label.field-label').exists()).toBe(true);
+    });
+
+    it('wraps the field in a div when enabled', () => {
+      const wrapper = mountComponent({ label: 'Field', nonLabelWrapper: true });
+      expect(wrapper.find('label.field-label').exists()).toBe(false);
+      expect(wrapper.find('div.field-label').exists()).toBe(true);
+    });
   });
 
   describe('external modelValue changes', () => {

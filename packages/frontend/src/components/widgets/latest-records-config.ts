@@ -1,7 +1,7 @@
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 
-export interface LatestRecordsExclusions {
+interface LatestRecordsExclusions {
   excludeTransfers: boolean;
   excludeOutOfWallet: boolean;
   /** Narrower than `excludeOutOfWallet`: hides only balance-adjustment rows, not every out-of-wallet transfer. */

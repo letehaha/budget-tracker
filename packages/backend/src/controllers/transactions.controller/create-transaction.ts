@@ -1,11 +1,5 @@
-import {
-  ACCOUNT_TYPES,
-  PAYMENT_TYPES,
-  TRANSACTION_TRANSFER_NATURE,
-  TRANSACTION_TYPES,
-  isTwoLegTransfer,
-} from '@bt/shared/types';
-import { recordId } from '@common/lib/zod/custom-types';
+import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, isTwoLegTransfer } from '@bt/shared/types';
+import { currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
 import { deserializeCreateTransaction, serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
@@ -23,7 +17,6 @@ const schema = z.object({
       transactionType: z.nativeEnum(TRANSACTION_TYPES),
       paymentType: z.nativeEnum(PAYMENT_TYPES),
       accountId: recordId(),
-      accountType: z.nativeEnum(ACCOUNT_TYPES).optional(),
       destinationAmount: positiveAmountSchema().optional(),
       destinationAccountId: recordId().optional(),
       destinationTransactionId: recordId().optional(),
@@ -35,6 +28,9 @@ const schema = z.object({
       tagIds: z.array(recordId()).max(20, 'Maximum 20 tags allowed').optional(),
       payeeId: recordId().nullable().optional(),
       payeeLocked: z.boolean().optional(),
+      isPlanned: z.boolean().optional().default(false),
+      originalAmount: nonNegativeAmountSchema().optional(),
+      originalCurrencyCode: currencyCode().optional(),
     })
     .refine(
       (data) =>
@@ -133,6 +129,18 @@ const schema = z.object({
         message: 'Splits cannot be added to transfer transactions',
         path: ['splits', 'transferNature'],
       },
+    )
+    .refine((data) => (data.originalAmount === undefined) === (data.originalCurrencyCode === undefined), {
+      message: '"originalAmount" and "originalCurrencyCode" must be provided together',
+      path: ['originalAmount', 'originalCurrencyCode'],
+    })
+    .refine(
+      (data) =>
+        !(data.originalAmount !== undefined && data.transferNature !== TRANSACTION_TRANSFER_NATURE.not_transfer),
+      {
+        message: 'Original currency metadata cannot be added to transfer transactions',
+        path: ['originalAmount', 'transferNature'],
+      },
     ),
 });
 
@@ -144,7 +152,6 @@ export default createController(schema, async ({ user, body }) => {
 
   // TODO: Add validations
   // 1. Amount and destinationAmount with same currency should be equal
-  // 2. That transactions here might be created only with system account type
 
   const transactions = await transactionsService.createTransaction(params);
 

@@ -15,7 +15,7 @@
             <Tooltip.Tooltip>
               <Tooltip.TooltipTrigger class="mt-2 flex items-center gap-2">
                 <p class="text-muted-foreground text-xs">{{ t('pages.integrations.simplefin.setupTokenHint') }}</p>
-                <InfoIcon class="text-primary size-4" />
+                <InfoIcon class="text-primary-text size-4" />
               </Tooltip.TooltipTrigger>
               <Tooltip.TooltipContent class="max-w-100 p-4">
                 <span class="text-sm leading-6 opacity-90">

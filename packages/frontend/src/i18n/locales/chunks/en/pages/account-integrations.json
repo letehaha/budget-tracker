@@ -1,20 +1,6 @@
 {
   "pages": {
     "integrations": {
-      "title": "Bank Integrations",
-      "addButton": "Add",
-      "addButtonFull": "Integration",
-      "loading": "Loading...",
-      "empty": {
-        "title": "No Bank Integrations Yet",
-        "description": "Connect your bank accounts to automatically import transactions and keep your finances up to date.",
-        "addFirstButton": "Add Your First Integration"
-      },
-      "card": {
-        "connectedAccounts": "Connected accounts:",
-        "lastSync": "Last sync: {date}",
-        "disconnectButton": "Disconnect"
-      },
       "addDialog": {
         "titleSelect": "Add Integration",
         "titleConnect": "Connect {provider}",
@@ -227,7 +213,6 @@
         "backfillNote": "We'll load the last 6 months of transactions now. You can load older history anytime from the account's page using the date-range picker.",
         "importButton": "Import {count} account(s)",
         "importingButton": "Importing…",
-        "importSuccess": "Successfully imported {count} account(s)",
         "errors": {
           "connectFailed": "Failed to connect to SimpleFIN. Check your setup token and try again.",
           "importFailed": "Failed to import accounts. Please try again."
@@ -287,9 +272,7 @@
         "connectionEstablished": "Bank connection established successfully!"
       },
       "details": {
-        "loading": "Loading...",
         "error": {
-          "loadFailed": "Failed to load integration details. Please try again.",
           "notFoundTitle": "Integration not found",
           "notFoundDescription": "This integration may have been removed or the link is incorrect. Check your integrations list to find what you're looking for.",
           "unexpectedTitle": "Something went wrong",
@@ -297,44 +280,37 @@
           "backButton": "Back to Integrations"
         },
         "connectionDetails": {
-          "title": "Connection Details",
-          "type": "Type",
-          "status": "Status",
           "statusActive": "Active",
           "statusInactive": "Inactive",
-          "autoSync": "Auto-Sync",
-          "autoSyncTooltip": "Auto-sync is triggered each time you log in, if more than 12 hours have passed since the last sync. You can also trigger a sync manually from the header at any time.",
-          "every12Hours": "Every 12 hours",
-          "lastSync": "(last {time})",
-          "connectedAccounts": "Connected Accounts"
+          "autoSync": "Auto-Sync"
         },
         "connectionValidity": {
-          "title": "Connection Validity",
           "statusExpired": "Expired",
-          "statusExpiringSoon": "Expiring Soon",
           "statusActive": "Active",
-          "expiredTitle": "Connection Expired",
-          "expiredDescription": "Your bank connection has expired. Please reconnect to continue syncing transactions.",
-          "expiringSoonTitle": "⚠️ Expiring Soon",
-          "expiringSoonDescription": "Your bank connection will expire in {days} day(s). Please reconnect soon to avoid interruption.",
-          "validFrom": "Valid From",
-          "validUntil": "Valid Until",
-          "daysRemaining": "Days Remaining",
           "daysCount": "{count} day | {count} days",
           "notAvailable": "N/A",
-          "validConnectionHint": "Connection is valid. You can still reconnect to refresh available accounts or extend the connection validity.",
           "reconnectButton": "Reconnect Now"
         },
         "connectedAccounts": {
           "title": "Connected Accounts",
-          "connectRemainingButton": "Connect Remaining Accounts",
           "empty": "No accounts connected yet.",
           "connectButton": "Connect Accounts",
-          "externalId": "External ID: {id}"
+          "currencyFallback": "The bank didn't report a currency, so your base currency ({currency}) was used",
+          "columnAccount": "Account",
+          "columnExternalId": "External ID",
+          "columnBalance": "Balance",
+          "currencyFallbackChip": "Currency: {currency}",
+          "syncNow": "Sync now",
+          "connectRemainingWithCount": "Connect remaining accounts ({count})",
+          "needsAttention": "{count} needs attention | {count} need attention",
+          "totalLabel": "{amount} total",
+          "syncStarted": "Sync started",
+          "syncFailed": "Failed to start sync"
         },
         "actions": {
-          "title": "Actions",
-          "disconnectButton": "Disconnect Integration"
+          "renameButton": "Rename connection",
+          "disconnectButton": "Disconnect Integration",
+          "manage": "Manage"
         },
         "fetchAccountsDialog": {
           "title": "Connect Remaining Accounts",
@@ -344,20 +320,37 @@
           "missingAccountsSectionName": "Connection Validity",
           "missingAccountsButtonName": "Reconnect Now",
           "missingAccountsPersist": "If the issue persists, please report it for further investigation.",
-          "loadingAccounts": "Loading available accounts...",
           "sessionExpired": "Your session has expired. Please reconnect your bank connection to continue.",
           "loadFailed": "Failed to load available accounts. Please try again.",
           "noAdditionalAccounts": "No additional accounts available to connect.",
-          "connectedBadge": "Connected",
           "connectSelectedButton": "Connect Selected Accounts ({count})",
-          "selectAccountsButton": "Select Accounts"
+          "selectAccountsButton": "Select Accounts",
+          "availableLabel": "Available",
+          "clearAll": "Clear all",
+          "alreadyConnected": "Already connected",
+          "creditLimitMeta": "Limit {amount}"
+        },
+        "meta": {
+          "connectedSince": "Connected {date}"
+        },
+        "summary": {
+          "totalBalance": "Total balance",
+          "accounts": "Accounts",
+          "accountsCount": "no accounts | {count} account | {count} accounts",
+          "lastSync": "Last sync",
+          "consent": "Consent",
+          "every": "Every {hours}h",
+          "autoSyncOff": "Off",
+          "connectedOf": "{connected} of {total}",
+          "connectedSub": "connected",
+          "accountsFailed": "{count} account failed | {count} accounts failed"
+        },
+        "consentStrip": {
+          "expiring": "Consent expires in {days} day · {date} | Consent expires in {days} days · {date}",
+          "expired": "Consent has expired. Reconnect to resume syncing."
         },
         "relativeTime": {
-          "never": "never",
-          "justNow": "just now",
-          "minutesAgo": "{count} min ago",
-          "hoursAgo": "{count} hour ago | {count} hours ago",
-          "daysAgo": "{count} day ago | {count} days ago"
+          "never": "never"
         },
         "errors": {
           "reauthorizationFailed": "Failed to start reauthorization"
@@ -388,7 +381,6 @@
         }
       },
       "authFailure": {
-        "title": "Reconnection required",
         "description": "This connection needs to be reconnected before it can sync again.",
         "updateButton": "Update Credentials"
       },

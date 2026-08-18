@@ -3,7 +3,6 @@
     "dashboard": "Головна",
     "accounts": "Рахунки",
     "accountsList": "Усі рахунки",
-    "bankIntegrations": "Банківські інтеграції",
     "investments": "Інвестиції",
     "loans": "Кредити",
     "allTransactions": "Всі транзакції",
@@ -81,7 +80,6 @@
     }
   },
   "themeSelector": {
-    "toggle": "Перемкнути тему",
     "light": "Світла",
     "dark": "Темна",
     "system": "Системна"

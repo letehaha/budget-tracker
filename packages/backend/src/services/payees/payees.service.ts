@@ -15,7 +15,7 @@ import PayeeTags from '@models/payee-tags.model';
 import Payees from '@models/payees.model';
 import Subscriptions from '@models/subscriptions.model';
 import Tags from '@models/tags.model';
-import Transactions from '@models/transactions.model';
+import { updateTransactions } from '@models/transactions-query';
 import {
   applyCachedLogos,
   clearManualLogoFields,
@@ -131,6 +131,9 @@ const SORT_COLUMN_BY_KEY: Record<PayeeSortBy, string> = {
  *
  * Stats (count, net flow, first/last seen, top category) are computed at query
  * time and joined in-memory. No denormalized counters.
+ *
+ * The sort aggregate must count the same rows as `getPayeeStats` — real, non-transfer,
+ * on accounts not hidden from stats — or the order disagrees with the numbers it sorts.
  */
 export const listPayees = withTransaction(
   async ({
@@ -178,18 +181,22 @@ export const listPayees = withTransaction(
       SELECT p.id
         FROM "Payees" p
         LEFT JOIN (
-          SELECT "payeeId",
+          SELECT t."payeeId",
                  COUNT(*) AS "transactionCount",
                  SUM(
-                   CASE WHEN "transactionType" = 'expense'
-                        THEN -"refAmount"
-                        ELSE "refAmount"
+                   CASE WHEN t."transactionType" = 'expense'
+                        THEN -t."refAmount"
+                        ELSE t."refAmount"
                    END
                  ) AS "netFlowRefCents",
-                 MAX("time") AS "lastSeenAt"
-            FROM "Transactions"
-           WHERE "userId" = :scopedUserId
-           GROUP BY "payeeId"
+                 MAX(t."time") AS "lastSeenAt"
+            FROM real_transactions t
+            JOIN "Accounts" a ON a.id = t."accountId"
+           WHERE t."userId" = :scopedUserId
+             AND t."transferNature" = 'not_transfer'
+             AND a."excludeFromStats" = false
+             AND (t."externalData" IS NULL OR NOT (t."externalData" @> '{"balanceAdjustment": true}'))
+           GROUP BY t."payeeId"
         ) s ON s."payeeId" = p.id
        WHERE p."userId" = :scopedUserId
          ${nameWhere}
@@ -507,8 +514,16 @@ export const mergePayees = withTransaction(
       loadPayeeOrThrow({ userId, id: targetId }),
     ]);
 
-    // Move transactions.
-    await Transactions.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
+    // Move transactions. Every row on the source has to move, including plans and
+    // balance adjustments: the source is deleted below and the FK SET NULL would
+    // drop the link instead of transferring it.
+    await updateTransactions({
+      values: { payeeId: target.id },
+      planned: 'include',
+      access: { creator: userId },
+      balanceAdjustments: 'include',
+      where: { payeeId: source.id },
+    });
 
     // Move subscription payee rules before the source is deleted: the FK
     // SET NULL would otherwise silently drop the rule.

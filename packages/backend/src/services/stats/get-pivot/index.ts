@@ -1,17 +1,15 @@
-import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
-import { removeUndefinedKeys } from '@js/helpers';
-import Accounts from '@models/accounts.model';
-import Transactions from '@models/transactions.model';
+import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import { createRootCategoryResolver, expandCategoryIdsWithDescendants } from '@services/categories/category-hierarchy';
 import {
   AccessibleCategoryInfo,
   getAccessibleCategoryMap,
 } from '@services/categories/get-accessible-category-map.service';
+import { statsTransactions } from '@services/stats/stats-transactions';
 import { format } from 'date-fns';
-import { Includeable, Op } from 'sequelize';
+import { Op } from 'sequelize';
 
-import { findBucketIndex, getWhereConditionForTime } from '../utils';
+import { findBucketIndex } from '../utils';
 import { generatePivotBuckets, getBucketKey, getBucketLabel } from './buckets';
 import { getPivotStrategy } from './dimensions';
 import type { PivotReportResultCents, PivotReportRowCents } from './rows';
@@ -73,24 +71,22 @@ export const getPivotReport = async ({
 
   const strategy = getPivotStrategy({ rowDimension });
 
-  const include: Includeable[] = [
-    { model: Accounts, where: { excludeFromStats: false }, attributes: [] },
-    ...strategy.buildInclude(),
-  ];
-
-  const transactions = await Transactions.findAll({
-    where: removeUndefinedKeys({
-      userId,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+  // The report is money that moved, so planned rows are out with no way to opt back in.
+  // Refunds are netted per dimension by the strategies, not by the read model.
+  const { rows: transactions } = await statsTransactions({
+    access: { creator: userId },
+    planned: 'exclude',
+    refunds: 'ignore',
+    window: { from, to },
+    where: {
       transactionType: measure === 'income' ? TRANSACTION_TYPES.income : TRANSACTION_TYPES.expense,
       ...(accountIds && accountIds.length > 0 ? { accountId: { [Op.in]: accountIds } } : {}),
       ...(payeeIds && payeeIds.length > 0 ? { payeeId: { [Op.in]: payeeIds } } : {}),
       ...(expandedCategoryIds && expandedCategoryIds.length > 0
         ? { categoryId: { [Op.in]: expandedCategoryIds } }
         : {}),
-      ...getWhereConditionForTime({ from, to, columnName: 'time' }),
-    }),
-    include,
+    },
+    include: strategy.buildInclude(),
     attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'payeeId', 'accountId', 'refundLinked'],
   });
 

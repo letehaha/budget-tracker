@@ -3,6 +3,8 @@ import type { ConnectionStatusSummary, SyncStatusResponse } from '@/api/bank-dat
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import type { AccountGroups } from '@/common/types/models';
 import { ensureChunkLoaded } from '@/i18n';
+import { invalidatePersistedQuery } from '@/lib/query-client';
+import { captureException } from '@/lib/sentry';
 import { useAuthStore } from '@/stores/auth';
 import { useUserStore } from '@/stores/user';
 import type { AccountModel } from '@bt/shared/types';
@@ -234,6 +236,11 @@ export function useSyncStatus() {
         queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.bankConnectionChange] });
         queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
         queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesLookup });
+        // Balances are read off the persisted accounts snapshot, so invalidating in memory
+        // alone lets a refreshed planned delta pair with a pre-sync balance from disk.
+        invalidatePersistedQuery({ queryKey: VUE_QUERY_CACHE_KEYS.allAccounts }).catch((error) =>
+          captureException({ error, context: { scope: 'sync-status:invalidate-persisted-accounts' } }),
+        );
 
         setTimeout(() => {
           justCompleted.value = false;

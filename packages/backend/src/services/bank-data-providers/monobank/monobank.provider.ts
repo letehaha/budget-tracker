@@ -6,7 +6,7 @@ import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import {
   BaseBankDataProvider,
   DateRange,
@@ -214,7 +214,10 @@ export class MonobankProvider extends BaseBankDataProvider {
         // A future-dated planned row must not anchor the window: it would push
         // `from` past `to` and turn every sync into a no-op until that date
         // passes.
-        const latestTransaction = await Transactions.findOne({
+        const latestTransaction = await findOneTransaction({
+          planned: 'exclude',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
           where: {
             accountId: account.id,
             time: { [Op.lte]: new Date() },
@@ -230,12 +233,15 @@ export class MonobankProvider extends BaseBankDataProvider {
           : new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
         const to = new Date();
 
-        return this.loadTransactionsForPeriod({
+        return this.enqueueTransactionSync({
           connectionId,
           systemAccountId,
           userId,
           from,
           to,
+          // Only an anchored (incremental) sync may consume plans: the anchorless
+          // default window is a backfill, and old charges must not eat fresh plans.
+          matchPlanned: Boolean(latestTransaction),
         });
       },
     });
@@ -258,6 +264,26 @@ export class MonobankProvider extends BaseBankDataProvider {
     from: Date;
     to: Date;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
+    // No `matchPlanned`: a charge from an arbitrary past window must not consume a plan
+    // the user made for something else.
+    return this.enqueueTransactionSync({ connectionId, systemAccountId, userId, from, to });
+  }
+
+  private async enqueueTransactionSync({
+    connectionId,
+    systemAccountId,
+    userId,
+    from,
+    to,
+    matchPlanned = false,
+  }: {
+    connectionId: string;
+    systemAccountId: RecordId;
+    userId: number;
+    from: Date;
+    to: Date;
+    matchPlanned?: boolean;
+  }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
     const account = await this.getSystemAccount(systemAccountId);
     const connection = await this.getConnection(connectionId);
     this.validateProviderType(connection);
@@ -277,6 +303,7 @@ export class MonobankProvider extends BaseBankDataProvider {
       apiToken,
       from,
       to,
+      matchPlanned,
     });
 
     return result;

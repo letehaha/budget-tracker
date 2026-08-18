@@ -35,7 +35,6 @@
         },
         "fileUpload": {
           "title": "Завантаження файлу",
-          "dragText": "Натисніть для завантаження або перетягніть",
           "supportedFormats": "Підтримуються CSV або JSON файли",
           "errors": {
             "unsupportedFormat": "Непідтримуваний формат файлу. Завантажте CSV або JSON файл.",

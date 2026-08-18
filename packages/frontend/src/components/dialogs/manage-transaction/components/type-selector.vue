@@ -41,7 +41,7 @@
             'dark:bg-foreground dark:text-background text-foreground bg-white shadow-sm',
         )
       "
-      :disabled="disabled"
+      :disabled="disabled || isTransferDisabled"
       :aria-label="t('dialogs.manageTransaction.typeSelector.selectTransfer')"
       :aria-selected="selectedTransactionType === FORM_TYPES.transfer"
       @click="selectTransactionType(FORM_TYPES.transfer)"
@@ -67,6 +67,8 @@ const props = defineProps<{
   transaction?: TransactionModel;
   account?: AccountModel;
   disabled?: boolean;
+  /** Planned rows must stay standalone, so transfer is off the table while the mode is on. */
+  isTransferDisabled?: boolean;
 }>();
 
 const emit = defineEmits<{

@@ -922,12 +922,26 @@ describe('CSV import balance recalculation', () => {
         }),
         raw: true,
       });
-      // Seed a boundary transaction (day 2024-01-16) so the Jan 15 import row is
-      // backfill and the Jan 16 / Jan 17 rows are new.
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 500, time: '2024-01-16T10:00:00Z' }),
-        raw: true,
+      // Seed a boundary row (day 2024-01-16) so the Jan 15 import row is backfill
+      // and the Jan 16 / Jan 17 rows are new. Seeded via an import: a manual write
+      // on a bank-connected account is rejected unless planned, and planned rows
+      // don't set the boundary.
+      const seedProgress = await runImport({
+        fileContent: buildCsv([
+          {
+            date: '2024-01-16',
+            amount: '5.00',
+            description: 'Boundary seed',
+            account: 'Bank Acc',
+            currency: account.currencyCode,
+            type: 'expense',
+          },
+        ]),
+        accountMapping: { 'Bank Acc': { action: 'link-existing', accountId: account.id } },
+        recalculateBalance: true,
       });
+      expectCsvImportCompleted(seedProgress);
+      expect(seedProgress.summary.imported).toBe(1);
       const before = await helpers.getAccount({ id: account.id, raw: true });
       const balanceBefore = Number(before.currentBalance);
       const initialBalanceBefore = Number(before.initialBalance);

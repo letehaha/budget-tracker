@@ -30,6 +30,7 @@ import { resolveRowTagIds } from '@services/import-export/core/resolve/resolve-r
 import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
+import { selectAccountsWithPlannedRows } from '@services/transactions/planned-matching';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ExecuteImportParams {
@@ -77,7 +78,7 @@ interface ExecuteImportParams {
  * account, category, and tag creation each wrap themselves in `withTransaction`
  * further down the call stack, so they commit independently of the row loop too.
  */
-async function executeImportImpl({
+export async function executeImport({
   userId,
   validRows,
   accountMapping,
@@ -114,6 +115,7 @@ async function executeImportImpl({
   if (rowsToImport.length === 0) {
     return {
       imported: 0,
+      merged: 0,
       skipped: skipDuplicateIndices.length,
       skippedUnpriceable: skippedUnpriceableCount,
       accountsCreated: 0,
@@ -190,6 +192,8 @@ async function executeImportImpl({
   const { capturedAccountIds, createdAccounts } = partitionReconcileAccounts({ accountNameToId, accountMapping });
   const reconciler = await startBalanceReconciliation({ userId, accountIds: capturedAccountIds });
 
+  const plannedMatchAccountIds = await selectAccountsWithPlannedRows({ accountIds: capturedAccountIds });
+
   // Resolve categories that need to be created or linked. `categoriesCreated`
   // counts only genuine inserts — create-new entries that matched an existing
   // same-named category (case-insensitive) link to it instead.
@@ -220,6 +224,7 @@ async function executeImportImpl({
   // Create transactions
   const errors: ImportError[] = [];
   const newTransactionIds: string[] = [];
+  let mergedCount = 0;
 
   let processedCount = 0;
   const tick = async () => {
@@ -286,7 +291,7 @@ async function executeImportImpl({
       // UNION, this path re-applies the payee defaults additively below. When
       // the row has no imported tags, `tagIds` stays undefined so
       // createTransaction's built-in payee-default application runs unchanged.
-      const [transaction] = await createTransaction({
+      const createResult = await createTransaction({
         userId,
         amount: rowAmount,
         commissionRate: Money.zero(),
@@ -305,7 +310,9 @@ async function executeImportImpl({
         payeeId: payeeId || undefined,
         tagIds: hasImportedTags ? rowTagIds : undefined,
         categoryIdIsExplicit: Boolean(mappedCategoryId),
+        matchPlanned: plannedMatchAccountIds.has(accountId),
       });
+      const [transaction] = createResult;
 
       if (transaction) {
         // Fold this committed row into the per-account balance tally IMMEDIATELY
@@ -323,33 +330,39 @@ async function executeImportImpl({
           }),
         });
 
-        newTransactionIds.push(transaction.id);
+        // A merged row is an existing planned transaction, not a new one: it
+        // stays out of `newTransactionIds` and keeps the plan's own tag set.
+        if (createResult.mergedIntoPlanned) {
+          mergedCount += 1;
+        } else {
+          newTransactionIds.push(transaction.id);
 
-        // Union step: when the row supplied its own tags, createTransaction did
-        // not apply the payee's default tags (the explicit tagIds short-circuit
-        // that). Add them here on top of the imported set — `applyPayeeDefaultTags`
-        // is add-only and skips duplicates, so imported tags and payee defaults
-        // coexist. The payeeId was resolved by createTransaction (caller-supplied
-        // or extracted from `rawMerchantName`). The transaction is already
-        // committed, so a failure here loses only the default tags and is
-        // reported as its own error — reporting it as a failed row would invite
-        // a re-import that duplicates the transaction.
-        if (hasImportedTags && transaction.payeeId) {
-          try {
-            await applyPayeeDefaultTags({
-              accountOwnerUserId: userId,
-              transactionId: transaction.id,
-              payeeId: transaction.payeeId,
-            });
-          } catch (err) {
-            logger.error({
-              message: `[CSV import] Failed to apply default payee tags (row ${row.rowIndex})`,
-              error: err as Error,
-            });
-            errors.push({
-              rowIndex: row.rowIndex,
-              error: 'Transaction was imported, but the payee default tags could not be applied',
-            });
+          // Union step: when the row supplied its own tags, createTransaction did
+          // not apply the payee's default tags (the explicit tagIds short-circuit
+          // that). Add them here on top of the imported set — `applyPayeeDefaultTags`
+          // is add-only and skips duplicates, so imported tags and payee defaults
+          // coexist. The payeeId was resolved by createTransaction (caller-supplied
+          // or extracted from `rawMerchantName`). The transaction is already
+          // committed, so a failure here loses only the default tags and is
+          // reported as its own error — reporting it as a failed row would invite
+          // a re-import that duplicates the transaction.
+          if (hasImportedTags && transaction.payeeId) {
+            try {
+              await applyPayeeDefaultTags({
+                accountOwnerUserId: userId,
+                transactionId: transaction.id,
+                payeeId: transaction.payeeId,
+              });
+            } catch (err) {
+              logger.error({
+                message: `[CSV import] Failed to apply default payee tags (row ${row.rowIndex})`,
+                error: err as Error,
+              });
+              errors.push({
+                rowIndex: row.rowIndex,
+                error: 'Transaction was imported, but the payee default tags could not be applied',
+              });
+            }
           }
         }
       } else {
@@ -407,6 +420,7 @@ async function executeImportImpl({
 
   return {
     imported: newTransactionIds.length,
+    merged: mergedCount,
     skipped: skipDuplicateIndices.length,
     skippedUnpriceable: skippedUnpriceableCount,
     accountsCreated,
@@ -419,5 +433,3 @@ async function executeImportImpl({
     accountBalanceChanges,
   };
 }
-
-export const executeImport = executeImportImpl;

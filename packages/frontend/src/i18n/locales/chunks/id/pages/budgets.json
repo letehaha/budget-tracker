@@ -85,7 +85,6 @@
       "clearSelection": "Hapus pilihan"
     },
     "categoryBudget": {
-      "backToBudgets": "Kembali ke Anggaran",
       "trackedCategories": "Kategori yang Dilacak",
       "categoriesCount": "{count} kategori dilacak",
       "autoTrackedInfo": "Transaksi dilacak secara otomatis berdasarkan kategori",

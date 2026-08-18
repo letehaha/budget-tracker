@@ -15,6 +15,9 @@ import {
   getOppositeTxType,
   getTxTypeFromFormType,
   isOutOfWalletAccount,
+  isTxEditableAsManual,
+  resolveFormIsPlanned,
+  resolveOriginalCurrencyPair,
 } from '../helpers';
 import { type FormSplit, UI_FORM_STRUCT } from '../types';
 
@@ -132,7 +135,7 @@ export const prepareTxUpdationParams = ({
     }
   }
 
-  if (isRecordExternal) {
+  if (!isTxEditableAsManual({ transaction, isRecordExternal })) {
     editionParams = {
       ...editionParams,
       note,
@@ -232,6 +235,24 @@ export const prepareTxUpdationParams = ({
     if (apiSplits !== undefined) {
       editionParams.splits = apiSplits;
     }
+
+    // Delta only: an unchanged pair must not be re-sent.
+    const originalPair = resolveOriginalCurrencyPair({ form });
+    const txOriginalAmount = transaction.originalAmount ?? null;
+    const txOriginalCurrencyCode = transaction.originalCurrencyCode ?? null;
+
+    if (originalPair.state === 'pair') {
+      if (
+        originalPair.originalAmount !== txOriginalAmount ||
+        originalPair.originalCurrencyCode !== txOriginalCurrencyCode
+      ) {
+        editionParams.originalAmount = originalPair.originalAmount;
+        editionParams.originalCurrencyCode = originalPair.originalCurrencyCode;
+      }
+    } else if (originalPair.state === 'clear' && (txOriginalAmount !== null || txOriginalCurrencyCode !== null)) {
+      editionParams.originalAmount = null;
+      editionParams.originalCurrencyCode = null;
+    }
   }
 
   // Handle tag IDs - compare original tags with form tags to detect changes
@@ -256,6 +277,13 @@ export const prepareTxUpdationParams = ({
   const formPayeeId = form.payeeId ?? null;
   if (originalPayeeId !== formPayeeId) {
     editionParams.payeeId = formPayeeId as RecordId | null;
+  }
+
+  // Delta only: an unrelated edit must not re-assert the flag, and the backend
+  // rejects `isPlanned: true` on rows that can't hold it.
+  const formIsPlanned = resolveFormIsPlanned({ form });
+  if (formIsPlanned !== Boolean(transaction.isPlanned)) {
+    editionParams.isPlanned = formIsPlanned;
   }
 
   return editionParams;

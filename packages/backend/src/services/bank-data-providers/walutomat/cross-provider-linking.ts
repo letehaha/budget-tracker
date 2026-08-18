@@ -1,16 +1,12 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
-/**
- * Date window (in days) for matching cross-provider transactions.
- * Bank transfers typically settle within 1-2 business days.
- */
-const DATE_WINDOW_DAYS = 3;
+import { TRANSFER_DATE_WINDOW_DAYS, normalizeIban } from '../utils/transfer-matching';
 
 /**
  * Extract the counterparty IBAN from a Walutomat transaction's operationDetails.
@@ -49,16 +45,20 @@ function extractCounterpartyIban({
  * - Date within ±3 days
  * - Opposite transaction type (PAYOUT→income, PAYIN→expense)
  * - Neither transaction is already linked as a transfer
+ * - Neither transaction is planned
  *
  * Only links when exactly 1 unambiguous match is found.
  */
 export async function linkCrossProviderTransfers({ userId }: { userId: number }): Promise<void> {
   // Step 1: Find unlinked Walutomat PAYIN/PAYOUT transactions
-  const walutomatTxs = await Transactions.findAll({
+  const walutomatTxs = await findTransactions({
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    transfers: 'exclude',
+    completeness: 'all',
     where: {
-      userId,
       accountType: ACCOUNT_TYPES.walutomat,
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       [Op.or]: [
         Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'PAYIN'),
         Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'PAYOUT'),
@@ -83,7 +83,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
     const iban = externalData?.iban as string | undefined;
     if (!iban) continue;
 
-    const normalized = iban.replace(/\s/g, '').toUpperCase();
+    const normalized = normalizeIban({ iban });
     const existing = ibanToAccountIds.get(normalized);
     if (existing) {
       existing.push(account.id);
@@ -110,7 +110,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
 
     if (!counterpartyIban) continue;
 
-    const normalizedIban = counterpartyIban.replace(/\s/g, '').toUpperCase();
+    const normalizedIban = normalizeIban({ iban: counterpartyIban });
     const matchingAccountIds = ibanToAccountIds.get(normalizedIban);
 
     if (!matchingAccountIds || matchingAccountIds.length === 0) continue;
@@ -122,16 +122,19 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
       externalData.operationType === 'PAYIN' ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income;
 
     const txDate = new Date(tx.time);
-    const dateFrom = subDays(txDate, DATE_WINDOW_DAYS);
-    const dateTo = addDays(txDate, DATE_WINDOW_DAYS);
+    const dateFrom = subDays(txDate, TRANSFER_DATE_WINDOW_DAYS);
+    const dateTo = addDays(txDate, TRANSFER_DATE_WINDOW_DAYS);
 
     // Search for matching transactions in the identified accounts
-    const candidates = await Transactions.findAll({
+    const candidates = await findTransactions({
+      planned: 'exclude',
+      access: { creator: userId },
+      balanceAdjustments: 'include',
+      transfers: 'exclude',
+      completeness: 'all',
       where: {
-        userId,
         accountId: { [Op.in]: matchingAccountIds },
         transactionType: expectedOppositeType,
-        transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         currencyCode: tx.currencyCode,
         // amount is stored as cents in DB, tx.amount is a Money object
         amount: tx.amount.toCents(),
@@ -153,7 +156,22 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
 
   if (pairsToLink.length === 0) return;
 
-  await linkTransactions({ userId, ids: pairsToLink });
+  // One rejected pair (planned or split-bearing leg) must not abort the rest of the batch.
+  let linkedCount = 0;
+  for (const pair of pairsToLink) {
+    try {
+      await linkTransactions({ userId, ids: [pair] });
+      linkedCount += 1;
+    } catch (err) {
+      logger.warn(
+        `[Walutomat] Failed to auto-link cross-provider pair ${pair[0]} <-> ${pair[1]}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
 
-  logger.info(`[Walutomat] Auto-linked ${pairsToLink.length} cross-provider transfer(s) for user ${userId}`);
+  if (linkedCount === 0) return;
+
+  logger.info(`[Walutomat] Auto-linked ${linkedCount} cross-provider transfer(s) for user ${userId}`);
 }

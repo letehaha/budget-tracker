@@ -52,6 +52,11 @@
         :value="summary.outOfWalletImported"
       />
       <StatCard
+        v-if="(summary.merged ?? 0) > 0"
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.mergedIntoPlanned')"
+        :value="summary.merged ?? 0"
+      />
+      <StatCard
         v-if="summary.duplicatesSkipped > 0"
         :label="$t('pages.importExport.budgetBakersWalletImport.done.duplicatesSkipped')"
         :value="summary.duplicatesSkipped"
@@ -140,8 +145,8 @@ const balanceDesyncErrors = computed(
  */
 const importOutcome = computed(() => {
   if (!summary.value) return 'failure';
-  const { transactionsImported, transfersImported, outOfWalletImported, errors } = summary.value;
-  const totalImported = transactionsImported + transfersImported + outOfWalletImported;
+  const { transactionsImported, transfersImported, outOfWalletImported, merged, errors } = summary.value;
+  const totalImported = transactionsImported + transfersImported + outOfWalletImported + (merged ?? 0);
   if (errors.length === 0 && balanceDesyncErrors.value.length === 0 && totalImported > 0) return 'success';
   if (totalImported > 0) return 'partial';
   return 'failure';

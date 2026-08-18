@@ -16,7 +16,7 @@
       "workspaceGroup": "Ruang Kerja",
       "appearance": "Tampilan",
       "language": "Bahasa",
-      "statistics": "Statistik",
+      "general": "Statistik",
       "payees": "Penerima",
       "subscriptions": "Pembayaran terjadwal"
     },

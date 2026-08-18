@@ -27,10 +27,8 @@
     },
     "cashBalances": {
       "title": "Грошові залишки",
-      "subtitle": "{count} валют",
       "emptyState": "Немає грошових залишків",
       "tabs": {
-        "overview": "Огляд",
         "balances": "Баланси",
         "cashTransactions": "Транзакції",
         "buysSells": "Купівлі та продажі"

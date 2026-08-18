@@ -56,6 +56,37 @@ export async function createTransaction({
   });
 }
 
+type CreatePlannedTransactionPayload = Parameters<typeof buildTransactionPayload>[0];
+
+export function createPlannedTransaction({
+  payload,
+  raw,
+}: {
+  payload: CreatePlannedTransactionPayload;
+  raw?: false;
+}): Promise<Response>;
+export function createPlannedTransaction({
+  payload,
+  raw,
+}: {
+  payload: CreatePlannedTransactionPayload;
+  raw?: true;
+}): Promise<[baseTx: Transactions, oppositeTx?: Transactions]>;
+export function createPlannedTransaction({
+  payload,
+  raw = false,
+}: {
+  payload: CreatePlannedTransactionPayload;
+  raw?: boolean;
+}) {
+  return makeRequest({
+    method: 'post',
+    url: '/transactions',
+    payload: buildTransactionPayload({ ...payload, isPlanned: true }),
+    raw,
+  });
+}
+
 interface SplitInput {
   categoryId: string;
   amount: number;
@@ -64,13 +95,18 @@ interface SplitInput {
 
 interface UpdateTransactionBasePayload {
   id: RecordId;
-  payload?: Omit<Partial<ReturnType<typeof buildTransactionPayload>>, 'splits'> & {
+  payload?: Omit<
+    Partial<ReturnType<typeof buildTransactionPayload>>,
+    'splits' | 'originalAmount' | 'originalCurrencyCode'
+  > & {
     destinationAmount?: number;
     destinationAccountId?: string;
     destinationTransactionId?: string;
     refundsTxId?: string | null;
     refundedByTxIds?: string[] | null;
     splits?: SplitInput[] | null;
+    originalAmount?: number | null;
+    originalCurrencyCode?: string | null;
   };
 }
 

@@ -32,6 +32,7 @@
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-text);
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -54,8 +55,14 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
 
+  --color-dialog: var(--dialog);
+
   --color-card-tooltip: var(--card-tooltip);
   --color-card-tooltip-foreground: var(--card-tooltip-foreground);
+  --color-card-tooltip-glass: var(--card-tooltip-glass);
+  --color-card-tooltip-muted: var(--card-tooltip-muted);
+  --color-card-tooltip-border: var(--card-tooltip-border);
+  --shadow-card-tooltip: var(--card-tooltip-shadow);
 
   --color-input-background: var(--input-background);
 
@@ -244,8 +251,16 @@
     --card: rgb(255, 255, 255);
     --card-foreground: rgb(32, 28, 22);
 
+    --dialog: rgb(255, 255, 255);
+
+    /* --card-tooltip is the opaque fallback; -glass applies only where backdrop-filter is supported.
+       White-on-white needs a near-opaque glass plus a strong border and shadow to separate. */
     --card-tooltip: rgb(255, 255, 255);
     --card-tooltip-foreground: rgb(32, 28, 22);
+    --card-tooltip-glass: rgb(255 255 255 / 0.9);
+    --card-tooltip-muted: rgb(110, 104, 97);
+    --card-tooltip-border: rgb(30 25 18 / 0.14);
+    --card-tooltip-shadow: 0 16px 40px rgb(28 22 12 / 0.16), 0 4px 12px rgb(28 22 12 / 0.1);
 
     --popover: rgb(255, 255, 255);
     --popover-foreground: rgb(32, 28, 22);
@@ -254,6 +269,7 @@
 
     --primary: rgb(115, 85, 190);
     --primary-foreground: rgb(255, 255, 255);
+    --primary-text: rgb(115, 85, 190);
 
     --secondary: rgb(229, 231, 223);
     --secondary-foreground: rgb(32, 28, 22);
@@ -271,7 +287,7 @@
     --destructive-text: rgb(172, 60, 38);
 
     --border: rgb(232, 223, 205);
-    --input: rgb(210, 208, 204);
+    --input: rgb(30 25 18 / 0.16);
     --ring: rgba(115, 85, 190, 0.6);
     --radius: 0.75rem;
 
@@ -280,6 +296,9 @@
     --success-text: rgb(42, 141, 82);
 
     --warning-text: rgb(196, 120, 35);
+
+    /* Darkens whatever transaction-type color bar sits under the planned stripe overlay. */
+    --planned-stripe: rgba(0, 0, 0, 0.35);
 
     /* Custom colors */
     --error-message: rgb(201, 75, 54);
@@ -341,16 +360,28 @@
     --card: rgb(27, 25, 23);
     --card-foreground: rgb(245, 243, 240);
 
-    --card-tooltip: rgb(50, 48, 46);
-    --card-tooltip-foreground: rgb(245, 243, 240);
+    /* A subtle step above --background; input fields inside dialogs read through their border, not surface contrast. */
+    --dialog: rgb(20, 18, 17);
+
+    /* Darker than --card so tooltips separate from chart cards by depth, not lightness. */
+    --card-tooltip: rgb(18, 17, 16);
+    --card-tooltip-foreground: rgb(250, 249, 247);
+    --card-tooltip-glass: rgb(12 11 10 / 0.72);
+    --card-tooltip-muted: rgb(156, 152, 147);
+    --card-tooltip-border: rgb(255 255 255 / 0.1);
+    /* = Tailwind's shadow-xl */
+    --card-tooltip-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
     --popover: rgb(22, 20, 19);
     --popover-foreground: rgb(245, 243, 240);
 
+    /* Matches --background; field edges come from the --input border rather than a surface step. */
     --input-background: rgb(11, 9, 8);
 
     --primary: rgb(130, 100, 205);
     --primary-foreground: rgb(255, 255, 255);
+    /* --primary stays dark enough for white labels on filled buttons; --primary-text is the brighter tint text/icons need on dark backgrounds. */
+    --primary-text: rgb(167, 139, 250);
 
     --secondary: rgb(42, 40, 38);
     --secondary-foreground: rgb(249, 248, 246);
@@ -368,7 +399,7 @@
     --destructive-text: oklch(0.704 0.191 22.216);
 
     --border: rgb(42, 40, 37);
-    --input: rgb(42, 40, 37);
+    --input: rgb(255 255 255 / 0.12);
     --ring: rgb(115, 85, 190);
 
     --success: rgb(16, 59, 49);
@@ -376,6 +407,9 @@
     --success-text: rgb(46, 204, 113);
 
     --warning-text: rgb(243, 156, 18);
+
+    /* Darkens whatever transaction-type color bar sits under the planned stripe overlay. */
+    --planned-stripe: rgba(0, 0, 0, 0.35);
 
     /* Custom colors */
     --error-message: rgb(228, 105, 89);

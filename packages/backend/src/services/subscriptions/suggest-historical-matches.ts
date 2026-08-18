@@ -1,7 +1,8 @@
 import { SUBSCRIPTION_LINK_STATUS, SubscriptionMatchingRule } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
-import * as Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
+import type Transactions from '@models/transactions.model';
 import { serializeTransactions } from '@root/serializers/transactions.serializer';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { startOfDay, subMonths } from 'date-fns';
@@ -52,7 +53,6 @@ export const suggestHistoricalMatches = async ({
   ).map((l) => l.transactionId);
 
   const baseWhere: WhereOptions = {
-    userId,
     time: { [Op.gte]: cutoffDate },
     transactionType: subscription.transactionType,
     ...(sqlConditions.length > 0 && { [Op.and]: sqlConditions }),
@@ -64,10 +64,13 @@ export const suggestHistoricalMatches = async ({
   // We fetch more because some will be filtered out after conversion
   const fetchLimit = crossCurrencyAmountRules.length > 0 ? MAX_SUGGESTIONS * 3 : MAX_SUGGESTIONS;
 
-  let transactions = await Transactions.default.findAll({
+  let transactions = await findTransactions({
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: { cap: { limit: fetchLimit, onTruncated: 'log', context: { userId, subscriptionId } } },
     where: baseWhere,
     order: [['time', 'DESC']],
-    limit: fetchLimit,
   });
 
   // Apply cross-currency amount filtering in memory
@@ -160,11 +163,11 @@ async function filterByCrossCurrencyAmount({
   rules,
   userId,
 }: {
-  transactions: Transactions.default[];
+  transactions: Transactions[];
   rules: AmountRuleWithCurrency[];
   userId: number;
-}): Promise<Transactions.default[]> {
-  const results: Transactions.default[] = [];
+}): Promise<Transactions[]> {
+  const results: Transactions[] = [];
 
   for (const tx of transactions) {
     let matchesAllRules = true;

@@ -72,8 +72,8 @@
         </div>
 
         <template v-if="activeView === 'list'">
-          <!-- Pinned upcoming section: overdue + due within 3 days. Hidden when
-               any filter is active or the user has opted it out. -->
+          <!-- Pinned upcoming section: subscriptions due plus pending plans. Hidden
+               when any filter is active or the user has opted it out. -->
           <UpcomingSection v-if="showUpcomingSection" @toggle-hide="toggleHideUpcoming" />
 
           <Card class="min-h-75 flex-1 overflow-hidden">
@@ -134,6 +134,7 @@
                 v-model:filters="filters"
                 :is-reset-button-disabled="isResetButtonDisabled"
                 :is-filters-out-of-sync="false"
+                surface="card"
                 @reset-filters="resetFilters"
               />
             </div>
@@ -141,8 +142,8 @@
         </Card>
 
         <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-          <!-- Pinned upcoming section: overdue + due within 3 days. Hidden when
-               any filter is active or the user has opted it out. -->
+          <!-- Pinned upcoming section: subscriptions due plus pending plans. Hidden
+               when any filter is active or the user has opted it out. -->
           <UpcomingSection v-if="showUpcomingSection" @toggle-hide="toggleHideUpcoming" />
 
           <Card class="min-h-0 flex-1 overflow-hidden">
@@ -292,6 +293,11 @@
             </div>
           </template>
 
+          <!-- Table view mounts the same pinned card as the list branches: with
+               `contents` on the wrapper it lands in the page flow, and in focus
+               mode it stays above the table inside the overlay. -->
+          <UpcomingSection v-if="showUpcomingSection && showTableCard" @toggle-hide="toggleHideUpcoming" />
+
           <!-- On mobile (non-fullscreen) the card is sized to the full available
                viewport height; combined with the toolbar above this makes the
                page itself slightly taller than the viewport, so the user can
@@ -382,9 +388,9 @@ const { mobileView, setMobileView, desktopView, setDesktopView } = useTransactio
 const { data: userSettings, patch: patchSettings } = useUserSettings();
 
 /**
- * The pinned Upcoming section is shown only in compact list view, only when no
- * filter is active, and only when the user has not opted it out via the
- * hide-upcoming toggle.
+ * The pinned Upcoming section is shown in every layout, only when no filter is
+ * active, and only when the user has not opted it out via the hide-upcoming
+ * toggle.
  */
 const showUpcomingSection = computed(
   () => !isAnyFiltersApplied.value && !userSettings.value?.ui?.transactionsList?.hideUpcoming,

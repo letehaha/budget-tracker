@@ -8,11 +8,23 @@ import { Op } from 'sequelize';
 
 type FindWithFiltersParams = Parameters<typeof Transactions.findWithFilters>[0];
 
-/** `userId` is required at the public service boundary even though the model makes it
- * optional — the service still needs the caller identity to compute accessible
- * accounts. The model treats it as optional so this service can drop it on the way
- * through (account-scoped query). */
-type GetTransactionsParams = Omit<FindWithFiltersParams, 'isRaw' | 'userId'> & { userId: number };
+/** The page size the list endpoint falls back to when the client asks for no specific one. */
+const DEFAULT_PAGE_SIZE = 20;
+
+/** This service owns the policy axes: it resolves the caller's visible rows itself
+ * (`access: 'pre-scoped'`), speaks the HTTP pagination vocabulary (`from`/`limit`), and
+ * translates the endpoint's `isPlanned` / `excludeBalanceAdjustments` query params. */
+type GetTransactionsParams = Omit<
+  FindWithFiltersParams,
+  'isRaw' | 'access' | 'planned' | 'completeness' | 'balanceAdjustments'
+> & {
+  userId: number;
+  from?: number;
+  limit?: number;
+  /** Absent = real rows + the caller's own plans; `true` = only the caller's plans; `false` = real rows only. */
+  isPlanned?: boolean;
+  excludeBalanceAdjustments?: boolean;
+};
 
 /** Internal snapshot of the user who attached a tx to a shared budget. `null` for
  *  owner-attached rows and for non-budget-scoped fetches. The public-facing shape is
@@ -45,10 +57,10 @@ interface TransactionAddedBy {
  * UI can label them ("Added by @bob"). Owner-attached rows leave `addedBy` undefined.
  *
  * Internal callers that should remain owner-scoped (csv-import, tag-reminders, budgets
- * stats, etc.) call `Transactions.findWithFilters` directly with `userId` set.
+ * stats, etc.) call `Transactions.findWithFilters` directly with `access: { creator }`.
  */
 export const getTransactions = async (params: GetTransactionsParams) => {
-  const { userId, accountIds, budgetIds, ...rest } = params;
+  const { userId, accountIds, budgetIds, from, limit, isPlanned, excludeBalanceAdjustments, ...rest } = params;
 
   // Budget-share path: when the caller asks for transactions in specific budgets, we
   // scope visibility through budget-share (in addition to any account-share lookup,
@@ -94,10 +106,22 @@ export const getTransactions = async (params: GetTransactionsParams) => {
   // Raw mode flattens nested includes into dot-notation keys which breaks access
   const isRaw = !rest.includeSplits && !rest.includeTags && !rest.includeGroups;
 
+  // `isPlanned: true` means "only the plans I authored": creator scope is what reproduces
+  // that, on top of the account/budget ids resolved above.
   const transactions = await Transactions.findWithFilters({
     ...rest,
     accountIds: scopedAccountIds,
     budgetIds: scopedBudgetIds,
+    planned: isPlanned === undefined ? { visibleTo: userId } : isPlanned ? 'only' : 'exclude',
+    access: isPlanned === true ? { creator: userId } : 'pre-scoped',
+    // A non-finite limit is the callers' "fetch everything" sentinel and must not
+    // reach Sequelize as a literal page limit.
+    completeness: Number.isFinite(limit ?? DEFAULT_PAGE_SIZE)
+      ? { page: { offset: from ?? 0, limit: limit ?? DEFAULT_PAGE_SIZE } }
+      : 'all',
+    // The raw ledger view: this list shows balance-adjustment rows unless the client asks
+    // to hide them, so it opts out of the boundary's exclude-by-default.
+    balanceAdjustments: excludeBalanceAdjustments ? 'exclude' : 'include',
     isRaw,
   });
 

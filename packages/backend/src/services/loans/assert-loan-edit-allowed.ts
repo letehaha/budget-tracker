@@ -3,6 +3,7 @@ import type { Money } from '@common/types/money';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
+import { findOneTransaction } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
 import { deriveImpliedDestinationAmount } from '@services/loans/implied-destination-amount';
@@ -71,7 +72,12 @@ export const assertLoanEditAllowed = async ({
       // (informational → counted), so it must pass the overpay assertion too.
       newData.time !== undefined)
   ) {
-    const oppositeLeg = await Transactions.default.findOne({
+    // Unscoped on purpose: a shared cross-user pair's opposite leg lives on the other
+    // user's account. Ownership is enforced by `assertLoanPaymentAllowed`'s row lock.
+    const oppositeLeg = await findOneTransaction({
+      planned: 'include',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
       where: { transferId: prevData.transferId, id: { [Op.ne]: prevData.id } },
       attributes: ['id', 'accountId', 'amount', 'currencyCode'],
     });

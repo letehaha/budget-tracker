@@ -37,7 +37,7 @@ const isOpen = useVModel(props, 'open', emit, { passive: true, defaultValue: fal
     no-internal-scroll
     sr-only-header
     drawer-custom-indicator
-    dialog-content-class="bg-card max-h-[90dvh] w-full max-w-lg p-0"
+    dialog-content-class="max-h-[90dvh] w-full max-w-lg p-0"
     drawer-content-class="px-0 pb-[env(safe-area-inset-bottom)]"
   >
     <template #trigger>

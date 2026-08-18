@@ -33,16 +33,21 @@ const { transactionChange, securityPriceChange, bankConnectionChange, ventureCha
   VUE_QUERY_GLOBAL_PREFIXES;
 
 export const VUE_QUERY_CACHE_KEYS = Object.freeze({
+  // auth
+  signupsOpen: ['signups-open'] as const,
   // currencies
   allCurrencies: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'all'] as const,
   userCurrencies: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'user'] as const,
   baseCurrency: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'base'] as const,
   // append the yyyy-MM-dd date when using
   exchangeRatesForDate: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'rates-for-date'] as const,
+  // append from, to, and the yyyy-MM-dd date when using
+  exchangeRatePair: [VUE_QUERY_GLOBAL_PREFIXES.currencies, 'rate-pair'] as const,
 
   // widget balance trend
   widgetBalanceTrend: [transactionChange, securityPriceChange, ventureChange, 'widget-balance-trend'] as const,
   widgetBalanceTrendPrev: [transactionChange, securityPriceChange, ventureChange, 'widget-balance-trend-prev'] as const,
+  widgetBalanceTrendPlanned: [transactionChange, 'widget-balance-trend-planned'] as const,
   widgetBalanceTotalBalance: [
     transactionChange,
     securityPriceChange,
@@ -64,6 +69,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // widget latest records
   widgetLatestRecords: [transactionChange, 'widget-latest-records'] as const,
 
+  // planned transactions
+  plannedSummary: [transactionChange, 'planned-summary'] as const,
+  pendingPlannedTransactions: [transactionChange, 'pending-planned-transactions'] as const,
+
   // widget category spending tracker
   widgetCategorySpendingTracker: [transactionChange, 'widget-category-spending-tracker'] as const,
 
@@ -71,6 +80,9 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   widgetCashFlow: [transactionChange, 'widget-cash-flow'] as const,
   widgetCashFlowPrev: [transactionChange, 'widget-cash-flow-prev'] as const,
   widgetCashFlowTrend: [transactionChange, 'widget-cash-flow-trend'] as const,
+
+  // widget net worth
+  widgetNetWorth: [transactionChange, securityPriceChange, ventureChange, 'widget-net-worth'] as const,
 
   // analytics
   analyticsBalanceHistoryTrend: [

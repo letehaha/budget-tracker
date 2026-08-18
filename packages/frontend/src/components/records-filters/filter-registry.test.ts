@@ -28,6 +28,7 @@ const NARROWING_EXAMPLES: Record<FilterKey, Partial<FiltersStruct>> = {
   transferKinds: { transferNatures: [TRANSACTION_TRANSFER_NATURE.common_transfer] },
   refunds: { refundFilter: FILTER_OPERATION.exclude },
   transfers: { transferFilter: FILTER_OPERATION.only },
+  planned: { plannedFilter: FILTER_OPERATION.only },
   note: { noteIncludes: 'coffee' },
 };
 

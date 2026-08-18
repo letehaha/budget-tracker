@@ -1,14 +1,11 @@
 {
   "accounts": {
-    "noNameSet": "Sin nombre...",
     "title": "Cuentas",
     "createAccount": "Crear cuenta",
     "createVehicle": "Añadir vehículo",
-    "bankIntegrations": "Integraciones bancarias",
     "sections": {
       "archived": "Archivadas",
       "manual": "Cuentas manuales",
-      "connected": "Cuentas conectadas",
       "sharedWithMe": "Compartidas conmigo",
       "vehicles": "Vehículos",
       "bankConnections": "Conexiones bancarias"
@@ -26,7 +23,8 @@
       "totalBalance": "Saldo total",
       "assets": "Activos",
       "liabilities": "Pasivos",
-      "vehicles": "Vehículos"
+      "vehicles": "Vehículos",
+      "projected": "Previsto {amount} · {count} movimiento planificado hasta {date} | Previsto {amount} · {count} movimientos planificados hasta {date}"
     },
     "connect": "Conectar",
     "connectBank": "Conectar banco",

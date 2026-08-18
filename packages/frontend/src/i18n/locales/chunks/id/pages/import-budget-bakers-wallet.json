@@ -4,24 +4,11 @@
       "budgetBakersWalletImport": {
         "pageTitle": "Impor dari Wallet (BudgetBakers)",
         "pageDescription": "Impor transaksi Anda yang diekspor dari aplikasi Wallet oleh BudgetBakers.",
-        "steps": {
-          "uploadTitle": "Unggah file",
-          "uploadDescription": "Pilih file ekspor CSV Wallet Anda.",
-          "previewTitle": "Pratinjau & petakan akun",
-          "previewDescription": "Tinjau data yang terdeteksi dan konfigurasikan pemetaan akun.",
-          "duplicatesTitle": "Tinjau duplikat",
-          "duplicatesDescription": "Selesaikan potensi transaksi duplikat.",
-          "executeTitle": "Impor",
-          "executeDescription": "Mengimpor transaksi Anda.",
-          "doneTitle": "Selesai",
-          "doneDescription": "Impor selesai."
-        },
         "fileUpload": {
           "stepTitle": "Upload file CSV Wallet Anda",
           "description": "Upload satu atau lebih file CSV ekspor Wallet untuk mengimpor transaksi. Semua file harus memiliki kolom yang sama.",
           "maxSize": "Ukuran file maksimum: 10 MB",
           "parsing": "Mengurai...",
-          "continueToPreview": "Lanjut ke pratinjau",
           "errors": {
             "invalidFormatNamed": "\"{name}\" bukan file CSV.",
             "parseFailed": "Gagal mengurai file. Periksa format dan coba lagi.",
@@ -39,20 +26,10 @@
           "continue": "Lanjutkan"
         },
         "preview": {
-          "dateRange": "Transaksi dari {from} hingga {to}",
           "accountsHelper": "Konfigurasikan bagaimana setiap akun yang terdeteksi akan ditangani selama impor.",
-          "emptyList": "Tidak ada yang ditampilkan.",
           "accounts": "Akun",
-          "categories": "Kategori",
-          "tags": "Tag",
           "transactions": "Transaksi",
-          "transfers": "Transfer",
-          "outOfWalletBadge": "Di luar dompet",
-          "warningsTitle": "Peringatan",
-          "rowPrefix": "Baris {rowIndex}: ",
-          "startOver": "Mulai ulang",
-          "detecting": "Mendeteksi duplikat...",
-          "continueToImport": "Lanjutkan"
+          "rowPrefix": "Baris {rowIndex}: "
         },
         "accountRow": {
           "transactionsCount": "{count} transaksi | {count} transaksi | {count} transaksi",
@@ -66,15 +43,6 @@
           "linkTargetLabel": "Akun yang ada",
           "linkTargetPlaceholder": "Pilih akun",
           "keepBalanceNote": "Saldo saat ini dari akun yang ada akan dipertahankan. Riwayat akan diisi mundur."
-        },
-        "duplicates": {
-          "title": "{count} potensi duplikat terdeteksi | {count} potensi duplikat terdeteksi | {count} potensi duplikat terdeteksi",
-          "hint": "Baris yang diimpor ini sangat mirip dengan transaksi yang ada. Baris yang tidak dicentang akan dilewati.",
-          "willBeImported": "akan diimpor",
-          "duplicatesWillBeSkipped": "duplikat akan dilewati",
-          "back": "Kembali",
-          "importing": "Mengimpor...",
-          "continueButton": "Impor"
         },
         "execute": {
           "starting": "Memulai impor...",
@@ -100,6 +68,7 @@
           "transactionsImported": "Transaksi diimpor",
           "transfersImported": "Transfer diimpor",
           "outOfWalletImported": "Di luar dompet diimpor",
+          "mergedIntoPlanned": "Digabungkan ke transaksi terencana",
           "duplicatesSkipped": "Duplikat dilewati",
           "errorsTitle": "{count} baris gagal | {count} baris gagal | {count} baris gagal",
           "errorsOverflow": "+{count} lagi",

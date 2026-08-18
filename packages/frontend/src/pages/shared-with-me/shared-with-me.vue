@@ -159,7 +159,9 @@ const isEverythingEmpty = computed(() => !pendingReceivedInvitations.value.lengt
               class="border-border bg-card flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"
             >
               <div class="flex min-w-0 flex-1 items-center gap-3">
-                <div class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
+                <div
+                  class="bg-primary/10 text-primary-text flex size-10 shrink-0 items-center justify-center rounded-full"
+                >
                   <MailIcon class="size-5" />
                 </div>
                 <div class="min-w-0">
@@ -202,7 +204,7 @@ const isEverythingEmpty = computed(() => !pendingReceivedInvitations.value.lengt
                   :class="row.route ? 'hover:opacity-80' : ''"
                 >
                   <div
-                    class="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full"
+                    class="bg-primary/10 text-primary-text flex size-10 shrink-0 items-center justify-center rounded-full"
                   >
                     <component :is="ICON_BY_RESOURCE_TYPE[row.resourceType]" class="size-5" />
                   </div>

@@ -712,6 +712,58 @@ describe('Tag Reminders Check Service', () => {
       expect(notifications.length).toBeGreaterThan(0);
     });
 
+    it('sums all tagged transactions, not just the newest page of them', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const tag = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Pagination Sum Test' }),
+        raw: true,
+      });
+
+      const today = new Date();
+      const currentDay = today.getDate();
+
+      // 25 x 10 = 250 total, while any 20 of them add up to 200 – below the 220 threshold
+      const transactionIds: string[] = [];
+      for (let i = 0; i < 25; i++) {
+        const [tx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 10,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: today.toISOString(),
+          }),
+          raw: true,
+        });
+
+        transactionIds.push(tx.id);
+      }
+
+      await helpers.addTransactionsToTag({
+        tagId: tag.id,
+        transactionIds,
+        raw: true,
+      });
+
+      await helpers.createTagReminder({
+        tagId: tag.id,
+        payload: helpers.buildTagReminderPayload({
+          type: TAG_REMINDER_TYPES.amountThreshold,
+          frequency: TAG_REMINDER_FREQUENCIES.monthly,
+          dayOfMonth: currentDay,
+          settings: { amountThreshold: 220 },
+          isEnabled: true,
+        }),
+        raw: true,
+      });
+
+      const result = await checkScheduledReminders();
+
+      const checkResult = result.results.find((r) => r.tagName === 'Pagination Sum Test');
+
+      expect(checkResult?.transactionCount).toBe(25);
+      expect(checkResult?.triggered).toBe(true);
+    });
+
     it('does not trigger when amount is below threshold', async () => {
       const account = await helpers.createAccount({ raw: true });
       const tag = await helpers.createTag({

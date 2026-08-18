@@ -116,6 +116,7 @@ export interface YnabParseWarning {
     | 'transfer-counterpart-missing'
     | 'unparseable-amount'
     | 'unparseable-date'
+    | 'ambiguous-date-order'
     | 'unknown-flag'
     | 'row-skipped';
   message: string;

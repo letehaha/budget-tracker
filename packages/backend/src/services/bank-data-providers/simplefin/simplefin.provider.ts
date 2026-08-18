@@ -13,7 +13,7 @@ import { BadRequestError, ForbiddenError, NotFoundError, ValidationError } from 
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import { getUserDefaultCategory } from '@models/users.model';
 import {
   BaseBankDataProvider,
@@ -24,12 +24,14 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
+import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { subDays } from 'date-fns';
 import { Sequelize } from 'sequelize';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
 import { encryptCredentials } from '../utils/credential-encryption';
-import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
+import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { SimplefinApiClient } from './api-client';
 import {
@@ -311,14 +313,27 @@ export class SimplefinProvider extends BaseBankDataProvider {
     // Incremental window: from the latest stored transaction (re-fetching it
     // is harmless — dedup catches it), or an INITIAL_BACKFILL_DAYS backfill on
     // first sync.
-    const latestTransaction = await Transactions.findOne({
+    const latestTransaction = await findOneTransaction({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
       where: { accountId: systemAccountId },
       order: [['time', 'DESC']],
     });
     const to = new Date();
     const from = latestTransaction ? new Date(latestTransaction.time) : subDays(to, INITIAL_BACKFILL_DAYS);
 
-    await this.ingestWithStatus({ connectionId, systemAccountId, userId, from, to, logLabel: 'Sync' });
+    await this.ingestWithStatus({
+      connectionId,
+      systemAccountId,
+      userId,
+      from,
+      to,
+      logLabel: 'Sync',
+      // Only an anchored (incremental) sync may consume plans: the anchorless
+      // backfill window would let old charges eat fresh plans.
+      matchPlanned: Boolean(latestTransaction),
+    });
   }
 
   /**
@@ -364,12 +379,17 @@ export class SimplefinProvider extends BaseBankDataProvider {
     // little extra, which dedup drops — the connection is still fetched in
     // one pass per window.
     const to = new Date();
+    const anchoredAccountIds = new Set<string>();
     const froms = await Promise.all(
       accounts.map(async (account) => {
-        const latest = await Transactions.findOne({
+        const latest = await findOneTransaction({
+          planned: 'exclude',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
           where: { accountId: account.id },
           order: [['time', 'DESC']],
         });
+        if (latest) anchoredAccountIds.add(account.id);
         return latest ? new Date(latest.time) : subDays(to, INITIAL_BACKFILL_DAYS);
       }),
     );
@@ -411,6 +431,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
           connection,
           account,
           transactions: bucket.transactions,
+          // Anchorless accounts are on their backfill pull, which must not consume plans.
+          matchPlanned: anchoredAccountIds.has(account.id),
         });
 
         if (bucket.balance != null) {
@@ -420,7 +442,11 @@ export class SimplefinProvider extends BaseBankDataProvider {
           });
         }
 
-        emitTransactionsSyncEvent({ userId: connection.userId, accountId: account.id, transactionIds: createdIds });
+        await linkAndEmitSyncedTransactions({
+          userId: connection.userId,
+          accountId: account.id,
+          transactionIds: createdIds,
+        });
         logger.info(`[SimpleFIN] Sync: ${createdIds.length} transactions created for account ${account.id}`);
 
         await setAccountSyncStatus({ accountId: account.id, status: SyncStatus.COMPLETED, userId });
@@ -453,6 +479,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
     from: Date;
     to: Date;
   }): Promise<{ jobGroupId: string | null; totalBatches: number; estimatedMinutes: number; createdCount: number }> {
+    // No `matchPlanned`: a charge from an arbitrary past window must not consume a plan
+    // the user made for something else.
     const createdIds = await this.ingestWithStatus({
       connectionId,
       systemAccountId,
@@ -527,6 +555,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
     from,
     to,
     logLabel,
+    matchPlanned,
   }: {
     connectionId: string;
     systemAccountId: RecordId;
@@ -534,6 +563,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
     from: Date;
     to: Date;
     logLabel: string;
+    matchPlanned?: boolean;
   }): Promise<string[]> {
     const { transactionIds } = await this.runSyncWithStatus({
       systemAccountId,
@@ -559,6 +589,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
           account,
           from,
           to,
+          matchPlanned,
         });
 
         if (balance !== null) {
@@ -706,6 +737,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
     account,
     from,
     to,
+    matchPlanned,
   }: {
     connectionId: string;
     apiClient: SimplefinApiClient;
@@ -713,6 +745,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
     account: Accounts;
     from: Date;
     to: Date;
+    matchPlanned?: boolean;
   }): Promise<{ createdIds: string[]; balance: string | null }> {
     const fetched = await this.fetchAccountTransactions({
       connectionId,
@@ -726,6 +759,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
       connection,
       account,
       transactions: fetched.transactions,
+      matchPlanned,
     });
 
     return { createdIds, balance: fetched.balance };
@@ -743,27 +777,41 @@ export class SimplefinProvider extends BaseBankDataProvider {
     connection,
     account,
     transactions: rawTransactions,
+    matchPlanned = false,
   }: {
     connection: BankDataProviderConnections;
     account: Accounts;
     transactions: SimplefinTransaction[];
+    matchPlanned?: boolean;
   }): Promise<string[]> {
     // Oldest first so balance-history ordering is natural.
     const transactions = rawTransactions.toSorted((a, b) => a.posted - b.posted);
     const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
     const createdIds: string[] = [];
+    let mergedIntoPlannedCount = 0;
     const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId: connection.userId });
+
+    // One probe per account instead of one per row.
+    const canMatchPlanned = matchPlanned && (await accountHasPlannedRows({ accountId: account.id }));
 
     for (const tx of transactions) {
       await checkpoint();
 
       // Primary dedup: normal re-sync.
-      const existingTx = await Transactions.findOne({ where: { accountId: account.id, originalId: tx.id } });
+      const existingTx = await findOneTransaction({
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        where: { accountId: account.id, originalId: tx.id },
+      });
       if (existingTx) continue;
 
       // Secondary dedup: unlink→relink cleared originalId to null but preserved
       // the original value under externalData.originalSource.originalId.
-      const existingByOriginalSource = await Transactions.findOne({
+      const existingByOriginalSource = await findOneTransaction({
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
         where: Sequelize.and(
           { accountId: account.id, originalId: null },
           Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), tx.id),
@@ -778,7 +826,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
       const amountMoney = Money.fromDecimal(tx.amount);
       const isExpense = amountMoney.toNumber() < 0;
 
-      const [createdTx] = await createTransaction({
+      const createResult = await createTransaction({
         originalId: tx.id,
         note: tx.description || tx.payee || tx.memo || '',
         amount: amountMoney.abs(),
@@ -803,9 +851,25 @@ export class SimplefinProvider extends BaseBankDataProvider {
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         accountType: ACCOUNT_TYPES.simplefin,
         rawMerchantName: tx.payee?.trim() || null,
+        matchPlanned: canMatchPlanned,
       });
 
-      createdIds.push(createdTx.id);
+      // A merged row is not a new row: it keeps the user's category and payee, which the
+      // post-sync listeners on the emitted ids would overwrite.
+      if (createResult.mergedIntoPlanned) {
+        mergedIntoPlannedCount += 1;
+      } else {
+        createdIds.push(createResult[0].id);
+      }
+    }
+
+    if (mergedIntoPlannedCount > 0) {
+      logger.info(`[SimpleFIN] ${mergedIntoPlannedCount} planned transaction(s) confirmed for account ${account.id}`);
+      await notifyPlannedConfirmations({
+        userId: connection.userId,
+        accountId: account.id,
+        mergedCount: mergedIntoPlannedCount,
+      });
     }
 
     return createdIds;

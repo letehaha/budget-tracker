@@ -28,8 +28,7 @@
       "leaveError": "Could not leave the share.",
       "pending": {
         "heading": "Pending invitations",
-        "review": "Review",
-        "empty": "No pending invitations."
+        "review": "Review"
       }
     }
   }

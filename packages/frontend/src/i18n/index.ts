@@ -67,7 +67,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/data-management': () => import('./locales/chunks/en/settings/data-management.json'),
     'settings/appearance': () => import('./locales/chunks/en/settings/appearance.json'),
     'settings/language': () => import('./locales/chunks/en/settings/language.json'),
-    'settings/statistics': () => import('./locales/chunks/en/settings/statistics.json'),
+    'settings/general': () => import('./locales/chunks/en/settings/general.json'),
     'settings/ai': () => import('./locales/chunks/en/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/en/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/en/settings/admin.json'),
@@ -120,7 +120,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/data-management': () => import('./locales/chunks/uk/settings/data-management.json'),
     'settings/appearance': () => import('./locales/chunks/uk/settings/appearance.json'),
     'settings/language': () => import('./locales/chunks/uk/settings/language.json'),
-    'settings/statistics': () => import('./locales/chunks/uk/settings/statistics.json'),
+    'settings/general': () => import('./locales/chunks/uk/settings/general.json'),
     'settings/ai': () => import('./locales/chunks/uk/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/uk/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/uk/settings/admin.json'),
@@ -173,7 +173,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/data-management': () => import('./locales/chunks/es/settings/data-management.json'),
     'settings/appearance': () => import('./locales/chunks/es/settings/appearance.json'),
     'settings/language': () => import('./locales/chunks/es/settings/language.json'),
-    'settings/statistics': () => import('./locales/chunks/es/settings/statistics.json'),
+    'settings/general': () => import('./locales/chunks/es/settings/general.json'),
     'settings/ai': () => import('./locales/chunks/es/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/es/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/es/settings/admin.json'),
@@ -226,7 +226,7 @@ const chunkRegistry: ChunkRegistry = {
     'settings/data-management': () => import('./locales/chunks/id/settings/data-management.json'),
     'settings/appearance': () => import('./locales/chunks/id/settings/appearance.json'),
     'settings/language': () => import('./locales/chunks/id/settings/language.json'),
-    'settings/statistics': () => import('./locales/chunks/id/settings/statistics.json'),
+    'settings/general': () => import('./locales/chunks/id/settings/general.json'),
     'settings/ai': () => import('./locales/chunks/id/settings/ai.json'),
     'settings/security': () => import('./locales/chunks/id/settings/security.json'),
     'settings/admin': () => import('./locales/chunks/id/settings/admin.json'),
@@ -302,9 +302,17 @@ async function loadChunk({ locale, chunk }: { locale: string; chunk: I18nChunkNa
 
   try {
     const messages = await loader();
+    const payload = messages?.default;
+
+    // A module that resolves without message content means the asset came back as
+    // something other than the JSON chunk. Raised as an error so it takes the same
+    // path as a failed fetch and the chunk stays retryable.
+    if (!payload || typeof payload !== 'object') {
+      throw new Error(`Chunk "${chunk}" for locale "${locale}" resolved without message content`);
+    }
 
     // Merge into existing messages
-    i18n.global.mergeLocaleMessage(locale as SupportedLocale, messages.default as Record<string, unknown>);
+    i18n.global.mergeLocaleMessage(locale as SupportedLocale, payload as Record<string, unknown>);
 
     // Track as loaded
     localeChunks.add(chunk);

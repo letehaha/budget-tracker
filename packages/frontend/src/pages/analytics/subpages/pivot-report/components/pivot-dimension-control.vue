@@ -15,7 +15,7 @@
         :model-value="modelValue"
         @update:model-value="(value) => emit('update:modelValue', value as string)"
       >
-        <Select.SelectTrigger class="h-8 min-h-8 w-auto min-w-28 gap-1 py-0">
+        <Select.SelectTrigger class="h-8 min-h-8 w-auto min-w-28 gap-1 py-0 md:h-8">
           <Select.SelectValue />
         </Select.SelectTrigger>
         <Select.SelectContent>

@@ -34,7 +34,6 @@
         "summary": "{spent} з {limit} ліміту",
         "na": "Н/Д"
       },
-      "backToBudgets": "Назад до бюджетів",
       "noTransactionsYet": "Транзакцій ще немає",
       "transactions": "Транзакції",
       "transactionsLinked": "{count} транзакція прив'язана до цього бюджету | {count} транзакції прив'язані до цього бюджету | {count} транзакцій прив'язано до цього бюджету",

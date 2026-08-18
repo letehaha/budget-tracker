@@ -5,6 +5,7 @@
       "divider": "Atau lanjutkan dengan email",
       "submitButton": "Masuk",
       "noAccount": "Belum punya akun?",
+      "signupsDisabledTooltip": "Pendaftaran baru dinonaktifkan oleh administrator instance ini",
       "errors": {
         "incorrectEmailOrPassword": "Email atau kata sandi salah.",
         "incorrectPassword": "Kata sandi salah.",

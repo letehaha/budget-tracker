@@ -1,6 +1,12 @@
 import { type Cents, INVESTMENT_TRANSACTION_CATEGORY, asCents } from '@bt/shared/types';
 
-import { accumulateInvestmentFlows, computeInvestmentGrowth } from './investment-growth';
+import {
+  type InvestmentGrowthCents,
+  type PortfolioGrowthSeries,
+  accumulateInvestmentFlows,
+  computeInvestmentGrowth,
+  foldPortfolioGrowth,
+} from './investment-growth';
 import type { InvestmentFlowRow, InvestmentFlowsCents } from './types';
 
 // `InvestmentFlowRow` mirrors a `raw: true` query result — DECIMAL fields are
@@ -262,5 +268,106 @@ describe('computeInvestmentGrowth', () => {
     expect(results[2]!.growth).toBe(300_000);
     // The whole rotation books exactly the two price moves — $2k + $3k — and nothing else.
     expect(results[0]!.growth + results[1]!.growth + results[2]!.growth).toBe(500_000);
+  });
+});
+
+describe('foldPortfolioGrowth', () => {
+  /** One bucket of a portfolio's own growth series, defaulting each component to zero. */
+  const growthBucket = ({
+    growth = 0,
+    priceEffect = 0,
+    dividends = 0,
+    feesAndTaxes = 0,
+  }: Partial<Record<keyof InvestmentGrowthCents, number>> = {}): InvestmentGrowthCents => ({
+    growth: asCents(growth),
+    priceEffect: asCents(priceEffect),
+    dividends: asCents(dividends),
+    feesAndTaxes: asCents(feesAndTaxes),
+  });
+
+  const buildSeries = ({
+    portfolioId,
+    name,
+    growth,
+    hasActivity = true,
+  }: {
+    portfolioId: string;
+    name: string;
+    growth: InvestmentGrowthCents[];
+    hasActivity?: boolean;
+  }): PortfolioGrowthSeries => ({ portfolioId, name, growth, hasActivity });
+
+  it('sums every component elementwise into the bucket totals', () => {
+    const { totals } = foldPortfolioGrowth({
+      series: [
+        buildSeries({
+          portfolioId: 'a',
+          name: 'Alpha',
+          growth: [growthBucket({ growth: 900, priceEffect: 1_000, dividends: 200, feesAndTaxes: 300 })],
+        }),
+        buildSeries({
+          portfolioId: 'b',
+          name: 'Beta',
+          growth: [growthBucket({ growth: -150, priceEffect: -100, dividends: 0, feesAndTaxes: 50 })],
+        }),
+      ],
+      bucketCount: 1,
+    });
+
+    expect(totals).toEqual([{ growth: 750, priceEffect: 900, dividends: 200, feesAndTaxes: 350 }]);
+  });
+
+  it('emits a slice only where a portfolio moved, and the slices re-add to the total', () => {
+    const { totals, byBucket } = foldPortfolioGrowth({
+      series: [
+        buildSeries({
+          portfolioId: 'a',
+          name: 'Alpha',
+          growth: [growthBucket({ growth: 500 }), growthBucket({ growth: -200 })],
+        }),
+        buildSeries({ portfolioId: 'b', name: 'Beta', growth: [growthBucket(), growthBucket({ growth: 700 })] }),
+      ],
+      bucketCount: 2,
+    });
+
+    // Beta sat out the first bucket, so it has no entry there rather than a zero one.
+    expect(byBucket[0]).toEqual([{ portfolioId: 'a', growth: 500 }]);
+    expect(byBucket[1]).toEqual([
+      { portfolioId: 'a', growth: -200 },
+      { portfolioId: 'b', growth: 700 },
+    ]);
+    expect(byBucket.map((slices) => slices.reduce((sum, slice) => sum + slice.growth, 0))).toEqual(
+      totals.map((total) => total.growth),
+    );
+  });
+
+  it('orders the legend by absolute total growth and breaks ties on name', () => {
+    const { legend } = foldPortfolioGrowth({
+      series: [
+        buildSeries({ portfolioId: 'a', name: 'Zeta', growth: [growthBucket({ growth: 100 })] }),
+        // A bigger loser outranks a smaller winner: the legend measures distance moved.
+        buildSeries({ portfolioId: 'b', name: 'Beta', growth: [growthBucket({ growth: -400 })] }),
+        buildSeries({ portfolioId: 'c', name: 'Alpha', growth: [growthBucket({ growth: -100 })] }),
+      ],
+      bucketCount: 1,
+    });
+
+    expect(legend).toEqual([
+      { portfolioId: 'b', name: 'Beta' },
+      { portfolioId: 'c', name: 'Alpha' },
+      { portfolioId: 'a', name: 'Zeta' },
+    ]);
+  });
+
+  it('keeps a flat-but-held portfolio in the legend and drops an inactive one', () => {
+    const { legend } = foldPortfolioGrowth({
+      series: [
+        buildSeries({ portfolioId: 'held', name: 'Held', growth: [growthBucket()] }),
+        buildSeries({ portfolioId: 'idle', name: 'Idle', growth: [growthBucket()], hasActivity: false }),
+      ],
+      bucketCount: 1,
+    });
+
+    expect(legend).toEqual([{ portfolioId: 'held', name: 'Held' }]);
   });
 });

@@ -6,7 +6,7 @@
     }"
     class="input-field"
   >
-    <FieldLabel :label="label">
+    <FieldLabel :label="label" :only-template="nonLabelWrapper">
       <template v-if="$slots['label-after']" #label-after>
         <slot name="label-after" />
       </template>
@@ -42,7 +42,7 @@
           spellcheck="false"
           :class="
             cn(
-              'border-input bg-input-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+              'border-input bg-input-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:h-9',
               isTrailIconExist && 'pr-12',
               isLeadingIconExist && 'pl-10',
               (computedAttrs.class as string) ?? '',
@@ -92,6 +92,11 @@ const props = defineProps<{
   trailingIconCssClass?: string;
   leadingIconCssClass?: string;
   placeholder?: string;
+  /**
+   * Wraps the field in a `div` instead of a `label`. Needed when `label-right` holds a clickable
+   * control: it precedes the input in tree order, so a `label` would send every click to it.
+   */
+  nonLabelWrapper?: boolean;
 }>();
 
 const emits = defineEmits<{

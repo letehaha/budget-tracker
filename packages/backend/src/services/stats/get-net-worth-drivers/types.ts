@@ -32,6 +32,13 @@ export interface InvestmentFlowsCents {
   feesAndTaxes: Cents;
 }
 
+/** One portfolio's share of a bucket's investment growth, in base-currency cents. */
+export interface NetWorthDriversPortfolioSliceCents {
+  portfolioId: string;
+  /** Signed: negative when the portfolio lost value over the bucket. */
+  growth: Cents;
+}
+
 /** Per-bucket result, all money in base-currency cents. */
 export interface NetWorthDriversBucketCents {
   periodStart: string;
@@ -46,6 +53,8 @@ export interface NetWorthDriversBucketCents {
     priceEffect: Cents;
     dividends: Cents;
     feesAndTaxes: Cents;
+    /** Only portfolios with non-zero growth this bucket (sparse); sums to `growth` exactly. */
+    byPortfolio: NetWorthDriversPortfolioSliceCents[];
   };
   composition: {
     holdingsValue: Cents;
@@ -55,6 +64,12 @@ export interface NetWorthDriversBucketCents {
 
 export interface NetWorthDriversResultCents {
   buckets: NetWorthDriversBucketCents[];
+  /**
+   * Active portfolios ordered largest absolute total growth first; the serializer
+   * forwards this untouched. Typed off the wire contract rather than restated here
+   * to keep the two from drifting.
+   */
+  portfolios: endpointsTypes.NetWorthDriversPortfolioMeta[];
   /**
    * Carries no money, so the serializer forwards it to the response as-is; typed
    * off the wire contract rather than restated here to keep the two from drifting.

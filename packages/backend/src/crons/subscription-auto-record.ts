@@ -1,4 +1,5 @@
 import { logger } from '@js/utils';
+import { runWithBalanceRevalueBatch } from '@services/balances/revalue-balance-history.service';
 import { processAutoRecordPeriods } from '@services/subscriptions/process-auto-record';
 import { CronJob } from 'cron';
 
@@ -25,7 +26,7 @@ class SubscriptionAutoRecordCronService {
       async () => {
         try {
           logger.info('Starting subscription auto-record run');
-          const result = await processAutoRecordPeriods();
+          const result = await runWithBalanceRevalueBatch(() => processAutoRecordPeriods());
           logger.info('Subscription auto-record run completed', {
             booked: result.booked,
             failed: result.failed,

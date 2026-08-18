@@ -6,6 +6,7 @@ import {
   TRANSACTION_TYPES,
   TagOptionValue,
   TransactionTypeOptionValue,
+  asDecimal,
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -233,6 +234,35 @@ describe('Detect Duplicates endpoint', () => {
       expect(duplicate).toHaveProperty('existingTransaction');
       expect(duplicate).toHaveProperty('matchType');
       expect(duplicate).toHaveProperty('confidence');
+    });
+
+    it('should detect a duplicate against an existing balance-adjustment transaction', async () => {
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
+      // Drops the balance by 100.50 on 2024-01-15, matching the first row of `valid-comma.csv`.
+      const adjustment = await helpers.balanceAdjustment({
+        id: account.id,
+        payload: { targetBalance: asDecimal(899.5), time: '2024-01-15T12:00:00.000Z' },
+        raw: true,
+      });
+
+      const result = await helpers.detectDuplicates({
+        payload: {
+          fileContent: helpers.loadCsvFixture('valid-comma.csv'),
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'link-existing', accountId: account.id },
+          },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(result.duplicates.map((d) => d.existingTransaction.id)).toContain(adjustment.transaction!.id);
     });
 
     it('should not detect duplicates when transaction type differs', async () => {

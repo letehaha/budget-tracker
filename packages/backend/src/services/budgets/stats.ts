@@ -1,10 +1,13 @@
 import { BUDGET_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
+import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import TransactionSplits from '@models/transaction-splits.model';
+import { PlannedPolicy, transactionsInclude } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
+import { statsTransactions } from '@services/stats/stats-transactions';
 import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -48,8 +51,17 @@ export const getResponseInitialState = (): StatsResponse => ({
  * Category budgets keep the legacy owner-only filter — recipients can't manually
  * attach to a category budget (it'd trip `cannotManuallyLinkToCategoryBudget`), so
  * widening that path would be a no-op today.
+ *
+ * Planned rows are the exception to the junction-only scope: only the caller's own
+ * plans count, so a recipient's totals never include the owner's plans.
  */
-const getManualBudgetStats = async ({ budgetId }: { budgetId: string }): Promise<StatsResponse> => {
+const getManualBudgetStats = async ({
+  budgetId,
+  callerUserId,
+}: {
+  budgetId: string;
+  callerUserId: number;
+}): Promise<StatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId),
     message: t({ key: 'budgets.budgetNotFound' }),
@@ -61,8 +73,10 @@ const getManualBudgetStats = async ({ budgetId }: { budgetId: string }): Promise
   >[] = await Transactions.findWithFilters({
     excludeTransfer: true,
     budgetIds: [budgetId],
-    from: 0,
-    limit: Infinity,
+    completeness: 'all',
+    planned: { visibleTo: callerUserId },
+    access: 'pre-scoped',
+    balanceAdjustments: 'include',
     attributes: ['id', 'time', 'amount', 'refAmount', 'transactionType', 'refundLinked'],
   });
 
@@ -79,9 +93,11 @@ const getManualBudgetStats = async ({ budgetId }: { budgetId: string }): Promise
 const getCategoryBudgetStats = async ({
   userId,
   budgetId,
+  isOwner,
 }: {
   userId: number;
   budgetId: string;
+  isOwner: boolean;
 }): Promise<StatsResponse> => {
   const budgetDetails = await findOrThrowNotFound({
     query: Budgets.findByPk(budgetId, {
@@ -101,16 +117,18 @@ const getCategoryBudgetStats = async ({
     endDate: budgetDetails.endDate,
   });
 
+  // Planned rows are owner-only: they count as spent for the owner, but a share
+  // recipient must never see them.
+  const planned: PlannedPolicy = isOwner ? 'include' : 'exclude';
+
   // Get transactions where primary category matches and have no splits
-  const primaryCategoryTransactions = await Transactions.default.findAll({
-    where: {
-      userId,
-      categoryId: { [Op.in]: categoryIds },
-      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-      ...dateFilter,
-    },
+  const { rows: primaryCategoryTransactions } = await statsTransactions({
+    access: { creator: userId },
+    planned,
+    refunds: 'ignore',
+    window: { from: budgetDetails.startDate ?? undefined, to: budgetDetails.endDate ?? undefined },
+    where: { categoryId: { [Op.in]: categoryIds } },
     include: [{ model: TransactionSplits, as: 'splits', required: false }],
-    raw: false,
   });
 
   // Get splits that match the categories
@@ -120,15 +138,17 @@ const getCategoryBudgetStats = async ({
       categoryId: { [Op.in]: categoryIds },
     },
     include: [
-      {
-        model: Transactions.default,
+      transactionsInclude({
+        planned,
+        required: true,
         as: 'transaction',
         where: {
           transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
           ...dateFilter,
         },
         attributes: ['id', 'time', 'transactionType', 'refundLinked'],
-      },
+        include: [{ model: Accounts, where: { excludeFromStats: false }, attributes: [] }],
+      }),
     ],
   });
 
@@ -291,7 +311,7 @@ export const getBudgetStats = withTransaction(
     // Share-aware auth: recipient sees the same numbers the owner would (per PRD
     // visibility decision). Downstream queries scope against the owner's userId so
     // a recipient's unrelated transactions don't filter the result.
-    const { ownerUserId } = await authorizeBudgetRead({ userId, budgetId });
+    const { ownerUserId, isOwner } = await authorizeBudgetRead({ userId, budgetId });
 
     const budgetDetails = await findOrThrowNotFound({
       query: Budgets.findByPk(budgetId, { attributes: ['type'] }),
@@ -299,9 +319,9 @@ export const getBudgetStats = withTransaction(
     });
 
     if (budgetDetails.type === BUDGET_TYPES.category) {
-      return getCategoryBudgetStats({ userId: ownerUserId, budgetId });
+      return getCategoryBudgetStats({ userId: ownerUserId, budgetId, isOwner });
     }
 
-    return getManualBudgetStats({ budgetId });
+    return getManualBudgetStats({ budgetId, callerUserId: userId });
   },
 );

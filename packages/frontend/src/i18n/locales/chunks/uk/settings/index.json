@@ -16,7 +16,7 @@
       "workspaceGroup": "Робочий простір",
       "appearance": "Зовнішній вигляд",
       "language": "Мова",
-      "statistics": "Статистика",
+      "general": "Статистика",
       "payees": "Отримувачі",
       "subscriptions": "Заплановані платежі"
     },

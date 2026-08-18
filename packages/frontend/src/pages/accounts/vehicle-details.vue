@@ -55,7 +55,7 @@
         <div class="relative grid gap-6 p-5 pt-20 @md/vehicle:p-8 @md/vehicle:pt-8 @md/vehicle:pr-[26rem]">
           <div class="grid gap-4">
             <div class="flex items-center gap-3">
-              <div class="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-xl">
+              <div class="bg-primary/10 text-primary-text flex size-9 items-center justify-center rounded-xl">
                 <CarIcon class="size-5" />
               </div>
               <div class="grid gap-0.5">

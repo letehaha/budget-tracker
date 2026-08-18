@@ -156,7 +156,7 @@ const handleSubmit = () => {
             :class="
               cn(
                 'flex size-8 shrink-0 items-center justify-center rounded-md border',
-                mode === option.value ? 'border-primary/40 text-primary' : 'border-input text-muted-foreground',
+                mode === option.value ? 'border-primary/40 text-primary-text' : 'border-input text-muted-foreground',
               )
             "
           >

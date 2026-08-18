@@ -18,6 +18,7 @@ export interface BalanceRelevantSnapshot {
   refCurrencyCode?: unknown;
   transferNature?: unknown;
   externalData?: unknown;
+  isPlanned?: unknown;
 }
 
 const PRIMITIVE_FIELDS = [
@@ -29,6 +30,7 @@ const PRIMITIVE_FIELDS = [
   'currencyCode',
   'refCurrencyCode',
   'transferNature',
+  'isPlanned',
 ] as const satisfies readonly (keyof BalanceRelevantSnapshot)[];
 
 const toTimeKey = (value: unknown): unknown => {

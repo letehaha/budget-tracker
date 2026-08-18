@@ -2,7 +2,7 @@ import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { Op } from 'sequelize';
 
@@ -50,14 +50,22 @@ async function restampRefInitialBalanceImpl({
     return 'skipped';
   }
 
-  const earliestTxTime = (await Transactions.min('time', {
+  // Account-scoped, never author-scoped: on a shared account a recipient authors rows
+  // under their own userId, and an author filter would pick a later boundary.
+  // Adjustment rows are ledger rows like any other, so they can be the boundary.
+  const earliestTx = await findOneTransaction({
+    planned: 'exclude',
+    access: 'unscoped-internal',
+    balanceAdjustments: 'include',
     where: {
       accountId,
       ...(excludeTransactionId ? { id: { [Op.ne]: excludeTransactionId } } : {}),
     },
-  })) as Date | null;
+    attributes: ['time'],
+    order: [['time', 'ASC']],
+  });
 
-  const boundaryDate = earliestTxTime ?? new Date();
+  const boundaryDate = earliestTx?.time ?? new Date();
 
   let refInitialBalance;
   try {

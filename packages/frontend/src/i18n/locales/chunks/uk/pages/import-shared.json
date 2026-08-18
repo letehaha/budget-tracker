@@ -45,8 +45,6 @@
     "duplicatesTable": {
       "columnHeaders": {
         "row": "Рядок",
-        "problem": "Проблема",
-        "data": "Дані",
         "match": "Збіг",
         "csvTransaction": "Транзакція CSV",
         "existingTransaction": "Існуюча транзакція",

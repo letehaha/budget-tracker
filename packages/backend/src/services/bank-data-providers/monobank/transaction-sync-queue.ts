@@ -13,19 +13,22 @@ import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import * as MerchantCategoryCodes from '@models/merchant-category-codes.model';
-import Transactions from '@models/transactions.model';
+import { findOneTransaction } from '@models/transactions-query';
 import * as UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
 import * as Users from '@models/users.model';
 import { redisClient } from '@root/redis-client';
 import { runPendingLinkAbsorb } from '@services/accounts/absorb-link-residual';
+import { runWithBalanceRevalueBatch } from '@services/balances/revalue-balance-history.service';
 import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
 import * as transactionsService from '@services/transactions';
+import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { Job, Queue, UnrecoverableError, Worker } from 'bullmq';
 import crypto from 'crypto';
 import IORedis from 'ioredis';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
-import { emitTransactionsSyncEvent } from '../utils/emit-transactions-sync-event';
+import { linkAndEmitSyncedTransactions } from '../utils/link-and-emit-synced-transactions';
+import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankAccountNotFoundError, MonobankApiClient, MonobankGeoBlockedError } from './api-client';
 
@@ -39,6 +42,8 @@ interface TransactionSyncJobData extends SentryTraceData {
   toTimestamp: number;
   batchIndex: number;
   totalBatches: number;
+  /** Only the incremental sync opts in; a historical period load must never consume a plan. */
+  matchPlanned?: boolean;
 }
 
 // Redis connection configuration for BullMQ
@@ -167,6 +172,11 @@ function buildJobProcessor(queueName: string) {
 
           // Process each transaction and collect created IDs
           const createdTransactionIds: string[] = [];
+          let mergedIntoPlannedCount = 0;
+
+          // One probe per batch instead of one per row: an account with no plans skips the
+          // matcher entirely.
+          const matchPlanned = job.data.matchPlanned === true && (await accountHasPlannedRows({ accountId }));
 
           // Sort transactions by date (ascending) so the last transaction for each day
           // This is important for Balances.handleTransactionChange() which uses the
@@ -174,9 +184,16 @@ function buildJobProcessor(queueName: string) {
           transactions.sort((a, b) => a.time - b.time);
 
           for (let i = 0; i < transactions.length; i++) {
-            const createdId = await createMonobankTransaction(transactions[i]!, accountId, userId);
-            if (createdId !== undefined) {
-              createdTransactionIds.push(createdId);
+            const result = await createMonobankTransaction({
+              data: transactions[i]!,
+              accountId,
+              userId,
+              matchPlanned,
+            });
+            if (result.mergedIntoPlanned) {
+              mergedIntoPlannedCount += 1;
+            } else if (result.createdId !== undefined) {
+              createdTransactionIds.push(result.createdId);
             }
 
             // Update progress periodically
@@ -191,8 +208,14 @@ function buildJobProcessor(queueName: string) {
             }
           }
 
-          // Emit event for this batch's transactions (AI categorization, etc.)
-          emitTransactionsSyncEvent({ userId, accountId, transactionIds: createdTransactionIds });
+          await linkAndEmitSyncedTransactions({ userId, accountId, transactionIds: createdTransactionIds });
+
+          if (mergedIntoPlannedCount > 0) {
+            logger.info(
+              `[WORKER] Batch ${batchIndex + 1}/${totalBatches}: ${mergedIntoPlannedCount} planned transaction(s) confirmed for account ${accountId}`,
+            );
+            await notifyPlannedConfirmations({ userId, accountId, mergedCount: mergedIntoPlannedCount });
+          }
 
           // Update account metadata and balance after processing all transactions in this batch.
           const account = await Accounts.findByPk(accountId);
@@ -218,9 +241,11 @@ function buildJobProcessor(queueName: string) {
             // Balances snapshot for today via a race-safe upsert — concurrent batches
             // serialize at the unique (accountId, date) index.
             if (transactions.length > 0) {
-              const newestTransactionInDb = await Transactions.findOne({
+              const newestTransactionInDb = await findOneTransaction({
+                planned: 'exclude',
+                access: { creator: userId },
+                balanceAdjustments: 'include',
                 where: {
-                  userId,
                   accountId,
                 },
                 // When two transactions share the same `time`, prefer the one
@@ -317,17 +342,22 @@ function createBundle(tokenHash: string): QueueBundle {
     }
   });
 
-  const worker = new Worker<TransactionSyncJobData>(queueName, buildJobProcessor(queueName), {
-    connection,
-    concurrency: 1, // Process one job at a time per worker (one token's rate-limit lane)
-    // Only enable rate limiter in production (not in tests)
-    ...(process.env.NODE_ENV !== 'test' && {
-      limiter: {
-        max: 1, // Max jobs per duration
-        duration: 60000, // 60 seconds - Monobank per-token rate limit
-      },
-    }),
-  });
+  const processJob = buildJobProcessor(queueName);
+  const worker = new Worker<TransactionSyncJobData>(
+    queueName,
+    (job) => runWithBalanceRevalueBatch(() => processJob(job)),
+    {
+      connection,
+      concurrency: 1, // Process one job at a time per worker (one token's rate-limit lane)
+      // Only enable rate limiter in production (not in tests)
+      ...(process.env.NODE_ENV !== 'test' && {
+        limiter: {
+          max: 1, // Max jobs per duration
+          duration: 60000, // 60 seconds - Monobank per-token rate limit
+        },
+      }),
+    },
+  );
 
   worker.on('completed', (job) => handleCompletedBatch(job));
 
@@ -449,25 +479,34 @@ async function recoverExistingQueues(): Promise<void> {
 
 /**
  * Create transaction from Monobank API response.
- * Returns the created transaction ID, or undefined if skipped (duplicate).
+ * Returns the created transaction ID, or undefined if skipped (duplicate) or merged into a
+ * planned row.
  */
-async function createMonobankTransaction(
-  data: ExternalMonobankTransactionResponse,
-  accountId: string,
-  userId: number,
-): Promise<string | undefined> {
+async function createMonobankTransaction({
+  data,
+  accountId,
+  userId,
+  matchPlanned,
+}: {
+  data: ExternalMonobankTransactionResponse;
+  accountId: string;
+  userId: number;
+  matchPlanned: boolean;
+}): Promise<{ createdId?: string; mergedIntoPlanned: boolean }> {
   // Check if transaction already exists (duplicate prevention)
-  const isTransactionExists = await Transactions.findOne({
+  const isTransactionExists = await findOneTransaction({
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
     where: {
       originalId: data.id,
       accountId,
-      userId,
     },
   });
 
   if (isTransactionExists) {
     logger.info(`Transaction ${data.id} already exists, skipping`);
-    return undefined;
+    return { mergedIntoPlanned: false };
   }
 
   // Get or create MCC code
@@ -518,7 +557,7 @@ async function createMonobankTransaction(
         categorizedAt: new Date().toISOString(),
       }
     : null;
-  const [createdTx] = await transactionsService.createTransaction({
+  const createResult = await transactionsService.createTransaction({
     originalId: data.id,
     note: data.description,
     amount: Money.fromCents(Math.abs(data.amount)),
@@ -541,10 +580,18 @@ async function createMonobankTransaction(
     transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     accountType: ACCOUNT_TYPES.monobank,
     rawMerchantName: counterName || null,
+    matchPlanned,
   });
 
+  const [createdTx] = createResult;
+
+  if (createResult.mergedIntoPlanned) {
+    logger.info(`Merged Monobank transaction ${data.id} into planned transaction ${createdTx.id}`);
+    return { mergedIntoPlanned: true };
+  }
+
   logger.info(`Created Monobank transaction: ${data.id}, amount: ${data.amount}`);
-  return createdTx.id;
+  return { createdId: createdTx.id, mergedIntoPlanned: false };
 }
 
 // 24h safety TTL: if the worker crashes between intermediate batches, the
@@ -668,8 +715,9 @@ export async function queueTransactionSync(params: {
   apiToken: string;
   from: Date;
   to: Date;
+  matchPlanned?: boolean;
 }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
-  const { userId, accountId, connectionId, externalAccountId, apiToken, from, to } = params;
+  const { userId, accountId, connectionId, externalAccountId, apiToken, from, to, matchPlanned = false } = params;
 
   const bundle = getOrCreateBundle(apiToken);
 
@@ -706,6 +754,7 @@ export async function queueTransactionSync(params: {
           toTimestamp: Math.floor(chunk.to.getTime() / 1000),
           batchIndex: index,
           totalBatches: chunks.length,
+          matchPlanned,
           ...traceData,
         },
         opts: {

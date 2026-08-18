@@ -21,6 +21,7 @@ const buildTx = (overrides: Partial<TestPayment> = {}): TestPayment => ({
   refCurrencyCode: 'UAH',
   time: '2025-01-12T10:00:00.000Z',
   note: 'wFirma',
+  isPlanned: false,
   ...overrides,
 });
 
@@ -477,6 +478,133 @@ describe('buildLinkedPaymentsSummary', () => {
     });
 
     expect(summary.drift).toMatchObject({ percent: 25, direction: 'up' });
+  });
+
+  describe('planned rows', () => {
+    it('lists a planned row but keeps it out of the totals, average and last payment', () => {
+      const summary = buildSummary({
+        transactions: [
+          buildTx({ id: 'a', amount: 700, refAmount: 700, time: '2026-01-12T10:00:00.000Z' }),
+          buildTx({ id: 'b', amount: 800, refAmount: 800, time: '2026-02-12T10:00:00.000Z' }),
+          buildTx({ id: 'planned', amount: 900, refAmount: 900, time: '2026-03-12T10:00:00.000Z', isPlanned: true }),
+        ],
+      });
+
+      expect(summary.payments.map((p) => p.id)).toEqual(['planned', 'b', 'a']);
+      expect(summary.stats.refTotal).toBe(1500);
+      expect(summary.stats.refAverage).toBe(750);
+      expect(summary.stats.totalsByCurrency).toEqual([{ currencyCode: 'UAH', total: 1500 }]);
+      expect(summary.stats.lastPaymentTime).toEqual(new Date('2026-02-12T10:00:00.000Z'));
+    });
+
+    it('keeps a planned row in its year group while the year total counts settled payments only', () => {
+      const summary = buildSummary({
+        transactions: [
+          buildTx({ id: 'a', amount: 700, refAmount: 700, time: '2026-01-12T10:00:00.000Z' }),
+          buildTx({ id: 'planned', amount: 900, refAmount: 900, time: '2026-03-12T10:00:00.000Z', isPlanned: true }),
+        ],
+      });
+
+      expect(summary.yearGroups[0]!.payments.map((p) => p.id)).toEqual(['planned', 'a']);
+      expect(summary.yearGroups[0]!.refTotal).toBe(700);
+      expect(summary.yearGroups[0]!.totalsByCurrency).toEqual([{ currencyCode: 'UAH', total: 700 }]);
+    });
+
+    it('is not marked converted when only the planned row is booked in another currency', () => {
+      const summary = buildSummary({
+        transactions: [
+          buildTx({ id: 'a', amount: 700, refAmount: 700, time: '2026-01-12T10:00:00.000Z' }),
+          buildTx({
+            id: 'planned',
+            amount: 66.55,
+            currencyCode: 'PLN',
+            refAmount: 715.3,
+            time: '2026-02-12T10:00:00.000Z',
+            isPlanned: true,
+          }),
+        ],
+      });
+
+      expect(summary.stats.isConverted).toBe(false);
+      expect(summary.yearGroups[0]!.isConverted).toBe(false);
+      expect(summary.stats.nativeAverage).toEqual({ amount: 700, currencyCode: 'UAH' });
+    });
+
+    it('charts settled payments only, and a planned row cannot reach the chart threshold', () => {
+      const settledRun = [
+        buildTx({ id: 'p1', refAmount: 400, time: '2026-01-12T10:00:00.000Z' }),
+        buildTx({ id: 'p2', refAmount: 600, time: '2026-02-12T10:00:00.000Z' }),
+        buildTx({ id: 'p3', refAmount: 800, time: '2026-03-12T10:00:00.000Z' }),
+      ];
+      const planned = buildTx({ id: 'planned', refAmount: 5000, time: '2026-05-12T10:00:00.000Z', isPlanned: true });
+
+      expect(buildSummary({ transactions: [...settledRun, planned] }).chart).toBeNull();
+
+      const withFourth = buildSummary({
+        transactions: [
+          ...settledRun,
+          buildTx({ id: 'p4', refAmount: 1200, time: '2026-04-12T10:00:00.000Z' }),
+          planned,
+        ],
+      });
+
+      const bars = paymentBars({ chart: withFourth.chart });
+      expect(bars.map((bar) => bar.id)).toEqual(['p1', 'p2', 'p3', 'p4']);
+      expect(bars.map((bar) => bar.heightPct)).toEqual([30, 47.5, 65, 100]);
+      expect(bars[3]!.isLatest).toBe(true);
+      expect(gaps({ chart: withFourth.chart })).toEqual([]);
+    });
+
+    it('measures drift between settled payments only', () => {
+      const summary = buildSummary({
+        transactions: [
+          buildTx({ id: 'a', refAmount: 1000, time: '2025-01-12T10:00:00.000Z' }),
+          buildTx({ id: 'b', refAmount: 1100, time: '2025-02-12T10:00:00.000Z' }),
+          buildTx({ id: 'c', refAmount: 1250, time: '2025-03-12T10:00:00.000Z' }),
+          buildTx({ id: 'planned', refAmount: 5000, time: '2025-04-12T10:00:00.000Z', isPlanned: true }),
+        ],
+      });
+
+      expect(summary.drift).toEqual({
+        percent: 25,
+        direction: 'up',
+        firstPaymentTime: new Date('2025-01-12T10:00:00.000Z'),
+      });
+    });
+
+    it('reports no drift when a planned row is the only thing above the drift threshold', () => {
+      const summary = buildSummary({
+        transactions: [
+          buildTx({ id: 'a', refAmount: 1000, time: '2025-01-12T10:00:00.000Z' }),
+          buildTx({ id: 'b', refAmount: 1250, time: '2025-02-12T10:00:00.000Z' }),
+          buildTx({ id: 'planned', refAmount: 1500, time: '2025-03-12T10:00:00.000Z', isPlanned: true }),
+        ],
+      });
+
+      expect(summary.drift).toBeNull();
+    });
+
+    it('reports empty aggregates when every linked row is planned', () => {
+      const summary = buildSummary({
+        transactions: [
+          buildTx({ id: 'planned-1', amount: 700, refAmount: 700, time: '2026-01-12T10:00:00.000Z', isPlanned: true }),
+          buildTx({ id: 'planned-2', amount: 800, refAmount: 800, time: '2026-02-12T10:00:00.000Z', isPlanned: true }),
+        ],
+      });
+
+      expect(summary.payments.map((p) => p.id)).toEqual(['planned-2', 'planned-1']);
+      expect(summary.yearGroups[0]!.payments).toHaveLength(2);
+      expect(summary.yearGroups[0]!.refTotal).toBe(0);
+      expect(summary.stats).toEqual({
+        refTotal: 0,
+        refCurrencyCode: null,
+        isConverted: false,
+        totalsByCurrency: [],
+        refAverage: null,
+        nativeAverage: null,
+        lastPaymentTime: null,
+      });
+    });
   });
 
   it('returns empty aggregates when nothing is linked', () => {

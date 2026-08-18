@@ -1,6 +1,7 @@
 import { API_RESPONSE_STATUS } from '@bt/shared/types';
 import { CustomRequest, CustomResponse } from '@common/types';
 import { errorHandler } from '@controllers/helpers';
+import { runWithBalanceRevalueBatch } from '@services/balances/revalue-balance-history.service';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 
@@ -31,14 +32,17 @@ export function createController<T extends z.ZodType>(schema: T, handler: Handle
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const validated = req.validated as any;
-        const result = await handler({
-          req: _req,
-          res: res,
-          user: req.user,
-          params: validated.params || {},
-          query: validated.query || {},
-          body: validated.body || {},
-        });
+        // One revalue scope per request, so the rebuilds finish before `res` is written.
+        const result = await runWithBalanceRevalueBatch(() =>
+          handler({
+            req: _req,
+            res: res,
+            user: req.user,
+            params: validated.params || {},
+            query: validated.query || {},
+            body: validated.body || {},
+          }),
+        );
 
         const statusCode = result?.statusCode || 200;
 

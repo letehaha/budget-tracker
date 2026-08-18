@@ -40,6 +40,8 @@ const props = withDefaults(
     enableBulkEdit?: boolean;
     /** When true, content filters are active — groups dissolve and individual transactions show */
     contentFiltersActive?: boolean;
+    /** For scoped lists (e.g. a single payee) where a group row would misrepresent the set and hide per-row actions */
+    disableGrouping?: boolean;
     selectionScopeKey?: string;
   }>(),
   {
@@ -50,6 +52,7 @@ const props = withDefaults(
     scrollAreaId: SCROLL_AREA_IDS.dashboard,
     enableBulkEdit: false,
     contentFiltersActive: false,
+    disableGrouping: false,
   },
 );
 const emits = defineEmits(['fetch-next-page']);
@@ -63,6 +66,7 @@ const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 const { displayTransactions } = useTransactionsDisplay({
   transactions: () => props.transactions,
   contentFiltersActive: () => props.contentFiltersActive,
+  disableGrouping: () => props.disableGrouping,
   maxDisplay: () => props.maxDisplay,
 });
 

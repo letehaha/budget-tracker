@@ -24,8 +24,6 @@
       "loadError": "Не вдалося завантажити дані грошового потоку",
       "noData": "Транзакції не знайдено",
       "noDataHint": "Спробуйте вибрати інший період або перевірте, чи є у вас транзакції",
-      "excludeCategories": "Застосувати виключення категорій",
-      "excludeCategoriesHint": "Використовує виключення з Налаштування → Статистика",
       "showTrendLine": "Показати лінію тренду",
       "showTrendLineHint": "Трендове середнє значення чистого грошового потоку",
       "trendLine": "Лінія тренду",
@@ -47,10 +45,6 @@
         "thisYear": "Цього року",
         "previousYear": "Минулого року",
         "allTime": "Весь час"
-      },
-      "periodSelector": {
-        "quickSelect": "Швидкий вибір",
-        "year": "Рік {year}"
       }
     },
     "trends": {
@@ -73,9 +67,6 @@
       "monthlyComparison": {
         "title": "Порівняння по місяцях",
         "allCategories": "Усі категорії",
-        "categorySelected": "{count} категорія",
-        "categoriesSelected": "{count} категорій",
-        "searchCategories": "Пошук категорій...",
         "average": "Середнє",
         "total": "Усього",
         "vsLastMonth": "проти попереднього місяця",
@@ -95,10 +86,8 @@
       "monthlyContribution": "Щомісячний внесок",
       "useAvgNetIncome": "Використати сер. чистий дохід →",
       "timeHorizon": "Горизонт (роки)",
-      "years": "Роки",
       "annualReturn": "Річна дохідність (%)",
       "annualInflation": "Річна інфляція (%)",
-      "perMonth": "на місяць",
       "totalInvested": "Всього інвестовано",
       "nominalFinalValue": "Номінальна кінцева вартість",
       "growth": "зростання",
@@ -109,13 +98,6 @@
       "ofMoneyInvested": "від інвестованих коштів",
       "customIndicator": "Довільний",
       "customReturnRate": "Введіть ставку (%)",
-      "customInflationRate": "Введіть ставку (%)",
-      "inflationPresets": {
-        "low": "Низька — Цільові показники центробанків (Fed, ECB)",
-        "moderate": "Помірна — Довгострокова середня US/EU",
-        "elevated": "Підвищена — Рівні після 2020, ринки що розвиваються",
-        "high": "Висока — Економіки з високою інфляцією"
-      },
       "inflationAdjustedSuffix": "(з урахуванням інфляції)",
       "yearN": "Рік {n}",
       "disclaimer": "На основі постійної дохідності {rate}%/рік. Історична середня S&P 500 ~10%/рік. Без урахування податків та комісій.",
@@ -162,7 +144,6 @@
       "income": "Дохід"
     },
     "display": {
-      "trigger": "Відображення",
       "title": "Параметри відображення"
     },
     "toggles": {
@@ -171,9 +152,7 @@
     },
     "filters": {
       "period": "Період",
-      "categories": "Категорії",
       "allCategories": "Усі",
-      "payees": "Отримувачі",
       "accounts": "Рахунки",
       "reset": "Скинути",
       "resetTooltip": "Скинути на замовчення"
@@ -248,6 +227,13 @@
       "allocationContext": "{share}% вашого чистого майна припадає на інвестиції (було {reference}% у {date})",
       "allocationContextNoReference": "{share}% вашого чистого майна припадає на інвестиції"
     },
+    "breakdownChart": {
+      "title": "Розподіл за періодами",
+      "subtitle": "Скільки ви заощадили та скільки дав ринок у кожному періоді.",
+      "periodTotal": "Приріст за цей період",
+      "others": "Інше",
+      "grownTotal": "Загальне зростання"
+    },
     "degraded": {
       "title": "Деякі значення є приблизними",
       "unpricedSecurities": "Немає актуальних даних про ціну для {securities}, тому їхнє зростання оцінюється на основі вартості придбання.",
@@ -304,7 +290,6 @@
       "averagePerPeriod": "Середнє за період"
     },
     "chart": {
-      "total": "Всього",
       "vsPrevious": "проти попереднього періоду"
     },
     "states": {
@@ -353,7 +338,6 @@
     "chart": {
       "assets": "Активи",
       "liabilities": "Зобов'язання",
-      "liabilitiesTotal": "Всього зобов'язань",
       "netWorth": "Чисте майно",
       "averageLiabilities": "Сер. зобов'язання",
       "liabilitiesZoomed": "Масштаб зобов'язань збільшено"

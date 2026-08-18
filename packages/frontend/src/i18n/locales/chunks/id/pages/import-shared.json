@@ -45,8 +45,6 @@
     "duplicatesTable": {
       "columnHeaders": {
         "row": "Baris",
-        "problem": "Masalah",
-        "data": "Data",
         "match": "Cocok",
         "csvTransaction": "Transaksi CSV",
         "existingTransaction": "Transaksi yang Ada",

@@ -5,18 +5,11 @@
         "loading": "Memuat...",
         "selectCurrency": "Pilih mata uang",
         "addButton": "Tambah",
-        "howItWorks": "Bagaimana cara kerjanya?",
-        "tooltip": "Dengan menambahkan mata uang kustom, Anda dapat membuat dan mengelola akun serta transaksi dalam mata uang tersebut. Anda juga dapat menyesuaikan dan memperbarui nilai tukarnya terhadap mata uang dasar Anda. Akun yang ditautkan akan secara otomatis membuat mata uang yang diperlukan.",
         "errors": {
           "addFailed": "Kesalahan tak terduga. Mata uang tidak ditambahkan."
         },
         "sectionLabel": "Tambah mata uang",
         "successfullyAdded": "Mata uang ditambahkan"
-      },
-      "list": {
-        "editCurrency": "Edit mata uang",
-        "baseCurrencyBadge": "Mata uang dasar",
-        "baseCurrencyTooltip": "Mata uang dasar Anda. Semua informasi di dashboard ditampilkan dalam mata uang ini"
       },
       "exchangeRate": {
         "disableLiveUpdate": "Nonaktifkan pembaruan langsung untuk dapat mengatur nilai tukar kustom.",
@@ -43,7 +36,6 @@
         "buttonShort": "Hapus"
       },
       "setBase": {
-        "label": "Jadikan mata uang dasar",
         "button": "Jadikan mata uang dasar",
         "processing": "Memproses...",
         "tooltip": "Tandai sebagai mata uang dasar. Semua statistik dan informasi dashboard akan ditampilkan dalam mata uang ini.\n\nTransaksi akan dihitung ulang menggunakan nilai tukar pada tanggal transaksi dicatat.",

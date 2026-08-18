@@ -40,7 +40,7 @@
             v-show="tooltip.visible"
             ref="tooltipRef"
             :class="[
-              'bg-card-tooltip text-card-tooltip-foreground absolute rounded-lg border px-3 py-2 text-sm shadow-lg',
+              'absolute',
               !isTouchDevice || tooltip.isAverage ? 'pointer-events-none z-10' : 'pointer-events-auto z-50',
             ]"
             :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
@@ -48,58 +48,55 @@
             @mouseleave="handleTooltipMouseLeave"
             @touchstart.stop="isTooltipInteracting = true"
           >
-            <!-- Average line tooltip -->
-            <template v-if="tooltip.isAverage">
-              <div class="flex items-center gap-2">
-                <span
-                  class="inline-block h-0.5 w-4"
-                  :style="{ background: AVERAGE_LINE_COLOR, borderStyle: 'dashed' }"
-                ></span>
-                <span>{{ t('analytics.trends.monthlyComparison.average') }}:</span>
-                <span class="font-medium">{{ formatBaseCurrency(tooltip.value) }}</span>
-              </div>
-            </template>
-            <!-- Bar tooltips -->
-            <template v-else>
-              <div class="mb-1 font-medium">{{ tooltip.period }}</div>
-              <!-- Category-specific tooltip with total -->
-              <template v-if="tooltip.categoryName">
-                <div class="flex items-center gap-2">
-                  <span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: tooltip.categoryColor }"></span>
-                  <span>{{ tooltip.categoryName }}:</span>
-                  <span class="font-medium">{{ formatBaseCurrency(tooltip.value) }}</span>
-                </div>
-                <!-- Show total for the month -->
-                <div v-if="tooltip.totalValue !== undefined" class="text-muted-foreground mt-1 flex items-center gap-2">
-                  <span>{{ t('analytics.trends.monthlyComparison.total') }}:</span>
-                  <span class="font-medium">{{ formatBaseCurrency(tooltip.totalValue) }}</span>
-                </div>
+            <ChartTooltip>
+              <!-- Average line tooltip -->
+              <template v-if="tooltip.isAverage">
+                <ChartTooltipRow
+                  :color="AVERAGE_LINE_COLOR"
+                  :label="t('analytics.trends.monthlyComparison.average')"
+                  :value="formatBaseCurrency(tooltip.value)"
+                />
               </template>
-              <!-- Total tooltip (non-stacked bars) -->
+              <!-- Bar tooltips -->
               <template v-else>
-                <div class="flex items-center gap-2">
-                  <span>{{ metricLabel }}:</span>
-                  <span class="font-medium">{{ formatBaseCurrency(tooltip.value) }}</span>
-                </div>
+                <ChartTooltipHeader>{{ tooltip.period }}</ChartTooltipHeader>
+                <!-- Category-specific tooltip with total -->
+                <template v-if="tooltip.categoryName">
+                  <ChartTooltipRow
+                    :color="tooltip.categoryColor"
+                    :label="tooltip.categoryName"
+                    :value="formatBaseCurrency(tooltip.value)"
+                  />
+                  <ChartTooltipRow
+                    v-if="tooltip.totalValue !== undefined"
+                    :label="t('analytics.trends.monthlyComparison.total')"
+                    :value="formatBaseCurrency(tooltip.totalValue)"
+                  />
+                </template>
+                <!-- Total tooltip (non-stacked bars) -->
+                <ChartTooltipRow v-else :label="metricLabel" :value="formatBaseCurrency(tooltip.value)" />
+
+                <template v-if="tooltip.momChange !== undefined">
+                  <ChartTooltipDivider />
+                  <ChartTooltipRow
+                    :label="t('analytics.trends.monthlyComparison.vsLastMonth')"
+                    :value="`${tooltip.momChange > 0 ? '+' : ''}${tooltip.momChange}%`"
+                    :value-class="getChangeColorClass(tooltip.momChange)"
+                  />
+                </template>
+                <!-- View transactions link (shown on touch devices) -->
+                <button
+                  v-if="isTouchDevice && tooltip.periodStart && tooltip.periodEnd"
+                  type="button"
+                  class="text-primary-text mt-2 block w-full text-left text-sm font-medium underline"
+                  @touchstart.stop
+                  @touchend.stop="handleViewTransactionsClick"
+                  @click.stop.prevent="handleViewTransactionsClick"
+                >
+                  {{ t('analytics.trends.monthlyComparison.viewTransactions') }} →
+                </button>
               </template>
-              <div v-if="tooltip.momChange !== undefined" class="border-border mt-1 border-t pt-1">
-                <span class="mr-2">{{ t('analytics.trends.monthlyComparison.vsLastMonth') }}:</span>
-                <span :class="['font-medium', getChangeColorClass(tooltip.momChange)]">
-                  {{ tooltip.momChange > 0 ? '+' : '' }}{{ tooltip.momChange }}%
-                </span>
-              </div>
-              <!-- View transactions link (shown on touch devices) -->
-              <button
-                v-if="isTouchDevice && tooltip.periodStart && tooltip.periodEnd"
-                type="button"
-                class="text-primary mt-2 block w-full text-left text-sm font-medium underline"
-                @touchstart.stop
-                @touchend.stop="handleViewTransactionsClick"
-                @click.stop.prevent="handleViewTransactionsClick"
-              >
-                {{ t('analytics.trends.monthlyComparison.viewTransactions') }} →
-              </button>
-            </template>
+            </ChartTooltip>
           </div>
         </div>
 
@@ -135,6 +132,12 @@
 import { getCashFlow } from '@/api';
 import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { currentTheme } from '@/common/utils/color-theme';
+import {
+  ChartTooltip,
+  ChartTooltipDivider,
+  ChartTooltipHeader,
+  ChartTooltipRow,
+} from '@/components/common/charts/chart-tooltip';
 import ComboboxCategories from '@/components/common/combobox-categories.vue';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
@@ -408,7 +411,7 @@ const singleBarColor = computed(() => {
 
 // Get change color class
 const getChangeColorClass = (change: number): string => {
-  if (change === 0) return 'text-muted-foreground';
+  if (change === 0) return 'text-card-tooltip-muted';
 
   // For expenses, decrease is good (green), increase is bad (red)
   // For income/savings, increase is good (green), decrease is bad (red)

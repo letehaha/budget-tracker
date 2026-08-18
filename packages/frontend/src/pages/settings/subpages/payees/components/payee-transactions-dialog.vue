@@ -1,5 +1,5 @@
 <template>
-  <ResponsiveDialog v-model:open="isOpen" :dialog-content-class="cn('bg-card max-h-[90dvh] w-full max-w-3xl p-6')">
+  <ResponsiveDialog v-model:open="isOpen" :dialog-content-class="cn('max-h-[90dvh] w-full max-w-3xl p-6')">
     <template #title>
       <span class="text-lg font-semibold">{{ $t('payees.transactionsDialog.title', { name: payeeName ?? '' }) }}</span>
     </template>
@@ -13,7 +13,7 @@
     <div v-else-if="transactions.length === 0" class="text-muted-foreground py-8 text-center text-sm">
       {{ $t('payees.transactionsDialog.empty') }}
     </div>
-    <TransactionsList v-else :transactions="transactions" :paginate="false" raw-list>
+    <TransactionsList v-else :transactions="transactions" :paginate="false" raw-list disable-grouping>
       <template #row-trailing="{ tx }">
         <DesktopOnlyTooltip :content="$t('payees.transactionsDialog.unlink')">
           <Button

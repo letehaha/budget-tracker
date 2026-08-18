@@ -4,24 +4,11 @@
       "budgetBakersWalletImport": {
         "pageTitle": "Import from Wallet (BudgetBakers)",
         "pageDescription": "Import your transactions exported from the Wallet app by BudgetBakers.",
-        "steps": {
-          "uploadTitle": "Upload file",
-          "uploadDescription": "Select your Wallet CSV export file.",
-          "previewTitle": "Preview & map accounts",
-          "previewDescription": "Review detected data and configure account mappings.",
-          "duplicatesTitle": "Review duplicates",
-          "duplicatesDescription": "Resolve potential duplicate transactions.",
-          "executeTitle": "Import",
-          "executeDescription": "Importing your transactions.",
-          "doneTitle": "Done",
-          "doneDescription": "Import complete."
-        },
         "fileUpload": {
           "stepTitle": "Upload your Wallet CSV file",
           "description": "Upload one or more Wallet CSV export files to import transactions. All files must have the same columns.",
           "maxSize": "Maximum file size: 10 MB",
           "parsing": "Parsing…",
-          "continueToPreview": "Continue to preview",
           "errors": {
             "invalidFormatNamed": "\"{name}\" is not a CSV file.",
             "parseFailed": "Failed to parse file. Please check the format and try again.",
@@ -39,20 +26,10 @@
           "continue": "Continue"
         },
         "preview": {
-          "dateRange": "Transactions from {from} to {to}",
           "accountsHelper": "Configure how each detected account will be handled during import.",
-          "emptyList": "Nothing to display.",
           "accounts": "Accounts",
-          "categories": "Categories",
-          "tags": "Tags",
           "transactions": "Transactions",
-          "transfers": "Transfers",
-          "outOfWalletBadge": "Out-of-wallet",
-          "warningsTitle": "Warnings",
-          "rowPrefix": "Row {rowIndex}: ",
-          "startOver": "Start over",
-          "detecting": "Detecting duplicates…",
-          "continueToImport": "Continue"
+          "rowPrefix": "Row {rowIndex}: "
         },
         "accountRow": {
           "transactionsCount": "{count} transactions | {count} transaction | {count} transactions",
@@ -66,15 +43,6 @@
           "linkTargetLabel": "Existing account",
           "linkTargetPlaceholder": "Select account",
           "keepBalanceNote": "The existing account's current balance will be preserved. History will be back-filled."
-        },
-        "duplicates": {
-          "title": "{count} potential duplicates detected | {count} potential duplicate detected | {count} potential duplicates detected",
-          "hint": "These imported rows closely match existing transactions. Unchecked rows will be skipped.",
-          "willBeImported": "will be imported",
-          "duplicatesWillBeSkipped": "duplicate(s) will be skipped",
-          "back": "Back",
-          "importing": "Importing…",
-          "continueButton": "Import"
         },
         "execute": {
           "starting": "Starting import…",
@@ -100,6 +68,7 @@
           "transactionsImported": "Transactions imported",
           "transfersImported": "Transfers imported",
           "outOfWalletImported": "Out-of-wallet imported",
+          "mergedIntoPlanned": "Merged into planned",
           "duplicatesSkipped": "Duplicates skipped",
           "errorsTitle": "{count} row(s) failed | {count} row failed | {count} rows failed",
           "errorsOverflow": "+{count} more",

@@ -6,14 +6,7 @@
       "reset": "Reset",
       "apply": "Apply",
       "dateRange": {
-        "tabs": {
-          "range": "Range",
-          "single": "Single"
-        },
         "placeholder": "Date or range",
-        "fromDate": "From date",
-        "toDate": "To date",
-        "clear": "Clear",
         "presets": {
           "thisMonth": "This month",
           "last3Months": "Last 3 months",
@@ -23,7 +16,6 @@
       },
       "transactionType": {
         "label": "Transaction type:",
-        "both": "Both",
         "income": "Income",
         "expense": "Expense",
         "allTypes": "All types"
@@ -42,6 +34,9 @@
       "transferFilter": {
         "label": "Transfers"
       },
+      "plannedFilter": {
+        "label": "Planned"
+      },
       "filterOperation": {
         "all": "All",
         "exclude": "Exclude",
@@ -59,10 +54,8 @@
         "selected": "selected",
         "searchPlaceholder": "Search tags..."
       },
-      "payeeChip": "Payee",
       "payees": {
         "label": "Payees",
-        "searchPlaceholder": "Search payees",
         "selectedOne": "1 Payee selected",
         "selectedMany": "{n} Payees selected"
       },
@@ -136,7 +129,6 @@
         "searchPlaceholder": "Search groups...",
         "noGroupsMessage": "No groups yet. Create one first.",
         "noSearchResultsMessage": "No groups match your search.",
-        "loadingText": "Loading groups...",
         "addingText": "Adding...",
         "buttonLabel": "Add to Group",
         "cancelButton": "Cancel",
@@ -160,37 +152,6 @@
         "emptyStateHint": "Select transactions on the Transactions page and click \"Create Group\" to get started.",
         "transactionCountLabel": "transactions"
       },
-      "groupDialog": {
-        "editTitle": "Edit Group",
-        "nameLabel": "Name",
-        "noteLabel": "Note (optional)",
-        "notePlaceholder": "Optional note...",
-        "loadingText": "Loading...",
-        "savingText": "Saving...",
-        "savingAction": "Save",
-        "cancelButton": "Cancel",
-        "deletingText": "Deleting...",
-        "editAction": "Edit",
-        "deleteAction": "Delete Group",
-        "transactionsLabel": "Transactions",
-        "deleteGroupTitle": "Delete group",
-        "deleteGroupDescription": "Are you sure you want to delete \"{groupName}\"? The transactions will not be deleted.",
-        "removeTransactionTitle": "Remove transaction from group",
-        "removeTransactionDescription": "This will leave fewer than 2 transactions in the group, so the group will be deleted. Continue?",
-        "removeTransactionDescriptionNormal": "Are you sure you want to remove this transaction from the group?",
-        "removeButtonText": "Remove",
-        "removeAndDeleteButtonText": "Remove & Delete Group",
-        "transactionCountSuffix": "transactions",
-        "summary": {
-          "transactions": "Transactions",
-          "net": "Net",
-          "moneyIn": "Money in",
-          "moneyOut": "Money out"
-        }
-      },
-      "transactionGroupRecord": {
-        "transactionCountLabel": "transactions"
-      },
       "errors": {
         "nameRequired": "Group name is required",
         "minTransactions": "Select at least {min} transactions",
@@ -199,10 +160,13 @@
         "addFailed": "Failed to add transactions to group"
       }
     },
-    "transfer": {
-      "hiddenAccount": "Hidden account"
+    "planned": {
+      "label": "Planned",
+      "confirmedLabel": "Confirmed",
+      "plannedTooltip": "Planned transaction",
+      "expiredTooltip": "Expected {days} days ago, no matching bank transaction",
+      "mergedTooltip": "Confirmed from planned entry on {date}"
     },
-    "addedByTooltip": "This transaction was attached to the budget by {handle}",
     "table": {
       "columns": {
         "date": "Date",
@@ -211,6 +175,7 @@
         "payee": "Payee",
         "amount": "Amount",
         "refAmount": "Base amount",
+        "originalAmount": "Original amount",
         "note": "Note",
         "tags": "Tags",
         "categorizationSource": "Categorized by",
@@ -261,7 +226,14 @@
       "overdueBadge": "Overdue",
       "scheduledBadge": "Scheduled",
       "payAction": "Mark paid",
-      "hideToggle": "Hide upcoming payments"
+      "hideToggle": "Hide upcoming payments",
+      "expectedBadge": "Expected",
+      "unconfirmedBadge": "Unconfirmed",
+      "morePlans": "+{count} more planned",
+      "morePlansAtLeast": "+{count}+ more planned",
+      "deletePlanTitle": "Delete planned transaction?",
+      "deletePlanDescription": "This action cannot be undone.",
+      "plansLoadFailed": "Couldn't load planned transactions"
     }
   }
 }

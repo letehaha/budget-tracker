@@ -166,7 +166,7 @@
         <!-- Add API key hint for model selection -->
         <p v-if="!featureStatus.usingUserKey" class="text-warning-text mt-2 text-xs">
           {{ $t('settings.ai.modelSelector.addKeyHint') }}
-          <router-link :to="{ name: ROUTES_NAMES.settingsAiKeys }" class="text-primary hover:underline">
+          <router-link :to="{ name: ROUTES_NAMES.settingsAiKeys }" class="text-primary-text hover:underline">
             {{ $t('settings.ai.modelSelector.addKeyHintLink') }}
           </router-link>
         </p>

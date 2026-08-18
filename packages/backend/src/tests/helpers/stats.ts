@@ -4,6 +4,7 @@ import {
   getEarliestTransactionDate as _getEarliestTransactionDate,
 } from '@root/services/stats';
 import * as helpers from '@tests/helpers';
+import { format } from 'date-fns';
 
 export async function getBalanceHistory<R extends boolean | undefined = undefined>({
   from,
@@ -30,6 +31,19 @@ export async function getBalanceHistory<R extends boolean | undefined = undefine
   return result;
 }
 
+const dateKey = (date: string | Date) => (typeof date === 'string' ? date.slice(0, 10) : format(date, 'yyyy-MM-dd'));
+
+/** What the chart reads on `date`: the latest row dated on or before it, in cents. */
+export const balanceCentsOn = ({ rows, date }: { rows: { date: string | Date; amount: unknown }[]; date: Date }) => {
+  const key = format(date, 'yyyy-MM-dd');
+  const latest = rows
+    .filter((row) => dateKey(row.date) <= key)
+    .toSorted((a, b) => dateKey(a.date).localeCompare(dateKey(b.date)))
+    .at(-1);
+
+  return latest ? Math.round(Number(latest.amount) * 100) : 0;
+};
+
 export const getSpendingsByCategories = async ({
   raw = false,
   from,
@@ -38,6 +52,7 @@ export const getSpendingsByCategories = async ({
   excludedCategoryIds,
   type,
   groupByType,
+  excludePlanned,
 }: {
   raw?: boolean;
   from?: string;
@@ -46,6 +61,7 @@ export const getSpendingsByCategories = async ({
   excludedCategoryIds?: string[];
   type?: TRANSACTION_TYPES;
   groupByType?: boolean;
+  excludePlanned?: boolean;
 } = {}) => {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
@@ -56,6 +72,7 @@ export const getSpendingsByCategories = async ({
   }
   if (type) params.append('type', type);
   if (groupByType) params.append('groupByType', 'true');
+  if (excludePlanned !== undefined) params.append('excludePlanned', String(excludePlanned));
 
   const result = await helpers.makeRequest({
     method: 'get',
@@ -69,11 +86,13 @@ export async function getExpensesAmountForPeriod<R extends boolean | undefined =
   from,
   to,
   excludedCategoryIds,
+  excludePlanned,
   raw,
 }: {
   from?: string;
   to?: string;
   excludedCategoryIds?: string[];
+  excludePlanned?: boolean;
   raw?: R;
 }) {
   const params = new URLSearchParams();
@@ -82,6 +101,7 @@ export async function getExpensesAmountForPeriod<R extends boolean | undefined =
   if (excludedCategoryIds && excludedCategoryIds.length > 0) {
     params.append('excludedCategoryIds', excludedCategoryIds.join(','));
   }
+  if (excludePlanned !== undefined) params.append('excludePlanned', String(excludePlanned));
 
   const result = await helpers.makeRequest<number, R>({
     method: 'get',
@@ -113,6 +133,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   accountId,
   categoryIds,
   excludedCategoryIds,
+  excludePlanned,
   raw,
 }: {
   from: string;
@@ -121,6 +142,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   accountId?: string;
   categoryIds?: string[];
   excludedCategoryIds?: string[];
+  excludePlanned?: boolean;
   raw?: R;
 }) {
   const params = new URLSearchParams();
@@ -132,6 +154,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   if (excludedCategoryIds && excludedCategoryIds.length > 0) {
     params.append('excludedCategoryIds', excludedCategoryIds.join(','));
   }
+  if (excludePlanned !== undefined) params.append('excludePlanned', String(excludePlanned));
 
   const result = await helpers.makeRequest<endpointsTypes.GetCashFlowResponse, R>({
     method: 'get',
@@ -257,6 +280,34 @@ export async function getPivotReport<R extends boolean | undefined = undefined>(
   const result = await helpers.makeRequest<endpointsTypes.GetPivotReportResponse, R>({
     method: 'get',
     url: `/stats/pivot?${params.toString()}`,
+    raw,
+  });
+
+  return result;
+}
+
+export async function getCumulativeData<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  metric,
+  accountId,
+  raw,
+}: {
+  from: string;
+  to: string;
+  metric: endpointsTypes.CumulativeMetric;
+  accountId?: string;
+  raw?: R;
+}) {
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', to);
+  params.append('metric', metric);
+  if (accountId) params.append('accountId', accountId);
+
+  const result = await helpers.makeRequest<endpointsTypes.GetCumulativeResponse, R>({
+    method: 'get',
+    url: `/stats/cumulative?${params.toString()}`,
     raw,
   });
 

@@ -14,6 +14,7 @@ import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { useCurrencyNotConnectedNotification } from '@/composable/use-currency-not-connected-notification';
 import { useDateLocale } from '@/composable/use-date-locale';
 import BrandLogo from '@/components/common/brand-logo.vue';
+import { buttonVariants } from '@/components/lib/ui/button';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { ROUTES_NAMES } from '@/routes/constants';
@@ -28,7 +29,7 @@ import {
 import { useQuery } from '@tanstack/vue-query';
 import { useNow } from '@vueuse/core';
 import { parseISO } from 'date-fns';
-import { CheckIcon, ExternalLinkIcon, RepeatIcon } from '@lucide/vue';
+import { ArrowUpRightIcon, CheckIcon, ExternalLinkIcon, RepeatIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
 import { computed, inject, ref } from 'vue';
@@ -183,6 +184,18 @@ function openSubscriptionsList() {
   <WidgetWrapper :is-fetching="isFetching">
     <template #title> {{ widgetTitle }} </template>
     <template v-if="isOnDashboard" #action>
+      <DesktopOnlyTooltip v-if="!isEmpty && !isInitialLoading" :content="$t('common.actions.viewAll')">
+        <span class="inline-flex">
+          <router-link
+            :class="buttonVariants({ variant: 'ghost', size: 'icon-sm', class: 'text-muted-foreground' })"
+            :to="{ name: ROUTES_NAMES.plannedSubscriptions }"
+            :aria-label="$t('common.actions.viewAll')"
+          >
+            <ArrowUpRightIcon class="size-4" />
+          </router-link>
+        </span>
+      </DesktopOnlyTooltip>
+
       <SubscriptionsOverviewSettingsPopover />
     </template>
 

@@ -24,8 +24,6 @@
       "loadError": "Failed to load cash flow data",
       "noData": "No transactions found",
       "noDataHint": "Try selecting a different period or check if you have any transactions",
-      "excludeCategories": "Apply category exclusions",
-      "excludeCategoriesHint": "Uses exclusions from Settings → Stats",
       "showTrendLine": "Show trend line",
       "showTrendLineHint": "Smoothed average of net cash flow",
       "trendLine": "Trend Line",
@@ -47,10 +45,6 @@
         "thisYear": "This year",
         "previousYear": "Previous year",
         "allTime": "All time"
-      },
-      "periodSelector": {
-        "quickSelect": "Quick Select",
-        "year": "Year {year}"
       }
     },
     "trends": {
@@ -73,9 +67,6 @@
       "monthlyComparison": {
         "title": "Monthly Comparison",
         "allCategories": "All Categories",
-        "categorySelected": "{count} category",
-        "categoriesSelected": "{count} categories",
-        "searchCategories": "Search categories...",
         "average": "Average",
         "total": "Total",
         "vsLastMonth": "vs previous month",
@@ -95,11 +86,9 @@
       "monthlyContribution": "Monthly contribution",
       "useAvgNetIncome": "Use avg net income →",
       "timeHorizon": "Time horizon (years)",
-      "years": "Years",
       "annualReturn": "Annual return (%)",
       "annualReturnPlaceholder": "Select preset",
       "annualInflation": "Annual inflation (%)",
-      "perMonth": "per month",
       "totalInvested": "Total invested",
       "nominalFinalValue": "Nominal final value",
       "growth": "growth",
@@ -110,13 +99,6 @@
       "ofMoneyInvested": "of money invested",
       "customIndicator": "Custom",
       "customReturnRate": "Enter rate (%)",
-      "customInflationRate": "Enter rate (%)",
-      "inflationPresets": {
-        "low": "Low — Central bank targets (Fed, ECB)",
-        "moderate": "Moderate — Long-term US/EU average",
-        "elevated": "Elevated — Post-2020 levels, emerging markets",
-        "high": "High — High-inflation economies"
-      },
       "inflationAdjustedSuffix": "(Inflation Adjusted)",
       "yearN": "Year {n}",
       "disclaimer": "Based on constant {rate}%/yr return. S&P 500 historical average is ~10%/yr. Does not account for taxes or fees.",
@@ -162,7 +144,6 @@
       "income": "Income"
     },
     "display": {
-      "trigger": "Display",
       "title": "Display options"
     },
     "toggles": {
@@ -171,9 +152,7 @@
     },
     "filters": {
       "period": "Period",
-      "categories": "Categories",
       "allCategories": "All",
-      "payees": "Payees",
       "accounts": "Accounts",
       "reset": "Reset",
       "resetTooltip": "Reset to defaults"
@@ -248,6 +227,13 @@
       "allocationContext": "{share}% of your net worth sits in investments (was {reference}% in {date})",
       "allocationContextNoReference": "{share}% of your net worth sits in investments"
     },
+    "breakdownChart": {
+      "title": "Per-period breakdown",
+      "subtitle": "How much you saved and how much the market returned in each period.",
+      "periodTotal": "Gained this period",
+      "others": "Others",
+      "grownTotal": "Grown total"
+    },
     "degraded": {
       "title": "Some values are estimated",
       "unpricedSecurities": "No recent price data for {securities}, so their growth is estimated from cost.",
@@ -304,7 +290,6 @@
       "averagePerPeriod": "Average per period"
     },
     "chart": {
-      "total": "Total",
       "vsPrevious": "vs previous"
     },
     "states": {
@@ -353,7 +338,6 @@
     "chart": {
       "assets": "Assets",
       "liabilities": "Liabilities",
-      "liabilitiesTotal": "Liabilities total",
       "netWorth": "Net worth",
       "averageLiabilities": "Avg. liabilities",
       "liabilitiesZoomed": "Liabilities scale zoomed"

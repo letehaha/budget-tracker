@@ -5,6 +5,7 @@ import {
   ACCOUNT_TYPES,
   AccountModel,
   CategoryModel,
+  CurrencyModel,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionModel,
@@ -91,6 +92,42 @@ export const getAvailableTransferDestinationTypes = (transactionType: TRANSACTIO
   return types;
 };
 
+// A planned row is user-entered data the bank hasn't confirmed yet, so amount and date
+// stay editable even on a provider-linked account.
+export const isTxEditableAsManual = ({
+  transaction,
+  isRecordExternal,
+}: {
+  transaction: TransactionModel | undefined | null;
+  isRecordExternal: boolean;
+}): boolean => !isRecordExternal || !!transaction?.isPlanned;
+
+// Transfers can't be planned, so a flag left over from a type switch must never reach
+// the payload.
+export const resolveFormIsPlanned = ({ form }: { form: UI_FORM_STRUCT }): boolean =>
+  form.type !== FORM_TYPES.transfer && !!form.isPlanned;
+
+type OriginalCurrencyPairResolution =
+  | { state: 'untouched' }
+  | { state: 'clear' }
+  | { state: 'pair'; originalAmount: number; originalCurrencyCode: string };
+
+/**
+ * What the form says the original-amount pair should become. A half-filled form resolves to
+ * `untouched`, never `clear`: a currency the store has not resolved yet must not wipe the
+ * stored amount.
+ */
+export const resolveOriginalCurrencyPair = ({ form }: { form: UI_FORM_STRUCT }): OriginalCurrencyPairResolution => {
+  const originalAmount = form.originalAmount ?? null;
+  const originalCurrencyCode = form.originalCurrency?.code ?? null;
+
+  if (originalAmount !== null && originalCurrencyCode !== null) {
+    return { state: 'pair', originalAmount, originalCurrencyCode };
+  }
+  if (originalAmount === null && originalCurrencyCode === null) return { state: 'clear' };
+  return { state: 'untouched' };
+};
+
 // The backend cascades a transfer delete across both legs, so an external-bank
 // partner (which can't be removed) would orphan the call — hide the button instead.
 export const canDeleteTransaction = ({
@@ -105,6 +142,9 @@ export const canDeleteTransaction = ({
   canMutate: boolean;
 }): boolean => {
   if (!transaction || !canMutate) return false;
+  // A planned row is never a transfer leg and stays `accountType: system` until it
+  // merges, so the backend deletes it whatever account it sits on.
+  if (transaction.isPlanned) return true;
   const primaryAccount = accounts[transaction.accountId];
   if (!primaryAccount || primaryAccount.type !== ACCOUNT_TYPES.system) return false;
   if (oppositeTransaction) {
@@ -136,12 +176,15 @@ export const prepopulateForm = ({
   categories,
   accounts,
   formattedCategories,
+  systemCurrencies,
 }: {
   transaction: TransactionModel | undefined;
   oppositeTransaction: TransactionModel | undefined;
   categories: Record<string, CategoryModel>;
   accounts: Record<string, AccountModel>;
   formattedCategories: FormattedCategory[];
+  /** Resolves `originalCurrencyCode` to the picker's option. Loads async, so it can be empty. */
+  systemCurrencies: CurrencyModel[];
 }) => {
   if (transaction) {
     // Build a flat map from formattedCategories for split conversion
@@ -173,6 +216,11 @@ export const prepopulateForm = ({
       // Existing tx has a categoryId already, so treat the picker as user-touched
       // to prevent later Payee selections from silently overwriting it.
       categoryUserTouched: transaction.categoryId !== null && transaction.categoryId !== undefined,
+      isPlanned: Boolean(transaction.isPlanned),
+      originalAmount: transaction.originalAmount ?? null,
+      originalCurrency: transaction.originalCurrencyCode
+        ? (systemCurrencies.find((item) => item.code === transaction.originalCurrencyCode) ?? null)
+        : null,
     } as UI_FORM_STRUCT;
 
     // Convert transaction splits to form splits

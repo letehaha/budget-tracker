@@ -306,9 +306,10 @@ export function serializeExpensesAmountForPeriod(amountCents: number): number {
 // ============================================================================
 
 /**
- * Serialize net worth drivers (from getNetWorthDrivers). Every amount is money,
- * so every amount is decimalized; the period bounds pass through as dates, and
- * `degraded` (securities and currency codes, no money) forwards untouched.
+ * Serialize net worth drivers (from getNetWorthDrivers). Every amount is money, so
+ * every amount is decimalized — each `byPortfolio.growth` included; the period bounds
+ * pass through as dates, the `portfolios` legend (ids and names, no money) and
+ * `degraded` (securities and currency codes, no money) forward untouched.
  */
 export function serializeNetWorthDrivers(
   result: NetWorthDriversResultCents,
@@ -327,12 +328,17 @@ export function serializeNetWorthDrivers(
         priceEffect: centsToApiDecimal(bucket.investments.priceEffect),
         dividends: centsToApiDecimal(bucket.investments.dividends),
         feesAndTaxes: centsToApiDecimal(bucket.investments.feesAndTaxes),
+        byPortfolio: bucket.investments.byPortfolio.map((slice) => ({
+          portfolioId: slice.portfolioId,
+          growth: centsToApiDecimal(slice.growth),
+        })),
       },
       composition: {
         holdingsValue: centsToApiDecimal(bucket.composition.holdingsValue),
         cashValue: centsToApiDecimal(bucket.composition.cashValue),
       },
     })),
+    portfolios: result.portfolios,
     // Kept off the response entirely when the service reports nothing degraded: the
     // contract lets a client decide on `degraded` alone whether to warn, and a
     // present-but-empty key would trip that check on a cleanly valued range.

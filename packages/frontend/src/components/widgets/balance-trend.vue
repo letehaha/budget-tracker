@@ -14,7 +14,7 @@
       </div>
     </template>
     <template v-if="widgetConfigRef" #action>
-      <BalanceTrendSettingsPopover />
+      <BalanceTrendSettingsPopover :is-projection-active="projection !== null" />
     </template>
     <template v-if="isInitialLoading">
       <LoadingState />
@@ -67,6 +67,22 @@
         </div>
       </div>
 
+      <!-- Projected balance from pending plans; the headline above stays real-money only. -->
+      <i18n-t
+        v-if="projection"
+        keypath="dashboard.widgets.balanceTrend.projection.summary"
+        :plural="projection.planCount"
+        tag="div"
+        data-testid="bt-projection-summary"
+        class="max-xs:px-2 text-muted-foreground -mt-2 mb-3 text-xs"
+      >
+        <template #amount>
+          <span class="text-foreground text-sm font-semibold">{{ formatBaseCurrency(projection.projectedValue) }}</span>
+        </template>
+        <template #count>{{ projection.planCount }}</template>
+        <template #date>{{ projectionThroughDate }}</template>
+      </i18n-t>
+
       <Transition name="chart-fade" mode="out-in">
         <div :key="chartKey" ref="containerRef" class="max-xs:px-2 relative min-h-44 w-full flex-1">
           <svg ref="svgRef" class="h-full w-full"></svg>
@@ -75,30 +91,41 @@
           <div
             v-show="tooltip.visible"
             ref="tooltipRef"
-            class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none fixed z-50 min-w-37.5 rounded-lg border px-3 py-2 text-sm shadow-lg"
+            class="pointer-events-none fixed z-50"
             :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
           >
-            <div class="mb-1 font-medium">{{ tooltip.date }}</div>
-            <div v-for="row in tooltipComponentRows" :key="row.key">
-              {{ row.label }} {{ formatTooltipMoney(row.value)
-              }}<span
-                v-if="shouldDisplayBalanceDelta({ delta: row.delta })"
-                class="ml-1"
-                :class="deltaColorClass(row.delta)"
-                >({{ formatBalanceDelta({ delta: row.delta, currency: tooltipCurrency }) }})</span
+            <ChartTooltip>
+              <ChartTooltipHeader>{{ tooltip.date }}</ChartTooltipHeader>
+
+              <ChartTooltipRow v-for="row in tooltipComponentRows" :key="row.key" :label="row.label">
+                <template #value>
+                  {{ formatTooltipMoney(row.value)
+                  }}<span
+                    v-if="shouldDisplayBalanceDelta({ delta: row.delta })"
+                    class="ml-1 text-xs font-medium"
+                    :class="deltaColorClass(row.delta)"
+                    >({{ formatBalanceDelta({ delta: row.delta, currency: tooltipCurrency }) }})</span
+                  >
+                </template>
+              </ChartTooltipRow>
+
+              <ChartTooltipDivider />
+
+              <ChartTooltipRow
+                total
+                :label="$t('dashboard.widgets.balanceTrend.tooltip.total')"
+                :value="formatTooltipMoney(tooltip.totalBalance)"
+              />
+
+              <div
+                v-if="tooltip.hasDelta"
+                class="mt-1 text-xs font-semibold tabular-nums"
+                :class="deltaColorClass(tooltip.deltaAbsolute)"
               >
-            </div>
-            <div class="font-medium">
-              {{ $t('dashboard.widgets.balanceTrend.tooltip.total') }} {{ formatTooltipMoney(tooltip.totalBalance) }}
-            </div>
-            <div
-              v-if="tooltip.hasDelta"
-              class="mt-1 border-t pt-1 text-xs font-medium"
-              :class="deltaColorClass(tooltip.deltaAbsolute)"
-            >
-              {{ formatBalanceDelta({ delta: tooltip.deltaAbsolute, currency: tooltipCurrency }) }}
-              ({{ formatBalanceDeltaPercent({ percent: tooltip.deltaPercent }) }})
-            </div>
+                {{ formatBalanceDelta({ delta: tooltip.deltaAbsolute, currency: tooltipCurrency }) }}
+                ({{ formatBalanceDeltaPercent({ percent: tooltip.deltaPercent }) }})
+              </div>
+            </ChartTooltip>
           </div>
 
           <!-- Spike transactions panel -->
@@ -131,6 +158,12 @@
 import { loadTransactions } from '@/api/transactions';
 import type { DashboardWidgetConfig } from '@/api/user-settings';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import {
+  ChartTooltip,
+  ChartTooltipDivider,
+  ChartTooltipHeader,
+  ChartTooltipRow,
+} from '@/components/common/charts/chart-tooltip';
 import SelectField from '@/components/fields/select-field.vue';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
@@ -147,7 +180,8 @@ import { currentTheme } from '@/common/utils/color-theme';
 import { calculatePercentageDifference, formatLargeNumber } from '@/js/helpers';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { loadCombinedBalanceTrendData } from '@/services';
-import { useCurrenciesStore } from '@/stores';
+import { useAccountsStore, useCurrenciesStore } from '@/stores';
+import { SORT_DIRECTIONS } from '@bt/shared/types/enums';
 import { useQuery } from '@tanstack/vue-query';
 import { useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
@@ -159,12 +193,17 @@ import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from '
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import { selectProjectedTotalAccounts, usePlannedDateLabel } from '@/composable/use-projected-balance';
+
 import { formatBalanceDelta, formatBalanceDeltaPercent, shouldDisplayBalanceDelta } from './balance-trend-delta';
+import { type BalanceProjection, buildBalanceProjection } from './balance-trend-projection';
 import BalanceTrendSettingsPopover from './components/balance-trend-settings-popover.vue';
+import { readIncludePlanned } from './use-include-planned-config';
 import EmptyState from './components/empty-state.vue';
 import LoadingState from './components/loading-state.vue';
 import SpikeTransactionsPanel from './components/spike-transactions-panel.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
+import { type NetWorthComponentBalances, type NetWorthIncludeSettings, composeNetWorth } from './net-worth-composition';
 
 // Calculate it manually so chart will always have first and last ticks (dates)
 function generateDateSteps({
@@ -210,6 +249,7 @@ const selectedBalanceType = ref<BalanceTypeOption>({
 });
 const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
+const { accounts } = storeToRefs(useAccountsStore());
 
 // --- Spike settings (read from persisted dashboard widget config) ---
 const widgetConfigRef = inject<Ref<DashboardWidgetConfig> | null>('dashboard-widget-config', null);
@@ -249,28 +289,15 @@ const includeLoansInTotal = computed<boolean>(() => {
   return (cfg?.includeLoansInTotal as boolean | undefined) ?? true;
 });
 
-type BalancePoint = {
-  accountsBalance: number;
-  portfoliosBalance: number;
-  venturesBalance: number;
-  vehiclesBalance: number;
-  loansBalance: number;
-  totalBalance: number;
-};
+const compositionSettings = computed<NetWorthIncludeSettings>(() => ({
+  includeVentures: includeVenturesInTotal.value,
+  includeVehicles: includeVehiclesInTotal.value,
+  includeLoans: includeLoansInTotal.value,
+}));
+const includePlanned = computed<boolean>(() => readIncludePlanned({ config: widgetConfigRef?.value?.config }));
 
-const getEffectiveTotal = (point: BalancePoint): number => {
-  // Fast path: nothing excluded → use the server-computed total verbatim.
-  if (includeVehiclesInTotal.value && includeVenturesInTotal.value && includeLoansInTotal.value) {
-    return point.totalBalance;
-  }
-  let total = point.accountsBalance + point.portfoliosBalance;
-  if (includeVenturesInTotal.value) total += point.venturesBalance;
-  if (includeVehiclesInTotal.value) total += point.vehiclesBalance;
-  // Loans are stored as negatives — excluding them raises net worth (ignoring debt);
-  // including them subtracts liabilities as usual.
-  if (includeLoansInTotal.value) total += point.loansBalance;
-  return total;
-};
+const getEffectiveTotal = (point: NetWorthComponentBalances): number =>
+  composeNetWorth({ point, settings: compositionSettings.value });
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
@@ -423,7 +450,7 @@ const formatTooltipMoney = (value: number) =>
 const deltaColorClass = (delta: number) => ({
   'text-success-text': delta > 0,
   'text-app-expense-color': delta < 0,
-  'text-muted-foreground': delta === 0,
+  'text-card-tooltip-muted': delta === 0,
 });
 
 // Component breakdown shown in the tooltip, gated the same way as the standalone
@@ -505,14 +532,6 @@ watch(hasLoanData, (val) => {
   }
 });
 
-// End date the chart x-axis should reach. Trimmed to today when fitToLatestData is on.
-const chartXAxisEnd = computed(() =>
-  fitToLatestData.value ? min([actualDataPeriod.value.to, new Date()]) : actualDataPeriod.value.to,
-);
-
-// Key for the chart component - changes when period changes to trigger CSS transition
-const chartKey = computed(() => `${actualDataPeriod.value.from.getTime()}-${chartXAxisEnd.value.getTime()}`);
-
 const periodLabel = computed(() => {
   const from = props.selectedPeriod.from;
   const to = props.selectedPeriod.to;
@@ -584,6 +603,79 @@ const chartData = computed(() => {
 });
 
 const { spikePoints } = useSpikeDetection({ chartData, options: spikeSettings });
+
+// Plans only ever sit on money accounts, so the projection continues the accounts line
+// and the total line; the other balance types have nothing pending to add.
+const isProjectionEligible = computed(
+  () => selectedBalanceType.value.value === 'total' || selectedBalanceType.value.value === 'accounts',
+);
+const isPeriodEndCurrentOrFuture = computed(
+  () => startOfDay(props.selectedPeriod.to).getTime() >= startOfDay(new Date()).getTime(),
+);
+
+// The widget previews where the period lands, not every plan, so it reads a bounded slice.
+// The endpoint orders by time DESC by default; ascending order is what makes the truncated
+// slice the nearest plans instead of the furthest-out ones.
+const PENDING_PLANS_LIMIT = 30;
+
+const { data: pendingPlans } = useQuery({
+  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetBalanceTrendPlanned, periodQueryKey, includePlanned],
+  queryFn: () =>
+    loadTransactions({
+      isPlanned: true,
+      offset: 0,
+      limit: PENDING_PLANS_LIMIT,
+      order: SORT_DIRECTIONS.asc,
+      to: endOfDay(props.selectedPeriod.to).toISOString(),
+    }),
+  staleTime: Infinity,
+  placeholderData: (prevData) => prevData,
+  enabled: computed(() => includePlanned.value && isPeriodEndCurrentOrFuture.value),
+});
+
+// The plans endpoint spans every account the user owns, archived included, while the chart's
+// lines are built from the projected-total scope — a plan outside it would move the dashed
+// line without ever having moved the solid one.
+const projectionAccountIds = computed(
+  () => new Set(selectProjectedTotalAccounts({ accounts: accounts.value ?? [] }).map((account) => account.id)),
+);
+
+const projection = computed<BalanceProjection | null>(() => {
+  if (!includePlanned.value || !isProjectionEligible.value) return null;
+  if (!pendingPlans.value || pendingPlans.value.length === 0) return null;
+
+  const lastChartPoint = chartData.value[chartData.value.length - 1];
+  if (!lastChartPoint) return null;
+
+  const scopedPlans = pendingPlans.value.filter((tx) => projectionAccountIds.value.has(tx.accountId));
+  if (scopedPlans.length === 0) return null;
+
+  return buildBalanceProjection({
+    lastRealPoint: { date: lastChartPoint.date, value: lastChartPoint.value },
+    plans: scopedPlans.map((tx) => ({
+      time: tx.time,
+      refAmount: tx.refAmount,
+      transactionType: tx.transactionType,
+      note: tx.note,
+    })),
+    periodEnd: startOfDay(actualDataPeriod.value.to).getTime(),
+    now: Date.now(),
+  });
+});
+
+const { formatPlannedDate } = usePlannedDateLabel();
+const projectionThroughDate = computed(() => formatPlannedDate({ time: projection.value?.latestPlanTime ?? null }));
+
+// End date the chart x-axis should reach. Trimmed to today when fitToLatestData is on —
+// unless a projection is drawn, whose dashed tail through the period end is itself the
+// latest data the axis has to fit.
+const chartXAxisEnd = computed(() => {
+  if (!fitToLatestData.value || projection.value) return actualDataPeriod.value.to;
+  return min([actualDataPeriod.value.to, new Date()]);
+});
+
+// Key for the chart component - changes when period changes to trigger CSS transition
+const chartKey = computed(() => `${actualDataPeriod.value.from.getTime()}-${chartXAxisEnd.value.getTime()}`);
 
 const isPortfolioMode = computed(() => selectedBalanceType.value.value === 'portfolios');
 
@@ -756,8 +848,9 @@ const renderChart = () => {
     .domain([xAxisTicks[0]!, xAxisTicks[xAxisTicks.length - 1]!])
     .range([0, innerWidth]);
 
-  // Y scale - limit to 5 ticks
-  const yValues = chartData.value.map((d) => d.value);
+  // Y scale - limit to 5 ticks. Projected points count as data: a projection landing
+  // above the real maximum must not exit the plot.
+  const yValues = [...chartData.value.map((d) => d.value), ...(projection.value?.points.map((p) => p.value) ?? [])];
   const yMin = d3.min(yValues) || 0;
   const yMax = d3.max(yValues) || 0;
   const yPadding = (yMax - yMin) * 0.1 || 1000;
@@ -1000,6 +1093,64 @@ const renderChart = () => {
     .attr('cursor', 'pointer')
     .attr('pointer-events', 'none')
     .style('filter', 'drop-shadow(0 0 3px rgba(0,0,0,0.3))');
+
+  // Projected continuation: dashed step-line from the last real point, one hollow dot
+  // per plan date, holding the final level to the period end.
+  if (projection.value) {
+    const projectionGroup = g.append('g').attr('class', 'projection');
+
+    const todayTs = startOfDay(new Date()).getTime();
+    const [domainStart, domainEnd] = xScale.domain() as [number, number];
+    if (todayTs >= domainStart && todayTs < domainEnd) {
+      projectionGroup
+        .append('line')
+        .attr('x1', xScale(todayTs))
+        .attr('x2', xScale(todayTs))
+        .attr('y1', 0)
+        .attr('y2', innerHeight)
+        .attr('stroke', colors.grid)
+        .attr('stroke-opacity', 0.6)
+        .attr('stroke-dasharray', '2,3');
+    }
+
+    const projectionLine = d3
+      .line<{ date: number; value: number }>()
+      .x((d) => xScale(d.date))
+      .y((d) => yScale(d.value))
+      .curve(d3.curveStepAfter);
+
+    projectionGroup
+      .append('path')
+      .datum(projection.value.points)
+      .attr('fill', 'none')
+      .attr('stroke', 'var(--primary)')
+      .attr('stroke-width', 1.5)
+      .attr('stroke-opacity', 0.85)
+      .attr('stroke-dasharray', '5,4')
+      .attr('d', projectionLine);
+
+    projectionGroup
+      .selectAll('.projection-dot')
+      .data(projection.value.steps)
+      .join('circle')
+      .attr('class', 'projection-dot')
+      .attr('cx', (d) => xScale(d.date))
+      .attr('cy', (d) => yScale(d.value))
+      .attr('r', 3.5)
+      .attr('fill', 'var(--card)')
+      .attr('stroke', 'var(--primary)')
+      .attr('stroke-width', 1.5)
+      .append('title')
+      .text((d) =>
+        d.planLabels
+          .map((plan) => {
+            const amount =
+              plan.refDelta > 0 ? `+${formatBaseCurrency(plan.refDelta)}` : formatBaseCurrency(plan.refDelta);
+            return plan.note ? `${amount} · ${plan.note}` : amount;
+          })
+          .join('\n'),
+      );
+  }
 };
 
 const displayBalance = computed(() => {
@@ -1084,7 +1235,7 @@ watch(
   { deep: true, flush: 'post' },
 );
 
-watch([spikePoints, chartXAxisEnd], () => {
+watch([spikePoints, chartXAxisEnd, projection], () => {
   renderChart();
 });
 </script>

@@ -12,20 +12,23 @@
         <div
           v-show="tooltip.visible"
           ref="tooltipRef"
-          class="bg-card-tooltip text-card-tooltip-foreground pointer-events-none absolute z-10 rounded-lg border px-3 py-2 text-sm shadow-lg"
+          class="pointer-events-none absolute z-10"
           :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
         >
-          <div class="mb-1 font-medium">{{ tooltip.period }}</div>
-          <div v-if="tooltip.income > 0" class="flex items-center gap-2">
-            <span class="bg-success-text inline-block size-2.5 rounded-full"></span>
-            <span>{{ $t('pages.budgetDetails.statistics.incomeLabel') }}</span>
-            <span class="font-medium">{{ formatBaseCurrency(tooltip.income) }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="bg-destructive-text inline-block size-2.5 rounded-full"></span>
-            <span>{{ $t('pages.budgetDetails.statistics.expensesLabel') }}</span>
-            <span class="font-medium">{{ formatBaseCurrency(tooltip.expense) }}</span>
-          </div>
+          <ChartTooltip>
+            <ChartTooltipHeader>{{ tooltip.period }}</ChartTooltipHeader>
+            <ChartTooltipRow
+              v-if="tooltip.income > 0"
+              color="var(--success-text)"
+              :label="$t('pages.budgetDetails.statistics.incomeLabel')"
+              :value="formatBaseCurrency(tooltip.income)"
+            />
+            <ChartTooltipRow
+              color="var(--destructive-text)"
+              :label="$t('pages.budgetDetails.statistics.expensesLabel')"
+              :value="formatBaseCurrency(tooltip.expense)"
+            />
+          </ChartTooltip>
         </div>
       </div>
 
@@ -46,6 +49,7 @@
 
 <script setup lang="ts">
 import { currentTheme } from '@/common/utils/color-theme';
+import { ChartTooltip, ChartTooltipHeader, ChartTooltipRow } from '@/components/common/charts/chart-tooltip';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';

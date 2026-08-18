@@ -47,7 +47,7 @@ const goHome = () => {
         <div
           class="from-primary/40 to-primary/5 ring-primary/30 rounded-full bg-gradient-to-br p-5 shadow-xl ring-1 backdrop-blur-sm"
         >
-          <CompassIcon class="text-primary size-12" />
+          <CompassIcon class="text-primary-text size-12" />
         </div>
       </div>
 

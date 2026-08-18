@@ -106,8 +106,12 @@ export enum ACCOUNT_CATEGORIES {
  * so the create service rejects them and the create-account UI hides them.
  * Each is created only via its own endpoint, which writes the account and its
  * sidecar in one transaction.
+ *
+ * Their balance history belongs to the same dedicated flow (loan projection,
+ * depreciation curve) rather than to `initialBalance + Σtransactions`, so the
+ * balance-revalue paths skip them too.
  */
-const DEDICATED_FLOW_ACCOUNT_CATEGORIES = [ACCOUNT_CATEGORIES.loan, ACCOUNT_CATEGORIES.vehicle] as const;
+export const DEDICATED_FLOW_ACCOUNT_CATEGORIES = [ACCOUNT_CATEGORIES.loan, ACCOUNT_CATEGORIES.vehicle] as const;
 
 type DedicatedFlowAccountCategory = (typeof DEDICATED_FLOW_ACCOUNT_CATEGORIES)[number];
 
@@ -379,6 +383,8 @@ export const NOTIFICATION_TYPES = {
   changelog: 'changelog',
   tagReminder: 'tag_reminder',
   subscriptionReminder: 'subscription_reminder',
+  /** A bank sync confirmed N planned transactions by merging real rows into them. */
+  plannedConfirmed: 'planned_confirmed',
   shareInvitationReceived: 'share_invitation_received',
   shareInvitationSendFailed: 'share_invitation_send_failed',
   shareAccepted: 'share_accepted',

@@ -1,9 +1,11 @@
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
-import type { TransactionModel } from '@bt/shared/types';
+import { PAYMENT_TYPES, type TransactionModel } from '@bt/shared/types';
 import { QueryClient } from '@tanstack/vue-query';
+import { SYSTEM_CURRENCIES } from '@tests/mocks';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { applyOptimisticTransactionUpdate } from './build-optimistic-transaction';
+import { FORM_TYPES, type UI_FORM_STRUCT } from '../types';
+import { applyOptimisticTransactionUpdate, buildOptimisticTransaction } from './build-optimistic-transaction';
 
 const buildTransaction = (overrides: Record<string, unknown> = {}): TransactionModel =>
   ({
@@ -13,6 +15,94 @@ const buildTransaction = (overrides: Record<string, unknown> = {}): TransactionM
     note: 'original',
     ...overrides,
   }) as unknown as TransactionModel;
+
+const JPY = SYSTEM_CURRENCIES.find((item) => item.code === 'JPY')!;
+
+describe('buildOptimisticTransaction', () => {
+  const buildForm = (overrides: Partial<UI_FORM_STRUCT> = {}): UI_FORM_STRUCT =>
+    ({
+      amount: 250,
+      time: new Date('2030-01-15T10:00:00.000Z'),
+      type: FORM_TYPES.expense,
+      paymentType: { value: PAYMENT_TYPES.cash, label: 'Cash' },
+      note: 'updated',
+      ...overrides,
+    }) as UI_FORM_STRUCT;
+
+  it('leaves amount and time untouched for a synced transaction', () => {
+    const transaction = buildTransaction({ time: new Date('2024-01-01T00:00:00.000Z') });
+
+    const result = buildOptimisticTransaction({ form: buildForm(), transaction, isRecordExternal: true });
+
+    expect(result.amount).toBe(100);
+    expect(result.time).toEqual(new Date('2024-01-01T00:00:00.000Z'));
+  });
+
+  it('applies amount and time for a planned transaction on a synced account', () => {
+    const transaction = buildTransaction({ time: new Date('2024-01-01T00:00:00.000Z'), isPlanned: true });
+
+    const result = buildOptimisticTransaction({
+      form: buildForm({ isPlanned: true }),
+      transaction,
+      isRecordExternal: true,
+    });
+
+    expect(result.amount).toBe(250);
+    expect(result.time).toEqual(new Date('2030-01-15T10:00:00.000Z'));
+    expect(result.isPlanned).toBe(true);
+  });
+
+  it('clears isPlanned when the form flag is unchecked', () => {
+    const transaction = buildTransaction({ isPlanned: true });
+
+    const result = buildOptimisticTransaction({
+      form: buildForm({ isPlanned: false }),
+      transaction,
+      isRecordExternal: false,
+    });
+
+    expect(result.isPlanned).toBe(false);
+  });
+
+  it('carries a complete original-currency pair onto the row', () => {
+    const transaction = buildTransaction({ originalAmount: null, originalCurrencyCode: null });
+
+    const result = buildOptimisticTransaction({
+      form: buildForm({ originalAmount: 1500, originalCurrency: JPY }),
+      transaction,
+      isRecordExternal: false,
+    });
+
+    expect(result.originalAmount).toBe(1500);
+    expect(result.originalCurrencyCode).toBe('JPY');
+  });
+
+  it('clears the pair when both form fields are empty', () => {
+    const transaction = buildTransaction({ originalAmount: 1500, originalCurrencyCode: 'JPY' });
+
+    const result = buildOptimisticTransaction({
+      form: buildForm({ originalAmount: null, originalCurrency: null }),
+      transaction,
+      isRecordExternal: false,
+    });
+
+    expect(result.originalAmount).toBeNull();
+    expect(result.originalCurrencyCode).toBeNull();
+  });
+
+  it('keeps the stored pair when the transaction becomes a transfer', () => {
+    const transaction = buildTransaction({ originalAmount: 1500, originalCurrencyCode: 'JPY' });
+
+    const result = buildOptimisticTransaction({
+      form: buildForm({ type: FORM_TYPES.transfer, originalAmount: 9999, originalCurrency: JPY }),
+      transaction,
+      isRecordExternal: false,
+    });
+
+    expect(result.originalAmount).toBe(1500);
+    expect(result.originalCurrencyCode).toBe('JPY');
+  });
+});
 
 describe('applyOptimisticTransactionUpdate', () => {
   let queryClient: QueryClient;

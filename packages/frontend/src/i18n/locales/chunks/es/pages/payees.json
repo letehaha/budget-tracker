@@ -69,9 +69,7 @@
       "deleteAndIgnoreDescription": "Elimina este beneficiario Y añade sus nombres (canónico + todos los alias) a la lista de nombres ignorados. Las sincronizaciones futuras no lo recrearán a partir del texto del comercio. Las transacciones vinculadas permanecen pero pierden su vínculo.",
       "mergeTitle": "Combinar con otro beneficiario",
       "mergeDescription": "Seleccione el beneficiario destino. Todas las transacciones y alias se mueven al destino; este beneficiario se elimina.",
-      "mergeButton": "Combinar",
       "confirmMerge": "Combinar",
-      "noTransactions": "Aún no hay transacciones",
       "topCategoryHint": "La categoría utilizada con más frecuencia en transacciones vinculadas a este beneficiario. Se usa como alternativa cuando no hay categoría predeterminada configurada.",
       "defaultCategoryPlaceholder": "Seleccionar una categoría",
       "defaultTagsLabel": "Aplicar etiquetas automáticamente",
@@ -83,16 +81,11 @@
       "change": "Cambiar logotipo",
       "dialogTitle": "Cambiar logotipo",
       "dialogDescription": "Busque un logotipo de marca para representar este beneficiario.",
-      "searchPlaceholder": "Nombre de marca o dominio",
-      "noResults": "No se encontraron marcas coincidentes.",
       "resetToAuto": "Restablecer a automático",
       "updatedToast": "Logotipo actualizado.",
       "resetToast": "Logotipo restablecido a automático.",
       "fieldLabel": "Logotipo",
-      "domainHint": "Para encontrar la marca exacta, escriba el dominio del sitio web de la empresa (p. ej. amazon.com) — eso siempre coincide con el logotipo correcto.",
-      "useDomainDirectly": "Usar {domain}",
-      "searchHint": "Escriba un nombre de marca o un dominio como amazon.com",
-      "autoLabel": "Automático (desde el nombre)"
+      "domainHint": "Para encontrar la marca exacta, escriba el dominio del sitio web de la empresa (p. ej. amazon.com) — eso siempre coincide con el logotipo correcto."
     },
     "transactionsDialog": {
       "title": "{name} — transacciones",

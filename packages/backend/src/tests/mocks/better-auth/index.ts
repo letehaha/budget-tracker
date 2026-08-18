@@ -27,10 +27,36 @@ interface BetterAuthConfig {
   databaseHooks?: {
     user?: {
       create?: {
+        before?: (user: unknown) => Promise<unknown>;
         after?: (user: unknown) => Promise<void>;
       };
     };
   };
+}
+
+/** Stand-in for better-auth's APIError: hooks throw it to abort with a specific HTTP status. */
+export class APIError extends Error {
+  status: string | number;
+  body?: { message?: string; code?: string };
+  statusCode: number;
+
+  constructor(status: string | number = 'INTERNAL_SERVER_ERROR', body?: { message?: string; code?: string }) {
+    super(body?.message);
+    this.name = 'APIError';
+    this.status = status;
+    this.body = body;
+    const named: Record<string, number> = {
+      BAD_REQUEST: 400,
+      UNAUTHORIZED: 401,
+      FORBIDDEN: 403,
+      NOT_FOUND: 404,
+      CONFLICT: 409,
+      UNPROCESSABLE_ENTITY: 422,
+      TOO_MANY_REQUESTS: 429,
+      INTERNAL_SERVER_ERROR: 500,
+    };
+    this.statusCode = typeof status === 'number' ? status : (named[status] ?? 500);
+  }
 }
 
 interface SignInEmailParams {
@@ -111,6 +137,22 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
           name: body.name,
         };
         const sessionToken = `test-token-${newUser.id}`;
+
+        // Real better-auth runs the before-hook prior to inserting ba_user
+        // and turns a thrown APIError into the response.
+        if (config.databaseHooks?.user?.create?.before) {
+          try {
+            await config.databaseHooks.user.create.before(newUser);
+          } catch (err) {
+            if (err instanceof APIError) {
+              return new Response(JSON.stringify({ message: err.body?.message, code: err.body?.code }), {
+                status: err.statusCode,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+            throw err;
+          }
+        }
 
         // Persist the auth user to mirror better-auth's real behavior:
         // ba_user (and ba_account) are committed BEFORE the after-hook fires.

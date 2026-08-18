@@ -1,8 +1,6 @@
 {
   "common": {
     "loading": "Memuat...",
-    "from": "Dari",
-    "to": "Ke",
     "new": "Baru",
     "actions": {
       "loading": "Memuat...",
@@ -13,7 +11,6 @@
       "accept": "Terima",
       "delete": "Hapus",
       "edit": "Sunting",
-      "create": "Buat",
       "addSubcategory": "Tambah subkategori",
       "settings": "Pengaturan",
       "confirm": "Konfirmasi",
@@ -21,13 +18,11 @@
       "viewAnalytics": "Lihat analitik",
       "saving": "Menyimpan...",
       "saveChanges": "Simpan Perubahan",
-      "scrollToTop": "Atas",
       "done": "Selesai",
       "failed": "Gagal",
       "viewAll": "Lihat semua",
       "scan": "Pindai",
       "link": "Tautkan",
-      "loadMore": "Muat lebih banyak",
       "clear": "Bersihkan",
       "apply": "Terapkan",
       "retry": "Coba lagi"
@@ -38,7 +33,8 @@
       "chooseAction": "Pilih tindakan",
       "other": "Lainnya",
       "refund": "Pengembalian dana",
-      "split": "Bagi"
+      "split": "Bagi",
+      "deletedBadge": "Dihapus"
     },
     "components": {
       "statusIndicator": {
@@ -64,7 +60,6 @@
     "labels": {
       "email": "Email",
       "password": "Kata Sandi",
-      "username": "Nama Pengguna",
       "system": "sistem",
       "unknown": "Tidak Diketahui",
       "total": "Total"
@@ -142,6 +137,10 @@
       },
       "unlink": {
         "error": "Gagal melepas tautan transaksi!"
+      },
+      "record": {
+        "addedByTooltip": "Transaksi ini dilampirkan ke anggaran oleh {handle}",
+        "hiddenAccount": "Akun tersembunyi"
       }
     },
     "outOfWallet": "Di Luar Dompet",
@@ -339,20 +338,7 @@
     "onlyFirstFileTaken": "Beberapa file dijatuhkan — hanya file pertama yang digunakan."
   },
   "demo": {
-    "loadingOverlay": {
-      "messages": [
-        "Menghitung angka khusus untuk Anda...",
-        "Menyiapkan akun pribadi Anda...",
-        "Menambahkan transaksi realistis...",
-        "Menyempurnakan dasbor Anda...",
-        "Hampir selesai, sentuhan akhir..."
-      ]
-    },
     "featureNotAvailable": "Fitur ini tidak tersedia dalam mode demo",
-    "bankConnectionsRestricted": {
-      "title": "Koneksi Bank"
-    },
-    "signUpToUnlock": "Daftar untuk membuka fitur ini",
     "passwordChangeRestricted": "Perubahan kata sandi tidak tersedia dalam mode demo",
     "investmentsRestricted": {
       "title": "Investasi Tidak Tersedia di Demo",
@@ -401,6 +387,36 @@
     "estimatedCost": {
       "yourApiKey": "(kunci API Anda)",
       "setByEndpoint": "Ditetapkan oleh endpoint Anda"
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "Sunting Grup",
+      "nameLabel": "Nama",
+      "noteLabel": "Catatan (opsional)",
+      "notePlaceholder": "Catatan opsional...",
+      "loadingText": "Memuat...",
+      "savingAction": "Simpan",
+      "cancelButton": "Batal",
+      "editAction": "Sunting",
+      "deleteAction": "Hapus Grup",
+      "transactionsLabel": "Transaksi",
+      "deleteGroupTitle": "Hapus grup",
+      "deleteGroupDescription": "Apakah Anda yakin ingin menghapus \"{groupName}\"? Transaksinya tidak akan dihapus.",
+      "removeTransactionTitle": "Keluarkan transaksi dari grup",
+      "removeTransactionDescription": "Ini akan menyisakan kurang dari 2 transaksi dalam grup, sehingga grup akan dihapus. Lanjutkan?",
+      "removeTransactionDescriptionNormal": "Apakah Anda yakin ingin mengeluarkan transaksi ini dari grup?",
+      "removeButtonText": "Keluarkan",
+      "removeAndDeleteButtonText": "Keluarkan & Hapus Grup",
+      "summary": {
+        "transactions": "Transaksi",
+        "net": "Bersih",
+        "moneyIn": "Uang masuk",
+        "moneyOut": "Uang keluar"
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": "transaksi"
     }
   }
 }

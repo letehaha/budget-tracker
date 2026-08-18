@@ -35,7 +35,6 @@
         },
         "fileUpload": {
           "title": "Unggah File",
-          "dragText": "Klik untuk upload atau seret dan lepas",
           "supportedFormats": "File CSV atau JSON didukung",
           "errors": {
             "unsupportedFormat": "Format file tidak didukung. Upload file CSV atau JSON.",

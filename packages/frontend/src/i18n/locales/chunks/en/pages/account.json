@@ -31,7 +31,8 @@
           "writeOwn": "Can edit own transactions",
           "writeAll": "Can edit transactions",
           "manage": "Manager"
-        }
+        },
+        "projectedBalance": "Projected balance {amount} · {count} planned entry through {date} | Projected balance {amount} · {count} planned entries through {date}"
       },
       "balanceAdjustmentDialog": {
         "title": "Adjust Balance",
@@ -271,11 +272,9 @@
       "backToAccounts": "Back to accounts",
       "editButton": "Edit",
       "overrideValueButton": "Override value",
-      "overrideValueNote": "Vehicle revaluation",
       "currentValue": "Current value",
       "purchasePrice": "Purchase price",
       "totalDepreciation": "Total depreciation",
-      "metadata": "Vehicle details",
       "vehicleClass": "Class",
       "depreciationPreset": "Depreciation",
       "customAnnualRate": "Annual rate",

@@ -12,6 +12,9 @@ export type SubscriptionSortBy = 'dueDate' | 'amount' | 'name' | 'recent';
  * back to the derived date for detection-only subscriptions that have no open
  * period, anchoring the derivation on the latest linked active transaction time
  * (or `startDate` when there are none). Returns null only when uncomputable.
+ *
+ * `latestTransactionTime` must already exclude planned rows — an intention is not
+ * a payment, and anchoring on one pushes the due date a whole cycle forward.
  */
 export const computeEffectiveNextDueDate = ({
   earliestPeriodDueDate,

@@ -1,4 +1,4 @@
-import { PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import * as Transactions from '@models/transactions.model';
 
@@ -6,8 +6,14 @@ import { SplitInput } from './splits/types';
 
 export type CreateTransactionParams = Omit<
   Transactions.CreateTransactionPayload,
-  'refAmount' | 'transferId' | 'currencyCode' | 'refCurrencyCode'
+  'refAmount' | 'transferId' | 'currencyCode' | 'refCurrencyCode' | 'accountType'
 > & {
+  /**
+   * Provider and importer code declares the type it syncs into. Leaving it out marks the row
+   * as user-typed: the create path then reads the real type off the account, and rejects a
+   * non-planned row on a provider account. No HTTP or MCP schema accepts it.
+   */
+  accountType?: ACCOUNT_TYPES;
   destinationAmount?: Money;
   destinationAccountId?: string;
   destinationTransactionId?: string;
@@ -33,6 +39,12 @@ export type CreateTransactionParams = Omit<
    * mapped-column category is the source of truth.
    */
   categoryIdIsExplicit?: boolean;
+  /**
+   * Let this row confirm a matching planned transaction instead of inserting a new one.
+   * Service-only: no HTTP or MCP schema accepts it, so external callers can't trigger merges.
+   * Set by incremental bank sync and imports; never by manual creation or historical backfill.
+   */
+  matchPlanned?: boolean;
 };
 
 interface UpdateParams {
@@ -53,6 +65,10 @@ interface UpdateParams {
   tagIds?: string[] | null; // null to clear all tags
   payeeId?: string | null;
   payeeLocked?: boolean;
+  isPlanned?: boolean;
+  /** `null` clears the stored metadata; both fields move together. */
+  originalAmount?: Money | null;
+  originalCurrencyCode?: string | null;
 }
 
 interface UpdateTransferParams {

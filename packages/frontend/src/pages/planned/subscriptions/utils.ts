@@ -1,9 +1,4 @@
-import {
-  SUBSCRIPTION_FREQUENCIES,
-  SUBSCRIPTION_MATCH_SOURCE,
-  SUBSCRIPTION_TYPES,
-  TRANSACTION_TYPES,
-} from '@bt/shared/types';
+import { SUBSCRIPTION_FREQUENCIES, SUBSCRIPTION_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
 import type { ComposerTranslation } from 'vue-i18n';
 
 /** Sentinel for "no type filter" in the list page tabs and the summary card. */
@@ -48,15 +43,6 @@ export const SUBSCRIPTION_SORT_STORAGE_KEY = 'planned.subscriptions.sortBy';
 
 export const isSubscriptionSortKey = (value: unknown): value is SubscriptionSortKey =>
   typeof value === 'string' && Object.values(SUBSCRIPTION_SORT_KEYS).includes(value as SubscriptionSortKey);
-
-export const formatMatchSource = ({ source, t }: { source: string; t: ComposerTranslation }): string => {
-  const map: Record<string, string> = {
-    [SUBSCRIPTION_MATCH_SOURCE.manual]: t('planned.subscriptions.matchSource.manual'),
-    [SUBSCRIPTION_MATCH_SOURCE.rule]: t('planned.subscriptions.matchSource.rule'),
-    [SUBSCRIPTION_MATCH_SOURCE.ai]: t('planned.subscriptions.matchSource.ai'),
-  };
-  return map[source] || source;
-};
 
 export const getTransactionTypeStyles = (
   transactionType: string | undefined,

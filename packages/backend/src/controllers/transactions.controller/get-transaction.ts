@@ -72,7 +72,13 @@ const schema = z.object({
         includeGroups: booleanQuery().optional(),
         excludeTransfer: booleanQuery().optional(),
         excludeRefunds: booleanQuery().optional(),
+        // Excludes the refund side of refund links; originals that carry refunds stay.
+        excludeRefundTxs: booleanQuery().optional(),
+        // With excludeRefundTxs: keep refunds linked to this transaction visible.
+        keepRefundsForTxId: recordId().optional(),
         excludeBalanceAdjustments: booleanQuery().optional(),
+        // Absent = both, true = only planned, false = exclude planned.
+        isPlanned: booleanQuery().optional(),
         transferFilter: z.nativeEnum(FILTER_OPERATION).optional(),
         refundFilter: z.nativeEnum(FILTER_OPERATION).optional(),
         // Amount filters now accept decimals from API

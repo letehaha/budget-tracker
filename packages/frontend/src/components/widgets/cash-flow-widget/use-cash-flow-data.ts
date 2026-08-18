@@ -30,15 +30,18 @@ const ZERO_TOTALS: CashFlowTotals = { income: 0, expenses: 0, netFlow: 0, saving
 export function useCashFlowData({
   selectedPeriod,
   excludedCategoryIds,
+  includePlanned,
 }: {
   selectedPeriod: () => { from: Date; to: Date };
   excludedCategoryIds: Ref<string[]>;
+  includePlanned: Ref<boolean>;
 }) {
   const { isAppInitialized } = storeToRefs(useRootStore());
 
   const periodQueryKey = computed(() => `${selectedPeriod().from.toISOString()}-${selectedPeriod().to.toISOString()}`);
-  const excludedKey = computed(() => excludedCategoryIds.value.join(','));
+  const excludedKey = computed(() => `${excludedCategoryIds.value.join(',')}:planned-${includePlanned.value}`);
   const excludedParam = computed(() => (excludedCategoryIds.value.length > 0 ? excludedCategoryIds.value : undefined));
+  const excludePlannedParam = computed(() => !includePlanned.value || undefined);
 
   const isFullMonth = computed(() => isFullMonthPeriod(selectedPeriod()));
   const prevPeriod = computed(() => computePrevPeriod(selectedPeriod()));
@@ -62,6 +65,7 @@ export function useCashFlowData({
         to: unionRange.value.to,
         granularity: 'monthly',
         excludedCategoryIds: excludedParam.value,
+        excludePlanned: excludePlannedParam.value,
       }),
     staleTime: Infinity,
     placeholderData: (prev) => prev,
@@ -78,6 +82,7 @@ export function useCashFlowData({
         to: selectedPeriod().to,
         granularity: 'monthly',
         excludedCategoryIds: excludedParam.value,
+        excludePlanned: excludePlannedParam.value,
       }),
     staleTime: Infinity,
     placeholderData: (prev) => prev,
@@ -92,6 +97,7 @@ export function useCashFlowData({
         to: prevPeriod.value.to,
         granularity: 'monthly',
         excludedCategoryIds: excludedParam.value,
+        excludePlanned: excludePlannedParam.value,
       }),
     staleTime: Infinity,
     placeholderData: (prev) => prev,

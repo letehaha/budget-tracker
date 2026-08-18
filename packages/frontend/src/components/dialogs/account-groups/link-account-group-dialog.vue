@@ -105,7 +105,7 @@ const isGroupChanged = computed(
           <AccountGroupName :group="group" />
 
           <template v-if="group.id === selectedGroup?.id">
-            <CheckIcon class="text-primary size-5" />
+            <CheckIcon class="text-primary-text size-5" />
           </template>
         </UiButton>
       </template>

@@ -1159,6 +1159,110 @@ describe('GET /stats/pivot', () => {
     expect(result.grandTotal).toBe(0);
   });
 
+  it('planned rows never contribute to a cell', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Mixed'), color: '#5566aa', raw: true });
+    const plannedOnlyCategory = await helpers.addCustomCategory({
+      name: uniqueName('PlannedOnly'),
+      color: '#aa5566',
+      raw: true,
+    });
+
+    await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+          categoryId: category.id,
+        }),
+        time: '2026-03-10T12:00:00.000Z',
+      },
+      raw: true,
+    });
+    await helpers.createPlannedTransaction({
+      payload: {
+        accountId: account.id,
+        amount: 40,
+        transactionType: TRANSACTION_TYPES.expense,
+        categoryId: category.id,
+        time: '2026-03-20T12:00:00.000Z',
+      },
+      raw: true,
+    });
+    await helpers.createPlannedTransaction({
+      payload: {
+        accountId: account.id,
+        amount: 25,
+        transactionType: TRANSACTION_TYPES.expense,
+        categoryId: plannedOnlyCategory.id,
+        time: '2026-03-21T12:00:00.000Z',
+      },
+      raw: true,
+    });
+
+    const result = await helpers.getPivotReport({
+      from: '2026-03-01',
+      to: '2026-03-31',
+      granularity: 'monthly',
+      rowDimension: 'category',
+      measure: 'expense',
+      raw: true,
+    });
+
+    // The report is money that moved, so the 40 plan is absent from the mixed category and the
+    // plan-only category has nothing to report at all.
+    const row = result.rows.find((candidate) => candidate.id === category.id);
+    expect(row!.values['2026-03']).toBe(100);
+    expect(row!.total).toBe(100);
+    expect(result.rows.find((candidate) => candidate.id === plannedOnlyCategory.id)).toBeUndefined();
+    expect(result.columnTotals['2026-03']).toBe(100);
+    expect(result.grandTotal).toBe(100);
+  });
+
+  it('income measure: planned income never contributes to a cell', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Freelance'), color: '#33bb77', raw: true });
+
+    await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 200,
+          transactionType: TRANSACTION_TYPES.income,
+          categoryId: category.id,
+        }),
+        time: '2026-04-10T12:00:00.000Z',
+      },
+      raw: true,
+    });
+    await helpers.createPlannedTransaction({
+      payload: {
+        accountId: account.id,
+        amount: 70,
+        transactionType: TRANSACTION_TYPES.income,
+        categoryId: category.id,
+        time: '2026-04-20T12:00:00.000Z',
+      },
+      raw: true,
+    });
+
+    const result = await helpers.getPivotReport({
+      from: '2026-04-01',
+      to: '2026-04-30',
+      granularity: 'monthly',
+      rowDimension: 'category',
+      measure: 'income',
+      raw: true,
+    });
+
+    const row = result.rows.find((candidate) => candidate.id === category.id);
+    expect(row!.values['2026-04']).toBe(200);
+    expect(row!.total).toBe(200);
+    expect(result.columnTotals['2026-04']).toBe(200);
+    expect(result.grandTotal).toBe(200);
+  });
+
   it('rejects an empty or malformed from/to with 422', async () => {
     const emptyFrom = await helpers.makeRequest({
       method: 'get',

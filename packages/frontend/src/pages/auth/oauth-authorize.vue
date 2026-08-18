@@ -4,7 +4,7 @@
       <Card class="w-full max-w-md">
         <CardHeader class="text-center">
           <div class="bg-primary/10 mx-auto mb-4 flex size-16 items-center justify-center rounded-full">
-            <ShieldCheckIcon class="text-primary size-8" />
+            <ShieldCheckIcon class="text-primary-text size-8" />
           </div>
           <h1 class="text-xl font-semibold">
             {{ $t('oauth.authorize.title', { name: clientName }) }}

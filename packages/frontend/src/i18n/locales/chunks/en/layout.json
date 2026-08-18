@@ -3,7 +3,6 @@
     "dashboard": "Dashboard",
     "accounts": "Accounts",
     "accountsList": "All Accounts",
-    "bankIntegrations": "Bank Integrations",
     "investments": "Investments",
     "loans": "Loans",
     "allTransactions": "All Transactions",
@@ -81,7 +80,6 @@
     }
   },
   "themeSelector": {
-    "toggle": "Toggle theme",
     "light": "Light",
     "dark": "Dark",
     "system": "System"

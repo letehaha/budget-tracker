@@ -16,6 +16,7 @@ import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { countTransactions, findOneTransaction, findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
 import { getUserDefaultCategory } from '@models/users.model';
 import {
@@ -27,11 +28,13 @@ import {
   ProviderTransaction,
 } from '@services/bank-data-providers';
 import { createTransaction } from '@services/transactions';
+import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
 import { encryptCredentials } from '../utils/credential-encryption';
+import { notifyPlannedConfirmations } from '../utils/notify-planned-confirmations';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { EnableBankingApiClient, isAspspDateRangeRejection } from './api-client';
 import {
@@ -758,7 +761,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           }
 
           // Find the most recent transaction
-          const latestTransaction = await Transactions.findOne({
+          const latestTransaction = await findOneTransaction({
+            planned: 'exclude',
+            access: 'unscoped-internal',
+            balanceAdjustments: 'include',
             where: { accountId: account.id },
             order: [['time', 'DESC']],
           });
@@ -768,8 +774,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // Incremental: `from` anchored to last tx – bank lookback can't be exceeded.
           // Initial: no anchor, must negotiate window with bank.
           // Anchor capped at `to`: it is a MAX over every row on the account, so one
-          // future-dated entry – a planned expense the user typed in, or a value_date
-          // past today – would ask for a date_from the bank rejects on every sync.
+          // future-dated entry – a value_date past today – would ask for a date_from
+          // the bank rejects on every sync.
           const providerTransactions = latestTransaction
             ? await this.fetchTransactions(
                 connectionId,
@@ -801,7 +807,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
           // Process each transaction and collect created/updated transaction IDs
           const createdTransactionIds: string[] = [];
+          // Rows the bank booked this run: auto-link eligible, but not new, so they must not be re-emitted.
+          const bookedUpgradedTransactionIds: string[] = [];
           let updatedCount = 0;
+          const mergedPlannedIds: string[] = [];
+          // Only the incremental branch may confirm a plan: the initial history fetch
+          // reaches years back, where a same-amount charge would eat an unrelated plan.
+          const matchPlanned = Boolean(latestTransaction) && (await accountHasPlannedRows({ accountId: account.id }));
           // Tier 4 costs one extra query per unmatched row, and on an initial 3-year
           // sync every row is unmatched. Flips to true as soon as this run stores a
           // pending row so a same-batch booked copy can still upgrade it.
@@ -837,6 +849,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
                 } else {
                   const createdIndex = createdTransactionIds.indexOf(existingTx.id);
                   if (createdIndex !== -1) createdTransactionIds.splice(createdIndex, 1);
+                  const mergedIndex = mergedPlannedIds.indexOf(existingTx.id);
+                  if (mergedIndex !== -1) mergedPlannedIds.splice(mergedIndex, 1);
                   await existingTx.destroy();
                   revokedRemovedCount++;
                 }
@@ -926,6 +940,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
                 await existingTx.update(updates);
                 updatedCount++;
               }
+              if (pendingBecameBooked) {
+                bookedUpgradedTransactionIds.push(existingTx.id);
+              }
               continue;
             }
 
@@ -941,7 +958,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
             // TODO: consider creating transactions in batch?
             // Create transaction using service (handles all required fields)
-            const [createdTx] = await createTransaction({
+            const createResult = await createTransaction({
               originalId: tx.externalId,
               note: tx.description,
               amount: Money.fromCents(Math.abs(tx.amount)), // Ensure positive value
@@ -960,9 +977,18 @@ export class EnableBankingProvider extends BaseBankDataProvider {
               transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
               accountType: ACCOUNT_TYPES.enableBanking,
               rawMerchantName: merchantNameClean || null,
+              matchPlanned,
             });
 
-            createdTransactionIds.push(createdTx.id);
+            const [createdTx] = createResult;
+
+            // A merged row is not a new row: it keeps the user's category and payee, which
+            // the post-sync listeners on the emitted ids would overwrite.
+            if (createResult.mergedIntoPlanned) {
+              mergedPlannedIds.push(createdTx.id);
+            } else {
+              createdTransactionIds.push(createdTx.id);
+            }
 
             if (isPreBookingStatus({ status: incomingStatus })) {
               accountHasPendingRows = true;
@@ -973,14 +999,21 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           if (
             createdTransactionIds.length > 0 ||
             updatedCount > 0 ||
+            mergedPlannedIds.length > 0 ||
             stalePendingIgnoredCount > 0 ||
             revokedRemovedCount > 0 ||
             revokedKeptCount > 0
           ) {
             logger.info(
-              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated, ${stalePendingIgnoredCount} stale pending ignored, ${revokedRemovedCount} revoked removed, ${revokedKeptCount} revoked kept for account ${account.id}`,
+              `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated, ${mergedPlannedIds.length} planned confirmed, ${stalePendingIgnoredCount} stale pending ignored, ${revokedRemovedCount} revoked removed, ${revokedKeptCount} revoked kept for account ${account.id}`,
             );
           }
+
+          await notifyPlannedConfirmations({
+            userId: connection.userId,
+            accountId: account.id,
+            mergedCount: mergedPlannedIds.length,
+          });
 
           // Runs before the authoritative write below so today's row ends up
           // holding the bank's own balance rather than a re-derived one.
@@ -991,7 +1024,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           const balance = await this.fetchBalance(connectionId, apiUid);
           await writeBankBalanceWithHistory({ account, balance: Money.fromCents(balance.amount) });
 
-          return { transactionIds: createdTransactionIds };
+          return { transactionIds: createdTransactionIds, extraAutoLinkCandidateIds: bookedUpgradedTransactionIds };
         },
       });
     } catch (error) {
@@ -1026,7 +1059,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     ];
     if (bookingDates.length === 0) return;
 
-    const storedRows = await Transactions.findAll({
+    const storedRows = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: {
         accountId: account.id,
         [Op.and]: [
@@ -1465,7 +1502,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     );
 
     // Get all transactions for this account
-    const transactions = await Transactions.findAll({
+    const transactions = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: { accountId: account.id },
     });
 
@@ -1531,7 +1572,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // (1) entry_reference: ASPSP promises this is unique + immutable per account.
     // Cheapest, strongest match – short-circuits the rest.
     if (entryReference) {
-      const byEntryRef = await Transactions.findOne({
+      const byEntryRef = await findOneTransaction({
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
         where: {
           accountId,
           [Op.and]: [Sequelize.where(Sequelize.literal(`"externalData"->>'entryReference'`), entryReference)],
@@ -1544,12 +1588,19 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // consistently returns the same fields (or no entry_reference at all).
     // `pendingHash` is the hash a row carried while it was pending, kept so a
     // pending entry the ASPSP re-sends after booking still lands on the same row.
-    const byOriginalId = await Transactions.findOne({
+    // `originalSource.originalId` is the snapshot account-unlink takes before
+    // nulling originalId; matching it dedups the unlink → reconnect flow, and the
+    // caller's re-anchor restores originalId for future syncs.
+    const byOriginalId = await findOneTransaction({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
       where: {
         accountId,
         [Op.or]: [
           { originalId: tx.externalId },
           Sequelize.where(Sequelize.literal(`"externalData"->>'pendingHash'`), tx.externalId),
+          Sequelize.where(Sequelize.literal(`"externalData"#>>'{originalSource,originalId}'`), tx.externalId),
         ],
       },
     });
@@ -1576,7 +1627,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     // returned by tier 1) or a different one. The pending-upgrade exception, where
     // the booked copy arrives under a fresh reference, is tier 4's job.
     if (counterpartyIban) {
-      const byFingerprint = await Transactions.findOne({
+      const byFingerprint = await findOneTransaction({
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
         where: {
           ...fingerprintBase,
           time: {
@@ -1606,7 +1660,11 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     if (!accountHasPendingRows) return null;
     if (getRawTransactionStatus({ externalData: tx.metadata }) !== TransactionStatus.BOOK) return null;
 
-    const pendingCandidates = await Transactions.findAll({
+    const pendingCandidates = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: {
         ...fingerprintBase,
         // A row the user made load-bearing must not have its time and identity
@@ -1643,7 +1701,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
   /** Whether tier 4 has anything to look at. Cheap enough to run once per sync. */
   private async accountHasPendingRows({ accountId }: { accountId: string }): Promise<boolean> {
-    const count = await Transactions.count({
+    const count = await countTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
       where: {
         accountId,
         [Op.and]: [wherePreBookingStatus()],
@@ -1680,7 +1741,13 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     accountId: string;
   }): Promise<{ mergedCount: number; skippedCount: number; consideredPairs: number; unresolvedCount: number }> {
     const account = await this.getSystemAccount(accountId);
-    const allTxs = await Transactions.findAll({
+    // A planned row records money that has not moved, so it can never be the duplicate
+    // of a bank row — and this pass deletes what it pairs off.
+    const allTxs = await findTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
       where: { accountId: account.id },
       order: [['time', 'ASC']],
     });

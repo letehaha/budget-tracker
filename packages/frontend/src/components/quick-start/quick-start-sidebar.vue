@@ -87,7 +87,7 @@ const strokeDasharray = (progress: number) => {
         </svg>
         <!-- Remaining count inside circle -->
         <div class="absolute inset-0 flex items-center justify-center">
-          <span class="text-primary text-xs font-semibold">{{ remainingCount }}</span>
+          <span class="text-primary-text text-xs font-semibold">{{ remainingCount }}</span>
         </div>
       </div>
 

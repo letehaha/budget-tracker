@@ -14,8 +14,8 @@ import SubscriptionMarkPaidDialog from '@/pages/planned/subscriptions/components
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useRootStore } from '@/stores';
 import { useQuery } from '@tanstack/vue-query';
-import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { ArrowUpRightIcon, ListIcon } from '@lucide/vue';
+import { differenceInCalendarDays, format, isAfter, parseISO } from 'date-fns';
 import { SUBSCRIPTION_PERIOD_STATUSES } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import type { Ref } from 'vue';
@@ -26,6 +26,7 @@ import LatestRecordsSettingsPopover from './components/latest-records-settings-p
 import LoadingState from './components/loading-state.vue';
 import WidgetWrapper from './components/widget-wrapper.vue';
 import { buildLatestRecordsTransferNatures, readLatestRecordsExclusions } from './latest-records-config';
+import { useIncludePlannedConfig } from './use-include-planned-config';
 
 // Days ahead threshold for "upcoming" payments shown in the widget.
 const UPCOMING_DAYS_WINDOW = 3;
@@ -51,18 +52,23 @@ const maxDisplay = computed(() => {
 const exclusions = computed(() => readLatestRecordsExclusions({ widgetConfig: widgetConfigRef?.value }));
 const transferNatures = computed(() => buildLatestRecordsTransferNatures(exclusions.value));
 const excludeBalanceAdjustments = computed(() => exclusions.value.excludeBalanceAdjustments);
+const { includePlanned } = useIncludePlannedConfig();
 
 const { data: transactions, isFetching: isTxFetching } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetLatestRecords, transferNatures, excludeBalanceAdjustments],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.widgetLatestRecords, transferNatures, excludeBalanceAdjustments, includePlanned],
   queryFn: () =>
+    // `to` keeps future-dated plans out of the page, so a backlog of them can't fill it
+    // and blank the widget. Over-fetch accounts for deduplication and grouping.
     apiLoadTransactions({
-      limit: 40, // Over-fetch to account for deduplication and grouping
+      limit: 40,
       offset: 0,
       includeSplits: true,
       includeTags: true,
       includeGroups: true,
       transferNatures: transferNatures.value,
       excludeBalanceAdjustments: excludeBalanceAdjustments.value || undefined,
+      ...(includePlanned.value ? {} : { isPlanned: false }),
+      to: new Date().toISOString(),
     }),
   staleTime: Infinity,
   placeholderData: [],
@@ -103,6 +109,13 @@ const sortedScheduledItems = computed<SubscriptionListItem[]>(() => {
   });
 });
 
+// Planned rows can carry a future date, which would otherwise put money that hasn't
+// moved yet at the top of "latest records".
+const pastTransactions = computed(() => {
+  const now = new Date();
+  return (transactions.value ?? []).filter((tx) => !isAfter(new Date(tx.time), now));
+});
+
 // Scheduled rows consume slots first; transactions fill whatever remains up to maxDisplay.
 const scheduledRows = computed(() => sortedScheduledItems.value.slice(0, maxDisplay.value));
 const txMaxDisplay = computed(() => Math.max(0, maxDisplay.value - scheduledRows.value.length));
@@ -130,7 +143,7 @@ function formatDueDate({ dueDate }: { dueDate: string }): string {
 
 const isFetching = computed(() => isTxFetching.value || (includeScheduled.value && isScheduledFetching.value));
 const isInitialLoading = computed(() => isTxFetching.value && (transactions.value?.length ?? 0) === 0);
-const isDataEmpty = computed(() => !isTxFetching.value && (transactions.value?.length ?? 0) === 0);
+const isDataEmpty = computed(() => !isTxFetching.value && pastTransactions.value.length === 0);
 </script>
 
 <template>
@@ -217,7 +230,7 @@ const isDataEmpty = computed(() => !isTxFetching.value && (transactions.value?.l
         v-if="txMaxDisplay > 0"
         raw-list
         class="gap-0.5!"
-        :transactions="transactions || []"
+        :transactions="pastTransactions"
         :max-display="txMaxDisplay"
       />
     </template>

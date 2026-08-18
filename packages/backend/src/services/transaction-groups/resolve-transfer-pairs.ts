@@ -1,6 +1,6 @@
 import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
-import Transactions from '@models/transactions.model';
+import { findTransactions } from '@models/transactions-query';
 import { Op } from 'sequelize';
 
 /**
@@ -16,14 +16,19 @@ export const resolveTransferPairs = async ({
   transactionIds: RecordId[];
   userId: number;
 }): Promise<RecordId[]> => {
-  // Get transferIds from the provided transactions that are common transfers
-  const transferTxs = await Transactions.findAll({
+  // Get transferIds from the provided transactions that are common transfers.
+  // A plan can only ever be `not_transfer` (assert-planned-invariants), so it owns no
+  // transferId and no pair — `planned: 'exclude'` is that invariant stated at the query.
+  const transferTxs = await findTransactions({
     where: {
       id: { [Op.in]: transactionIds },
-      userId,
       transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
       transferId: { [Op.ne]: null },
     },
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
     attributes: ['transferId'],
     raw: true,
   });
@@ -32,13 +37,18 @@ export const resolveTransferPairs = async ({
 
   if (transferIds.length === 0) return transactionIds;
 
-  // Find opposite transactions sharing these transferIds
-  const oppositeTransactions = await Transactions.findAll({
+  // Find opposite transactions sharing these transferIds. Creator-scoped, so a partner
+  // leg authored by the other party on a shared account is not found — kept as is: the
+  // cross-user case is an open product question, not something to decide here.
+  const oppositeTransactions = await findTransactions({
     where: {
       transferId: { [Op.in]: transferIds },
-      userId,
       id: { [Op.notIn]: transactionIds },
     },
+    planned: 'exclude',
+    access: { creator: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
     attributes: ['id'],
     raw: true,
   });

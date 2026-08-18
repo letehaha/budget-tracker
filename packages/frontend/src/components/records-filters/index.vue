@@ -21,8 +21,10 @@
     <ExclusionsFilter
       :refund-filter="filters.refundFilter"
       :transfer-filter="filters.transferFilter"
+      :planned-filter="filters.plannedFilter"
       @update:refund-filter="$emit('update:filters', { ...filters, refundFilter: $event })"
       @update:transfer-filter="$emit('update:filters', { ...filters, transferFilter: $event })"
+      @update:planned-filter="$emit('update:filters', { ...filters, plannedFilter: $event })"
     />
 
     <TransferNatureFilter
@@ -55,7 +57,7 @@
     />
   </div>
 
-  <div class="lg:bg-card max-lg:bg-background sticky -bottom-px mt-4 flex gap-2">
+  <div :class="cn('sticky -bottom-px mt-4 flex gap-2', surface === 'card' ? 'bg-card' : 'bg-dialog')">
     <UiButton
       variant="secondary"
       :disabled="isResetButtonDisabled"
@@ -75,6 +77,7 @@
 
 <script lang="ts" setup>
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { cn } from '@/lib/utils';
 
 import AccountMultiSelectField from '@/components/fields/account-multi-select-field.vue';
 import ComboboxCategories from '@/components/common/combobox-categories.vue';
@@ -89,11 +92,16 @@ import TagFilter from './filters/tag-filter.vue';
 import TransactionTypeFilter from './filters/transaction-type-filter.vue';
 import TransferNatureFilter from './filters/transfer-nature-filter.vue';
 
-defineProps<{
-  filters: FiltersStruct;
-  isResetButtonDisabled: boolean;
-  isFiltersOutOfSync: boolean;
-}>();
+withDefaults(
+  defineProps<{
+    filters: FiltersStruct;
+    isResetButtonDisabled: boolean;
+    isFiltersOutOfSync: boolean;
+    /** Surface the sticky footer must blend with: the panel renders both in dialogs and inline on cards. */
+    surface?: 'dialog' | 'card';
+  }>(),
+  { surface: 'dialog' },
+);
 
 defineEmits(['update:filters', 'reset-filters', 'apply-filters']);
 </script>

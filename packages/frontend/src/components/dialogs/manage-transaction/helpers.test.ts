@@ -10,6 +10,7 @@ import {
 } from '@bt/shared/types';
 import {
   ACCOUNTS,
+  SYSTEM_CURRENCIES,
   USER_CATEGORIES,
   buildOutOfWalletTransaction,
   buildSystemExpenseTransaction,
@@ -26,9 +27,12 @@ import {
   getDestinationAmount,
   getFormTypeFromTransaction,
   getTxTypeFromFormType,
+  isTxEditableAsManual,
   prepopulateForm,
+  resolveFormIsPlanned,
+  resolveOriginalCurrencyPair,
 } from './helpers';
-import { FORM_TYPES } from './types';
+import { FORM_TYPES, type UI_FORM_STRUCT } from './types';
 
 describe('components/modals/modify-record/helpers', () => {
   describe('getAvailableTransferDestinationTypes', () => {
@@ -108,6 +112,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result).toBeUndefined();
@@ -122,6 +127,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result).toMatchObject({
@@ -146,6 +152,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result).toMatchObject({
@@ -176,6 +183,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result).toMatchObject({
@@ -210,6 +218,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result).toMatchObject({
@@ -238,6 +247,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result?.category).toEqual(USER_CATEGORIES[0]);
@@ -260,6 +270,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result).toMatchObject({
@@ -287,6 +298,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result).toMatchObject({
@@ -315,6 +327,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result).toMatchObject({
@@ -338,6 +351,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result!.note).toBe('Test note for transaction');
@@ -354,6 +368,7 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result!.paymentType).toEqual(VERBOSE_PAYMENT_TYPES.find((p) => p.value === PAYMENT_TYPES.cash));
@@ -371,10 +386,49 @@ describe('components/modals/modify-record/helpers', () => {
         accounts: accountsRecord,
         categories: categoriesRecord,
         formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
       });
 
       expect(result!.time).toBeInstanceOf(Date);
       expect(result!.time.getTime()).toBe(txTime.getTime());
+    });
+
+    it('hydrates the original-currency pair from the transaction', () => {
+      const transaction = buildSystemExpenseTransaction({
+        originalAmount: 1500,
+        originalCurrencyCode: 'JPY',
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction: undefined,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
+      });
+
+      expect(result!.originalAmount).toBe(1500);
+      expect(result!.originalCurrency).toEqual(SYSTEM_CURRENCIES.find((item) => item.code === 'JPY'));
+    });
+
+    it('keeps the original amount when the currency code is unknown to the store', () => {
+      const transaction = buildSystemExpenseTransaction({
+        originalAmount: 1500,
+        originalCurrencyCode: 'ZZZ',
+      });
+
+      const result = prepopulateForm({
+        transaction,
+        oppositeTransaction: undefined,
+        accounts: accountsRecord,
+        categories: categoriesRecord,
+        formattedCategories: USER_CATEGORIES,
+        systemCurrencies: SYSTEM_CURRENCIES,
+      });
+
+      expect(result!.originalAmount).toBe(1500);
+      expect(result!.originalCurrency).toBeNull();
     });
   });
 
@@ -438,6 +492,92 @@ describe('components/modals/modify-record/helpers', () => {
       expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: true })).toBe(
         false,
       );
+    });
+
+    it('returns true for a planned row on a provider-linked account', () => {
+      const transaction = buildSystemExpenseTransaction({ accountId: destMonobankAccount.id, isPlanned: true });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: true })).toBe(
+        true,
+      );
+    });
+
+    it('returns false for a planned row the caller cannot mutate', () => {
+      const transaction = buildSystemExpenseTransaction({ accountId: destMonobankAccount.id, isPlanned: true });
+      expect(canDeleteTransaction({ transaction, oppositeTransaction: undefined, accounts, canMutate: false })).toBe(
+        false,
+      );
+    });
+  });
+
+  describe('isTxEditableAsManual', () => {
+    it('is true for any transaction on a manual account', () => {
+      expect(isTxEditableAsManual({ transaction: buildSystemExpenseTransaction(), isRecordExternal: false })).toBe(
+        true,
+      );
+    });
+
+    it('is false for a synced transaction', () => {
+      expect(isTxEditableAsManual({ transaction: buildSystemExpenseTransaction(), isRecordExternal: true })).toBe(
+        false,
+      );
+    });
+
+    it('is true for a planned transaction on a synced account', () => {
+      expect(
+        isTxEditableAsManual({
+          transaction: buildSystemExpenseTransaction({ isPlanned: true }),
+          isRecordExternal: true,
+        }),
+      ).toBe(true);
+    });
+  });
+
+  describe('resolveFormIsPlanned', () => {
+    const buildForm = (overrides: Partial<UI_FORM_STRUCT>): UI_FORM_STRUCT =>
+      ({ type: FORM_TYPES.expense, ...overrides }) as UI_FORM_STRUCT;
+
+    it('is false when the flag was never set', () => {
+      expect(resolveFormIsPlanned({ form: buildForm({}) })).toBe(false);
+    });
+
+    it('is true for a non-transfer form with the flag set', () => {
+      expect(resolveFormIsPlanned({ form: buildForm({ isPlanned: true }) })).toBe(true);
+    });
+
+    it('is false for a transfer form even when the flag survived the type switch', () => {
+      expect(resolveFormIsPlanned({ form: buildForm({ type: FORM_TYPES.transfer, isPlanned: true }) })).toBe(false);
+    });
+  });
+
+  describe('resolveOriginalCurrencyPair', () => {
+    const JPY = SYSTEM_CURRENCIES.find((item) => item.code === 'JPY')!;
+
+    const buildForm = (overrides: Partial<UI_FORM_STRUCT>): UI_FORM_STRUCT =>
+      ({
+        type: FORM_TYPES.expense,
+        originalAmount: null,
+        originalCurrency: null,
+        ...overrides,
+      }) as UI_FORM_STRUCT;
+
+    it('returns the pair when both fields are filled', () => {
+      expect(resolveOriginalCurrencyPair({ form: buildForm({ originalAmount: 1500, originalCurrency: JPY }) })).toEqual(
+        {
+          state: 'pair',
+          originalAmount: 1500,
+          originalCurrencyCode: 'JPY',
+        },
+      );
+    });
+
+    it('clears when both fields are empty', () => {
+      expect(resolveOriginalCurrencyPair({ form: buildForm({}) })).toEqual({ state: 'clear' });
+    });
+
+    it('leaves a half-filled form untouched', () => {
+      expect(resolveOriginalCurrencyPair({ form: buildForm({ originalAmount: 1500 }) })).toEqual({
+        state: 'untouched',
+      });
     });
   });
 });

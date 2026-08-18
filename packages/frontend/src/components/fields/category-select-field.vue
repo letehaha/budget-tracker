@@ -44,138 +44,150 @@
     role="select"
   >
     <FieldLabel :label="label" only-template>
-      <!-- Desktop: Popover -->
-      <template v-if="!isMobile">
-        <Popover.Popover :open="isOpen" @update:open="(open: boolean) => (isOpen = open)">
-          <Popover.PopoverTrigger as-child>
-            <button
-              type="button"
-              :disabled="disabled"
-              :class="
-                cn(
-                  'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
-                  'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
-                  disabled && 'cursor-not-allowed opacity-50',
-                  $attrs.class ?? '',
-                )
-              "
-              :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
-              :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
-            >
-              <CategoryCircle
-                v-if="selectedValue"
-                :category="selectedValue"
-                :categories-map="categoriesMap"
-                class="shrink-0"
-              />
-              <span
-                class="text-muted-foreground min-w-0 flex-1 truncate text-left"
-                :class="{ 'text-foreground': selectedValue }"
-              >
-                {{ selectedValue?.name || placeholder }}
-              </span>
-              <span
-                v-if="selectedValue && !disabled"
-                role="button"
-                tabindex="0"
-                class="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
-                :aria-label="$t('fields.categorySelect.clearSelectionLabel')"
-                @click="clearSelection"
-                @keydown.enter.prevent="clearSelection"
-              >
-                <XIcon class="size-4" />
-              </span>
-              <ChevronDownIcon
-                class="text-popover-foreground size-5 shrink-0 transition-transform duration-150 ease-out"
-                :class="{ 'rotate-180': isOpen }"
-              />
-            </button>
-          </Popover.PopoverTrigger>
-          <Popover.PopoverContent
-            align="start"
-            :class="
-              cn(
-                'w-(--reka-popover-trigger-width) max-w-(--reka-popover-trigger-width) min-w-(--reka-popover-trigger-width) p-0',
-                popoverClassName,
-              )
-            "
-            @open-auto-focus.prevent="$nextTick(() => inputRef?.focus())"
-          >
-            <div
-              v-if="sharedOwnerHandle"
-              class="bg-muted/40 text-foreground flex items-center gap-2 border-b px-3 py-2 text-xs"
-              role="note"
-            >
-              <span>{{ $t('fields.categorySelect.sharedOwnerNotice', { owner: sharedOwnerHandle }) }}</span>
-              <ResponsiveTooltip
-                :content="$t('fields.categorySelect.sharedOwnerNoticeTooltip', { owner: sharedOwnerHandle })"
-                content-class-name="max-w-64"
-                :delay-duration="100"
-              >
-                <InfoIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" />
-              </ResponsiveTooltip>
-            </div>
-            <!-- Search input -->
-            <input
-              ref="inputRef"
-              v-model="searchQuery"
-              type="text"
-              class="w-full border-b bg-transparent px-3 py-2 text-sm outline-none"
-              :placeholder="$t('fields.categorySelect.searchPlaceholder')"
-              :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
-            />
-            <!-- Category list -->
-            <div ref="listRef" class="max-h-87.5 overflow-auto">
-              <CategoryListContent />
-            </div>
-          </Popover.PopoverContent>
-        </Popover.Popover>
+      <template v-if="$slots['label-right']" #label-right>
+        <slot name="label-right" />
       </template>
 
-      <!-- Mobile: Button + Drawer -->
-      <template v-else>
-        <button
-          type="button"
-          :disabled="disabled"
-          :class="
-            cn(
-              'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm',
-              'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
-              disabled && 'cursor-not-allowed opacity-50',
-              $attrs.class ?? '',
-            )
-          "
-          :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
-          :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
-          @click="openDropdown"
-        >
-          <CategoryCircle
-            v-if="selectedValue"
-            :category="selectedValue"
-            :categories-map="categoriesMap"
-            class="shrink-0"
-          />
-          <span
-            class="text-muted-foreground min-w-0 flex-1 truncate text-left"
-            :class="{ 'text-foreground': selectedValue }"
-          >
-            {{ selectedValue?.name || placeholder }}
-          </span>
+      <!-- PopoverRoot renders no DOM element, so with `field-right` content the trigger button
+           and the addon become direct flex children and share one joined outline. -->
+      <div :class="cn($slots['field-right'] && 'flex items-stretch')">
+        <!-- Desktop: Popover -->
+        <template v-if="!isMobile">
+          <Popover.Popover :open="isOpen" @update:open="(open: boolean) => (isOpen = open)">
+            <Popover.PopoverTrigger as-child>
+              <button
+                type="button"
+                :disabled="disabled"
+                :class="
+                  cn(
+                    'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm md:h-9',
+                    'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+                    disabled && 'cursor-not-allowed opacity-50',
+                    $slots['field-right'] && 'min-w-0 flex-1 rounded-r-none border-r-0',
+                    $attrs.class ?? '',
+                  )
+                "
+                :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
+                :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
+              >
+                <CategoryCircle
+                  v-if="selectedValue"
+                  :category="selectedValue"
+                  :categories-map="categoriesMap"
+                  class="shrink-0"
+                />
+                <span
+                  class="text-muted-foreground min-w-0 flex-1 truncate text-left"
+                  :class="{ 'text-foreground': selectedValue }"
+                >
+                  {{ selectedValue?.name || placeholder }}
+                </span>
+                <span
+                  v-if="selectedValue && !disabled"
+                  role="button"
+                  tabindex="0"
+                  class="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+                  :aria-label="$t('fields.categorySelect.clearSelectionLabel')"
+                  @click="clearSelection"
+                  @keydown.enter.prevent="clearSelection"
+                >
+                  <XIcon class="size-4" />
+                </span>
+                <ChevronDownIcon
+                  class="text-popover-foreground size-5 shrink-0 transition-transform duration-150 ease-out"
+                  :class="{ 'rotate-180': isOpen }"
+                />
+              </button>
+            </Popover.PopoverTrigger>
+            <Popover.PopoverContent
+              align="start"
+              :class="
+                cn(
+                  'w-(--reka-popover-trigger-width) max-w-(--reka-popover-trigger-width) min-w-(--reka-popover-trigger-width) p-0',
+                  popoverClassName,
+                )
+              "
+              @open-auto-focus.prevent="$nextTick(() => inputRef?.focus())"
+            >
+              <div
+                v-if="sharedOwnerHandle"
+                class="bg-muted/40 text-foreground flex items-center gap-2 border-b px-3 py-2 text-xs"
+                role="note"
+              >
+                <span>{{ $t('fields.categorySelect.sharedOwnerNotice', { owner: sharedOwnerHandle }) }}</span>
+                <ResponsiveTooltip
+                  :content="$t('fields.categorySelect.sharedOwnerNoticeTooltip', { owner: sharedOwnerHandle })"
+                  content-class-name="max-w-64"
+                  :delay-duration="100"
+                >
+                  <InfoIcon class="text-muted-foreground size-3.5 shrink-0 cursor-help" />
+                </ResponsiveTooltip>
+              </div>
+              <!-- Search input -->
+              <input
+                ref="inputRef"
+                v-model="searchQuery"
+                type="text"
+                class="w-full border-b bg-transparent px-3 py-2 text-sm outline-none"
+                :placeholder="$t('fields.categorySelect.searchPlaceholder')"
+                :aria-label="$t('fields.categorySelect.searchCategoryLabel')"
+              />
+              <!-- Category list -->
+              <div ref="listRef" class="max-h-87.5 overflow-auto">
+                <CategoryListContent />
+              </div>
+            </Popover.PopoverContent>
+          </Popover.Popover>
+        </template>
+
+        <!-- Mobile: Button + Drawer -->
+        <template v-else>
           <button
-            v-if="selectedValue && !disabled"
             type="button"
-            class="text-muted-foreground hover:text-foreground shrink-0"
-            :aria-label="$t('fields.categorySelect.clearSelectionLabel')"
-            @click="clearSelection"
+            :disabled="disabled"
+            :class="
+              cn(
+                'border-input bg-input-background ring-offset-background flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm md:h-9',
+                'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+                disabled && 'cursor-not-allowed opacity-50',
+                $slots['field-right'] && 'min-w-0 flex-1 rounded-r-none border-r-0',
+                $attrs.class ?? '',
+              )
+            "
+            :aria-label="$t('fields.categorySelect.selectCategoryLabel')"
+            :title="selectedValue?.name || $t('fields.categorySelect.selectCategoryLabel')"
+            @click="openDropdown"
           >
-            <XIcon class="size-4" />
+            <CategoryCircle
+              v-if="selectedValue"
+              :category="selectedValue"
+              :categories-map="categoriesMap"
+              class="shrink-0"
+            />
+            <span
+              class="text-muted-foreground min-w-0 flex-1 truncate text-left"
+              :class="{ 'text-foreground': selectedValue }"
+            >
+              {{ selectedValue?.name || placeholder }}
+            </span>
+            <button
+              v-if="selectedValue && !disabled"
+              type="button"
+              class="text-muted-foreground hover:text-foreground shrink-0"
+              :aria-label="$t('fields.categorySelect.clearSelectionLabel')"
+              @click="clearSelection"
+            >
+              <XIcon class="size-4" />
+            </button>
+            <ChevronDownIcon
+              class="text-popover-foreground size-5 shrink-0 transition-transform duration-150 ease-out"
+              :class="{ 'rotate-180': isOpen }"
+            />
           </button>
-          <ChevronDownIcon
-            class="text-popover-foreground size-5 shrink-0 transition-transform duration-150 ease-out"
-            :class="{ 'rotate-180': isOpen }"
-          />
-        </button>
-      </template>
+        </template>
+
+        <slot name="field-right" />
+      </div>
     </FieldLabel>
 
     <FieldError :error-message="errorMessage" />
@@ -204,7 +216,7 @@
 
         <!-- Search input in drawer -->
         <div
-          class="border-input bg-input-background mb-3 flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm"
+          class="border-input bg-input-background mb-3 flex h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm md:h-9"
         >
           <input
             ref="drawerInputRef"

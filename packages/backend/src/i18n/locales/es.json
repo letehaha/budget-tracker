@@ -25,7 +25,6 @@
     "groupNotFound": "Grupo no encontrado",
     "parentGroupNotExist": "El grupo padre con ese id no existe.",
     "parentGroupDoesNotExist": "El grupo padre no existe.",
-    "operationNotAllowed": "La operación no está permitida",
     "accountNotFound": "Cuenta con ese id no encontrada.",
     "accountGroupNotFound": "Grupo de cuentas con ese id no encontrado.",
     "groupUpdateFailed": "No se pudo actualizar el grupo"
@@ -56,6 +55,8 @@
     "linkAlreadyTransferNotAllowed": "Intentando vincular una transacción que ya es una transferencia.",
     "linkUnexpectedError": "Error inesperado. No se pueden vincular las transacciones solicitadas.",
     "linkCannotFind": "No se pueden encontrar las transacciones base u opuesta",
+    "linkPlannedNotAllowed": "Una transacción planificada no se puede vincular como transferencia.",
+    "linkSplitTransactionNotAllowed": "Una transacción con divisiones no se puede vincular como transferencia.",
     "invalidTagIds": "Uno o más IDs de etiqueta no son válidos o no pertenecen a este usuario",
     "cannotEditPortfolioLinkedTransaction": "No se puede editar una transacción vinculada a un portafolio. Desvincúlela primero.",
     "refFieldsRequiredForTransferToPortfolio": "La moneda de referencia y el importe de referencia deben establecerse para las transacciones de transferencia a portafolio.",
@@ -66,6 +67,16 @@
     "loanPaymentOverpay": "El pago supera el saldo restante del préstamo.",
     "loanAccountReadonly": "Las cuentas de préstamo solo se pueden modificar registrando un pago. Use la página del préstamo para registrar uno.",
     "loanPaymentMustBeExpense": "Un pago de préstamo debe ser un gasto — las transacciones de ingreso no se pueden transferir a un préstamo.",
+    "plannedMustBeStandalone": "Una transacción planificada debe ser un ingreso o un gasto simple — las transferencias, los reembolsos y los registros importados no están soportados.",
+    "plannedAmountMustBePositive": "Una transacción planificada debe tener un importe mayor que cero.",
+    "plannedAccountNotSupported": "Las transacciones planificadas no están disponibles en cuentas de préstamo ni de vehículo.",
+    "plannedOwnerOnly": "Solo el propietario de la cuenta puede crear transacciones planificadas.",
+    "plannedFlipNotAllowed": "Esta transacción no se puede convertir en planificada.",
+    "plannedCreatorOnly": "Solo el creador de una transacción planificada puede editarla o eliminarla.",
+    "manualOnConnectedAccount": "Solo se pueden añadir transacciones planificadas a una cuenta conectada al banco. Las transacciones reales llegan desde su banco.",
+    "plannedUnflipOnConnectedAccount": "Esta planificación está en una cuenta conectada al banco, por lo que su banco la confirma automáticamente. Elimínela si ya no la espera.",
+    "plannedCannotConfirmPayment": "Una transacción planificada no puede confirmar un pago. Espere a que se confirme y luego vincúlela.",
+    "plannedCannotBeRefundLinked": "Una transacción planificada no puede formar parte de una vinculación de reembolso.",
     "splits": {
       "splitsOnTransfer": "No se pueden agregar divisiones a transacciones de transferencia",
       "splitLimitExceeded": "Se permiten como máximo {{max}} divisiones por transacción",
@@ -103,7 +114,6 @@
     "reminderAlreadyExists": "Ya existe un recordatorio idéntico para esta etiqueta",
     "amountThresholdRequired": "El umbral de importe es obligatorio para los recordatorios de umbral de importe",
     "maxRemindersReached": "Se ha alcanzado el número máximo de recordatorios (50)",
-    "repeatScheduleIncomplete": "Tanto repeatEvery como repeatPeriod deben proporcionarse juntos o ambos omitirse",
     "notifications": {
       "thresholdExceeded": {
         "title": "Alerta de gasto por etiqueta",
@@ -179,9 +189,6 @@
     "missingRequiredProviders": "Faltan proveedores de datos bancarios requeridos: {{missing}}. Asegúrese de que estos proveedores estén registrados al iniciar la aplicación."
   },
   "validation": {
-    "fromDateInvalid": "\"from\" es una fecha no válida.",
-    "toDateInvalid": "\"to\" es una fecha no válida.",
-    "fromGreaterThanTo": "\"from\" no puede ser mayor que la fecha \"to\".",
     "dateInvalid": "\"date\" es una fecha no válida."
   },
   "bankDataProviders": {
@@ -196,7 +203,6 @@
     "fromAfterTo": "La fecha \"from\" debe ser anterior a la fecha \"to\"",
     "fromMustBeValidDate": "\"from\" debe ser una cadena de fecha válida",
     "toMustBeValidDate": "\"to\" debe ser una cadena de fecha válida",
-    "onlySupportedForMonobank": "La carga de transacciones por período solo está soportada para Monobank",
     "reconciliationOnlyForEnableBanking": "La conciliación solo está disponible para conexiones de Enable Banking",
     "transactionLoadingQueued": "Carga de transacciones en cola. Tiempo estimado: {{minutes}} minuto(s)",
     "noValidAccountIds": "Ninguno de los IDs de cuenta seleccionados es válido",
@@ -299,7 +305,6 @@
     "baseCurrencyChangeInProgressOtherUser": "El otro participante está cambiando actualmente su moneda base. Inténtelo de nuevo cuando finalice su migración."
   },
   "userSettings": {
-    "excludedCategoriesNotFound": "Una o más categorías excluidas no encontradas",
     "userSettingsNotFound": "Configuración de usuario no encontrada"
   },
   "users": {

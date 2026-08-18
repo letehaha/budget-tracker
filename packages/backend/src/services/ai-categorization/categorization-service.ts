@@ -10,7 +10,7 @@ import { logger } from '@js/utils/logger';
 import { trackAiCategorization } from '@js/utils/posthog';
 import { getCategories } from '@models/categories.model';
 import Payees from '@models/payees.model';
-import Transactions from '@models/transactions.model';
+import { findTransactions, updateTransactions } from '@models/transactions-query';
 import {
   AIClientResult,
   AI_MAX_OUTPUT_TOKENS,
@@ -261,12 +261,13 @@ async function applyCategorizationResults({
 
   // Re-checks the predicate that selected these rows, which on `defaultCategoryOnly` leaves
   // a row the user categorized by hand mid-run alone.
-  // No `userId` filter: the `Accounts` JOIN that produced these ids already gated ownership,
-  // and adding one would drop shared-account rows a recipient authored.
+  // `unscoped-internal` rather than a creator scope: the `Accounts` JOIN that produced these
+  // ids already gated ownership, and a `userId` filter would drop shared-account rows a
+  // recipient authored.
   await Promise.all(
     Array.from(groupedByCategory.entries()).map(([categoryId, transactionIds]) =>
-      Transactions.update(
-        {
+      updateTransactions({
+        values: {
           categoryId,
           categorizationMeta: {
             source: CATEGORIZATION_SOURCE.ai,
@@ -274,12 +275,11 @@ async function applyCategorizationResults({
             ...(trigger && { trigger }),
           },
         },
-        {
-          where: { ...candidateWhere, id: transactionIds },
-          // A category change doesn't affect balances, so skip the recalculation hooks
-          individualHooks: false,
-        },
-      ),
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        where: { ...candidateWhere, id: transactionIds },
+      }),
     ),
   );
 }
@@ -312,8 +312,8 @@ async function applySkipStamps({
 
   await Promise.all(
     Array.from(groupedByReason.entries()).map(([skipReason, transactionIds]) =>
-      Transactions.update(
-        {
+      updateTransactions({
+        values: {
           categorizationMeta: {
             source: CATEGORIZATION_SOURCE.ai,
             categorizedAt,
@@ -321,11 +321,11 @@ async function applySkipStamps({
             ...(trigger && { trigger }),
           },
         },
-        {
-          where: { ...candidateWhere, id: transactionIds },
-          individualHooks: false,
-        },
-      ),
+        planned: 'exclude',
+        access: 'unscoped-internal',
+        balanceAdjustments: 'include',
+        where: { ...candidateWhere, id: transactionIds },
+      }),
     ),
   );
 }
@@ -344,7 +344,11 @@ async function selectCandidateTransactions({
   transactionIds: string[];
   candidateWhere: CandidateWhere;
 }): Promise<TransactionForCategorization[]> {
-  const transactions = await Transactions.findAll({
+  const transactions = await findTransactions({
+    planned: 'exclude',
+    access: { accountOwner: userId },
+    balanceAdjustments: 'include',
+    completeness: 'all',
     where: { ...candidateWhere, id: transactionIds },
     include: [
       ownedAccountsInclude({ userId, attributes: ['name'] }),
