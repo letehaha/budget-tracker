@@ -41,7 +41,6 @@ import testsRoutes from './routes/tests.route';
 import transactionGroupsRoutes from './routes/transaction-groups.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
-import usersRoutes from './routes/users.route';
 import vehiclesRoutes from './routes/vehicles.route';
 import ventureRoutes from './routes/venture.route';
 import webhooksRoutes from './routes/webhooks.route';
@@ -166,7 +165,6 @@ export function setupRoutes(app: Express) {
   });
 
   app.use(`${API_PREFIX}/user`, userRoutes);
-  app.use(`${API_PREFIX}/users`, usersRoutes);
   app.use(`${API_PREFIX}/accounts`, accountsRoutes);
   app.use(`${API_PREFIX}/transactions`, transactionsRoutes);
   app.use(`${API_PREFIX}/categories`, categoriesRoutes);
