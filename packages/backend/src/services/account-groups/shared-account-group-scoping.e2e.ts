@@ -132,4 +132,33 @@ describe('Account group scoping with shared accounts', () => {
     expect(remaining).toHaveLength(1);
     expect(remaining[0]!.groupId).toBe(ownerGroup.id);
   });
+
+  it("stranger requesting the owner's groupId gets an empty result, never the owner's account ids", async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const ownerGroup = await helpers.createAccountGroup({ name: 'owner-group', raw: true });
+    await helpers.addAccountToGroup({ accountId: account.id, groupId: ownerGroup.id });
+
+    const stranger = await provisionRecipient();
+
+    const res = await helpers.asUser({
+      cookies: stranger.cookies,
+      fn: () => helpers.getAccountsInGroup({ groupId: ownerGroup.id }),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.response).toEqual([]);
+    const accountIds = res.body.response.map((g) => g.accountId);
+    expect(accountIds).not.toContain(account.id);
+  });
+
+  it('owner can list the accounts in their own group', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const ownerGroup = await helpers.createAccountGroup({ name: 'owner-group', raw: true });
+    await helpers.addAccountToGroup({ accountId: account.id, groupId: ownerGroup.id });
+
+    const res = await helpers.getAccountsInGroup({ groupId: ownerGroup.id, raw: true });
+
+    expect(res).toHaveLength(1);
+    expect(res[0]!.accountId).toBe(account.id);
+  });
 });
