@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PickTransactionDialog from '@/components/dialogs/pick-transaction-dialog.vue';
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
@@ -20,7 +21,7 @@ import {
 } from '@/composable/data-queries/portfolio-transfers';
 import { usePortfolioCurrencySorting } from '@/composable/data-queries/use-portfolio-currency-sorting';
 import { useFormValidation } from '@/composable/form-validator';
-import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
+import { useAccountDropdownPrefs } from '@/composable/use-account-dropdown-prefs';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import type { AccountModel, PortfolioModel, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
@@ -55,6 +56,10 @@ const { txTargetableSourceAccountsActiveFirst: txTargetableAccountsActiveFirst, 
 const { currencies } = storeToRefs(useCurrenciesStore());
 const { formatAmountByCurrencyCode } = useFormatCurrency();
 const { sortedCurrencies, currencyLabel } = usePortfolioCurrencySorting(computed(() => props.portfolioId));
+const { resolveDefaultAccount } = useAccountDropdownPrefs();
+
+const defaultTransferAccount = () =>
+  resolveDefaultAccount({ accounts: txTargetableAccountsActiveFirst.value, fallbackToFirst: false });
 
 // Mutations
 const directCashMutation = useCreateDirectCashTransaction();
@@ -113,7 +118,7 @@ const transferForm = reactive<{
   date: Date;
   description: string;
 }>({
-  selectedAccount: null,
+  selectedAccount: defaultTransferAccount(),
   amount: '',
   selectedCurrency: null,
   date: new Date(),
@@ -230,7 +235,7 @@ const resetDirectForm = () => {
 };
 
 const resetTransferForm = () => {
-  transferForm.selectedAccount = null;
+  transferForm.selectedAccount = defaultTransferAccount();
   transferForm.amount = '';
   transferForm.selectedCurrency = null;
   transferForm.date = new Date();
@@ -500,20 +505,14 @@ const accountLabel = computed(() =>
 
         <!-- Manual transfer fields -->
         <template v-else>
-          <SelectField
+          <AccountSelectField
             v-model="transferForm.selectedAccount"
             :label="accountLabel"
-            :values="txTargetableAccountsActiveFirst"
-            value-key="id"
-            :label-key="getAccountDisplayLabel"
+            :accounts="txTargetableAccountsActiveFirst"
             :placeholder="$t('forms.directCashTransaction.accountPlaceholder')"
             :disabled="isAnyMutationPending || disabled"
             :error-message="getTransferFieldError('transferForm.selectedAccount')"
-          >
-            <template #item="{ item, label }">
-              <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
-            </template>
-          </SelectField>
+          />
 
           <InputField
             v-model="transferForm.amount"

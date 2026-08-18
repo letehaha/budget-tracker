@@ -66,11 +66,19 @@ const countableScope = ({ userId }: { userId: number }): CountableScope => ({
  *
  * When `payeeIds` is empty, returns `[]` without hitting the DB.
  */
-async function getPayeeStats({ userId, payeeIds }: { userId: number; payeeIds: string[] }): Promise<PayeeStatsRow[]> {
+async function getPayeeStats({
+  userId,
+  payeeIds,
+  accountId,
+}: {
+  userId: number;
+  payeeIds: string[];
+  accountId?: string;
+}): Promise<PayeeStatsRow[]> {
   if (payeeIds.length === 0) return [];
 
   const scope = countableScope({ userId });
-  const payeeFilter = { payeeId: { [Op.in]: payeeIds } };
+  const payeeFilter = { payeeId: { [Op.in]: payeeIds }, ...(accountId !== undefined ? { accountId } : {}) };
 
   const [totals, categoryCounts] = (await Promise.all([
     findTransactions({
@@ -120,11 +128,13 @@ async function getPayeeStats({ userId, payeeIds }: { userId: number; payeeIds: s
 export async function getPayeeStatsMap({
   userId,
   payeeIds,
+  accountId,
 }: {
   userId: number;
   payeeIds: string[];
+  accountId?: string;
 }): Promise<Map<string, PayeeStatsRow>> {
-  const rows = await getPayeeStats({ userId, payeeIds });
+  const rows = await getPayeeStats({ userId, payeeIds, accountId });
   const map = new Map<string, PayeeStatsRow>();
   for (const row of rows) map.set(row.payeeId, row);
   return map;

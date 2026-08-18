@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
@@ -6,7 +7,7 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { usePrioritizedCurrencies } from '@/composable/data-queries/prioritized-currencies';
 import { useCurrencyName } from '@/composable/formatters';
 import { useAccountsStore } from '@/stores';
-import type { CurrencyModel, SubscriptionMatchingRule } from '@bt/shared/types';
+import type { AccountModel, CurrencyModel, SubscriptionMatchingRule } from '@bt/shared/types';
 import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { PlusIcon, Trash2Icon } from '@lucide/vue';
 import { computed } from 'vue';
@@ -43,12 +44,10 @@ const TRANSACTION_TYPE_OPTIONS = computed(() => [
   { label: t('planned.subscriptions.rules.transactionTypeOptions.expense'), value: TRANSACTION_TYPES.expense },
 ]);
 
-const accountOptions = computed(() =>
-  accountsStore.activeAccounts.map((a) => ({
-    label: `${a.name} (${a.currencyCode})`,
-    value: a.id,
-  })),
-);
+const allAccounts = computed(() => accountsStore.accounts ?? []);
+
+const getSelectedAccount = ({ rule }: { rule: SubscriptionMatchingRule }) =>
+  accountsStore.accountsRecord[String(rule.value)] ?? null;
 
 const getOperatorForField = (field: string): string => {
   switch (field) {
@@ -267,15 +266,14 @@ const updateAmountMax = ({ index, rule, v }: { index: number; rule: Subscription
       </template>
 
       <template v-else-if="rule.field === 'accountId'">
-        <SelectField
-          :model-value="accountOptions.find((o) => o.value === rule.value) ?? null"
-          :values="accountOptions"
-          label-key="label"
-          value-key="value"
+        <AccountSelectField
+          :model-value="getSelectedAccount({ rule })"
+          :accounts="allAccounts"
           :label="$t('planned.subscriptions.rules.fieldOptions.account')"
           :placeholder="$t('planned.subscriptions.editors.automation.accountPlaceholder')"
-          with-search
-          @update:model-value="(v: any) => v && updateRuleValue({ index, value: v.value })"
+          @update:model-value="
+            (account: AccountModel | null) => account && updateRuleValue({ index, value: account.id })
+          "
         />
       </template>
     </div>

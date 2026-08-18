@@ -14,6 +14,19 @@
         "description": "Allow automatically detected transfers to link a synced bank transaction with one you created manually.",
         "successNotification": "Transfer matching setting updated",
         "errorNotification": "Failed to update transfer matching setting"
+      },
+      "accountDropdowns": {
+        "defaultAccount": {
+          "label": "Default account",
+          "description": "Pre-selected when you create a transaction.",
+          "placeholder": "No default — first account"
+        },
+        "showArchived": {
+          "label": "Show archived accounts",
+          "description": "When off, archived accounts are hidden from account pickers."
+        },
+        "successNotification": "Account dropdown settings updated",
+        "errorNotification": "Failed to update account dropdown settings"
       }
     }
   }

@@ -61,6 +61,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <slot />
       </SelectViewport>
       <SelectScrollDownButton />
+      <slot name="footer" />
     </SelectContent>
   </SelectPortal>
 </template>

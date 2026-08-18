@@ -28,11 +28,9 @@ export const useTransferFormLogic = ({
   transferDestinationType: Ref<TransferDestinationType>;
 }) => {
   const { currenciesMap } = storeToRefs(useCurrenciesStore());
-  // Vehicle accounts can't be a transfer source or destination — the backend
-  // rejects transfers touching them, so keep them out of both pickers.
-  // Loans can be a transfer destination (transfer_to_loan) but never a source —
-  // money only flows in — so the source list uses the loan-excluded variant.
-  const { txTargetableAccountsActiveFirst, txTargetableSourceAccountsActiveFirst } = storeToRefs(useAccountsStore());
+  // Vehicle accounts can't be a transfer destination: the backend rejects
+  // transfers touching them, so keep them out of the picker.
+  const { txTargetableAccountsActiveFirst } = storeToRefs(useAccountsStore());
 
   const toAccount = computed(() => form.value.toAccount);
 
@@ -88,15 +86,8 @@ export const useTransferFormLogic = ({
     return false;
   });
 
-  const transferSourceAccounts = computed(() => [
-    OUT_OF_WALLET_ACCOUNT_MOCK,
-    ...txTargetableSourceAccountsActiveFirst.value,
-  ]);
-
   const transferDestinationAccounts = computed(() =>
-    [OUT_OF_WALLET_ACCOUNT_MOCK, ...txTargetableAccountsActiveFirst.value].filter(
-      (item) => item.id !== form.value.account?.id,
-    ),
+    txTargetableAccountsActiveFirst.value.filter((item) => item.id !== form.value.account?.id),
   );
 
   watch(
@@ -116,7 +107,6 @@ export const useTransferFormLogic = ({
     targetCurrency,
     fromAccountFieldDisabled,
     toAccountFieldDisabled,
-    transferSourceAccounts,
     transferDestinationAccounts,
   };
 };

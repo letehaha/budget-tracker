@@ -146,16 +146,12 @@
           @update:model-value="handleAccountColumnChange"
         />
         <!-- Account: single existing ⇒ existing-account picker -->
-        <SelectField
+        <AccountSelectField
           v-else-if="item.id === 'account' && accountUsesExisting"
           :model-value="selectedAccount"
-          :values="activeImportLinkableAccounts"
-          label-key="name"
-          value-key="id"
+          :accounts="importLinkableAccounts"
           class="w-full"
           required
-          with-search
-          :search-keys="['name']"
           :placeholder="$t('pages.importExport.accountMapping.selectAccount')"
           @update:model-value="handleAccountSelect"
         />
@@ -240,6 +236,7 @@
 <script setup lang="ts">
 import { getAllCurrencies } from '@/api/currencies';
 import { type FormattedCategory } from '@/common/types';
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -280,7 +277,7 @@ const { t } = useI18n();
 const importStore = useImportExportStore();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
-const { activeAccounts, activeImportLinkableAccounts } = storeToRefs(accountsStore);
+const { importLinkableAccounts } = storeToRefs(accountsStore);
 const { categories, formattedCategories, categoriesMap } = storeToRefs(categoriesStore);
 
 /** Single file → its name; several files → a "N files" count (they were merged into one). */
@@ -592,7 +589,7 @@ const handleAccountColumnChange = (column: string | null) => {
 const selectedAccount = computed<AccountModel | null>(() => {
   const account = m.value.account;
   if (account?.option === AccountOptionValue.existingAccount && account.accountId) {
-    return activeAccounts.value.find((a) => a.id === account.accountId) ?? null;
+    return importLinkableAccounts.value.find((a) => a.id === account.accountId) ?? null;
   }
   return null;
 });

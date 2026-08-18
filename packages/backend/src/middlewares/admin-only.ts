@@ -3,15 +3,26 @@ import { ERROR_CODES } from '@js/errors';
 import Users from '@models/users.model';
 import type { NextFunction, Request, Response } from 'express';
 
+const parseAdminUsers = (): string[] =>
+  (process.env.ADMIN_USERS || '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+
+/**
+ * Whether a username is an admin, per the ADMIN_USERS env list. Single source of truth: the
+ * middleware, the profile `isAdmin` flag, and the reserved-username guard all route through
+ * here so the parsing cannot drift and a mismatch cannot open an escalation.
+ */
+export const isAdminUsername = ({ username }: { username?: string | null }): boolean =>
+  Boolean(username) && parseAdminUsers().includes(username as string);
+
 /**
  * Middleware to ensure an endpoint is only accessible by admin users.
- * Checks if the authenticated user's email is in the ADMIN_USERS environment variable.
- * If not authorized, returns a 401 Unauthorized error.
+ * Returns a 401 Unauthorized error when the caller is not an admin.
  */
 export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
-  const adminUsers = process.env.ADMIN_USERS?.split(',').map((username) => username.trim()) || [];
-
-  if (adminUsers.length === 0) {
+  if (parseAdminUsers().length === 0) {
     return res.status(ERROR_CODES.Unauthorized).json({
       status: API_RESPONSE_STATUS.error,
       response: {
@@ -34,7 +45,7 @@ export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
     });
   }
 
-  if (!adminUsers.includes(username)) {
+  if (!isAdminUsername({ username })) {
     return res.status(ERROR_CODES.Unauthorized).json({
       status: API_RESPONSE_STATUS.error,
       response: {

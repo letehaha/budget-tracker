@@ -115,12 +115,11 @@ watch(
   searchQuery,
   debounce((query: string) => {
     const lowerCaseQuery = query.toLowerCase();
+    // Matches the visible label plus any extra searchKeys fields, so labels with
+    // computed parts (translations, suffixes) stay searchable alongside raw fields.
     debouncedFilteredValues.value = props.values.filter((item) => {
-      if (props.searchKeys?.length) {
-        // If keys are provided, disable filtering by the label
-        return props.searchKeys.some((key) => String(item[key]).toLowerCase().includes(lowerCaseQuery));
-      }
-      return getLabelFromValue(item).toLowerCase().includes(lowerCaseQuery);
+      if (getLabelFromValue(item).toLowerCase().includes(lowerCaseQuery)) return true;
+      return Boolean(props.searchKeys?.some((key) => String(item[key]).toLowerCase().includes(lowerCaseQuery)));
     });
   }, 300),
 );
@@ -160,7 +159,7 @@ watch(
           :class="cn('w-full', $slots['field-right'] && 'min-w-0 flex-1 rounded-r-none border-r-0')"
           :aria-required="required || undefined"
         >
-          <Select.SelectValue :placeholder="placeholder ?? t('fields.select.selectOption')">
+          <Select.SelectValue class="min-w-0 flex-1" :placeholder="placeholder ?? t('fields.select.selectOption')">
             <template v-if="displayItem">
               <slot name="trigger" :item="displayItem" :label="getLabelFromValue(displayItem)">
                 {{ getLabelFromValue(displayItem) }}
@@ -168,13 +167,12 @@ watch(
             </template>
             <template v-else>{{ placeholder ?? t('fields.select.selectOption') }}</template>
           </Select.SelectValue>
-          <!-- Clear button precedes SelectTrigger's built-in chevron; ml-auto pins it
-               to the right edge so a long label still truncates instead of colliding. -->
+          <!-- ml-auto is dead here: the flex-1 SelectValue absorbs the slack, so ml-1 provides the real gap. -->
           <button
             v-if="clearable && displayItem"
             type="button"
             :aria-label="t('common.components.selectField.clearSelection')"
-            class="text-muted-foreground hover:text-foreground focus-visible:ring-ring mr-1 ml-auto shrink-0 rounded focus:outline-none focus-visible:ring-1"
+            class="text-muted-foreground hover:text-foreground focus-visible:ring-ring mr-1 ml-1 shrink-0 rounded focus:outline-none focus-visible:ring-1"
             @click="handleClear"
             @keydown.enter.stop="handleClear"
             @keydown.space.stop="handleClear"
@@ -215,7 +213,11 @@ watch(
             </slot>
           </Select.SelectItem>
 
-          <slot name="select-bottom-content" />
+          <template v-if="$slots['select-bottom-content']" #footer>
+            <div class="border-border bg-popover border-t p-1">
+              <slot name="select-bottom-content" />
+            </div>
+          </template>
         </Select.SelectContent>
       </Select.Select>
 

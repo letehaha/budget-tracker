@@ -7,9 +7,10 @@ export default createController(
   z.object({
     params: z.object({ groupId: recordId() }),
   }),
-  async ({ params }) => {
+  async ({ user, params }) => {
     const data = await accountGroupService.getAccountsInGroup({
       groupId: params.groupId,
+      userId: user.id,
     });
 
     return { data };

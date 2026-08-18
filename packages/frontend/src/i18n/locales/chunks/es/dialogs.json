@@ -139,7 +139,7 @@
         "accountLabel": "Cuenta",
         "selectAccountPlaceholder": "Seleccione una cuenta",
         "noAccountExists": "No existe ninguna cuenta",
-        "addNewAccountButton": "Añadir nueva cuenta +",
+        "addNewAccountButton": "Añadir nueva cuenta",
         "createAccountLink": "Crear cuenta",
         "destinationTypeAccount": "Cuenta",
         "destinationTypePortfolio": "Cartera",

@@ -2,33 +2,25 @@
   <template v-if="accounts.length || account">
     <template v-if="isTransferTransaction && !isTransactionLinking">
       <form-row>
-        <select-field
+        <AccountSelectField
           data-test="account-select-field"
           :label="$t('dialogs.manageTransaction.form.fromAccountLabel')"
           :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
-          :values="accounts"
-          :label-key="getAccountLabel"
-          value-key="id"
-          with-search
+          :accounts="accounts"
+          include-out-of-wallet
           :disabled="disabled || fromAccountDisabled"
-          is-value-preselected
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
-          <template #trigger="{ item, label }">
-            <AccountOptionRow :account="item" :label="label" variant="trigger" />
-          </template>
-          <template #item="{ item, label }">
-            <AccountOptionRow :account="item" :label="label" />
-          </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
-              <UiButton type="button" class="mt-4 w-full" variant="link">
+              <UiButton type="button" class="w-full justify-start" variant="ghost-primary" size="sm">
+                <PlusIcon class="size-4" />
                 {{ $t('dialogs.manageTransaction.form.addNewAccountButton') }}
               </UiButton>
             </CreateAccountDialog>
           </template>
-        </select-field>
+        </AccountSelectField>
       </form-row>
 
       <form-row>
@@ -45,31 +37,24 @@
           </form-row>
 
           <form-row v-if="destinationType === 'account'">
-            <select-field
+            <AccountSelectField
               :label="$t('dialogs.manageTransaction.form.toAccountLabel')"
               :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
-              :values="filteredAccounts"
-              :label-key="getAccountLabel"
-              value-key="id"
-              with-search
+              :accounts="filteredAccounts"
+              :include-out-of-wallet="account?.id !== OUT_OF_WALLET_ACCOUNT_MOCK.id"
               :disabled="disabled || toAccountDisabled"
               :model-value="toAccount"
               @update:model-value="updateToAccount"
             >
-              <template #trigger="{ item, label }">
-                <AccountOptionRow :account="item" :label="label" variant="trigger" />
-              </template>
-              <template #item="{ item, label }">
-                <AccountOptionRow :account="item" :label="label" />
-              </template>
               <template #select-bottom-content>
                 <CreateAccountDialog>
-                  <UiButton type="button" class="mt-4 w-full" variant="link">
+                  <UiButton type="button" class="w-full justify-start" variant="ghost-primary" size="sm">
+                    <PlusIcon class="size-4" />
                     {{ $t('dialogs.manageTransaction.form.addNewAccountButton') }}
                   </UiButton>
                 </CreateAccountDialog>
               </template>
-            </select-field>
+            </AccountSelectField>
           </form-row>
 
           <form-row v-else-if="destinationType === 'portfolio'">
@@ -91,28 +76,18 @@
           </form-row>
 
           <form-row v-else>
-            <select-field
+            <AccountSelectField
               :label="$t('dialogs.manageTransaction.form.toLoanLabel')"
               :placeholder="
                 loanAccounts.length
                   ? $t('dialogs.manageTransaction.form.selectLoanPlaceholder')
                   : $t('dialogs.manageTransaction.form.noLoansExist')
               "
-              :values="loanAccounts"
-              :label-key="getAccountLabel"
-              value-key="id"
-              with-search
+              :accounts="loanAccounts"
               :disabled="disabled || toAccountDisabled || !loanAccounts.length"
               :model-value="toAccount"
               @update:model-value="updateToAccount"
-            >
-              <template #trigger="{ item, label }">
-                <AccountOptionRow :account="item" :label="label" variant="trigger" />
-              </template>
-              <template #item="{ item, label }">
-                <AccountOptionRow :account="item" :label="label" />
-              </template>
-            </select-field>
+            />
           </form-row>
 
           <slot name="destination-bottom" />
@@ -121,25 +96,15 @@
     </template>
     <template v-else>
       <form-row>
-        <select-field
+        <AccountSelectField
           data-test="account-select-field"
           :label="$t('dialogs.manageTransaction.form.accountLabel')"
           :placeholder="$t('dialogs.manageTransaction.form.selectAccountPlaceholder')"
-          :values="accounts"
-          :label-key="getAccountLabel"
-          value-key="id"
-          with-search
+          :accounts="accounts"
           :disabled="disabled || fromAccountDisabled"
-          is-value-preselected
           :model-value="account"
           @update:model-value="updateFormAccount"
         >
-          <template #trigger="{ item, label }">
-            <AccountOptionRow :account="item" :label="label" variant="trigger" />
-          </template>
-          <template #item="{ item, label }">
-            <AccountOptionRow :account="item" :label="label" archived-class="text-muted-foreground" />
-          </template>
           <template v-if="$slots['account-label-right'] && !$slots['account-field-right']" #label-right>
             <slot name="account-label-right" />
           </template>
@@ -148,12 +113,13 @@
           </template>
           <template #select-bottom-content>
             <CreateAccountDialog>
-              <UiButton type="button" class="mt-4 w-full" variant="link">
+              <UiButton type="button" class="w-full justify-start" variant="ghost-primary" size="sm">
+                <PlusIcon class="size-4" />
                 {{ $t('dialogs.manageTransaction.form.addNewAccountButton') }}
               </UiButton>
             </CreateAccountDialog>
           </template>
-        </select-field>
+        </AccountSelectField>
 
         <slot name="account-hint" />
       </form-row>
@@ -185,31 +151,23 @@
 
 <script setup lang="ts">
 import CreateAccountDialog from '@/components/dialogs/create-account-dialog.vue';
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { PillTabs } from '@/components/lib/ui/pill-tabs';
-import { getAccountDisplayLabel } from '@/common/utils/account-display';
+import { OUT_OF_WALLET_ACCOUNT_MOCK } from '@/common/const';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES } from '@bt/shared/types';
-import { BriefcaseIcon, HandCoinsIcon, WalletIcon } from '@lucide/vue';
+import { BriefcaseIcon, HandCoinsIcon, PlusIcon, WalletIcon } from '@lucide/vue';
 import { type Component, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { getAvailableTransferDestinationTypes } from '../helpers';
 import type { TransferDestinationType } from '../composables/transfer-form';
-import AccountOptionRow from './account-option-row.vue';
 import DestinationPanel from './destination-panel.vue';
 import FormRow from './form-row.vue';
 
 const { t } = useI18n();
-
-// Translate the OUT_OF_WALLET_ACCOUNT_MOCK label (its `name` is an i18n key); real accounts use the shared helper.
-const getAccountLabel = (account: AccountModel & { _isOutOfWallet?: boolean }) => {
-  if (account._isOutOfWallet) {
-    return t(account.name);
-  }
-  return getAccountDisplayLabel(account);
-};
 
 const DESTINATION_TYPE_META: Record<TransferDestinationType, { labelKey: string; icon: Component }> = {
   account: { labelKey: 'dialogs.manageTransaction.form.destinationTypeAccount', icon: WalletIcon },

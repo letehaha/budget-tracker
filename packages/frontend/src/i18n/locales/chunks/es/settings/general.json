@@ -14,6 +14,19 @@
         "description": "Permite que las transferencias detectadas automáticamente vinculen una transacción bancaria sincronizada con una que usted creó manualmente.",
         "successNotification": "Ajuste de asociación de transferencias actualizado",
         "errorNotification": "Error al actualizar el ajuste de asociación de transferencias"
+      },
+      "accountDropdowns": {
+        "defaultAccount": {
+          "label": "Cuenta predeterminada",
+          "description": "Se preselecciona al crear una transacción.",
+          "placeholder": "Sin predeterminada — primera cuenta"
+        },
+        "showArchived": {
+          "label": "Mostrar cuentas archivadas",
+          "description": "Cuando está desactivado, las cuentas archivadas se ocultan de los selectores de cuenta."
+        },
+        "successNotification": "Ajustes del selector de cuentas actualizados",
+        "errorNotification": "Error al actualizar los ajustes del selector de cuentas"
       }
     }
   }

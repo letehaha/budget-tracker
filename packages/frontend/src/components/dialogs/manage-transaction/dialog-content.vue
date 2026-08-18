@@ -59,6 +59,7 @@ import LabelPill from './components/label-pill.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
 import { useAccountAccess } from '@/composable/use-account-access';
+import { useAccountDropdownPrefs } from '@/composable/use-account-dropdown-prefs';
 import { useAccountCategories } from '@/composable/data-queries/categories';
 import { useLoans } from '@/composable/data-queries/loans';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
@@ -397,7 +398,6 @@ const {
   targetCurrency,
   fromAccountFieldDisabled,
   toAccountFieldDisabled,
-  transferSourceAccounts,
   transferDestinationAccounts,
 } = useTransferFormLogic({
   form,
@@ -925,10 +925,11 @@ const moreOptionsFilledCount = computed(() => {
 // the global Pinia map is loaded synchronously on app boot; for shared-with-caller txs
 // we route through `useAccountCategories`, which fires after mount – populate then.
 const hasPrepopulated = ref(false);
+const { resolveDefaultAccount } = useAccountDropdownPrefs();
 const prepopulateIfReady = () => {
   if (hasPrepopulated.value) return;
   if (!transaction.value) {
-    form.value.account = txTargetableSourceAccountsActiveFirst.value[0] ?? null;
+    form.value.account = resolveDefaultAccount({ accounts: txTargetableSourceAccountsActiveFirst.value });
     hasPrepopulated.value = true;
     return;
   }
@@ -983,7 +984,6 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled || !isEditableAsManual"
         :values="VERBOSE_PAYMENT_TYPES"
         :label-key="(item) => t(item.label)"
-        is-value-preselected
       />
     </FormRow>
     <FormRow>
@@ -1117,7 +1117,7 @@ onUnmounted(() => {
               :is-transfer-transaction="isTransferTx"
               :is-transaction-linking="!!linkedTransaction"
               :transaction-type="transaction?.transactionType || TRANSACTION_TYPES.expense"
-              :accounts="isTransferTx ? transferSourceAccounts : nonTransferSourceAccounts"
+              :accounts="isTransferTx ? txTargetableSourceAccountsActiveFirst : nonTransferSourceAccounts"
               :from-account-disabled="fromAccountFieldDisabled"
               :to-account-disabled="toAccountFieldDisabled"
               :destination-type-disabled="isDestinationTypeLocked"
