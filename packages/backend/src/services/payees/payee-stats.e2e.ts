@@ -293,8 +293,12 @@ describe('Payee stats — rows that must not be counted', () => {
       expect(recipientShared!.stats!.netFlowRef).toBe(-200);
       expect(toMs(recipientShared!.stats!.lastSeenAt)).toBe(toMs(lastShared.time));
 
-      // The private-only payee is invisible to the recipient's shared-account view.
-      expect(recipientList.some((row) => row.id === privateOnlyPayee.id)).toBe(false);
+      // The owner's full payee namespace stays visible so the recipient's picker can
+      // resolve it, but a payee with no shared-account activity carries no stats —
+      // none of the owner's private-account figures leak through.
+      const recipientPrivate = recipientList.find((row) => row.id === privateOnlyPayee.id);
+      expect(recipientPrivate).toBeDefined();
+      expect(recipientPrivate!.stats).toBeNull();
 
       // Owner's own list still aggregates across all their accounts.
       const ownerList = await helpers.listPayees({ raw: true });

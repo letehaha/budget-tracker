@@ -147,9 +147,10 @@ export const listPayees = withTransaction(
     accountId,
   }: ListPayeesParams): Promise<PayeeListRow[]> => {
     let scopedUserId = userId;
-    // Only set for a NON-owner recipient scoping to a shared account: their
-    // view must never reach the owner's other (unshared) accounts, so both the
-    // payee id selection and the stats aggregation are pinned to this account.
+    // Only set for a NON-owner recipient scoping to a shared account: their stats
+    // must never reach the owner's other (unshared) accounts, so the stats
+    // aggregation is pinned to this account. The payee namespace stays the owner's
+    // full set — the recipient's transaction-form picker needs to resolve it.
     let statsAccountId: string | undefined;
     if (accountId !== undefined) {
       const access = await canUserAccessResource({
@@ -183,16 +184,17 @@ export const listPayees = withTransaction(
     // when two rows share the same primary sort key.
     const orderBy = `${sortColumn} ${sortDirSql} NULLS LAST, p.id ASC`;
     const nameWhere = normalizedQuery !== null ? 'AND p."normalizedName" LIKE :nameLike' : '';
-    // Scoping to a shared account narrows the stats subquery to that account and
-    // switches the join to INNER, so only payees active on it surface.
+    // Scoping to a shared account narrows the stats subquery to that account, so the
+    // sort keys and shown stats reflect only shared-account activity. The join stays
+    // LEFT so the owner's full payee namespace still surfaces (payees unused on the
+    // shared account sort last with null stats), which the recipient's picker needs.
     const accountFilter = statsAccountId !== undefined ? 'AND t."accountId" = :statsAccountId' : '';
-    const statsJoin = statsAccountId !== undefined ? 'JOIN' : 'LEFT JOIN';
 
     const idRows: { id: string }[] = await connection.sequelize.query(
       `
       SELECT p.id
         FROM "Payees" p
-        ${statsJoin} (
+        LEFT JOIN (
           SELECT t."payeeId",
                  COUNT(*) AS "transactionCount",
                  SUM(
