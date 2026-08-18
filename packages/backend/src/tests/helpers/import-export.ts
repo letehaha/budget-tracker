@@ -404,6 +404,43 @@ export function getYnabImportStatus<R extends boolean | undefined = false>({
   });
 }
 
+/**
+ * Poll GET /import/ynab/status/:jobId every 100 ms until the job leaves the
+ * running/queued states or the timeout elapses. The BullMQ worker is async, so
+ * the execute response only carries `jobId` — callers must poll for the result.
+ * Mirrors `waitForCsvImportCompletion` / `waitForBudgetBakersWalletCompletion`.
+ */
+export async function waitForYnabImportCompletion({
+  jobId,
+  timeoutMs = 30_000,
+}: {
+  jobId: string;
+  timeoutMs?: number;
+}): Promise<YnabImportProgress> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const progress = await getYnabImportStatus({ jobId, raw: true });
+    if (progress.status === 'completed' || progress.status === 'failed') {
+      return progress;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`YNAB import job ${jobId} did not finish within ${timeoutMs}ms`);
+}
+
+/**
+ * Narrow terminal YNAB progress to the `completed` branch so tests can read
+ * `summary` directly. Throws (failing the calling test) when the worker
+ * finished with `status:'failed'`. Mirrors `expectCsvImportCompleted`.
+ */
+export function expectYnabImportCompleted(
+  progress: YnabImportProgress,
+): asserts progress is Extract<YnabImportProgress, { status: 'completed' }> {
+  if (progress.status !== 'completed') {
+    throw new Error(`Expected completed YNAB import, got status="${progress.status}".`);
+  }
+}
+
 // ============================================
 // Budget Bakers Wallet Import - Fixture Loader
 // ============================================

@@ -7,7 +7,13 @@ import {
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
-import { expectCsvImportCompleted, waitForCsvImportCompletion } from '@tests/helpers/import-export';
+import {
+  expectCsvImportCompleted,
+  expectYnabImportCompleted,
+  waitForCsvImportCompletion,
+  waitForYnabImportCompletion,
+} from '@tests/helpers/import-export';
+import { asUser, signUpSecondUser, withoutSession } from '@tests/helpers/share';
 
 async function runYnabImport() {
   const fileContent = helpers.loadYnabFixture('register-basic.csv');
@@ -17,17 +23,9 @@ async function runYnabImport() {
     parsed.result.accounts.map((a) => [a.originalName, { currencyCode: a.detectedCurrency! }]),
   );
   const { jobId } = await helpers.executeYnab({ payload: { fileContent, accountMapping }, raw: true });
-
-  const deadline = Date.now() + 30_000;
-  let status = await helpers.getYnabImportStatus({ jobId, raw: true });
-  while (status.status !== 'completed' && status.status !== 'failed' && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    status = await helpers.getYnabImportStatus({ jobId, raw: true });
-  }
-  if (status.status !== 'completed') {
-    throw new Error(`Expected completed YNAB import, got status="${status.status}".`);
-  }
-  return { summary: status.summary, accountNames };
+  const progress = await waitForYnabImportCompletion({ jobId });
+  expectYnabImportCompleted(progress);
+  return { summary: progress.summary, accountNames };
 }
 
 describe('GET /import/batches-history', () => {
@@ -108,20 +106,49 @@ describe('GET /import/batches-history', () => {
     expect(new Set(ynabBatch!.accountIds)).toEqual(new Set(expectedYnabAccountIds));
   });
 
-  it('paginates: totalCount is populated on the first page and null on later pages', async () => {
+  it('lists the newest batch first, paginating with totalCount only on the first page', async () => {
     const accountA = await helpers.createAccount({ raw: true });
     const accountB = await helpers.createAccount({ raw: true });
-    await runCsvImport({ accountId: accountA.id, currencyCode: accountA.currencyCode });
-    await runCsvImport({ accountId: accountB.id, currencyCode: accountB.currencyCode });
+    const older = await runCsvImport({ accountId: accountA.id, currencyCode: accountA.currencyCode });
+    // Import batches are millisecond-stamped; without a gap the two could land in
+    // the same millisecond and "newest first" would be unverifiable here.
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    const newer = await runCsvImport({ accountId: accountB.id, currencyCode: accountB.currencyCode });
 
     const firstPage = await helpers.getBatchesHistory({ payload: { limit: 1, offset: 0 }, raw: true });
     expect(firstPage.items).toHaveLength(1);
     expect(firstPage.totalCount).toBe(2);
+    expect(firstPage.items[0]!.batchId).toBe(newer.batchId);
 
     const secondPage = await helpers.getBatchesHistory({ payload: { limit: 1, offset: 1 }, raw: true });
     expect(secondPage.items).toHaveLength(1);
     expect(secondPage.totalCount).toBeNull();
+    expect(secondPage.items[0]!.batchId).toBe(older.batchId);
+  });
 
-    expect(firstPage.items[0]!.batchId).not.toBe(secondPage.items[0]!.batchId);
+  it('rejects a limit above the allowed maximum', async () => {
+    const response = await helpers.getBatchesHistory({ payload: { limit: 500 } });
+
+    expect(response.statusCode).toBe(422);
+  });
+
+  it('returns 401 for an unauthenticated request', async () => {
+    const response = await withoutSession(() => helpers.getBatchesHistory({}));
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  it("never surfaces another user's batches", async () => {
+    const account = await helpers.createAccount({ raw: true });
+    await runCsvImport({ accountId: account.id, currencyCode: account.currencyCode });
+    expect((await helpers.getBatchesHistory({ raw: true })).totalCount).toBe(1);
+
+    const otherUser = await signUpSecondUser();
+    const otherHistory = await asUser({
+      cookies: otherUser.cookies,
+      fn: () => helpers.getBatchesHistory({ raw: true }),
+    });
+
+    expect(otherHistory).toEqual({ items: [], totalCount: 0 });
   });
 });

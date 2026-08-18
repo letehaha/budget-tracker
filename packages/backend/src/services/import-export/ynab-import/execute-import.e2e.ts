@@ -1,43 +1,8 @@
-import type { YnabImportProgress } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { expectYnabImportCompleted, waitForYnabImportCompletion } from '@tests/helpers/import-export';
 import { asUser, signUpSecondUser } from '@tests/helpers/share';
-
-// ---------------------------------------------------------------------------
-// Polling helper — the BullMQ worker is async: the execute response only carries
-// `jobId`, so callers poll the status endpoint until the job reaches a terminal
-// state. Mirrors the wallet importer's waitForWalletCompletion.
-// ---------------------------------------------------------------------------
-
-async function waitForCompletion({
-  jobId,
-  timeoutMs = 30_000,
-}: {
-  jobId: string;
-  timeoutMs?: number;
-}): Promise<YnabImportProgress> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const progress = await helpers.getYnabImportStatus({ jobId, raw: true });
-    if (progress.status === 'completed' || progress.status === 'failed') {
-      return progress;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  throw new Error(`YNAB import job ${jobId} did not finish within ${timeoutMs}ms`);
-}
-
-/** Narrow a terminal-state progress to the `completed` branch so tests can
- *  reach `summary` without a non-null assertion. Throws (and fails the test)
- *  if the worker actually failed. */
-function expectCompleted(
-  progress: YnabImportProgress,
-): asserts progress is Extract<YnabImportProgress, { status: 'completed' }> {
-  if (progress.status !== 'completed') {
-    throw new Error(`Expected completed import, got status="${progress.status}".`);
-  }
-}
 
 describe('Execute YNAB import endpoint', () => {
   it('imports a multi-currency fixture end to end and persists every entity', async () => {
@@ -62,8 +27,8 @@ describe('Execute YNAB import endpoint', () => {
       raw: true,
     });
 
-    const progress = await waitForCompletion({ jobId });
-    expectCompleted(progress);
+    const progress = await waitForYnabImportCompletion({ jobId });
+    expectYnabImportCompleted(progress);
     const summary = progress.summary;
 
     expect(summary.accountsCreated).toBe(3);
@@ -130,8 +95,8 @@ describe('Execute YNAB import endpoint', () => {
 
     // The comprehensive fixture is large (~170 rows); give the worker more
     // headroom than the small fixture before we declare it stuck.
-    const progress = await waitForCompletion({ jobId, timeoutMs: 60_000 });
-    expectCompleted(progress);
+    const progress = await waitForYnabImportCompletion({ jobId, timeoutMs: 60_000 });
+    expectYnabImportCompleted(progress);
     const summary = progress.summary;
 
     expect(summary.accountsCreated).toBe(6);
@@ -185,7 +150,7 @@ describe('Execute YNAB import endpoint', () => {
       payload: { fileContent, accountMapping: incomplete },
       raw: true,
     });
-    const progress = await waitForCompletion({ jobId });
+    const progress = await waitForYnabImportCompletion({ jobId });
     expect(progress.status).toBe('failed');
     if (progress.status !== 'failed') throw new Error('unreachable');
     expect(progress.error).toMatch(/Missing account mapping/i);
@@ -221,8 +186,8 @@ describe('Execute YNAB import endpoint', () => {
     );
 
     const { jobId } = await helpers.executeYnab({ payload: { fileContent, accountMapping }, raw: true });
-    const progress = await waitForCompletion({ jobId });
-    expectCompleted(progress);
+    const progress = await waitForYnabImportCompletion({ jobId });
+    expectYnabImportCompleted(progress);
     expect(progress.summary.transfersImported).toBe(1);
 
     // The basic fixture's only transfer carries the memo "Move to savings"
