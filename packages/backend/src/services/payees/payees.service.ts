@@ -97,8 +97,9 @@ interface ListPayeesParams {
   sortDir?: PayeeSortDir;
   /**
    * Scope to a single account's owner. On a shared account the recipient
-   * sees the owner's payee set; on an owned account it behaves like the
-   * no-arg path. Mirrors the categories `?accountId=` pattern so the
+   * sees the owner's payees active on that account, with stats scoped to it
+   * so the owner's other accounts never leak; on an owned account it behaves
+   * like the no-arg path. Mirrors the categories `?accountId=` pattern so the
    * recipient's transaction-form picker resolves to the same namespace
    * that backend write paths validate against. Stranger `accountId`
    * returns 404 to keep the param from leaking other users' resources.
@@ -146,6 +147,10 @@ export const listPayees = withTransaction(
     accountId,
   }: ListPayeesParams): Promise<PayeeListRow[]> => {
     let scopedUserId = userId;
+    // Only set for a NON-owner recipient scoping to a shared account: their
+    // view must never reach the owner's other (unshared) accounts, so both the
+    // payee id selection and the stats aggregation are pinned to this account.
+    let statsAccountId: string | undefined;
     if (accountId !== undefined) {
       const access = await canUserAccessResource({
         userId,
@@ -157,6 +162,9 @@ export const listPayees = withTransaction(
         throw new NotFoundError({ message: t({ key: 'accounts.accountNotFoundForTransaction' }) });
       }
       scopedUserId = access.isOwner ? userId : access.ownerUserId!;
+      if (!access.isOwner) {
+        statsAccountId = accountId;
+      }
     }
 
     let effectiveLimit = Math.min(Math.max(limit, 1), MAX_LIST_LIMIT);
@@ -175,12 +183,16 @@ export const listPayees = withTransaction(
     // when two rows share the same primary sort key.
     const orderBy = `${sortColumn} ${sortDirSql} NULLS LAST, p.id ASC`;
     const nameWhere = normalizedQuery !== null ? 'AND p."normalizedName" LIKE :nameLike' : '';
+    // Scoping to a shared account narrows the stats subquery to that account and
+    // switches the join to INNER, so only payees active on it surface.
+    const accountFilter = statsAccountId !== undefined ? 'AND t."accountId" = :statsAccountId' : '';
+    const statsJoin = statsAccountId !== undefined ? 'JOIN' : 'LEFT JOIN';
 
     const idRows: { id: string }[] = await connection.sequelize.query(
       `
       SELECT p.id
         FROM "Payees" p
-        LEFT JOIN (
+        ${statsJoin} (
           SELECT t."payeeId",
                  COUNT(*) AS "transactionCount",
                  SUM(
@@ -195,6 +207,7 @@ export const listPayees = withTransaction(
            WHERE t."userId" = :scopedUserId
              AND t."transferNature" = 'not_transfer'
              AND a."excludeFromStats" = false
+             ${accountFilter}
              AND (t."externalData" IS NULL OR NOT (t."externalData" @> '{"balanceAdjustment": true}'))
            GROUP BY t."payeeId"
         ) s ON s."payeeId" = p.id
@@ -207,6 +220,7 @@ export const listPayees = withTransaction(
         type: QueryTypes.SELECT,
         replacements: {
           scopedUserId,
+          statsAccountId: statsAccountId ?? null,
           nameLike: normalizedQuery !== null ? `%${normalizedQuery}%` : null,
           limit: effectiveLimit,
           offset,
@@ -226,7 +240,7 @@ export const listPayees = withTransaction(
           { model: Tags, as: 'defaultTags', attributes: ['id'], through: { attributes: [] } },
         ],
       }),
-      getPayeeStatsMap({ userId: scopedUserId, payeeIds: ids }),
+      getPayeeStatsMap({ userId: scopedUserId, payeeIds: ids, accountId: statsAccountId }),
     ]);
 
     const payeesById = new Map<string, Payees>(payees.map((p) => [p.id, p]));
