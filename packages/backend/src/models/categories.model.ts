@@ -2,6 +2,7 @@ import { CATEGORY_TYPES, RecordId } from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ValidationError } from '@js/errors';
+import { Op } from 'sequelize';
 import { Table, Column, Model, ForeignKey, DataType, BelongsToMany } from 'sequelize-typescript';
 
 import MerchantCategoryCodes from './merchant-category-codes.model';
@@ -66,10 +67,20 @@ export const getCategories = async ({ userId }: { userId: number }) => {
   return categories;
 };
 
-export const getCategoriesForUsers = async ({ userIds }: { userIds: number[] }) => {
-  if (userIds.length === 0) return [];
+export const getAccessibleCategories = async ({
+  userIds,
+  categoryIds,
+}: {
+  userIds: number[];
+  categoryIds: RecordId[];
+}) => {
+  const conditions: Record<string, unknown>[] = [];
+  if (userIds.length) conditions.push({ userId: userIds });
+  if (categoryIds.length) conditions.push({ id: categoryIds });
+  if (conditions.length === 0) return [];
+
   const categories = await Categories.findAll({
-    where: { userId: userIds },
+    where: conditions.length === 1 ? conditions[0] : { [Op.or]: conditions },
     raw: true,
   });
 

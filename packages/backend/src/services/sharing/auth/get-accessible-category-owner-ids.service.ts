@@ -1,7 +1,9 @@
-import { RESOURCE_TYPES } from '@bt/shared/types';
+import { RESOURCE_TYPES, RecordId } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
+import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import ResourceShares from '@models/resource-shares.model';
+import { findTransactions } from '@models/transactions-query';
 import { Op } from 'sequelize';
 
 import { getAccessibleAccountIdsForUser } from './get-accessible-account-ids.service';
@@ -69,4 +71,61 @@ export const getAccessibleCategoryOwnerIds = async ({ userId }: { userId: number
   for (const row of ownedBudgetShareRecipientRows) ownerUserIds.add(row.sharedWithUserId);
 
   return Array.from(ownerUserIds);
+};
+
+/**
+ * Scope for the user-facing category catalog (`GET /categories?includeAccessible=true`),
+ * where the raw category names are handed straight to the caller.
+ *
+ * Account shares still expand to the owner's whole tree (`ownerUserIds`) — the recipient
+ * categorizes shared-account transactions against it. Budget shares expand only to the
+ * category ids actually referenced by that budget's transactions (`budgetCategoryIds`),
+ * in both directions, so a shared budget lets each side resolve the other's referenced
+ * category names without disclosing the counterparty's unrelated categories.
+ */
+export const getAccessibleCategoryCatalogScope = async ({
+  userId,
+}: {
+  userId: number;
+}): Promise<{ ownerUserIds: number[]; budgetCategoryIds: RecordId[] }> => {
+  const [accessibleAccountIds, accessibleBudgetIds] = await Promise.all([
+    getAccessibleAccountIdsForUser({ userId }),
+    getAccessibleBudgetIdsForUser({ userId }),
+  ]);
+
+  const ownerUserIds = new Set<number>([userId]);
+  if (accessibleAccountIds.length) {
+    const accountRows = await Accounts.findAll({
+      where: { id: accessibleAccountIds },
+      attributes: ['userId'],
+    });
+    for (const row of accountRows) ownerUserIds.add(row.userId);
+  }
+
+  const budgetCategoryIds = new Set<RecordId>();
+  if (accessibleBudgetIds.length) {
+    const junctionRows = (await BudgetTransactions.findAll({
+      where: { budgetId: { [Op.in]: accessibleBudgetIds } },
+      attributes: ['transactionId'],
+      raw: true,
+    })) as unknown as Array<{ transactionId: RecordId }>;
+    const transactionIds = junctionRows.map((row) => row.transactionId);
+
+    if (transactionIds.length) {
+      const txRows = (await findTransactions({
+        access: 'unscoped-internal',
+        planned: 'include',
+        balanceAdjustments: 'include',
+        completeness: 'all',
+        where: { id: { [Op.in]: transactionIds }, categoryId: { [Op.not]: null } },
+        attributes: ['categoryId'],
+        raw: true,
+      })) as unknown as Array<{ categoryId: RecordId | null }>;
+      for (const row of txRows) {
+        if (row.categoryId) budgetCategoryIds.add(row.categoryId);
+      }
+    }
+  }
+
+  return { ownerUserIds: Array.from(ownerUserIds), budgetCategoryIds: Array.from(budgetCategoryIds) };
 };
