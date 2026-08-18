@@ -20,6 +20,7 @@ export type AccountAction = 'create-new' | 'link-existing' | 'skip';
  * resolved counter word) comes from the shared `pages/import-shared` i18n chunk
  * via the `importShared.*` keys, so both wizards render identical wording.
  */
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
@@ -141,8 +142,8 @@ const accountIdToSourceName = computed(() => {
   return result;
 });
 
-function isAccountAlreadyMapped({ accountId, currentName }: { accountId: string; currentName: string }): boolean {
-  const mappedTo = accountIdToSourceName.value[accountId];
+function isAccountAlreadyMapped({ account, currentName }: { account: AccountModel; currentName: string }): boolean {
+  const mappedTo = accountIdToSourceName.value[String(account.id)];
   return mappedTo !== undefined && mappedTo !== currentName;
 }
 
@@ -152,19 +153,10 @@ function getActionOption(name: string): OptionItem<AccountAction> | null {
   return actionOptions.value.find((o) => o.value === m.action) ?? null;
 }
 
-function getSelectOptions(currency: string): OptionItem[] {
-  return getFilteredAccounts(currency).map((acc) => ({
-    label: `${acc.name} (${acc.currencyCode})`,
-    value: String(acc.id),
-  }));
-}
-
-function getSelectValue(name: string): OptionItem | null {
+function getSelectedAccount(name: string): AccountModel | null {
   const m = props.mapping[name];
   if (m?.action !== 'link-existing' || !m.accountId) return null;
-  const acc = props.availableAccounts.find((a) => String(a.id) === m.accountId);
-  if (!acc) return null;
-  return { label: `${acc.name} (${acc.currencyCode})`, value: String(acc.id) };
+  return props.availableAccounts.find((a) => String(a.id) === m.accountId) ?? null;
 }
 
 // ---- Emit handlers ----
@@ -174,8 +166,8 @@ function onActionChange({ name, option }: { name: string; option: OptionItem<Acc
   emit('set-action', { name, action: option.value });
 }
 
-function onTargetChange({ name, option }: { name: string; option: OptionItem | null }) {
-  emit('set-target', { name, accountId: option?.value ?? '' });
+function onTargetChange({ name, account }: { name: string; account: AccountModel | null }) {
+  emit('set-target', { name, accountId: account ? String(account.id) : '' });
 }
 </script>
 
@@ -225,17 +217,16 @@ function onTargetChange({ name, option }: { name: string; option: OptionItem | n
           <p v-if="getFilteredAccounts(item.currency).length === 0" class="text-destructive-text text-sm">
             {{ $t('importShared.account.noMatchingCurrency', { currency: item.currency }) }}
           </p>
-          <SelectField
+          <AccountSelectField
             v-else
-            :model-value="getSelectValue(item.name)"
-            :values="getSelectOptions(item.currency)"
+            :model-value="getSelectedAccount(item.name)"
+            :accounts="getFilteredAccounts(item.currency)"
             class="w-full"
+            include-archived
             clearable
             :placeholder="$t('importShared.account.selectTarget')"
-            :option-disabled="
-              (opt: OptionItem) => isAccountAlreadyMapped({ accountId: opt.value, currentName: item.name })
-            "
-            @update:model-value="onTargetChange({ name: item.name, option: $event })"
+            :option-disabled="(account: AccountModel) => isAccountAlreadyMapped({ account, currentName: item.name })"
+            @update:model-value="onTargetChange({ name: item.name, account: $event })"
           />
         </div>
 

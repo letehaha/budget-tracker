@@ -7,17 +7,19 @@ import {
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { getAccountDisplayLabel } from '@/common/utils/account-display';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
-import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Label } from '@/components/lib/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/lib/ui/radio-group';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useInvalidateSubscriptionQueries } from '@/composable/data-queries/subscriptions';
+import { useAccountDropdownPrefs } from '@/composable/use-account-dropdown-prefs';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { useAccountsStore } from '@/stores';
+import type { AccountModel } from '@bt/shared/types';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
@@ -46,6 +48,7 @@ const invalidateSubscriptionQueries = useInvalidateSubscriptionQueries();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 const { accountsRecord } = storeToRefs(accountsStore);
+const { resolveDefaultAccount } = useAccountDropdownPrefs();
 
 const emit = defineEmits<{
   paid: [];
@@ -91,14 +94,11 @@ const hasAccount = computed(() => activeSubscription.value?.accountId != null);
 /** Whether the account/amount/date fields are shown (booking a real transaction). */
 const isBooking = computed(() => hasAccount.value || recordMode.value === 'transaction');
 
-const accountOptions = computed(() =>
-  accountsStore.activeAccounts.map((account) => ({
-    label: `${account.name} (${account.currencyCode})`,
-    value: account.id,
-  })),
-);
+const allAccounts = computed(() => accountsStore.accounts ?? []);
 
-const selectedAccount = computed(() => accountOptions.value.find((a) => a.value === selectedAccountId.value) ?? null);
+const selectedAccount = computed(() =>
+  selectedAccountId.value ? (accountsRecord.value[selectedAccountId.value] ?? null) : null,
+);
 
 const accountLabel = computed(() => {
   const accountId = activeSubscription.value?.accountId;
@@ -161,7 +161,8 @@ async function triggerPay({ subscription, periodId }: { subscription: PayableSub
     activeSubscription.value = subscription;
     activePeriodId.value = periodId;
     recordMode.value = 'mark';
-    selectedAccountId.value = null;
+    selectedAccountId.value =
+      resolveDefaultAccount({ accounts: allAccounts.value, fallbackToFirst: false })?.id ?? null;
     // Seed with the plan's expected amount as a convenience; the user confirms or
     // edits it, and it is booked in the chosen account's currency.
     amount.value = subscription.expectedAmount != null ? String(subscription.expectedAmount) : '';
@@ -293,16 +294,13 @@ defineExpose({ triggerPay, isPending });
 
       <!-- Booking a real transaction: capture account (when not yet linked), amount, date. -->
       <template v-if="isBooking">
-        <SelectField
+        <AccountSelectField
           v-if="!hasAccount"
           :model-value="selectedAccount"
-          :values="accountOptions"
-          label-key="label"
-          value-key="value"
-          with-search
+          :accounts="allAccounts"
           :label="$t('dialogs.subscriptionMarkPaid.accountLabel')"
           :placeholder="$t('dialogs.subscriptionMarkPaid.accountPlaceholder')"
-          @update:model-value="(v: any) => (selectedAccountId = v?.value ?? null)"
+          @update:model-value="(account: AccountModel | null) => (selectedAccountId = account?.id ?? null)"
         />
 
         <InputField

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type SubscriptionDetail, updateSubscription } from '@/api/subscriptions';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
-import SelectField from '@/components/fields/select-field.vue';
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -9,7 +9,7 @@ import { useInvalidateSubscriptionQueries } from '@/composable/data-queries/subs
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { useAccountsStore } from '@/stores';
-import type { SubscriptionMatchingRule } from '@bt/shared/types';
+import type { AccountModel, SubscriptionMatchingRule } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
 import { HandCoinsIcon, SearchCheckIcon, ZapIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -53,10 +53,7 @@ const MODE_OPTIONS = computed(() => [
   },
 ]);
 
-const accountOptions = computed(() => [
-  { label: t('planned.subscriptions.form.noAccount'), value: null },
-  ...accountsStore.activeAccounts.map((a) => ({ label: `${a.name} (${a.currencyCode})`, value: a.id })),
-]);
+const allAccounts = computed(() => accountsStore.accounts ?? []);
 
 const mode = ref<AutomationMode>(AUTOMATION_MODES.manual);
 const rules = ref<SubscriptionMatchingRule[]>([]);
@@ -77,7 +74,9 @@ watch(open, (isOpen) => {
   if (isOpen) seedFromSubscription();
 });
 
-const selectedAccount = computed(() => accountOptions.value.find((a) => a.value === accountId.value) ?? null);
+const selectedAccount = computed(() =>
+  accountId.value ? (accountsStore.accountsRecord[accountId.value] ?? null) : null,
+);
 
 const isRecordMode = computed(() => mode.value === AUTOMATION_MODES.record);
 
@@ -170,16 +169,14 @@ const handleSubmit = () => {
       </div>
 
       <div class="grid gap-1.5">
-        <SelectField
+        <AccountSelectField
           :model-value="selectedAccount"
-          :values="accountOptions"
-          label-key="label"
-          value-key="value"
+          :accounts="allAccounts"
           :label="$t('planned.subscriptions.form.accountLabel')"
-          :placeholder="$t('planned.subscriptions.editors.automation.accountPlaceholder')"
+          :placeholder="$t('planned.subscriptions.form.noAccount')"
           :required="isRecordMode"
-          with-search
-          @update:model-value="(v: any) => (accountId = v?.value ?? null)"
+          clearable
+          @update:model-value="(account: AccountModel | null) => (accountId = account?.id ?? null)"
         />
         <p class="text-muted-foreground text-xs">
           {{

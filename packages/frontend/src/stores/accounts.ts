@@ -97,14 +97,6 @@ export const useAccountsStore = defineStore('accounts', () => {
     (accounts.value ?? []).filter((item) => !isDedicatedFlowAccountCategory(item.accountCategory)),
   );
 
-  // Vehicle/loan accounts are excluded from imports entirely (derived balances, the
-  // backend rejects them as link targets), so import pickers that assign rows to one
-  // existing account must not offer them — nor archived accounts. Active slice of
-  // importLinkableAccounts.
-  const activeImportLinkableAccounts = computed(() =>
-    importLinkableAccounts.value.filter((item) => item.status === ACCOUNT_STATUSES.active),
-  );
-
   /**
    * Accounts that need to be re-linked due to schema migration.
    * These are Enable Banking accounts where externalId doesn't match identification_hash.
@@ -172,7 +164,6 @@ export const useAccountsStore = defineStore('accounts', () => {
     txTargetableSourceAccountsActiveFirst,
     plannedTargetableAccountsActiveFirst,
     importLinkableAccounts,
-    activeImportLinkableAccounts,
     accountsCurrencyCodes,
     accountsNeedingRelink,
     isAccountsFetched,

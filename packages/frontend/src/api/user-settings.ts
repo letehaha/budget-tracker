@@ -101,6 +101,11 @@ export interface UserSettingsSchema {
    * Accounts panel. Defaults to visible/off when unset.
    */
   hideZeroBalances?: boolean;
+  accounts?: {
+    /** Account preselected in the account pickers. `null` means the user explicitly cleared it. */
+    defaultAccountId?: string | null;
+    showArchivedInDropdowns?: boolean;
+  };
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

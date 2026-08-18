@@ -4,7 +4,7 @@ import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
-import SelectField from '@/components/fields/select-field.vue';
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import FormRow from '@/components/dialogs/manage-transaction/components/form-row.vue';
 import { useDeleteTransaction, useSubmitTransaction } from '@/components/dialogs/manage-transaction/composables';
 import { useLoans, useUnlinkLoanPayment } from '@/composable/data-queries/loans';
@@ -16,11 +16,12 @@ import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import SourceAccountInfoPopover from './source-account-info-popover.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { useAccountDropdownPrefs } from '@/composable/use-account-dropdown-prefs';
 import { useFormValidation } from '@/composable/form-validator';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stores';
-import { ACCOUNT_CATEGORIES, AccountModel, PAYMENT_TYPES, type TransactionModel } from '@bt/shared/types';
+import { AccountModel, PAYMENT_TYPES, type TransactionModel } from '@bt/shared/types';
 import { helpers, minValue, required } from '@vuelidate/validators';
 import { HandCoinsIcon, InfoIcon } from '@lucide/vue';
 import { DialogClose, DialogTitle } from 'reka-ui';
@@ -48,9 +49,11 @@ const { formattedCategories } = storeToRefs(useCategoriesStore());
 
 const isEdit = computed(() => Boolean(props.transaction));
 
+const { resolveDefaultAccount } = useAccountDropdownPrefs();
+
 const initialSourceAccount = computed<AccountModel | null>(() => {
   if (props.transaction) return accountsRecord.value[props.transaction.accountId] ?? null;
-  return txTargetableSourceAccountsActiveFirst.value[0] ?? null;
+  return resolveDefaultAccount({ accounts: txTargetableSourceAccountsActiveFirst.value });
 });
 
 const form = ref<{
@@ -303,12 +306,10 @@ const unlinkPayment = () => {
       </div>
 
       <FormRow>
-        <SelectField
+        <AccountSelectField
           v-model="form.account"
           :label="$t('loans.detail.payment.fromAccountLabel')"
-          :values="txTargetableSourceAccountsActiveFirst"
-          value-key="id"
-          label-key="name"
+          :accounts="txTargetableSourceAccountsActiveFirst"
           :placeholder="$t('loans.detail.payment.fromAccountPlaceholder')"
           :disabled="isLoading"
           :error-message="accountErrorMessage"

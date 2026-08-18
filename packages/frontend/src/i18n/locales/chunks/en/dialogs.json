@@ -139,7 +139,7 @@
         "accountLabel": "Account",
         "selectAccountPlaceholder": "Select account",
         "noAccountExists": "No account exists",
-        "addNewAccountButton": "Add new account +",
+        "addNewAccountButton": "Add new account",
         "createAccountLink": "Create account",
         "destinationTypeAccount": "Account",
         "destinationTypePortfolio": "Portfolio",
