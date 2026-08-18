@@ -1,18 +1,32 @@
 import { type ImportBatchesHistoryResponse, type ImportSource } from '@bt/shared/types';
-import Transactions from '@models/transactions.model';
-import { Op, type WhereOptions, col, fn, literal } from 'sequelize';
+import { findTransactions } from '@models/transactions-query';
+import { col, fn, literal } from 'sequelize';
 
 const BATCH_ID_EXPR = `"Transactions"."externalData"->'importDetails'->>'batchId'`;
 const SOURCE_EXPR = `"Transactions"."externalData"->'importDetails'->>'source'`;
 const IMPORTED_AT_EXPR = `"Transactions"."externalData"->'importDetails'->>'importedAt'`;
 
-function buildBatchScope({ userId }: { userId: number }): WhereOptions<Transactions> {
-  return { userId, [Op.and]: literal(`${BATCH_ID_EXPR} IS NOT NULL`) };
+/**
+ * Policy declared once and shared by both queries below. A batch history entry
+ * must cover every row an import actually created, so nothing is narrowed:
+ * `planned: 'exclude'` because imports only ever write real transactions;
+ * `balanceAdjustments: 'include'` and no `transfers` constraint keep every
+ * transfer leg an import created — the same behavior the pre-migration direct
+ * query had, just stated explicitly now.
+ */
+function buildBatchScope({ userId }: { userId: number }) {
+  return {
+    planned: 'exclude' as const,
+    access: { creator: userId } as const,
+    balanceAdjustments: 'include' as const,
+    where: literal(`${BATCH_ID_EXPR} IS NOT NULL`),
+  };
 }
 
 async function countBatches({ userId }: { userId: number }): Promise<number> {
-  const [row] = (await Transactions.findAll({
-    where: buildBatchScope({ userId }),
+  const [row] = (await findTransactions({
+    ...buildBatchScope({ userId }),
+    completeness: 'all',
     attributes: [[fn('COUNT', literal(`DISTINCT (${BATCH_ID_EXPR})`)), 'batchCount']],
     raw: true,
   })) as unknown as { batchCount: string | number }[];
@@ -42,8 +56,9 @@ export async function listBatchesHistory({
   const isFirstPage = offset === 0;
 
   const [rows, totalCount] = await Promise.all([
-    Transactions.findAll({
-      where: buildBatchScope({ userId }),
+    findTransactions({
+      ...buildBatchScope({ userId }),
+      completeness: { page: { offset, limit } },
       attributes: [
         [literal(BATCH_ID_EXPR), 'batchId'],
         [literal(`MIN(${SOURCE_EXPR})`), 'source'],
@@ -59,8 +74,6 @@ export async function listBatchesHistory({
       // land in the same millisecond, so paging stays stable.
       group: ['batchId'],
       order: literal(`"importedAt" DESC, "batchId" DESC`),
-      limit,
-      offset,
       subQuery: false,
       raw: true,
     }) as unknown as Promise<
