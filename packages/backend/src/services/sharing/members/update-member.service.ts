@@ -80,6 +80,12 @@ const updateMemberImpl = async (params: UpdateMemberParams): Promise<{ share: Re
     throw new ValidationError({ message: 'Cannot modify the owner of a shared resource.' });
   }
 
+  if (memberUserId === callerUserId) {
+    // A manage recipient editing their own row could widen their own permission/policy
+    // (self-escalation). Membership changes must come from someone else who holds manage.
+    throw new ValidationError({ message: 'Cannot modify your own membership on a shared resource.' });
+  }
+
   const resourceIdStr = String(resourceId);
   const share = await ResourceShares.findOne({
     where: {

@@ -1,4 +1,10 @@
-import { type RecordId, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  type RecordId,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
@@ -213,6 +219,93 @@ describe('Payee stats — rows that must not be counted', () => {
       expect(list.transactionCount).toBe(2);
       expect(list.netFlowRef).toBe(-200);
       expect(toMs(list.firstSeenAt)).toBe(toMs(firstVisible.time));
+    });
+  });
+
+  describe('shared-account scoping', () => {
+    // A single-account recipient must only ever see the owner's stats for the
+    // account shared with them. Aggregating across the owner's other (unshared)
+    // accounts would leak net flow, counts, and first/last-seen from private
+    // accounts the recipient was never granted.
+    const shareAccountReadOnly = async ({ accountId, recipientEmail }: { accountId: string; recipientEmail: string }) =>
+      helpers.createShareInvitation({
+        inviteeEmail: recipientEmail,
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: accountId,
+        permission: SHARE_PERMISSIONS.read,
+        raw: true,
+      });
+
+    it("scopes a recipient's payee stats to the shared account only", async () => {
+      const sharedAccount = await helpers.createAccount({ raw: true });
+      const privateAccount = await helpers.createAccount({ raw: true });
+
+      // Active on BOTH accounts: shared side is 2 expenses of 100 (net -200,
+      // lastSeen 2024-05-02), plus one 500 expense on the private account.
+      const sharedScopePayee = await makePayee({ name: 'Shared Scope Co' });
+      await createExpense({
+        accountId: sharedAccount.id,
+        payeeId: sharedScopePayee.id,
+        amount: 100,
+        time: '2024-05-01T12:00:00.000Z',
+      });
+      const lastShared = await createExpense({
+        accountId: sharedAccount.id,
+        payeeId: sharedScopePayee.id,
+        amount: 100,
+        time: '2024-05-02T12:00:00.000Z',
+      });
+      await createExpense({
+        accountId: privateAccount.id,
+        payeeId: sharedScopePayee.id,
+        amount: 500,
+        time: '2024-05-10T12:00:00.000Z',
+      });
+
+      // Active ONLY on the private account — must not surface to the recipient.
+      const privateOnlyPayee = await makePayee({ name: 'Private Only Co' });
+      await createExpense({
+        accountId: privateAccount.id,
+        payeeId: privateOnlyPayee.id,
+        amount: 300,
+        time: '2024-05-03T12:00:00.000Z',
+      });
+
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+      const invitation = await shareAccountReadOnly({
+        accountId: sharedAccount.id,
+        recipientEmail: recipient.email,
+      });
+      await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
+      });
+
+      const recipientList = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.listPayees({ accountId: sharedAccount.id, raw: true }),
+      });
+
+      const recipientShared = recipientList.find((row) => row.id === sharedScopePayee.id);
+      expect(recipientShared).toBeDefined();
+      expect(recipientShared!.stats).not.toBeNull();
+      expect(recipientShared!.stats!.transactionCount).toBe(2);
+      expect(recipientShared!.stats!.netFlowRef).toBe(-200);
+      expect(toMs(recipientShared!.stats!.lastSeenAt)).toBe(toMs(lastShared.time));
+
+      // The owner's full payee namespace stays visible so the recipient's picker can
+      // resolve it, but a payee with no shared-account activity carries no stats —
+      // none of the owner's private-account figures leak through.
+      const recipientPrivate = recipientList.find((row) => row.id === privateOnlyPayee.id);
+      expect(recipientPrivate).toBeDefined();
+      expect(recipientPrivate!.stats).toBeNull();
+
+      // Owner's own list still aggregates across all their accounts.
+      const ownerList = await helpers.listPayees({ raw: true });
+      const ownerShared = ownerList.find((row) => row.id === sharedScopePayee.id);
+      expect(ownerShared!.stats!.transactionCount).toBe(3);
+      expect(ownerShared!.stats!.netFlowRef).toBe(-700);
+      expect(ownerList.some((row) => row.id === privateOnlyPayee.id)).toBe(true);
     });
   });
 

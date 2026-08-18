@@ -12,8 +12,8 @@ export default createController(
       jobGroupId: z.string(),
     }),
   }),
-  async ({ query }) => {
-    const progress = await getJobGroupProgress(query.jobGroupId);
+  async ({ query, user }) => {
+    const progress = await getJobGroupProgress({ jobGroupId: query.jobGroupId, userId: user.id });
 
     return {
       data: progress,

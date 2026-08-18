@@ -4,6 +4,7 @@ import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
 import { ConflictError, ValidationError } from '@js/errors';
+import { isAdminUsername } from '@middlewares/admin-only';
 import { invalidateAppUserCache } from '@middlewares/better-auth';
 import { ExchangeRatePair } from '@models/user-exchange-rates.model';
 import * as userExchangeRates from '@services/user-exchange-rate';
@@ -19,8 +20,6 @@ import { z } from 'zod';
 export const getUser = createController(z.object({}), async ({ user }) => {
   const userData = await userService.getUser(user.id);
 
-  const isAdmin = (process.env.ADMIN_USERS || '').split(',').some((i) => i === user.username);
-
   // Fetch email from better-auth's ba_user table
   let email: string | null = null;
   if (userData?.authUserId) {
@@ -30,7 +29,7 @@ export const getUser = createController(z.object({}), async ({ user }) => {
     }
   }
 
-  return { data: { ...userData, email, isAdmin } };
+  return { data: { ...userData, email, isAdmin: isAdminUsername({ username: user.username }) } };
 });
 
 export const updateUser = createController(
@@ -57,6 +56,14 @@ export const updateUser = createController(
     }),
   }),
   async ({ user, body }) => {
+    // adminOnly gates its endpoints on username, so renaming into ADMIN_USERS would be
+    // privilege escalation. A no-op rename to the user's own current name is fine.
+    if (body.username && body.username !== user.username && isAdminUsername({ username: body.username })) {
+      throw new ValidationError({
+        message: 'This username is reserved and cannot be used.',
+      });
+    }
+
     try {
       const userData = await userService.updateUser({
         id: user.id,

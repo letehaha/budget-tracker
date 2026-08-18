@@ -525,4 +525,63 @@ describe('Shared budget visibility', () => {
       expect((budgets as Array<{ id: string }>).find((b) => b.id === budget.id)).toBeUndefined();
     });
   });
+
+  describe('GET /categories?includeAccessible=true — budget-share scope', () => {
+    it("exposes only the shared budget's referenced categories, not the owner's whole tree", async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const referencedCategory = await helpers.addCustomCategory({
+        name: 'budget-referenced-cat',
+        color: '#123456',
+        raw: true,
+      });
+      const unrelatedCategory = await helpers.addCustomCategory({
+        name: 'owner-unrelated-cat',
+        color: '#654321',
+        raw: true,
+      });
+
+      const [ownerTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+          categoryId: referencedCategory.id,
+        }),
+        raw: true,
+      });
+
+      const budget = await helpers.createCustomBudget({
+        name: 'Shared category-scope budget',
+        autoInclude: false,
+        limitAmount: 1000,
+        raw: true,
+      });
+      await helpers.addTransactionToCustomBudget({
+        id: budget.id,
+        payload: { transactionIds: [ownerTx!.id] },
+        raw: false,
+      });
+
+      const recipient = await provisionRecipient();
+      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
+
+      const recipientOwnCategory = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.addCustomCategory({ name: 'recipient-own-cat', color: '#00FF00', raw: true }),
+      });
+
+      const list = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getCategoriesList({ includeAccessible: true }),
+      });
+
+      // Referenced by the shared budget's tx — must resolve so the name renders.
+      expect(list.find((c) => c.id === referencedCategory.id)).toBeDefined();
+      // Recipient's own categories are always part of the union.
+      expect(list.find((c) => c.id === recipientOwnCategory.id)).toBeDefined();
+      // Owner category the shared budget never references must NOT leak.
+      expect(list.find((c) => c.id === unrelatedCategory.id)).toBeUndefined();
+    });
+  });
 });
