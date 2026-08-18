@@ -139,7 +139,7 @@
         "accountLabel": "Рахунок",
         "selectAccountPlaceholder": "Виберіть рахунок",
         "noAccountExists": "Рахунків не існує",
-        "addNewAccountButton": "Додати новий рахунок +",
+        "addNewAccountButton": "Додати новий рахунок",
         "createAccountLink": "Створити рахунок",
         "destinationTypeAccount": "Рахунок",
         "destinationTypePortfolio": "Портфель",

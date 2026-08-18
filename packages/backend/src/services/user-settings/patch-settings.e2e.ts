@@ -233,6 +233,61 @@ describe('Patch user settings', () => {
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
+  it('persists the accounts slice and reads both fields back', async () => {
+    const accountId = generateRandomRecordId();
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: { accounts: { defaultAccountId: accountId, showArchivedInDropdowns: true } },
+    });
+    expect(patched.accounts).toStrictEqual({ defaultAccountId: accountId, showArchivedInDropdowns: true });
+
+    const fetched = await helpers.getUserSettings({ raw: true });
+    expect(fetched.accounts).toStrictEqual({ defaultAccountId: accountId, showArchivedInDropdowns: true });
+  });
+
+  it('patching one accounts field keeps the sibling defaultAccountId', async () => {
+    const accountId = generateRandomRecordId();
+    await helpers.patchUserSettings({
+      raw: true,
+      patch: { accounts: { defaultAccountId: accountId, showArchivedInDropdowns: true } },
+    });
+    await helpers.patchUserSettings({
+      raw: true,
+      patch: { accounts: { showArchivedInDropdowns: false } },
+    });
+
+    const fetched = await helpers.getUserSettings({ raw: true });
+    expect(fetched.accounts).toStrictEqual({ defaultAccountId: accountId, showArchivedInDropdowns: false });
+  });
+
+  it('rejects invalid accounts values', async () => {
+    const nonUuidId = await helpers.patchUserSettings({
+      patch: { accounts: { defaultAccountId: 'not-a-uuid' } },
+    });
+    expect(nonUuidId.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const nonBooleanFlag = await helpers.patchUserSettings({
+      patch: { accounts: { showArchivedInDropdowns: 'yes' } },
+    });
+    expect(nonBooleanFlag.statusCode).toBe(ERROR_CODES.ValidationError);
+  });
+
+  it('clears accounts.defaultAccountId with an explicit null', async () => {
+    await helpers.patchUserSettings({
+      raw: true,
+      patch: { accounts: { defaultAccountId: generateRandomRecordId() } },
+    });
+
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: { accounts: { defaultAccountId: null } },
+    });
+    expect(patched.accounts?.defaultAccountId).toBeNull();
+
+    const fetched = await helpers.getUserSettings({ raw: true });
+    expect(fetched.accounts?.defaultAccountId).toBeNull();
+  });
+
   describe('ai.customEndpoints is not patchable here', () => {
     it('drops a smuggled endpoint while still applying the rest of the patch', async () => {
       const response = await helpers.patchUserSettings({
