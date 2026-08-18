@@ -788,7 +788,7 @@ export async function queueTransactionSync(params: {
  * known bundle and aggregate — cost scales with active-token count, which is
  * small (one entry per Monobank user with traffic since boot/recovery).
  */
-export async function getJobGroupProgress(jobGroupId: string): Promise<{
+export async function getJobGroupProgress({ jobGroupId, userId }: { jobGroupId: string; userId: number }): Promise<{
   totalBatches: number;
   completedBatches: number;
   failedBatches: number;
@@ -814,7 +814,11 @@ export async function getJobGroupProgress(jobGroupId: string): Promise<{
     }),
   );
 
-  const matches = (jobs: Job[]) => jobs.filter((job) => job.id?.startsWith(jobGroupId));
+  // Scope to the caller: an attacker-supplied jobGroupId (another user's id, or
+  // empty) must not match foreign jobs. `job.data.userId` is the authoritative
+  // owner; the `-` boundary stops a bare-id prefix widening ("5" matching "50-…").
+  const matches = (jobs: Job[]) =>
+    jobs.filter((job) => job.data.userId === userId && job.id?.startsWith(`${jobGroupId}-`));
   const waitingGroupJobs = perBundle.flatMap((b) => matches(b.waitingJobs));
   const activeGroupJobs = perBundle.flatMap((b) => matches(b.activeJobs));
   const completedGroupJobs = perBundle.flatMap((b) => matches(b.completedJobs));

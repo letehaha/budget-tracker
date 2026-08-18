@@ -312,7 +312,7 @@ export class MonobankProvider extends BaseBankDataProvider {
   /**
    * Get progress of a queued transaction sync job
    */
-  async getTransactionSyncProgress(jobGroupId: string): Promise<{
+  async getTransactionSyncProgress({ jobGroupId, userId }: { jobGroupId: string; userId: number }): Promise<{
     totalBatches: number;
     completedBatches: number;
     failedBatches: number;
@@ -321,7 +321,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     status: 'waiting' | 'active' | 'completed' | 'failed' | 'partial';
     progress?: unknown;
   }> {
-    return getJobGroupProgress(jobGroupId);
+    return getJobGroupProgress({ jobGroupId, userId });
   }
 
   // ============================================================================
