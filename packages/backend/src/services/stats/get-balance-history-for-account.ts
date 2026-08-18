@@ -35,6 +35,11 @@ export const getBalanceHistoryForAccount = async ({
   try {
     let data: Balances.default[] = [];
 
+    const account = await Accounts.default.findOne({ where: { id: accountId, userId } });
+    if (!account) {
+      return data;
+    }
+
     const dataAttributes = ['date', 'amount'];
     const balancesInRange = await Balances.default.findAll({
       where: getWhereConditionForTime({ from, to, columnName: 'date' }),

@@ -1,7 +1,7 @@
 import { type RecordId, TRANSACTION_TYPES } from '@bt/shared/types';
 import { afterEach, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
-import { eachDayOfInterval, format, startOfDay, subDays } from 'date-fns';
+import { addDays, eachDayOfInterval, format, startOfDay, subDays } from 'date-fns';
 
 /**
  * A day's stored balance for a non-base-currency account is the foreign units held
@@ -96,5 +96,46 @@ describe('Balance history for foreign-currency accounts', () => {
     expect(helpers.balanceCentsOn({ rows, date: LATER_DATE })).toEqualRefValue(
       HOLDINGS_INR_CENTS * helpers.INR_TO_AED_AFTER,
     );
+  });
+});
+
+describe('Balance history for a single account — cross-user access', () => {
+  // A window entirely after every stored balance forces the "no rows in range" fallback
+  // branch, which is where the missing user scope leaked another account's balance.
+  const FUTURE_FROM = format(addDays(TODAY, 365), 'yyyy-MM-dd');
+  const FUTURE_TO = format(addDays(TODAY, 366), 'yyyy-MM-dd');
+  const INITIAL_BALANCE = 1000;
+
+  it('does not leak a foreign account balance through the fallback branch', async () => {
+    const ownerAccount = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ initialBalance: INITIAL_BALANCE }),
+      raw: true,
+    });
+
+    const attacker = await helpers.provisionSecondUserWithBaseCurrency();
+
+    const leaked = await helpers.asUser({
+      cookies: attacker.cookies,
+      fn: () => helpers.getBalanceHistory({ accountId: ownerAccount.id, from: FUTURE_FROM, to: FUTURE_TO, raw: true }),
+    });
+
+    expect(leaked).toEqual([]);
+  });
+
+  it('still returns the owner their own balance through the same fallback window', async () => {
+    const ownerAccount = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ initialBalance: INITIAL_BALANCE }),
+      raw: true,
+    });
+
+    const rows = await helpers.getBalanceHistory({
+      accountId: ownerAccount.id,
+      from: FUTURE_FROM,
+      to: FUTURE_TO,
+      raw: true,
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.amount).toBe(INITIAL_BALANCE);
   });
 });
