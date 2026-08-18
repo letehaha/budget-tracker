@@ -190,6 +190,26 @@ describe('Demo Mode', () => {
     }, 60000); // 60s timeout - demo user creation involves lots of data seeding
   });
 
+  describe('POST /demo - SYSTEM_DEMO_DISABLED gate', () => {
+    afterEach(() => {
+      delete process.env.SYSTEM_DEMO_DISABLED;
+    });
+
+    it('rejects demo creation when demo accounts are disabled', async () => {
+      global.APP_AUTH_COOKIES = null;
+      process.env.SYSTEM_DEMO_DISABLED = 'true';
+
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/demo',
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
+      expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
+    }, 60000);
+  });
+
   describe('POST /demo - Signup cap gate', () => {
     afterEach(() => {
       delete process.env.SYSTEM_MAX_SIGNUPS_ALLOWED;

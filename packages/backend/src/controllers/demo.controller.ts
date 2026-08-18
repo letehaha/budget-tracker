@@ -20,6 +20,11 @@ export const startDemo = async (req: Request, res: Response) => {
     logger.info(`Demo session requested from IP: ${req.ip}`);
     const startedAt = Date.now();
 
+    // Read per call, not at boot, so tests can toggle it.
+    if (process.env.SYSTEM_DEMO_DISABLED === 'true') {
+      throw new ForbiddenError({ message: 'Demo accounts are disabled by the administrator' });
+    }
+
     // createDemoUserFast inserts ba_user directly, bypassing better-auth's
     // user.create hook where the signup cap is enforced, so gate it here too.
     if (!(await areSignupsOpen())) {
