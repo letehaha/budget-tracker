@@ -55,6 +55,7 @@ import {
   wipeUserData,
 } from '@controllers/user.controller';
 import { authenticateSession } from '@middlewares/better-auth';
+import { blockDemoUsers } from '@middlewares/block-demo-users';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
 import {
   aiCustomEndpointTestRateLimit,
@@ -339,6 +340,8 @@ router.get(
 router.post(
   '/ai/categorization/trigger',
   authenticateSession,
+  // Demo users would fall back to the operator's server-side AI key.
+  blockDemoUsers,
   validateEndpoint(triggerCategorizationController.schema),
   triggerCategorizationController.handler,
 );
