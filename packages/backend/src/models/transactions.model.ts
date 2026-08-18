@@ -1039,7 +1039,7 @@ export const findWithFilters = async ({
     // 20251229000000-add-index-external-data-import-details exactly
     // (`"externalData"->'importDetails'->>'batchId'`) - Sequelize's dotted-key
     // shorthand compiles to `#>>` instead and would skip the index.
-    const batchIdMatch = sequelizeWhere(literal(`"externalData"->'importDetails'->>'batchId'`), batchId);
+    const batchIdMatch = sequelizeWhere(literal(`"Transactions"."externalData"->'importDetails'->>'batchId'`), batchId);
     const existingAnd = whereClause[Op.and as unknown as string] as unknown[] | undefined;
     whereClause[Op.and as unknown as string] = existingAnd ? [...existingAnd, batchIdMatch] : [batchIdMatch];
   }

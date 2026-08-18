@@ -1,13 +1,13 @@
 import { type ImportBatchesHistoryResponse, type ImportSource } from '@bt/shared/types';
 import Transactions from '@models/transactions.model';
-import { type WhereOptions, col, fn, literal } from 'sequelize';
+import { Op, type WhereOptions, col, fn, literal } from 'sequelize';
 
-const BATCH_ID_EXPR = `"externalData"->'importDetails'->>'batchId'`;
-const SOURCE_EXPR = `"externalData"->'importDetails'->>'source'`;
-const IMPORTED_AT_EXPR = `"externalData"->'importDetails'->>'importedAt'`;
+const BATCH_ID_EXPR = `"Transactions"."externalData"->'importDetails'->>'batchId'`;
+const SOURCE_EXPR = `"Transactions"."externalData"->'importDetails'->>'source'`;
+const IMPORTED_AT_EXPR = `"Transactions"."externalData"->'importDetails'->>'importedAt'`;
 
 function buildBatchScope({ userId }: { userId: number }): WhereOptions<Transactions> {
-  return literal(`"Transactions"."userId" = ${userId} AND ${BATCH_ID_EXPR} IS NOT NULL`);
+  return { userId, [Op.and]: literal(`${BATCH_ID_EXPR} IS NOT NULL`) };
 }
 
 async function countBatches({ userId }: { userId: number }): Promise<number> {
@@ -47,13 +47,18 @@ export async function listBatchesHistory({
       attributes: [
         [literal(BATCH_ID_EXPR), 'batchId'],
         [literal(`MIN(${SOURCE_EXPR})`), 'source'],
-        [fn('MAX', literal(`(${IMPORTED_AT_EXPR})::timestamptz`)), 'importedAt'],
+        // Kept as text (ISO-8601 `Z` strings sort identically to their chronological
+        // order), not cast to timestamptz — a cast would make node-postgres parse this
+        // into a JS Date at runtime while the field is typed/serialized as a string.
+        [fn('MAX', literal(IMPORTED_AT_EXPR)), 'importedAt'],
         [fn('COUNT', col('Transactions.id')), 'transactionCount'],
         [fn('array_agg', fn('DISTINCT', col('accountId'))), 'accountIds'],
       ],
-      // Postgres resolves both against the `batchId` output column above.
+      // GROUP BY resolves against the `batchId` output column above; ORDER BY
+      // against the `importedAt` one. `batchId` is a tiebreaker for imports that
+      // land in the same millisecond, so paging stays stable.
       group: ['batchId'],
-      order: literal(`"importedAt" DESC`),
+      order: literal(`"importedAt" DESC, "batchId" DESC`),
       limit,
       offset,
       subQuery: false,
