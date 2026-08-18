@@ -81,12 +81,6 @@ export default class Users extends Model {
   declare createdAt: Date;
 }
 
-export const getUsers = async () => {
-  const users = await Users.findAll();
-
-  return users;
-};
-
 export const getUserDefaultCategory = async ({ id }: { id: number }) => {
   const user = await Users.findOne({
     where: { id },

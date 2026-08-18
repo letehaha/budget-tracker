@@ -1,3 +1,4 @@
+import { UserRole } from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import { Unauthorized } from '@js/errors';
 import { CacheClient } from '@js/utils/cache';
@@ -31,6 +32,7 @@ export interface McpAuthInfo {
     userId: number;
     authUserId: string;
     username: string;
+    role: UserRole;
   };
 }
 
@@ -105,6 +107,7 @@ async function verifyAccessToken({ token }: { token: string }): Promise<McpAuthI
       userId: user.id,
       authUserId: user.authUserId,
       username: user.username,
+      role: user.role,
     },
   };
 }
