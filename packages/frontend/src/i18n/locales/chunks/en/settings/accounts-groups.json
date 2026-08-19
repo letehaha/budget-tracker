@@ -35,7 +35,10 @@
         "heading": "Accounts in this group",
         "empty": "No accounts in this group yet. Add accounts to a group from the account page.",
         "emptyBankLinked": "This connection's accounts are organized into other groups — moving them doesn't affect syncing.",
-        "unlinkTooltip": "Remove from group"
+        "unlinkTooltip": "Remove from group",
+        "removeConfirmTitle": "Remove \"{name}\" from this group?",
+        "removeConfirmDescription": "The account isn't deleted — it only leaves this group.",
+        "removeConfirmAction": "Remove"
       },
       "delete": {
         "button": "Delete group",

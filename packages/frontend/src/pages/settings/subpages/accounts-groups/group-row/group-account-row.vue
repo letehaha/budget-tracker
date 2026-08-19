@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AccountLogo from '@/components/common/account-logo.vue';
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
@@ -8,7 +9,7 @@ import { useAccountDisplayBalance } from '@/composable/use-account-display-balan
 import { ROUTES_NAMES } from '@/routes/constants';
 import { AccountModel } from '@bt/shared/types';
 import { UngroupIcon } from '@lucide/vue';
-import { toRef } from 'vue';
+import { ref, toRef } from 'vue';
 import { RouterLink } from 'vue-router';
 
 const props = defineProps<{ account: AccountModel; groupId: string }>();
@@ -17,7 +18,13 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const { displayBalance } = useAccountDisplayBalance({ account: toRef(() => props.account) });
 
-const { mutate: unlink, isPending } = useUnlinkAccountFromGroup();
+const isConfirmOpen = ref(false);
+
+const { mutate: unlink, isPending } = useUnlinkAccountFromGroup({
+  onSuccess: () => {
+    isConfirmOpen.value = false;
+  },
+});
 </script>
 
 <template>
@@ -41,10 +48,26 @@ const { mutate: unlink, isPending } = useUnlinkAccountFromGroup();
         size="icon-sm"
         :disabled="isPending"
         :aria-label="$t('settings.accountGroups.accounts.unlinkTooltip')"
-        @click="unlink({ accountId: account.id, groupId })"
+        @click="isConfirmOpen = true"
       >
         <UngroupIcon class="size-4" />
       </Button>
     </DesktopOnlyTooltip>
+
+    <ResponsiveAlertDialog
+      v-model:open="isConfirmOpen"
+      :confirm-label="$t('settings.accountGroups.accounts.removeConfirmAction')"
+      confirm-variant="destructive"
+      :confirm-disabled="isPending"
+      @confirm="unlink({ accountId: account.id, groupId })"
+    >
+      <template #title>
+        {{ $t('settings.accountGroups.accounts.removeConfirmTitle', { name: account.name }) }}
+      </template>
+
+      <template #description>
+        {{ $t('settings.accountGroups.accounts.removeConfirmDescription') }}
+      </template>
+    </ResponsiveAlertDialog>
   </div>
 </template>
