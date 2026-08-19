@@ -478,10 +478,16 @@ export class SimplefinProvider extends BaseBankDataProvider {
     userId: number;
     from: Date;
     to: Date;
-  }): Promise<{ jobGroupId: string | null; totalBatches: number; estimatedMinutes: number; createdCount: number }> {
+  }): Promise<{
+    jobGroupId: string | null;
+    totalBatches: number;
+    estimatedMinutes: number;
+    createdCount: number;
+    fetchedCount: number;
+  }> {
     // No `matchPlanned`: a charge from an arbitrary past window must not consume a plan
     // the user made for something else.
-    const createdIds = await this.ingestWithStatus({
+    const { transactionIds, fetchedCount } = await this.ingestWithStatus({
       connectionId,
       systemAccountId,
       userId,
@@ -494,7 +500,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
       jobGroupId: null,
       totalBatches: splitIntoWindows(from, to).length,
       estimatedMinutes: 0,
-      createdCount: createdIds.length,
+      createdCount: transactionIds.length,
+      fetchedCount,
     };
   }
 
@@ -564,8 +571,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
     to: Date;
     logLabel: string;
     matchPlanned?: boolean;
-  }): Promise<string[]> {
-    const { transactionIds } = await this.runSyncWithStatus({
+  }): Promise<{ transactionIds: string[]; fetchedCount: number }> {
+    const { transactionIds, fetchedCount } = await this.runSyncWithStatus({
       systemAccountId,
       userId,
       connectionId,
@@ -582,7 +589,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
         const { accessUrl } = await this.getValidatedCredentials(connectionId);
         const apiClient = new SimplefinApiClient(accessUrl);
 
-        const { createdIds, balance } = await this.ingestTransactions({
+        const ingested = await this.ingestTransactions({
           connectionId,
           apiClient,
           connection,
@@ -592,22 +599,24 @@ export class SimplefinProvider extends BaseBankDataProvider {
           matchPlanned,
         });
 
-        if (balance !== null) {
+        if (ingested.balance !== null) {
           await writeBankBalanceWithHistory({
             account,
-            balance: Money.fromDecimal(balance),
+            balance: Money.fromDecimal(ingested.balance),
           });
         } else {
           logger.info(`[SimpleFIN] ${logLabel}: balance unavailable for account ${account.id}, left unchanged`);
         }
 
-        logger.info(`[SimpleFIN] ${logLabel}: ${createdIds.length} transactions created for account ${account.id}`);
+        logger.info(
+          `[SimpleFIN] ${logLabel}: ${ingested.createdIds.length} transactions created for account ${account.id}`,
+        );
 
-        return { transactionIds: createdIds };
+        return { transactionIds: ingested.createdIds, fetchedCount: ingested.fetchedCount };
       },
     });
 
-    return transactionIds;
+    return { transactionIds, fetchedCount };
   }
 
   /**
@@ -746,7 +755,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
     from: Date;
     to: Date;
     matchPlanned?: boolean;
-  }): Promise<{ createdIds: string[]; balance: string | null }> {
+  }): Promise<{ createdIds: string[]; balance: string | null; fetchedCount: number }> {
     const fetched = await this.fetchAccountTransactions({
       connectionId,
       apiClient,
@@ -762,7 +771,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
       matchPlanned,
     });
 
-    return { createdIds, balance: fetched.balance };
+    return { createdIds, balance: fetched.balance, fetchedCount: fetched.transactions.length };
   }
 
   /**

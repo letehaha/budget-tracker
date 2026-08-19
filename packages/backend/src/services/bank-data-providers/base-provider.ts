@@ -468,6 +468,12 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
     estimatedMinutes: number;
     /** Rows created during an inline load (`jobGroupId === null`). */
     createdCount?: number;
+    /**
+     * Rows the provider returned for the window during an inline load, before
+     * dedup — lets the UI distinguish "provider had no data" from "all
+     * duplicates" when `createdCount` is 0.
+     */
+    fetchedCount?: number;
   }>;
 
   /**

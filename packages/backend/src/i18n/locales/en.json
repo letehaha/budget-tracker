@@ -217,6 +217,8 @@
     "accountCurrencyNotSupported": "Account currency \"{{currency}}\" is not supported by this system.",
     "periodLoadNotSupported": "Loading transactions for a custom period is not supported by this provider.",
     "transactionsLoadedCount": "Loaded {{count}} transactions.",
+    "transactionsAllDuplicates": "Found {{count}} transactions for this period — all were already imported.",
+    "transactionsNoneInPeriod": "The provider returned no transactions for this period.",
     "apiError": "{{provider}} API error: {{message}}",
     "monobank": {
       "invalidCredentialsFormat": "Invalid credentials format for Monobank",

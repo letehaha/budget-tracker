@@ -446,9 +446,25 @@ describe('SimpleFIN Data Provider E2E', () => {
       expect(transactions.length).toBe(PERIOD_AMOUNT);
     });
 
-    it('returns an inline result shape (jobGroupId null + createdCount)', async () => {
+    it('returns an inline result shape (jobGroupId null + createdCount + fetchedCount)', async () => {
       const connectionId = await connectSimplefin();
       const accountId = await importFirstAccount(connectionId);
+
+      type InlineResult = { jobGroupId: string | null; createdCount?: number; fetchedCount?: number; message: string };
+      const period = {
+        from: subDays(new Date(), 30).toISOString(),
+        to: new Date().toISOString(),
+      };
+
+      // Window the provider has no data for: nothing fetched, nothing created.
+      const emptyResult = (await helpers.bankDataProviders.loadTransactionsForPeriod({
+        connectionId,
+        accountId,
+        ...period,
+        raw: true,
+      })) as unknown as InlineResult;
+      expect(emptyResult.createdCount).toBe(0);
+      expect(emptyResult.fetchedCount).toBe(0);
 
       const PERIOD_AMOUNT = 3;
       global.mswMockServer.use(
@@ -462,14 +478,26 @@ describe('SimpleFIN Data Provider E2E', () => {
       const result = (await helpers.bankDataProviders.loadTransactionsForPeriod({
         connectionId,
         accountId,
-        from: subDays(new Date(), 30).toISOString(),
-        to: new Date().toISOString(),
+        ...period,
         raw: true,
-      })) as unknown as { jobGroupId: string | null; createdCount?: number; message: string };
+      })) as unknown as InlineResult;
 
       expect(result.jobGroupId).toBeNull();
       expect(result.createdCount).toBe(PERIOD_AMOUNT);
+      expect(result.fetchedCount).toBe(PERIOD_AMOUNT);
       expect(typeof result.message).toBe('string');
+
+      // Same window again: everything fetched deduped away — and the message
+      // must not read the same as the "provider had no data" case.
+      const dupResult = (await helpers.bankDataProviders.loadTransactionsForPeriod({
+        connectionId,
+        accountId,
+        ...period,
+        raw: true,
+      })) as unknown as InlineResult;
+      expect(dupResult.createdCount).toBe(0);
+      expect(dupResult.fetchedCount).toBe(PERIOD_AMOUNT);
+      expect(dupResult.message).not.toBe(emptyResult.message);
     });
 
     it('pages a >90-day window into multiple requests and stores every transaction once', async () => {
