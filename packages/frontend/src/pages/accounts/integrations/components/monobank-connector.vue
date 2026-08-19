@@ -4,11 +4,10 @@
     <template v-if="currentStep === 1">
       <div class="space-y-4">
         <div>
-          <label class="text-sm font-medium">{{ t('pages.integrations.monobank.apiTokenLabel') }}</label>
-          <input
+          <InputField
             v-model="apiToken"
             type="password"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.monobank.apiTokenLabel')"
             :placeholder="$t('pages.integrations.monobank.tokenPlaceholder')"
             @keyup.enter="handleConnectProvider"
           />
@@ -33,13 +32,10 @@
           </ResponsiveTooltip>
         </div>
         <div>
-          <label class="mb-2 block text-sm font-medium">{{
-            t('pages.integrations.monobank.connectionNameLabel')
-          }}</label>
-          <input
+          <InputField
             v-model="connectionName"
             type="text"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.monobank.connectionNameLabel')"
             :placeholder="$t('pages.integrations.monobank.accountNamePlaceholder')"
           />
         </div>
@@ -104,6 +100,7 @@ import {
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { DemoRestricted } from '@/components/demo';
 import ExternalLink from '@/components/external-link.vue';
+import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';

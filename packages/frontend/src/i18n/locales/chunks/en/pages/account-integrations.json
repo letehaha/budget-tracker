@@ -4,7 +4,7 @@
       "addDialog": {
         "titleSelect": "Add Integration",
         "titleConnect": "Connect {provider}",
-        "selectProviderHint": "Choose a bank data provider to connect",
+        "selectProviderHint": "Where do you bank? Pick a region to see what works there.",
         "betaBadge": "Beta"
       },
       "providers": {
@@ -409,6 +409,11 @@
         "canada": "Canada",
         "australia": "Australia",
         "newZealand": "New Zealand"
+      },
+      "filters": {
+        "all": "All",
+        "usCanada": "US & Canada",
+        "euUk": "EU & UK"
       },
       "tooltips": {
         "monobank": "Requires manually copying an API token from the Monobank mobile app",

@@ -33,13 +33,10 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-sm font-medium">{{
-            t('pages.integrations.enableBankingConnector.credentials.appIdLabel')
-          }}</label>
-          <input
+          <InputField
             v-model="appId"
             type="text"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.enableBankingConnector.credentials.appIdLabel')"
             :placeholder="$t('pages.integrations.enableBanking.placeholders.appId')"
           />
           <p class="text-muted-foreground mt-1 text-xs">
@@ -47,13 +44,11 @@
           </p>
         </div>
         <div>
-          <label class="mb-2 block text-sm font-medium">{{
-            t('pages.integrations.enableBankingConnector.credentials.privateKeyLabel')
-          }}</label>
-          <textarea
+          <TextareaField
             v-model="privateKey"
-            class="w-full rounded-md border px-3 py-2 font-mono text-xs"
+            class="font-mono text-xs"
             rows="6"
+            :label="t('pages.integrations.enableBankingConnector.credentials.privateKeyLabel')"
             :placeholder="$t('pages.integrations.enableBanking.placeholders.privateKey')"
           />
           <p class="text-muted-foreground mt-1 text-xs">
@@ -91,13 +86,10 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium">{{
-              t('pages.integrations.enableBankingConnector.steps.countryLabel')
-            }}</label>
-            <input
+            <InputField
               v-model="countryFilter"
               type="text"
-              class="w-full rounded-md border px-3 py-2"
+              :label="t('pages.integrations.enableBankingConnector.steps.countryLabel')"
               :placeholder="$t('pages.integrations.enableBanking.placeholders.searchCountries')"
             />
           </div>
@@ -135,13 +127,10 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium">{{
-              t('pages.integrations.enableBankingConnector.steps.bankLabel')
-            }}</label>
-            <input
+            <InputField
               v-model="bankFilter"
               type="text"
-              class="w-full rounded-md border px-3 py-2"
+              :label="t('pages.integrations.enableBankingConnector.steps.bankLabel')"
               :placeholder="$t('pages.integrations.enableBanking.placeholders.searchBanks')"
             />
           </div>
@@ -246,6 +235,8 @@ import {
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
 import { DemoRestricted } from '@/components/demo';
+import InputField from '@/components/fields/input-field.vue';
+import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';

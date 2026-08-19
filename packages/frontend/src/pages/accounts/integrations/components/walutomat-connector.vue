@@ -19,22 +19,21 @@
         </div>
 
         <div>
-          <label class="mb-2 block text-sm font-medium">{{ t('pages.integrations.walutomat.apiKeyLabel') }}</label>
-          <input
+          <InputField
             v-model="apiKey"
             type="password"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.walutomat.apiKeyLabel')"
             :placeholder="t('pages.integrations.walutomat.apiKeyPlaceholder')"
           />
           <p class="text-muted-foreground mt-1 text-xs">{{ t('pages.integrations.walutomat.apiKeyHint') }}</p>
         </div>
 
         <div>
-          <label class="mb-2 block text-sm font-medium">{{ t('pages.integrations.walutomat.privateKeyLabel') }}</label>
-          <textarea
+          <TextareaField
             v-model="privateKey"
-            class="w-full rounded-md border px-3 py-2 font-mono text-xs"
+            class="font-mono text-xs"
             rows="6"
+            :label="t('pages.integrations.walutomat.privateKeyLabel')"
             :placeholder="t('pages.integrations.walutomat.privateKeyPlaceholder')"
           />
           <p class="text-muted-foreground mt-1 text-xs">
@@ -72,13 +71,7 @@
 
           <!-- Select All -->
           <label class="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
-              :checked="selectedIds.size === availableAccounts.length"
-              :indeterminate="selectedIds.size > 0 && selectedIds.size < availableAccounts.length"
-              class="rounded"
-              @change="toggleAll"
-            />
+            <Checkbox :model-value="selectAllState" @update:model-value="toggleAll" />
             {{ t('pages.integrations.walutomat.selectAll') }}
           </label>
 
@@ -89,11 +82,9 @@
               class="flex cursor-pointer items-center gap-3 rounded-md border p-3 transition-colors"
               :class="{ 'border-primary bg-primary/5': selectedIds.has(account.externalId) }"
             >
-              <input
-                type="checkbox"
-                :checked="selectedIds.has(account.externalId)"
-                class="rounded"
-                @change="toggleAccount(account.externalId)"
+              <Checkbox
+                :model-value="selectedIds.has(account.externalId)"
+                @update:model-value="toggleAccount(account.externalId)"
               />
               <div class="bg-muted flex size-8 items-center justify-center rounded-full text-xs font-bold">
                 {{ account.currency }}
@@ -142,7 +133,10 @@ import {
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
 import { DemoRestricted } from '@/components/demo';
+import InputField from '@/components/fields/input-field.vue';
+import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { Checkbox, type CheckedState } from '@/components/lib/ui/checkbox';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
@@ -178,6 +172,12 @@ const availableAccounts = ref<AvailableAccount[]>([]);
 const selectedIds = ref<Set<string>>(new Set());
 
 const canConnect = computed(() => apiKey.value.length > 0 && privateKey.value.length > 0);
+
+const selectAllState = computed<CheckedState>(() => {
+  if (selectedIds.value.size === 0) return false;
+  if (selectedIds.value.size === availableAccounts.value.length) return true;
+  return 'indeterminate';
+});
 
 const handleConnect = async () => {
   if (!canConnect.value || isLoading.value || isDemo.value) return;

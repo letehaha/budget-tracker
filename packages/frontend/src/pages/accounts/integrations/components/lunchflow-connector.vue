@@ -4,11 +4,10 @@
     <template v-if="currentStep === 1">
       <div class="space-y-4">
         <div>
-          <label class="text-sm font-medium">{{ t('pages.integrations.lunchflow.apiKeyLabel') }}</label>
-          <input
+          <InputField
             v-model="apiKey"
             type="password"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.lunchflow.apiKeyLabel')"
             :placeholder="t('pages.integrations.lunchflow.apiKeyPlaceholder')"
             @keyup.enter="handleConnectProvider"
           />
@@ -140,6 +139,7 @@ import {
 } from '@/api/bank-data-providers';
 import { DemoRestricted } from '@/components/demo';
 import ExternalLink from '@/components/external-link.vue';
+import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
