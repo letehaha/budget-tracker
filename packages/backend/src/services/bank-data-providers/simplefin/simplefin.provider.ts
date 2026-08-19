@@ -2,6 +2,7 @@
 import {
   ACCOUNT_TYPES,
   BANK_PROVIDER_TYPE,
+  NO_CURRENCY_CODE,
   PAYMENT_TYPES,
   type RecordId,
   TRANSACTION_TRANSFER_NATURE,
@@ -234,10 +235,13 @@ export class SimplefinProvider extends BaseBankDataProvider {
     const connectionsById = this.buildConnectionsMap(accountSet);
 
     return accountSet.accounts.reduce<ProviderAccount[]>((result, account) => {
-      const currency = (account.currency || '').toUpperCase();
+      // Some institutions (brokerages, mostly) report no currency at all.
+      // Surface those as ISO "XXX" (no currency) instead of hiding the account:
+      // connect then requires the user to pick a currency explicitly.
+      const currency = account.currency?.toUpperCase() || NO_CURRENCY_CODE;
 
-      // SimpleFIN currency may be a URL (crypto / non-standard). The rest of
-      // the app keys accounts on ISO 4217 codes, so skip anything that isn't
+      // SimpleFIN currency may also be a URL (crypto / non-standard). The rest
+      // of the app keys accounts on ISO 4217 codes, so skip anything that isn't
       // a recognizable 3-letter code rather than fail the whole connection.
       if (!this.isIsoCurrency(currency)) {
         logger.info(
@@ -256,6 +260,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
         currency,
         metadata: {
           institutionName: org.name,
+          institutionDomain: org.domain,
           sfinUrl: org.sfinUrl,
           availableBalance: account['available-balance'],
         },
@@ -958,12 +963,23 @@ export class SimplefinProvider extends BaseBankDataProvider {
   private resolveOrg(
     account: SimplefinAccount,
     connectionsById: Map<string, SimplefinConnection>,
-  ): { name?: string; sfinUrl?: string } {
+  ): { name?: string; sfinUrl?: string; domain?: string } {
     const connection = account.conn_id ? connectionsById.get(account.conn_id) : undefined;
     return {
       name: account.org?.name ?? connection?.name,
       sfinUrl: account.org?.['sfin-url'] ?? connection?.['sfin-url'],
+      domain: account.org?.domain ?? this.domainFromUrl(connection?.org_url),
     };
+  }
+
+  /** v2 carries no bare domain — derive it from the connection's org_url. */
+  private domainFromUrl(url?: string): string | undefined {
+    if (!url) return undefined;
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return undefined;
+    }
   }
 
   private isIsoCurrency(code: string): boolean {

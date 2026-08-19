@@ -78,11 +78,16 @@ export const getMockedSimplefinTransactionsOnDaysAgo = (daysAgo: number[]): Simp
 export const getMockedSimplefinAccountSet = ({
   account1Transactions = [],
   account2Transactions = [],
+  account1Currency = 'USD',
+  account2Currency = 'USD',
   errlist,
   errors,
 }: {
   account1Transactions?: SimplefinTransaction[];
   account2Transactions?: SimplefinTransaction[];
+  /** Pass '' to mimic institutions (brokerages) that report no currency. */
+  account1Currency?: string;
+  account2Currency?: string;
   errlist?: SimplefinError[];
   errors?: string[];
 } = {}): SimplefinAccountSet => {
@@ -101,7 +106,7 @@ export const getMockedSimplefinAccountSet = ({
         org,
         id: SIMPLEFIN_ACCOUNT_1,
         name: 'Test Checking',
-        currency: 'USD',
+        currency: account1Currency,
         balance: '1523.45',
         'available-balance': '1500.00',
         'balance-date': balanceDate,
@@ -111,7 +116,7 @@ export const getMockedSimplefinAccountSet = ({
         org,
         id: SIMPLEFIN_ACCOUNT_2,
         name: 'Test Savings',
-        currency: 'USD',
+        currency: account2Currency,
         balance: '850.00',
         'balance-date': balanceDate,
         transactions: account2Transactions,

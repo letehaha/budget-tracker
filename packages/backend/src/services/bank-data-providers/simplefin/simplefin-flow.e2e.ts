@@ -230,6 +230,7 @@ describe('SimpleFIN Data Provider E2E', () => {
       expect(account).toHaveProperty('balance');
       expect(account.currency).toBe('USD');
       expect(typeof account.balance).toBe('number');
+      expect(account.metadata?.institutionDomain).toBe('testbank.example');
     });
 
     it('skips accounts whose currency is not an ISO code (e.g. crypto URL)', async () => {
@@ -498,6 +499,7 @@ describe('SimpleFIN Data Provider E2E', () => {
       expect(dupResult.createdCount).toBe(0);
       expect(dupResult.fetchedCount).toBe(PERIOD_AMOUNT);
       expect(dupResult.message).not.toBe(emptyResult.message);
+      expect(dupResult.message).not.toBe(result.message);
     });
 
     it('pages a >90-day window into multiple requests and stores every transaction once', async () => {
@@ -525,6 +527,71 @@ describe('SimpleFIN Data Provider E2E', () => {
       const stored = await Transactions.findAll({ where: { accountId }, raw: true });
       expect(stored.length).toBe(3);
       expect(result.createdCount).toBe(3);
+    });
+  });
+
+  describe('Accounts without provider currency', () => {
+    it('lists the account as XXX, rejects connect without a currency, connects with the chosen one', async () => {
+      const connectionId = await connectSimplefin();
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({ response: getMockedSimplefinAccountSet({ account1Currency: '' }) }),
+      );
+
+      const { accounts } = await helpers.bankDataProviders.listExternalAccounts({ connectionId, raw: true });
+      const noCurrencyAccount = accounts.find((a: { externalId: string }) => a.externalId === SIMPLEFIN_ACCOUNT_1);
+      expect(noCurrencyAccount?.currency).toBe('XXX');
+
+      const failed = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
+      });
+      expect(failed.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1, SIMPLEFIN_ACCOUNT_2],
+        // Lowercase on purpose: the endpoint normalizes currency codes.
+        currencyOverrides: { [SIMPLEFIN_ACCOUNT_1]: 'eur' },
+        raw: true,
+      });
+
+      const overridden = syncedAccounts.find((a: { externalId: string }) => a.externalId === SIMPLEFIN_ACCOUNT_1)!;
+      expect(overridden.currency).toBe('EUR');
+      // Overrides only apply to no-currency accounts; the USD one keeps its provider currency.
+      const untouched = syncedAccounts.find((a: { externalId: string }) => a.externalId === SIMPLEFIN_ACCOUNT_2)!;
+      expect(untouched.currency).toBe('USD');
+    });
+
+    it('rolls back already-created accounts when a later account in the batch is missing a currency choice', async () => {
+      const connectionId = await connectSimplefin();
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({ response: getMockedSimplefinAccountSet({ account2Currency: '' }) }),
+      );
+
+      // Account 1 (USD) is created first; account 2 (no currency, no override)
+      // then throws mid-batch — the transaction must leave nothing behind.
+      const failed = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1, SIMPLEFIN_ACCOUNT_2],
+      });
+      expect(failed.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+      expect(connection.accounts.length).toBe(0);
+    });
+
+    it('rejects a non-currency ISO code (XAU) as the chosen currency', async () => {
+      const connectionId = await connectSimplefin();
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({ response: getMockedSimplefinAccountSet({ account1Currency: '' }) }),
+      );
+
+      const failed = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
+        currencyOverrides: { [SIMPLEFIN_ACCOUNT_1]: 'XAU' },
+      });
+      expect(failed.statusCode).toBe(ERROR_CODES.BadRequest);
     });
   });
 
@@ -588,6 +655,7 @@ describe('SimpleFIN Data Provider E2E', () => {
       expect(accounts.length).toBe(2);
       const checking = accounts.find((a: { externalId: string }) => a.externalId === SIMPLEFIN_ACCOUNT_1)!;
       expect(checking.metadata?.institutionName).toBe('Test Bank');
+      expect(checking.metadata?.institutionDomain).toBe('testbank.example');
     });
   });
 

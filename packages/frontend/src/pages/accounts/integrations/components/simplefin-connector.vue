@@ -46,15 +46,17 @@
         <div v-if="isLoading" class="py-8 text-center">{{ t('pages.integrations.simplefin.loadingAccounts') }}</div>
 
         <template v-else>
-          <div class="text-muted-foreground mb-2 text-sm">
-            {{ t('pages.integrations.simplefin.accountsPreviewHint', { count: availableAccounts.length }) }}
-          </div>
+          <AccountSelectionList
+            v-model="selectedAccountIds"
+            v-model:currency-overrides="currencyOverrides"
+            :accounts="availableAccounts"
+            :provider-type="BANK_PROVIDER_TYPE.SIMPLEFIN"
+          />
 
-          <Callout variant="warning" class="mb-4">
+          <p class="text-muted-foreground flex items-start gap-2 text-xs">
+            <InfoIcon class="mt-0.5 size-3.5 shrink-0" />
             {{ t('pages.integrations.simplefin.backfillNote') }}
-          </Callout>
-
-          <AccountSelectionList v-model="selectedAccountIds" :accounts="availableAccounts" />
+          </p>
 
           <div class="flex items-center justify-between gap-2 pt-4">
             <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading">
@@ -64,13 +66,13 @@
             <DemoRestricted :message="t('demo.featureNotAvailable')" feature="bank_connect_simplefin_import_accounts">
               <UiButton
                 @click="handleImportAccounts"
-                :disabled="selectedAccountIds.length === 0 || isLoading || isDemo"
+                :disabled="selectedAccountIds.length === 0 || isMissingCurrencySelection || isLoading || isDemo"
                 :loading="isLoading"
               >
                 {{
                   isLoading
                     ? t('pages.integrations.simplefin.importingButton')
-                    : t('pages.integrations.simplefin.importButton', { count: selectedAccountIds.length })
+                    : t('pages.integrations.simplefin.importButton', selectedAccountIds.length)
                 }}
               </UiButton>
             </DemoRestricted>
@@ -122,11 +124,12 @@ import { useSyncStatus } from '@/composable/use-sync-status';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
-import { ExternalLinkIcon } from '@lucide/vue';
+import { ExternalLinkIcon, InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { countMissingCurrencySelections } from '../utils/currency-overrides';
 import AccountSelectionList from './account-selection-list.vue';
 import CredentialsHelpTrigger from './shared/credentials-help-trigger.vue';
 import InstructionStep from './shared/instruction-step.vue';
@@ -164,6 +167,18 @@ watch(setupToken, () => {
 // Step 2 data
 const availableAccounts = ref<AvailableAccount[]>([]);
 const selectedAccountIds = ref<string[]>([]);
+// externalId → user-picked currency for accounts listed without one.
+const currencyOverrides = ref<Record<string, string>>({});
+
+// A selected no-currency account without a picked currency blocks the import.
+const isMissingCurrencySelection = computed(
+  () =>
+    countMissingCurrencySelections({
+      accounts: availableAccounts.value,
+      selectedIds: selectedAccountIds.value,
+      overrides: currencyOverrides.value,
+    }) > 0,
+);
 
 const handleConnectProvider = async () => {
   if (!setupToken.value || isLoading.value || isDemo.value) return;
@@ -191,6 +206,7 @@ const handleImportAccounts = () => {
   if (!connectionId.value || selectedAccountIds.value.length === 0 || isDemo.value) {
     return;
   }
+  if (isMissingCurrencySelection.value) return;
 
   const id = connectionId.value;
   const accountIds = selectedAccountIds.value;
@@ -198,7 +214,7 @@ const handleImportAccounts = () => {
   // Kick off create + initial sync on the server, but don't block the dialog on
   // the (potentially long) backfill — the header spinner shows progress while
   // the accounts sync in the background.
-  const importPromise = syncSelectedAccounts(id, accountIds);
+  const importPromise = syncSelectedAccounts(id, accountIds, currencyOverrides.value);
 
   // Watch the sync in the header (open SSE + load status) without re-triggering.
   void syncStatus.watchSync();

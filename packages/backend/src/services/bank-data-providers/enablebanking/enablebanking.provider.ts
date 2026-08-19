@@ -4,6 +4,7 @@ import {
   ACCOUNT_TYPES,
   BANK_PROVIDER_TYPE,
   DEACTIVATION_REASON,
+  NO_CURRENCY_CODE,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
@@ -585,7 +586,9 @@ export class EnableBankingProvider extends BaseBankDataProvider {
               `Account ${details.account_id?.iban?.slice(-4) || accountId.slice(-4)}`,
             type: 'debit' as const, // Enable Banking doesn't distinguish, default to debit
             balance: balanceSystemAmount,
-            currency: details.currency,
+            // Empty/missing currency → ISO "XXX" (no currency), so connect
+            // requires an explicit user choice instead of failing downstream.
+            currency: details.currency?.toUpperCase() || NO_CURRENCY_CODE,
             metadata: {
               iban: details.account_id?.iban,
               product: details.product,

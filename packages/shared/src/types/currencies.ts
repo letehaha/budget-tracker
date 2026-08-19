@@ -1,4 +1,11 @@
 /**
+ * ISO 4217 "no currency". Bank data providers surface it when the institution
+ * reports no currency for an account (brokerages, mostly); connecting such an
+ * account requires an explicit currency choice from the user.
+ */
+export const NO_CURRENCY_CODE = 'XXX';
+
+/**
  * Per-table counts returned by a base-currency recalculation: how many rows had
  * their `ref*` amounts rewritten into the new base. Surfaced as the change-base
  * job result so the client can confirm the sweep touched every table.

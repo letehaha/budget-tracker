@@ -1,78 +1,82 @@
 <template>
-  <div class="space-y-2">
-    <div v-if="showSelectAll && accounts.length > 1" class="flex justify-end">
-      <label class="flex cursor-pointer items-center gap-2 text-sm select-none">
-        <Checkbox :model-value="selectAllState" @update:model-value="(val) => toggleAll(val === true)" />
-        {{ t('pages.integrations.common.selectAll') }}
-      </label>
+  <div class="flex flex-col gap-2">
+    <div class="flex min-h-8 items-center justify-between gap-2">
+      <div class="flex items-baseline gap-1.5">
+        <span class="text-muted-foreground text-[11px] font-semibold tracking-[0.14em] uppercase">
+          {{ $t('pages.integrations.common.availableLabel') }}
+        </span>
+        <span class="text-muted-foreground/70 text-xs font-medium tabular-nums">
+          {{ accounts.length }}
+        </span>
+      </div>
+      <UiButton v-if="accounts.length > 1" variant="ghost-primary" size="sm" @click="toggleAll">
+        {{ allSelected ? $t('pages.integrations.common.clearAll') : $t('pages.integrations.common.selectAll') }}
+      </UiButton>
     </div>
 
-    <label
+    <AccountSelectionRow
       v-for="account in accounts"
       :key="account.externalId"
-      class="hover:bg-accent flex cursor-pointer items-center gap-3 rounded-md border p-3"
-    >
-      <Checkbox
-        :model-value="selectedIds.includes(account.externalId)"
-        @update:model-value="(val) => toggleAccount(account.externalId, val === true)"
-      />
-      <div class="bg-muted flex size-8 items-center justify-center rounded-full">
-        <BuildingIcon class="text-muted-foreground size-4" />
-      </div>
-      <div class="min-w-0 flex-1">
-        <div class="truncate font-medium">{{ account.name }}</div>
-        <div v-if="institutionNameOf(account)" class="text-muted-foreground truncate text-xs">
-          {{ institutionNameOf(account) }}
-        </div>
-      </div>
-      <div class="text-right">
-        <div class="text-sm font-medium">{{ formatAmountByCurrencyCode(account.balance, account.currency) }}</div>
-        <div class="text-muted-foreground text-xs">{{ account.currency }}</div>
-      </div>
-    </label>
+      :account="account"
+      :provider-type="providerType"
+      :selected="selectedIds.includes(account.externalId)"
+      :meta="institutionNameOf(account)"
+      :currency-override="currencyOverrides[account.externalId] ?? null"
+      @toggle="toggleAccount(account.externalId)"
+      @update:currency-override="(code) => setCurrencyOverride({ externalId: account.externalId, code })"
+    />
+
+    <p v-if="missingCurrencyCount > 0" class="text-warning-text flex items-start gap-2 text-xs">
+      <TriangleAlertIcon class="mt-0.5 size-3.5 shrink-0" />
+      {{ $t('pages.integrations.common.currencyPicker.missingCount', missingCurrencyCount) }}
+    </p>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { type AvailableAccount } from '@/api/bank-data-providers';
-import { Checkbox, type CheckedState } from '@/components/lib/ui/checkbox';
-import { useFormatCurrency } from '@/composable/formatters';
-import { BuildingIcon } from '@lucide/vue';
+import type { AvailableAccount } from '@/api/bank-data-providers';
+import UiButton from '@/components/lib/ui/button/Button.vue';
+import type { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { TriangleAlertIcon } from '@lucide/vue';
 import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 
-const props = withDefaults(
-  defineProps<{
-    accounts: AvailableAccount[];
-    /** Show the tri-state "select all" toggle (only rendered when >1 account). */
-    showSelectAll?: boolean;
-  }>(),
-  {
-    showSelectAll: true,
-  },
-);
+import { applyCurrencyOverride, countMissingCurrencySelections } from '../utils/currency-overrides';
+import AccountSelectionRow from './account-selection-row.vue';
+
+const props = defineProps<{
+  accounts: AvailableAccount[];
+  providerType?: BANK_PROVIDER_TYPE;
+}>();
 
 // Selected external IDs, two-way bound by the parent connector.
 const selectedIds = defineModel<string[]>({ required: true });
 
-const { t } = useI18n();
-const { formatAmountByCurrencyCode } = useFormatCurrency();
+// externalId → user-picked currency for accounts the provider listed without
+// one (NO_CURRENCY_CODE). The parent sends these along with the connect call.
+const currencyOverrides = defineModel<Record<string, string>>('currencyOverrides', { default: () => ({}) });
 
-// Tri-state: every account picked -> checked, none -> unchecked, partial -> indeterminate.
-const selectAllState = computed<CheckedState>(() => {
-  if (selectedIds.value.length === 0) return false;
-  if (selectedIds.value.length === props.accounts.length) return true;
-  return 'indeterminate';
-});
-
-const toggleAccount = (externalId: string, checked: boolean) => {
-  selectedIds.value = checked
-    ? [...selectedIds.value, externalId]
-    : selectedIds.value.filter((id) => id !== externalId);
+const setCurrencyOverride = ({ externalId, code }: { externalId: string; code: string | null }) => {
+  currencyOverrides.value = applyCurrencyOverride({ overrides: currencyOverrides.value, externalId, code });
 };
 
-const toggleAll = (checked: boolean) => {
-  selectedIds.value = checked ? props.accounts.map((account) => account.externalId) : [];
+const allSelected = computed(() => props.accounts.length > 0 && selectedIds.value.length === props.accounts.length);
+
+const missingCurrencyCount = computed(() =>
+  countMissingCurrencySelections({
+    accounts: props.accounts,
+    selectedIds: selectedIds.value,
+    overrides: currencyOverrides.value,
+  }),
+);
+
+const toggleAccount = (externalId: string) => {
+  selectedIds.value = selectedIds.value.includes(externalId)
+    ? selectedIds.value.filter((id) => id !== externalId)
+    : [...selectedIds.value, externalId];
+};
+
+const toggleAll = () => {
+  selectedIds.value = allSelected.value ? [] : props.accounts.map((account) => account.externalId);
 };
 
 // `metadata` is an untyped bag from the provider; read institutionName safely.

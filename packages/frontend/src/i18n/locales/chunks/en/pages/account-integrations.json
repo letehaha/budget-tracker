@@ -85,7 +85,7 @@
           "loading": "Loading...",
           "next": "Next",
           "syncing": "Syncing...",
-          "sync": "Sync {count} account(s)"
+          "sync": "Sync {count} account | Sync {count} accounts"
         },
         "errors": {
           "loadCountriesFailed": "Failed to load countries. Please check your credentials.",
@@ -206,7 +206,14 @@
         }
       },
       "common": {
-        "selectAll": "Select all"
+        "selectAll": "Select all",
+        "availableLabel": "Available",
+        "clearAll": "Clear all",
+        "noCurrencyBadge": "No currency",
+        "currencyPicker": {
+          "placeholder": "Choose currency",
+          "missingCount": "{count} selected account still needs a currency — it can't be changed after import. | {count} selected accounts still need a currency — it can't be changed after import."
+        }
       },
       "help": {
         "openSite": "Open {site}"
@@ -225,9 +232,8 @@
         "connectingButton": "Connecting…",
         "backButton": "Back",
         "loadingAccounts": "Loading accounts…",
-        "accountsPreviewHint": "Found {count} account(s). Choose which to import.",
         "backfillNote": "We'll load the last 6 months of transactions now. You can load older history anytime from the account's page using the date-range picker.",
-        "importButton": "Import {count} account(s)",
+        "importButton": "Select accounts | Import 1 account | Import {count} accounts",
         "importingButton": "Importing…",
         "errors": {
           "connectFailed": "Failed to connect to SimpleFIN. Check your setup token and try again.",
@@ -311,7 +317,7 @@
           "title": "Connected Accounts",
           "empty": "No accounts connected yet.",
           "connectButton": "Connect Accounts",
-          "currencyFallback": "The bank didn't report a currency, so your base currency ({currency}) was used",
+          "currencyFallback": "The bank didn't report a currency for this account — {currency} was assigned when it was connected and can't be changed.",
           "columnAccount": "Account",
           "columnExternalId": "External ID",
           "columnBalance": "Balance",
@@ -341,8 +347,6 @@
           "noAdditionalAccounts": "No additional accounts available to connect.",
           "connectSelectedButton": "Connect Selected Accounts ({count})",
           "selectAccountsButton": "Select Accounts",
-          "availableLabel": "Available",
-          "clearAll": "Clear all",
           "alreadyConnected": "Already connected",
           "creditLimitMeta": "Limit {amount}"
         },

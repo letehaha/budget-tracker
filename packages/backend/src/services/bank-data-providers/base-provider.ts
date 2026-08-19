@@ -12,6 +12,7 @@ import { SyncStatus, setAccountSyncStatus } from './sync/sync-status-tracker';
 import {
   DateRange,
   IBankDataProvider,
+  LoadTransactionsForPeriodResult,
   ProviderAccount,
   ProviderBalance,
   ProviderMetadata,
@@ -450,11 +451,6 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
    * Load transactions for an explicit historical window (the account-details
    * "load data for period" picker). Optional — only providers that support
    * date-range historical loads implement it.
-   *
-   * `jobGroupId === null` is the explicit marker that the provider loaded
-   * inline and already finished (so `createdCount` reports rows actually
-   * created); a non-null `jobGroupId` means the work was queued and the caller
-   * should poll progress.
    */
   loadTransactionsForPeriod?(args: {
     connectionId: string;
@@ -462,19 +458,7 @@ export abstract class BaseBankDataProvider implements IBankDataProvider {
     userId: number;
     from: Date;
     to: Date;
-  }): Promise<{
-    jobGroupId: string | null;
-    totalBatches: number;
-    estimatedMinutes: number;
-    /** Rows created during an inline load (`jobGroupId === null`). */
-    createdCount?: number;
-    /**
-     * Rows the provider returned for the window during an inline load, before
-     * dedup — lets the UI distinguish "provider had no data" from "all
-     * duplicates" when `createdCount` is 0.
-     */
-    fetchedCount?: number;
-  }>;
+  }): Promise<LoadTransactionsForPeriodResult>;
 
   /**
    * Sync several accounts of one connection in a single batched pass (optional).
