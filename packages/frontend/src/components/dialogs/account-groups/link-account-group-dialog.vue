@@ -58,20 +58,6 @@ watch(
   { immediate: true },
 );
 
-const sections = computed(() => {
-  const groups = data.value ?? [];
-  return [
-    {
-      labelKey: 'dialogs.linkAccountGroup.customGroups',
-      groups: groups.filter((group) => group.bankDataProviderConnectionId == null),
-    },
-    {
-      labelKey: 'dialogs.linkAccountGroup.bankConnections',
-      groups: groups.filter((group) => group.bankDataProviderConnectionId != null),
-    },
-  ].filter((section) => section.groups.length > 0);
-});
-
 const hasBankGroups = computed(() => (data.value ?? []).some((group) => group.bankDataProviderConnectionId != null));
 
 const groupMeta = (group: AccountGroups): string => {
@@ -142,35 +128,29 @@ const rowClass = (isSelected: boolean) =>
         <CheckIcon v-if="selectedGroup === null" class="text-primary-text size-5 shrink-0" />
       </UiButton>
 
-      <template v-for="section of sections" :key="section.labelKey">
-        <p class="text-muted-foreground px-3 pt-3 pb-1 text-[11px] font-semibold tracking-wider uppercase">
-          {{ t(section.labelKey) }}
-        </p>
-
-        <UiButton
-          v-for="group of section.groups"
-          :key="group.id"
-          variant="ghost"
-          :class="rowClass(group.id === selectedGroup?.id)"
-          :disabled="isFormPending"
-          @click="selectedGroup = group"
-        >
-          <GroupLogo :group="group" size="size-7" variant="tile" />
-          <span class="min-w-0 flex-1 text-left">
-            <span class="flex items-center gap-2">
-              <span class="truncate text-sm font-medium">{{ group.name }}</span>
-              <span
-                v-if="group.id === currentSelection?.id"
-                class="bg-success/20 text-success-text shrink-0 rounded px-1.5 py-px text-[10px] font-semibold tracking-wide uppercase"
-              >
-                {{ t('dialogs.linkAccountGroup.current') }}
-              </span>
+      <UiButton
+        v-for="group of data ?? []"
+        :key="group.id"
+        variant="ghost"
+        :class="rowClass(group.id === selectedGroup?.id)"
+        :disabled="isFormPending"
+        @click="selectedGroup = group"
+      >
+        <GroupLogo :group="group" size="size-7" variant="tile" />
+        <span class="min-w-0 flex-1 text-left">
+          <span class="flex items-center gap-2">
+            <span class="truncate text-sm font-medium">{{ group.name }}</span>
+            <span
+              v-if="group.id === currentSelection?.id"
+              class="bg-success/20 text-success-text shrink-0 rounded px-1.5 py-px text-[10px] font-semibold tracking-wide uppercase"
+            >
+              {{ t('dialogs.linkAccountGroup.current') }}
             </span>
-            <span class="text-muted-foreground block text-xs font-normal">{{ groupMeta(group) }}</span>
           </span>
-          <CheckIcon v-if="group.id === selectedGroup?.id" class="text-primary-text size-5 shrink-0" />
-        </UiButton>
-      </template>
+          <span class="text-muted-foreground block text-xs font-normal">{{ groupMeta(group) }}</span>
+        </span>
+        <CheckIcon v-if="group.id === selectedGroup?.id" class="text-primary-text size-5 shrink-0" />
+      </UiButton>
     </div>
 
     <div v-if="hasBankGroups" class="bg-muted text-muted-foreground mt-3 flex items-start gap-2 rounded-lg p-3 text-xs">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import GroupLogo from '@/components/common/group-logo.vue';
 import { Button } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import GroupTotal from '@/components/sidebar/accounts-view/group-total.vue';
 import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { cn } from '@/lib/utils';
@@ -89,17 +90,20 @@ const subtitle = computed(() => {
           <div class="flex min-w-0 flex-wrap items-center gap-1.5">
             <span class="truncate text-sm font-semibold">{{ group.name }}</span>
 
-            <span
+            <DesktopOnlyTooltip
               v-if="isBankLinked"
-              class="bg-primary/15 text-primary-text shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              :content="$t('settings.accountGroups.row.bankBadgeTooltip')"
+              content-class-name="max-w-80"
             >
-              <span class="hidden @[30rem]/account-groups:inline">
-                {{ $t('settings.accountGroups.row.bankBadge') }}
+              <span class="bg-primary/15 text-primary-text shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                <span class="hidden @[30rem]/account-groups:inline">
+                  {{ $t('settings.accountGroups.row.bankBadge') }}
+                </span>
+                <span class="@[30rem]/account-groups:hidden">
+                  {{ $t('settings.accountGroups.row.bankBadgeShort') }}
+                </span>
               </span>
-              <span class="@[30rem]/account-groups:hidden">
-                {{ $t('settings.accountGroups.row.bankBadgeShort') }}
-              </span>
-            </span>
+            </DesktopOnlyTooltip>
           </div>
 
           <div class="text-muted-foreground mt-0.5 truncate text-xs">{{ subtitle }}</div>

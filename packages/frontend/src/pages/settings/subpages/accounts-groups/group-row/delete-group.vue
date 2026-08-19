@@ -2,18 +2,13 @@
 import { AccountGroups } from '@/common/types/models';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
-import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useDeleteAccountGroup } from '@/composable/data-queries/account-groups';
 import { Trash2Icon } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps<{ group: AccountGroups }>();
 
 const isConfirmOpen = ref(false);
-
-// The backend refuses to delete a group it created for a bank connection — removing it
-// means disconnecting the bank.
-const isBankLinked = computed(() => !!props.group.bankDataProviderConnectionId);
 
 const { mutate: removeGroup, isPending } = useDeleteAccountGroup({
   groupId: () => props.group.id,
@@ -24,20 +19,10 @@ const { mutate: removeGroup, isPending } = useDeleteAccountGroup({
 </script>
 
 <template>
-  <DesktopOnlyTooltip
-    :content="$t('settings.accountGroups.delete.disabledTooltip')"
-    :disabled="!isBankLinked"
-    content-class-name="max-w-80"
-  >
-    <!-- Disabled native buttons don't fire pointer events, so the tooltip trigger
-    (merged onto this child via as-child) needs a non-disabled wrapper to hover on. -->
-    <span class="inline-flex">
-      <Button variant="soft-destructive" size="sm" :disabled="isBankLinked || isPending" @click="isConfirmOpen = true">
-        <Trash2Icon class="size-4" />
-        {{ $t('settings.accountGroups.delete.button') }}
-      </Button>
-    </span>
-  </DesktopOnlyTooltip>
+  <Button variant="soft-destructive" size="sm" :disabled="isPending" @click="isConfirmOpen = true">
+    <Trash2Icon class="size-4" />
+    {{ $t('settings.accountGroups.delete.button') }}
+  </Button>
 
   <ResponsiveAlertDialog
     v-model:open="isConfirmOpen"
