@@ -1,19 +1,20 @@
+import type { BankConnection } from '@/api/bank-data-providers';
 import type { VehicleModel } from '@/api/vehicles';
 import type { AccountGroups } from '@/common/types/models';
+import { sumAccountsBaseBalance } from '@/components/sidebar/accounts-view/helpers/account-totals';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useCurrenciesStore } from '@/stores';
 import type { AccountModel } from '@bt/shared/types';
 import { useLocalStorage } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 
-import {
-  type AccountsListItem,
-  type AccountsSortKey,
-  accountBaseValue,
-  groupBaseValue,
-  sortItems,
-  sortMixed,
-} from './accounts-sort';
+import { type AccountsListItem, type AccountsSortKey, accountBaseValue, sortItems, sortMixed } from './accounts-sort';
+
+/** One Bank connections row: the connection plus every account linked to it. */
+export interface ConnectionRow {
+  connection: BankConnection;
+  accounts: AccountModel[];
+}
 
 // Module-scoped so every part of the Accounts page shares one persisted sort choice,
 // mirroring `use-accounts-page-groups.ts`'s module-scoped open-state key. Default = `auto`.
@@ -33,13 +34,17 @@ export function useAccountsSort() {
   const baseCurrencyCode = (): string | undefined => baseCurrency.value?.currency?.code;
   const includeCreditLimit = (): boolean => !!userSettings.value?.includeCreditLimitInStats;
 
-  const sortConnectionGroups = (groups: AccountGroups[]): AccountGroups[] =>
+  const sortConnectionRows = (rows: ConnectionRow[]): ConnectionRow[] =>
     sortItems({
-      items: groups,
+      items: rows,
       sortKey: sortKey.value,
-      getName: (group) => group.name,
-      getValue: (group) =>
-        groupBaseValue({ group, baseCurrencyCode: baseCurrencyCode(), includeCreditLimit: includeCreditLimit() }),
+      getName: (row) => row.connection.providerName || row.connection.bankName || '',
+      getValue: (row) =>
+        sumAccountsBaseBalance({
+          accounts: row.accounts,
+          baseCurrencyCode: baseCurrencyCode(),
+          includeCreditLimit: includeCreditLimit(),
+        }).total,
     });
 
   const sortLeafAccounts = (accounts: AccountModel[]): AccountModel[] =>
@@ -80,7 +85,7 @@ export function useAccountsSort() {
   return {
     sortKey,
     setSortKey,
-    sortConnectionGroups,
+    sortConnectionRows,
     sortLeafAccounts,
     sortVehicles,
     sortManual,
