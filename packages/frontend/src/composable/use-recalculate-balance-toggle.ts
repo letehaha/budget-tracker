@@ -5,8 +5,9 @@ import { captureException } from '@/lib/sentry';
 import { computed, ref } from 'vue';
 
 /**
- * Owns the "recalculate account balances" checkbox both import wizards render on
- * their review step. The checkbox follows the persisted
+ * Owns the "recalculate account balances" checkbox the import wizards render
+ * (CSV on its review step, Budget Bakers Wallet and MS Money on their resolve
+ * steps). The checkbox follows the persisted
  * `import.recalculateAccountBalance` user setting until the user toggles it, and
  * the chosen value is written back after a successful execute so the next import
  * remembers it.
