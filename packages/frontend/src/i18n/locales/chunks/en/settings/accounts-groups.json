@@ -39,9 +39,10 @@
       },
       "delete": {
         "button": "Delete group",
-        "confirmTitle": "Delete this group?",
-        "description": "The group will be deleted. Its accounts are not deleted — they simply stop being grouped.",
-        "affectedAccounts": "These accounts will be removed from the group:"
+        "confirmTitle": "Delete \"{name}\"?",
+        "accountsKept": "Accounts are kept — they simply become ungrouped.",
+        "syncContinues": "Bank syncing continues — the connection is separate from this group.",
+        "ungroupedHeading": "Becoming ungrouped"
       }
     }
   }
