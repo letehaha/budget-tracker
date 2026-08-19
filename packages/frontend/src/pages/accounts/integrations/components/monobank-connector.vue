@@ -50,7 +50,11 @@
             {{ t('pages.integrations.monobank.selectAccountsHint') }}
           </div>
 
-          <AccountSelectionList v-model="selectedAccountIds" :accounts="availableAccounts" />
+          <AccountSelectionList
+            v-model="selectedAccountIds"
+            :accounts="availableAccounts"
+            :provider-type="BANK_PROVIDER_TYPE.MONOBANK"
+          />
 
           <div class="flex justify-between gap-2 pt-4">
             <UiButton variant="outline" @click="currentStep = 1" :disabled="isLoading">

@@ -50,71 +50,34 @@
           <div class="flex min-h-8 items-center justify-between gap-2">
             <div class="flex items-baseline gap-1.5">
               <span class="text-muted-foreground text-[11px] font-semibold tracking-[0.14em] uppercase">
-                {{ $t('pages.integrations.details.fetchAccountsDialog.availableLabel') }}
+                {{ $t('pages.integrations.common.availableLabel') }}
               </span>
               <span class="text-muted-foreground/70 text-xs font-medium tabular-nums">
                 {{ selectableAccounts.length }}
               </span>
             </div>
             <UiButton variant="ghost-primary" size="sm" :disabled="isConnecting" @click="toggleAll">
-              {{
-                allSelected
-                  ? $t('pages.integrations.details.fetchAccountsDialog.clearAll')
-                  : $t('pages.integrations.common.selectAll')
-              }}
+              {{ allSelected ? $t('pages.integrations.common.clearAll') : $t('pages.integrations.common.selectAll') }}
             </UiButton>
           </div>
 
-          <div
+          <AccountSelectionRow
             v-for="account in selectableAccounts"
             :key="account.externalId"
-            :class="
-              cn(
-                'flex items-center gap-3 rounded-lg border p-3 transition-colors',
-                isConnecting ? 'cursor-default opacity-80' : 'cursor-pointer',
-                isSelected(account.externalId)
-                  ? 'border-primary bg-primary/10'
-                  : cn('border-border', !isConnecting && 'hover:border-primary/45'),
-              )
-            "
-            @click="toggle(account.externalId)"
-          >
-            <AccountVisualChip :account="account" :provider-type="providerType" />
+            :account="account"
+            :provider-type="providerType"
+            :selected="isSelected(account.externalId)"
+            :disabled="isConnecting"
+            :meta="secondaryMeta(account)"
+            :currency-override="currencyOverrides[account.externalId] ?? null"
+            @toggle="toggle(account.externalId)"
+            @update:currency-override="(code) => setCurrencyOverride({ externalId: account.externalId, code })"
+          />
 
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2">
-                <span class="truncate text-sm font-semibold">{{ account.name }}</span>
-                <span
-                  class="border-border text-muted-foreground shrink-0 rounded border px-1.5 py-px text-[10px] font-bold tracking-wide"
-                >
-                  {{ account.currency }}
-                </span>
-              </div>
-              <p v-if="secondaryMeta(account)" class="text-muted-foreground mt-0.5 truncate text-xs tabular-nums">
-                {{ secondaryMeta(account) }}
-              </p>
-            </div>
-
-            <span
-              :class="
-                cn(
-                  'shrink-0 text-sm font-semibold whitespace-nowrap tabular-nums',
-                  account.balance === 0 && 'text-muted-foreground font-normal',
-                )
-              "
-            >
-              {{ formatBalance(account.balance) }}
-            </span>
-
-            <Checkbox
-              :model-value="isSelected(account.externalId)"
-              :disabled="isConnecting"
-              class="size-5"
-              :aria-label="account.name"
-              @update:model-value="toggle(account.externalId)"
-              @click.stop
-            />
-          </div>
+          <p v-if="missingCurrencyCount > 0" class="text-warning-text flex items-start gap-2 text-xs">
+            <TriangleAlertIcon class="mt-0.5 size-3.5 shrink-0" />
+            {{ $t('pages.integrations.common.currencyPicker.missingCount', missingCurrencyCount) }}
+          </p>
         </div>
 
         <p v-else class="text-muted-foreground py-4 text-center text-sm">
@@ -142,7 +105,7 @@
                 <AccountVisualChip :account="account" :provider-type="providerType" />
                 <span class="min-w-0 flex-1 truncate">{{ account.name }}</span>
                 <span class="shrink-0 text-xs whitespace-nowrap tabular-nums">
-                  {{ formatBalance(account.balance) }} {{ account.currency }}
+                  {{ formatAmountByCurrencyCode(account.balance, account.currency) }}
                 </span>
               </div>
             </div>
@@ -154,13 +117,14 @@
     <template #footer="{ close }">
       <div class="grid w-full gap-3 sm:grid-cols-2">
         <UiButton variant="outline" @click="close">{{ $t('common.actions.cancel') }}</UiButton>
-        <UiButton :disabled="isConnecting || selectedIds.length === 0" @click="emit('connect', selectedIds)">
+        <UiButton
+          :disabled="isConnecting || selectedIds.length === 0 || isMissingCurrencySelection"
+          @click="emitConnect"
+        >
           <Loader2Icon v-if="isConnecting" class="size-4 animate-spin" />
           {{
             selectedIds.length
-              ? $t('pages.integrations.details.fetchAccountsDialog.connectSelectedButton', {
-                  count: selectedIds.length,
-                })
+              ? $t('pages.integrations.details.fetchAccountsDialog.connectSelectedButton', selectedIds.length)
               : $t('pages.integrations.details.fetchAccountsDialog.selectAccountsButton')
           }}
         </UiButton>
@@ -173,16 +137,18 @@
 import type { AvailableAccount } from '@/api/bank-data-providers';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
-import { Checkbox } from '@/components/lib/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/lib/ui/collapsible';
+import { useFormatCurrency } from '@/composable';
 import * as Popover from '@/components/lib/ui/popover';
 import { cn } from '@/lib/utils';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { ChevronRightIcon, InfoIcon, Loader2Icon } from '@lucide/vue';
+import { ChevronRightIcon, InfoIcon, Loader2Icon, TriangleAlertIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { formatIbanCompact, getAccountSecondaryMeta } from '../utils/account-visual';
+import { applyCurrencyOverride, countMissingCurrencySelections } from '../utils/currency-overrides';
+import AccountSelectionRow from './account-selection-row.vue';
 import AccountVisualChip from './account-visual-chip.vue';
 
 const props = defineProps<{
@@ -198,7 +164,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean];
-  connect: [externalIds: string[]];
+  connect: [payload: { externalIds: string[]; currencyOverrides: Record<string, string> }];
 }>();
 
 const { t } = useI18n();
@@ -209,6 +175,27 @@ const isOpen = computed({
 });
 
 const selectedIds = ref<string[]>([]);
+// externalId → user-picked currency for accounts listed without one (NO_CURRENCY_CODE).
+const currencyOverrides = ref<Record<string, string>>({});
+
+const setCurrencyOverride = ({ externalId, code }: { externalId: string; code: string | null }) => {
+  currencyOverrides.value = applyCurrencyOverride({ overrides: currencyOverrides.value, externalId, code });
+};
+
+// Selected no-currency accounts without a picked currency block the connect.
+const missingCurrencyCount = computed(() =>
+  countMissingCurrencySelections({
+    accounts: selectableAccounts.value,
+    selectedIds: selectedIds.value,
+    overrides: currencyOverrides.value,
+  }),
+);
+const isMissingCurrencySelection = computed(() => missingCurrencyCount.value > 0);
+
+const emitConnect = () => {
+  if (isMissingCurrencySelection.value) return;
+  emit('connect', { externalIds: selectedIds.value, currencyOverrides: currencyOverrides.value });
+};
 
 const selectableAccounts = computed(
   () => props.accounts?.filter((account) => !props.connectedExternalIds.has(account.externalId)) ?? [],
@@ -235,14 +222,13 @@ const toggleAll = () => {
   selectedIds.value = allSelected.value ? [] : selectableAccounts.value.map((account) => account.externalId);
 };
 
-const formatBalance = (amount: number) =>
-  new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+const { formatAmountByCurrencyCode } = useFormatCurrency();
 
 const secondaryMeta = (account: AvailableAccount): string | null => {
   const { iban, creditLimitCents } = getAccountSecondaryMeta({ metadata: account.metadata });
   if (creditLimitCents) {
     return t('pages.integrations.details.fetchAccountsDialog.creditLimitMeta', {
-      amount: `${formatBalance(creditLimitCents / 100)} ${account.currency}`,
+      amount: formatAmountByCurrencyCode(creditLimitCents / 100, account.currency),
     });
   }
   if (iban) return formatIbanCompact({ iban });
@@ -251,6 +237,9 @@ const secondaryMeta = (account: AvailableAccount): string | null => {
 };
 
 watch(isOpen, (open) => {
-  if (!open) selectedIds.value = [];
+  if (!open) {
+    selectedIds.value = [];
+    currencyOverrides.value = {};
+  }
 });
 </script>

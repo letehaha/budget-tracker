@@ -1,4 +1,5 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import { getServiceLogoUrl } from '@/common/utils/logo-url';
+import { BANK_PROVIDER_TYPE, NO_CURRENCY_CODE } from '@bt/shared/types';
 
 /**
  * Physical card colors of Monobank's card lineup. Monobank's account `type` is a
@@ -17,6 +18,7 @@ const MONOBANK_CARD_GRADIENTS: Record<string, string> = {
 
 export type AccountVisual =
   | { kind: 'logo'; src: string }
+  | { kind: 'favicon'; src: string; code: string }
   | { kind: 'card'; gradient: string }
   | { kind: 'currency'; code: string };
 
@@ -31,6 +33,8 @@ export function resolveAccountVisual({
   currency: string;
   metadata?: Record<string, unknown>;
 }): AccountVisual {
+  const code = currency.toUpperCase() === NO_CURRENCY_CODE ? '···' : currency.toUpperCase();
+
   const logo = metadata?.institutionLogo;
   if (typeof logo === 'string' && logo) return { kind: 'logo', src: logo };
 
@@ -39,7 +43,15 @@ export function resolveAccountVisual({
     if (gradient) return { kind: 'card', gradient };
   }
 
-  return { kind: 'currency', code: currency.toUpperCase() };
+  // Providers without logos (SimpleFIN) still report the institution's domain —
+  // its logo.dev brand image stands in; `code` is the render fallback if it errors.
+  const domain = metadata?.institutionDomain;
+  if (typeof domain === 'string' && domain) {
+    const src = getServiceLogoUrl({ domain });
+    if (src) return { kind: 'favicon', src, code };
+  }
+
+  return { kind: 'currency', code };
 }
 
 export function formatIbanCompact({ iban }: { iban: string }): string {

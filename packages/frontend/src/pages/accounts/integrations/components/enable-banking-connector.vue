@@ -187,18 +187,26 @@
             {{ t('pages.integrations.enableBankingConnector.steps.selectAccountsHint') }}
           </div>
 
-          <AccountSelectionList v-model="selectedAccountIds" :accounts="availableAccounts" />
+          <AccountSelectionList
+            v-model="selectedAccountIds"
+            v-model:currency-overrides="currencyOverrides"
+            :accounts="availableAccounts"
+            :provider-type="BANK_PROVIDER_TYPE.ENABLE_BANKING"
+          />
 
           <div class="flex gap-2 pt-4">
             <DemoRestricted
               :message="t('demo.featureNotAvailable')"
               feature="bank_connect_enablebanking_import_accounts"
             >
-              <UiButton @click="handleSyncAccounts" :disabled="selectedAccountIds.length === 0 || isLoading || isDemo">
+              <UiButton
+                @click="handleSyncAccounts"
+                :disabled="selectedAccountIds.length === 0 || isMissingCurrencySelection || isLoading || isDemo"
+              >
                 {{
                   isLoading
                     ? t('pages.integrations.enableBankingConnector.buttons.syncing')
-                    : t('pages.integrations.enableBankingConnector.buttons.sync', { count: selectedAccountIds.length })
+                    : t('pages.integrations.enableBankingConnector.buttons.sync', selectedAccountIds.length)
                 }}
               </UiButton>
             </DemoRestricted>
@@ -234,6 +242,7 @@ import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { countMissingCurrencySelections } from '../utils/currency-overrides';
 import AccountSelectionList from './account-selection-list.vue';
 import InstructionsDialog from './enable-banking/instructions-dialog.vue';
 import CredentialsHelpTrigger from './shared/credentials-help-trigger.vue';
@@ -275,6 +284,18 @@ const connectionId = ref<string | null>(null);
 // Step 5 data
 const availableAccounts = ref<AvailableAccount[]>([]);
 const selectedAccountIds = ref<string[]>([]);
+// externalId → user-picked currency for accounts listed without one.
+const currencyOverrides = ref<Record<string, string>>({});
+
+// A selected no-currency account without a picked currency blocks the import.
+const isMissingCurrencySelection = computed(
+  () =>
+    countMissingCurrencySelections({
+      accounts: availableAccounts.value,
+      selectedIds: selectedAccountIds.value,
+      overrides: currencyOverrides.value,
+    }) > 0,
+);
 
 const filteredCountries = computed(() => {
   if (!countryFilter.value) return countries.value;
@@ -393,11 +414,12 @@ const handleSyncAccounts = async () => {
   if (!connectionId.value || selectedAccountIds.value.length === 0 || isLoading.value || isDemo.value) {
     return;
   }
+  if (isMissingCurrencySelection.value) return;
 
   try {
     isLoading.value = true;
 
-    await syncSelectedAccounts(connectionId.value, selectedAccountIds.value);
+    await syncSelectedAccounts(connectionId.value, selectedAccountIds.value, currencyOverrides.value);
 
     // Refresh accounts store
     await accountsStore.refetchAccounts();
