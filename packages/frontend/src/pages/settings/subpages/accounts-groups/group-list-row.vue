@@ -5,7 +5,9 @@ import GroupTotal from '@/components/sidebar/accounts-view/group-total.vue';
 import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { cn } from '@/lib/utils';
 import { goToConnectionDetails } from '@/routes/navigation';
+import { useAccountsStore } from '@/stores';
 import { ChevronDownIcon, Settings2Icon } from '@lucide/vue';
+import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -32,11 +34,31 @@ const { baseCurrencyCode, sumBaseBalance } = useBaseBalanceTotals();
 // rolling its accounts up into the parent here would count them twice.
 const total = computed(() => sumBaseBalance({ accounts: group.value.accounts }));
 
+const { accounts: allAccounts } = storeToRefs(useAccountsStore());
+
+// A connection group the user emptied by regrouping its accounts still syncs them —
+// plain "No accounts" reads like the connection lost them, so call out where they live.
+const linkedAccountsElsewhereCount = computed(() => {
+  if (!isBankLinked.value || accountsCount.value > 0) return 0;
+  return (allAccounts.value ?? []).filter(
+    (account) => account.bankDataProviderConnectionId === group.value.bankDataProviderConnectionId,
+  ).length;
+});
+
 const subtitle = computed(() => {
+  const emptyLabel =
+    linkedAccountsElsewhereCount.value > 0
+      ? t(
+          'settings.accountGroups.row.accountsElsewhere',
+          { count: linkedAccountsElsewhereCount.value },
+          linkedAccountsElsewhereCount.value,
+        )
+      : t('settings.accountGroups.row.noAccounts');
+
   const parts = [
     accountsCount.value > 0
       ? t('settings.accountGroups.row.accountsCount', { count: accountsCount.value }, accountsCount.value)
-      : t('settings.accountGroups.row.noAccounts'),
+      : emptyLabel,
   ];
 
   if (props.item.parentName) {
@@ -114,7 +136,13 @@ const subtitle = computed(() => {
       >
         <GroupAccountRow v-for="account in group.accounts" :key="account.id" :account="account" :group-id="group.id" />
       </div>
-      <p v-else class="text-muted-foreground text-sm">{{ $t('settings.accountGroups.accounts.empty') }}</p>
+      <p v-else class="text-muted-foreground text-sm">
+        {{
+          linkedAccountsElsewhereCount > 0
+            ? $t('settings.accountGroups.accounts.emptyBankLinked')
+            : $t('settings.accountGroups.accounts.empty')
+        }}
+      </p>
 
       <div class="mt-4 flex flex-wrap items-center justify-end gap-3">
         <Button

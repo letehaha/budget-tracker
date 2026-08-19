@@ -20,6 +20,7 @@
         "bankBadgeShort": "Connection",
         "accountsCount": "{count} account | {count} accounts",
         "noAccounts": "No accounts",
+        "accountsElsewhere": "{count} synced account in other groups | {count} synced accounts in other groups",
         "inParent": "in {name}",
         "manageConnection": "Manage connection"
       },
@@ -32,6 +33,7 @@
       "accounts": {
         "heading": "Accounts in this group",
         "empty": "No accounts in this group yet. Add accounts to a group from the account page.",
+        "emptyBankLinked": "This connection's accounts are organized into other groups — moving them doesn't affect syncing.",
         "unlinkTooltip": "Remove from group"
       },
       "delete": {
