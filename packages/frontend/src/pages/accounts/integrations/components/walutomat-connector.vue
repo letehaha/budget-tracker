@@ -3,21 +3,6 @@
     <!-- Step 1: Enter Credentials -->
     <template v-if="currentStep === 1">
       <div class="space-y-4">
-        <!-- Help section -->
-        <div class="bg-muted/50 mb-4 rounded-md p-3">
-          <div class="flex items-center gap-2">
-            <InfoIcon class="mt-0.5 size-5 shrink-0 text-white" />
-            <div class="flex-1">
-              <p class="text-sm">
-                {{ t('pages.integrations.walutomat.helpText') }}
-                <button class="text-primary-text font-medium underline" @click="showInstructions = true">
-                  {{ t('pages.integrations.walutomat.viewInstructions') }}
-                </button>
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div>
           <InputField
             v-model="apiKey"
@@ -39,6 +24,10 @@
           <p class="text-muted-foreground mt-1 text-xs">
             {{ t('pages.integrations.walutomat.privateKeyHint') }}
           </p>
+          <CredentialsHelpTrigger
+            :label="t('pages.integrations.walutomat.help.trigger')"
+            @click="showInstructions = true"
+          />
         </div>
 
         <div class="flex justify-between gap-2">
@@ -140,11 +129,11 @@ import { Checkbox, type CheckedState } from '@/components/lib/ui/checkbox';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import CredentialsHelpTrigger from './shared/credentials-help-trigger.vue';
 import WalutomatInstructionsDialog from './walutomat/instructions-dialog.vue';
 
 const { t } = useI18n();

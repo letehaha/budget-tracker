@@ -16,22 +16,6 @@
     <!-- Step 1: Enter Enable Banking Credentials -->
     <template v-if="currentStep === 1">
       <div class="space-y-4">
-        <!-- Help Dialog Trigger -->
-        <div class="bg-muted/50 mb-4 rounded-md p-3">
-          <div class="flex items-center gap-2">
-            <InfoIcon class="mt-0.5 size-5 shrink-0 text-white" />
-
-            <div class="flex-1">
-              <p class="text-sm">
-                {{ t('pages.integrations.enableBankingConnector.credentials.helpText') }}
-                <button @click="showHelpDialog = true" class="text-primary-text font-medium underline">
-                  {{ t('pages.integrations.enableBankingConnector.credentials.helpLink') }}
-                </button>
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div>
           <InputField
             v-model="appId"
@@ -54,6 +38,10 @@
           <p class="text-muted-foreground mt-1 text-xs">
             {{ t('pages.integrations.enableBankingConnector.credentials.privateKeyHint') }}
           </p>
+          <CredentialsHelpTrigger
+            :label="t('pages.integrations.enableBanking.help.trigger')"
+            @click="showHelpDialog = true"
+          />
         </div>
         <div class="flex justify-between gap-2">
           <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading">
@@ -241,13 +229,14 @@ import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { InfoIcon, TriangleAlertIcon } from '@lucide/vue';
+import { TriangleAlertIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import AccountSelectionList from './account-selection-list.vue';
 import InstructionsDialog from './enable-banking/instructions-dialog.vue';
+import CredentialsHelpTrigger from './shared/credentials-help-trigger.vue';
 
 const emit = defineEmits<{
   connected: [];
