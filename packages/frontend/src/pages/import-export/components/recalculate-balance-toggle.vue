@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Import-wide "update account balances from imported transactions" checkbox,
- * shared by the CSV and Budget Bakers Wallet resolve steps. Purely presentational:
+ * shared by the CSV, Budget Bakers Wallet and MS Money wizards. Purely presentational:
  * the parent store owns the value (seeded from the persisted
  * `import.recalculateAccountBalance` user setting and written back on execute).
  */
