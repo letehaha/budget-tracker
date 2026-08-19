@@ -208,7 +208,10 @@
     "accountCurrencyNotSupported": "Валюта рахунку \"{{currency}}\" не підтримується системою.",
     "periodLoadNotSupported": "Завантаження транзакцій за довільний період не підтримується цим провайдером.",
     "transactionsLoadedCount": "Завантажено {{count}} транзакцій.",
+    "transactionsAllDuplicates": "Знайдено {{count}} транзакцій за цей період — усі вже були імпортовані.",
+    "transactionsNoneInPeriod": "Провайдер не повернув жодної транзакції за цей період.",
     "apiError": "Помилка API {{provider}}: {{message}}",
+    "currencySelectionRequired": "Рахунок \"{{account}}\" не має валюти, повідомленої банком — оберіть для нього валюту перед підключенням.",
     "monobank": {
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Monobank",
       "invalidApiToken": "Недійсний API токен Monobank",

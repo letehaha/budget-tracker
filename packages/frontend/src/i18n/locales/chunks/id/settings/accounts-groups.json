@@ -18,22 +18,28 @@
       "row": {
         "bankBadge": "Koneksi bank",
         "bankBadgeShort": "Koneksi",
+        "bankBadgeTooltip": "Grup ini dibuat saat Anda menghubungkan bank, tetapi tidak mewakili koneksi itu sendiri — Anda bebas mengganti namanya, memindahkan akun, atau menghapusnya. Akun akan tetap tersinkron.",
         "accountsCount": "{count} akun | {count} akun",
         "noAccounts": "Tidak ada akun",
+        "accountsElsewhere": "{count} akun tersinkron di grup lain | {count} akun tersinkron di grup lain",
         "inParent": "di {name}",
         "manageConnection": "Kelola koneksi"
       },
       "accounts": {
         "heading": "Akun dalam grup ini",
         "empty": "Belum ada akun dalam grup ini. Tambahkan akun ke grup dari halaman akun.",
-        "unlinkTooltip": "Hapus dari grup"
+        "emptyBankLinked": "Akun dari koneksi ini diatur ke dalam grup lain — memindahkannya tidak memengaruhi sinkronisasi.",
+        "unlinkTooltip": "Hapus dari grup",
+        "removeConfirmTitle": "Hapus \"{name}\" dari grup ini?",
+        "removeConfirmDescription": "Akun tidak dihapus — akun hanya keluar dari grup ini.",
+        "removeConfirmAction": "Hapus"
       },
       "delete": {
         "button": "Hapus grup",
-        "disabledTooltip": "Grup ini terhubung ke koneksi bank dan tidak dapat dihapus secara manual. Putuskan koneksi bank untuk menghapusnya secara otomatis.",
         "confirmTitle": "Hapus grup ini?",
-        "description": "Grup akan dihapus. Akun di dalamnya tidak ikut dihapus — akun tersebut hanya berhenti dikelompokkan.",
-        "affectedAccounts": "Akun berikut akan dihapus dari grup:"
+        "accountsKept": "Akun tetap disimpan — akun hanya menjadi tanpa grup.",
+        "syncContinues": "Sinkronisasi bank tetap berlanjut — koneksi terpisah dari grup ini.",
+        "ungroupedHeading": "Menjadi tanpa grup"
       },
       "update": {
         "label": "Nama grup",

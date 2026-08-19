@@ -34,10 +34,13 @@
         "connectionNameLabel": "Назва підключення (необов'язково)",
         "tokenPlaceholder": "Введіть ваш API токен Monobank",
         "accountNamePlaceholder": "напр., Особистий рахунок",
-        "tokenHint": "Ви можете отримати API токен у мобільному застосунку Monobank",
-        "tokenInstructions": "Щоб отримати токен для особистого використання, відвідайте {link} та дотримуйтесь інструкцій. Після генерації токену збережіть його та введіть у поле.",
-        "tokenReadOnlyNote": "Примітка:",
-        "tokenReadOnlyText": "Не хвилюйтесь, API токен має лише права на читання.",
+        "help": {
+          "trigger": "Де отримати API токен?",
+          "title": "Отримайте ваш API токен Monobank",
+          "step1": "Відвідайте {link} та дотримуйтесь інструкцій, щоб згенерувати особистий токен.",
+          "step2": "Збережіть токен у безпечному місці та вставте його в поле.",
+          "note": "Не хвилюйтесь — API токен має лише права на читання."
+        },
         "backButton": "Назад",
         "connectingButton": "Підключення...",
         "connectButton": "Підключити",
@@ -57,8 +60,6 @@
           "description": "Ця інтеграція вимагає технічних знань для налаштування. Вам потрібно зареєструвати власний застосунок Enable Banking та надати облікові дані API. Процес налаштування та API можуть змінитися в майбутніх оновленнях."
         },
         "credentials": {
-          "helpText": "Немає облікових даних Enable Banking?",
-          "helpLink": "Дізнайтеся, як їх отримати",
           "appIdLabel": "ID застосунку",
           "appIdHint": "Отримайте з порталу Enable Banking після завантаження сертифіката",
           "privateKeyLabel": "Приватний ключ",
@@ -95,7 +96,6 @@
       },
       "instructionsDialog": {
         "title": "Як отримати облікові дані Enable Banking",
-        "description": "Покрокова інструкція з реєстрації та налаштування облікових даних Enable Banking",
         "overview": {
           "title": "Огляд",
           "text": "Enable Banking вимагає реєстрації застосунку та генерації облікових даних безпеки для доступу до банківських даних. Виконайте ці кроки, щоб отримати Application ID та Private Key."
@@ -175,13 +175,21 @@
           "noAuthUrl": "URL авторизації не отримано від сервера",
           "failedToLoadBanks": "Не вдалося завантажити банки",
           "failedToConnectProvider": "Не вдалося підключити провайдера"
+        },
+        "help": {
+          "trigger": "Де отримати облікові дані Enable Banking?"
         }
       },
       "lunchflow": {
         "apiKeyLabel": "API-ключ",
         "apiKeyPlaceholder": "Введіть ваш API-ключ LunchFlow",
-        "apiKeyHint": "Де знайти мій API-ключ?",
-        "apiKeyInstructions": "Перейдіть до вашого {link} → Налаштування → API Destinations, щоб знайти ваш API-ключ",
+        "help": {
+          "trigger": "Де знайти мій API-ключ?",
+          "title": "Отримайте ваш API-ключ Lunch Flow",
+          "step1": "Відкрийте ваш {link}.",
+          "step2": "Перейдіть до Налаштування → API Destinations.",
+          "step3": "Скопіюйте API-ключ та вставте його в поле."
+        },
         "backButton": "Назад",
         "connectingButton": "Підключення...",
         "connectButton": "Підключити",
@@ -198,18 +206,32 @@
         }
       },
       "common": {
-        "selectAll": "Вибрати всі"
+        "selectAll": "Вибрати всі",
+        "availableLabel": "Доступно",
+        "clearAll": "Очистити всі",
+        "noCurrencyBadge": "Без валюти",
+        "currencyPicker": {
+          "placeholder": "Оберіть валюту",
+          "missingCount": "{count} обраному рахунку все ще потрібна валюта — її не можна буде змінити після імпорту. | {count} обраним рахункам все ще потрібна валюта — її не можна буде змінити після імпорту. | {count} обраним рахункам все ще потрібна валюта — її не можна буде змінити після імпорту."
+        }
+      },
+      "help": {
+        "openSite": "Відкрити {site}"
       },
       "simplefin": {
         "setupTokenLabel": "Setup token",
         "setupTokenPlaceholder": "Вставте ваш setup token від SimpleFIN",
-        "setupTokenHint": "Де отримати setup token?",
-        "setupTokenInstructions": "Створіть обліковий запис SimpleFIN Bridge на {link}, підключіть свій банк, потім згенеруйте setup token і вставте його сюди.",
+        "help": {
+          "trigger": "Де отримати setup token?",
+          "title": "Отримайте ваш setup token SimpleFIN",
+          "step1": "Створіть обліковий запис SimpleFIN Bridge на {link} та підключіть свій банк.",
+          "step2": "Згенеруйте новий setup token на панелі Bridge.",
+          "step3": "Вставте токен у поле."
+        },
         "connectButton": "Підключити",
         "connectingButton": "Підключення…",
         "backButton": "Назад",
         "loadingAccounts": "Завантаження рахунків…",
-        "accountsPreviewHint": "Знайдено {count} рахунок(ів). Оберіть, які імпортувати.",
         "backfillNote": "Зараз завантажимо транзакції за останні 6 місяців. Старішу історію можна завантажити будь-коли на сторінці рахунку за допомогою вибору діапазону дат.",
         "importButton": "Імпортувати рахунки ({count})",
         "importingButton": "Імпортування…",
@@ -219,8 +241,9 @@
         }
       },
       "walutomat": {
-        "helpText": "Потрібна допомога з налаштуванням доступу до API Walutomat?",
-        "viewInstructions": "Переглянути інструкцію з налаштування",
+        "help": {
+          "trigger": "Як налаштувати доступ до API Walutomat?"
+        },
         "apiKeyLabel": "API-ключ",
         "apiKeyPlaceholder": "Введіть ваш API-ключ Walutomat",
         "apiKeyHint": "Знаходиться на панелі Walutomat у розділі Налаштування → API",
@@ -242,7 +265,6 @@
         },
         "instructions": {
           "title": "Інструкція з налаштування API Walutomat",
-          "description": "Покрокова інструкція з налаштування доступу до API Walutomat",
           "overviewTitle": "Огляд",
           "overviewText": "Щоб підключити Walutomat, вам знадобляться API-ключ та приватний ключ RSA. API-ключ автентифікує ваш обліковий запис, а приватний ключ підписує кожен запит для безпеки.",
           "step1Title": "Згенеруйте пару ключів RSA",
@@ -325,8 +347,6 @@
           "noAdditionalAccounts": "Немає додаткових рахунків для підключення.",
           "connectSelectedButton": "Підключити вибрані рахунки ({count})",
           "selectAccountsButton": "Виберіть рахунки",
-          "availableLabel": "Доступні",
-          "clearAll": "Очистити все",
           "alreadyConnected": "Вже підключено",
           "creditLimitMeta": "Ліміт {amount}"
         },
@@ -409,6 +429,11 @@
         "canada": "Канада",
         "australia": "Австралія",
         "newZealand": "Нова Зеландія"
+      },
+      "filters": {
+        "all": "Усі",
+        "usCanada": "США та Канада",
+        "euUk": "ЄС та Велика Британія"
       },
       "tooltips": {
         "monobank": "Потрібно вручну скопіювати API токен з мобільного додатку Monobank",

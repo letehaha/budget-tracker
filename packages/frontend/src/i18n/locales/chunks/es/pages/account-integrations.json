@@ -34,10 +34,13 @@
         "connectionNameLabel": "Nombre de la conexión (opcional)",
         "tokenPlaceholder": "Introduzca su token de API de Monobank",
         "accountNamePlaceholder": "p. ej., Cuenta Personal",
-        "tokenHint": "Puede obtener su token de API desde la aplicación móvil de Monobank",
-        "tokenInstructions": "Para obtener un token de uso personal, visite {link} y siga las instrucciones. Una vez generado el token, guárdelo en algún lugar e introdúzcalo en el campo.",
-        "tokenReadOnlyNote": "Nota:",
-        "tokenReadOnlyText": "No se preocupe, el token de API es estrictamente de solo lectura.",
+        "help": {
+          "trigger": "¿Dónde obtengo un token de API?",
+          "title": "Obtenga su token de API de Monobank",
+          "step1": "Visite {link} y siga las instrucciones para generar un token personal.",
+          "step2": "Guarde el token de forma segura y péguelo en el campo.",
+          "note": "No se preocupe, el token de API es estrictamente de solo lectura."
+        },
         "backButton": "Atrás",
         "connectingButton": "Conectando...",
         "connectButton": "Conectar",
@@ -57,8 +60,6 @@
           "description": "Esta integración requiere conocimientos técnicos para configurarla. Deberá registrar su propia aplicación de Enable Banking y proporcionar credenciales de API. El proceso de configuración y la API pueden cambiar en futuras actualizaciones."
         },
         "credentials": {
-          "helpText": "¿No tiene credenciales de Enable Banking?",
-          "helpLink": "Aprenda cómo obtenerlas",
           "appIdLabel": "ID de aplicación",
           "appIdHint": "Obténgalo del portal de Enable Banking tras subir su certificado",
           "privateKeyLabel": "Clave privada",
@@ -95,7 +96,6 @@
       },
       "instructionsDialog": {
         "title": "Cómo obtener credenciales de Enable Banking",
-        "description": "Instrucciones paso a paso para registrar y configurar las credenciales de Enable Banking",
         "overview": {
           "title": "Descripción general",
           "text": "Enable Banking requiere que registre una aplicación y genere credenciales de seguridad para acceder a los datos bancarios. Siga estos pasos para obtener su ID de aplicación y clave privada."
@@ -175,13 +175,21 @@
           "noAuthUrl": "No se recibió URL de autorización del servidor",
           "failedToLoadBanks": "Error al cargar los bancos",
           "failedToConnectProvider": "Error al conectar el proveedor"
+        },
+        "help": {
+          "trigger": "¿Dónde obtengo las credenciales de Enable Banking?"
         }
       },
       "lunchflow": {
         "apiKeyLabel": "Clave de API",
         "apiKeyPlaceholder": "Introduzca su clave de API de LunchFlow",
-        "apiKeyHint": "¿Dónde encuentro mi clave de API?",
-        "apiKeyInstructions": "Vaya a su {link} → Ajustes → Destinos de API para encontrar su clave de API",
+        "help": {
+          "trigger": "¿Dónde encuentro mi clave de API?",
+          "title": "Obtenga su clave de API de Lunch Flow",
+          "step1": "Abra su {link}.",
+          "step2": "Vaya a Ajustes → Destinos de API.",
+          "step3": "Copie la clave de API y péguela en el campo."
+        },
         "backButton": "Atrás",
         "connectingButton": "Conectando...",
         "connectButton": "Conectar",
@@ -198,18 +206,32 @@
         }
       },
       "common": {
-        "selectAll": "Seleccionar todo"
+        "selectAll": "Seleccionar todo",
+        "availableLabel": "Disponible",
+        "clearAll": "Borrar todo",
+        "noCurrencyBadge": "Sin moneda",
+        "currencyPicker": {
+          "placeholder": "Elija una moneda",
+          "missingCount": "{count} cuenta seleccionada aún necesita una moneda — no se puede cambiar después de la importación. | {count} cuentas seleccionadas aún necesitan una moneda — no se puede cambiar después de la importación."
+        }
+      },
+      "help": {
+        "openSite": "Abrir {site}"
       },
       "simplefin": {
         "setupTokenLabel": "Token de configuración",
         "setupTokenPlaceholder": "Pegue su token de configuración de SimpleFIN",
-        "setupTokenHint": "¿Dónde obtengo un token de configuración?",
-        "setupTokenInstructions": "Cree una cuenta en SimpleFIN Bridge en {link}, conecte su banco, luego genere un token de configuración y péguelo aquí.",
+        "help": {
+          "trigger": "¿Dónde obtengo un token de configuración?",
+          "title": "Obtenga su token de configuración de SimpleFIN",
+          "step1": "Cree una cuenta en SimpleFIN Bridge en {link} y conecte su banco.",
+          "step2": "Genere un nuevo token de configuración en el panel de Bridge.",
+          "step3": "Pegue el token en el campo."
+        },
         "connectButton": "Conectar",
         "connectingButton": "Conectando…",
         "backButton": "Atrás",
         "loadingAccounts": "Cargando cuentas…",
-        "accountsPreviewHint": "Se encontraron {count} cuenta(s). Elija cuáles importar.",
         "backfillNote": "Cargaremos los últimos 6 meses de transacciones ahora. Puede cargar el historial más antiguo en cualquier momento desde la página de la cuenta usando el selector de rango de fechas.",
         "importButton": "Importar {count} cuenta(s)",
         "importingButton": "Importando…",
@@ -219,8 +241,9 @@
         }
       },
       "walutomat": {
-        "helpText": "¿Necesita ayuda para configurar el acceso a la API de Walutomat?",
-        "viewInstructions": "Ver instrucciones de configuración",
+        "help": {
+          "trigger": "¿Cómo configuro el acceso a la API de Walutomat?"
+        },
         "apiKeyLabel": "Clave de API",
         "apiKeyPlaceholder": "Introduzca su clave de API de Walutomat",
         "apiKeyHint": "Encuéntrela en su panel de Walutomat en Ajustes → API",
@@ -242,7 +265,6 @@
         },
         "instructions": {
           "title": "Instrucciones de configuración de la API de Walutomat",
-          "description": "Guía paso a paso para configurar el acceso a la API de Walutomat",
           "overviewTitle": "Descripción general",
           "overviewText": "Para conectar Walutomat, necesita una clave de API y una clave privada RSA. La clave de API autentica su cuenta, mientras que la clave privada firma cada solicitud por seguridad.",
           "step1Title": "Generar par de claves RSA",
@@ -325,8 +347,6 @@
           "noAdditionalAccounts": "No hay cuentas adicionales disponibles para conectar.",
           "connectSelectedButton": "Conectar cuentas seleccionadas ({count})",
           "selectAccountsButton": "Seleccionar cuentas",
-          "availableLabel": "Disponibles",
-          "clearAll": "Borrar todo",
           "alreadyConnected": "Ya conectada",
           "creditLimitMeta": "Límite {amount}"
         },
@@ -409,6 +429,11 @@
         "canada": "Canadá",
         "australia": "Australia",
         "newZealand": "Nueva Zelanda"
+      },
+      "filters": {
+        "all": "Todos",
+        "usCanada": "EE. UU. y Canadá",
+        "euUk": "UE y Reino Unido"
       },
       "tooltips": {
         "monobank": "Requiere copiar manualmente un token de API desde la aplicación móvil de Monobank",

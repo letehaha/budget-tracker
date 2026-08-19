@@ -209,6 +209,9 @@
     "accountCurrencyNotSupported": "La moneda de la cuenta \"{{currency}}\" no está soportada por este sistema.",
     "periodLoadNotSupported": "La carga de transacciones para un período personalizado no está soportada por este proveedor.",
     "transactionsLoadedCount": "Se cargaron {{count}} transacciones.",
+    "transactionsAllDuplicates": "Se encontraron {{count}} transacciones para este período — todas ya habían sido importadas.",
+    "transactionsNoneInPeriod": "El proveedor no devolvió transacciones para este período.",
+    "currencySelectionRequired": "La cuenta \"{{account}}\" no tiene una moneda reportada por el banco — elija una moneda para ella antes de conectarla.",
     "monobank": {
       "invalidCredentialsFormat": "Formato de credenciales no válido para Monobank",
       "invalidApiToken": "Token de API de Monobank no válido",

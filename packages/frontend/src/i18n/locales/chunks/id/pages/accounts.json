@@ -18,6 +18,7 @@
     },
     "sharedBy": "Dibagikan oleh {handle}",
     "viaHousehold": "Dibagikan melalui rumah tangga {handle}",
+    "inGroupSubtitle": "di {name}",
     "actionsMenu": "Tindakan akun",
     "overview": {
       "totalBalance": "Total saldo",
