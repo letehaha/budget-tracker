@@ -4,7 +4,7 @@
       "addDialog": {
         "titleSelect": "Add Integration",
         "titleConnect": "Connect {provider}",
-        "selectProviderHint": "Choose a bank data provider to connect",
+        "selectProviderHint": "Where do you bank? Pick a region to see what works there.",
         "betaBadge": "Beta"
       },
       "providers": {
@@ -34,10 +34,13 @@
         "connectionNameLabel": "Connection Name (optional)",
         "tokenPlaceholder": "Enter your Monobank API token",
         "accountNamePlaceholder": "e.g., Personal Account",
-        "tokenHint": "You can get your API token from Monobank mobile app",
-        "tokenInstructions": "To obtain a token for personal use please visit {link} and follow instructions. Once token is generated, store it somewhere and enter into the field.",
-        "tokenReadOnlyNote": "Note:",
-        "tokenReadOnlyText": "Don't worry, the API token is strictly read-only.",
+        "help": {
+          "trigger": "Where do I get an API token?",
+          "title": "Get your Monobank API token",
+          "step1": "Visit {link} and follow the instructions to generate a personal token.",
+          "step2": "Store the token safely and paste it into the field.",
+          "note": "Don't worry — the API token is strictly read-only."
+        },
         "backButton": "Back",
         "connectingButton": "Connecting...",
         "connectButton": "Connect",
@@ -57,8 +60,6 @@
           "description": "This integration requires technical knowledge to set up. You'll need to register your own Enable Banking application and provide API credentials. The setup process and API may change in future updates."
         },
         "credentials": {
-          "helpText": "Don't have Enable Banking credentials?",
-          "helpLink": "Learn how to obtain them",
           "appIdLabel": "Application ID",
           "appIdHint": "Get from Enable Banking portal after uploading your certificate",
           "privateKeyLabel": "Private Key",
@@ -95,7 +96,6 @@
       },
       "instructionsDialog": {
         "title": "How to Obtain Enable Banking Credentials",
-        "description": "Step-by-step instructions for registering and configuring Enable Banking credentials",
         "overview": {
           "title": "Overview",
           "text": "Enable Banking requires you to register an application and generate security credentials to access banking data. Follow these steps to get your Application ID and Private Key."
@@ -175,13 +175,21 @@
           "noAuthUrl": "No authorization URL received from server",
           "failedToLoadBanks": "Failed to load banks",
           "failedToConnectProvider": "Failed to connect provider"
+        },
+        "help": {
+          "trigger": "Where do I get Enable Banking credentials?"
         }
       },
       "lunchflow": {
         "apiKeyLabel": "API Key",
         "apiKeyPlaceholder": "Enter your LunchFlow API key",
-        "apiKeyHint": "Where do I find my API key?",
-        "apiKeyInstructions": "Go to your {link} → Settings → API Destinations to find your API key",
+        "help": {
+          "trigger": "Where do I find my API key?",
+          "title": "Get your Lunch Flow API key",
+          "step1": "Open your {link}.",
+          "step2": "Go to Settings → API Destinations.",
+          "step3": "Copy the API key and paste it into the field."
+        },
         "backButton": "Back",
         "connectingButton": "Connecting...",
         "connectButton": "Connect",
@@ -200,11 +208,19 @@
       "common": {
         "selectAll": "Select all"
       },
+      "help": {
+        "openSite": "Open {site}"
+      },
       "simplefin": {
         "setupTokenLabel": "Setup token",
         "setupTokenPlaceholder": "Paste your SimpleFIN setup token",
-        "setupTokenHint": "Where do I get a setup token?",
-        "setupTokenInstructions": "Create a SimpleFIN Bridge account at {link}, connect your bank, then generate a setup token and paste it here.",
+        "help": {
+          "trigger": "Where do I get a setup token?",
+          "title": "Get your SimpleFIN setup token",
+          "step1": "Create a SimpleFIN Bridge account at {link} and connect your bank.",
+          "step2": "Generate a new setup token on the Bridge dashboard.",
+          "step3": "Paste the token into the field."
+        },
         "connectButton": "Connect",
         "connectingButton": "Connecting…",
         "backButton": "Back",
@@ -219,8 +235,9 @@
         }
       },
       "walutomat": {
-        "helpText": "Need help setting up Walutomat API access?",
-        "viewInstructions": "View setup instructions",
+        "help": {
+          "trigger": "How do I set up Walutomat API access?"
+        },
         "apiKeyLabel": "API Key",
         "apiKeyPlaceholder": "Enter your Walutomat API key",
         "apiKeyHint": "Found in your Walutomat dashboard under Settings → API",
@@ -242,7 +259,6 @@
         },
         "instructions": {
           "title": "Walutomat API Setup Instructions",
-          "description": "Step-by-step guide to set up Walutomat API access",
           "overviewTitle": "Overview",
           "overviewText": "To connect Walutomat, you need an API key and an RSA private key. The API key authenticates your account, while the private key signs each request for security.",
           "step1Title": "Generate RSA Key Pair",
@@ -409,6 +425,11 @@
         "canada": "Canada",
         "australia": "Australia",
         "newZealand": "New Zealand"
+      },
+      "filters": {
+        "all": "All",
+        "usCanada": "US & Canada",
+        "euUk": "EU & UK"
       },
       "tooltips": {
         "monobank": "Requires manually copying an API token from the Monobank mobile app",

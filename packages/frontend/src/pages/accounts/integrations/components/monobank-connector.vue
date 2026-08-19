@@ -4,42 +4,21 @@
     <template v-if="currentStep === 1">
       <div class="space-y-4">
         <div>
-          <label class="text-sm font-medium">{{ t('pages.integrations.monobank.apiTokenLabel') }}</label>
-          <input
+          <InputField
             v-model="apiToken"
             type="password"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.monobank.apiTokenLabel')"
             :placeholder="$t('pages.integrations.monobank.tokenPlaceholder')"
             @keyup.enter="handleConnectProvider"
           />
 
-          <ResponsiveTooltip content-class-name="max-w-100 p-4">
-            <span class="mt-2 flex items-center gap-2">
-              <InfoIcon class="text-primary-text size-4" />
-              <p class="text-muted-foreground text-xs">{{ t('pages.integrations.monobank.tokenHint') }}</p>
-            </span>
-            <template #content>
-              <span class="text-sm leading-6 opacity-90">
-                <i18n-t keypath="pages.integrations.monobank.tokenInstructions" tag="span">
-                  <template #link>
-                    <ExternalLink href="https://api.monobank.ua" />
-                  </template>
-                </i18n-t>
-                <br />
-                <b>{{ t('pages.integrations.monobank.tokenReadOnlyNote') }}</b>
-                {{ t('pages.integrations.monobank.tokenReadOnlyText') }}
-              </span>
-            </template>
-          </ResponsiveTooltip>
+          <CredentialsHelpTrigger :label="t('pages.integrations.monobank.help.trigger')" @click="showHelp = true" />
         </div>
         <div>
-          <label class="mb-2 block text-sm font-medium">{{
-            t('pages.integrations.monobank.connectionNameLabel')
-          }}</label>
-          <input
+          <InputField
             v-model="connectionName"
             type="text"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.monobank.connectionNameLabel')"
             :placeholder="$t('pages.integrations.monobank.accountNamePlaceholder')"
           />
         </div>
@@ -91,6 +70,30 @@
         </template>
       </div>
     </template>
+
+    <InstructionsDialog v-model:open="showHelp" :title="t('pages.integrations.monobank.help.title')">
+      <div class="space-y-2">
+        <InstructionStep :step="1">
+          <template #title>
+            <i18n-t keypath="pages.integrations.monobank.help.step1" tag="span">
+              <template #link>
+                <ExternalLink :href="MONOBANK_API_URL" />
+              </template>
+            </i18n-t>
+          </template>
+        </InstructionStep>
+        <InstructionStep :step="2" :title="t('pages.integrations.monobank.help.step2')" />
+      </div>
+
+      <p class="text-muted-foreground mt-3 text-xs">{{ t('pages.integrations.monobank.help.note') }}</p>
+
+      <template #footer>
+        <UiButton as="a" :href="MONOBANK_API_URL" target="_blank" rel="noopener">
+          <ExternalLinkIcon class="size-4" />
+          {{ t('pages.integrations.help.openSite', { site: 'api.monobank.ua' }) }}
+        </UiButton>
+      </template>
+    </InstructionsDialog>
   </div>
 </template>
 
@@ -101,19 +104,24 @@ import {
   getAvailableAccounts,
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
-import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { DemoRestricted } from '@/components/demo';
 import ExternalLink from '@/components/external-link.vue';
+import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { InfoIcon } from '@lucide/vue';
+import { ExternalLinkIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import AccountSelectionList from './account-selection-list.vue';
+import CredentialsHelpTrigger from './shared/credentials-help-trigger.vue';
+import InstructionStep from './shared/instruction-step.vue';
+import InstructionsDialog from './shared/instructions-dialog.vue';
+
+const MONOBANK_API_URL = 'https://api.monobank.ua';
 
 const { t } = useI18n();
 
@@ -128,6 +136,7 @@ const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
 const isLoading = ref(false);
+const showHelp = ref(false);
 
 // Step 1 data
 const apiToken = ref('');

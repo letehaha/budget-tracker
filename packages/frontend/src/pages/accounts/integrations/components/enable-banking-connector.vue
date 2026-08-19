@@ -16,30 +16,11 @@
     <!-- Step 1: Enter Enable Banking Credentials -->
     <template v-if="currentStep === 1">
       <div class="space-y-4">
-        <!-- Help Dialog Trigger -->
-        <div class="bg-muted/50 mb-4 rounded-md p-3">
-          <div class="flex items-center gap-2">
-            <InfoIcon class="mt-0.5 size-5 shrink-0 text-white" />
-
-            <div class="flex-1">
-              <p class="text-sm">
-                {{ t('pages.integrations.enableBankingConnector.credentials.helpText') }}
-                <button @click="showHelpDialog = true" class="text-primary-text font-medium underline">
-                  {{ t('pages.integrations.enableBankingConnector.credentials.helpLink') }}
-                </button>
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div>
-          <label class="mb-2 block text-sm font-medium">{{
-            t('pages.integrations.enableBankingConnector.credentials.appIdLabel')
-          }}</label>
-          <input
+          <InputField
             v-model="appId"
             type="text"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.enableBankingConnector.credentials.appIdLabel')"
             :placeholder="$t('pages.integrations.enableBanking.placeholders.appId')"
           />
           <p class="text-muted-foreground mt-1 text-xs">
@@ -47,18 +28,20 @@
           </p>
         </div>
         <div>
-          <label class="mb-2 block text-sm font-medium">{{
-            t('pages.integrations.enableBankingConnector.credentials.privateKeyLabel')
-          }}</label>
-          <textarea
+          <TextareaField
             v-model="privateKey"
-            class="w-full rounded-md border px-3 py-2 font-mono text-xs"
+            class="font-mono text-xs"
             rows="6"
+            :label="t('pages.integrations.enableBankingConnector.credentials.privateKeyLabel')"
             :placeholder="$t('pages.integrations.enableBanking.placeholders.privateKey')"
           />
           <p class="text-muted-foreground mt-1 text-xs">
             {{ t('pages.integrations.enableBankingConnector.credentials.privateKeyHint') }}
           </p>
+          <CredentialsHelpTrigger
+            :label="t('pages.integrations.enableBanking.help.trigger')"
+            @click="showHelpDialog = true"
+          />
         </div>
         <div class="flex justify-between gap-2">
           <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading">
@@ -91,13 +74,10 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium">{{
-              t('pages.integrations.enableBankingConnector.steps.countryLabel')
-            }}</label>
-            <input
+            <InputField
               v-model="countryFilter"
               type="text"
-              class="w-full rounded-md border px-3 py-2"
+              :label="t('pages.integrations.enableBankingConnector.steps.countryLabel')"
               :placeholder="$t('pages.integrations.enableBanking.placeholders.searchCountries')"
             />
           </div>
@@ -135,13 +115,10 @@
           </div>
 
           <div>
-            <label class="mb-2 block text-sm font-medium">{{
-              t('pages.integrations.enableBankingConnector.steps.bankLabel')
-            }}</label>
-            <input
+            <InputField
               v-model="bankFilter"
               type="text"
-              class="w-full rounded-md border px-3 py-2"
+              :label="t('pages.integrations.enableBankingConnector.steps.bankLabel')"
               :placeholder="$t('pages.integrations.enableBanking.placeholders.searchBanks')"
             />
           </div>
@@ -246,17 +223,20 @@ import {
   syncSelectedAccounts,
 } from '@/api/bank-data-providers';
 import { DemoRestricted } from '@/components/demo';
+import InputField from '@/components/fields/input-field.vue';
+import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { InfoIcon, TriangleAlertIcon } from '@lucide/vue';
+import { TriangleAlertIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import AccountSelectionList from './account-selection-list.vue';
 import InstructionsDialog from './enable-banking/instructions-dialog.vue';
+import CredentialsHelpTrigger from './shared/credentials-help-trigger.vue';
 
 const emit = defineEmits<{
   connected: [];
