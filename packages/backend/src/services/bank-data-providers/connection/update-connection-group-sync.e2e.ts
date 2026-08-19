@@ -35,8 +35,8 @@ async function createConnectionWithAccount({ providerName }: { providerName: str
 /**
  * E2E tests for bank connection ↔ account group lifecycle.
  *
- * Covers: auto-creation, name sync, deletion blocking,
- * cleanup on disconnect, and account grouping on link.
+ * Covers: auto-creation, name sync, deletion, survival on
+ * disconnect, and account grouping on link.
  */
 describe('Bank connection account group lifecycle', () => {
   describe('Auto-creation of account group', () => {
@@ -106,30 +106,28 @@ describe('Bank connection account group lifecycle', () => {
     });
   });
 
-  describe('Blocking deletion of connection-linked groups', () => {
-    it('should reject deletion of a connection-linked account group', async () => {
-      const { group } = await createConnectionWithAccount({ providerName: 'No Delete' });
+  describe('Deletion of connection-linked groups', () => {
+    it('should allow deletion of a connection-linked account group', async () => {
+      const { group } = await createConnectionWithAccount({ providerName: 'Deletable' });
 
       const result = await helpers.deleteAccountGroup({ groupId: group.id, raw: false });
 
-      expect(result.statusCode).not.toBe(200);
+      expect(result.statusCode).toBe(200);
     });
 
-    it('should keep the group intact after failed deletion attempt', async () => {
-      const { group, connectionId } = await createConnectionWithAccount({ providerName: 'Still Here' });
+    it('should remove the group from the groups list after deletion', async () => {
+      const { group } = await createConnectionWithAccount({ providerName: 'Gone Soon' });
 
       await helpers.deleteAccountGroup({ groupId: group.id, raw: false });
 
       const groups = await helpers.getAccountGroups({ raw: true });
-      const stillExists = groups.find((g) => g.bankDataProviderConnectionId === connectionId);
 
-      expect(stillExists).toBeDefined();
-      expect(stillExists!.id).toBe(group.id);
+      expect(groups.find((g) => g.id === group.id)).toBeUndefined();
     });
   });
 
-  describe('Cleanup on disconnect', () => {
-    it('should delete connection group when provider is disconnected (preserve accounts)', async () => {
+  describe('Group survival on disconnect', () => {
+    it('should keep connection group when provider is disconnected (preserve accounts)', async () => {
       const { connectionId, group } = await createConnectionWithAccount({ providerName: 'Disconnect Test' });
 
       await helpers.bankDataProviders.disconnectProvider({
@@ -139,12 +137,13 @@ describe('Bank connection account group lifecycle', () => {
       });
 
       const groups = await helpers.getAccountGroups({ raw: true });
-      const deletedGroup = groups.find((g) => g.id === group.id);
+      const survivingGroup = groups.find((g) => g.id === group.id);
 
-      expect(deletedGroup).toBeUndefined();
+      expect(survivingGroup).toBeDefined();
+      expect(survivingGroup!.bankDataProviderConnectionId).toBeNull();
     });
 
-    it('should delete connection group when provider is disconnected (remove accounts)', async () => {
+    it('should keep connection group when provider is disconnected (remove accounts)', async () => {
       const { connectionId, group } = await createConnectionWithAccount({ providerName: 'Remove All Test' });
 
       await helpers.bankDataProviders.disconnectProvider({
@@ -154,9 +153,10 @@ describe('Bank connection account group lifecycle', () => {
       });
 
       const groups = await helpers.getAccountGroups({ raw: true });
-      const deletedGroup = groups.find((g) => g.id === group.id);
+      const survivingGroup = groups.find((g) => g.id === group.id);
 
-      expect(deletedGroup).toBeUndefined();
+      expect(survivingGroup).toBeDefined();
+      expect(survivingGroup!.bankDataProviderConnectionId).toBeNull();
     });
   });
 

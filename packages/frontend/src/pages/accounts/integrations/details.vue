@@ -623,7 +623,13 @@ const handleSyncNow = () => syncNowMutation();
 
 // Mutation for syncing selected accounts
 const { mutate: syncAccountsMutation, isPending: isSyncingAccounts } = useMutation({
-  mutationFn: (accountIds: string[]) => syncSelectedAccounts(connectionId.value, accountIds),
+  mutationFn: ({
+    externalIds,
+    currencyOverrides,
+  }: {
+    externalIds: string[];
+    currencyOverrides: Record<string, string>;
+  }) => syncSelectedAccounts(connectionId.value, externalIds, currencyOverrides),
   onSuccess: () => {
     addSuccessNotification(t('pages.integrations.notifications.connectAccountsSuccess'));
     queryClient.invalidateQueries({
@@ -639,8 +645,11 @@ const { mutate: syncAccountsMutation, isPending: isSyncingAccounts } = useMutati
     });
     isFetchAccountsDialogOpen.value = false;
   },
-  onError: () => {
-    addErrorNotification(t('pages.integrations.notifications.connectAccountsFailed'));
+  onError: (err) => {
+    // Surface the backend message — e.g. which account still needs a currency.
+    const message =
+      err instanceof Error && err.message ? err.message : t('pages.integrations.notifications.connectAccountsFailed');
+    addErrorNotification(message);
   },
 });
 
@@ -721,9 +730,9 @@ const handleSaveConnectionName = (providerName: string) => {
   updateNameMutation({ connectionId: connectionId.value, providerName });
 };
 
-const handleSyncSelectedAccounts = (externalIds: string[]) => {
-  if (externalIds.length === 0) return;
-  syncAccountsMutation(externalIds);
+const handleSyncSelectedAccounts = (payload: { externalIds: string[]; currencyOverrides: Record<string, string> }) => {
+  if (payload.externalIds.length === 0) return;
+  syncAccountsMutation(payload);
 };
 
 const handleDisconnectConfirm = (removeAssociatedAccounts: boolean) => {

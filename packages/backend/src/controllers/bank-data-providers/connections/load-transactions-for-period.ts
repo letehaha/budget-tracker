@@ -118,17 +118,28 @@ export default createController(
     // progress arrives asynchronously.
     const isInlineLoad = result.jobGroupId === null;
 
+    // A bare "loaded 0" is ambiguous, so when the provider reported how many
+    // rows the window actually contained, distinguish "everything was already
+    // imported" from "the provider has no data for this period".
+    const inlineMessage = () => {
+      const created = result.createdCount ?? 0;
+      if (created > 0 || result.fetchedCount === undefined) {
+        return t({ key: 'bankDataProviders.transactionsLoadedCount', variables: { count: created } });
+      }
+      return result.fetchedCount > 0
+        ? t({ key: 'bankDataProviders.transactionsAllDuplicates', variables: { count: result.fetchedCount } })
+        : t({ key: 'bankDataProviders.transactionsNoneInPeriod' });
+    };
+
     return {
       data: {
         jobGroupId: result.jobGroupId,
         totalBatches: result.totalBatches,
         estimatedMinutes: result.estimatedMinutes,
         createdCount: result.createdCount,
+        fetchedCount: result.fetchedCount,
         message: isInlineLoad
-          ? t({
-              key: 'bankDataProviders.transactionsLoadedCount',
-              variables: { count: result.createdCount ?? 0 },
-            })
+          ? inlineMessage()
           : t({
               key: 'bankDataProviders.transactionLoadingQueued',
               variables: { minutes: result.estimatedMinutes },

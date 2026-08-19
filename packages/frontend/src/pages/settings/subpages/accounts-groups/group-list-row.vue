@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import GroupLogo from '@/components/common/group-logo.vue';
 import { Button } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import GroupTotal from '@/components/sidebar/accounts-view/group-total.vue';
 import { useBaseBalanceTotals } from '@/composable/use-base-balance-totals';
 import { cn } from '@/lib/utils';
 import { goToConnectionDetails } from '@/routes/navigation';
+import { useAccountsStore } from '@/stores';
 import { ChevronDownIcon, Settings2Icon } from '@lucide/vue';
+import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -32,11 +35,31 @@ const { baseCurrencyCode, sumBaseBalance } = useBaseBalanceTotals();
 // rolling its accounts up into the parent here would count them twice.
 const total = computed(() => sumBaseBalance({ accounts: group.value.accounts }));
 
+const { accounts: allAccounts } = storeToRefs(useAccountsStore());
+
+// A connection group the user emptied by regrouping its accounts still syncs them —
+// plain "No accounts" reads like the connection lost them, so call out where they live.
+const linkedAccountsElsewhereCount = computed(() => {
+  if (!isBankLinked.value || accountsCount.value > 0) return 0;
+  return (allAccounts.value ?? []).filter(
+    (account) => account.bankDataProviderConnectionId === group.value.bankDataProviderConnectionId,
+  ).length;
+});
+
 const subtitle = computed(() => {
+  const emptyLabel =
+    linkedAccountsElsewhereCount.value > 0
+      ? t(
+          'settings.accountGroups.row.accountsElsewhere',
+          { count: linkedAccountsElsewhereCount.value },
+          linkedAccountsElsewhereCount.value,
+        )
+      : t('settings.accountGroups.row.noAccounts');
+
   const parts = [
     accountsCount.value > 0
       ? t('settings.accountGroups.row.accountsCount', { count: accountsCount.value }, accountsCount.value)
-      : t('settings.accountGroups.row.noAccounts'),
+      : emptyLabel,
   ];
 
   if (props.item.parentName) {
@@ -67,17 +90,20 @@ const subtitle = computed(() => {
           <div class="flex min-w-0 flex-wrap items-center gap-1.5">
             <span class="truncate text-sm font-semibold">{{ group.name }}</span>
 
-            <span
+            <DesktopOnlyTooltip
               v-if="isBankLinked"
-              class="bg-primary/15 text-primary-text shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              :content="$t('settings.accountGroups.row.bankBadgeTooltip')"
+              content-class-name="max-w-80"
             >
-              <span class="hidden @[30rem]/account-groups:inline">
-                {{ $t('settings.accountGroups.row.bankBadge') }}
+              <span class="bg-primary/15 text-primary-text shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                <span class="hidden @[30rem]/account-groups:inline">
+                  {{ $t('settings.accountGroups.row.bankBadge') }}
+                </span>
+                <span class="@[30rem]/account-groups:hidden">
+                  {{ $t('settings.accountGroups.row.bankBadgeShort') }}
+                </span>
               </span>
-              <span class="@[30rem]/account-groups:hidden">
-                {{ $t('settings.accountGroups.row.bankBadgeShort') }}
-              </span>
-            </span>
+            </DesktopOnlyTooltip>
           </div>
 
           <div class="text-muted-foreground mt-0.5 truncate text-xs">{{ subtitle }}</div>
@@ -114,7 +140,13 @@ const subtitle = computed(() => {
       >
         <GroupAccountRow v-for="account in group.accounts" :key="account.id" :account="account" :group-id="group.id" />
       </div>
-      <p v-else class="text-muted-foreground text-sm">{{ $t('settings.accountGroups.accounts.empty') }}</p>
+      <p v-else class="text-muted-foreground text-sm">
+        {{
+          linkedAccountsElsewhereCount > 0
+            ? $t('settings.accountGroups.accounts.emptyBankLinked')
+            : $t('settings.accountGroups.accounts.empty')
+        }}
+      </p>
 
       <div class="mt-4 flex flex-wrap items-center justify-end gap-3">
         <Button

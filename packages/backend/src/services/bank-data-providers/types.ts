@@ -125,6 +125,24 @@ export interface ProviderBalance {
  * Base interface that all bank data providers must implement.
  * This ensures a consistent API regardless of the underlying provider.
  */
+/**
+ * Result of a historical period load (`loadTransactionsForPeriod`).
+ *
+ * `jobGroupId === null` is the explicit marker that the provider loaded
+ * inline and already finished: `createdCount` reports rows actually created,
+ * and `fetchedCount` reports rows the provider returned for the window before
+ * dedup — letting the UI distinguish "provider had no data" from "all
+ * duplicates" when `createdCount` is 0. A non-null `jobGroupId` means the
+ * work was queued and the caller should poll progress.
+ */
+export interface LoadTransactionsForPeriodResult {
+  jobGroupId: string | null;
+  totalBatches: number;
+  estimatedMinutes: number;
+  createdCount?: number;
+  fetchedCount?: number;
+}
+
 export interface IBankDataProvider {
   // ========================================
   // Metadata
@@ -260,11 +278,6 @@ export interface IBankDataProvider {
    * Load transactions for an explicit historical window (the account-details
    * "load data for period" picker). Optional — only providers that support
    * date-range historical loads implement it.
-   *
-   * `jobGroupId === null` is the explicit marker that the provider loaded
-   * inline and already finished (so `createdCount` reports rows actually
-   * created); a non-null `jobGroupId` means the work was queued and the caller
-   * should poll progress.
    */
   loadTransactionsForPeriod?(args: {
     connectionId: string;
@@ -272,11 +285,5 @@ export interface IBankDataProvider {
     userId: number;
     from: Date;
     to: Date;
-  }): Promise<{
-    jobGroupId: string | null;
-    totalBatches: number;
-    estimatedMinutes: number;
-    /** Rows created during an inline load (`jobGroupId === null`). */
-    createdCount?: number;
-  }>;
+  }): Promise<LoadTransactionsForPeriodResult>;
 }

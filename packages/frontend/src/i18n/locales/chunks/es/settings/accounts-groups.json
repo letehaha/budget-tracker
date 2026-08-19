@@ -18,22 +18,28 @@
       "row": {
         "bankBadge": "Conexión bancaria",
         "bankBadgeShort": "Conexión",
+        "bankBadgeTooltip": "Este grupo se creó al conectar el banco, pero no representa la conexión en sí — puede renombrarlo, mover cuentas o eliminarlo libremente. Las cuentas seguirán sincronizándose de todos modos.",
         "accountsCount": "{count} cuenta | {count} cuentas",
         "noAccounts": "Sin cuentas",
+        "accountsElsewhere": "{count} cuenta sincronizada en otros grupos | {count} cuentas sincronizadas en otros grupos",
         "inParent": "en {name}",
         "manageConnection": "Gestionar conexión"
       },
       "accounts": {
         "heading": "Cuentas de este grupo",
         "empty": "Aún no hay cuentas en este grupo. Añada cuentas a un grupo desde la página de la cuenta.",
-        "unlinkTooltip": "Quitar del grupo"
+        "emptyBankLinked": "Las cuentas de esta conexión están organizadas en otros grupos — moverlas no afecta la sincronización.",
+        "unlinkTooltip": "Quitar del grupo",
+        "removeConfirmTitle": "¿Quitar \"{name}\" de este grupo?",
+        "removeConfirmDescription": "La cuenta no se elimina — solo deja de pertenecer a este grupo.",
+        "removeConfirmAction": "Quitar"
       },
       "delete": {
         "button": "Eliminar grupo",
-        "disabledTooltip": "Este grupo está vinculado a una conexión bancaria y no se puede eliminar manualmente. Desconecte el banco para eliminarlo automáticamente.",
         "confirmTitle": "¿Eliminar este grupo?",
-        "description": "El grupo se eliminará. Sus cuentas no se eliminan, simplemente dejan de estar agrupadas.",
-        "affectedAccounts": "Estas cuentas se quitarán del grupo:"
+        "accountsKept": "Las cuentas se conservan — simplemente dejan de estar agrupadas.",
+        "syncContinues": "La sincronización bancaria continúa — la conexión es independiente de este grupo.",
+        "ungroupedHeading": "Quedarán sin agrupar"
       },
       "update": {
         "label": "Nombre del grupo",

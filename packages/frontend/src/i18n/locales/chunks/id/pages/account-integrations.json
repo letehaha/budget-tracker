@@ -34,10 +34,13 @@
         "connectionNameLabel": "Nama Koneksi (opsional)",
         "tokenPlaceholder": "Masukkan token API Monobank Anda",
         "accountNamePlaceholder": "Mis: Akun Pribadi",
-        "tokenHint": "Anda bisa mendapatkan token API dari aplikasi Monobank",
-        "tokenInstructions": "Untuk mendapatkan token penggunaan pribadi, kunjungi {link} dan ikuti petunjuknya. Setelah token dibuat, simpan dan masukkan ke kolom.",
-        "tokenReadOnlyNote": "Catatan:",
-        "tokenReadOnlyText": "Jangan khawatir, token API bersifat read-only.",
+        "help": {
+          "trigger": "Di mana saya mendapatkan token API?",
+          "title": "Dapatkan token API Monobank Anda",
+          "step1": "Kunjungi {link} dan ikuti petunjuknya untuk membuat token pribadi.",
+          "step2": "Simpan token dengan aman dan tempel ke kolom.",
+          "note": "Jangan khawatir — token API bersifat read-only sepenuhnya."
+        },
         "backButton": "Kembali",
         "connectingButton": "Menghubungkan...",
         "connectButton": "Hubungkan",
@@ -57,8 +60,6 @@
           "description": "Integrasi ini memerlukan pengetahuan teknis untuk pengaturannya. Anda perlu mendaftarkan aplikasi Enable Banking sendiri dan memberikan kredensial API. Proses pengaturan dan API dapat berubah di pembaruan mendatang."
         },
         "credentials": {
-          "helpText": "Tidak memiliki kredensial Enable Banking?",
-          "helpLink": "Pelajari cara mendapatkannya",
           "appIdLabel": "ID Aplikasi",
           "appIdHint": "Dapatkan dari portal Enable Banking setelah mengupload sertifikat Anda",
           "privateKeyLabel": "Kunci Pribadi",
@@ -95,7 +96,6 @@
       },
       "instructionsDialog": {
         "title": "Cara Mendapatkan Kredensial Enable Banking",
-        "description": "Petunjuk langkah demi langkah untuk mendaftar dan mengonfigurasi kredensial Enable Banking",
         "overview": {
           "title": "Ringkasan",
           "text": "Enable Banking mengharuskan Anda mendaftarkan aplikasi dan menghasilkan kredensial keamanan untuk mengakses data perbankan. Ikuti langkah-langkah ini untuk mendapatkan Application ID dan Private Key."
@@ -165,6 +165,9 @@
       },
       "enableBanking": {
         "instructions": {},
+        "help": {
+          "trigger": "Di mana saya mendapatkan kredensial Enable Banking?"
+        },
         "placeholders": {
           "appId": "Masukkan app_id Enable Banking Anda",
           "privateKey": "[REDACTED PRIVATE KEY]",
@@ -180,8 +183,13 @@
       "lunchflow": {
         "apiKeyLabel": "Kunci API",
         "apiKeyPlaceholder": "Masukkan kunci API LunchFlow Anda",
-        "apiKeyHint": "Di mana saya menemukan kunci API saya?",
-        "apiKeyInstructions": "Buka {link} → Settings → API Destinations untuk menemukan kunci API Anda",
+        "help": {
+          "trigger": "Di mana saya menemukan kunci API saya?",
+          "title": "Dapatkan kunci API Lunch Flow Anda",
+          "step1": "Buka {link} Anda.",
+          "step2": "Buka Settings → API Destinations.",
+          "step3": "Salin kunci API dan tempel ke kolom."
+        },
         "backButton": "Kembali",
         "connectingButton": "Menghubungkan...",
         "connectButton": "Hubungkan",
@@ -198,18 +206,32 @@
         }
       },
       "common": {
-        "selectAll": "Pilih semua"
+        "selectAll": "Pilih semua",
+        "availableLabel": "Tersedia",
+        "clearAll": "Hapus semua",
+        "noCurrencyBadge": "Tanpa mata uang",
+        "currencyPicker": {
+          "placeholder": "Pilih mata uang",
+          "missingCount": "{count} akun terpilih masih memerlukan mata uang — tidak dapat diubah setelah impor. | {count} akun terpilih masih memerlukan mata uang — tidak dapat diubah setelah impor."
+        }
+      },
+      "help": {
+        "openSite": "Buka {site}"
       },
       "simplefin": {
         "setupTokenLabel": "Token pengaturan",
         "setupTokenPlaceholder": "Tempel token pengaturan SimpleFIN Anda",
-        "setupTokenHint": "Di mana saya mendapatkan token pengaturan?",
-        "setupTokenInstructions": "Buat akun SimpleFIN Bridge di {link}, hubungkan bank Anda, lalu buat token pengaturan dan tempel di sini.",
+        "help": {
+          "trigger": "Di mana saya mendapatkan token pengaturan?",
+          "title": "Dapatkan token pengaturan SimpleFIN Anda",
+          "step1": "Buat akun SimpleFIN Bridge di {link} dan hubungkan bank Anda.",
+          "step2": "Buat token pengaturan baru di dashboard Bridge.",
+          "step3": "Tempel token ke kolom."
+        },
         "connectButton": "Hubungkan",
         "connectingButton": "Menghubungkan...",
         "backButton": "Kembali",
         "loadingAccounts": "Memuat akun...",
-        "accountsPreviewHint": "Ditemukan {count} akun. Pilih mana yang akan diimpor.",
         "backfillNote": "Kami akan memuat 6 bulan terakhir transaksi sekarang. Anda dapat memuat riwayat yang lebih lama kapan saja dari halaman akun menggunakan pemilih rentang tanggal.",
         "importButton": "Impor {count} akun",
         "importingButton": "Mengimpor...",
@@ -219,8 +241,9 @@
         }
       },
       "walutomat": {
-        "helpText": "Butuh bantuan mengatur akses API Walutomat?",
-        "viewInstructions": "Lihat petunjuk pengaturan",
+        "help": {
+          "trigger": "Bagaimana cara mengatur akses API Walutomat?"
+        },
         "apiKeyLabel": "Kunci API",
         "apiKeyPlaceholder": "Masukkan kunci API Walutomat Anda",
         "apiKeyHint": "Ditemukan di dashboard Walutomat Anda di Settings → API",
@@ -242,7 +265,6 @@
         },
         "instructions": {
           "title": "Petunjuk Pengaturan API Walutomat",
-          "description": "Panduan langkah demi langkah untuk mengatur akses API Walutomat",
           "overviewTitle": "Ringkasan",
           "overviewText": "Untuk menghubungkan Walutomat, Anda memerlukan kunci API dan kunci pribadi RSA. Kunci API mengautentikasi akun Anda, sementara kunci pribadi menandatangani setiap permintaan untuk keamanan.",
           "step1Title": "Hasilkan Pasangan Kunci RSA",
@@ -325,8 +347,6 @@
           "noAdditionalAccounts": "Tidak ada akun tambahan yang tersedia untuk dihubungkan.",
           "connectSelectedButton": "Hubungkan Akun Terpilih ({count})",
           "selectAccountsButton": "Pilih Akun",
-          "availableLabel": "Tersedia",
-          "clearAll": "Hapus semua",
           "alreadyConnected": "Sudah terhubung",
           "creditLimitMeta": "Limit {amount}"
         },
@@ -409,6 +429,11 @@
         "canada": "Kanada",
         "australia": "Australia",
         "newZealand": "Selandia Baru"
+      },
+      "filters": {
+        "all": "Semua",
+        "usCanada": "AS & Kanada",
+        "euUk": "UE & Inggris"
       },
       "tooltips": {
         "monobank": "Memerlukan penyalinan token API secara manual dari aplikasi Monobank",

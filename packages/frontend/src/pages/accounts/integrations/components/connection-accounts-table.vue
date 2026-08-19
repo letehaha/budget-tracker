@@ -37,6 +37,7 @@
 
             <DesktopOnlyTooltip
               v-if="account.currencyFallback"
+              content-class-name="max-w-xs text-wrap"
               :content="
                 $t('pages.integrations.details.connectedAccounts.currencyFallback', {
                   currency: account.currencyFallback.assignedCurrency,

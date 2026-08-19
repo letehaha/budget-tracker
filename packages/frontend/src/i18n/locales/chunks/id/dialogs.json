@@ -2,7 +2,12 @@
   "dialogs": {
     "linkAccountGroup": {
       "title": "Tautkan grup akun",
-      "createNewGroup": "Buat grup baru"
+      "createNewGroup": "Buat grup baru",
+      "noGroup": "Tanpa grup",
+      "noGroupDescription": "Biarkan akun ini tanpa grup",
+      "current": "Saat ini",
+      "syncHint": "Grup hanya mengatur akun Anda — memindahkan akun tidak pernah memengaruhi sinkronisasi bank.",
+      "accountsCount": "{count} akun | {count} akun"
     },
     "reassignCategory": {
       "title": "Alihkan Transaksi",

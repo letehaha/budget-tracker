@@ -32,6 +32,7 @@
     "reconnect": "Reconnect",
     "manageConnection": "Manage connection",
     "accountsCount": "{count} account | {count} accounts",
+    "inGroupSubtitle": "in {name}",
     "sort": {
       "auto": "Auto",
       "name": "Name",

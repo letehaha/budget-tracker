@@ -2,7 +2,12 @@
   "dialogs": {
     "linkAccountGroup": {
       "title": "Прив'язати групу рахунків",
-      "createNewGroup": "Створити нову групу"
+      "createNewGroup": "Створити нову групу",
+      "noGroup": "Без групи",
+      "noGroupDescription": "Залишити цей рахунок без групи",
+      "current": "Поточна",
+      "syncHint": "Групи лише організовують ваші рахунки — переміщення рахунку ніяк не впливає на синхронізацію з банком.",
+      "accountsCount": "{count} рахунок | {count} рахунки | {count} рахунків"
     },
     "reassignCategory": {
       "title": "Перепризначити транзакції",
