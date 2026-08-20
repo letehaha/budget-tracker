@@ -822,7 +822,6 @@ export const findWithFilters = async ({
   attributes,
   categorizationSource,
   categorizedAt,
-  excludeBalanceAdjustments,
   batchId,
 }: {
   /** How planned rows are treated. `{ visibleTo }` keeps other users' plans out while leaving the caller's own visible. */
@@ -884,8 +883,6 @@ export const findWithFilters = async ({
   categorizationSource?: CATEGORIZATION_SOURCE;
   /** Exact `categorizationMeta.categorizedAt` stamp, which identifies one categorization run. */
   categorizedAt?: string;
-  /** Hide transactions created by the balance-adjustment flow (`externalData.balanceAdjustment`). */
-  excludeBalanceAdjustments?: boolean;
   /** Filter to only transactions from one import batch (`externalData.importDetails.batchId`). */
   batchId?: string;
 }) => {
