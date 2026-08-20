@@ -7,6 +7,7 @@ import { shouldUseSecureCookies } from '@config/should-use-secure-cookies';
 import { logger } from '@js/utils/logger';
 import { identifyUser, trackSignup } from '@js/utils/posthog';
 import { captureException } from '@js/utils/sentry';
+import { redisClient } from '@root/redis-client';
 import { sendEmail } from '@services/email/send-email';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
 import { areSignupsOpen } from '@services/user/signups-open.service';
@@ -41,6 +42,10 @@ const pool = new Pool({
 // In dev mode, trust the common localhost variants of the frontend port so a
 // self-host setup with a misconfigured ALLOWED_ORIGINS still completes auth.
 // Mirrors the localhost allow-list in setup-middleware.ts's CORS check.
+// Longest better-auth rate-limit window (core + plugins) is 60s; the limiter
+// resets from `lastRequest` itself, so a longer TTL only affects storage.
+const AUTH_RATE_LIMIT_TTL_SECONDS = 120;
+
 const DEV_TRUSTED_ORIGINS =
   process.env.NODE_ENV === 'development'
     ? ['http://localhost:8100', 'https://localhost:8100', 'http://127.0.0.1:8100', 'https://127.0.0.1:8100']
@@ -221,6 +226,17 @@ export const auth = betterAuth({
   // environments to avoid flaky Playwright tests and local dev friction.
   rateLimit: {
     enabled: process.env.NODE_ENV === 'production' && process.env.DISABLE_AUTH_RATE_LIMIT !== 'true',
+    // The default in-memory store only evicts a key when that same key is read
+    // again after expiry, so entries for IPs that never return are kept forever.
+    customStorage: {
+      get: async (key) => {
+        const raw = await redisClient.get(`auth-rate-limit:${key}`);
+        return raw ? JSON.parse(raw) : null;
+      },
+      set: async (key, value) => {
+        await redisClient.set(`auth-rate-limit:${key}`, JSON.stringify(value), 'EX', AUTH_RATE_LIMIT_TTL_SECONDS);
+      },
+    },
   },
 
   // Advanced options
