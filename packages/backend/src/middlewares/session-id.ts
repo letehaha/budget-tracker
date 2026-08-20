@@ -42,7 +42,6 @@ export const sessionMiddleware = async (req: Request, res: Response, next: NextF
 
       sessionIdNamespace.run(() => {
         sessionIdNamespace.set(SESSION_ID_KEY_NAME, sessionId);
-        sessionIdNamespace.set('req', req);
 
         req[SESSION_ID_KEY_NAME] = sessionId;
         next();
