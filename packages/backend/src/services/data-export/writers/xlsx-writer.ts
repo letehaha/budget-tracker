@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { PassThrough } from 'stream';
 
 import { columnsFor } from '../registry';
 import { totalRowCount } from '../transformers/utils';
@@ -9,9 +10,19 @@ import type { ExportWriter, ExportWriterInput } from './types';
 const XLSX_MAX_SHEET_NAME = 31;
 
 async function writeXlsx({ tables }: { tables: ExportTable[] }): Promise<BuiltFile> {
-  const workbook = new ExcelJS.Workbook();
-  // Pin timestamps to the epoch so the same input produces the same bytes;
-  // SHA-256 round-trip tests assert that.
+  const chunks: Buffer[] = [];
+  const stream = new PassThrough();
+  stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+  const streamDone = new Promise<void>((resolve, reject) => {
+    stream.on('end', resolve);
+    stream.on('error', reject);
+  });
+
+  // The streaming writer serializes each row on commit() and drops it, instead
+  // of holding a cell object per value (~4 KB/row) plus the whole sheet XML
+  // until writeBuffer(). Timestamps are pinned to the epoch so the same input
+  // produces the same bytes; SHA-256 round-trip tests assert that.
+  const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ stream, useStyles: true });
   workbook.created = new Date(0);
   workbook.modified = new Date(0);
 
@@ -29,8 +40,7 @@ async function writeXlsx({ tables }: { tables: ExportTable[] }): Promise<BuiltFi
     sheetNames.add(sheetName);
     const sheet = workbook.addWorksheet(sheetName);
 
-    sheet.addRow(columns.map((c) => c.header));
-    const header = sheet.getRow(1);
+    const header = sheet.addRow(columns.map((c) => c.header));
     header.font = { bold: true };
     header.commit();
 
@@ -42,14 +52,17 @@ async function writeXlsx({ tables }: { tables: ExportTable[] }): Promise<BuiltFi
     });
 
     for (const row of table.rows as unknown as Record<string, unknown>[]) {
-      sheet.addRow(rowToValues({ columns, row }));
+      sheet.addRow(rowToValues({ columns, row })).commit();
     }
+    sheet.commit();
   }
 
-  const arrayBuffer = await workbook.xlsx.writeBuffer();
+  await workbook.commit();
+  await streamDone;
+
   return {
     filename: 'data-export.xlsx',
-    buffer: Buffer.from(arrayBuffer as ArrayBuffer),
+    buffer: Buffer.concat(chunks),
     rowCount: totalRowCount({ tables }),
   };
 }
