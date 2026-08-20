@@ -11,8 +11,7 @@ const IMPORTED_AT_EXPR = `"Transactions"."externalData"->'importDetails'->>'impo
  * must cover every row an import actually created, so nothing is narrowed:
  * `planned: 'exclude'` because imports only ever write real transactions;
  * `balanceAdjustments: 'include'` and no `transfers` constraint keep every
- * transfer leg an import created — the same behavior the pre-migration direct
- * query had, just stated explicitly now.
+ * transfer leg an import created.
  */
 function buildBatchScope({ userId }: { userId: number }) {
   return {
@@ -36,8 +35,8 @@ async function countBatches({ userId }: { userId: number }): Promise<number> {
 
 /**
  * One entry per distinct `importDetails.batchId` stamp any import wrote onto
- * `Transactions.externalData`. Derived entirely from existing transaction rows — no
- * dedicated batch table — per the scoped-down approach agreed in issue #90.
+ * `Transactions.externalData`. Derived entirely from existing transaction rows —
+ * there is no dedicated batch table.
  *
  * `source`/`importedAt` are identical across every row of a batch, so MIN/MAX just
  * pick the shared value. The total is only counted for the first page — later pages
