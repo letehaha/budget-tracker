@@ -215,6 +215,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // Callers append the run's `categorizedAt` stamp, so each run caches separately.
   aiCategorizationRunTransactions: [transactionChange, 'ai-categorization-run-transactions'] as const,
 
+  // A completed import creates transactions, so the transactionChange invalidation
+  // refreshes the batch list alongside everything else it creates/moves.
+  importBatchesHistory: [transactionChange, 'import-batches-history'] as const,
+
   // sharing
   shareInvitationsSent: ['share', 'invitations-sent'] as const,
   shareInvitationsReceived: ['share', 'invitations-received'] as const,

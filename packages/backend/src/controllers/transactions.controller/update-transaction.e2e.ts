@@ -439,6 +439,29 @@ describe('Update transaction controller', () => {
         expect(transactionsAfterUpdate.find((i) => i.id === baseTx.id)!.transferId).toBe(null);
       },
     );
+    it('does not copy the synced account balance or bank entry reference onto the opposite leg', async () => {
+      await helpers.monobank.pair();
+      const { transactions } = await helpers.monobank.mockTransactions();
+      const externalTransaction = transactions[0]!;
+
+      const accountB = await helpers.createAccount({ raw: true });
+
+      const [, oppositeTx] = await helpers.updateTransaction({
+        id: externalTransaction.id,
+        payload: {
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAccountId: accountB.id,
+          destinationAmount: Number(externalTransaction.refAmount),
+        },
+        raw: true,
+      });
+
+      // `externalData` isn't exposed via the API — read it directly from the DB.
+      const oppositeRow = await Transactions.findByPk(oppositeTx!.id);
+      expect(oppositeRow!.externalData?.balance).toBeUndefined();
+      expect(oppositeRow!.externalData?.entryReference).toBeUndefined();
+    });
+
     it.each([[TRANSACTION_TYPES.expense], [TRANSACTION_TYPES.income]])(
       'updates external %s to transfer_out_wallet without transactionType',
       async (transactionType) => {

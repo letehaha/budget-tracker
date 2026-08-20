@@ -1,0 +1,147 @@
+<template>
+  <div class="flex flex-col gap-0">
+    <!-- Page header -->
+    <div class="mb-6">
+      <RouterLink
+        :to="{ name: ROUTES_NAMES.settingsDataManagementImport }"
+        class="text-muted-foreground hover:text-foreground mb-3 inline-flex w-fit items-center gap-1 text-sm transition-colors"
+      >
+        <ChevronLeftIcon class="size-4" />
+        {{ $t('settings.dataManagement.import.back') }}
+      </RouterLink>
+      <h2 class="mb-2 text-2xl font-semibold text-balance">
+        {{ $t('pages.importExport.importHistory.pageTitle') }}
+      </h2>
+      <p class="text-muted-foreground text-sm">
+        {{ $t('pages.importExport.importHistory.pageDescription') }}
+      </p>
+    </div>
+
+    <Card class="flex flex-col overflow-hidden">
+      <div v-if="isLoadingError" class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+        <TriangleAlertIcon class="text-destructive-text size-8" />
+        <p class="text-destructive-text text-sm">{{ $t('pages.importExport.importHistory.loadError') }}</p>
+        <Button variant="outline" size="sm" @click="refetch()">{{ $t('common.actions.retry') }}</Button>
+      </div>
+
+      <div v-else-if="!isFetched" class="flex flex-col gap-2 p-3">
+        <div v-for="index in SKELETON_ROW_COUNT" :key="index" class="bg-muted h-14 animate-pulse rounded-md" />
+      </div>
+
+      <div
+        v-else-if="batches.length === 0"
+        class="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center"
+      >
+        <div class="bg-muted flex size-12 items-center justify-center rounded-full">
+          <HistoryIcon class="text-muted-foreground size-6" />
+        </div>
+        <p class="font-medium">{{ $t('pages.importExport.importHistory.emptyTitle') }}</p>
+        <p class="text-muted-foreground max-w-sm text-sm">
+          {{ $t('pages.importExport.importHistory.emptyDescription') }}
+        </p>
+        <Button variant="outline" size="sm" as-child>
+          <RouterLink :to="{ name: ROUTES_NAMES.settingsDataManagementImport }">
+            {{ $t('pages.importExport.importHistory.emptyAction') }}
+          </RouterLink>
+        </Button>
+      </div>
+
+      <ScrollArea v-else>
+        <ul class="divide-y">
+          <li v-for="batch in batches" :key="batch.batchId">
+            <Button
+              variant="ghost"
+              class="h-auto w-full justify-between gap-3 rounded-none px-4 py-3"
+              @click="openBatch(batch)"
+            >
+              <span class="flex min-w-0 flex-col items-start gap-0.5">
+                <span class="flex max-w-full min-w-0 items-center gap-2">
+                  <span class="min-w-0 truncate text-sm font-medium">
+                    {{ formatBatchDate({ importedAt: batch.importedAt }) }}
+                  </span>
+                  <span class="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-xs">
+                    {{ sourceLabel(batch.source) }}
+                  </span>
+                </span>
+                <span class="text-muted-foreground text-xs tabular-nums">
+                  {{
+                    $t(
+                      'pages.importExport.importHistory.transactionCount',
+                      { count: batch.transactionCount.toLocaleString() },
+                      batch.transactionCount,
+                    )
+                  }}
+                  ·
+                  {{
+                    $t(
+                      'pages.importExport.importHistory.accountCount',
+                      { count: batch.accountIds.length },
+                      batch.accountIds.length,
+                    )
+                  }}
+                </span>
+              </span>
+              <ChevronRightIcon class="text-muted-foreground size-4 shrink-0" />
+            </Button>
+          </li>
+        </ul>
+
+        <div v-if="hasNextPage" ref="sentinelRef" class="flex justify-center p-3">
+          <Loader2Icon v-if="isFetchingNextPage" class="text-muted-foreground size-4 animate-spin" />
+        </div>
+      </ScrollArea>
+    </Card>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Button } from '@/components/lib/ui/button';
+import { Card } from '@/components/lib/ui/card';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { useDateLocale } from '@/composable/use-date-locale';
+import { ROUTES_NAMES } from '@/routes';
+import { ChevronLeftIcon, ChevronRightIcon, HistoryIcon, Loader2Icon, TriangleAlertIcon } from '@lucide/vue';
+import { useIntersectionObserver } from '@vueuse/core';
+import { ref } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
+
+import { ImportSource, type ImportBatchSummary } from '@bt/shared/types';
+import { useI18n } from 'vue-i18n';
+
+import { useBatchesHistory } from './use-batches-history';
+
+defineOptions({
+  name: 'import-history',
+});
+
+const SKELETON_ROW_COUNT = 6;
+const BATCH_DATE_FORMAT = 'd MMM yyyy, HH:mm';
+
+// Reuses the import hub's own source titles instead of duplicating source
+// names under a second i18n namespace.
+const SOURCE_ID_MAP: Record<ImportSource, string> = {
+  [ImportSource.csv]: 'csv',
+  [ImportSource.ynab]: 'ynab',
+  [ImportSource.statementParser]: 'textSource',
+  [ImportSource.budgetBakersWallet]: 'budget-bakers-wallet',
+  [ImportSource.msMoney]: 'ms-money',
+};
+
+const router = useRouter();
+const { t } = useI18n();
+const { format } = useDateLocale();
+const { batches, isFetched, isLoadingError, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
+  useBatchesHistory();
+
+const formatBatchDate = ({ importedAt }: { importedAt: string }) => format(importedAt, BATCH_DATE_FORMAT);
+const sourceLabel = (source: ImportSource) => t(`settings.dataManagement.${SOURCE_ID_MAP[source] ?? 'csv'}.title`);
+
+const openBatch = (batch: ImportBatchSummary) => {
+  router.push({ name: ROUTES_NAMES.transactions, query: { batchId: batch.batchId } });
+};
+
+const sentinelRef = ref<HTMLElement | null>(null);
+useIntersectionObserver(sentinelRef, ([entry]) => {
+  if (entry?.isIntersecting && hasNextPage.value && !isFetchingNextPage.value) fetchNextPage();
+});
+</script>

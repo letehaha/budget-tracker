@@ -78,6 +78,7 @@ export const ROUTES_NAMES = Object.freeze({
   importYnab: `${ROUTER_LAYOUTS.dashboard}.import-ynab`,
   importBudgetBakersWallet: `${ROUTER_LAYOUTS.dashboard}.import-budget-bakers-wallet`,
   importMsMoney: `${ROUTER_LAYOUTS.dashboard}.import-ms-money`,
+  importHistory: `${ROUTER_LAYOUTS.dashboard}.import-history`,
   notFound: `${ROUTER_LAYOUTS.dashboard}.not-found`,
 
   auth: ROUTER_LAYOUTS.auth,

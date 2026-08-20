@@ -309,6 +309,16 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     refCurrencyCode: destOwnerBaseCurrency.currency.code,
     transferNature: oppositeTransferNature,
     transferId,
+    // `externalData` is a shared namespace, not import-only metadata — a synced row's
+    // `balance`/`entryReference` or the balance-adjustment flag must NOT cross to the
+    // opposite leg (bank sync reads the newest row's `balance` as authoritative, so
+    // copying it here would corrupt the destination account's synced balance). Only
+    // `importDetails` is safe to carry over, and only same-user: on a cross-user pair
+    // the opposite tx belongs to someone else, who never ran this import.
+    externalData:
+      !isCrossUser && baseTransaction.externalData?.importDetails
+        ? { importDetails: baseTransaction.externalData.importDetails }
+        : undefined,
   });
 
   return { baseTx, oppositeTx: oppositeTx! };

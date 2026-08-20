@@ -32,6 +32,8 @@ export interface FiltersStruct {
   tagIds: string[];
   payeeIds: string[];
   categorizationSource: CATEGORIZATION_SOURCE | null;
+  /** Exact import batch to scope to (deep link from Import History). Not user-editable via the filter UI. */
+  batchId: string | null;
 }
 
 export const DEFAULT_FILTERS: FiltersStruct = {
@@ -51,4 +53,5 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   tagIds: [],
   payeeIds: [],
   categorizationSource: null,
+  batchId: null,
 };

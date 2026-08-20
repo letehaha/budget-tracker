@@ -394,6 +394,12 @@ const routes: RouteRecordRaw[] = [
             },
           },
           {
+            path: 'data-management/import/history',
+            name: ROUTES_NAMES.importHistory,
+            component: () => import('@/pages/import-export/import-history/index.vue'),
+            meta: { i18nChunks: ['pages/import-history', 'settings/data-management'] as I18nChunkName[] },
+          },
+          {
             path: 'appearance',
             name: ROUTES_NAMES.settingsAppearance,
             component: () => import('@/pages/settings/subpages/appearance/index.vue'),
