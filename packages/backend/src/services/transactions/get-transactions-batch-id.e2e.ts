@@ -67,6 +67,12 @@ describe('GET /transactions — batchId filter', () => {
     expect(filtered).toHaveLength(0);
   });
 
+  it('rejects a non-uuid batchId', async () => {
+    const response = await helpers.getTransactions({ batchId: 'not-a-uuid' });
+
+    expect(response.statusCode).toBe(422);
+  });
+
   it("does not return another user's batch, even when the batchId is known", async () => {
     const account = await helpers.createAccount({ raw: true });
     const batch = await runCsvImport({ accountId: account.id, currencyCode: account.currencyCode });
