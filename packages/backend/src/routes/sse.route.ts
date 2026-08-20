@@ -42,34 +42,29 @@ router.get('/events', authenticateSession, async (req, res) => {
   // Register client with SSE manager
   sseManager.addClient({ userId, res, connectionId });
 
+  const keepaliveInterval = setInterval(() => {
+    if (!res.writableEnded) res.write(': keepalive\n\n');
+  }, KEEPALIVE_INTERVAL_MS);
+
+  // Registered before the first await: 'close' is one-shot, so a client that
+  // drops during the sync-status lookup would otherwise never be removed.
+  res.on('close', () => {
+    clearInterval(keepaliveInterval);
+    sseManager.removeClient({ userId, res, connectionId });
+  });
+
   // Send initial sync status if there's an active sync
   try {
     const syncStatus = await getUserAccountsSyncStatus(userId);
     const hasActiveSync = syncStatus.summary.syncing > 0 || syncStatus.summary.queued > 0;
 
-    if (hasActiveSync) {
+    if (hasActiveSync && !res.writableEnded) {
       res.write(`event: ${SSE_EVENT_TYPES.SYNC_STATUS_CHANGED}\n`);
       res.write(`data: ${JSON.stringify(syncStatus)}\n\n`);
     }
   } catch (err) {
     logger.error({ message: '[SSE] Failed to send initial sync status', error: err as Error });
   }
-
-  // Set up keepalive interval for this specific connection
-  const keepaliveInterval = setInterval(() => {
-    try {
-      res.write(': keepalive\n\n');
-    } catch {
-      // Connection failed - cleanup will happen in 'close' handler
-      clearInterval(keepaliveInterval);
-    }
-  }, KEEPALIVE_INTERVAL_MS);
-
-  // Handle client disconnect
-  req.on('close', () => {
-    clearInterval(keepaliveInterval);
-    sseManager.removeClient({ userId, res, connectionId });
-  });
 });
 
 export default router;
