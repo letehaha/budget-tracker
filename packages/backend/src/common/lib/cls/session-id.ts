@@ -7,7 +7,7 @@ export const sessionIdNamespace = cls.createNamespace(NAMESPACE_NAME);
 
 const getNamespace = () => cls.getNamespace(NAMESPACE_NAME);
 
-const getFromNamespace = <T>(key: 'req' | typeof SESSION_ID_KEY_NAME): T | null => {
+const getFromNamespace = <T>(key: typeof SESSION_ID_KEY_NAME): T | null => {
   const namespace = getNamespace();
   return namespace ? namespace.get(key) : null;
 };

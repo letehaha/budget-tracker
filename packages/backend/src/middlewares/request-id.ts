@@ -9,7 +9,6 @@ export const requestIdMiddleware = (req, res, next) => {
 
   loggerNamespace.run(() => {
     loggerNamespace.set('requestId', requestId);
-    loggerNamespace.set('req', req);
     next();
   });
 };

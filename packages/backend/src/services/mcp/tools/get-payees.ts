@@ -6,15 +6,17 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  q: z.string().optional().describe('Substring filter applied to the normalized Payee name.'),
+};
+
 export function registerGetPayees(server: McpServer) {
   server.registerTool(
     'get_payees',
     {
       description:
         'List Payees (merchants/counterparties) for the user, optionally filtered by a substring query. Returns Payee id, name, defaultCategoryId, and aggregated stats (transactionCount, netFlowRef, top category, last seen).',
-      inputSchema: {
-        q: z.string().optional().describe('Substring filter applied to the normalized Payee name.'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

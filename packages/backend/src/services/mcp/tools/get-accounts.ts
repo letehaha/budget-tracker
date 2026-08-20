@@ -7,19 +7,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  type: z.string().optional().describe('Filter by account type (e.g., "checking", "savings", "credit_card")'),
+  includeExcludedFromStats: z.boolean().optional().describe('Include accounts excluded from stats. Default: false'),
+};
+
 export function registerGetAccounts(server: McpServer) {
   server.registerTool(
     'get_accounts',
     {
       description:
         'List all user accounts with current balances. Returns account name, type, currency, current balance (in original and base currency), and credit limit.',
-      inputSchema: {
-        type: z.string().optional().describe('Filter by account type (e.g., "checking", "savings", "credit_card")'),
-        includeExcludedFromStats: z
-          .boolean()
-          .optional()
-          .describe('Include accounts excluded from stats. Default: false'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

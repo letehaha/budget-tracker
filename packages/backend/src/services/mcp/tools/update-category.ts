@@ -6,18 +6,20 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  categoryId: recordId().describe('ID of the category to update.'),
+  name: z.string().optional().describe('New category name.'),
+  color: z.string().optional().describe('New hex color code (e.g. "#4CAF50").'),
+  icon: z.string().nullable().optional().describe('New icon identifier, or null to clear it.'),
+};
+
 export function registerUpdateCategory(server: McpServer) {
   server.registerTool(
     'update_category',
     {
       description:
         'Update an existing category by ID. Use when the user wants to rename, recolor, or change the icon of a category. Returns the updated category records.',
-      inputSchema: {
-        categoryId: recordId().describe('ID of the category to update.'),
-        name: z.string().optional().describe('New category name.'),
-        color: z.string().optional().describe('New hex color code (e.g. "#4CAF50").'),
-        icon: z.string().nullable().optional().describe('New icon identifier, or null to clear it.'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

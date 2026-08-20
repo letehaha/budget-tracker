@@ -7,16 +7,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  accountId: recordId().describe('ID of the account to archive or unarchive.'),
+  archived: z.boolean().describe('true to archive the account, false to unarchive (restore to active status).'),
+};
+
 export function registerArchiveAccount(server: McpServer) {
   server.registerTool(
     'archive_account',
     {
       description:
         'Archive or unarchive a user account. Archiving removes the account from groups and unlinks subscriptions. Set archived=false to restore an archived account to active status.',
-      inputSchema: {
-        accountId: recordId().describe('ID of the account to archive or unarchive.'),
-        archived: z.boolean().describe('true to archive the account, false to unarchive (restore to active status).'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

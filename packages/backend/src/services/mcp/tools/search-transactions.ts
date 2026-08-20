@@ -10,31 +10,33 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  startDate: z.string().optional().describe('Start date (ISO 8601). Default: 30 days ago'),
+  endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
+  accountIds: z.array(recordId()).optional().describe('Filter by account IDs'),
+  categoryIds: z.array(recordId()).optional().describe('Filter by category IDs'),
+  tagIds: z.array(recordId()).optional().describe('Filter by tag IDs'),
+  transactionType: z
+    .enum([TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense])
+    .optional()
+    .describe('Filter by transaction type'),
+  amountMin: z.number().optional().describe('Minimum amount (decimal, in original currency)'),
+  amountMax: z.number().optional().describe('Maximum amount (decimal, in original currency)'),
+  search: z.string().optional().describe('Search in transaction notes'),
+  limit: z.number().optional().describe('Max results (default: 50, max: 500)'),
+  offset: z.number().optional().describe('Pagination offset (default: 0)'),
+  order: z.enum(['asc', 'desc']).optional().describe('Sort order by date (default: desc)'),
+  excludeTransfers: z.boolean().optional().describe('Exclude transfer transactions'),
+  excludeRefunds: z.boolean().optional().describe('Exclude refund transactions'),
+};
+
 export function registerSearchTransactions(server: McpServer) {
   server.registerTool(
     'search_transactions',
     {
       description:
         'Search and filter transactions. Returns transaction amount (original + base currency), category, account, note, date, type, and tags. Use date filters to limit results. Default: last 30 days, 50 items.',
-      inputSchema: {
-        startDate: z.string().optional().describe('Start date (ISO 8601). Default: 30 days ago'),
-        endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
-        accountIds: z.array(recordId()).optional().describe('Filter by account IDs'),
-        categoryIds: z.array(recordId()).optional().describe('Filter by category IDs'),
-        tagIds: z.array(recordId()).optional().describe('Filter by tag IDs'),
-        transactionType: z
-          .enum([TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense])
-          .optional()
-          .describe('Filter by transaction type'),
-        amountMin: z.number().optional().describe('Minimum amount (decimal, in original currency)'),
-        amountMax: z.number().optional().describe('Maximum amount (decimal, in original currency)'),
-        search: z.string().optional().describe('Search in transaction notes'),
-        limit: z.number().optional().describe('Max results (default: 50, max: 500)'),
-        offset: z.number().optional().describe('Pagination offset (default: 0)'),
-        order: z.enum(['asc', 'desc']).optional().describe('Sort order by date (default: desc)'),
-        excludeTransfers: z.boolean().optional().describe('Exclude transfer transactions'),
-        excludeRefunds: z.boolean().optional().describe('Exclude refund transactions'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

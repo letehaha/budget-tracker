@@ -6,29 +6,31 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  name: z.string().describe('Platform name (must be unique for this user)'),
+  website: z.string().nullable().optional().describe('Platform website URL'),
+  description: z.string().nullable().optional().describe('Free-text description'),
+  defaultEntryFeePct: percentageFraction()
+    .optional()
+    .describe('Default entry fee as a decimal fraction in [0,1] (e.g. 0.085 for 8.5%). Defaults to 0.'),
+  defaultMgmtFeePct: percentageFraction()
+    .optional()
+    .describe('Default management fee as a decimal fraction in [0,1]. Defaults to 0.'),
+  defaultCarryPct: percentageFraction()
+    .optional()
+    .describe('Default carry as a decimal fraction in [0,1] (e.g. 0.2 for 20%). Defaults to 0.'),
+  defaultHurdlePct: percentageFraction()
+    .optional()
+    .describe('Default hurdle rate as a decimal fraction in [0,1]. Defaults to 0.'),
+};
+
 export function registerCreateVenturePlatform(server: McpServer) {
   server.registerTool(
     'create_venture_platform',
     {
       description:
         "Create a venture investment platform (e.g. AngelList, a syndicate, a fund manager) so its default fees can be auto-applied when creating new deals. Fee fields are decimal fractions in [0,1] — e.g. pass 0.085 for 8.5%, NOT 8.5. Returns the created platform's id for use with create_venture_deal.",
-      inputSchema: {
-        name: z.string().describe('Platform name (must be unique for this user)'),
-        website: z.string().nullable().optional().describe('Platform website URL'),
-        description: z.string().nullable().optional().describe('Free-text description'),
-        defaultEntryFeePct: percentageFraction()
-          .optional()
-          .describe('Default entry fee as a decimal fraction in [0,1] (e.g. 0.085 for 8.5%). Defaults to 0.'),
-        defaultMgmtFeePct: percentageFraction()
-          .optional()
-          .describe('Default management fee as a decimal fraction in [0,1]. Defaults to 0.'),
-        defaultCarryPct: percentageFraction()
-          .optional()
-          .describe('Default carry as a decimal fraction in [0,1] (e.g. 0.2 for 20%). Defaults to 0.'),
-        defaultHurdlePct: percentageFraction()
-          .optional()
-          .describe('Default hurdle rate as a decimal fraction in [0,1]. Defaults to 0.'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

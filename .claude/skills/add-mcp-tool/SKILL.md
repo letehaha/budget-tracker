@@ -50,15 +50,17 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  someId: z.number().describe('...'),
+  optionalFilter: z.string().optional().describe('...'),
+};
+
 export function registerMyNewTool(server: McpServer) {
   server.registerTool(
     'my_new_tool',
     {
       description: 'What it returns and when an agent should call it. One sentence plus a hint on key fields.',
-      inputSchema: {
-        someId: z.number().describe('...'),
-        optionalFilter: z.string().optional().describe('...'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });
@@ -75,7 +77,7 @@ Rules:
 
 - Tool name is **snake_case** (matches MCP convention) and must exactly equal the string in `server-card.json`.
 - Register function is `register<PascalCase>`. File is `<kebab-case>.ts`.
-- `inputSchema` is a **plain object of Zod schemas** (no outer `z.object(...)`).
+- `inputSchema` is a **plain object of Zod schemas** (no outer `z.object(...)`), declared as a **module-scope `const`**, never inline inside `registerTool()`. Every MCP session builds its own `McpServer`, so an inline shape is rebuilt per session (zod v4 schemas are ~30 KB each).
 - For tools with no inputs: omit `inputSchema` and drop the `args` parameter — handler becomes `async (extra) => {...}`.
 - Always call `getUserId({ extra })` first — it enforces auth and returns `userId`.
 - Always call `trackMcpToolUsed({ userId, tool, clientId: extra.authInfo?.clientId })` immediately after.

@@ -6,19 +6,21 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  eventId: recordId().describe('Venture event ID (from list_venture_events)'),
+  deleteLinkedTransactions: z
+    .boolean()
+    .optional()
+    .describe('If true, also delete the bank transaction rows that were linked. Default: false (unlink only).'),
+};
+
 export function registerDeleteVentureEvent(server: McpServer) {
   server.registerTool(
     'delete_venture_event',
     {
       description:
         'Delete a venture event. Linked bank transactions are unlinked first (their original state is restored). The initial_investment cannot be deleted while other events still exist on the deal — delete the other events first. Pass deleteLinkedTransactions=true to also remove the bank tx rows themselves (not just the link); only do this when the user explicitly asks. Confirm with the user before calling.',
-      inputSchema: {
-        eventId: recordId().describe('Venture event ID (from list_venture_events)'),
-        deleteLinkedTransactions: z
-          .boolean()
-          .optional()
-          .describe('If true, also delete the bank transaction rows that were linked. Default: false (unlink only).'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

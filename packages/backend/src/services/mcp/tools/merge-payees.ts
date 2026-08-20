@@ -5,16 +5,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  sourceId: z.string().describe('Payee id to merge from (will be deleted).'),
+  targetId: z.string().describe('Payee id to merge into (kept).'),
+};
+
 export function registerMergePayees(server: McpServer) {
   server.registerTool(
     'merge_payees',
     {
       description:
         'Merge a source Payee into a target Payee. Transactions and aliases move to the target; the target wins silently on defaultCategoryId conflict; the source is deleted. Use to dedupe near-duplicates like "Amazon" and "AMZN MKT".',
-      inputSchema: {
-        sourceId: z.string().describe('Payee id to merge from (will be deleted).'),
-        targetId: z.string().describe('Payee id to merge into (kept).'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

@@ -6,16 +6,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  subscriptionId: z.string().describe('UUID of the subscription'),
+  transactionIds: z.array(recordId()).describe('IDs of transactions to unlink from the subscription'),
+};
+
 export function registerUnlinkTransactionsFromSubscription(server: McpServer) {
   server.registerTool(
     'unlink_transactions_from_subscription',
     {
       description:
         'Unlink transactions from a subscription without deleting them. The link record is marked as unlinked and excluded from subscription history. Requires finance:write scope.',
-      inputSchema: {
-        subscriptionId: z.string().describe('UUID of the subscription'),
-        transactionIds: z.array(recordId()).describe('IDs of transactions to unlink from the subscription'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

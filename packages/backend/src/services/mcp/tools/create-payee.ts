@@ -5,19 +5,21 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  name: z.string().describe('Display name for the Payee, max 200 chars.'),
+  defaultCategoryId: z
+    .string()
+    .optional()
+    .describe('Optional category id automatically applied to future transactions linked to this Payee.'),
+};
+
 export function registerCreatePayee(server: McpServer) {
   server.registerTool(
     'create_payee',
     {
       description:
         'Create a Payee (merchant/counterparty) for the user. Use when the user wants to register a new merchant before linking transactions. Returns the created Payee.',
-      inputSchema: {
-        name: z.string().describe('Display name for the Payee, max 200 chars.'),
-        defaultCategoryId: z
-          .string()
-          .optional()
-          .describe('Optional category id automatically applied to future transactions linked to this Payee.'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

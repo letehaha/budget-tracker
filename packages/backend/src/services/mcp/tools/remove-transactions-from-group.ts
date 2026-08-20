@@ -6,22 +6,24 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  groupId: recordId().describe('ID of the transaction group'),
+  transactionIds: z.array(recordId()).describe('IDs of transactions to remove from the group'),
+  force: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, dissolves the group if too few transactions would remain. Default: false (returns error instead)',
+    ),
+};
+
 export function registerRemoveTransactionsFromGroup(server: McpServer) {
   server.registerTool(
     'remove_transactions_from_group',
     {
       description:
         'Remove transactions from a group. If removal would leave fewer than 2 transactions, pass force=true to dissolve the group entirely (transactions are kept). Requires finance:write scope.',
-      inputSchema: {
-        groupId: recordId().describe('ID of the transaction group'),
-        transactionIds: z.array(recordId()).describe('IDs of transactions to remove from the group'),
-        force: z
-          .boolean()
-          .optional()
-          .describe(
-            'When true, dissolves the group if too few transactions would remain. Default: false (returns error instead)',
-          ),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

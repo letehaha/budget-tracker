@@ -6,24 +6,23 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  originalTxId: z
+    .string()
+    .uuid()
+    .nullable()
+    .describe('ID of the original transaction being refunded. Pass null for a standalone refund'),
+  refundTxId: recordId().describe('ID of the transaction that represents the refund'),
+  splitId: z.string().optional().describe('UUID of a specific split on the original transaction this refund targets'),
+};
+
 export function registerLinkRefund(server: McpServer) {
   server.registerTool(
     'link_refund',
     {
       description:
         'Mark an existing transaction as a refund of another transaction. Provide originalTxId (the transaction being refunded) and refundTxId (the refund transaction). The two transactions must have opposite types (income vs expense). Optionally target a specific split of the original.',
-      inputSchema: {
-        originalTxId: z
-          .string()
-          .uuid()
-          .nullable()
-          .describe('ID of the original transaction being refunded. Pass null for a standalone refund'),
-        refundTxId: recordId().describe('ID of the transaction that represents the refund'),
-        splitId: z
-          .string()
-          .optional()
-          .describe('UUID of a specific split on the original transaction this refund targets'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

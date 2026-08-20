@@ -6,17 +6,19 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  id: recordId().describe('ID of the transaction group to update'),
+  name: z.string().optional().describe('New display name for the group'),
+  note: z.string().nullable().optional().describe('New note for the group (pass null to clear)'),
+};
+
 export function registerUpdateTransactionGroup(server: McpServer) {
   server.registerTool(
     'update_transaction_group',
     {
       description:
         'Update the name or note of an existing transaction group. To change group membership use add_transactions_to_group or remove_transactions_from_group. Requires finance:write scope.',
-      inputSchema: {
-        id: recordId().describe('ID of the transaction group to update'),
-        name: z.string().optional().describe('New display name for the group'),
-        note: z.string().nullable().optional().describe('New note for the group (pass null to clear)'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

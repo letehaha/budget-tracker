@@ -7,18 +7,20 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  status: z
+    .enum([BUDGET_STATUSES.active, BUDGET_STATUSES.archived, BUDGET_STATUSES.closed])
+    .optional()
+    .describe('Filter by budget status. Default: active'),
+};
+
 export function registerGetBudgets(server: McpServer) {
   server.registerTool(
     'get_budgets',
     {
       description:
         'List budgets with their spending limits and associated categories. Filter by status (active, archived, closed). Returns budget name, limit amount, status, date range, and linked categories.',
-      inputSchema: {
-        status: z
-          .enum([BUDGET_STATUSES.active, BUDGET_STATUSES.archived, BUDGET_STATUSES.closed])
-          .optional()
-          .describe('Filter by budget status. Default: active'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

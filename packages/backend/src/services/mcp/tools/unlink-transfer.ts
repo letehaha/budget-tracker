@@ -6,18 +6,20 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  transferIds: z
+    .array(z.string())
+    .min(1)
+    .describe('One or more transferId UUID strings identifying transfer pairs to unlink'),
+};
+
 export function registerUnlinkTransfer(server: McpServer) {
   server.registerTool(
     'unlink_transfer',
     {
       description:
         'Unlink transfer transactions by their shared transferId (UUID string). Both transactions in the pair will become independent income/expense entries. Use search_transactions to find the transferId of a linked pair.',
-      inputSchema: {
-        transferIds: z
-          .array(z.string())
-          .min(1)
-          .describe('One or more transferId UUID strings identifying transfer pairs to unlink'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

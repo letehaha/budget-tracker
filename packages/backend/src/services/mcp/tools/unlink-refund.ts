@@ -6,20 +6,22 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  originalTxId: z
+    .string()
+    .uuid()
+    .nullable()
+    .describe('ID of the original transaction. Pass null if no original was set'),
+  refundTxId: recordId().describe('ID of the refund transaction'),
+};
+
 export function registerUnlinkRefund(server: McpServer) {
   server.registerTool(
     'unlink_refund',
     {
       description:
         'Remove the refund link between two transactions. DESTRUCTIVE: both transactions will no longer be marked as refund-linked. Requires both originalTxId and refundTxId that were previously linked.',
-      inputSchema: {
-        originalTxId: z
-          .string()
-          .uuid()
-          .nullable()
-          .describe('ID of the original transaction. Pass null if no original was set'),
-        refundTxId: recordId().describe('ID of the refund transaction'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });
