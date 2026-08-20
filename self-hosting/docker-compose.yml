@@ -52,6 +52,10 @@ services:
       # server on the operator's own network, and a restored backup backfills
       # historical prices for its securities.
       IS_SELF_HOST: 'true'
+      # Demo accounts are for the hosted instance's landing page; a self-hosted
+      # stack has no use for them, so they default to disabled. Set
+      # SYSTEM_DEMO_DISABLED=false in .env to allow them.
+      SYSTEM_DEMO_DISABLED: ${SYSTEM_DEMO_DISABLED:-true}
     healthcheck:
       # BusyBox wget ships in the node:alpine image. `--spider` returns non-zero
       # on any non-2xx status, so this flips healthy only once /health answers.

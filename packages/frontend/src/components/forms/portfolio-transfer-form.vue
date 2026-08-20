@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PickTransactionDialog from '@/components/dialogs/pick-transaction-dialog.vue';
+import AccountSelectField from '@/components/fields/account-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
@@ -20,7 +21,6 @@ import {
 import { usePortfolioCurrencySorting } from '@/composable/data-queries/use-portfolio-currency-sorting';
 import { usePortfolios } from '@/composable/data-queries/portfolios';
 import { useFormValidation } from '@/composable/form-validator';
-import { getAccountDisplayLabel, isAccountArchived } from '@/common/utils/account-display';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
 import { AccountModel, PortfolioModel, TRANSACTION_TYPES, TransactionModel, UserCurrencyModel } from '@bt/shared/types';
 import { X } from '@lucide/vue';
@@ -279,10 +279,10 @@ watch(
 const resetForm = () => {
   form.fromPortfolio = props.context === 'portfolio' ? props.initialPortfolio || null : null;
   form.toPortfolio = null;
-  form.fromAccount = props.context === 'account' ? props.initialAccount || null : null;
   form.toAccount = null;
   const defaultType: TransferType = props.context === 'portfolio' ? 'portfolio-to-portfolio' : 'account-to-portfolio';
   form.transferTypeOption = transferTypeOptions.value.find((opt) => opt.value === defaultType) || null;
+  form.fromAccount = props.context === 'account' ? props.initialAccount || null : null;
   form.amount = '';
   form.selectedCurrency = null;
   form.date = new Date();
@@ -478,20 +478,14 @@ const isSubmitDisabled = computed(() => {
       :disabled="isAnyMutationPending || disabled || props.context === 'portfolio'"
     />
 
-    <SelectField
+    <AccountSelectField
       v-if="showFromAccount"
       v-model="form.fromAccount"
       :label="$t('forms.portfolioTransfer.fromAccountLabel')"
-      :values="availableFromAccounts"
-      value-key="id"
-      :label-key="getAccountDisplayLabel"
+      :accounts="availableFromAccounts"
       :placeholder="$t('forms.portfolioTransfer.fromAccountPlaceholder')"
       :disabled="isAnyMutationPending || disabled || props.context === 'account'"
-    >
-      <template #item="{ item, label }">
-        <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
-      </template>
-    </SelectField>
+    />
 
     <SelectField
       v-if="showToPortfolio"
@@ -508,20 +502,14 @@ const isSubmitDisabled = computed(() => {
       :disabled="isAnyMutationPending || disabled || !availableToPortfolios.length"
     />
 
-    <SelectField
+    <AccountSelectField
       v-if="showToAccount && !isLinkExistingTx"
       v-model="form.toAccount"
       :label="$t('forms.portfolioTransfer.toAccountLabel')"
-      :values="availableToAccounts"
-      value-key="id"
-      :label-key="getAccountDisplayLabel"
+      :accounts="availableToAccounts"
       :placeholder="$t('forms.portfolioTransfer.toAccountPlaceholder')"
       :disabled="isAnyMutationPending || disabled"
-    >
-      <template #item="{ item, label }">
-        <span :class="{ 'text-muted-foreground italic': isAccountArchived(item) }">{{ label }}</span>
-      </template>
-    </SelectField>
+    />
 
     <!-- Link existing transaction -->
     <template v-if="supportsLinking">

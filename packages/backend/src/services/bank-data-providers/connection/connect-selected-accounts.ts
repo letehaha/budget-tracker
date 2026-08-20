@@ -4,10 +4,11 @@ import {
   ACCOUNT_TYPES,
   API_ERROR_CODES,
   BANK_PROVIDER_TYPE,
+  NO_CURRENCY_CODE,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { t } from '@i18n/index';
-import { BadRequestError, NotFoundError } from '@js/errors';
+import { BadRequestError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import { type BankProvider, trackBankConnected } from '@js/utils/posthog';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
@@ -15,7 +16,6 @@ import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { NON_CURRENCY_CODES, getCurrency } from '@models/currencies.model';
-import { getBaseCurrency } from '@models/users-currencies.model';
 import { calculateRefAmount } from '@root/services/calculate-ref-amount.service';
 import { withTransaction } from '@root/services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
@@ -48,10 +48,13 @@ const createAccountsForConnection = withTransaction(
     connectionId,
     userId,
     accountExternalIds,
+    currencyOverrides,
   }: {
     connectionId: string;
     userId: number;
     accountExternalIds: string[];
+    /** externalId → currency the user picked for accounts the provider reported without one ("XXX"). */
+    currencyOverrides?: Record<string, string>;
   }): Promise<Accounts[]> => {
     const connection = await BankDataProviderConnections.findOne({
       where: {
@@ -116,6 +119,15 @@ const createAccountsForConnection = withTransaction(
       }
 
       if (existingAccount) {
+        // Re-linking keeps the stored currency (currency is immutable), so a
+        // currency override sent for this account is intentionally ignored.
+        const override = currencyOverrides?.[providerAccount.externalId]?.toUpperCase();
+        if (override && override !== existingAccount.currencyCode) {
+          logger.warn(
+            `[bank-data-providers] Discarding currency override "${override}" for re-linked account ` +
+              `${providerAccount.externalId}: stored currency "${existingAccount.currencyCode}" is immutable.`,
+          );
+        }
         // Re-link and re-activate the account
         await existingAccount.update({
           status: ACCOUNT_STATUSES.active,
@@ -125,19 +137,28 @@ const createAccountsForConnection = withTransaction(
         });
         createdAccounts.push(existingAccount);
       } else {
-        // ISO "XXX" means the provider could not determine the currency.
-        // Fall back to the user's base currency instead of failing the connect,
-        // and record the substitution so the UI can explain it.
+        // ISO "XXX" means the provider could not determine the currency. The
+        // user must pick one explicitly (recorded as currencyFallback so the
+        // UI can explain the substitution). Currency is immutable afterwards —
+        // deleting and reconnecting the account is the only way to change it.
+        // Abolished alternative: silently assigning the user's base currency —
+        // wrong for anyone whose base currency differs from the account's.
         let currencyFallback: { providerCurrency: string; assignedCurrency: string } | undefined;
-        if (providerAccount.currency.toUpperCase() === 'XXX') {
-          const baseCurrency = await getBaseCurrency({ userId });
-          if (baseCurrency) {
-            currencyFallback = {
-              providerCurrency: providerAccount.currency,
-              assignedCurrency: baseCurrency.currencyCode,
-            };
-            providerAccount.currency = baseCurrency.currencyCode;
+        if (providerAccount.currency.toUpperCase() === NO_CURRENCY_CODE) {
+          const override = currencyOverrides?.[providerAccount.externalId]?.toUpperCase();
+          if (!override) {
+            throw new ValidationError({
+              message: t({
+                key: 'bankDataProviders.currencySelectionRequired',
+                variables: { account: providerAccount.name || providerAccount.externalId },
+              }),
+            });
           }
+          currencyFallback = {
+            providerCurrency: providerAccount.currency,
+            assignedCurrency: override,
+          };
+          providerAccount.currency = override;
         }
 
         // Reject unknown codes and ISO 4217 non-currencies (metals, test codes):
@@ -243,16 +264,19 @@ export const connectSelectedAccounts = async ({
   connectionId,
   userId,
   accountExternalIds,
+  currencyOverrides,
 }: {
   connectionId: string;
   userId: number;
   accountExternalIds: string[];
+  currencyOverrides?: Record<string, string>;
 }): Promise<Accounts[]> => {
   // Step 1: Create accounts in a transaction
   const createdAccounts = await createAccountsForConnection({
     connectionId,
     userId,
     accountExternalIds,
+    currencyOverrides,
   });
 
   // Step 2: Trigger initial sync AFTER the transaction commits.

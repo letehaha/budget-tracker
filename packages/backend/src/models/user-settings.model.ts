@@ -201,6 +201,15 @@ const ZodImportSettingsSchema = z.object({
   recalculateAccountBalance: z.boolean().optional(),
 });
 
+// Account-picker defaults. `defaultAccountId` pre-selects account pickers, null means cleared.
+// `showArchivedInDropdowns` also offers archived accounts in those pickers, off by default.
+const ZodAccountsSettingsSchema = z.object({
+  // Plain z.uuid(), not recordId(): the branded RecordId output breaks the
+  // DeepPartial-based SettingsPatchSchemaIsInSync assertion below.
+  defaultAccountId: z.uuid().nullable().optional(),
+  showArchivedInDropdowns: z.boolean().optional(),
+});
+
 // A saved Pivot Report "view", persisted in the settings JSONB with no dedicated table.
 // Reuses `dateRange()` + `withDateOrder()` so a saved view can't hold a range the live
 // report would 400 on.
@@ -239,6 +248,7 @@ export const ZodSettingsSchema = z.object({
   ui: ZodUiSettingsSchema.optional(),
   subscriptions: ZodSubscriptionsSettingsSchema.optional(),
   import: ZodImportSettingsSchema.optional(),
+  accounts: ZodAccountsSettingsSchema.optional(),
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   // When true, Payee extraction falls back to the transaction description/note when the
   // provider's merchant field is empty. Off by default because Monobank's `counterName` is
@@ -334,6 +344,7 @@ export const ZodSettingsPatchSchema = z.object({
       recalculateAccountBalance: z.boolean().optional(),
     })
     .optional(),
+  accounts: ZodAccountsSettingsSchema.optional(),
   // Same element schema as `ZodSettingsSchema`, defaults and all, so the two can't drift.
   savedPivotViews: z.array(ZodSavedPivotViewSchema).optional(),
   payeeExtractionUsesDescription: z.boolean().optional(),

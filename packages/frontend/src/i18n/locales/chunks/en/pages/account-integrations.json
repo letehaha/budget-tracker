@@ -4,7 +4,7 @@
       "addDialog": {
         "titleSelect": "Add Integration",
         "titleConnect": "Connect {provider}",
-        "selectProviderHint": "Choose a bank data provider to connect",
+        "selectProviderHint": "Where do you bank? Pick a region to see what works there.",
         "betaBadge": "Beta"
       },
       "providers": {
@@ -34,10 +34,13 @@
         "connectionNameLabel": "Connection Name (optional)",
         "tokenPlaceholder": "Enter your Monobank API token",
         "accountNamePlaceholder": "e.g., Personal Account",
-        "tokenHint": "You can get your API token from Monobank mobile app",
-        "tokenInstructions": "To obtain a token for personal use please visit {link} and follow instructions. Once token is generated, store it somewhere and enter into the field.",
-        "tokenReadOnlyNote": "Note:",
-        "tokenReadOnlyText": "Don't worry, the API token is strictly read-only.",
+        "help": {
+          "trigger": "Where do I get an API token?",
+          "title": "Get your Monobank API token",
+          "step1": "Visit {link} and follow the instructions to generate a personal token.",
+          "step2": "Store the token safely and paste it into the field.",
+          "note": "Don't worry — the API token is strictly read-only."
+        },
         "backButton": "Back",
         "connectingButton": "Connecting...",
         "connectButton": "Connect",
@@ -57,8 +60,6 @@
           "description": "This integration requires technical knowledge to set up. You'll need to register your own Enable Banking application and provide API credentials. The setup process and API may change in future updates."
         },
         "credentials": {
-          "helpText": "Don't have Enable Banking credentials?",
-          "helpLink": "Learn how to obtain them",
           "appIdLabel": "Application ID",
           "appIdHint": "Get from Enable Banking portal after uploading your certificate",
           "privateKeyLabel": "Private Key",
@@ -84,7 +85,7 @@
           "loading": "Loading...",
           "next": "Next",
           "syncing": "Syncing...",
-          "sync": "Sync {count} account(s)"
+          "sync": "Sync {count} account | Sync {count} accounts"
         },
         "errors": {
           "loadCountriesFailed": "Failed to load countries. Please check your credentials.",
@@ -95,7 +96,6 @@
       },
       "instructionsDialog": {
         "title": "How to Obtain Enable Banking Credentials",
-        "description": "Step-by-step instructions for registering and configuring Enable Banking credentials",
         "overview": {
           "title": "Overview",
           "text": "Enable Banking requires you to register an application and generate security credentials to access banking data. Follow these steps to get your Application ID and Private Key."
@@ -175,13 +175,21 @@
           "noAuthUrl": "No authorization URL received from server",
           "failedToLoadBanks": "Failed to load banks",
           "failedToConnectProvider": "Failed to connect provider"
+        },
+        "help": {
+          "trigger": "Where do I get Enable Banking credentials?"
         }
       },
       "lunchflow": {
         "apiKeyLabel": "API Key",
         "apiKeyPlaceholder": "Enter your LunchFlow API key",
-        "apiKeyHint": "Where do I find my API key?",
-        "apiKeyInstructions": "Go to your {link} → Settings → API Destinations to find your API key",
+        "help": {
+          "trigger": "Where do I find my API key?",
+          "title": "Get your Lunch Flow API key",
+          "step1": "Open your {link}.",
+          "step2": "Go to Settings → API Destinations.",
+          "step3": "Copy the API key and paste it into the field."
+        },
         "backButton": "Back",
         "connectingButton": "Connecting...",
         "connectButton": "Connect",
@@ -198,20 +206,34 @@
         }
       },
       "common": {
-        "selectAll": "Select all"
+        "selectAll": "Select all",
+        "availableLabel": "Available",
+        "clearAll": "Clear all",
+        "noCurrencyBadge": "No currency",
+        "currencyPicker": {
+          "placeholder": "Choose currency",
+          "missingCount": "{count} selected account still needs a currency — it can't be changed after import. | {count} selected accounts still need a currency — it can't be changed after import."
+        }
+      },
+      "help": {
+        "openSite": "Open {site}"
       },
       "simplefin": {
         "setupTokenLabel": "Setup token",
         "setupTokenPlaceholder": "Paste your SimpleFIN setup token",
-        "setupTokenHint": "Where do I get a setup token?",
-        "setupTokenInstructions": "Create a SimpleFIN Bridge account at {link}, connect your bank, then generate a setup token and paste it here.",
+        "help": {
+          "trigger": "Where do I get a setup token?",
+          "title": "Get your SimpleFIN setup token",
+          "step1": "Create a SimpleFIN Bridge account at {link} and connect your bank.",
+          "step2": "Generate a new setup token on the Bridge dashboard.",
+          "step3": "Paste the token into the field."
+        },
         "connectButton": "Connect",
         "connectingButton": "Connecting…",
         "backButton": "Back",
         "loadingAccounts": "Loading accounts…",
-        "accountsPreviewHint": "Found {count} account(s). Choose which to import.",
         "backfillNote": "We'll load the last 6 months of transactions now. You can load older history anytime from the account's page using the date-range picker.",
-        "importButton": "Import {count} account(s)",
+        "importButton": "Select accounts | Import 1 account | Import {count} accounts",
         "importingButton": "Importing…",
         "errors": {
           "connectFailed": "Failed to connect to SimpleFIN. Check your setup token and try again.",
@@ -219,8 +241,9 @@
         }
       },
       "walutomat": {
-        "helpText": "Need help setting up Walutomat API access?",
-        "viewInstructions": "View setup instructions",
+        "help": {
+          "trigger": "How do I set up Walutomat API access?"
+        },
         "apiKeyLabel": "API Key",
         "apiKeyPlaceholder": "Enter your Walutomat API key",
         "apiKeyHint": "Found in your Walutomat dashboard under Settings → API",
@@ -242,7 +265,6 @@
         },
         "instructions": {
           "title": "Walutomat API Setup Instructions",
-          "description": "Step-by-step guide to set up Walutomat API access",
           "overviewTitle": "Overview",
           "overviewText": "To connect Walutomat, you need an API key and an RSA private key. The API key authenticates your account, while the private key signs each request for security.",
           "step1Title": "Generate RSA Key Pair",
@@ -295,7 +317,7 @@
           "title": "Connected Accounts",
           "empty": "No accounts connected yet.",
           "connectButton": "Connect Accounts",
-          "currencyFallback": "The bank didn't report a currency, so your base currency ({currency}) was used",
+          "currencyFallback": "The bank didn't report a currency for this account — {currency} was assigned when it was connected and can't be changed.",
           "columnAccount": "Account",
           "columnExternalId": "External ID",
           "columnBalance": "Balance",
@@ -325,8 +347,6 @@
           "noAdditionalAccounts": "No additional accounts available to connect.",
           "connectSelectedButton": "Connect Selected Accounts ({count})",
           "selectAccountsButton": "Select Accounts",
-          "availableLabel": "Available",
-          "clearAll": "Clear all",
           "alreadyConnected": "Already connected",
           "creditLimitMeta": "Limit {amount}"
         },
@@ -409,6 +429,11 @@
         "canada": "Canada",
         "australia": "Australia",
         "newZealand": "New Zealand"
+      },
+      "filters": {
+        "all": "All",
+        "usCanada": "US & Canada",
+        "euUk": "EU & UK"
       },
       "tooltips": {
         "monobank": "Requires manually copying an API token from the Monobank mobile app",

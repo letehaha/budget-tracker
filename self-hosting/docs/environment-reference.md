@@ -57,6 +57,7 @@ Ignored unless you use the [Traefik overlay](traefik-overlay.md)
 | `ALLOWED_ORIGINS`                                                              | Extra CORS origins beyond `AUTH_ORIGIN`                                                                                                                                   |
 | `SENTRY_DSN`                                                                   | Backend error tracking                                                                                                                                                    |
 | `SYSTEM_MAX_SIGNUPS_ALLOWED`                                                   | Cap on user accounts: signups are rejected once the instance has this many users (`0` disables signups, `1` = "just me"). Deleting a user frees a slot. Unset = unlimited |
+| `SYSTEM_DEMO_DISABLED`                                                         | Blocks demo-account creation (`POST /demo`). Defaults to `true` in the self-host compose stack; set to `false` to allow demo accounts                                     |
 
 ## Frontend runtime (optional)
 

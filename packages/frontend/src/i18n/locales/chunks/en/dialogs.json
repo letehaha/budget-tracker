@@ -2,7 +2,12 @@
   "dialogs": {
     "linkAccountGroup": {
       "title": "Link account group",
-      "createNewGroup": "Create new group"
+      "createNewGroup": "Create new group",
+      "noGroup": "No group",
+      "noGroupDescription": "Keep this account ungrouped",
+      "current": "Current",
+      "syncHint": "Groups only organize your accounts — moving an account never affects bank syncing.",
+      "accountsCount": "{count} account | {count} accounts"
     },
     "reassignCategory": {
       "title": "Reassign Transactions",
@@ -139,7 +144,7 @@
         "accountLabel": "Account",
         "selectAccountPlaceholder": "Select account",
         "noAccountExists": "No account exists",
-        "addNewAccountButton": "Add new account +",
+        "addNewAccountButton": "Add new account",
         "createAccountLink": "Create account",
         "destinationTypeAccount": "Account",
         "destinationTypePortfolio": "Portfolio",

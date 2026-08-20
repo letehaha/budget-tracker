@@ -2,7 +2,12 @@
   "dialogs": {
     "linkAccountGroup": {
       "title": "Vincular grupo de cuentas",
-      "createNewGroup": "Crear nuevo grupo"
+      "createNewGroup": "Crear nuevo grupo",
+      "noGroup": "Sin grupo",
+      "noGroupDescription": "Mantener esta cuenta sin agrupar",
+      "current": "Actual",
+      "syncHint": "Los grupos solo organizan tus cuentas — mover una cuenta nunca afecta la sincronización bancaria.",
+      "accountsCount": "{count} cuenta | {count} cuentas"
     },
     "reassignCategory": {
       "title": "Reasignar transacciones",
@@ -139,7 +144,7 @@
         "accountLabel": "Cuenta",
         "selectAccountPlaceholder": "Seleccione una cuenta",
         "noAccountExists": "No existe ninguna cuenta",
-        "addNewAccountButton": "Añadir nueva cuenta +",
+        "addNewAccountButton": "Añadir nueva cuenta",
         "createAccountLink": "Crear cuenta",
         "destinationTypeAccount": "Cuenta",
         "destinationTypePortfolio": "Cartera",

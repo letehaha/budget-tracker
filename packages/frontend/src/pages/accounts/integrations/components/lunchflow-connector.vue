@@ -4,32 +4,15 @@
     <template v-if="currentStep === 1">
       <div class="space-y-4">
         <div>
-          <label class="text-sm font-medium">{{ t('pages.integrations.lunchflow.apiKeyLabel') }}</label>
-          <input
+          <InputField
             v-model="apiKey"
             type="password"
-            class="w-full rounded-md border px-3 py-2"
+            :label="t('pages.integrations.lunchflow.apiKeyLabel')"
             :placeholder="t('pages.integrations.lunchflow.apiKeyPlaceholder')"
             @keyup.enter="handleConnectProvider"
           />
 
-          <Tooltip.TooltipProvider>
-            <Tooltip.Tooltip>
-              <Tooltip.TooltipTrigger class="mt-2 flex items-center gap-2">
-                <p class="text-muted-foreground text-xs">{{ t('pages.integrations.lunchflow.apiKeyHint') }}</p>
-                <InfoIcon class="text-primary-text size-4" />
-              </Tooltip.TooltipTrigger>
-              <Tooltip.TooltipContent class="max-w-100 p-4">
-                <span class="text-sm leading-6 opacity-90">
-                  <i18n-t keypath="pages.integrations.lunchflow.apiKeyInstructions" tag="span">
-                    <template #link>
-                      <ExternalLink href="https://lunchflow.app/dashboard" />
-                    </template>
-                  </i18n-t>
-                </span>
-              </Tooltip.TooltipContent>
-            </Tooltip.Tooltip>
-          </Tooltip.TooltipProvider>
+          <CredentialsHelpTrigger :label="t('pages.integrations.lunchflow.help.trigger')" @click="showHelp = true" />
         </div>
         <div class="flex justify-between gap-2">
           <UiButton variant="outline" @click="$emit('cancel')" :disabled="isLoading">
@@ -128,6 +111,29 @@
         </template>
       </div>
     </template>
+
+    <InstructionsDialog v-model:open="showHelp" :title="t('pages.integrations.lunchflow.help.title')">
+      <div class="space-y-2">
+        <InstructionStep :step="1">
+          <template #title>
+            <i18n-t keypath="pages.integrations.lunchflow.help.step1" tag="span">
+              <template #link>
+                <ExternalLink :href="LUNCHFLOW_DASHBOARD_URL" />
+              </template>
+            </i18n-t>
+          </template>
+        </InstructionStep>
+        <InstructionStep :step="2" :title="t('pages.integrations.lunchflow.help.step2')" />
+        <InstructionStep :step="3" :title="t('pages.integrations.lunchflow.help.step3')" />
+      </div>
+
+      <template #footer>
+        <UiButton as="a" :href="LUNCHFLOW_DASHBOARD_URL" target="_blank" rel="noopener">
+          <ExternalLinkIcon class="size-4" />
+          {{ t('pages.integrations.help.openSite', { site: 'lunchflow.app' }) }}
+        </UiButton>
+      </template>
+    </InstructionsDialog>
   </div>
 </template>
 
@@ -140,15 +146,22 @@ import {
 } from '@/api/bank-data-providers';
 import { DemoRestricted } from '@/components/demo';
 import ExternalLink from '@/components/external-link.vue';
+import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { BuildingIcon, InfoIcon } from '@lucide/vue';
+import { BuildingIcon, ExternalLinkIcon, InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import CredentialsHelpTrigger from './shared/credentials-help-trigger.vue';
+import InstructionStep from './shared/instruction-step.vue';
+import InstructionsDialog from './shared/instructions-dialog.vue';
+
+const LUNCHFLOW_DASHBOARD_URL = 'https://lunchflow.app/dashboard';
 
 const { t } = useI18n();
 
@@ -163,6 +176,7 @@ const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
 const isLoading = ref(false);
+const showHelp = ref(false);
 
 // Step 1 data
 const apiKey = ref('');

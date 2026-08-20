@@ -76,6 +76,13 @@ interface BankConnectionDetails {
   deactivationReason?: string | null;
 }
 
+/**
+ * ISO 4217 "no currency" — the provider couldn't report one for the account.
+ * Connecting such an account requires an explicit currency choice from the
+ * user (immutable afterwards; reconnecting is the only way to change it).
+ */
+export { NO_CURRENCY_CODE } from '@bt/shared/types';
+
 export interface AvailableAccount {
   externalId: string;
   name: string;
@@ -158,9 +165,12 @@ export const getAvailableAccounts = async (connectionId: string): Promise<Availa
 export const syncSelectedAccounts = async (
   connectionId: string,
   accountExternalIds: string[],
+  // externalId → currency for accounts listed with NO_CURRENCY_CODE.
+  currencyOverrides?: Record<string, string>,
 ): Promise<{ syncedAccounts: SyncedAccount[]; message: string }> => {
   const response = await api.post(`/bank-data-providers/connections/${connectionId}/sync-selected-accounts`, {
     accountExternalIds,
+    currencyOverrides,
   });
   return response;
 };
@@ -170,8 +180,10 @@ interface SyncJobResult {
   jobGroupId: string | null;
   totalBatches: number;
   estimatedMinutes: number;
-  // Rows created during an inline load (jobGroupId === null).
+  // Inline load (jobGroupId === null) counts: rows created vs rows the
+  // provider returned before dedup.
   createdCount?: number;
+  fetchedCount?: number;
   message: string;
 }
 

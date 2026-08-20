@@ -32,6 +32,7 @@
     "reconnect": "Перепідключити",
     "manageConnection": "Керувати підключенням",
     "accountsCount": "{count} рахунок | {count} рахунки | {count} рахунків",
+    "inGroupSubtitle": "у {name}",
     "sort": {
       "auto": "Авто",
       "name": "Назва",

@@ -1,7 +1,9 @@
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { formatIbanCompact, getAccountSecondaryMeta, resolveAccountVisual } from './account-visual';
+
+vi.stubEnv('VITE_LOGO_DEV_TOKEN', 'test-token');
 
 describe('resolveAccountVisual', () => {
   it('prefers institution logo when present', () => {
@@ -53,6 +55,60 @@ describe('resolveAccountVisual', () => {
         metadata: { institutionLogo: '' },
       }).kind,
     ).toBe('currency');
+  });
+
+  it('derives a logo.dev image from the institution domain when no logo exists', () => {
+    const visual = resolveAccountVisual({
+      providerType: BANK_PROVIDER_TYPE.SIMPLEFIN,
+      type: 'bank',
+      currency: 'USD',
+      metadata: { institutionDomain: 'vanguard.com' },
+    });
+    expect(visual).toMatchObject({ kind: 'favicon', code: 'USD' });
+    expect((visual as { src: string }).src).toContain('https://img.logo.dev/vanguard.com');
+  });
+
+  it('falls back to the currency chip when no logo.dev token is configured', () => {
+    vi.stubEnv('VITE_LOGO_DEV_TOKEN', '');
+    expect(
+      resolveAccountVisual({
+        providerType: BANK_PROVIDER_TYPE.SIMPLEFIN,
+        type: 'bank',
+        currency: 'USD',
+        metadata: { institutionDomain: 'vanguard.com' },
+      }),
+    ).toEqual({ kind: 'currency', code: 'USD' });
+    vi.stubEnv('VITE_LOGO_DEV_TOKEN', 'test-token');
+  });
+
+  it('prefers an explicit logo over the domain favicon', () => {
+    expect(
+      resolveAccountVisual({
+        providerType: BANK_PROVIDER_TYPE.SIMPLEFIN,
+        type: 'bank',
+        currency: 'USD',
+        metadata: { institutionLogo: 'https://example.com/logo.png', institutionDomain: 'vanguard.com' },
+      }),
+    ).toEqual({ kind: 'logo', src: 'https://example.com/logo.png' });
+  });
+
+  it('never renders the no-currency sentinel as a chip code', () => {
+    expect(
+      resolveAccountVisual({
+        providerType: BANK_PROVIDER_TYPE.SIMPLEFIN,
+        type: 'bank',
+        currency: 'XXX',
+      }),
+    ).toEqual({ kind: 'currency', code: '···' });
+
+    expect(
+      resolveAccountVisual({
+        providerType: BANK_PROVIDER_TYPE.SIMPLEFIN,
+        type: 'bank',
+        currency: 'XXX',
+        metadata: { institutionDomain: 'vanguard.com' },
+      }),
+    ).toMatchObject({ kind: 'favicon', code: '···' });
   });
 });
 

@@ -42,6 +42,12 @@
         </div>
       </div>
 
+      <RecalculateBalanceToggle
+        v-model="store.recalculateBalance"
+        :settings-loading="store.recalculateBalanceSettingLoading"
+        :settings-load-failed="store.recalculateBalanceSettingLoadFailed"
+      />
+
       <!-- Invalid rows table -->
       <section v-if="store.invalidRows.length > 0" aria-labelledby="invalid-rows-heading">
         <h3 id="invalid-rows-heading" class="text-destructive-text mb-3 text-sm font-semibold">
@@ -214,6 +220,7 @@ import { Callout } from '@/components/lib/ui/callout';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
 import { StatCard } from '@/components/lib/ui/stat-card';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
+import RecalculateBalanceToggle from '@/pages/import-export/components/recalculate-balance-toggle.vue';
 import { useImportExportStore } from '@/stores/import-export';
 import type { InvalidRow } from '@bt/shared/types';
 import { ChevronLeftIcon, ChevronRightIcon, LoaderCircleIcon } from '@lucide/vue';

@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Users from '@models/users.model';
 import { makeRequest } from '@tests/helpers/common';
 
@@ -126,6 +126,64 @@ describe('PUT /user/update — username', () => {
 
       const stillTest1 = await Users.findOne({ where: { username: 'test1' }, raw: true });
       expect(stillTest1).not.toBeNull();
+    });
+  });
+
+  describe('reserved admin usernames', () => {
+    let originalAdminUsers: string | undefined;
+
+    beforeEach(() => {
+      originalAdminUsers = process.env.ADMIN_USERS;
+    });
+
+    afterEach(() => {
+      if (originalAdminUsers !== undefined) {
+        process.env.ADMIN_USERS = originalAdminUsers;
+      } else {
+        delete process.env.ADMIN_USERS;
+      }
+    });
+
+    it('rejects claiming a configured ADMIN_USERS name (privilege escalation)', async () => {
+      process.env.ADMIN_USERS = 'reserved-admin';
+
+      const res = await makeRequest({
+        method: 'put',
+        url: '/user/update',
+        payload: { username: 'reserved-admin' },
+      });
+
+      expect(res.statusCode).toEqual(422);
+
+      const stillTest1 = await Users.findOne({ where: { username: 'test1' }, raw: true });
+      expect(stillTest1).not.toBeNull();
+      const claimed = await Users.findOne({ where: { username: 'reserved-admin' }, raw: true });
+      expect(claimed).toBeNull();
+    });
+
+    it('normalizes ADMIN_USERS whitespace the same way adminOnly does', async () => {
+      process.env.ADMIN_USERS = '  reserved-admin  , other-admin';
+
+      const res = await makeRequest({
+        method: 'put',
+        url: '/user/update',
+        payload: { username: 'reserved-admin' },
+      });
+
+      expect(res.statusCode).toEqual(422);
+    });
+
+    it('still allows renaming to a non-admin username while ADMIN_USERS is set', async () => {
+      process.env.ADMIN_USERS = 'reserved-admin';
+
+      const res = await makeRequest({
+        method: 'put',
+        url: '/user/update',
+        payload: { username: 'harriet-vane' },
+      });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.response.username).toEqual('harriet-vane');
     });
   });
 });

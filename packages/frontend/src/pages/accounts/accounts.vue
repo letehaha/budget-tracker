@@ -96,10 +96,16 @@
             </template>
 
             <div
-              v-if="connectionGroups.length"
+              v-if="connectionRows.length"
               class="border-border/60 bg-card divide-border/60 divide-y overflow-hidden rounded-xl border"
             >
-              <AccountGroupRow v-for="group in sortedConnectionGroups" :key="group.id" :group="group" />
+              <BankConnectionRow
+                v-for="row in sortedConnectionRows"
+                :key="row.connection.id"
+                :connection="row.connection"
+                :accounts="row.accounts"
+                :folder-group-names="folderGroupNames"
+              />
             </div>
             <p v-else class="text-muted-foreground px-1 py-2 text-sm">{{ $t('accounts.noBanksConnected') }}</p>
           </AccountsSection>
@@ -211,7 +217,7 @@
 
 <script setup lang="ts">
 import { loadAccountGroups } from '@/api/account-groups';
-import { type BankProvider, listProviders } from '@/api/bank-data-providers';
+import { type BankConnection, type BankProvider, listConnections, listProviders } from '@/api/bank-data-providers';
 import { getVehicles } from '@/api/vehicles';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import type { AccountGroups } from '@/common/types/models';
@@ -242,6 +248,8 @@ import AccountListRow from './components/account-list-row.vue';
 import AccountsOverviewCard from './components/accounts-overview-card.vue';
 import AccountsSection from './components/accounts-section.vue';
 import AccountsSortMenu from './components/accounts-sort-menu.vue';
+import BankConnectionRow from './components/bank-connection-row.vue';
+import { collectManualAccounts, mapFolderGroupNames, pruneBankLinkedAccounts } from './manual-accounts-split';
 import { useAccountsSort } from './use-accounts-sort';
 
 const route = useRoute();
@@ -251,7 +259,7 @@ const { t } = useI18n();
 
 const isActionsMenuOpen = ref(false);
 
-const { sortConnectionGroups, sortLeafAccounts, sortVehicles, sortManual } = useAccountsSort();
+const { sortConnectionRows, sortLeafAccounts, sortVehicles, sortManual } = useAccountsSort();
 
 const { accounts, activeAccounts, isAccountsFetched } = storeToRefs(useAccountsStore());
 
@@ -274,11 +282,20 @@ const { data: providers } = useQuery({
   placeholderData: [] as BankProvider[],
 });
 
+const { data: bankConnections, isFetched: isConnectionsFetched } = useQuery({
+  queryKey: VUE_QUERY_CACHE_KEYS.bankConnections,
+  queryFn: listConnections,
+  staleTime: Infinity,
+  placeholderData: [] as BankConnection[],
+});
+
 const { baseCurrencyCode, includeCreditLimit, sumBaseBalance } = useBaseBalanceTotals();
 
-// Gate the skeleton on the groups query too: until it resolves every account would
-// render as ungrouped and Bank connections would flash "no banks connected".
-const isInitialLoading = computed(() => !isAccountsFetched.value || !isGroupsFetched.value);
+// Gate the skeleton on the groups and connections queries too: until they resolve every
+// account would render as ungrouped and Bank connections would flash "no banks connected".
+const isInitialLoading = computed(
+  () => !isAccountsFetched.value || !isGroupsFetched.value || !isConnectionsFetched.value,
+);
 
 // id -> account map for every account nested anywhere in the group tree, so the
 // ungrouped list can exclude anything already shown under a group.
@@ -298,18 +315,36 @@ const accountsInGroups = computed(() => {
   return flatten(accountGroups.value ?? []);
 });
 
-// Bank-linked groups carry a connection id; folder groups (manual organization) don't.
-// Skip groups with no active accounts so an all-archived connection isn't a "0 accounts" row.
-const connectionGroups = computed(() =>
-  (accountGroups.value ?? []).filter(
-    (group) => group.bankDataProviderConnectionId != null && collectGroupAccounts({ group }).length > 0,
-  ),
+// Bank connections are driven by the accounts' own connection link, not group membership:
+// regrouping a synced account must never move it out of this section (or hide the connection).
+const bankAccountsByConnectionId = computed(() => {
+  const map = new Map<string, AccountModel[]>();
+  for (const account of activeAccounts.value ?? []) {
+    if (!account.bankDataProviderConnectionId || account.share?.isOwner === false) continue;
+    const bucket = map.get(account.bankDataProviderConnectionId);
+    if (bucket) bucket.push(account);
+    else map.set(account.bankDataProviderConnectionId, [account]);
+  }
+  return map;
+});
+
+// Connections with no active accounts (nothing selected, or everything archived/unlinked)
+// are skipped rather than shown as "0 accounts" rows.
+const connectionRows = computed(() =>
+  (bankConnections.value ?? [])
+    .map((connection) => ({ connection, accounts: bankAccountsByConnectionId.value.get(connection.id) ?? [] }))
+    .filter((row) => row.accounts.length > 0),
 );
-const folderGroups = computed(() =>
-  (accountGroups.value ?? []).filter(
-    (group) => group.bankDataProviderConnectionId == null && collectGroupAccounts({ group }).length > 0,
-  ),
+
+// Manual section shows only manual accounts: folder groups pruned of bank-linked accounts
+// (those render under their connection above), dropped entirely when nothing manual remains.
+const manualFolderGroups = computed(() =>
+  pruneBankLinkedAccounts({
+    groups: (accountGroups.value ?? []).filter((group) => group.bankDataProviderConnectionId == null),
+  }),
 );
+
+const folderGroupNames = computed(() => mapFolderGroupNames({ groups: accountGroups.value ?? [] }));
 
 const vehicleAccountIds = computed(() => new Set((vehicles.value ?? []).map((v) => v.accountId)));
 
@@ -349,10 +384,20 @@ const moneyAccounts = computed(() =>
 // section, its count, its total, and the overview all agree and no row null-derefs.
 const vehiclesWithAccount = computed(() => (vehicles.value ?? []).filter((v) => v.account != null));
 
+// Loose rows of the Manual section: ungrouped manual accounts, plus manual accounts a
+// user placed inside a connection-managed group (that group only renders under Bank
+// connections implicitly, so without this rescue they would vanish from the page).
+const manualLooseAccounts = computed(() => [
+  ...ungroupedAccounts.value.filter((account) => !account.bankDataProviderConnectionId),
+  ...collectManualAccounts({
+    groups: (accountGroups.value ?? []).filter((group) => group.bankDataProviderConnectionId != null),
+  }),
+]);
+
 // Apply the shared sort choice to each section. Manual folds folder-groups and loose
 // accounts into one tagged list so the chosen order can interleave them.
-const sortedConnectionGroups = computed(() => sortConnectionGroups(connectionGroups.value));
-const manualItems = computed(() => sortManual(folderGroups.value, ungroupedAccounts.value));
+const sortedConnectionRows = computed(() => sortConnectionRows(connectionRows.value));
+const manualItems = computed(() => sortManual(manualFolderGroups.value, manualLooseAccounts.value));
 const sortedVehicles = computed(() => sortVehicles(vehiclesWithAccount.value));
 const sortedShared = computed(() => sortLeafAccounts(sharedAccounts.value));
 const sortedArchived = computed(() => sortLeafAccounts(archivedAccounts.value));
@@ -374,18 +419,16 @@ const { aggregateFor } = useProjectedBalance();
 const plannedTotals = computed(() => aggregateFor({ accountIds: moneyAccounts.value.map((account) => account.id) }));
 const projectedTotal = computed(() => overview.value.total + plannedTotals.value.refPlannedDelta);
 
-const connectionAccountsCount = computed(() =>
-  connectionGroups.value.reduce((sum, group) => sum + collectGroupAccounts({ group }).length, 0),
-);
+const connectionAccountsCount = computed(() => connectionRows.value.reduce((sum, row) => sum + row.accounts.length, 0));
 
 const bankConnectionsCount = computed<string | undefined>(() => {
-  if (!connectionGroups.value.length) return undefined;
-  return `${connectionGroups.value.length} · ${t('accounts.accountsCount', { count: connectionAccountsCount.value })}`;
+  if (!connectionRows.value.length) return undefined;
+  return `${connectionRows.value.length} · ${t('accounts.accountsCount', { count: connectionAccountsCount.value })}`;
 });
 
 const manualCount = computed(() => {
-  const inFolders = folderGroups.value.reduce((sum, group) => sum + collectGroupAccounts({ group }).length, 0);
-  return inFolders + ungroupedAccounts.value.length;
+  const inFolders = manualFolderGroups.value.reduce((sum, group) => sum + collectGroupAccounts({ group }).length, 0);
+  return inFolders + manualLooseAccounts.value.length;
 });
 
 const vehiclesBaseTotal = computed(() => sumBaseBalance({ accounts: vehicleAccounts.value }));

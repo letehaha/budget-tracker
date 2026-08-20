@@ -190,6 +190,59 @@ describe('Demo Mode', () => {
     }, 60000); // 60s timeout - demo user creation involves lots of data seeding
   });
 
+  describe('POST /demo - SYSTEM_DEMO_DISABLED gate', () => {
+    afterEach(() => {
+      delete process.env.SYSTEM_DEMO_DISABLED;
+    });
+
+    it('rejects demo creation when demo accounts are disabled', async () => {
+      global.APP_AUTH_COOKIES = null;
+      process.env.SYSTEM_DEMO_DISABLED = 'true';
+
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/demo',
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
+      expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
+    }, 60000);
+  });
+
+  describe('POST /demo - Signup cap gate', () => {
+    afterEach(() => {
+      delete process.env.SYSTEM_MAX_SIGNUPS_ALLOWED;
+    });
+
+    it('rejects demo creation when signups are closed', async () => {
+      global.APP_AUTH_COOKIES = null;
+      process.env.SYSTEM_MAX_SIGNUPS_ALLOWED = '0';
+
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/demo',
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
+      expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
+    }, 60000);
+
+    it('creates a demo user when signups are open', async () => {
+      global.APP_AUTH_COOKIES = null;
+      delete process.env.SYSTEM_MAX_SIGNUPS_ALLOWED;
+
+      const res = await makeAuthRequest({
+        method: 'post',
+        url: '/demo',
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.response.user.role).toBe(USER_ROLES.demo);
+    }, 60000);
+  });
+
   describe('Demo Data Seeding', () => {
     let demoSessionToken: string;
 
@@ -898,6 +951,20 @@ describe('Demo Mode', () => {
         payload: {
           newPassword: 'newpassword123',
         },
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
+      expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
+    });
+
+    it('blocks AI categorization trigger for demo users', async () => {
+      // Without a user AI key, this endpoint falls back to the operator's
+      // server-side key — demo users must not reach it.
+      const res = await makeRequest({
+        method: 'post',
+        url: '/user/ai/categorization/trigger',
+        payload: {},
       });
 
       expect(res.statusCode).toBe(403);

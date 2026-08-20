@@ -197,11 +197,11 @@ describe('Enable Banking Data Provider E2E', () => {
     });
   });
 
-  // "XXX" (ISO no-currency) means the bank omitted the account currency: connect
-  // must fall back to the user's base currency. Other ISO non-currency codes
+  // "XXX" (ISO no-currency) means the bank omitted the account currency: the
+  // user must pick one explicitly during connect. Other ISO non-currency codes
   // still reject with 400.
   describe('unsupported account currency', () => {
-    const connectWithMockedCurrency = async (currency: string) => {
+    const connectWithMockedCurrency = async (currency: string, currencyOverrides?: Record<string, string>) => {
       const connectResult = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
         credentials: helpers.enablebanking.mockCredentials(),
@@ -230,12 +230,31 @@ describe('Enable Banking Data Provider E2E', () => {
       const result = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: connectResult.connectionId,
         accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+        currencyOverrides,
       });
       return { connectionId: connectResult.connectionId, result };
     };
 
-    it('falls back to the user base currency when the bank reports "XXX" (no currency)', async () => {
+    it('treats an empty bank-reported currency as "XXX" and requires an explicit choice', async () => {
+      const { result } = await connectWithMockedCurrency('');
+      expect(result.status).toEqual(ERROR_CODES.ValidationError);
+    });
+
+    it('rejects "XXX" (no currency) without an explicit currency choice, creating nothing', async () => {
       const { connectionId, result } = await connectWithMockedCurrency('XXX');
+      expect(result.status).toEqual(ERROR_CODES.ValidationError);
+
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+      expect(connection.accounts.length).toBe(0);
+    });
+
+    it('connects a "XXX" (no currency) account with the user-chosen currency', async () => {
+      const { connectionId, result } = await connectWithMockedCurrency('XXX', {
+        [MOCK_IDENTIFICATION_HASH_1]: 'EUR',
+      });
       expect(result.status).toEqual(200);
 
       const { connection } = await helpers.bankDataProviders.getConnectionDetails({
@@ -243,10 +262,10 @@ describe('Enable Banking Data Provider E2E', () => {
         raw: true,
       });
       expect(connection.accounts.length).toBe(1);
-      expect(connection.accounts[0]!.currencyCode).toBe(global.BASE_CURRENCY.code);
+      expect(connection.accounts[0]!.currencyCode).toBe('EUR');
       expect(connection.accounts[0]!.currencyFallback).toEqual({
         providerCurrency: 'XXX',
-        assignedCurrency: global.BASE_CURRENCY.code,
+        assignedCurrency: 'EUR',
       });
     });
 

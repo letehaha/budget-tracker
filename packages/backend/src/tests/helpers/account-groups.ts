@@ -78,6 +78,19 @@ export async function removeAccountFromGroup<R extends boolean | undefined = und
   });
 }
 
+export async function getAccountsInGroup<R extends boolean | undefined = undefined>({
+  groupId,
+  raw,
+}: Omit<Parameters<typeof accountGroupService.getAccountsInGroup>[0], 'userId'> & {
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof accountGroupService.getAccountsInGroup>>, R>({
+    method: 'get',
+    url: `/account-group/${groupId}/accounts`,
+    raw,
+  });
+}
+
 export async function addAccountToGroup<R extends boolean | undefined = undefined>({
   raw,
   accountId,

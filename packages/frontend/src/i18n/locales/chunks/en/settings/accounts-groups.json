@@ -16,10 +16,12 @@
         "retry": "Try again"
       },
       "row": {
-        "bankBadge": "Bank connection",
+        "bankBadge": "Created by bank connection",
         "bankBadgeShort": "Connection",
+        "bankBadgeTooltip": "This group was created when you connected the bank, but it doesn't represent the connection itself — you're free to rename it, move accounts, or delete it. Accounts will stay synced regardless.",
         "accountsCount": "{count} account | {count} accounts",
         "noAccounts": "No accounts",
+        "accountsElsewhere": "{count} synced account in other groups | {count} synced accounts in other groups",
         "inParent": "in {name}",
         "manageConnection": "Manage connection"
       },
@@ -32,14 +34,18 @@
       "accounts": {
         "heading": "Accounts in this group",
         "empty": "No accounts in this group yet. Add accounts to a group from the account page.",
-        "unlinkTooltip": "Remove from group"
+        "emptyBankLinked": "This connection's accounts are organized into other groups — moving them doesn't affect syncing.",
+        "unlinkTooltip": "Remove from group",
+        "removeConfirmTitle": "Remove \"{name}\" from this group?",
+        "removeConfirmDescription": "The account isn't deleted — it only leaves this group.",
+        "removeConfirmAction": "Remove"
       },
       "delete": {
         "button": "Delete group",
-        "disabledTooltip": "This group is linked to a bank connection and cannot be deleted manually. Disconnect the bank to remove it automatically.",
-        "confirmTitle": "Delete this group?",
-        "description": "The group will be deleted. Its accounts are not deleted — they simply stop being grouped.",
-        "affectedAccounts": "These accounts will be removed from the group:"
+        "confirmTitle": "Delete \"{name}\"?",
+        "accountsKept": "Accounts are kept — they simply become ungrouped.",
+        "syncContinues": "Bank syncing continues — the connection is separate from this group.",
+        "ungroupedHeading": "Becoming ungrouped"
       }
     }
   }

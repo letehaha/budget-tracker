@@ -3,7 +3,7 @@ import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 export type PricingType = 'free' | 'paid';
 export type DifficultyType = 'easy' | 'medium' | 'very-difficult';
 
-interface ProviderRegion {
+export interface ProviderRegion {
   code: 'ua' | 'eu' | 'gb' | 'us' | 'pl' | 'ca' | 'au' | 'nz';
   labelKey: string;
 }
@@ -84,6 +84,31 @@ export const METAINFO_FROM_TYPE: Record<string, ProviderMetainfo> = {
     regions: [REGIONS.usa, REGIONS.canada],
   },
 };
+
+export interface RegionFilterGroup {
+  key: string;
+  labelKey: string;
+  flagCode: string;
+  codes: readonly ProviderRegion['code'][];
+}
+
+export const REGION_FILTER_ALL = 'all';
+
+export const REGION_FILTER_GROUPS: readonly RegionFilterGroup[] = [
+  { key: 'usCanada', labelKey: 'pages.integrations.filters.usCanada', flagCode: 'us', codes: ['us', 'ca'] },
+  { key: 'euUk', labelKey: 'pages.integrations.filters.euUk', flagCode: 'eu', codes: ['eu', 'gb'] },
+  { key: 'ukraine', labelKey: 'pages.integrations.regions.ukraine', flagCode: 'ua', codes: ['ua'] },
+  // Poland also matches 'eu': EU-wide providers (PSD2) cover Polish banks.
+  { key: 'poland', labelKey: 'pages.integrations.regions.poland', flagCode: 'pl', codes: ['pl', 'eu'] },
+];
+
+export const providerMatchesRegionFilter = ({
+  regions,
+  codes,
+}: {
+  regions: readonly ProviderRegion[];
+  codes: readonly ProviderRegion['code'][];
+}): boolean => regions.some((region) => codes.includes(region.code));
 
 export const PROVIDER_DISPLAY_ORDER: readonly string[] = [
   BANK_PROVIDER_TYPE.LUNCHFLOW,

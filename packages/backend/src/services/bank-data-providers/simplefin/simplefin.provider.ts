@@ -2,6 +2,7 @@
 import {
   ACCOUNT_TYPES,
   BANK_PROVIDER_TYPE,
+  NO_CURRENCY_CODE,
   PAYMENT_TYPES,
   type RecordId,
   TRANSACTION_TRANSFER_NATURE,
@@ -234,10 +235,13 @@ export class SimplefinProvider extends BaseBankDataProvider {
     const connectionsById = this.buildConnectionsMap(accountSet);
 
     return accountSet.accounts.reduce<ProviderAccount[]>((result, account) => {
-      const currency = (account.currency || '').toUpperCase();
+      // Some institutions (brokerages, mostly) report no currency at all.
+      // Surface those as ISO "XXX" (no currency) instead of hiding the account:
+      // connect then requires the user to pick a currency explicitly.
+      const currency = account.currency?.toUpperCase() || NO_CURRENCY_CODE;
 
-      // SimpleFIN currency may be a URL (crypto / non-standard). The rest of
-      // the app keys accounts on ISO 4217 codes, so skip anything that isn't
+      // SimpleFIN currency may also be a URL (crypto / non-standard). The rest
+      // of the app keys accounts on ISO 4217 codes, so skip anything that isn't
       // a recognizable 3-letter code rather than fail the whole connection.
       if (!this.isIsoCurrency(currency)) {
         logger.info(
@@ -256,6 +260,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
         currency,
         metadata: {
           institutionName: org.name,
+          institutionDomain: org.domain,
           sfinUrl: org.sfinUrl,
           availableBalance: account['available-balance'],
         },
@@ -478,10 +483,16 @@ export class SimplefinProvider extends BaseBankDataProvider {
     userId: number;
     from: Date;
     to: Date;
-  }): Promise<{ jobGroupId: string | null; totalBatches: number; estimatedMinutes: number; createdCount: number }> {
+  }): Promise<{
+    jobGroupId: string | null;
+    totalBatches: number;
+    estimatedMinutes: number;
+    createdCount: number;
+    fetchedCount: number;
+  }> {
     // No `matchPlanned`: a charge from an arbitrary past window must not consume a plan
     // the user made for something else.
-    const createdIds = await this.ingestWithStatus({
+    const { transactionIds, fetchedCount } = await this.ingestWithStatus({
       connectionId,
       systemAccountId,
       userId,
@@ -494,7 +505,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
       jobGroupId: null,
       totalBatches: splitIntoWindows(from, to).length,
       estimatedMinutes: 0,
-      createdCount: createdIds.length,
+      createdCount: transactionIds.length,
+      fetchedCount,
     };
   }
 
@@ -564,8 +576,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
     to: Date;
     logLabel: string;
     matchPlanned?: boolean;
-  }): Promise<string[]> {
-    const { transactionIds } = await this.runSyncWithStatus({
+  }): Promise<{ transactionIds: string[]; fetchedCount: number }> {
+    const { transactionIds, fetchedCount } = await this.runSyncWithStatus({
       systemAccountId,
       userId,
       connectionId,
@@ -582,7 +594,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
         const { accessUrl } = await this.getValidatedCredentials(connectionId);
         const apiClient = new SimplefinApiClient(accessUrl);
 
-        const { createdIds, balance } = await this.ingestTransactions({
+        const ingested = await this.ingestTransactions({
           connectionId,
           apiClient,
           connection,
@@ -592,22 +604,24 @@ export class SimplefinProvider extends BaseBankDataProvider {
           matchPlanned,
         });
 
-        if (balance !== null) {
+        if (ingested.balance !== null) {
           await writeBankBalanceWithHistory({
             account,
-            balance: Money.fromDecimal(balance),
+            balance: Money.fromDecimal(ingested.balance),
           });
         } else {
           logger.info(`[SimpleFIN] ${logLabel}: balance unavailable for account ${account.id}, left unchanged`);
         }
 
-        logger.info(`[SimpleFIN] ${logLabel}: ${createdIds.length} transactions created for account ${account.id}`);
+        logger.info(
+          `[SimpleFIN] ${logLabel}: ${ingested.createdIds.length} transactions created for account ${account.id}`,
+        );
 
-        return { transactionIds: createdIds };
+        return { transactionIds: ingested.createdIds, fetchedCount: ingested.fetchedCount };
       },
     });
 
-    return transactionIds;
+    return { transactionIds, fetchedCount };
   }
 
   /**
@@ -746,7 +760,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
     from: Date;
     to: Date;
     matchPlanned?: boolean;
-  }): Promise<{ createdIds: string[]; balance: string | null }> {
+  }): Promise<{ createdIds: string[]; balance: string | null; fetchedCount: number }> {
     const fetched = await this.fetchAccountTransactions({
       connectionId,
       apiClient,
@@ -762,7 +776,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
       matchPlanned,
     });
 
-    return { createdIds, balance: fetched.balance };
+    return { createdIds, balance: fetched.balance, fetchedCount: fetched.transactions.length };
   }
 
   /**
@@ -949,12 +963,23 @@ export class SimplefinProvider extends BaseBankDataProvider {
   private resolveOrg(
     account: SimplefinAccount,
     connectionsById: Map<string, SimplefinConnection>,
-  ): { name?: string; sfinUrl?: string } {
+  ): { name?: string; sfinUrl?: string; domain?: string } {
     const connection = account.conn_id ? connectionsById.get(account.conn_id) : undefined;
     return {
       name: account.org?.name ?? connection?.name,
       sfinUrl: account.org?.['sfin-url'] ?? connection?.['sfin-url'],
+      domain: account.org?.domain ?? this.domainFromUrl(connection?.org_url),
     };
+  }
+
+  /** v2 carries no bare domain — derive it from the connection's org_url. */
+  private domainFromUrl(url?: string): string | undefined {
+    if (!url) return undefined;
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return undefined;
+    }
   }
 
   private isIsoCurrency(code: string): boolean {

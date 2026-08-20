@@ -6,7 +6,6 @@ import { Callout } from '@/components/lib/ui/callout';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
 import { cn } from '@/lib/utils';
-import RecalculateBalanceToggle from '@/pages/import-export/components/recalculate-balance-toggle.vue';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { useImportExportStore } from '@/stores/import-export';
 import { useTagsStore } from '@/stores/tags';
@@ -428,13 +427,6 @@ async function handleNext() {
           </template>
         </MappingTable>
       </section>
-
-      <!-- ==================== BALANCE RECALCULATION ==================== -->
-      <RecalculateBalanceToggle
-        v-model="importStore.recalculateBalance"
-        :settings-loading="importStore.recalculateBalanceSettingLoading"
-        :settings-load-failed="importStore.recalculateBalanceSettingLoadFailed"
-      />
 
       <!-- Nav error -->
       <Callout v-if="navError" variant="destructive" role="alert">

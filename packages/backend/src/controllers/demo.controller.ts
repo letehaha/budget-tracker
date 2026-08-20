@@ -1,10 +1,12 @@
 import { API_RESPONSE_STATUS } from '@bt/shared/types';
 import { auth } from '@config/auth';
 import { errorHandler } from '@controllers/helpers';
+import { ForbiddenError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { trackDemoSessionCreated } from '@js/utils/posthog';
 import { applyDemoTemplate } from '@services/demo/apply-demo-template.service';
 import { createDemoUserFast } from '@services/demo/create-demo-user.service';
+import { areSignupsOpen } from '@services/user/signups-open.service';
 import { Request, Response } from 'express';
 
 /**
@@ -17,6 +19,17 @@ export const startDemo = async (req: Request, res: Response) => {
   try {
     logger.info(`Demo session requested from IP: ${req.ip}`);
     const startedAt = Date.now();
+
+    // Read per call, not at boot, so tests can toggle it.
+    if (process.env.SYSTEM_DEMO_DISABLED === 'true') {
+      throw new ForbiddenError({ message: 'Demo accounts are disabled by the administrator' });
+    }
+
+    // createDemoUserFast inserts ba_user directly, bypassing better-auth's
+    // user.create hook where the signup cap is enforced, so gate it here too.
+    if (!(await areSignupsOpen())) {
+      throw new ForbiddenError({ message: 'Signups are disabled by the administrator' });
+    }
 
     // 1. Create demo user records (auth + app user, no data seeding)
     const { user, email, password } = await createDemoUserFast();

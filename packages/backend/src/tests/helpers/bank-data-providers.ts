@@ -82,10 +82,12 @@ export function listExternalAccounts<R extends boolean | undefined = false>({
 export function connectSelectedAccounts<R extends boolean | undefined = false>({
   connectionId,
   accountExternalIds,
+  currencyOverrides,
   raw,
 }: {
   connectionId: string;
   accountExternalIds: string[];
+  currencyOverrides?: Record<string, string>;
   raw?: R;
 }) {
   return makeRequest<
@@ -105,6 +107,7 @@ export function connectSelectedAccounts<R extends boolean | undefined = false>({
     url: `/bank-data-providers/connections/${connectionId}/sync-selected-accounts`,
     payload: {
       accountExternalIds,
+      currencyOverrides,
     },
     raw,
   });
