@@ -5,15 +5,17 @@ import { deleteBudget } from '@services/budgets/delete-budget';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  budgetId: recordId().describe('ID of the budget to delete'),
+};
+
 export function registerDeleteBudget(server: McpServer) {
   server.registerTool(
     'delete_budget',
     {
       description:
         'Permanently delete a budget and all its transaction links. This action cannot be undone. Returns { success: true } on completion.',
-      inputSchema: {
-        budgetId: recordId().describe('ID of the budget to delete'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

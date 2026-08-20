@@ -7,19 +7,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  baseTxId: recordId().describe('ID of the base (source) transaction — typically the expense side'),
+  oppositeTxId: z.string().uuid().describe('ID of the opposite (destination) transaction — typically the income side'),
+};
+
 export function registerLinkTransfer(server: McpServer) {
   server.registerTool(
     'link_transfer',
     {
       description:
         'Link two existing transactions as a transfer pair. The two transactions must be in different accounts and have opposite types (one income, one expense). Provide baseTxId (the source/expense side) and oppositeTxId (the destination/income side).',
-      inputSchema: {
-        baseTxId: recordId().describe('ID of the base (source) transaction — typically the expense side'),
-        oppositeTxId: z
-          .string()
-          .uuid()
-          .describe('ID of the opposite (destination) transaction — typically the income side'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

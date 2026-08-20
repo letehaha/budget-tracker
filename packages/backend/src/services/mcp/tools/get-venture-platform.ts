@@ -5,15 +5,17 @@ import { getVenturePlatform } from '@services/venture/platforms/get.service';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  platformId: recordId().describe('Venture platform ID (from list_venture_platforms)'),
+};
+
 export function registerGetVenturePlatform(server: McpServer) {
   server.registerTool(
     'get_venture_platform',
     {
       description:
         'Retrieve a single venture platform by id. Returns full record including default fee fractions (decimals in [0,1]). Obtain the platformId from list_venture_platforms.',
-      inputSchema: {
-        platformId: recordId().describe('Venture platform ID (from list_venture_platforms)'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

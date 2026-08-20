@@ -6,19 +6,21 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
+  currencyCode: z
+    .string()
+    .optional()
+    .describe('ISO 4217 currency code (e.g., "USD"). Omit to return balances in all currencies.'),
+};
+
 export function registerGetPortfolioBalances(server: McpServer) {
   server.registerTool(
     'get_portfolio_balances',
     {
       description:
         "Cash balances held in a portfolio, broken down per currency. Each entry includes totalCash and availableCash in the original currency plus their ref* equivalents converted to the user's base currency. Useful for answering 'how much cash do I have to invest'.",
-      inputSchema: {
-        portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
-        currencyCode: z
-          .string()
-          .optional()
-          .describe('ISO 4217 currency code (e.g., "USD"). Omit to return balances in all currencies.'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

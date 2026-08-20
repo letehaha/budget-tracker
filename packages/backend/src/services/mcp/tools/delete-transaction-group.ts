@@ -5,15 +5,17 @@ import { deleteTransactionGroup } from '@services/transaction-groups';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  id: recordId().describe('ID of the transaction group to delete'),
+};
+
 export function registerDeleteTransactionGroup(server: McpServer) {
   server.registerTool(
     'delete_transaction_group',
     {
       description:
         'Permanently delete a transaction group. The transactions themselves are NOT deleted — only the grouping is removed. This action cannot be undone. Requires finance:delete scope.',
-      inputSchema: {
-        id: recordId().describe('ID of the transaction group to delete'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

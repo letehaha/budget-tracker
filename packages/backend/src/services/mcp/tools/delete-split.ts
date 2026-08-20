@@ -5,15 +5,17 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  splitId: z.string().describe('UUID of the split to delete'),
+};
+
 export function registerDeleteSplit(server: McpServer) {
   server.registerTool(
     'delete_split',
     {
       description:
         'Delete a single split from a transaction by its split ID (UUID string). DESTRUCTIVE: the split amount returns to the primary category. Fails if the split has refunds targeting it.',
-      inputSchema: {
-        splitId: z.string().describe('UUID of the split to delete'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

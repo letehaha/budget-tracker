@@ -6,22 +6,24 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  status: z
+    .enum([
+      SUBSCRIPTION_CANDIDATE_STATUS.pending,
+      SUBSCRIPTION_CANDIDATE_STATUS.accepted,
+      SUBSCRIPTION_CANDIDATE_STATUS.dismissed,
+    ])
+    .optional()
+    .describe('Filter by candidate status. Omit to return all statuses'),
+};
+
 export function registerListSubscriptionCandidates(server: McpServer) {
   server.registerTool(
     'list_subscription_candidates',
     {
       description:
         'List auto-detected subscription candidates sorted by confidence score. Call detect_subscription_candidates first to generate fresh candidates. Use status filter to see only pending, accepted, or dismissed candidates.',
-      inputSchema: {
-        status: z
-          .enum([
-            SUBSCRIPTION_CANDIDATE_STATUS.pending,
-            SUBSCRIPTION_CANDIDATE_STATUS.accepted,
-            SUBSCRIPTION_CANDIDATE_STATUS.dismissed,
-          ])
-          .optional()
-          .describe('Filter by candidate status. Omit to return all statuses'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

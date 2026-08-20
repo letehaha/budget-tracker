@@ -6,20 +6,22 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  name: z.string().describe('Portfolio name (must be unique for this user)'),
+  portfolioType: z
+    .enum([PORTFOLIO_TYPE.investment, PORTFOLIO_TYPE.retirement, PORTFOLIO_TYPE.savings, PORTFOLIO_TYPE.other])
+    .describe('Type of portfolio: investment, retirement, savings, or other'),
+  description: z.string().optional().describe('Optional description of the portfolio'),
+  isEnabled: z.boolean().optional().describe('Whether the portfolio is active (default: true)'),
+};
+
 export function registerCreatePortfolio(server: McpServer) {
   server.registerTool(
     'create_portfolio',
     {
       description:
         'Create a new investment portfolio for the user. Use when the user wants to track a new brokerage account, retirement fund, or savings vehicle. Returns the created portfolio with its id, which can then be used with create_investment_transaction and get_portfolio_holdings.',
-      inputSchema: {
-        name: z.string().describe('Portfolio name (must be unique for this user)'),
-        portfolioType: z
-          .enum([PORTFOLIO_TYPE.investment, PORTFOLIO_TYPE.retirement, PORTFOLIO_TYPE.savings, PORTFOLIO_TYPE.other])
-          .describe('Type of portfolio: investment, retirement, savings, or other'),
-        description: z.string().optional().describe('Optional description of the portfolio'),
-        isEnabled: z.boolean().optional().describe('Whether the portfolio is active (default: true)'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

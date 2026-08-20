@@ -5,15 +5,17 @@ import { deleteTransaction } from '@services/transactions/delete-transaction';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  id: recordId().describe('ID of the transaction to delete'),
+};
+
 export function registerDeleteTransaction(server: McpServer) {
   server.registerTool(
     'delete_transaction',
     {
       description:
         'Permanently delete a transaction by ID. DESTRUCTIVE: this cannot be undone. For transfer transactions, both sides of the transfer are deleted.',
-      inputSchema: {
-        id: recordId().describe('ID of the transaction to delete'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

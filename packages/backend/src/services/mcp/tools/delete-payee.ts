@@ -5,15 +5,17 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  id: z.string().describe('Payee id to delete.'),
+};
+
 export function registerDeletePayee(server: McpServer) {
   server.registerTool(
     'delete_payee',
     {
       description:
         'Delete a Payee. Linked transactions retain their categoryId but their payeeId is set to null. Use cautiously — this is irreversible.',
-      inputSchema: {
-        id: z.string().describe('Payee id to delete.'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

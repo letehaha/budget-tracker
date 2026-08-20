@@ -5,15 +5,17 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  candidateId: z.string().describe('UUID of the subscription candidate to dismiss'),
+};
+
 export function registerDismissSubscriptionCandidate(server: McpServer) {
   server.registerTool(
     'dismiss_subscription_candidate',
     {
       description:
         'Dismiss a pending subscription candidate so it no longer appears in the candidate list. The underlying transactions are unaffected. Only pending candidates can be dismissed. Requires finance:write scope.',
-      inputSchema: {
-        candidateId: z.string().describe('UUID of the subscription candidate to dismiss'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

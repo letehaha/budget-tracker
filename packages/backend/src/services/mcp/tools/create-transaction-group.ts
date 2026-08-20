@@ -6,19 +6,19 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  name: z.string().describe('Display name for the group'),
+  transactionIds: z.array(recordId()).describe('IDs of transactions to include in the group (minimum 2, maximum 50)'),
+  note: z.string().optional().describe('Optional note or description for the group'),
+};
+
 export function registerCreateTransactionGroup(server: McpServer) {
   server.registerTool(
     'create_transaction_group',
     {
       description:
         'Create a new transaction group that bundles related transactions together (e.g. a split bill). Requires at least 2 transactions. Transfer pairs are automatically included. Requires finance:write scope.',
-      inputSchema: {
-        name: z.string().describe('Display name for the group'),
-        transactionIds: z
-          .array(recordId())
-          .describe('IDs of transactions to include in the group (minimum 2, maximum 50)'),
-        note: z.string().optional().describe('Optional note or description for the group'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });
