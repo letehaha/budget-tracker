@@ -1,4 +1,4 @@
-import { toast } from 'vue-sonner';
+import { type Action, toast } from 'vue-sonner';
 
 import { findLiveToast, pulseToast } from './toast-pulse';
 import { registerToast, unregisterToast } from './toast-timers';
@@ -19,6 +19,8 @@ interface Notification {
   visibilityTime?: number;
   /** Never auto-hides. Use for actionable errors the user must not miss. */
   persistent?: boolean;
+  /** Renders a button inside the toast, e.g. a link to the record that failed. */
+  action?: Action;
 }
 
 const DEFAULT_VISIBILITY_TIME = 4000;
@@ -71,6 +73,7 @@ export const useNotificationCenter = (): {
     type = NotificationType.info,
     visibilityTime,
     persistent,
+    action,
   }: Notification): NotificationID => {
     const baseId = id || `${type}:${text}:${description ?? ''}`;
     const activeId = activeSonnerIds.get(baseId);
@@ -86,6 +89,7 @@ export const useNotificationCenter = (): {
       id: sonnerId,
       testId: String(baseId),
       description,
+      action,
       duration: Infinity,
       onDismiss: () => {
         releaseActiveId({ baseId, sonnerId });

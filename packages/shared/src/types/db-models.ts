@@ -222,8 +222,8 @@ export interface BalanceModel {
  */
 export interface CategorizationMeta {
   source: CATEGORIZATION_SOURCE;
-  /** Rule ID for user_rule categorization */
-  ruleId?: number;
+  /** TransactionAutomations.id for user_rule categorization */
+  ruleId?: RecordId;
   /** Subscription ID for subscription_rule categorization */
   subscriptionId?: RecordId;
   /** Payee ID for payee_rule categorization */

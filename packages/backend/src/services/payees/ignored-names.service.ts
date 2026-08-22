@@ -1,11 +1,10 @@
 import { t } from '@i18n/index';
 import { ConflictError, NotFoundError } from '@js/errors';
 import PayeeIgnoredNames from '@models/payee-ignored-names.model';
-import Payees from '@models/payees.model';
 
 import { withTransaction } from '../common/with-transaction';
 import { parsePayeeName, resolveNormalizedName } from './payee-namespace';
-import { loadPayeeOrThrow } from './payees.service';
+import { deletePayee, loadPayeeOrThrow } from './payees.service';
 
 interface ListInput {
   userId: number;
@@ -51,9 +50,7 @@ export const addPayeeIgnoredName = withTransaction(
           details: { conflictingPayee: { id: hit.payeeId, name: hit.name } },
         });
       }
-      // Cascades clear PayeeAliases + null out Transactions.payeeId via the
-      // existing FK rules established in the original Payees migration.
-      await Payees.destroy({ where: { id: hit.payeeId, userId } });
+      await deletePayee({ userId, id: hit.payeeId });
     }
 
     return PayeeIgnoredNames.create({
@@ -121,8 +118,7 @@ export const deletePayeeAndIgnoreFuture = withTransaction(
       await PayeeIgnoredNames.bulkCreate(toCreate);
     }
 
-    // Payees → Transactions.payeeId SET NULL via FK; PayeeAliases cascade.
-    await Payees.destroy({ where: { id: payee.id, userId } });
+    await deletePayee({ userId, id: payee.id });
 
     return { addedCount: toCreate.length };
   },

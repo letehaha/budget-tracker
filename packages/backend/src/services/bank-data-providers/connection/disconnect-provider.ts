@@ -12,6 +12,7 @@ import {
   cleanupAccountSharesInTx,
   notifyAccountDeleteRecipients,
 } from '@services/sharing/cleanup/cleanup-account-shares.service';
+import { pauseAutomationsReferencing } from '@services/transaction-automations/references';
 
 import { bankProviderRegistry } from '../registry';
 
@@ -62,6 +63,10 @@ const disconnectProviderInTx = withTransaction(
       // pending invitations get the same in-tx pruning + post-commit notification
       // treatment as a direct `DELETE /accounts/:id`.
       for (const account of linkedAccounts) {
+        // The bulk destroy below bypasses `deleteAccountByIdInTx`, so `account` refs
+        // would otherwise survive the cascade unpaused.
+        await pauseAutomationsReferencing({ userId, refType: 'account', refId: account.id, label: account.name });
+
         const cleanup = await cleanupAccountSharesInTx({ accountId: account.id, ownerUserId: userId });
         if (cleanup.recipients.length > 0 || cleanup.householdRecipients.length > 0) {
           cleanups.push({
@@ -87,6 +92,13 @@ const disconnectProviderInTx = withTransaction(
         await unlinkAccountFromBankConnection({ accountId: account.id, userId });
       }
     }
+
+    await pauseAutomationsReferencing({
+      userId,
+      refType: 'bankConnection',
+      refId: connection.id,
+      label: connection.providerName,
+    });
 
     const provider = bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE);
     await provider.disconnect(connectionId);

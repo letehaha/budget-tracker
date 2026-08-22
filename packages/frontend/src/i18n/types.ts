@@ -39,6 +39,7 @@ const I18N_CHUNKS = [
   'pages/investments-import',
   'pages/planned',
   'pages/optimizations',
+  'pages/automations',
   'pages/shared-with-me',
   'pages/household',
   'pages/payees',

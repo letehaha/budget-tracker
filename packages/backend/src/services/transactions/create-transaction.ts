@@ -32,7 +32,9 @@ import {
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import { matchTransactionToSubscriptions } from '@services/subscriptions/matching-engine';
-import { DatabaseError } from 'sequelize';
+import { isAutomationEligible } from '@services/transaction-automations/eligibility';
+import { runTransactionAutomations } from '@services/transaction-automations/run-automations';
+import { ConnectionError, DatabaseError, UniqueConstraintError } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 
 import { withTransaction } from '../common/with-transaction';
@@ -42,6 +44,14 @@ import { assertPlannedCreateAllowed } from './planned-matching/assert-planned-in
 import { manageSplits } from './splits';
 import { linkTransactions } from './transactions-linking';
 import type { CreateTransactionParams, UpdateTransactionParams } from './types';
+
+/**
+ * Errors that leave the open Postgres transaction aborted, so swallowing them would turn
+ * COMMIT into a silent rollback. `UniqueConstraintError` is server-side but extends
+ * `ValidationError`, not `DatabaseError`.
+ */
+const abortsTransaction = (error: unknown) =>
+  error instanceof DatabaseError || error instanceof UniqueConstraintError || error instanceof ConnectionError;
 
 /**
  * `mergedIntoPlanned` rides along on the tuple so every existing caller keeps destructuring
@@ -619,15 +629,52 @@ export const createTransaction = withTransaction(
         try {
           await matchTransactionToSubscriptions({ transaction: baseTransaction!, userId });
         } catch (error) {
-          // Never swallow DatabaseError here: it has already aborted this
-          // transaction, so COMMIT would silently ROLLBACK behind a 200.
-          // Any other failure is non-critical, the transaction still exists.
-          if (error instanceof DatabaseError) {
-            throw error;
-          }
+          if (abortsTransaction(error)) throw error;
 
           logger.error({
             message: `Failed to match transaction ${baseTransaction!.id} to subscriptions`,
+            error: error as Error,
+          });
+        }
+      }
+
+      // An `enforce`-mode Payee's `defaultCategoryId` normally overrides even a
+      // passed `categoryId` (the point of enforce mode; manual/bank-sync callers
+      // rely on it). CSV/Wallet import opts out via `categoryIdIsExplicit`, where
+      // the mapped-column category is authoritative. Inert without a `categoryId`,
+      // so import rows with no mapped category still get enforce/hint.
+      const skipPayeeCategorization =
+        categoryIdIsExplicit && payload.categoryId !== undefined && payload.categoryId !== null;
+
+      // User automations — after subscription matching (whose category wins) and before
+      // payee categorization (which refuses to override `user_rule`). `isPlanned` is
+      // load-bearing: `resolveAccountTypeForManualWrite` reports the provider type for a
+      // manually created planned row on a connected account, which would read as eligible.
+      if (
+        isOwner &&
+        isAutomationEligible({
+          accountType,
+          externalData: payload.externalData,
+          transferNature,
+          isPlanned: Boolean(payload.isPlanned),
+        })
+      ) {
+        try {
+          const applied = await runTransactionAutomations({
+            transactionId: baseTransaction!.id,
+            userId: accountOwnerUserId,
+            skipSetCategory: skipPayeeCategorization,
+          });
+          if (applied) {
+            transactions[0] = applied;
+            // A set_payee action must drive the payee defaults below, not the extraction's payee.
+            resolvedPayeeId = applied.payeeId;
+          }
+        } catch (error) {
+          if (abortsTransaction(error)) throw error;
+
+          logger.error({
+            message: `Automations failed for tx ${baseTransaction!.id} (user ${accountOwnerUserId}); kept as-is`,
             error: error as Error,
           });
         }
@@ -647,14 +694,6 @@ export const createTransaction = withTransaction(
       // the Payee and the Transaction row, which doesn't fit a recipient
       // caller — short-circuiting here also keeps that helper's contract
       // narrow.
-      // An `enforce`-mode Payee's `defaultCategoryId` normally overrides even a
-      // passed `categoryId` (the point of enforce mode; manual/bank-sync callers
-      // rely on it). CSV/Wallet import opts out via `categoryIdIsExplicit`, where
-      // the mapped-column category is authoritative. Inert without a `categoryId`,
-      // so import rows with no mapped category still get enforce/hint.
-      const skipPayeeCategorization =
-        categoryIdIsExplicit && payload.categoryId !== undefined && payload.categoryId !== null;
-
       if (isOwner && resolvedPayeeId && !isTwoLegTransfer(transferNature)) {
         if (!skipPayeeCategorization) {
           try {

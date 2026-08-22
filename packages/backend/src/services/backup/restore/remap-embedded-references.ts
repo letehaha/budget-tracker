@@ -1,5 +1,13 @@
-import type { BackupFileName } from '@bt/shared/types';
+import type {
+  AutomationAction,
+  AutomationConditionField,
+  AutomationConditions,
+  BackupFileName,
+  RecordId,
+} from '@bt/shared/types';
+import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
+import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
 import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
@@ -8,6 +16,7 @@ import Payees from '@models/payees.model';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Subscriptions from '@models/subscriptions.model';
 import Tags from '@models/tags.model';
+import TransactionAutomations from '@models/transaction-automations.model';
 import Transactions from '@models/transactions.model';
 import VentureEventLinks from '@models/venture/venture-event-links.model';
 import { Model, type ModelStatic, type Transaction } from 'sequelize';
@@ -123,6 +132,9 @@ export async function remapEmbeddedReferences({
     budgets: String(Budgets.getTableName()),
     tags: String(Tags.getTableName()),
     categories: String(Categories.getTableName()),
+    accountGroups: String(AccountGroup.getTableName()),
+    bankConnections: String(BankDataProviderConnections.getTableName()),
+    transactionAutomations: String(TransactionAutomations.getTableName()),
   };
 
   // Shared by the two link tables that snapshot a transaction's pre-link state.
@@ -164,6 +176,8 @@ export async function remapEmbeddedReferences({
         meta.subscriptionId = remapId({ insertedIds, targetTable: tables.subscriptions, oldId: meta.subscriptionId });
       if (typeof meta.payeeId === 'string')
         meta.payeeId = remapId({ insertedIds, targetTable: tables.payees, oldId: meta.payeeId });
+      if (typeof meta.ruleId === 'string')
+        meta.ruleId = remapId({ insertedIds, targetTable: tables.transactionAutomations, oldId: meta.ruleId });
     },
   });
 
@@ -186,7 +200,62 @@ export async function remapEmbeddedReferences({
     },
   });
 
-  // 4. Notifications.payload → budgetId (Budgets), tagId (Tags), transactionIds[] (Transactions).
+  // 4. TransactionAutomations.conditions → account / accountGroup / bankConnection / payee id lists.
+  const conditionTargetTables: Record<AutomationConditionField, string | null> = {
+    account: tables.accounts,
+    accountGroup: tables.accountGroups,
+    bankConnection: tables.bankConnections,
+    payee: tables.payees,
+    note: null,
+    merchant: null,
+    amount: null,
+    transactionType: null,
+    dayOfMonth: null,
+  };
+  await rewriteColumn({
+    model: TransactionAutomations,
+    fileName: 'transaction-automations',
+    column: 'conditions',
+    archive,
+    insertedIds,
+    transaction,
+    mutate: ({ draft }) => {
+      if (typeof draft !== 'object' || draft === null) return;
+      const { items } = draft as AutomationConditions;
+      if (!Array.isArray(items)) return;
+      for (const item of items) {
+        const targetTable = conditionTargetTables[item.field];
+        if (targetTable) remapIdArrayInPlace({ arr: item.value, targetTable, insertedIds });
+      }
+    },
+  });
+
+  // 5. TransactionAutomations.actions → set_category.categoryId, add_tags.tagIds[], set_payee.payeeId.
+  await rewriteColumn({
+    model: TransactionAutomations,
+    fileName: 'transaction-automations',
+    column: 'actions',
+    archive,
+    insertedIds,
+    transaction,
+    mutate: ({ draft }) => {
+      if (!Array.isArray(draft)) return;
+      for (const action of draft as AutomationAction[]) {
+        if (action.type === 'set_category' && typeof action.categoryId === 'string')
+          action.categoryId = remapId({
+            insertedIds,
+            targetTable: tables.categories,
+            oldId: action.categoryId,
+          }) as RecordId;
+        if (action.type === 'add_tags')
+          remapIdArrayInPlace({ arr: action.tagIds, targetTable: tables.tags, insertedIds });
+        if (action.type === 'set_payee' && typeof action.payeeId === 'string')
+          action.payeeId = remapId({ insertedIds, targetTable: tables.payees, oldId: action.payeeId }) as RecordId;
+      }
+    },
+  });
+
+  // 6. Notifications.payload → budgetId (Budgets), tagId (Tags), transactionIds[] (Transactions).
   //    Share payloads' invitationId/shareId/resourceId reference cross-user data
   //    that isn't restored, so they're left verbatim.
   await rewriteColumn({
@@ -206,7 +275,7 @@ export async function remapEmbeddedReferences({
     },
   });
 
-  // 5. PortfolioTransfers.metaData.originalTransactionState → categoryId, accountId.
+  // 7. PortfolioTransfers.metaData.originalTransactionState → categoryId, accountId.
   await rewriteColumn({
     model: PortfolioTransfers,
     fileName: 'portfolio-transfers',
@@ -217,7 +286,7 @@ export async function remapEmbeddedReferences({
     mutate: mutateOriginalTransactionState,
   });
 
-  // 6. VentureEventLinks.metaData.originalTransactionState → categoryId, accountId.
+  // 8. VentureEventLinks.metaData.originalTransactionState → categoryId, accountId.
   await rewriteColumn({
     model: VentureEventLinks,
     fileName: 'venture-event-links',

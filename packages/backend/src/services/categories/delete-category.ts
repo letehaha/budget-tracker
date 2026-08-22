@@ -4,14 +4,15 @@ import { ConflictError, ValidationError } from '@js/errors';
 import * as Categories from '@models/categories.model';
 import { countTransactions, updateTransactions } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
+import { pauseAutomationsReferencing, rewriteAutomationRef } from '@services/transaction-automations/references';
 
 interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
   replaceWithCategoryId?: string;
 }
 
 export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayload) => {
-  await findOrThrowNotFound({
-    query: Categories.default.findOne({ where: { id: payload.categoryId } }),
+  const category = await findOrThrowNotFound({
+    query: Categories.default.findOne({ where: { id: payload.categoryId, userId: payload.userId } }),
     message: 'Category with provided id does not exist.',
   });
 
@@ -35,8 +36,17 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
     balanceAdjustments: 'include',
   });
 
+  const replacement = payload.replaceWithCategoryId
+    ? await findOrThrowNotFound({
+        query: Categories.default.findOne({
+          where: { id: payload.replaceWithCategoryId, userId: payload.userId },
+        }),
+        message: 'Replacement category does not exist.',
+      })
+    : null;
+
   if (transactionCount > 0) {
-    if (!payload.replaceWithCategoryId) {
+    if (!replacement) {
       throw new ConflictError({
         code: API_ERROR_CODES.categoryHasTransactions,
         message: 'Category has linked transactions that need to be reassigned.',
@@ -44,19 +54,29 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
       });
     }
 
-    await findOrThrowNotFound({
-      query: Categories.default.findOne({
-        where: { id: payload.replaceWithCategoryId, userId: payload.userId },
-      }),
-      message: 'Replacement category does not exist.',
-    });
-
     await updateTransactions({
-      values: { categoryId: payload.replaceWithCategoryId },
+      values: { categoryId: replacement.id },
       where: { categoryId: payload.categoryId },
       planned: 'include',
       access: { creator: payload.userId },
       balanceAdjustments: 'include',
+    });
+  }
+
+  // Without a successor the rules would silently lose their category action, so they are paused.
+  if (replacement) {
+    await rewriteAutomationRef({
+      userId: payload.userId,
+      refType: 'category',
+      from: category.id,
+      to: replacement.id,
+    });
+  } else {
+    await pauseAutomationsReferencing({
+      userId: payload.userId,
+      refType: 'category',
+      refId: category.id,
+      label: category.name,
     });
   }
 

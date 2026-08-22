@@ -41,6 +41,7 @@ import SubscriptionTransactionsModel from './subscription-transactions.model';
 import SubscriptionsModel from './subscriptions.model';
 import TagRemindersModel from './tag-reminders.model';
 import TagsModel from './tags.model';
+import TransactionAutomationsModel from './transaction-automations.model';
 import TransactionGroupItemsModel from './transaction-group-items.model';
 import TransactionGroupsModel from './transaction-groups.model';
 import TransactionSplitsModel from './transaction-splits.model';
@@ -129,6 +130,7 @@ const models = [
   VentureEventLinksModel,
   VehiclesModel,
   LoanDetailsModel,
+  TransactionAutomationsModel,
 ];
 
 const sequelize = new Sequelize({

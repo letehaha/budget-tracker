@@ -37,6 +37,7 @@ import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
 import TagReminders from '@models/tag-reminders.model';
 import Tags from '@models/tags.model';
+import TransactionAutomations from '@models/transaction-automations.model';
 import TransactionGroupItems from '@models/transaction-group-items.model';
 import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
@@ -217,6 +218,13 @@ export const BACKUP_TABLES: readonly BackupTableDef[] = [
     scope: { strategy: 'userColumn', column: 'userId' },
     restoreMode: 'insert',
     selfRefColumn: 'parentGroupId',
+  },
+  {
+    fileName: 'transaction-automations',
+    model: TransactionAutomations,
+    tier: 2,
+    scope: { strategy: 'userColumn', column: 'userId' },
+    restoreMode: 'insert',
   },
 
   // tier 3

@@ -14,6 +14,7 @@ import ShareInvitations from '@models/share-invitations.model';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Subscriptions from '@models/subscriptions.model';
 import Tags from '@models/tags.model';
+import TransactionAutomations from '@models/transaction-automations.model';
 import TransactionGroups from '@models/transaction-groups.model';
 import TransferSuggestionDismissals from '@models/transfer-suggestion-dismissals.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
@@ -136,6 +137,7 @@ export const destroyUserOwnedData = async ({ user }: { user: Users.default }) =>
   await Notifications.destroy({ where: { userId: user.id } });
   await SubscriptionCandidates.destroy({ where: { userId: user.id } });
   await TransferSuggestionDismissals.destroy({ where: { userId: user.id } });
+  await TransactionAutomations.destroy({ where: { userId: user.id } });
   await Budget.destroy({ where: { userId: user.id } });
   await Subscriptions.destroy({ where: { userId: user.id } });
   // PortfolioTransfers FKs Transactions / Accounts / Portfolios all via SET NULL.

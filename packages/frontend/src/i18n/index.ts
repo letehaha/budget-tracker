@@ -55,6 +55,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/investments-import': () => import('./locales/chunks/en/pages/investments-import.json'),
     'pages/planned': () => import('./locales/chunks/en/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/en/pages/optimizations.json'),
+    'pages/automations': () => import('./locales/chunks/en/pages/automations.json'),
     'pages/shared-with-me': () => import('./locales/chunks/en/pages/shared-with-me.json'),
     'pages/household': () => import('./locales/chunks/en/pages/household.json'),
     'pages/payees': () => import('./locales/chunks/en/pages/payees.json'),

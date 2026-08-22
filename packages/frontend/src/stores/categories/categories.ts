@@ -19,6 +19,7 @@ export const useCategoriesStore = defineStore('categories', () => {
   // Union of the caller's own categories and those of every account-owner they can read,
   // so display lookups can resolve ids belonging to a shared account.
   const categories = ref<CategoryModel[]>([]);
+  const isFetched = ref(false);
 
   // Never `ensureQueryData` here: it short-circuits on present data and would hand back
   // the entry `force` just invalidated, making the flag inert.
@@ -36,7 +37,10 @@ export const useCategoriesStore = defineStore('categories', () => {
 
       // Guard on presence, never on `.length`: an empty list is a valid state (the user
       // deleted their last category) and must clear the ref rather than keep it stale.
-      if (result) categories.value = result;
+      if (result) {
+        categories.value = result;
+        isFetched.value = true;
+      }
     } catch (err) {
       if (!(err instanceof errors.AuthError)) {
         notificationStore.addErrorNotification(i18n.global.t('settings.categories.errors.cannotLoad'));
@@ -66,6 +70,7 @@ export const useCategoriesStore = defineStore('categories', () => {
   return {
     categories,
     categoriesMap,
+    isFetched,
     formattedCategories,
     loadCategories,
   };

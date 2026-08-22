@@ -75,6 +75,7 @@
   --color-app-income-color: var(--app-income-color);
   --color-app-expense-color: var(--app-expense-color);
   --color-app-transfer-color: var(--app-transfer-color);
+  --color-automation-when: var(--automation-when);
 
   --color-heart: var(--heart);
 
@@ -308,6 +309,9 @@
     --app-expense-color: rgb(217, 84, 62);
     --app-transfer-color: rgb(128, 135, 138);
 
+    /* Accent for the "When" half of automation rules; "Then" uses --primary. */
+    --automation-when: rgb(2, 132, 199);
+
     /* Donation/support heart — a true red, distinct from the coral expense/error red */
     --heart: rgb(220, 38, 38);
 
@@ -418,6 +422,9 @@
     --app-income-color: #2ecc71;
     --app-expense-color: #e74c3c;
     --app-transfer-color: #95a5a6;
+
+    /* Accent for the "When" half of automation rules; "Then" uses --primary. */
+    --automation-when: rgb(56, 189, 248);
 
     /* Donation/support heart — a true red, distinct from the coral expense/error red */
     --heart: #ef4444;

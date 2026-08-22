@@ -49,7 +49,7 @@ defineExpose({ close });
         <slot name="trigger" />
       </Popover.PopoverTrigger>
 
-      <Popover.PopoverContent align="end" class="w-48 p-1">
+      <Popover.PopoverContent align="end" class="w-auto min-w-48 p-1">
         <SlotContent />
       </Popover.PopoverContent>
     </Popover.Popover>

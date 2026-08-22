@@ -39,6 +39,7 @@ import subscriptionsRoutes from './routes/subscriptions.route';
 import tagRemindersRoutes from './routes/tag-reminders.route';
 import tagsRoutes from './routes/tags.route';
 import testsRoutes from './routes/tests.route';
+import transactionAutomationsRoutes from './routes/transaction-automations.route';
 import transactionGroupsRoutes from './routes/transaction-groups.route';
 import transactionsRoutes from './routes/transactions.route';
 import userRoutes from './routes/user.route';
@@ -179,6 +180,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/tags`, tagsRoutes);
   app.use(`${API_PREFIX}/tag-reminders`, tagRemindersRoutes);
   app.use(`${API_PREFIX}/transaction-groups`, transactionGroupsRoutes);
+  app.use(`${API_PREFIX}/automations`, transactionAutomationsRoutes);
   app.use(`${API_PREFIX}/notifications`, notificationsRoutes);
   app.use(`${API_PREFIX}/payees`, payeesRoutes);
   app.use(`${API_PREFIX}/brand-logos`, brandLogosRoutes);
