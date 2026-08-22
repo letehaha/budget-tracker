@@ -3,7 +3,7 @@
     "name": "MoneyMatter Finance Tracker",
     "version": "1.0.0",
     "title": "MoneyMatter — Personal Finance MCP Server",
-    "description": "OAuth-secured read/write access to your MoneyMatter financial data: accounts, transactions (including splits, refunds, transfers, and groups), budgets, subscriptions, categories, tags, cash flow, balance history, spending analytics, and investment portfolios (holdings, cash balances, and investment transactions). Supports creating, editing, and deleting records when the corresponding scopes are granted. Enables natural-language queries and automation of your personal finances.",
+    "description": "OAuth-secured read/write access to your MoneyMatter financial data: accounts, transactions (including splits, refunds, transfers, and groups), budgets, subscriptions, transaction automations (rules engine), categories, tags, cash flow, balance history, spending analytics, and investment portfolios (holdings, cash balances, and investment transactions). Supports creating, editing, and deleting records when the corresponding scopes are granted. Enables natural-language queries and automation of your personal finances.",
     "website": "https://moneymatter.app",
     "documentation": "https://moneymatter.app/llms-full.txt",
     "vendor": {
@@ -337,6 +337,30 @@
     {
       "name": "delete_payee",
       "description": "Delete a Payee. Linked transactions retain their categoryId but their payeeId is set to null. Requires finance:write scope."
+    },
+    {
+      "name": "get_transaction_automations",
+      "description": "List the user's transaction automation rules with their evaluation order (position), enabled state, match counts, and pausedReason when a referenced record was deleted."
+    },
+    {
+      "name": "preview_transaction_automation",
+      "description": "Dry-run a set of automation conditions against up to the last 1000 eligible existing transactions and return matchedCount, scannedCount, and up to 5 sample matches. Nothing is modified."
+    },
+    {
+      "name": "create_transaction_automation",
+      "description": "Create a transaction automation rule that sets a category, tags, payee, or note on newly synced or imported bank transactions that match its conditions. Requires finance:write scope."
+    },
+    {
+      "name": "update_transaction_automation",
+      "description": "Update the name, enabled state, conditions, or actions of an automation rule. Re-validates referenced records and clears pausedReason. Requires finance:write scope."
+    },
+    {
+      "name": "delete_transaction_automation",
+      "description": "Permanently delete a transaction automation rule. Transactions it already changed keep their values. Requires finance:delete scope."
+    },
+    {
+      "name": "reorder_transaction_automations",
+      "description": "Set the top-to-bottom evaluation order of the automation rules. Requires the full current id set. Requires finance:write scope."
     },
     {
       "name": "list_venture_platforms",
