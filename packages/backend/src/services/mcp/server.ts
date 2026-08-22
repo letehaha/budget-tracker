@@ -20,6 +20,7 @@ import { registerCreatePortfolio } from './tools/create-portfolio';
 import { registerCreateSubscription } from './tools/create-subscription';
 import { registerCreateTag } from './tools/create-tag';
 import { registerCreateTransaction } from './tools/create-transaction';
+import { registerCreateTransactionAutomation } from './tools/create-transaction-automation';
 import { registerCreateTransactionGroup } from './tools/create-transaction-group';
 import { registerDeleteBudget } from './tools/delete-budget';
 import { registerDeleteCategory } from './tools/delete-category';
@@ -30,6 +31,7 @@ import { registerDeleteSplit } from './tools/delete-split';
 import { registerDeleteSubscription } from './tools/delete-subscription';
 import { registerDeleteTag } from './tools/delete-tag';
 import { registerDeleteTransaction } from './tools/delete-transaction';
+import { registerDeleteTransactionAutomation } from './tools/delete-transaction-automation';
 import { registerDeleteTransactionGroup } from './tools/delete-transaction-group';
 import { registerDetectSubscriptionCandidates } from './tools/detect-subscription-candidates';
 import { registerDismissSubscriptionCandidate } from './tools/dismiss-subscription-candidate';
@@ -52,6 +54,7 @@ import { registerGetSubscriptionById } from './tools/get-subscription-by-id';
 import { registerGetSubscriptions } from './tools/get-subscriptions';
 import { registerGetSubscriptionsSummary } from './tools/get-subscriptions-summary';
 import { registerGetTags } from './tools/get-tags';
+import { registerGetTransactionAutomations } from './tools/get-transaction-automations';
 import { registerGetTransactionGroups } from './tools/get-transaction-groups';
 import { registerGetUpcomingSubscriptionPayments } from './tools/get-upcoming-subscription-payments';
 import { registerGetUserProfile } from './tools/get-user-profile';
@@ -60,9 +63,11 @@ import { registerLinkTransactionsToSubscription } from './tools/link-transaction
 import { registerLinkTransfer } from './tools/link-transfer';
 import { registerListSubscriptionCandidates } from './tools/list-subscription-candidates';
 import { registerMergePayees } from './tools/merge-payees';
+import { registerPreviewTransactionAutomation } from './tools/preview-transaction-automation';
 import { registerRemoveTagsFromTransaction } from './tools/remove-tags-from-transaction';
 import { registerRemoveTransactionsFromBudget } from './tools/remove-transactions-from-budget';
 import { registerRemoveTransactionsFromGroup } from './tools/remove-transactions-from-group';
+import { registerReorderTransactionAutomations } from './tools/reorder-transaction-automations';
 import { registerSearchSecurities } from './tools/search-securities';
 import { registerSearchTransactions } from './tools/search-transactions';
 import { registerSplitTransaction } from './tools/split-transaction';
@@ -78,6 +83,7 @@ import { registerUpdatePortfolio } from './tools/update-portfolio';
 import { registerUpdateSubscription } from './tools/update-subscription';
 import { registerUpdateTag } from './tools/update-tag';
 import { registerUpdateTransaction } from './tools/update-transaction';
+import { registerUpdateTransactionAutomation } from './tools/update-transaction-automation';
 import { registerUpdateTransactionGroup } from './tools/update-transaction-group';
 import {
   registerCreateVentureDeal,
@@ -223,6 +229,14 @@ export function createMcpServer(): McpServer {
   registerUnlinkTransactionsFromSubscription(server);
   registerGetUpcomingSubscriptionPayments(server);
   registerGetSubscriptionsSummary(server);
+
+  // Transaction automations (rules engine)
+  registerGetTransactionAutomations(server);
+  registerPreviewTransactionAutomation(server);
+  registerCreateTransactionAutomation(server);
+  registerUpdateTransactionAutomation(server);
+  registerDeleteTransactionAutomation(server);
+  registerReorderTransactionAutomations(server);
 
   // Venture investments (platforms, deals, events)
   registerListVenturePlatforms(server);
