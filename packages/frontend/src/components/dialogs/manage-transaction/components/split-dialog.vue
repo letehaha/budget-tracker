@@ -12,6 +12,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { FormSplit } from '../types';
+import FieldError from '@/components/fields/components/field-error.vue';
 
 const { t } = useI18n();
 
@@ -303,9 +304,11 @@ const handleClearAll = () => {
             {{ formatUIAmount(mainCategoryAmount, { currency: currencyCode }) }}
           </span>
         </div>
-        <p v-if="mainCategoryAmount < 0" class="text-destructive-text mt-2 text-xs">
-          {{ $t('dialogs.manageTransaction.splitDialog.exceedsTransactionTotal') }}
-        </p>
+        <FieldError
+          v-if="mainCategoryAmount < 0"
+          :error-message="$t('dialogs.manageTransaction.splitDialog.exceedsTransactionTotal')"
+          class="mt-2"
+        />
       </div>
     </div>
 

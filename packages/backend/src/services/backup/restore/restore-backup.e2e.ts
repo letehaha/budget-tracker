@@ -4,6 +4,7 @@ import {
   BANK_PROVIDER_TYPE,
   DEACTIVATION_REASON,
   RESOURCE_TYPES,
+  type RecordId,
   SHARE_PERMISSIONS,
   SUBSCRIPTION_FREQUENCIES,
   TRANSACTION_TRANSFER_NATURE,
@@ -158,6 +159,19 @@ async function seedRichData() {
     expectedCurrencyCode: global.BASE_CURRENCY_CODE,
     frequency: SUBSCRIPTION_FREQUENCIES.monthly,
     startDate: '2025-01-01',
+    raw: true,
+  });
+
+  // Automation carrying owned ids in both its conditions and its actions.
+  await helpers.createAutomation({
+    payload: {
+      name: 'Corner shop groceries',
+      conditions: { match: 'all', items: [{ field: 'account', operator: 'in', value: [checking.id as RecordId] }] },
+      actions: [
+        { type: 'set_category', categoryId: childCategory.id as RecordId },
+        { type: 'add_tags', tagIds: [tag.id as RecordId] },
+      ],
+    },
     raw: true,
   });
 
@@ -448,6 +462,25 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
           }
           expect(restoredHolding).toBeDefined();
           expect(targetPortfolioIds.has(restoredHolding!.portfolioId)).toBe(true);
+
+          // The automation's embedded ids point at the target's own rows, not the
+          // source ids the backup carried.
+          const automations = await helpers.listAutomations({ raw: true });
+          expect(automations).toHaveLength(1);
+
+          const ruleAccountIds = automations[0]!.conditions.items.flatMap((item) =>
+            item.field === 'account' ? item.value : [],
+          );
+          expect(ruleAccountIds).toHaveLength(1);
+          expect(targetAccountIds.has(ruleAccountIds[0]!)).toBe(true);
+
+          const targetCategoryIds = new Set<string>((await helpers.getCategoriesList()).map((row) => row.id));
+          const targetTagIds = new Set<string>((await helpers.getTags({ raw: true })).map((row) => row.id));
+          expect(automations[0]!.actions).toHaveLength(2);
+          for (const action of automations[0]!.actions) {
+            if (action.type === 'set_category') expect(targetCategoryIds.has(action.categoryId)).toBe(true);
+            if (action.type === 'add_tags') expect(targetTagIds.has(action.tagIds[0]!)).toBe(true);
+          }
         },
       });
 
@@ -978,8 +1011,10 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       const { base64 } = await exportArchive();
 
       await seedBasicData();
+      await helpers.createAutomation({ payload: helpers.buildAutomationPayload(), raw: true });
       expect((await helpers.getAccounts()).length).toBeGreaterThan(0);
       expect((await helpers.getTransactions({ raw: true })).length).toBeGreaterThan(0);
+      expect((await helpers.listAutomations({ raw: true })).length).toBeGreaterThan(0);
 
       const restore = await helpers.restoreBackup({ fileContent: base64 });
       expect(restore.statusCode).toBe(200);
@@ -989,6 +1024,7 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       // The transactional tables are empty again — down to the backup's empty state.
       expect(await helpers.getAccounts()).toHaveLength(0);
       expect(await helpers.getTransactions({ raw: true })).toHaveLength(0);
+      expect(await helpers.listAutomations({ raw: true })).toHaveLength(0);
     });
   });
 

@@ -37,6 +37,7 @@ export const BACKUP_FILE_NAMES = [
   'venture-platforms',
   'bank-data-provider-connections',
   'account-groups',
+  'transaction-automations',
   // tier 3
   'accounts',
   'account-groupings',

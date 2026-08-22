@@ -177,6 +177,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   recordsUpcomingPayments: [transactionChange, 'records-upcoming-payments'] as const,
   subscriptionCandidates: ['subscription-candidates'] as const,
 
+  // transaction automations
+  // transactionChange prefix so matchCount/lastMatchedAt refresh after a sync or import.
+  transactionAutomationsList: [transactionChange, 'transaction-automations-list'] as const,
+
   // transaction groups
   transactionGroupsList: [transactionChange, 'transaction-groups-list'] as const,
   transactionGroupDetail: [transactionChange, 'transaction-group-detail'] as const,

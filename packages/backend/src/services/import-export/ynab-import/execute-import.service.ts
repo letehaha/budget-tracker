@@ -227,6 +227,7 @@ export async function executeYnabImport({
         accountType: ACCOUNT_TYPES.system,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         categoryId,
+        categoryIdIsExplicit: categoryId != null,
         payeeId,
         tagIds,
         externalData: { importDetails },

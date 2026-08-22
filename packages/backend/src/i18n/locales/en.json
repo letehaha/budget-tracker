@@ -509,5 +509,11 @@
   },
   "stats": {
     "netWorthHistoryTooManyPoints": "This date range and granularity produce too many data points. Pick a coarser granularity or a shorter range."
+  },
+  "automations": {
+    "automationNotFound": "Automation not found.",
+    "reorderStale": "The automation list has changed. Refresh and try again.",
+    "ruleLimitReached": "You have reached the maximum number of automations.",
+    "staleReference": "This automation references an item that no longer exists."
   }
 }

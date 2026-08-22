@@ -16,6 +16,7 @@ import {
   TrendingUpIcon,
   WalletIcon,
   WrenchIcon,
+  ZapIcon,
 } from '@lucide/vue';
 import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -61,7 +62,10 @@ const isTransactionsRoute = computed(
     route.name === ROUTES_NAMES.transactionGroups ||
     route.name === ROUTES_NAMES.optimizations ||
     route.name === ROUTES_NAMES.optimizationsTransfers ||
-    route.name === ROUTES_NAMES.optimizationsAiCategorization,
+    route.name === ROUTES_NAMES.optimizationsAiCategorization ||
+    route.name === ROUTES_NAMES.automations ||
+    route.name === ROUTES_NAMES.automationCreate ||
+    route.name === ROUTES_NAMES.automationDetails,
 );
 
 watch(
@@ -232,6 +236,17 @@ watch(
           >
             <WrenchIcon :class="[navIconBase, isActive && navIconActive]" />
             <span>{{ $t('navigation.optimizations') }}</span>
+          </ui-button>
+        </router-link>
+        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.automations }">
+          <ui-button
+            variant="ghost"
+            as="span"
+            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
+            size="sm"
+          >
+            <ZapIcon :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t('navigation.automations') }}</span>
           </ui-button>
         </router-link>
       </div>

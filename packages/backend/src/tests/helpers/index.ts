@@ -24,6 +24,7 @@ export * from './notifications';
 export * from './webhooks';
 export * from './tags';
 export * from './transaction-groups';
+export * from './transaction-automations';
 export * from './subscriptions';
 export * from './payees';
 export * from './brand-logos';

@@ -15,6 +15,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { MaybeRefOrGetter, Ref, toValue } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+export const useAccountGroupsQuery = () =>
+  useQuery({
+    queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
+    queryFn: () => loadAccountGroups(),
+    staleTime: Infinity,
+  });
+
 export const useAccountGroupForAccount = (
   accountId: Ref<string>,
   queryOptions: { enabled?: MaybeRefOrGetter<boolean> } = {},
