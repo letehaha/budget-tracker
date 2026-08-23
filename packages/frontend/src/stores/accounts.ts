@@ -7,6 +7,7 @@ import {
   unlinkAccountFromBankConnection as apiUnlinkAccountFromBankConnection,
 } from '@/api';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { hasAccountWriteAccess } from '@/composable/use-account-access';
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
@@ -71,8 +72,11 @@ export const useAccountsStore = defineStore('accounts', () => {
 
   // Loans are liabilities — money only flows in via transfer_to_loan, never out.
   // Hide them from source pickers; they stay in txTargetableAccountsActiveFirst for transfer destinations.
+  // Read-only shares are dropped too: picking one disables the whole transaction form.
   const txTargetableSourceAccountsActiveFirst = computed(() =>
-    txTargetableAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.loan),
+    txTargetableAccountsActiveFirst.value.filter(
+      (item) => item.accountCategory !== ACCOUNT_CATEGORIES.loan && hasAccountWriteAccess({ account: item }),
+    ),
   );
 
   // Loan and vehicle balances are replayed from their transactions, which would count a plan

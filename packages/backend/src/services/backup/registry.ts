@@ -42,6 +42,8 @@ import TransactionGroupItems from '@models/transaction-group-items.model';
 import TransactionGroups from '@models/transaction-groups.model';
 import TransactionSplits from '@models/transaction-splits.model';
 import TransactionTags from '@models/transaction-tags.model';
+import TransactionTemplateTags from '@models/transaction-template-tags.model';
+import TransactionTemplates from '@models/transaction-templates.model';
 import Transactions from '@models/transactions.model';
 import TransferSuggestionDismissals from '@models/transfer-suggestion-dismissals.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
@@ -69,6 +71,7 @@ export type BackupParentScope =
   | 'portfolios'
   | 'transactions'
   | 'transactionGroups'
+  | 'transactionTemplates'
   | 'budgets'
   | 'subscriptions'
   | 'ventureEvents'
@@ -245,6 +248,13 @@ export const BACKUP_TABLES: readonly BackupTableDef[] = [
   {
     fileName: 'subscriptions',
     model: Subscriptions,
+    tier: 3,
+    scope: { strategy: 'userColumn', column: 'userId' },
+    restoreMode: 'insert',
+  },
+  {
+    fileName: 'transaction-templates',
+    model: TransactionTemplates,
     tier: 3,
     scope: { strategy: 'userColumn', column: 'userId' },
     restoreMode: 'insert',
@@ -436,6 +446,13 @@ export const BACKUP_TABLES: readonly BackupTableDef[] = [
     model: SubscriptionTags,
     tier: 5,
     scope: { strategy: 'viaParent', fk: 'subscriptionId', parent: 'subscriptions' },
+    restoreMode: 'insert',
+  },
+  {
+    fileName: 'transaction-template-tags',
+    model: TransactionTemplateTags,
+    tier: 5,
+    scope: { strategy: 'viaParent', fk: 'templateId', parent: 'transactionTemplates' },
     restoreMode: 'insert',
   },
   {

@@ -103,6 +103,18 @@ describe('prepareTxCreationParams', () => {
         categoryId: '00000000-0000-0000-0000-000000000001' as RecordId,
       });
     });
+
+    it('throws when the category was cleared, instead of posting a body the API rejects', () => {
+      const form = createBaseForm({ type: FORM_TYPES.expense, category: null });
+
+      expect(() =>
+        prepareTxCreationParams({
+          form,
+          isTransferTx: false,
+          isCurrenciesDifferent: false,
+        }),
+      ).toThrow('A non-transfer transaction cannot be created without a category');
+    });
   });
 
   describe('transfer transactions', () => {

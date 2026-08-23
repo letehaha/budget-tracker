@@ -157,7 +157,7 @@ export const canDeleteTransaction = ({
 /**
  * Builds a flat map of category id -> FormattedCategory from the nested structure
  */
-const buildFormattedCategoriesMap = (
+export const buildFormattedCategoriesMap = (
   categories: FormattedCategory[],
   map: Record<string, FormattedCategory> = {},
 ): Record<string, FormattedCategory> => {

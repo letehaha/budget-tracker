@@ -10,6 +10,7 @@ import { transformPortfolioTransfers } from './transformers/portfolio-transfers-
 import { transformPortfolios } from './transformers/portfolios-transformer';
 import { transformSubscriptions } from './transformers/subscriptions-transformer';
 import { transformTags } from './transformers/tags-transformer';
+import { transformTransactionTemplates } from './transformers/transaction-templates-transformer';
 import { transformTransactions } from './transformers/transactions-transformer';
 import { transformVehicles } from './transformers/vehicles-transformer';
 import type { ExportDateRange, ExportFileName, ExportGroup, ExportTable } from './types';
@@ -218,6 +219,22 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
       { header: 'Account', field: 'account', kind: 'text' },
       { header: 'Active', field: 'active', kind: 'boolean' },
       { header: 'LinkedTransactionsCount', field: 'linkedTransactionsCount', kind: 'number' },
+    ],
+  }),
+  defineDomain({
+    name: 'transaction_templates',
+    group: 'transactions',
+    build: ({ userId }) => transformTransactionTemplates({ userId }),
+    columns: [
+      { header: 'Name', field: 'name', kind: 'text' },
+      { header: 'Type', field: 'type', kind: 'text' },
+      { header: 'Amount', field: 'amount', kind: 'money' },
+      { header: 'Currency', field: 'currency', kind: 'text' },
+      { header: 'Account', field: 'account', kind: 'text' },
+      { header: 'Category', field: 'category', kind: 'text' },
+      { header: 'Payee', field: 'payee', kind: 'text' },
+      { header: 'Tags', field: 'tags', kind: 'array' },
+      { header: 'Note', field: 'note', kind: 'text' },
     ],
   }),
   defineDomain({

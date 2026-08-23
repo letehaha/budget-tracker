@@ -3,6 +3,7 @@ import Accounts from '@models/accounts.model';
 
 import { unlinkAccountFromBankConnection } from './unlink-from-bank-connection';
 import { unlinkSubscriptionsFromAccount } from './unlink-subscriptions-from-account';
+import { unlinkTemplatesFromAccount } from './unlink-templates-from-account';
 
 interface ArchiveAccountPayload {
   account: Accounts;
@@ -14,6 +15,7 @@ interface ArchiveAccountPayload {
  * 1. Unlinks bank data provider connection (preserving reconnection metadata)
  * 2. Removes from all account groups
  * 3. Unlinks subscriptions (sets accountId to null)
+ * 4. Unlinks transaction templates (sets accountId and amount to null)
  *
  * This does NOT update the account status itself — that's handled by the
  * caller (updateAccount) to keep side effects separate from the status change.
@@ -34,4 +36,7 @@ export const archiveAccount = async ({ account, userId }: ArchiveAccountPayload)
 
   // 3. Unlink subscriptions
   await unlinkSubscriptionsFromAccount({ accountId });
+
+  // 4. Unlink transaction templates
+  await unlinkTemplatesFromAccount({ accountId });
 };

@@ -56,6 +56,7 @@
           <Popover.Popover :open="isOpen" @update:open="(open: boolean) => (isOpen = open)">
             <Popover.PopoverTrigger as-child>
               <button
+                ref="triggerRef"
                 type="button"
                 :disabled="disabled"
                 :class="
@@ -143,6 +144,7 @@
         <!-- Mobile: Button + Drawer -->
         <template v-else>
           <button
+            ref="triggerRef"
             type="button"
             :disabled="disabled"
             :class="
@@ -314,6 +316,7 @@ const emit = defineEmits<{
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
 const selectedValue = ref<FormattedCategory | null>(props.modelValue ?? null);
+const triggerRef = ref<HTMLButtonElement | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
 const drawerInputRef = ref<HTMLInputElement | null>(null);
 const listRef = ref<HTMLDivElement | null>(null);
@@ -426,5 +429,10 @@ watch(isOpen, (value) => {
   if (!value) {
     searchQuery.value = '';
   }
+});
+
+defineExpose({
+  focus: () => triggerRef.value?.focus(),
+  open: openDropdown,
 });
 </script>

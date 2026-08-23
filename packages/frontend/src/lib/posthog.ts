@@ -42,6 +42,8 @@ type AnalyticsEvent =
   // Transaction creation funnel
   | { event: 'transaction_creation_opened' }
   | { event: 'transaction_created'; properties: { transaction_type: 'income' | 'expense' | 'transfer' } }
+  | { event: 'transaction_template_applied' }
+  | { event: 'transaction_template_saved' }
   // Budget creation funnel
   | { event: 'budget_creation_opened' }
   | { event: 'budget_created' }

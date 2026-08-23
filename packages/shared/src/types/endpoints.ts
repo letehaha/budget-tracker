@@ -1,4 +1,10 @@
-import { AccountModel, CategoryModel, EntityLogoPayload, TransactionModel } from './db-models';
+import {
+  AccountModel,
+  CategoryModel,
+  EntityLogoPayload,
+  TransactionModel,
+  TransactionTemplateModel,
+} from './db-models';
 import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, TRANSACTION_TYPES } from './enums';
 import { RecordId } from './record-id';
 
@@ -768,3 +774,19 @@ export interface ExchangeRatePairResponse {
   /** Present and true when the value is the user's own manual rate. */
   custom?: boolean;
 }
+
+export interface CreateTransactionTemplateBody {
+  name: TransactionTemplateModel['name'];
+  transactionType: TransactionTemplateModel['transactionType'];
+  amount?: TransactionTemplateModel['amount'];
+  accountId?: TransactionTemplateModel['accountId'];
+  categoryId?: TransactionTemplateModel['categoryId'];
+  payeeId?: TransactionTemplateModel['payeeId'];
+  paymentType?: TransactionTemplateModel['paymentType'];
+  note?: TransactionTemplateModel['note'];
+  /** Full replacement of the template's tag set. */
+  tagIds?: TransactionTemplateModel['tagIds'];
+}
+
+/** `undefined` leaves a field unchanged, `null` clears it. */
+export type UpdateTransactionTemplateBody = Partial<CreateTransactionTemplateBody>;

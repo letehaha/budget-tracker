@@ -5,6 +5,7 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
+import TransactionTypeToggle from '@/components/fields/transaction-type-toggle.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import { Label } from '@/components/lib/ui/label';
@@ -26,7 +27,7 @@ import {
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { useMutation } from '@tanstack/vue-query';
-import { ArrowDownIcon, CreditCardIcon, ReceiptIcon, RepeatIcon, ArrowUpIcon } from '@lucide/vue';
+import { CreditCardIcon, ReceiptIcon, RepeatIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -210,38 +211,7 @@ const handleSubmit = () => {
         <span class="text-foreground text-sm font-medium">
           {{ $t('planned.subscriptions.form.transactionTypeLabel') }}
         </span>
-        <div class="bg-muted/50 border-border/50 flex w-full rounded-lg border p-1">
-          <button
-            type="button"
-            :class="
-              cn(
-                'focus-visible:ring-ring flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
-                form.transactionType === TRANSACTION_TYPES.expense
-                  ? 'bg-app-expense-color/15 text-app-expense-color font-semibold shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-              )
-            "
-            @click="form.transactionType = TRANSACTION_TYPES.expense"
-          >
-            <ArrowUpIcon class="size-4" />
-            {{ $t('planned.subscriptions.form.transactionTypeExpense') }}
-          </button>
-          <button
-            type="button"
-            :class="
-              cn(
-                'focus-visible:ring-ring flex flex-1 items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
-                form.transactionType === TRANSACTION_TYPES.income
-                  ? 'bg-app-income-color/15 text-app-income-color font-semibold shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-              )
-            "
-            @click="form.transactionType = TRANSACTION_TYPES.income"
-          >
-            <ArrowDownIcon class="size-4" />
-            {{ $t('planned.subscriptions.form.transactionTypeIncome') }}
-          </button>
-        </div>
+        <TransactionTypeToggle v-model="form.transactionType" />
         <p class="text-muted-foreground text-xs leading-snug">{{ transactionTypeDescription }}</p>
       </div>
 

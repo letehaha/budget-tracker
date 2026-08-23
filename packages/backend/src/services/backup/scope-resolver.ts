@@ -6,6 +6,7 @@ import Payees from '@models/payees.model';
 import SubscriptionPeriods from '@models/subscription-periods.model';
 import Subscriptions from '@models/subscriptions.model';
 import TransactionGroups from '@models/transaction-groups.model';
+import TransactionTemplates from '@models/transaction-templates.model';
 import Transactions from '@models/transactions.model';
 import VentureEvents from '@models/venture/venture-events.model';
 import { Model, Op, type ModelStatic } from 'sequelize';
@@ -41,6 +42,7 @@ export function createScopeResolver({ userId }: { userId: number }) {
     portfolios: () => idsWhere({ model: Portfolios, where: { userId } }),
     transactions: () => idsWhere({ model: Transactions, where: { userId } }),
     transactionGroups: () => idsWhere({ model: TransactionGroups, where: { userId } }),
+    transactionTemplates: () => idsWhere({ model: TransactionTemplates, where: { userId } }),
     budgets: () => idsWhere({ model: Budgets, where: { userId } }),
     subscriptions: () => idsWhere({ model: Subscriptions, where: { userId } }),
     ventureEvents: () => idsWhere({ model: VentureEvents, where: { userId } }),

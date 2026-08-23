@@ -4,6 +4,7 @@ import {
   ACCOUNT_TYPES,
   type AccountWithRelinkStatus,
   type RecordId,
+  SHARE_PERMISSIONS,
   type UserModel,
 } from '@bt/shared/types';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
@@ -85,6 +86,45 @@ describe('useAccountsStore – accountsRecord mirrors the live accounts list', (
     expect(store.accountsRecord['acc-drop']).toBeUndefined();
     expect(store.accountsRecord['acc-keep']).toBeDefined();
     expect(Object.keys(store.accountsRecord)).toEqual(['acc-keep']);
+  });
+
+  describe('txTargetableSourceAccountsActiveFirst', () => {
+    const seed = async (accounts: AccountWithRelinkStatus[]) => {
+      mockLoadAccounts.mockResolvedValue(accounts);
+      mountStore();
+      await flushPromises();
+      return store.txTargetableSourceAccountsActiveFirst.map((account) => account.id);
+    };
+
+    it('drops read-only shares, which would disable the whole transaction form', async () => {
+      const ids = await seed([
+        buildAccount('acc-own'),
+        buildAccount('acc-read', {
+          share: { isOwner: false, permission: SHARE_PERMISSIONS.read } as AccountWithRelinkStatus['share'],
+        }),
+        buildAccount('acc-write', {
+          share: { isOwner: false, permission: SHARE_PERMISSIONS.write } as AccountWithRelinkStatus['share'],
+        }),
+        buildAccount('acc-manage', {
+          share: { isOwner: false, permission: SHARE_PERMISSIONS.manage } as AccountWithRelinkStatus['share'],
+        }),
+        buildAccount('acc-owned-share', {
+          share: { isOwner: true, permission: SHARE_PERMISSIONS.read } as AccountWithRelinkStatus['share'],
+        }),
+      ]);
+
+      expect(ids).toEqual(['acc-own', 'acc-write', 'acc-manage', 'acc-owned-share']);
+    });
+
+    it('drops loan and vehicle accounts, which never source a transaction', async () => {
+      const ids = await seed([
+        buildAccount('acc-cash'),
+        buildAccount('acc-loan', { accountCategory: ACCOUNT_CATEGORIES.loan }),
+        buildAccount('acc-car', { accountCategory: ACCOUNT_CATEGORIES.vehicle }),
+      ]);
+
+      expect(ids).toEqual(['acc-cash']);
+    });
   });
 
   describe('plannedTargetableAccountsActiveFirst', () => {

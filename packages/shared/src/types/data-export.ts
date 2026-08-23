@@ -28,6 +28,7 @@ export const EXPORT_FILE_NAMES = [
   'vehicles',
   'budgets',
   'subscriptions',
+  'transaction_templates',
   'portfolios',
   'holdings',
   'investment_transactions',

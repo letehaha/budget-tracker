@@ -85,7 +85,7 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
     await expect(dialog).toBeVisible({ timeout: 5_000 });
 
     // Verify it's in "Transfer" mode (transfer type selector button should be selected)
-    const transferBtn = dialog.locator('button[aria-selected="true"]').filter({ hasText: /transfer/i });
+    const transferBtn = dialog.locator('button[aria-pressed="true"]').filter({ hasText: /transfer/i });
     await expect(transferBtn).toBeVisible();
 
     // The "Link" button should be visible (not "Unlink")
@@ -191,7 +191,7 @@ test.describe('Transfer Linking: out_of_wallet <-> common_transfer', () => {
 
     // After unlinking, the transaction should be not_transfer (expense type).
     // The type selector should NOT show "Transfer" as selected.
-    const transferSelected = dialogAfter.locator('button[aria-selected="true"]').filter({ hasText: /transfer/i });
+    const transferSelected = dialogAfter.locator('button[aria-pressed="true"]').filter({ hasText: /transfer/i });
     await expect(transferSelected).not.toBeVisible();
 
     // Neither Link nor Unlink buttons should be visible (it's a regular expense now)
