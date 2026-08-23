@@ -14,8 +14,11 @@ import xirr from 'xirr';
  *     convention)
  *
  * Returns null on degenerate input (no positive flow, no negative flow,
- * single point, or xirr lib throws on non-converging series).
+ * single point, all points on the same day, or xirr lib throws on
+ * non-converging series).
  */
+
+const MILLIS_PER_DAY = 1000 * 60 * 60 * 24;
 
 interface CashFlowPoint {
   amount: number;
@@ -88,6 +91,11 @@ export function computeIrr({
   const hasPositive = series.some((p) => p.amount > 0);
   const hasNegative = series.some((p) => p.amount < 0);
   if (!hasPositive || !hasNegative) return null;
+
+  // xirr needs a non-zero time span and buckets points into UTC epoch days;
+  // a series confined to one such day has no rate to solve for.
+  const distinctDays = new Set(series.map((p) => Math.floor(p.when.getTime() / MILLIS_PER_DAY)));
+  if (distinctDays.size < 2) return null;
 
   try {
     const result = xirr(series);
