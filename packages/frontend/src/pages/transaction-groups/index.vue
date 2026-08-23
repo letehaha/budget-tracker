@@ -7,6 +7,8 @@ import InputField from '@/components/fields/input-field.vue';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { invalidateTransactionGroupQueries } from '@/composable/data-queries/transaction-groups';
+import { useNotificationCenter } from '@/components/notification-center';
+import { extractApiErrorMessage } from '@/js/errors';
 import { useQueryClient, useQuery } from '@tanstack/vue-query';
 import { Trash2Icon, CalendarIcon, HashIcon } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
@@ -17,6 +19,7 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
+const { addErrorNotification } = useNotificationCenter();
 
 const { data: groups, isLoading } = useQuery({
   queryKey: VUE_QUERY_CACHE_KEYS.transactionGroupsList,
@@ -60,9 +63,14 @@ const confirmDelete = ({ group }: { group: TransactionGroupResponse }) => {
 
 const handleDelete = async () => {
   if (!deleteState.groupId) return;
-  await transactionGroupsApi.deleteTransactionGroup({ id: deleteState.groupId });
-  deleteState.isOpen = false;
-  invalidateTransactionGroupQueries({ queryClient });
+  try {
+    await transactionGroupsApi.deleteTransactionGroup({ id: deleteState.groupId });
+  } catch (error) {
+    addErrorNotification(extractApiErrorMessage(error) || t('transactions.transactionGroups.groupsPage.deleteError'));
+  } finally {
+    deleteState.isOpen = false;
+    invalidateTransactionGroupQueries({ queryClient });
+  }
 };
 
 const formatDateRange = ({ group }: { group: TransactionGroupResponse }) => {
