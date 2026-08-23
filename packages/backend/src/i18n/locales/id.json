@@ -509,5 +509,22 @@
   },
   "stats": {
     "netWorthHistoryTooManyPoints": "Rentang tanggal dan granularitas ini menghasilkan terlalu banyak titik data. Pilih granularitas yang lebih kasar atau rentang yang lebih pendek."
+  },
+  "transactionTemplates": {
+    "notFound": "Templat transaksi tidak ditemukan.",
+    "nameAlreadyExists": "Templat transaksi dengan nama ini sudah ada.",
+    "amountRequiresAccount": "Jumlah hanya dapat disimpan bersama dengan akun.",
+    "accountNotFound": "Akun tidak ditemukan atau bukan milik pengguna.",
+    "accountMustBeSystem": "Hanya akun yang dikelola secara manual yang dapat digunakan dalam templat transaksi.",
+    "accountArchived": "Akun yang diarsipkan tidak dapat digunakan dalam templat.",
+    "categoryNotFound": "Kategori tidak ditemukan atau bukan milik pengguna.",
+    "payeeNotFound": "Penerima tidak ditemukan atau bukan milik pengguna.",
+    "tagsNotFound": "Satu atau lebih tag tidak ditemukan atau bukan milik pengguna."
+  },
+  "automations": {
+    "automationNotFound": "Otomatisasi tidak ditemukan.",
+    "reorderStale": "Daftar otomatisasi telah berubah. Muat ulang dan coba lagi.",
+    "ruleLimitReached": "Anda telah mencapai jumlah maksimum otomatisasi.",
+    "staleReference": "Otomatisasi ini merujuk pada item yang sudah tidak ada."
   }
 }

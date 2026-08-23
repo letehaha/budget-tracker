@@ -150,7 +150,8 @@
         "searchPlaceholder": "Buscar grupos…",
         "noGroupsMessage": "Aún no hay grupos de transacciones.",
         "emptyStateHint": "Seleccione transacciones en la página de Transacciones y haga clic en \"Crear grupo\" para empezar.",
-        "transactionCountLabel": "transacciones"
+        "transactionCountLabel": "transacciones",
+        "deleteError": "Error al eliminar el grupo. Inténtelo de nuevo."
       },
       "errors": {
         "nameRequired": "El nombre del grupo es obligatorio",

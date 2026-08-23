@@ -106,6 +106,7 @@ const chunkRegistry: ChunkRegistry = {
     'pages/import-statement': () => import('./locales/chunks/uk/pages/import-statement.json'),
     'pages/import-ynab': () => import('./locales/chunks/uk/pages/import-ynab.json'),
     'pages/import-budget-bakers-wallet': () => import('./locales/chunks/uk/pages/import-budget-bakers-wallet.json'),
+    'pages/import-ms-money': () => import('./locales/chunks/uk/pages/import-ms-money.json'),
     'pages/investments-import': () => import('./locales/chunks/uk/pages/investments-import.json'),
     'pages/planned': () => import('./locales/chunks/uk/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/uk/pages/optimizations.json'),
@@ -158,10 +159,13 @@ const chunkRegistry: ChunkRegistry = {
     'pages/import-csv': () => import('./locales/chunks/es/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/es/pages/import-statement.json'),
     'pages/import-ynab': () => import('./locales/chunks/es/pages/import-ynab.json'),
+    'pages/import-history': () => import('./locales/chunks/es/pages/import-history.json'),
     'pages/import-budget-bakers-wallet': () => import('./locales/chunks/es/pages/import-budget-bakers-wallet.json'),
+    'pages/import-ms-money': () => import('./locales/chunks/es/pages/import-ms-money.json'),
     'pages/investments-import': () => import('./locales/chunks/es/pages/investments-import.json'),
     'pages/planned': () => import('./locales/chunks/es/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/es/pages/optimizations.json'),
+    'pages/automations': () => import('./locales/chunks/es/pages/automations.json'),
     'pages/shared-with-me': () => import('./locales/chunks/es/pages/shared-with-me.json'),
     'pages/household': () => import('./locales/chunks/es/pages/household.json'),
     'pages/payees': () => import('./locales/chunks/es/pages/payees.json'),
@@ -211,10 +215,13 @@ const chunkRegistry: ChunkRegistry = {
     'pages/import-csv': () => import('./locales/chunks/id/pages/import-csv.json'),
     'pages/import-statement': () => import('./locales/chunks/id/pages/import-statement.json'),
     'pages/import-ynab': () => import('./locales/chunks/id/pages/import-ynab.json'),
+    'pages/import-history': () => import('./locales/chunks/id/pages/import-history.json'),
     'pages/import-budget-bakers-wallet': () => import('./locales/chunks/id/pages/import-budget-bakers-wallet.json'),
+    'pages/import-ms-money': () => import('./locales/chunks/id/pages/import-ms-money.json'),
     'pages/investments-import': () => import('./locales/chunks/id/pages/investments-import.json'),
     'pages/planned': () => import('./locales/chunks/id/pages/planned.json'),
     'pages/optimizations': () => import('./locales/chunks/id/pages/optimizations.json'),
+    'pages/automations': () => import('./locales/chunks/id/pages/automations.json'),
     'pages/shared-with-me': () => import('./locales/chunks/id/pages/shared-with-me.json'),
     'pages/household': () => import('./locales/chunks/id/pages/household.json'),
     'pages/payees': () => import('./locales/chunks/id/pages/payees.json'),
@@ -256,6 +263,9 @@ export const resilientMessageCompiler: MessageCompiler = (message, context) => {
   }
 };
 
+const ukPluralRules = new Intl.PluralRules('uk');
+const UK_PLURAL_INDEX: Record<string, number> = { one: 0, few: 1, many: 2 };
+
 // Create i18n instance with common chunk pre-loaded
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const i18n: I18n<any, {}, {}, string, false> = createI18n<{}, string, false>({
@@ -266,6 +276,13 @@ export const i18n: I18n<any, {}, {}, string, false> = createI18n<{}, string, fal
     en: enCommon,
   },
   messageCompiler: resilientMessageCompiler,
+  pluralRules: {
+    // vue-i18n's default three-branch rule is [zero, one, many]; the uk files are
+    // written [one, few, many]. Clamping covers keys with fewer branches than
+    // that, which would otherwise resolve to a branch vue-i18n throws on.
+    uk: (choice: number, choicesLength: number) =>
+      Math.min(UK_PLURAL_INDEX[ukPluralRules.select(Math.abs(choice))] ?? 2, choicesLength - 1),
+  },
   globalInjection: true,
   missingWarn: process.env.NODE_ENV === 'development',
   fallbackWarn: process.env.NODE_ENV === 'development',

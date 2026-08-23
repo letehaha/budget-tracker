@@ -31,7 +31,8 @@
         "back": "Kembali ke Impor",
         "groups": {
           "filesAndText": "File & teks",
-          "fromOtherApps": "Dari aplikasi lain"
+          "fromOtherApps": "Dari aplikasi lain",
+          "history": "Riwayat"
         },
         "requestMore": {
           "title": "Ingin opsi lain? Minta di sini"
@@ -83,6 +84,10 @@
       "ms-money": {
         "title": "Microsoft Money",
         "listDescription": "Impor file .mny dari Microsoft Money"
+      },
+      "importHistory": {
+        "title": "Riwayat Impor",
+        "listDescription": "Lihat impor sebelumnya dan apa saja yang dibuatnya"
       }
     }
   }

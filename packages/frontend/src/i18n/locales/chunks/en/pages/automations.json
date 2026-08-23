@@ -16,7 +16,7 @@
     },
     "pausedMissingRef": "Paused — {refType} \"{label}\" was deleted",
     "pausedMissingRefUnnamed": "Paused: a {refType} this rule referenced was deleted",
-    "matchStats": "{count} matches · last {date}",
+    "matchStats": "{count} match · last {date} | {count} matches · last {date}",
     "matchStatsNever": "Never matched",
     "loadError": "Couldn't load automations. Check your connection and try again.",
     "reorderDisabledFiltered": "Clear the status filter to reorder",

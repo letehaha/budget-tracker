@@ -509,5 +509,22 @@
   },
   "stats": {
     "netWorthHistoryTooManyPoints": "Este rango de fechas y esta granularidad producen demasiados puntos de datos. Elija una granularidad más amplia o un rango más corto."
+  },
+  "transactionTemplates": {
+    "notFound": "Plantilla de transacción no encontrada.",
+    "nameAlreadyExists": "Ya existe una plantilla de transacción con este nombre.",
+    "amountRequiresAccount": "Un importe solo puede guardarse junto con una cuenta.",
+    "accountNotFound": "Cuenta no encontrada o no pertenece al usuario.",
+    "accountMustBeSystem": "Solo se pueden usar cuentas gestionadas manualmente en una plantilla de transacción.",
+    "accountArchived": "No se pueden usar cuentas archivadas en una plantilla.",
+    "categoryNotFound": "Categoría no encontrada o no pertenece al usuario.",
+    "payeeNotFound": "Beneficiario no encontrado o no pertenece al usuario.",
+    "tagsNotFound": "Una o más etiquetas no encontradas o no pertenecen al usuario."
+  },
+  "automations": {
+    "automationNotFound": "Automatización no encontrada.",
+    "reorderStale": "La lista de automatizaciones ha cambiado. Actualícela e inténtelo de nuevo.",
+    "ruleLimitReached": "Ha alcanzado el número máximo de automatizaciones.",
+    "staleReference": "Esta automatización hace referencia a un elemento que ya no existe."
   }
 }
