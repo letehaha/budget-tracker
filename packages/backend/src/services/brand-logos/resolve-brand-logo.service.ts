@@ -95,7 +95,9 @@ export async function resolveBrandLogo({
   // User override is authoritative; the resolver must never touch it.
   if (target.logoSource === 'manual') return;
 
-  const norm = target.normalizedName?.trim() || normalizePayeeName({ raw: target.name });
+  // Clamped to the BrandLogos.normalizedName width: NFKD expansion in
+  // normalizePayeeName can make the normalized form longer than the raw name.
+  const norm = (target.normalizedName?.trim() || normalizePayeeName({ raw: target.name })).slice(0, 200);
 
   // Empty normalized form: can't key the cache or search – mark negative so it isn't retried.
   if (!norm) {
@@ -129,8 +131,9 @@ export async function resolveBrandLogo({
     where: { normalizedName: norm },
     defaults: {
       normalizedName: norm,
-      domain: best.domain,
-      brandName: best.name,
+      // Provider strings are unbounded; clamp to the BrandLogos column widths.
+      domain: best.domain.slice(0, 253),
+      brandName: best.name.slice(0, 200),
       source: 'logodev',
     },
     transaction,

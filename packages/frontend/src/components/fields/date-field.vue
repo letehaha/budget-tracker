@@ -104,6 +104,8 @@ const props = withDefaults(
 
 const { isSafariMobile } = useSafariDetection();
 
+const isValidDate = (value: unknown): value is Date => value instanceof Date && !isNaN(value.getTime());
+
 const formatToInput = (value: Date) => format(value, 'yyyy-MM-dd HH:mm');
 
 const inputValue = ref(props.modelValue ? formatToInput(props.modelValue) : '');
@@ -146,12 +148,21 @@ watch(
   () => props.modelValue,
   (value) => {
     inputValue.value = value ? formatToInput(value) : '';
-    localValue.value = value!;
+    if (isValidDate(value)) localValue.value = value;
   },
 );
 
-watch(localValue, () => {
-  emit('update:modelValue', localValue.value);
+watch(localValue, (value, previousValue) => {
+  // v-calendar clears its model when the already-selected day is tapped. The emit
+  // contract is a Date, so put the selection back instead of passing null on.
+  if (!isValidDate(value)) {
+    localValue.value = isValidDate(previousValue) ? previousValue : (props.modelValue ?? new Date());
+    return;
+  }
+  // That restore re-enters this watcher; it is not a user pick.
+  if (!isValidDate(previousValue)) return;
+
+  emit('update:modelValue', value);
   isPopoverOpen.value = false;
 });
 </script>

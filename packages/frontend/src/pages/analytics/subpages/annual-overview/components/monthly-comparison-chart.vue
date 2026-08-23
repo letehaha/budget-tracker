@@ -636,7 +636,7 @@ const renderChart = () => {
 
       // Filter to only categories with data for current metric, then sort
       const filteredCategories = period.categories.filter((cat) => renderCategoryIds.has(cat.categoryId));
-      const sortedCategories = filteredCategories.toSorted((a, b) => {
+      const sortedCategories = [...filteredCategories].sort((a, b) => {
         const indexA = selectedCategoryIds.value.indexOf(a.categoryId);
         const indexB = selectedCategoryIds.value.indexOf(b.categoryId);
         return indexA - indexB;
