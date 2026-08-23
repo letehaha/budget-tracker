@@ -11,7 +11,7 @@
       "
       :disabled="disabled || isExpenseDisabled"
       :aria-label="t('dialogs.manageTransaction.typeSelector.selectExpense')"
-      :aria-selected="selectedTransactionType === FORM_TYPES.expense"
+      :aria-pressed="selectedTransactionType === FORM_TYPES.expense"
       @click="selectTransactionType(FORM_TYPES.expense)"
     >
       {{ t('dialogs.manageTransaction.typeSelector.expense') }}
@@ -27,7 +27,7 @@
       "
       :disabled="disabled || isIncomeDisabled"
       :aria-label="t('dialogs.manageTransaction.typeSelector.selectIncome')"
-      :aria-selected="selectedTransactionType === FORM_TYPES.income"
+      :aria-pressed="selectedTransactionType === FORM_TYPES.income"
       @click="selectTransactionType(FORM_TYPES.income)"
     >
       {{ t('dialogs.manageTransaction.typeSelector.income') }}
@@ -43,7 +43,7 @@
       "
       :disabled="disabled || isTransferDisabled"
       :aria-label="t('dialogs.manageTransaction.typeSelector.selectTransfer')"
-      :aria-selected="selectedTransactionType === FORM_TYPES.transfer"
+      :aria-pressed="selectedTransactionType === FORM_TYPES.transfer"
       @click="selectTransactionType(FORM_TYPES.transfer)"
     >
       {{ t('dialogs.manageTransaction.typeSelector.transfer') }}
@@ -63,7 +63,6 @@ const { t } = useI18n();
 
 const props = defineProps<{
   selectedTransactionType: FORM_TYPES;
-  isFormCreation: boolean;
   transaction?: TransactionModel;
   account?: AccountModel;
   disabled?: boolean;

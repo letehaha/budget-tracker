@@ -280,6 +280,7 @@ describe('Data export (POST /user/data-export)', () => {
       const archive = helpers.parseExportArchive({ buffer: response.body });
 
       expect(archive.files.has('transactions.csv')).toBe(true);
+      expect(archive.files.has('transaction_templates.csv')).toBe(true);
       expect(archive.files.has('accounts.csv')).toBe(true);
       expect(archive.files.has('categories.csv')).toBe(true);
       // Investments group not requested → its files MUST NOT be present.
@@ -512,6 +513,64 @@ describe('Data export (POST /user/data-export)', () => {
 
       expect(Array.isArray(json.portfolios)).toBe(true);
       expect((json.portfolios as Array<Record<string, unknown>>).some((p) => p.name === 'Multi portfolio')).toBe(true);
+    });
+
+    it('exports transaction templates, resolving relations and leaving unset ones blank', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const category = await helpers.addCustomCategory({ name: 'TemplateCat', color: '#AABBCC', raw: true });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Template Payee' }),
+        raw: true,
+      });
+      const tagA = await helpers.createTag({ payload: { name: 'tpl-a', color: '#111111' }, raw: true });
+      const tagB = await helpers.createTag({ payload: { name: 'tpl-b', color: '#222222' }, raw: true });
+
+      await helpers.createTransactionTemplate({
+        payload: {
+          name: 'Pinned template',
+          transactionType: TRANSACTION_TYPES.expense,
+          amount: 42.5,
+          accountId: account.id,
+          categoryId: category.id,
+          payeeId: payee.id,
+          tagIds: [tagA.id, tagB.id],
+          note: 'weekly run',
+        },
+        raw: true,
+      });
+      await helpers.createTransactionTemplate({
+        payload: { name: 'Unpinned template', transactionType: TRANSACTION_TYPES.income },
+        raw: true,
+      });
+
+      const response = await helpers.exportData({ format: 'csv' });
+      expect(response.statusCode).toBe(200);
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const csv = archive.files.get('transaction_templates.csv');
+      expect(csv).toBeDefined();
+      const rows = helpers.parseExportCsv({ buffer: csv! });
+
+      const pinned = rows.find((r) => r.Name === 'Pinned template');
+      expect(pinned).toBeDefined();
+      expect(pinned!.Type).toBe(TRANSACTION_TYPES.expense);
+      expect(pinned!.Amount).toBe('42.5');
+      expect(pinned!.Currency).toBe(account.currencyCode);
+      expect(pinned!.Account).toBe(account.name);
+      expect(pinned!.Category).toBe(category.name);
+      expect(pinned!.Payee).toBe(payee.name);
+      expect(pinned!.Tags!.split('; ').toSorted()).toEqual([tagA.name, tagB.name].toSorted());
+      expect(pinned!.Note).toBe('weekly run');
+
+      // A relation that was never set reads as an empty cell, never the unresolved-FK sentinel.
+      const unpinned = rows.find((r) => r.Name === 'Unpinned template');
+      expect(unpinned).toBeDefined();
+      expect(unpinned!.Type).toBe(TRANSACTION_TYPES.income);
+      expect(unpinned!.Amount).toBe('');
+      expect(unpinned!.Currency).toBe('');
+      expect(unpinned!.Account).toBe('');
+      expect(unpinned!.Category).toBe('');
+      expect(unpinned!.Payee).toBe('');
+      expect(unpinned!.Tags).toBe('');
     });
 
     it('handles budgets with NULL limitAmount without crashing', async () => {

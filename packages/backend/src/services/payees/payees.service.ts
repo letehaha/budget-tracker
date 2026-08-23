@@ -15,6 +15,7 @@ import PayeeTags from '@models/payee-tags.model';
 import Payees from '@models/payees.model';
 import Subscriptions from '@models/subscriptions.model';
 import Tags from '@models/tags.model';
+import TransactionTemplates from '@models/transaction-templates.model';
 import { updateTransactions } from '@models/transactions-query';
 import {
   applyCachedLogos,
@@ -543,9 +544,10 @@ export const mergePayees = withTransaction(
       where: { payeeId: source.id },
     });
 
-    // Move subscription payee rules before the source is deleted: the FK
-    // SET NULL would otherwise silently drop the rule.
+    // Move subscription payee rules and template pre-fills before the source is deleted:
+    // the FK SET NULL would otherwise silently drop the reference.
     await Subscriptions.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
+    await TransactionTemplates.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
 
     await rewriteAutomationRef({ userId, refType: 'payee', from: source.id, to: target.id });
 

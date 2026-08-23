@@ -38,7 +38,7 @@ export interface UI_FORM_STRUCT {
   account: AccountModel | null;
   toAccount?: AccountModel | null;
   toPortfolio?: PortfolioModel | null;
-  category: FormattedCategory;
+  category: FormattedCategory | null;
   time: Date;
   paymentType: VerbosePaymentType | null;
   note?: string;

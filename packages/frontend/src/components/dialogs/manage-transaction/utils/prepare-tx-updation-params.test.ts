@@ -296,7 +296,7 @@ describe('prepareTxUpdationParams', () => {
         note: formMock.note,
         paymentType: formMock.paymentType!.value,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        categoryId: formMock.category.id,
+        categoryId: formMock.category!.id,
       });
     });
 
@@ -403,7 +403,7 @@ describe('prepareTxUpdationParams', () => {
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: plannedTx.paymentType,
         accountId: formMock.account!.id,
-        categoryId: formMock.category.id,
+        categoryId: formMock.category!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       });
     });
@@ -542,7 +542,7 @@ describe('prepareTxUpdationParams', () => {
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: incomeTx.paymentType,
         accountId: formMock.account!.id,
-        categoryId: formMock.category.id,
+        categoryId: formMock.category!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       });
     });
@@ -575,7 +575,7 @@ describe('prepareTxUpdationParams', () => {
         transactionType: TRANSACTION_TYPES.income,
         paymentType: expenseTx.paymentType,
         accountId: formMock.account!.id,
-        categoryId: formMock.category.id,
+        categoryId: formMock.category!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       });
     });
@@ -718,7 +718,7 @@ describe('prepareTxUpdationParams', () => {
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: outOfWalletTx.paymentType,
         accountId: formMock.account!.id,
-        categoryId: formMock.category.id,
+        categoryId: formMock.category!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
       });
     });
@@ -760,7 +760,7 @@ describe('prepareTxUpdationParams', () => {
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: expenseTx.paymentType,
         accountId: formMock.account!.id,
-        categoryId: formMock.category.id,
+        categoryId: formMock.category!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         refundsTxId: refundTx.id,
         refundsSplitId: null,
@@ -798,7 +798,7 @@ describe('prepareTxUpdationParams', () => {
         transactionType: TRANSACTION_TYPES.expense,
         paymentType: expenseTx.paymentType,
         accountId: formMock.account!.id,
-        categoryId: formMock.category.id,
+        categoryId: formMock.category!.id,
         transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
         refundedByTxIds: [refundingTxs[0]!.id, refundingTxs[1]!.id],
       });

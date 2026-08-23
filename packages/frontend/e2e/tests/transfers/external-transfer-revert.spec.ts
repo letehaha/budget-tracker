@@ -139,7 +139,7 @@ test.describe('Manage transaction dialog: external transfer revert', () => {
     const incomeTab = dialog.getByRole('button', { name: /select income/i });
     const expenseTab = dialog.getByRole('button', { name: /select expense/i });
 
-    await expect(transferTab).toHaveAttribute('aria-selected', 'true');
+    await expect(transferTab).toHaveAttribute('aria-pressed', 'true');
 
     // Wait for form-loading to finish — until then ALL tabs are disabled. Once income
     // becomes enabled we know per-tab disable logic has taken over.

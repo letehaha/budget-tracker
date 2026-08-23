@@ -25,7 +25,7 @@ const props = defineProps<{
   modelValue: FormSplit[] | undefined;
   totalAmount: number | null;
   currencyCode: string | undefined;
-  mainCategory: FormattedCategory | undefined;
+  mainCategory: FormattedCategory | null | undefined;
   /**
    * Category set the split rows render. The parent dialog routes this through
    * `useAccountCategories` so a recipient editing splits on a shared account sees the

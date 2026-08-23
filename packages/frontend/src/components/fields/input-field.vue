@@ -239,6 +239,11 @@ onMounted(() => {
     inputFieldRef.value!.focus();
   }
 });
+
+defineExpose({
+  focus: () => inputFieldRef.value?.focus(),
+  select: () => inputFieldRef.value?.select(),
+});
 </script>
 
 <style scoped>

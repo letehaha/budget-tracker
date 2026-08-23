@@ -37,7 +37,6 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
           props.class,
         )
       "
-      :on-open-auto-focus="(e: Event) => console.log(e)"
     >
       <template v-if="!customIndicator">
         <DrawerIndicator />

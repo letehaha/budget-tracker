@@ -2,6 +2,7 @@ import { API_ERROR_CODES } from '@bt/shared/types';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ConflictError, ValidationError } from '@js/errors';
 import * as Categories from '@models/categories.model';
+import TransactionTemplates from '@models/transaction-templates.model';
 import { countTransactions, updateTransactions } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
 import { pauseAutomationsReferencing, rewriteAutomationRef } from '@services/transaction-automations/references';
@@ -71,6 +72,10 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
       from: category.id,
       to: replacement.id,
     });
+    await TransactionTemplates.update(
+      { categoryId: replacement.id },
+      { where: { userId: payload.userId, categoryId: category.id } },
+    );
   } else {
     await pauseAutomationsReferencing({
       userId: payload.userId,

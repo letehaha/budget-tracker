@@ -3,8 +3,10 @@ import { getExchangeRatePair } from '@/api/currencies';
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
+import { isMacPlatform } from '@/common/utils/platform';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
 import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
@@ -34,10 +36,10 @@ import {
   type TransactionModel,
 } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { helpers, minValue } from '@vuelidate/validators';
+import { helpers, minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { endOfDay, format } from 'date-fns';
-import { ChevronUpIcon, SlidersHorizontalIcon, SplitIcon } from '@lucide/vue';
+import { ChevronUpIcon, CommandIcon, CornerDownLeftIcon, SlidersHorizontalIcon, SplitIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -58,6 +60,9 @@ import AmountWithCurrencyField from './components/amount-with-currency-field.vue
 import LabelPill from './components/label-pill.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
+import TemplateFormDialog from './components/templates/template-form-dialog.vue';
+import TemplatesDrawer from './components/templates/templates-drawer.vue';
+import TemplatesPanel from './components/templates/templates-panel.vue';
 import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountDropdownPrefs } from '@/composable/use-account-dropdown-prefs';
 import { useAccountCategories } from '@/composable/data-queries/categories';
@@ -72,6 +77,7 @@ import {
   useUnlinkTransactions,
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
+import { useTransactionTemplating } from './composables/use-transaction-templating';
 import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
 
 import { canDeleteTransaction, isTxEditableAsManual, prepopulateForm } from './helpers';
@@ -120,6 +126,7 @@ const { currenciesMap, systemCurrencies } = storeToRefs(useCurrenciesStore());
 const {
   accounts: allAccounts,
   accountsRecord,
+  isAccountsFetched,
   txTargetableAccountsActiveFirst,
   txTargetableSourceAccountsActiveFirst,
   plannedTargetableAccountsActiveFirst,
@@ -136,6 +143,7 @@ const isVehicleLinkedView = computed(() => {
   return account?.accountCategory === ACCOUNT_CATEGORIES.vehicle;
 });
 const { formattedCategories, categoriesMap } = storeToRefs(useCategoriesStore());
+const isMac = isMacPlatform();
 const { user: currentUser } = storeToRefs(useUserStore());
 const tagsStore = useTagsStore();
 // Load tags when the dialog opens
@@ -151,7 +159,7 @@ const form = ref<UI_FORM_STRUCT>({
   toAccount: null,
   toPortfolio: null,
   targetAmount: null,
-  category: formattedCategories.value[0]!,
+  category: formattedCategories.value[0] ?? null,
   time: new Date(),
   paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === PAYMENT_TYPES.creditCard) ?? null,
   note: undefined,
@@ -183,7 +191,7 @@ const formTagIds = computed({
     form.value.tagIds = value;
   },
 });
-const { onPayeeSelected: applyPayeeTags } = usePayeeTagAutoApply({
+const { onPayeeSelected: applyPayeeTags, reset: resetPayeeTagTracking } = usePayeeTagAutoApply({
   tagIds: formTagIds,
   payeeId: () => form.value.payeeId,
 });
@@ -740,6 +748,9 @@ const validationRules = computed(() => {
         ...(isTargetAmountRequired.value ? { required: isAmountFilled, minValue: minValue(0) } : {}),
         ...(overpayOnTarget ? { notOverpay: loanOverpayRule } : {}),
       },
+      category: {
+        ...(isTransferTx.value ? {} : { required }),
+      },
       time: {
         ...(isPastDateRequired.value
           ? {
@@ -767,6 +778,7 @@ const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
 );
 
 const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
+const categoryErrorMessage = computed(() => getFieldErrorMessage('form.category'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
 const timeErrorMessage = computed(() => getFieldErrorMessage('form.time'));
 
@@ -852,6 +864,7 @@ const submit = () => {
   touchField('form.amount');
   touchField('form.targetAmount');
   touchField('form.time');
+  touchField('form.category');
 
   if (!isFormValid('form')) return;
 
@@ -894,7 +907,11 @@ const deleteTransactionHandler = () => {
 };
 
 const selectTransactionType = (type: FORM_TYPES, disabled = false) => {
-  if (!disabled) form.value.type = type;
+  if (disabled) return;
+  // A template pins a type, so a type change drops the pill but keeps what the user is
+  // looking at: restoring the snapshot would undo the fields they came here to edit.
+  if (templating.applied.value && type !== form.value.type) templating.detach();
+  form.value.type = type;
 };
 
 // Stores element that was focused before modal was opened, to then focus it back
@@ -928,6 +945,9 @@ const hasPrepopulated = ref(false);
 const { resolveDefaultAccount } = useAccountDropdownPrefs();
 const prepopulateIfReady = () => {
   if (hasPrepopulated.value) return;
+  // Wait for the first accounts fetch: the query serves `placeholderData: []` until then, and
+  // latching on that empty list leaves the account permanently unresolved.
+  if (!isAccountsFetched.value) return;
   if (!transaction.value) {
     form.value.account = resolveDefaultAccount({ accounts: txTargetableSourceAccountsActiveFirst.value });
     hasPrepopulated.value = true;
@@ -951,19 +971,47 @@ const prepopulateIfReady = () => {
 };
 
 onMounted(prepopulateIfReady);
-watch(isCategoriesReady, prepopulateIfReady);
+watch([isCategoriesReady, isAccountsFetched], prepopulateIfReady);
 
-// In create mode, switching between own and shared accounts swaps the category set –
-// drop a stale selection so the user doesn't submit a categoryId that no longer exists
-// in the active list. Skip while the new list is still loading (empty) – we'd otherwise
-// blank the field momentarily.
+// The category set swaps whenever the picked account moves between own and shared. Drop a
+// selection the new set no longer contains, so the required rule blocks Create with a visible
+// message instead of posting a categoryId belonging to another owner.
 watch(effectiveFormattedCategories, (categories) => {
   if (!isFormCreation.value) return;
-  const selectedId = form.value.category?.id;
-  if (selectedId == null) return;
-  if (effectiveCategoriesMap.value[selectedId]) return;
-  const fallback = categories[0];
-  if (fallback) form.value.category = fallback;
+  const selected = form.value.category;
+  if (!selected) {
+    if (form.value.categoryUserTouched) return;
+    // An applied template that resolved no category must stay empty, not fall back to the first.
+    if (templating.applied.value) return;
+    form.value.category = categories[0] ?? null;
+    return;
+  }
+  if (effectiveCategoriesMap.value[selected.id]) return;
+  form.value.category = null;
+});
+
+const amountFieldRef = ref<InstanceType<typeof InputField> | null>(null);
+const categoryFieldRef = ref<InstanceType<typeof CategorySelectField> | null>(null);
+
+const templating = useTransactionTemplating({
+  session: { form, transferDestinationType, linkedTransaction },
+  isFormCreation,
+  isReadOnly,
+  isFormFieldsDisabled,
+  isAccountsFetched,
+  isCategoriesReady,
+  isAccountSharedWithCaller,
+  sourceAccounts: txTargetableSourceAccountsActiveFirst,
+  // Templates pin the caller's own categories; the shared-account picker swaps to the owner's set.
+  formattedCategories,
+  currencyCode,
+  resetPayeeTagTracking,
+  focusAmountField: () => {
+    amountFieldRef.value?.focus();
+    amountFieldRef.value?.select();
+  },
+  focusCategoryField: () => categoryFieldRef.value?.focus(),
+  submit: () => submit(),
 });
 
 onUnmounted(() => {
@@ -1042,7 +1090,12 @@ onUnmounted(() => {
   <PortfolioLinkedView v-if="isPortfolioLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VentureLinkedView v-else-if="isVentureLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
   <VehicleLinkedView v-else-if="isVehicleLinkedView" :transaction="$props.transaction!" @close-modal="closeModal" />
-  <div v-else class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto_auto] overflow-hidden rounded-t-xl">
+  <div
+    v-else
+    class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto_auto] overflow-hidden rounded-t-xl"
+    @keydown="templating.onKeydown"
+  >
+    <p role="status" class="sr-only">{{ templating.announcement.value }}</p>
     <!-- Striped while planned, so the mode stays readable once the toggle scrolls away. -->
     <div
       :class="[
@@ -1055,17 +1108,25 @@ onUnmounted(() => {
       ]"
     />
     <div class="mb-2 flex items-center justify-between px-6 py-2.5">
-      <DialogTitle>
-        <span class="text-xl">
-          {{
-            isReadOnly
-              ? $t('dialogs.manageTransaction.detailsTitle')
-              : isFormCreation
-                ? $t('dialogs.manageTransaction.addTitle')
-                : $t('dialogs.manageTransaction.editTitle')
-          }}
-        </span>
-      </DialogTitle>
+      <div class="flex min-w-0 items-center gap-2">
+        <DialogTitle>
+          <span class="text-xl">
+            {{
+              isReadOnly
+                ? $t('dialogs.manageTransaction.detailsTitle')
+                : isFormCreation
+                  ? $t('dialogs.manageTransaction.addTitle')
+                  : $t('dialogs.manageTransaction.editTitle')
+            }}
+          </span>
+        </DialogTitle>
+
+        <TemplatesPanel
+          v-if="templating.isVisible.value && !isMobileView"
+          v-bind="templating.listProps.value"
+          v-on="templating.listHandlers"
+        />
+      </div>
 
       <DialogClose>
         <Button variant="ghost"> {{ $t('dialogs.manageTransaction.form.closeButton') }} </Button>
@@ -1074,8 +1135,13 @@ onUnmounted(() => {
     <ScrollArea class="min-h-0">
       <div class="relative grid grid-cols-1 md:grid-cols-[450px_minmax(0,1fr)]">
         <div :class="['px-6', isMobileView ? 'pb-1' : 'pb-6']">
+          <TemplatesDrawer
+            v-if="templating.isVisible.value && isMobileView"
+            v-bind="templating.listProps.value"
+            v-on="templating.listHandlers"
+          />
+
           <type-selector
-            :is-form-creation="isFormCreation"
             :selected-transaction-type="currentTxType"
             :transaction="transaction"
             :account="transaction ? accountsRecord[transaction.accountId] : undefined"
@@ -1088,6 +1154,7 @@ onUnmounted(() => {
           <div>
             <form-row>
               <input-field
+                ref="amountFieldRef"
                 v-model="form.amount"
                 :label="$t('dialogs.manageTransaction.form.amountLabel')"
                 type="number"
@@ -1219,9 +1286,12 @@ onUnmounted(() => {
             <template v-if="!isTransferTx">
               <form-row>
                 <category-select-field
+                  ref="categoryFieldRef"
                   v-model="form.category"
                   :label="$t('dialogs.manageTransaction.form.categoryLabel')"
+                  :placeholder="$t('dialogs.manageTransaction.form.selectCategoryPlaceholder')"
                   :values="effectiveFormattedCategories"
+                  :error-message="categoryErrorMessage"
                   :categories-map="isAccountSharedWithCaller ? effectiveCategoriesMap : undefined"
                   :shared-owner-username="isAccountSharedWithCaller ? accountShare?.owner.username : undefined"
                   label-key="name"
@@ -1242,6 +1312,10 @@ onUnmounted(() => {
                     </LabelPill>
                   </template>
                 </category-select-field>
+
+                <p v-if="templating.isCategoryDeleted.value" class="text-warning-text mt-1 px-1 text-xs">
+                  {{ $t('dialogs.manageTransaction.templates.categoryDeletedHint') }}
+                </p>
 
                 <Button
                   v-if="hasSplits"
@@ -1274,6 +1348,28 @@ onUnmounted(() => {
                 :main-category="form.category"
                 :categories="effectiveFormattedCategories"
               />
+
+              <TemplateFormDialog
+                v-model:open="templating.editor.isOpen.value"
+                :mode="templating.editor.mode.value"
+                :template="templating.editor.target.value"
+                :initial="templating.editor.initial.value"
+                :existing-names="templating.editor.existingNames.value"
+                :sources="templating.templateSources.value"
+                @saved="templating.editor.onSaved"
+                @deleted="templating.editor.onDeleted"
+              />
+
+              <ResponsiveAlertDialog
+                v-model:open="templating.isApplyConfirmOpen.value"
+                :confirm-label="$t('dialogs.manageTransaction.templates.use')"
+                @confirm="templating.confirmApply"
+              >
+                <template #title>{{ $t('dialogs.manageTransaction.templates.applyConfirmTitle') }}</template>
+                <template #description>
+                  {{ $t('dialogs.manageTransaction.templates.applyConfirmDescription') }}
+                </template>
+              </ResponsiveAlertDialog>
             </template>
 
             <form-row>
@@ -1347,6 +1443,13 @@ onUnmounted(() => {
           </div>
         </Drawer.DrawerContent>
       </Drawer.Drawer>
+
+      <p
+        v-if="templating.hiddenFields.value"
+        class="text-muted-foreground border-border bg-muted border-t px-6 py-1.5 text-xs dark:bg-black/20"
+      >
+        {{ $t('dialogs.manageTransaction.templates.alsoSet', { fields: templating.hiddenFields.value }) }}
+      </p>
     </template>
 
     <div v-if="!isReadOnly || canDelete" class="border-border bg-dialog flex items-center gap-3 border-t px-6 py-4">
@@ -1378,6 +1481,15 @@ onUnmounted(() => {
               ? $t('dialogs.manageTransaction.form.createButton')
               : $t('dialogs.manageTransaction.form.editButton')
         }}
+        <kbd
+          v-if="!isMobileView"
+          aria-hidden="true"
+          class="text-primary-foreground/70 inline-flex items-center gap-0.5 text-xs font-medium"
+        >
+          <CommandIcon v-if="isMac" class="size-3" />
+          <template v-else>Ctrl</template>
+          <CornerDownLeftIcon class="size-3" />
+        </kbd>
       </Button>
     </div>
   </div>

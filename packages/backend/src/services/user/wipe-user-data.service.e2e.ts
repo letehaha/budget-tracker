@@ -14,6 +14,8 @@ import PayeeIgnoredNames from '@models/payee-ignored-names.model';
 import Payees from '@models/payees.model';
 import ResourceShares from '@models/resource-shares.model';
 import Tags from '@models/tags.model';
+import TransactionTemplateTags from '@models/transaction-template-tags.model';
+import TransactionTemplates from '@models/transaction-templates.model';
 import Transactions from '@models/transactions.model';
 import UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
 import UserSettings from '@models/user-settings.model';
@@ -46,6 +48,15 @@ describe('User data wipe (POST /user/wipe-data)', () => {
     const budget = await helpers.createCustomBudget({ name: 'Wipe budget', limitAmount: 500, raw: true });
     const portfolio = await helpers.createPortfolio({ payload: { name: 'Wipe portfolio' }, raw: true });
     const tag = await helpers.createTag({ payload: { name: 'wipe-tag', color: '#123456' }, raw: true });
+    const template = await helpers.createTransactionTemplate({
+      payload: {
+        name: 'Wipe template',
+        transactionType: TRANSACTION_TYPES.expense,
+        accountId: account.id,
+        tagIds: [tag.id],
+      },
+      raw: true,
+    });
     await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Wipe payee' }), raw: true });
     await helpers.addIgnoredName({ rawName: 'Wipe ignored merchant', raw: true });
     await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
@@ -75,6 +86,8 @@ describe('User data wipe (POST /user/wipe-data)', () => {
     expect(wipeRes.body.status).toBe(API_RESPONSE_STATUS.success);
 
     expect(await Accounts.findAll({ where: { userId } })).toHaveLength(0);
+    expect(await TransactionTemplates.findAll({ where: { userId } })).toHaveLength(0);
+    expect(await TransactionTemplateTags.findAll({ where: { templateId: template.id } })).toHaveLength(0);
     expect(await Transactions.findAll({ where: { userId } })).toHaveLength(0);
     expect(await Budgets.findAll({ where: { id: budget.id } })).toHaveLength(0);
     expect(await UsersCurrencies.findAll({ where: { userId } })).toHaveLength(0);
