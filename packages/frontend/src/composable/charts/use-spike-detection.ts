@@ -71,7 +71,7 @@ export function useSpikeDetection({
     }
 
     // Sort by absolute percent change descending and cap at maxSpikes
-    return candidates.toSorted((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent)).slice(0, maxSpikes);
+    return [...candidates].sort((a, b) => Math.abs(b.deltaPercent) - Math.abs(a.deltaPercent)).slice(0, maxSpikes);
   });
 
   return { spikePoints };

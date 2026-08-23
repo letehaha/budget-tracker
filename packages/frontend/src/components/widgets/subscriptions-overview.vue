@@ -149,7 +149,7 @@ const actionableItems = computed<SubscriptionListItem[]>(() => {
     return daysLeft !== null && daysLeft >= 0 && daysLeft <= UPCOMING_WINDOW_DAYS;
   });
 
-  return filtered.toSorted((a, b) => {
+  return [...filtered].sort((a, b) => {
     const aOverdue = isOverdue({ subscription: a });
     const bOverdue = isOverdue({ subscription: b });
     if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
