@@ -19,6 +19,20 @@ describe('Update transaction controller', () => {
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
+  // A year below 2000 is always a fat-fingered date ("26" for 2026) and breaks
+  // exchange-rate lookups downstream.
+  it('rejects time before year 2000', async () => {
+    const [baseTx] = await helpers.createTransaction({ raw: true });
+
+    const res = await helpers.updateTransaction({
+      id: baseTx.id,
+      payload: { time: '0026-08-22T00:00:00.000Z' },
+      raw: false,
+    });
+
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
   // Zero is a legitimate amount to edit a transaction down to — an imported
   // Microsoft Money voided cheque lands at zero and must stay editable.
   it('accepts a zero amount', async () => {

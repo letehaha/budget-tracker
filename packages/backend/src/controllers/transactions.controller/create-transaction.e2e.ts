@@ -35,6 +35,36 @@ describe('Create transaction controller', () => {
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
+  // A year below 2000 is always a fat-fingered date ("26" for 2026) and breaks
+  // exchange-rate lookups downstream.
+  it('rejects time before year 2000', async () => {
+    const account = await helpers.createAccount({ raw: true });
+
+    const res = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        time: '0026-08-22T00:00:00.000Z',
+      }),
+      raw: false,
+    });
+
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
+  it('accepts time exactly at 2000-01-01', async () => {
+    const account = await helpers.createAccount({ raw: true });
+
+    const [transaction] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        time: '2000-01-01T00:00:00.000Z',
+      }),
+      raw: true,
+    });
+
+    expect(new Date(transaction.time).toISOString()).toBe('2000-01-01T00:00:00.000Z');
+  });
+
   // A register entry that never moved money is a real transaction: Microsoft
   // Money's voided cheques import at zero, and they have to stay editable.
   it('accepts a zero amount', async () => {

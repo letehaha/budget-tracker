@@ -104,7 +104,13 @@ const props = withDefaults(
 
 const { isSafariMobile } = useSafariDetection();
 
-const isValidDate = (value: unknown): value is Date => value instanceof Date && !isNaN(value.getTime());
+// Typing a year in a datetime-local input passes through parseable intermediate
+// values (0002 → 0020 → 0202 → 2026); anything before 2000 is such an
+// intermediate state or a typo, never a real ledger date.
+const MIN_DATE = new Date('2000-01-01T00:00:00');
+
+const isValidDate = (value: unknown): value is Date =>
+  value instanceof Date && !isNaN(value.getTime()) && value >= MIN_DATE;
 
 const formatToInput = (value: Date) => format(value, 'yyyy-MM-dd HH:mm');
 
@@ -123,7 +129,7 @@ const handleLocalInputUpdate = (event: Event) => {
   inputValue.value = inputVal;
 
   // Only emit the date if it's a valid date string
-  if (inputVal && !isNaN(new Date(inputVal).getTime())) {
+  if (inputVal && isValidDate(new Date(inputVal))) {
     emit('update:modelValue', new Date(inputVal));
   }
   // For invalid intermediate states, don't emit anything
@@ -134,7 +140,7 @@ const handleBlur = (event: FocusEvent) => {
   const inputVal = (event.target as HTMLInputElement).value;
 
   // On blur, validate the final input value
-  if (inputVal && !isNaN(new Date(inputVal).getTime())) {
+  if (inputVal && isValidDate(new Date(inputVal))) {
     // Valid date - emit it
     emit('update:modelValue', new Date(inputVal));
   } else if (inputVal) {
