@@ -8,6 +8,11 @@
     "toggleAriaLabel": "Activar automatización",
     "menuAriaLabel": "Acciones de la automatización",
     "disabledPill": "Desactivada",
+    "mcpTip": {
+      "trigger": "Consejos",
+      "text": "Puede gestionar las automatizaciones con IA mediante una conexión MCP: pídale que reorganice sus reglas o que busque duplicados y conflictos.",
+      "link": "Configurar conexión MCP"
+    },
     "statusFilter": {
       "all": "Mostrar todas",
       "enabled": "Solo activas",

@@ -4,13 +4,15 @@ import SelectField from '@/components/fields/select-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { PillTabs, type PillTabItem } from '@/components/lib/ui/pill-tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useDeleteAutomation, useTransactionAutomations } from '@/composable/data-queries/transaction-automations';
+import { trackAnalyticsEvent } from '@/lib/posthog';
 import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
 import { useTagsStore } from '@/stores';
 import type { TransactionAutomationModel } from '@bt/shared/types';
-import { PlusIcon, ZapIcon } from '@lucide/vue';
+import { LightbulbIcon, PlusIcon, ZapIcon } from '@lucide/vue';
 import { useLocalStorage } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -51,6 +53,10 @@ const filteredList = computed(() =>
     : list.value.filter((rule) => rule.isEnabled === (statusFilter.value === 'enabled')),
 );
 
+const onTipsOpen = (open: boolean) => {
+  if (open) trackAnalyticsEvent({ event: 'automations_mcp_tip_opened' });
+};
+
 const isDeleteOpen = ref(false);
 const ruleToDelete = ref<TransactionAutomationModel | null>(null);
 
@@ -77,9 +83,28 @@ const handleDelete = () => {
 <template>
   <div class="@container/automations flex max-w-5xl flex-col gap-6 p-4 md:p-6">
     <div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1">
-      <h1 class="text-2xl font-bold tracking-tight">
-        {{ $t('automations.title') }}
-      </h1>
+      <div class="flex items-center gap-2">
+        <h1 class="text-2xl font-bold tracking-tight">
+          {{ $t('automations.title') }}
+        </h1>
+        <Popover @update:open="onTipsOpen">
+          <PopoverTrigger as-child>
+            <Button variant="soft-primary" size="sm">
+              <LightbulbIcon class="size-4" />
+              {{ $t('automations.mcpTip.trigger') }}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-80 text-sm" align="start">
+            <p>{{ $t('automations.mcpTip.text') }}</p>
+            <RouterLink
+              class="text-primary-text mt-2 inline-block underline underline-offset-2"
+              :to="{ name: ROUTES_NAMES.settingsAiIntegrations }"
+            >
+              {{ $t('automations.mcpTip.link') }}
+            </RouterLink>
+          </PopoverContent>
+        </Popover>
+      </div>
       <router-link :to="{ name: ROUTES_NAMES.automationCreate }">
         <Button as="span">
           <PlusIcon class="size-4" />

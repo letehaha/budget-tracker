@@ -107,7 +107,7 @@ Semantic colors come in pairs: the **base token is a fill** (button/badge backgr
 
 Always use the project's `Button` component (`@/components/lib/ui/button`). Never use raw `<button>` elements.
 
-Available variants: `default`, `destructive`, `outline`, `secondary`, `ghost`, `ghost-destructive`, `soft-destructive`, `ghost-primary`, `success`, `outline-success`, `ghost-success`, `soft-success`, `link`
+Available variants: `default`, `destructive`, `outline`, `secondary`, `ghost`, `ghost-destructive`, `soft-destructive`, `ghost-primary`, `soft-primary`, `success`, `outline-success`, `ghost-success`, `soft-success`, `link`
 
 Available sizes: `default`, `sm`, `lg`, `icon`, `icon-sm`
 

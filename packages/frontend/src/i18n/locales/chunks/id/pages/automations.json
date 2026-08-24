@@ -8,6 +8,11 @@
     "toggleAriaLabel": "Aktifkan otomatisasi",
     "menuAriaLabel": "Tindakan otomatisasi",
     "disabledPill": "Nonaktif",
+    "mcpTip": {
+      "trigger": "Tips",
+      "text": "Anda dapat mengelola otomatisasi dengan AI melalui koneksi MCP — minta AI untuk menata ulang aturan Anda, atau memeriksa duplikat dan konflik.",
+      "link": "Siapkan koneksi MCP"
+    },
     "statusFilter": {
       "all": "Tampilkan semua",
       "enabled": "Hanya yang aktif",

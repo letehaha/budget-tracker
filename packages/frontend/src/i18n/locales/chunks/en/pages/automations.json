@@ -8,6 +8,11 @@
     "toggleAriaLabel": "Enable automation",
     "menuAriaLabel": "Automation actions",
     "disabledPill": "Disabled",
+    "mcpTip": {
+      "trigger": "Tips",
+      "text": "You can manage automations with AI through an MCP connection — ask it to reorganize your rules, or check for duplicates and conflicts.",
+      "link": "Set up MCP connection"
+    },
     "statusFilter": {
       "all": "Show all",
       "enabled": "Only active",
