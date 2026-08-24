@@ -24,7 +24,7 @@
  *   "TxDate"    → "txdate"
  */
 export function normalizeHeader(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 }
 
 // ---------------------------------------------------------------------------
@@ -290,6 +290,14 @@ export function matchValuesByName<T extends { id: string | number; name: string;
 
   for (const source of sources) {
     const normalizedSource = normalizeHeader(source.name);
+
+    // Names carrying no letters or digits (emoji, punctuation) all normalise to the
+    // same empty string, so equality between them is meaningless.
+    if (normalizedSource === '') {
+      result.set(source.name, null);
+      continue;
+    }
+
     let matched: T | undefined;
 
     for (const target of targets) {
