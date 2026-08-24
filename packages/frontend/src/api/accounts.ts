@@ -29,8 +29,10 @@ export const editAccount = async ({
 
 export interface DeleteAccountPayload {
   id: string;
+  removePortfolioTransfers?: boolean;
 }
-export const deleteAccount = async ({ id }: DeleteAccountPayload): Promise<void> => api.delete(`/accounts/${id}`);
+export const deleteAccount = async ({ id, removePortfolioTransfers }: DeleteAccountPayload): Promise<void> =>
+  api.delete(`/accounts/${id}`, { query: { removePortfolioTransfers } });
 
 export interface UnlinkAccountFromBankConnectionPayload {
   id: string;

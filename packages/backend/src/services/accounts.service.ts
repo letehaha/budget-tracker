@@ -16,6 +16,7 @@ import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import { countTransactions } from '@models/transactions-query';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
@@ -437,7 +438,15 @@ interface DeleteAccountByIdInTxResult {
 }
 
 const deleteAccountByIdInTx = withTransaction(
-  async ({ id, userId }: { id: string; userId: number }): Promise<DeleteAccountByIdInTxResult> => {
+  async ({
+    id,
+    userId,
+    removePortfolioTransfers = false,
+  }: {
+    id: string;
+    userId: number;
+    removePortfolioTransfers?: boolean;
+  }): Promise<DeleteAccountByIdInTxResult> => {
     const account = await Accounts.default.findOne({ where: { id, userId } });
     if (!account) {
       throw new NotFoundError({ message: t({ key: 'accounts.accountNotFound' }) });
@@ -477,6 +486,16 @@ const deleteAccountByIdInTx = withTransaction(
 
     await pauseAutomationsReferencing({ userId, refType: 'account', refId: account.id, label: account.name });
 
+    // Must run before the account destroy — the FK is ON DELETE SET NULL, so afterwards
+    // these rows would no longer reference the account and couldn't be targeted. Without
+    // this opt-in they survive as orphaned contributions and double-count if the user
+    // re-creates the account and re-links the same transfers.
+    if (removePortfolioTransfers) {
+      await PortfolioTransfers.destroy({
+        where: { userId, [Op.or]: [{ fromAccountId: id }, { toAccountId: id }] },
+      });
+    }
+
     const affectedRows = await Accounts.deleteAccountById({ id, userId });
     if (affectedRows === 0) {
       // Defensive: the findOne above succeeded, so a 0-affectedRows here is a concurrency
@@ -493,8 +512,16 @@ const deleteAccountByIdInTx = withTransaction(
   },
 );
 
-export const deleteAccountById = async ({ id, userId }: { id: string; userId: number }) => {
-  const result = await deleteAccountByIdInTx({ id, userId });
+export const deleteAccountById = async ({
+  id,
+  userId,
+  removePortfolioTransfers,
+}: {
+  id: string;
+  userId: number;
+  removePortfolioTransfers?: boolean;
+}) => {
+  const result = await deleteAccountByIdInTx({ id, userId, removePortfolioTransfers });
 
   // Post-commit fan-out: the durable changes (share rows deleted, invitations revoked,
   // account row destroyed) committed in the transaction above. Notifications are
