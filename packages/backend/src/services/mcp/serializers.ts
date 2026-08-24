@@ -7,8 +7,10 @@
  * tokens. These helpers take the already-serialized, already-decimal output and keep only the
  * fields an assistant reasons about. The shared serializers stay untouched.
  */
+import { INVESTMENT_DECIMAL_SCALE } from '@common/types/money';
 import type Accounts from '@models/accounts.model';
 import type Categories from '@models/categories.model';
+import type PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import type SubscriptionTransactions from '@models/subscription-transactions.model';
 import type Subscriptions from '@models/subscriptions.model';
 import type { TransactionsAttributes } from '@models/transactions.model';
@@ -29,6 +31,33 @@ export function slimAccountsForMcp(accounts: AccountApiResponse[]) {
     status: a.status,
     excludeFromStats: a.excludeFromStats,
   }));
+}
+
+export function slimPortfolioTransferForMcp(transfer: PortfolioTransfers) {
+  return {
+    id: transfer.id,
+    date: transfer.date,
+    amount: transfer.amount.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+    refAmount: transfer.refAmount.toDecimalString(INVESTMENT_DECIMAL_SCALE),
+    currencyCode: transfer.currencyCode,
+    description: transfer.description,
+    isAdjustment: transfer.isAdjustment,
+    transactionId: transfer.transactionId,
+    fromAccountId: transfer.fromAccountId,
+    toAccountId: transfer.toAccountId,
+    fromPortfolioId: transfer.fromPortfolioId,
+    toPortfolioId: transfer.toPortfolioId,
+    ...(transfer.fromPortfolio && {
+      fromPortfolio: { id: transfer.fromPortfolio.id, name: transfer.fromPortfolio.name },
+    }),
+    ...(transfer.toPortfolio && { toPortfolio: { id: transfer.toPortfolio.id, name: transfer.toPortfolio.name } }),
+    ...(transfer.fromAccount && { fromAccount: { id: transfer.fromAccount.id, name: transfer.fromAccount.name } }),
+    ...(transfer.toAccount && { toAccount: { id: transfer.toAccount.id, name: transfer.toAccount.name } }),
+    ...(transfer.toCurrencyCode && {
+      toCurrencyCode: transfer.toCurrencyCode,
+      toAmount: transfer.toAmount?.toDecimalString(INVESTMENT_DECIMAL_SCALE) ?? null,
+    }),
+  };
 }
 
 export function slimTransactionsForMcp(txs: TransactionApiResponse[]) {
