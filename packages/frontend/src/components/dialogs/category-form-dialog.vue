@@ -30,7 +30,7 @@
 
       <div v-if="isCreatingTopLevelCategory || isEditMode" class="grid grid-cols-2 gap-4">
         <ColorSelectField
-          v-if="isCreatingTopLevelCategory"
+          v-if="isCreatingTopLevelCategory || isEditMode"
           v-model="form.color"
           :label="$t('dialogs.categoryForm.colorLabel')"
         />
@@ -194,11 +194,12 @@ const handleSubmit = async () => {
         categoryId: props.category.id,
         name: form.name.trim(),
         icon: form.icon,
+        color: form.color,
       });
 
       addSuccessNotification(t('dialogs.categoryForm.notifications.updated'));
       await categoriesStore.loadCategories({ force: true });
-      emit('saved', { ...props.category, name: form.name.trim() });
+      emit('saved', { ...props.category, name: form.name.trim(), color: form.color });
     } else {
       type CreateParams = Parameters<typeof createCategory>[0];
 
