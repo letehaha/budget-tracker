@@ -25,6 +25,12 @@
         "inParent": "di {name}",
         "manageConnection": "Kelola koneksi"
       },
+      "update": {
+        "label": "Nama grup",
+        "placeholder": "Masukkan nama grup",
+        "saveButton": "Simpan",
+        "emptyNameError": "Nama grup tidak boleh kosong"
+      },
       "accounts": {
         "heading": "Akun dalam grup ini",
         "empty": "Belum ada akun dalam grup ini. Tambahkan akun ke grup dari halaman akun.",
@@ -40,12 +46,6 @@
         "accountsKept": "Akun tetap disimpan — akun hanya menjadi tanpa grup.",
         "syncContinues": "Sinkronisasi bank tetap berlanjut — koneksi terpisah dari grup ini.",
         "ungroupedHeading": "Menjadi tanpa grup"
-      },
-      "update": {
-        "label": "Nama grup",
-        "placeholder": "Masukkan nama grup",
-        "saveButton": "Simpan",
-        "emptyNameError": "Nama grup tidak boleh kosong"
       }
     }
   }

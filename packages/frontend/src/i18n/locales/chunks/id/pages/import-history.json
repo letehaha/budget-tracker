@@ -2,14 +2,14 @@
   "pages": {
     "importExport": {
       "importHistory": {
-        "pageTitle": "Riwayat Impor",
-        "pageDescription": "Lihat impor sebelumnya dan telusuri persis akun serta transaksi apa saja yang dibuat oleh masing-masing impor.",
-        "loadError": "Tidak dapat memuat riwayat impor Anda.",
-        "emptyTitle": "Belum ada impor",
-        "emptyDescription": "Setelah Anda mengimpor transaksi, semuanya akan muncul di sini.",
-        "emptyAction": "Impor data",
-        "transactionCount": "{count} transaksi | {count} transaksi",
-        "accountCount": "{count} akun | {count} akun"
+        "pageTitle": "",
+        "pageDescription": "",
+        "loadError": "",
+        "emptyTitle": "",
+        "emptyDescription": "",
+        "emptyAction": "",
+        "transactionCount": "",
+        "accountCount": ""
       }
     }
   }

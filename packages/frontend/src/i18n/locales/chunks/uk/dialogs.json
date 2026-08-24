@@ -118,7 +118,7 @@
         "amountLabel": "Сума",
         "amountPlaceholder": "Сума",
         "categoryLabel": "Категорія",
-        "selectCategoryPlaceholder": "Виберіть категорію",
+        "selectCategoryPlaceholder": "",
         "targetAmountLabel": "Цільова сума",
         "targetAmountPlaceholder": "Цільова сума",
         "plannedLabel": "Запланована транзакція",
@@ -216,6 +216,7 @@
         "saveButton": "Зберегти",
         "confirmButton": "Підтвердити",
         "linkedRefunds": "Прив'язані повернення",
+        "unlinkRefund": "Відв'язати повернення",
         "refundsPortion": "Повертає частину {name}",
         "selectOnlyOne": "* ви можете вибрати лише одну транзакцію",
         "selectMultipleWithLimit": "* ви можете вибрати кілька транзакцій, але їх загальна сума не може перевищувати суму оригінальної транзакції",
@@ -227,7 +228,6 @@
         "finalValidationWarning": "Остаточна валідація буде використовувати конвертовані суми.",
         "mainCategoryLabel": "(основна)",
         "linkRemovedOnTypeChange": "Прив'язку повернення видалено, оскільки тип транзакції змінився.",
-        "unlinkRefund": "Відв'язати повернення",
         "modeRefunds": "Повертає транзакцію",
         "helperRefunds": "Цей запис є поверненням — виберіть одну транзакцію, яку він повертає.",
         "helperRefundedBy": "Інші записи повертають цей — виберіть будь-яку кількість, загалом до {amount}.",
@@ -320,57 +320,57 @@
         "openVehicle": "Відкрити {name}"
       },
       "templates": {
-        "trigger": "Шаблони",
-        "filterPlaceholder": "Знайти шаблон…",
-        "emptyState": "Шаблони заповнюють цю форму даними, які ви вводите найчастіше: сумою, рахунком, категорією, отримувачем, тегами, приміткою. Самі вони нічого не створюють; якщо щось повторюється за розкладом, скористайтеся регулярними платежами.",
-        "noMatches": "Немає відповідних шаблонів.",
-        "loadError": "Не вдалося завантажити ваші шаблони.",
-        "saveCurrent": "Зберегти поточне як шаблон",
-        "updateApplied": "Оновити «{name}»",
-        "saveAsNew": "Зберегти як новий",
-        "newTemplate": "Новий шаблон",
-        "use": "Використати шаблон",
-        "edit": "Редагувати",
-        "tapHint": "Торкніться шаблону, щоб заповнити форму",
-        "toggleDetails": "Показати деталі",
-        "noAmount": "суму не збережено",
-        "keepsAccount": "зберігає вибраний рахунок",
+        "trigger": "",
+        "filterPlaceholder": "",
+        "emptyState": "",
+        "noMatches": "",
+        "loadError": "",
+        "saveCurrent": "",
+        "updateApplied": "",
+        "saveAsNew": "",
+        "newTemplate": "",
+        "use": "",
+        "edit": "",
+        "tapHint": "",
+        "toggleDetails": "",
+        "noAmount": "",
+        "keepsAccount": "",
         "stale": {
-          "categoryDeleted": "категорію видалено",
-          "accountUnavailable": "рахунок недоступний"
+          "categoryDeleted": "",
+          "accountUnavailable": ""
         },
-        "removeAriaLabel": "Прибрати шаблон, відновити форму",
-        "announceApplied": "Застосовано {name} — заповнено {count} поле. Сума порожня. | Застосовано {name} — заповнено {count} поля. Сума порожня. | Застосовано {name} — заповнено {count} полів. Сума порожня.",
-        "announceAppliedWithAmount": "Застосовано {name} — заповнено {count} поле. Сума: {amount}. | Застосовано {name} — заповнено {count} поля. Сума: {amount}. | Застосовано {name} — заповнено {count} полів. Сума: {amount}.",
-        "categoryDeletedHint": "Категорію цього шаблону видалено — оберіть іншу.",
-        "alsoSet": "Шаблон також задав: {fields}",
-        "tagsCount": "{count} тег | {count} теги | {count} тегів",
-        "applyConfirmTitle": "Застосувати шаблон?",
-        "applyConfirmDescription": "Застосування замінить ваш розподіл і прив'язку повернення.",
+        "removeAriaLabel": "",
+        "announceApplied": "",
+        "announceAppliedWithAmount": "",
+        "categoryDeletedHint": "",
+        "alsoSet": "",
+        "tagsCount": "",
+        "applyConfirmTitle": "",
+        "applyConfirmDescription": "",
         "toasts": {
-          "savedFromForm": "Збережено «{name}» — тепер це активний шаблон.",
-          "saved": "Шаблон збережено.",
-          "deleted": "Шаблон видалено."
+          "savedFromForm": "",
+          "saved": "",
+          "deleted": ""
         },
         "form": {
-          "titleNew": "Новий шаблон",
-          "titleEdit": "Редагувати шаблон",
-          "titleSaveCurrent": "Зберегти як шаблон",
-          "nameLabel": "Назва",
-          "namePlaceholder": "напр. Ранкова кава",
-          "typeLabel": "Тип",
-          "keepAccount": "Залишати той рахунок, який вибрано в момент використання",
-          "noAmount": "Не зберігати суму — я вводитиму її щоразу",
-          "delete": "Видалити шаблон",
-          "save": "Зберегти шаблон",
-          "deleteConfirmTitle": "Видалити «{name}»?",
-          "deleteConfirmDescription": "Цей шаблон буде видалено. Транзакції, які ви вже створили з нього, залишаться без змін.",
-          "duplicateName": "У вас уже є шаблон із назвою «{name}»."
+          "titleNew": "",
+          "titleEdit": "",
+          "titleSaveCurrent": "",
+          "nameLabel": "",
+          "namePlaceholder": "",
+          "typeLabel": "",
+          "keepAccount": "",
+          "noAmount": "",
+          "delete": "",
+          "save": "",
+          "deleteConfirmTitle": "",
+          "deleteConfirmDescription": "",
+          "duplicateName": ""
         },
         "errors": {
-          "create": "Не вдалося зберегти шаблон. Спробуйте ще раз.",
-          "update": "Не вдалося оновити шаблон. Спробуйте ще раз.",
-          "delete": "Не вдалося видалити шаблон. Спробуйте ще раз."
+          "create": "",
+          "update": "",
+          "delete": ""
         }
       }
     },
@@ -423,18 +423,6 @@
         "success": "Транзакцію успішно видалено.",
         "error": "Не вдалося видалити транзакцію."
       }
-    },
-    "categoryExclusions": {
-      "title": "Виключити категорії",
-      "description": "Приховано з графіка та підсумків цього віджету",
-      "menuItem": "Виключити категорії",
-      "nothingExcluded": "Нічого не виключено. Усі категорії враховуються в цьому віджеті.",
-      "excludedTag": "Виключено",
-      "stopExcluding": "Перестати виключати {name}",
-      "badgeTooltip": "1 категорію виключено з цього віджету | {count} категорії виключено з цього віджету | {count} категорій виключено з цього віджету",
-      "andMore": "і ще {count}",
-      "clearAll": "Очистити все",
-      "countExcluded": "1 категорію виключено | {count} категорії виключено | {count} категорій виключено"
     },
     "categoryForm": {
       "title": {
@@ -591,6 +579,18 @@
         "deliveryFailed": "Запрошення створено, але листа не вдалося надіслати. Спробуйте пізніше.",
         "error": "Не вдалося надіслати запрошення."
       }
+    },
+    "categoryExclusions": {
+      "title": "Виключити категорії",
+      "description": "Приховано з графіка та підсумків цього віджету",
+      "menuItem": "Виключити категорії",
+      "nothingExcluded": "Нічого не виключено. Усі категорії враховуються в цьому віджеті.",
+      "excludedTag": "Виключено",
+      "stopExcluding": "Перестати виключати {name}",
+      "badgeTooltip": "1 категорію виключено з цього віджету | {count} категорії виключено з цього віджету | {count} категорій виключено з цього віджету",
+      "andMore": "і ще {count}",
+      "clearAll": "Очистити все",
+      "countExcluded": "1 категорію виключено | {count} категорії виключено | {count} категорій виключено"
     },
     "subscriptionMarkPaid": {
       "title": "Зафіксувати платіж",

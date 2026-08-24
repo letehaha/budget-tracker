@@ -32,15 +32,15 @@
         "listDescription": "Importa un archivo .mny de Microsoft Money"
       },
       "importHistory": {
-        "title": "Historial de importaciones",
-        "listDescription": "Consulte las importaciones anteriores y lo que crearon"
+        "title": "",
+        "listDescription": ""
       },
       "import": {
         "back": "Volver a Importar",
         "groups": {
           "filesAndText": "Archivos y texto",
           "fromOtherApps": "Desde otras apps",
-          "history": "Historial"
+          "history": ""
         },
         "requestMore": {
           "title": "¿Quieres más opciones? Solicítalo aquí"

@@ -2,14 +2,14 @@
   "pages": {
     "importExport": {
       "importHistory": {
-        "pageTitle": "Historial de importaciones",
-        "pageDescription": "Consulte sus importaciones anteriores y vea exactamente qué cuentas y transacciones creó cada una.",
-        "loadError": "No se pudo cargar su historial de importaciones.",
-        "emptyTitle": "Aún no hay importaciones",
-        "emptyDescription": "Cuando importe transacciones, aparecerán aquí.",
-        "emptyAction": "Importar datos",
-        "transactionCount": "{count} transacción | {count} transacciones",
-        "accountCount": "{count} cuenta | {count} cuentas"
+        "pageTitle": "",
+        "pageDescription": "",
+        "loadError": "",
+        "emptyTitle": "",
+        "emptyDescription": "",
+        "emptyAction": "",
+        "transactionCount": "",
+        "accountCount": ""
       }
     }
   }

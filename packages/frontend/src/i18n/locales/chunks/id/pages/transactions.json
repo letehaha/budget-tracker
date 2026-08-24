@@ -151,7 +151,7 @@
         "noGroupsMessage": "Belum ada grup transaksi.",
         "emptyStateHint": "Pilih transaksi di halaman Transaksi dan klik \"Buat Grup\" untuk memulai.",
         "transactionCountLabel": "transaksi",
-        "deleteError": "Gagal menghapus grup. Silakan coba lagi."
+        "deleteError": ""
       },
       "errors": {
         "nameRequired": "Nama grup wajib diisi",

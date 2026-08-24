@@ -27,12 +27,20 @@
         "title": "Wallet (BudgetBakers)",
         "listDescription": "Мультивалютні рахунки з автоматичним визначенням переказів"
       },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Імпортуйте файл .mny з Microsoft Money"
+      },
+      "importHistory": {
+        "title": "",
+        "listDescription": ""
+      },
       "import": {
         "back": "Назад до Імпорту",
         "groups": {
           "filesAndText": "Файли та текст",
           "fromOtherApps": "З інших застосунків",
-          "history": "Історія"
+          "history": ""
         },
         "requestMore": {
           "title": "Хочете більше опцій? Запитайте тут"
@@ -80,14 +88,6 @@
           "clear": "Очистити період"
         },
         "listDescription": "Завантажте zip для таблиць, податків або міграції"
-      },
-      "ms-money": {
-        "title": "Microsoft Money",
-        "listDescription": "Імпортуйте файл .mny з Microsoft Money"
-      },
-      "importHistory": {
-        "title": "Історія імпорту",
-        "listDescription": "Переглядайте минулі імпорти та те, що вони створили"
       }
     }
   }

@@ -23,11 +23,11 @@
   },
   "accountGroups": {
     "groupNotFound": "Grup tidak ditemukan",
+    "groupUpdateFailed": "Pembaruan grup tidak berhasil",
     "parentGroupNotExist": "Induk dengan id tersebut tidak ada.",
     "parentGroupDoesNotExist": "Grup induk tidak ada.",
     "accountNotFound": "Akun dengan id tersebut tidak ditemukan.",
-    "accountGroupNotFound": "Grup akun dengan id tersebut tidak ditemukan.",
-    "groupUpdateFailed": "Pembaruan grup tidak berhasil"
+    "accountGroupNotFound": "Grup akun dengan id tersebut tidak ditemukan."
   },
   "transactions": {
     "notFound": "Transaksi tidak ditemukan",
@@ -86,12 +86,12 @@
       "amountTooSmall": "Jumlah split minimal {{min}} (minimum sistem)",
       "noteTooLong": "Catatan split tidak boleh melebihi {{max}} karakter",
       "invalidCategory": "Kategori dengan id {{categoryId}} tidak ditemukan atau bukan milik pengguna",
+      "duplicateCategory": "Setiap split harus menggunakan kategori yang berbeda",
       "exceedTotal": "Total jumlah split ({{total}}) melebihi jumlah transaksi ({{transactionAmount}})",
       "invalidData": "Data split tidak valid",
       "splitNotFound": "Split tidak ditemukan",
       "cannotDeleteWithRefunds": "Tidak dapat menghapus split yang memiliki refund yang menargetkannya",
-      "cannotReduceBelowRefunded": "Split ini memiliki refund sebesar {{refundsText}}. Anda tidak dapat menguranginya di bawah jumlah yang sudah direfund. Untuk mengurangi lebih lanjut, lepaskan tautan refund terlebih dahulu.",
-      "duplicateCategory": "Setiap split harus menggunakan kategori yang berbeda"
+      "cannotReduceBelowRefunded": "Split ini memiliki refund sebesar {{refundsText}}. Anda tidak dapat menguranginya di bawah jumlah yang sudah direfund. Untuk mengurangi lebih lanjut, lepaskan tautan refund terlebih dahulu."
     }
   },
   "budgets": {
@@ -191,6 +191,15 @@
   "validation": {
     "dateInvalid": "\"date\" adalah tanggal tidak valid."
   },
+  "urlGuard": {
+    "invalidUrl": "Ini bukan URL yang valid.",
+    "unsupportedProtocol": "Hanya URL http:// dan https:// yang diizinkan.",
+    "credentialsInUrlNotAllowed": "URL tidak boleh berisi nama pengguna atau kata sandi. Gunakan kolom kunci API sebagai gantinya.",
+    "privateAddressBlocked": "{{host}} mengarah ke alamat jaringan privat atau yang dicadangkan, yang tidak diizinkan.",
+    "hostnameNotResolvable": "{{host}} tidak dapat di-resolve. Periksa alamat untuk kesalahan ketik.",
+    "redirectNotAllowed": "Endpoint merespons dengan pengalihan (redirect). Masukkan URL akhir sebagai gantinya.",
+    "hostnameLookupUnavailable": "Kami tidak dapat memverifikasi {{host}} saat ini. Silakan coba lagi sesaat lagi."
+  },
   "bankDataProviders": {
     "reauthorizationStarted": "Reotorisasi dimulai. Silakan selesaikan alur OAuth.",
     "connectionEstablished": "Koneksi berhasil dibuat",
@@ -217,11 +226,11 @@
       "invalidApiToken": "Token API Monobank tidak valid",
       "rateLimitExceeded": "Batas kecepatan API Monobank terlampaui. Silakan coba lagi dalam satu menit.",
       "accountNotFound": "Akun {{accountExternalId}} tidak ditemukan di Monobank",
+      "accountReconnectRequired": "Akun ini tidak lagi tersedia di Monobank. Silakan hubungkan kembali koneksi Monobank Anda untuk melanjutkan sinkronisasi.",
       "webhookNotImplemented": "handleWebhook belum diimplementasikan untuk Monobank",
       "unknownCurrencyCode": "Kode mata uang tidak dikenal: {{numericCode}}",
       "geoBlocked": "Monobank memblokir permintaan dari IP server ini. Nonaktifkan VPN atau gunakan alamat IP Ukraina.",
-      "geoBlockedProduction": "Sinkronisasi Monobank untuk sementara tidak tersedia. Kami telah diberitahu dan sedang menanganinya. Hubungi dukungan jika ini mendesak.",
-      "accountReconnectRequired": "Akun ini tidak lagi tersedia di Monobank. Silakan hubungkan kembali koneksi Monobank Anda untuk melanjutkan sinkronisasi."
+      "geoBlockedProduction": "Sinkronisasi Monobank untuk sementara tidak tersedia. Kami telah diberitahu dan sedang menanganinya. Hubungi dukungan jika ini mendesak."
     },
     "enableBanking": {
       "invalidCredentialsFormat": "Format kredensial tidak valid untuk Enable Banking",
@@ -298,14 +307,14 @@
     "alreadyBaseCurrency": "Mata uang yang dipilih sudah menjadi mata uang dasar",
     "baseCurrencyLockedByShares": "Tidak dapat mengubah mata uang dasar saat Anda memiliki sumber daya bersama yang aktif. Cabut atau tinggalkan terlebih dahulu.",
     "baseCurrencyLockedByHousehold": "Tidak dapat mengubah mata uang dasar saat Anda masih menjadi bagian dari rumah tangga aktif. Cabut atau tinggalkan keanggotaan rumah tangga Anda terlebih dahulu.",
-    "cannotFindForRefAmount": "Tidak dapat menemukan mata uang untuk menghitung jumlah referensi!",
-    "cannotCalculateRefAmount": "Tidak dapat menghitung jumlah referensi",
-    "currencyNotConnected": "Mata uang yang diminta tidak terhubung",
-    "exchangeRateNotAvailable": "Nilai tukar tidak tersedia untuk {{baseCode}}/{{quoteCode}} pada {{date}}",
     "baseCurrencyChangeInProgress": "Perubahan mata uang dasar sedang berlangsung. Harap tunggu hingga selesai.",
     "baseCurrencyChangeSyncInProgress": "Sinkronisasi bank masih berlangsung. Silakan coba ubah mata uang dasar Anda lagi dalam beberapa menit.",
     "baseCurrencyChangeDrainCheckFailed": "Tidak dapat memverifikasi bahwa sinkronisasi bank sedang tidak aktif. Silakan coba lagi.",
-    "baseCurrencyChangeInProgressOtherUser": "Peserta lain sedang mengubah mata uang dasar mereka. Silakan coba lagi setelah proses migrasi mereka selesai."
+    "baseCurrencyChangeInProgressOtherUser": "Peserta lain sedang mengubah mata uang dasar mereka. Silakan coba lagi setelah proses migrasi mereka selesai.",
+    "cannotFindForRefAmount": "Tidak dapat menemukan mata uang untuk menghitung jumlah referensi!",
+    "cannotCalculateRefAmount": "Tidak dapat menghitung jumlah referensi",
+    "currencyNotConnected": "Mata uang yang diminta tidak terhubung",
+    "exchangeRateNotAvailable": "Nilai tukar tidak tersedia untuk {{baseCode}}/{{quoteCode}} pada {{date}}"
   },
   "userSettings": {
     "userSettingsNotFound": "Pengaturan pengguna tidak ditemukan"
@@ -454,6 +463,7 @@
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Satu atau lebih transaksi tidak ditemukan atau bukan milik pengguna.",
+    "cannotLinkDifferentTransactionType": "Tidak dapat menautkan transaksi dengan jenis yang berbeda dari pembayaran berulang",
     "summaryCurrencyNotConnected": "Ringkasan langganan tidak dapat dihitung: mata uang {{currencyCodes}} tidak terhubung ke akun Anda. Hubungkan di Pengaturan → Mata Uang.",
     "summaryBaseCurrencyNotSet": "Mata uang dasar belum diatur. Atur mata uang bawaan di pengaturan Anda untuk melihat ringkasan langganan.",
     "payeeNotFoundOrNotBelongToUser": "Penerima tidak ditemukan atau bukan milik pengguna.",
@@ -467,8 +477,18 @@
         "requiresAmountField": "Perekaman otomatis memerlukan expectedAmount dan expectedCurrencyCode.",
         "excludesMatchingField": "Perekaman otomatis dan aturan pencocokan bersifat mutually exclusive."
       }
-    },
-    "cannotLinkDifferentTransactionType": "Tidak dapat menautkan transaksi dengan jenis yang berbeda dari pembayaran berulang"
+    }
+  },
+  "transactionTemplates": {
+    "notFound": "",
+    "nameAlreadyExists": "",
+    "amountRequiresAccount": "",
+    "accountNotFound": "",
+    "accountMustBeSystem": "",
+    "accountArchived": "",
+    "categoryNotFound": "",
+    "payeeNotFound": "",
+    "tagsNotFound": ""
   },
   "payees": {
     "aliasNameRequired": "Nama alias wajib diisi",
@@ -487,6 +507,10 @@
     "notFound": "Penerima tidak ditemukan",
     "renameCollision": "Penerima lain sudah menggunakan nama ini — gabungkan saja"
   },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "Logo merek dan huruf khusus tidak dapat diatur secara bersamaan.",
+    "colorRequiresInitials": "Warna monogram memerlukan huruf monogram."
+  },
   "venture": {
     "dealNotFound": "Deal venture tidak ditemukan",
     "eventNotFound": "Event venture tidak ditemukan"
@@ -494,37 +518,13 @@
   "vehicles": {
     "notFound": "Kendaraan tidak ditemukan"
   },
-  "urlGuard": {
-    "invalidUrl": "Ini bukan URL yang valid.",
-    "unsupportedProtocol": "Hanya URL http:// dan https:// yang diizinkan.",
-    "credentialsInUrlNotAllowed": "URL tidak boleh berisi nama pengguna atau kata sandi. Gunakan kolom kunci API sebagai gantinya.",
-    "privateAddressBlocked": "{{host}} mengarah ke alamat jaringan privat atau yang dicadangkan, yang tidak diizinkan.",
-    "hostnameNotResolvable": "{{host}} tidak dapat di-resolve. Periksa alamat untuk kesalahan ketik.",
-    "redirectNotAllowed": "Endpoint merespons dengan pengalihan (redirect). Masukkan URL akhir sebagai gantinya.",
-    "hostnameLookupUnavailable": "Kami tidak dapat memverifikasi {{host}} saat ini. Silakan coba lagi sesaat lagi."
-  },
-  "brandLogos": {
-    "domainAndInitialsExclusive": "Logo merek dan huruf khusus tidak dapat diatur secara bersamaan.",
-    "colorRequiresInitials": "Warna monogram memerlukan huruf monogram."
-  },
   "stats": {
     "netWorthHistoryTooManyPoints": "Rentang tanggal dan granularitas ini menghasilkan terlalu banyak titik data. Pilih granularitas yang lebih kasar atau rentang yang lebih pendek."
   },
-  "transactionTemplates": {
-    "notFound": "Templat transaksi tidak ditemukan.",
-    "nameAlreadyExists": "Templat transaksi dengan nama ini sudah ada.",
-    "amountRequiresAccount": "Jumlah hanya dapat disimpan bersama dengan akun.",
-    "accountNotFound": "Akun tidak ditemukan atau bukan milik pengguna.",
-    "accountMustBeSystem": "Hanya akun yang dikelola secara manual yang dapat digunakan dalam templat transaksi.",
-    "accountArchived": "Akun yang diarsipkan tidak dapat digunakan dalam templat.",
-    "categoryNotFound": "Kategori tidak ditemukan atau bukan milik pengguna.",
-    "payeeNotFound": "Penerima tidak ditemukan atau bukan milik pengguna.",
-    "tagsNotFound": "Satu atau lebih tag tidak ditemukan atau bukan milik pengguna."
-  },
   "automations": {
-    "automationNotFound": "Otomatisasi tidak ditemukan.",
-    "reorderStale": "Daftar otomatisasi telah berubah. Muat ulang dan coba lagi.",
-    "ruleLimitReached": "Anda telah mencapai jumlah maksimum otomatisasi.",
-    "staleReference": "Otomatisasi ini merujuk pada item yang sudah tidak ada."
+    "automationNotFound": "",
+    "reorderStale": "",
+    "ruleLimitReached": "",
+    "staleReference": ""
   }
 }

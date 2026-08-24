@@ -165,9 +165,6 @@
       },
       "enableBanking": {
         "instructions": {},
-        "help": {
-          "trigger": "Di mana saya mendapatkan kredensial Enable Banking?"
-        },
         "placeholders": {
           "appId": "Masukkan app_id Enable Banking Anda",
           "privateKey": "[REDACTED PRIVATE KEY]",
@@ -178,6 +175,9 @@
           "noAuthUrl": "Tidak ada URL otorisasi yang diterima dari server",
           "failedToLoadBanks": "Gagal memuat bank",
           "failedToConnectProvider": "Gagal menghubungkan penyedia"
+        },
+        "help": {
+          "trigger": "Di mana saya mendapatkan kredensial Enable Banking?"
         }
       },
       "lunchflow": {

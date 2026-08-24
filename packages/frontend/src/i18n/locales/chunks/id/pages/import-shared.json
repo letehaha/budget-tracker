@@ -1,4 +1,12 @@
 {
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
+        "lostContact": "Kehilangan kontak dengan tugas impor."
+      }
+    }
+  },
   "importShared": {
     "action": {
       "createNew": "Buat baru",
@@ -63,14 +71,6 @@
         "category": "Kategori"
       },
       "importAnywayAriaLabel": "Tetap impor baris {row}"
-    }
-  },
-  "pages": {
-    "importExport": {
-      "progress": {
-        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
-        "lostContact": "Kehilangan kontak dengan tugas impor."
-      }
     }
   }
 }

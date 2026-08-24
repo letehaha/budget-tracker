@@ -100,6 +100,7 @@
         "configTypeInstallments": "Розстрочки",
         "activeSummary": "{count} активна",
         "perYear": " на рік",
+        "incomeSummary": "{count} активна · {amount}/міс дохід",
         "percentOfIncome": "{percent}% від сер. доходу",
         "settings": {
           "title": "Налаштування",
@@ -112,8 +113,7 @@
             "6": "Останні 6 місяців",
             "12": "Останні 12 місяців"
           }
-        },
-        "incomeSummary": "{count} активна · {amount}/міс дохід"
+        }
       },
       "categoryTracker": {
         "title": "Спостереження Категорій",
