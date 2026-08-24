@@ -22,6 +22,7 @@ import githubRoutes from './routes/github.route';
 import batchesHistoryRoutes from './routes/import-export/batches-history.route';
 import budgetBakersWalletImportRoutes from './routes/import-export/budget-bakers-wallet.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
+import deleteBatchRoutes from './routes/import-export/delete-batch.route';
 import msMoneyImportRoutes from './routes/import-export/ms-money.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import ynabImportRoutes from './routes/import-export/ynab.route';
@@ -193,6 +194,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/venture`, ventureRoutes);
   app.use('/mcp', mcpRoutes);
   app.use(`${API_PREFIX}/import`, csvImportExportRoutes);
+  app.use(`${API_PREFIX}/import`, deleteBatchRoutes);
   app.use(`${API_PREFIX}/import`, statementParserRoutes);
   app.use(`${API_PREFIX}/import`, ynabImportRoutes);
   app.use(`${API_PREFIX}/import`, budgetBakersWalletImportRoutes);
