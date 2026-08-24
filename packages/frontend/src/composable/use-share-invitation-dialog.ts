@@ -103,7 +103,7 @@ export const useShareInvitationDialog = ({
       });
     },
     onSuccess: (data) => {
-      if (data.emailDelivered === false) {
+      if (data.emailOutcome === 'failed') {
         addErrorNotification(t(`${i18nNamespace}.emailSendFailedWarning`));
       } else {
         addSuccessNotification(t(`${i18nNamespace}.success`));

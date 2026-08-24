@@ -70,6 +70,7 @@ interface AuthInstance {
   api: {
     getSession: (params: { headers: unknown }) => Promise<{ user: unknown; session: unknown } | null>;
     signInEmail: (params: SignInEmailParams) => Promise<Response>;
+    setPassword: (params: { body: { newPassword: string }; headers: unknown }) => Promise<{ status: boolean }>;
   };
 }
 
@@ -107,6 +108,26 @@ function extractSessionToken(cookie: string | undefined): string | null {
   if (!cookie) return null;
   const match = cookie.match(/bt_auth\.session_token=([^;]+)/);
   return match?.[1] ?? null;
+}
+
+/**
+ * Resolves the signed-in user from request headers. Accepts a Fetch `Headers` instance
+ * (real better-auth shape) or a plain object.
+ */
+function resolveSession(
+  headers: unknown,
+): { user: { id: string; email: string; name?: string }; token: string } | null {
+  let cookie: string | undefined;
+  if (headers instanceof Headers) {
+    cookie = headers.get('cookie') ?? headers.get('Cookie') ?? undefined;
+  } else {
+    const headerObj = headers as Record<string, string | undefined>;
+    cookie = headerObj.cookie || headerObj.Cookie;
+  }
+  const token = extractSessionToken(cookie);
+  if (!token) return null;
+  const user = sessionStore.get(token);
+  return user ? { user, token } : null;
 }
 
 /**
@@ -264,27 +285,38 @@ export function betterAuth(config: BetterAuthConfig): AuthInstance {
 
     api: {
       getSession: async ({ headers }: { headers: unknown }) => {
-        // Middleware may pass a Fetch Headers instance (real better-auth shape)
-        // or a plain object (older callers). Support both.
-        let cookie: string | undefined;
-        if (headers instanceof Headers) {
-          cookie = headers.get('cookie') ?? headers.get('Cookie') ?? undefined;
-        } else {
-          const headerObj = headers as Record<string, string | undefined>;
-          cookie = headerObj.cookie || headerObj.Cookie;
-        }
-        const sessionToken = extractSessionToken(cookie);
+        const session = resolveSession(headers);
+        if (!session) return null;
+        return {
+          user: session.user,
+          session: { id: 'test-session-id', token: session.token },
+        };
+      },
 
-        if (sessionToken) {
-          const user = sessionStore.get(sessionToken);
-          if (user) {
-            return {
-              user,
-              session: { id: 'test-session-id', token: sessionToken },
-            };
-          }
+      setPassword: async ({ headers }: { body: { newPassword: string }; headers: unknown }) => {
+        const session = resolveSession(headers);
+        if (!session) {
+          throw new APIError('UNAUTHORIZED', { message: 'Unauthorized', code: 'UNAUTHORIZED' });
         }
-        return null;
+
+        const [existing] = await connection.sequelize.query(
+          `SELECT id FROM ba_account WHERE "userId" = :userId AND "providerId" = 'credential' LIMIT 1`,
+          { replacements: { userId: session.user.id } },
+        );
+        if ((existing as unknown[]).length > 0) {
+          throw new APIError('BAD_REQUEST', {
+            message: 'User already has a password set',
+            code: 'PASSWORD_ALREADY_SET',
+          });
+        }
+
+        await connection.sequelize.query(
+          `INSERT INTO ba_account (id, "userId", "accountId", "providerId", password, "createdAt", "updatedAt")
+           VALUES (:id, :userId, :userId, 'credential', 'hashed_password', NOW(), NOW())`,
+          { replacements: { id: `${session.user.id}-credential`, userId: session.user.id } },
+        );
+
+        return { status: true };
       },
 
       signInEmail: async ({ body, asResponse }: SignInEmailParams) => {

@@ -3,6 +3,11 @@ import { CustomResponse } from '@common/types';
 import { CustomError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 
+/** Structural stand-in for better-auth's `isAPIError` — its `better-auth/api` subpath types
+ *  don't resolve under this tsconfig, and the real guard also falls back to a name check. */
+const isAuthApiError = (e: Error): e is Error & { statusCode: number; body?: { message?: string; code?: string } } =>
+  e.name === 'APIError' && typeof (e as { statusCode?: unknown }).statusCode === 'number';
+
 export function errorHandler(res: CustomResponse, err: Error) {
   if (err instanceof CustomError) {
     return res.status(err.httpCode).json({
@@ -11,6 +16,19 @@ export function errorHandler(res: CustomResponse, err: Error) {
         message: err.message,
         code: err.code,
         details: err.details,
+      },
+    });
+  }
+
+  // better-auth throws its own APIError from `auth.api.*` calls, carrying the status and a
+  // machine-readable code the frontend keys off (e.g. PASSWORD_ALREADY_SET → 400).
+  if (isAuthApiError(err)) {
+    if (err.statusCode >= 500) logger.error(err);
+    return res.status(err.statusCode).json({
+      status: API_RESPONSE_STATUS.error,
+      response: {
+        message: err.body?.message ?? err.message,
+        code: err.body?.code,
       },
     });
   }

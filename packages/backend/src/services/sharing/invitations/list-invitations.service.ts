@@ -1,6 +1,7 @@
 import { SHARE_INVITATION_STATUSES, ShareInvitationModel } from '@bt/shared/types';
 import ShareInvitations from '@models/share-invitations.model';
 import Users from '@models/users.model';
+import { resend } from '@services/email';
 import { Op, WhereOptions } from 'sequelize';
 
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
@@ -14,6 +15,9 @@ interface InvitationListItem extends ShareInvitationModel {
   resourceName: string | null;
   owner: { id: number; username: string; avatar: string | null } | null;
   invitee: { id: number; username: string; avatar: string | null } | null;
+  /** Server-level "can this instance send email at all" flag, stamped per row so the
+   *  list response stays a flat array. Rows are the only place the UI needs it. */
+  emailConfigured: boolean;
 }
 
 const userSnapshot = (user: Users | null | undefined) =>
@@ -43,6 +47,7 @@ const hydrate = async (rows: ShareInvitations[]): Promise<InvitationListItem[]> 
       resourceName: nameCache.get(cacheKey) ?? null,
       owner: userSnapshot(usersById.get(row.ownerUserId)),
       invitee: row.inviteeUserId !== null ? userSnapshot(usersById.get(row.inviteeUserId)) : null,
+      emailConfigured: resend !== null,
     });
   }
   return items;

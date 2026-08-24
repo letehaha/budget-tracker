@@ -19,6 +19,7 @@ import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useCopyInviteLink } from '@/composable/use-copy-invite-link';
 import { extractApiErrorMessage } from '@/js/errors';
 import { useUserStore } from '@/stores';
 import { useOnboardingStore } from '@/stores/onboarding';
@@ -32,7 +33,7 @@ import {
   type TransactionsWriteScope,
 } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { LogOutIcon, MailIcon, RotateCwIcon, UserMinusIcon, XIcon } from '@lucide/vue';
+import { CopyIcon, LogOutIcon, MailIcon, RotateCwIcon, UserMinusIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -40,6 +41,7 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const { user, isDemo } = storeToRefs(useUserStore());
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { copyInviteLink } = useCopyInviteLink();
 const queryClient = useQueryClient();
 const onboardingStore = useOnboardingStore();
 
@@ -144,7 +146,7 @@ const inviteMutation = useMutation({
     });
   },
   onSuccess: (data) => {
-    if (data.emailDelivered === false) {
+    if (data.emailOutcome === 'failed') {
       addErrorNotification(t('pages.household.invite.emailDeliveryFailed'));
     } else {
       addSuccessNotification(t('pages.household.invite.sent'));
@@ -224,7 +226,7 @@ const confirmCancelInvite = () => {
 const resendInviteMutation = useMutation({
   mutationFn: (id: string) => resendShareInvitation(id),
   onSuccess: (data) => {
-    if (data.emailDelivered === false) {
+    if (data.emailOutcome === 'failed') {
       addErrorNotification(t('pages.household.pending.resendDeliveryFailed'));
     } else {
       addSuccessNotification(t('pages.household.pending.resendSuccess'));
@@ -446,10 +448,21 @@ watch(permissionOptions, (next) => {
                         {{ $t('pages.household.pending.badge') }}
                       </span>
                     </p>
+                    <p v-if="!invitation.emailConfigured" class="text-warning text-xs">
+                      {{ $t('common.sharing.emailNotSent') }}
+                    </p>
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                  <DemoRestricted feature="household_resend_invite">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    @click="copyInviteLink({ token: invitation.token, resourceType: invitation.resourceType })"
+                  >
+                    <CopyIcon class="size-4" />
+                    {{ $t('common.actions.copyInviteLink') }}
+                  </Button>
+                  <DemoRestricted v-if="invitation.emailConfigured" feature="household_resend_invite">
                     <Button
                       size="sm"
                       variant="outline"

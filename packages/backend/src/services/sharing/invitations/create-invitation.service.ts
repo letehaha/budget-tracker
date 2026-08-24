@@ -4,6 +4,7 @@ import {
   SHARE_INVITATION_STATUSES,
   SHARE_PERMISSIONS,
   SHARING_LIMITS,
+  ShareInvitationEmailOutcome,
   ShareInvitationModel,
   SharePermission,
   SharePolicy,
@@ -40,12 +41,11 @@ interface CreateInvitationParams {
 interface CreateInvitationResult {
   invitation: ShareInvitationModel;
   /**
-   * `false` when the post-commit email send failed (Resend down, network error, etc.) so
-   * the caller can surface a "we created the invitation but couldn't send the email"
-   * hint. `true` when the invitee is unregistered (no email to send), the invitee was
-   * resolved and Resend accepted the message, or Resend isn't configured (dev/test).
+   * Result of the post-commit email send: `'sent'`, `'skipped'` (no email provider
+   * configured on this instance) or `'failed'`. The caller surfaces `'skipped'` and
+   * `'failed'` so the inviter knows the link has to be shared manually.
    */
-  emailDelivered: boolean;
+  emailOutcome: ShareInvitationEmailOutcome;
 }
 
 interface ResolvedResource {
@@ -159,9 +159,9 @@ const buildCleanPolicy = ({
 
 interface CreateInvitationImplResult {
   invitation: ShareInvitationModel;
-  /** Hydrated invitee row when the email resolved to an existing user — used by the
-   *  post-commit side-effect step to send the email and in-app notification. `null` for
-   *  unresolved emails (kept silent to avoid leaking which addresses are registered). */
+  /** Hydrated invitee row when the email resolved to an existing user, `null` otherwise.
+   *  Drives the in-app notification (registered users only) and the sign-up hint in the
+   *  invitation email. */
   resolvedInvitee: { userId: number; email: string } | null;
   resourceName: string;
 }
@@ -251,9 +251,8 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
     expiresAt,
   });
 
-  // In-app notification only when invitee is a known user — unregistered emails get
-  // no in-app surface (they'll be reached out-of-band once the signup-invite email path
-  // exists).
+  // In-app notification only when the invitee is a known user. Unregistered emails are
+  // reached by the invitation email alone.
   if (invitee) {
     const owner = await Users.findByPk(ownerUserId);
     if (owner) {
@@ -306,16 +305,12 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
  * The two side effects are split deliberately: the in-app notification is a durable record
  * we want consistent with the DB row (in-transaction), while the email is "best effort"
  * and runs after commit so transient mail-provider failures don't roll back the invitation.
+ *
+ * The email goes out for unregistered invitees too — they can sign up with that address and
+ * the invitation binds to them on accept.
  */
 export const createInvitation = async (params: CreateInvitationParams): Promise<CreateInvitationResult> => {
   const result = await withTransaction(createInvitationImpl)(params);
-
-  // Email send is skipped for unresolved invitees — there's no outbound path for them
-  // yet (a future "sign up to accept" email will cover that). No invitee, no email
-  // failure mode for the caller to worry about.
-  if (!result.resolvedInvitee) {
-    return { invitation: result.invitation, emailDelivered: true };
-  }
 
   // Post-commit side effects. Wrap so a transient Users lookup or notify failure can't
   // reject the API call — the invitation row is already committed and the email-send
@@ -340,12 +335,9 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
       );
     }
     const ownerDisplayName = owner?.username ?? FALLBACK_OWNER_DISPLAY_NAME;
-    // Surface the email outcome up the call stack so the UI can warn when the row was
-    // created but the email actually failed (Resend down, etc.). `'skipped'` (Resend not
-    // configured in dev/test) counts as delivered for the user-facing flag — there's no
-    // failure for them to see.
     const outcome = await sendInvitationEmail({
-      toEmail: result.resolvedInvitee.email,
+      toEmail: result.resolvedInvitee?.email ?? result.invitation.inviteeEmail,
+      recipientIsRegistered: !!result.resolvedInvitee,
       ownerDisplayName,
       resourceType: result.invitation.resourceType,
       resourceName: result.resourceName,
@@ -356,15 +348,15 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
     });
 
     if (outcome.status === 'failed') {
-      // The API response already carries `emailDelivered: false`, but a single in-flight toast
-      // is easy to miss. Drop a durable owner notification so the failed delivery surfaces in
-      // the notification center even if the page is dismissed before the toast renders.
-      const invitee = await Users.findByPk(result.resolvedInvitee.userId);
+      // The API response already carries `emailOutcome: 'failed'`, but a single in-flight
+      // toast is easy to miss. Drop a durable owner notification so the failed delivery
+      // surfaces in the notification center even if the page is dismissed first.
+      const invitee = result.resolvedInvitee ? await Users.findByPk(result.resolvedInvitee.userId) : null;
       const notify = LIFECYCLE_NOTIFIERS.invitationSendFailed[result.invitation.resourceType];
       await notify({
         ownerUserId: params.ownerUserId,
         invitee,
-        inviteeEmail: result.resolvedInvitee.email,
+        inviteeEmail: result.invitation.inviteeEmail,
         invitationId: result.invitation.id,
         resource: {
           type: result.invitation.resourceType,
@@ -374,7 +366,7 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
       });
     }
 
-    return { invitation: result.invitation, emailDelivered: outcome.status !== 'failed' };
+    return { invitation: result.invitation, emailOutcome: outcome.status };
   } catch (error) {
     logger.error(
       { message: '[createInvitation] Post-commit fan-out failed', error: error as Error },
@@ -385,6 +377,6 @@ export const createInvitation = async (params: CreateInvitationParams): Promise<
         resourceType: result.invitation.resourceType,
       },
     );
-    return { invitation: result.invitation, emailDelivered: false };
+    return { invitation: result.invitation, emailOutcome: 'failed' };
   }
 };

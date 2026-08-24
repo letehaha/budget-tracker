@@ -34,11 +34,15 @@ describe('Share invitations: create + list', () => {
       expect(invitation.policy).toBeNull();
       expect(invitation.token).toBeTruthy();
       expect(typeof invitation.token).toBe('string');
+      // Test env has no Resend configured — the send is attempted and reported as skipped
+      // so self-hosters without email config see an honest outcome instead of "delivered".
+      expect(invitation.emailOutcome).toBe('skipped');
 
       const sent = await helpers.listSentShareInvitations({ raw: true });
       expect(sent).toHaveLength(1);
       expect(sent[0]!.id).toBe(invitation.id);
       expect(sent[0]!.resourceName).toBe(account.name);
+      expect(sent[0]!.emailConfigured).toBe(false);
 
       const received = await helpers.asUser({
         cookies: recipient.cookies,
@@ -79,6 +83,26 @@ describe('Share invitations: create + list', () => {
       });
 
       expect(invitation.policy).toEqual({ transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own });
+    });
+
+    it('attempts the invitation email for unregistered invitees on create and resend', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const res = await helpers.createShareInvitation({
+        inviteeEmail: 'not-registered-yet@example.com',
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: account.id,
+        permission: SHARE_PERMISSIONS.read,
+      });
+
+      expect(res.statusCode).toBe(201);
+      const invitation = res.body.response;
+      expect(invitation.status).toBe(SHARE_INVITATION_STATUSES.pending);
+      expect(invitation.emailOutcome).toBe('skipped');
+
+      const resendRes = await helpers.resendShareInvitation({ invitationId: invitation.id });
+      expect(resendRes.statusCode).toBe(200);
+      expect(resendRes.body.response.emailOutcome).toBe('skipped');
     });
 
     it('drops policy when permission is read (scope is meaningless)', async () => {

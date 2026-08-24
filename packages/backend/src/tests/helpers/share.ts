@@ -1,4 +1,11 @@
-import { RESOURCE_TYPES, ResourceType, SHARE_PERMISSIONS, SharePermission, SharePolicy } from '@bt/shared/types';
+import {
+  RESOURCE_TYPES,
+  ResourceType,
+  SHARE_PERMISSIONS,
+  ShareInvitationEmailOutcome,
+  SharePermission,
+  SharePolicy,
+} from '@bt/shared/types';
 import { authPool } from '@config/auth';
 import Users from '@models/users.model';
 import type { acceptInvitation as apiAcceptInvitation } from '@services/sharing/invitations/accept-invitation.service';
@@ -85,12 +92,12 @@ export interface CreateInvitationPayload {
 
 /**
  * Response shape for create / resend endpoints: the invitation fields flattened with the
- * email-delivery flag. Mirrors what the controllers actually return — the service result
- * is `{ invitation, emailDelivered }` and the controllers spread `invitation` so callers
- * can read both shapes from a single object.
+ * email-send outcome. Mirrors what the controllers actually return — the service result is
+ * `{ invitation, emailOutcome }` and the controllers spread `invitation` so callers can
+ * read both shapes from a single object.
  */
 type InvitationSendResponse = Awaited<ReturnType<typeof apiCreateInvitation>>['invitation'] & {
-  emailDelivered: boolean;
+  emailOutcome: ShareInvitationEmailOutcome;
 };
 
 export async function createShareInvitation<R extends boolean | undefined = undefined>({

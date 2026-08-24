@@ -10,13 +10,12 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, params }) => {
-  const { invitation, emailDelivered } = await resendInvitation({
+  const { invitation, emailOutcome } = await resendInvitation({
     invitationId: params.id,
     ownerUserId: user.id,
   });
-  // `emailDelivered` lets the frontend warn the user when the row was updated but the
-  // email never made it out (Resend down, etc.). The rate-limit slot was already
-  // consumed, so silently swallowing this would mean the user burns 3 attempts in 24h
-  // without ever delivering a message.
-  return { data: { ...invitation, emailDelivered } };
+  // `emailOutcome` lets the frontend tell the user when the row was updated but no email
+  // went out. The rate-limit slot was already consumed, so swallowing this would mean the
+  // user burns their 24h attempts without ever delivering a message.
+  return { data: { ...invitation, emailOutcome } };
 });
