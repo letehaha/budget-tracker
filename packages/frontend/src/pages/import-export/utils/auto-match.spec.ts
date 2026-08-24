@@ -28,8 +28,11 @@ describe('normalizeHeader', () => {
     ['transaction-amount', 'transactionamount'],
     ['  amount  ', 'amount'],
     ['ISO_Currency', 'isocurrency'],
-    ['categoría', 'categora'], // accent stripped as non-alphanumeric
+    ['categoría', 'categoría'],
     ['gross_amount', 'grossamount'],
+    ['Продукти', 'продукти'],
+    ['ПРОДУКТИ', 'продукти'],
+    ['Кафе 24', 'кафе24'],
   ])('normalizeHeader(%j) → %j', (input, expected) => {
     expect(normalizeHeader(input)).toBe(expected);
   });
@@ -335,6 +338,43 @@ describe('matchValuesByName', () => {
     const strTargets = [{ id: 'abc-123', name: 'Salary' }];
     const result = matchValuesByName({ sources: [{ name: 'salary' }], targets: strTargets });
     expect(result.get('salary')).toBe('abc-123');
+  });
+
+  it('Cyrillic source links to the same-named target, not to the first Cyrillic one', () => {
+    const cyrillicTargets = [
+      { id: 1, name: 'Транспорт' },
+      { id: 2, name: 'Продукти' },
+    ];
+    const result = matchValuesByName({ sources: [{ name: 'Продукти' }], targets: cyrillicTargets });
+    expect(result.get('Продукти')).toBe(2);
+  });
+
+  it('Cyrillic source with no same-named target returns null', () => {
+    const cyrillicTargets = [
+      { id: 1, name: 'Транспорт' },
+      { id: 2, name: 'Розваги' },
+    ];
+    const result = matchValuesByName({ sources: [{ name: 'Продукти' }], targets: cyrillicTargets });
+    expect(result.get('Продукти')).toBeNull();
+  });
+
+  it('mixed-script names sharing only their digits do not match', () => {
+    const result = matchValuesByName({
+      sources: [{ name: 'Кафе 24' }],
+      targets: [{ id: 7, name: 'Бар 24' }],
+    });
+    expect(result.get('Кафе 24')).toBeNull();
+  });
+
+  it('names that normalise to an empty string never match, even an identical raw name', () => {
+    const result = matchValuesByName({
+      sources: [{ name: '💰' }],
+      targets: [
+        { id: 1, name: '💰' },
+        { id: 2, name: '🍕' },
+      ],
+    });
+    expect(result.get('💰')).toBeNull();
   });
 });
 

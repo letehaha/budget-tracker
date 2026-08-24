@@ -1224,3 +1224,133 @@ describe('GET /stats/cash-flow — refunds and splits', () => {
     });
   });
 });
+
+describe('GET /stats/cash-flow — savings categories setting', () => {
+  type TxCategoryId = Parameters<typeof helpers.buildTransactionPayload>[0]['categoryId'];
+
+  /** One bucket holding $1000 income, $200 spent in the savings category and $100 elsewhere. */
+  const seedPeriod = async ({
+    savingsCategoryId,
+    otherCategoryId,
+  }: {
+    savingsCategoryId: TxCategoryId;
+    otherCategoryId: TxCategoryId;
+  }) => {
+    const account = await helpers.createAccount({ raw: true });
+
+    await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 1000,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        time: TX_TIME,
+      },
+      raw: true,
+    });
+
+    for (const [categoryId, amount] of [
+      [savingsCategoryId, 200],
+      [otherCategoryId, 100],
+    ] as const) {
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId,
+          }),
+          time: TX_TIME,
+        },
+        raw: true,
+      });
+    }
+  };
+
+  const createCategoryPair = () =>
+    Promise.all([
+      helpers.addCustomCategory({ name: uniqueName('Savings'), color: '#00aa88', raw: true }),
+      helpers.addCustomCategory({ name: uniqueName('Groceries'), color: '#aa0088', raw: true }),
+    ]);
+
+  it('counts the spend as an expense while the setting is unset', async () => {
+    const [savingsCategory, otherCategory] = await createCategoryPair();
+    await seedPeriod({ savingsCategoryId: savingsCategory.id, otherCategoryId: otherCategory.id });
+
+    const result = await helpers.getCashFlow({ ...RANGE, raw: true });
+
+    const period = result.periods[0]!;
+    expect(period.expenses).toBe(300);
+    expect(period.netFlow).toBe(700);
+    expect(result.totals.savingsRate).toBe(70);
+    expect(period.categories!.find((entry) => entry.categoryId === savingsCategory.id)!.expenseAmount).toBe(200);
+  });
+
+  it('drops a savings category from the expenses and raises netFlow and savingsRate', async () => {
+    const [savingsCategory, otherCategory] = await createCategoryPair();
+    await seedPeriod({ savingsCategoryId: savingsCategory.id, otherCategoryId: otherCategory.id });
+
+    await helpers.patchUserSettings({ patch: { savingsCategoryIds: [savingsCategory.id] }, raw: true });
+
+    const result = await helpers.getCashFlow({ ...RANGE, raw: true });
+
+    const period = result.periods[0]!;
+    expect(period.expenses).toBe(100);
+    expect(period.income).toBe(1000);
+    expect(period.netFlow).toBe(900);
+    expect(result.totals.expenses).toBe(100);
+    expect(result.totals.savingsRate).toBe(90);
+    expect(period.categories!.some((entry) => entry.categoryId === savingsCategory.id)).toBe(false);
+    expect(period.categories!.find((entry) => entry.categoryId === otherCategory.id)!.expenseAmount).toBe(100);
+  });
+
+  it('excludes spend filed under a subcategory of a listed savings category', async () => {
+    const parentCategory = await helpers.addCustomCategory({
+      name: uniqueName('SavingsParent'),
+      color: '#00aa88',
+      raw: true,
+    });
+    const [childCategory, otherCategory] = await Promise.all([
+      helpers.addCustomCategory({
+        name: uniqueName('SavingsChild'),
+        color: '#0088aa',
+        parentId: parentCategory.id,
+        raw: true,
+      }),
+      helpers.addCustomCategory({ name: uniqueName('Groceries'), color: '#aa0088', raw: true }),
+    ]);
+
+    await seedPeriod({ savingsCategoryId: childCategory.id, otherCategoryId: otherCategory.id });
+    await helpers.patchUserSettings({ patch: { savingsCategoryIds: [parentCategory.id] }, raw: true });
+
+    const result = await helpers.getCashFlow({ ...RANGE, raw: true });
+
+    const period = result.periods[0]!;
+    expect(period.expenses).toBe(100);
+    expect(period.netFlow).toBe(900);
+    // The breakdown rolls to roots, so a leaked child would resurface under the savings parent.
+    expect(period.categories!.some((entry) => entry.categoryId === parentCategory.id)).toBe(false);
+  });
+
+  it('leaves the report untouched when the setting lists an unrelated category', async () => {
+    const [savingsCategory, otherCategory] = await createCategoryPair();
+    const unrelatedCategory = await helpers.addCustomCategory({
+      name: uniqueName('Unrelated'),
+      color: '#010203',
+      raw: true,
+    });
+    await seedPeriod({ savingsCategoryId: savingsCategory.id, otherCategoryId: otherCategory.id });
+
+    const baseline = await helpers.getCashFlow({ ...RANGE, raw: true });
+
+    await helpers.patchUserSettings({ patch: { savingsCategoryIds: [unrelatedCategory.id] }, raw: true });
+
+    const result = await helpers.getCashFlow({ ...RANGE, raw: true });
+
+    expect(result.periods).toEqual(baseline.periods);
+    expect(result.totals).toEqual(baseline.totals);
+    expect(result.totals.expenses).toBe(300);
+  });
+});

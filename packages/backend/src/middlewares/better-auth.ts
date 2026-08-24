@@ -4,6 +4,7 @@ import { auth } from '@config/auth';
 import { CacheClient } from '@js/utils/cache';
 import { setSentryUser } from '@js/utils/sentry';
 import Users from '@models/users.model';
+import { fromNodeHeaders } from 'better-auth/node';
 import { NextFunction, Request, Response } from 'express';
 
 type AppUser = Pick<Users, 'username' | 'id' | 'authUserId' | 'role'>;
@@ -30,15 +31,7 @@ export function invalidateAppUserCache({ authUserId }: { authUserId: string }): 
  */
 export const authenticateSession = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // better-auth expects a Fetch API Headers instance, not Express's plain
-    // headers object. Cast-only was silently throwing inside getSession.
-    const headers = new Headers();
-    for (const [key, value] of Object.entries(req.headers)) {
-      if (value === undefined) continue;
-      headers.set(key, Array.isArray(value) ? value.join(', ') : value);
-    }
-
-    const session = await auth.api.getSession({ headers });
+    const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
 
     if (!session || !session.user) {
       return res.status(401).json({

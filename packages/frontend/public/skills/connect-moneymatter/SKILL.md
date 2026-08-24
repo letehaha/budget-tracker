@@ -80,6 +80,12 @@ page.
 | `create_investment_transaction`         | Record a buy/sell/dividend/fee transaction (`finance:write`)                                                     |
 | `update_investment_transaction`         | Correct a transaction's date, quantity, price, or fees (`finance:write`)                                         |
 | `delete_investment_transaction`         | Delete an investment transaction (`finance:delete`)                                                              |
+| `link_transaction_to_portfolio`         | Link an existing transaction to a portfolio as a cash transfer (`finance:write`)                                 |
+| `unlink_transaction_from_portfolio`     | Remove a transaction's portfolio link and reverse the cash change (`finance:write`)                              |
+| `transfer_account_to_portfolio`         | Move cash from an account into a portfolio (`finance:write`)                                                     |
+| `transfer_portfolio_to_account`         | Withdraw portfolio cash into an account (`finance:write`)                                                        |
+| `create_portfolio_cash_transaction`     | Direct portfolio cash deposit/withdrawal, no account involved (`finance:write`)                                  |
+| `list_portfolio_transfers`              | Cash movement history of a portfolio (transfers, deposits, exchanges)                                            |
 | `adjust_account_balance`                | Set an account to a target balance via an adjustment transaction (`finance:write`)                               |
 | `archive_account`                       | Archive or unarchive an account; handles side effects (`finance:write`)                                          |
 | `get_transaction_groups`                | List transaction groups with counts/dates or full embedded transactions                                          |
@@ -151,6 +157,10 @@ multi-currency data.
 - Portfolio queries are gated by `portfolioId`. Call `get_portfolios` first
   to discover ids before calling `get_portfolio_summary`,
   `get_portfolio_holdings`, or `get_portfolio_balances`.
+- Portfolio cash moves via transfers: `link_transaction_to_portfolio` when the
+  bank transaction already exists, `transfer_account_to_portfolio` /
+  `transfer_portfolio_to_account` to create the transaction alongside the
+  transfer, `create_portfolio_cash_transaction` when no account is involved.
 
 ## Troubleshooting
 

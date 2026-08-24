@@ -8,6 +8,7 @@ import {
 } from '@services/categories/get-accessible-category-map.service';
 import { withTransaction } from '@services/common/with-transaction';
 import { statsTransactions } from '@services/stats/stats-transactions';
+import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { format } from 'date-fns';
 import { Op } from 'sequelize';
 
@@ -180,12 +181,17 @@ export const getCashFlow = withTransaction(
     // Create a set of target categories for aggregation (when specific categories are selected)
     const targetCategoryIds = aggregateToSelectedCategories ? new Set<string>(categoryIds) : undefined;
 
+    // Categories the user counts as savings drop out of the report the same way an explicitly
+    // excluded one does: money moved there is saved rather than spent, so it must not lower netFlow.
+    const { savingsCategoryIds } = await getUserSettings({ userId });
+    const hiddenCategoryIds = [...(excludedCategoryIds ?? []), ...(savingsCategoryIds ?? [])];
+
     // Hiding a parent hides everything under it, including subcategories created after the caller
     // saved the exclusion list.
     const excludedCategoryIdSet = new Set<string>(
-      excludedCategoryIds && excludedCategoryIds.length > 0
+      hiddenCategoryIds.length > 0
         ? expandCategoryIdsWithDescendants({
-            categoryIds: excludedCategoryIds,
+            categoryIds: hiddenCategoryIds,
             categories: allCategories,
             byId: categoryMap,
           })

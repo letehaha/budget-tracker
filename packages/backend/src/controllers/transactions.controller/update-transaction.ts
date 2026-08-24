@@ -7,14 +7,14 @@ import { serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
-import { nonNegativeAmountSchema, positiveAmountSchema, splitSchema } from './schemas';
+import { nonNegativeAmountSchema, positiveAmountSchema, splitSchema, transactionTimeSchema } from './schemas';
 
 const bodyZodSchema = z
   .object({
     amount: nonNegativeAmountSchema().optional(),
     destinationAmount: positiveAmountSchema().optional(),
     note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
-    time: z.string().datetime({ message: 'Invalid ISO date string' }).optional(),
+    time: transactionTimeSchema().optional(),
     transactionType: z.nativeEnum(TRANSACTION_TYPES).optional(),
     paymentType: z.nativeEnum(PAYMENT_TYPES).optional(),
     accountId: recordId().optional(),

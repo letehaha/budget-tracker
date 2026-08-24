@@ -53,11 +53,10 @@ describe('Back-invite from accepted household invitation', () => {
     expect(backInvite.ownerUserId).toBe(recipientApp.id);
     expect(backInvite.resourceId).toBe(String(recipientApp.id));
     expect(backInvite.status).toBe(SHARE_INVITATION_STATUSES.pending);
-    // emailDelivered surfaces from the create-invitation pipeline. true here covers both
-    // "Resend accepted the email" and "no email configured in this env" — what we want to
-    // pin down is that the field is present (a regression that drops the spread in the
-    // controller would silently break the frontend's "delivery failed" toast).
-    expect(backInvite.emailDelivered).toBe(true);
+    // `emailOutcome` surfaces from the create-invitation pipeline. No Resend is configured
+    // in the test env, so the send reports 'skipped'. Pins down that the field is present —
+    // dropping the spread in the controller would silently break the frontend's warning.
+    expect(backInvite.emailOutcome).toBe('skipped');
 
     // Persistence check — the back-invite row exists with the right shape.
     const stored = await ShareInvitations.findByPk(backInvite.id);

@@ -4,6 +4,7 @@
 import { auth } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
 import { areSignupsOpen } from '@services/user/signups-open.service';
+import { fromNodeHeaders } from 'better-auth/node';
 import { z } from 'zod';
 
 export const signupsOpen = createController(z.object({}), async () => {
@@ -23,7 +24,7 @@ export const setPassword = createController(
   async ({ body, req }) => {
     const result = await auth.api.setPassword({
       body,
-      headers: req.headers as unknown as Headers,
+      headers: fromNodeHeaders(req.headers),
     });
 
     return { data: result };

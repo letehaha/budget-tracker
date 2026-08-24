@@ -758,6 +758,14 @@ export interface ResourceShareModel {
 }
 
 /**
+ * Outcome of the invitation email send attempt, reported to the inviter on the
+ * create/resend/back-invite responses. `skipped` means no email provider is
+ * configured on the server (the invite link must be shared manually);
+ * `failed` means the provider was configured but the send errored.
+ */
+export type ShareInvitationEmailOutcome = 'sent' | 'skipped' | 'failed';
+
+/**
  * Pending offer to share a resource. Distinct from `ResourceShareModel` because
  * invitations may expire, be declined, or be revoked before acceptance, and we
  * want a separate audit trail.

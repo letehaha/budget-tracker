@@ -43,7 +43,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const router = useRouter();
 const queryClient = useQueryClient();
-const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { addSuccessNotification, addWarningNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
 const { isDemo } = storeToRefs(useUserStore());
@@ -165,8 +165,10 @@ const backInviteMutation = useMutation({
     });
   },
   onSuccess: (data) => {
-    if (data.emailDelivered === false) {
+    if (data.emailOutcome === 'failed') {
       addErrorNotification(t('dialogs.shareInvitationDialog.backInvite.deliveryFailed'));
+    } else if (data.emailOutcome === 'skipped') {
+      addWarningNotification(t('dialogs.shareInvitationDialog.backInvite.emailNotConfigured'));
     } else {
       addSuccessNotification(t('dialogs.shareInvitationDialog.backInvite.success'));
     }

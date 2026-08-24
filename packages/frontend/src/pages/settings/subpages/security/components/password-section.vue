@@ -221,6 +221,20 @@ const loadPasswordStatus = async () => {
   }
 };
 
+/**
+ * App-owned auth routes answer with `{ status, response: { message, code } }`, which the
+ * better-auth fetch client spreads into `error`; native better-auth errors keep both at
+ * the top level.
+ */
+const resolveAuthError = (error: {
+  message?: string;
+  code?: string;
+  response?: { message?: string; code?: string };
+}) => ({
+  message: error.message || error.response?.message,
+  code: error.code ?? error.response?.code,
+});
+
 const handleSubmit = async () => {
   // Skip current password validation for OAuth-only users
   if (!isFormValid(hasPassword.value ? 'form' : 'form.newPassword') || !isFormValid('form.confirmPassword')) {
@@ -240,7 +254,8 @@ const handleSubmit = async () => {
       });
 
       if (result.error) {
-        errorMessage.value = result.error.message || t('settings.security.passwordSection.notifications.changeFailed');
+        const { message } = resolveAuthError(result.error);
+        errorMessage.value = message || t('settings.security.passwordSection.notifications.changeFailed');
         return;
       }
 
@@ -250,7 +265,11 @@ const handleSubmit = async () => {
       const result = await setPassword({ newPassword: form.value.newPassword });
 
       if (result.error) {
-        errorMessage.value = result.error.message || t('settings.security.passwordSection.notifications.setFailed');
+        const { message, code } = resolveAuthError(result.error);
+        errorMessage.value = message || t('settings.security.passwordSection.notifications.setFailed');
+        // The mount-time provider probe can be stale or have failed, so trust the server
+        // over `hasPassword` and switch the form to its change-password variant.
+        if (code === 'PASSWORD_ALREADY_SET') hasPassword.value = true;
         return;
       }
 

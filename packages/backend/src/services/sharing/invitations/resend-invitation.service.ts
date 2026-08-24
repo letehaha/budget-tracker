@@ -1,4 +1,9 @@
-import { SHARE_INVITATION_STATUSES, SHARING_LIMITS, ShareInvitationModel } from '@bt/shared/types';
+import {
+  SHARE_INVITATION_STATUSES,
+  SHARING_LIMITS,
+  ShareInvitationEmailOutcome,
+  ShareInvitationModel,
+} from '@bt/shared/types';
 import { ConflictError, NotFoundError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import ShareInvitations from '@models/share-invitations.model';
@@ -22,9 +27,8 @@ import { sendInvitationEmail } from './share-invitation-email';
  *     it.
  *   - Rate limit: `SHARING_LIMITS.resendPerInviteeRateLimit` (count + windowMs).
  *
- * The resend re-emits the same in-app notification + email as the initial send (a fresh
- * actionable card is the point of resending) — but only when the invitee is a registered
- * user. Unresolved emails get the row update and nothing else, same shape as create-invitation.
+ * The resend re-emits the same email as the initial send (a fresh actionable card is the
+ * point of resending); the in-app notification only fires for registered invitees.
  */
 
 const RESEND_ELIGIBLE_STATUSES = [
@@ -55,12 +59,11 @@ interface ResendInvitationImplResult {
 interface ResendInvitationResult {
   invitation: ShareInvitationModel;
   /**
-   * `false` when the post-commit email send failed (Resend down, network error, etc.) so
-   * the caller can surface a "we updated the invitation but couldn't send the email" hint.
-   * `true` when the invitee is unregistered (no email to send) or the email was accepted
-   * by Resend.
+   * Result of the post-commit email send: `'sent'`, `'skipped'` (no email provider
+   * configured on this instance) or `'failed'`. The caller surfaces `'skipped'` and
+   * `'failed'` so the inviter knows the link has to be shared manually.
    */
-  emailDelivered: boolean;
+  emailOutcome: ShareInvitationEmailOutcome;
 }
 
 const pruneToWindow = (timestamps: string[], windowMs: number, now: number): string[] => {
@@ -178,19 +181,12 @@ const resendInvitationImpl = async (params: ResendInvitationParams): Promise<Res
 export const resendInvitation = async (params: ResendInvitationParams): Promise<ResendInvitationResult> => {
   const result = await withTransaction(resendInvitationImpl)(params);
 
-  // No invitee resolved → no email to send. The DB row + window slot were still updated;
-  // for callers, that counts as "delivered to the only audience that exists" so the flag
-  // stays true and the frontend doesn't surface a misleading warning.
-  if (result.inviteeUserId === null) {
-    return { invitation: result.invitation, emailDelivered: true };
-  }
-
-  // Surface the email outcome to the caller — important because the rate-limit window
-  // slot was already consumed in the impl, and a silent send failure would burn the
-  // user's daily budget invisibly. `'skipped'` (Resend not configured in dev/test)
-  // counts as delivered for the user-facing flag — there's no failure for them to see.
+  // Surface the email outcome to the caller — the rate-limit window slot was already
+  // consumed in the impl, so a silent send failure would burn the owner's daily budget
+  // invisibly.
   const outcome = await sendInvitationEmail({
     toEmail: result.inviteeEmail,
+    recipientIsRegistered: result.inviteeUserId !== null,
     ownerDisplayName: result.ownerDisplayName,
     resourceType: result.invitation.resourceType,
     resourceName: result.resourceName,
@@ -205,7 +201,7 @@ export const resendInvitation = async (params: ResendInvitationParams): Promise<
     // notification center, not just the in-flight API response toast. The rate-limit slot
     // was already burned in `resendInvitationImpl`, so silently swallowing this would let
     // owners exhaust their daily budget without realising no emails went out.
-    const invitee = await Users.findByPk(result.inviteeUserId);
+    const invitee = result.inviteeUserId !== null ? await Users.findByPk(result.inviteeUserId) : null;
     await notifyInvitationSendFailed({
       ownerUserId: params.ownerUserId,
       invitee,
@@ -219,5 +215,5 @@ export const resendInvitation = async (params: ResendInvitationParams): Promise<
     });
   }
 
-  return { invitation: result.invitation, emailDelivered: outcome.status !== 'failed' };
+  return { invitation: result.invitation, emailOutcome: outcome.status };
 };

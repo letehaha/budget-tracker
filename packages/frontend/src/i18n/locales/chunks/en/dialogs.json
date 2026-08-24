@@ -577,6 +577,7 @@
         "sentBody": "We sent an invitation to {owner}. They'll get access once they accept.",
         "success": "Invitation sent.",
         "deliveryFailed": "Invitation created, but the email could not be sent. Try again later.",
+        "emailNotConfigured": "Invitation created, but this server has no email sending configured. Ask them to check their invitations in the app.",
         "error": "Failed to send the invitation."
       }
     },

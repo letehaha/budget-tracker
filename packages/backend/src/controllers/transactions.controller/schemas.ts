@@ -11,6 +11,18 @@ export const nonNegativeAmountSchema = () => z.number().nonnegative('Amount must
 // a fee that costs nothing, a split that holds no share of its parent.
 export const positiveAmountSchema = () => z.number().positive('Amount must be greater than 0').finite();
 
+// A year below 2000 is always a fat-fingered date ("26" for 2026): no ledger
+// predates 2000, and such dates poison exchange-rate lookups.
+const MIN_TRANSACTION_TIME = new Date('2000-01-01T00:00:00.000Z');
+
+export const transactionTimeSchema = () =>
+  z
+    .string()
+    .datetime({ message: 'Invalid ISO date string' })
+    .refine((time) => new Date(time) >= MIN_TRANSACTION_TIME, {
+      message: 'Transaction time cannot be before 2000-01-01',
+    });
+
 export const splitSchema = z.object({
   categoryId: recordId(),
   amount: positiveAmountSchema(),
