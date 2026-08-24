@@ -10,7 +10,18 @@ import { expectCsvImportCompleted, waitForCsvImportCompletion } from '@tests/hel
 import { asUser, signUpSecondUser, withoutSession } from '@tests/helpers/share';
 
 /** Two-row CSV import linked to an existing account so no account gets auto-created. */
-async function runCsvImport({ accountId, currencyCode }: { accountId: string; currencyCode: string }) {
+async function runCsvImport({
+  accountId,
+  currencyCode,
+  recalculateBalance = false,
+}: {
+  accountId: string;
+  currencyCode: string;
+  /** Whether the import should apply its rows' net effect onto the account's
+   *  current balance (mirrors the real "import new transactions" case) instead
+   *  of leaving the balance untouched (the default "backfill history" case). */
+  recalculateBalance?: boolean;
+}) {
   const { jobId } = await helpers.executeImport({
     payload: {
       fileContent: [
@@ -37,6 +48,7 @@ async function runCsvImport({ accountId, currencyCode }: { accountId: string; cu
       accountMapping: { A: { action: 'link-existing', accountId } },
       categoryMapping: {},
       skipDuplicateIndices: [],
+      recalculateBalance,
     },
     raw: true,
   });
@@ -50,7 +62,11 @@ describe('DELETE /import/batch/:batchId', () => {
     const account = await helpers.createAccount({ raw: true });
     const balanceBeforeImport = account.currentBalance;
 
-    const summary = await runCsvImport({ accountId: account.id, currencyCode: account.currencyCode });
+    const summary = await runCsvImport({
+      accountId: account.id,
+      currencyCode: account.currencyCode,
+      recalculateBalance: true,
+    });
 
     const result = await helpers.deleteImportBatch({ batchId: summary.batchId, raw: true });
     expect(result.deletedCount).toBe(2);
