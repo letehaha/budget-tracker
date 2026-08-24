@@ -106,7 +106,7 @@ async function getPeriodData({
   // Both directions are always loaded, whatever the metric: a refund pairs an expense with an
   // income, and netting one side needs the other side in scope.
   const { rows: transactions, refundPairs } = await statsTransactions({
-    access: { creator: userId },
+    access: { accessibleTo: userId },
     planned: 'exclude',
     refunds: 'net',
     window: { from, to: effectiveTo },

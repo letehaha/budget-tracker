@@ -23,7 +23,7 @@ export const fetchSavingsTransactions = ({
   to: string;
 }): Promise<StatsTransactionsResult> =>
   statsTransactions({
-    access: { creator: userId },
+    access: { accessibleTo: userId },
     planned: 'exclude',
     refunds: 'net',
     window: { from, to },

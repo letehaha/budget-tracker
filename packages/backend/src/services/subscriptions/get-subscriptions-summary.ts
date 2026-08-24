@@ -27,7 +27,7 @@ const getAverageMonthlyIncome = async ({
   const to = endOfMonth(subMonths(now, 1));
 
   const { rows: incomeTxs } = await statsTransactions({
-    access: { creator: userId },
+    access: { accessibleTo: userId },
     planned: 'exclude',
     refunds: 'ignore',
     window: { from, to },

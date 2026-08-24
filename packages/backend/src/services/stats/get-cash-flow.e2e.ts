@@ -176,10 +176,13 @@ describe('GET /stats/cash-flow', () => {
       fn: () => helpers.getCashFlow({ ...RANGE, raw: true }),
     });
 
-    // Assert: recipient sees their own tx in cash-flow (tx.userId === recipient)
+    // Assert: the report covers the whole shared account. This expectation used to be $20
+    // — the recipient's own row — which is the authorship scoping #510 was about. The
+    // subject of this test is the category resolution asserted below; the total moved
+    // because the row scope did.
     expect(result.periods).toHaveLength(1);
     const period = result.periods[0]!;
-    expect(period.expenses).toBe(20); // only recipient's tx ($20 expense)
+    expect(period.expenses).toBe(50); // owner's $30 + recipient's $20
 
     // The category breakdown must resolve to the owner's category — NOT "Unknown"
     expect(period.categories).toBeDefined();

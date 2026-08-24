@@ -2,6 +2,7 @@ import { ACCOUNT_CATEGORIES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import * as Accounts from '@models/accounts.model';
 import * as Balances from '@models/balances.model';
+import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
 import { format } from 'date-fns';
 import { Op, WhereOptions } from 'sequelize';
 
@@ -27,14 +28,24 @@ interface BalanceHistoryRow {
   accountId: string;
 }
 
-function buildAccountWhere({
+/**
+ * Scopes by the accounts the caller can reach — their own plus the ones shared with them —
+ * rather than by ownership. Scoping on `Accounts.userId` made a shared account invisible in
+ * the balance history and the total balance, while its transactions and its balance were
+ * already visible everywhere else.
+ */
+async function buildAccountWhere({
   userId,
   categoryFilter,
 }: {
   userId: number;
   categoryFilter?: AccountCategoryFilter;
-}): WhereOptions {
-  const where: Record<string, unknown> = { userId, excludeFromStats: false };
+}): Promise<WhereOptions> {
+  const accessibleAccountIds = await getAccessibleAccountIdsForUser({ userId });
+  const where: Record<string, unknown> = {
+    id: { [Op.in]: accessibleAccountIds },
+    excludeFromStats: false,
+  };
   if (categoryFilter?.only?.length) {
     where.accountCategory = { [Op.in]: categoryFilter.only };
   } else if (categoryFilter?.exclude?.length) {
@@ -48,7 +59,8 @@ function formatDate(date: string | Date): string {
 }
 
 /**
- * Fetches the balance rows for all the accounts for a user within a specified date range.
+ * Fetches the balance rows for every account the user can reach — owned or shared — within
+ * a specified date range.
  * If no balance record is found for an account between the "from" and "to" dates,
  * and also no record before the "from" date, it checks for records after the "to" date
  * that have a positive balance.
@@ -65,7 +77,7 @@ const getBalanceHistoryRows = async ({
   categoryFilter?: AccountCategoryFilter;
 }): Promise<BalanceHistoryRow[]> => {
   const dataAttributes = ['date', 'amount', 'accountId'];
-  const accountWhere = buildAccountWhere({ userId, categoryFilter });
+  const accountWhere = await buildAccountWhere({ userId, categoryFilter });
 
   const [allUserAccounts, balancesInRange] = await Promise.all([
     Accounts.default.findAll({

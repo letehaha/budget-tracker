@@ -65,8 +65,10 @@ export const getExpensesHistory = async ({
   // Refunds are left gross here: the caller runs them through the category-allocation engine,
   // which resolves the pairs itself.
   const { rows } = await statsTransactions({
-    access: { creator: userId },
-    planned: excludePlanned ? 'exclude' : 'include',
+    access: { accessibleTo: userId },
+    // See the note in `get-cash-flow.ts`: a widened row scope makes `'include'` leak
+    // other members' plans into this caller's numbers.
+    planned: excludePlanned ? 'exclude' : { visibleTo: userId },
     refunds: 'ignore',
     window: { from, to },
     where: removeUndefinedKeys({ accountId, transactionType }),
