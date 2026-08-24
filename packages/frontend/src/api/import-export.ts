@@ -2,6 +2,7 @@ import { api } from '@/api/_api';
 import type {
   ColumnMappingConfig,
   CsvImportProgress,
+  DeleteImportBatchResponse,
   DetectDuplicatesRequest,
   DetectDuplicatesResponse,
   ExecuteImportRequest,
@@ -65,6 +66,10 @@ export const getBatchesHistory = async (params: {
   offset?: number;
 }): Promise<ImportBatchesHistoryResponse> => {
   return api.get('/import/batches-history', params);
+};
+
+export const deleteImportBatch = async ({ batchId }: { batchId: string }): Promise<DeleteImportBatchResponse> => {
+  return api.delete(`/import/batch/${batchId}`);
 };
 
 // Statement Parser API (supports PDF, CSV, TXT)

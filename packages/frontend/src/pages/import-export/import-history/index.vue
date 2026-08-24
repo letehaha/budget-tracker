@@ -48,10 +48,10 @@
 
       <ScrollArea v-else>
         <ul class="divide-y">
-          <li v-for="batch in batches" :key="batch.batchId">
+          <li v-for="batch in batches" :key="batch.batchId" class="flex items-center">
             <Button
               variant="ghost"
-              class="h-auto w-full justify-between gap-3 rounded-none px-4 py-3"
+              class="h-auto flex-1 justify-between gap-3 rounded-none px-4 py-3"
               @click="openBatch(batch)"
             >
               <span class="flex min-w-0 flex-col items-start gap-0.5">
@@ -83,6 +83,17 @@
               </span>
               <ChevronRightIcon class="text-muted-foreground size-4 shrink-0" />
             </Button>
+            <DesktopOnlyTooltip :content="$t('pages.importExport.importHistory.deleteButton')">
+              <Button
+                variant="ghost-destructive"
+                size="icon-sm"
+                class="mr-2 shrink-0"
+                :aria-label="$t('pages.importExport.importHistory.deleteButton')"
+                @click="confirmDeleteBatch(batch)"
+              >
+                <Trash2Icon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
           </li>
         </ul>
 
@@ -91,16 +102,46 @@
         </div>
       </ScrollArea>
     </Card>
+
+    <ResponsiveAlertDialog
+      v-model:open="isDeleteDialogOpen"
+      :confirm-label="$t('pages.importExport.importHistory.deleteButton')"
+      confirm-variant="destructive"
+      :confirm-disabled="deleteBatchMutation.isPending.value"
+      @confirm="handleDeleteConfirm"
+    >
+      <template #title>{{ $t('pages.importExport.importHistory.deleteConfirmTitle') }}</template>
+      <template #description>
+        {{
+          batchPendingDelete
+            ? $t(
+                'pages.importExport.importHistory.deleteConfirmDescription',
+                { count: batchPendingDelete.transactionCount },
+                batchPendingDelete.transactionCount,
+              )
+            : ''
+        }}
+      </template>
+    </ResponsiveAlertDialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card } from '@/components/lib/ui/card';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
-import { ChevronLeftIcon, ChevronRightIcon, HistoryIcon, Loader2Icon, TriangleAlertIcon } from '@lucide/vue';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  HistoryIcon,
+  Loader2Icon,
+  Trash2Icon,
+  TriangleAlertIcon,
+} from '@lucide/vue';
 import { useIntersectionObserver } from '@vueuse/core';
 import { ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
@@ -109,6 +150,7 @@ import { ImportSource, type ImportBatchSummary } from '@bt/shared/types';
 import { useI18n } from 'vue-i18n';
 
 import { useBatchesHistory } from './use-batches-history';
+import { useDeleteImportBatch } from './use-delete-import-batch';
 
 defineOptions({
   name: 'import-history',
@@ -138,6 +180,26 @@ const sourceLabel = (source: ImportSource) => t(`settings.dataManagement.${SOURC
 
 const openBatch = (batch: ImportBatchSummary) => {
   router.push({ name: ROUTES_NAMES.transactions, query: { batchId: batch.batchId } });
+};
+
+const isDeleteDialogOpen = ref(false);
+const batchPendingDelete = ref<ImportBatchSummary | null>(null);
+
+const deleteBatchMutation = useDeleteImportBatch({
+  onSuccess: () => {
+    isDeleteDialogOpen.value = false;
+    batchPendingDelete.value = null;
+  },
+});
+
+const confirmDeleteBatch = (batch: ImportBatchSummary) => {
+  batchPendingDelete.value = batch;
+  isDeleteDialogOpen.value = true;
+};
+
+const handleDeleteConfirm = () => {
+  if (!batchPendingDelete.value) return;
+  deleteBatchMutation.mutate({ batchId: batchPendingDelete.value.batchId });
 };
 
 const sentinelRef = ref<HTMLElement | null>(null);
