@@ -15,6 +15,12 @@
         "successNotification": "Transfer matching setting updated",
         "errorNotification": "Failed to update transfer matching setting"
       },
+      "savingsCategories": {
+        "label": "Count categories as savings",
+        "description": "Spending in these categories (and their subcategories) is excluded from expenses in cash-flow analytics, so it counts toward monthly savings and the savings rate.",
+        "successNotification": "Savings categories updated",
+        "errorNotification": "Failed to update savings categories"
+      },
       "accountDropdowns": {
         "defaultAccount": {
           "label": "Default account",

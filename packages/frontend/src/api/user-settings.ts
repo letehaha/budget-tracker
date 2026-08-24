@@ -106,6 +106,11 @@ export interface UserSettingsSchema {
     defaultAccountId?: string | null;
     showArchivedInDropdowns?: boolean;
   };
+  /**
+   * Categories whose spending counts as savings in the cash-flow analytics instead of as an
+   * expense. Subcategories inherit from their parent. Empty or unset leaves cash flow unchanged.
+   */
+  savingsCategoryIds?: string[];
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {
