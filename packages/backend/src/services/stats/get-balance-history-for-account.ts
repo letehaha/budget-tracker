@@ -1,5 +1,7 @@
+import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
 import * as Accounts from '@models/accounts.model';
 import * as Balances from '@models/balances.model';
+import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { Op } from 'sequelize';
 
 import { getWhereConditionForTime } from './utils';
@@ -35,8 +37,16 @@ export const getBalanceHistoryForAccount = async ({
   try {
     let data: Balances.default[] = [];
 
-    const account = await Accounts.default.findOne({ where: { id: accountId, userId } });
-    if (!account) {
+    // Reachability, not ownership: a shared account's balance and transaction list are
+    // already visible to the recipient, so its balance history has to be too. Still the
+    // authorization gate — everything below trusts that this passed.
+    const access = await canUserAccessResource({
+      userId,
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: accountId,
+      requiredPermission: SHARE_PERMISSIONS.read,
+    });
+    if (!access.granted) {
       return data;
     }
 
@@ -47,7 +57,7 @@ export const getBalanceHistoryForAccount = async ({
       include: [
         {
           model: Accounts.default,
-          where: { userId, id: accountId },
+          where: { id: accountId },
           attributes: [],
         },
       ],

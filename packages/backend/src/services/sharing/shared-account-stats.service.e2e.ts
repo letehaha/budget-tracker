@@ -167,6 +167,21 @@ describe('Stats on a shared account', () => {
       expect(earliest).toBe(format(OWNER_TX_DATE(), 'yyyy-MM-dd'));
     });
 
+    it('serves the shared account’s balance history when asked for it by id', async () => {
+      // `/stats/balance-history?accountId=` takes a different branch from the unscoped call
+      // and authorized on ownership, so the recipient got an empty series for an account
+      // whose balance the app was already showing them.
+      const { account, recipient } = await seedSharedAccount();
+
+      const history = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getBalanceHistory({ ...WINDOW(), accountId: account.id, raw: true }),
+      });
+
+      expect(history.length).toBeGreaterThan(0);
+      expect(history.at(-1)!.amount).toBe(-(OWNER_EXPENSE + RECIPIENT_EXPENSE));
+    });
+
     it('includes the shared account in the balance history', async () => {
       const { recipient } = await seedSharedAccount();
 
