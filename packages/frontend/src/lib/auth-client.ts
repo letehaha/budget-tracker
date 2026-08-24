@@ -46,12 +46,16 @@ export const { signIn, signUp, signOut, getSession } = authClient;
  * Set password for OAuth-only accounts.
  * This endpoint exists on better-auth server but isn't typed on the client.
  * Requires authenticated session + fresh session (signed in recently).
+ *
+ * The route is overridden by the app, which answers errors with the app envelope
+ * `{ status, response: { message, code } }` — better-auth's fetch client spreads that
+ * body into `error`, so the real message/code sit under `error.response`.
  */
 export const setPassword = (
   authClient as unknown as {
     setPassword: (params: { newPassword: string }) => Promise<{
       data?: { status: boolean };
-      error?: { message: string };
+      error?: { message?: string; code?: string; response?: { message?: string; code?: string } };
     }>;
   }
 ).setPassword;

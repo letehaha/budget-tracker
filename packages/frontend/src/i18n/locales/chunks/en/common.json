@@ -25,7 +25,8 @@
       "link": "Link",
       "clear": "Clear",
       "apply": "Apply",
-      "retry": "Try again"
+      "retry": "Try again",
+      "copyInviteLink": "Copy invite link"
     },
     "ui": {
       "close": "Close",
@@ -55,7 +56,11 @@
     },
     "notifications": {
       "subscriptionCurrencyNotConnected": "Subscriptions summary can't convert {currencies} to your base currency. Connect the currency in Settings → Currencies.",
-      "backgroundJobFailed": "A background job failed while you were away: {error}"
+      "backgroundJobFailed": "A background job failed while you were away: {error}",
+      "inviteLinkCopied": "Invite link copied to clipboard"
+    },
+    "sharing": {
+      "emailNotSent": "Email sending not configured — share the invite link manually"
     },
     "labels": {
       "email": "Email",

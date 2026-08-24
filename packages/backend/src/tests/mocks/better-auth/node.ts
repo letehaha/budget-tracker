@@ -1,8 +1,18 @@
 /**
  * Mock implementation of better-auth/node for Jest tests.
- * This provides the toNodeHandler function that wraps the better-auth handler.
+ * The real module is ESM-only, which Jest's CommonJS runtime cannot load.
  */
 import type { NextFunction, Request, Response } from 'express';
+import type { IncomingHttpHeaders } from 'node:http';
+
+export function fromNodeHeaders(nodeHeaders: IncomingHttpHeaders): Headers {
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(nodeHeaders)) {
+    if (value === undefined) continue;
+    headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+  }
+  return headers;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toNodeHandler(auth: any) {
@@ -11,12 +21,7 @@ export function toNodeHandler(auth: any) {
       // Convert Express request/response to Web API Request/Response
       const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
 
-      const headers = new Headers();
-      Object.entries(req.headers).forEach(([key, value]) => {
-        if (value) {
-          headers.set(key, Array.isArray(value) ? value.join(', ') : value);
-        }
-      });
+      const headers = fromNodeHeaders(req.headers);
 
       let requestBody: string | undefined;
       if (req.method !== 'GET' && req.method !== 'HEAD') {

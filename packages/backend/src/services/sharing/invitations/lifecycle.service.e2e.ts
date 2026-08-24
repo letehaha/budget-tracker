@@ -146,10 +146,7 @@ describe('Share invitations: resend (S6)', () => {
       expect(notifs).toHaveLength(0);
     });
 
-    it('reports emailDelivered: true even when no email is sent (unregistered invitee, dev/test resend skipped)', async () => {
-      // Resend isn't configured in test env (sendInvitationEmail returns 'skipped'), and
-      // even if it were, an unresolved invitee gets no email at all. Both branches must
-      // collapse to `emailDelivered: true` so the UI doesn't spuriously warn.
+    it("reports emailOutcome: 'skipped' when no email provider is configured", async () => {
       const account = await helpers.createAccount({ raw: true });
       const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const invitation = await helpers.createShareInvitation({
@@ -162,7 +159,7 @@ describe('Share invitations: resend (S6)', () => {
 
       const res = await helpers.resendShareInvitation({ invitationId: invitation.id, raw: false });
       expect(res.statusCode).toBe(200);
-      expect(res.body.response.emailDelivered).toBe(true);
+      expect(res.body.response.emailOutcome).toBe('skipped');
     });
   });
 

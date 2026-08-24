@@ -3,6 +3,7 @@ import {
   type HouseholdSharePermission,
   type ResourceShareModel,
   ResourceType,
+  type ShareInvitationEmailOutcome,
   ShareInvitationModel,
   SharePermission,
   SharePolicy,
@@ -14,6 +15,8 @@ interface InvitationListItem extends ShareInvitationModel {
   resourceName: string | null;
   owner: { id: number; username: string; avatar: string | null } | null;
   invitee: { id: number; username: string; avatar: string | null } | null;
+  /** False when the server has no email provider — pending rows then warn and offer the copy-link remedy. */
+  emailConfigured: boolean;
 }
 
 interface CreateInvitationPayload {
@@ -25,14 +28,11 @@ interface CreateInvitationPayload {
 }
 
 /**
- * `emailDelivered: false` means the row was created but the outbound invitation email
- * could not be sent (Resend down, transient network error). The caller should warn the
- * owner so they don't assume the invitee was reached. `true` covers (a) the email was
- * accepted by Resend, (b) the invitee was unregistered so there was no email to send
- * (these are intentionally silent in Phase 1), or (c) email isn't configured in this
- * environment.
+ * The invitation row is always created; `emailOutcome` only reports the email attempt.
+ * `'skipped'` means the server has no email provider configured, so the owner has to hand
+ * the invite link over manually; `'failed'` means the provider was reached and errored.
  */
-type CreateInvitationResponse = ShareInvitationModel & { emailDelivered: boolean };
+type CreateInvitationResponse = ShareInvitationModel & { emailOutcome: ShareInvitationEmailOutcome };
 
 export const createShareInvitation = (payload: CreateInvitationPayload): Promise<CreateInvitationResponse> =>
   api.post('/share/invitations', payload);

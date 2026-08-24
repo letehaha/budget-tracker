@@ -25,12 +25,12 @@ const schema = z.object({
 });
 
 export default createController(schema, async ({ user, params, body }) => {
-  const { invitation, emailDelivered } = await backInviteFromInvitation({
+  const { invitation, emailOutcome } = await backInviteFromInvitation({
     callerUserId: user.id,
     sourceInvitationId: params.id,
     permission: body.permission,
     policy: body.policy ?? null,
   });
 
-  return { data: { ...invitation, emailDelivered }, statusCode: 201 };
+  return { data: { ...invitation, emailOutcome }, statusCode: 201 };
 });

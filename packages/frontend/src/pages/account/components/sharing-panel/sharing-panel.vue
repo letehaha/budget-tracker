@@ -17,6 +17,7 @@ import { Button } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useAccountAccess } from '@/composable/use-account-access';
+import { useCopyInviteLink } from '@/composable/use-copy-invite-link';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useUserStore } from '@/stores';
 import {
@@ -30,7 +31,7 @@ import {
   type TransactionsWriteScope,
 } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { MailIcon, RotateCwIcon, Trash2Icon, UserIcon, UserPlusIcon, XIcon } from '@lucide/vue';
+import { CopyIcon, MailIcon, RotateCwIcon, Trash2Icon, UserIcon, UserPlusIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -41,6 +42,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { copyInviteLink } = useCopyInviteLink();
 const queryClient = useQueryClient();
 const { user, isDemo } = storeToRefs(useUserStore());
 
@@ -195,7 +197,7 @@ const confirmCancelInvite = () => {
 const resendInviteMutation = useMutation({
   mutationFn: (id: string) => resendShareInvitation(id),
   onSuccess: (data) => {
-    if (data.emailDelivered === false) {
+    if (data.emailOutcome === 'failed') {
       addErrorNotification(t('pages.account.sharing.pending.resendDeliveryFailed'));
     } else {
       addSuccessNotification(t('pages.account.sharing.pending.resendSuccess'));
@@ -341,11 +343,23 @@ const isSelfRow = (member: ShareMemberRow) => user.value?.id === member.user.id;
                 <p class="text-muted-foreground text-xs">
                   {{ $t(`pages.account.sharing.permissions.${invitation.permission}`) }}
                 </p>
+                <p v-if="!invitation.emailConfigured" class="text-warning text-xs">
+                  {{ $t('common.sharing.emailNotSent') }}
+                </p>
               </div>
             </div>
 
             <div class="flex items-center gap-2 @sm/sharing-panel:ml-auto">
-              <DemoRestricted feature="share_account_resend_invite">
+              <DesktopOnlyTooltip :content="$t('common.actions.copyInviteLink')">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  @click="copyInviteLink({ token: invitation.token, resourceType: invitation.resourceType })"
+                >
+                  <CopyIcon class="size-4" />
+                </Button>
+              </DesktopOnlyTooltip>
+              <DemoRestricted v-if="invitation.emailConfigured" feature="share_account_resend_invite">
                 <DesktopOnlyTooltip :content="$t('pages.account.sharing.pending.resend')">
                   <Button
                     variant="ghost"

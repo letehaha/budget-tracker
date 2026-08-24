@@ -287,7 +287,7 @@ export const notifyShareOwnerAccountDeleted = async ({
  * Sent to the owner when the inline Resend send for an invitation email rejected or errored
  * after the DB row was already committed. The invitation row itself stays in `pending` so
  * the owner can resend from the UI; this notification is the durable surface for the
- * failure (the synchronous API response carries `emailDelivered: false` but a toast on a
+ * failure (the synchronous API response carries `emailOutcome: 'failed'` but a toast on a
  * single page load is easy to miss).
  */
 export const notifyInvitationSendFailed = async ({

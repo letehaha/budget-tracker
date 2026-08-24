@@ -2,6 +2,7 @@ import {
   RESOURCE_TYPES,
   ResourceType,
   SHARE_PERMISSIONS,
+  ShareInvitationEmailOutcome,
   SharePermission,
   SharePolicy,
   TRANSACTIONS_WRITE_SCOPES,
@@ -42,24 +43,19 @@ interface SendInvitationEmailParams {
   policy: SharePolicy | null;
   token: string;
   expiresAt: Date;
+  /** Drives the "create an account with this email to accept" hint for invitees who
+   *  don't have an account yet. */
+  recipientIsRegistered: boolean;
 }
 
 /**
- * Outcome of an inline send. The three cases are deliberately distinct because callers
- * surface them differently to the user:
- *
- *   - `'sent'` — Resend accepted the email. UI shows nothing.
- *   - `'skipped'` — Resend isn't configured (dev/test). UI shows nothing — the absence is
- *     expected, not a failure.
- *   - `'failed'` — Resend was configured but rejected / errored. UI should warn ("we
- *     updated the invitation but couldn't send the email"). For resend specifically the
- *     rate-limit slot was already consumed, so silently swallowing this would let the
- *     user burn their daily budget without ever delivering a message.
+ * Outcome of an inline send. Callers surface each case differently: `'sent'` and
+ * `'skipped'` (no email provider configured) are silent, `'failed'` warns the inviter that
+ * the row exists but nothing was delivered.
  */
 type SendInvitationEmailOutcome =
   | { status: 'sent'; messageId: string | null }
-  | { status: 'skipped' }
-  | { status: 'failed' };
+  | { status: Exclude<ShareInvitationEmailOutcome, 'sent'> };
 
 /**
  * Sends an invitation email via Resend. Inline send (no queue) — failures are logged but
@@ -77,6 +73,7 @@ export const sendInvitationEmail = async ({
   policy,
   token,
   expiresAt,
+  recipientIsRegistered,
 }: SendInvitationEmailParams): Promise<SendInvitationEmailOutcome> => {
   if (!resend) {
     logger.warn('[ShareInvitationEmail] Resend not configured; skipping send');
@@ -103,6 +100,7 @@ export const sendInvitationEmail = async ({
     summaryLine,
     acceptUrl,
     expiresAt,
+    recipientIsRegistered,
   });
 
   try {
@@ -134,6 +132,7 @@ const buildEmailHtml = ({
   summaryLine,
   acceptUrl,
   expiresAt,
+  recipientIsRegistered,
 }: {
   ownerDisplayName: string;
   resourceTypeLabel: string;
@@ -142,6 +141,7 @@ const buildEmailHtml = ({
   summaryLine: string | null;
   acceptUrl: string;
   expiresAt: Date;
+  recipientIsRegistered: boolean;
 }) => {
   const safeOwner = escapeHtml(ownerDisplayName);
   const safeResourceType = escapeHtml(resourceTypeLabel);
@@ -152,6 +152,9 @@ const buildEmailHtml = ({
   const summaryRow = summaryLine
     ? `<tr><td style="padding: 0 0 6px 0; font-size: 14px; color: #6b7280;" colspan="2">${escapeHtml(summaryLine)}</td></tr>`
     : '';
+  const signupHint = recipientIsRegistered
+    ? ''
+    : `<p style="margin: 0 0 10px 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">New to ${escapeHtml(appName)}? Create an account with this email address to accept the invitation.</p>`;
 
   return buildEmailShell({
     innerHtml: `
@@ -168,6 +171,7 @@ const buildEmailHtml = ({
             <a href="${safeUrl}" style="display: inline-block; background-color: #8b5cf6; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">View invitation</a>
           </td></tr>
           <tr><td style="padding: 32px 40px 36px 40px;">
+            ${signupHint}
             <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">If you weren't expecting this invitation, you can safely ignore this email — it expires on ${safeExpires}.</p>
           </td></tr>`,
   });
