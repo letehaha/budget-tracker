@@ -32,8 +32,6 @@ describe('DateField component', () => {
     expect(calendar.props('modelValue')).toEqual(modelValue);
   });
 
-  // Typing a year in a datetime-local input passes through parseable
-  // intermediate values (0026 while aiming for 2026); they must not be emitted.
   it('does not emit dates before year 2000 typed into the input', async () => {
     const wrapper = mountComponent({ modelValue: new Date('2026-08-22T10:00:00') });
 

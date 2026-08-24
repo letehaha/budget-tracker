@@ -1,6 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeAccountDisplayBalances } from './account-balance';
+import { computeAccountDisplayBalances, computeCreditUsed } from './account-balance';
+
+describe('computeCreditUsed', () => {
+  it('derives used from limit minus balance when the balance includes the limit', () => {
+    expect(computeCreditUsed({ balance: 4000, creditLimit: 5000, balanceIncludesCreditLimit: true })).toBe(1000);
+  });
+
+  it('treats a raw balance as direct debt: negative balance is the used amount', () => {
+    expect(computeCreditUsed({ balance: -275, creditLimit: 150_000, balanceIncludesCreditLimit: false })).toBe(275);
+  });
+
+  it('reads a raw zero balance as an untouched card', () => {
+    expect(computeCreditUsed({ balance: 0, creditLimit: 150_000, balanceIncludesCreditLimit: false })).toBe(0);
+  });
+
+  it('clamps to zero when own money sits on top of the limit', () => {
+    expect(computeCreditUsed({ balance: 6000, creditLimit: 5000, balanceIncludesCreditLimit: true })).toBe(0);
+    expect(computeCreditUsed({ balance: 500, creditLimit: 5000, balanceIncludesCreditLimit: false })).toBe(0);
+  });
+});
 
 describe('computeAccountDisplayBalances', () => {
   it('returns the raw balances when the credit-limit setting is off', () => {

@@ -19,8 +19,6 @@ describe('Update transaction controller', () => {
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
-  // A year below 2000 is always a fat-fingered date ("26" for 2026) and breaks
-  // exchange-rate lookups downstream.
   it('rejects time before year 2000', async () => {
     const [baseTx] = await helpers.createTransaction({ raw: true });
 

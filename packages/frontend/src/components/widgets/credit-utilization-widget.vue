@@ -1,12 +1,14 @@
 <script lang="ts" setup>
+import { computeCreditUsed } from '@/common/utils/account-balance';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useFormatCurrency } from '@/composable/formatters';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore, useCurrenciesStore } from '@/stores';
-import { ACCOUNT_STATUSES } from '@bt/shared/types';
+import { ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { CircleCheckIcon, InfoIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
@@ -25,6 +27,7 @@ const { accounts, isAccountsFetched } = storeToRefs(useAccountsStore());
 const { baseCurrency } = storeToRefs(useCurrenciesStore());
 const baseCurrencyCode = computed(() => baseCurrency.value?.currency?.code ?? '');
 const { formatBaseCurrency, formatAmountByCurrencyCode, formatCompactAmount } = useFormatCurrency();
+const { data: userSettings } = useUserSettings();
 
 const creditAccounts = computed(() => {
   if (!accounts.value) return [];
@@ -32,7 +35,15 @@ const creditAccounts = computed(() => {
   return accounts.value
     .filter((a) => a.status === ACCOUNT_STATUSES.active && !a.excludeFromStats && a.creditLimit > 0)
     .map((a) => {
-      const used = Math.max(a.creditLimit - a.currentBalance, 0);
+      // Bank providers always report the balance with the limit inside it; a
+      // manual balance only does when the user opted in via the setting.
+      const balanceIncludesCreditLimit =
+        a.type !== ACCOUNT_TYPES.system || !!userSettings.value?.includeCreditLimitInStats;
+      const used = computeCreditUsed({
+        balance: a.currentBalance,
+        creditLimit: a.creditLimit,
+        balanceIncludesCreditLimit,
+      });
       const limit = a.creditLimit;
       const utilization = limit > 0 ? Math.round((used / limit) * 100) : 0;
 
@@ -43,7 +54,11 @@ const creditAccounts = computed(() => {
         used,
         limit,
         utilization: Math.min(utilization, 100),
-        refUsed: Math.max(a.refCreditLimit - a.refCurrentBalance, 0),
+        refUsed: computeCreditUsed({
+          balance: a.refCurrentBalance,
+          creditLimit: a.refCreditLimit,
+          balanceIncludesCreditLimit,
+        }),
         refLimit: a.refCreditLimit,
       };
     })

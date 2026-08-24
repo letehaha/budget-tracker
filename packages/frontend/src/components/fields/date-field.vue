@@ -104,9 +104,8 @@ const props = withDefaults(
 
 const { isSafariMobile } = useSafariDetection();
 
-// Typing a year in a datetime-local input passes through parseable intermediate
-// values (0002 → 0020 → 0202 → 2026); anything before 2000 is such an
-// intermediate state or a typo, never a real ledger date.
+// Typing a year in a datetime-local input emits parseable intermediate values
+// (0026 while aiming for 2026). Dates before 2000 are those or typos, never real.
 const MIN_DATE = new Date('2000-01-01T00:00:00');
 
 const isValidDate = (value: unknown): value is Date =>
