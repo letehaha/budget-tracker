@@ -15,6 +15,12 @@
         "successNotification": "Pengaturan pencocokan transfer diperbarui",
         "errorNotification": "Gagal memperbarui pengaturan pencocokan transfer"
       },
+      "savingsCategories": {
+        "label": "Hitung kategori sebagai tabungan",
+        "description": "Pengeluaran pada kategori ini (dan subkategorinya) dikecualikan dari pengeluaran dalam analitik arus kas, sehingga dihitung sebagai tabungan bulanan dan tingkat tabungan.",
+        "successNotification": "Kategori tabungan diperbarui",
+        "errorNotification": "Gagal memperbarui kategori tabungan"
+      },
       "accountDropdowns": {
         "defaultAccount": {
           "label": "Akun default",

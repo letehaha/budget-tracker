@@ -577,7 +577,8 @@
         "sentBody": "Hemos enviado una invitación a {owner}. Obtendrá acceso una vez que la acepte.",
         "success": "Invitación enviada.",
         "deliveryFailed": "Invitación creada, pero no se pudo enviar el correo electrónico. Inténtelo de nuevo más tarde.",
-        "error": "Error al enviar la invitación."
+        "error": "Error al enviar la invitación.",
+        "emailNotConfigured": "Invitación creada, pero este servidor no tiene configurado el envío de correos. Pídale que revise sus invitaciones en la aplicación."
       }
     },
     "categoryExclusions": {
