@@ -20,6 +20,21 @@ interface AccountDisplayBalances {
  * The single source for this rule so the per-row display (`useAccountDisplayBalance`) and
  * the sidebar group roll-ups (`sumAccountsBaseBalance`) can't drift out of sync.
  */
+/**
+ * Credit drawn on an account, for either the native or the ref balance pair.
+ * Provider balances carry the limit inside the balance; a raw manual balance
+ * tracks debt directly (0 = untouched card, negative = amount owed).
+ */
+export const computeCreditUsed = ({
+  balance,
+  creditLimit,
+  balanceIncludesCreditLimit,
+}: {
+  balance: number;
+  creditLimit: number;
+  balanceIncludesCreditLimit: boolean;
+}): number => Math.max(balanceIncludesCreditLimit ? creditLimit - balance : -balance, 0);
+
 export const computeAccountDisplayBalances = ({
   currentBalance,
   refCurrentBalance,
