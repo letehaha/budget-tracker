@@ -46,6 +46,27 @@
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="min-w-48 flex-1">
             <div class="text-sm font-medium">
+              {{ $t('settings.general.savingsCategories.label') }}
+            </div>
+            <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+              {{ $t('settings.general.savingsCategories.description') }}
+            </p>
+          </div>
+          <!-- The field's own root is w-full, so the width lives on a wrapper instead of its class. -->
+          <div class="w-64 shrink-0">
+            <CategoryMultiSelectField
+              :model-value="savingsCategoryIds"
+              :disabled="isUpdating"
+              @update:model-value="handleSavingsCategoriesChange"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="min-w-48 flex-1">
+            <div class="text-sm font-medium">
               {{ $t('settings.general.accountDropdowns.defaultAccount.label') }}
             </div>
             <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
@@ -88,6 +109,7 @@
 <script setup lang="ts">
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import AccountSelectField from '@/components/fields/account-select-field.vue';
+import CategoryMultiSelectField from '@/components/fields/category-multi-select-field.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { Switch } from '@/components/lib/ui/switch';
@@ -116,6 +138,7 @@ const {
 
 const includeCreditLimitInStats = computed(() => userSettings.value?.includeCreditLimitInStats ?? false);
 const matchTransfersWithManualAccounts = computed(() => userSettings.value?.matchTransfersWithManualAccounts ?? false);
+const savingsCategoryIds = computed(() => userSettings.value?.savingsCategoryIds ?? []);
 
 const defaultAccount = computed<AccountModel | null>(() =>
   defaultAccountId.value ? (accountsRecord.value[defaultAccountId.value] ?? null) : null,
@@ -155,6 +178,26 @@ const handleManualTransferMatchingToggle = async (value: boolean) => {
     addSuccessNotification(t('settings.general.manualTransferMatching.successNotification'));
   } catch {
     addErrorNotification(t('settings.general.manualTransferMatching.errorNotification'));
+  }
+};
+
+const handleSavingsCategoriesChange = async (value: string[]) => {
+  try {
+    await mutateAsync({
+      ...userSettings.value,
+      savingsCategoryIds: value,
+    });
+
+    addSuccessNotification(t('settings.general.savingsCategories.successNotification'));
+
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.analyticsCashFlow] }),
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.widgetCashFlow] }),
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.widgetCashFlowPrev] }),
+      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.widgetCashFlowTrend] }),
+    ]);
+  } catch {
+    addErrorNotification(t('settings.general.savingsCategories.errorNotification'));
   }
 };
 

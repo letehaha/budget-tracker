@@ -263,6 +263,10 @@ export const ZodSettingsSchema = z.object({
   // matcher. Opt-in because linking turns a manually recorded row into a transfer leg, and
   // transfer legs carry no category, so the row disappears from category stats.
   matchTransfersWithManualAccounts: z.boolean().optional(),
+  // Categories whose legs leave the cash-flow report entirely, so money moved into them counts as
+  // savings rather than spend. Descendants are expanded server-side. Plain z.uuid(), not
+  // recordId(): the branded RecordId output breaks the SettingsPatchSchemaIsInSync assertion below.
+  savingsCategoryIds: z.array(z.uuid()).optional(),
 });
 
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
@@ -351,6 +355,7 @@ export const ZodSettingsPatchSchema = z.object({
   showSupportButton: z.boolean().optional(),
   hideZeroBalances: z.boolean().optional(),
   matchTransfersWithManualAccounts: z.boolean().optional(),
+  savingsCategoryIds: z.array(z.uuid()).optional(),
 });
 
 export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
