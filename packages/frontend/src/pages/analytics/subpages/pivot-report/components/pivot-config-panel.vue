@@ -76,7 +76,7 @@
               </div>
             </div>
             <div class="border-border mt-1 border-t pt-1">
-              <Button variant="ghost" size="sm" class="w-full justify-start gap-2" @click="openSaveDialog">
+              <Button variant="secondary" size="sm" class="w-full justify-start gap-2" @click="openSaveDialog">
                 <PlusIcon class="size-4" />
                 {{ $t('pivotReport.savedViews.saveCurrent') }}
               </Button>

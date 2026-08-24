@@ -9,7 +9,21 @@
     "typescript/no-empty-object-type": "off",
     "no-unused-vars": "warn",
     "unicorn/prefer-optional-catch-binding": "warn",
-    "no-underscore-dangle": ["warn", { "allow": ["_call", "__APP_CONFIG__", "_isOutOfWallet"] }]
+    "no-underscore-dangle": ["warn", { "allow": ["_call", "__APP_CONFIG__", "_isOutOfWallet"] }],
+    "no-restricted-properties": [
+      "error",
+      { "property": "toSorted", "message": "Unsupported in Safari <16 — use [...arr].sort()" },
+      { "property": "toReversed", "message": "Unsupported in Safari <16 — use [...arr].reverse()" },
+      { "property": "toSpliced", "message": "Unsupported in Safari <16 — use [...arr] + splice()" }
+    ]
   },
+  "overrides": [
+    {
+      "files": ["*.spec.ts", "*.test.ts"],
+      "rules": {
+        "no-restricted-properties": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["*.d.ts", "**/coverage", "**/dist", "**/landing/**", "**/legal/**", "vite.config.js", "scripts/**"]
 }

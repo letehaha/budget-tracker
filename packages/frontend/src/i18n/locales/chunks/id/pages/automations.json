@@ -1,0 +1,217 @@
+{
+  "automations": {
+    "title": "Otomatisasi",
+    "subtitle": "Berjalan pada transaksi baru dari sinkronisasi bank dan impor file. Aturan pertama yang cocok yang menang — seret aturan untuk mengurutkan ulang.",
+    "newAutomation": "Otomatisasi baru",
+    "new": "Baru",
+    "dragHint": "Seret untuk mengurutkan ulang",
+    "toggleAriaLabel": "Aktifkan otomatisasi",
+    "menuAriaLabel": "Tindakan otomatisasi",
+    "disabledPill": "Nonaktif",
+    "mcpTip": {
+      "trigger": "Tips",
+      "text": "Anda dapat mengelola otomatisasi dengan AI melalui koneksi MCP — minta AI untuk menata ulang aturan Anda, atau memeriksa duplikat dan konflik.",
+      "link": "Siapkan koneksi MCP"
+    },
+    "statusFilter": {
+      "all": "Tampilkan semua",
+      "enabled": "Hanya yang aktif",
+      "disabled": "Hanya yang nonaktif",
+      "empty": "Tidak ada otomatisasi yang cocok dengan filter ini."
+    },
+    "pausedMissingRef": "Dijeda — {refType} \"{label}\" telah dihapus",
+    "pausedMissingRefUnnamed": "Dijeda: {refType} yang dirujuk aturan ini telah dihapus",
+    "matchStats": "{count} kecocokan · terakhir {date} | {count} kecocokan · terakhir {date}",
+    "matchStatsNever": "Belum pernah cocok",
+    "loadError": "Tidak dapat memuat otomatisasi. Periksa koneksi Anda dan coba lagi.",
+    "reorderDisabledFiltered": "Bersihkan filter status untuk mengurutkan ulang",
+    "density": {
+      "comfortable": "Rinci",
+      "compact": "Ringkas"
+    },
+    "chips": {
+      "when": "Jika",
+      "then": "Maka",
+      "not": "tidak",
+      "day": "tanggal",
+      "more": "+{count} lagi",
+      "less": "Tampilkan lebih sedikit",
+      "noteReplace": "atur catatan",
+      "noteAppend": "tambah di akhir",
+      "notePrepend": "tambah di awal",
+      "note": {
+        "containsAny": "catatan memuat",
+        "notContainsAny": "catatan tanpa",
+        "startsWithAny": "catatan diawali",
+        "endsWithAny": "catatan diakhiri",
+        "equalsAny": "catatan adalah",
+        "isEmpty": "catatan kosong"
+      },
+      "merchant": {
+        "containsAny": "pedagang memuat",
+        "notContainsAny": "pedagang tanpa",
+        "startsWithAny": "pedagang diawali",
+        "endsWithAny": "pedagang diakhiri",
+        "equalsAny": "pedagang adalah",
+        "isEmpty": "pedagang kosong"
+      }
+    },
+    "refType": {
+      "category": "kategori",
+      "tag": "tag",
+      "account": "akun",
+      "accountGroup": "grup akun",
+      "bankConnection": "koneksi bank",
+      "payee": "penerima"
+    },
+    "emptyState": {
+      "title": "Belum ada otomatisasi",
+      "description": "Otomatisasi mengategorikan, menandai, dan memberi catatan pada transaksi begitu transaksi masuk dari sinkronisasi bank atau impor file.",
+      "cta": "Buat otomatisasi pertama Anda"
+    },
+    "delete": {
+      "title": "Hapus otomatisasi?",
+      "description": "\"{name}\" akan berhenti berjalan pada transaksi baru. Transaksi yang sudah dikategorikan tetap mempertahankan kategori, tag, dan catatannya.",
+      "confirm": "Hapus"
+    },
+    "notifications": {
+      "deleteSuccess": "Otomatisasi dihapus.",
+      "deleteError": "Tidak dapat menghapus otomatisasi. Silakan coba lagi.",
+      "toggleError": "Tidak dapat mengubah status otomatisasi. Silakan coba lagi.",
+      "reorderError": "Tidak dapat menyimpan urutan baru. Silakan coba lagi.",
+      "staleReference": "Otomatisasi ini mengarah ke sesuatu yang telah dihapus. Buka dan pilih penggantinya.",
+      "openRule": "Buka aturan"
+    },
+    "fields": {
+      "note": "Catatan",
+      "merchant": "Pedagang",
+      "payee": "Penerima",
+      "amount": "Jumlah",
+      "transactionType": "Jenis transaksi",
+      "account": "Akun",
+      "accountGroup": "Grup akun",
+      "bankConnection": "Koneksi bank",
+      "dayOfMonth": "Tanggal dalam bulan"
+    },
+    "operators": {
+      "contains_any": "memuat salah satu dari",
+      "not_contains_any": "tidak memuat",
+      "starts_with_any": "diawali dengan",
+      "ends_with_any": "diakhiri dengan",
+      "equals_any": "sama dengan salah satu dari",
+      "is_empty": "kosong",
+      "in": "adalah salah satu dari",
+      "not_in": "bukan salah satu dari",
+      "gte": "minimal",
+      "lte": "maksimal",
+      "between": "antara",
+      "equals": "sama dengan"
+    },
+    "actions": {
+      "set_category": "Atur kategori",
+      "set_payee": "Atur penerima",
+      "add_tags": "Tambah tag",
+      "set_note": "Atur catatan",
+      "noteMode": {
+        "replace": "Ganti",
+        "append": "Tambah di akhir",
+        "prepend": "Tambah di awal"
+      }
+    },
+    "editor": {
+      "titleNew": "Otomatisasi baru",
+      "titleEdit": "Sunting otomatisasi",
+      "back": "Kembali ke otomatisasi",
+      "enabled": "Aktif",
+      "nameLabel": "Nama",
+      "namePlaceholder": "mis. Belanja dari Biedronka",
+      "conditionsHeader": "Cocokkan {match} dari kondisi berikut",
+      "matchAll": "semua",
+      "matchAny": "salah satu",
+      "joinAnd": "DAN",
+      "joinOr": "ATAU",
+      "addCondition": "Tambah kondisi",
+      "removeCondition": "Hapus kondisi",
+      "removeKeyword": "Hapus kata kunci",
+      "fieldPlaceholder": "Pilih kolom",
+      "operatorPlaceholder": "Pilih kondisi",
+      "keywordPlaceholder": "Ketik kata kunci lalu tekan Enter",
+      "amountPlaceholder": "Masukkan jumlah",
+      "minPlaceholder": "Jumlah min.",
+      "maxPlaceholder": "Jumlah maks.",
+      "currencyPlaceholder": "Pilih mata uang",
+      "currency": {
+        "transaction": "Mata uang transaksi",
+        "base": "Mata uang dasar ({code})",
+        "specific": "dalam {code}"
+      },
+      "accountsPlaceholder": "Pilih akun",
+      "accountGroupPlaceholder": "Pilih grup akun",
+      "bankConnectionPlaceholder": "Pilih koneksi bank",
+      "dayFromPlaceholder": "Dari tanggal",
+      "dayToPlaceholder": "Sampai tanggal",
+      "actionsHeader": "Maka lakukan ini",
+      "addAction": "Tambah tindakan",
+      "removeAction": "Hapus tindakan",
+      "categoryPlaceholder": "Pilih kategori",
+      "payeePlaceholder": "Pilih penerima",
+      "tagsPlaceholder": "Pilih tag",
+      "notePlaceholder": "Masukkan teks catatan",
+      "saveSuccess": "Otomatisasi disimpan.",
+      "notFound": {
+        "title": "Otomatisasi tidak ditemukan",
+        "description": "Otomatisasi ini sudah tidak ada atau telah dihapus.",
+        "link": "Kembali ke otomatisasi"
+      },
+      "unsaved": {
+        "title": "Buang perubahan yang belum disimpan?",
+        "description": "Otomatisasi ini memiliki perubahan yang belum disimpan. Meninggalkan halaman sekarang akan membuangnya.",
+        "confirm": "Buang perubahan"
+      },
+      "preview": {
+        "title": "Pratinjau",
+        "run": "Pratinjau kecocokan",
+        "hint": "Selesaikan aturan ini untuk melihat pratinjau transaksi mana yang akan cocok.",
+        "summary": "{matched} dari {scanned} transaksi terakhir yang dapat dikenai aturan ini",
+        "empty": "Tidak ada kecocokan",
+        "stale": "Kondisi berubah sejak pratinjau ini dijalankan.",
+        "error": "Tidak dapat menjalankan pratinjau. Silakan coba lagi."
+      },
+      "errors": {
+        "nameRequired": "Masukkan nama untuk otomatisasi ini.",
+        "nameTooLong": "Nama harus terdiri dari maksimal {max} karakter.",
+        "conditionsRequired": "Tambahkan setidaknya satu kondisi.",
+        "actionsRequired": "Tambahkan setidaknya satu tindakan.",
+        "keywordsRequired": "Tambahkan setidaknya satu kata kunci.",
+        "keywordsMax": "Gunakan maksimal {max} kata kunci.",
+        "keywordTooLong": "Setiap kata kunci harus terdiri dari maksimal {max} karakter.",
+        "selectionRequired": "Pilih setidaknya satu opsi.",
+        "selectionMax": "Pilih maksimal {max} opsi.",
+        "missingRef": "telah dihapus — pilih yang lain atau hapus baris ini",
+        "amountRequired": "Masukkan jumlah.",
+        "amountBoundsRequired": "Masukkan jumlah minimum dan maksimum.",
+        "amountRange": "Jumlah minimum tidak boleh lebih besar dari maksimum.",
+        "dayRange": "Masukkan rentang tanggal antara 1 dan 31, dengan tanggal awal tidak melewati tanggal akhir.",
+        "categoryRequired": "Pilih kategori.",
+        "payeeRequired": "Pilih penerima.",
+        "tagsRequired": "Pilih setidaknya satu tag.",
+        "noteRequired": "Masukkan teks catatan.",
+        "noteTooLong": "Catatan harus terdiri dari maksimal {max} karakter.",
+        "saveFailed": "Tidak dapat menyimpan otomatisasi. Silakan coba lagi.",
+        "transactionTypeDuplicate": "Hanya satu kondisi jenis transaksi yang diperbolehkan"
+      },
+      "noResults": "Tidak ada hasil"
+    },
+    "summary": {
+      "missingRef": "(dihapus)",
+      "currency": {
+        "transaction": "(mata uang transaksi)",
+        "base": "(mata uang dasar)"
+      },
+      "transactionTypeValue": {
+        "income": "pemasukan",
+        "expense": "pengeluaran"
+      }
+    }
+  }
+}

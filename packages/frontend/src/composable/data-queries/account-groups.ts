@@ -8,12 +8,18 @@ import {
 } from '@/api/account-groups';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AccountGroups } from '@/common/types/models';
-import { useNotificationCenter } from '@/components/notification-center';
-import { extractApiErrorMessage, isApiErrorWithCode } from '@/js/errors';
-import { API_ERROR_CODES, type EntityLogoPayload } from '@bt/shared/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { type EntityLogoPayload } from '@bt/shared/types';
+import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { MaybeRefOrGetter, Ref, toValue } from 'vue';
-import { useI18n } from 'vue-i18n';
+
+import { useInvalidatingMutation } from './use-invalidating-mutation';
+
+export const useAccountGroupsQuery = () =>
+  useQuery({
+    queryKey: VUE_QUERY_CACHE_KEYS.accountGroups,
+    queryFn: () => loadAccountGroups(),
+    staleTime: Infinity,
+  });
 
 export const useAccountGroupForAccount = (
   accountId: Ref<string>,
@@ -47,8 +53,6 @@ export const useAccountGroupForAccount = (
 /**
  * Shared wiring for every write against `/account-group`: refresh both caches that hold
  * group membership — the flat list and the per-account lookup — then report the outcome.
- * Error copy prefers the server's own message so a validation failure or a write lock held
- * by a restore says what it is, with the operation-specific key as the fallback.
  *
  * Notification keys live in the `common` i18n chunk, not `settings/accounts-groups`: these
  * writes also fire from the link dialog on the accounts and account pages, where the
@@ -65,28 +69,16 @@ const useAccountGroupMutation = <TVariables = void>({
   successKey?: string;
   errorKey: string;
   onSuccess?: () => void;
-}) => {
-  const { t } = useI18n();
-  const queryClient = useQueryClient();
-  const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
-
-  return useMutation<unknown, unknown, TVariables>({
+}) =>
+  useInvalidatingMutation<unknown, TVariables>({
     mutationFn,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.accountGroups });
-      // Prefix key — drops the cached group for every account, not just the one written.
-      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.accountGroupForAccount });
-      if (successKey) addSuccessNotification(t(successKey));
-      onSuccess?.();
-    },
-    onError: (error) => {
-      // The API client already logs the user out and announces an expired session on 401,
-      // so a second toast here would blame the group operation for it.
-      if (isApiErrorWithCode(error, API_ERROR_CODES.unauthorized)) return;
-      addErrorNotification(extractApiErrorMessage(error) || t(errorKey));
-    },
+    // The per-account key is a prefix — it drops the cached group for every account, not
+    // just the one written.
+    invalidateKeys: [VUE_QUERY_CACHE_KEYS.accountGroups, VUE_QUERY_CACHE_KEYS.accountGroupForAccount],
+    successKey,
+    errorKey,
+    onSuccess,
   });
-};
 
 export const useCreateAccountGroup = ({ onSuccess }: { onSuccess?: () => void } = {}) =>
   useAccountGroupMutation({

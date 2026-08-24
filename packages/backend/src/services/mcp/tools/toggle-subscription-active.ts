@@ -5,16 +5,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  id: z.string().describe('UUID of the subscription'),
+  isActive: z.boolean().describe('True to activate the subscription, false to deactivate it'),
+};
+
 export function registerToggleSubscriptionActive(server: McpServer) {
   server.registerTool(
     'toggle_subscription_active',
     {
       description:
         'Activate or deactivate a subscription. Inactive subscriptions are excluded from upcoming payment calculations and summary totals. Requires finance:write scope.',
-      inputSchema: {
-        id: z.string().describe('UUID of the subscription'),
-        isActive: z.boolean().describe('True to activate the subscription, false to deactivate it'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

@@ -159,7 +159,8 @@
           "required": "Bidang ini wajib diisi",
           "minValue": "Jumlah harus lebih besar dari nol",
           "futureDate": "Tanggal harus hari ini atau sebelumnya."
-        }
+        },
+        "selectCategoryPlaceholder": "Pilih kategori"
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Pilih filter",
@@ -317,6 +318,60 @@
         "description": "Transaksi ini adalah jejak audit dari pengesampingan nilai manual untuk {name}.",
         "editHint": "Untuk mengubah nilai, tanggal, atau menghapus pengesampingan ini, kelola dari halaman detail kendaraan.",
         "openVehicle": "Buka {name}"
+      },
+      "templates": {
+        "trigger": "Templat",
+        "filterPlaceholder": "Cari templat…",
+        "emptyState": "Templat mengisi formulir ini dengan detail yang sering Anda masukkan — jumlah, akun, kategori, penerima, tag, catatan. Templat tidak pernah menambahkan apa pun dengan sendirinya; untuk sesuatu yang berulang sesuai jadwal, gunakan Biaya Berulang.",
+        "noMatches": "Tidak ada templat yang cocok.",
+        "loadError": "Tidak dapat memuat templat Anda.",
+        "saveCurrent": "Simpan yang sekarang sebagai templat",
+        "updateApplied": "Perbarui ‘{name}’",
+        "saveAsNew": "Simpan sebagai baru",
+        "newTemplate": "Templat baru",
+        "use": "Gunakan templat",
+        "edit": "Sunting",
+        "tapHint": "Ketuk templat untuk mengisi formulir",
+        "toggleDetails": "Tampilkan detail",
+        "noAmount": "tanpa jumlah tersimpan",
+        "keepsAccount": "mempertahankan akun yang dipilih",
+        "stale": {
+          "categoryDeleted": "kategori dihapus",
+          "accountUnavailable": "akun tidak tersedia"
+        },
+        "removeAriaLabel": "Hapus templat, pulihkan formulir",
+        "announceApplied": "{name} diterapkan — {count} kolom terisi. Jumlah masih kosong. | {name} diterapkan — {count} kolom terisi. Jumlah masih kosong.",
+        "announceAppliedWithAmount": "{name} diterapkan — {count} kolom terisi. Jumlah diatur ke {amount}. | {name} diterapkan — {count} kolom terisi. Jumlah diatur ke {amount}.",
+        "categoryDeletedHint": "Kategori templat ini telah dihapus — pilih kategori lain.",
+        "alsoSet": "Templat juga mengatur: {fields}",
+        "tagsCount": "{count} tag | {count} tag",
+        "applyConfirmTitle": "Terapkan templat?",
+        "applyConfirmDescription": "Menerapkan templat akan mengganti pembagian dan tautan pengembalian dana Anda.",
+        "toasts": {
+          "savedFromForm": "‘{name}’ disimpan — sekarang menjadi templat aktif.",
+          "saved": "Templat disimpan.",
+          "deleted": "Templat dihapus."
+        },
+        "form": {
+          "titleNew": "Templat baru",
+          "titleEdit": "Sunting templat",
+          "titleSaveCurrent": "Simpan sebagai templat",
+          "nameLabel": "Nama",
+          "namePlaceholder": "mis. Kopi pagi",
+          "typeLabel": "Jenis",
+          "keepAccount": "Pertahankan akun mana pun yang dipilih saat saya menggunakannya",
+          "noAmount": "Jangan simpan jumlah — saya akan mengetiknya setiap kali",
+          "delete": "Hapus templat",
+          "save": "Simpan templat",
+          "deleteConfirmTitle": "Hapus ‘{name}’?",
+          "deleteConfirmDescription": "Templat ini akan dihapus. Transaksi yang sudah Anda buat darinya tidak terpengaruh.",
+          "duplicateName": "Anda sudah memiliki templat bernama “{name}”."
+        },
+        "errors": {
+          "create": "Tidak dapat menyimpan templat. Silakan coba lagi.",
+          "update": "Tidak dapat memperbarui templat. Silakan coba lagi.",
+          "delete": "Tidak dapat menghapus templat. Silakan coba lagi."
+        }
       }
     },
     "portfolioTransfer": {

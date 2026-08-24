@@ -177,6 +177,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   recordsUpcomingPayments: [transactionChange, 'records-upcoming-payments'] as const,
   subscriptionCandidates: ['subscription-candidates'] as const,
 
+  // transaction automations
+  // transactionChange prefix so matchCount/lastMatchedAt refresh after a sync or import.
+  transactionAutomationsList: [transactionChange, 'transaction-automations-list'] as const,
+
   // transaction groups
   transactionGroupsList: [transactionChange, 'transaction-groups-list'] as const,
   transactionGroupDetail: [transactionChange, 'transaction-group-detail'] as const,
@@ -188,6 +192,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   vehiclesList: [transactionChange, 'vehicles-list'] as const,
   vehicleDetail: [transactionChange, 'vehicle-detail'] as const,
   vehicleOverrideHistory: [transactionChange, 'vehicle-override-history'] as const,
+
+  // transaction templates
+  // No transactionChange prefix: creating or editing a transaction never changes a template.
+  transactionTemplatesList: ['transaction-templates-list'] as const,
 
   // loans
   loansList: [transactionChange, 'loans-list'] as const,
@@ -214,6 +222,10 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   aiCategorizationHistory: [transactionChange, 'ai-categorization-history'] as const,
   // Callers append the run's `categorizedAt` stamp, so each run caches separately.
   aiCategorizationRunTransactions: [transactionChange, 'ai-categorization-run-transactions'] as const,
+
+  // A completed import creates transactions, so the transactionChange invalidation
+  // refreshes the batch list alongside everything else it creates/moves.
+  importBatchesHistory: [transactionChange, 'import-batches-history'] as const,
 
   // sharing
   shareInvitationsSent: ['share', 'invitations-sent'] as const,

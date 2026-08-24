@@ -53,7 +53,7 @@ import {
 } from '@models/transactions-query/where-builders';
 import Users from '@models/users.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
-import { Op, Includeable, Order, WhereOptions, literal } from 'sequelize';
+import { Op, Includeable, Order, WhereOptions, literal, where as sequelizeWhere } from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -822,6 +822,7 @@ export const findWithFilters = async ({
   attributes,
   categorizationSource,
   categorizedAt,
+  batchId,
 }: {
   /** How planned rows are treated. `{ visibleTo }` keeps other users' plans out while leaving the caller's own visible. */
   planned: PlannedPolicy;
@@ -882,6 +883,8 @@ export const findWithFilters = async ({
   categorizationSource?: CATEGORIZATION_SOURCE;
   /** Exact `categorizationMeta.categorizedAt` stamp, which identifies one categorization run. */
   categorizedAt?: string;
+  /** Filter to only transactions from one import batch (`externalData.importDetails.batchId`). */
+  batchId?: string;
 }) => {
   const cap = capPolicy({ completeness });
   // Created before the first await so the stack still holds the frames of the site that
@@ -1165,6 +1168,15 @@ export const findWithFilters = async ({
     whereClause['categorizationMeta.categorizedAt'] = categorizedAt;
   }
 
+  if (batchId) {
+    // Must match the index expression in migration
+    // 20251229000000-add-index-external-data-import-details exactly
+    // (`"externalData"->'importDetails'->>'batchId'`) - Sequelize's dotted-key
+    // shorthand compiles to `#>>` instead and would skip the index.
+    const batchIdMatch = sequelizeWhere(literal(`"Transactions"."externalData"->'importDetails'->>'batchId'`), batchId);
+    const existingAnd = whereClause[Op.and as unknown as string] as unknown[] | undefined;
+    whereClause[Op.and as unknown as string] = existingAnd ? [...existingAnd, batchIdMatch] : [batchIdMatch];
+  }
   const { limit, offset } = completenessToPagination({ completeness });
 
   const transactions = await Transactions.findAll({

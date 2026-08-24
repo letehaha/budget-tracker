@@ -150,7 +150,8 @@
         "searchPlaceholder": "Cari grup...",
         "noGroupsMessage": "Belum ada grup transaksi.",
         "emptyStateHint": "Pilih transaksi di halaman Transaksi dan klik \"Buat Grup\" untuk memulai.",
-        "transactionCountLabel": "transaksi"
+        "transactionCountLabel": "transaksi",
+        "deleteError": "Gagal menghapus grup. Silakan coba lagi."
       },
       "errors": {
         "nameRequired": "Nama grup wajib diisi",

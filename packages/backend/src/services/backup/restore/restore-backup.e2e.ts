@@ -4,6 +4,7 @@ import {
   BANK_PROVIDER_TYPE,
   DEACTIVATION_REASON,
   RESOURCE_TYPES,
+  type RecordId,
   SHARE_PERMISSIONS,
   SUBSCRIPTION_FREQUENCIES,
   TRANSACTION_TRANSFER_NATURE,
@@ -101,6 +102,21 @@ async function seedRichData() {
   const payee = await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Corner Shop' }), raw: true });
   await helpers.createPayeeAlias({ payeeId: payee.id, rawName: 'CORNER SHOP #12', raw: true });
 
+  // Template pinned to an account, carrying every optional relation and two tags.
+  const templateTag = await helpers.createTag({ payload: helpers.buildTagPayload({ name: 'weekly' }), raw: true });
+  await helpers.createTransactionTemplate({
+    payload: {
+      name: 'Weekly groceries',
+      transactionType: TRANSACTION_TYPES.expense,
+      amount: 42.5,
+      accountId: checking.id,
+      categoryId: childCategory.id,
+      payeeId: payee.id,
+      tagIds: [tag.id, templateTag.id],
+    },
+    raw: true,
+  });
+
   // Expense with a split + a tag.
   const [expense] = await helpers.createTransaction({
     payload: helpers.buildTransactionPayload({
@@ -158,6 +174,19 @@ async function seedRichData() {
     expectedCurrencyCode: global.BASE_CURRENCY_CODE,
     frequency: SUBSCRIPTION_FREQUENCIES.monthly,
     startDate: '2025-01-01',
+    raw: true,
+  });
+
+  // Automation carrying owned ids in both its conditions and its actions.
+  await helpers.createAutomation({
+    payload: {
+      name: 'Corner shop groceries',
+      conditions: { match: 'all', items: [{ field: 'account', operator: 'in', value: [checking.id as RecordId] }] },
+      actions: [
+        { type: 'set_category', categoryId: childCategory.id as RecordId },
+        { type: 'add_tags', tagIds: [tag.id as RecordId] },
+      ],
+    },
     raw: true,
   });
 
@@ -256,6 +285,8 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       expect((firstArchive.readData({ name: 'transactions' }) as unknown[]).length).toBeGreaterThan(0);
       expect((firstArchive.readData({ name: 'holdings' }) as unknown[]).length).toBeGreaterThan(0);
       expect((firstArchive.readData({ name: 'transaction-splits' }) as unknown[]).length).toBeGreaterThan(0);
+      expect((firstArchive.readData({ name: 'transaction-templates' }) as unknown[]).length).toBeGreaterThan(0);
+      expect((firstArchive.readData({ name: 'transaction-template-tags' }) as unknown[]).length).toBeGreaterThan(0);
 
       const restore = await helpers.restoreBackup({ fileContent: first.base64 });
       expect(restore.statusCode).toBe(200);
@@ -408,6 +439,17 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
           // a source id. Verbatim reuse (the pre-fix behaviour) would share ids here.
           for (const id of targetAccountIds) expect(sourceAccountIds.has(id)).toBe(false);
 
+          const targetTagIds = new Set<string>((await helpers.getTags({ raw: true })).map((row) => row.id));
+
+          // The template's account and tag links resolve to the target's own reminted
+          // rows, proving both the FK column and the join table were rewritten.
+          const targetTemplates = await helpers.getTransactionTemplates({ raw: true });
+          expect(targetTemplates).toHaveLength(1);
+          expect(targetTemplates[0]!.name).toBe('Weekly groceries');
+          expect(targetAccountIds.has(targetTemplates[0]!.accountId!)).toBe(true);
+          expect(targetTemplates[0]!.tagIds).toHaveLength(2);
+          for (const tagId of targetTemplates[0]!.tagIds) expect(targetTagIds.has(tagId)).toBe(true);
+
           // UsersCurrencies restored: the exact source currency codes are readable under
           // the target, proving the colliding rows landed (with fresh ids) rather than
           // being dropped.
@@ -448,6 +490,24 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
           }
           expect(restoredHolding).toBeDefined();
           expect(targetPortfolioIds.has(restoredHolding!.portfolioId)).toBe(true);
+
+          // The automation's embedded ids point at the target's own rows, not the
+          // source ids the backup carried.
+          const automations = await helpers.listAutomations({ raw: true });
+          expect(automations).toHaveLength(1);
+
+          const ruleAccountIds = automations[0]!.conditions.items.flatMap((item) =>
+            item.field === 'account' ? item.value : [],
+          );
+          expect(ruleAccountIds).toHaveLength(1);
+          expect(targetAccountIds.has(ruleAccountIds[0]!)).toBe(true);
+
+          const targetCategoryIds = new Set<string>((await helpers.getCategoriesList()).map((row) => row.id));
+          expect(automations[0]!.actions).toHaveLength(2);
+          for (const action of automations[0]!.actions) {
+            if (action.type === 'set_category') expect(targetCategoryIds.has(action.categoryId)).toBe(true);
+            if (action.type === 'add_tags') expect(targetTagIds.has(action.tagIds[0]!)).toBe(true);
+          }
         },
       });
 
@@ -577,6 +637,59 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
         cookies: victim.cookies,
         fn: async () => {
           expect((await helpers.getCategoriesList()).some((c) => c.id === ids.categoryId)).toBe(true);
+        },
+      });
+    });
+
+    it('nulls a forged template account and suppresses the stranded amount (TransactionTemplates.accountId)', async () => {
+      const { accountA } = await seedBasicData();
+      const created = await helpers.createTransactionTemplate({
+        payload: {
+          name: 'Pinned template',
+          transactionType: TRANSACTION_TYPES.expense,
+          amount: 12.5,
+          accountId: accountA.id,
+        },
+        raw: true,
+      });
+      const { victim, ids } = await seedVictimRow();
+
+      const { buffer } = await exportArchive();
+      const { files } = helpers.parseBackupArchive({ buffer });
+
+      const templates = readArchiveJson({ files, path: 'data/transaction-templates.json' }) as Row[];
+      const target = templates.find((t) => t.id === created.id)!;
+      target.accountId = ids.accountId;
+      writeArchiveJson({ files, path: 'data/transaction-templates.json', value: templates });
+      const base64 = await helpers.repackBackup({ files });
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
+      expect(status.status).toBe('completed');
+
+      expect(
+        hasWarning({
+          status: status as unknown as Row,
+          code: 'foreign_reference_nulled',
+          table: 'transaction-templates',
+        }),
+      ).toBe(true);
+
+      // The account link is gone, so the amount it gave a currency to is no longer served.
+      const [restored] = await helpers.getTransactionTemplates({ raw: true });
+      expect(restored!.name).toBe('Pinned template');
+      expect(restored!.accountId).toBeNull();
+      expect(restored!.amount).toBeNull();
+
+      // The stored amount must not make every later edit fail consistency validation.
+      const renamed = await helpers.updateTransactionTemplate({ id: restored!.id, payload: { name: 'Renamed' } });
+      expect(renamed.statusCode).toBe(200);
+
+      await helpers.asUser({
+        cookies: victim.cookies,
+        fn: async () => {
+          expect((await helpers.getAccounts()).some((a) => a.id === ids.accountId)).toBe(true);
         },
       });
     });
@@ -978,8 +1091,10 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       const { base64 } = await exportArchive();
 
       await seedBasicData();
+      await helpers.createAutomation({ payload: helpers.buildAutomationPayload(), raw: true });
       expect((await helpers.getAccounts()).length).toBeGreaterThan(0);
       expect((await helpers.getTransactions({ raw: true })).length).toBeGreaterThan(0);
+      expect((await helpers.listAutomations({ raw: true })).length).toBeGreaterThan(0);
 
       const restore = await helpers.restoreBackup({ fileContent: base64 });
       expect(restore.statusCode).toBe(200);
@@ -989,6 +1104,7 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       // The transactional tables are empty again — down to the backup's empty state.
       expect(await helpers.getAccounts()).toHaveLength(0);
       expect(await helpers.getTransactions({ raw: true })).toHaveLength(0);
+      expect(await helpers.listAutomations({ raw: true })).toHaveLength(0);
     });
   });
 

@@ -9,25 +9,27 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  transactionId: recordId().describe('ID of the transaction to split'),
+  splits: z
+    .array(
+      z.object({
+        categoryId: recordId().describe('Category ID for this split portion'),
+        amount: z.number().describe('Amount for this split portion (decimal)'),
+        note: z.string().optional().nullable().describe('Optional note for this split'),
+      }),
+    )
+    .min(1)
+    .describe('Split portions — amounts must sum to the full transaction amount'),
+};
+
 export function registerSplitTransaction(server: McpServer) {
   server.registerTool(
     'split_transaction',
     {
       description:
         'Split a transaction across multiple categories. Provide the transactionId and an array of splits whose amounts sum to the transaction total. Replaces any existing splits on the transaction.',
-      inputSchema: {
-        transactionId: recordId().describe('ID of the transaction to split'),
-        splits: z
-          .array(
-            z.object({
-              categoryId: recordId().describe('Category ID for this split portion'),
-              amount: z.number().describe('Amount for this split portion (decimal)'),
-              note: z.string().optional().nullable().describe('Optional note for this split'),
-            }),
-          )
-          .min(1)
-          .describe('Split portions — amounts must sum to the full transaction amount'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

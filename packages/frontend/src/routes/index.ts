@@ -252,6 +252,24 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
       },
       {
+        path: '/transactions/automations',
+        name: ROUTES_NAMES.automations,
+        component: () => import('@/pages/automations/index.vue'),
+        meta: { i18nChunks: ['pages/automations'] as I18nChunkName[] },
+      },
+      {
+        path: '/transactions/automations/new',
+        name: ROUTES_NAMES.automationCreate,
+        component: () => import('@/pages/automations/editor.vue'),
+        meta: { i18nChunks: ['pages/automations'] as I18nChunkName[] },
+      },
+      {
+        path: '/transactions/automations/:id',
+        name: ROUTES_NAMES.automationDetails,
+        component: () => import('@/pages/automations/editor.vue'),
+        meta: { i18nChunks: ['pages/automations'] as I18nChunkName[] },
+      },
+      {
         path: '/settings',
         name: ROUTES_NAMES.settings,
         component: () => import('@/pages/settings/settings.vue'),
@@ -392,6 +410,12 @@ const routes: RouteRecordRaw[] = [
                 'settings/data-management',
               ] as I18nChunkName[],
             },
+          },
+          {
+            path: 'data-management/import/history',
+            name: ROUTES_NAMES.importHistory,
+            component: () => import('@/pages/import-export/import-history/index.vue'),
+            meta: { i18nChunks: ['pages/import-history', 'settings/data-management'] as I18nChunkName[] },
           },
           {
             path: 'appearance',

@@ -367,6 +367,31 @@ describe('Payee logo auto-resolution', () => {
     expect(cached?.source).toBe('logodev');
   });
 
+  it('clamps an over-long provider brand name to the cache column width', async () => {
+    global.mswMockServer.use(
+      getLogoDevSearchMock({
+        results: [{ name: 'L'.repeat(300), domain: 'longbrand.com', logoUrl: null }],
+      }),
+    );
+
+    const payee = await helpers.createPayee({
+      payload: helpers.buildPayeePayload({ name: 'Longbrand Co' }),
+      raw: true,
+    });
+
+    await until(
+      async () => {
+        const fetched = await helpers.getPayeeById({ id: payee.id, raw: true });
+        return fetched.logoSource !== null;
+      },
+      { timeout: 10_000, interval: 200 },
+    );
+
+    const cached = await BrandLogos.findOne({ where: { normalizedName: 'longbrand co' } });
+    expect(cached?.brandName).toHaveLength(200);
+    expect(cached?.domain).toBe('longbrand.com');
+  });
+
   it('records a negative result (logoSource auto, logoDomain null) when neither cache nor provider matches', async () => {
     // Empty cache + the default MSW handler returns [] → no match anywhere. The
     // worker must still stamp logoSource so the lazy-on-read backfill stops

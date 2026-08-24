@@ -35,11 +35,13 @@ import {
   getSharedAccountsForUser,
 } from '@services/sharing/get-shared-accounts.service';
 import { convertCrossUserTransfersForAccountIds } from '@services/sharing/household/convert-cross-user-transfers.service';
+import { pauseAutomationsReferencing } from '@services/transaction-automations/references';
 import { Op } from 'sequelize';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
 import { restampRefInitialBalance } from './accounts/restamp-ref-initial-balance';
 import { unlinkSubscriptionsFromAccount } from './accounts/unlink-subscriptions-from-account';
+import { unlinkTemplatesFromAccount } from './accounts/unlink-templates-from-account';
 import { withTransaction } from './common/with-transaction';
 
 type AccountWithRelinkStatus = Accounts.default & {
@@ -471,6 +473,9 @@ const deleteAccountByIdInTx = withTransaction(
     // the auto-record check constraint on any subscription still booking into this account.
     // Clearing both columns first is the only way to satisfy it — the cascade can't.
     await unlinkSubscriptionsFromAccount({ accountId: id });
+    await unlinkTemplatesFromAccount({ accountId: id });
+
+    await pauseAutomationsReferencing({ userId, refType: 'account', refId: account.id, label: account.name });
 
     const affectedRows = await Accounts.deleteAccountById({ id, userId });
     if (affectedRows === 0) {

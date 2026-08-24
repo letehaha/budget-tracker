@@ -82,6 +82,9 @@ export const prepareTxCreationParams = ({
         ? TRANSACTION_TRANSFER_NATURE.transfer_to_loan
         : TRANSACTION_TRANSFER_NATURE.common_transfer;
   } else {
+    if (!category) {
+      throw new Error('A non-transfer transaction cannot be created without a category');
+    }
     creationParams.categoryId = category.id;
 
     // Add splits for non-transfer transactions

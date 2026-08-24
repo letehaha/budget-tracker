@@ -1,15 +1,16 @@
 <template>
-  <p v-if="errorMessage" class="text-destructive-text mt-1 ml-2 text-sm">
+  <p v-if="errorMessage" :class="cn('text-destructive-text mt-1 ml-2 text-xs', attrs.class as string)">
     {{ errorMessage }}
   </p>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script lang="ts" setup>
+import { cn } from '@/lib/utils';
+import { useAttrs } from 'vue';
 
-export default defineComponent({
-  props: {
-    errorMessage: { type: String, default: undefined },
-  },
-});
+const attrs = useAttrs();
+
+defineProps<{
+  errorMessage?: string | null;
+}>();
 </script>

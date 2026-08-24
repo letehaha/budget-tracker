@@ -3,6 +3,7 @@
     :class="{
       'input-field--error': errorMessage,
       'input-field--disabled': disabled,
+      relative: errorPlacement === 'absolute',
     }"
     class="input-field"
   >
@@ -64,7 +65,10 @@
       </div>
     </template>
 
-    <FieldError :error-message="errorMessage" />
+    <div v-if="errorPlacement === 'absolute'" class="absolute top-full left-0 w-full">
+      <FieldError :error-message="errorMessage" />
+    </div>
+    <FieldError v-else :error-message="errorMessage" />
   </div>
 </template>
 
@@ -86,6 +90,8 @@ const props = defineProps<{
   disabled?: boolean;
   tabindex?: string;
   errorMessage?: string;
+  /** `absolute` keeps the field's height fixed while the message shows; the parent must leave room below. */
+  errorPlacement?: 'inline' | 'absolute';
   inputFieldStyles?: HTMLAttributes['style'];
   onlyPositive?: boolean;
   autofocus?: boolean;
@@ -232,6 +238,11 @@ onMounted(() => {
   if (props.autofocus) {
     inputFieldRef.value!.focus();
   }
+});
+
+defineExpose({
+  focus: () => inputFieldRef.value?.focus(),
+  select: () => inputFieldRef.value?.select(),
 });
 </script>
 

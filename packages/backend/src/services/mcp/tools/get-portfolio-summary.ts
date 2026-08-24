@@ -6,19 +6,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
+  date: z.string().optional().describe('Date for historical snapshot (ISO 8601). Default: latest available prices'),
+};
+
 export function registerGetPortfolioSummary(server: McpServer) {
   server.registerTool(
     'get_portfolio_summary',
     {
       description:
         "Portfolio-level aggregates for a single portfolio: total current market value, total cost basis, realized and unrealized gains (value and percent), cash balances, and total portfolio value (holdings + cash). All monetary values are decimals in the user's base currency.",
-      inputSchema: {
-        portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
-        date: z
-          .string()
-          .optional()
-          .describe('Date for historical snapshot (ISO 8601). Default: latest available prices'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

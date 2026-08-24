@@ -6,22 +6,24 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  transactionIds: z.array(recordId()).min(1).describe('IDs of transactions to update'),
+  categoryId: recordId().optional().describe('New category ID to assign to all transactions'),
+  tagIds: z.array(recordId()).optional().describe('Tag IDs to apply according to tagMode'),
+  tagMode: z
+    .enum(['add', 'replace', 'remove'])
+    .optional()
+    .describe('How to apply tagIds: add (default) appends, replace overwrites, remove removes those tags'),
+  note: z.string().optional().describe('Note to set on all transactions'),
+};
+
 export function registerBulkUpdateTransactions(server: McpServer) {
   server.registerTool(
     'bulk_update_transactions',
     {
       description:
         'Update multiple transactions at once. Provide transactionIds plus at least one of categoryId, tagIds, or note. Tags can be added to, removed from, or replaced on all specified transactions.',
-      inputSchema: {
-        transactionIds: z.array(recordId()).min(1).describe('IDs of transactions to update'),
-        categoryId: recordId().optional().describe('New category ID to assign to all transactions'),
-        tagIds: z.array(recordId()).optional().describe('Tag IDs to apply according to tagMode'),
-        tagMode: z
-          .enum(['add', 'replace', 'remove'])
-          .optional()
-          .describe('How to apply tagIds: add (default) appends, replace overwrites, remove removes those tags'),
-        note: z.string().optional().describe('Note to set on all transactions'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

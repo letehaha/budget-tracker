@@ -28,7 +28,7 @@ export const DEMO_ACCOUNT_GROUPS: {
   { name: 'Savings & Goals', accountKeys: ['savings'], logoInitials: 'SG', logoColor: '#22c55e' },
 ];
 
-export async function setupAccountGroups({ userId }: { userId: number }): Promise<void> {
+export async function setupAccountGroups({ userId }: { userId: number }): Promise<Map<string, string>> {
   const accounts = await Accounts.findAll({
     where: { userId },
     attributes: ['id', 'name'],
@@ -40,6 +40,7 @@ export async function setupAccountGroups({ userId }: { userId: number }): Promis
   );
 
   let groupedCount = 0;
+  const groupIdByName = new Map<string, string>();
 
   for (const groupConfig of DEMO_ACCOUNT_GROUPS) {
     const names = new Set(groupConfig.accountKeys.map((key) => nameByAccountKey.get(key)));
@@ -53,6 +54,7 @@ export async function setupAccountGroups({ userId }: { userId: number }): Promis
       logoInitials: groupConfig.logoInitials,
       logoColor: groupConfig.logoColor,
     });
+    groupIdByName.set(group.name, group.id);
 
     for (const account of members) {
       await addAccountToGroup({ userId, accountId: account.id, groupId: group.id });
@@ -61,4 +63,6 @@ export async function setupAccountGroups({ userId }: { userId: number }): Promis
   }
 
   logger.info(`Created demo account groups (${groupedCount} accounts grouped) for user ${userId}`);
+
+  return groupIdByName;
 }

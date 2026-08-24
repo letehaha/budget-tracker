@@ -38,6 +38,8 @@ const EXPECTED_GUARDED_COLUMNS: Record<string, string[]> = {
   'transaction-group-items': ['groupId', 'transactionId'],
   'transaction-splits': ['categoryId', 'transactionId'],
   'transaction-tags': ['tagId', 'transactionId'],
+  'transaction-template-tags': ['tagId', 'templateId'],
+  'transaction-templates': ['accountId', 'categoryId', 'payeeId'],
   transactions: ['accountId', 'categoryId', 'payeeId'],
   'transfer-suggestion-dismissals': ['expenseTransactionId', 'incomeTransactionId'],
   'user-merchant-category-codes': ['categoryId'],
@@ -68,12 +70,12 @@ describe('owned-reference guard drift', () => {
     const derived: Record<string, string[]> = {};
     for (const [fileName, fks] of map) {
       if (fks.length === 0) continue;
-      derived[fileName] = fks.map((fk) => fk.attrName).sort();
+      derived[fileName] = fks.map((fk) => fk.attrName).toSorted();
     }
 
     const expected: Record<string, string[]> = {};
     for (const [fileName, cols] of Object.entries(EXPECTED_GUARDED_COLUMNS)) {
-      expected[fileName] = [...cols].sort();
+      expected[fileName] = cols.toSorted();
     }
 
     expect(derived).toEqual(expected);

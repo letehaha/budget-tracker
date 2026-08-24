@@ -12,6 +12,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { FormSplit } from '../types';
+import FieldError from '@/components/fields/components/field-error.vue';
 
 const { t } = useI18n();
 
@@ -24,7 +25,7 @@ const props = defineProps<{
   modelValue: FormSplit[] | undefined;
   totalAmount: number | null;
   currencyCode: string | undefined;
-  mainCategory: FormattedCategory | undefined;
+  mainCategory: FormattedCategory | null | undefined;
   /**
    * Category set the split rows render. The parent dialog routes this through
    * `useAccountCategories` so a recipient editing splits on a shared account sees the
@@ -303,9 +304,11 @@ const handleClearAll = () => {
             {{ formatUIAmount(mainCategoryAmount, { currency: currencyCode }) }}
           </span>
         </div>
-        <p v-if="mainCategoryAmount < 0" class="text-destructive-text mt-2 text-xs">
-          {{ $t('dialogs.manageTransaction.splitDialog.exceedsTransactionTotal') }}
-        </p>
+        <FieldError
+          v-if="mainCategoryAmount < 0"
+          :error-message="$t('dialogs.manageTransaction.splitDialog.exceedsTransactionTotal')"
+          class="mt-2"
+        />
       </div>
     </div>
 

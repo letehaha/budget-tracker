@@ -479,6 +479,17 @@
       }
     }
   },
+  "transactionTemplates": {
+    "notFound": "Transaction template not found.",
+    "nameAlreadyExists": "A transaction template with this name already exists.",
+    "amountRequiresAccount": "An amount can only be saved together with an account.",
+    "accountNotFound": "Account not found or does not belong to user.",
+    "accountMustBeSystem": "Only manually managed accounts can be used in a transaction template.",
+    "accountArchived": "Archived accounts can't be used in a template.",
+    "categoryNotFound": "Category not found or does not belong to user.",
+    "payeeNotFound": "Payee not found or does not belong to user.",
+    "tagsNotFound": "One or more tags were not found or do not belong to user."
+  },
   "payees": {
     "aliasNameRequired": "Alias name is required",
     "aliasNotFound": "Alias not found",
@@ -509,5 +520,11 @@
   },
   "stats": {
     "netWorthHistoryTooManyPoints": "This date range and granularity produce too many data points. Pick a coarser granularity or a shorter range."
+  },
+  "automations": {
+    "automationNotFound": "Automation not found.",
+    "reorderStale": "The automation list has changed. Refresh and try again.",
+    "ruleLimitReached": "You have reached the maximum number of automations.",
+    "staleReference": "This automation references an item that no longer exists."
   }
 }

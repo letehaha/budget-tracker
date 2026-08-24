@@ -9,23 +9,25 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  startDate: z.string().optional().describe('Start date (ISO 8601). Default: start of current month'),
+  endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
+  accountId: recordId().optional().describe('Filter by specific account ID'),
+  transactionType: z
+    .enum([TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense])
+    .optional()
+    .describe('Transaction type. Default: expense'),
+  categoryIds: z.array(recordId()).optional().describe('Only include specific category IDs'),
+  excludedCategoryIds: z.array(recordId()).optional().describe('Exclude specific category IDs'),
+};
+
 export function registerGetSpendingByCategories(server: McpServer) {
   server.registerTool(
     'get_spending_by_categories',
     {
       description:
         'Get spending breakdown by category for a date range. Returns each category with its total amount. Great for understanding where money goes. Defaults to current month expenses.',
-      inputSchema: {
-        startDate: z.string().optional().describe('Start date (ISO 8601). Default: start of current month'),
-        endDate: z.string().optional().describe('End date (ISO 8601). Default: today'),
-        accountId: recordId().optional().describe('Filter by specific account ID'),
-        transactionType: z
-          .enum([TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense])
-          .optional()
-          .describe('Transaction type. Default: expense'),
-        categoryIds: z.array(recordId()).optional().describe('Only include specific category IDs'),
-        excludedCategoryIds: z.array(recordId()).optional().describe('Exclude specific category IDs'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

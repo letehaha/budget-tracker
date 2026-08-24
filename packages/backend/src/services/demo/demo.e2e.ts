@@ -17,7 +17,7 @@ import { authPool } from '@config/auth';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { connection } from '@models/index';
 import Users from '@models/users.model';
-import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
+import { extractCookies, listAutomations, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { clearMockSession, registerMockSession } from '@tests/mocks/better-auth';
 
 import { DEMO_ACCOUNT_GROUPS } from './seed-account-groups.service';
@@ -888,6 +888,28 @@ describe('Demo Mode', () => {
       const inSubcategory = categorized.filter((tx) => subcategoryIds.has(tx.categoryId!));
       expect(inSubcategory.length).toBeGreaterThan(0);
       expect(inSubcategory.length / categorized.length).toBeGreaterThan(0.5);
+    });
+
+    it('seeds 10 automations spanning the condition fields and action types', async () => {
+      const automations = await listAutomations({ raw: true });
+
+      expect(automations).toHaveLength(10);
+      expect(automations.filter((rule) => rule.isEnabled)).toHaveLength(9);
+      expect(automations.every((rule) => rule.matchCount > 0 && rule.lastMatchedAt !== null)).toBe(true);
+
+      const fields = new Set(automations.flatMap((rule) => rule.conditions.items.map((item) => item.field)));
+      expect([...fields].toSorted()).toEqual([
+        'account',
+        'accountGroup',
+        'amount',
+        'dayOfMonth',
+        'merchant',
+        'note',
+        'payee',
+        'transactionType',
+      ]);
+      const actionTypes = new Set(automations.flatMap((rule) => rule.actions.map((action) => action.type)));
+      expect([...actionTypes].toSorted()).toEqual(['add_tags', 'set_category', 'set_note', 'set_payee']);
     });
   });
 

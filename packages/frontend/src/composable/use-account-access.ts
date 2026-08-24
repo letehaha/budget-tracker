@@ -7,6 +7,13 @@ import {
 } from '@bt/shared/types';
 import { type MaybeRefOrGetter, computed, toValue } from 'vue';
 
+export const hasAccountWriteAccess = ({ account }: { account: Pick<AccountModel, 'share'> }) => {
+  const share = account.share;
+  if (!share) return true;
+  if (share.isOwner === true) return true;
+  return share.permission === SHARE_PERMISSIONS.write || share.permission === SHARE_PERMISSIONS.manage;
+};
+
 /**
  * Single source of truth for share-derived auth state on an account.
  *
@@ -33,10 +40,7 @@ export const useAccountAccess = (account: MaybeRefOrGetter<AccountModel | undefi
   const ownerHandle = computed(() => (isSharedWithCaller.value ? share.value!.owner.username : null));
   const isHouseholdGranted = computed(() => share.value?.accessSource === ACCESS_SOURCES.household);
 
-  const canWriteToAccount = computed(() => {
-    if (isOwner.value) return true;
-    return permission.value === SHARE_PERMISSIONS.write || permission.value === SHARE_PERMISSIONS.manage;
-  });
+  const canWriteToAccount = computed(() => hasAccountWriteAccess({ account: { share: share.value } }));
 
   /**
    * Whether the caller can mutate a specific transaction on this account.

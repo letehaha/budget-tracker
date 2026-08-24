@@ -1,0 +1,217 @@
+{
+  "automations": {
+    "title": "Automatizaciones",
+    "subtitle": "Se ejecutan sobre las nuevas transacciones de la sincronización bancaria y de las importaciones de archivos. Gana la primera regla que coincida: arrastre una regla para reordenarla.",
+    "newAutomation": "Nueva automatización",
+    "new": "Nueva",
+    "dragHint": "Arrastre para reordenar",
+    "toggleAriaLabel": "Activar automatización",
+    "menuAriaLabel": "Acciones de la automatización",
+    "disabledPill": "Desactivada",
+    "mcpTip": {
+      "trigger": "Consejos",
+      "text": "Puede gestionar las automatizaciones con IA mediante una conexión MCP: pídale que reorganice sus reglas o que busque duplicados y conflictos.",
+      "link": "Configurar conexión MCP"
+    },
+    "statusFilter": {
+      "all": "Mostrar todas",
+      "enabled": "Solo activas",
+      "disabled": "Solo desactivadas",
+      "empty": "Ninguna automatización coincide con este filtro."
+    },
+    "pausedMissingRef": "En pausa: {refType} «{label}» ya no existe",
+    "pausedMissingRefUnnamed": "En pausa: un elemento ({refType}) al que hacía referencia esta regla ya no existe",
+    "matchStats": "{count} coincidencia · última el {date} | {count} coincidencias · última el {date}",
+    "matchStatsNever": "Nunca ha coincidido",
+    "loadError": "No se pudieron cargar las automatizaciones. Compruebe su conexión e inténtelo de nuevo.",
+    "reorderDisabledFiltered": "Quite el filtro de estado para reordenar",
+    "density": {
+      "comfortable": "Detallada",
+      "compact": "Compacta"
+    },
+    "chips": {
+      "when": "Cuando",
+      "then": "Entonces",
+      "not": "no",
+      "day": "día",
+      "more": "+{count} más",
+      "less": "Mostrar menos",
+      "noteReplace": "establecer nota",
+      "noteAppend": "añadir al final",
+      "notePrepend": "añadir al inicio",
+      "note": {
+        "containsAny": "la nota contiene",
+        "notContainsAny": "la nota no contiene",
+        "startsWithAny": "la nota empieza",
+        "endsWithAny": "la nota termina",
+        "equalsAny": "la nota es",
+        "isEmpty": "nota vacía"
+      },
+      "merchant": {
+        "containsAny": "el comercio contiene",
+        "notContainsAny": "el comercio no contiene",
+        "startsWithAny": "el comercio empieza",
+        "endsWithAny": "el comercio termina",
+        "equalsAny": "el comercio es",
+        "isEmpty": "comercio vacío"
+      }
+    },
+    "refType": {
+      "category": "categoría",
+      "tag": "etiqueta",
+      "account": "cuenta",
+      "accountGroup": "grupo de cuentas",
+      "bankConnection": "conexión bancaria",
+      "payee": "beneficiario"
+    },
+    "emptyState": {
+      "title": "Aún no hay automatizaciones",
+      "description": "Las automatizaciones categorizan, etiquetan y anotan las transacciones en cuanto llegan desde una sincronización bancaria o una importación de archivos.",
+      "cta": "Cree su primera automatización"
+    },
+    "delete": {
+      "title": "¿Eliminar la automatización?",
+      "description": "«{name}» dejará de ejecutarse sobre las nuevas transacciones. Las transacciones que ya categorizó conservan su categoría, sus etiquetas y su nota.",
+      "confirm": "Eliminar"
+    },
+    "notifications": {
+      "deleteSuccess": "Automatización eliminada.",
+      "deleteError": "No se pudo eliminar la automatización. Inténtelo de nuevo.",
+      "toggleError": "No se pudo cambiar el estado de la automatización. Inténtelo de nuevo.",
+      "reorderError": "No se pudo guardar el nuevo orden. Inténtelo de nuevo.",
+      "staleReference": "Esta automatización apunta a algo que fue eliminado. Ábrala y elija un reemplazo.",
+      "openRule": "Abrir regla"
+    },
+    "fields": {
+      "note": "Nota",
+      "merchant": "Comercio",
+      "payee": "Beneficiario",
+      "amount": "Importe",
+      "transactionType": "Tipo de transacción",
+      "account": "Cuenta",
+      "accountGroup": "Grupo de cuentas",
+      "bankConnection": "Conexión bancaria",
+      "dayOfMonth": "Día del mes"
+    },
+    "operators": {
+      "contains_any": "contiene alguno de",
+      "not_contains_any": "no contiene",
+      "starts_with_any": "empieza por",
+      "ends_with_any": "termina en",
+      "equals_any": "es igual a alguno de",
+      "is_empty": "está vacío",
+      "in": "es uno de",
+      "not_in": "no es uno de",
+      "gte": "es al menos",
+      "lte": "es como máximo",
+      "between": "está entre",
+      "equals": "es igual a"
+    },
+    "actions": {
+      "set_category": "Establecer categoría",
+      "set_payee": "Establecer beneficiario",
+      "add_tags": "Añadir etiquetas",
+      "set_note": "Establecer nota",
+      "noteMode": {
+        "replace": "Reemplazar",
+        "append": "Añadir al final",
+        "prepend": "Añadir al inicio"
+      }
+    },
+    "editor": {
+      "titleNew": "Nueva automatización",
+      "titleEdit": "Editar automatización",
+      "back": "Volver a automatizaciones",
+      "enabled": "Activada",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "p. ej. Compra en Biedronka",
+      "conditionsHeader": "Coincidir con {match} de estas condiciones",
+      "matchAll": "todas",
+      "matchAny": "alguna",
+      "joinAnd": "Y",
+      "joinOr": "O",
+      "addCondition": "Añadir condición",
+      "removeCondition": "Eliminar condición",
+      "removeKeyword": "Eliminar palabra clave",
+      "fieldPlaceholder": "Seleccione un campo",
+      "operatorPlaceholder": "Seleccione una condición",
+      "keywordPlaceholder": "Escriba una palabra clave y pulse Intro",
+      "amountPlaceholder": "Introduzca un importe",
+      "minPlaceholder": "Importe mínimo",
+      "maxPlaceholder": "Importe máximo",
+      "currencyPlaceholder": "Seleccione una moneda",
+      "currency": {
+        "transaction": "Moneda de la transacción",
+        "base": "Moneda base ({code})",
+        "specific": "en {code}"
+      },
+      "accountsPlaceholder": "Seleccione cuentas",
+      "accountGroupPlaceholder": "Seleccione un grupo de cuentas",
+      "bankConnectionPlaceholder": "Seleccione una conexión bancaria",
+      "dayFromPlaceholder": "Desde el día",
+      "dayToPlaceholder": "Hasta el día",
+      "actionsHeader": "Entonces haga esto",
+      "addAction": "Añadir acción",
+      "removeAction": "Eliminar acción",
+      "categoryPlaceholder": "Seleccione una categoría",
+      "payeePlaceholder": "Seleccione un beneficiario",
+      "tagsPlaceholder": "Seleccione etiquetas",
+      "notePlaceholder": "Introduzca el texto de la nota",
+      "saveSuccess": "Automatización guardada.",
+      "notFound": {
+        "title": "Automatización no encontrada",
+        "description": "Esta automatización ya no existe o fue eliminada.",
+        "link": "Volver a automatizaciones"
+      },
+      "unsaved": {
+        "title": "¿Descartar los cambios sin guardar?",
+        "description": "Esta automatización tiene cambios que no se han guardado. Si sale ahora, se descartarán.",
+        "confirm": "Descartar cambios"
+      },
+      "preview": {
+        "title": "Vista previa",
+        "run": "Ver coincidencias",
+        "hint": "Termine la regla para ver una vista previa de las transacciones con las que coincidiría.",
+        "summary": "{matched} de las últimas {scanned} transacciones a las que esta regla podría aplicarse",
+        "empty": "Sin coincidencias",
+        "stale": "Las condiciones han cambiado desde que se ejecutó esta vista previa.",
+        "error": "No se pudo ejecutar la vista previa. Inténtelo de nuevo."
+      },
+      "errors": {
+        "nameRequired": "Introduzca un nombre para esta automatización.",
+        "nameTooLong": "El nombre debe tener {max} caracteres o menos.",
+        "conditionsRequired": "Añada al menos una condición.",
+        "actionsRequired": "Añada al menos una acción.",
+        "keywordsRequired": "Añada al menos una palabra clave.",
+        "keywordsMax": "Use como máximo {max} palabras clave.",
+        "keywordTooLong": "Cada palabra clave debe tener {max} caracteres o menos.",
+        "selectionRequired": "Seleccione al menos una opción.",
+        "selectionMax": "Seleccione como máximo {max} opciones.",
+        "missingRef": "ya no existe: elija un reemplazo o quite esta fila",
+        "amountRequired": "Introduzca un importe.",
+        "amountBoundsRequired": "Introduzca un importe mínimo y uno máximo.",
+        "amountRange": "El importe mínimo no puede ser mayor que el máximo.",
+        "dayRange": "Introduzca un rango de días entre 1 y 31, con el primer día no posterior al último.",
+        "categoryRequired": "Seleccione una categoría.",
+        "payeeRequired": "Seleccione un beneficiario.",
+        "tagsRequired": "Seleccione al menos una etiqueta.",
+        "noteRequired": "Introduzca el texto de la nota.",
+        "noteTooLong": "La nota debe tener {max} caracteres o menos.",
+        "saveFailed": "No se pudo guardar la automatización. Inténtelo de nuevo.",
+        "transactionTypeDuplicate": "Solo se permite una condición de tipo de transacción"
+      },
+      "noResults": "Sin resultados"
+    },
+    "summary": {
+      "missingRef": "(eliminado)",
+      "currency": {
+        "transaction": "(moneda de la transacción)",
+        "base": "(moneda base)"
+      },
+      "transactionTypeValue": {
+        "income": "ingreso",
+        "expense": "gasto"
+      }
+    }
+  }
+}

@@ -14,7 +14,9 @@ import ShareInvitations from '@models/share-invitations.model';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import Subscriptions from '@models/subscriptions.model';
 import Tags from '@models/tags.model';
+import TransactionAutomations from '@models/transaction-automations.model';
 import TransactionGroups from '@models/transaction-groups.model';
+import TransactionTemplates from '@models/transaction-templates.model';
 import TransferSuggestionDismissals from '@models/transfer-suggestion-dismissals.model';
 import UserExchangeRates from '@models/user-exchange-rates.model';
 import UserMerchantCategoryCodes from '@models/user-merchant-category-codes.model';
@@ -124,6 +126,7 @@ export const destroyUserOwnedData = async ({ user }: { user: Users.default }) =>
   //   AccountGroups → AccountGrouping
   //   Tags → TagReminders (TransactionTags already gone via Accounts cascade)
   //   Payees → PayeeAliases, PayeeTags
+  //   TransactionTemplates → TransactionTemplateTags
   //
   // Paranoid models (Portfolios, VentureDeals, VenturePlatforms) need `force: true`
   // or `.destroy()` only sets `deletedAt`, leaving the rows visible to subsequent
@@ -136,8 +139,10 @@ export const destroyUserOwnedData = async ({ user }: { user: Users.default }) =>
   await Notifications.destroy({ where: { userId: user.id } });
   await SubscriptionCandidates.destroy({ where: { userId: user.id } });
   await TransferSuggestionDismissals.destroy({ where: { userId: user.id } });
+  await TransactionAutomations.destroy({ where: { userId: user.id } });
   await Budget.destroy({ where: { userId: user.id } });
   await Subscriptions.destroy({ where: { userId: user.id } });
+  await TransactionTemplates.destroy({ where: { userId: user.id } });
   // PortfolioTransfers FKs Transactions / Accounts / Portfolios all via SET NULL.
   // A prior failed wipe (or any inconsistency) can leave a PT row whose transactionId
   // points at a Transaction that no longer exists. When `Accounts.destroy` below

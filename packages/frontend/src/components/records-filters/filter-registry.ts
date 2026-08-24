@@ -48,9 +48,9 @@ export const EXTRA_FILTER_KEYS = [
 export type ExtraFilterKey = (typeof EXTRA_FILTER_KEYS)[number];
 
 /** Always-visible filters plus query-param-only ones (`categorizationSource`
- * comes from dashboard deep links) – present in every view, so the picker menu
- * doesn't offer them. */
-const BUILTIN_FILTER_KEYS = ['date', 'accounts', 'categories', 'categorizationSource'] as const;
+ * and `batchId` come from dashboard/import-history deep links) – present in
+ * every view, so the picker menu doesn't offer them. */
+const BUILTIN_FILTER_KEYS = ['date', 'accounts', 'categories', 'categorizationSource', 'batchId'] as const;
 
 type BuiltinFilterKey = (typeof BUILTIN_FILTER_KEYS)[number];
 
@@ -128,6 +128,10 @@ const BUILTIN_FILTERS: Record<BuiltinFilterKey, FilterDefinition> = {
   },
   categorizationSource: {
     isActive: (filters) => filters.categorizationSource !== null,
+    dissolvesGroups: true,
+  },
+  batchId: {
+    isActive: (filters) => filters.batchId != null,
     dissolvesGroups: true,
   },
 };

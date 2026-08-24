@@ -6,22 +6,22 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  categoryId: recordId().describe('ID of the category to delete.'),
+  replaceWithCategoryId: z
+    .string()
+    .uuid()
+    .optional()
+    .describe('ID of the category to reassign linked transactions to. Required when the category has transactions.'),
+};
+
 export function registerDeleteCategory(server: McpServer) {
   server.registerTool(
     'delete_category',
     {
       description:
         'Permanently delete a category by ID. This is destructive — if the category has linked transactions you must supply replaceWithCategoryId to reassign them first, otherwise the call will fail. Cannot delete a parent category that still has subcategories. Only call when the user explicitly confirms deletion.',
-      inputSchema: {
-        categoryId: recordId().describe('ID of the category to delete.'),
-        replaceWithCategoryId: z
-          .string()
-          .uuid()
-          .optional()
-          .describe(
-            'ID of the category to reassign linked transactions to. Required when the category has transactions.',
-          ),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

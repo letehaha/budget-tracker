@@ -7,19 +7,21 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  subscriptionId: recordId().describe('UUID of the subscription'),
+  transactionIds: z.array(recordId()).describe('IDs of transactions to link to the subscription'),
+  matchSource: z
+    .enum([SUBSCRIPTION_MATCH_SOURCE.manual, SUBSCRIPTION_MATCH_SOURCE.rule, SUBSCRIPTION_MATCH_SOURCE.ai])
+    .describe('How the match was determined: manual, rule, or ai'),
+};
+
 export function registerLinkTransactionsToSubscription(server: McpServer) {
   server.registerTool(
     'link_transactions_to_subscription',
     {
       description:
         'Link one or more transactions to a subscription to mark them as payment instances. Use matchSource="manual" for user-initiated linking. If the subscription has a categoryId and matchSource="rule", the category is applied to the transactions automatically. Requires finance:write scope.',
-      inputSchema: {
-        subscriptionId: recordId().describe('UUID of the subscription'),
-        transactionIds: z.array(recordId()).describe('IDs of transactions to link to the subscription'),
-        matchSource: z
-          .enum([SUBSCRIPTION_MATCH_SOURCE.manual, SUBSCRIPTION_MATCH_SOURCE.rule, SUBSCRIPTION_MATCH_SOURCE.ai])
-          .describe('How the match was determined: manual, rule, or ai'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

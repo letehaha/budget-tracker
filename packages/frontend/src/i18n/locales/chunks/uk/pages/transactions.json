@@ -150,7 +150,8 @@
         "searchPlaceholder": "Шукати групи...",
         "noGroupsMessage": "Групи транзакцій ще не створені.",
         "emptyStateHint": "Виберіть транзакції на сторінці \"Транзакції\" і натисніть \"Створити групу\" для початку.",
-        "transactionCountLabel": "транзакцій"
+        "transactionCountLabel": "транзакцій",
+        "deleteError": "Не вдалося видалити групу. Спробуйте ще раз."
       },
       "errors": {
         "nameRequired": "Назва групи обов'язкова",

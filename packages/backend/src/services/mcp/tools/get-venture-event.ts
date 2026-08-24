@@ -5,15 +5,17 @@ import { getVentureEvent } from '@services/venture/events/get.service';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  eventId: recordId().describe('Venture event ID (from list_venture_events)'),
+};
+
 export function registerGetVentureEvent(server: McpServer) {
   server.registerTool(
     'get_venture_event',
     {
       description:
         'Retrieve a single venture event by id, including its link rows (bank transactions linked to this event). Obtain the eventId from list_venture_events.',
-      inputSchema: {
-        eventId: recordId().describe('Venture event ID (from list_venture_events)'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

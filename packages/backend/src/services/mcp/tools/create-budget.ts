@@ -8,39 +8,38 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  name: z.string().describe('Budget name'),
+  status: z
+    .enum([BUDGET_STATUSES.active, BUDGET_STATUSES.archived, BUDGET_STATUSES.closed])
+    .optional()
+    .describe('Budget status (default: active)'),
+  type: z
+    .enum([BUDGET_TYPES.manual, BUDGET_TYPES.category])
+    .optional()
+    .describe(
+      'Budget type: manual (transactions linked explicitly) or category (auto-tracks by category). Default: manual',
+    ),
+  categoryIds: z.array(recordId()).optional().describe('Category IDs to link (only used when type is "category")'),
+  startDate: z.string().optional().describe('Budget start date (ISO 8601)'),
+  endDate: z.string().optional().describe('Budget end date (ISO 8601)'),
+  autoInclude: z
+    .boolean()
+    .optional()
+    .describe('Auto-include transactions in the date range when creating (manual budgets only)'),
+  limitAmount: z
+    .number()
+    .optional()
+    .describe("Spending limit as a decimal amount in the user's base currency (e.g. 500.00)"),
+};
+
 export function registerCreateBudget(server: McpServer) {
   server.registerTool(
     'create_budget',
     {
       description:
         'Create a new budget with an optional spending limit, date range, and linked categories. Returns the created budget with its ID, status, type, and associated categories.',
-      inputSchema: {
-        name: z.string().describe('Budget name'),
-        status: z
-          .enum([BUDGET_STATUSES.active, BUDGET_STATUSES.archived, BUDGET_STATUSES.closed])
-          .optional()
-          .describe('Budget status (default: active)'),
-        type: z
-          .enum([BUDGET_TYPES.manual, BUDGET_TYPES.category])
-          .optional()
-          .describe(
-            'Budget type: manual (transactions linked explicitly) or category (auto-tracks by category). Default: manual',
-          ),
-        categoryIds: z
-          .array(recordId())
-          .optional()
-          .describe('Category IDs to link (only used when type is "category")'),
-        startDate: z.string().optional().describe('Budget start date (ISO 8601)'),
-        endDate: z.string().optional().describe('Budget end date (ISO 8601)'),
-        autoInclude: z
-          .boolean()
-          .optional()
-          .describe('Auto-include transactions in the date range when creating (manual budgets only)'),
-        limitAmount: z
-          .number()
-          .optional()
-          .describe("Spending limit as a decimal amount in the user's base currency (e.g. 500.00)"),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

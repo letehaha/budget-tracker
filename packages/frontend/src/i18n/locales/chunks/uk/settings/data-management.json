@@ -31,7 +31,8 @@
         "back": "Назад до Імпорту",
         "groups": {
           "filesAndText": "Файли та текст",
-          "fromOtherApps": "З інших застосунків"
+          "fromOtherApps": "З інших застосунків",
+          "history": "Історія"
         },
         "requestMore": {
           "title": "Хочете більше опцій? Запитайте тут"
@@ -83,6 +84,10 @@
       "ms-money": {
         "title": "Microsoft Money",
         "listDescription": "Імпортуйте файл .mny з Microsoft Money"
+      },
+      "importHistory": {
+        "title": "Історія імпорту",
+        "listDescription": "Переглядайте минулі імпорти та те, що вони створили"
       }
     }
   }

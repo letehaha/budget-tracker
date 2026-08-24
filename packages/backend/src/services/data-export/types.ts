@@ -131,6 +131,18 @@ export interface SubscriptionRow {
   linkedTransactionsCount: number;
 }
 
+export interface TransactionTemplateRow {
+  name: string;
+  type: string;
+  amount: number | null;
+  currency: string;
+  account: string;
+  category: string;
+  payee: string;
+  tags: string[];
+  note: string;
+}
+
 export interface PortfolioRow {
   name: string;
   /**
@@ -198,6 +210,7 @@ export type ExportTable =
   | { name: 'vehicles'; rows: VehicleRow[] }
   | { name: 'budgets'; rows: BudgetRow[] }
   | { name: 'subscriptions'; rows: SubscriptionRow[] }
+  | { name: 'transaction_templates'; rows: TransactionTemplateRow[] }
   | { name: 'portfolios'; rows: PortfolioRow[] }
   | { name: 'holdings'; rows: HoldingRow[] }
   | { name: 'investment_transactions'; rows: InvestmentTransactionRow[] }

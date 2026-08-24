@@ -6,21 +6,23 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  portfolioId: recordId().describe('Portfolio ID to delete (from get_portfolios)'),
+  force: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, also deletes all holdings, transactions, and balances associated with this portfolio. Default: false.',
+    ),
+};
+
 export function registerDeletePortfolio(server: McpServer) {
   server.registerTool(
     'delete_portfolio',
     {
       description:
         'Permanently delete a portfolio and, if force is true, all its holdings, transactions, and cash balances. Without force, deletion is blocked when the portfolio has any data. This action is irreversible — confirm with the user before calling. Obtain portfolioId from get_portfolios.',
-      inputSchema: {
-        portfolioId: recordId().describe('Portfolio ID to delete (from get_portfolios)'),
-        force: z
-          .boolean()
-          .optional()
-          .describe(
-            'If true, also deletes all holdings, transactions, and balances associated with this portfolio. Default: false.',
-          ),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

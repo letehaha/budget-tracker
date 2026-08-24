@@ -7,22 +7,24 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
+  name: z.string().optional().describe('New portfolio name (must be unique for this user)'),
+  portfolioType: z
+    .enum([PORTFOLIO_TYPE.investment, PORTFOLIO_TYPE.retirement, PORTFOLIO_TYPE.savings, PORTFOLIO_TYPE.other])
+    .optional()
+    .describe('New portfolio type: investment, retirement, savings, or other'),
+  description: z.string().nullable().optional().describe('New description (pass null to clear)'),
+  isEnabled: z.boolean().optional().describe('Enable or disable the portfolio'),
+};
+
 export function registerUpdatePortfolio(server: McpServer) {
   server.registerTool(
     'update_portfolio',
     {
       description:
         "Update an existing portfolio's name, type, description, or enabled state. Use when the user wants to rename, recategorize, or disable one of their portfolios. Obtain the portfolioId from get_portfolios first. Only the fields provided are changed.",
-      inputSchema: {
-        portfolioId: recordId().describe('Portfolio ID (from get_portfolios)'),
-        name: z.string().optional().describe('New portfolio name (must be unique for this user)'),
-        portfolioType: z
-          .enum([PORTFOLIO_TYPE.investment, PORTFOLIO_TYPE.retirement, PORTFOLIO_TYPE.savings, PORTFOLIO_TYPE.other])
-          .optional()
-          .describe('New portfolio type: investment, retirement, savings, or other'),
-        description: z.string().nullable().optional().describe('New description (pass null to clear)'),
-        isEnabled: z.boolean().optional().describe('Enable or disable the portfolio'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

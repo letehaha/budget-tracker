@@ -41,10 +41,13 @@ import SubscriptionTransactionsModel from './subscription-transactions.model';
 import SubscriptionsModel from './subscriptions.model';
 import TagRemindersModel from './tag-reminders.model';
 import TagsModel from './tags.model';
+import TransactionAutomationsModel from './transaction-automations.model';
 import TransactionGroupItemsModel from './transaction-group-items.model';
 import TransactionGroupsModel from './transaction-groups.model';
 import TransactionSplitsModel from './transaction-splits.model';
 import TransactionTagsModel from './transaction-tags.model';
+import TransactionTemplateTagsModel from './transaction-template-tags.model';
+import TransactionTemplatesModel from './transaction-templates.model';
 import TransactionsModel from './transactions.model';
 import TransferSuggestionDismissalsModel from './transfer-suggestion-dismissals.model';
 import UserExchangeRatesModel from './user-exchange-rates.model';
@@ -103,6 +106,8 @@ const models = [
   TransactionSplitsModel,
   TransactionGroupsModel,
   TransactionGroupItemsModel,
+  TransactionTemplatesModel,
+  TransactionTemplateTagsModel,
   HoldingsModel,
   InvestmentTransactionModel,
   SecuritiesModel,
@@ -129,6 +134,7 @@ const models = [
   VentureEventLinksModel,
   VehiclesModel,
   LoanDetailsModel,
+  TransactionAutomationsModel,
 ];
 
 const sequelize = new Sequelize({

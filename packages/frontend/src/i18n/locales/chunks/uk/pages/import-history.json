@@ -1,0 +1,16 @@
+{
+  "pages": {
+    "importExport": {
+      "importHistory": {
+        "pageTitle": "Історія імпорту",
+        "pageDescription": "Переглядайте минулі імпорти та дізнавайтеся, які саме рахунки й транзакції створив кожен із них.",
+        "loadError": "Не вдалося завантажити історію імпорту.",
+        "emptyTitle": "Ще немає імпортів",
+        "emptyDescription": "Щойно ви імпортуєте транзакції, вони з'являться тут.",
+        "emptyAction": "Імпорт даних",
+        "transactionCount": "{count} транзакція | {count} транзакції | {count} транзакцій",
+        "accountCount": "{count} рахунок | {count} рахунки | {count} рахунків"
+      }
+    }
+  }
+}

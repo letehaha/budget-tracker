@@ -10,6 +10,7 @@ import { v4 as uuidv4, v7 as uuidv7 } from 'uuid';
 import { DEMO_CONFIG, type DemoAccountKey } from './demo-config';
 import { getDemoTemplate } from './demo-template-cache.service';
 import { setupAccountGroups } from './seed-account-groups.service';
+import { setupAutomations } from './seed-automations.service';
 import {
   createAccounts,
   createBudgets,
@@ -307,7 +308,16 @@ export async function applyDemoTemplate({
   await setupVehicles({ userId, referenceDate });
   await setupLoans({ userId, referenceDate });
   await setupVentures({ userId, referenceDate });
-  await setupAccountGroups({ userId });
+  const accountGroupIdByName = await setupAccountGroups({ userId });
+  await setupAutomations({
+    userId,
+    referenceDate,
+    categoryMap,
+    tagMap,
+    payeeMap,
+    accountKeyToId,
+    accountGroupIdByName,
+  });
 
   const duration = Date.now() - startTime;
   logger.info(`Demo template applied for user ${userId} in ${duration}ms (${rows.length} transactions)`);

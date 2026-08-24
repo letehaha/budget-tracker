@@ -118,6 +118,7 @@
         "amountLabel": "Amount",
         "amountPlaceholder": "Amount",
         "categoryLabel": "Category",
+        "selectCategoryPlaceholder": "Select a category",
         "targetAmountLabel": "Target amount",
         "targetAmountPlaceholder": "Target amount",
         "plannedLabel": "Planned",
@@ -317,6 +318,60 @@
         "description": "This transaction is the audit trail of a manual value override for {name}.",
         "editHint": "To change the value, date, or delete this override, manage it from the vehicle's detail page.",
         "openVehicle": "Open {name}"
+      },
+      "templates": {
+        "trigger": "Templates",
+        "filterPlaceholder": "Find a template…",
+        "emptyState": "Templates fill this form with details you enter often — amount, account, category, payee, tags, note. They never add anything on their own; for something that repeats on a schedule use Recurring Payments.",
+        "noMatches": "No templates match.",
+        "loadError": "Couldn't load your templates.",
+        "saveCurrent": "Save current as template",
+        "updateApplied": "Update ‘{name}’",
+        "saveAsNew": "Save as new",
+        "newTemplate": "New template",
+        "use": "Use template",
+        "edit": "Edit",
+        "tapHint": "Tap a template to fill the form",
+        "toggleDetails": "Show details",
+        "noAmount": "no amount saved",
+        "keepsAccount": "keeps the selected account",
+        "stale": {
+          "categoryDeleted": "category deleted",
+          "accountUnavailable": "account unavailable"
+        },
+        "removeAriaLabel": "Remove template, restore form",
+        "announceApplied": "Applied {name} — {count} field filled. Amount is empty. | Applied {name} — {count} fields filled. Amount is empty.",
+        "announceAppliedWithAmount": "Applied {name} — {count} field filled. Amount set to {amount}. | Applied {name} — {count} fields filled. Amount set to {amount}.",
+        "categoryDeletedHint": "This template’s category was deleted — pick one.",
+        "alsoSet": "Template also set: {fields}",
+        "tagsCount": "{count} tag | {count} tags",
+        "applyConfirmTitle": "Apply template?",
+        "applyConfirmDescription": "Applying replaces your splits and refund link.",
+        "toasts": {
+          "savedFromForm": "Saved ‘{name}’ — it’s now the active template.",
+          "saved": "Template saved.",
+          "deleted": "Template deleted."
+        },
+        "form": {
+          "titleNew": "New template",
+          "titleEdit": "Edit template",
+          "titleSaveCurrent": "Save as template",
+          "nameLabel": "Name",
+          "namePlaceholder": "e.g. Morning coffee",
+          "typeLabel": "Type",
+          "keepAccount": "Keep whichever account is selected when I use it",
+          "noAmount": "Don’t save an amount — I’ll type it each time",
+          "delete": "Delete template",
+          "save": "Save template",
+          "deleteConfirmTitle": "Delete ‘{name}’?",
+          "deleteConfirmDescription": "This template will be removed. Transactions you already created from it are not affected.",
+          "duplicateName": "You already have a template called “{name}”."
+        },
+        "errors": {
+          "create": "Couldn't save the template. Please try again.",
+          "update": "Couldn't update the template. Please try again.",
+          "delete": "Couldn't delete the template. Please try again."
+        }
       }
     },
     "portfolioTransfer": {

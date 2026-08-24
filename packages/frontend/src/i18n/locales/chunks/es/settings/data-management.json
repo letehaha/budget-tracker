@@ -3,6 +3,10 @@
     "dataManagement": {
       "title": "Importar datos",
       "description": "Importe sus datos financieros desde diversas fuentes",
+      "tabs": {
+        "import": "Importar",
+        "export": "Exportar"
+      },
       "textSource": {
         "title": "Importar desde cualquier fuente de texto",
         "aiBadge": "Impulsado por IA",
@@ -23,19 +27,24 @@
         "title": "Wallet (BudgetBakers)",
         "listDescription": "Multidivisa con emparejamiento automático de transferencias"
       },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Importa un archivo .mny de Microsoft Money"
+      },
+      "importHistory": {
+        "title": "Historial de importaciones",
+        "listDescription": "Consulte las importaciones anteriores y lo que crearon"
+      },
       "import": {
         "back": "Volver a Importar",
         "groups": {
           "filesAndText": "Archivos y texto",
-          "fromOtherApps": "Desde otras apps"
+          "fromOtherApps": "Desde otras apps",
+          "history": "Historial"
         },
         "requestMore": {
           "title": "¿Quieres más opciones? Solicítalo aquí"
         }
-      },
-      "tabs": {
-        "import": "Importar",
-        "export": "Exportar"
       },
       "export": {
         "cardTitle": "Exporta tus datos",
@@ -79,10 +88,6 @@
           "clear": "Quitar rango de fechas"
         },
         "listDescription": "Descarga un zip para hojas de cálculo, impuestos o migración"
-      },
-      "ms-money": {
-        "title": "Microsoft Money",
-        "listDescription": "Importa un archivo .mny de Microsoft Money"
       }
     }
   }

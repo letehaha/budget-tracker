@@ -106,6 +106,7 @@ export const useTransactionsWithFilters = ({
           tagIds: filter.tagIds.length ? filter.tagIds : undefined,
           payeeIds: filter.payeeIds.length ? filter.payeeIds : undefined,
           categorizationSource: filter.categorizationSource ?? undefined,
+          batchId: filter.batchId ?? undefined,
           budgetIds: staticFilters.budgetIds ?? undefined,
           excludedBudgetIds: staticFilters.excludedBudgetIds ?? undefined,
           includeSplits: true,

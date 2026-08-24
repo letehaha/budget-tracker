@@ -15,6 +15,7 @@ import PayeeTags from '@models/payee-tags.model';
 import Payees from '@models/payees.model';
 import Subscriptions from '@models/subscriptions.model';
 import Tags from '@models/tags.model';
+import TransactionTemplates from '@models/transaction-templates.model';
 import { updateTransactions } from '@models/transactions-query';
 import {
   applyCachedLogos,
@@ -24,6 +25,7 @@ import {
   resolveManualLogoFields,
 } from '@services/brand-logos';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
+import { pauseAutomationsReferencing, rewriteAutomationRef } from '@services/transaction-automations/references';
 import { Op, QueryTypes } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
@@ -504,7 +506,8 @@ interface DeletePayeeParams {
 }
 
 export const deletePayee = withTransaction(async ({ userId, id }: DeletePayeeParams): Promise<void> => {
-  await loadPayeeOrThrow({ userId, id });
+  const payee = await loadPayeeOrThrow({ userId, id });
+  await pauseAutomationsReferencing({ userId, refType: 'payee', refId: payee.id, label: payee.name });
   // FK `SET NULL` on `Transactions.payeeId` unlinks transactions automatically.
   // Aliases cascade-delete via FK.
   await Payees.destroy({ where: { id, userId } });
@@ -541,9 +544,12 @@ export const mergePayees = withTransaction(
       where: { payeeId: source.id },
     });
 
-    // Move subscription payee rules before the source is deleted: the FK
-    // SET NULL would otherwise silently drop the rule.
+    // Move subscription payee rules and template pre-fills before the source is deleted:
+    // the FK SET NULL would otherwise silently drop the reference.
     await Subscriptions.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
+    await TransactionTemplates.update({ payeeId: target.id }, { where: { userId, payeeId: source.id } });
+
+    await rewriteAutomationRef({ userId, refType: 'payee', from: source.id, to: target.id });
 
     // `categorizationMeta.payeeId` on previously-categorized rows still points
     // at the source id after merge – accepted as an audit-only dangling

@@ -27,13 +27,27 @@
         />
       </div>
     </section>
+
+    <section class="flex flex-col gap-3">
+      <span class="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+        {{ $t('settings.dataManagement.import.groups.history') }}
+      </span>
+      <div class="divide-border divide-y overflow-hidden rounded-lg border">
+        <DataSourceRow
+          :icon="HistoryIcon"
+          :title="$t('settings.dataManagement.importHistory.title')"
+          :description="$t('settings.dataManagement.importHistory.listDescription')"
+          :to="{ name: ROUTES_NAMES.importHistory }"
+        />
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ROUTES_NAMES } from '@/routes';
 import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
-import { DatabaseIcon, FileSpreadsheetIcon, PlusIcon, SparklesIcon } from '@lucide/vue';
+import { DatabaseIcon, FileSpreadsheetIcon, HistoryIcon, PlusIcon, SparklesIcon } from '@lucide/vue';
 import { type Component } from 'vue';
 import { type RouteLocationRaw } from 'vue-router';
 

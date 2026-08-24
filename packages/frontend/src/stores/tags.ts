@@ -8,6 +8,7 @@ import { useOnboardingStore } from './onboarding';
 export const useTagsStore = defineStore('tags', () => {
   const tags = ref<TagModel[]>([]);
   const isLoading = ref(false);
+  const isFetched = ref(false);
 
   const tagsMap = computed(() =>
     tags.value.reduce(
@@ -23,6 +24,7 @@ export const useTagsStore = defineStore('tags', () => {
     isLoading.value = true;
     try {
       tags.value = await tagsApi.loadTags();
+      isFetched.value = true;
     } finally {
       isLoading.value = false;
     }
@@ -67,6 +69,7 @@ export const useTagsStore = defineStore('tags', () => {
     tags,
     tagsMap,
     isLoading,
+    isFetched,
     loadTags,
     createTag,
     updateTag,

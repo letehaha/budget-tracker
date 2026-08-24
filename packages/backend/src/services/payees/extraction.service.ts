@@ -31,7 +31,7 @@ const PRIOR_UNMATCHED_SCAN_LIMIT = 2000;
  * through the provider-specific JSONB keys in priority order, then `note`.
  * Mirrors the `coalesce(...)` in the PRD pseudocode.
  */
-function extractRawFromTransaction({
+export function extractRawFromTransaction({
   externalData,
   note,
 }: {

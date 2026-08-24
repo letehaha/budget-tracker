@@ -6,16 +6,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  budgetId: recordId().describe('ID of the budget to unlink transactions from'),
+  transactionIds: z.array(recordId()).describe('IDs of the transactions to remove from the budget'),
+};
+
 export function registerRemoveTransactionsFromBudget(server: McpServer) {
   server.registerTool(
     'remove_transactions_from_budget',
     {
       description:
         'Unlink one or more transactions from a budget. Does not delete the transactions themselves. Returns nothing on success.',
-      inputSchema: {
-        budgetId: recordId().describe('ID of the budget to unlink transactions from'),
-        transactionIds: z.array(recordId()).describe('IDs of the transactions to remove from the budget'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

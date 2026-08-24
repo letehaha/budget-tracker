@@ -6,7 +6,7 @@ export const loggerNamespace = cls.createNamespace(NAMESPACE_NAME);
 
 const getNamespace = () => cls.getNamespace(NAMESPACE_NAME);
 
-const getFromNamespace = <T>(key: 'req' | 'requestId'): T | null => {
+const getFromNamespace = <T>(key: 'requestId'): T | null => {
   const namespace = getNamespace();
   return namespace ? namespace.get(key) : null;
 };

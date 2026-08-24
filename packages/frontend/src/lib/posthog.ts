@@ -42,6 +42,8 @@ type AnalyticsEvent =
   // Transaction creation funnel
   | { event: 'transaction_creation_opened' }
   | { event: 'transaction_created'; properties: { transaction_type: 'income' | 'expense' | 'transfer' } }
+  | { event: 'transaction_template_applied' }
+  | { event: 'transaction_template_saved' }
   // Budget creation funnel
   | { event: 'budget_creation_opened' }
   | { event: 'budget_created' }
@@ -53,6 +55,7 @@ type AnalyticsEvent =
   // AI features (ai_categorization_completed tracked on backend)
   | { event: 'ai_feature_used'; properties: { feature: 'statement_parser' | 'categorization' } }
   | { event: 'ai_settings_visited' }
+  | { event: 'automations_mcp_tip_opened' }
   | { event: 'ai_key_set'; properties: { provider: 'openai' | 'anthropic' | 'google' | 'groq' } }
   // Transactions filter bar (which filters people actually use — informs which
   // ones to pin or rank higher in the "+ add filter" menu)

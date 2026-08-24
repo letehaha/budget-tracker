@@ -6,16 +6,18 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  budgetId: recordId().describe('ID of the budget to link transactions to'),
+  transactionIds: z.array(recordId()).describe('IDs of the transactions to add to the budget'),
+};
+
 export function registerAddTransactionsToBudget(server: McpServer) {
   server.registerTool(
     'add_transactions_to_budget',
     {
       description:
         'Manually link one or more transactions to a manual-type budget. Category-type budgets do not support manual linking. Returns a success message on completion.',
-      inputSchema: {
-        budgetId: recordId().describe('ID of the budget to link transactions to'),
-        transactionIds: z.array(recordId()).describe('IDs of the transactions to add to the budget'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

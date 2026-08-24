@@ -6,19 +6,21 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  limit: z.number().optional().describe('Maximum number of upcoming payments to return. Default: 5'),
+  type: z
+    .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])
+    .optional()
+    .describe('Filter by type: "subscription", "bill", or "installment"'),
+};
+
 export function registerGetUpcomingSubscriptionPayments(server: McpServer) {
   server.registerTool(
     'get_upcoming_subscription_payments',
     {
       description:
         'List upcoming subscription payments sorted by next expected payment date (soonest first). Returns subscription name, expected amount, currency, next payment date, and category. Only active subscriptions with an expectedAmount are included.',
-      inputSchema: {
-        limit: z.number().optional().describe('Maximum number of upcoming payments to return. Default: 5'),
-        type: z
-          .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])
-          .optional()
-          .describe('Filter by type: "subscription", "bill", or "installment"'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

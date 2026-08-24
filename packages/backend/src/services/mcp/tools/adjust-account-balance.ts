@@ -7,19 +7,21 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  accountId: recordId().describe('ID of the account to adjust.'),
+  newBalance: z
+    .number()
+    .describe('Target balance as a decimal (e.g. 1500.00). An adjustment transaction is created for the diff.'),
+  note: z.string().optional().describe('Optional note to attach to the adjustment transaction.'),
+};
+
 export function registerAdjustAccountBalance(server: McpServer) {
   server.registerTool(
     'adjust_account_balance',
     {
       description:
         'Set an account to a specific balance by creating an adjustment transaction for the difference. Returns the previous balance, new balance, and the generated transaction (null if the balance was already at the target).',
-      inputSchema: {
-        accountId: recordId().describe('ID of the account to adjust.'),
-        newBalance: z
-          .number()
-          .describe('Target balance as a decimal (e.g. 1500.00). An adjustment transaction is created for the diff.'),
-        note: z.string().optional().describe('Optional note to attach to the adjustment transaction.'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

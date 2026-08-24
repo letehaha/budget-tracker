@@ -150,7 +150,8 @@
         "searchPlaceholder": "Search groups...",
         "noGroupsMessage": "No transaction groups yet.",
         "emptyStateHint": "Select transactions on the Transactions page and click \"Create Group\" to get started.",
-        "transactionCountLabel": "transactions"
+        "transactionCountLabel": "transactions",
+        "deleteError": "Failed to delete the group. Please try again."
       },
       "errors": {
         "nameRequired": "Group name is required",

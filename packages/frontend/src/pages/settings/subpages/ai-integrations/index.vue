@@ -41,7 +41,7 @@
             <div class="border-border rounded-lg border">
               <div class="flex items-center justify-between p-4">
                 <div class="flex items-center gap-2">
-                  <SparklesIcon class="size-4" />
+                  <ClaudeLogo class="size-7" />
                   <span class="font-medium">Claude</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -98,7 +98,7 @@
             <div class="border-border rounded-lg border">
               <div class="flex items-center justify-between p-4">
                 <div class="flex items-center gap-2">
-                  <BotIcon class="size-4" />
+                  <OpenAiLogo class="size-8" />
                   <span class="font-medium">ChatGPT</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -223,7 +223,9 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useClipboard } from '@vueuse/core';
 import { format, formatDistanceToNow } from 'date-fns';
-import { BotIcon, CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, PlugIcon, SparklesIcon } from '@lucide/vue';
+import ClaudeLogo from '@/assets/icons/logos/claude.svg';
+import OpenAiLogo from '@/assets/icons/logos/openai.svg';
+import { CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, PlugIcon } from '@lucide/vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';

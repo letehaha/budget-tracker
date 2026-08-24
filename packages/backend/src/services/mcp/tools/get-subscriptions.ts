@@ -6,19 +6,21 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent } from './helpers';
 
+const inputSchema = {
+  isActive: z.boolean().optional().describe('Filter by active state. Omit to return all subscriptions'),
+  type: z
+    .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])
+    .optional()
+    .describe('Filter by type: "subscription", "bill", or "installment"'),
+};
+
 export function registerGetSubscriptions(server: McpServer) {
   server.registerTool(
     'get_subscriptions',
     {
       description:
         'List all subscriptions and recurring bills for the user. Returns name, frequency, expected amount, linked account/category, active state, and linked transaction count. Use isActive to filter active-only.',
-      inputSchema: {
-        isActive: z.boolean().optional().describe('Filter by active state. Omit to return all subscriptions'),
-        type: z
-          .enum([SUBSCRIPTION_TYPES.subscription, SUBSCRIPTION_TYPES.bill, SUBSCRIPTION_TYPES.installment])
-          .optional()
-          .describe('Filter by type: "subscription", "bill", or "installment"'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });

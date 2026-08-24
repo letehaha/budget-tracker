@@ -5,17 +5,19 @@ import { z } from 'zod';
 
 import { getUserId, jsonContent, requireScope } from './helpers';
 
+const inputSchema = {
+  id: z.string().describe('Payee id.'),
+  name: z.string().optional().describe('New display name.'),
+  defaultCategoryId: z.string().nullable().optional().describe('New default category id, or null to clear.'),
+};
+
 export function registerUpdatePayee(server: McpServer) {
   server.registerTool(
     'update_payee',
     {
       description:
         'Rename a Payee or set/clear its defaultCategoryId. Renaming preserves the previous canonical name as an alias so historical matches still resolve.',
-      inputSchema: {
-        id: z.string().describe('Payee id.'),
-        name: z.string().optional().describe('New display name.'),
-        defaultCategoryId: z.string().nullable().optional().describe('New default category id, or null to clear.'),
-      },
+      inputSchema,
     },
     async (args, extra) => {
       const userId = getUserId({ extra });
