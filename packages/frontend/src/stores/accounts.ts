@@ -116,8 +116,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     });
   };
 
-  const deleteAccount = async ({ id }: DeleteAccountPayload) => {
-    await apiDeleteAccount({ id });
+  const deleteAccount = async ({ id, removePortfolioTransfers }: DeleteAccountPayload) => {
+    await apiDeleteAccount({ id, removePortfolioTransfers });
     await refetchAccounts();
     // Invalidate all queries that depend on transaction changes
     // since deleting an account will delete all associated transactions

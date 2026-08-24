@@ -82,12 +82,24 @@ export function updateAccount<T = AccountApiResponse, R extends boolean | undefi
   });
 }
 
-export function deleteAccount({ id, raw }: { id: string; raw: false }): Promise<Response>;
-export function deleteAccount({ id, raw }: { id: string; raw: true }): Promise<void>;
-export function deleteAccount({ id, raw = false }: { id: string; raw?: boolean }) {
+export function deleteAccount(params: {
+  id: string;
+  removePortfolioTransfers?: boolean;
+  raw: false;
+}): Promise<Response>;
+export function deleteAccount(params: { id: string; removePortfolioTransfers?: boolean; raw: true }): Promise<void>;
+export function deleteAccount({
+  id,
+  removePortfolioTransfers,
+  raw = false,
+}: {
+  id: string;
+  removePortfolioTransfers?: boolean;
+  raw?: boolean;
+}) {
   return makeRequest({
     method: 'delete',
-    url: `/accounts/${id}`,
+    url: `/accounts/${id}${removePortfolioTransfers ? '?removePortfolioTransfers=true' : ''}`,
     raw,
   });
 }
