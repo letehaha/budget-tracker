@@ -577,6 +577,7 @@
         "sentBody": "Kami mengirim undangan ke {owner}. Mereka akan mendapatkan akses setelah menerima.",
         "success": "Undangan terkirim.",
         "deliveryFailed": "Undangan dibuat, tetapi email tidak dapat dikirim. Coba lagi nanti.",
+        "emailNotConfigured": "Undangan dibuat, tetapi server ini tidak memiliki pengiriman email yang dikonfigurasi. Minta mereka memeriksa undangan mereka di aplikasi.",
         "error": "Gagal mengirim undangan."
       }
     },

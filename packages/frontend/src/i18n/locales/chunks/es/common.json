@@ -25,7 +25,8 @@
       "link": "Vincular",
       "clear": "Limpiar",
       "apply": "Aplicar",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "copyInviteLink": "Copiar enlace de invitación"
     },
     "ui": {
       "close": "Cerrar",
@@ -55,7 +56,8 @@
     },
     "notifications": {
       "subscriptionCurrencyNotConnected": "El resumen de suscripciones no puede convertir {currencies} a su moneda base. Conecte la moneda en Ajustes → Monedas.",
-      "backgroundJobFailed": "Ha fallado un trabajo en segundo plano mientras estaba ausente: {error}"
+      "backgroundJobFailed": "Ha fallado un trabajo en segundo plano mientras estaba ausente: {error}",
+      "inviteLinkCopied": "Enlace de invitación copiado al portapapeles"
     },
     "labels": {
       "email": "Correo electrónico",
@@ -220,6 +222,9 @@
         "minutes": "{count} minuto | {count} minutos",
         "hours": "{count} hora | {count} horas"
       }
+    },
+    "sharing": {
+      "emailNotSent": "El envío de correos no está configurado — comparta el enlace de invitación manualmente"
     }
   },
   "accountGroups": {
