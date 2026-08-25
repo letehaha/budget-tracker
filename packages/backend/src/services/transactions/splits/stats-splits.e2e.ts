@@ -219,7 +219,7 @@ describe('Statistics with transaction splits', () => {
       expect(stats[categoryB.id.toString()].amount).toBe(3000);
     });
 
-    it('should handle partial refund that brings category below split amounts', async () => {
+    it('should clamp a category to zero when its refund exceeds its own spend', async () => {
       const account = await helpers.createAccount({ raw: true });
       const categories = await helpers.getCategoriesList();
       const categoryA = categories[0]!;
@@ -255,8 +255,8 @@ describe('Statistics with transaction splits', () => {
 
       const stats = await helpers.getSpendingsByCategories({ raw: true });
 
-      // Category A: 7000 - 8000 = -1000 (negative, could happen with large refunds)
-      expect(stats[categoryA.id.toString()].amount).toBe(-1000);
+      // Category A: 7000 - 8000 floors at 0, the response carries expense magnitudes.
+      expect(stats[categoryA.id.toString()].amount).toBe(0);
       // Category B: 3000 (split unaffected)
       expect(stats[categoryB.id.toString()].amount).toBe(3000);
     });

@@ -206,9 +206,11 @@ function groupAllocations({
     if (groupId === null) continue;
 
     // Guard: only net against a group that actually received spend in range. `leg.cents` is
-    // already negative.
+    // already negative. A group refunded past its own spend reports 0 — the response carries
+    // expense magnitudes, and a negative one renders as an invisible donut slice that still
+    // drags the centre total down.
     const existing = result[groupId];
-    if (existing) existing.amount += leg.cents;
+    if (existing) existing.amount = Math.max(0, existing.amount + leg.cents);
   }
 
   return result;
