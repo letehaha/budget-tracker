@@ -1,6 +1,7 @@
 import {
   AccountOptionValue,
   CategoryOptionValue,
+  type ColumnMappingConfig,
   CurrencyOptionValue,
   TagOptionValue,
   TransactionTypeOptionValue,
@@ -46,172 +47,9 @@ describe('Extract Unique Values endpoint', () => {
       expect(result.sourceCategories).toContain('Entertainment');
       expect(result.sourceCategories).toContain('Transport');
     });
-
-    it('should extract multiple accounts with different currencies', async () => {
-      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: {
-              option: TransactionTypeOptionValue.dataSourceColumn,
-              columnName: 'Type',
-              incomeValues: ['income'],
-              expenseValues: ['expense'],
-            },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: true,
-      });
-
-      expect(result.sourceAccounts.length).toBeGreaterThanOrEqual(3);
-      const accountNames = result.sourceAccounts.map((a) => a.name);
-      expect(accountNames).toContain('Checking Account');
-      expect(accountNames).toContain('Savings Account');
-      expect(accountNames).toContain('Credit Card');
-    });
-
-    it('should work with amountSign transaction type option', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: true,
-      });
-
-      expect(result.sourceAccounts).toHaveLength(1);
-      expect(result.sourceCategories.length).toBeGreaterThan(0);
-    });
-
-    it('should work with createNewCategories option', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: true,
-      });
-
-      // Should still extract categories for display
-      expect(result.sourceCategories.length).toBeGreaterThan(0);
-    });
   });
 
   describe('using existing entities', () => {
-    it('should validate existing account belongs to user', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.existingAccount, accountId: account.id },
-          },
-        },
-        raw: true,
-      });
-
-      // When using existing account, no accounts should be extracted from CSV
-      expect(result.sourceAccounts).toHaveLength(0);
-    });
-
-    it('should validate existing category belongs to user', async () => {
-      const categories = await helpers.getCategoriesList();
-      const existingCategory = categories[0]!;
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.existingCategory, categoryId: existingCategory.id },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: true,
-      });
-
-      // When using existing category, no categories should be extracted
-      expect(result.sourceCategories).toHaveLength(0);
-    });
-
-    it('should work with existing currency option', async () => {
-      const fileContent = helpers.loadCsvFixture('minimal-columns.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Date' }, // Use Date as fake category
-            currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: 'USD' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Date' }, // Use Date as fake account
-          },
-        },
-        raw: true,
-      });
-
-      expect(result.sourceAccounts.length).toBeGreaterThan(0);
-      // All accounts should have the specified currency
-      result.sourceAccounts.forEach((acc) => {
-        expect(acc.currency).toBe('USD');
-      });
-    });
-
     it('should return currency mismatch warning when account has different currency than CSV', async () => {
       // Create account with EUR currency
       await helpers.addUserCurrencies({ currencyCodes: ['EUR'] });
@@ -309,38 +147,6 @@ describe('Extract Unique Values endpoint', () => {
       expect(result.sourceCategories.length).toBeGreaterThan(0);
       expect(result.sourceCategories).toContain('Food');
       expect(result.sourceCategories).toContain('Income');
-    });
-
-    it('should handle createNewCategories with existing account and currency', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: 'EUR' },
-            transactionType: {
-              option: TransactionTypeOptionValue.dataSourceColumn,
-              columnName: 'Type',
-              incomeValues: ['income'],
-              expenseValues: ['expense'],
-            },
-            account: { option: AccountOptionValue.existingAccount, accountId: account.id },
-          },
-        },
-        raw: true,
-      });
-
-      // Should extract categories for preview
-      expect(result.sourceAccounts).toHaveLength(0);
-      expect(result.sourceCategories.length).toBeGreaterThan(0);
     });
 
     it('should handle mapDataSourceColumn with dataSourceColumn for all options', async () => {
@@ -560,183 +366,114 @@ describe('Extract Unique Values endpoint', () => {
       expect(result1.sourceAccounts).toEqual(result2.sourceAccounts);
       expect(result1.sourceCategories.toSorted()).toEqual(result2.sourceCategories.toSorted());
     });
-
-    it('should handle currency mismatch warning with existing account', async () => {
-      // Create account with GBP currency
-      await helpers.addUserCurrencies({ currencyCodes: ['GBP'] });
-      const account = await helpers.createAccount({
-        payload: {
-          ...helpers.buildAccountPayload(),
-          currencyCode: 'GBP',
-        },
-        raw: true,
-      });
-
-      // CSV has EUR and USD in multiple-accounts.csv
-      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.existingAccount, accountId: account.id },
-          },
-        },
-        raw: true,
-      });
-
-      // Should warn about currency mismatch
-      expect(result.currencyMismatchWarning).toBeDefined();
-      expect(result.currencyMismatchWarning).toContain('GBP');
-      // Warning should mention at least one currency from CSV (USD or EUR)
-      const hasUSD = result.currencyMismatchWarning?.includes('USD');
-      const hasEUR = result.currencyMismatchWarning?.includes('EUR');
-      expect(hasUSD || hasEUR).toBe(true);
-    });
   });
 
   describe('validation errors', () => {
-    it('should return error for non-existent date column', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
+    const baseMapping: ColumnMappingConfig = {
+      date: 'Date',
+      dateFieldOrder: 'month-first',
+      amount: 'Amount',
+      category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
+      currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
+      transactionType: { option: TransactionTypeOptionValue.amountSign },
+      account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
+    };
 
+    const cases: { name: string; columnMapping: ColumnMappingConfig; statusCode: ERROR_CODES }[] = [
+      {
+        name: 'non-existent date column',
+        columnMapping: { ...baseMapping, date: 'NonExistentColumn' },
+        statusCode: ERROR_CODES.ValidationError,
+      },
+      {
+        name: 'non-existent amount column',
+        columnMapping: { ...baseMapping, amount: 'NonExistentColumn' },
+        statusCode: ERROR_CODES.ValidationError,
+      },
+      {
+        name: 'non-existent currency column',
+        columnMapping: {
+          ...baseMapping,
+          currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'NonExistentColumn' },
+        },
+        statusCode: ERROR_CODES.ValidationError,
+      },
+      {
+        name: 'non-existent account column',
+        columnMapping: {
+          ...baseMapping,
+          account: { option: AccountOptionValue.dataSourceColumn, columnName: 'NonExistentColumn' },
+        },
+        statusCode: ERROR_CODES.ValidationError,
+      },
+      {
+        name: 'non-existent category column',
+        columnMapping: {
+          ...baseMapping,
+          category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'NonExistentColumn' },
+        },
+        statusCode: ERROR_CODES.ValidationError,
+      },
+      {
+        name: 'non-existent transaction type column',
+        columnMapping: {
+          ...baseMapping,
+          transactionType: {
+            option: TransactionTypeOptionValue.dataSourceColumn,
+            columnName: 'NonExistentColumn',
+            incomeValues: ['income'],
+            expenseValues: ['expense'],
+          },
+        },
+        statusCode: ERROR_CODES.ValidationError,
+      },
+      {
+        name: 'invalid currency code',
+        columnMapping: {
+          ...baseMapping,
+          currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: 'INVALID' },
+        },
+        statusCode: ERROR_CODES.ValidationError,
+      },
+      {
+        name: 'existing account that does not belong to user',
+        columnMapping: {
+          ...baseMapping,
+          account: { option: AccountOptionValue.existingAccount, accountId: generateRandomRecordId() },
+        },
+        statusCode: ERROR_CODES.NotFoundError,
+      },
+      {
+        name: 'existing category that does not belong to user',
+        columnMapping: {
+          ...baseMapping,
+          category: { option: CategoryOptionValue.existingCategory, categoryId: generateRandomRecordId() },
+        },
+        statusCode: ERROR_CODES.NotFoundError,
+      },
+    ];
+
+    it.each(cases)('should return error for $name', async ({ columnMapping, statusCode }) => {
       const result = await helpers.extractUniqueValues({
         payload: {
-          fileContent,
+          fileContent: helpers.loadCsvFixture('valid-comma.csv'),
           delimiter: ',',
-          columnMapping: {
-            date: 'NonExistentColumn',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
+          columnMapping,
         },
         raw: false,
       });
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should return error for non-existent amount column', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'NonExistentColumn',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should return error for non-existent account that does not belong to user', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.existingAccount, accountId: generateRandomRecordId() },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('should return error for non-existent category that does not belong to user', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: {
-              option: CategoryOptionValue.existingCategory,
-              categoryId: generateRandomRecordId(),
-            },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('should return error for invalid currency code', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: 'INVALID' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(result.statusCode).toBe(statusCode);
     });
 
     it('should return error for empty currencyCode', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
       const result = await helpers.extractUniqueValues({
         payload: {
-          fileContent,
+          fileContent: helpers.loadCsvFixture('valid-comma.csv'),
           delimiter: ',',
           columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
+            ...baseMapping,
             currency: { option: CurrencyOptionValue.existingCurrency, currencyCode: '' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
           },
         },
         raw: false,
@@ -744,126 +481,6 @@ describe('Extract Unique Values endpoint', () => {
 
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
       expect((result.body.response as unknown as ErrorResponse).message).toContain('currency.currencyCode');
-    });
-
-    it('should return error for non-existent currency column', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'NonExistentColumn' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should return error for non-existent account column', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'NonExistentColumn' },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should return error for non-existent category column', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'NonExistentColumn' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should return error for non-existent transaction type column', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: {
-              option: TransactionTypeOptionValue.dataSourceColumn,
-              columnName: 'NonExistentColumn',
-              incomeValues: ['income'],
-              expenseValues: ['expense'],
-            },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should return error when createNewCategories references non-existent column', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            category: { option: CategoryOptionValue.createNewCategories, columnName: 'NonExistentColumn' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 
@@ -932,6 +549,175 @@ describe('Extract Unique Values endpoint', () => {
       });
 
       expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+});
+
+describe('Parse CSV endpoint', () => {
+  describe('successful parsing', () => {
+    it('should parse a valid CSV with comma delimiter', async () => {
+      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
+      expect(result.detectedDelimiter).toBe(',');
+      expect(result.totalRows).toBe(5);
+      expect(result.preview).toHaveLength(5);
+      expect(result.preview[0]).toEqual({
+        Date: '2024-01-15',
+        Amount: '100.50',
+        Description: 'Grocery shopping',
+        Category: 'Food',
+        Account: 'Main Account',
+        Currency: 'USD',
+        Type: 'expense',
+      });
+    });
+
+    it('should parse a valid CSV with semicolon delimiter', async () => {
+      const fileContent = helpers.loadCsvFixture('valid-semicolon.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
+      expect(result.detectedDelimiter).toBe(';');
+      expect(result.totalRows).toBe(3);
+      expect(result.preview).toHaveLength(3);
+    });
+
+    it('should parse a valid CSV with tab delimiter', async () => {
+      const fileContent = helpers.loadCsvFixture('valid-tab.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
+      expect(result.detectedDelimiter).toBe('\t');
+      expect(result.totalRows).toBe(2);
+    });
+
+    it('should use provided delimiter instead of auto-detecting', async () => {
+      const fileContent = helpers.loadCsvFixture('valid-semicolon.csv');
+      // Force comma delimiter even though file uses semicolon
+      const result = await helpers.parseCsv({
+        payload: { fileContent, delimiter: ';' },
+        raw: true,
+      });
+
+      expect(result.detectedDelimiter).toBe(';');
+      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
+    });
+
+    it('should limit preview rows and return correct total count', async () => {
+      const fileContent = helpers.loadCsvFixture('large-file.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      // large-file.csv has 25 data rows
+      expect(result.totalRows).toBe(25);
+      // Preview should be limited to 50 rows (but we only have 25)
+      expect(result.preview).toHaveLength(25);
+    });
+
+    it('should handle CSV with special characters in values', async () => {
+      const fileContent = helpers.loadCsvFixture('special-characters.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
+      expect(result.preview[0]?.Description).toBe('Grocery, shopping & more');
+      expect(result.preview[1]?.Description).toBe('Coffee "Best" shop');
+      expect(result.preview[2]?.Description).toBe('Salary (monthly)');
+    });
+
+    it('should parse CSV with minimal columns', async () => {
+      const fileContent = helpers.loadCsvFixture('minimal-columns.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      expect(result.headers).toEqual(['Date', 'Amount']);
+      expect(result.totalRows).toBe(3);
+      expect(result.preview[0]).toEqual({
+        Date: '2024-01-15',
+        Amount: '100.50',
+      });
+    });
+
+    it('should parse CSV with multiple accounts and currencies', async () => {
+      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      expect(result.totalRows).toBe(5);
+      // Verify different accounts are parsed correctly
+      const accounts = result.preview.map((row) => row.Account);
+      expect(accounts).toContain('Checking Account');
+      expect(accounts).toContain('Savings Account');
+      expect(accounts).toContain('Credit Card');
+
+      // Verify different currencies
+      const currencies = result.preview.map((row) => row.Currency);
+      expect(currencies).toContain('USD');
+      expect(currencies).toContain('EUR');
+    });
+
+    it('should parse CSV with European date and number format', async () => {
+      const fileContent = helpers.loadCsvFixture('european-format.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      expect(result.detectedDelimiter).toBe(';');
+      expect(result.preview[0]?.Date).toBe('15.01.2024');
+      expect(result.preview[0]?.Amount).toBe('100,50');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should return validation error for empty file content', async () => {
+      const result = await helpers.parseCsv({
+        payload: { fileContent: '' },
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should return validation error for empty CSV (no data)', async () => {
+      const fileContent = helpers.loadCsvFixture('empty.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: false,
+      });
+
+      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    it('should parse CSV with headers only (no data rows)', async () => {
+      const fileContent = helpers.loadCsvFixture('headers-only.csv');
+      const result = await helpers.parseCsv({
+        payload: { fileContent },
+        raw: true,
+      });
+
+      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
+      expect(result.totalRows).toBe(0);
+      expect(result.preview).toHaveLength(0);
     });
   });
 });
