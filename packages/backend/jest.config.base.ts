@@ -18,6 +18,9 @@ export default {
       'ts-jest',
       {
         tsconfig: '<rootDir>/tsconfig.json',
+        // Transpile-only, matching the vite/esbuild prod build. Type errors are
+        // caught by `npm run typecheck`, which CI runs in the backend matrix.
+        isolatedModules: true,
       },
     ],
     // mdb-reader (the Microsoft Money parser's Access reader) ships as pure ESM,

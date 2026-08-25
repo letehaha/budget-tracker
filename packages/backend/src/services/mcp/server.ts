@@ -17,6 +17,7 @@ import { registerCreateCategory } from './tools/create-category';
 import { registerCreateInvestmentTransaction } from './tools/create-investment-transaction';
 import { registerCreatePayee } from './tools/create-payee';
 import { registerCreatePortfolio } from './tools/create-portfolio';
+import { registerCreatePortfolioCashTransaction } from './tools/create-portfolio-cash-transaction';
 import { registerCreateSubscription } from './tools/create-subscription';
 import { registerCreateTag } from './tools/create-tag';
 import { registerCreateTransaction } from './tools/create-transaction';
@@ -59,8 +60,10 @@ import { registerGetTransactionGroups } from './tools/get-transaction-groups';
 import { registerGetUpcomingSubscriptionPayments } from './tools/get-upcoming-subscription-payments';
 import { registerGetUserProfile } from './tools/get-user-profile';
 import { registerLinkRefund } from './tools/link-refund';
+import { registerLinkTransactionToPortfolio } from './tools/link-transaction-to-portfolio';
 import { registerLinkTransactionsToSubscription } from './tools/link-transactions-to-subscription';
 import { registerLinkTransfer } from './tools/link-transfer';
+import { registerListPortfolioTransfers } from './tools/list-portfolio-transfers';
 import { registerListSubscriptionCandidates } from './tools/list-subscription-candidates';
 import { registerMergePayees } from './tools/merge-payees';
 import { registerPreviewTransactionAutomation } from './tools/preview-transaction-automation';
@@ -72,7 +75,10 @@ import { registerSearchSecurities } from './tools/search-securities';
 import { registerSearchTransactions } from './tools/search-transactions';
 import { registerSplitTransaction } from './tools/split-transaction';
 import { registerToggleSubscriptionActive } from './tools/toggle-subscription-active';
+import { registerTransferAccountToPortfolio } from './tools/transfer-account-to-portfolio';
+import { registerTransferPortfolioToAccount } from './tools/transfer-portfolio-to-account';
 import { registerUnlinkRefund } from './tools/unlink-refund';
+import { registerUnlinkTransactionFromPortfolio } from './tools/unlink-transaction-from-portfolio';
 import { registerUnlinkTransactionsFromSubscription } from './tools/unlink-transactions-from-subscription';
 import { registerUnlinkTransfer } from './tools/unlink-transfer';
 import { registerUpdateBudget } from './tools/update-budget';
@@ -206,6 +212,14 @@ export function createMcpServer(): McpServer {
   registerCreateInvestmentTransaction(server);
   registerUpdateInvestmentTransaction(server);
   registerDeleteInvestmentTransaction(server);
+
+  // Portfolio cash transfers
+  registerLinkTransactionToPortfolio(server);
+  registerUnlinkTransactionFromPortfolio(server);
+  registerTransferAccountToPortfolio(server);
+  registerTransferPortfolioToAccount(server);
+  registerCreatePortfolioCashTransaction(server);
+  registerListPortfolioTransfers(server);
 
   // Transaction groups
   registerGetTransactionGroups(server);

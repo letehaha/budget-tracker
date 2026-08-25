@@ -2,6 +2,7 @@
 import { AlertDialog, ClickToCopy } from '@/components/common';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useNotificationCenter } from '@/components/notification-center';
 import { isApiErrorWithCode } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
@@ -22,6 +23,7 @@ const { addSuccessNotification, addErrorNotification } = useNotificationCenter()
 const accountsStore = useAccountsStore();
 const { t } = useI18n();
 const confirmAccountName = ref('');
+const removePortfolioTransfers = ref(true);
 const accountHasTransactions = computed(() => props.transactions.length > 0);
 
 const deleteAccount = async () => {
@@ -31,6 +33,7 @@ const deleteAccount = async () => {
   try {
     await accountsStore.deleteAccount({
       id: props.account.id,
+      removePortfolioTransfers: removePortfolioTransfers.value,
     });
     addSuccessNotification(t('pages.account.deletion.success', { accountName }));
     router.push({ name: ROUTES_NAMES.accounts });
@@ -95,6 +98,11 @@ const deleteAccount = async () => {
             :placeholder="$t('pages.account.deletion.confirmPlaceholder')"
             class="border-destructive focus-visible:outline-destructive"
           />
+
+          <label class="mt-3 flex cursor-pointer items-start gap-2 text-sm">
+            <Checkbox v-model="removePortfolioTransfers" class="mt-0.5" />
+            {{ t('pages.account.deletion.removePortfolioTransfers') }}
+          </label>
         </template>
       </AlertDialog>
     </div>

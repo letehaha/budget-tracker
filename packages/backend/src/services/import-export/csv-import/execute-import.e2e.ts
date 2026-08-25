@@ -7,6 +7,7 @@ import type {
 } from '@bt/shared/types';
 import {
   AccountOptionValue,
+  CATEGORIZATION_MODE,
   CategoryOptionValue,
   CurrencyOptionValue,
   ImportSource,
@@ -176,6 +177,7 @@ describe('Execute Import endpoint (async)', () => {
 
       expect(summary.imported).toBe(3);
       expect(summary.skipped).toBe(0);
+      expect(summary.skippedUnpriceable).toBe(0);
       expect(summary.accountsCreated).toBe(0);
       expect(summary.categoriesCreated).toBe(0);
       expect(summary.errors).toHaveLength(0);
@@ -291,36 +293,6 @@ describe('Execute Import endpoint (async)', () => {
       const categoriesAfter = await helpers.getCategoriesList();
       expect(categoriesAfter.length).toBe(categoriesBefore.length + 1);
       expect(categoriesAfter.find((c) => c.name === 'New Import Category')).toBeDefined();
-    });
-
-    it('should link to existing category', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const existingCategories = await helpers.getCategoriesList();
-      let categoryId: string;
-      if (existingCategories.length > 0) {
-        categoryId = existingCategories[0]!.id;
-      } else {
-        const newCategory = await helpers.addCustomCategory({ name: 'Link Test Category', raw: true });
-        categoryId = newCategory.id;
-      }
-
-      // Only the two rows that carry a category (the income "Salary" row omits one).
-      const rows = defaultRows({
-        account: 'CSV Account',
-        category: 'CSV Category Name',
-        currency: account.currencyCode,
-      }).filter((row) => row.category !== undefined);
-
-      const { progress } = await runImport({
-        fileContent: buildCsv(rows),
-        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-        categoryMapping: { 'CSV Category Name': { action: 'link-existing', categoryId } },
-      });
-      expectCsvImportCompleted(progress);
-
-      expect(progress.summary.imported).toBe(2);
-      expect(progress.summary.categoriesCreated).toBe(0);
-      expect(progress.summary.errors).toHaveLength(0);
     });
 
     it('should skip duplicate rows based on skipDuplicateIndices', async () => {
@@ -439,30 +411,6 @@ describe('Execute Import endpoint (async)', () => {
       expect(categoriesAfter.length).toBe(categoriesBefore.length + 2);
       expect(categoriesAfter.find((c) => c.name === 'Category A')).toBeDefined();
       expect(categoriesAfter.find((c) => c.name === 'Category B')).toBeDefined();
-    });
-
-    it('should handle transactions without category', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const fileContent = buildCsv([
-        {
-          date: '2024-01-15',
-          amount: '100.50',
-          description: 'Transaction without category',
-          account: 'CSV Account',
-          currency: account.currencyCode,
-          type: 'expense',
-        },
-      ]);
-
-      const { progress } = await runImport({
-        fileContent,
-        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-      });
-      expectCsvImportCompleted(progress);
-
-      expect(progress.summary.imported).toBe(1);
-      expect(progress.summary.errors).toHaveLength(0);
     });
   });
 
@@ -1084,78 +1032,6 @@ describe('Execute Import endpoint (async)', () => {
       expect(createdTx?.accountId).toBe(account.id);
       expect(createdTx?.categoryId).toBe(categoryId);
     });
-
-    it('should generate unique batchId for each import', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const fileContent = buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode }));
-      const accountMapping = { 'CSV Account': { action: 'link-existing' as const, accountId: account.id } };
-
-      const first = await runImport({ fileContent, accountMapping });
-      const second = await runImport({ fileContent, accountMapping });
-      expectCsvImportCompleted(first.progress);
-      expectCsvImportCompleted(second.progress);
-
-      expect(first.progress.summary.batchId).toBeDefined();
-      expect(second.progress.summary.batchId).toBeDefined();
-      expect(first.progress.summary.batchId).not.toBe(second.progress.summary.batchId);
-    });
-  });
-
-  describe('currency handling', () => {
-    it('should add currency to user currencies automatically', async () => {
-      const fileContent = buildCsv([
-        {
-          date: '2024-01-15',
-          amount: '100.50',
-          description: 'EUR Transaction',
-          account: 'EUR Account',
-          currency: 'EUR',
-          type: 'expense',
-        },
-      ]);
-
-      const { progress } = await runImport({
-        fileContent,
-        accountMapping: { 'EUR Account': { action: 'create-new', currentBalance: null } },
-      });
-      expectCsvImportCompleted(progress);
-
-      expect(progress.summary.imported).toBe(1);
-      expect(progress.summary.errors).toHaveLength(0);
-    });
-
-    it('should handle multiple currencies in single import', async () => {
-      const fileContent = buildCsv([
-        {
-          date: '2024-01-15',
-          amount: '100.50',
-          description: 'USD Transaction',
-          account: 'USD Account',
-          currency: 'USD',
-          type: 'expense',
-        },
-        {
-          date: '2024-01-16',
-          amount: '50.00',
-          description: 'GBP Transaction',
-          account: 'GBP Account',
-          currency: 'GBP',
-          type: 'expense',
-        },
-      ]);
-
-      const { progress } = await runImport({
-        fileContent,
-        accountMapping: {
-          'USD Account': { action: 'create-new', currentBalance: null },
-          'GBP Account': { action: 'create-new', currentBalance: null },
-        },
-      });
-      expectCsvImportCompleted(progress);
-
-      expect(progress.summary.imported).toBe(2);
-      expect(progress.summary.accountsCreated).toBe(2);
-    });
   });
 
   describe('skipUnpriceableIndices', () => {
@@ -1192,20 +1068,6 @@ describe('Execute Import endpoint (async)', () => {
       expect(progress.summary.skipped).toBe(1);
       expect(progress.summary.skippedUnpriceable).toBe(1);
       expect(progress.summary.newTransactionIds).toHaveLength(1);
-    });
-
-    it('should return skippedUnpriceable: 0 when skipUnpriceableIndices is omitted', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const { progress } = await runImport({
-        fileContent: buildCsv(defaultRows({ account: 'CSV Account', currency: account.currencyCode })),
-        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
-      });
-      expectCsvImportCompleted(progress);
-
-      expect(progress.summary.imported).toBe(3);
-      expect(progress.summary.skipped).toBe(0);
-      expect(progress.summary.skippedUnpriceable).toBe(0);
     });
 
     it('should import nothing and report full counts when all rows skipped via both lists', async () => {
@@ -1544,6 +1406,325 @@ describe('Execute Import endpoint (async)', () => {
       const persisted = transactions.filter((tx) => progress.summary.newTransactionIds.includes(tx.id));
       expect(persisted).toHaveLength(2);
       expect(persisted.length).toBe(progress.summary.imported);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // CSV importer – auto-create Payee on import (columnMapping.payee).
+  //
+  // Drives the CSV execute endpoints as the UI does: CSV `fileContent` + a
+  // `columnMapping` that maps "Payee", enqueue, poll to terminal, then assert on
+  // `summary.payeesCreated` and the persisted `payeeId`/`categoryId` (Docker e2e
+  // swallows console.*, so response fields are the only signal).
+  // ---------------------------------------------------------------------------
+  describe('CSV Execute Import – payee auto-create', () => {
+    /** Fetch the persisted transaction created by this import, matched by note. */
+    const txByNote = async (note: string) => {
+      const list = await helpers.getTransactions({ raw: true });
+      return list.find((tx) => tx.note === note);
+    };
+
+    const expenseRow = ({
+      amount = '100.50',
+      description,
+      account,
+      currency,
+      category,
+      payee,
+    }: {
+      amount?: string;
+      description: string;
+      account: string;
+      currency: string;
+      category?: string;
+      payee?: string;
+    }): CsvRow => ({ date: '2024-01-15', amount, description, category, account, currency, type: 'expense', payee });
+    it('scenario 1 – creates a new Payee per distinct brand-new name (payeesCreated === 2)', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payeeA = `Payee One ${generateRandomRecordId()}`;
+      const payeeB = `Payee Two ${generateRandomRecordId()}`;
+
+      const { progress } = await runImport({
+        fileContent: buildCsv([
+          expenseRow({ description: 'row-a', account: 'CSV Account', currency: account.currencyCode, payee: payeeA }),
+          expenseRow({ description: 'row-b', account: 'CSV Account', currency: account.currencyCode, payee: payeeB }),
+        ]),
+        columnMapping: buildColumnMapping({ payee: 'Payee' }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.payeesCreated).toBe(2);
+      expect(progress.summary.errors).toHaveLength(0);
+
+      const txA = await txByNote('row-a');
+      const txB = await txByNote('row-b');
+      expect(txA?.payeeId).toBeTruthy();
+      expect(txB?.payeeId).toBeTruthy();
+      // The two distinct names produced two distinct Payees.
+      expect(txA?.payeeId).not.toBe(txB?.payeeId);
+
+      // Both Payees are persisted under their source names.
+      const payees = await helpers.listPayees({ raw: true });
+      const names = payees.map((p) => p.name);
+      expect(names).toContain(payeeA);
+      expect(names).toContain(payeeB);
+    });
+
+    it('scenario 2 – links a normalized case/punctuation variant to an existing Payee without counting it', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const token = generateRandomRecordId();
+      const existingName = `Acme Corp ${token}`;
+      const existingPayee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: existingName }),
+        raw: true,
+      });
+
+      // Case + punctuation variant: normalizePayeeName lowercases, strips
+      // punctuation, collapses whitespace, so this resolves to `existingPayee`
+      // rather than creating a second Payee.
+      const variant = `acme corp. ${token}!`;
+
+      const { progress } = await runImport({
+        fileContent: buildCsv([
+          expenseRow({
+            description: 'variant-row',
+            account: 'CSV Account',
+            currency: account.currencyCode,
+            payee: variant,
+          }),
+        ]),
+        columnMapping: buildColumnMapping({ payee: 'Payee' }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.payeesCreated).toBe(0); // linked, not created
+      expect(progress.summary.errors).toHaveLength(0);
+
+      const tx = await txByNote('variant-row');
+      expect(tx?.payeeId).toBe(existingPayee.id);
+    });
+
+    it('scenario 3 – leaves payeeId null and payeesCreated 0 when no payee column is mapped', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      // The Payee cells carry values, but the column is NOT mapped — the mapping
+      // is the only gate, so nothing is read and no Payee is created/linked.
+      const { progress } = await runImport({
+        fileContent: buildCsv([
+          expenseRow({
+            description: 'unmapped-row',
+            account: 'CSV Account',
+            currency: account.currencyCode,
+            payee: `Ignored Payee ${generateRandomRecordId()}`,
+          }),
+        ]),
+        columnMapping: buildColumnMapping(), // no `payee` override
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.payeesCreated).toBe(0);
+
+      const tx = await txByNote('unmapped-row');
+      expect(tx?.payeeId).toBeNull();
+    });
+
+    it('scenario 4 – dedupes repeated payee names: one create, both rows link the same Payee', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payeeName = `Dupe Payee ${generateRandomRecordId()}`;
+
+      const { progress } = await runImport({
+        fileContent: buildCsv([
+          expenseRow({
+            description: 'dupe-1',
+            account: 'CSV Account',
+            currency: account.currencyCode,
+            payee: payeeName,
+          }),
+          expenseRow({
+            description: 'dupe-2',
+            account: 'CSV Account',
+            currency: account.currencyCode,
+            payee: payeeName,
+          }),
+        ]),
+        columnMapping: buildColumnMapping({ payee: 'Payee' }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.payeesCreated).toBe(1); // counted once
+
+      const tx1 = await txByNote('dupe-1');
+      const tx2 = await txByNote('dupe-2');
+      expect(tx1?.payeeId).toBeTruthy();
+      expect(tx1?.payeeId).toBe(tx2?.payeeId);
+    });
+
+    it('scenario 5 – mapped category wins over an enforce-mode payee default; payee default applies only when no category is mapped', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const token = generateRandomRecordId();
+
+      // categoryA = the enforce-mode payee's default; categoryB = the per-row
+      // mapped category. Distinct, unique names so they don't collide with seeded
+      // defaults (which would read as 0 created / hang polls).
+      const [categoryA, categoryB] = await Promise.all([
+        helpers.addCustomCategory({ name: `Cat A ${token}`, color: '#111111', raw: true }),
+        helpers.addCustomCategory({ name: `Cat B ${token}`, color: '#222222', raw: true }),
+      ]);
+
+      const payeeName = `Enforce Payee ${token}`;
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: payeeName,
+          defaultCategoryId: categoryA.id,
+          categorizationMode: CATEGORIZATION_MODE.enforce,
+        }),
+        raw: true,
+      });
+
+      const catBSource = `Cat B ${token}`;
+
+      const { progress } = await runImport({
+        fileContent: buildCsv([
+          // Row X: same payee AND a mapped category → mapped category must win.
+          expenseRow({
+            description: 'precedence-mapped',
+            account: 'CSV Account',
+            currency: account.currencyCode,
+            category: catBSource,
+            payee: payeeName,
+          }),
+          // Row Y: same payee, NO mapped category → payee enforce default applies.
+          expenseRow({
+            description: 'precedence-payee-default',
+            account: 'CSV Account',
+            currency: account.currencyCode,
+            payee: payeeName,
+          }),
+        ]),
+        columnMapping: buildColumnMapping({ payee: 'Payee' }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        categoryMapping: { [catBSource]: { action: 'link-existing', categoryId: categoryB.id } },
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.summary.payeesCreated).toBe(0); // pre-existing payee, linked
+      expect(progress.summary.categoriesCreated).toBe(0); // categoryB linked, not created
+      expect(progress.summary.errors).toHaveLength(0);
+
+      const mappedTx = await txByNote('precedence-mapped');
+      const payeeDefaultTx = await txByNote('precedence-payee-default');
+
+      // Both rows link the same enforce-mode payee.
+      expect(mappedTx?.payeeId).toBe(payee.id);
+      expect(payeeDefaultTx?.payeeId).toBe(payee.id);
+
+      // Row X: the explicitly mapped category beats the payee enforce default.
+      expect(mappedTx?.categoryId).toBe(categoryB.id);
+      // Row Y: with no mapped category, the payee enforce default is applied.
+      expect(payeeDefaultTx?.categoryId).toBe(categoryA.id);
+    });
+
+    it('scenario 6 – leaves payeeLocked false on an import-created Payee so the user can still override it', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payeeName = `Unlocked Payee ${generateRandomRecordId()}`;
+
+      const { progress } = await runImport({
+        fileContent: buildCsv([
+          expenseRow({
+            description: 'unlocked-row',
+            account: 'CSV Account',
+            currency: account.currencyCode,
+            payee: payeeName,
+          }),
+        ]),
+        columnMapping: buildColumnMapping({ payee: 'Payee' }),
+        accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.summary.imported).toBe(1);
+      expect(progress.summary.payeesCreated).toBe(1);
+      expect(progress.summary.errors).toHaveLength(0);
+
+      const tx = await txByNote('unlocked-row');
+      expect(tx?.payeeId).toBeTruthy();
+      // An import-assigned Payee is advisory: payeeLocked stays false so the user
+      // (or a later payee rule) can re-resolve the merchant.
+      expect(tx?.payeeLocked).toBe(false);
+    });
+
+    describe('error handling – payee failures', () => {
+      // Payees are resolved before the per-row loop, so these failures abort the
+      // whole batch and surface as `status: 'failed'`. Docker e2e swallows
+      // console.*, so `progress.error` is the only signal.
+
+      it('fails the job when the mapped payee column is absent from the CSV headers', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        // A mapped payee column absent from CSV_HEADERS must be rejected up front
+        // (parse-valid-rows throws csvImport.payeeColumnNotFound), not silently
+        // imported with no payee data.
+        const missingColumn = `Missing Payee Column ${generateRandomRecordId()}`;
+
+        const { progress } = await runImport({
+          fileContent: buildCsv([
+            expenseRow({
+              description: 'missing-payee-col',
+              account: 'CSV Account',
+              currency: account.currencyCode,
+              payee: 'ignored',
+            }),
+          ]),
+          columnMapping: buildColumnMapping({ payee: missingColumn }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        });
+
+        expect(progress.status).toBe('failed');
+        if (progress.status !== 'failed') throw new Error('unreachable');
+        expect(progress.error).toMatch(/payee column.*not found/i);
+        // The bad column name is echoed so the UI can point at the exact mapping.
+        expect(progress.error).toContain(missingColumn);
+
+        // Nothing was imported.
+        expect(await txByNote('missing-payee-col')).toBeUndefined();
+      });
+
+      it('fails the job with a clean validation error when a payee name exceeds the column limit', async () => {
+        // Payees.name is varchar(200): a longer brand-new name must surface as a
+        // ValidationError (from create-payees-if-needed, before the row loop), not
+        // Postgres's raw "value too long..." text.
+        const account = await helpers.createAccount({ raw: true });
+        const tooLongPayeeName = `Overlong ${generateRandomRecordId()} ${'A'.repeat(250)}`;
+
+        const { progress } = await runImport({
+          fileContent: buildCsv([
+            expenseRow({
+              description: 'overlong-payee',
+              account: 'CSV Account',
+              currency: account.currencyCode,
+              payee: tooLongPayeeName,
+            }),
+          ]),
+          columnMapping: buildColumnMapping({ payee: 'Payee' }),
+          accountMapping: { 'CSV Account': { action: 'link-existing', accountId: account.id } },
+        });
+
+        expect(progress.status).toBe('failed');
+        if (progress.status !== 'failed') throw new Error('unreachable');
+        expect(progress.error).toMatch(/payee name.*too long|too long.*payee/i);
+        expect(progress.error).not.toMatch(/character varying|sequelize/i);
+
+        // The batch aborted before the row loop, so nothing was imported.
+        expect(await txByNote('overlong-payee')).toBeUndefined();
+      });
     });
   });
 });

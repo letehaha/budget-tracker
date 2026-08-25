@@ -87,7 +87,8 @@
         "transactionCount": "Tiene {count} transacciones asociadas a esta cuenta, que también serán eliminadas.",
         "deleteConfirm": "¿Realmente desea eliminar esta cuenta?",
         "noTransactions": "No tiene transacciones asociadas.",
-        "accountNameLabel": "Nombre de la cuenta (haga clic para copiar)"
+        "accountNameLabel": "Nombre de la cuenta (haga clic para copiar)",
+        "removePortfolioTransfers": "Eliminar también los registros de aportaciones a carteras vinculados a esta cuenta"
       },
       "archive": {
         "title": "Archivar cuenta",
@@ -155,7 +156,10 @@
         "exchangeRate": "Tipo de cambio:",
         "exchangeRateLiveUpdate": "Actualización en tiempo real del tipo de cambio:",
         "enabled": "Activada",
-        "disabled": "Desactivada"
+        "disabled": "Desactivada",
+        "editAccountCategory": "Editar categoría",
+        "accountCategoryUpdateSuccess": "Categoría de cuenta actualizada",
+        "accountCategoryUpdateError": "Error al actualizar la categoría de cuenta"
       },
       "group": {
         "label": "Grupo de cuentas",

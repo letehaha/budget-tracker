@@ -87,7 +87,8 @@
         "transactionCount": "У вас є {count} транзакцій, пов'язаних з цим рахунком, вони також будуть видалені.",
         "deleteConfirm": "Ви дійсно хочете видалити цей рахунок?",
         "noTransactions": "У вас нема жодних пов'язаних транзакцій.",
-        "accountNameLabel": "Назва рахунку (натисніть для копіювання)"
+        "accountNameLabel": "Назва рахунку (натисніть для копіювання)",
+        "removePortfolioTransfers": "Також видалити записи про внески до портфеля, пов'язані з цим рахунком"
       },
       "archive": {
         "title": "Архівувати рахунок",
@@ -150,6 +151,9 @@
         "initialBalance": "Початковий баланс:",
         "accountType": "Тип рахунку:",
         "accountCategory": "Категорія рахунку:",
+        "editAccountCategory": "Редагувати категорію",
+        "accountCategoryUpdateSuccess": "Категорію рахунку оновлено",
+        "accountCategoryUpdateError": "Не вдалося оновити категорію рахунку",
         "currency": "Валюта:",
         "main": "(основний)",
         "exchangeRate": "Курс обміну:",

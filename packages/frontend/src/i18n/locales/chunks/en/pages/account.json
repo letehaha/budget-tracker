@@ -95,7 +95,8 @@
         "transactionCount": "You have {count} transactions associated with this account, they will also be deleted.",
         "deleteConfirm": "Do you really want to delete this account?",
         "noTransactions": "You have zero transactions associated.",
-        "accountNameLabel": "Account name (click to copy)"
+        "accountNameLabel": "Account name (click to copy)",
+        "removePortfolioTransfers": "Also delete portfolio contribution records linked to this account"
       },
       "archive": {
         "title": "Archive Account",

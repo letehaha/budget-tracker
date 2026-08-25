@@ -5,6 +5,14 @@
       "notFound": "Akun tidak ditemukan",
       "notFoundDescription": "Akun yang Anda cari tidak ada atau telah dihapus.",
       "goToAccounts": "Pergi ke Akun",
+      "logo": {
+        "change": "Ganti logo",
+        "dialogTitle": "Logo akun",
+        "dialogDescription": "Cari logo merek atau pilih huruf khusus.",
+        "updatedToast": "Logo akun diperbarui",
+        "resetToast": "Logo dihapus",
+        "error": "Gagal memperbarui logo akun"
+      },
       "header": {
         "updateSuccess": "Data akun berhasil diubah",
         "updateError": "Terjadi kesalahan saat mencoba memperbarui akun",
@@ -87,7 +95,8 @@
         "transactionCount": "Anda memiliki {count} transaksi yang terkait dengan akun ini, transaksi tersebut juga akan dihapus.",
         "deleteConfirm": "Apakah Anda benar-benar ingin menghapus akun ini?",
         "noTransactions": "Anda tidak memiliki transaksi yang terkait.",
-        "accountNameLabel": "Nama akun (klik untuk salin)"
+        "accountNameLabel": "Nama akun (klik untuk salin)",
+        "removePortfolioTransfers": "Hapus juga catatan kontribusi portofolio yang terkait dengan akun ini"
       },
       "archive": {
         "title": "Arsipkan Akun",
@@ -150,6 +159,9 @@
         "initialBalance": "Saldo Awal:",
         "accountType": "Tipe Akun:",
         "accountCategory": "Kategori Akun:",
+        "editAccountCategory": "Edit kategori",
+        "accountCategoryUpdateSuccess": "Kategori akun diperbarui",
+        "accountCategoryUpdateError": "Gagal memperbarui kategori akun",
         "currency": "Mata Uang:",
         "main": "(utama)",
         "exchangeRate": "Nilai Tukar:",
@@ -257,14 +269,6 @@
           "cancelSuccess": "Undangan dibatalkan.",
           "cancelError": "Tidak dapat membatalkan undangan."
         }
-      },
-      "logo": {
-        "change": "Ganti logo",
-        "dialogTitle": "Logo akun",
-        "dialogDescription": "Cari logo merek atau pilih huruf khusus.",
-        "updatedToast": "Logo akun diperbarui",
-        "resetToast": "Logo dihapus",
-        "error": "Gagal memperbarui logo akun"
       }
     },
     "vehicleDetails": {

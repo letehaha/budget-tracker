@@ -5,6 +5,9 @@
   },
   "compilerOptions": {
     "strict": true,
+    // Jest (ts-jest) and the prod build (vite/esbuild) both transpile per-file,
+    // so code must stay compilable without cross-file type information.
+    "isolatedModules": true,
     "target": "es2023",
     "lib": ["es2024"],
     "useDefineForClassFields": false,

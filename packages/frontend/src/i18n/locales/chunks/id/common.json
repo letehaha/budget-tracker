@@ -25,7 +25,8 @@
       "link": "Tautkan",
       "clear": "Bersihkan",
       "apply": "Terapkan",
-      "retry": "Coba lagi"
+      "retry": "Coba lagi",
+      "copyInviteLink": "Salin tautan undangan"
     },
     "ui": {
       "close": "Tutup",
@@ -55,7 +56,11 @@
     },
     "notifications": {
       "subscriptionCurrencyNotConnected": "Ringkasan langganan tidak dapat mengonversi {currencies} ke mata uang dasar Anda. Hubungkan mata uang tersebut di Pengaturan → Mata Uang.",
-      "backgroundJobFailed": "Tugas latar belakang gagal saat Anda tidak ada: {error}"
+      "backgroundJobFailed": "Tugas latar belakang gagal saat Anda tidak ada: {error}",
+      "inviteLinkCopied": "Tautan undangan disalin ke papan klip"
+    },
+    "sharing": {
+      "emailNotSent": "Pengiriman email belum dikonfigurasi — bagikan tautan undangan secara manual"
     },
     "labels": {
       "email": "Email",
@@ -177,6 +182,25 @@
       "description": "Versi baru sudah siap. Muat ulang untuk mendapatkan perbaikan terbaru.",
       "reload": "Muat Ulang"
     },
+    "resourceLease": {
+      "activeLabel": "Sesi aktif",
+      "expiredLabel": "Sesi kedaluwarsa",
+      "defaultResourceLabel": "Sumber daya ini",
+      "activeTooltip": "{resource} disimpan di server, dan ketidakaktifan sekitar {duration} masih diizinkan. Tetap gunakan agar tetap tersedia.",
+      "countingDownTooltip": "{resource} akan dilepas dalam {time} karena Anda tidak aktif. Berinteraksilah dengan halaman untuk mempertahankannya.",
+      "cappedTooltip": "{resource} akan dilepas dalam {time}. Batas maksimum durasi sesi telah tercapai, sehingga tidak dapat diperpanjang lagi.",
+      "expiredTooltip": "{resource} telah dilepas dari server. Mulai lagi untuk melanjutkan.",
+      "status": {
+        "active": "{resource} sedang dijaga agar tetap tersedia.",
+        "countingDown": "{resource} akan segera dilepas.",
+        "expired": "{resource} telah dilepas."
+      },
+      "duration": {
+        "seconds": "{count} detik",
+        "minutes": "{count} menit",
+        "hours": "{count} jam"
+      }
+    },
     "logo": {
       "searchPlaceholder": "Nama merek atau domain",
       "searchHint": "Ketik nama merek, atau domain seperti amazon.com",
@@ -201,25 +225,6 @@
       "applyLetters": "Terapkan",
       "lettersSelectedLabel": "Huruf “{letters}”",
       "remove": "Hapus logo"
-    },
-    "resourceLease": {
-      "activeLabel": "Sesi aktif",
-      "expiredLabel": "Sesi kedaluwarsa",
-      "defaultResourceLabel": "Sumber daya ini",
-      "activeTooltip": "{resource} disimpan di server, dan ketidakaktifan sekitar {duration} masih diizinkan. Tetap gunakan agar tetap tersedia.",
-      "countingDownTooltip": "{resource} akan dilepas dalam {time} karena Anda tidak aktif. Berinteraksilah dengan halaman untuk mempertahankannya.",
-      "cappedTooltip": "{resource} akan dilepas dalam {time}. Batas maksimum durasi sesi telah tercapai, sehingga tidak dapat diperpanjang lagi.",
-      "expiredTooltip": "{resource} telah dilepas dari server. Mulai lagi untuk melanjutkan.",
-      "status": {
-        "active": "{resource} sedang dijaga agar tetap tersedia.",
-        "countingDown": "{resource} akan segera dilepas.",
-        "expired": "{resource} telah dilepas."
-      },
-      "duration": {
-        "seconds": "{count} detik",
-        "minutes": "{count} menit",
-        "hours": "{count} jam"
-      }
     }
   },
   "accountGroups": {

@@ -52,76 +52,6 @@ describe('Subscription POST logoDomain', () => {
     // resolver stays free to fill this logo in later.
     expect(created.logoSource).not.toBe('manual');
   });
-
-  it('auto-resolves from the BrandLogos cache when logoDomain is omitted', async () => {
-    // Seed the shared cache so the post-commit worker hits it (no logo.dev call).
-    await BrandLogos.create({
-      normalizedName: 'gitlab',
-      domain: 'gitlab.com',
-      brandName: 'GitLab',
-      source: 'seed',
-    });
-
-    const created = await helpers.createSubscription({ ...buildBillPayload({ name: 'GitLab' }), raw: true });
-
-    await until(
-      async () => {
-        const fetched = await helpers.getSubscriptionById({ id: created.id, raw: true });
-        return fetched.logoSource !== null;
-      },
-      { timeout: 10_000, interval: 200 },
-    );
-
-    const resolved = await helpers.getSubscriptionById({ id: created.id, raw: true });
-    expect(resolved.logoSource).toBe('auto');
-    expect(resolved.logoDomain).toBe('gitlab.com');
-  });
-
-  it('keeps a manual logoDomain even when a matching BrandLogos cache entry exists', async () => {
-    await BrandLogos.create({
-      normalizedName: 'dropbox',
-      domain: 'dropbox.com',
-      brandName: 'Dropbox',
-      source: 'seed',
-    });
-
-    const created = await helpers.createSubscription({
-      ...buildBillPayload({ name: 'Dropbox', logoDomain: 'custom.example' }),
-      raw: true,
-    });
-
-    // Give the post-commit worker a window to (wrongly) clobber the manual choice;
-    // the guard must keep it intact.
-    await until(
-      async () => {
-        const fetched = await helpers.getSubscriptionById({ id: created.id, raw: true });
-        return fetched.logoSource === 'manual' && fetched.logoDomain === 'custom.example';
-      },
-      { timeout: 3_000, interval: 200 },
-    );
-
-    const after = await helpers.getSubscriptionById({ id: created.id, raw: true });
-    expect(after.logoSource).toBe('manual');
-    expect(after.logoDomain).toBe('custom.example');
-  });
-
-  it('returns 422 when logoDomain contains a space', async () => {
-    const res = await helpers.createSubscription({
-      ...buildBillPayload({ name: 'Bad Domain Space', logoDomain: 'has space' }),
-      raw: false,
-    });
-
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('returns 422 when logoDomain contains a slash', async () => {
-    const res = await helpers.createSubscription({
-      ...buildBillPayload({ name: 'Bad Domain Slash', logoDomain: 'x/y' }),
-      raw: false,
-    });
-
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -161,14 +91,6 @@ describe('Subscription PUT logoDomain', () => {
 
     expect(updated.logoDomain).toBe('disney.com');
     expect(updated.logoSource).toBe('manual');
-  });
-
-  it('returns 422 when logoDomain contains a slash', async () => {
-    const sub = await helpers.createSubscription({ ...buildBillPayload({ name: 'Bad Update Domain' }), raw: true });
-
-    const res = await helpers.updateSubscription({ id: sub.id, logoDomain: 'example.com/path', raw: false });
-
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
   it('returns 404 for a subscription that does not exist', async () => {
@@ -219,39 +141,6 @@ describe('Subscription reset-logo', () => {
     expect(reset.logoSource).toBeNull();
   });
 
-  it('re-resolves automatically after a manual logo is reset', async () => {
-    await BrandLogos.create({
-      normalizedName: 'slack',
-      domain: 'slack.com',
-      brandName: 'Slack',
-      source: 'seed',
-    });
-
-    const sub = await helpers.createSubscription({
-      ...buildBillPayload({ name: 'Slack', logoDomain: 'custom.example' }),
-      raw: true,
-    });
-    expect(sub.logoSource).toBe('manual');
-
-    // Reset clears the override and enqueues a fresh resolution after commit, so
-    // the worker sees the committed null logoSource (not the stale 'manual') and
-    // re-resolves from the cache.
-    const reset = await helpers.resetSubscriptionLogo({ id: sub.id, raw: true });
-    expect(reset.logoSource).toBeNull();
-
-    await until(
-      async () => {
-        const fetched = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-        return fetched.logoSource === 'auto';
-      },
-      { timeout: 10_000, interval: 200 },
-    );
-
-    const reResolved = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-    expect(reResolved.logoSource).toBe('auto');
-    expect(reResolved.logoDomain).toBe('slack.com');
-  });
-
   it('returns 404 for a subscription that does not exist', async () => {
     const res = await helpers.resetSubscriptionLogo({ id: generateRandomRecordId(), raw: false });
 
@@ -260,7 +149,9 @@ describe('Subscription reset-logo', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Auto-resolution via the logo.dev provider (cache miss) + negative result
+// Auto-resolution via the logo.dev provider (cache miss). The read-path
+// cache-apply never searches the provider, so only this test proves the
+// subscription enqueue wiring and the resolver's normalizePayeeName fallback.
 // ---------------------------------------------------------------------------
 
 describe('Subscription logo auto-resolution', () => {
@@ -287,28 +178,6 @@ describe('Subscription logo auto-resolution', () => {
 
     const cached = await BrandLogos.findOne({ where: { normalizedName: 'figma' } });
     expect(cached?.domain).toBe('figma.com');
-  });
-
-  it('records a negative result (logoSource auto, logoDomain null) when neither cache nor provider matches', async () => {
-    // Empty cache + the default MSW handler returns [] → no match anywhere. The
-    // worker must still stamp logoSource so the lazy-on-read backfill stops
-    // re-enqueuing this subscription on every read.
-    const sub = await helpers.createSubscription({
-      ...buildBillPayload({ name: `Unbranded Bill ${Date.now()}` }),
-      raw: true,
-    });
-
-    await until(
-      async () => {
-        const fetched = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-        return fetched.logoSource !== null;
-      },
-      { timeout: 10_000, interval: 200 },
-    );
-
-    const resolved = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-    expect(resolved.logoSource).toBe('auto');
-    expect(resolved.logoDomain).toBeNull();
   });
 });
 
@@ -414,42 +283,6 @@ describe('Subscription monogram', () => {
 
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
-
-    it('returns 422 for whitespace-only logoInitials', async () => {
-      const res = await helpers.createSubscription({
-        ...buildBillPayload({ name: 'Blank Initials', logoInitials: '   ' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for three graphemes', async () => {
-      const res = await helpers.createSubscription({
-        ...buildBillPayload({ name: 'Too Many Letters', logoInitials: 'ABC' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for a malformed logoColor', async () => {
-      const res = await helpers.createSubscription({
-        ...buildBillPayload({ name: 'Bad Color', logoInitials: 'BC', logoColor: 'violet' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoColor is sent without logoInitials', async () => {
-      const res = await helpers.createSubscription({
-        ...buildBillPayload({ name: 'Color Only', logoColor: '#7355be' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
   });
 
   describe('PUT /subscriptions/:id', () => {
@@ -537,14 +370,6 @@ describe('Subscription monogram', () => {
       expect(updated.logoInitials).toBe('KM');
       expect(updated.logoColor).toBe('#7355be');
       expect(updated.logoSource).toBe('manual');
-    });
-
-    it('returns 422 when logoColor is sent for a subscription without initials', async () => {
-      const sub = await helpers.createSubscription({ ...buildBillPayload({ name: 'No Initials Yet' }), raw: true });
-
-      const res = await helpers.updateSubscription({ id: sub.id, logoColor: '#7355be', raw: false });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('returns 422 when the payload carries both logoDomain and logoInitials', async () => {

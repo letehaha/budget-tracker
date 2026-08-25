@@ -253,7 +253,8 @@ const summaryText = computed(() => {
 
 const isSaveDisabled = computed(() => {
   if (selectionState.refunds === undefined && selectionState.refundedBy === undefined) return true;
-  // Cross-currency totals only warn — the backend re-validates with converted amounts on save.
+  // Cross-currency totals only warn: the backend caps native amounts within one currency and
+  // leaves cross-currency refunds uncapped, since each side converts at its own date.
   return totals.value.isOverLimit && totals.value.isExactComparison;
 });
 

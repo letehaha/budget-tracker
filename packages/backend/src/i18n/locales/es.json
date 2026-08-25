@@ -43,7 +43,6 @@
     "editReadonlyFields": "Intento de editar campos de solo lectura de la cuenta externa",
     "changeTypeNotAllowed": "No está permitido cambiar el \"transactionType\" de una cuenta que no es del sistema",
     "bothRefundFieldsNotAllowed": "No puede usar tanto \"refundedByTxIds\" como \"refundsTxId\" simultáneamente. Por favor, elija uno u otro.",
-    "refundExceedsOriginal": "El importe total del reembolso no puede ser mayor que el importe de la transacción original",
     "oppositeTransactionNotFound": "No se puede encontrar la transacción opuesta para realizar la actualización",
     "transactionIdNotExist": "¡La transacción con el `id` proporcionado no existe!",
     "notAuthorizedToEdit": "No está autorizado para editar esta transacción.",

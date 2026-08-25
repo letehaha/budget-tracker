@@ -88,7 +88,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        task: [lint, 'test:unit', 'test:lint-rules', knip]
+        # typecheck is the only type-check gate for backend code: the e2e/unit
+        # jest transform runs ts-jest with isolatedModules (transpile-only).
+        task: [lint, 'test:unit', 'test:lint-rules', knip, typecheck]
     steps:
       - name: Skip – no backend changes
         if: needs.detect-changes.outputs.frontend-only == 'true'
@@ -227,24 +229,47 @@ jobs:
           done
           echo "MS Money fixtures could not be downloaded after 3 attempts"
           exit 1
+      # Restores a pg_dump of the fully-migrated template DB so setup-e2e-tests.sh
+      # can pg_restore it instead of running every migration (~75s per shard). The
+      # key hashes the migrations plus the data files they seed from; on a miss the
+      # script runs migrations and writes the dump for this step to save. All
+      # shards share the key: on a miss every green shard tries to save, the first
+      # wins and the rest log a harmless "unable to reserve cache" warning.
+      - name: Cache migrated template DB dump
+        if: needs.detect-changes.outputs.frontend-only != 'true'
+        uses: actions/cache@v4
+        with:
+          path: packages/backend/.e2e-template-cache
+          key: template-db-pg16-${{ hashFiles('packages/backend/src/migrations/**', 'packages/backend/src/tests/test-exchange-rates.json', 'packages/backend/src/resources/mcc-codes.json') }}
+      # Prebuild the compose test-runner image with GHA layer caching — compose's
+      # own `up --build` cannot use the buildx cache. Must run after the fixtures
+      # download: the image COPYs packages/backend, fixtures included. When
+      # TEST_RUNNER_IMAGE is set, setup-e2e-tests.sh starts compose with
+      # --no-build and this prebuilt image.
+      - name: Set up Docker Buildx
+        if: needs.detect-changes.outputs.frontend-only != 'true'
+        uses: docker/setup-buildx-action@v3
+      - name: Build test-runner image
+        if: needs.detect-changes.outputs.frontend-only != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/test/backend/Dockerfile
+          load: true
+          tags: bt-e2e-test-runner:ci
+          cache-from: type=gha
+          # Only one shard uploads the layer cache; the other three would race to
+          # write identical content.
+          cache-to: ${{ matrix.shardIndex == 1 && 'type=gha,mode=max' || '' }}
       # The shard arg is forwarded by setup-e2e-tests.sh ("$@") into the jest
       # call, so each shard boots its own Docker env but runs only its slice
-      # of the e2e suite. Retry stays inside the shard: a flaky shard re-runs
-      # only its slice, not the whole suite.
-      - name: Run e2e tests (with retry)
+      # of the e2e suite. Flake protection lives in-process: setupIntegrationTests.ts
+      # sets jest.retryTimes(2) on CI, so a red step here already failed 3 times.
+      - name: Run e2e tests
         if: needs.detect-changes.outputs.frontend-only != 'true'
-        run: |
-          for attempt in 1 2 3; do
-            echo "=== Attempt $attempt of 3 ==="
-            if npm run test:e2e -w packages/backend -- --shard=${{ matrix.shardIndex }}/${{ env.BACKEND_E2E_SHARD_TOTAL }}; then
-              exit 0
-            fi
-            if [ $attempt -lt 3 ]; then
-              echo "Tests failed. Retrying..."
-            fi
-          done
-          echo "Tests failed after 3 attempts"
-          exit 1
+        env:
+          TEST_RUNNER_IMAGE: bt-e2e-test-runner:ci
+        run: npm run test:e2e -w packages/backend -- --shard=${{ matrix.shardIndex }}/${{ env.BACKEND_E2E_SHARD_TOTAL }}
 
   backend-docker-build:
     name: Build backend Docker image

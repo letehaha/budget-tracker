@@ -159,6 +159,30 @@
       "description": "Permanently delete an investment transaction and recalculate affected holding (requires finance:delete scope)."
     },
     {
+      "name": "link_transaction_to_portfolio",
+      "description": "Link an existing transaction to a portfolio as a cash transfer (expense = cash in, income = cash out) (requires finance:write scope)."
+    },
+    {
+      "name": "unlink_transaction_from_portfolio",
+      "description": "Remove a transaction's portfolio link, reversing the portfolio cash balance change (requires finance:write scope)."
+    },
+    {
+      "name": "transfer_account_to_portfolio",
+      "description": "Move cash from a regular account into a portfolio, creating the expense transaction (requires finance:write scope)."
+    },
+    {
+      "name": "transfer_portfolio_to_account",
+      "description": "Withdraw portfolio cash into a regular account, creating the income transaction (requires finance:write scope)."
+    },
+    {
+      "name": "create_portfolio_cash_transaction",
+      "description": "Record a direct portfolio cash deposit or withdrawal with no linked account transaction (requires finance:write scope)."
+    },
+    {
+      "name": "list_portfolio_transfers",
+      "description": "Cash movement history of a portfolio: transfers, deposits/withdrawals, linked transactions, and currency exchanges."
+    },
+    {
       "name": "adjust_account_balance",
       "description": "Set an account to a specific balance by creating an adjustment transaction for the difference."
     },

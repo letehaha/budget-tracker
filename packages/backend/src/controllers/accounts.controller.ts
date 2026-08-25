@@ -1,5 +1,5 @@
 import { ACCOUNT_CATEGORIES, ACCOUNT_STATUSES, ACCOUNT_TYPES } from '@bt/shared/types';
-import { currencyCode, recordId } from '@common/lib/zod/custom-types';
+import { booleanQuery, currencyCode, recordId } from '@common/lib/zod/custom-types';
 import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { logoFieldsShape, refineLogoFields, refineLogoFieldsOnCreate } from '@controllers/common/logo-fields.schema';
@@ -192,10 +192,19 @@ export const deleteAccount = createController(
     params: z.object({
       id: recordId(),
     }),
+    query: z
+      .object({
+        removePortfolioTransfers: booleanQuery().optional(),
+      })
+      .optional(),
   }),
-  async ({ user, params }) => {
+  async ({ user, params, query }) => {
     const { id } = params;
     const { id: userId } = user;
-    await accountsService.deleteAccountById({ id, userId });
+    await accountsService.deleteAccountById({
+      id,
+      userId,
+      removePortfolioTransfers: query?.removePortfolioTransfers,
+    });
   },
 );

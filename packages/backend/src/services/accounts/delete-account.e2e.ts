@@ -7,6 +7,23 @@ import {
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 
+const setupAccountWithTransfer = async () => {
+  const account = await helpers.createAccount({ raw: true });
+  const portfolio = await helpers.createPortfolio({ raw: true });
+
+  await helpers.accountToPortfolioTransfer({
+    portfolioId: portfolio.id,
+    payload: {
+      accountId: account.id,
+      amount: '100',
+      date: '2024-01-15',
+    },
+    raw: true,
+  });
+
+  return { account, portfolio };
+};
+
 describe('Delete Account', () => {
   describe('Account deletion with account groups', () => {
     let account;
@@ -233,6 +250,49 @@ describe('Delete Account', () => {
         raw: true,
       });
       expect(updatedSubscription.accountId ?? null).toBeNull();
+    });
+  });
+
+  describe('Account deletion with portfolio transfers', () => {
+    it('keeps portfolio transfers as orphans by default', async () => {
+      const { account, portfolio } = await setupAccountWithTransfer();
+
+      await helpers.deleteAccount({ id: account.id, raw: true });
+
+      const { data: transfers } = await helpers.listPortfolioTransfers({ portfolioId: portfolio.id, raw: true });
+      expect(transfers).toHaveLength(1);
+      expect(transfers[0]!.fromAccountId).toBeNull();
+      expect(transfers[0]!.transactionId).toBeNull();
+    });
+
+    it('deletes portfolio transfers when removePortfolioTransfers is passed', async () => {
+      const { account, portfolio } = await setupAccountWithTransfer();
+
+      await helpers.deleteAccount({ id: account.id, removePortfolioTransfers: true, raw: true });
+
+      const { data: transfers } = await helpers.listPortfolioTransfers({ portfolioId: portfolio.id, raw: true });
+      expect(transfers).toHaveLength(0);
+    });
+
+    it('does not touch transfers of other accounts', async () => {
+      const { account, portfolio } = await setupAccountWithTransfer();
+
+      const otherAccount = await helpers.createAccount({ raw: true });
+      await helpers.accountToPortfolioTransfer({
+        portfolioId: portfolio.id,
+        payload: {
+          accountId: otherAccount.id,
+          amount: '50',
+          date: '2024-02-15',
+        },
+        raw: true,
+      });
+
+      await helpers.deleteAccount({ id: account.id, removePortfolioTransfers: true, raw: true });
+
+      const { data: transfers } = await helpers.listPortfolioTransfers({ portfolioId: portfolio.id, raw: true });
+      expect(transfers).toHaveLength(1);
+      expect(transfers[0]!.fromAccountId).toBe(otherAccount.id);
     });
   });
 });
