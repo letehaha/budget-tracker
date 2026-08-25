@@ -43,7 +43,6 @@
     "editReadonlyFields": "Percobaan mengedit field read-only dari akun eksternal",
     "changeTypeNotAllowed": "Tidak diizinkan mengubah \"transactionType\" dari akun non-sistem",
     "bothRefundFieldsNotAllowed": "Anda tidak dapat menggunakan \"refundedByTxIds\" dan \"refundsTxId\" secara bersamaan. Pilih salah satu.",
-    "refundExceedsOriginal": "Jumlah total refund tidak boleh lebih besar dari jumlah transaksi asli",
     "oppositeTransactionNotFound": "Tidak dapat menemukan transaksi lawan untuk melakukan pembaruan",
     "transactionIdNotExist": "Transaksi dengan `id` yang diberikan tidak ada!",
     "notAuthorizedToEdit": "Anda tidak memiliki wewenang untuk mengedit transaksi ini.",

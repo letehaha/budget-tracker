@@ -43,7 +43,6 @@
     "editReadonlyFields": "Attempt to edit readonly fields of the external account",
     "changeTypeNotAllowed": "It's disallowed to change \"transactionType\" of the non-system account",
     "bothRefundFieldsNotAllowed": "You cannot use both \"refundedByTxIds\" and \"refundsTxId\" simultaneously. Please choose one or the other.",
-    "refundExceedsOriginal": "Total refund amount cannot be greater than the original transaction amount",
     "oppositeTransactionNotFound": "Cannot find opposite tx to make an updation",
     "transactionIdNotExist": "Transaction with provided `id` does not exist!",
     "notAuthorizedToEdit": "You are not authorized to edit this transaction.",
