@@ -69,8 +69,10 @@ describe('Split-targeted refunds across transaction updates', () => {
     return { refundTx, response };
   };
 
-  it('re-points the refund at the recreated split when the transaction is updated', async () => {
-    const { account, splitCategory, expenseTx, split } = await createSplitExpense({ splitAmount: 4000 });
+  it('re-points the refund at the recreated split and keeps its stats attribution after an update', async () => {
+    const { account, primaryCategory, splitCategory, expenseTx, split } = await createSplitExpense({
+      splitAmount: 4000,
+    });
 
     const { refundTx } = await refundSplit({
       accountId: account.id,
@@ -96,29 +98,6 @@ describe('Split-targeted refunds across transaction updates', () => {
 
     const refundLink = await helpers.getSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id }, true);
     expect(refundLink.splitId).toBe(newSplit.id);
-  });
-
-  it('keeps attributing the refund to the split category in stats after the update', async () => {
-    const { account, primaryCategory, splitCategory, expenseTx, split } = await createSplitExpense({
-      splitAmount: 4000,
-    });
-
-    await refundSplit({
-      accountId: account.id,
-      categoryId: splitCategory.id,
-      amount: 4000,
-      originalTxId: expenseTx.id,
-      splitId: split.id,
-    });
-
-    await helpers.updateTransaction({
-      id: expenseTx.id,
-      payload: {
-        note: 'Updated note',
-        splits: [{ categoryId: splitCategory.id, amount: 4000 }],
-      },
-      raw: false,
-    });
 
     const stats = await helpers.getSpendingsByCategories({ raw: true });
 
@@ -157,26 +136,6 @@ describe('Split-targeted refunds across transaction updates', () => {
     });
 
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('rejects a refund aimed at the split id that the update replaced', async () => {
-    const { account, splitCategory, expenseTx, split } = await createSplitExpense({ splitAmount: 4000 });
-
-    await helpers.updateTransaction({
-      id: expenseTx.id,
-      payload: { splits: [{ categoryId: splitCategory.id, amount: 4000 }] },
-      raw: false,
-    });
-
-    const { response } = await refundSplit({
-      accountId: account.id,
-      categoryId: splitCategory.id,
-      amount: 1000,
-      originalTxId: expenseTx.id,
-      splitId: split.id,
-    });
-
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
   });
 
   it('moves the refund to transaction level when its category is dropped from the update', async () => {

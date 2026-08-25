@@ -208,8 +208,9 @@ const buildSpendingOverTime = ({
     return {
       periodStart: format(bucket.periodStart, 'yyyy-MM-dd'),
       periodEnd: format(bucket.periodEnd, 'yyyy-MM-dd'),
-      expense: data.expense,
-      income: data.income,
+      // Magnitudes: a bucket refunded past its own spend reports 0 rather than an inverted bar.
+      expense: Math.max(0, data.expense),
+      income: Math.max(0, data.income),
     };
   }),
 });
@@ -223,7 +224,8 @@ const buildSpendingsByCategory = ({
 }): SpendingByCategoryItem[] => {
   const result: SpendingByCategoryItem[] = [];
   for (const [catId, entry] of categoryAmounts) {
-    if (entry.amount === 0) continue;
+    // A category refunded past its own spend nets below zero; it carries no expense to report.
+    if (entry.amount <= 0) continue;
     const catInfo = categoryMap.get(catId);
 
     const item: SpendingByCategoryItem = {
@@ -236,7 +238,7 @@ const buildSpendingsByCategory = ({
     if (entry.children.size > 0) {
       const children: SpendingByCategoryItem[] = [];
       for (const [childId, childAmount] of entry.children) {
-        if (childAmount === 0) continue;
+        if (childAmount <= 0) continue;
         const childInfo = categoryMap.get(childId);
         children.push({
           categoryId: childId,

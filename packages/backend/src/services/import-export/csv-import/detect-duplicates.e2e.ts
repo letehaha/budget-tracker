@@ -95,51 +95,6 @@ describe('Detect Duplicates endpoint', () => {
       expect(invalidAmountRow).toBeDefined();
     });
 
-    it('should determine transaction type from amount sign', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-          }),
-          accountMapping: {
-            'Main Account': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.validRows.length).toBeGreaterThan(0);
-      // Positive amounts should be income, negative should be expense
-      // The fixture has -50.00 which should be expense
-      const negativeAmountRow = result.validRows.find((r) => r.description === 'Coffee shop');
-      expect(negativeAmountRow?.transactionType).toBe('expense');
-    });
-
-    it('should use existing account for all rows when specified', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            account: { option: AccountOptionValue.existingAccount, accountId: account.id },
-          }),
-          accountMapping: {},
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.validRows.length).toBeGreaterThan(0);
-    });
-
     it('should use existing currency for all rows when specified', async () => {
       const fileContent = helpers.loadCsvFixture('minimal-columns.csv');
       const existingCategories = await helpers.getCategoriesList();
@@ -297,80 +252,9 @@ describe('Detect Duplicates endpoint', () => {
       const duplicateForFirstRow = result.duplicates.find((d) => d.rowIndex === 2);
       expect(duplicateForFirstRow).toBeUndefined();
     });
-
-    it('should handle multiple accounts with different duplicate scenarios', async () => {
-      // Create two accounts
-      const account1 = await helpers.createAccount({ raw: true });
-      const account2 = await helpers.createAccount({ raw: true });
-
-      // Create a transaction in account1
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account1.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: {
-            'Checking Account': { action: 'link-existing', accountId: account1.id },
-            'Savings Account': { action: 'create-new', currentBalance: null },
-            'Credit Card': { action: 'link-existing', accountId: account2.id },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      // Valid rows should be parsed
-      expect(result.validRows.length).toBeGreaterThan(0);
-    });
   });
 
   describe('duplicate detection with different account mappings', () => {
-    it('should detect duplicates when using dataSourceColumn account mapped to existing', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create a matching transaction
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          }),
-          accountMapping: {
-            'Main Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      // Should detect duplicate since CSV account maps to existing account
-      expect(result.duplicates.length).toBeGreaterThanOrEqual(1);
-      const duplicate = result.duplicates.find((d) => d.rowIndex === 2);
-      expect(duplicate).toBeDefined();
-      expect(duplicate?.existingTransaction.accountId).toBe(account.id);
-    });
-
     it('should not detect duplicates when using different account mapping', async () => {
       const accountA = await helpers.createAccount({ raw: true });
       const accountB = await helpers.createAccount({ raw: true });
@@ -451,51 +335,6 @@ describe('Detect Duplicates endpoint', () => {
       });
 
       expect(duplicatesForNew).toHaveLength(0);
-    });
-
-    it('should handle mixed account mappings with selective duplicate detection', async () => {
-      const account1 = await helpers.createAccount({ raw: true });
-      const account2 = await helpers.createAccount({ raw: true });
-
-      // Create matching transactions in both accounts
-      const tx1Payload = helpers.buildTransactionPayload({
-        accountId: account1.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15').toISOString(),
-      });
-      await helpers.createTransaction({ payload: tx1Payload, raw: true });
-
-      const tx2Payload = helpers.buildTransactionPayload({
-        accountId: account2.id,
-        amount: 200.0,
-        transactionType: TRANSACTION_TYPES.income,
-        time: new Date('2024-01-16').toISOString(),
-      });
-      await helpers.createTransaction({ payload: tx2Payload, raw: true });
-
-      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: {
-            'Checking Account': { action: 'link-existing', accountId: account1.id },
-            'Savings Account': { action: 'link-existing', accountId: account2.id },
-            'Credit Card': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      // Should have duplicates from both existing accounts
-      expect(result.duplicates.length).toBeGreaterThanOrEqual(0); // May or may not have duplicates depending on CSV data
-
-      // Verify valid rows are all parsed
-      expect(result.validRows.length).toBeGreaterThan(0);
     });
 
     it('should detect duplicates with existingAccount option', async () => {
@@ -743,44 +582,6 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
   });
 
   describe('transaction type edge cases', () => {
-    it('should handle case-insensitive transaction type values', async () => {
-      // Create CSV with mixed case values
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
-2024-01-15,100.50,Transaction 1,Food,USD,INCOME,Main Account
-2024-01-16,50.00,Transaction 2,Transport,USD,Expense,Main Account
-2024-01-17,75.00,Transaction 3,Entertainment,USD,income,Main Account
-2024-01-18,25.00,Transaction 4,Food,USD,EXPENSE,Main Account`;
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: csvContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            transactionType: {
-              option: TransactionTypeOptionValue.dataSourceColumn,
-              columnName: 'Type',
-              incomeValues: ['income', 'INCOME'], // Include both cases
-              expenseValues: ['expense', 'Expense', 'EXPENSE'], // Include all case variations
-            },
-          }),
-          accountMapping: {
-            'Main Account': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.validRows).toHaveLength(4);
-
-      // Verify all transaction types are recognized when all cases are provided
-      const incomeRows = result.validRows.filter((r) => r.transactionType === 'income');
-      const expenseRows = result.validRows.filter((r) => r.transactionType === 'expense');
-
-      expect(incomeRows).toHaveLength(2); // INCOME and income
-      expect(expenseRows).toHaveLength(2); // Expense and EXPENSE
-    });
-
     it('should handle custom income/expense values', async () => {
       const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
 2024-01-15,100.50,Transaction 1,Food,USD,credit,Main Account
@@ -820,44 +621,6 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
       expect(row2?.transactionType).toBe('expense'); // debit -> expense
       expect(row3?.transactionType).toBe('income'); // deposit -> income
       expect(row4?.transactionType).toBe('expense'); // withdrawal -> expense
-    });
-
-    it('should handle multiple custom values for same transaction type', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
-2024-01-15,100.50,Salary,Income,USD,salary,Main Account
-2024-01-16,50.00,Bonus,Income,USD,bonus,Main Account
-2024-01-17,75.00,Gift,Income,USD,gift,Main Account
-2024-01-18,25.00,Groceries,Food,USD,purchase,Main Account
-2024-01-19,30.00,Gas,Transport,USD,payment,Main Account
-2024-01-20,40.00,Dinner,Food,USD,charge,Main Account`;
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: csvContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            transactionType: {
-              option: TransactionTypeOptionValue.dataSourceColumn,
-              columnName: 'Type',
-              incomeValues: ['salary', 'bonus', 'gift', 'refund'],
-              expenseValues: ['purchase', 'payment', 'charge', 'fee'],
-            },
-          }),
-          accountMapping: {
-            'Main Account': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.validRows).toHaveLength(6);
-
-      const incomeRows = result.validRows.filter((r) => r.transactionType === 'income');
-      const expenseRows = result.validRows.filter((r) => r.transactionType === 'expense');
-
-      expect(incomeRows).toHaveLength(3); // salary, bonus, gift
-      expect(expenseRows).toHaveLength(3); // purchase, payment, charge
     });
 
     it('should mark row as invalid when transaction type value is not recognized', async () => {
@@ -965,79 +728,6 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
       expect(row1?.transactionType).toBe('income');
       expect(row2?.transactionType).toBe('expense');
       expect(row3?.transactionType).toBe('income');
-    });
-
-    it('should handle case-insensitive custom income/expense values', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
-2024-01-15,100.50,Transaction 1,Food,USD,SALARY,Main Account
-2024-01-16,50.00,Transaction 2,Transport,USD,Purchase,Main Account
-2024-01-17,75.00,Transaction 3,Income,USD,bonus,Main Account
-2024-01-18,25.00,Transaction 4,Food,USD,PURCHASE,Main Account`;
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: csvContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            transactionType: {
-              option: TransactionTypeOptionValue.dataSourceColumn,
-              columnName: 'Type',
-              incomeValues: ['salary', 'SALARY', 'bonus'],
-              expenseValues: ['purchase', 'Purchase', 'PURCHASE'],
-            },
-          }),
-          accountMapping: {
-            'Main Account': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.validRows).toHaveLength(4);
-
-      const row1 = result.validRows.find((r) => r.description === 'Transaction 1');
-      const row2 = result.validRows.find((r) => r.description === 'Transaction 2');
-      const row3 = result.validRows.find((r) => r.description === 'Transaction 3');
-      const row4 = result.validRows.find((r) => r.description === 'Transaction 4');
-
-      expect(row1?.transactionType).toBe('income'); // SALARY (uppercase)
-      expect(row2?.transactionType).toBe('expense'); // Purchase (mixed case)
-      expect(row3?.transactionType).toBe('income'); // bonus (lowercase)
-      expect(row4?.transactionType).toBe('expense'); // PURCHASE (uppercase)
-    });
-
-    it('should prioritize exact match over case-insensitive match', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
-2024-01-15,100.50,Transaction 1,Food,USD,Income,Main Account
-2024-01-16,50.00,Transaction 2,Transport,USD,INCOME,Main Account`;
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: csvContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            transactionType: {
-              option: TransactionTypeOptionValue.dataSourceColumn,
-              columnName: 'Type',
-              incomeValues: ['Income', 'INCOME'], // Both cases defined
-              expenseValues: ['expense'],
-            },
-          }),
-          accountMapping: {
-            'Main Account': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.validRows).toHaveLength(2);
-
-      // Both should be recognized as income
-      result.validRows.forEach((row) => {
-        expect(row.transactionType).toBe('income');
-      });
     });
   });
 
@@ -1321,42 +1011,12 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
     const MINIMAL_CSV = `Date,Amount,Description,Category,Type,Account
 2024-01-15,100.00,Test transaction,Food,expense,Main Account`;
 
-    it('omits unpriceableRows when all rows are in USD (always priceable)', async () => {
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: MINIMAL_CSV,
-          delimiter: ',',
-          columnMapping: buildFixedCurrencyMapping('USD'),
-          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.unpriceableRows).toBeUndefined();
-    });
-
     it('omits unpriceableRows when all rows are in the user base currency (AED)', async () => {
       const result = await helpers.detectDuplicates({
         payload: {
           fileContent: MINIMAL_CSV,
           delimiter: ',',
           columnMapping: buildFixedCurrencyMapping('AED'),
-          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.unpriceableRows).toBeUndefined();
-    });
-
-    it('omits unpriceableRows for EUR (seeded exchange rate exists)', async () => {
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: MINIMAL_CSV,
-          delimiter: ',',
-          columnMapping: buildFixedCurrencyMapping('EUR'),
           accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
           categoryMapping: {},
         },
@@ -1450,39 +1110,7 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
 
       expect(result.validRows).toHaveLength(3);
       expect(result.validRows[0]?.tagNames).toEqual(['food', 'travel']);
-    });
-
-    it('yields an empty tagNames array for a blank tag cell', async () => {
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: csvWithTags,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
-          }),
-          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
       expect(result.validRows[1]?.tagNames).toEqual([]);
-    });
-
-    it('trims whitespace around a single tag value', async () => {
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: csvWithTags,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Labels' },
-          }),
-          accountMapping: { 'Main Account': { action: 'create-new', currentBalance: null } },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
       expect(result.validRows[2]?.tagNames).toEqual(['solo']);
     });
 

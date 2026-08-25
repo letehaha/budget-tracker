@@ -43,7 +43,6 @@
     "editReadonlyFields": "Спроба редагувати поля зовнішнього рахунку, які доступні лише для читання",
     "changeTypeNotAllowed": "Заборонено змінювати \"transactionType\" для несистемного рахунку",
     "bothRefundFieldsNotAllowed": "Не можна використовувати одночасно \"refundedByTxIds\" і \"refundsTxId\". Будь ласка, виберіть щось одне.",
-    "refundExceedsOriginal": "Загальна сума повернення не може перевищувати суму оригінальної транзакції",
     "oppositeTransactionNotFound": "Не вдалося знайти протилежну транзакцію для оновлення",
     "transactionIdNotExist": "Транзакція з наданим `id` не існує!",
     "notAuthorizedToEdit": "У вас немає прав редагувати цю транзакцію.",

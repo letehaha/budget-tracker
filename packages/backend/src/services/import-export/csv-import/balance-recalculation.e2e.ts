@@ -1,4 +1,9 @@
-import type { AccountMappingConfig, CategoryMappingConfig, ColumnMappingConfig } from '@bt/shared/types';
+import type {
+  AccountMappingConfig,
+  AccountMappingValue,
+  CategoryMappingConfig,
+  ColumnMappingConfig,
+} from '@bt/shared/types';
 import {
   ACCOUNT_TYPES,
   AccountOptionValue,
@@ -562,10 +567,13 @@ describe('CSV import balance recalculation', () => {
       },
     );
 
+    // The wire schema defaults an omitted `currentBalance` to null, while the
+    // shared type requires the key — so the omission needs the cast to be
+    // expressible at all.
     it('leaves the balance at the imported rows net sum when currentBalance is absent', async () => {
       const progress = await runImport({
         fileContent: buildCsv(threeRows({ account: 'Fresh Blank USD', currency: 'USD' })),
-        accountMapping: { 'Fresh Blank USD': { action: 'create-new', currentBalance: null } },
+        accountMapping: { 'Fresh Blank USD': { action: 'create-new' } as AccountMappingValue },
         recalculateBalance: true,
       });
       expectCsvImportCompleted(progress);
@@ -580,21 +588,6 @@ describe('CSV import balance recalculation', () => {
         balanceAfter: 2349.5,
         isNewAccount: true,
       });
-    });
-
-    it('leaves the balance at the imported rows net sum when currentBalance is null', async () => {
-      const progress = await runImport({
-        fileContent: buildCsv(threeRows({ account: 'Fresh Null USD', currency: 'USD' })),
-        accountMapping: { 'Fresh Null USD': { action: 'create-new', currentBalance: null } },
-        recalculateBalance: true,
-      });
-      expectCsvImportCompleted(progress);
-      expect(progress.summary.errors).toHaveLength(0);
-
-      const accounts = await helpers.getAccounts();
-      const created = accounts.find((a) => a.name === 'Fresh Null USD')!;
-      expect(Number(created.currentBalance)).toBe(2349.5);
-      expect(Number(created.initialBalance)).toBe(0);
     });
 
     it('shifts the whole balance-history staircase so it ends at the entered currentBalance', async () => {

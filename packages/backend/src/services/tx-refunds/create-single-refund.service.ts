@@ -1,4 +1,5 @@
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { Money } from '@common/types/money';
 import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
@@ -22,10 +23,11 @@ interface CreateSingleRefundParams {
  * There's following rules when creating is disallowed:
  * 1. When base_tx or refund_tx cannot be found.
  * 2. When base_tx and refund_tx have the same transactionType. They should always be opposite
- * 3. Refund `refAmount` is GREATER than base tx `refAmount`. `amount` can be greater or less, due to
- *    different currencies.
- * 4. Sum of multiple refunds is greater than the `refAmount` of the base tx. Basically the same as
- *    3rd point.
+ * 3. Both sides share a currency and the refund `amount` is GREATER than the base tx (or targeted
+ *    split) `amount`. Cross-currency pairs are uncapped: each side converts at its own date, so a
+ *    legitimate refund can exceed the original once converted.
+ * 4. Both sides share a currency and the sum of the same-currency refunds is greater than the base
+ *    tx (or targeted split) `amount`. Cross-currency refunds never count toward that sum.
  * 5. Refund over `transfer` transaction. Might be supported in the future, but not now.
  * 6. Refund over existing refund.
  * 7. Either side is a planned transaction.
@@ -109,15 +111,19 @@ export const createSingleRefund = withTransaction(
           });
         }
 
-        // Check if refund amount is not greater than target amount
-        // When targeting a split, compare against split's refAmount; otherwise use transaction's refAmount
-        const targetRefAmount = targetSplit ? targetSplit.refAmount.toNumber() : originalTx.refAmount.toNumber();
-        if (Math.abs(refundTx.refAmount.toNumber()) > Math.abs(targetRefAmount)) {
-          throw new ValidationError({
-            message: targetSplit
-              ? 'Refund amount cannot be greater than the split amount'
-              : 'Refund amount cannot be greater than the original transaction amount',
-          });
+        // Native amounts only, and only when both sides share a currency: the two transactions
+        // convert at their own dates, so a cross-currency refund may legitimately exceed the
+        // original once converted. A split carries its parent transaction's currency.
+        if (originalTx.currencyCode === refundTx.currencyCode) {
+          const targetAmount = targetSplit ? targetSplit.amount : originalTx.amount;
+
+          if (refundTx.amount.abs().greaterThan(targetAmount.abs())) {
+            throw new ValidationError({
+              message: targetSplit
+                ? 'Refund amount cannot be greater than the split amount'
+                : 'Refund amount cannot be greater than the original transaction amount',
+            });
+          }
         }
       }
 
@@ -150,7 +156,7 @@ export const createSingleRefund = withTransaction(
         });
       }
 
-      if (originalTxId && originalTx) {
+      if (originalTxId && originalTx && originalTx.currencyCode === refundTx.currencyCode) {
         // Fetch existing refunds - when targeting a split, only count refunds for that split
         const refundWhereClause: Record<string, unknown> = { originalTxId, userId };
         if (splitId) {
@@ -162,14 +168,17 @@ export const createSingleRefund = withTransaction(
           include: [{ model: Transactions.default, as: 'refundTransaction' }],
         });
 
-        // Calculate the total refunded amount
-        const totalRefundedAmount = existingRefunds.reduce((sum, refund) => {
-          return sum + Math.abs(refund.refundTransaction.refAmount.toNumber());
-        }, Math.abs(refundTx.refAmount.toNumber()));
+        // Only same-currency legs are comparable natively, so cross-currency ones sit outside
+        // the cap entirely — both as the candidate and as already-linked refunds.
+        const totalRefundedAmount = Money.sum([
+          refundTx.amount.abs(),
+          ...existingRefunds
+            .filter((refund) => refund.refundTransaction.currencyCode === originalTx.currencyCode)
+            .map((refund) => refund.refundTransaction.amount.abs()),
+        ]);
 
-        // Check if the new refund would exceed the target amount (split or transaction)
-        const targetRefAmount = targetSplit ? targetSplit.refAmount.toNumber() : originalTx.refAmount.toNumber();
-        if (totalRefundedAmount > Math.abs(targetRefAmount)) {
+        const targetAmount = targetSplit ? targetSplit.amount : originalTx.amount;
+        if (totalRefundedAmount.greaterThan(targetAmount.abs())) {
           throw new ValidationError({
             message: targetSplit
               ? 'Total refund amount cannot be greater than the split amount'

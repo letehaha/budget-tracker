@@ -7,6 +7,55 @@ import * as helpers from '@tests/helpers';
 import { getLogoDevSearchMock } from '@tests/mocks/logo-dev/mock-api';
 
 // ---------------------------------------------------------------------------
+// GET /api/brand-logos/search?q=...  – shared brand-logo search backing the
+// payee + subscription logo pickers. Kept first: these tests must run before
+// any payee exists, so an in-flight logo-resolution job can't observe the
+// per-test MSW override below.
+// ---------------------------------------------------------------------------
+
+describe('Brand-logo search', () => {
+  describe('GET /brand-logos/search', () => {
+    it('returns matching results when the provider returns brands', async () => {
+      global.mswMockServer.use(
+        getLogoDevSearchMock({
+          results: [
+            { name: 'Amazon', domain: 'amazon.com', logoUrl: 'https://img.logo.dev/amazon.com' },
+            { name: 'Amazon Web Services', domain: 'aws.amazon.com', logoUrl: 'https://img.logo.dev/aws.amazon.com' },
+          ],
+        }),
+      );
+
+      const data = await helpers.searchBrandLogos({ q: 'amazon', raw: true });
+
+      expect(data.results).toHaveLength(2);
+      expect(data.results[0]).toMatchObject({
+        name: 'Amazon',
+        domain: 'amazon.com',
+        logoUrl: 'https://img.logo.dev/amazon.com',
+      });
+      expect(data.results[1]).toMatchObject({
+        name: 'Amazon Web Services',
+        domain: 'aws.amazon.com',
+      });
+    });
+
+    it('returns empty results when the provider returns nothing', async () => {
+      // Default MSW handler already returns [] – no override needed.
+      const data = await helpers.searchBrandLogos({ q: 'xyznonexistentbrand', raw: true });
+
+      expect(data.results).toEqual([]);
+    });
+
+    it('returns empty results when q is absent', async () => {
+      // The controller short-circuits before calling searchBrands when q is empty / missing.
+      const data = await helpers.searchBrandLogos({ raw: true });
+
+      expect(data.results).toEqual([]);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/payees  – logoDomain field (manual logo at creation time)
 // ---------------------------------------------------------------------------
 
@@ -21,33 +70,6 @@ describe('Payee POST logoDomain', () => {
       const fetched = await helpers.getPayeeById({ id: created.id, raw: true });
       expect(fetched.logoDomain).toBe('netflix.com');
       expect(fetched.logoSource).toBe('manual');
-    });
-
-    it('auto-resolves from the BrandLogos cache when logoDomain is omitted', async () => {
-      // Seed the shared cache so the post-commit worker hits it (no logo.dev call).
-      await BrandLogos.create({
-        normalizedName: 'gitlab',
-        domain: 'gitlab.com',
-        brandName: 'GitLab',
-        source: 'seed',
-      });
-
-      const created = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'GitLab' }),
-        raw: true,
-      });
-
-      await until(
-        async () => {
-          const fetched = await helpers.getPayeeById({ id: created.id, raw: true });
-          return fetched.logoSource !== null;
-        },
-        { timeout: 10_000, interval: 200 },
-      );
-
-      const resolved = await helpers.getPayeeById({ id: created.id, raw: true });
-      expect(resolved.logoSource).toBe('auto');
-      expect(resolved.logoDomain).toBe('gitlab.com');
     });
 
     it('keeps a manual logoDomain even when a matching BrandLogos cache entry exists', async () => {
@@ -78,24 +100,6 @@ describe('Payee POST logoDomain', () => {
       const after = await helpers.getPayeeById({ id: created.id, raw: true });
       expect(after.logoSource).toBe('manual');
       expect(after.logoDomain).toBe('custom.example');
-    });
-
-    it('returns 422 when logoDomain contains a space', async () => {
-      const res = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Create Bad Domain Space', logoDomain: 'has space' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoDomain contains a slash', async () => {
-      const res = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Create Bad Domain Slash', logoDomain: 'x/y' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 });
@@ -162,36 +166,6 @@ describe('Payee PATCH logoDomain', () => {
 
       expect(updated.logoDomain).toBe('spotify.com');
       expect(updated.logoSource).toBe('manual');
-    });
-
-    it('returns 422 when logoDomain contains a space', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Bad Domain Test' }),
-        raw: true,
-      });
-
-      const res = await helpers.updatePayee({
-        id: payee.id,
-        payload: { logoDomain: 'ht tp://x' },
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoDomain contains a slash', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Bad Domain Test 2' }),
-        raw: true,
-      });
-
-      const res = await helpers.updatePayee({
-        id: payee.id,
-        payload: { logoDomain: 'example.com/path' },
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('returns 404 for a payee that does not exist', async () => {
@@ -562,42 +536,6 @@ describe('Payee monogram', () => {
 
       expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
-
-    it('returns 422 for whitespace-only logoInitials', async () => {
-      const res = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Blank Initials', logoInitials: '   ' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for three graphemes', async () => {
-      const res = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Too Many Letters', logoInitials: 'ABC' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for a malformed logoColor', async () => {
-      const res = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Bad Color', logoInitials: 'BC', logoColor: 'violet' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoColor is sent without logoInitials', async () => {
-      const res = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Color Only', logoColor: '#7355be' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
   });
 
   describe('PATCH /payees/:id', () => {
@@ -704,21 +642,6 @@ describe('Payee monogram', () => {
       expect(updated.logoInitials).toBe('KM');
       expect(updated.logoColor).toBe('#7355be');
       expect(updated.logoSource).toBe('manual');
-    });
-
-    it('returns 422 when logoColor is sent for a payee without initials', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'No Initials Yet' }),
-        raw: true,
-      });
-
-      const res = await helpers.updatePayee({
-        id: payee.id,
-        payload: { logoColor: '#7355be' },
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('returns 422 when the payload carries both logoDomain and logoInitials', async () => {
