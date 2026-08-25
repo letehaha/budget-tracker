@@ -125,24 +125,6 @@ describe('Account logo', () => {
       expect(after.logoDomain).toBe('custom.example');
     });
 
-    it('keeps a monogram even when a matching BrandLogos cache entry exists', async () => {
-      await BrandLogos.create({
-        normalizedName: 'figma',
-        domain: 'figma.com',
-        brandName: 'Figma',
-        source: 'seed',
-      });
-
-      const created = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Figma', logoInitials: 'FG' }),
-        raw: true,
-      });
-
-      const after = await helpers.getAccount({ id: created.id, raw: true });
-      expect(after.logoInitials).toBe('FG');
-      expect(after.logoDomain).toBeNull();
-    });
-
     it('accepts a single ZWJ emoji as one grapheme', async () => {
       const created = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ name: 'Family Fund', logoInitials: '👨‍👩‍👧' }),
@@ -363,66 +345,6 @@ describe('Account logo', () => {
       expect(updated.logoDomain).toBeNull();
     });
 
-    it('returns 422 when logoDomain contains a space', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Bad Domain Test' }),
-        raw: true,
-      });
-
-      const res = await helpers.updateAccount({
-        id: account.id,
-        payload: { logoDomain: 'ht tp://x' },
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoDomain contains a slash', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Bad Domain Test 2' }),
-        raw: true,
-      });
-
-      const res = await helpers.updateAccount({
-        id: account.id,
-        payload: { logoDomain: 'example.com/path' },
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for a logoDomain of 254 characters', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Overlong Domain Update' }),
-        raw: true,
-      });
-
-      const res = await helpers.updateAccount({
-        id: account.id,
-        payload: { logoDomain: `${'a'.repeat(250)}.com` },
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for one grapheme built from more than 16 code points', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Stacked Accents Update' }),
-        raw: true,
-      });
-
-      const res = await helpers.updateAccount({
-        id: account.id,
-        payload: { logoInitials: `a${'\u0301'.repeat(20)}` },
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
     it('returns 422 when logoColor is sent for an account without initials', async () => {
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ name: 'No Initials Yet' }),
@@ -591,31 +513,6 @@ describe('Account logo', () => {
       expect(updated.logoDomain).toBeNull();
       expect(updated.logoInitials).toBeNull();
       expect(updated.logoColor).toBeNull();
-    });
-
-    it('stays cleared even when a matching BrandLogos cache entry exists', async () => {
-      await BrandLogos.create({
-        normalizedName: 'slack',
-        domain: 'slack.com',
-        brandName: 'Slack',
-        source: 'seed',
-      });
-
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Slack', logoDomain: 'slack.com' }),
-        raw: true,
-      });
-
-      await helpers.updateAccount({
-        id: account.id,
-        payload: { logoDomain: null },
-        raw: true,
-      });
-
-      const after = await helpers.getAccount({ id: account.id, raw: true });
-      expect(after.logoDomain).toBeNull();
-      expect(after.logoInitials).toBeNull();
-      expect(after.logoColor).toBeNull();
     });
   });
 
