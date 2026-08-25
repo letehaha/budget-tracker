@@ -1,8 +1,41 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
-import { describe, expect, it } from '@jest/globals';
+import { afterEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
+import { startOfDay, subDays } from 'date-fns';
+
+const TODAY = startOfDay(new Date());
+const NORMAL_RATE_DAY = subDays(TODAY, 40);
+const STRONG_RATE_DAY = subDays(TODAY, 20);
+const BACK_TO_NORMAL_DAY = subDays(TODAY, 5);
+const SEEDED_DATES = [NORMAL_RATE_DAY, STRONG_RATE_DAY, BACK_TO_NORMAL_DAY];
+
+const PLN_PER_USD_NORMAL = 4;
+const PLN_PER_USD_STRONG = 2;
+
+/** One PLN is worth 1 AED on the normal days and 2 AED on `STRONG_RATE_DAY`, so the
+ *  same native amount carries a different refAmount depending on the day it sits on. */
+const seedDriftingPlnRates = async () => {
+  await helpers.seedUsdExchangeRates({
+    date: NORMAL_RATE_DAY,
+    ratesPerUsd: { AED: helpers.AED_PER_USD, PLN: PLN_PER_USD_NORMAL },
+  });
+  await helpers.seedUsdExchangeRates({
+    date: STRONG_RATE_DAY,
+    ratesPerUsd: { AED: helpers.AED_PER_USD, PLN: PLN_PER_USD_STRONG },
+  });
+  await helpers.seedUsdExchangeRates({
+    date: BACK_TO_NORMAL_DAY,
+    ratesPerUsd: { AED: helpers.AED_PER_USD, PLN: PLN_PER_USD_NORMAL },
+  });
+};
+
+const createPlnAccount = () =>
+  helpers.createAccount({
+    payload: helpers.buildAccountPayload({ currencyCode: 'PLN' }),
+    raw: true,
+  });
 
 describe('Refund Transactions service', () => {
   describe('createSingleRefund with splitId', () => {
@@ -892,6 +925,65 @@ describe('Refund Transactions service', () => {
         expect(result.refundTxId).toEqual(refundTx2.id);
       });
 
+      it('successfully creates a cross-currency refund whose sum exceeds the original refAmount', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const currencyB = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
+        const accountB = await helpers.createAccount({
+          payload: {
+            ...helpers.buildAccountPayload(),
+            currencyCode: currencyB.code,
+          },
+          raw: true,
+        });
+
+        const [baseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        // First partial refund, same currency
+        const [refundTx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 60,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        await helpers.createSingleRefund({
+          originalTxId: baseTx.id,
+          refundTxId: refundTx1.id,
+        });
+
+        // Second refund in another currency, far past the original once converted
+        const [refundTx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountB.id,
+            amount: 10000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: baseTx.id,
+            refundTxId: refundTx2.id,
+          },
+          true,
+        );
+
+        expect(baseTx.currencyCode !== refundTx2.currencyCode).toBe(true);
+        expect(refundTx2.refAmount > baseTx.refAmount).toBe(true);
+        expect(result.originalTxId).toEqual(baseTx.id);
+        expect(result.refundTxId).toEqual(refundTx2.id);
+      });
+
       it('successfully creates refund tx after unlinking', async () => {
         const account = await helpers.createAccount({ raw: true });
 
@@ -945,49 +1037,6 @@ describe('Refund Transactions service', () => {
     });
 
     describe('failure cases', () => {
-      it(`failes to create a refund link between two transactions with different currencies when:
-          - base amount BIGGER than refund amount
-          - base refAmount LESS than refund refAmount
-      `, async () => {
-        const account = await helpers.createAccount({ raw: true });
-        const accountB = await helpers.createAccount({
-          payload: {
-            ...helpers.buildAccountPayload(),
-            // We need to use some currency with higher exchange rate, to achieve expected conditions
-            currencyCode: global.MODELS_CURRENCIES!.find((item) => item.code === 'GBP').code,
-          },
-          raw: true,
-        });
-
-        const [baseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 1000,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        const [refundTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: accountB.id,
-            amount: 950,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const result = await helpers.createSingleRefund({
-          originalTxId: baseTx.id,
-          refundTxId: refundTx.id,
-        });
-
-        expect(baseTx.amount > refundTx.amount).toBe(true);
-        expect(baseTx.refAmount < refundTx.refAmount).toBe(true);
-        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
-        expect(helpers.extractResponse(result).message).toContain('cannot be greater');
-      });
-
       it('fails when trying to refund with the same transaction type', async () => {
         const account = await helpers.createAccount({ raw: true });
 
@@ -1080,60 +1129,6 @@ describe('Refund Transactions service', () => {
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
             amount: 50,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const result = await helpers.createSingleRefund({
-          originalTxId: baseTx.id,
-          refundTxId: refundTx2.id,
-        });
-
-        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
-        expect(helpers.extractResponse(result).message).toContain('cannot be greater than');
-      });
-
-      it('fails when total refund amount exceeds original transaction amount with different currencies', async () => {
-        const account = await helpers.createAccount({ raw: true });
-        const currencyB = global.MODELS_CURRENCIES!.find((item) => item.code === 'UAH');
-        const accountB = await helpers.createAccount({
-          payload: {
-            ...helpers.buildAccountPayload(),
-            currencyCode: currencyB.code,
-          },
-          raw: true,
-        });
-
-        const [baseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // First partial refund
-        const [refundTx1] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 600,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        await helpers.createSingleRefund({
-          originalTxId: baseTx.id,
-          refundTxId: refundTx1.id,
-        });
-
-        // Second partial refund with different currency (which would exceed the original amount)
-        const [refundTx2] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: accountB.id,
-            amount: 10000,
             transactionType: TRANSACTION_TYPES.income,
           }),
           raw: true,
@@ -1435,6 +1430,250 @@ describe('Refund Transactions service', () => {
           expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
           expect(helpers.extractResponse(result).message).toContain('"refundTxId" already marked as a refund');
         });
+      });
+    });
+  });
+
+  describe('createSingleRefund amount cap across currencies', () => {
+    afterEach(async () => {
+      await helpers.clearExchangeRatesForDates({ dates: SEEDED_DATES });
+    });
+
+    describe('success cases', () => {
+      it('links a same-currency refund of the full original amount when the rate drifted between the two dates', async () => {
+        await seedDriftingPlnRates();
+        const account = await createPlnAccount();
+
+        const [baseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: NORMAL_RATE_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.income,
+            time: STRONG_RATE_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: baseTx.id,
+            refundTxId: refundTx.id,
+          },
+          true,
+        );
+
+        expect(baseTx.currencyCode).toEqual(refundTx.currencyCode);
+        expect(baseTx.amount).toEqual(refundTx.amount);
+        expect(refundTx.refAmount > baseTx.refAmount).toBe(true);
+        expect(result.originalTxId).toEqual(baseTx.id);
+        expect(result.refundTxId).toEqual(refundTx.id);
+      });
+
+      it('links a cross-currency refund whose refAmount is bigger than the original refAmount', async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const accountB = await helpers.createAccount({
+          payload: helpers.buildAccountPayload({ currencyCode: 'GBP' }),
+          raw: true,
+        });
+
+        const [baseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 1000,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: true,
+        });
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: accountB.id,
+            amount: 950,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: baseTx.id,
+            refundTxId: refundTx.id,
+          },
+          true,
+        );
+
+        expect(baseTx.currencyCode !== refundTx.currencyCode).toBe(true);
+        expect(refundTx.refAmount > baseTx.refAmount).toBe(true);
+        expect(result.originalTxId).toEqual(baseTx.id);
+        expect(result.refundTxId).toEqual(refundTx.id);
+      });
+
+      it('links multiple same-currency refunds summing to the original amount, and rejects the one that goes over', async () => {
+        await seedDriftingPlnRates();
+        const account = await createPlnAccount();
+
+        const [baseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: NORMAL_RATE_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const [refundTx1] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 2500,
+            transactionType: TRANSACTION_TYPES.income,
+            time: STRONG_RATE_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const result1 = await helpers.createSingleRefund(
+          {
+            originalTxId: baseTx.id,
+            refundTxId: refundTx1.id,
+          },
+          true,
+        );
+
+        expect(result1.refundTxId).toEqual(refundTx1.id);
+
+        const [refundTx2] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 2500,
+            transactionType: TRANSACTION_TYPES.income,
+            time: STRONG_RATE_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const result2 = await helpers.createSingleRefund(
+          {
+            originalTxId: baseTx.id,
+            refundTxId: refundTx2.id,
+          },
+          true,
+        );
+
+        expect(result2.refundTxId).toEqual(refundTx2.id);
+
+        const [refundTx3] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 100,
+            transactionType: TRANSACTION_TYPES.income,
+            time: STRONG_RATE_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const result3 = await helpers.createSingleRefund({
+          originalTxId: baseTx.id,
+          refundTxId: refundTx3.id,
+        });
+
+        expect(result3.statusCode).toEqual(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(result3).message).toContain('cannot be greater than');
+      });
+
+      it('links a same-currency refund of the full split amount when the rate drifted between the two dates', async () => {
+        await seedDriftingPlnRates();
+        const account = await createPlnAccount();
+        const categories = await helpers.getCategoriesList();
+
+        const [expenseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[0]!.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: NORMAL_RATE_DAY.toISOString(),
+            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
+          }),
+          raw: true,
+        });
+
+        const transactions = await helpers.getTransactions({
+          raw: true,
+          includeSplits: true,
+        });
+        const split = transactions![0]!.splits![0]!;
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            categoryId: categories[1]!.id,
+            amount: 3000,
+            transactionType: TRANSACTION_TYPES.income,
+            time: STRONG_RATE_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund(
+          {
+            originalTxId: expenseTx.id,
+            refundTxId: refundTx.id,
+            splitId: split.id,
+          },
+          true,
+        );
+
+        expect(refundTx.refAmount > split.refAmount).toBe(true);
+        expect(result.originalTxId).toEqual(expenseTx.id);
+        expect(result.splitId).toEqual(split.id);
+      });
+    });
+
+    describe('failure cases', () => {
+      it('rejects a same-currency refund over the original amount even when its refAmount is smaller', async () => {
+        await seedDriftingPlnRates();
+        const account = await createPlnAccount();
+
+        const [baseTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: STRONG_RATE_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const [refundTx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 6000,
+            transactionType: TRANSACTION_TYPES.income,
+            time: BACK_TO_NORMAL_DAY.toISOString(),
+          }),
+          raw: true,
+        });
+
+        const result = await helpers.createSingleRefund({
+          originalTxId: baseTx.id,
+          refundTxId: refundTx.id,
+        });
+
+        expect(refundTx.amount > baseTx.amount).toBe(true);
+        expect(refundTx.refAmount < baseTx.refAmount).toBe(true);
+        expect(result.statusCode).toEqual(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(result).message).toContain('cannot be greater than');
       });
     });
   });
