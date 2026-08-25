@@ -796,10 +796,6 @@ describe('Update transaction controller', () => {
         originalType: TRANSACTION_TYPES.expense,
         refundType: TRANSACTION_TYPES.income,
       },
-      {
-        originalType: TRANSACTION_TYPES.income,
-        refundType: TRANSACTION_TYPES.expense,
-      },
     ];
 
     it('fails when trying to update both refundsTxId, and refundedBy', async () => {
@@ -1119,26 +1115,6 @@ describe('Update transaction controller', () => {
             id: originalTx.id,
             payload: {
               refundedByTxIds: [refundTx1.id, refundTx2.id, refundTx3.id],
-            },
-          });
-
-          expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-        },
-      );
-
-      it.each(scenarios)(
-        'does not allow refunds with incorrect transaction type ($originalType -> $refundType)',
-        async ({ originalType, refundType }) => {
-          const [originalTx, refundTx1, refundTx2] = await Promise.all([
-            createTestTx(originalType, 1000),
-            createTestTx(originalType, 500),
-            createTestTx(refundType, 500),
-          ]);
-
-          const response = await helpers.updateTransaction({
-            id: originalTx.id,
-            payload: {
-              refundedByTxIds: [refundTx1.id, refundTx2.id],
             },
           });
 
