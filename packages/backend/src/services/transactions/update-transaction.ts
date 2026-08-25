@@ -24,7 +24,6 @@ import {
 } from '@services/sharing/auth/authorize-account-write.service';
 import { ensureUserCurrencyConnected } from '@services/sharing/auth/ensure-currency-connected.service';
 import * as refundsService from '@services/tx-refunds';
-import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { calcTransferTransactionRefAmount, createOppositeTransaction } from './create-transaction';
@@ -285,7 +284,7 @@ const makeBasicBaseTxUpdation = async (
     );
 
   // Track pending refund operations to execute AFTER transaction update
-  // This ensures createSingleRefund validates against the NEW refAmount
+  // This ensures createSingleRefund validates against the NEW amount and currency
   let pendingRefundOperation: (() => Promise<void>) | null = null;
 
   if (newData.refundedByTxIds !== undefined) {
@@ -302,49 +301,20 @@ const makeBasicBaseTxUpdation = async (
 
       if (refundsShouldBeRemoved) baseTransactionUpdateParams.refundLinked = false;
       if (refundsShouldBeSetOrOverriden) {
-        // A repeated id would both understate the refunded sum and race two identical link
-        // inserts past `createSingleRefund`'s already-linked check inside one transaction.
+        // A repeated id would be rejected by `createSingleRefund`'s already-linked check.
         const refundedByTxIds = [...new Set(newData.refundedByTxIds!)];
-
-        const newTransactions = await Transactions.default.findAll({
-          where: {
-            userId: newData.userId,
-            id: {
-              [Op.in]: refundedByTxIds,
-            },
-          },
-          attributes: ['refAmount', 'isPlanned'],
-        });
-
-        // A plan holds no money, so its refAmount must never take part in the
-        // sum check below — otherwise an oversized plan is rejected for the
-        // wrong reason and the caller never learns plans cannot be linked.
-        if (newTransactions.some((tx) => tx.isPlanned)) {
-          throw new ValidationError({
-            message: t({ key: 'transactions.plannedCannotBeRefundLinked' }),
-          });
-        }
-
-        const sum = Money.sum(newTransactions.map((curr) => curr.refAmount));
-
-        if (sum.greaterThan(baseTransactionUpdateParams.refAmount)) {
-          throw new ValidationError({
-            message: t({ key: 'transactions.refundExceedsOriginal' }),
-          });
-        }
 
         baseTransactionUpdateParams.refundLinked = true;
         // Defer refund creation until after transaction is updated
         pendingRefundOperation = async () => {
-          await Promise.all(
-            refundedByTxIds.map((id) =>
-              refundsService.createSingleRefund({
-                originalTxId: newData.id,
-                refundTxId: id,
-                userId: newData.userId,
-              }),
-            ),
-          );
+          // Sequential: each link's running-sum check must see the ones created before it.
+          for (const id of refundedByTxIds) {
+            await refundsService.createSingleRefund({
+              originalTxId: newData.id,
+              refundTxId: id,
+              userId: newData.userId,
+            });
+          }
         };
       }
     }

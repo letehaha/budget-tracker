@@ -131,7 +131,7 @@ describe('getRefundRecommendations', () => {
     });
 
     describe('amount filtering', () => {
-      it('returns transactions within refAmount range (±5000 cents = ±50 decimal)', async () => {
+      it('filters candidates to the refAmount range (±5000 cents = ±50 decimal)', async () => {
         const account = await helpers.createAccount({ raw: true });
 
         // Create an expense transaction with 100.00 decimal (= 10000 cents)
@@ -156,7 +156,7 @@ describe('getRefundRecommendations', () => {
         });
 
         // Create income outside range: 200.00 decimal = 20000 cents (outside [5000, 15000])
-        await helpers.createTransaction({
+        const [incomeOutOfRange] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
             amount: 200, // 200.00 decimal = 20000 cents, outside range
@@ -171,47 +171,15 @@ describe('getRefundRecommendations', () => {
         });
 
         expect(response.some((tx) => tx.id === incomeInRange.id)).toBe(true);
-      });
-
-      it('excludes transactions outside refAmount range', async () => {
-        const account = await helpers.createAccount({ raw: true });
-
-        // Create an expense transaction: 100.00 decimal = 10000 cents
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 100, // 100.00 decimal = 10000 cents
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Create income way outside range: 500.00 decimal = 50000 cents
-        // Range for 10000 cents ± 5000 = [5000, 15000], so 50000 is outside
-        const [incomeOutOfRange] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 500, // 500.00 decimal = 50000 cents, way outside ±5000 range
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getRefundRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
         expect(response.some((tx) => tx.id === incomeOutOfRange.id)).toBe(false);
       });
     });
 
-    describe('transfer exclusion', () => {
-      it('excludes transfer transactions from recommendations', async () => {
+    describe('exclusion filters', () => {
+      it('excludes transfer and planned transactions from recommendations', async () => {
         const account1 = await helpers.createAccount({ raw: true });
         const account2 = await helpers.createAccount({ raw: true });
 
-        // Create an expense transaction
         const [expenseTx] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account1.id,
@@ -221,7 +189,7 @@ describe('getRefundRecommendations', () => {
           raw: true,
         });
 
-        // Create a transfer (income that is part of a transfer)
+        // Income that is one leg of a transfer
         const [transferIncome] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account1.id,
@@ -234,13 +202,34 @@ describe('getRefundRecommendations', () => {
           raw: true,
         });
 
+        const [plannedIncome] = await helpers.createPlannedTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account1.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
+        // Positive control, so the absence assertions cannot pass on an empty response
+        const [plainIncome] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account1.id,
+            amount: 5000,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: true,
+        });
+
         const response = await helpers.getRefundRecommendations({
           transactionId: expenseTx.id,
           raw: true,
         });
 
-        // Transfer should not be in recommendations
-        expect(response.some((tx) => tx.id === transferIncome.id)).toBe(false);
+        const ids = response.map((tx) => tx.id);
+        expect(ids).toContain(plainIncome.id);
+        expect(ids).not.toContain(transferIncome.id);
+        expect(ids).not.toContain(plannedIncome.id);
       });
     });
 
@@ -293,34 +282,6 @@ describe('getRefundRecommendations', () => {
         const ids = response.map((tx) => tx.id);
         expect(ids).toContain(plainIncome.id);
         expect(ids).not.toContain(refundIncome.id);
-      });
-
-      it('does not recommend planned transactions', async () => {
-        const account = await helpers.createAccount({ raw: true });
-
-        const [plannedIncome] = await helpers.createPlannedTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 50,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-        const [currentExpense] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 50,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getRefundRecommendations({
-          transactionId: currentExpense.id,
-          raw: true,
-        });
-
-        expect(response.map((tx) => tx.id)).not.toContain(plannedIncome.id);
       });
 
       it('still recommends originals that already carry refunds (partial refunds)', async () => {
@@ -539,87 +500,41 @@ describe('getRefundRecommendations', () => {
   });
 
   describe('failure cases', () => {
-    it('fails when no parameters are provided', async () => {
-      const response = await helpers.getRefundRecommendations({});
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when only transactionType is provided without other form fields', async () => {
-      const response = await helpers.getRefundRecommendations({
-        transactionType: TRANSACTION_TYPES.expense,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when only originAmount is provided without other form fields', async () => {
-      const response = await helpers.getRefundRecommendations({
-        originAmount: 50,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when only accountId is provided without other form fields', async () => {
+    it('fails validation for incomplete or malformed parameters', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const response = await helpers.getRefundRecommendations({
-        accountId: account.id,
-      });
+      const cases = [
+        { name: 'no parameters', params: {} },
+        { name: 'only transactionType', params: { transactionType: TRANSACTION_TYPES.expense } },
+        { name: 'only originAmount', params: { originAmount: 50 } },
+        { name: 'only accountId', params: { accountId: account.id } },
+        {
+          name: 'transactionType and originAmount without accountId',
+          params: { transactionType: TRANSACTION_TYPES.expense, originAmount: 50 },
+        },
+        {
+          name: 'invalid transactionType',
+          params: { transactionType: 'invalid' as TRANSACTION_TYPES, originAmount: 50, accountId: account.id },
+        },
+        {
+          name: 'negative originAmount',
+          params: { transactionType: TRANSACTION_TYPES.expense, originAmount: -50, accountId: account.id },
+        },
+        { name: 'invalid transactionId', params: { transactionId: 'not-a-uuid' } },
+        {
+          name: 'invalid accountId',
+          params: { transactionType: TRANSACTION_TYPES.expense, originAmount: 50, accountId: 'not-a-uuid' },
+        },
+      ];
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      const results: { name: string; statusCode: number }[] = [];
 
-    it('fails when transactionType and originAmount are provided but accountId is missing', async () => {
-      const response = await helpers.getRefundRecommendations({
-        transactionType: TRANSACTION_TYPES.expense,
-        originAmount: 50,
-      });
+      for (const testCase of cases) {
+        const response = await helpers.getRefundRecommendations(testCase.params);
+        results.push({ name: testCase.name, statusCode: response.statusCode });
+      }
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when invalid transactionType is provided', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.getRefundRecommendations({
-        transactionType: 'invalid' as TRANSACTION_TYPES,
-        originAmount: 50,
-        accountId: account.id,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when negative originAmount is provided', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.getRefundRecommendations({
-        transactionType: TRANSACTION_TYPES.expense,
-        originAmount: -50,
-        accountId: account.id,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when invalid transactionId is provided', async () => {
-      const response = await helpers.getRefundRecommendations({
-        transactionId: 'not-a-uuid' as unknown as string,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when invalid accountId is provided', async () => {
-      const response = await helpers.getRefundRecommendations({
-        transactionType: TRANSACTION_TYPES.expense,
-        originAmount: 50,
-        accountId: 'not-a-uuid' as unknown as string,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(results).toEqual(cases.map(({ name }) => ({ name, statusCode: ERROR_CODES.ValidationError })));
     });
   });
 });
