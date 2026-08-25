@@ -54,6 +54,9 @@ services:
   # If workers get SIGKILL (OOM) or random tests timeout, check:
   #   Docker Desktop → Settings → Resources → Memory (should be 12+ GB)
   test-runner:
+    # setup-e2e-tests.sh always exports TEST_RUNNER_IMAGE: a per-worktree name
+    # locally (compose builds it), the CI-prebuilt buildx tag on CI (no build).
+    image: ${TEST_RUNNER_IMAGE:-bt-test-runner}
     build:
       context: ../../..
       dockerfile: docker/test/backend/Dockerfile
