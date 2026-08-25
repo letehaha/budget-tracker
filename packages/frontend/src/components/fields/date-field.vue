@@ -19,6 +19,8 @@
             :class="
               cn(
                 'datetime-local-raw-input',
+                // Keep px-3: extra right padding pushes Firefox's native picker
+                // icon out from under the addon overlay that covers it.
                 'border-input bg-input-background ring-offset-background flex h-10 w-full rounded-md border px-3 py-2 text-sm md:h-9',
                 'file:border-0 file:bg-transparent file:text-sm file:font-medium',
                 'placeholder:text-muted-foreground',
@@ -31,31 +33,23 @@
             @input="handleLocalInputUpdate"
             @blur="handleBlur"
           />
-          <template v-if="isSafariMobile">
+
+          <!-- Keep this overlay opaque: it covers the native picker icon Firefox
+               draws inside datetime-local inputs, which no CSS pseudo-element hides.
+               Disabled on Safari mobile so taps fall through to the native picker. -->
+          <Popover.PopoverTrigger as-child>
             <Button
-              class="absolute top-0 right-0 flex h-10 w-16 items-center justify-center md:h-9"
+              class="border-input bg-muted text-muted-foreground hover:border-primary/50 hover:bg-muted hover:text-primary-text absolute top-0 right-0 flex h-10 w-12 items-center justify-center rounded-l-none rounded-r-md border md:h-9"
               variant="ghost"
               size="icon"
-              disabled
+              :disabled="disabled || isSafariMobile"
             >
-              <CalendarClockIcon class="size-6 text-white" />
+              <CalendarClockIcon class="size-5" />
             </Button>
-          </template>
-          <template v-else>
-            <Popover.PopoverTrigger as-child>
-              <Button
-                class="absolute top-0 right-0 flex h-10 w-16 items-center justify-center md:h-9"
-                variant="ghost"
-                size="icon"
-                :disabled="disabled"
-              >
-                <CalendarClockIcon :size="24" />
-              </Button>
-            </Popover.PopoverTrigger>
-          </template>
+          </Popover.PopoverTrigger>
         </div>
         <FieldError :error-message="errorMessage" />
-        <Popover.PopoverContent class="w-[350px]">
+        <Popover.PopoverContent class="w-87.5">
           <Calendar v-model="localValue" v-bind="calendarOptions" mode="dateTime" is24hr type="single" />
         </Popover.PopoverContent>
       </FieldLabel>

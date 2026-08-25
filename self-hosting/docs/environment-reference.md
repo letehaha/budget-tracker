@@ -52,7 +52,7 @@ Ignored unless you use the [Traefik overlay](traefik-overlay.md)
 | `CRYPTO_PRICES_SYNC_INTERVAL_MINUTES`                                          | Crypto price sync cadence (1–59, default 15)                                                                                                                                |
 | `API_LAYER_API_KEYS`                                                           | APILayer paid currency-rate fallback                                                                                                                                        |
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY`     | AI transaction categorisation                                                                                                                                               |
-| `LOGO_DEV_SECRET_KEY`                                                          | Server-side payee brand-logo search                                                                                                                                         |
+| `LOGO_DEV_SECRET_KEY`                                                          | Server-side payee brand-logo search. Search results only – rendering the logo images also needs `VITE_LOGO_DEV_TOKEN` (below)                                               |
 | `ADMIN_USERS`                                                                  | Comma-separated admin usernames                                                                                                                                             |
 | `AUTH_RP_ID`, `AUTH_RP_NAME`                                                   | WebAuthn / passkey support. `AUTH_RP_NAME` doubles as the brand and sender name on outbound emails                                                                          |
 | `ALLOWED_ORIGINS`                                                              | Extra CORS origins beyond `AUTH_ORIGIN`                                                                                                                                     |
@@ -65,16 +65,16 @@ Ignored unless you use the [Traefik overlay](traefik-overlay.md)
 Interpolated into the frontend container's `environment:` block. Change and
 `up -d` – **no image rebuild** needed.
 
-| Variable                                     | Purpose                                                                |
-| -------------------------------------------- | ---------------------------------------------------------------------- |
-| `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`      | Product analytics (PostHog)                                            |
-| `VITE_SENTRY_DSN`                            | Frontend error tracking (Sentry)                                       |
-| `VITE_SENTRY_RELEASE`                        | Release tag Sentry events report — also a build arg, see below         |
-| `VITE_LOGO_DEV_TOKEN`                        | Brand logos for subs, banks, tickers (logo.dev)                        |
-| `MCP_BASE_URL`                               | Backend origin advertised to MCP clients — required for MCP, see below |
-| `API_HTTP`, `API_VER`                        | Point the SPA at a separate API origin (leave unset for same-origin)   |
-| `CSP_EXTRA_CONNECT`, `CSP_EXTRA_FORM_ACTION` | Extra CSP allow-list hosts (default to `API_HTTP`)                     |
-| `CSP_EXTRA_ANALYTICS`                        | CSP allow-list for analytics — **set this if you use Sentry**          |
+| Variable                                     | Purpose                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`      | Product analytics (PostHog)                                             |
+| `VITE_SENTRY_DSN`                            | Frontend error tracking (Sentry)                                        |
+| `VITE_SENTRY_RELEASE`                        | Release tag Sentry events report — also a build arg, see below          |
+| `VITE_LOGO_DEV_TOKEN`                        | Brand logos for payees, subs, banks, tickers (logo.dev publishable key) |
+| `MCP_BASE_URL`                               | Backend origin advertised to MCP clients — required for MCP, see below  |
+| `API_HTTP`, `API_VER`                        | Point the SPA at a separate API origin (leave unset for same-origin)    |
+| `CSP_EXTRA_CONNECT`, `CSP_EXTRA_FORM_ACTION` | Extra CSP allow-list hosts (default to `API_HTTP`)                      |
+| `CSP_EXTRA_ANALYTICS`                        | CSP allow-list for analytics — **set this if you use Sentry**           |
 
 `CSP_EXTRA_ANALYTICS` defaults to `VITE_POSTHOG_HOST` only. Sentry's ingest host
 is not derivable from the DSN by the entrypoint, so a Sentry deployment that
