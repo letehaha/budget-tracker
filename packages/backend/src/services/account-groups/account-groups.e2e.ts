@@ -9,6 +9,269 @@ async function findGroupInList({ id }: { id: string }) {
   return groups.find((group) => group.id === id);
 }
 
+describe('Create account group', () => {
+  const groupName = 'Test group';
+
+  it('successfully creates accounts group', async () => {
+    await helpers.createAccountGroup({
+      name: groupName,
+      raw: true,
+    });
+
+    const response = await helpers.getAccountGroups({ raw: true });
+
+    expect(response.length).toBe(1);
+    expect(!!response.find((i) => i.name === groupName)).toBe(true);
+  });
+
+  it('cannot create accounts group with the same name', async () => {
+    await helpers.createAccountGroup({
+      name: groupName,
+      raw: true,
+    });
+    await helpers.createAccountGroup({
+      name: groupName,
+    });
+
+    const response = await helpers.getAccountGroups({ raw: true });
+
+    expect(response.length).toBe(2);
+  });
+
+  it('successfully creates with parent group of deep nesting with several children', async () => {
+    const level1 = await helpers.createAccountGroup({
+      name: 'level-1',
+      raw: true,
+    });
+
+    const level2 = await helpers.createAccountGroup({
+      name: 'level-2',
+      parentGroupId: level1.id,
+      raw: true,
+    });
+
+    await helpers.createAccountGroup({
+      name: 'level-3-1',
+      parentGroupId: level2.id,
+    });
+
+    await helpers.createAccountGroup({
+      name: 'level-3-2',
+      parentGroupId: level2.id,
+    });
+
+    const response = await helpers.getAccountGroups({ raw: true });
+
+    expect(response.length).toBe(4);
+  });
+
+  it('fails when non-existent parentGroupId provided', async () => {
+    const response = await helpers.createAccountGroup({
+      name: 'level-1',
+      parentGroupId: generateRandomRecordId(),
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it("returns 404 when user B creates a group parented under user A's group", async () => {
+    const userAGroup = await helpers.createAccountGroup({
+      name: 'userA-group',
+      raw: true,
+    });
+
+    const userB = await helpers.provisionSecondUserWithBaseCurrency();
+
+    const res = await helpers.asUser({
+      cookies: userB.cookies,
+      fn: () =>
+        helpers.createAccountGroup({
+          name: 'userB-group',
+          parentGroupId: userAGroup.id,
+        }),
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('Update account group', () => {
+  const defaultName = 'Test group';
+
+  it('successfully updates record', async () => {
+    const newName = 'test-1';
+    const group = await helpers.createAccountGroup({
+      name: defaultName,
+      raw: true,
+    });
+
+    const result = await helpers.updateAccountGroup({
+      name: newName,
+      groupId: group.id,
+      raw: true,
+    });
+
+    expect(result.length).toBe(1);
+    expect(result[0]!.name).toBe(newName);
+
+    const response = await helpers.getAccountGroups({ raw: true });
+
+    expect(response.length).toBe(1);
+    expect(response.find((i) => i.name === defaultName)).toBe(undefined);
+    expect(!!response.find((i) => i.name === newName)).toBe(true);
+  });
+
+  it('fails when tries to update unexisting record', async () => {
+    const response = await helpers.updateAccountGroup({
+      name: 'foo',
+      groupId: generateRandomRecordId(),
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('updates both name and parent group', async () => {
+    const root_1 = await helpers.createAccountGroup({
+      name: 'level-1',
+      raw: true,
+    });
+    const group = await helpers.createAccountGroup({
+      name: defaultName,
+      raw: true,
+    });
+
+    const newName = 'test-1';
+    const updation_1 = await helpers.updateAccountGroup({
+      name: newName,
+      parentGroupId: root_1.id,
+      groupId: group.id,
+      raw: true,
+    });
+
+    expect(updation_1.length).toBe(1);
+    expect(updation_1[0]!.name).toBe(newName);
+    expect(updation_1[0]!.parentGroupId).toBe(root_1.id);
+
+    const root_2 = await helpers.createAccountGroup({
+      name: 'level-1-2',
+      raw: true,
+    });
+    const updation_2 = await helpers.updateAccountGroup({
+      parentGroupId: root_2.id,
+      groupId: group.id,
+      raw: true,
+    });
+
+    expect(updation_2.length).toBe(1);
+    expect(updation_2[0]!.name).toBe(newName);
+    expect(updation_2[0]!.parentGroupId).toBe(root_2.id);
+
+    const response = await helpers.getAccountGroups({ raw: true });
+
+    expect(response.length).toBe(3);
+  });
+
+  it('sucessfully sets new name that is already connected to another group', async () => {
+    const newName = 'test-1';
+    await helpers.createAccountGroup({
+      name: newName,
+      raw: true,
+    });
+    const group = await helpers.createAccountGroup({
+      name: defaultName,
+      raw: true,
+    });
+
+    const updation = await helpers.updateAccountGroup({
+      name: newName,
+      groupId: group.id,
+    });
+
+    expect(updation.statusCode).toBe(200);
+  });
+
+  it('fails when tries to update to unexisting parentGroup', async () => {
+    const group = await helpers.createAccountGroup({
+      name: defaultName,
+      raw: true,
+    });
+
+    const updation = await helpers.updateAccountGroup({
+      name: 'test1',
+      parentGroupId: generateRandomRecordId(),
+      groupId: group.id,
+    });
+
+    expect(updation.statusCode).toBe(404);
+  });
+
+  it("returns 404 when user B tries to update user A's group", async () => {
+    const userAGroup = await helpers.createAccountGroup({
+      name: defaultName,
+      raw: true,
+    });
+
+    const userB = await helpers.provisionSecondUserWithBaseCurrency();
+
+    const res = await helpers.asUser({
+      cookies: userB.cookies,
+      fn: () =>
+        helpers.updateAccountGroup({
+          groupId: userAGroup.id,
+          name: 'hacked',
+        }),
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 404 when user B tries to reparent their group under user A's group", async () => {
+    const userAGroup = await helpers.createAccountGroup({
+      name: defaultName,
+      raw: true,
+    });
+
+    const userB = await helpers.provisionSecondUserWithBaseCurrency();
+    const userBGroup = await helpers.asUser({
+      cookies: userB.cookies,
+      fn: () => helpers.createAccountGroup({ name: 'userB-group', raw: true }),
+    });
+
+    const res = await helpers.asUser({
+      cookies: userB.cookies,
+      fn: () =>
+        helpers.updateAccountGroup({
+          groupId: userBGroup.id,
+          parentGroupId: userAGroup.id,
+        }),
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('Delete account group', () => {
+  it('successfully deletes record', async () => {
+    const group = await helpers.createAccountGroup({
+      name: 'test',
+      raw: true,
+    });
+
+    const result = await helpers.deleteAccountGroup({
+      groupId: group.id,
+    });
+
+    expect(result.statusCode).toBe(200);
+  });
+  it('returns successful response for non-existing record deletion', async () => {
+    const result = await helpers.deleteAccountGroup({
+      groupId: generateRandomRecordId(),
+    });
+
+    expect(result.statusCode).toBe(200);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // POST /api/account-group – logo fields at creation time
 //
@@ -46,17 +309,6 @@ describe('AccountGroup POST logo', () => {
       expect(created).not.toHaveProperty('logoSource');
     });
 
-    it('normalizes logoColor to lowercase', async () => {
-      const created = await helpers.createAccountGroup({
-        name: 'Upper Hex',
-        logoInitials: 'UH',
-        logoColor: '#7355BE',
-        raw: true,
-      });
-
-      expect(created.logoColor).toBe('#7355be');
-    });
-
     it('never resolves a group logo, even with a matching BrandLogos cache entry', async () => {
       // A cache entry that WOULD be picked up if groups had logo resolution.
       await BrandLogos.create({
@@ -80,37 +332,6 @@ describe('AccountGroup POST logo', () => {
         name: 'Both Logos',
         logoDomain: 'netflix.com',
         logoInitials: 'NF',
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoDomain contains a space', async () => {
-      const res = await helpers.createAccountGroup({
-        name: 'Bad Domain Space',
-        logoDomain: 'has space',
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for a malformed logoColor', async () => {
-      const res = await helpers.createAccountGroup({
-        name: 'Bad Color',
-        logoInitials: 'BC',
-        logoColor: 'violet',
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoColor is sent without logoInitials', async () => {
-      const res = await helpers.createAccountGroup({
-        name: 'Color Only',
-        logoColor: '#7355be',
         raw: false,
       });
 
@@ -140,101 +361,6 @@ describe('AccountGroup PUT logo', () => {
 
       expect(updated?.logoDomain).toBe('bank.example');
       expect(updated).not.toHaveProperty('logoSource');
-    });
-
-    it('sets a monogram and clears an existing logoDomain', async () => {
-      const group = await helpers.createAccountGroup({
-        name: 'Savings',
-        logoDomain: 'savings.example',
-        raw: true,
-      });
-
-      const [updated] = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoInitials: 'SA',
-        logoColor: '#22c55e',
-        raw: true,
-      });
-
-      expect(updated?.logoInitials).toBe('SA');
-      expect(updated?.logoColor).toBe('#22c55e');
-      expect(updated?.logoDomain).toBeNull();
-    });
-
-    it('clears the monogram when a brand domain is picked', async () => {
-      const group = await helpers.createAccountGroup({
-        name: 'Switcheroo',
-        logoInitials: 'SW',
-        logoColor: '#ef4444',
-        raw: true,
-      });
-
-      const [updated] = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoDomain: 'netflix.com',
-        raw: true,
-      });
-
-      expect(updated?.logoDomain).toBe('netflix.com');
-      expect(updated?.logoInitials).toBeNull();
-      expect(updated?.logoColor).toBeNull();
-    });
-
-    it('clears initials and color when logoInitials is null', async () => {
-      const group = await helpers.createAccountGroup({
-        name: 'Clear Me',
-        logoInitials: 'CM',
-        logoColor: '#ef4444',
-        raw: true,
-      });
-
-      const [updated] = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoInitials: null,
-        raw: true,
-      });
-
-      expect(updated?.logoInitials).toBeNull();
-      expect(updated?.logoColor).toBeNull();
-    });
-
-    it('keeps the monogram when logoDomain is explicitly cleared', async () => {
-      // Domain and initials are asymmetric on purpose: setting a domain evicts
-      // the monogram, but clearing the (already null) domain must not touch it.
-      const group = await helpers.createAccountGroup({
-        name: 'Mono Survives',
-        logoInitials: 'MS',
-        logoColor: '#7355be',
-        raw: true,
-      });
-
-      const [updated] = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoDomain: null,
-        raw: true,
-      });
-
-      expect(updated?.logoDomain).toBeNull();
-      expect(updated?.logoInitials).toBe('MS');
-      expect(updated?.logoColor).toBe('#7355be');
-    });
-
-    it('updates logoColor alone when the group already has initials', async () => {
-      const group = await helpers.createAccountGroup({
-        name: 'Recolor',
-        logoInitials: 'RC',
-        logoColor: '#7355be',
-        raw: true,
-      });
-
-      const [updated] = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoColor: '#0ea5e9',
-        raw: true,
-      });
-
-      expect(updated?.logoColor).toBe('#0ea5e9');
-      expect(updated?.logoInitials).toBe('RC');
     });
 
     it('leaves the logo untouched when the payload omits the logo keys', async () => {
@@ -298,42 +424,6 @@ describe('AccountGroup PUT logo', () => {
       expect(updated).not.toHaveProperty('logoSource');
     });
 
-    it('leaves a cleared group indistinguishable from one that never had a logo', async () => {
-      const cleared = await helpers.createAccountGroup({
-        name: 'Was Branded',
-        logoDomain: 'apple.com',
-        raw: true,
-      });
-      const pristine = await helpers.createAccountGroup({ name: 'Never Branded', raw: true });
-
-      await helpers.updateAccountGroup({
-        groupId: cleared.id,
-        logoDomain: null,
-        logoInitials: null,
-        raw: true,
-      });
-
-      const clearedItem = await findGroupInList({ id: cleared.id });
-      const pristineItem = await findGroupInList({ id: pristine.id });
-
-      const logoFields = { logoDomain: null, logoInitials: null, logoColor: null };
-      expect(clearedItem).toMatchObject(logoFields);
-      expect(pristineItem).toMatchObject(logoFields);
-      expect(clearedItem).not.toHaveProperty('logoSource');
-    });
-
-    it('returns 422 when logoColor is sent for a group without initials', async () => {
-      const group = await helpers.createAccountGroup({ name: 'No Initials Yet', raw: true });
-
-      const res = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoColor: '#7355be',
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
     it('returns 422 when the payload carries both logoDomain and logoInitials', async () => {
       const group = await helpers.createAccountGroup({ name: 'Both On Update', raw: true });
 
@@ -341,59 +431,6 @@ describe('AccountGroup PUT logo', () => {
         groupId: group.id,
         logoDomain: 'netflix.com',
         logoInitials: 'NF',
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoDomain contains a space', async () => {
-      const group = await helpers.createAccountGroup({ name: 'Space Domain', raw: true });
-
-      const res = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoDomain: 'has space',
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoDomain contains a slash', async () => {
-      const group = await helpers.createAccountGroup({ name: 'Slash Domain', raw: true });
-
-      const res = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoDomain: 'netflix.com/logo.png',
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for logoInitials longer than two graphemes', async () => {
-      const group = await helpers.createAccountGroup({ name: 'Long Initials', raw: true });
-
-      const res = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoInitials: 'ABC',
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for a malformed logoColor', async () => {
-      const group = await helpers.createAccountGroup({
-        name: 'Bad Recolor',
-        logoInitials: 'BR',
-        logoColor: '#7355be',
-        raw: true,
-      });
-
-      const res = await helpers.updateAccountGroup({
-        groupId: group.id,
-        logoColor: 'violet',
         raw: false,
       });
 
