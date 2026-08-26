@@ -1,5 +1,5 @@
 import { AUTOMATION_LIMITS } from '@bt/shared/types';
-import { trackMcpToolUsed } from '@js/utils/posthog';
+import { trackAutomationCreated, trackMcpToolUsed } from '@js/utils/posthog';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createAutomation } from '@services/transaction-automations/create-automation';
 import { z } from 'zod';
@@ -38,6 +38,13 @@ export function registerCreateTransactionAutomation(server: McpServer) {
         isEnabled: args.isEnabled,
         conditions: args.conditions,
         actions: args.actions,
+      });
+
+      trackAutomationCreated({
+        userId,
+        source: 'mcp',
+        conditions: result.conditions,
+        actions: result.actions,
       });
 
       return jsonContent({ data: result });
