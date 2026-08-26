@@ -1,4 +1,4 @@
-import { CategoryModel } from '@bt/shared/types';
+import { CATEGORY_TYPES, CategoryModel } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -75,6 +75,39 @@ describe('Create custom categories and subcategories', () => {
 
   it('should not allow creating category with non-existent parent', async () => {
     const res = await helpers.addCustomCategory({ parentId: NONEXISTENT_ID, raw: false });
+
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
+  it('should not allow creating a category deeper than 3 levels', async () => {
+    const child = await helpers.addCustomCategory({
+      parentId: rootCategories[0]!.id,
+      name: 'child',
+      raw: true,
+    });
+    const grandChild = await helpers.addCustomCategory({
+      parentId: child.id,
+      name: 'grand-child',
+      raw: true,
+    });
+
+    const res = await helpers.addCustomCategory({
+      parentId: grandChild.id,
+      name: CATEGORY_NAME,
+      raw: false,
+    });
+
+    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+  });
+
+  it('should not allow creating a category under a system category', async () => {
+    const internal = rootCategories.find((i) => i.type === CATEGORY_TYPES.internal);
+
+    const res = await helpers.addCustomCategory({
+      parentId: internal!.id,
+      name: CATEGORY_NAME,
+      raw: false,
+    });
 
     expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
