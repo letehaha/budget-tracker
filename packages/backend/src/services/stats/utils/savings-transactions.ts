@@ -23,7 +23,11 @@ export const fetchSavingsTransactions = ({
   to: string;
 }): Promise<StatsTransactionsResult> =>
   statsTransactions({
-    access: { accessibleTo: userId },
+    // `{ creator }`, not `{ accessibleTo }`: both consumers are personal surfaces — the
+    // "share of savings" card, whose numerator is owner-only `PortfolioTransfers`, and the
+    // net-worth drivers' savings intake. Widening this alone would move the denominator
+    // without the numerator.
+    access: { creator: userId },
     planned: 'exclude',
     refunds: 'net',
     window: { from, to },

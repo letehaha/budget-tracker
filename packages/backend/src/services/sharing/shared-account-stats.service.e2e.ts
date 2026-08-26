@@ -14,6 +14,10 @@ import { addDays, format, subDays } from 'date-fns';
  * The boundary matters as much as the fix: widening the scope must not pull in rows the
  * recipient has no claim to — another user's account, or the owner's *planned* rows, which
  * are an intention rather than money that moved.
+ *
+ * And it must not widen the wrong surface. Balance surfaces report what the caller can
+ * reach; net-worth surfaces report what they own. A shared account belongs to the first and
+ * not the second, and the last block here pins both halves against one another.
  */
 
 const WINDOW = () => ({
@@ -297,6 +301,65 @@ describe('Stats on a shared account', () => {
       const result = await helpers.getCashFlow({ ...WINDOW(), granularity: 'monthly', raw: true });
 
       expect(result.totals.expenses).toBe(OWNER_EXPENSE + RECIPIENT_EXPENSE + OWNER_PLANNED_EXPENSE);
+    });
+  });
+  describe('net worth stays personal', () => {
+    const SHARED_BALANCE = 5000;
+
+    /** An account with real money in it, shared read-only with a second user. */
+    async function seedFundedSharedAccount() {
+      const account = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Owner Savings', initialBalance: SHARED_BALANCE }),
+        raw: true,
+      });
+      const recipient = await provisionSecondUser();
+      await shareAccountWith({ accountId: account.id, recipient });
+      return { account, recipient };
+    }
+
+    it('leaves a shared account out of the recipient’s net worth', async () => {
+      // The counterpart of every other test in this file: `getPerAccountBalanceHistory`
+      // and `getAggregatedBalanceHistory` share `getBalanceHistoryRows` with
+      // `/stats/balance-history`, so widening that helper reached net worth as well — and
+      // net worth's other components (portfolios, vehicles, ventures) are owner-only, so a
+      // shared account there would put two scopes on one chart.
+      const { recipient } = await seedFundedSharedAccount();
+
+      const result = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getNetWorthHistory({ ...WINDOW(), granularity: 'monthly', raw: true }),
+      });
+
+      expect(result.points.length).toBeGreaterThan(0);
+      for (const point of result.points) {
+        expect(point.assets.cash).toBe(0);
+        expect(point.assetsTotal).toBe(0);
+      }
+    });
+
+    it('still counts it in the balance surfaces, which is the whole distinction', async () => {
+      const { recipient } = await seedFundedSharedAccount();
+
+      const [history, total] = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: async () =>
+          Promise.all([
+            helpers.getBalanceHistory({ ...WINDOW(), raw: true }),
+            helpers.getTotalBalance({ date: format(new Date(), 'yyyy-MM-dd'), raw: true }),
+          ]),
+      });
+
+      expect(history.at(-1)!.amount).toBe(SHARED_BALANCE);
+      expect(total).toBe(SHARED_BALANCE);
+    });
+
+    it('still shows the owner their own account in their net worth', async () => {
+      const { account } = await seedFundedSharedAccount();
+      expect(account.id).toBeDefined();
+
+      const result = await helpers.getNetWorthHistory({ ...WINDOW(), granularity: 'monthly', raw: true });
+
+      expect(result.points.at(-1)!.assets.cash).toBe(SHARED_BALANCE);
     });
   });
 });

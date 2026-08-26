@@ -29,23 +29,31 @@ interface BalanceHistoryRow {
 }
 
 /**
- * Scopes by the accounts the caller can reach — their own plus the ones shared with them —
- * rather than by ownership. Scoping on `Accounts.userId` made a shared account invisible in
- * the balance history and the total balance, while its transactions and its balance were
- * already visible everywhere else.
+ * The account set a balance read runs over. Every caller states it and there is no default,
+ * because the two answer different questions and the wrong one is a wrong number rather than
+ * an error.
+ *
+ * - `'accessible'` — the caller's own accounts plus those shared with them. What the balance
+ *   surfaces report, since the account list and the transaction list already show them.
+ * - `'owned'` — the caller's own accounts only. What the net-worth surfaces measure: a shared
+ *   account is someone else's asset, and the portfolio, vehicle and venture components of net
+ *   worth are owner-scoped regardless, so mixing the two would put two scopes on one chart.
  */
+export type AccountScope = 'accessible' | 'owned';
+
 async function buildAccountWhere({
   userId,
+  accountScope,
   categoryFilter,
 }: {
   userId: number;
+  accountScope: AccountScope;
   categoryFilter?: AccountCategoryFilter;
 }): Promise<WhereOptions> {
-  const accessibleAccountIds = await getAccessibleAccountIdsForUser({ userId });
-  const where: Record<string, unknown> = {
-    id: { [Op.in]: accessibleAccountIds },
-    excludeFromStats: false,
-  };
+  const where: Record<string, unknown> =
+    accountScope === 'accessible'
+      ? { id: { [Op.in]: await getAccessibleAccountIdsForUser({ userId }) }, excludeFromStats: false }
+      : { userId, excludeFromStats: false };
   if (categoryFilter?.only?.length) {
     where.accountCategory = { [Op.in]: categoryFilter.only };
   } else if (categoryFilter?.exclude?.length) {
@@ -59,25 +67,27 @@ function formatDate(date: string | Date): string {
 }
 
 /**
- * Fetches the balance rows for every account the user can reach — owned or shared — within
- * a specified date range.
+ * Fetches the balance rows for the accounts named by `accountScope` within a specified date
+ * range.
  * If no balance record is found for an account between the "from" and "to" dates,
  * and also no record before the "from" date, it checks for records after the "to" date
  * that have a positive balance.
  */
 const getBalanceHistoryRows = async ({
   userId,
+  accountScope,
   from,
   to,
   categoryFilter,
 }: {
   userId: number;
+  accountScope: AccountScope;
   from?: string;
   to?: string;
   categoryFilter?: AccountCategoryFilter;
 }): Promise<BalanceHistoryRow[]> => {
   const dataAttributes = ['date', 'amount', 'accountId'];
-  const accountWhere = await buildAccountWhere({ userId, categoryFilter });
+  const accountWhere = await buildAccountWhere({ userId, accountScope, categoryFilter });
 
   const [allUserAccounts, balancesInRange] = await Promise.all([
     Accounts.default.findAll({
@@ -236,16 +246,18 @@ const getBalanceHistoryRows = async ({
  */
 export const getBalanceHistory = async ({
   userId,
+  accountScope,
   from,
   to,
   categoryFilter,
 }: {
   userId: number;
+  accountScope: AccountScope;
   from?: string;
   to?: string;
   categoryFilter?: AccountCategoryFilter;
 }): Promise<Balances.default[]> => {
-  const rows = await getBalanceHistoryRows({ userId, from, to, categoryFilter });
+  const rows = await getBalanceHistoryRows({ userId, accountScope, from, to, categoryFilter });
 
   // Plain objects (not Sequelize instances) with Money amounts — consumers
   // (stats serializer, getTotalBalance) only read `date`, `amount`, `accountId`.
@@ -481,12 +493,14 @@ function aggregateBalanceTrendData({
  */
 export const getAggregatedBalanceHistory = async ({
   userId,
+  accountScope,
   from,
   to,
   categoryFilter,
   openingCentsByAccount,
 }: {
   userId: number;
+  accountScope: AccountScope;
   from: string;
   to: string;
   categoryFilter?: AccountCategoryFilter;
@@ -497,7 +511,7 @@ export const getAggregatedBalanceHistory = async ({
    */
   openingCentsByAccount?: Map<string, number>;
 }): Promise<AggregatedBalanceHistoryItem[]> => {
-  const rawBalanceHistory = await getBalanceHistoryRows({ userId, from, to, categoryFilter });
+  const rawBalanceHistory = await getBalanceHistoryRows({ userId, accountScope, from, to, categoryFilter });
 
   return aggregateBalanceTrendData({ data: rawBalanceHistory, from, to, openingCentsByAccount });
 };
@@ -511,18 +525,20 @@ export const getAggregatedBalanceHistory = async ({
  */
 export const getPerAccountBalanceHistory = async ({
   userId,
+  accountScope,
   from,
   to,
   categoryFilter,
   openingCentsByAccount,
 }: {
   userId: number;
+  accountScope: AccountScope;
   from: string;
   to: string;
   categoryFilter?: AccountCategoryFilter;
   openingCentsByAccount?: Map<string, number>;
 }): Promise<Record<string, Record<string, number>>> => {
-  const rawBalanceHistory = await getBalanceHistoryRows({ userId, from, to, categoryFilter });
+  const rawBalanceHistory = await getBalanceHistoryRows({ userId, accountScope, from, to, categoryFilter });
 
   return fillPerAccountBalanceSeries({ data: rawBalanceHistory, from, to, openingCentsByAccount });
 };

@@ -553,6 +553,7 @@ export const getNetWorthDrivers = async ({
       // so the cash figure is a net position rather than a sum of what's liquid.
       getAggregatedBalanceHistory({
         userId,
+        accountScope: 'owned',
         from: boundaryDates[0]!,
         to: boundaryDates[boundaryDates.length - 1]!,
         categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan] },

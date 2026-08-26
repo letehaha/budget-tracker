@@ -377,6 +377,7 @@ export const getCombinedBalanceHistory = async ({
       return Promise.all([
         getAggregatedBalanceHistory({
           userId,
+          accountScope: 'owned',
           from: minDate,
           to: maxDate,
           categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle, ACCOUNT_CATEGORIES.loan] },
@@ -396,6 +397,7 @@ export const getCombinedBalanceHistory = async ({
 
           return getAggregatedBalanceHistory({
             userId,
+            accountScope: 'owned',
             from: minDate,
             to: maxDate,
             categoryFilter: { only: [ACCOUNT_CATEGORIES.loan] },

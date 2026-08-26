@@ -24,7 +24,7 @@ export const getTotalBalance = async ({
   includeCreditLimit?: boolean;
 }): Promise<number> => {
   const [balancesForDate, creditLimitSum] = await Promise.all([
-    getBalanceHistory({ userId, from: date, to: date }),
+    getBalanceHistory({ userId, accountScope: 'accessible', from: date, to: date }),
     includeCreditLimit ? getCreditLimitAdjustment({ userId }) : Promise.resolve(0),
   ]);
 
