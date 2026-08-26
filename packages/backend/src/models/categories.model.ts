@@ -45,7 +45,7 @@ export default class Categories extends Model {
   type!: CATEGORY_TYPES;
 
   @Column({ allowNull: true, type: DataType.UUID })
-  parentId!: RecordId;
+  parentId!: RecordId | null;
 
   @ForeignKey(() => Users)
   @Column({ type: DataType.INTEGER })
@@ -127,6 +127,7 @@ export interface EditCategoryPayload {
   name?: string;
   icon?: string | null;
   color?: string;
+  parentId?: RecordId | null;
 }
 
 export const editCategory = async ({ userId, categoryId, ...params }: EditCategoryPayload) => {

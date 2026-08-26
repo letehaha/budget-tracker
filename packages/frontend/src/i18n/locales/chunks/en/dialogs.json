@@ -437,6 +437,7 @@
       "nameLabel": "Category name",
       "namePlaceholder": "Enter category name",
       "colorLabel": "Color",
+      "inheritParentColor": "Use parent's color",
       "iconLabel": "Icon",
       "iconPlaceholder": "Select icon",
       "settingsDivider": "Settings",

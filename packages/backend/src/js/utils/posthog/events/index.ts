@@ -5,3 +5,4 @@ export { trackImportCompleted } from './import';
 export { trackBankConnected, type BankProvider } from './bank-sync';
 export { trackMcpToolUsed } from './mcp';
 export { trackDemoSessionCreated, trackDemoFeatureBlocked } from './demo';
+export { trackAutomationCreated, trackAutomationApplied } from './transaction-automations';

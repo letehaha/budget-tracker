@@ -1,7 +1,7 @@
 import type { RecordId } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 
-import { expandCategoryIdsWithDescendants, getRootCategoryId } from './category-hierarchy';
+import { expandCategoryIdsWithDescendants, getAncestorIds, getRootCategoryId } from './category-hierarchy';
 import { AccessibleCategoryInfo } from './get-accessible-category-map.service';
 
 const makeCat = (id: string, parentId: string | null): AccessibleCategoryInfo => ({
@@ -41,6 +41,28 @@ describe('getRootCategoryId', () => {
 
   it('returns the id unchanged when the category is not in the map', () => {
     expect(getRootCategoryId({ categoryId: 'unknown', byId })).toBe('unknown');
+  });
+});
+
+describe('getAncestorIds', () => {
+  it('returns ancestors nearest first, excluding the category itself', () => {
+    expect(getAncestorIds({ categoryId: 'grandchild', byId })).toEqual(['child', 'root']);
+  });
+
+  it('returns an empty list for a root and for an unknown id', () => {
+    expect(getAncestorIds({ categoryId: 'root', byId })).toEqual([]);
+    expect(getAncestorIds({ categoryId: 'unknown', byId })).toEqual([]);
+  });
+
+  it('stops at a dangling parent link', () => {
+    expect(getAncestorIds({ categoryId: 'leaf', byId })).toEqual(['mid']);
+  });
+
+  it('terminates on a parent cycle instead of looping forever', () => {
+    const cyclic = [makeCat('a', 'b'), makeCat('b', 'a')];
+    const cyclicById = new Map(cyclic.map((cat) => [cat.id as string, cat]));
+
+    expect(getAncestorIds({ categoryId: 'a', byId: cyclicById })).toEqual(['b']);
   });
 });
 

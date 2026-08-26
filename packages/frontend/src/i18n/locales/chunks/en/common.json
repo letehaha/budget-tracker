@@ -26,7 +26,8 @@
       "clear": "Clear",
       "apply": "Apply",
       "retry": "Try again",
-      "copyInviteLink": "Copy invite link"
+      "copyInviteLink": "Copy invite link",
+      "moveTo": "Move to…"
     },
     "ui": {
       "close": "Close",
