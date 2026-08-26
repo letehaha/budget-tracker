@@ -1,4 +1,4 @@
-import { CategoryModel } from '@bt/shared/types';
+import { CATEGORY_TYPES, CategoryModel } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -127,5 +127,173 @@ describe('Edit custom categories', () => {
     });
 
     expect(res.statusCode).toEqual(ERROR_CODES.NotFoundError);
+  });
+
+  describe('Re-parenting', () => {
+    it('should move a root category under another root category', async () => {
+      const newParent = await helpers.addCustomCategory({
+        name: 'new-parent',
+        color: mockedCategory.color,
+        raw: true,
+      });
+
+      const [category] = await helpers.editCustomCategory({
+        categoryId: testCategory.id,
+        parentId: newParent.id,
+        raw: true,
+      });
+
+      expect(category!.parentId).toBe(newParent.id);
+
+      const stored = (await helpers.getCategoriesList()).find((i) => i.id === testCategory.id);
+      expect(stored!.parentId).toBe(newParent.id);
+    });
+
+    it('should move a nested category to the top level when parentId is null', async () => {
+      const child = await helpers.addCustomCategory({
+        parentId: testCategory.id,
+        name: 'child',
+        raw: true,
+      });
+
+      const [category] = await helpers.editCustomCategory({
+        categoryId: child.id,
+        parentId: null,
+        raw: true,
+      });
+
+      expect(category!.parentId).toBe(null);
+
+      const stored = (await helpers.getCategoriesList()).find((i) => i.id === child.id);
+      expect(stored!.parentId).toBe(null);
+    });
+
+    it('should allow moving a category with a child under a root (subtree lands exactly on the limit)', async () => {
+      const newParent = await helpers.addCustomCategory({
+        name: 'new-parent',
+        color: mockedCategory.color,
+        raw: true,
+      });
+      await helpers.addCustomCategory({
+        parentId: testCategory.id,
+        name: 'child',
+        raw: true,
+      });
+
+      const [category] = await helpers.editCustomCategory({
+        categoryId: testCategory.id,
+        parentId: newParent.id,
+        raw: true,
+      });
+
+      expect(category!.parentId).toBe(newParent.id);
+    });
+
+    it('should return validation error when moving a system category', async () => {
+      const internal = (await helpers.getCategoriesList()).find((i) => i.type === CATEGORY_TYPES.internal);
+
+      const res = await helpers.editCustomCategory({
+        categoryId: internal!.id,
+        parentId: testCategory.id,
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    });
+
+    it('should return validation error when using a system category as a parent', async () => {
+      const internal = (await helpers.getCategoriesList()).find((i) => i.type === CATEGORY_TYPES.internal);
+
+      const res = await helpers.editCustomCategory({
+        categoryId: testCategory.id,
+        parentId: internal!.id,
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    });
+
+    it('should allow a move that lands exactly on the third level', async () => {
+      const grandParent = await helpers.addCustomCategory({
+        name: 'grand-parent',
+        color: mockedCategory.color,
+        raw: true,
+      });
+      const parent = await helpers.addCustomCategory({
+        parentId: grandParent.id,
+        name: 'parent',
+        raw: true,
+      });
+
+      const [category] = await helpers.editCustomCategory({
+        categoryId: testCategory.id,
+        parentId: parent.id,
+        raw: true,
+      });
+
+      expect(category!.parentId).toBe(parent.id);
+    });
+
+    it('should return validation error for a non-existent parentId', async () => {
+      const res = await helpers.editCustomCategory({
+        categoryId: testCategory.id,
+        parentId: NONEXISTENT_ID,
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    });
+
+    it('should return validation error when moving a category under its own descendant', async () => {
+      const child = await helpers.addCustomCategory({
+        parentId: testCategory.id,
+        name: 'child',
+        raw: true,
+      });
+
+      const res = await helpers.editCustomCategory({
+        categoryId: testCategory.id,
+        parentId: child.id,
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    });
+
+    it('should return validation error when moving a category under itself', async () => {
+      const res = await helpers.editCustomCategory({
+        categoryId: testCategory.id,
+        parentId: testCategory.id,
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    });
+
+    it('should return validation error when the move would exceed 3 nesting levels', async () => {
+      const grandParent = await helpers.addCustomCategory({
+        name: 'grand-parent',
+        color: mockedCategory.color,
+        raw: true,
+      });
+      const parent = await helpers.addCustomCategory({
+        parentId: grandParent.id,
+        name: 'parent',
+        raw: true,
+      });
+      await helpers.addCustomCategory({
+        parentId: testCategory.id,
+        name: 'child',
+        raw: true,
+      });
+
+      const res = await helpers.editCustomCategory({
+        categoryId: testCategory.id,
+        parentId: parent.id,
+        raw: false,
+      });
+
+      expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    });
   });
 });

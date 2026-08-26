@@ -27,6 +27,33 @@ export const getRootCategoryId = ({
 };
 
 /**
+ * Ancestor ids of a category, nearest first, excluding the category itself. The walk stops
+ * at a dangling parent link, and a visited guard terminates it even when corrupt data
+ * contains a parent cycle.
+ */
+export const getAncestorIds = <T extends { id: string; parentId: string | null }>({
+  categoryId,
+  byId,
+}: {
+  categoryId: string;
+  byId: Map<string, T>;
+}): string[] => {
+  const ancestors: string[] = [];
+  const visited = new Set<string>([categoryId]);
+  let current = byId.get(categoryId);
+
+  while (current && current.parentId !== null) {
+    const parent = byId.get(current.parentId);
+    if (!parent || visited.has(parent.id)) break;
+    ancestors.push(parent.id);
+    visited.add(parent.id);
+    current = parent;
+  }
+
+  return ancestors;
+};
+
+/**
  * A memoized `getRootCategoryId` bound to one category map. Stats aggregations resolve the same
  * category's root many times per request; the cache turns each repeat into an O(1) lookup.
  */

@@ -12,6 +12,7 @@ const schema = z.object({
         .string()
         .regex(/^#[0-9A-F]{6}$/i)
         .optional(),
+      parentId: recordId().nullable().optional(),
     })
     .refine((data) => Object.values(data).some((value) => value !== undefined), {
       message: 'At least one field must be provided',
@@ -24,7 +25,7 @@ const schema = z.object({
 export default createController(schema, async ({ user, params, body }) => {
   const { id: userId } = user;
   const { id: categoryId } = params;
-  const { name, icon, color } = body;
+  const { name, icon, color, parentId } = body;
 
   const data = await categoriesService.editCategory({
     categoryId,
@@ -32,6 +33,7 @@ export default createController(schema, async ({ user, params, body }) => {
     name,
     icon,
     color,
+    parentId,
   });
 
   return { data };

@@ -5,13 +5,37 @@
         <div
           :class="
             cn([
-              '-ml-4 flex w-[calc(100%+32px)] items-center gap-1 rounded-md py-0.5',
+              'flex items-center gap-1 rounded-md py-0.5 transition-opacity',
               {
                 'bg-accent': isActiveCategory(cat),
+                'opacity-50': draggedCategoryId === cat.id,
+                'opacity-40': isDimmedTarget(cat),
+                'bg-accent ring-primary ring-2 ring-inset': isDropTarget(cat),
               },
             ])
           "
+          @dragover.stop="handleDragOver(cat, $event)"
+          @dragleave.stop="handleDragLeave(cat, $event)"
+          @drop.stop.prevent="handleDrop(cat)"
         >
+          <span
+            v-if="draggable"
+            :draggable="isDraggableCategory(cat)"
+            :class="
+              cn([
+                'flex w-4 shrink-0 items-center justify-center self-stretch',
+                isDraggableCategory(cat) && 'cursor-grab active:cursor-grabbing',
+              ])
+            "
+            @dragstart.stop="handleDragStart(cat, $event)"
+            @dragend.stop="handleDragEnd"
+          >
+            <GripVerticalIcon
+              v-if="isDraggableCategory(cat)"
+              class="text-muted-foreground pointer-events-none size-4"
+            />
+          </span>
+
           <div
             :class="
               cn([
@@ -48,6 +72,11 @@
               <Button variant="ghost" class="w-full justify-start gap-2" size="sm" @click="handleEdit(cat, close)">
                 <PencilIcon class="size-4" />
                 {{ t('common.actions.edit') }}
+              </Button>
+
+              <Button variant="ghost" class="w-full justify-start gap-2" size="sm" @click="handleMove(cat, close)">
+                <FolderInputIcon class="size-4" />
+                {{ t('common.actions.moveTo') }}
               </Button>
 
               <Button
@@ -108,13 +137,21 @@
             :current-level="currentLevel + 1"
             :active-category-id="activeCategoryId"
             :show-actions="showActions"
+            :draggable="draggable"
+            :dragged-category-id="draggedCategoryId"
+            :drop-error="dropError"
             @toggle="(c) => emits('toggle', c)"
             @select="selectCategory"
             @edit="(c) => emits('edit', c)"
+            @move="(c) => emits('move', c)"
             @add-subcategory="(c) => emits('add-subcategory', c)"
             @delete="(c) => emits('delete', c)"
             @view-transactions="(c) => emits('view-transactions', c)"
             @view-analytics="(c) => emits('view-analytics', c)"
+            @drag-start="(c) => emits('drag-start', c)"
+            @drag-end="() => emits('drag-end')"
+            @drag-over-error="(msg) => emits('drag-over-error', msg)"
+            @drop="(c) => emits('drop', c)"
           />
         </div>
       </div>
@@ -131,6 +168,8 @@ import { cn } from '@/lib/utils';
 import { CATEGORY_TYPES } from '@bt/shared/types';
 import {
   ChevronRightIcon,
+  FolderInputIcon,
+  GripVerticalIcon,
   LineChartIcon,
   ListIcon,
   MoreVerticalIcon,
@@ -138,7 +177,7 @@ import {
   PlusIcon,
   Trash2Icon,
 } from '@lucide/vue';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -153,9 +192,19 @@ const props = withDefaults(
     currentLevel: number;
     activeCategoryId: string | null | undefined;
     showActions?: boolean;
+    draggable?: boolean;
+    draggedCategoryId?: string | null;
+    /**
+     * `null` allows the drop; a string forbids it and is reported via `drag-over-error`
+     * when non-empty (`''` forbids without a message). No validator means all drops are
+     * allowed and emitted.
+     */
+    dropError?: (params: { target: FormattedCategory; depth: number }) => string | null;
   }>(),
   {
     showActions: false,
+    draggable: false,
+    draggedCategoryId: null,
   },
 );
 
@@ -163,13 +212,20 @@ const emits = defineEmits<{
   toggle: [category: FormattedCategory];
   select: [category: FormattedCategory];
   edit: [category: FormattedCategory];
+  move: [category: FormattedCategory];
   'add-subcategory': [category: FormattedCategory];
   delete: [category: FormattedCategory];
   'view-transactions': [category: FormattedCategory];
   'view-analytics': [category: FormattedCategory];
+  'drag-start': [category: FormattedCategory];
+  'drag-end': [];
+  'drag-over-error': [message: string | null];
+  drop: [target: FormattedCategory];
 }>();
 
 const menuOpenState = reactive<Record<string, boolean>>({});
+const dragOverId = ref<string | null>(null);
+const reportedErrorId = ref<string | null>(null);
 
 const canAddSubcategory = computed(() => props.currentLevel < props.maxLevel);
 
@@ -192,6 +248,11 @@ const handleEdit = (category: FormattedCategory, close: () => void) => {
   emits('edit', category);
 };
 
+const handleMove = (category: FormattedCategory, close: () => void) => {
+  close();
+  emits('move', category);
+};
+
 const handleAddSubcategory = (category: FormattedCategory, close: () => void) => {
   close();
   emits('add-subcategory', category);
@@ -210,5 +271,81 @@ const handleViewTransactions = (category: FormattedCategory, close: () => void) 
 const handleViewAnalytics = (category: FormattedCategory, close: () => void) => {
   close();
   emits('view-analytics', category);
+};
+
+const isDraggableCategory = (category: FormattedCategory) => props.draggable && !isInternalCategory(category);
+
+const isDropTarget = (category: FormattedCategory) => !!props.draggedCategoryId && dragOverId.value === category.id;
+
+const resolveDropError = (category: FormattedCategory): string | null => {
+  if (!props.draggable) return '';
+  return props.dropError ? props.dropError({ target: category, depth: props.currentLevel }) : null;
+};
+
+const isDimmedTarget = (category: FormattedCategory) =>
+  !!props.draggedCategoryId && props.draggedCategoryId !== category.id && resolveDropError(category) !== null;
+
+const clearReportedError = () => {
+  if (reportedErrorId.value === null) return;
+  reportedErrorId.value = null;
+  emits('drag-over-error', null);
+};
+
+const handleDragStart = (category: FormattedCategory, event: DragEvent) => {
+  if (!isDraggableCategory(category)) return;
+
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('text/plain', category.id);
+    event.dataTransfer.effectAllowed = 'move';
+
+    // Without this the ghost is just the grip icon the gesture started on.
+    const row = (event.currentTarget as HTMLElement).parentElement;
+    if (row) event.dataTransfer.setDragImage(row, 0, row.offsetHeight / 2);
+  }
+
+  // Deferred: the emit re-renders the page (pending-moves bar appears above the tree), and
+  // Chromium cancels a drag whose source reflows while dragstart is still being processed.
+  window.setTimeout(() => emits('drag-start', category));
+};
+
+const handleDragEnd = () => {
+  dragOverId.value = null;
+  clearReportedError();
+  emits('drag-end');
+};
+
+const handleDragOver = (category: FormattedCategory, event: DragEvent) => {
+  const error = resolveDropError(category);
+
+  if (error === null) {
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    dragOverId.value = category.id;
+    clearReportedError();
+    return;
+  }
+
+  dragOverId.value = null;
+  // Guarded because dragover fires continuously while hovering one row.
+  if (reportedErrorId.value !== category.id) {
+    reportedErrorId.value = category.id;
+    emits('drag-over-error', error || null);
+  }
+};
+
+const handleDragLeave = (category: FormattedCategory, event: DragEvent) => {
+  const nextTarget = event.relatedTarget as Node | null;
+  if (nextTarget && (event.currentTarget as HTMLElement).contains(nextTarget)) return;
+
+  if (dragOverId.value === category.id) dragOverId.value = null;
+  if (reportedErrorId.value === category.id) clearReportedError();
+};
+
+const handleDrop = (category: FormattedCategory) => {
+  dragOverId.value = null;
+  clearReportedError();
+  if (resolveDropError(category) !== null) return;
+
+  emits('drop', category);
 };
 </script>
