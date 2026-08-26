@@ -27,9 +27,7 @@ export function initSentry(): void {
     release: process.env.SENTRY_RELEASE,
     environment: process.env.NODE_ENV,
     debug: process.env.SENTRY_DEBUG === 'true',
-    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE) || 0.1,
-    // Profile 10% of sampled transactions
-    profilesSampleRate: 0.1,
+    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE) || 0.01,
     // Integrations
     integrations: [
       // HTTP integration for tracing requests
