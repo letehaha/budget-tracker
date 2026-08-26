@@ -1,4 +1,3 @@
-import { NotFoundError } from '@js/errors';
 import * as Transactions from '@models/transactions.model';
 import { bulkDelete } from '@services/transactions/bulk-delete';
 
@@ -19,6 +18,10 @@ interface DeleteImportBatchResult {
  * handling, and refund unlinking all come from the same pipeline as a manual bulk
  * delete. Uses the same row-selection policy as `listBatchesHistory`'s count, so the
  * number a user confirms against before deleting matches what actually gets deleted.
+ *
+ * A batchId with no matching rows (already deleted, never existed, or belongs to
+ * another user) resolves as a no-op success rather than a 404 — the caller only has a
+ * stale batch list to act on in that situation, not a mistaken id to be corrected.
  */
 export const deleteImportBatch = async ({
   userId,
@@ -35,7 +38,7 @@ export const deleteImportBatch = async ({
   })) as unknown as { id: string }[];
 
   if (rows.length === 0) {
-    throw new NotFoundError({ message: 'No transactions found for this import batch' });
+    return { deletedCount: 0, deletedIds: [] };
   }
 
   return bulkDelete({ userId, transactionIds: rows.map((row) => row.id) });

@@ -79,10 +79,13 @@ describe('DELETE /import/batch/:batchId', () => {
     expect(accountAfterDelete.currentBalance).toBe(balanceBeforeImport);
   });
 
-  it('returns 404 for a batchId with no matching transactions', async () => {
-    const response = await helpers.deleteImportBatch({ batchId: '00000000-0000-0000-0000-000000000000' });
+  it('is a no-op success for a batchId with no matching transactions', async () => {
+    const result = await helpers.deleteImportBatch({
+      batchId: '00000000-0000-0000-0000-000000000000',
+      raw: true,
+    });
 
-    expect(response.statusCode).toBe(404);
+    expect(result).toEqual({ deletedCount: 0, deletedIds: [] });
   });
 
   it('rejects a non-uuid batchId', async () => {
@@ -104,11 +107,13 @@ describe('DELETE /import/batch/:batchId', () => {
     const summary = await runCsvImport({ accountId: account.id, currencyCode: account.currencyCode });
 
     const otherUser = await signUpSecondUser();
-    const otherResponse = await asUser({
+    const otherResult = await asUser({
       cookies: otherUser.cookies,
-      fn: () => helpers.deleteImportBatch({ batchId: summary.batchId }),
+      fn: () => helpers.deleteImportBatch({ batchId: summary.batchId, raw: true }),
     });
-    expect(otherResponse.statusCode).toBe(404);
+    // Scoped to the caller, so another user's batchId resolves as the no-op
+    // success case (see the "no matching transactions" test above) — not a leak.
+    expect(otherResult).toEqual({ deletedCount: 0, deletedIds: [] });
 
     // The owner's transactions must still be there — the other user's attempt was a no-op.
     const stillThere = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
