@@ -48,10 +48,10 @@
 
       <ScrollArea v-else>
         <ul class="divide-y">
-          <li v-for="batch in batches" :key="batch.batchId" class="flex items-center">
+          <li v-for="batch in batches" :key="batch.batchId" class="relative">
             <Button
               variant="ghost"
-              class="h-auto flex-1 justify-between gap-3 rounded-none px-4 py-3"
+              class="h-auto w-full justify-between gap-3 rounded-none px-4 py-3"
               @click="openBatch(batch)"
             >
               <span class="flex min-w-0 flex-col items-start gap-0.5">
@@ -81,13 +81,17 @@
                   }}
                 </span>
               </span>
-              <ChevronRightIcon class="text-muted-foreground size-4 shrink-0" />
+              <span class="flex shrink-0 items-center gap-3">
+                <!-- Reserves the slot the absolutely-positioned delete button overlays. -->
+                <span class="size-10" aria-hidden="true" />
+                <ChevronRightIcon class="text-muted-foreground size-4" />
+              </span>
             </Button>
             <DesktopOnlyTooltip :content="$t('pages.importExport.importHistory.deleteButton')">
               <Button
                 variant="ghost-destructive"
-                size="icon-sm"
-                class="mr-2 shrink-0"
+                size="icon"
+                class="absolute top-1/2 right-11 -translate-y-1/2"
                 :aria-label="$t('pages.importExport.importHistory.deleteButton')"
                 @click="confirmDeleteBatch(batch)"
               >
