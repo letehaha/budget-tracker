@@ -291,7 +291,8 @@
     "payeeColumnNotFound": "Payee column \"{{column}}\" not found in CSV headers"
   },
   "importExport": {
-    "batchDeleteBankLinkedAccount": "This import can no longer be undone because its account is now connected to a bank. Deleting these transactions could throw off the synced balance."
+    "batchDeleteBankLinkedAccount": "This import can no longer be undone because its account is now connected to a bank. Deleting these transactions could throw off the synced balance.",
+    "batchDeleteTooLarge": "This import has too many transactions to undo in one request right now. Please contact support if you need help removing it."
   },
   "statementParser": {
     "invalidFile": "Invalid file",

@@ -1,0 +1,86 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+
+const findWithFiltersMock = jest.fn<() => Promise<{ id: string; accountId: string }[]>>();
+const accountsFindAllMock = jest.fn<() => Promise<{ id: string; type: string }[]>>();
+const bulkDeleteMock =
+  jest.fn<
+    (params: { userId: number; transactionIds: string[] }) => Promise<{ deletedCount: number; deletedIds: string[] }>
+  >();
+const captureExceptionMock = jest.fn<(...args: unknown[]) => void>();
+
+jest.mock('@models/transactions.model', () => ({
+  __esModule: true,
+  findWithFilters: () => findWithFiltersMock(),
+}));
+
+jest.mock('@models/accounts.model', () => ({
+  __esModule: true,
+  default: { findAll: () => accountsFindAllMock() },
+}));
+
+jest.mock('@services/transactions/bulk-delete', () => ({
+  __esModule: true,
+  bulkDelete: (params: { userId: number; transactionIds: string[] }) => bulkDeleteMock(params),
+}));
+
+jest.mock('@js/utils/sentry', () => ({
+  __esModule: true,
+  captureException: (...args: unknown[]) => captureExceptionMock(...args),
+}));
+
+/* eslint-disable import/first */
+import { deleteImportBatch } from './delete-batch.service';
+/* eslint-enable import/first */
+
+const USER_ID = 1;
+const BATCH_ID = 'batch-1';
+
+function mockRows(count: number) {
+  findWithFiltersMock.mockResolvedValue(
+    Array.from({ length: count }, (_, i) => ({ id: `tx-${i}`, accountId: 'acc-1' })),
+  );
+}
+
+describe('deleteImportBatch', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    accountsFindAllMock.mockResolvedValue([{ id: 'acc-1', type: 'system' }]);
+  });
+
+  it('rejects and captures a Sentry exception when the batch exceeds the delete cap', async () => {
+    mockRows(1001);
+
+    await expect(deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID })).rejects.toThrow();
+
+    expect(bulkDeleteMock).not.toHaveBeenCalled();
+    expect(captureExceptionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes an at-cap batch in 10 chunks of 100', async () => {
+    mockRows(1000);
+    bulkDeleteMock.mockImplementation(async ({ transactionIds }: { transactionIds: string[] }) => ({
+      deletedCount: transactionIds.length,
+      deletedIds: transactionIds,
+    }));
+
+    const result = await deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID });
+
+    expect(bulkDeleteMock).toHaveBeenCalledTimes(10);
+    for (const call of bulkDeleteMock.mock.calls) {
+      expect((call[0] as { transactionIds: string[] }).transactionIds).toHaveLength(100);
+    }
+    expect(result.deletedCount).toBe(1000);
+    expect(result.deletedIds).toHaveLength(1000);
+    expect(captureExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it('runs a batch under the chunk size as a single chunk', async () => {
+    mockRows(2);
+    bulkDeleteMock.mockResolvedValue({ deletedCount: 2, deletedIds: ['tx-0', 'tx-1'] });
+
+    const result = await deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID });
+
+    expect(bulkDeleteMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ deletedCount: 2, deletedIds: ['tx-0', 'tx-1'] });
+  });
+});

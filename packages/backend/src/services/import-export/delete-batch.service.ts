@@ -17,17 +17,23 @@ interface DeleteImportBatchResult {
   deletedIds: string[];
 }
 
+// Import batches can reach MAX_CSV_ROWS (50k) rows; bulkDelete's one-transaction,
+// per-row loop would time out at that scale.
+// TODO: batches over this cap need an async BullMQ job with SSE progress instead of
+// being refused outright. The Sentry capture below is the signal to prioritize it.
+const MAX_BATCH_DELETE_TRANSACTIONS = 1000;
+
+// 10 chunks at the cap, so even a 1000-row delete runs as several smaller DB
+// transactions instead of one long one.
+const BATCH_DELETE_CHUNK_SIZE = 100;
+
 /**
- * Resolves every row stamped with this `externalData.importDetails.batchId`, scoped to
- * the caller (`access: { creator: userId }` — imports are always owner-scoped, never
- * shared), then delegates to `bulkDelete` so balance recalculation, transfer-pair
- * handling, and refund unlinking all come from the same pipeline as a manual bulk
- * delete. Uses the same row-selection policy as `listBatchesHistory`'s count, so the
- * number a user confirms against before deleting matches what actually gets deleted.
+ * Resolves every row stamped with this batch's `importDetails.batchId`, scoped to the
+ * caller, then delegates to `bulkDelete` — balance recalculation, transfer-pair handling,
+ * and refund unlinking all come from that same pipeline.
  *
- * A batchId with no matching rows (already deleted, never existed, or belongs to
- * another user) resolves as a no-op success rather than a 404 — the caller only has a
- * stale batch list to act on in that situation, not a mistaken id to be corrected.
+ * A batchId with no matching rows is a no-op success, not a 404: it's already deleted or
+ * belongs to another user, not a mistaken id to correct.
  */
 export const deleteImportBatch = async ({
   userId,
@@ -47,14 +53,21 @@ export const deleteImportBatch = async ({
     return { deletedCount: 0, deletedIds: [] };
   }
 
-  // `Transactions.accountType` is a snapshot stamped at row-creation time and never
-  // updated when the account is later linked to a bank — so a batch imported into a
-  // manual account before it got connected still reads `accountType: system` on every
-  // row. Re-check each touched account's CURRENT type here: deleting through a
-  // provider-synced account would fire the normal local balance-reversal hooks while
-  // the provider sync independently tracks that same balance, desyncing the two.
-  // TODO: support undoing a batch whose account was later bank-linked — needs to
-  // reconcile against the provider sync instead of just reversing locally.
+  if (rows.length > MAX_BATCH_DELETE_TRANSACTIONS) {
+    captureException({
+      error: new Error('Import batch delete request exceeded the synchronous cap'),
+      context: { userId, batchId, rowCount: rows.length, cap: MAX_BATCH_DELETE_TRANSACTIONS },
+    });
+    throw new ValidationError({
+      message: t({ key: 'importExport.batchDeleteTooLarge' }),
+    });
+  }
+
+  // `accountType` on the row is a creation-time snapshot, never updated when the account
+  // later links to a bank — re-check the CURRENT type here to avoid desyncing a
+  // provider-synced balance.
+  // TODO: support undoing a batch whose account was later bank-linked by reconciling
+  // against the provider sync instead of refusing outright.
   const accountIds = [...new Set(rows.map((row) => row.accountId))];
   const accounts = (await Accounts.findAll({
     where: { id: { [Op.in]: accountIds } },
@@ -73,5 +86,17 @@ export const deleteImportBatch = async ({
     });
   }
 
-  return bulkDelete({ userId, transactionIds: rows.map((row) => row.id) });
+  const transactionIds = rows.map((row) => row.id);
+  let deletedCount = 0;
+  const deletedIds: string[] = [];
+  for (let offset = 0; offset < transactionIds.length; offset += BATCH_DELETE_CHUNK_SIZE) {
+    const chunkResult = await bulkDelete({
+      userId,
+      transactionIds: transactionIds.slice(offset, offset + BATCH_DELETE_CHUNK_SIZE),
+    });
+    deletedCount += chunkResult.deletedCount;
+    deletedIds.push(...chunkResult.deletedIds);
+  }
+
+  return { deletedCount, deletedIds };
 };
