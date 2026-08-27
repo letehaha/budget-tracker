@@ -3,8 +3,11 @@ import {
   BANK_PROVIDER_TYPE,
   CategoryOptionValue,
   CurrencyOptionValue,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
   TransactionTypeOptionValue,
   asDecimal,
+  type RecordId,
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
@@ -168,5 +171,69 @@ describe('DELETE /import/batch/:batchId', () => {
     // Blocked before deletion, not partially applied.
     const stillThere = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
     expect(stillThere).toHaveLength(2);
+  });
+
+  it('unlinks (but does not delete) a transfer leg linked to a transaction outside the batch', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const summary = await runCsvImport({ accountId: account.id, currencyCode: account.currencyCode });
+
+    const otherAccount = await helpers.createAccount({ raw: true });
+    const [manualTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: otherAccount.id,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    const linkedBatchTxId = summary.newTransactionIds[0]!;
+    await helpers.linkTransactions({
+      payload: { ids: [[manualTx!.id as RecordId, linkedBatchTxId as RecordId]] },
+      raw: true,
+    });
+
+    const result = await helpers.deleteImportBatch({ batchId: summary.batchId, raw: true });
+    expect(result.deletedCount).toBe(2);
+    expect(result.deletedIds.toSorted()).toEqual(summary.newTransactionIds.toSorted());
+
+    const remainingBatchTxs = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
+    expect(remainingBatchTxs).toHaveLength(0);
+
+    // The linked transaction survives, demoted to a standalone out-of-wallet row.
+    const [manualTxAfter] = await helpers.getTransactions({ accountIds: [otherAccount.id], raw: true });
+    expect(manualTxAfter?.id).toBe(manualTx!.id);
+    expect(manualTxAfter?.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
+    expect(manualTxAfter?.transferId).toBeNull();
+  });
+
+  it('hard-deletes the linked external transaction too when deleteLinkedTransfers is true', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const summary = await runCsvImport({ accountId: account.id, currencyCode: account.currencyCode });
+
+    const otherAccount = await helpers.createAccount({ raw: true });
+    const [manualTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: otherAccount.id,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
+      raw: true,
+    });
+
+    const linkedBatchTxId = summary.newTransactionIds[0]!;
+    await helpers.linkTransactions({
+      payload: { ids: [[manualTx!.id as RecordId, linkedBatchTxId as RecordId]] },
+      raw: true,
+    });
+
+    const result = await helpers.deleteImportBatch({
+      batchId: summary.batchId,
+      deleteLinkedTransfers: true,
+      raw: true,
+    });
+    expect(result.deletedCount).toBe(3);
+    expect(result.deletedIds.toSorted()).toEqual([...summary.newTransactionIds, manualTx!.id].toSorted());
+
+    const manualTxAfter = await helpers.getTransactions({ accountIds: [otherAccount.id], raw: true });
+    expect(manualTxAfter).toHaveLength(0);
   });
 });

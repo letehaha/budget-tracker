@@ -68,8 +68,14 @@ export const getBatchesHistory = async (params: {
   return api.get('/import/batches-history', params);
 };
 
-export const deleteImportBatch = async ({ batchId }: { batchId: string }): Promise<DeleteImportBatchResponse> => {
-  return api.delete(`/import/batch/${batchId}`);
+export const deleteImportBatch = async ({
+  batchId,
+  deleteLinkedTransfers,
+}: {
+  batchId: string;
+  deleteLinkedTransfers?: boolean;
+}): Promise<DeleteImportBatchResponse> => {
+  return api.delete(`/import/batch/${batchId}`, { data: { deleteLinkedTransfers } });
 };
 
 // Statement Parser API (supports PDF, CSV, TXT)

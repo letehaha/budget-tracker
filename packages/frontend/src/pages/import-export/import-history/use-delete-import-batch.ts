@@ -10,7 +10,8 @@ export function useDeleteImportBatch({ onSuccess }: { onSuccess?: () => void } =
   const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
   return useMutation({
-    mutationFn: async ({ batchId }: { batchId: string }) => deleteImportBatch({ batchId }),
+    mutationFn: async ({ batchId, deleteLinkedTransfers }: { batchId: string; deleteLinkedTransfers?: boolean }) =>
+      deleteImportBatch({ batchId, deleteLinkedTransfers }),
     onSuccess: (result) => {
       // Deletions move account balances, so refresh everything tx-derived
       // (this also covers the batch-history list itself).

@@ -1,8 +1,9 @@
-import { ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, isTwoLegTransfer } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { captureException } from '@js/utils/sentry';
 import Accounts from '@models/accounts.model';
+import { findTransactions, updateTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
 import { bulkDelete } from '@services/transactions/bulk-delete';
 import { Op } from 'sequelize';
@@ -10,6 +11,11 @@ import { Op } from 'sequelize';
 interface DeleteImportBatchParams {
   userId: number;
   batchId: string;
+  /** Explicit opt-in to hard-delete a transfer's other leg when it lies outside the
+   *  batch (a pre-existing manual transaction the import got linked to). Default
+   *  `false` unlinks the batch's own leg to `transfer_out_wallet` instead, leaving the
+   *  external transaction untouched. */
+  deleteLinkedTransfers?: boolean;
 }
 
 interface DeleteImportBatchResult {
@@ -38,6 +44,7 @@ const BATCH_DELETE_CHUNK_SIZE = 100;
 export const deleteImportBatch = async ({
   userId,
   batchId,
+  deleteLinkedTransfers = false,
 }: DeleteImportBatchParams): Promise<DeleteImportBatchResult> => {
   const rows = (await Transactions.findWithFilters({
     planned: 'exclude',
@@ -45,9 +52,14 @@ export const deleteImportBatch = async ({
     completeness: 'all',
     balanceAdjustments: 'include',
     batchId,
-    attributes: ['id', 'accountId'],
+    attributes: ['id', 'accountId', 'transferId', 'transferNature'],
     isRaw: true,
-  })) as unknown as { id: string; accountId: string }[];
+  })) as unknown as {
+    id: string;
+    accountId: string;
+    transferId: string | null;
+    transferNature: TRANSACTION_TRANSFER_NATURE;
+  }[];
 
   if (rows.length === 0) {
     return { deletedCount: 0, deletedIds: [] };
@@ -86,6 +98,66 @@ export const deleteImportBatch = async ({
     });
   }
 
+  // `deleteTransaction` cascade-deletes BOTH legs of a transfer unconditionally — a batch
+  // row linked to a pre-existing manual transaction would silently destroy it too, uncounted.
+  // Transfers created entirely within this batch (both legs present) are exempt: their
+  // normal cascade-delete-together destroys nothing external.
+  const batchRowIds = new Set(rows.map((row) => row.id));
+  const linkedLegs = rows.filter((row) => isTwoLegTransfer(row.transferNature) && row.transferId);
+
+  let externalTwinIds: string[] = [];
+  let legsWithExternalTwin: typeof linkedLegs = [];
+  if (linkedLegs.length > 0) {
+    // Unauthenticated on purpose, mirroring `deleteTransaction`'s own cascade lookup: a
+    // cross-user (shared-account) transfer's twin can belong to a different userId.
+    const transferIds = [...new Set(linkedLegs.map((row) => row.transferId!))];
+    const twins = (await findTransactions({
+      planned: 'include',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      completeness: 'all',
+      where: { transferId: { [Op.in]: transferIds } },
+      attributes: ['id', 'transferId'],
+      raw: true,
+    })) as unknown as { id: string; transferId: string }[];
+
+    const transferIdsWithExternalTwin = new Set(
+      twins.filter((twin) => !batchRowIds.has(twin.id)).map((twin) => twin.transferId),
+    );
+    externalTwinIds = twins
+      .filter((twin) => transferIdsWithExternalTwin.has(twin.transferId) && !batchRowIds.has(twin.id))
+      .map((twin) => twin.id);
+    legsWithExternalTwin = linkedLegs.filter((row) => transferIdsWithExternalTwin.has(row.transferId!));
+  }
+
+  if (externalTwinIds.length > 0 && !deleteLinkedTransfers) {
+    // A loan leg has no unlink path (see `unlinkTransferTransactions`) — the twin can
+    // only go away by being deleted, which the caller hasn't opted into.
+    const hasLoanLeg = legsWithExternalTwin.some(
+      (row) => row.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+    );
+    if (hasLoanLeg) {
+      throw new ValidationError({
+        message: t({ key: 'importExport.batchDeleteLinkedLoanTransfer' }),
+      });
+    }
+
+    // Unlink BOTH legs (mirrors `unlinkTransferTransactions`) so the surviving external
+    // twin lands as a clean standalone row, not a two-leg transfer with no partner.
+    // `access: 'unscoped-internal'` matches `deleteTransaction`'s own cascade branch — the
+    // twin may belong to a different user on a shared account. No balance impact:
+    // `updateTransactions` skips per-instance hooks and the money movement is unchanged.
+    await updateTransactions({
+      planned: 'exclude',
+      access: 'unscoped-internal',
+      balanceAdjustments: 'include',
+      values: { transferId: null, transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet },
+      where: {
+        transferId: { [Op.in]: [...new Set(legsWithExternalTwin.map((row) => row.transferId!))] },
+      },
+    });
+  }
+
   const transactionIds = rows.map((row) => row.id);
   let deletedCount = 0;
   const deletedIds: string[] = [];
@@ -96,6 +168,14 @@ export const deleteImportBatch = async ({
     });
     deletedCount += chunkResult.deletedCount;
     deletedIds.push(...chunkResult.deletedIds);
+  }
+
+  // Opted-in cascade deletes happened as a side effect of `bulkDelete` above (via
+  // `deleteTransaction`'s two-leg branch) but were never in its own input list, so its
+  // count doesn't include them — add them in now that they're confirmed gone.
+  if (deleteLinkedTransfers && externalTwinIds.length > 0) {
+    deletedCount += externalTwinIds.length;
+    deletedIds.push(...externalTwinIds);
   }
 
   return { deletedCount, deletedIds };

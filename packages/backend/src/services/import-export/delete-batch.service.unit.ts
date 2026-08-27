@@ -1,7 +1,16 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-const findWithFiltersMock = jest.fn<() => Promise<{ id: string; accountId: string }[]>>();
+interface MockRow {
+  id: string;
+  accountId: string;
+  transferId?: string | null;
+  transferNature?: string;
+}
+
+const findWithFiltersMock = jest.fn<() => Promise<MockRow[]>>();
 const accountsFindAllMock = jest.fn<() => Promise<{ id: string; type: string }[]>>();
+const transactionsFindAllMock = jest.fn<() => Promise<{ id: string; transferId: string }[]>>();
+const updateTransactionsMock = jest.fn<(params: unknown) => Promise<unknown>>();
 const bulkDeleteMock =
   jest.fn<
     (params: { userId: number; transactionIds: string[] }) => Promise<{ deletedCount: number; deletedIds: string[] }>
@@ -11,6 +20,12 @@ const captureExceptionMock = jest.fn<(...args: unknown[]) => void>();
 jest.mock('@models/transactions.model', () => ({
   __esModule: true,
   findWithFilters: () => findWithFiltersMock(),
+}));
+
+jest.mock('@models/transactions-query', () => ({
+  __esModule: true,
+  findTransactions: () => transactionsFindAllMock(),
+  updateTransactions: (params: unknown) => updateTransactionsMock(params),
 }));
 
 jest.mock('@models/accounts.model', () => ({
@@ -29,6 +44,8 @@ jest.mock('@js/utils/sentry', () => ({
 }));
 
 /* eslint-disable import/first */
+import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+
 import { deleteImportBatch } from './delete-batch.service';
 /* eslint-enable import/first */
 
@@ -82,5 +99,25 @@ describe('deleteImportBatch', () => {
 
     expect(bulkDeleteMock).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ deletedCount: 2, deletedIds: ['tx-0', 'tx-1'] });
+  });
+
+  it('rejects, without mutating anything, when a batch leg is linked to a loan payment outside the batch', async () => {
+    findWithFiltersMock.mockResolvedValue([
+      {
+        id: 'tx-0',
+        accountId: 'acc-1',
+        transferId: 'transfer-1',
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+      },
+    ]);
+    transactionsFindAllMock.mockResolvedValue([
+      { id: 'tx-0', transferId: 'transfer-1' },
+      { id: 'loan-payment-outside-batch', transferId: 'transfer-1' },
+    ]);
+
+    await expect(deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID })).rejects.toThrow();
+
+    expect(updateTransactionsMock).not.toHaveBeenCalled();
+    expect(bulkDeleteMock).not.toHaveBeenCalled();
   });
 });

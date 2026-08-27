@@ -815,14 +815,17 @@ export function getBatchesHistory<R extends boolean | undefined = false>({
 
 export function deleteImportBatch<R extends boolean | undefined = false>({
   batchId,
+  deleteLinkedTransfers,
   raw,
 }: {
   batchId: string;
+  deleteLinkedTransfers?: boolean;
   raw?: R;
 }): UtilizeReturnType<() => DeleteImportBatchResponse, R> {
   return makeRequest<DeleteImportBatchResponse, R>({
     method: 'delete',
     url: `/import/batch/${batchId}`,
+    payload: deleteLinkedTransfers !== undefined ? { deleteLinkedTransfers } : undefined,
     raw,
   });
 }

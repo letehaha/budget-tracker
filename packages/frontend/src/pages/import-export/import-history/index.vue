@@ -113,6 +113,7 @@
       confirm-variant="destructive"
       :confirm-disabled="deleteBatchMutation.isPending.value"
       @confirm="handleDeleteConfirm"
+      @cancel="resetDeleteState"
     >
       <template #title>{{ $t('pages.importExport.importHistory.deleteConfirmTitle') }}</template>
       <template #description>
@@ -126,6 +127,32 @@
             : ''
         }}
       </template>
+
+      <Callout variant="destructive" :title="$t('pages.importExport.importHistory.deleteLinkedTransfersWarningTitle')">
+        <label class="flex cursor-pointer items-start gap-2">
+          <Checkbox
+            class="mt-0.5"
+            :model-value="deleteLinkedTransfers"
+            @update:model-value="(val) => (deleteLinkedTransfers = !!val)"
+          />
+          <span>{{ $t('pages.importExport.importHistory.deleteLinkedTransfersCheckbox') }}</span>
+        </label>
+        <p class="mt-2 text-xs">{{ $t('pages.importExport.importHistory.deleteLinkedTransfersDescription') }}</p>
+      </Callout>
+    </ResponsiveAlertDialog>
+
+    <ResponsiveAlertDialog
+      v-model:open="isConfirmLinkedTransfersOpen"
+      :confirm-label="$t('pages.importExport.importHistory.deleteButton')"
+      confirm-variant="destructive"
+      :confirm-disabled="deleteBatchMutation.isPending.value"
+      @confirm="handleConfirmLinkedTransfersDelete"
+      @cancel="resetDeleteState"
+    >
+      <template #title>{{ $t('pages.importExport.importHistory.deleteLinkedTransfersConfirmTitle') }}</template>
+      <template #description>
+        {{ $t('pages.importExport.importHistory.deleteLinkedTransfersConfirmDescription') }}
+      </template>
     </ResponsiveAlertDialog>
   </div>
 </template>
@@ -133,7 +160,9 @@
 <script setup lang="ts">
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { Card } from '@/components/lib/ui/card';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useDateLocale } from '@/composable/use-date-locale';
@@ -187,23 +216,45 @@ const openBatch = (batch: ImportBatchSummary) => {
 };
 
 const isDeleteDialogOpen = ref(false);
+const isConfirmLinkedTransfersOpen = ref(false);
 const batchPendingDelete = ref<ImportBatchSummary | null>(null);
+const deleteLinkedTransfers = ref(false);
+
+const resetDeleteState = () => {
+  batchPendingDelete.value = null;
+  deleteLinkedTransfers.value = false;
+};
 
 const deleteBatchMutation = useDeleteImportBatch({
   onSuccess: () => {
     isDeleteDialogOpen.value = false;
-    batchPendingDelete.value = null;
+    isConfirmLinkedTransfersOpen.value = false;
+    resetDeleteState();
   },
 });
 
 const confirmDeleteBatch = (batch: ImportBatchSummary) => {
   batchPendingDelete.value = batch;
+  deleteLinkedTransfers.value = false;
   isDeleteDialogOpen.value = true;
 };
 
 const handleDeleteConfirm = () => {
   if (!batchPendingDelete.value) return;
-  deleteBatchMutation.mutate({ batchId: batchPendingDelete.value.batchId });
+  // Checking the box gates the actual delete behind a second, explicit confirmation —
+  // it's easy to tick accidentally, and this path also destroys a linked transaction
+  // outside the batch.
+  if (deleteLinkedTransfers.value) {
+    isDeleteDialogOpen.value = false;
+    isConfirmLinkedTransfersOpen.value = true;
+    return;
+  }
+  deleteBatchMutation.mutate({ batchId: batchPendingDelete.value.batchId, deleteLinkedTransfers: false });
+};
+
+const handleConfirmLinkedTransfersDelete = () => {
+  if (!batchPendingDelete.value) return;
+  deleteBatchMutation.mutate({ batchId: batchPendingDelete.value.batchId, deleteLinkedTransfers: true });
 };
 
 const sentinelRef = ref<HTMLElement | null>(null);
