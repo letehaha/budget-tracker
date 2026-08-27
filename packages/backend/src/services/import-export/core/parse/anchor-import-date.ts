@@ -1,4 +1,4 @@
-import { type ParsedImportDate } from './date-engine';
+import { type ParsedImportDate } from '@bt/shared/import-export/date-engine';
 
 interface AnchorImportDateParams {
   parsed: ParsedImportDate;

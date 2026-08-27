@@ -1,3 +1,4 @@
+import { parseImportDate } from '@bt/shared/import-export/date-engine';
 import type { ColumnMappingConfig, InvalidRow, ParsedTransactionRow } from '@bt/shared/types';
 import {
   AccountOptionValue,
@@ -11,7 +12,6 @@ import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
 import { anchorImportDate } from '@services/import-export/core/parse/anchor-import-date';
-import { parseImportDate } from '@services/import-export/core/parse/date-engine';
 import { parseAmount } from '@services/import-export/core/parse/parse-amount';
 import { splitTagCell } from '@services/import-export/core/parse/split-tag-cell';
 

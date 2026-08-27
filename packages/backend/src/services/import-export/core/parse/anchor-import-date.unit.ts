@@ -1,7 +1,7 @@
+import { type ParsedImportDate } from '@bt/shared/import-export/date-engine';
 import { describe, expect, it } from '@jest/globals';
 
 import { anchorImportDate } from './anchor-import-date';
-import { type ParsedImportDate } from './date-engine';
 
 describe('anchorImportDate', () => {
   describe('instant', () => {

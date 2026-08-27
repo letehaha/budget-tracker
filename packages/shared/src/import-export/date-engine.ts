@@ -1,5 +1,5 @@
-import { type SupportedLocale } from '@bt/shared/i18n/locales';
-import { type DateFieldOrder } from '@bt/shared/types';
+import { type SupportedLocale } from '../i18n/locales';
+import { type DateFieldOrder } from '../types/import-export';
 
 /**
  * Timezone-agnostic normalized result of parsing a single raw date cell.
@@ -7,6 +7,10 @@ import { type DateFieldOrder } from '@bt/shared/types';
  * The engine never applies a timezone. A later piece anchors `dateOnly` /
  * `localDateTime` values to the user's browser timezone to decide the stored
  * instant; `instant` already carries an absolute moment and is preserved as-is.
+ *
+ * Lives in `shared` because the import wizard's client-side preview and the
+ * server's actual parse MUST agree cell-for-cell — a second hand-mirrored
+ * grammar is how they drift apart.
  */
 export type ParsedImportDate =
   | { kind: 'instant'; instant: Date }
@@ -65,10 +69,16 @@ const ISO_DATE = /^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/;
 // Compact 8-digit YYYYMMDD with no separators.
 const COMPACT_DATE = /^(\d{4})(\d{2})(\d{2})$/;
 
-// Year-LAST date with two 1-2 digit lead fields (d/d/yyyy, `/ . -` separators).
-// Which lead field is the day vs the month is intrinsically ambiguous, so it is
-// resolved at the column level via `DateColumnFormat.fieldOrder`.
-const AMBIGUOUS_DMY = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/;
+// Year-LAST date with two 1-2 digit lead fields and a 4- or 2-digit year
+// (d/d/yyyy, d/d/yy, `/ . -` separators), optionally followed by a time —
+// comma- or space-separated `hh:mm`, with optional seconds (e.g.
+// "01/01/26, 10:58" as exported by some money apps). Which lead field is the
+// day vs the month is intrinsically ambiguous, so it is resolved at the
+// column level via `DateColumnFormat.fieldOrder`.
+const AMBIGUOUS_DMY = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})(?:(?:,\s*|\s+)(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
+
+// First separator character of an ambiguous-family value, for option labels.
+const AMBIGUOUS_SEPARATOR = /^\d{1,2}([/.-])/;
 
 function isValidCalendarDate({ year, month, day }: { year: number; month: number; day: number }): boolean {
   if (month < 1 || month > 12) return false;
@@ -79,6 +89,22 @@ function isValidCalendarDate({ year, month, day }: { year: number; month: number
   return day <= daysInMonth;
 }
 
+// POSIX-style pivot: bank/app exports realistically span 1970–2069, so `26`
+// reads as 2026 and `99` as 1999.
+function resolveAmbiguousYear(yearStr: string): number {
+  const year = Number(yearStr);
+  if (yearStr.length === 4) return year;
+  return year >= 70 ? 1900 + year : 2000 + year;
+}
+
+/** True when the value is an ISO date/datetime or compact YYYYMMDD — shapes
+ *  that carry their field order intrinsically and ignore `fieldOrder`. */
+export function isIntrinsicallyOrdered({ value }: { value: string }): boolean {
+  return (
+    ISO_ZONED_DATETIME.test(value) || ISO_LOCAL_DATETIME.test(value) || ISO_DATE.test(value) || COMPACT_DATE.test(value)
+  );
+}
+
 export function parseImportDate({ value, format }: ParseImportDateParams): ParsedImportDate | null {
   if (ISO_ZONED_DATETIME.test(value)) {
     return { kind: 'instant', instant: new Date(value) };
@@ -87,6 +113,7 @@ export function parseImportDate({ value, format }: ParseImportDateParams): Parse
   const localMatch = value.match(ISO_LOCAL_DATETIME);
   if (localMatch) {
     const [, year, month, day, hour, minute, second, fraction] = localMatch;
+    if (!isValidCalendarDate({ year: Number(year), month: Number(month), day: Number(day) })) return null;
     return {
       kind: 'localDateTime',
       year: Number(year),
@@ -123,53 +150,73 @@ export function parseImportDate({ value, format }: ParseImportDateParams): Parse
 
   const ambiguousMatch = value.match(AMBIGUOUS_DMY);
   if (ambiguousMatch) {
-    const [, firstStr, secondStr, yearStr] = ambiguousMatch;
+    const [, firstStr, secondStr, yearStr, hourStr, minuteStr, secondsStr] = ambiguousMatch;
     const first = Number(firstStr);
     const second = Number(secondStr);
-    const year = Number(yearStr);
+    const year = resolveAmbiguousYear(yearStr!);
     // The whole column shares one order, so a leading field is the day or the
     // month consistently — never re-guessed per value.
     const day = format.fieldOrder === 'day-first' ? first : second;
     const month = format.fieldOrder === 'day-first' ? second : first;
-    if (isValidCalendarDate({ year, month, day })) {
+    if (!isValidCalendarDate({ year, month, day })) return null;
+
+    if (hourStr === undefined) {
       return { kind: 'dateOnly', year, month, day };
     }
+    const hour = Number(hourStr);
+    const minute = Number(minuteStr);
+    const seconds = secondsStr === undefined ? 0 : Number(secondsStr);
+    // Same no-rollover rule as dates: an impossible time fails loudly instead
+    // of snapping into the next hour/day.
+    if (hour > 23 || minute > 59 || seconds > 59) return null;
+    return { kind: 'localDateTime', year, month, day, hour, minute, second: seconds, ms: 0 };
   }
 
   return null;
 }
 
 /**
- * Suggests a day/month order for a whole date column. This is a SUGGESTION
- * algorithm, not the authority: the CSV import path parses with the
- * `dateFieldOrder` the user explicitly confirmed in the wizard (the frontend
- * mirrors this detection to pre-suggest an option there). Kept canonical here
- * so client and server infer signals identically.
+ * Day/month-order signals carried by a column's cells. Only the ambiguous
+ * d/d/yyyy family is informative: a lead field above 12 can only be a day
+ * (→ day-first); a second field above 12 can only be a month-position day
+ * (→ month-first). All other shapes are intrinsically ordered and contribute
+ * nothing.
  */
-export function detectDateColumnFormat({ values, locale }: DetectDateColumnFormatParams): DetectDateColumnFormatResult {
-  let sawDayFirstSignal = false;
-  let sawMonthFirstSignal = false;
+export function detectDateOrderSignals({ values }: { values: string[] }): {
+  sawDayFirst: boolean;
+  sawMonthFirst: boolean;
+} {
+  let sawDayFirst = false;
+  let sawMonthFirst = false;
 
-  // Only the ambiguous d/d/yyyy family carries order ambiguity. A lead field
-  // above 12 can only be a day (→ day-first); a second field above 12 can only
-  // be a month-position day (→ month-first). All other shapes are intrinsically
-  // ordered and contribute no signal.
   for (const value of values) {
     const match = value.match(AMBIGUOUS_DMY);
     if (!match) continue;
     const first = Number(match[1]);
     const second = Number(match[2]);
-    if (first > 12) sawDayFirstSignal = true;
-    if (second > 12) sawMonthFirstSignal = true;
+    if (first > 12) sawDayFirst = true;
+    if (second > 12) sawMonthFirst = true;
   }
 
-  if (sawDayFirstSignal && sawMonthFirstSignal) {
+  return { sawDayFirst, sawMonthFirst };
+}
+
+/**
+ * Suggests a day/month order for a whole date column. This is a SUGGESTION
+ * algorithm, not the authority: the CSV import path parses with the
+ * `dateFieldOrder` the user explicitly confirmed in the wizard (the frontend
+ * builds its pre-suggestion on the same signals via `detectDateOrderSignals`).
+ */
+export function detectDateColumnFormat({ values, locale }: DetectDateColumnFormatParams): DetectDateColumnFormatResult {
+  const { sawDayFirst, sawMonthFirst } = detectDateOrderSignals({ values });
+
+  if (sawDayFirst && sawMonthFirst) {
     return { ok: false, reason: 'mixed' };
   }
-  if (sawDayFirstSignal) {
+  if (sawDayFirst) {
     return { ok: true, format: { fieldOrder: 'day-first' } };
   }
-  if (sawMonthFirstSignal) {
+  if (sawMonthFirst) {
     return { ok: true, format: { fieldOrder: 'month-first' } };
   }
 
@@ -178,4 +225,18 @@ export function detectDateColumnFormat({ values, locale }: DetectDateColumnForma
   // writes day-first (DD/MM). Only a suggestion — the user still confirms.
   const fieldOrder = locale === 'en' ? 'month-first' : 'day-first';
   return { ok: true, format: { fieldOrder } };
+}
+
+/**
+ * Separator of the first ambiguous-family cell (`.`, `/` or `-`), used to
+ * render wizard option examples with the column's actual separator. `null`
+ * when no ambiguous-family cell exists.
+ */
+export function detectAmbiguousDateSeparator({ values }: { values: string[] }): string | null {
+  for (const value of values) {
+    if (!AMBIGUOUS_DMY.test(value)) continue;
+    const match = value.match(AMBIGUOUS_SEPARATOR);
+    if (match?.[1]) return match[1];
+  }
+  return null;
 }

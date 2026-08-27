@@ -1,6 +1,5 @@
+import { type DateColumnFormat, detectDateColumnFormat, parseImportDate } from '@bt/shared/import-export/date-engine';
 import { describe, expect, it } from '@jest/globals';
-
-import { type DateColumnFormat, detectDateColumnFormat, parseImportDate } from './date-engine';
 
 // A neutral format for value-shape tests where field order is irrelevant
 // (ISO, ISO-datetime and compact values carry their order intrinsically).
@@ -188,5 +187,86 @@ describe('detectDateColumnFormat', () => {
     });
 
     expect(detection).toEqual({ ok: false, reason: 'mixed' });
+  });
+});
+
+describe('ambiguous family: two-digit years and time suffixes', () => {
+  it('parses DD/MM/YY with a comma-separated time (the "01/01/26, 10:58" report) as localDateTime', () => {
+    expect(parseImportDate({ value: '01/01/26, 10:58', format: { fieldOrder: 'day-first' } })).toEqual({
+      kind: 'localDateTime',
+      year: 2026,
+      month: 1,
+      day: 1,
+      hour: 10,
+      minute: 58,
+      second: 0,
+      ms: 0,
+    });
+  });
+
+  it('parses a plain two-digit-year date as dateOnly pivoted to the 2000s', () => {
+    expect(parseImportDate({ value: '15/01/26', format: { fieldOrder: 'day-first' } })).toEqual({
+      kind: 'dateOnly',
+      year: 2026,
+      month: 1,
+      day: 15,
+    });
+  });
+
+  it('pivots two-digit years ≥ 70 to the 1900s', () => {
+    expect(parseImportDate({ value: '15/01/99', format: { fieldOrder: 'day-first' } })).toEqual({
+      kind: 'dateOnly',
+      year: 1999,
+      month: 1,
+      day: 15,
+    });
+  });
+
+  it('parses a space-separated time with seconds on a four-digit-year date', () => {
+    expect(parseImportDate({ value: '15/01/2026 14:30:45', format: { fieldOrder: 'day-first' } })).toEqual({
+      kind: 'localDateTime',
+      year: 2026,
+      month: 1,
+      day: 15,
+      hour: 14,
+      minute: 30,
+      second: 45,
+      ms: 0,
+    });
+  });
+
+  it('respects the field order for timed values', () => {
+    expect(parseImportDate({ value: '01/02/26, 10:58', format: { fieldOrder: 'month-first' } })).toEqual({
+      kind: 'localDateTime',
+      year: 2026,
+      month: 1,
+      day: 2,
+      hour: 10,
+      minute: 58,
+      second: 0,
+      ms: 0,
+    });
+  });
+
+  it('returns null for impossible times instead of rolling them over', () => {
+    expect(parseImportDate({ value: '01/01/26, 25:00', format: { fieldOrder: 'day-first' } })).toBeNull();
+    expect(parseImportDate({ value: '01/01/26, 10:61', format: { fieldOrder: 'day-first' } })).toBeNull();
+  });
+
+  it('returns null for an impossible calendar date even when the time is valid', () => {
+    expect(parseImportDate({ value: '30/02/26, 10:00', format: { fieldOrder: 'day-first' } })).toBeNull();
+  });
+
+  it('reads day/month order signals through time suffixes and two-digit years', () => {
+    expect(detectDateColumnFormat({ values: ['13/06/26, 10:00', '08/06/26, 11:30'], locale: 'en' })).toEqual({
+      ok: true,
+      format: { fieldOrder: 'day-first' },
+    });
+  });
+});
+
+describe('ISO local datetime calendar validation', () => {
+  it('returns null for an impossible calendar date in an ISO datetime instead of rolling it over', () => {
+    expect(parseImportDate({ value: '2026-02-30 10:00', format: ANY_FORMAT })).toBeNull();
   });
 });

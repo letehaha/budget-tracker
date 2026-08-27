@@ -1,3 +1,4 @@
+import { detectDateColumnFormat } from '@bt/shared/import-export/date-engine';
 import {
   YNAB_FLAG_COLORS,
   YNAB_MAX_REGISTER_ROWS,
@@ -15,7 +16,6 @@ import {
   type YnabParseWarning,
 } from '@bt/shared/types';
 import { ValidationError } from '@js/errors';
-import { detectDateColumnFormat } from '@services/import-export/core/parse/date-engine';
 import { roundCurrency } from '@services/import-export/core/round-currency';
 import { parse } from 'csv-parse/sync';
 
