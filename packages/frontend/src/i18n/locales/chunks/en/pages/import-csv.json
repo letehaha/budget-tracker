@@ -9,7 +9,8 @@
           "steps": {
             "upload": "Upload",
             "map": "Map Columns",
-            "resolve": "Resolve Values",
+            "resolveAccounts": "Accounts",
+            "resolveCategories": "Categories",
             "review": "Review",
             "results": "Done"
           }
@@ -115,6 +116,7 @@
           "imported": "Imported",
           "skippedDuplicates": "Skipped (Duplicates)",
           "accountsCreated": "Accounts Created",
+          "accountsSkipped": "Accounts skipped",
           "categoriesCreated": "Categories Created",
           "tagsCreated": "Tags Created",
           "payeesCreated": "Payees Created",
@@ -255,7 +257,8 @@
           "empty": "No accounts found in CSV",
           "currentBalanceLabel": "Current balance",
           "currentBalancePlaceholder": "0.00",
-          "currentBalanceHint": "The balance this account holds right now — the import will set the account to exactly this value. Leave blank to use the sum of imported transactions."
+          "currentBalanceHint": "The balance this account holds right now — the import will set the account to exactly this value. Leave blank to use the sum of imported transactions.",
+          "skippedNote": "{count} account(s) will be skipped. Their transactions will not be imported."
         },
         "categories": {
           "sectionTitle": "Category Mapping",

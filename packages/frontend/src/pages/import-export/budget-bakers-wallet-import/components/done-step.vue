@@ -31,6 +31,11 @@
         :value="summary.accountsLinked"
       />
       <StatCard
+        v-if="(summary.accountsSkipped ?? 0) > 0"
+        :label="$t('pages.importExport.budgetBakersWalletImport.done.accountsSkipped')"
+        :value="summary.accountsSkipped ?? 0"
+      />
+      <StatCard
         :label="$t('pages.importExport.budgetBakersWalletImport.done.categoriesCreated')"
         :value="summary.categoriesCreated"
       />

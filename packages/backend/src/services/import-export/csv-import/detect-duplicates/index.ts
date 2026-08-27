@@ -61,7 +61,17 @@ export async function detectDuplicates({
 
   // Identify rows whose currency has no stored exchange rate. The result is
   // passed to the preview so the user can decide to skip or abort those rows.
-  const unpriceableRows = await findUnpriceableRows({ userId, validRows });
+  // Rows on a skipped account never reach the import, so they must not gate the
+  // preview on a missing rate.
+  const skippedAccountNames = new Set(
+    Object.entries(accountMapping)
+      .filter(([, mapping]) => mapping.action === 'skip')
+      .map(([accountName]) => accountName),
+  );
+  const unpriceableRows = await findUnpriceableRows({
+    userId,
+    validRows: validRows.filter((row) => !skippedAccountNames.has(row.accountName)),
+  });
 
   return {
     validRows,

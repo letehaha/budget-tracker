@@ -3,7 +3,7 @@
  * BudgetBakers Wallet resolve step — reconciles every Wallet account + non-transfer category
  * against the user's existing app data using the shared mapping tables. Mirrors
  * the CSV importer's resolve step: each row is either "create new" or
- * "link to existing", with per-entity bulk-action toolbars.
+ * "link to existing", or skipped entirely, with per-entity bulk-action toolbars.
  *
  * Wallet-only addition: each `create-new` account row exposes an optional
  * "current balance" input (the `create-new-cell` slot). Leaving it blank lets
@@ -13,9 +13,7 @@ import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import RecalculateBalanceToggle from '@/pages/import-export/components/recalculate-balance-toggle.vue';
-import AccountMappingTable, {
-  type AccountAction,
-} from '@/pages/import-export/components/resolve-values-step/account-mapping-table.vue';
+import AccountMappingTable from '@/pages/import-export/components/resolve-values-step/account-mapping-table.vue';
 import CategoryMappingTable from '@/pages/import-export/components/resolve-values-step/category-mapping-table.vue';
 import { type QuickAction } from '@/pages/import-export/components/resolve-values-step/quick-action-toolbar.vue';
 import { useAccountsStore } from '@/stores/accounts';
@@ -57,13 +55,6 @@ const categoryItems = computed(() => {
   }
   return store.resolvableCategoryNames.map((name) => ({ name, transactionCount: countByName.get(name) }));
 });
-
-// ---- Account action bridge ----
-
-function onAccountSetAction({ name, action }: { name: string; action: AccountAction }): void {
-  if (action === 'skip') return;
-  store.setAccountAction({ name, action });
-}
 
 // ---- Current-balance input bridge (Wallet-only) ----
 
@@ -158,7 +149,8 @@ async function handleContinue() {
       :title="$t('pages.importExport.budgetBakersWalletImport.resolve.accounts.sectionTitle')"
       :resolved-label="$t('pages.importExport.budgetBakersWalletImport.resolve.resolvedCounterWord')"
       :quick-actions="accountQuickActions"
-      @set-action="onAccountSetAction"
+      allow-skip
+      @set-action="store.setAccountAction"
       @set-target="store.setAccountTarget"
     >
       <!-- Wallet-only: optional current-balance input for create-new accounts. -->
@@ -181,6 +173,16 @@ async function handleContinue() {
         </div>
       </template>
     </AccountMappingTable>
+
+    <Callout v-if="store.skippedAccountNames.length > 0" variant="warning">
+      <p>
+        {{
+          $t('pages.importExport.budgetBakersWalletImport.resolve.accounts.skippedNote', {
+            count: store.skippedAccountNames.length,
+          })
+        }}
+      </p>
+    </Callout>
 
     <!-- ==================== CATEGORIES SECTION ==================== -->
     <CategoryMappingTable

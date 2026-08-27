@@ -24,9 +24,14 @@
         "preview": {
           "emptyList": "Nothing to import here.",
           "accounts": "Accounts",
+          "categories": "Categories",
+          "payees": "Payees",
+          "tags": "Tags",
           "transactions": "Transactions",
+          "transfers": "Transfers",
           "dateRange": "Range: {from} → {to}",
           "accountsHelper": "For each YNAB account, confirm the currency.",
+          "skippedNote": "{count} account(s) will be skipped. Their transactions — and any transfers to or from them — will not be imported.",
           "warningsTitle": "Warnings",
           "rowPrefix": "Row {rowIndex}:",
           "startOver": "Start over",
@@ -38,7 +43,8 @@
           "currencyPlaceholder": "USD",
           "currencyLabel": "Currency",
           "currencyInvalid": "Enter a 3-letter currency code (e.g. USD)",
-          "autoDetected": "auto-detected: {code}"
+          "autoDetected": "auto-detected: {code}",
+          "undoSkip": "Include in import"
         },
         "execute": {
           "starting": "Starting the import…",
@@ -53,6 +59,7 @@
           "successTitle": "Import complete",
           "successDescription": "Your YNAB data is now in MoneyMatter.",
           "accountsCreated": "Accounts created",
+          "accountsSkipped": "Accounts skipped",
           "categoriesCreated": "Categories created",
           "payeesCreated": "Payees created",
           "tagsCreated": "Tags created",

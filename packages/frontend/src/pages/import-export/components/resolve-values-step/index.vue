@@ -21,6 +21,10 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
+const props = defineProps<{
+  section: 'accounts' | 'categories';
+}>();
+
 // ---- Stores ----
 
 const importStore = useImportExportStore();
@@ -48,11 +52,12 @@ const tagActionOptions = computed<OptionItem<TagMappingValue['action']>[]>(() =>
 // ---- Account mapping (shared table) emit handlers ----
 
 function onAccountSetAction({ name, action }: { name: string; action: AccountAction }) {
-  if (action === 'skip') return;
   if (action === 'create-new') {
     // `currentBalance: null` = leave the created account at the imported rows'
     // net sum; the balance input below overwrites it when the user enters a value.
     importStore.accountMapping[name] = { action: 'create-new', currentBalance: null };
+  } else if (action === 'skip') {
+    importStore.accountMapping[name] = { action: 'skip' };
   } else {
     importStore.accountMapping[name] = { action: 'link-existing', accountId: '' };
   }
@@ -98,7 +103,7 @@ function onCategorySetTarget({ name, categoryId }: { name: string; categoryId: s
 
 // ---- Category items for the shared table (names → { name }) ----
 
-const categoryItems = computed(() => importStore.uniqueCategoriesInCSV.map((name) => ({ name })));
+const categoryItems = computed(() => importStore.visibleCategoriesToResolve.map((name) => ({ name })));
 
 // ---- Tags table (kept inlined — out of scope for the shared extraction) ----
 
@@ -123,7 +128,7 @@ function getTagStatus(name: string): ResolveRowStatus {
 }
 
 const tagResolvedCount = computed(
-  () => importStore.uniqueTagsInCSV.filter((tg) => getTagStatus(tg) !== 'needs-attention').length,
+  () => importStore.visibleTagsToResolve.filter((tg) => getTagStatus(tg) !== 'needs-attention').length,
 );
 
 const tagColumns: MappingTableColumn[] = [
@@ -260,7 +265,18 @@ onMounted(() => {
 const isNavigating = ref(false);
 const navError = ref<string | null>(null);
 
+/** Only the last resolve step runs duplicate detection; earlier ones just advance. */
+const isLastResolveStep = computed(() => props.section === 'categories' || !importStore.needsCategoriesResolveStep);
+
+const isStepValid = computed(() =>
+  props.section === 'accounts' ? importStore.isResolveAccountsStepValid : importStore.isResolveCategoriesStepValid,
+);
+
 async function handleNext() {
+  if (!isLastResolveStep.value) {
+    importStore.goNext();
+    return;
+  }
   isNavigating.value = true;
   navError.value = null;
   try {
@@ -297,13 +313,14 @@ async function handleNext() {
 
       <!-- ==================== ACCOUNTS SECTION ==================== -->
       <AccountMappingTable
-        v-if="importStore.needsAccountResolution && importStore.uniqueAccountsInCSV.length > 0"
+        v-if="section === 'accounts' && importStore.uniqueAccountsInCSV.length > 0"
         :items="importStore.uniqueAccountsInCSV"
         :mapping="importStore.accountMapping"
         :available-accounts="importLinkableAccounts"
         :title="t('pages.importExport.resolveValues.accounts.sectionTitle')"
         :resolved-label="t('importShared.resolvedCounterWord')"
         :quick-actions="accountQuickActions"
+        allow-skip
         @set-action="onAccountSetAction"
         @set-target="onAccountSetTarget"
       >
@@ -326,9 +343,19 @@ async function handleNext() {
         </template>
       </AccountMappingTable>
 
+      <Callout v-if="section === 'accounts' && importStore.skippedAccountNames.length > 0" variant="warning">
+        <p>
+          {{
+            $t('pages.importExport.resolveValues.accounts.skippedNote', {
+              count: importStore.skippedAccountNames.length,
+            })
+          }}
+        </p>
+      </Callout>
+
       <!-- ==================== CATEGORIES SECTION ==================== -->
       <CategoryMappingTable
-        v-if="importStore.needsCategoryResolution && importStore.uniqueCategoriesInCSV.length > 0"
+        v-if="section === 'categories' && importStore.needsCategoryResolution && categoryItems.length > 0"
         :items="categoryItems"
         :mapping="importStore.categoryMapping"
         :available-categories="formattedCategories"
@@ -340,7 +367,9 @@ async function handleNext() {
       />
 
       <!-- ==================== TAGS SECTION ==================== -->
-      <section v-if="importStore.needsTagResolution && importStore.uniqueTagsInCSV.length > 0">
+      <section
+        v-if="section === 'categories' && importStore.needsTagResolution && importStore.visibleTagsToResolve.length > 0"
+      >
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 class="text-sm font-semibold">{{ t('pages.importExport.resolveValues.tags.sectionTitle') }}</h3>
@@ -348,7 +377,7 @@ async function handleNext() {
               {{
                 t('pages.importExport.resolveValues.tags.resolvedCount', {
                   resolved: tagResolvedCount,
-                  total: importStore.uniqueTagsInCSV.length,
+                  total: importStore.visibleTagsToResolve.length,
                 })
               }}
             </p>
@@ -364,7 +393,7 @@ async function handleNext() {
 
         <MappingTable
           :columns="tagColumns"
-          :items="importStore.uniqueTagsInCSV"
+          :items="importStore.visibleTagsToResolve"
           :row-key="(row) => row"
           :get-row-class="(row) => (getTagStatus(row) === 'needs-attention' ? 'bg-warning/5' : '')"
         >
@@ -450,10 +479,7 @@ async function handleNext() {
         {{ t('pages.importExport.resolveValues.footer.back') }}
       </UiButton>
 
-      <UiButton
-        :disabled="!importStore.isResolveStepValid || isNavigating || importStore.isExtracting"
-        @click="handleNext"
-      >
+      <UiButton :disabled="!isStepValid || isNavigating || importStore.isExtracting" @click="handleNext">
         {{ t('pages.importExport.resolveValues.footer.next') }}
         <ChevronRightIcon class="ml-1.5 size-4" />
       </UiButton>

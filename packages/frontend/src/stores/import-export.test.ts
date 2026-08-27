@@ -66,6 +66,12 @@ vi.mock('./onboarding', () => ({
   useOnboardingStore: vi.fn(() => ({ completeTask: vi.fn() })),
 }));
 
+// Only reached through the resolve engine's account link targets; mocked so the
+// real store's accounts query never fires.
+vi.mock('./accounts', () => ({
+  useAccountsStore: vi.fn(() => ({ importLinkableAccounts: [] })),
+}));
+
 vi.mock('./categories/categories', () => ({
   useCategoriesStore: vi.fn(() => ({ loadCategories: vi.fn() })),
 }));
@@ -99,6 +105,7 @@ import {
   CurrencyOptionValue,
   type DetectDuplicatesResponse,
   type ExecuteImportResponse,
+  type ParsedTransactionRow,
   type SourceAccount,
   TagOptionValue,
   TransactionTypeOptionValue,
@@ -229,25 +236,25 @@ describe('useImportExportStore – detectDuplicates', () => {
     const store = useImportExportStore();
     seedStore(store);
     store.columnMapping.dateFieldOrder = null;
-    store.currentStep = 2;
+    store.currentStepKey = 'map';
 
     await store.detectDuplicates();
 
     expect(mockDetectDuplicatesApi).not.toHaveBeenCalled();
     expect(store.detectError).not.toBeNull();
-    expect(store.currentStep).toBe(2);
+    expect(store.currentStepKey).toBe('map');
   });
 
-  it('advances to step 3 on a successful detection', async () => {
+  it('advances to the review step on a successful detection', async () => {
     mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
 
     const store = useImportExportStore();
     seedStore(store);
-    store.currentStep = 2;
+    store.currentStepKey = 'map';
 
     await store.detectDuplicates();
 
-    expect(store.currentStep).toBe(3);
+    expect(store.currentStepKey).toBe('review');
   });
 
   // N-5: network error — loading resets, detect-error state set, step does not advance
@@ -257,13 +264,13 @@ describe('useImportExportStore – detectDuplicates', () => {
 
     const store = useImportExportStore();
     seedStore(store);
-    store.currentStep = 2;
+    store.currentStepKey = 'map';
 
     await expect(store.detectDuplicates()).rejects.toThrow('Network failure');
 
     expect(store.isDetectingDuplicates).toBe(false);
     expect(store.detectError).not.toBeNull();
-    expect(store.currentStep).toBe(2);
+    expect(store.currentStepKey).toBe('map');
   });
 
   // N-5: after error→success the step advances and validRows is populated
@@ -279,18 +286,18 @@ describe('useImportExportStore – detectDuplicates', () => {
 
     const store = useImportExportStore();
     seedStore(store);
-    store.currentStep = 2;
+    store.currentStepKey = 'map';
 
     // First call: network error
     await expect(store.detectDuplicates()).rejects.toThrow('Network failure');
     expect(store.detectError).not.toBeNull();
-    expect(store.currentStep).toBe(2);
+    expect(store.currentStepKey).toBe('map');
 
     // Second call: success
     await store.detectDuplicates();
 
     expect(store.detectError).toBeNull();
-    expect(store.currentStep).toBe(3);
+    expect(store.currentStepKey).toBe('review');
     expect(store.validRows).toHaveLength(1);
   });
 });
@@ -598,6 +605,7 @@ describe('useImportExportStore – executeImport tagMapping inclusion', () => {
     const store = useImportExportStore();
     seedStore(store);
     store.columnMapping.tags = { option: 'map-data-source-column' as never, columnName: 'labels' };
+    store.uniqueTagsInCSV = ['Food'];
     store.tagMapping = { Food: { action: 'create-new' } };
     await store.detectDuplicates();
 
@@ -786,13 +794,13 @@ describe('useImportExportStore – isMapStepValid', () => {
   });
 });
 
-describe('useImportExportStore – isResolveStepValid', () => {
+describe('useImportExportStore – per-step resolve validity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mountWithPlugins();
   });
 
-  it('accounts (from-column): true when all resolved, false when a link row has an empty id', () => {
+  it('accounts step: true when all resolved, false when a link row has an empty id', () => {
     const store = useImportExportStore();
     store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
     store.uniqueAccountsInCSV = [
@@ -804,17 +812,32 @@ describe('useImportExportStore – isResolveStepValid', () => {
       Checking: { action: 'link-existing', accountId: 'acc-1' },
       Savings: { action: 'create-new', currentBalance: null },
     };
-    expect(store.isResolveStepValid).toBe(true);
+    expect(store.isResolveAccountsStepValid).toBe(true);
 
     // A link-existing row with an empty target id is not fully resolved.
     store.accountMapping = {
       Checking: { action: 'link-existing', accountId: '' },
       Savings: { action: 'create-new', currentBalance: null },
     };
-    expect(store.isResolveStepValid).toBe(false);
+    expect(store.isResolveAccountsStepValid).toBe(false);
   });
 
-  it('categories (map-from-column): true when all resolved, false when a link row has an empty id', () => {
+  it('accounts step: skip counts as a complete decision', () => {
+    const store = useImportExportStore();
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.uniqueAccountsInCSV = [
+      { name: 'Checking', currency: 'USD' },
+      { name: 'Savings', currency: 'USD' },
+    ] as SourceAccount[];
+
+    store.accountMapping = {
+      Checking: { action: 'link-existing', accountId: 'acc-1' },
+      Savings: { action: 'skip' },
+    };
+    expect(store.isResolveAccountsStepValid).toBe(true);
+  });
+
+  it('categories step: true when all resolved, false when a link row has an empty id', () => {
     const store = useImportExportStore();
     store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
     store.uniqueCategoriesInCSV = ['Food', 'Travel'];
@@ -823,16 +846,16 @@ describe('useImportExportStore – isResolveStepValid', () => {
       Food: { action: 'link-existing', categoryId: 'cat-1' },
       Travel: { action: 'create-new' },
     };
-    expect(store.isResolveStepValid).toBe(true);
+    expect(store.isResolveCategoriesStepValid).toBe(true);
 
     store.categoryMapping = {
       Food: { action: 'link-existing', categoryId: '' },
       Travel: { action: 'create-new' },
     };
-    expect(store.isResolveStepValid).toBe(false);
+    expect(store.isResolveCategoriesStepValid).toBe(false);
   });
 
-  it('tags (map-from-column): skip counts as resolved; a link row with an empty id does not', () => {
+  it('categories step: tag skip counts as resolved; a link row with an empty id does not', () => {
     const store = useImportExportStore();
     store.columnMapping.tags = { option: TagOptionValue.mapDataSourceColumn, columnName: 'labels' };
     store.uniqueTagsInCSV = ['urgent', 'work'];
@@ -842,17 +865,29 @@ describe('useImportExportStore – isResolveStepValid', () => {
       urgent: { action: 'skip' },
       work: { action: 'link-existing', tagId: 'tag-1' },
     };
-    expect(store.isResolveStepValid).toBe(true);
+    expect(store.isResolveCategoriesStepValid).toBe(true);
 
     store.tagMapping = {
       urgent: { action: 'skip' },
       work: { action: 'link-existing', tagId: '' },
     };
-    expect(store.isResolveStepValid).toBe(false);
+    expect(store.isResolveCategoriesStepValid).toBe(false);
+  });
+
+  it('the two steps gate independently: unresolved categories never block the accounts step', () => {
+    const store = useImportExportStore();
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+    store.uniqueAccountsInCSV = [{ name: 'Checking', currency: 'USD' }] as SourceAccount[];
+    store.uniqueCategoriesInCSV = ['Food'];
+    store.accountMapping = { Checking: { action: 'create-new', currentBalance: null } };
+
+    expect(store.isResolveAccountsStepValid).toBe(true);
+    expect(store.isResolveCategoriesStepValid).toBe(false);
   });
 });
 
-describe('useImportExportStore – needsResolveStep & visibleSteps', () => {
+describe('useImportExportStore – resolve-step flags & visibleSteps', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mountWithPlugins();
@@ -860,48 +895,60 @@ describe('useImportExportStore – needsResolveStep & visibleSteps', () => {
 
   const stepKeys = (store: ReturnType<typeof useImportExportStore>) => store.visibleSteps.map((s) => s.key);
 
-  it('category map-from-column requires the resolve step', () => {
+  it('category map-from-column adds only the categories resolve step', () => {
     const store = useImportExportStore();
     store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
 
-    expect(store.needsResolveStep).toBe(true);
-    expect(stepKeys(store)).toContain('resolve');
+    expect(store.needsCategoriesResolveStep).toBe(true);
+    expect(store.needsAccountResolution).toBe(false);
+    expect(stepKeys(store)).toEqual(['upload', 'map', 'resolve-categories', 'review', 'results']);
   });
 
-  it('category create-new requires the resolve step', () => {
+  it('category create-new adds only the categories resolve step', () => {
     const store = useImportExportStore();
     store.columnMapping.category = { option: CategoryOptionValue.createNewCategories, columnName: 'category' };
 
-    expect(store.needsResolveStep).toBe(true);
-    expect(stepKeys(store)).toContain('resolve');
+    expect(store.needsCategoriesResolveStep).toBe(true);
+    expect(stepKeys(store)).toContain('resolve-categories');
+    expect(stepKeys(store)).not.toContain('resolve-accounts');
   });
 
-  it('account from-column requires the resolve step', () => {
+  it('account from-column adds only the accounts resolve step', () => {
     const store = useImportExportStore();
     store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
 
-    expect(store.needsResolveStep).toBe(true);
-    expect(stepKeys(store)).toContain('resolve');
+    expect(store.needsAccountResolution).toBe(true);
+    expect(store.needsCategoriesResolveStep).toBe(false);
+    expect(stepKeys(store)).toEqual(['upload', 'map', 'resolve-accounts', 'review', 'results']);
   });
 
-  it('tags map-from-column requires the resolve step', () => {
+  it('tags map-from-column adds only the categories resolve step', () => {
     const store = useImportExportStore();
     store.columnMapping.tags = { option: TagOptionValue.mapDataSourceColumn, columnName: 'labels' };
 
-    expect(store.needsResolveStep).toBe(true);
-    expect(stepKeys(store)).toContain('resolve');
+    expect(store.needsCategoriesResolveStep).toBe(true);
+    expect(stepKeys(store)).toContain('resolve-categories');
+    expect(stepKeys(store)).not.toContain('resolve-accounts');
   });
 
-  it('currency from-column does NOT add the resolve step', () => {
+  it('accounts and categories from columns show both resolve steps, accounts first', () => {
+    const store = useImportExportStore();
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+
+    expect(stepKeys(store)).toEqual(['upload', 'map', 'resolve-accounts', 'resolve-categories', 'review', 'results']);
+  });
+
+  it('currency from-column does NOT add a resolve step', () => {
     const store = useImportExportStore();
     store.columnMapping.currency = { option: CurrencyOptionValue.dataSourceColumn, columnName: 'currency' };
 
-    expect(store.needsResolveStep).toBe(false);
-    expect(stepKeys(store)).not.toContain('resolve');
+    expect(store.needsAccountResolution).toBe(false);
+    expect(store.needsCategoriesResolveStep).toBe(false);
     expect(stepKeys(store)).toEqual(['upload', 'map', 'review', 'results']);
   });
 
-  it('transaction-type from-column does NOT add the resolve step', () => {
+  it('transaction-type from-column does NOT add a resolve step', () => {
     const store = useImportExportStore();
     store.columnMapping.transactionType = {
       option: TransactionTypeOptionValue.dataSourceColumn,
@@ -910,8 +957,197 @@ describe('useImportExportStore – needsResolveStep & visibleSteps', () => {
       expenseValues: ['Gasto'],
     };
 
-    expect(store.needsResolveStep).toBe(false);
-    expect(stepKeys(store)).not.toContain('resolve');
+    expect(store.needsAccountResolution).toBe(false);
+    expect(store.needsCategoriesResolveStep).toBe(false);
+    expect(stepKeys(store)).toEqual(['upload', 'map', 'review', 'results']);
+  });
+});
+
+describe('useImportExportStore – skipped accounts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  /**
+   * Both account and category read from CSV columns, over four rows:
+   * `Shared` is used by both accounts, `Food` only by Checking, `Travel` only by Savings.
+   */
+  const seedAccountAndCategoryColumns = (store: ReturnType<typeof useImportExportStore>) => {
+    seedStore(store);
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+    store.csvDataRowHeaders = ['date', 'amount', 'account', 'category'];
+    store.csvDataRows = [
+      ['2026-01-01', '10', 'Checking', 'Food'],
+      ['2026-01-02', '20', 'Checking', ' Shared '],
+      ['2026-01-03', '30', 'Savings', 'Travel'],
+      ['2026-01-04', '40', 'Savings', 'Shared'],
+    ];
+    store.uniqueAccountsInCSV = [
+      { name: 'Checking', currency: 'USD' },
+      { name: 'Savings', currency: 'USD' },
+    ] as SourceAccount[];
+    store.uniqueCategoriesInCSV = ['Food', 'Shared', 'Travel'];
+  };
+
+  it('drops rows of a skipped account from importSummary.willImport', () => {
+    const store = useImportExportStore();
+    seedAccountAndCategoryColumns(store);
+    store.totalRows = 3;
+    store.validRows = [
+      { rowIndex: 0, accountName: 'Checking' },
+      { rowIndex: 1, accountName: 'Savings' },
+      { rowIndex: 2, accountName: 'Savings' },
+    ] as ParsedTransactionRow[];
+
+    expect(store.importSummary.willImport).toBe(3);
+
+    store.accountMapping = {
+      Checking: { action: 'create-new', currentBalance: null },
+      Savings: { action: 'skip' },
+    };
+
+    expect(store.importSummary.willImport).toBe(1);
+    // The parse-level counters describe the file, not the user's skip choices.
+    expect(store.importSummary.validRows).toBe(3);
+  });
+
+  it('hides categories used only by skipped accounts and restores them on unskip', () => {
+    const store = useImportExportStore();
+    seedAccountAndCategoryColumns(store);
+
+    expect(store.visibleCategoriesToResolve).toEqual(['Food', 'Shared', 'Travel']);
+
+    store.accountMapping = { Savings: { action: 'skip' } };
+
+    expect(store.skippedAccountNames).toEqual(['Savings']);
+    expect(store.visibleCategoriesToResolve).toEqual(['Food', 'Shared']);
+
+    store.accountMapping = { Savings: { action: 'create-new', currentBalance: null } };
+
+    expect(store.visibleCategoriesToResolve).toEqual(['Food', 'Shared', 'Travel']);
+  });
+
+  it('keeps the full category list when the account column is not a data-source column', () => {
+    const store = useImportExportStore();
+    seedAccountAndCategoryColumns(store);
+    store.columnMapping.account = { option: AccountOptionValue.existingAccount, accountId: 'acc-1' };
+    store.accountMapping = { Savings: { action: 'skip' } };
+
+    expect(store.visibleCategoriesToResolve).toEqual(['Food', 'Shared', 'Travel']);
+  });
+
+  it('categories step validity ignores categories hidden by a skipped account', () => {
+    const store = useImportExportStore();
+    seedAccountAndCategoryColumns(store);
+    store.categoryMapping = { Food: { action: 'create-new' }, Shared: { action: 'create-new' } };
+
+    expect(store.isResolveCategoriesStepValid).toBe(false);
+
+    store.accountMapping = { Savings: { action: 'skip' } };
+
+    expect(store.isResolveCategoriesStepValid).toBe(true);
+  });
+
+  it('prunes hidden category mappings from the execute payload but keeps skipped accounts', async () => {
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedAccountAndCategoryColumns(store);
+    store.accountMapping = {
+      Checking: { action: 'create-new', currentBalance: null },
+      Savings: { action: 'skip' },
+    };
+    store.categoryMapping = {
+      Food: { action: 'create-new' },
+      Shared: { action: 'create-new' },
+      Travel: { action: 'create-new' },
+    };
+
+    await store.executeImport();
+
+    const payload = mockExecuteImportApi.mock.calls[0]![0];
+    expect(payload.categoryMapping).toEqual({
+      Food: { action: 'create-new' },
+      Shared: { action: 'create-new' },
+    });
+    expect(payload.accountMapping).toEqual({
+      Checking: { action: 'create-new', currentBalance: null },
+      Savings: { action: 'skip' },
+    });
+  });
+
+  /**
+   * Account and tags read from CSV columns, over three rows: `shared` is used by
+   * both accounts, `travel` only by Savings. One cell carries two names so the
+   * comma split matches the backend's `splitTagCell`.
+   */
+  const seedAccountAndTagColumns = (store: ReturnType<typeof useImportExportStore>) => {
+    seedStore(store);
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.columnMapping.tags = { option: TagOptionValue.mapDataSourceColumn, columnName: 'labels' };
+    store.csvDataRowHeaders = ['date', 'amount', 'account', 'labels'];
+    store.csvDataRows = [
+      ['2026-01-01', '10', 'Checking', 'food, shared'],
+      ['2026-01-02', '20', 'Savings', 'travel'],
+      ['2026-01-03', '30', 'Savings', 'shared'],
+    ];
+    store.uniqueAccountsInCSV = [
+      { name: 'Checking', currency: 'USD' },
+      { name: 'Savings', currency: 'USD' },
+    ] as SourceAccount[];
+    store.uniqueTagsInCSV = ['food', 'shared', 'travel'];
+  };
+
+  it('hides tags used only by skipped accounts and restores them on unskip', () => {
+    const store = useImportExportStore();
+    seedAccountAndTagColumns(store);
+
+    expect(store.visibleTagsToResolve).toEqual(['food', 'shared', 'travel']);
+
+    store.accountMapping = { Savings: { action: 'skip' } };
+
+    expect(store.visibleTagsToResolve).toEqual(['food', 'shared']);
+
+    store.accountMapping = { Savings: { action: 'create-new', currentBalance: null } };
+
+    expect(store.visibleTagsToResolve).toEqual(['food', 'shared', 'travel']);
+  });
+
+  it('categories step validity ignores tags hidden by a skipped account', () => {
+    const store = useImportExportStore();
+    seedAccountAndTagColumns(store);
+    store.tagMapping = { food: { action: 'create-new' }, shared: { action: 'skip' } };
+
+    expect(store.isResolveCategoriesStepValid).toBe(false);
+
+    store.accountMapping = { Savings: { action: 'skip' } };
+
+    expect(store.isResolveCategoriesStepValid).toBe(true);
+  });
+
+  it('prunes hidden tag mappings from the execute payload', async () => {
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+
+    const store = useImportExportStore();
+    seedAccountAndTagColumns(store);
+    store.accountMapping = {
+      Checking: { action: 'create-new', currentBalance: null },
+      Savings: { action: 'skip' },
+    };
+    store.tagMapping = {
+      food: { action: 'create-new' },
+      shared: { action: 'create-new' },
+      travel: { action: 'create-new' },
+    };
+
+    await store.executeImport();
+
+    expect(mockExecuteImportApi.mock.calls[0]![0].tagMapping).toEqual({
+      food: { action: 'create-new' },
+      shared: { action: 'create-new' },
+    });
   });
 });
 
@@ -1041,6 +1277,38 @@ describe('useImportExportStore – parseFiles', () => {
     expect(store.uncoveredTransactionTypeValues).toEqual(['ZZZ', 'QQQ']);
     expect(store.isMapStepValid).toBe(false);
   });
+
+  // Regression: `csvHeaders` drops an empty header name (a pandas-style index
+  // column), shifting every column after it. Row scans must index against
+  // `csvDataRowHeaders`.
+  it('keeps row scans aligned when the first column has an empty header name', async () => {
+    mockParseCsvApi.mockResolvedValue({
+      headers: ['', 'date', 'amount', 'account', 'category'],
+      preview: [{ '': '0', date: '2026-01-01', amount: '10', account: 'Checking', category: 'Food' }],
+      detectedDelimiter: ',',
+      totalRows: 3,
+    });
+
+    const store = useImportExportStore();
+
+    await store.parseFiles({
+      files: [
+        fakeFile(
+          ',date,amount,account,category\n0,2026-01-01,10,Checking,Food\n1,2026-01-02,20,Savings,Travel\n2,2026-01-03,30,Savings,Food',
+          'indexed.csv',
+        ),
+      ],
+    });
+
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+    store.uniqueCategoriesInCSV = ['Food', 'Travel'];
+    store.accountMapping = { Savings: { action: 'skip' } };
+
+    expect(store.csvHeaders).toEqual(['date', 'amount', 'account', 'category']);
+    // Travel appears only on Savings rows, so skipping that account hides it.
+    expect(store.visibleCategoriesToResolve).toEqual(['Food']);
+  });
 });
 
 // Integration wiring only — the toggle's behavior matrix (persisted default,
@@ -1073,5 +1341,45 @@ describe('useImportExportStore – recalculate-balance toggle wiring', () => {
     store.reset();
 
     expect(store.recalculateBalance).toBe(true);
+  });
+});
+
+describe('useImportExportStore – resolve-step extraction cache', () => {
+  const mockExtractUniqueValuesApi = vi.mocked(apiModule.extractUniqueValues);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+    mockExtractUniqueValuesApi.mockResolvedValue({
+      sourceAccounts: [{ name: 'Checking', currency: 'USD' }],
+      sourceCategories: [],
+      sourceTags: [],
+    });
+  });
+
+  const seedAccountColumn = (store: ReturnType<typeof useImportExportStore>) => {
+    seedStore(store);
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+  };
+
+  it('extracts once when both resolve steps run on unchanged column choices', async () => {
+    const store = useImportExportStore();
+    seedAccountColumn(store);
+
+    await store.prepareResolveStep();
+    await store.prepareResolveStep();
+
+    expect(mockExtractUniqueValuesApi).toHaveBeenCalledTimes(1);
+  });
+
+  it('re-extracts once a mapped column changes', async () => {
+    const store = useImportExportStore();
+    seedAccountColumn(store);
+
+    await store.prepareResolveStep();
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account_name' };
+    await store.prepareResolveStep();
+
+    expect(mockExtractUniqueValuesApi).toHaveBeenCalledTimes(2);
   });
 });

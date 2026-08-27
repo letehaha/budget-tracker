@@ -57,7 +57,8 @@ const ALL_STEP_KEYS: readonly BudgetBakersWalletImportStepKey[] = ['upload', 're
  */
 type BudgetBakersWalletAccountFormValue =
   | { action: 'create-new'; currencyCode: string; currentBalance: number | null }
-  | { action: 'link-existing'; accountId: string | undefined };
+  | { action: 'link-existing'; accountId: string | undefined }
+  | { action: 'skip' };
 
 /** Form-level account decisions keyed by `WalletParseAccount.originalName`. */
 type BudgetBakersWalletAccountFormMapping = Record<string, BudgetBakersWalletAccountFormValue>;
@@ -99,7 +100,8 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
   /**
    * Per-account decision keyed by `WalletParseAccount.originalName`. Seeded
    * after a successful parse with `create-new` + the detected currency; the
-   * resolve step lets the user switch individual accounts to `link-existing`.
+   * resolve step lets the user switch individual accounts to `link-existing` or
+   * `skip`.
    *
    * Default: `create-new` with `currentBalance: null` (no explicit target —
    * the final balance equals whatever the imported transactions sum to).
@@ -226,14 +228,34 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     currentBalance: null,
   });
 
-  /** Source category names — what the resolve step renders. */
-  const resolvableCategoryNames = computed<string[]>(() =>
-    (parsedResult.value?.categories ?? []).map((category) => category.name),
+  const skippedAccountNames = computed<string[]>(() =>
+    Object.entries(accountMapping.value)
+      .filter(([, value]) => value.action === 'skip')
+      .map(([name]) => name),
   );
 
-  /** True once an account form decision is complete (create-new, or linked with a chosen target). */
+  /**
+   * Source category names used by at least one row of a non-skipped account.
+   * Transfers carry no category and out-of-wallet legs carry a null one, so the
+   * ordinary rows are the whole picture.
+   */
+  const resolvableCategoryNames = computed<string[]>(() => {
+    const names = (parsedResult.value?.categories ?? []).map((category) => category.name);
+    if (skippedAccountNames.value.length === 0) return names;
+
+    const skipped = new Set(skippedAccountNames.value);
+    const stillReferenced = new Set<string>();
+    for (const tx of parsedResult.value?.transactions ?? []) {
+      if (tx.categoryName && !skipped.has(tx.accountName)) stillReferenced.add(tx.categoryName);
+    }
+    return names.filter((name) => stillReferenced.has(name));
+  });
+
+  /** True once an account form decision is complete (create-new, skip, or linked with a chosen target). */
   const isAccountResolved = (mapping: BudgetBakersWalletAccountFormValue | undefined): boolean =>
-    mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && mapping.accountId !== undefined);
+    mapping?.action === 'create-new' ||
+    mapping?.action === 'skip' ||
+    (mapping?.action === 'link-existing' && mapping.accountId !== undefined);
 
   /** True once a category decision is complete (create-new, or linked with a chosen target). */
   const isCategoryResolved = (mapping: CategoryMappingValue | undefined): boolean =>
@@ -276,7 +298,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     },
     categories: {
       isActive: () => true,
-      getSources: () => (parsedResult.value?.categories ?? []).map((category) => ({ name: category.name })),
+      getSources: () => resolvableCategoryNames.value.map((name) => ({ name })),
       getTargets: () =>
         flattenCategories({ categories: useCategoriesStore().formattedCategories }).map((category) => ({
           id: category.id,
@@ -301,13 +323,15 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
   /**
    * Switches one account's action. `create-new` carries the account's detected
    * currency + a null balance; `link-existing` starts unselected (no target id)
-   * until the user picks one.
+   * until the user picks one; `skip` stores no payload.
    */
-  function setAccountAction({ name, action }: { name: string; action: 'create-new' | 'link-existing' }): void {
+  function setAccountAction({ name, action }: { name: string; action: 'create-new' | 'link-existing' | 'skip' }): void {
     if (action === 'create-new') {
       accountMapping.value[name] = buildAccountCreateNew({ currency: accountCurrencyByName.value.get(name) });
-    } else {
+    } else if (action === 'link-existing') {
       accountMapping.value[name] = { action: 'link-existing', accountId: undefined };
+    } else {
+      accountMapping.value[name] = { action: 'skip' };
     }
   }
 
@@ -505,12 +529,19 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     }
     jobProgress.setExecuteError(null);
 
+    // Stored decisions for categories hidden by an account skip must not reach the
+    // backend: it would create categories no imported row references.
+    const visibleCategories = new Set(resolvableCategoryNames.value);
+    const categoryMappingPayload = Object.fromEntries(
+      Object.entries(categoryMapping.value).filter(([name]) => visibleCategories.has(name)),
+    );
+
     let response: Awaited<ReturnType<typeof executeBudgetBakersWalletImport>>;
     try {
       response = await executeBudgetBakersWalletImport({
         fileContent,
         accountMapping: toWireAccountMapping(),
-        categoryMapping: categoryMapping.value,
+        categoryMapping: categoryMappingPayload,
         skipDuplicateIndices: skipDuplicateIndices.value,
         recalculateBalance: recalculateBalance.value,
       });
@@ -575,6 +606,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     accountResolvedCount,
     categoryResolvedCount,
     resolvableCategoryNames,
+    skippedAccountNames,
     isResolveStepValid,
     hasAnyLinkExisting,
     skipDuplicateIndices,

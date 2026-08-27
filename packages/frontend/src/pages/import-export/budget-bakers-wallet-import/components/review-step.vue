@@ -20,14 +20,26 @@ const store = useImportBudgetBakersWalletStore();
 
 // ---- Derived counts for the stat cards ----
 
-/** Ordinary transaction rows the parser produced (transfers are separate). */
-const transactionsCount = computed(() => store.parsedResult?.transactions.length ?? 0);
+const skippedAccounts = computed(() => new Set(store.skippedAccountNames));
 
-/** Paired transfers detected during parsing. */
-const transfersCount = computed(() => store.parsedResult?.transfers.length ?? 0);
+/** Ordinary transaction rows that will be imported (transfers are separate). */
+const importableTransactions = computed(() =>
+  (store.parsedResult?.transactions ?? []).filter((tx) => !skippedAccounts.value.has(tx.accountName)),
+);
+
+const importableTransfers = computed(() =>
+  (store.parsedResult?.transfers ?? []).filter(
+    (xfer) =>
+      !skippedAccounts.value.has(xfer.sourceAccountName) && !skippedAccounts.value.has(xfer.destinationAccountName),
+  ),
+);
+
+const transactionsCount = computed(() => importableTransactions.value.length);
+
+const transfersCount = computed(() => importableTransfers.value.length);
 
 /** Unpaired transfer legs imported as out-of-wallet transactions. */
-const outOfWalletCount = computed(() => (store.parsedResult?.transactions ?? []).filter((tx) => tx.outOfWallet).length);
+const outOfWalletCount = computed(() => importableTransactions.value.filter((tx) => tx.outOfWallet).length);
 
 /** Detected duplicates the user left marked (will be skipped on import). */
 const duplicatesSkippedCount = computed(() => store.skipDuplicateIndices.length);

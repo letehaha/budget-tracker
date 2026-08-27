@@ -94,7 +94,11 @@ vi.mock('@/composable/data-queries/user-settings', () => ({
 // ----- helpers -----
 
 import * as walletApi from '@/api/import-budget-bakers-wallet';
-import type { BudgetBakersWalletParseResult } from '@bt/shared/types';
+import {
+  TRANSACTION_TYPES,
+  type BudgetBakersWalletParseResult,
+  type BudgetBakersWalletParseTransaction,
+} from '@bt/shared/types';
 
 const mockParse = vi.mocked(walletApi.parseBudgetBakersWallet);
 
@@ -114,6 +118,45 @@ const PARSE_RESULT: BudgetBakersWalletParseResult = {
   warnings: [],
   dateRange: null,
   detectedBaseCurrency: null,
+};
+
+const aTransaction = ({
+  rowIndex,
+  accountName,
+  categoryName,
+}: {
+  rowIndex: number;
+  accountName: string;
+  categoryName: string | null;
+}): BudgetBakersWalletParseTransaction => ({
+  rowIndex,
+  date: `2026-01-0${rowIndex}T10:00:00.000Z`,
+  accountName,
+  categoryName,
+  payeeName: null,
+  note: '',
+  amount: -10,
+  type: TRANSACTION_TYPES.expense,
+  paymentType: 'Cash',
+  tags: [],
+  outOfWallet: false,
+});
+
+/**
+ * Two accounts, three rows: `Groceries` is used by both, `Brand New Category`
+ * only by `Savings`, so skipping `Savings` hides exactly one category.
+ */
+const TWO_ACCOUNT_PARSE_RESULT: BudgetBakersWalletParseResult = {
+  ...PARSE_RESULT,
+  accounts: [
+    { originalName: 'Cash', currency: 'USD', transactionCount: 2, netImportedAmount: -20 },
+    { originalName: 'Savings', currency: 'USD', transactionCount: 1, netImportedAmount: -10 },
+  ],
+  transactions: [
+    aTransaction({ rowIndex: 1, accountName: 'Cash', categoryName: 'Groceries' }),
+    aTransaction({ rowIndex: 2, accountName: 'Savings', categoryName: 'Groceries' }),
+    aTransaction({ rowIndex: 3, accountName: 'Savings', categoryName: 'Brand New Category' }),
+  ],
 };
 
 const mountWithPlugins = () => {
@@ -195,5 +238,64 @@ describe('useImportBudgetBakersWalletStore – recalculate-balance toggle wiring
     store.reset();
 
     expect(store.recalculateBalance).toBe(true);
+  });
+});
+
+describe('useImportBudgetBakersWalletStore – skipped accounts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  const mockExecute = vi.mocked(walletApi.executeBudgetBakersWalletImport);
+
+  it('counts a skipped account as resolved and lists it in skippedAccountNames', async () => {
+    mockParse.mockResolvedValue({ result: TWO_ACCOUNT_PARSE_RESULT });
+
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+
+    // An unselected link target leaves the step invalid; skipping decides the row.
+    store.setAccountTarget({ name: 'Savings', accountId: '' });
+    expect(store.isResolveStepValid).toBe(false);
+
+    store.setAccountAction({ name: 'Savings', action: 'skip' });
+
+    expect(store.accountMapping['Savings']).toEqual({ action: 'skip' });
+    expect(store.skippedAccountNames).toEqual(['Savings']);
+    expect(store.isResolveStepValid).toBe(true);
+  });
+
+  it('hides categories used only by skipped accounts and restores them on unskip', async () => {
+    mockParse.mockResolvedValue({ result: TWO_ACCOUNT_PARSE_RESULT });
+
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+
+    expect(store.resolvableCategoryNames).toEqual(['Groceries', 'Brand New Category']);
+
+    store.setAccountAction({ name: 'Savings', action: 'skip' });
+
+    // 'Groceries' survives on the Cash row; 'Brand New Category' is Savings-only.
+    expect(store.resolvableCategoryNames).toEqual(['Groceries']);
+
+    store.setAccountAction({ name: 'Savings', action: 'create-new' });
+
+    expect(store.resolvableCategoryNames).toEqual(['Groceries', 'Brand New Category']);
+  });
+
+  it('prunes hidden category mappings from the execute payload but keeps the skipped account', async () => {
+    mockParse.mockResolvedValue({ result: TWO_ACCOUNT_PARSE_RESULT });
+    mockExecute.mockResolvedValue({ jobId: 'job-skip' });
+
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+    store.setAccountAction({ name: 'Savings', action: 'skip' });
+
+    await store.execute();
+
+    const payload = mockExecute.mock.calls[0]![0];
+    expect(Object.keys(payload.categoryMapping)).toEqual(['Groceries']);
+    expect(payload.accountMapping['Savings']).toEqual({ action: 'skip' });
   });
 });

@@ -200,10 +200,12 @@ export interface ExtractUniqueValuesResponse {
  * imported rows sum to. Required-but-nullable (not optional) so every
  * create-new mapping states the balance explicitly, matching the Wallet
  * importer's `BudgetBakersWalletAccountMappingValue.currentBalance`.
+ * `skip` excludes the source account and all of its rows from the import.
  */
 export type AccountMappingValue =
   | { action: 'create-new'; currentBalance: number | null }
-  | { action: 'link-existing'; accountId: string };
+  | { action: 'link-existing'; accountId: string }
+  | { action: 'skip' };
 
 export type AccountMappingConfig = Record<string, AccountMappingValue>;
 
@@ -460,6 +462,8 @@ export interface CsvImportSummary extends ImportSummaryBase {
   /** Number of unpriceable rows skipped (from skipUnpriceableIndices) */
   skippedUnpriceable: number;
   accountsCreated: number;
+  /** Number of source accounts mapped to skip. Optional: retained results predate the field. */
+  accountsSkipped?: number;
   categoriesCreated: number;
   tagsCreated: number;
   /** Number of Payees inserted by this import. Reused/linked Payees don't count. */

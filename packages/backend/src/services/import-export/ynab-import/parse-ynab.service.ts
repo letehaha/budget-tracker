@@ -411,7 +411,7 @@ function detectCurrencyFromAccountName(name: string): string | null {
   return match ? match[1]! : null;
 }
 
-function collectCategories({ transactions }: { transactions: YnabParseTransaction[] }): YnabParseCategory[] {
+export function collectCategories({ transactions }: { transactions: YnabParseTransaction[] }): YnabParseCategory[] {
   const byKey = new Map<string, YnabParseCategory>();
 
   for (const t of transactions) {
@@ -435,7 +435,7 @@ function collectCategories({ transactions }: { transactions: YnabParseTransactio
   );
 }
 
-function collectPayees({ transactions }: { transactions: YnabParseTransaction[] }): YnabParsePayee[] {
+export function collectPayees({ transactions }: { transactions: YnabParseTransaction[] }): YnabParsePayee[] {
   const byName = new Map<string, number>();
 
   for (const t of transactions) {
@@ -451,7 +451,7 @@ function collectPayees({ transactions }: { transactions: YnabParseTransaction[] 
     .toSorted((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
-function collectTagsUsed({
+export function collectTagsUsed({
   transactions,
   transfers,
 }: {
