@@ -85,7 +85,9 @@ vi.mock('./tags', () => ({
 // The store reads the persisted recalculate-balance default from user settings at
 // construction and PATCHes the chosen value back after a successful execute. Mocked
 // so no real settings query fires; tests drive `data` and assert on `patchAsync`.
-let mockUserSettingsData: Ref<{ import?: { recalculateAccountBalance?: boolean } } | undefined>;
+let mockUserSettingsData: Ref<
+  { import?: { recalculateAccountBalance?: boolean; categoryMappingPresets?: CategoryMappingPreset[] } } | undefined
+>;
 let mockPatchUserSettingsAsync: ReturnType<typeof vi.fn>;
 
 vi.mock('@/composable/data-queries/user-settings', () => ({
@@ -100,11 +102,13 @@ vi.mock('@/composable/data-queries/user-settings', () => ({
 import * as apiModule from '@/api/import-export';
 import {
   AccountOptionValue,
+  type CategoryMappingPreset,
   CategoryOptionValue,
   type CsvImportSummary,
   CurrencyOptionValue,
   type DetectDuplicatesResponse,
   type ExecuteImportResponse,
+  MAX_CATEGORY_MAPPING_PRESETS,
   type ParsedTransactionRow,
   type SourceAccount,
   TagOptionValue,
@@ -874,6 +878,22 @@ describe('useImportExportStore – per-step resolve validity', () => {
     expect(store.isResolveCategoriesStepValid).toBe(false);
   });
 
+  it('extraction failure blocks both resolve steps even when the unique lists are empty', () => {
+    const store = useImportExportStore();
+    store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+
+    // A failed extraction leaves the unique lists empty; `.every()` over an empty
+    // list must not read as "all resolved" while the error is showing.
+    store.extractError = 'Account "Monobank" has transactions with multiple currencies';
+    expect(store.isResolveAccountsStepValid).toBe(false);
+    expect(store.isResolveCategoriesStepValid).toBe(false);
+
+    store.extractError = null;
+    expect(store.isResolveAccountsStepValid).toBe(true);
+    expect(store.isResolveCategoriesStepValid).toBe(true);
+  });
+
   it('the two steps gate independently: unresolved categories never block the accounts step', () => {
     const store = useImportExportStore();
     store.columnMapping.account = { option: AccountOptionValue.dataSourceColumn, columnName: 'account' };
@@ -1381,5 +1401,195 @@ describe('useImportExportStore – resolve-step extraction cache', () => {
     await store.prepareResolveStep();
 
     expect(mockExtractUniqueValuesApi).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('useImportExportStore – remembered category mappings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  /** Runs one import that maps a single category, and returns the preset list it persisted. */
+  const persistViaImport = async ({
+    stored,
+    fingerprint,
+  }: {
+    stored: CategoryMappingPreset[];
+    fingerprint: string;
+  }): Promise<CategoryMappingPreset[]> => {
+    mockDetectDuplicatesApi.mockResolvedValue(BASE_RESPONSE);
+    mockExecuteImportApi.mockResolvedValue(EXECUTE_RESPONSE);
+    mockUserSettingsData.value = { import: { categoryMappingPresets: stored } };
+
+    const store = useImportExportStore();
+    seedStore(store);
+    store.columnMapping.category = { option: CategoryOptionValue.mapDataSourceColumn, columnName: 'category' };
+    store.uniqueCategoriesInCSV = ['Groceries'];
+    store.categoryMapping = { Groceries: { action: 'create-new' } };
+    store.headersFingerprint = fingerprint;
+    await store.detectDuplicates();
+
+    await store.executeImport();
+
+    return mockPatchUserSettingsAsync.mock.calls.at(-1)![0].import.categoryMappingPresets;
+  };
+
+  const unnamedPreset = (fingerprint: string): CategoryMappingPreset => ({
+    fingerprint,
+    categoryMapping: {},
+    updatedAt: '2025-01-01T00:00:00.000Z',
+  });
+
+  it('applies the preset to present source names, skips deleted link targets, and overwrites current choices', () => {
+    mockUserSettingsData.value = {
+      import: {
+        categoryMappingPresets: [
+          {
+            fingerprint: 'fp-1',
+            categoryMapping: {
+              Groceries: { action: 'link-existing', categoryId: 'cat-1' },
+              Fuel: { action: 'link-existing', categoryId: 'deleted-cat' },
+              Rent: { action: 'create-new' },
+              NotInThisFile: { action: 'create-new' },
+            },
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+    vi.mocked(useCategoriesStore).mockReturnValue({
+      loadCategories: vi.fn(),
+      categoriesMap: { 'cat-1': { id: 'cat-1' } },
+    } as never);
+
+    const store = useImportExportStore();
+    store.headersFingerprint = 'fp-1';
+    store.uniqueCategoriesInCSV = ['Groceries', 'Fuel', 'Rent'];
+    store.categoryMapping = { Rent: { action: 'link-existing', categoryId: 'cat-1' } };
+
+    store.applyCategoryPreset({ preset: store.matchingCategoryPreset! });
+
+    expect(store.categoryMapping).toEqual({
+      Groceries: { action: 'link-existing', categoryId: 'cat-1' },
+      Rent: { action: 'create-new' },
+    });
+  });
+
+  it('replaces the same-fingerprint preset on execute instead of appending, and caps the stored list', async () => {
+    const presets = await persistViaImport({
+      stored: [
+        { ...unnamedPreset('fp-1'), categoryMapping: { Old: { action: 'create-new' } } },
+        ...Array.from({ length: MAX_CATEGORY_MAPPING_PRESETS }, (_, index) => unnamedPreset(`fp-other-${index}`)),
+      ],
+      fingerprint: 'fp-1',
+    });
+
+    expect(presets).toHaveLength(MAX_CATEGORY_MAPPING_PRESETS);
+    expect(presets[0]).toEqual(
+      expect.objectContaining({ fingerprint: 'fp-1', categoryMapping: { Groceries: { action: 'create-new' } } }),
+    );
+    expect(presets.filter((preset: CategoryMappingPreset) => preset.fingerprint === 'fp-1')).toHaveLength(1);
+  });
+
+  it('keeps the name when re-persisting the same fingerprint', async () => {
+    const presets = await persistViaImport({
+      stored: [{ ...unnamedPreset('fp-1'), name: 'PKO Bank' }],
+      fingerprint: 'fp-1',
+    });
+
+    expect(presets).toEqual([
+      expect.objectContaining({
+        fingerprint: 'fp-1',
+        name: 'PKO Bank',
+        categoryMapping: { Groceries: { action: 'create-new' } },
+      }),
+    ]);
+  });
+
+  it('evicts the oldest unnamed preset over the cap and keeps the named ones', async () => {
+    const stored = [
+      ...Array.from({ length: MAX_CATEGORY_MAPPING_PRESETS - 1 }, (_, index) => unnamedPreset(`fp-other-${index}`)),
+      { ...unnamedPreset('fp-template'), name: 'Template' },
+    ];
+
+    const presets = await persistViaImport({ stored, fingerprint: 'fp-new' });
+
+    expect(presets).toHaveLength(MAX_CATEGORY_MAPPING_PRESETS);
+    expect(presets.map((preset) => preset.fingerprint)).toContain('fp-template');
+    expect(presets.map((preset) => preset.fingerprint)).not.toContain(`fp-other-${MAX_CATEGORY_MAPPING_PRESETS - 2}`);
+  });
+
+  it('renames a preset in place without reordering or bumping updatedAt', async () => {
+    const stored = [unnamedPreset('fp-1'), { ...unnamedPreset('fp-2'), updatedAt: '2024-01-01T00:00:00.000Z' }];
+    mockUserSettingsData.value = { import: { categoryMappingPresets: stored } };
+
+    const store = useImportExportStore();
+    await store.renameCategoryPreset({ fingerprint: 'fp-2', name: '  Template  ' });
+
+    expect(mockPatchUserSettingsAsync.mock.calls.at(-1)![0].import.categoryMappingPresets).toEqual([
+      stored[0],
+      { ...stored[1], name: 'Template' },
+    ]);
+  });
+
+  it('ignores a rename that trims to nothing', async () => {
+    mockUserSettingsData.value = { import: { categoryMappingPresets: [unnamedPreset('fp-1')] } };
+
+    const store = useImportExportStore();
+    await store.renameCategoryPreset({ fingerprint: 'fp-1', name: '   ' });
+
+    expect(mockPatchUserSettingsAsync).not.toHaveBeenCalled();
+  });
+
+  it('deletes a preset by fingerprint', async () => {
+    const kept = unnamedPreset('fp-1');
+    mockUserSettingsData.value = { import: { categoryMappingPresets: [kept, unnamedPreset('fp-2')] } };
+
+    const store = useImportExportStore();
+    await store.deleteCategoryPreset({ fingerprint: 'fp-2' });
+
+    expect(mockPatchUserSettingsAsync.mock.calls.at(-1)![0].import.categoryMappingPresets).toEqual([kept]);
+  });
+
+  it('lists named presets newest first and excludes the current layout', () => {
+    mockUserSettingsData.value = {
+      import: {
+        categoryMappingPresets: [
+          { ...unnamedPreset('fp-1'), name: 'Current' },
+          { ...unnamedPreset('fp-2'), name: 'Older', updatedAt: '2024-01-01T00:00:00.000Z' },
+          { ...unnamedPreset('fp-3'), name: 'Newer', updatedAt: '2026-01-01T00:00:00.000Z' },
+          unnamedPreset('fp-4'),
+        ],
+      },
+    };
+
+    const store = useImportExportStore();
+    store.headersFingerprint = 'fp-1';
+
+    expect(store.namedCategoryPresets.map((preset) => preset.name)).toEqual(['Newer', 'Older']);
+  });
+
+  it('derives a different fingerprint for a different header row', async () => {
+    const parseCsvMock = vi.mocked(apiModule.parseCsv);
+    const parseResponse = (headers: string[]) =>
+      ({ headers, preview: [], detectedDelimiter: ',', totalRows: 0 }) as never;
+
+    const csvFile = {
+      name: 'test.csv',
+      text: () => Promise.resolve('date,amount\n2026-01-01,100'),
+    } as unknown as File;
+
+    const store = useImportExportStore();
+
+    parseCsvMock.mockResolvedValue(parseResponse(['date', 'amount']));
+    await store.parseFiles({ files: [csvFile] });
+    const firstFingerprint = store.headersFingerprint;
+
+    parseCsvMock.mockResolvedValue(parseResponse(['date', 'amount', 'category']));
+    await store.parseFiles({ files: [csvFile] });
+
+    expect(firstFingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(store.headersFingerprint).not.toBe(firstFingerprint);
   });
 });

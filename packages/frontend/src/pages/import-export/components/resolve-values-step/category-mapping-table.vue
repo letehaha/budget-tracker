@@ -19,9 +19,11 @@ import SelectField from '@/components/fields/select-field.vue';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
 import { buildCategoryMapById } from '@/pages/import-export/utils/flatten-categories';
+import type { CategoryMappingPreset } from '@bt/shared/types';
 import { Loader2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import CategoryPresetMenu from './category-preset-menu.vue';
 import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vue';
 
 const { t } = useI18n();
@@ -48,6 +50,10 @@ const props = defineProps<{
   resolvedLabel: string;
   /** Bulk-action buttons the parent builds with i18n labels + store handlers. */
   quickActions: QuickAction[];
+  /** Saved mapping for the current file's layout. Omit to hide the preset menu. */
+  matchingPreset?: CategoryMappingPreset | null;
+  /** Named mapping templates offered by the preset menu. */
+  namedPresets?: CategoryMappingPreset[];
   /** Blocks the whole section behind a spinner overlay (e.g. while AI matching runs). */
   loading?: boolean;
 }>();
@@ -55,6 +61,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   'set-action': [payload: { name: string; action: 'create-new' | 'link-existing' }];
   'set-target': [payload: { name: string; categoryId: string }];
+  'apply-preset': [payload: { preset: CategoryMappingPreset }];
+  'rename-preset': [payload: { fingerprint: string; name: string }];
+  'delete-preset': [payload: { fingerprint: string }];
 }>();
 
 // ---- Option lists ----
@@ -145,7 +154,17 @@ function onTargetChange({ name, category }: { name: string; category: FormattedC
         <p class="text-muted-foreground text-xs">{{ resolvedCount }} / {{ items.length }} {{ resolvedLabel }}</p>
       </div>
 
-      <QuickActionsToolbar :actions="quickActions" />
+      <div class="flex items-center gap-2">
+        <CategoryPresetMenu
+          :matching-preset="matchingPreset ?? null"
+          :named-presets="namedPresets ?? []"
+          @apply="emit('apply-preset', $event)"
+          @rename="emit('rename-preset', $event)"
+          @delete="emit('delete-preset', $event)"
+        />
+
+        <QuickActionsToolbar :actions="quickActions" />
+      </div>
     </div>
 
     <MappingTable

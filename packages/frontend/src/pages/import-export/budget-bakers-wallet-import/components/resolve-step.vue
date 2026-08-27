@@ -81,12 +81,14 @@ const accountQuickActions = computed<QuickAction[]>(() => [
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.mapExactMatches'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.mapExactMatchesAccounts'),
     onClick: () => store.quickMapExactMatches({ entity: 'accounts' }),
+    menu: true,
   },
   {
     icon: PlusIcon,
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.createNewForUnmatched'),
     onClick: () => store.quickCreateNewForUnmatched({ entity: 'accounts' }),
+    menu: true,
   },
   {
     icon: RefreshCwIcon,
@@ -102,6 +104,7 @@ const categoryQuickActions = computed<QuickAction[]>(() => [
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.mapExactMatches'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.mapExactMatchesCategories'),
     onClick: () => store.quickMapExactMatches({ entity: 'categories' }),
+    menu: true,
   },
   {
     icon: SparklesIcon,
@@ -109,12 +112,14 @@ const categoryQuickActions = computed<QuickAction[]>(() => [
     tooltip: t('importShared.aiMapping.tooltipCategories'),
     onClick: () => store.quickAiMapCategories(),
     disabled: store.isAiMappingCategories,
+    menu: true,
   },
   {
     icon: PlusIcon,
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.createNewForUnmatched'),
     onClick: () => store.quickCreateNewForUnmatched({ entity: 'categories' }),
+    menu: true,
   },
   {
     icon: RefreshCwIcon,
@@ -200,8 +205,13 @@ async function handleContinue() {
       :title="$t('pages.importExport.budgetBakersWalletImport.resolve.categories.sectionTitle')"
       :resolved-label="$t('pages.importExport.budgetBakersWalletImport.resolve.resolvedCounterWord')"
       :quick-actions="categoryQuickActions"
+      :matching-preset="store.matchingCategoryPreset"
+      :named-presets="store.namedCategoryPresets"
       @set-action="store.setCategoryAction"
       @set-target="store.setCategoryTarget"
+      @apply-preset="store.applyCategoryPreset"
+      @rename-preset="store.renameCategoryPreset"
+      @delete-preset="store.deleteCategoryPreset"
     />
 
     <Callout v-if="store.aiMappingCategoriesError" variant="destructive" role="alert">

@@ -4,6 +4,7 @@ import {
   getBudgetBakersWalletImportStatus,
   parseBudgetBakersWallet,
 } from '@/api/import-budget-bakers-wallet';
+import { useCategoryMappingPresets } from '@/composable/use-category-mapping-presets';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
 import { useRecalculateBalanceToggle } from '@/composable/use-recalculate-balance-toggle';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
@@ -19,6 +20,7 @@ import {
   BUDGET_BAKERS_WALLET_MAX_ROWS,
   SSE_EVENT_TYPES,
   type CategoryMappingConfig,
+  type CategoryMappingPreset,
   type CategoryMappingValue,
   type DuplicateMatch,
   type BudgetBakersWalletAccountMapping,
@@ -43,6 +45,9 @@ export type BudgetBakersWalletImportStepKey = 'upload' | 'resolve' | 'review' | 
 
 /** Every step in canonical order. All are always visible. */
 const ALL_STEP_KEYS: readonly BudgetBakersWalletImportStepKey[] = ['upload', 'resolve', 'review', 'results'];
+
+/** The Wallet export layout is fixed, so every import shares one remembered-preset key. */
+const CATEGORY_PRESET_FINGERPRINT = 'budget-bakers-wallet';
 
 /**
  * Store-internal form shape for one account decision. Wider than the wire type
@@ -316,6 +321,20 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     unmarkedDuplicateIndices,
   });
 
+  // ---- Remembered category mappings ----
+
+  const {
+    matchingPreset: matchingCategoryPreset,
+    namedPresets: namedCategoryPresets,
+    applyPreset,
+    persistPreset: persistCategoryPreset,
+    renamePreset: renameCategoryPreset,
+    deletePreset: deleteCategoryPreset,
+  } = useCategoryMappingPresets({ fingerprint: ref(CATEGORY_PRESET_FINGERPRINT) });
+
+  const applyCategoryPreset = ({ preset }: { preset: CategoryMappingPreset }) =>
+    applyPreset({ preset, categoryMapping, validSourceNames: resolvableCategoryNames.value });
+
   /** True when at least one account is mapped to an existing app account.
    *  Determines whether duplicate detection is meaningful. */
   const hasAnyLinkExisting = computed(() =>
@@ -559,6 +578,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     // Job accepted: remember the balance-recalculation choice for the next
     // import (fire-and-forget), then advance the wizard and arm the watchdog.
     persistRecalculateBalanceSetting();
+    persistCategoryPreset({ mapping: categoryMappingPayload });
     markStepCompleted('review');
     goToStep('results');
     jobProgress.start({
@@ -612,6 +632,8 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     categoryResolvedCount,
     resolvableCategoryNames,
     skippedAccountNames,
+    matchingCategoryPreset,
+    namedCategoryPresets,
     isResolveStepValid,
     hasAnyLinkExisting,
     skipDuplicateIndices,
@@ -641,6 +663,9 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     isAiMappingCategories,
     aiMappingCategoriesError,
     resetResolveEntity,
+    applyCategoryPreset,
+    renameCategoryPreset,
+    deleteCategoryPreset,
 
     // Duplicate helpers
     toggleDuplicateUnmark,

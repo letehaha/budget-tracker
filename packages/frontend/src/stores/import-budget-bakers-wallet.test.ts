@@ -69,6 +69,7 @@ vi.mock('@/stores/categories/categories', () => ({
   useCategoriesStore: vi.fn(() => ({
     categories: [{ id: 'cat-groceries', name: 'Groceries', subCategories: [] }],
     formattedCategories: [{ id: 'cat-groceries', name: 'Groceries', subCategories: [] }],
+    categoriesMap: { 'cat-groceries': { id: 'cat-groceries', name: 'Groceries' } },
     loadCategories: vi.fn(),
   })),
 }));
@@ -81,7 +82,9 @@ vi.mock('@/stores/tags', () => ({ useTagsStore: vi.fn(() => ({ loadTags: vi.fn()
 // The store reads the persisted recalculate-balance default from user settings at
 // construction and PATCHes the chosen value back after a successful execute. Mocked
 // so no real settings query fires; tests drive `data` and assert on `patchAsync`.
-let mockUserSettingsData: Ref<{ import?: { recalculateAccountBalance?: boolean } } | undefined>;
+let mockUserSettingsData: Ref<
+  { import?: { recalculateAccountBalance?: boolean; categoryMappingPresets?: CategoryMappingPreset[] } } | undefined
+>;
 let mockPatchUserSettingsAsync: ReturnType<typeof vi.fn>;
 
 vi.mock('@/composable/data-queries/user-settings', () => ({
@@ -98,6 +101,7 @@ import {
   TRANSACTION_TYPES,
   type BudgetBakersWalletParseResult,
   type BudgetBakersWalletParseTransaction,
+  type CategoryMappingPreset,
 } from '@bt/shared/types';
 
 const mockParse = vi.mocked(walletApi.parseBudgetBakersWallet);
@@ -226,7 +230,6 @@ describe('useImportBudgetBakersWalletStore – recalculate-balance toggle wiring
     await store.execute();
 
     expect(mockExecute).toHaveBeenCalledWith(expect.objectContaining({ recalculateBalance: true }));
-    expect(mockPatchUserSettingsAsync).toHaveBeenCalledTimes(1);
     expect(mockPatchUserSettingsAsync).toHaveBeenCalledWith({ import: { recalculateAccountBalance: true } });
   });
 
@@ -297,5 +300,55 @@ describe('useImportBudgetBakersWalletStore – skipped accounts', () => {
     const payload = mockExecute.mock.calls[0]![0];
     expect(Object.keys(payload.categoryMapping)).toEqual(['Groceries']);
     expect(payload.accountMapping['Savings']).toEqual({ action: 'skip' });
+  });
+});
+
+describe('useImportBudgetBakersWalletStore – remembered category mappings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  const mockExecute = vi.mocked(walletApi.executeBudgetBakersWalletImport);
+
+  it('applies the wallet preset and re-persists it under the flow fingerprint on execute', async () => {
+    mockUserSettingsData.value = {
+      import: {
+        categoryMappingPresets: [
+          {
+            fingerprint: 'budget-bakers-wallet',
+            categoryMapping: { 'Brand New Category': { action: 'link-existing', categoryId: 'cat-groceries' } },
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+    mockParse.mockResolvedValue({ result: PARSE_RESULT });
+    mockExecute.mockResolvedValue({ jobId: 'job-preset' });
+
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+
+    expect(store.matchingCategoryPreset?.fingerprint).toBe('budget-bakers-wallet');
+
+    store.applyCategoryPreset({ preset: store.matchingCategoryPreset! });
+    expect(store.categoryMapping['Brand New Category']).toEqual({
+      action: 'link-existing',
+      categoryId: 'cat-groceries',
+    });
+
+    await store.execute();
+
+    const presets = mockPatchUserSettingsAsync.mock.calls.at(-1)![0].import.categoryMappingPresets;
+    expect(presets).toHaveLength(1);
+    expect(presets[0]).toEqual(
+      expect.objectContaining({
+        fingerprint: 'budget-bakers-wallet',
+        categoryMapping: {
+          Groceries: { action: 'link-existing', categoryId: 'cat-groceries' },
+          'Brand New Category': { action: 'link-existing', categoryId: 'cat-groceries' },
+        },
+      }),
+    );
   });
 });

@@ -16,6 +16,9 @@
     "selectAction": "Select action",
     "resolvedCounterWord": "resolved",
     "quickActionsMenuLabel": "Bulk actions",
+    "quickActions": {
+      "menu": "Actions"
+    },
     "columns": {
       "sourceName": "Source name",
       "currency": "Currency",
@@ -78,6 +81,16 @@
       "tooltipCategories": "Let AI link each source category to the closest existing category. Rows you already linked to a category are left untouched.",
       "failed": "AI matching failed. Please try again.",
       "inProgress": "AI matching in progress…"
+    },
+    "categoryPreset": {
+      "menuTrigger": "Apply mapping",
+      "currentLayout": "This file's layout",
+      "savedTemplates": "Saved templates",
+      "lastUsed": "Last used mapping",
+      "namePlaceholder": "Name this mapping",
+      "renameAria": "Rename mapping",
+      "deleteAria": "Delete mapping",
+      "confirmRenameAria": "Save name"
     }
   }
 }

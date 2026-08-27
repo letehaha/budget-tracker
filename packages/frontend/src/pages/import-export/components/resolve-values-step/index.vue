@@ -199,12 +199,14 @@ const accountQuickActions = computed<QuickAction[]>(() => [
     label: t('pages.importExport.resolveValues.quickActions.mapExactMatches'),
     tooltip: t('pages.importExport.resolveValues.quickActions.tooltips.mapExactMatchesAccounts'),
     onClick: () => importStore.quickMapExactMatches({ entity: 'accounts' }),
+    menu: true,
   },
   {
     icon: PlusIcon,
     label: t('pages.importExport.resolveValues.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.resolveValues.quickActions.tooltips.createNewForUnmatched'),
     onClick: () => importStore.quickCreateNewForUnmatched({ entity: 'accounts' }),
+    menu: true,
   },
   {
     icon: RefreshCwIcon,
@@ -220,6 +222,7 @@ const categoryQuickActions = computed<QuickAction[]>(() => [
     label: t('pages.importExport.resolveValues.quickActions.mapExactMatches'),
     tooltip: t('pages.importExport.resolveValues.quickActions.tooltips.mapExactMatchesCategories'),
     onClick: () => importStore.quickMapExactMatches({ entity: 'categories' }),
+    menu: true,
   },
   {
     icon: SparklesIcon,
@@ -227,12 +230,14 @@ const categoryQuickActions = computed<QuickAction[]>(() => [
     tooltip: t('importShared.aiMapping.tooltipCategories'),
     onClick: () => importStore.quickAiMapCategories(),
     disabled: importStore.isAiMappingCategories,
+    menu: true,
   },
   {
     icon: PlusIcon,
     label: t('pages.importExport.resolveValues.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.resolveValues.quickActions.tooltips.createNewForUnmatched'),
     onClick: () => importStore.quickCreateNewForUnmatched({ entity: 'categories' }),
+    menu: true,
   },
   {
     icon: RefreshCwIcon,
@@ -248,18 +253,21 @@ const tagQuickActions = computed<QuickAction[]>(() => [
     label: t('pages.importExport.resolveValues.quickActions.mapExactMatches'),
     tooltip: t('pages.importExport.resolveValues.quickActions.tooltips.mapExactMatchesTags'),
     onClick: () => importStore.quickMapExactMatches({ entity: 'tags' }),
+    menu: true,
   },
   {
     icon: PlusIcon,
     label: t('pages.importExport.resolveValues.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.resolveValues.quickActions.tooltips.createNewForUnmatched'),
     onClick: () => importStore.quickCreateNewForUnmatched({ entity: 'tags' }),
+    menu: true,
   },
   {
     icon: SkipForwardIcon,
     label: t('pages.importExport.resolveValues.quickActions.skipAll'),
     tooltip: t('pages.importExport.resolveValues.quickActions.tooltips.skipAll'),
     onClick: () => importStore.quickSkipAllTags(),
+    menu: true,
   },
   {
     icon: RefreshCwIcon,
@@ -378,8 +386,13 @@ async function handleNext() {
         :title="t('pages.importExport.resolveValues.categories.sectionTitle')"
         :resolved-label="t('importShared.resolvedCounterWord')"
         :quick-actions="categoryQuickActions"
+        :matching-preset="importStore.matchingCategoryPreset"
+        :named-presets="importStore.namedCategoryPresets"
         @set-action="onCategorySetAction"
         @set-target="onCategorySetTarget"
+        @apply-preset="importStore.applyCategoryPreset"
+        @rename-preset="importStore.renameCategoryPreset"
+        @delete-preset="importStore.deleteCategoryPreset"
       />
 
       <Callout

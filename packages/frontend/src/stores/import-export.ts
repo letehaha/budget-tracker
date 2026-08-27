@@ -3,6 +3,7 @@ import {
   type AccountMappingValue,
   AccountOptionValue,
   type CategoryMappingConfig,
+  type CategoryMappingPreset,
   type CategoryMappingValue,
   CategoryOptionValue,
   type CsvImportProgress,
@@ -22,6 +23,7 @@ import type { AccountMappingConfig } from '@bt/shared/types';
 type UnpriceableRow = NonNullable<DetectDuplicatesResponse['unpriceableRows']>[number];
 import { executeImport as executeImportApi, getCsvImportStatus } from '@/api/import-export';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
+import { useCategoryMappingPresets } from '@/composable/use-category-mapping-presets';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
 import { useRecalculateBalanceToggle } from '@/composable/use-recalculate-balance-toggle';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
@@ -82,6 +84,11 @@ const emptyColumnMapping = (): ColumnMapping => ({
   transactionType: { option: TransactionTypeOptionValue.amountSign },
 });
 
+const sha256Hex = async ({ value }: { value: string }): Promise<string> => {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
 export const useImportExportStore = defineStore('importExport', () => {
   const queryClient = useQueryClient();
 
@@ -102,6 +109,9 @@ export const useImportExportStore = defineStore('importExport', () => {
   // drops empty header names, which shifts every column that follows one. Holds
   // every parsed header, positionally aligned with `csvDataRows`.
   const csvDataRowHeaders = ref<string[]>([]);
+  // Identifies the file's column layout, so a category mapping saved by an earlier import of a
+  // same-layout file can be offered again. Null until a file is parsed.
+  const headersFingerprint = ref<string | null>(null);
   const detectedDelimiter = ref<string>(',');
   const totalRows = ref<number>(0);
 
@@ -518,13 +528,18 @@ export const useImportExportStore = defineStore('importExport', () => {
     resetResolveEntity,
   } = resolveEngine;
 
+  // A failed extraction leaves the unique lists empty, and `.every()` over an
+  // empty list reads as "all resolved" — so both resolve steps must hard-block
+  // on the error itself, or Next would walk past the failure to Review.
   const isResolveAccountsStepValid = computed(
     () =>
       !needsAccountResolution.value ||
-      uniqueAccountsInCSV.value.every((account) => isAccountResolved(accountMapping.value[account.name])),
+      (!extractError.value &&
+        uniqueAccountsInCSV.value.every((account) => isAccountResolved(accountMapping.value[account.name]))),
   );
 
   const isResolveCategoriesStepValid = computed(() => {
+    if (needsCategoriesResolveStep.value && extractError.value) return false;
     if (
       needsCategoryResolution.value &&
       !visibleCategoriesToResolve.value.every((name) => isCategoryResolved(categoryMapping.value[name]))
@@ -539,6 +554,20 @@ export const useImportExportStore = defineStore('importExport', () => {
     }
     return true;
   });
+
+  // ---- Remembered category mappings ----
+
+  const {
+    matchingPreset: matchingCategoryPreset,
+    namedPresets: namedCategoryPresets,
+    applyPreset,
+    persistPreset: persistCategoryPreset,
+    renamePreset: renameCategoryPreset,
+    deletePreset: deleteCategoryPreset,
+  } = useCategoryMappingPresets({ fingerprint: headersFingerprint });
+
+  const applyCategoryPreset = ({ preset }: { preset: CategoryMappingPreset }) =>
+    applyPreset({ preset, categoryMapping, validSourceNames: uniqueCategoriesInCSV.value });
 
   // ---- Other getters ----
 
@@ -580,6 +609,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     });
 
     csvDataRowHeaders.value = response.headers;
+    headersFingerprint.value = await sha256Hex({ value: JSON.stringify(response.headers) });
     csvHeaders.value = response.headers.filter((h) => h !== '');
     csvPreview.value = response.preview;
     detectedDelimiter.value = response.detectedDelimiter;
@@ -741,6 +771,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     // Job accepted: remember the balance-recalculation choice for the next
     // import (fire-and-forget), then advance the wizard and arm the watchdog.
     persistRecalculateBalanceSetting();
+    if (needsCategoryResolution.value) persistCategoryPreset({ mapping: categoryMappingPayload });
     markStepCompleted('review');
     goToStep('results');
     jobProgress.start({
@@ -863,6 +894,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     csvPreview.value = [];
     csvDataRows.value = [];
     csvDataRowHeaders.value = [];
+    headersFingerprint.value = null;
     detectedDelimiter.value = ',';
     totalRows.value = 0;
     columnMapping.value = emptyColumnMapping();
@@ -902,6 +934,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     csvPreview,
     csvDataRows,
     csvDataRowHeaders,
+    headersFingerprint,
     detectedDelimiter,
     totalRows,
     columnMapping,
@@ -945,6 +978,8 @@ export const useImportExportStore = defineStore('importExport', () => {
     skippedAccountNames,
     visibleCategoriesToResolve,
     visibleTagsToResolve,
+    matchingCategoryPreset,
+    namedCategoryPresets,
     importSummary,
 
     // Actions
@@ -964,6 +999,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     aiMappingCategoriesError,
     quickSkipAllTags,
     resetResolveEntity,
+    applyCategoryPreset,
+    renameCategoryPreset,
+    deleteCategoryPreset,
     prepareResolveStep,
     reset,
   };

@@ -224,6 +224,26 @@ export type CategoryMappingValue = { action: 'create-new' } | { action: 'link-ex
 
 export type CategoryMappingConfig = Record<string, CategoryMappingValue>;
 
+/** Cap on remembered category presets per user — they all live in one settings row. */
+export const MAX_CATEGORY_MAPPING_PRESETS = 20;
+
+/**
+ * A category mapping remembered from a finished import, so a later import from the
+ * same source can re-apply it. One preset per fingerprint, newest wins.
+ */
+export interface CategoryMappingPreset {
+  /**
+   * Identifies a source layout: sha256 of the header row for CSV, a constant per
+   * fixed-layout source otherwise.
+   */
+  fingerprint: string;
+  /** User-given label. Named presets survive cap eviction and can be applied to any source. */
+  name?: string;
+  categoryMapping: CategoryMappingConfig;
+  /** ISO timestamp of the import that wrote this preset. */
+  updatedAt: string;
+}
+
 /** A single row that cannot be priced by the exchange-rate layer. */
 export interface UnpriceableRow {
   rowIndex: number;

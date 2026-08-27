@@ -6,6 +6,7 @@ import {
 } from '@/api/import-ms-money';
 import { refreshResourceLease } from '@/api/resource-leases';
 import { getErrorMessage } from '@/common/utils/error-message';
+import { useCategoryMappingPresets } from '@/composable/use-category-mapping-presets';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
 import { useRecalculateBalanceToggle } from '@/composable/use-recalculate-balance-toggle';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
@@ -21,6 +22,7 @@ import {
   ResourceLeaseType,
   SSE_EVENT_TYPES,
   type CategoryMappingConfig,
+  type CategoryMappingPreset,
   type CategoryMappingValue,
   type DuplicateMatch,
   type MsMoneyAccountMapping,
@@ -46,6 +48,9 @@ type MsMoneyImportStepKey = 'upload' | 'resolve' | 'review' | 'execute' | 'done'
 
 /** Every step in canonical order. All are always visible. */
 const MS_MONEY_STEP_KEYS: readonly MsMoneyImportStepKey[] = ['upload', 'resolve', 'review', 'execute', 'done'];
+
+/** The Money category layout is fixed, so every import shares one remembered-preset key. */
+const CATEGORY_PRESET_FINGERPRINT = 'ms-money';
 
 /** i18n key rendering each step's label in the stepper. */
 export const MS_MONEY_STEP_LABEL_KEYS: Record<MsMoneyImportStepKey, string> = {
@@ -333,6 +338,20 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     unmarkedDuplicateIndices,
   });
 
+  // ---- Remembered category mappings ----
+
+  const {
+    matchingPreset: matchingCategoryPreset,
+    namedPresets: namedCategoryPresets,
+    applyPreset,
+    persistPreset: persistCategoryPreset,
+    renamePreset: renameCategoryPreset,
+    deletePreset: deleteCategoryPreset,
+  } = useCategoryMappingPresets({ fingerprint: ref(CATEGORY_PRESET_FINGERPRINT) });
+
+  const applyCategoryPreset = ({ preset }: { preset: CategoryMappingPreset }) =>
+    applyPreset({ preset, categoryMapping, validSourceNames: resolvableCategoryNames.value });
+
   /** True when at least one account is mapped to an existing app account.
    *  Determines whether duplicate detection is meaningful. */
   const hasAnyLinkExisting = computed(() =>
@@ -581,12 +600,14 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     jobProgress.setExecuteError(null);
 
     isEnqueuing.value = true;
+    let categoryMappingPayload: CategoryMappingConfig;
     let response: Awaited<ReturnType<typeof executeMsMoneyImport>>;
     try {
+      categoryMappingPayload = toWireCategoryMapping();
       response = await executeMsMoneyImport({
         uploadId: uploadId.value,
         accountMapping: toWireAccountMapping(),
-        categoryMapping: toWireCategoryMapping(),
+        categoryMapping: categoryMappingPayload,
         skipDuplicateIndices: skipDuplicateIndices.value,
         includeVoidedTransactions: includeVoidedTransactions.value,
         recalculateBalance: recalculateBalance.value,
@@ -603,6 +624,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     // Job accepted: remember the balance-recalculation choice for the next
     // import (fire-and-forget), then advance the wizard and arm the watchdog.
     persistRecalculateBalanceSetting();
+    persistCategoryPreset({ mapping: categoryMappingPayload });
     markStepCompleted('review');
     goToStep('execute');
     jobProgress.start({
@@ -663,6 +685,8 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     accountResolvedCount,
     categoryResolvedCount,
     resolvableCategoryNames,
+    matchingCategoryPreset,
+    namedCategoryPresets,
     isResolveStepValid,
     hasAnyLinkExisting,
     skippedAccountNames,
@@ -693,6 +717,9 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     isAiMappingCategories,
     aiMappingCategoriesError,
     resetResolveEntity,
+    applyCategoryPreset,
+    renameCategoryPreset,
+    deleteCategoryPreset,
 
     // Duplicate helpers
     toggleDuplicateUnmark,
