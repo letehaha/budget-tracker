@@ -1,13 +1,24 @@
 import {
   AccountOptionValue,
+  BANK_PROVIDER_TYPE,
   CategoryOptionValue,
   CurrencyOptionValue,
   TransactionTypeOptionValue,
+  asDecimal,
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { expectCsvImportCompleted, waitForCsvImportCompletion } from '@tests/helpers/import-export';
 import { asUser, signUpSecondUser, withoutSession } from '@tests/helpers/share';
+import { getMockedLunchFlowTransactions } from '@tests/mocks/lunchflow/data';
+import {
+  VALID_LUNCHFLOW_API_KEY,
+  getLunchFlowBalanceMock,
+  getLunchFlowTransactionsMock,
+} from '@tests/mocks/lunchflow/mock-api';
+
+/** LunchFlow's mock account id used across the bank-data-provider test fixtures. */
+const LUNCHFLOW_EXTERNAL_ACCOUNT_ID = '1001';
 
 /** Two-row CSV import linked to an existing account so no account gets auto-created. */
 async function runCsvImport({
@@ -116,6 +127,45 @@ describe('DELETE /import/batch/:batchId', () => {
     expect(otherResult).toEqual({ deletedCount: 0, deletedIds: [] });
 
     // The owner's transactions must still be there — the other user's attempt was a no-op.
+    const stillThere = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
+    expect(stillThere).toHaveLength(2);
+  });
+
+  it('rejects undoing a batch whose account was later connected to a bank', async () => {
+    await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
+    const account = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ currencyCode: 'USD' }),
+      raw: true,
+    });
+    const summary = await runCsvImport({ accountId: account.id, currencyCode: 'USD' });
+
+    const { connectionId } = await helpers.bankDataProviders.connectProvider({
+      providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+      credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+      raw: true,
+    });
+    global.mswMockServer.use(
+      getLunchFlowTransactionsMock({
+        response: getMockedLunchFlowTransactions(0),
+        accountId: LUNCHFLOW_EXTERNAL_ACCOUNT_ID,
+      }),
+      getLunchFlowBalanceMock({
+        accountId: LUNCHFLOW_EXTERNAL_ACCOUNT_ID,
+        response: { balance: { amount: asDecimal(0), currency: 'USD' } },
+      }),
+    );
+    const linkResponse = await helpers.linkAccountToBankConnection({
+      id: account.id,
+      connectionId,
+      externalAccountId: LUNCHFLOW_EXTERNAL_ACCOUNT_ID,
+      raw: false,
+    });
+    expect(linkResponse.statusCode).toBe(200);
+
+    const response = await helpers.deleteImportBatch({ batchId: summary.batchId });
+    expect(response.statusCode).toBe(422);
+
+    // Blocked before deletion, not partially applied.
     const stillThere = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
     expect(stillThere).toHaveLength(2);
   });
