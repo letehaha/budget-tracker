@@ -29,6 +29,15 @@
     "accountNotFound": "Account with such id is not found.",
     "accountGroupNotFound": "Account group with such id is not found."
   },
+  "categories": {
+    "notFound": "Category with provided id does not exist.",
+    "systemCannotBeMoved": "System categories cannot be moved.",
+    "parentNotFound": "Category with such parentId doesn't exist.",
+    "systemParentForbidden": "System categories cannot be used as a parent.",
+    "ownParent": "Category cannot be its own parent.",
+    "underOwnSubcategory": "Category cannot be moved under its own subcategory.",
+    "nestingTooDeep": "Categories cannot be nested deeper than {{max}} levels."
+  },
   "transactions": {
     "notFound": "Transaction not found",
     "missingRequiredFields": "One of required fields are missing: destinationAmount, destinationAccountId.",

@@ -33,6 +33,7 @@ interface BaseUpdationPayload {
   name?: string;
   color?: string;
   icon?: string | null;
+  parentId?: string | null;
 }
 export async function editCustomCategory({ raw, ...params }: BaseUpdationPayload & { raw?: false }): Promise<Response>;
 export async function editCustomCategory({

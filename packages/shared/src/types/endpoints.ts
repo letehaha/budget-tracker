@@ -202,7 +202,7 @@ export type CreateCategoryBody = {
 };
 export type CreateCategoryResponse = CategoryModel;
 
-export type EditCategoryBody = Partial<Pick<CategoryModel, 'name' | 'color' | 'icon'>>;
+export type EditCategoryBody = Partial<Pick<CategoryModel, 'name' | 'color' | 'icon' | 'parentId'>>;
 export type EditCategoryResponse = CategoryModel[];
 
 export interface DeleteCategoryBody {

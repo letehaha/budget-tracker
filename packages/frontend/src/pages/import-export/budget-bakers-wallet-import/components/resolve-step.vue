@@ -3,7 +3,7 @@
  * BudgetBakers Wallet resolve step — reconciles every Wallet account + non-transfer category
  * against the user's existing app data using the shared mapping tables. Mirrors
  * the CSV importer's resolve step: each row is either "create new" or
- * "link to existing", with per-entity bulk-action toolbars.
+ * "link to existing", or skipped entirely, with per-entity bulk-action toolbars.
  *
  * Wallet-only addition: each `create-new` account row exposes an optional
  * "current balance" input (the `create-new-cell` slot). Leaving it blank lets
@@ -13,15 +13,13 @@ import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Callout } from '@/components/lib/ui/callout';
 import RecalculateBalanceToggle from '@/pages/import-export/components/recalculate-balance-toggle.vue';
-import AccountMappingTable, {
-  type AccountAction,
-} from '@/pages/import-export/components/resolve-values-step/account-mapping-table.vue';
+import AccountMappingTable from '@/pages/import-export/components/resolve-values-step/account-mapping-table.vue';
 import CategoryMappingTable from '@/pages/import-export/components/resolve-values-step/category-mapping-table.vue';
 import { type QuickAction } from '@/pages/import-export/components/resolve-values-step/quick-action-toolbar.vue';
 import { useAccountsStore } from '@/stores/accounts';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { useImportBudgetBakersWalletStore } from '@/stores/import-budget-bakers-wallet';
-import { ChevronLeftIcon, ChevronRightIcon, LinkIcon, PlusIcon, RefreshCwIcon } from '@lucide/vue';
+import { ChevronLeftIcon, ChevronRightIcon, LinkIcon, PlusIcon, RefreshCwIcon, SparklesIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -58,13 +56,6 @@ const categoryItems = computed(() => {
   return store.resolvableCategoryNames.map((name) => ({ name, transactionCount: countByName.get(name) }));
 });
 
-// ---- Account action bridge ----
-
-function onAccountSetAction({ name, action }: { name: string; action: AccountAction }): void {
-  if (action === 'skip') return;
-  store.setAccountAction({ name, action });
-}
-
 // ---- Current-balance input bridge (Wallet-only) ----
 
 /** Stored decimal balance for a create-new account, or null when unset. */
@@ -90,12 +81,14 @@ const accountQuickActions = computed<QuickAction[]>(() => [
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.mapExactMatches'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.mapExactMatchesAccounts'),
     onClick: () => store.quickMapExactMatches({ entity: 'accounts' }),
+    menu: true,
   },
   {
     icon: PlusIcon,
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.createNewForUnmatched'),
     onClick: () => store.quickCreateNewForUnmatched({ entity: 'accounts' }),
+    menu: true,
   },
   {
     icon: RefreshCwIcon,
@@ -111,12 +104,22 @@ const categoryQuickActions = computed<QuickAction[]>(() => [
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.mapExactMatches'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.mapExactMatchesCategories'),
     onClick: () => store.quickMapExactMatches({ entity: 'categories' }),
+    menu: true,
+  },
+  {
+    icon: SparklesIcon,
+    label: t('importShared.aiMapping.action'),
+    tooltip: t('importShared.aiMapping.tooltipCategories'),
+    onClick: () => store.quickAiMapCategories(),
+    disabled: store.isAiMappingCategories,
+    menu: true,
   },
   {
     icon: PlusIcon,
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.createNewForUnmatched'),
     onClick: () => store.quickCreateNewForUnmatched({ entity: 'categories' }),
+    menu: true,
   },
   {
     icon: RefreshCwIcon,
@@ -158,7 +161,8 @@ async function handleContinue() {
       :title="$t('pages.importExport.budgetBakersWalletImport.resolve.accounts.sectionTitle')"
       :resolved-label="$t('pages.importExport.budgetBakersWalletImport.resolve.resolvedCounterWord')"
       :quick-actions="accountQuickActions"
-      @set-action="onAccountSetAction"
+      allow-skip
+      @set-action="store.setAccountAction"
       @set-target="store.setAccountTarget"
     >
       <!-- Wallet-only: optional current-balance input for create-new accounts. -->
@@ -182,17 +186,37 @@ async function handleContinue() {
       </template>
     </AccountMappingTable>
 
+    <Callout v-if="store.skippedAccountNames.length > 0" variant="warning">
+      <p>
+        {{
+          $t('pages.importExport.budgetBakersWalletImport.resolve.accounts.skippedNote', {
+            count: store.skippedAccountNames.length,
+          })
+        }}
+      </p>
+    </Callout>
+
     <!-- ==================== CATEGORIES SECTION ==================== -->
     <CategoryMappingTable
+      :loading="store.isAiMappingCategories"
       :items="categoryItems"
       :mapping="store.categoryMapping"
       :available-categories="formattedCategories"
       :title="$t('pages.importExport.budgetBakersWalletImport.resolve.categories.sectionTitle')"
       :resolved-label="$t('pages.importExport.budgetBakersWalletImport.resolve.resolvedCounterWord')"
       :quick-actions="categoryQuickActions"
+      :matching-preset="store.matchingCategoryPreset"
+      :named-presets="store.namedCategoryPresets"
       @set-action="store.setCategoryAction"
       @set-target="store.setCategoryTarget"
+      @apply-preset="store.applyCategoryPreset"
+      @rename-preset="store.renameCategoryPreset"
+      @delete-preset="store.deleteCategoryPreset"
     />
+
+    <Callout v-if="store.aiMappingCategoriesError" variant="destructive" role="alert">
+      <p>{{ store.aiMappingCategoriesError }}</p>
+    </Callout>
 
     <!-- ==================== BALANCE RECALCULATION ==================== -->
     <RecalculateBalanceToggle
@@ -214,7 +238,9 @@ async function handleContinue() {
       </UiButton>
 
       <UiButton
-        :disabled="!store.isResolveStepValid || isNavigating || store.isDetectingDuplicates"
+        :disabled="
+          !store.isResolveStepValid || isNavigating || store.isDetectingDuplicates || store.isAiMappingCategories
+        "
         @click="handleContinue"
       >
         {{ $t('pages.importExport.budgetBakersWalletImport.resolve.footer.continue') }}

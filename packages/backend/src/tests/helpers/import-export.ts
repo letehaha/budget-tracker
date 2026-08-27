@@ -1,5 +1,6 @@
 import type {
   AccountMappingConfig,
+  AiMapImportCategoriesResponse,
   BudgetBakersWalletAccountMapping,
   BudgetBakersWalletImportProgress,
   CategoryMappingConfig,
@@ -97,6 +98,25 @@ export function parseCsv<R extends boolean | undefined = false>({
   return makeRequest<ParseCsvResponse, R>({
     method: 'post',
     url: '/import/csv/parse',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// AI Category Mapping Endpoint
+// ============================================
+
+export function aiMapImportCategories<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: { sourceCategories: string[] };
+  raw?: R;
+}): UtilizeReturnType<() => AiMapImportCategoriesResponse, R> {
+  return makeRequest<AiMapImportCategoriesResponse, R>({
+    method: 'post',
+    url: '/import/ai-map-categories',
     payload,
     raw,
   });

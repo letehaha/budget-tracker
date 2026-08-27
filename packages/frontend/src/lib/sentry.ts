@@ -61,8 +61,9 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
         blockAllMedia: true,
       }),
     ],
-    // Performance monitoring sample rate (10% of transactions)
-    tracesSampleRate: 0.1,
+    // Each sampled transaction fans out into a span per resource, fetch and web
+    // vital, so the span bill scales far faster than this rate suggests.
+    tracesSampleRate: 0.01,
     // Session replay sample rate
     // Capture 1% of all sessions
     replaysSessionSampleRate: 0.01,

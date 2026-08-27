@@ -26,6 +26,7 @@ import { createAccountsIfNeeded } from '@services/import-export/core/resolve/cre
 import { createCategoriesIfNeeded } from '@services/import-export/core/resolve/create-categories-if-needed';
 import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
 import { createTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
+import { excludeSkippedAccounts } from '@services/import-export/core/resolve/exclude-skipped-accounts';
 import { resolveRowTagIds } from '@services/import-export/core/resolve/resolve-row-tag-ids';
 import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
@@ -69,6 +70,10 @@ interface ExecuteImportParams {
   onProgress?: (processedCount: number, totalCount: number) => void | Promise<void>;
 }
 
+function pickReferenced<T>({ mapping, referenced }: { mapping: Record<string, T>; referenced: Set<string> }) {
+  return Object.fromEntries(Object.entries(mapping).filter(([sourceName]) => referenced.has(sourceName)));
+}
+
 /**
  * Execute a CSV import. Runs OUTSIDE a wrapping transaction so a single bad row
  * does not nuke the whole import — best-effort partial success is the contract
@@ -98,13 +103,27 @@ export async function executeImport({
   // filtered with a single pass. Both sets use the same rowIndex space as
   // ParsedTransactionRow.rowIndex and DetectDuplicatesResponse.unpriceableRows.
   const skipSet = new Set([...skipDuplicateIndices, ...(skipUnpriceableIndices ?? [])]);
-  const rowsToImport = validRows.filter((row) => !skipSet.has(row.rowIndex));
+
+  // Narrowed to names the parsed file actually contains so `accountsSkipped`
+  // counts real accounts rather than stale mapping keys the client kept around.
+  const accountNamesInFile = new Set(validRows.map((row) => row.accountName));
+  const skippedAccountNames = new Set(
+    Object.entries(accountMapping)
+      .filter(([accountName, mapping]) => mapping.action === 'skip' && accountNamesInFile.has(accountName))
+      .map(([accountName]) => accountName),
+  );
+
+  const importableMapping = excludeSkippedAccounts({ accountMapping });
+
+  const rowsToImport = validRows.filter(
+    (row) => !skipSet.has(row.rowIndex) && !skippedAccountNames.has(row.accountName),
+  );
 
   // Count each skipped row exactly once: `skipped` owns confirmed duplicates;
   // `skippedUnpriceable` owns rows that are unpriceable but not also duplicates.
   // A row in both sets is already counted under `skipped`, so excluding the
-  // duplicate-skip set from the unpriceable count prevents double-counting and
-  // keeps imported + skipped + skippedUnpriceable == rows considered.
+  // duplicate-skip set from the unpriceable count prevents double-counting.
+  // Rows on a skipped account are in neither count: `accountsSkipped` covers them.
   const dupSkipSet = new Set(skipDuplicateIndices);
   const skippedUnpriceableCount = (skipUnpriceableIndices ?? []).filter((i) => !dupSkipSet.has(i)).length;
 
@@ -119,6 +138,7 @@ export async function executeImport({
       skipped: skipDuplicateIndices.length,
       skippedUnpriceable: skippedUnpriceableCount,
       accountsCreated: 0,
+      accountsSkipped: skippedAccountNames.size,
       categoriesCreated: 0,
       tagsCreated: 0,
       payeesCreated: 0,
@@ -178,7 +198,7 @@ export async function executeImport({
   const { accountNameToId, accountsCreated } = await createAccountsIfNeeded({
     userId,
     accountNames: uniqueAccountNames,
-    accountMapping,
+    accountMapping: importableMapping,
     resolveCurrencyCode: (accountName) => rowsToImport.find((r) => r.accountName === accountName)?.currencyCode,
     resolveFxDate: () => new Date(),
     defaultAccountId,
@@ -189,24 +209,36 @@ export async function executeImport({
   // balance-before + boundary day. Accounts created above are excluded — they
   // have no history to protect, so the recalculate flag does not apply to them
   // (they are handed to `finalize` for their summary entries instead).
-  const { capturedAccountIds, createdAccounts } = partitionReconcileAccounts({ accountNameToId, accountMapping });
+  const { capturedAccountIds, createdAccounts } = partitionReconcileAccounts({
+    accountNameToId,
+    accountMapping: importableMapping,
+  });
   const reconciler = await startBalanceReconciliation({ userId, accountIds: capturedAccountIds });
 
   const plannedMatchAccountIds = await selectAccountsWithPlannedRows({ accountIds: capturedAccountIds });
+
+  // Resolve only the entities the surviving rows reference. A mapping entry for a
+  // skipped account's value, or one the client kept from an earlier column choice,
+  // would create a category or tag nothing points at.
+  const referencedCategoryNames = new Set(rowsToImport.flatMap((row) => row.categoryName ?? []));
+  const referencedTagNames = new Set(rowsToImport.flatMap((row) => row.tagNames ?? []));
 
   // Resolve categories that need to be created or linked. `categoriesCreated`
   // counts only genuine inserts — create-new entries that matched an existing
   // same-named category (case-insensitive) link to it instead.
   const { categoryNameToId, categoriesCreated } = await createCategoriesIfNeeded({
     userId,
-    categoryMapping,
+    categoryMapping: pickReferenced({ mapping: categoryMapping, referenced: referencedCategoryNames }),
   });
 
   // Resolve tags that need to be created or linked. `tagsCreated` counts only
   // genuine inserts — create-new entries that matched an existing same-named
   // tag (case-insensitive) link to it instead.
   const { tagNameToId, tagsCreated } = tagMapping
-    ? await createTagsIfNeeded({ userId, tagMapping })
+    ? await createTagsIfNeeded({
+        userId,
+        tagMapping: pickReferenced({ mapping: tagMapping, referenced: referencedTagNames }),
+      })
     : { tagNameToId: new Map<string, string>(), tagsCreated: 0 };
 
   // Resolve Payees for every mapped merchant string up front. `payeesCreated`
@@ -424,6 +456,7 @@ export async function executeImport({
     skipped: skipDuplicateIndices.length,
     skippedUnpriceable: skippedUnpriceableCount,
     accountsCreated,
+    accountsSkipped: skippedAccountNames.size,
     categoriesCreated,
     tagsCreated,
     payeesCreated,

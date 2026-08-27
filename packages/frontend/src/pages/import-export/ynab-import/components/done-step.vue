@@ -9,6 +9,11 @@
     <div class="grid grid-cols-2 gap-3 @sm/ynab-done:grid-cols-3 @lg/ynab-done:grid-cols-4">
       <SummaryStat :label="$t('pages.importExport.ynabImport.done.accountsCreated')" :value="summary.accountsCreated" />
       <SummaryStat
+        v-if="summary.accountsSkipped"
+        :label="$t('pages.importExport.ynabImport.done.accountsSkipped')"
+        :value="summary.accountsSkipped"
+      />
+      <SummaryStat
         :label="$t('pages.importExport.ynabImport.done.categoriesCreated')"
         :value="summary.categoriesCreated"
       />

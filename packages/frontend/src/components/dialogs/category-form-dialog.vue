@@ -28,15 +28,33 @@
         autofocus
       />
 
-      <div v-if="isCreatingTopLevelCategory || isEditMode" class="grid grid-cols-2 gap-4">
+      <ParentCategorySelect v-model="form.parentId" :category="props.category" />
+
+      <div class="grid grid-cols-2 gap-4">
         <ColorSelectField
-          v-if="isCreatingTopLevelCategory || isEditMode"
           v-model="form.color"
           :label="$t('dialogs.categoryForm.colorLabel')"
-        />
+          :class="cn(isInheritColorVisible && 'col-span-2')"
+        >
+          <template v-if="isInheritColorVisible" #field-right>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="border-input bg-muted hover:bg-muted hover:text-primary-text h-auto self-stretch rounded-l-none rounded-r-md border px-3 text-xs font-medium"
+              @click="inheritParentColor"
+            >
+              {{ $t('dialogs.categoryForm.inheritParentColor') }}
+            </Button>
+          </template>
+        </ColorSelectField>
 
         <!-- Icon Picker -->
-        <FieldLabel :label="$t('dialogs.categoryForm.iconLabel')" only-template>
+        <FieldLabel
+          :label="$t('dialogs.categoryForm.iconLabel')"
+          only-template
+          :class="cn(isInheritColorVisible && 'col-span-2')"
+        >
           <Popover v-model:open="iconPickerOpen">
             <PopoverTrigger as-child>
               <button
@@ -89,7 +107,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/pop
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
+import ParentCategorySelect from '@/pages/settings/subpages/categories/components/parent-category-select.vue';
 import { useCategoriesStore, useOnboardingStore } from '@/stores';
+import { type RecordId } from '@bt/shared/types';
 import { ChevronsUpDownIcon } from '@lucide/vue';
 import { useVModel } from '@vueuse/core';
 import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue';
@@ -117,7 +137,6 @@ const categoriesStore = useCategoriesStore();
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();
 
 const isEditMode = computed(() => !!props.category);
-const isCreatingTopLevelCategory = computed(() => !isEditMode.value && !props.parentCategory);
 
 const DEFAULT_CATEGORY_COLOR = '#df2063';
 
@@ -127,20 +146,23 @@ const form = reactive({
   name: '',
   color: DEFAULT_CATEGORY_COLOR,
   icon: '' as string | null,
+  parentId: null as RecordId | null,
 });
 
 const initialValues = reactive({
   name: '',
   color: DEFAULT_CATEGORY_COLOR,
   icon: '' as string | null,
+  parentId: null as RecordId | null,
 });
 
 const hasNameChanged = computed(() => form.name !== initialValues.name);
 const hasColorChanged = computed(() => form.color !== initialValues.color);
 const hasIconChanged = computed(() => form.icon !== initialValues.icon);
+const hasParentChanged = computed(() => form.parentId !== initialValues.parentId);
 
 const hasChanges = computed(() => {
-  return hasNameChanged.value || hasColorChanged.value || hasIconChanged.value;
+  return hasNameChanged.value || hasColorChanged.value || hasIconChanged.value || hasParentChanged.value;
 });
 
 const isSubmitDisabled = computed(() => {
@@ -154,6 +176,7 @@ const resetForm = () => {
   form.name = '';
   form.color = DEFAULT_CATEGORY_COLOR;
   form.icon = null;
+  form.parentId = null;
 };
 
 const initializeForm = () => {
@@ -161,17 +184,42 @@ const initializeForm = () => {
     form.name = props.category.name;
     form.color = props.category.color || DEFAULT_CATEGORY_COLOR;
     form.icon = props.category.icon || null;
+    form.parentId = props.category.parentId;
 
     initialValues.name = props.category.name;
     initialValues.color = props.category.color || DEFAULT_CATEGORY_COLOR;
     initialValues.icon = props.category.icon || null;
+    initialValues.parentId = props.category.parentId;
   } else {
     resetForm();
+    form.parentId = props.parentCategory?.id ?? null;
     initialValues.name = '';
     initialValues.color = DEFAULT_CATEGORY_COLOR;
     initialValues.icon = null;
+    initialValues.parentId = form.parentId;
   }
 };
+
+const selectedParent = computed(() => (form.parentId ? categoriesStore.categoriesMap[form.parentId] : undefined));
+const isInheritColorVisible = computed(() => !isEditMode.value && !!selectedParent.value);
+
+const inheritParentColor = () => {
+  form.color = selectedParent.value?.color || DEFAULT_CATEGORY_COLOR;
+};
+
+// Picking a parent while creating pre-fills color and icon from it; the user can override after.
+watch(
+  () => form.parentId,
+  (parentId) => {
+    if (isEditMode.value || !parentId) return;
+
+    const parent = categoriesStore.categoriesMap[parentId];
+    if (!parent) return;
+
+    form.color = parent.color || DEFAULT_CATEGORY_COLOR;
+    form.icon = parent.icon || null;
+  },
+);
 
 watch(
   isOpen,
@@ -195,6 +243,7 @@ const handleSubmit = async () => {
         name: form.name.trim(),
         icon: form.icon,
         color: form.color,
+        ...(hasParentChanged.value ? { parentId: form.parentId } : {}),
       });
 
       addSuccessNotification(t('dialogs.categoryForm.notifications.updated'));
@@ -203,23 +252,15 @@ const handleSubmit = async () => {
     } else {
       type CreateParams = Parameters<typeof createCategory>[0];
 
-      let params: CreateParams = { name: form.name.trim() };
-
-      if (props.parentCategory) {
-        params = omitBy(
-          {
-            ...params,
-            icon: props.parentCategory.icon,
-            color: props.parentCategory.color,
-            parentId: props.parentCategory.id,
-          },
-          isNil,
-        ) as CreateParams;
-      } else {
-        // Top-level category - use selected color and icon
-        params.color = form.color;
-        params.icon = form.icon;
-      }
+      const params = omitBy(
+        {
+          name: form.name.trim(),
+          color: form.color,
+          icon: form.icon,
+          parentId: form.parentId,
+        },
+        isNil,
+      ) as CreateParams;
 
       const newCategory = await createCategory(params);
 

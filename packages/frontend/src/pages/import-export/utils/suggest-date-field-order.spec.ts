@@ -175,3 +175,46 @@ describe('detectDateSeparator', () => {
     expect(detectDateSeparator({ values: [] })).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Two-digit years and time suffixes (the "01/01/26, 10:58" import report)
+// ---------------------------------------------------------------------------
+
+describe('two-digit years and time suffixes', () => {
+  it('parses DD/MM/YY with a comma-separated time', () => {
+    expect(parseDateCellParts({ value: '01/01/26, 10:58', fieldOrder: 'day-first' })).toEqual({
+      year: 2026,
+      month: 1,
+      day: 1,
+    });
+  });
+
+  it('parses a space-separated time on a four-digit-year date', () => {
+    expect(parseDateCellParts({ value: '15/01/2026 14:30:45', fieldOrder: 'day-first' })).toEqual({
+      year: 2026,
+      month: 1,
+      day: 15,
+    });
+  });
+
+  it('rejects impossible times instead of ignoring them', () => {
+    expect(parseDateCellParts({ value: '01/01/26, 25:00', fieldOrder: 'day-first' })).toBeNull();
+  });
+
+  it('reads order signals through time suffixes and two-digit years', () => {
+    const result = suggestDateFieldOrder({ values: ['13/06/26, 10:00', '08/06/26, 11:30'] });
+
+    expect(result.suggestion).toBe('day-first');
+    expect(result.isAmbiguous).toBe(false);
+  });
+
+  it('detects the separator of a timed two-digit-year cell', () => {
+    expect(detectDateSeparator({ values: ['01/01/26, 10:58'] })).toBe('/');
+  });
+
+  it('counts no mismatches for a column of timed two-digit-year cells', () => {
+    expect(countMismatchedDateCells({ values: ['01/01/26, 10:58', '02/01/26, 09:12'], fieldOrder: 'day-first' })).toBe(
+      0,
+    );
+  });
+});

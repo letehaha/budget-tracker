@@ -12,7 +12,7 @@ const VALID_SKIP_REASONS = new Set<string>(Object.values(CATEGORIZATION_SKIP_REA
  * list bullets around tokens, or a bare row number. Every verdict lost to formatting
  * becomes a permanent `skip:unspecified` stamp, so recover what is still unambiguous.
  */
-function normalizeToken({ raw, aliasPrefix }: { raw: string; aliasPrefix: string }): string {
+export function normalizeToken({ raw, aliasPrefix }: { raw: string; aliasPrefix: string }): string {
   const stripped = raw.replace(/^[-*_`\s]+|[-*_`\s]+$/g, '').toLowerCase();
   return /^\d+$/.test(stripped) ? `${aliasPrefix}${stripped}` : stripped;
 }

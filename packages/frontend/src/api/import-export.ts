@@ -1,5 +1,6 @@
 import { api } from '@/api/_api';
 import type {
+  AiMapImportCategoriesResponse,
   ColumnMappingConfig,
   CsvImportProgress,
   DeleteImportBatchResponse,
@@ -42,6 +43,13 @@ export const extractUniqueValues = async (
   payload: ExtractUniqueValuesRequest,
 ): Promise<ExtractUniqueValuesResponse> => {
   const result = await api.post('/import/csv/extract-unique-values', payload);
+  return result;
+};
+
+export const aiMapImportCategories = async (payload: {
+  sourceCategories: string[];
+}): Promise<AiMapImportCategoriesResponse> => {
+  const result = await api.post('/import/ai-map-categories', payload);
   return result;
 };
 

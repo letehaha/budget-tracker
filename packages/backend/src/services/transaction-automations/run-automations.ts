@@ -1,5 +1,6 @@
 import type { RecordId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
+import { trackAutomationApplied } from '@js/utils/posthog';
 import { connection } from '@models/connection';
 import TransactionAutomations from '@models/transaction-automations.model';
 import * as Transactions from '@models/transactions.model';
@@ -94,6 +95,8 @@ export const runTransactionAutomations = withTransaction(
         'UPDATE "TransactionAutomations" SET "matchCount" = "matchCount" + 1, "lastMatchedAt" = now() WHERE id = :id',
         { replacements: { id: rule.id }, transaction: null },
       );
+
+      trackAutomationApplied({ userId, ruleId: rule.id, actions: rule.actions, matchCount: rule.matchCount });
 
       return Transactions.default.findByPk(transactionId);
     }

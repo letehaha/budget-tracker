@@ -71,6 +71,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     categories,
     categoriesMap,
     isFetched,
+    ownCategories,
     formattedCategories,
     loadCategories,
   };

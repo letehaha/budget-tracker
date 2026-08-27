@@ -63,6 +63,7 @@
           "allFailedDescription": "No rows were imported. Review the errors below and try again.",
           "accountsCreated": "Accounts created",
           "accountsLinked": "Accounts linked",
+          "accountsSkipped": "Accounts skipped",
           "categoriesCreated": "Categories created",
           "tagsCreated": "Tags created",
           "transactionsImported": "Transactions imported",
@@ -91,7 +92,8 @@
             "sectionTitle": "Accounts",
             "currentBalanceLabel": "Current balance (optional)",
             "currentBalancePlaceholder": "Leave blank to use imported total",
-            "willCreateHint": "Will create a new {currency} account"
+            "willCreateHint": "Will create a new {currency} account",
+            "skippedNote": "{count} account(s) will be skipped. Their transactions — and any transfers to or from them — will not be imported."
           },
           "categories": {
             "sectionTitle": "Categories"

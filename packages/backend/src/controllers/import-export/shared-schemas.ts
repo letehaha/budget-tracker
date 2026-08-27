@@ -91,6 +91,7 @@ export const accountMappingValueSchema = z.discriminatedUnion('action', [
     currentBalance: boundedImportBalance({ label: 'Current balance' }).nullable().default(null),
   }),
   z.object({ action: z.literal('link-existing'), accountId: recordId() }),
+  z.object({ action: z.literal('skip') }),
 ]);
 
 export const categoryMappingValueSchema = z.discriminatedUnion('action', [

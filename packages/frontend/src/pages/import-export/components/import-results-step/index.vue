@@ -81,6 +81,12 @@
           variant="neutral"
         />
         <StatCard
+          v-if="(summary.accountsSkipped ?? 0) > 0"
+          :label="$t('pages.importExport.csvImport.results.accountsSkipped')"
+          :value="summary.accountsSkipped ?? 0"
+          variant="neutral"
+        />
+        <StatCard
           v-if="summary.categoriesCreated > 0"
           :label="$t('pages.importExport.csvImport.results.categoriesCreated')"
           :value="summary.categoriesCreated"
@@ -201,6 +207,7 @@ const hasSecondaryStats = computed(() => {
   return (
     s.skippedUnpriceable > 0 ||
     s.accountsCreated > 0 ||
+    (s.accountsSkipped ?? 0) > 0 ||
     s.categoriesCreated > 0 ||
     s.payeesCreated > 0 ||
     s.tagsCreated > 0

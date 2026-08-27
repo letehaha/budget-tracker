@@ -1,7 +1,6 @@
 import {
   ACCOUNT_TYPES,
   type AccountBalanceChange,
-  type AccountMappingConfig,
   type CategoryMappingConfig,
   ImportSource,
   MS_MONEY_VOID_TAG,
@@ -22,6 +21,7 @@ import { startBalanceReconciliation } from '@services/import-export/core/reconci
 import { createAccountsIfNeeded } from '@services/import-export/core/resolve/create-accounts-if-needed';
 import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
 import { createNamedTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
+import { excludeSkippedAccounts } from '@services/import-export/core/resolve/exclude-skipped-accounts';
 import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { createTransaction } from '@services/transactions';
 import { selectAccountsWithPlannedRows } from '@services/transactions/planned-matching';
@@ -113,17 +113,7 @@ export async function executeMsMoneyImport({
   );
   const importableAccounts = parsed.accounts.filter((account) => !skippedAccountNames.has(account.originalName));
 
-  // The shared account helpers model only create-new / link-existing, so the
-  // skip decision is resolved here and a mapping without it is handed down.
-  const importableMapping: AccountMappingConfig = {};
-  for (const account of importableAccounts) {
-    const mapping = accountMapping[account.originalName]!;
-    if (mapping.action === 'create-new') {
-      importableMapping[account.originalName] = { action: 'create-new', currentBalance: mapping.currentBalance };
-    } else if (mapping.action === 'link-existing') {
-      importableMapping[account.originalName] = { action: 'link-existing', accountId: mapping.accountId };
-    }
-  }
+  const importableMapping = excludeSkippedAccounts({ accountMapping });
 
   const importDetails: TransactionImportDetails = {
     batchId: uuidv4(),

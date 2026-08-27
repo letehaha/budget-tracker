@@ -4,12 +4,13 @@ import {
   AI_CUSTOM_INSTRUCTIONS_MAX_LENGTH,
   AI_FEATURE,
   AI_KEY_PROVIDERS,
+  MAX_CATEGORY_MAPPING_PRESETS,
   NOTIFICATION_TYPES,
   RecordId,
   endpointsTypes,
   isCustomModelId,
 } from '@bt/shared/types';
-import type { Equals, Expect } from '@bt/shared/types';
+import type { CategoryMappingPreset, Equals, Expect } from '@bt/shared/types';
 import { dateRange, withDateOrder } from '@common/lib/zod/custom-types';
 import { IdColumn } from '@common/types/id-column';
 import {
@@ -194,11 +195,27 @@ const ZodSubscriptionsSettingsSchema = z.object({
   defaultAutoRecord: z.boolean().optional(),
 });
 
+// A category mapping remembered from a finished import, keyed by a fingerprint of the source
+// layout. Untrusted client input, so the per-value union is validated in full.
+const ZodCategoryMappingPresetSchema = z.object({
+  fingerprint: z.string().min(1).max(128),
+  name: z.string().trim().min(1).max(64).optional(),
+  categoryMapping: z.record(
+    z.string(),
+    z.union([
+      z.object({ action: z.literal('create-new') }),
+      z.object({ action: z.literal('link-existing'), categoryId: z.string().min(1) }),
+    ]),
+  ),
+  updatedAt: z.string(),
+});
+
 // Data-import defaults. `recalculateAccountBalance` only seeds the "update account balances
 // from imported transactions" checkbox; the execute request's `recalculateBalance` is what
 // actually applies.
 const ZodImportSettingsSchema = z.object({
   recalculateAccountBalance: z.boolean().optional(),
+  categoryMappingPresets: z.array(ZodCategoryMappingPresetSchema).max(MAX_CATEGORY_MAPPING_PRESETS).optional(),
 });
 
 // Account-picker defaults. `defaultAccountId` pre-selects account pickers, null means cleared.
@@ -346,6 +363,8 @@ export const ZodSettingsPatchSchema = z.object({
   import: z
     .object({
       recalculateAccountBalance: z.boolean().optional(),
+      // Same element schema as `ZodSettingsSchema`, so the two can't drift.
+      categoryMappingPresets: z.array(ZodCategoryMappingPresetSchema).max(MAX_CATEGORY_MAPPING_PRESETS).optional(),
     })
     .optional(),
   accounts: ZodAccountsSettingsSchema.optional(),
@@ -389,6 +408,16 @@ export type SettingsPatchSchemaIsInSync = Expect<Equals<SettingsPatchSchema, Dee
  */
 export type SavedPivotViewSchemaIsInSync = Expect<
   Equals<z.infer<typeof ZodSavedPivotViewSchema>, endpointsTypes.SavedPivotView>
+>;
+
+/**
+ * Compile-time drift guard: the persisted category preset must infer exactly the shared
+ * `CategoryMappingPreset` contract the frontend also builds against.
+ *
+ * @public exported only so the assertion isn't flagged as unused.
+ */
+export type CategoryMappingPresetSchemaIsInSync = Expect<
+  Equals<z.infer<typeof ZodCategoryMappingPresetSchema>, CategoryMappingPreset>
 >;
 
 /**
