@@ -234,7 +234,11 @@
       "morePlansAtLeast": "+{count}+ more planned",
       "deletePlanTitle": "Delete planned transaction?",
       "deletePlanDescription": "This action cannot be undone.",
-      "plansLoadFailed": "Couldn't load planned transactions"
+      "plansLoadFailed": "Couldn't load planned transactions",
+      "confirmAction": "Confirm",
+      "confirmTooltip": "The money moved — record it and update the balance",
+      "confirmPlanSuccess": "Plan recorded — balance updated",
+      "confirmPlanError": "Failed to record the plan"
     }
   }
 }

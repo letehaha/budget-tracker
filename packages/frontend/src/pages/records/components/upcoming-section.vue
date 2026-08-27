@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { type SubscriptionListItem } from '@/api/subscriptions';
+import { editTransaction } from '@/api/transactions';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { isPlanMatchWindowExpired, planExpiredDays } from '@/common/utils/planned-transactions';
 import BrandLogo from '@/components/common/brand-logo.vue';
 import CategoryCircle from '@/components/common/category-circle.vue';
@@ -7,6 +9,7 @@ import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.v
 import { Button } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import TransactionDetailsModal from '@/components/transactions-list/transaction-details-modal.vue';
+import { useNotificationCenter } from '@/components/notification-center';
 import { useDeleteTransaction } from '@/components/dialogs/manage-transaction/composables/use-delete-transaction';
 import { PENDING_PLANNED_LIMIT, usePendingPlannedTransactions } from '@/composable/data-queries/planned-transactions';
 import { useSubscriptionsList } from '@/composable/data-queries/subscriptions';
@@ -15,9 +18,10 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import { formatUIAmount } from '@/js/helpers';
 import SubscriptionMarkPaidDialog from '@/pages/planned/subscriptions/components/subscription-mark-paid-dialog.vue';
 import { useCategoriesStore } from '@/stores';
-import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
+import { ACCOUNT_TYPES, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { addDays, isBefore, parseISO, startOfDay } from 'date-fns';
-import { AlertCircleIcon, CalendarClockIcon, EyeOffIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
+import { AlertCircleIcon, CalendarClockIcon, CircleCheckIcon, EyeOffIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -152,6 +156,26 @@ function handleEditPlan({ plan }: { plan: TransactionModel }) {
   isEditDialogOpen.value = true;
 }
 
+// The bank confirms plans on connected accounts (or the user deletes them); only a
+// manual-account plan needs a hand-confirm once the money actually moved.
+function canConfirmPlan({ plan }: { plan: TransactionModel }): boolean {
+  return plan.accountType === ACCOUNT_TYPES.system;
+}
+
+const queryClient = useQueryClient();
+const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+
+const confirmPlanMutation = useMutation({
+  mutationFn: ({ plan }: { plan: TransactionModel }) => editTransaction({ txId: plan.id, isPlanned: false }),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+    addSuccessNotification(t('records.upcomingSection.confirmPlanSuccess'));
+  },
+  onError: () => {
+    addErrorNotification(t('records.upcomingSection.confirmPlanError'));
+  },
+});
+
 const deletedPlanId = ref<string | null>(null);
 const isDeleteDialogOpen = ref(false);
 
@@ -276,6 +300,17 @@ function confirmDeletePlan() {
         </span>
 
         <div class="flex shrink-0 items-center gap-1">
+          <DesktopOnlyTooltip v-if="canConfirmPlan({ plan })" :content="$t('records.upcomingSection.confirmTooltip')">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              :aria-label="$t('records.upcomingSection.confirmAction')"
+              :disabled="confirmPlanMutation.isPending.value"
+              @click="confirmPlanMutation.mutate({ plan })"
+            >
+              <CircleCheckIcon class="text-app-income-color size-3.5" />
+            </Button>
+          </DesktopOnlyTooltip>
           <DesktopOnlyTooltip :content="$t('common.actions.edit')">
             <Button
               variant="ghost"
