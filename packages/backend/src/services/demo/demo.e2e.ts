@@ -122,7 +122,7 @@ describe('Demo Mode', () => {
   });
 
   describe('POST /demo - Create Demo User', () => {
-    it('successfully creates a demo user and returns session credentials', async () => {
+    it('returns session credentials and creates the demo-role user plus its better-auth records', async () => {
       // Clear auth cookies to simulate unauthenticated visitor
       global.APP_AUTH_COOKIES = null;
 
@@ -141,48 +141,21 @@ describe('Demo Mode', () => {
       expect(setCookie).toBeDefined();
       const cookieStr = Array.isArray(setCookie) ? setCookie.join('') : setCookie;
       expect(cookieStr).toContain('bt_auth.session_token');
-    }, 60000); // 60s timeout - demo user creation involves lots of data seeding
 
-    it('creates a user with demo role in database', async () => {
-      global.APP_AUTH_COOKIES = null;
-
-      const res = await makeAuthRequest({
-        method: 'post',
-        url: '/demo',
-      });
-
-      expect(res.statusCode).toBe(200);
       const userId = res.body.response.user.id;
 
       // Verify user exists with demo role
       const user = await Users.findByPk(userId);
       expect(user).not.toBeNull();
       expect(user?.role).toBe(USER_ROLES.demo);
-    }, 60000); // 60s timeout - demo user creation involves lots of data seeding
-
-    it('creates better-auth records for the demo user', async () => {
-      global.APP_AUTH_COOKIES = null;
-
-      const res = await makeAuthRequest({
-        method: 'post',
-        url: '/demo',
-      });
-
-      expect(res.statusCode).toBe(200);
-      const userId = res.body.response.user.id;
-
-      // Get the app user to find authUserId
-      const appUser = await Users.findByPk(userId);
-      expect(appUser?.authUserId).toBeDefined();
+      expect(user?.authUserId).toBeDefined();
 
       // Verify ba_user exists (created directly by createDemoUser)
-      const baUsersResult = await authPool.query('SELECT * FROM ba_user WHERE id = $1', [appUser?.authUserId]);
+      const baUsersResult = await authPool.query('SELECT * FROM ba_user WHERE id = $1', [user?.authUserId]);
       expect(baUsersResult.rows).toHaveLength(1);
 
       // Verify ba_account exists (credential account for password auth)
-      const baAccountsResult = await authPool.query('SELECT * FROM ba_account WHERE "userId" = $1', [
-        appUser?.authUserId,
-      ]);
+      const baAccountsResult = await authPool.query('SELECT * FROM ba_account WHERE "userId" = $1', [user?.authUserId]);
       expect(baAccountsResult.rows).toHaveLength(1);
 
       // Note: ba_session is created by better-auth signInEmail which is mocked in tests.
@@ -228,19 +201,6 @@ describe('Demo Mode', () => {
       expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
       expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
     }, 60000);
-
-    it('creates a demo user when signups are open', async () => {
-      global.APP_AUTH_COOKIES = null;
-      delete process.env.SYSTEM_MAX_SIGNUPS_ALLOWED;
-
-      const res = await makeAuthRequest({
-        method: 'post',
-        url: '/demo',
-      });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.response.user.role).toBe(USER_ROLES.demo);
-    }, 60000);
   });
 
   describe('Demo Data Seeding', () => {
@@ -258,7 +218,7 @@ describe('Demo Mode', () => {
       }
     });
 
-    it('seeds 4 cash accounts with different currencies (plus 2 vehicle + 3 loan accounts)', async () => {
+    it('seeds accounts, transactions, budgets, categories, crypto holdings, vehicles, venture deals and loans', async () => {
       const accountsRes = await makeRequest({
         method: 'get',
         url: '/accounts',
@@ -314,9 +274,7 @@ describe('Demo Mode', () => {
       for (const { logoColor } of seededLogos) {
         if (logoColor !== null) expect(logoColor).toMatch(/^#[0-9a-f]{6}$/);
       }
-    });
 
-    it('seeds transactions spanning 2.5 years', async () => {
       // Get transactions with high limit to ensure we get all of them
       // Demo seeding creates ~1500+ transactions over 36 months
       const transactionsRes = await makeRequest({
@@ -351,9 +309,7 @@ describe('Demo Mode', () => {
       // Should span at least 2 years
       const yearsDiff = (newestDate.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
       expect(yearsDiff).toBeGreaterThanOrEqual(2);
-    });
 
-    it('seeds budgets', async () => {
       const budgetsRes = await makeRequest({
         method: 'get',
         url: '/budgets',
@@ -362,9 +318,7 @@ describe('Demo Mode', () => {
 
       // Should have at least 3 budgets per spec
       expect(budgetsRes.length).toBeGreaterThanOrEqual(3);
-    });
 
-    it('seeds categories', async () => {
       const categoriesRes = await makeRequest({
         method: 'get',
         url: '/categories',
@@ -373,9 +327,7 @@ describe('Demo Mode', () => {
 
       // Demo users should have default categories plus any custom ones
       expect(categoriesRes.length).toBeGreaterThan(0);
-    });
 
-    it('seeds a crypto portfolio with BTC/ETH/SOL holdings', async () => {
       const portfoliosRes = await makeRequest({
         method: 'get',
         url: '/investments/portfolios',
@@ -403,9 +355,7 @@ describe('Demo Mode', () => {
       for (const holding of holdings) {
         expect(holding.security?.assetClass).toBe(ASSET_CLASS.crypto);
       }
-    });
 
-    it('seeds 2 vehicles, one with a mid-term value override', async () => {
       // getVehicles returns `{ data: [...] }`, unwrapped by `raw` to the array.
       const vehicles = await makeRequest({
         method: 'get',
@@ -428,9 +378,7 @@ describe('Demo Mode', () => {
 
       expect(toyota.vehicleClass).toBe(VEHICLE_CLASS.sedan);
       expect(toyota.valueAnchor).toBeNull();
-    });
 
-    it('seeds 3 venture deals (exited, written off, in progress) on a platform', async () => {
       // List controllers return `{ data: { data: [...], pagination } }`;
       // createController unwraps one level, so `raw` yields `{ data, pagination }`.
       const dealsRes = await makeRequest({
@@ -466,9 +414,7 @@ describe('Demo Mode', () => {
       });
       const platforms = platformsRes.data;
       expect(platforms.some((p: { name: string }) => p.name === 'AngelList')).toBe(true);
-    });
 
-    it('seeds 3 small consumer loans (auto, student, personal) partially paid down', async () => {
       // GET /loans returns a flat array (unwrapped by `raw`), each row carrying
       // Account fields plus nested loanDetails and projection.
       const loans = await makeRequest({
@@ -500,7 +446,7 @@ describe('Demo Mode', () => {
         expect(loan.loanDetails.originalPrincipal).toBeLessThanOrEqual(25_000_00);
         expect(loan.projection.isPaidOff).toBe(false);
       }
-    });
+    }, 60000);
   });
 
   describe('Enriched Demo Dataset', () => {
@@ -533,7 +479,7 @@ describe('Demo Mode', () => {
       return rows as DemoTransactionRow[];
     };
 
-    it('seeds payees with logo domains and links transactions to them', async () => {
+    it('seeds payees, tags, transfers, splits, refunds, subscriptions, category budgets, groups, price series and automations', async () => {
       const payees = await makeRequest({
         method: 'get',
         url: '/payees',
@@ -560,11 +506,9 @@ describe('Demo Mode', () => {
       );
       expect(withTransactions.length).toBeGreaterThan(0);
 
-      const transactions = await fetchTransactions();
-      expect(transactions.filter((tx) => tx.payeeId !== null).length).toBeGreaterThan(0);
-    });
+      const payeeTransactions = await fetchTransactions();
+      expect(payeeTransactions.filter((tx) => tx.payeeId !== null).length).toBeGreaterThan(0);
 
-    it('attaches the default and demo-only tags to transactions', async () => {
       const tags = await makeRequest({
         method: 'get',
         url: '/tags',
@@ -577,15 +521,13 @@ describe('Demo Mode', () => {
       const tagNames = (tags as { name: string }[]).map((tag) => tag.name);
       expect(tagNames).toEqual(expect.arrayContaining(['Reimbursable', 'Vacation', 'Subscription']));
 
-      const transactions = await fetchTransactions({ includeTags: 'true' });
-      const tagged = transactions.filter((tx) => (tx.tags?.length ?? 0) > 0);
+      const taggedTransactions = await fetchTransactions({ includeTags: 'true' });
+      const tagged = taggedTransactions.filter((tx) => (tx.tags?.length ?? 0) > 0);
       expect(tagged.length).toBeGreaterThan(0);
 
       const usedTagIds = new Set(tagged.flatMap((tx) => tx.tags!.map((tag) => tag.id)));
       expect(usedTagIds.size).toBeGreaterThan(1);
-    });
 
-    it('seeds transfers as paired legs worth the same in the base currency', async () => {
       const transfers = await fetchTransactions({
         transferNatures: TRANSACTION_TRANSFER_NATURE.common_transfer,
       });
@@ -624,11 +566,9 @@ describe('Demo Mode', () => {
       }
 
       expect(crossCurrencyPairs).toBeGreaterThan(0);
-    });
 
-    it('seeds splits that add up to their parent transaction', async () => {
-      const transactions = await fetchTransactions({ includeSplits: 'true' });
-      const withSplits = transactions.filter((tx) => (tx.splits?.length ?? 0) > 0);
+      const splitTransactions = await fetchTransactions({ includeSplits: 'true' });
+      const withSplits = splitTransactions.filter((tx) => (tx.splits?.length ?? 0) > 0);
 
       expect(withSplits.length).toBeGreaterThan(0);
 
@@ -638,9 +578,7 @@ describe('Demo Mode', () => {
         const splitTotal = tx.splits!.reduce((sum, split) => sum + Math.round(split.amount * 100), 0);
         expect(splitTotal).toBe(Math.round(tx.amount * 100));
       }
-    });
 
-    it('seeds refund pairs with both sides flagged and pointing opposite ways', async () => {
       const refunds = await makeRequest({
         method: 'get',
         url: '/transactions/refunds',
@@ -660,9 +598,7 @@ describe('Demo Mode', () => {
         expect(link.originalTransaction.transactionType).toBe(TRANSACTION_TYPES.expense);
         expect(link.refundTransaction.transactionType).toBe(TRANSACTION_TYPES.income);
       }
-    });
 
-    it('seeds subscriptions with an open period and paid history', async () => {
       const subscriptions = await makeRequest({
         method: 'get',
         url: '/subscriptions',
@@ -704,9 +640,7 @@ describe('Demo Mode', () => {
       for (const period of paidPeriods) {
         expect(period.transactionId).not.toBeNull();
       }
-    });
 
-    it('seeds category budgets over a window with plausible utilization', async () => {
       const budgets = await makeRequest({
         method: 'get',
         url: '/budgets',
@@ -742,18 +676,16 @@ describe('Demo Mode', () => {
         // years of history against a one-month limit and blows far past this.
         expect(stats.summary.utilizationRate).toBeLessThan(400);
       }
-    });
 
-    it('seeds account groups with accounts attached', async () => {
-      const groups = await makeRequest({
+      const accountGroups = await makeRequest({
         method: 'get',
         url: '/account-group',
         raw: true,
       });
 
-      expect(groups.length).toBeGreaterThanOrEqual(3);
+      expect(accountGroups.length).toBeGreaterThanOrEqual(3);
 
-      const typedGroups = groups as {
+      const typedGroups = accountGroups as {
         name: string;
         accounts: { id: string }[];
         logoInitials: string | null;
@@ -799,25 +731,21 @@ describe('Demo Mode', () => {
       for (const accountId of dedicatedFlowAccountIds) {
         expect(groupedAccountIds.has(accountId)).toBe(false);
       }
-    });
 
-    it('seeds transaction groups holding at least two transactions', async () => {
-      const groups = await makeRequest({
+      const transactionGroups = await makeRequest({
         method: 'get',
         url: '/transaction-groups',
         raw: true,
       });
 
-      expect(groups.length).toBeGreaterThan(0);
+      expect(transactionGroups.length).toBeGreaterThan(0);
 
       // The service refuses a group smaller than two, so any seeded group that
       // came out short means members were silently dropped.
-      for (const group of groups as { transactionCount: number }[]) {
+      for (const group of transactionGroups as { transactionCount: number }[]) {
         expect(group.transactionCount).toBeGreaterThanOrEqual(2);
       }
-    });
 
-    it('backfills a price series for every demo security', async () => {
       const portfoliosRes = await makeRequest({
         method: 'get',
         url: '/investments/portfolios',
@@ -865,9 +793,7 @@ describe('Demo Mode', () => {
       // Purchases are spread across the history window, so the oldest holding
       // carries market prices across most of the net-worth chart.
       expect(longestSpanDays).toBeGreaterThan(700);
-    });
 
-    it('files transactions under subcategories, not only top-level categories', async () => {
       const categories = await makeRequest({
         method: 'get',
         url: '/categories',
@@ -881,16 +807,14 @@ describe('Demo Mode', () => {
       );
       expect(subcategoryIds.size).toBeGreaterThan(0);
 
-      const transactions = await fetchTransactions();
-      const categorized = transactions.filter((tx) => tx.categoryId !== null);
+      const subcategoryTransactions = await fetchTransactions();
+      const categorized = subcategoryTransactions.filter((tx) => tx.categoryId !== null);
       expect(categorized.length).toBeGreaterThan(0);
 
       const inSubcategory = categorized.filter((tx) => subcategoryIds.has(tx.categoryId!));
       expect(inSubcategory.length).toBeGreaterThan(0);
       expect(inSubcategory.length / categorized.length).toBeGreaterThan(0.5);
-    });
 
-    it('seeds 10 automations spanning the condition fields and action types', async () => {
       const automations = await listAutomations({ raw: true });
 
       expect(automations).toHaveLength(10);
@@ -910,7 +834,7 @@ describe('Demo Mode', () => {
       ]);
       const actionTypes = new Set(automations.flatMap((rule) => rule.actions.map((action) => action.type)));
       expect([...actionTypes].toSorted()).toEqual(['add_tags', 'set_category', 'set_note', 'set_payee']);
-    });
+    }, 120000);
   });
 
   describe('Demo User Restrictions', () => {
@@ -927,47 +851,41 @@ describe('Demo Mode', () => {
       }
     });
 
-    it('blocks bank connection endpoints for demo users', async () => {
+    it('blocks bank connection, portfolio creation, password change and AI categorization while allowing core features', async () => {
       // Try to connect to a bank provider - this should be blocked for demo users
-      const res = await makeRequest({
+      const bankRes = await makeRequest({
         method: 'post',
         url: '/bank-data-providers/monobank/connect',
         payload: { token: 'fake-token' },
       });
 
-      expect(res.statusCode).toBe(403);
-      expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
-      expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
-      expect(res.body.response.message).toContain('demo mode');
-    });
+      expect(bankRes.statusCode).toBe(403);
+      expect(bankRes.body.status).toBe(API_RESPONSE_STATUS.error);
+      expect(bankRes.body.response.code).toBe(API_ERROR_CODES.forbidden);
+      expect(bankRes.body.response.message).toContain('demo mode');
 
-    it('allows demo users to view the seeded investment portfolios', async () => {
-      const res = await makeRequest({
+      const portfoliosRes = await makeRequest({
         method: 'get',
         url: '/investments/portfolios',
         raw: true,
       });
 
-      expect(Array.isArray(res.data)).toBe(true);
-      const names = res.data.map((p: { name: string }) => p.name);
+      expect(Array.isArray(portfoliosRes.data)).toBe(true);
+      const names = portfoliosRes.data.map((p: { name: string }) => p.name);
       expect(names).toContain('Growth Portfolio');
       expect(names).toContain('Crypto Portfolio');
-    });
 
-    it('blocks investment portfolio creation for demo users', async () => {
-      const res = await makeRequest({
+      const portfolioCreateRes = await makeRequest({
         method: 'post',
         url: '/investments/portfolios',
         payload: { name: 'Test Portfolio', portfolioType: 'investment' },
       });
 
-      expect(res.statusCode).toBe(403);
-      expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
-      expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
-    });
+      expect(portfolioCreateRes.statusCode).toBe(403);
+      expect(portfolioCreateRes.body.status).toBe(API_RESPONSE_STATUS.error);
+      expect(portfolioCreateRes.body.response.code).toBe(API_ERROR_CODES.forbidden);
 
-    it('blocks password change for demo users', async () => {
-      const res = await makeRequest({
+      const passwordRes = await makeRequest({
         method: 'post',
         url: '/auth/set-password',
         payload: {
@@ -975,47 +893,34 @@ describe('Demo Mode', () => {
         },
       });
 
-      expect(res.statusCode).toBe(403);
-      expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
-      expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
-    });
+      expect(passwordRes.statusCode).toBe(403);
+      expect(passwordRes.body.status).toBe(API_RESPONSE_STATUS.error);
+      expect(passwordRes.body.response.code).toBe(API_ERROR_CODES.forbidden);
 
-    it('blocks AI categorization trigger for demo users', async () => {
       // Without a user AI key, this endpoint falls back to the operator's
       // server-side key — demo users must not reach it.
-      const res = await makeRequest({
+      const aiRes = await makeRequest({
         method: 'post',
         url: '/user/ai/categorization/trigger',
         payload: {},
       });
 
-      expect(res.statusCode).toBe(403);
-      expect(res.body.status).toBe(API_RESPONSE_STATUS.error);
-      expect(res.body.response.code).toBe(API_ERROR_CODES.forbidden);
-    });
+      expect(aiRes.statusCode).toBe(403);
+      expect(aiRes.body.status).toBe(API_RESPONSE_STATUS.error);
+      expect(aiRes.body.response.code).toBe(API_ERROR_CODES.forbidden);
 
-    it('allows regular feature usage for demo users', async () => {
       // Demo users can still use core features like viewing accounts
-      const res = await makeRequest({
-        method: 'get',
-        url: '/accounts',
-      });
-
-      expect(res.statusCode).toBe(200);
-    });
-
-    it('allows transaction creation for demo users', async () => {
-      // Get an account first
       const accountsRes = await makeRequest({
         method: 'get',
         url: '/accounts',
-        raw: true,
       });
 
-      expect(accountsRes.length).toBeGreaterThan(0);
-      const accountId = accountsRes[0].id;
+      expect(accountsRes.statusCode).toBe(200);
 
-      // Get a category
+      const accounts = accountsRes.body.response;
+      expect(accounts.length).toBeGreaterThan(0);
+      const accountId = accounts[0].id;
+
       const categoriesRes = await makeRequest({
         method: 'get',
         url: '/categories',
@@ -1025,8 +930,7 @@ describe('Demo Mode', () => {
       const category = categoriesRes.find((c: { parentId: number | null }) => c.parentId !== null);
       expect(category).toBeDefined();
 
-      // Create a transaction
-      const res = await makeRequest({
+      const transactionRes = await makeRequest({
         method: 'post',
         url: '/transactions',
         payload: {
@@ -1040,8 +944,8 @@ describe('Demo Mode', () => {
         },
       });
 
-      expect(res.statusCode).toBe(200);
-    });
+      expect(transactionRes.statusCode).toBe(200);
+    }, 60000);
   });
 
   describe('Demo User Cleanup', () => {
@@ -1083,38 +987,8 @@ describe('Demo Mode', () => {
       expect(baUsersResult.rows).toHaveLength(0);
     }, 60000); // 60 second timeout - demo user creation and cleanup involves lots of data
 
-    it('cleanupExpiredDemoUsers removes old demo accounts', async () => {
+    it('cleanupExpiredDemoUsers keeps fresh demo accounts and removes expired ones', async () => {
       // Import the cleanup function directly for testing
-      const { cleanupExpiredDemoUsers } = await import('./cleanup-demo-users.service');
-
-      // Create a demo user
-      global.APP_AUTH_COOKIES = null;
-
-      const createRes = await makeAuthRequest({
-        method: 'post',
-        url: '/demo',
-      });
-
-      expect(createRes.statusCode).toBe(200);
-      const userId = createRes.body.response.user.id;
-
-      // Manually backdate the user's createdAt to make it "expired"
-      await Users.update(
-        { createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000) }, // 7 hours ago
-        { where: { id: userId } },
-      );
-
-      // Run cleanup
-      const cleanedCount = await cleanupExpiredDemoUsers();
-
-      expect(cleanedCount).toBeGreaterThanOrEqual(1);
-
-      // Verify user is deleted
-      const user = await Users.findByPk(userId);
-      expect(user).toBeNull();
-    }, 60000); // 60s timeout - demo user creation involves lots of data
-
-    it('cleanupExpiredDemoUsers does not remove fresh demo accounts', async () => {
       const { cleanupExpiredDemoUsers } = await import('./cleanup-demo-users.service');
 
       // Create a demo user
@@ -1132,8 +1006,20 @@ describe('Demo Mode', () => {
       await cleanupExpiredDemoUsers();
 
       // Fresh demo user should NOT be cleaned up
-      const user = await Users.findByPk(userId);
-      expect(user).not.toBeNull();
+      expect(await Users.findByPk(userId)).not.toBeNull();
+
+      // Manually backdate the user's createdAt to make it "expired"
+      await Users.update(
+        { createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000) }, // 7 hours ago
+        { where: { id: userId } },
+      );
+
+      const cleanedCount = await cleanupExpiredDemoUsers();
+
+      expect(cleanedCount).toBeGreaterThanOrEqual(1);
+
+      // Verify user is deleted
+      expect(await Users.findByPk(userId)).toBeNull();
     }, 60000); // 60s timeout - demo user creation involves lots of data
 
     // Skip: This test has issues with Sequelize queries when running in the mocked
@@ -1191,13 +1077,17 @@ describe('Demo Mode', () => {
       }
     });
 
-    it('account balances reflect transaction totals', async () => {
+    it('account balances reflect transaction totals and balances history holds the running totals', async () => {
       // Get accounts
       const accountsRes = await makeRequest({
         method: 'get',
         url: '/accounts',
         raw: true,
       });
+
+      const accountIds = accountsRes.map((a: { id: number }) => a.id);
+      // 4 cash accounts + 2 vehicle accounts + 3 loan accounts
+      expect(accountIds.length).toBe(9);
 
       // Vehicle accounts are depreciation-driven and loan accounts are
       // balance-anchor-driven: neither balance is `initialBalance + Σtx`, so
@@ -1232,19 +1122,6 @@ describe('Demo Mode', () => {
         const rawAccount = (accountRows as { currentBalance: number; initialBalance: number }[])[0]!;
         expect(rawAccount.currentBalance).toBe(rawAccount.initialBalance + txSum);
       }
-    });
-
-    it('balances history table has records for demo accounts', async () => {
-      // Get account IDs
-      const accountsRes = await makeRequest({
-        method: 'get',
-        url: '/accounts',
-        raw: true,
-      });
-
-      const accountIds = accountsRes.map((a: { id: number }) => a.id);
-      // 4 cash accounts + 2 vehicle accounts + 3 loan accounts
-      expect(accountIds.length).toBe(9);
 
       // Verify Balances records exist
       const [balanceRows] = await connection.sequelize.query(
@@ -1256,16 +1133,8 @@ describe('Demo Mode', () => {
 
       // Should have a meaningful number of balance records (at least one per account)
       expect(balanceCount).toBeGreaterThanOrEqual(accountIds.length);
-    });
 
-    it('balances history has correct running totals', async () => {
       // Get the main checking account (USD)
-      const accountsRes = await makeRequest({
-        method: 'get',
-        url: '/accounts',
-        raw: true,
-      });
-
       const mainChecking = accountsRes.find((a: { name: string }) => a.name === 'Main Checking');
       expect(mainChecking).toBeDefined();
 
@@ -1279,17 +1148,17 @@ describe('Demo Mode', () => {
       expect(latestBalance).toBeDefined();
 
       // Get refCurrentBalance from the account
-      const [accountRows] = await connection.sequelize.query(
+      const [mainCheckingRows] = await connection.sequelize.query(
         `SELECT "refCurrentBalance" FROM "Accounts" WHERE id = :id`,
         { replacements: { id: mainChecking.id } },
       );
 
-      const refCurrentBalance = (accountRows as { refCurrentBalance: number }[])[0]!.refCurrentBalance;
+      const refCurrentBalance = (mainCheckingRows as { refCurrentBalance: number }[])[0]!.refCurrentBalance;
 
       // The latest balance record should match the account's refCurrentBalance
       // (since main checking is in USD which is the base currency)
       expect(latestBalance!.amount).toBe(refCurrentBalance);
-    });
+    }, 60000);
   });
 
   describe('Demo vs Regular User Differentiation', () => {

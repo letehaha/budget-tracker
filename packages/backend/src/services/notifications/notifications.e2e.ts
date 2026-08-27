@@ -14,10 +14,14 @@ describe('Notifications API', () => {
   });
 
   describe('GET /notifications', () => {
-    it('returns empty array when no notifications exist', async () => {
+    it('returns empty array and zero unread count when no notifications exist', async () => {
       const notifications = await helpers.getNotifications({ raw: true });
 
       expect(notifications).toEqual([]);
+
+      const unreadCount = await helpers.getUnreadCount({ raw: true });
+
+      expect(unreadCount.count).toBe(0);
     });
 
     it('returns notifications for the authenticated user', async () => {
@@ -52,7 +56,7 @@ describe('Notifications API', () => {
       expect(notifications[0]).not.toHaveProperty('userId');
     });
 
-    it('filters notifications by status', async () => {
+    it('filters by status and type, excluding dismissed unless explicitly requested', async () => {
       await Notifications.bulkCreate(
         [
           {
@@ -68,90 +72,56 @@ describe('Notifications API', () => {
             status: NOTIFICATION_STATUSES.read,
             readAt: new Date(),
           },
-        ],
-        { individualHooks: true },
-      );
-
-      const unreadNotifications = await helpers.getNotifications({
-        status: NOTIFICATION_STATUSES.unread,
-        raw: true,
-      });
-
-      expect(unreadNotifications).toHaveLength(1);
-      expect(unreadNotifications[0]!.title).toBe('Unread notification');
-    });
-
-    it('filters notifications by type', async () => {
-      await Notifications.bulkCreate(
-        [
           {
             userId: testUserId,
             type: NOTIFICATION_TYPES.budgetAlert,
-            title: 'Budget Alert',
+            title: 'Dismissed notification',
+            status: NOTIFICATION_STATUSES.dismissed,
           },
           {
             userId: testUserId,
             type: NOTIFICATION_TYPES.system,
             title: 'System Alert',
-          },
-        ],
-        { individualHooks: true },
-      );
-
-      const budgetNotifications = await helpers.getNotifications({
-        type: NOTIFICATION_TYPES.budgetAlert,
-        raw: true,
-      });
-
-      expect(budgetNotifications).toHaveLength(1);
-      expect(budgetNotifications[0]!.title).toBe('Budget Alert');
-    });
-
-    it('excludes dismissed notifications by default', async () => {
-      await Notifications.bulkCreate(
-        [
-          {
-            userId: testUserId,
-            type: NOTIFICATION_TYPES.budgetAlert,
-            title: 'Active notification',
             status: NOTIFICATION_STATUSES.unread,
           },
-          {
-            userId: testUserId,
-            type: NOTIFICATION_TYPES.budgetAlert,
-            title: 'Dismissed notification',
-            status: NOTIFICATION_STATUSES.dismissed,
-          },
         ],
         { individualHooks: true },
       );
 
-      const notifications = await helpers.getNotifications({ raw: true });
+      const titlesOf = (notifications: { title: string }[]) => notifications.map((n) => n.title).sort();
 
-      expect(notifications).toHaveLength(1);
-      expect(notifications[0]!.title).toBe('Active notification');
-    });
+      expect(titlesOf(await helpers.getNotifications({ raw: true }))).toEqual([
+        'Read notification',
+        'System Alert',
+        'Unread notification',
+      ]);
 
-    it('returns dismissed notifications when explicitly requested', async () => {
-      await Notifications.bulkCreate(
-        [
-          {
-            userId: testUserId,
+      expect(
+        titlesOf(
+          await helpers.getNotifications({
+            status: NOTIFICATION_STATUSES.unread,
+            raw: true,
+          }),
+        ),
+      ).toEqual(['System Alert', 'Unread notification']);
+
+      expect(
+        titlesOf(
+          await helpers.getNotifications({
             type: NOTIFICATION_TYPES.budgetAlert,
-            title: 'Dismissed notification',
+            raw: true,
+          }),
+        ),
+      ).toEqual(['Read notification', 'Unread notification']);
+
+      expect(
+        titlesOf(
+          await helpers.getNotifications({
             status: NOTIFICATION_STATUSES.dismissed,
-          },
-        ],
-        { individualHooks: true },
-      );
-
-      const notifications = await helpers.getNotifications({
-        status: NOTIFICATION_STATUSES.dismissed,
-        raw: true,
-      });
-
-      expect(notifications).toHaveLength(1);
-      expect(notifications[0]!.title).toBe('Dismissed notification');
+            raw: true,
+          }),
+        ),
+      ).toEqual(['Dismissed notification']);
     });
 
     it('supports pagination with limit and offset', async () => {
@@ -231,33 +201,9 @@ describe('Notifications API', () => {
       });
       expect(result).not.toHaveProperty('userId');
     });
-
-    it('returns null for non-existent notification', async () => {
-      // Create a valid notification first, then use a different valid UUID that doesn't exist
-      const notification = await Notifications.create({
-        userId: testUserId,
-        type: NOTIFICATION_TYPES.budgetAlert,
-        title: 'Test',
-      });
-      const existingId = notification.id;
-      const nonExistentId = existingId.replace(/.$/, existingId.endsWith('0') ? '1' : '0');
-
-      const result = await helpers.getNotificationById({
-        id: nonExistentId,
-        raw: true,
-      });
-
-      expect(result).toBeNull();
-    });
   });
 
   describe('GET /notifications/unread-count', () => {
-    it('returns 0 when no notifications exist', async () => {
-      const result = await helpers.getUnreadCount({ raw: true });
-
-      expect(result.count).toBe(0);
-    });
-
     it('returns count of unread notifications only', async () => {
       await Notifications.bulkCreate(
         [
@@ -328,25 +274,6 @@ describe('Notifications API', () => {
 
       expect(result.success).toBe(true);
     });
-
-    it('updates zero rows for non-existent notification', async () => {
-      // Create a valid notification first, then use a different valid UUID that doesn't exist
-      const notification = await Notifications.create({
-        userId: testUserId,
-        type: NOTIFICATION_TYPES.budgetAlert,
-        title: 'Test',
-      });
-      const existingId = notification.id;
-      // Use a valid UUIDv7 format but one that doesn't exist
-      const nonExistentId = existingId.replace(/.$/, existingId.endsWith('0') ? '1' : '0');
-
-      const result = await helpers.markAsRead({
-        id: nonExistentId,
-        raw: true,
-      });
-
-      expect(result.success).toBe(false);
-    });
   });
 
   describe('POST /notifications/read-all', () => {
@@ -403,13 +330,16 @@ describe('Notifications API', () => {
   });
 
   describe('POST /notifications/:id/dismiss', () => {
-    it('dismisses a notification', async () => {
+    it('dismisses a notification, removing it from the default list and the unread count', async () => {
       const notification = await Notifications.create({
         userId: testUserId,
         type: NOTIFICATION_TYPES.budgetAlert,
         title: 'To be dismissed',
         status: NOTIFICATION_STATUSES.unread,
       });
+
+      expect(await helpers.getNotifications({ raw: true })).toHaveLength(1);
+      expect((await helpers.getUnreadCount({ raw: true })).count).toBe(1);
 
       const result = await helpers.dismissNotification({ id: notification.id, raw: true });
 
@@ -418,6 +348,9 @@ describe('Notifications API', () => {
       // Verify in database
       const updated = await Notifications.findByPk(notification.id);
       expect(updated!.status).toBe(NOTIFICATION_STATUSES.dismissed);
+
+      expect(await helpers.getNotifications({ raw: true })).toHaveLength(0);
+      expect((await helpers.getUnreadCount({ raw: true })).count).toBe(0);
     });
 
     it('can dismiss a read notification', async () => {
@@ -436,8 +369,10 @@ describe('Notifications API', () => {
       const updated = await Notifications.findByPk(notification.id);
       expect(updated!.status).toBe(NOTIFICATION_STATUSES.dismissed);
     });
+  });
 
-    it('returns false for non-existent notification', async () => {
+  describe('non-existent notification id', () => {
+    it('returns null from get-by-id and false from read/dismiss', async () => {
       // Create a valid notification first, then use a different valid UUID that doesn't exist
       const notification = await Notifications.create({
         userId: testUserId,
@@ -447,74 +382,17 @@ describe('Notifications API', () => {
       const existingId = notification.id;
       const nonExistentId = existingId.replace(/.$/, existingId.endsWith('0') ? '1' : '0');
 
-      const result = await helpers.dismissNotification({
-        id: nonExistentId,
-        raw: true,
-      });
-
-      expect(result.success).toBe(false);
-    });
-
-    it('dismissed notification is excluded from default list', async () => {
-      const notification = await Notifications.create({
-        userId: testUserId,
-        type: NOTIFICATION_TYPES.budgetAlert,
-        title: 'Will be dismissed',
-        status: NOTIFICATION_STATUSES.unread,
-      });
-
-      // Verify it appears initially
-      let notifications = await helpers.getNotifications({ raw: true });
-      expect(notifications).toHaveLength(1);
-
-      // Dismiss it
-      await helpers.dismissNotification({ id: notification.id, raw: true });
-
-      // Verify it no longer appears
-      notifications = await helpers.getNotifications({ raw: true });
-      expect(notifications).toHaveLength(0);
-    });
-
-    it('dismissed notification does not count as unread', async () => {
-      const notification = await Notifications.create({
-        userId: testUserId,
-        type: NOTIFICATION_TYPES.budgetAlert,
-        title: 'Will be dismissed',
-        status: NOTIFICATION_STATUSES.unread,
-      });
-
-      // Verify it counts initially
-      let count = await helpers.getUnreadCount({ raw: true });
-      expect(count.count).toBe(1);
-
-      // Dismiss it
-      await helpers.dismissNotification({ id: notification.id, raw: true });
-
-      // Verify it no longer counts
-      count = await helpers.getUnreadCount({ raw: true });
-      expect(count.count).toBe(0);
+      expect(await helpers.getNotificationById({ id: nonExistentId, raw: true })).toBeNull();
+      expect((await helpers.markAsRead({ id: nonExistentId, raw: true })).success).toBe(false);
+      expect((await helpers.dismissNotification({ id: nonExistentId, raw: true })).success).toBe(false);
     });
   });
 
   describe('notification payload and metadata', () => {
-    it('preserves payload data correctly', async () => {
-      const payload = { budgetId: 42, threshold: 90, currentSpending: 950 };
-
-      await Notifications.create({
-        userId: testUserId,
-        type: NOTIFICATION_TYPES.budgetAlert,
-        title: 'Budget warning',
-        payload,
-      });
-
-      const notifications = await helpers.getNotifications({ raw: true });
-
-      expect(notifications[0]!.payload).toEqual(payload);
-    });
-
-    it('includes all expected fields in response', async () => {
+    it('includes all expected fields in response and preserves payload data', async () => {
       const now = new Date();
       const expiresAt = new Date(now.getTime() + 86400000); // +1 day
+      const payload = { budgetId: 42, threshold: 90, currentSpending: 950 };
 
       await Notifications.create({
         userId: testUserId,
@@ -523,6 +401,7 @@ describe('Notifications API', () => {
         message: 'We added dark mode!',
         priority: NOTIFICATION_PRIORITIES.low,
         expiresAt,
+        payload,
       });
 
       const notifications = await helpers.getNotifications({ raw: true });
@@ -533,6 +412,7 @@ describe('Notifications API', () => {
       expect(notification).toHaveProperty('title', 'New feature');
       expect(notification).toHaveProperty('message', 'We added dark mode!');
       expect(notification).toHaveProperty('payload');
+      expect(notification.payload).toEqual(payload);
       expect(notification).toHaveProperty('status', NOTIFICATION_STATUSES.unread);
       expect(notification).toHaveProperty('priority', NOTIFICATION_PRIORITIES.low);
       expect(notification).toHaveProperty('createdAt');

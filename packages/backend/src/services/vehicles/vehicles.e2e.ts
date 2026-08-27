@@ -9,6 +9,8 @@ import {
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import Vehicles from '@models/vehicles.model';
+import { redisClient } from '@root/redis-client';
+import { buildLockKey } from '@services/currencies/base-currency-lock';
 import * as helpers from '@tests/helpers';
 import { format, subDays, subYears } from 'date-fns';
 
@@ -20,6 +22,8 @@ function pastDateString({ yearsAgo }: { yearsAgo: number }): string {
   return format(subYears(new Date(), yearsAgo), 'yyyy-MM-dd');
 }
 
+// A sedan bought 3y ago for $25k sits well below $18k on the default curve, so an
+// override to $18k always moves the value UP — relied on by the positive control.
 function basePayload(overrides: Partial<Parameters<typeof helpers.createVehicle>[0]> = {}) {
   return {
     name: 'Toyota Camry 2020',
@@ -34,9 +38,13 @@ function basePayload(overrides: Partial<Parameters<typeof helpers.createVehicle>
   };
 }
 
+function createVehicleAccount() {
+  return helpers.createVehicle({ ...basePayload(), raw: true });
+}
+
 describe('Vehicles', () => {
   describe('POST /vehicles', () => {
-    it('creates a vehicle with a system account, current value below purchase price', async () => {
+    it('creates a vehicle with a system account below purchase price and exposes it in GET /accounts', async () => {
       const response = await helpers.createVehicle({ ...basePayload(), raw: true });
 
       expect(response).toBeDefined();
@@ -53,43 +61,44 @@ describe('Vehicles', () => {
       expect(response.account!.accountCategory).toBe(ACCOUNT_CATEGORIES.vehicle);
       expect(response.account!.currentBalance).toBeLessThan(25000);
       expect(response.account!.currentBalance).toBeGreaterThan(10000);
+
+      const accounts = await helpers.getAccounts();
+      const found = accounts.find((a) => a.id === response.accountId);
+
+      expect(found).toBeDefined();
+      expect(found!.accountCategory).toBe(ACCOUNT_CATEGORIES.vehicle);
+      expect(Number(found!.currentBalance)).toBeCloseTo(response.account!.currentBalance, 2);
     });
 
-    it('rejects negative purchase price', async () => {
-      const response = await helpers.createVehicle({
+    it('rejects negative purchase price, out-of-range year, and custom preset without customAnnualRatePct', async () => {
+      const negativePrice = await helpers.createVehicle({
         ...basePayload({ purchasePrice: -100 }),
         raw: false,
       });
-      expect(response.statusCode).toBe(422);
-    });
+      expect(negativePrice.statusCode).toBe(422);
 
-    it('rejects year out of range', async () => {
-      const response = await helpers.createVehicle({
+      const badYear = await helpers.createVehicle({
         ...basePayload({ year: 1800 }),
         raw: false,
       });
-      expect(response.statusCode).toBe(422);
-    });
+      expect(badYear.statusCode).toBe(422);
 
-    it('rejects custom preset without customAnnualRatePct', async () => {
-      const response = await helpers.createVehicle({
+      const customWithoutRate = await helpers.createVehicle({
         ...basePayload({
           depreciationPreset: DEPRECIATION_PRESET.custom,
           customAnnualRatePct: null,
         }),
         raw: false,
       });
-      expect(response.statusCode).toBe(422);
+      expect(customWithoutRate.statusCode).toBe(422);
     });
   });
 
   describe('GET /vehicles', () => {
-    it('returns empty list when user has no vehicles', async () => {
-      const list = await helpers.getVehicles({ raw: true });
-      expect(list).toEqual([]);
-    });
+    it('returns an empty list without vehicles, then the user’s vehicles once created', async () => {
+      const emptyList = await helpers.getVehicles({ raw: true });
+      expect(emptyList).toEqual([]);
 
-    it('returns the user’s vehicles', async () => {
       await helpers.createVehicle({ ...basePayload(), raw: true });
       await helpers.createVehicle({
         ...basePayload({ name: 'Truck', make: 'Ford', model: 'F-150', vehicleClass: VEHICLE_CLASS.truck }),
@@ -190,7 +199,7 @@ describe('Vehicles', () => {
   });
 
   describe('POST /vehicles/:id/value (manual override)', () => {
-    it('creates a transfer_out_wallet income transaction when overriding above current value', async () => {
+    it('creates a transfer_out_wallet income transaction when overriding above current value, and an expense when overriding below', async () => {
       const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
       const previousBalance = vehicle.account!.currentBalance;
       const newValue = previousBalance + 5000;
@@ -209,24 +218,19 @@ describe('Vehicles', () => {
       expect(response.vehicle!.valueAnchor).toBeCloseTo(newValue, 2);
       expect(response.vehicle!.valueAnchorDate).toBe(todayString());
       expect(response.vehicle!.account!.currentBalance).toBeCloseTo(newValue, 2);
-    });
 
-    it('creates an expense transaction when overriding below current value', async () => {
-      const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
-      const newValue = vehicle.account!.currentBalance - 1000;
-
-      const response = await helpers.overrideVehicleValue({
+      const belowResponse = await helpers.overrideVehicleValue({
         id: vehicle.id,
-        targetValue: newValue,
+        targetValue: response.newBalance - 1000,
         raw: true,
       });
 
-      expect(response.transaction!.transactionType).toBe(TRANSACTION_TYPES.expense);
-    });
+      expect(belowResponse.transaction!.transactionType).toBe(TRANSACTION_TYPES.expense);
+    }, 30000);
   });
 
   describe('lazy 7-day cache', () => {
-    it('second list GET within 7 days does not change valueLastComputedAt', async () => {
+    it('keeps valueLastComputedAt on a list GET within 7 days and refreshes it once the window expires', async () => {
       // The 7-day cache applies to bulk/list reads (GET /vehicles, GET /accounts).
       // GET /vehicles/:id force-refreshes deliberately, so this test deliberately
       // uses the list endpoint to exercise the cache.
@@ -237,36 +241,53 @@ describe('Vehicles', () => {
 
       const second = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
       expect(second).toBe(first);
-    });
-
-    it('list GET after the cache window expires refreshes valueLastComputedAt', async () => {
-      const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
 
       // Backdate the cache stamp to 10 days ago to simulate staleness.
       await Vehicles.update({ valueLastComputedAt: subDays(new Date(), 10) }, { where: { id: vehicle.id } });
-      const before = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
+      const stale = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
 
       await helpers.getVehicles({ raw: true });
 
-      const after = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
-      expect(after).toBeGreaterThan(before);
-    });
+      const refreshed = await Vehicles.findByPk(vehicle.id).then((v) => v!.valueLastComputedAt!.getTime());
+      expect(refreshed).toBeGreaterThan(stale);
+    }, 30000);
   });
 
-  describe('integration with accounts list', () => {
-    it('vehicle appears in GET /accounts with its depreciated balance', async () => {
-      const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
-      const accounts = await helpers.getAccounts();
-      const found = accounts.find((a) => a.id === vehicle.accountId);
+  // GET /vehicles/:id force-refreshes the depreciated value on every read and
+  // stamps `valueLastComputedAt`. The base-currency lock must suppress that
+  // refresh (the recalc owns the ref* amounts), so the stored value — and its
+  // `valueLastComputedAt` — stay frozen until the lock clears.
+  describe('lazy refresh — base-currency lock', () => {
+    it('skips the force-refresh while the lock is held, then refreshes once it clears', async () => {
+      const vehicle = await createVehicleAccount();
 
-      expect(found).toBeDefined();
-      expect(found!.accountCategory).toBe(ACCOUNT_CATEGORIES.vehicle);
-      expect(Number(found!.currentBalance)).toBeCloseTo(vehicle.account!.currentBalance, 2);
+      const computedAtOnCreate = vehicle.valueLastComputedAt;
+      expect(computedAtOnCreate).toBeTruthy();
+
+      const lockKey = buildLockKey(vehicle.userId);
+      await redisClient.set(lockKey, 'test-lock');
+
+      // Locked: the detail read must NOT recompute, so `valueLastComputedAt` stays
+      // exactly at creation time (a refresh would have advanced it).
+      const whileLocked = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+      expect(whileLocked.valueLastComputedAt).toBe(computedAtOnCreate);
+
+      await redisClient.del(lockKey);
+
+      // Unlocked: the force-refresh runs again and advances `valueLastComputedAt`.
+      const afterUnlock = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+      expect(afterUnlock.valueLastComputedAt).not.toBe(computedAtOnCreate);
+      expect(new Date(afterUnlock.valueLastComputedAt!).getTime()).toBeGreaterThan(
+        new Date(computedAtOnCreate!).getTime(),
+      );
     });
   });
 
   describe('DELETE /vehicles/:id', () => {
-    it('deletes the vehicle and its underlying account', async () => {
+    it('returns 404 for a non-existent id, and deletes the vehicle with its underlying account', async () => {
+      const missing = await helpers.deleteVehicle({ id: generateRandomRecordId(), raw: false });
+      expect(missing.statusCode).toBe(404);
+
       const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
       await helpers.deleteVehicle({ id: vehicle.id, raw: true });
 
@@ -275,11 +296,6 @@ describe('Vehicles', () => {
 
       const accounts = await helpers.getAccounts();
       expect(accounts.find((a) => a.id === vehicle.accountId)).toBeUndefined();
-    });
-
-    it('returns 404 for non-existent vehicle id', async () => {
-      const response = await helpers.deleteVehicle({ id: generateRandomRecordId(), raw: false });
-      expect(response.statusCode).toBe(404);
     });
   });
 
@@ -375,7 +391,7 @@ describe('Vehicles', () => {
     // testable — the model invariant (enforceVehicleAccountInvariant) forbids creating
     // any non-`transfer_out_wallet` transaction on a vehicle account, so the reconcile
     // hook's transferNature short-circuit can never be reached via the API. The
-    // rejection itself is covered in vehicle-write-guards.e2e.ts.
+    // rejection itself is covered by the write guards below.
 
     it('does not crash when deleting a balance-adjustment override on a non-vehicle account', async () => {
       // The hook checks `accountCategory === vehicle` and short-circuits otherwise.
@@ -406,6 +422,187 @@ describe('Vehicles', () => {
       // And the account itself still loads (balance reverts to pre-adjustment).
       const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
       expect(accountAfter).toBeDefined();
+    });
+  });
+
+  describe('Vehicle account write guards', () => {
+    describe('Transaction-creation invariant (model hook)', () => {
+      it('rejects plain expense/income, transfers in and out, and account→portfolio transfers on a vehicle account', async () => {
+        const vehicle = await createVehicleAccount();
+        const normalAccount = await helpers.createAccount({ raw: true });
+        const portfolio = await helpers.createPortfolio({ raw: true });
+
+        const expense = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: vehicle.accountId,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          raw: false,
+        });
+
+        expect(expense.statusCode).toBe(422);
+        // Vehicle creation records no transaction, so a clean rollback leaves none.
+        expect((await helpers.getTransactions({ raw: true })).length).toBe(0);
+
+        const income = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: vehicle.accountId,
+            transactionType: TRANSACTION_TYPES.income,
+          }),
+          raw: false,
+        });
+
+        expect(income.statusCode).toBe(422);
+        expect((await helpers.getTransactions({ raw: true })).length).toBe(0);
+
+        const transferIn = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({ accountId: normalAccount.id }),
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationAmount: 1000,
+            destinationAccountId: vehicle.accountId,
+          },
+          raw: false,
+        });
+
+        expect(transferIn.statusCode).toBe(422);
+        // The whole transfer must roll back — the source account keeps no orphaned leg.
+        expect((await helpers.getTransactions({ raw: true })).length).toBe(0);
+
+        const transferOut = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({ accountId: vehicle.accountId }),
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationAmount: 1000,
+            destinationAccountId: normalAccount.id,
+          },
+          raw: false,
+        });
+
+        expect(transferOut.statusCode).toBe(422);
+        expect((await helpers.getTransactions({ raw: true })).length).toBe(0);
+
+        const toPortfolio = await helpers.accountToPortfolioTransfer({
+          portfolioId: portfolio.id,
+          payload: {
+            accountId: vehicle.accountId,
+            amount: '500',
+            date: todayString(),
+          },
+          raw: false,
+        });
+
+        expect(toPortfolio.statusCode).toBe(422);
+        expect((await helpers.getTransactions({ raw: true })).length).toBe(0);
+      }, 30000);
+    });
+
+    describe('Transaction-update invariant (model hook @BeforeUpdate)', () => {
+      it('rejects moving an existing transaction onto a vehicle account', async () => {
+        const vehicle = await createVehicleAccount();
+        const normalAccount = await helpers.createAccount({ raw: true });
+
+        // A legit expense lives on a normal account...
+        const [tx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({ accountId: normalAccount.id }),
+          raw: true,
+        });
+
+        // ...editing it to point at the vehicle account must trip @BeforeUpdate.
+        // This is the one bypass the frontend picker-exclusion can't cover, so the
+        // model hook is the only thing standing between it and a corrupted anchor.
+        const response = await helpers.updateTransaction({
+          id: tx.id,
+          payload: { accountId: vehicle.accountId },
+          raw: false,
+        });
+
+        expect(response.statusCode).toBe(422);
+
+        // The update must roll back fully — the tx still belongs to the original
+        // account, not the vehicle (no partial move).
+        const txs = await helpers.getTransactions({ raw: true });
+        expect(txs.length).toBe(1);
+        expect(txs[0]!.accountId).toBe(normalAccount.id);
+      });
+    });
+
+    describe('Generic service guards', () => {
+      it('rejects balance-adjustment and direct currentBalance writes on a vehicle account', async () => {
+        const vehicle = await createVehicleAccount();
+        const before = vehicle.account!.currentBalance;
+
+        const adjustment = await helpers.balanceAdjustment({
+          id: vehicle.accountId,
+          payload: { targetBalance: asDecimal(18000) },
+          raw: false,
+        });
+
+        expect(adjustment.statusCode).toBe(422);
+
+        // The reject must leave no side effects: no adjustment tx, and the
+        // vehicle's value/anchor untouched.
+        const txs = await helpers.getTransactions({ raw: true });
+        expect(txs.length).toBe(0);
+        const afterAdjustment = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+        expect(afterAdjustment.account!.currentBalance).toBe(before);
+        expect(afterAdjustment.valueAnchor).toBe(vehicle.valueAnchor);
+
+        const directWrite = await helpers.makeRequest({
+          method: 'put',
+          url: `/accounts/${vehicle.accountId}`,
+          payload: { currentBalance: 30000 },
+        });
+
+        expect(directWrite.statusCode).toBe(422);
+
+        const afterDirectWrite = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+        expect(afterDirectWrite.account!.currentBalance).toBe(before);
+        expect(afterDirectWrite.valueAnchor).toBe(vehicle.valueAnchor);
+      }, 30000);
+    });
+
+    describe('Sanctioned paths still work (positive controls)', () => {
+      it('allows the dedicated override endpoint to change a vehicle value', async () => {
+        const vehicle = await createVehicleAccount();
+        const before = vehicle.account!.currentBalance;
+
+        const response = await helpers.overrideVehicleValue({
+          id: vehicle.id,
+          targetValue: 18000,
+          raw: false,
+        });
+        expect(response.statusCode).toBe(200);
+
+        // Same-day override re-anchors to 18000 with no elapsed depreciation, so the
+        // value lands at the target and is strictly above the pre-override curve value.
+        const after = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+        expect(after.account!.currentBalance).toBeGreaterThan(before);
+        expect(after.account!.currentBalance).toBeLessThanOrEqual(18000);
+        expect(after.account!.currentBalance).toBeGreaterThan(17000);
+      });
+
+      it('leaves income, expense and transfers on normal accounts unaffected', async () => {
+        const accountA = await helpers.createAccount({ raw: true });
+        const accountB = await helpers.createAccount({ raw: true });
+
+        const expense = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({ accountId: accountA.id }),
+          raw: false,
+        });
+        expect(expense.statusCode).toBe(200);
+
+        const transfer = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({ accountId: accountA.id }),
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+            destinationAmount: 1000,
+            destinationAccountId: accountB.id,
+          },
+          raw: false,
+        });
+        expect(transfer.statusCode).toBe(200);
+      });
     });
   });
 });

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { connection } from '@models/index';
 import Securities from '@models/investments/securities.model';
 import SecurityPricing from '@models/investments/security-pricing.model';
-import { makeAuthRequest, makeRequest } from '@tests/helpers';
+import { makeAuthRequest } from '@tests/helpers';
 import { subDays, subHours } from 'date-fns';
 
 /**
@@ -99,36 +99,9 @@ describe('Demo seeding does not pollute global price data', () => {
     global.APP_AUTH_COOKIES = originalAuthCookies;
   });
 
-  it('writes no price rows for a security that already has prices', async () => {
+  it('reuses existing security rows, writes no prices for them and leaves their real latest price intact', async () => {
     const bitcoin = await plantRealBitcoin({ historyDays: 400 });
 
-    await startDemo();
-
-    expect(await countDemoPriceRows({ securityId: bitcoin.id })).toBe(0);
-  });
-
-  it('leaves the real latest price intact for a security it reuses', async () => {
-    const bitcoin = await plantRealBitcoin({ historyDays: 400 });
-
-    await startDemo();
-
-    // The reported bug: the demo's row was newer, so MAX(date) returned 67500
-    // for every user holding bitcoin.
-    const price = await latestPrice({ securityId: bitcoin.id });
-    expect(price).not.toBeCloseTo(DEMO_BTC_PRICE, 2);
-    expect(price).toBeCloseTo(PLANTED_BTC_PRICE, 2);
-  });
-
-  it('reuses the existing security row instead of forking a second one', async () => {
-    await plantRealBitcoin({ historyDays: 400 });
-
-    await startDemo();
-
-    const bitcoinRows = await Securities.count({ where: { providerSymbol: 'bitcoin' } });
-    expect(bitcoinRows).toBe(1);
-  });
-
-  it('does not fork a second row for a stock that exists under another provider', async () => {
     await Securities.create({
       symbol: 'AAPL',
       providerSymbol: 'AAPL',
@@ -142,6 +115,17 @@ describe('Demo seeding does not pollute global price data', () => {
     });
 
     await startDemo();
+
+    expect(await countDemoPriceRows({ securityId: bitcoin.id })).toBe(0);
+
+    // The reported bug: the demo's row was newer, so MAX(date) returned 67500
+    // for every user holding bitcoin.
+    const price = await latestPrice({ securityId: bitcoin.id });
+    expect(price).not.toBeCloseTo(DEMO_BTC_PRICE, 2);
+    expect(price).toBeCloseTo(PLANTED_BTC_PRICE, 2);
+
+    const bitcoinRows = await Securities.count({ where: { providerSymbol: 'bitcoin' } });
+    expect(bitcoinRows).toBe(1);
 
     const appleRows = await Securities.count({ where: { symbol: 'AAPL', currencyCode: 'USD' } });
     expect(appleRows).toBe(1);

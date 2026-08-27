@@ -88,21 +88,6 @@ describe('Nightly balance revalue sweep', () => {
     expect(await readBalanceRow({ accountId: account.id, date: corruptedDay })).not.toBe(CORRUPTED_CENTS);
   });
 
-  it('leaves accounts already in the base currency alone', async () => {
-    const account = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ currencyCode: global.BASE_CURRENCY.code }),
-      raw: true,
-    });
-
-    const untouchedDay = subDays(new Date(), 5);
-    await writeBalanceRow({ accountId: account.id, date: untouchedDay, cents: CORRUPTED_CENTS });
-
-    const result = await runBalanceRevalueSweep();
-
-    expect(result.totalProcessed).toBe(0);
-    expect(await readBalanceRow({ accountId: account.id, date: untouchedDay })).toBe(CORRUPTED_CENTS);
-  });
-
   it('re-values today for a foreign-currency bank account the provider did not sync', async () => {
     const today = new Date();
     await helpers.seedUsdExchangeRates({ date: today, ratesPerUsd: { AED: helpers.AED_PER_USD } });
@@ -131,21 +116,16 @@ describe('Nightly balance revalue sweep', () => {
     expect(await readBalanceRow({ accountId: account.id, date: today })).toBe(CORRUPTED_CENTS);
   });
 
-  it('skips loan accounts, which own their balance history', async () => {
-    const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
-    await setAccountCategory({ accountId: account.id, category: ACCOUNT_CATEGORIES.loan });
+  it('skips base-currency accounts, loans that own their balance history and vehicles on a depreciation curve', async () => {
+    const baseCurrencyAccount = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ currencyCode: global.BASE_CURRENCY.code }),
+      raw: true,
+    });
 
-    const untouchedDay = subDays(new Date(), 5);
-    await writeBalanceRow({ accountId: account.id, date: untouchedDay, cents: CORRUPTED_CENTS });
+    // Also registers UAH for the user — the vehicle below relies on it; keep this before the vehicle.
+    const { account: loanAccount } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
+    await setAccountCategory({ accountId: loanAccount.id, category: ACCOUNT_CATEGORIES.loan });
 
-    const result = await runBalanceRevalueSweep();
-
-    expect(result.totalProcessed).toBe(0);
-    expect(await readBalanceRow({ accountId: account.id, date: untouchedDay })).toBe(CORRUPTED_CENTS);
-  });
-
-  it('skips vehicle accounts, whose balance is a depreciation curve', async () => {
-    await helpers.addUserCurrencies({ currencyCodes: ['UAH'] });
     const vehicle = await helpers.createVehicle({
       name: 'Toyota Camry 2020',
       currencyCode: 'UAH',
@@ -158,13 +138,19 @@ describe('Nightly balance revalue sweep', () => {
       raw: true,
     });
 
-    const accountId = vehicle.accountId;
     const untouchedDay = subDays(new Date(), 5);
-    await writeBalanceRow({ accountId, date: untouchedDay, cents: CORRUPTED_CENTS });
+    const skippedAccountIds = [baseCurrencyAccount.id, loanAccount.id, vehicle.accountId];
+
+    for (const accountId of skippedAccountIds) {
+      await writeBalanceRow({ accountId, date: untouchedDay, cents: CORRUPTED_CENTS });
+    }
 
     const result = await runBalanceRevalueSweep();
 
     expect(result.totalProcessed).toBe(0);
-    expect(await readBalanceRow({ accountId, date: untouchedDay })).toBe(CORRUPTED_CENTS);
-  });
+
+    for (const accountId of skippedAccountIds) {
+      expect(await readBalanceRow({ accountId, date: untouchedDay })).toBe(CORRUPTED_CENTS);
+    }
+  }, 30_000);
 });
