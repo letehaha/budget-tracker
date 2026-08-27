@@ -35,61 +35,60 @@ describe('Release Notifications Webhook', () => {
       });
     });
 
-    it('skips notification for [chore] prefixed releases', async () => {
-      const payload = helpers.createReleasePayload({
-        tagName: 'v1.0.1',
-        name: '[chore] v1.0.1 - Internal refactoring',
+    it('skips notification for [chore] (any casing), draft and prerelease releases', async () => {
+      const expectNoChangelogNotifications = async () => {
+        const notifications = await Notifications.findAll({
+          where: { type: NOTIFICATION_TYPES.changelog },
+        });
+
+        expect(notifications).toHaveLength(0);
+      };
+
+      const choreResponse = await helpers.sendGitHubWebhook({
+        payload: helpers.createReleasePayload({
+          tagName: 'v1.0.1',
+          name: '[chore] v1.0.1 - Internal refactoring',
+        }),
       });
 
-      const response = await helpers.sendGitHubWebhook({ payload });
+      expect(choreResponse.status).toBe(200);
+      expect(choreResponse.body.message).toBe('Chore release skipped');
+      await expectNoChangelogNotifications();
 
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Chore release skipped');
-
-      // Verify no notification was created
-      const notifications = await Notifications.findAll({
-        where: { type: NOTIFICATION_TYPES.changelog },
+      const upperCaseChoreResponse = await helpers.sendGitHubWebhook({
+        payload: helpers.createReleasePayload({
+          tagName: 'v1.0.6',
+          name: '[CHORE] v1.0.6 - Cleanup',
+        }),
       });
 
-      expect(notifications).toHaveLength(0);
-    });
+      expect(upperCaseChoreResponse.status).toBe(200);
+      expect(upperCaseChoreResponse.body.message).toBe('Chore release skipped');
+      await expectNoChangelogNotifications();
 
-    it('skips notification for draft releases', async () => {
-      const payload = helpers.createReleasePayload({
-        tagName: 'v1.0.2',
-        name: 'v1.0.2',
-        draft: true,
+      const draftResponse = await helpers.sendGitHubWebhook({
+        payload: helpers.createReleasePayload({
+          tagName: 'v1.0.2',
+          name: 'v1.0.2',
+          draft: true,
+        }),
       });
 
-      const response = await helpers.sendGitHubWebhook({ payload });
+      expect(draftResponse.status).toBe(200);
+      expect(draftResponse.body.message).toBe('Draft/prerelease ignored');
+      await expectNoChangelogNotifications();
 
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Draft/prerelease ignored');
-
-      const notifications = await Notifications.findAll({
-        where: { type: NOTIFICATION_TYPES.changelog },
+      const prereleaseResponse = await helpers.sendGitHubWebhook({
+        payload: helpers.createReleasePayload({
+          tagName: 'v1.0.3-beta',
+          name: 'v1.0.3 Beta',
+          prerelease: true,
+        }),
       });
 
-      expect(notifications).toHaveLength(0);
-    });
-
-    it('skips notification for prereleases', async () => {
-      const payload = helpers.createReleasePayload({
-        tagName: 'v1.0.3-beta',
-        name: 'v1.0.3 Beta',
-        prerelease: true,
-      });
-
-      const response = await helpers.sendGitHubWebhook({ payload });
-
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Draft/prerelease ignored');
-
-      const notifications = await Notifications.findAll({
-        where: { type: NOTIFICATION_TYPES.changelog },
-      });
-
-      expect(notifications).toHaveLength(0);
+      expect(prereleaseResponse.status).toBe(200);
+      expect(prereleaseResponse.body.message).toBe('Draft/prerelease ignored');
+      await expectNoChangelogNotifications();
     });
 
     it('skips duplicate notifications for the same version', async () => {
@@ -116,74 +115,50 @@ describe('Release Notifications Webhook', () => {
       expect(notifications).toHaveLength(1);
     });
 
-    it('ignores non-published actions', async () => {
-      const payload = helpers.createReleasePayload({
-        tagName: 'v1.0.4',
-        name: 'v1.0.4',
-        action: 'created',
+    it('ignores non-published actions and non-release events, answers pings and rejects invalid signatures', async () => {
+      const nonPublishedResponse = await helpers.sendGitHubWebhook({
+        payload: helpers.createReleasePayload({
+          tagName: 'v1.0.4',
+          name: 'v1.0.4',
+          action: 'created',
+        }),
       });
 
-      const response = await helpers.sendGitHubWebhook({ payload });
-
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Action ignored');
+      expect(nonPublishedResponse.status).toBe(200);
+      expect(nonPublishedResponse.body.message).toBe('Action ignored');
 
       const notifications = await Notifications.findAll({
         where: { type: NOTIFICATION_TYPES.changelog },
       });
 
       expect(notifications).toHaveLength(0);
-    });
 
-    it('rejects requests with invalid signature', async () => {
-      const payload = helpers.createReleasePayload({
-        tagName: 'v1.0.5',
-        name: 'v1.0.5',
-      });
-
-      const response = await helpers.sendGitHubWebhook({
-        payload,
-        secret: 'wrong-secret',
-      });
-
-      expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Invalid signature');
-    });
-
-    it('responds to ping events', async () => {
-      const payload = helpers.createReleasePayload();
-
-      const response = await helpers.sendGitHubWebhook({
-        payload,
+      const pingResponse = await helpers.sendGitHubWebhook({
+        payload: helpers.createReleasePayload(),
         event: 'ping',
       });
 
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('pong');
-    });
+      expect(pingResponse.status).toBe(200);
+      expect(pingResponse.body.message).toBe('pong');
 
-    it('ignores non-release events', async () => {
-      const payload = helpers.createReleasePayload();
-
-      const response = await helpers.sendGitHubWebhook({
-        payload,
+      const pushResponse = await helpers.sendGitHubWebhook({
+        payload: helpers.createReleasePayload(),
         event: 'push',
       });
 
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Event ignored');
-    });
+      expect(pushResponse.status).toBe(200);
+      expect(pushResponse.body.message).toBe('Event ignored');
 
-    it('handles case-insensitive [chore] prefix', async () => {
-      const payload = helpers.createReleasePayload({
-        tagName: 'v1.0.6',
-        name: '[CHORE] v1.0.6 - Cleanup',
+      const invalidSignatureResponse = await helpers.sendGitHubWebhook({
+        payload: helpers.createReleasePayload({
+          tagName: 'v1.0.5',
+          name: 'v1.0.5',
+        }),
+        secret: 'wrong-secret',
       });
 
-      const response = await helpers.sendGitHubWebhook({ payload });
-
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Chore release skipped');
+      expect(invalidSignatureResponse.status).toBe(401);
+      expect(invalidSignatureResponse.body.error).toBe('Invalid signature');
     });
 
     it('uses tag_name when release name is null', async () => {

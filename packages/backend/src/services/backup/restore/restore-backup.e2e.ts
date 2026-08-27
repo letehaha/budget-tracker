@@ -275,7 +275,7 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
   });
 
   describe('Round-trip', () => {
-    it('restoring an export into the same user reproduces every table byte-for-byte', async () => {
+    it('restoring an export into the same user reproduces every table byte-for-byte, with no foreign-reference warnings', async () => {
       await seedRichData();
 
       const first = await exportArchive();
@@ -293,6 +293,10 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       expect(restore.jobId).toBeTruthy();
       const status = await helpers.waitForRestore({ jobId: restore.jobId! });
       expect(status.status).toBe('completed');
+
+      const warnings = status.summary?.warnings ?? [];
+      expect(warnings.some((w) => w.code === 'foreign_reference_dropped')).toBe(false);
+      expect(warnings.some((w) => w.code === 'foreign_reference_nulled')).toBe(false);
 
       const second = await exportArchive();
       const secondArchive = helpers.parseBackupArchive({ buffer: second.buffer });
@@ -569,81 +573,9 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
         (w) => w.code === code && w.table === table,
       );
 
-    it('drops a row whose required FK points at another user (Balances.accountId)', async () => {
-      const { accountA } = await seedBasicData();
-      const { victim, ids } = await seedVictimRow();
-
-      const { buffer } = await exportArchive();
-      const { files } = helpers.parseBackupArchive({ buffer });
-
-      // Aim one Balances row's required accountId at the victim's account. The DB FK
-      // would accept it (the account exists), so only the ownership guard stops it.
-      const balances = readArchiveJson({ files, path: 'data/balances.json' }) as Row[];
-      expect(balances.length).toBeGreaterThan(0);
-      balances[0]!.accountId = ids.accountId;
-      writeArchiveJson({ files, path: 'data/balances.json', value: balances });
-      const base64 = await helpers.repackBackup({ files });
-
-      const restore = await helpers.restoreBackup({ fileContent: base64 });
-      expect(restore.statusCode).toBe(200);
-      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
-      expect(status.status).toBe('completed');
-
-      // The forged Balances row was dropped, not attached to the victim's account.
-      expect(
-        hasWarning({ status: status as unknown as Row, code: 'foreign_reference_dropped', table: 'balances' }),
-      ).toBe(true);
-      // The restore still succeeded and re-owned the restorer's own accounts.
-      expect((await helpers.getAccounts()).some((a) => a.id === accountA.id)).toBe(true);
-
-      // The victim's own data is untouched.
-      await helpers.asUser({
-        cookies: victim.cookies,
-        fn: async () => {
-          expect((await helpers.getAccounts()).some((a) => a.id === ids.accountId)).toBe(true);
-        },
-      });
-    });
-
-    it('nulls a nullable FK that points at another user (Transactions.categoryId)', async () => {
-      const { tx } = await seedBasicData();
-      const { victim, ids } = await seedVictimRow();
-
-      const { buffer } = await exportArchive();
-      const { files } = helpers.parseBackupArchive({ buffer });
-
-      const transactions = readArchiveJson({ files, path: 'data/transactions.json' }) as Row[];
-      const target = transactions.find((t) => t.id === tx.id) ?? transactions[0]!;
-      target.categoryId = ids.categoryId;
-      writeArchiveJson({ files, path: 'data/transactions.json', value: transactions });
-      const base64 = await helpers.repackBackup({ files });
-
-      const restore = await helpers.restoreBackup({ fileContent: base64 });
-      expect(restore.statusCode).toBe(200);
-      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
-      expect(status.status).toBe('completed');
-
-      expect(
-        hasWarning({ status: status as unknown as Row, code: 'foreign_reference_nulled', table: 'transactions' }),
-      ).toBe(true);
-
-      // The transaction was kept, but its foreign category link was cleared.
-      const restoredTx = (await helpers.getTransactionById({ id: tx.id, raw: true })) as { categoryId: unknown } | null;
-      expect(restoredTx).not.toBeNull();
-      expect(restoredTx!.categoryId).toBeNull();
-
-      // The victim's category still exists.
-      await helpers.asUser({
-        cookies: victim.cookies,
-        fn: async () => {
-          expect((await helpers.getCategoriesList()).some((c) => c.id === ids.categoryId)).toBe(true);
-        },
-      });
-    });
-
-    it('nulls a forged template account and suppresses the stranded amount (TransactionTemplates.accountId)', async () => {
-      const { accountA } = await seedBasicData();
-      const created = await helpers.createTransactionTemplate({
+    it('drops the required forged FK, nulls every nullable one, and leaves the victim untouched', async () => {
+      const { accountA, category, tx } = await seedBasicData();
+      const template = await helpers.createTransactionTemplate({
         payload: {
           name: 'Pinned template',
           transactionType: TRANSACTION_TYPES.expense,
@@ -657,118 +589,88 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       const { buffer } = await exportArchive();
       const { files } = helpers.parseBackupArchive({ buffer });
 
+      // Aim one Balances row's required accountId at the victim's account. The DB FK
+      // would accept it (the account exists), so only the ownership guard stops it.
+      const balances = readArchiveJson({ files, path: 'data/balances.json' }) as Row[];
+      expect(balances.length).toBeGreaterThan(0);
+      balances[0]!.accountId = ids.accountId;
+      writeArchiveJson({ files, path: 'data/balances.json', value: balances });
+
+      const transactions = readArchiveJson({ files, path: 'data/transactions.json' }) as Row[];
+      (transactions.find((t) => t.id === tx.id) ?? transactions[0]!).categoryId = ids.categoryId;
+      writeArchiveJson({ files, path: 'data/transactions.json', value: transactions });
+
       const templates = readArchiveJson({ files, path: 'data/transaction-templates.json' }) as Row[];
-      const target = templates.find((t) => t.id === created.id)!;
-      target.accountId = ids.accountId;
+      templates.find((t) => t.id === template.id)!.accountId = ids.accountId;
       writeArchiveJson({ files, path: 'data/transaction-templates.json', value: templates });
-      const base64 = await helpers.repackBackup({ files });
-
-      const restore = await helpers.restoreBackup({ fileContent: base64 });
-      expect(restore.statusCode).toBe(200);
-      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
-      expect(status.status).toBe('completed');
-
-      expect(
-        hasWarning({
-          status: status as unknown as Row,
-          code: 'foreign_reference_nulled',
-          table: 'transaction-templates',
-        }),
-      ).toBe(true);
-
-      // The account link is gone, so the amount it gave a currency to is no longer served.
-      const [restored] = await helpers.getTransactionTemplates({ raw: true });
-      expect(restored!.name).toBe('Pinned template');
-      expect(restored!.accountId).toBeNull();
-      expect(restored!.amount).toBeNull();
-
-      // The stored amount must not make every later edit fail consistency validation.
-      const renamed = await helpers.updateTransactionTemplate({ id: restored!.id, payload: { name: 'Renamed' } });
-      expect(renamed.statusCode).toBe(200);
-
-      await helpers.asUser({
-        cookies: victim.cookies,
-        fn: async () => {
-          expect((await helpers.getAccounts()).some((a) => a.id === ids.accountId)).toBe(true);
-        },
-      });
-    });
-
-    it('nulls a self-ref parent that points at another user (Categories.parentId)', async () => {
-      const { category } = await seedBasicData();
-      const { victim, ids } = await seedVictimRow();
-
-      const { buffer } = await exportArchive();
-      const { files } = helpers.parseBackupArchive({ buffer });
 
       const categories = readArchiveJson({ files, path: 'data/categories.json' }) as Row[];
-      const own = categories.find((c) => c.id === category.id)!;
-      own.parentId = ids.categoryId;
+      categories.find((c) => c.id === category.id)!.parentId = ids.categoryId;
       writeArchiveJson({ files, path: 'data/categories.json', value: categories });
+
+      const userJson = readArchiveJson({ files, path: 'data/user.json' }) as Row;
+      userJson.defaultCategoryId = ids.categoryId;
+      writeArchiveJson({ files, path: 'data/user.json', value: userJson });
+
       const base64 = await helpers.repackBackup({ files });
 
       const restore = await helpers.restoreBackup({ fileContent: base64 });
       expect(restore.statusCode).toBe(200);
       const status = await helpers.waitForRestore({ jobId: restore.jobId! });
       expect(status.status).toBe('completed');
+      const statusRow = status as unknown as Row;
 
-      expect(
-        hasWarning({ status: status as unknown as Row, code: 'foreign_reference_nulled', table: 'categories' }),
-      ).toBe(true);
+      // The forged Balances row was dropped, not attached to the victim's account;
+      // every nullable forged FK was nulled and its row kept.
+      expect(hasWarning({ status: statusRow, code: 'foreign_reference_dropped', table: 'balances' })).toBe(true);
+      expect(hasWarning({ status: statusRow, code: 'foreign_reference_nulled', table: 'transactions' })).toBe(true);
+      expect(hasWarning({ status: statusRow, code: 'foreign_reference_nulled', table: 'transaction-templates' })).toBe(
+        true,
+      );
+      expect(hasWarning({ status: statusRow, code: 'foreign_reference_nulled', table: 'categories' })).toBe(true);
+      expect(hasWarning({ status: statusRow, code: 'foreign_reference_nulled', table: 'user' })).toBe(true);
+
+      // The restore still succeeded and re-owned the restorer's own accounts.
+      expect((await helpers.getAccounts()).some((a) => a.id === accountA.id)).toBe(true);
+
+      // The transaction was kept, but its foreign category link was cleared.
+      const restoredTx = (await helpers.getTransactionById({ id: tx.id, raw: true })) as { categoryId: unknown } | null;
+      expect(restoredTx).not.toBeNull();
+      expect(restoredTx!.categoryId).toBeNull();
 
       // The category was kept, but its foreign parent link was cleared.
       const restoredCategory = (await helpers.getCategoriesList()).find((c) => c.id === category.id);
       expect(restoredCategory).toBeDefined();
       expect(restoredCategory!.parentId ?? null).toBeNull();
 
-      await helpers.asUser({
-        cookies: victim.cookies,
-        fn: async () => {
-          expect((await helpers.getCategoriesList()).some((c) => c.id === ids.categoryId)).toBe(true);
-        },
-      });
-    });
-
-    it("nulls the user record's defaultCategoryId when it points at another user", async () => {
-      await seedBasicData();
-      const { ids } = await seedVictimRow();
-
-      const { buffer } = await exportArchive();
-      const { files } = helpers.parseBackupArchive({ buffer });
-
-      const userJson = readArchiveJson({ files, path: 'data/user.json' }) as Row;
-      userJson.defaultCategoryId = ids.categoryId;
-      writeArchiveJson({ files, path: 'data/user.json', value: userJson });
-      const base64 = await helpers.repackBackup({ files });
-
-      const restore = await helpers.restoreBackup({ fileContent: base64 });
-      expect(restore.statusCode).toBe(200);
-      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
-      expect(status.status).toBe('completed');
-
-      expect(hasWarning({ status: status as unknown as Row, code: 'foreign_reference_nulled', table: 'user' })).toBe(
-        true,
-      );
+      // The template's account link is gone, so the amount it gave a currency to is no
+      // longer served.
+      const [restoredTemplate] = await helpers.getTransactionTemplates({ raw: true });
+      expect(restoredTemplate!.name).toBe('Pinned template');
+      expect(restoredTemplate!.accountId).toBeNull();
+      expect(restoredTemplate!.amount).toBeNull();
 
       // Re-exporting shows the foreign default category was cleared, not persisted.
       const after = helpers.parseBackupArchive({ buffer: (await exportArchive()).buffer });
       const userAfter = after.readData({ name: 'user' }) as Row;
       expect(userAfter.defaultCategoryId ?? null).toBeNull();
-    });
 
-    it('produces no foreign-reference warnings for a normal, unedited restore', async () => {
-      await seedRichData();
-      const { base64 } = await exportArchive();
+      // The stored amount must not make every later edit fail consistency validation.
+      const renamed = await helpers.updateTransactionTemplate({
+        id: restoredTemplate!.id,
+        payload: { name: 'Renamed' },
+      });
+      expect(renamed.statusCode).toBe(200);
 
-      const restore = await helpers.restoreBackup({ fileContent: base64 });
-      expect(restore.statusCode).toBe(200);
-      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
-      expect(status.status).toBe('completed');
-
-      const warnings = status.summary?.warnings ?? [];
-      expect(warnings.some((w) => w.code === 'foreign_reference_dropped')).toBe(false);
-      expect(warnings.some((w) => w.code === 'foreign_reference_nulled')).toBe(false);
-    });
+      // The victim's own data is untouched.
+      await helpers.asUser({
+        cookies: victim.cookies,
+        fn: async () => {
+          expect((await helpers.getAccounts()).some((a) => a.id === ids.accountId)).toBe(true);
+          expect((await helpers.getCategoriesList()).some((c) => c.id === ids.categoryId)).toBe(true);
+        },
+      });
+    }, 30000);
   });
 
   describe('Securities resolve-or-create', () => {
@@ -879,8 +781,8 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
     });
   });
 
-  describe('Secrets never leak', () => {
-    it('deactivates a restored bank connection and never carries a plaintext secret', async () => {
+  describe('Restored bank connection', () => {
+    it('carries no plaintext secret, comes back needing reauth, and reactivates once credentials are re-supplied', async () => {
       const connect = await helpers.bankDataProviders.connectProvider({
         providerType: BANK_PROVIDER_TYPE.MONOBANK,
         credentials: { apiToken: VALID_MONOBANK_TOKEN },
@@ -913,9 +815,17 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       expect(status.status).toBe('completed');
 
       // The connection came back (same id) but is honestly marked "reconnect required".
-      const details = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
-      expect(details.connection.isActive).toBe(false);
-      expect(details.connection.deactivationReason).toBe(DEACTIVATION_REASON.RESTORED);
+      const deactivated = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+      expect(deactivated.connection.isActive).toBe(false);
+      expect(deactivated.connection.deactivationReason).toBe(DEACTIVATION_REASON.RESTORED);
+
+      // …so the sync-status endpoint must list it as needing reconnection.
+      const reauthListed = (await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+        raw: true,
+      })) as { connectionsNeedingReauth: Array<{ connectionId: string }> };
+      expect(reauthListed.connectionsNeedingReauth.some((c) => c.connectionId === connectionId)).toBe(true);
 
       // Re-exporting still blanks the credentials — no secret survives a round-trip.
       const after = await exportArchive();
@@ -923,7 +833,26 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       const connections = afterArchive.readData({ name: 'bank-data-provider-connections' }) as Row[];
       expect(connections.length).toBeGreaterThan(0);
       for (const conn of connections) expect(conn.credentials).toBeNull();
-    });
+
+      // Re-supplying a valid token must clear the reauth state, not just store creds.
+      await helpers.bankDataProviders.updateConnectionDetails({
+        connectionId,
+        credentials: { apiToken: VALID_MONOBANK_TOKEN },
+        raw: true,
+      });
+
+      const reactivated = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+      expect(reactivated.connection.isActive).toBe(true);
+      expect(reactivated.connection.deactivationReason).toBeNull();
+
+      // And it must drop off the sync-status reauth list.
+      const reauthCleared = (await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+        raw: true,
+      })) as { connectionsNeedingReauth: Array<{ connectionId: string }> };
+      expect(reauthCleared.connectionsNeedingReauth.some((c) => c.connectionId === connectionId)).toBe(false);
+    }, 30000);
   });
 
   describe('Atomicity', () => {
@@ -1108,71 +1037,6 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
     });
   });
 
-  describe('Restored connection needs reauth', () => {
-    it('surfaces a restored bank connection in the sync-status reauth list', async () => {
-      const connect = await helpers.bankDataProviders.connectProvider({
-        providerType: BANK_PROVIDER_TYPE.MONOBANK,
-        credentials: { apiToken: VALID_MONOBANK_TOKEN },
-        raw: true,
-      });
-      const connectionId = connect.connectionId;
-
-      const { base64 } = await exportArchive();
-      const restore = await helpers.restoreBackup({ fileContent: base64 });
-      expect(restore.statusCode).toBe(200);
-      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
-      expect(status.status).toBe('completed');
-
-      // The restored connection came back deactivated with reason `restored`, so the
-      // sync-status endpoint must list it as needing reconnection.
-      const syncStatus = (await helpers.makeRequest({
-        method: 'get',
-        url: '/bank-data-providers/sync/status',
-        raw: true,
-      })) as { connectionsNeedingReauth: Array<{ connectionId: string }> };
-      expect(syncStatus.connectionsNeedingReauth.some((c) => c.connectionId === connectionId)).toBe(true);
-    });
-
-    it('reactivates a restored Monobank connection once its credentials are updated', async () => {
-      const connect = await helpers.bankDataProviders.connectProvider({
-        providerType: BANK_PROVIDER_TYPE.MONOBANK,
-        credentials: { apiToken: VALID_MONOBANK_TOKEN },
-        raw: true,
-      });
-      const connectionId = connect.connectionId;
-
-      const { base64 } = await exportArchive();
-      const restore = await helpers.restoreBackup({ fileContent: base64 });
-      expect(restore.statusCode).toBe(200);
-      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
-      expect(status.status).toBe('completed');
-
-      // Restore leaves the connection deactivated with reason `restored`.
-      const deactivated = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
-      expect(deactivated.connection.isActive).toBe(false);
-      expect(deactivated.connection.deactivationReason).toBe(DEACTIVATION_REASON.RESTORED);
-
-      // Re-supplying a valid token must clear the reauth state, not just store creds.
-      await helpers.bankDataProviders.updateConnectionDetails({
-        connectionId,
-        credentials: { apiToken: VALID_MONOBANK_TOKEN },
-        raw: true,
-      });
-
-      const reactivated = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
-      expect(reactivated.connection.isActive).toBe(true);
-      expect(reactivated.connection.deactivationReason).toBeNull();
-
-      // And it must drop off the sync-status reauth list.
-      const syncStatus = (await helpers.makeRequest({
-        method: 'get',
-        url: '/bank-data-providers/sync/status',
-        raw: true,
-      })) as { connectionsNeedingReauth: Array<{ connectionId: string }> };
-      expect(syncStatus.connectionsNeedingReauth.some((c) => c.connectionId === connectionId)).toBe(false);
-    });
-  });
-
   describe('Settings schema drift', () => {
     it('restores with a settings_reset warning when the backup settings no longer validate', async () => {
       await helpers.updateUserSettings({ settings: { locale: 'uk' } });
@@ -1210,7 +1074,7 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       expect(status.state).toBe('idle');
     });
 
-    it('reports completed with the summary once a restore lands', async () => {
+    it('reports completed with the summary once a restore lands, and stays idle for a second user who never restored', async () => {
       await seedBasicData();
       const { base64 } = await exportArchive();
 
@@ -1224,21 +1088,13 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       if (status.state !== 'completed') throw new Error('unreachable');
       expect(status.jobId).toBe(restore.jobId);
       expect(status.summary.insertedByTable).toBeDefined();
-    });
-
-    it('is scoped per user — a second user who never restored still sees idle', async () => {
-      await seedBasicData();
-      const { base64 } = await exportArchive();
-      const restore = await helpers.restoreBackup({ fileContent: base64 });
-      expect(restore.statusCode).toBe(200);
-      await helpers.waitForRestore({ jobId: restore.jobId! });
 
       const target = await helpers.provisionSecondUserWithBaseCurrency();
       await helpers.asUser({
         cookies: target.cookies,
         fn: async () => {
-          const status = await helpers.getActiveRestoreStatus({ raw: true });
-          expect(status.state).toBe('idle');
+          const targetStatus = await helpers.getActiveRestoreStatus({ raw: true });
+          expect(targetStatus.state).toBe('idle');
         },
       });
     });

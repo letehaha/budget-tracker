@@ -92,15 +92,6 @@ describe('Data export (POST /user/data-export)', () => {
       expect(exported?.tags).toEqual(['denorm-tag']);
     });
 
-    it('includes the user header block with username + base currency', async () => {
-      const response = await helpers.exportData({ format: 'json' });
-      const archive = helpers.parseExportArchive({ buffer: response.body });
-      const json = archive.json as { user: { username: string; base_currency: string; email: string | null } };
-      expect(json.user).toBeDefined();
-      expect(json.user.username).toEqual(expect.any(String));
-      expect(json.user.username.length).toBeGreaterThan(0);
-    });
-
     it('does NOT leak bank-provider credentials when a real provider connection exists', async () => {
       // Seed a bank-provider connection through the public API so the real
       // encryption/storage path runs. The export must not round-trip the
@@ -123,17 +114,6 @@ describe('Data export (POST /user/data-export)', () => {
       expect(stringified).not.toMatch(/"credentials"/);
       expect(stringified).not.toMatch(/"keyEncrypted"/);
       expect(stringified).not.toMatch(/"secretKey"/);
-    });
-
-    it('returns a valid archive for a user with zero data across all groups', async () => {
-      // Empty-state contract: even when every transformer returns [], the
-      // archive should still be a well-formed zip with a manifest. Regressions
-      // in archive-writer or manifest-builder edge cases would surface here.
-      const response = await helpers.exportData({ format: 'json' });
-      expect(response.statusCode).toBe(200);
-      const archive = helpers.parseExportArchive({ buffer: response.body });
-      expect(archive.manifest.files.length).toBeGreaterThan(0);
-      expect(archive.manifest.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
     });
   });
 
@@ -183,17 +163,6 @@ describe('Data export (POST /user/data-export)', () => {
       expect(seeded?.Category).toBe('CSV cat');
       // Money displayed as the decimal number (12.34), not the cents integer.
       expect(seeded?.Amount).toBe('12.34');
-    });
-
-    it('writes a UTF-8 BOM at the start of every CSV file', async () => {
-      const response = await helpers.exportData({ format: 'csv' });
-      const archive = helpers.parseExportArchive({ buffer: response.body });
-      for (const [name, buf] of archive.files.entries()) {
-        if (!name.endsWith('.csv')) continue;
-        expect(buf[0]).toBe(0xef);
-        expect(buf[1]).toBe(0xbb);
-        expect(buf[2]).toBe(0xbf);
-      }
     });
   });
 
@@ -301,19 +270,34 @@ describe('Data export (POST /user/data-export)', () => {
       expect(archive.files.has('transactions.csv')).toBe(false);
       expect(archive.files.has('accounts.csv')).toBe(false);
     });
+  });
 
-    it('rejects an unknown group with a 4xx (Zod validation)', async () => {
+  describe('Request validation', () => {
+    it('rejects an unknown group with 4xx, an inverted range with 422, and a malformed date with 422', async () => {
       // The schema's `.default([...ALL_EXPORT_GROUPS])` makes an empty array
       // unreachable past Zod, so the negative test we CAN exercise is "garbage
       // group name → 4xx rejection". Confirms the controller enforces the
       // closed set of group names.
-      const result = await helpers.exportData({
+      const unknownGroup = await helpers.exportData({
         format: 'json',
         // @ts-expect-error – invalid group exercised on purpose
         groups: ['nonsense-group'],
       });
-      expect(result.statusCode).toBeGreaterThanOrEqual(400);
-      expect(result.statusCode).toBeLessThan(500);
+      expect(unknownGroup.statusCode).toBeGreaterThanOrEqual(400);
+      expect(unknownGroup.statusCode).toBeLessThan(500);
+
+      const invertedRange = await helpers.exportData({
+        format: 'json',
+        dateRange: { from: '2024-12-31', to: '2024-01-01' },
+      });
+      expect(invertedRange.statusCode).toBe(422);
+
+      const malformedDate = await helpers.exportData({
+        format: 'json',
+        // Datetime instead of date – we accept calendar-day boundaries only.
+        dateRange: { from: '2024-01-01T00:00:00Z' },
+      });
+      expect(malformedDate.statusCode).toBe(422);
     });
   });
 
@@ -431,10 +415,45 @@ describe('Data export (POST /user/data-export)', () => {
     });
   });
 
-  describe('Integrity manifest', () => {
-    it('every file listed in manifest.files has a SHA-256 matching the on-disk file', async () => {
+  describe('Archive envelope and integrity manifest', () => {
+    it('returns a well-formed JSON archive for a user with zero data: user header, manifest metadata, ISO filename, row-count header', async () => {
+      // Empty-state contract: even when every transformer returns [], the
+      // archive should still be a well-formed zip with a manifest. Regressions
+      // in archive-writer or manifest-builder edge cases would surface here.
+      const response = await helpers.exportData({ format: 'json' });
+      expect(response.statusCode).toBe(200);
+      expect(response.filename).toMatch(/^moneymatter-export-\d{4}-\d{2}-\d{2}\.zip$/);
+      expect(response.totalRows).toBeGreaterThanOrEqual(0);
+      expect(Number.isFinite(response.totalRows)).toBe(true);
+
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      expect(archive.manifest.files.length).toBeGreaterThan(0);
+      expect(archive.manifest.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
+      // manifest.json can't hash itself, so it's never listed among its own files.
+      expect(archive.manifest.files.map((f) => f.filename)).not.toContain('manifest.json');
+      expect(archive.manifest.dateRange).toBeUndefined();
+
+      const json = archive.json as { user: { username: string; baseCurrency: string; email: string | null } };
+      expect(json.user).toBeDefined();
+      expect(json.user.username).toEqual(expect.any(String));
+      expect(json.user.username.length).toBeGreaterThan(0);
+      expect(json.user.baseCurrency).toBe(global.BASE_CURRENCY_CODE);
+      // Either a populated email or explicit null – never an absent key, so a
+      // future consumer can rely on the field always being present.
+      expect('email' in json.user).toBe(true);
+      expect(json.user.email === null || typeof json.user.email === 'string').toBe(true);
+    });
+
+    it('writes a UTF-8 BOM at the start of every CSV file and manifest SHA-256/sizeBytes matching each archived file', async () => {
       const response = await helpers.exportData({ format: 'csv' });
       const archive = helpers.parseExportArchive({ buffer: response.body });
+
+      for (const [name, buf] of archive.files.entries()) {
+        if (!name.endsWith('.csv')) continue;
+        expect(buf[0]).toBe(0xef);
+        expect(buf[1]).toBe(0xbb);
+        expect(buf[2]).toBe(0xbf);
+      }
 
       for (const entry of archive.manifest.files) {
         const onDisk = archive.files.get(entry.filename);
@@ -443,19 +462,6 @@ describe('Data export (POST /user/data-export)', () => {
         expect(computed).toBe(entry.sha256);
         expect(entry.sizeBytes).toBe(onDisk!.length);
       }
-    });
-
-    it('manifest.json itself is NOT listed in manifest.files (chicken-and-egg)', async () => {
-      const response = await helpers.exportData({ format: 'json' });
-      const archive = helpers.parseExportArchive({ buffer: response.body });
-      const names = archive.manifest.files.map((f) => f.filename);
-      expect(names).not.toContain('manifest.json');
-    });
-
-    it('schemaVersion is the current EXPORT_SCHEMA_VERSION constant', async () => {
-      const response = await helpers.exportData({ format: 'json' });
-      const archive = helpers.parseExportArchive({ buffer: response.body });
-      expect(archive.manifest.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
     });
   });
 
@@ -668,19 +674,6 @@ describe('Data export (POST /user/data-export)', () => {
     });
   });
 
-  describe('Filename and response envelope', () => {
-    it('uses an ISO date in the zip filename', async () => {
-      const response = await helpers.exportData({ format: 'json' });
-      expect(response.filename).toMatch(/^moneymatter-export-\d{4}-\d{2}-\d{2}\.zip$/);
-    });
-
-    it('exposes X-Total-Rows header so the frontend can show a preflight summary', async () => {
-      const response = await helpers.exportData({ format: 'json' });
-      expect(response.totalRows).toBeGreaterThanOrEqual(0);
-      expect(Number.isFinite(response.totalRows)).toBe(true);
-    });
-  });
-
   describe('CSV cell escaping', () => {
     it('round-trips commas, quotes, and newlines inside notes through csv-stringify', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -761,18 +754,6 @@ describe('Data export (POST /user/data-export)', () => {
     });
   });
 
-  describe('User header email', () => {
-    it('exposes the user email field in the JSON header (string or explicit null, not undefined)', async () => {
-      const response = await helpers.exportData({ format: 'json' });
-      const archive = helpers.parseExportArchive({ buffer: response.body });
-      const json = archive.json as { user: { email: string | null } };
-      expect('email' in json.user).toBe(true);
-      // Either a populated email or explicit null – never an absent key, so a
-      // future consumer can rely on the field always being present.
-      expect(json.user.email === null || typeof json.user.email === 'string').toBe(true);
-    });
-  });
-
   describe('Cross-user isolation', () => {
     it("does NOT leak another user's account, category, tag, or transaction note into the primary user's export", async () => {
       // Sign up a separate user and seed identifiable data (account, category,
@@ -844,12 +825,13 @@ describe('Data export (POST /user/data-export)', () => {
   });
 
   describe('Rate limit', () => {
-    it('allows 5 exports in a 15-minute window per user and rejects the 6th with 429', async () => {
+    it('allows 5 exports in a 15-minute window per user, rejects the 6th with 429, and re-opens after a window reset', async () => {
       // Don't rely on the suite-wide beforeEach reset — make this case self-contained
       // so it stays meaningful if the surrounding setup ever changes.
       const userRes = await helpers.makeRequest({ method: 'get', url: '/user', raw: true });
       const userId = (userRes as { id: number }).id;
-      await RateLimitService.resetRateLimit(`data-export:user:${userId}`);
+      const key = `data-export:user:${userId}`;
+      await RateLimitService.resetRateLimit(key);
 
       for (let attempt = 1; attempt <= 5; attempt++) {
         const response = await helpers.exportData({ format: 'json' });
@@ -860,29 +842,16 @@ describe('Data export (POST /user/data-export)', () => {
       expect(blocked.statusCode).toBe(429);
       const body = blocked.errorBody as { response?: { code?: string } } | null;
       expect(body?.response?.code).toBe(API_ERROR_CODES.tooManyRequests);
-    });
-
-    it('after the limiter trips, a fresh window allows exports again (reset between users / windows)', async () => {
-      const userRes = await helpers.makeRequest({ method: 'get', url: '/user', raw: true });
-      const userId = (userRes as { id: number }).id;
-      const key = `data-export:user:${userId}`;
-
-      await RateLimitService.resetRateLimit(key);
-      for (let attempt = 1; attempt <= 5; attempt++) {
-        await helpers.exportData({ format: 'json' });
-      }
-      const blocked = await helpers.exportData({ format: 'json' });
-      expect(blocked.statusCode).toBe(429);
 
       await RateLimitService.resetRateLimit(key);
 
       const afterReset = await helpers.exportData({ format: 'json' });
       expect(afterReset.statusCode).toBe(200);
-    });
+    }, 30000);
   });
 
   describe('Date range', () => {
-    it('filters transactions to the requested range and leaves reference tables untouched', async () => {
+    it('filters transactions to the requested range, records the range on the manifest, and leaves reference tables untouched', async () => {
       const account = await helpers.createAccount({ raw: true });
       const category = await helpers.addCustomCategory({ name: 'Range cat', color: '#AABBCC', raw: true });
 
@@ -929,6 +898,8 @@ describe('Data export (POST /user/data-export)', () => {
       expect(response.statusCode).toBe(200);
 
       const archive = helpers.parseExportArchive({ buffer: response.body });
+      expect(archive.manifest.dateRange).toEqual({ from: '2024-01-01', to: '2024-12-31' });
+
       const data = archive.json as {
         transactions: Array<Record<string, unknown>>;
         accounts: Array<Record<string, unknown>>;
@@ -980,38 +951,6 @@ describe('Data export (POST /user/data-export)', () => {
       const data = archive.json as { transactions: Array<Record<string, unknown>> };
       const notes = data.transactions.map((t) => t.note);
       expect(notes).toEqual(expect.arrayContaining(['Lower boundary', 'Upper boundary']));
-    });
-
-    it('records the range on the manifest for traceability', async () => {
-      const response = await helpers.exportData({
-        format: 'json',
-        dateRange: { from: '2024-01-01', to: '2024-12-31' },
-      });
-      const archive = helpers.parseExportArchive({ buffer: response.body });
-      expect(archive.manifest.dateRange).toEqual({ from: '2024-01-01', to: '2024-12-31' });
-    });
-
-    it('omits the dateRange manifest field when the request had no range', async () => {
-      const response = await helpers.exportData({ format: 'json' });
-      const archive = helpers.parseExportArchive({ buffer: response.body });
-      expect(archive.manifest.dateRange).toBeUndefined();
-    });
-
-    it('rejects an inverted range with 422', async () => {
-      const response = await helpers.exportData({
-        format: 'json',
-        dateRange: { from: '2024-12-31', to: '2024-01-01' },
-      });
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects a malformed date string with 422', async () => {
-      const response = await helpers.exportData({
-        format: 'json',
-        // Datetime instead of date – we accept calendar-day boundaries only.
-        dateRange: { from: '2024-01-01T00:00:00Z' },
-      });
-      expect(response.statusCode).toBe(422);
     });
   });
 

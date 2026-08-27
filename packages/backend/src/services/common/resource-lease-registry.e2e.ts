@@ -15,28 +15,24 @@ import { randomUUID } from 'node:crypto';
 const unknownLeaseId = () => randomUUID();
 
 describe('POST /resource-leases/refresh', () => {
-  it('returns 404 for an id that was never issued', async () => {
-    const response = await helpers.refreshResourceLease({
+  it('returns 404 for an id that was never issued, and rejects a non-UUID id or an unknown resource type', async () => {
+    const neverIssued = await helpers.refreshResourceLease({
       payload: { type: ResourceLeaseType.msMoneyUpload, id: unknownLeaseId() },
     });
 
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-  });
+    expect(neverIssued.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-  it('rejects an id that is not a UUID', async () => {
-    const response = await helpers.refreshResourceLease({
+    const malformedId = await helpers.refreshResourceLease({
       payload: { type: ResourceLeaseType.msMoneyUpload, id: '../../etc/passwd' },
     });
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
+    expect(malformedId.statusCode).toBe(ERROR_CODES.ValidationError);
 
-  it('rejects a resource type the server does not know', async () => {
-    const response = await helpers.refreshResourceLease({
+    const unknownType = await helpers.refreshResourceLease({
       payload: { type: 'not-a-leased-resource', id: unknownLeaseId() },
     });
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(unknownType.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
   /**
