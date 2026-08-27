@@ -510,6 +510,10 @@ export const useImportExportStore = defineStore('importExport', () => {
     autoMatchResolveValues,
     quickMapExactMatches,
     quickCreateNewForUnmatched,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
+    resetAiMapping,
     quickSkipAllTags,
     resetResolveEntity,
   } = resolveEngine;
@@ -882,6 +886,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     isDetectingDuplicates.value = false;
     detectError.value = null;
     isEnqueuing.value = false;
+    resetAiMapping();
     resetRecalculateBalanceOverride();
     jobProgress.stop();
     jobProgress.setExecuteError(null);
@@ -954,6 +959,9 @@ export const useImportExportStore = defineStore('importExport', () => {
     autoMatchResolveValues,
     quickMapExactMatches,
     quickCreateNewForUnmatched,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
     quickSkipAllTags,
     resetResolveEntity,
     prepareResolveStep,

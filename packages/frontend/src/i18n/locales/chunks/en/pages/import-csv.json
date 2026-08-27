@@ -234,7 +234,6 @@
           "createNewForUnmatched": "Create new for unmatched",
           "skipAll": "Skip all",
           "reset": "Reset",
-          "menuLabel": "Quick actions",
           "tooltips": {
             "mapExactMatchesAccounts": "Links each CSV account to an existing account that has the same name and currency. Accounts with no exact match stay unchanged.",
             "mapExactMatchesCategories": "Links each CSV category to an existing category with the same name. Categories with no exact match stay unchanged.",

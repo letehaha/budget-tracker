@@ -289,6 +289,10 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     autoMatchResolveValues,
     quickMapExactMatches,
     quickCreateNewForUnmatched,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
+    resetAiMapping,
     resetResolveEntity,
     toggleDuplicateUnmark,
     accountResolvedCount,
@@ -628,6 +632,7 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     isDetectingDuplicates.value = false;
     detectError.value = null;
     isEnqueuing.value = false;
+    resetAiMapping();
     jobProgress.setExecuteError(null);
     jobProgress.stop();
   }
@@ -684,6 +689,9 @@ export const useImportMsMoneyStore = defineStore('import-ms-money', () => {
     autoMatchResolveValues,
     quickMapExactMatches,
     quickCreateNewForUnmatched,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
     resetResolveEntity,
 
     // Duplicate helpers

@@ -15,6 +15,7 @@
     },
     "selectAction": "Select action",
     "resolvedCounterWord": "resolved",
+    "quickActionsMenuLabel": "Bulk actions",
     "columns": {
       "sourceName": "Source name",
       "currency": "Currency",
@@ -71,6 +72,12 @@
         "category": "Category"
       },
       "importAnywayAriaLabel": "Import row {row} anyway"
+    },
+    "aiMapping": {
+      "action": "AI match",
+      "tooltipCategories": "Let AI link each source category to the closest existing category. Rows you already linked to a category are left untouched.",
+      "failed": "AI matching failed. Please try again.",
+      "inProgress": "AI matching in progress…"
     }
   }
 }

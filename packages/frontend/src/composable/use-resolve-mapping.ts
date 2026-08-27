@@ -1,3 +1,7 @@
+import { aiMapImportCategories } from '@/api/import-export';
+import { i18n } from '@/i18n';
+import { extractApiErrorMessage, isApiErrorWithCode } from '@/js/errors';
+import { captureException } from '@/lib/sentry';
 import {
   type ResolveSource,
   type ResolveTarget,
@@ -5,7 +9,8 @@ import {
   computeCreateForUnresolved,
   computeExactLinkEntries,
 } from '@/pages/import-export/utils/resolve-mapping';
-import { type ComputedRef, type Ref, computed } from 'vue';
+import { API_ERROR_CODES } from '@bt/shared/types';
+import { type ComputedRef, type Ref, computed, ref } from 'vue';
 
 /**
  * Shared "Resolve step" engine for the import wizards (CSV + Wallet). Both
@@ -227,6 +232,99 @@ export function useResolveMapping<
     }
   }
 
+  // ---- AI category mapping ----
+
+  const isAiMappingCategories = ref(false);
+  const aiMappingCategoriesError = ref<string | null>(null);
+
+  /**
+   * Successful AI verdicts from this session, keyed by source name. Null verdicts
+   * are never stored, so an unmatched name is re-asked on the next click (the
+   * user may have created the missing category in between).
+   */
+  const aiCategoryVerdictCache = new Map<string, string>();
+
+  const AI_MAPPING_FLASH_MS = 400;
+
+  /** Cached and no-op paths finish instantly; flash the overlay so the click visibly responds. */
+  function flashAiMappingOverlay(): void {
+    isAiMappingCategories.value = true;
+    setTimeout(() => {
+      isAiMappingCategories.value = false;
+    }, AI_MAPPING_FLASH_MS);
+  }
+
+  /**
+   * Ask the backend AI to link source categories to existing ones. Rows already
+   * linked to a concrete target are skipped; create-new rows (auto-seeded or
+   * user-chosen) are re-decided. Unmatched sources keep their current entry.
+   */
+  async function quickAiMapCategories(): Promise<void> {
+    if (isAiMappingCategories.value) return;
+
+    const names = categorySources.value
+      .filter((source) => {
+        const entry = categories.mapping.value[source.name];
+        return !entry || entry.action !== 'link-existing' || !categories.isResolved(entry);
+      })
+      .map((source) => source.name);
+
+    if (names.length === 0) {
+      flashAiMappingOverlay();
+      return;
+    }
+
+    const validTargetIds = new Set(categoryTargets.value.map((target) => target.id));
+    const applyVerdict = ({ name, categoryId }: { name: string; categoryId: string | null }) => {
+      if (categoryId && validTargetIds.has(categoryId)) {
+        categories.mapping.value[name] = categories.toLink(categoryId, name);
+      }
+    };
+
+    const uncachedNames: string[] = [];
+    for (const name of names) {
+      const cached = aiCategoryVerdictCache.get(name);
+      if (cached) {
+        applyVerdict({ name, categoryId: cached });
+      } else {
+        uncachedNames.push(name);
+      }
+    }
+
+    if (uncachedNames.length === 0) {
+      flashAiMappingOverlay();
+      return;
+    }
+
+    isAiMappingCategories.value = true;
+    aiMappingCategoriesError.value = null;
+    try {
+      const { mappings } = await aiMapImportCategories({ sourceCategories: uncachedNames });
+      for (const [name, categoryId] of Object.entries(mappings)) {
+        if (categoryId) aiCategoryVerdictCache.set(name, categoryId);
+        applyVerdict({ name, categoryId });
+      }
+    } catch (error) {
+      if (isApiErrorWithCode(error, API_ERROR_CODES.validationError)) {
+        // A validation response describes a fixable problem (e.g. AI not
+        // configured); show its message and skip Sentry.
+        aiMappingCategoriesError.value =
+          extractApiErrorMessage(error) ?? i18n.global.t('importShared.aiMapping.failed');
+      } else {
+        aiMappingCategoriesError.value = i18n.global.t('importShared.aiMapping.failed');
+        captureException({ error, context: { scope: 'import-shared:ai-map-categories' } });
+      }
+    } finally {
+      isAiMappingCategories.value = false;
+    }
+  }
+
+  /** Forget this session's AI verdicts and error (wizard restart). */
+  function resetAiMapping(): void {
+    aiCategoryVerdictCache.clear();
+    aiMappingCategoriesError.value = null;
+  }
+
   /** Clear one entity's stored choices, then re-seed via name auto-match. */
   function resetResolveEntity({ entity }: { entity: ResolveEntityKind }): void {
     if (entity === 'accounts') clearEntity({ config: accounts, sources: accountSources });
@@ -291,6 +389,10 @@ export function useResolveMapping<
     quickMapExactMatches,
     quickCreateNewForUnmatched,
     quickSkipAllTags,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
+    resetAiMapping,
     resetResolveEntity,
     toggleDuplicateUnmark,
     accountResolvedCount,

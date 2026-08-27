@@ -210,6 +210,14 @@ export type AccountMappingValue =
 export type AccountMappingConfig = Record<string, AccountMappingValue>;
 
 /**
+ * Keyed by source category name; the value is the matched existing category id,
+ * or null when the AI found no reasonable match.
+ */
+export interface AiMapImportCategoriesResponse {
+  mappings: Record<string, string | null>;
+}
+
+/**
  * Category mapping for import - maps CSV category name to action
  */
 export type CategoryMappingValue = { action: 'create-new' } | { action: 'link-existing'; categoryId: string };

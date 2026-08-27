@@ -272,6 +272,10 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     autoMatchResolveValues,
     quickMapExactMatches,
     quickCreateNewForUnmatched,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
+    resetAiMapping,
     resetResolveEntity,
     toggleDuplicateUnmark,
     accountResolvedCount,
@@ -580,6 +584,7 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     parseError.value = null;
     isDetectingDuplicates.value = false;
     detectError.value = null;
+    resetAiMapping();
     jobProgress.setExecuteError(null);
     fileContent = null;
     jobProgress.stop();
@@ -632,6 +637,9 @@ export const useImportBudgetBakersWalletStore = defineStore('import-budget-baker
     autoMatchResolveValues,
     quickMapExactMatches,
     quickCreateNewForUnmatched,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
     resetResolveEntity,
 
     // Duplicate helpers

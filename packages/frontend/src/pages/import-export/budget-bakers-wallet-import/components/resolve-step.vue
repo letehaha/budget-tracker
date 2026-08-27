@@ -19,7 +19,7 @@ import { type QuickAction } from '@/pages/import-export/components/resolve-value
 import { useAccountsStore } from '@/stores/accounts';
 import { useCategoriesStore } from '@/stores/categories/categories';
 import { useImportBudgetBakersWalletStore } from '@/stores/import-budget-bakers-wallet';
-import { ChevronLeftIcon, ChevronRightIcon, LinkIcon, PlusIcon, RefreshCwIcon } from '@lucide/vue';
+import { ChevronLeftIcon, ChevronRightIcon, LinkIcon, PlusIcon, RefreshCwIcon, SparklesIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -104,6 +104,13 @@ const categoryQuickActions = computed<QuickAction[]>(() => [
     onClick: () => store.quickMapExactMatches({ entity: 'categories' }),
   },
   {
+    icon: SparklesIcon,
+    label: t('importShared.aiMapping.action'),
+    tooltip: t('importShared.aiMapping.tooltipCategories'),
+    onClick: () => store.quickAiMapCategories(),
+    disabled: store.isAiMappingCategories,
+  },
+  {
     icon: PlusIcon,
     label: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.budgetBakersWalletImport.resolve.quickActions.tooltips.createNewForUnmatched'),
@@ -186,6 +193,7 @@ async function handleContinue() {
 
     <!-- ==================== CATEGORIES SECTION ==================== -->
     <CategoryMappingTable
+      :loading="store.isAiMappingCategories"
       :items="categoryItems"
       :mapping="store.categoryMapping"
       :available-categories="formattedCategories"
@@ -195,6 +203,10 @@ async function handleContinue() {
       @set-action="store.setCategoryAction"
       @set-target="store.setCategoryTarget"
     />
+
+    <Callout v-if="store.aiMappingCategoriesError" variant="destructive" role="alert">
+      <p>{{ store.aiMappingCategoriesError }}</p>
+    </Callout>
 
     <!-- ==================== BALANCE RECALCULATION ==================== -->
     <RecalculateBalanceToggle
@@ -216,7 +228,9 @@ async function handleContinue() {
       </UiButton>
 
       <UiButton
-        :disabled="!store.isResolveStepValid || isNavigating || store.isDetectingDuplicates"
+        :disabled="
+          !store.isResolveStepValid || isNavigating || store.isDetectingDuplicates || store.isAiMappingCategories
+        "
         @click="handleContinue"
       >
         {{ $t('pages.importExport.budgetBakersWalletImport.resolve.footer.continue') }}

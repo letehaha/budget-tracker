@@ -10,6 +10,8 @@ export interface QuickAction {
   tooltip: string;
   /** Invoked when the action is chosen (button click or menu select). */
   onClick: () => void;
+  /** Disables the action in both the inline button and the overflow menu. */
+  disabled?: boolean;
 }
 </script>
 
@@ -46,7 +48,7 @@ const { t } = useI18n();
         content-class-name="max-w-70"
         :content="action.tooltip"
       >
-        <UiButton variant="secondary" size="sm" @click="action.onClick">
+        <UiButton variant="secondary" size="sm" :disabled="action.disabled" @click="action.onClick">
           <component :is="action.icon" class="size-3.5" />
           {{ action.label }}
         </UiButton>
@@ -60,13 +62,18 @@ const { t } = useI18n();
           variant="secondary"
           size="sm"
           class="@2xl/csv-wizard:hidden"
-          :aria-label="t('pages.importExport.resolveValues.quickActions.menuLabel')"
+          :aria-label="t('importShared.quickActionsMenuLabel')"
         >
           <EllipsisVerticalIcon class="size-4" />
         </UiButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" class="min-w-56">
-        <DropdownMenuItem v-for="action in actions" :key="action.label" @select="action.onClick">
+        <DropdownMenuItem
+          v-for="action in actions"
+          :key="action.label"
+          :disabled="action.disabled"
+          @select="action.onClick"
+        >
           <component :is="action.icon" class="size-4" />
           {{ action.label }}
         </DropdownMenuItem>

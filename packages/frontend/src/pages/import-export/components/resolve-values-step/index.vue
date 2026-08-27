@@ -14,7 +14,15 @@ import type { TagMappingValue } from '@bt/shared/types';
 import AccountMappingTable, { type AccountAction } from './account-mapping-table.vue';
 import CategoryMappingTable from './category-mapping-table.vue';
 import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vue';
-import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon, LinkIcon, PlusIcon, SkipForwardIcon } from '@lucide/vue';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  RefreshCwIcon,
+  LinkIcon,
+  PlusIcon,
+  SkipForwardIcon,
+  SparklesIcon,
+} from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -214,6 +222,13 @@ const categoryQuickActions = computed<QuickAction[]>(() => [
     onClick: () => importStore.quickMapExactMatches({ entity: 'categories' }),
   },
   {
+    icon: SparklesIcon,
+    label: t('importShared.aiMapping.action'),
+    tooltip: t('importShared.aiMapping.tooltipCategories'),
+    onClick: () => importStore.quickAiMapCategories(),
+    disabled: importStore.isAiMappingCategories,
+  },
+  {
     icon: PlusIcon,
     label: t('pages.importExport.resolveValues.quickActions.createNewForUnmatched'),
     tooltip: t('pages.importExport.resolveValues.quickActions.tooltips.createNewForUnmatched'),
@@ -356,6 +371,7 @@ async function handleNext() {
       <!-- ==================== CATEGORIES SECTION ==================== -->
       <CategoryMappingTable
         v-if="section === 'categories' && importStore.needsCategoryResolution && categoryItems.length > 0"
+        :loading="importStore.isAiMappingCategories"
         :items="categoryItems"
         :mapping="importStore.categoryMapping"
         :available-categories="formattedCategories"
@@ -365,6 +381,14 @@ async function handleNext() {
         @set-action="onCategorySetAction"
         @set-target="onCategorySetTarget"
       />
+
+      <Callout
+        v-if="section === 'categories' && importStore.aiMappingCategoriesError"
+        variant="destructive"
+        role="alert"
+      >
+        <p>{{ importStore.aiMappingCategoriesError }}</p>
+      </Callout>
 
       <!-- ==================== TAGS SECTION ==================== -->
       <section
@@ -479,7 +503,10 @@ async function handleNext() {
         {{ t('pages.importExport.resolveValues.footer.back') }}
       </UiButton>
 
-      <UiButton :disabled="!isStepValid || isNavigating || importStore.isExtracting" @click="handleNext">
+      <UiButton
+        :disabled="!isStepValid || isNavigating || importStore.isExtracting || importStore.isAiMappingCategories"
+        @click="handleNext"
+      >
         {{ t('pages.importExport.resolveValues.footer.next') }}
         <ChevronRightIcon class="ml-1.5 size-4" />
       </UiButton>
