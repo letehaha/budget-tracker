@@ -807,9 +807,9 @@ const missingHint = computed(() => {
 });
 
 const handleNext = async () => {
-  // When a per-value method is active the Resolve step handles reconciliation,
+  // When a per-value method is active a Resolve step handles reconciliation,
   // so just advance; otherwise run duplicate detection (which advances to Review).
-  if (importStore.needsResolveStep) {
+  if (importStore.needsAccountResolution || importStore.needsCategoriesResolveStep) {
     importStore.goNext();
     return;
   }

@@ -24,7 +24,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { createAccountsIfNeeded } from '../core/resolve/create-accounts-if-needed';
 import { createTwoLevelCategoriesIfNeeded } from '../core/resolve/create-categories-if-needed';
 import { createNamedTagsIfNeeded } from '../core/resolve/create-tags-if-needed';
-import { parseYnabRegister } from './parse-ynab.service';
+import { collectCategories, collectPayees, collectTagsUsed, parseYnabRegister } from './parse-ynab.service';
 
 /** User-facing tag name for each flag color. */
 function flagToTagName(color: YnabFlagColor): string {
@@ -59,6 +59,7 @@ export async function executeYnabImport({
   const importedAt = new Date().toISOString();
 
   // Validate every distinct account name in the parser output has a mapping.
+  // Skipped accounts need one too: `skip` is an explicit entry, not an omission.
   const missingMappings = parsed.accounts.filter((a) => !accountMapping[a.originalName]);
   if (missingMappings.length > 0) {
     throw new ValidationError({
@@ -66,8 +67,24 @@ export async function executeYnabImport({
     });
   }
 
+  const skippedAccountNames = new Set(
+    parsed.accounts.filter((a) => accountMapping[a.originalName]!.skip).map((a) => a.originalName),
+  );
+  const importableAccounts = parsed.accounts.filter((a) => !skippedAccountNames.has(a.originalName));
+  const transactionsToWrite = parsed.transactions.filter((tx) => !skippedAccountNames.has(tx.accountName));
+  const transfersToWrite = parsed.transfers.filter(
+    (xfer) => !skippedAccountNames.has(xfer.sourceAccountName) && !skippedAccountNames.has(xfer.destinationAccountName),
+  );
+
+  // Re-derive from the surviving rows: the parser's file-wide lists would create
+  // categories, payees and tags that no imported row references.
+  const categoriesToCreate = collectCategories({ transactions: transactionsToWrite });
+  const payeesToCreate = collectPayees({ transactions: transactionsToWrite });
+  const tagsToCreate = collectTagsUsed({ transactions: transactionsToWrite, transfers: transfersToWrite });
+
   const summary: YnabImportSummary = {
     accountsCreated: 0,
+    accountsSkipped: skippedAccountNames.size,
     categoriesCreated: 0,
     payeesCreated: 0,
     tagsCreated: 0,
@@ -77,7 +94,7 @@ export async function executeYnabImport({
     errors: [],
   };
 
-  const totalCount = parsed.transactions.length + parsed.transfers.length;
+  const totalCount = transactionsToWrite.length + transfersToWrite.length;
   // Stable `importDetails` blob attached to every created row — same batch for
   // every loop iteration, so build it once and share by reference.
   const importDetails: TransactionImportDetails = {
@@ -93,7 +110,7 @@ export async function executeYnabImport({
 
   // Phase 1: bootstrap currencies.
   const currencyCodes = new Set<string>();
-  for (const a of parsed.accounts) {
+  for (const a of importableAccounts) {
     currencyCodes.add(accountMapping[a.originalName]!.currencyCode);
   }
   if (currencyCodes.size > 0) {
@@ -107,12 +124,12 @@ export async function executeYnabImport({
   // currency comes from the per-account mapping and the starting balance is
   // converted at the earliest CSV date via `initialBalanceFxDate`.
   const startingBalanceCentsByName = new Map<string, number>();
-  for (const ynabAccount of parsed.accounts) {
+  for (const ynabAccount of importableAccounts) {
     startingBalanceCentsByName.set(ynabAccount.originalName, Money.fromDecimal(ynabAccount.startingBalance).toCents());
   }
   const { accountNameToId: accountIdByName, accountsCreated } = await createAccountsIfNeeded({
     userId,
-    accountNames: parsed.accounts.map((a) => a.originalName),
+    accountNames: importableAccounts.map((a) => a.originalName),
     accountMapping: {},
     alwaysCreate: true,
     resolveCurrencyCode: (accountName) => accountMapping[accountName]?.currencyCode,
@@ -129,7 +146,7 @@ export async function executeYnabImport({
   // transaction loop builds as `${categoryGroup}: ${categoryName}`.
   const { categoryIdByFullName: categoryByFullName, categoriesCreated } = await createTwoLevelCategoriesIfNeeded({
     userId,
-    categories: parsed.categories.map((c) => ({
+    categories: categoriesToCreate.map((c) => ({
       groupName: c.groupName,
       categoryName: c.categoryName,
       fullName: c.fullName,
@@ -141,7 +158,7 @@ export async function executeYnabImport({
   // lookup for everything that already exists.
   const payeeByName = new Map<string, string>();
   const normalizedByPayeeName = new Map<string, string>();
-  for (const payee of parsed.payees) {
+  for (const payee of payeesToCreate) {
     const normalized = normalizePayeeName({ raw: payee.name });
     if (normalized) normalizedByPayeeName.set(payee.name, normalized);
   }
@@ -183,12 +200,12 @@ export async function executeYnabImport({
   // color → id map the row loops use from that.
   const { tagIdByName, tagsCreated } = await createNamedTagsIfNeeded({
     userId,
-    tags: parsed.tagsUsed.map((t) => ({ name: flagToTagName(t.color), color: YNAB_FLAG_HEX[t.color] })),
+    tags: tagsToCreate.map((t) => ({ name: flagToTagName(t.color), color: YNAB_FLAG_HEX[t.color] })),
   });
   summary.tagsCreated = tagsCreated;
 
   const tagByColor = new Map<YnabFlagColor, string>();
-  for (const tagUsage of parsed.tagsUsed) {
+  for (const tagUsage of tagsToCreate) {
     tagByColor.set(tagUsage.color, tagIdByName.get(flagToTagName(tagUsage.color))!);
   }
 
@@ -199,7 +216,7 @@ export async function executeYnabImport({
   };
 
   // Phase 6: transactions.
-  for (const tx of parsed.transactions) {
+  for (const tx of transactionsToWrite) {
     try {
       const accountId = accountIdByName.get(tx.accountName);
       if (!accountId) throw new ValidationError({ message: `Unknown account "${tx.accountName}"` });
@@ -246,7 +263,7 @@ export async function executeYnabImport({
 
   // Phase 7: transfers. Use createTransaction with `common_transfer` so the
   // service writes both legs and links them via `transferId`.
-  for (const xfer of parsed.transfers) {
+  for (const xfer of transfersToWrite) {
     try {
       const sourceAccountId = accountIdByName.get(xfer.sourceAccountName);
       const destinationAccountId = accountIdByName.get(xfer.destinationAccountName);

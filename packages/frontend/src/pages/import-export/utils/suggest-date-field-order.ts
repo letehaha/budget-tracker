@@ -2,33 +2,19 @@
  * Client-side date-field-order suggestion + preview helpers for the Map step's
  * date-format expansion.
  *
- * The shape grammar and the >12-field signal detection mirror the backend's
- * `date-engine` (packages/backend .../core/parse/date-engine.ts), so the
- * suggestion and preview shown in the wizard match what the server will parse.
- * The user always confirms the order explicitly — these helpers only inform
- * the UI (suggested badge, ISO shortcut, live preview, mismatch count).
+ * The shape grammar lives in `@bt/shared/import-export/date-engine` — the same
+ * module the server parses with — so the suggestion and preview shown in the
+ * wizard match what the server will do cell-for-cell. The user always confirms
+ * the order explicitly; these helpers only inform the UI (suggested badge, ISO
+ * shortcut, live preview, mismatch count).
  */
+import {
+  detectAmbiguousDateSeparator,
+  detectDateOrderSignals,
+  isIntrinsicallyOrdered,
+  parseImportDate,
+} from '@bt/shared/import-export/date-engine';
 import type { DateFieldOrder } from '@bt/shared/types';
-
-// ISO datetime carrying an explicit zone (`Z` or `±hh:mm`) — an absolute moment.
-const ISO_ZONED_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/;
-
-// ISO datetime WITHOUT a zone (T- or space-separated, optional seconds/ms).
-const ISO_LOCAL_DATETIME = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?$/;
-
-// Year-first date with `-`, `/` or `.` separators (YYYY-MM-DD and variants).
-const ISO_DATE = /^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/;
-
-// Compact 8-digit YYYYMMDD with no separators.
-const COMPACT_DATE = /^(\d{4})(\d{2})(\d{2})$/;
-
-// Year-LAST date with two 1-2 digit lead fields (d/d/yyyy, `/ . -` separators).
-// Which lead field is the day vs the month is intrinsically ambiguous — the
-// user's confirmed `DateFieldOrder` resolves it.
-const AMBIGUOUS_DMY = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/;
-
-// First separator character of an ambiguous-family value, for option labels.
-const AMBIGUOUS_SEPARATOR = /^\d{1,2}([/.-])/;
 
 interface DateFieldOrderSuggestion {
   /**
@@ -55,24 +41,9 @@ interface DateCellParts {
   day: number;
 }
 
-function isValidCalendarDate({ year, month, day }: DateCellParts): boolean {
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > 31) return false;
-  // `new Date(year, month, 0)` is the last day of `month`, so this rejects
-  // overlong days (e.g. Feb 30) instead of letting them roll into next month.
-  const daysInMonth = new Date(year, month, 0).getDate();
-  return day <= daysInMonth;
-}
-
 /** Trimmed, non-empty cells — the only ones that carry any date information. */
 function meaningfulValues({ values }: { values: string[] }): string[] {
   return values.map((value) => value.trim()).filter((value) => value.length > 0);
-}
-
-function isIntrinsicallyOrdered({ value }: { value: string }): boolean {
-  return (
-    ISO_ZONED_DATETIME.test(value) || ISO_LOCAL_DATETIME.test(value) || ISO_DATE.test(value) || COMPACT_DATE.test(value)
-  );
 }
 
 /**
@@ -93,25 +64,15 @@ export function suggestDateFieldOrder({
 }): DateFieldOrderSuggestion {
   const cells = meaningfulValues({ values });
 
-  let sawDayFirstSignal = false;
-  let sawMonthFirstSignal = false;
+  const { sawDayFirst, sawMonthFirst } = detectDateOrderSignals({ values: cells });
 
-  for (const value of cells) {
-    const match = value.match(AMBIGUOUS_DMY);
-    if (!match) continue;
-    const first = Number(match[1]);
-    const second = Number(match[2]);
-    if (first > 12) sawDayFirstSignal = true;
-    if (second > 12) sawMonthFirstSignal = true;
-  }
-
-  if (sawDayFirstSignal && sawMonthFirstSignal) {
+  if (sawDayFirst && sawMonthFirst) {
     return { suggestion: null, isAmbiguous: false, isIsoOnly: false, conflict: true };
   }
-  if (sawDayFirstSignal) {
+  if (sawDayFirst) {
     return { suggestion: 'day-first', isAmbiguous: false, isIsoOnly: false, conflict: false };
   }
-  if (sawMonthFirstSignal) {
+  if (sawMonthFirst) {
     return { suggestion: 'month-first', isAmbiguous: false, isIsoOnly: false, conflict: false };
   }
 
@@ -154,35 +115,16 @@ export function parseDateCellParts({
   value: string;
   fieldOrder: DateFieldOrder;
 }): DateCellParts | null {
-  if (ISO_ZONED_DATETIME.test(value)) {
-    const instant = new Date(value);
-    return { year: instant.getUTCFullYear(), month: instant.getUTCMonth() + 1, day: instant.getUTCDate() };
-  }
-
-  const localMatch = value.match(ISO_LOCAL_DATETIME);
-  if (localMatch) {
-    return { year: Number(localMatch[1]), month: Number(localMatch[2]), day: Number(localMatch[3]) };
-  }
-
-  const isoMatch = value.match(ISO_DATE) ?? value.match(COMPACT_DATE);
-  if (isoMatch) {
-    const parts = { year: Number(isoMatch[1]), month: Number(isoMatch[2]), day: Number(isoMatch[3]) };
-    return isValidCalendarDate(parts) ? parts : null;
-  }
-
-  const ambiguousMatch = value.match(AMBIGUOUS_DMY);
-  if (ambiguousMatch) {
-    const first = Number(ambiguousMatch[1]);
-    const second = Number(ambiguousMatch[2]);
-    const parts = {
-      year: Number(ambiguousMatch[3]),
-      month: fieldOrder === 'day-first' ? second : first,
-      day: fieldOrder === 'day-first' ? first : second,
+  const parsed = parseImportDate({ value, format: { fieldOrder } });
+  if (!parsed) return null;
+  if (parsed.kind === 'instant') {
+    return {
+      year: parsed.instant.getUTCFullYear(),
+      month: parsed.instant.getUTCMonth() + 1,
+      day: parsed.instant.getUTCDate(),
     };
-    return isValidCalendarDate(parts) ? parts : null;
   }
-
-  return null;
+  return { year: parsed.year, month: parsed.month, day: parsed.day };
 }
 
 /** Number of non-empty cells that won't parse under `fieldOrder` — the wizard
@@ -203,10 +145,5 @@ export function countMismatchedDateCells({
  * when no ambiguous-family cell exists.
  */
 export function detectDateSeparator({ values }: { values: string[] }): string | null {
-  for (const value of meaningfulValues({ values })) {
-    if (!AMBIGUOUS_DMY.test(value)) continue;
-    const match = value.match(AMBIGUOUS_SEPARATOR);
-    if (match?.[1]) return match[1];
-  }
-  return null;
+  return detectAmbiguousDateSeparator({ values: meaningfulValues({ values }) });
 }

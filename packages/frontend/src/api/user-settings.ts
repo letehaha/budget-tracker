@@ -1,6 +1,6 @@
 import { api } from '@/api/_api';
 import type { SupportedLocale } from '@bt/shared/i18n/locales';
-import type { endpointsTypes } from '@bt/shared/types';
+import type { CategoryMappingPreset, endpointsTypes } from '@bt/shared/types';
 
 export interface DashboardWidgetConfig {
   widgetId: string;
@@ -82,6 +82,11 @@ export interface UserSettingsSchema {
      * chosen value back, so the next import remembers it. Off when unset.
      */
     recalculateAccountBalance?: boolean;
+    /**
+     * Category mappings remembered from finished imports, keyed by a fingerprint of the
+     * source layout. One preset per fingerprint, newest first.
+     */
+    categoryMappingPresets?: CategoryMappingPreset[];
   };
   includeCreditLimitInStats?: boolean;
   /**

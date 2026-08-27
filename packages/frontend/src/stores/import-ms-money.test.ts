@@ -62,6 +62,7 @@ vi.mock('@/stores/categories/categories', () => ({
   useCategoriesStore: vi.fn(() => ({
     categories: [{ id: 'cat-groceries', name: 'Groceries', subCategories: [] }],
     formattedCategories: [{ id: 'cat-groceries', name: 'Groceries', subCategories: [] }],
+    categoriesMap: { 'cat-groceries': { id: 'cat-groceries', name: 'Groceries' } },
     loadCategories: vi.fn(),
   })),
 }));
@@ -77,7 +78,9 @@ vi.mock('@/i18n', () => ({ i18n: { global: { t: (key: string) => key } } }));
 
 // The store reads the persisted recalculate-balance default from user settings at
 // construction and PATCHes the chosen value back after a successful execute.
-let mockUserSettingsData: Ref<{ import?: { recalculateAccountBalance?: boolean } } | undefined>;
+let mockUserSettingsData: Ref<
+  { import?: { recalculateAccountBalance?: boolean; categoryMappingPresets?: CategoryMappingPreset[] } } | undefined
+>;
 let mockPatchUserSettingsAsync: ReturnType<typeof vi.fn>;
 
 vi.mock('@/composable/data-queries/user-settings', () => ({
@@ -92,6 +95,7 @@ vi.mock('@/composable/data-queries/user-settings', () => ({
 import * as msMoneyApi from '@/api/import-ms-money';
 import {
   MsMoneyAccountType,
+  type CategoryMappingPreset,
   type MsMoneyParseResult,
   type MsMoneyUploadResponse,
   type ResourceLease,
@@ -327,5 +331,48 @@ describe('useImportMsMoneyStore – bounce messages', () => {
 
     await expect(store.uploadFile({ file: aFile() })).rejects.toBe('boom');
     expect(store.uploadError).toBe('errors.api.unexpectedError');
+  });
+});
+
+describe('useImportMsMoneyStore – remembered category mappings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  it('applies the ms-money preset and re-persists it under the flow fingerprint on execute', async () => {
+    mockUserSettingsData.value = {
+      import: {
+        categoryMappingPresets: [
+          {
+            fingerprint: 'ms-money',
+            categoryMapping: { 'Auto:Gas': { action: 'link-existing', categoryId: 'cat-groceries' } },
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+    mockExecute.mockResolvedValue({ jobId: 'job-preset' });
+
+    const store = await uploadedStore();
+
+    expect(store.matchingCategoryPreset?.fingerprint).toBe('ms-money');
+
+    store.applyCategoryPreset({ preset: store.matchingCategoryPreset! });
+    expect(store.categoryMapping['Auto:Gas']).toEqual({ action: 'link-existing', categoryId: 'cat-groceries' });
+
+    await store.execute();
+
+    const presets = mockPatchUserSettingsAsync.mock.calls.at(-1)![0].import.categoryMappingPresets;
+    expect(presets).toHaveLength(1);
+    expect(presets[0]).toEqual(
+      expect.objectContaining({
+        fingerprint: 'ms-money',
+        categoryMapping: {
+          Groceries: { action: 'link-existing', categoryId: 'cat-groceries' },
+          'Auto:Gas': { action: 'link-existing', categoryId: 'cat-groceries' },
+        },
+      }),
+    );
   });
 });

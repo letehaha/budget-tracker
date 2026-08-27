@@ -125,7 +125,7 @@ function clearAll() {
         </Button>
       </div>
 
-      <ScrollArea class="max-h-60">
+      <ScrollArea class="max-h-60" viewport-class="max-h-60">
         <ul class="space-y-2">
           <li v-for="(file, index) in files" :key="fileKey(file)">
             <DropzoneFileItem :file="file" :disabled="disabled" @remove="removeAt(index)" />

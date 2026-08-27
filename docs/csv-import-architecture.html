@@ -561,8 +561,10 @@
         <ul>
           <li>
             <strong>Field parsing.</strong> <code>core/parse/parse-amount.ts</code> normalizes US / EU / accounting
-            number formats to cents; <code>core/parse/date-engine.ts</code> (<code>detectDateColumnFormat</code> +
-            <code>parseImportDate</code>) infers a single safe day/month order for the whole column;
+            number formats to cents; <code>@bt/shared/import-export/date-engine.ts</code> (<code
+              >detectDateColumnFormat</code
+            >
+            + <code>parseImportDate</code>) infers a single safe day/month order for the whole column;
             <code>core/parse/anchor-import-date.ts</code> anchors date-only and zone-less values to the user's IANA
             <code>timezone</code> (UTC fallback); <code>core/parse/split-tag-cell.ts</code> splits the tag cell.
           </li>
@@ -694,11 +696,13 @@
           <strong>no base class, no inheritance</strong>. Providers <em>compose</em> these functions; they do not
           implement a common parse interface.
         </p>
-        <pre><code>import-export/
+        <pre><code>shared/src/import-export/
+  date-engine.ts          # shape grammar + parse (shared with the frontend wizard preview; unit test lives in backend core/parse/)
+
+import-export/
   core/
     parse/
       parse-amount.ts        (+ parse-amount.unit.ts)   # string → integer cents (US/EU/accounting)
-      date-engine.ts         (+ unit)                    # detect single safe day/month order for a column
       anchor-import-date.ts  (+ unit)                    # anchor date-only / zone-less values to user TZ
       parse-date.ts          (+ unit)                    # multi-format date → YYYY-MM-DD (also used by investment-parser)
       split-tag-cell.ts      (+ unit)
@@ -903,9 +907,9 @@ export const parseBudgetBakersWalletController = createParseController({
           <li>
             <strong><code>services/import-export/revolut-import/parse-revolut.service.ts</code></strong> — the only file
             with new logic. A pure function producing <code>ParsedTransactionRow[]</code> (+ invalid rows). Reuse
-            <code>core/parse/parse-amount.ts</code> and <code>core/parse/date-engine.ts</code>; write only the Revolut
-            column-name mapping (and a vendor-specific <code>parse-amount</code>/<code>parse-date</code> only if the
-            format is unusual).
+            <code>core/parse/parse-amount.ts</code> and <code>@bt/shared/import-export/date-engine.ts</code>; write only
+            the Revolut column-name mapping (and a vendor-specific <code>parse-amount</code>/<code>parse-date</code>
+            only if the format is unusual).
           </li>
           <li>
             <strong>execute service</strong> — compose the core resolve helpers + a per-row

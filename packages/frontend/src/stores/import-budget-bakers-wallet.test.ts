@@ -69,6 +69,7 @@ vi.mock('@/stores/categories/categories', () => ({
   useCategoriesStore: vi.fn(() => ({
     categories: [{ id: 'cat-groceries', name: 'Groceries', subCategories: [] }],
     formattedCategories: [{ id: 'cat-groceries', name: 'Groceries', subCategories: [] }],
+    categoriesMap: { 'cat-groceries': { id: 'cat-groceries', name: 'Groceries' } },
     loadCategories: vi.fn(),
   })),
 }));
@@ -81,7 +82,9 @@ vi.mock('@/stores/tags', () => ({ useTagsStore: vi.fn(() => ({ loadTags: vi.fn()
 // The store reads the persisted recalculate-balance default from user settings at
 // construction and PATCHes the chosen value back after a successful execute. Mocked
 // so no real settings query fires; tests drive `data` and assert on `patchAsync`.
-let mockUserSettingsData: Ref<{ import?: { recalculateAccountBalance?: boolean } } | undefined>;
+let mockUserSettingsData: Ref<
+  { import?: { recalculateAccountBalance?: boolean; categoryMappingPresets?: CategoryMappingPreset[] } } | undefined
+>;
 let mockPatchUserSettingsAsync: ReturnType<typeof vi.fn>;
 
 vi.mock('@/composable/data-queries/user-settings', () => ({
@@ -94,7 +97,12 @@ vi.mock('@/composable/data-queries/user-settings', () => ({
 // ----- helpers -----
 
 import * as walletApi from '@/api/import-budget-bakers-wallet';
-import type { BudgetBakersWalletParseResult } from '@bt/shared/types';
+import {
+  TRANSACTION_TYPES,
+  type BudgetBakersWalletParseResult,
+  type BudgetBakersWalletParseTransaction,
+  type CategoryMappingPreset,
+} from '@bt/shared/types';
 
 const mockParse = vi.mocked(walletApi.parseBudgetBakersWallet);
 
@@ -114,6 +122,45 @@ const PARSE_RESULT: BudgetBakersWalletParseResult = {
   warnings: [],
   dateRange: null,
   detectedBaseCurrency: null,
+};
+
+const aTransaction = ({
+  rowIndex,
+  accountName,
+  categoryName,
+}: {
+  rowIndex: number;
+  accountName: string;
+  categoryName: string | null;
+}): BudgetBakersWalletParseTransaction => ({
+  rowIndex,
+  date: `2026-01-0${rowIndex}T10:00:00.000Z`,
+  accountName,
+  categoryName,
+  payeeName: null,
+  note: '',
+  amount: -10,
+  type: TRANSACTION_TYPES.expense,
+  paymentType: 'Cash',
+  tags: [],
+  outOfWallet: false,
+});
+
+/**
+ * Two accounts, three rows: `Groceries` is used by both, `Brand New Category`
+ * only by `Savings`, so skipping `Savings` hides exactly one category.
+ */
+const TWO_ACCOUNT_PARSE_RESULT: BudgetBakersWalletParseResult = {
+  ...PARSE_RESULT,
+  accounts: [
+    { originalName: 'Cash', currency: 'USD', transactionCount: 2, netImportedAmount: -20 },
+    { originalName: 'Savings', currency: 'USD', transactionCount: 1, netImportedAmount: -10 },
+  ],
+  transactions: [
+    aTransaction({ rowIndex: 1, accountName: 'Cash', categoryName: 'Groceries' }),
+    aTransaction({ rowIndex: 2, accountName: 'Savings', categoryName: 'Groceries' }),
+    aTransaction({ rowIndex: 3, accountName: 'Savings', categoryName: 'Brand New Category' }),
+  ],
 };
 
 const mountWithPlugins = () => {
@@ -183,7 +230,6 @@ describe('useImportBudgetBakersWalletStore – recalculate-balance toggle wiring
     await store.execute();
 
     expect(mockExecute).toHaveBeenCalledWith(expect.objectContaining({ recalculateBalance: true }));
-    expect(mockPatchUserSettingsAsync).toHaveBeenCalledTimes(1);
     expect(mockPatchUserSettingsAsync).toHaveBeenCalledWith({ import: { recalculateAccountBalance: true } });
   });
 
@@ -195,5 +241,114 @@ describe('useImportBudgetBakersWalletStore – recalculate-balance toggle wiring
     store.reset();
 
     expect(store.recalculateBalance).toBe(true);
+  });
+});
+
+describe('useImportBudgetBakersWalletStore – skipped accounts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  const mockExecute = vi.mocked(walletApi.executeBudgetBakersWalletImport);
+
+  it('counts a skipped account as resolved and lists it in skippedAccountNames', async () => {
+    mockParse.mockResolvedValue({ result: TWO_ACCOUNT_PARSE_RESULT });
+
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+
+    // An unselected link target leaves the step invalid; skipping decides the row.
+    store.setAccountTarget({ name: 'Savings', accountId: '' });
+    expect(store.isResolveStepValid).toBe(false);
+
+    store.setAccountAction({ name: 'Savings', action: 'skip' });
+
+    expect(store.accountMapping['Savings']).toEqual({ action: 'skip' });
+    expect(store.skippedAccountNames).toEqual(['Savings']);
+    expect(store.isResolveStepValid).toBe(true);
+  });
+
+  it('hides categories used only by skipped accounts and restores them on unskip', async () => {
+    mockParse.mockResolvedValue({ result: TWO_ACCOUNT_PARSE_RESULT });
+
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+
+    expect(store.resolvableCategoryNames).toEqual(['Groceries', 'Brand New Category']);
+
+    store.setAccountAction({ name: 'Savings', action: 'skip' });
+
+    // 'Groceries' survives on the Cash row; 'Brand New Category' is Savings-only.
+    expect(store.resolvableCategoryNames).toEqual(['Groceries']);
+
+    store.setAccountAction({ name: 'Savings', action: 'create-new' });
+
+    expect(store.resolvableCategoryNames).toEqual(['Groceries', 'Brand New Category']);
+  });
+
+  it('prunes hidden category mappings from the execute payload but keeps the skipped account', async () => {
+    mockParse.mockResolvedValue({ result: TWO_ACCOUNT_PARSE_RESULT });
+    mockExecute.mockResolvedValue({ jobId: 'job-skip' });
+
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+    store.setAccountAction({ name: 'Savings', action: 'skip' });
+
+    await store.execute();
+
+    const payload = mockExecute.mock.calls[0]![0];
+    expect(Object.keys(payload.categoryMapping)).toEqual(['Groceries']);
+    expect(payload.accountMapping['Savings']).toEqual({ action: 'skip' });
+  });
+});
+
+describe('useImportBudgetBakersWalletStore – remembered category mappings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mountWithPlugins();
+  });
+
+  const mockExecute = vi.mocked(walletApi.executeBudgetBakersWalletImport);
+
+  it('applies the wallet preset and re-persists it under the flow fingerprint on execute', async () => {
+    mockUserSettingsData.value = {
+      import: {
+        categoryMappingPresets: [
+          {
+            fingerprint: 'budget-bakers-wallet',
+            categoryMapping: { 'Brand New Category': { action: 'link-existing', categoryId: 'cat-groceries' } },
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    };
+    mockParse.mockResolvedValue({ result: PARSE_RESULT });
+    mockExecute.mockResolvedValue({ jobId: 'job-preset' });
+
+    const store = useImportBudgetBakersWalletStore();
+    await store.parseFiles({ files: [aFile()] });
+
+    expect(store.matchingCategoryPreset?.fingerprint).toBe('budget-bakers-wallet');
+
+    store.applyCategoryPreset({ preset: store.matchingCategoryPreset! });
+    expect(store.categoryMapping['Brand New Category']).toEqual({
+      action: 'link-existing',
+      categoryId: 'cat-groceries',
+    });
+
+    await store.execute();
+
+    const presets = mockPatchUserSettingsAsync.mock.calls.at(-1)![0].import.categoryMappingPresets;
+    expect(presets).toHaveLength(1);
+    expect(presets[0]).toEqual(
+      expect.objectContaining({
+        fingerprint: 'budget-bakers-wallet',
+        categoryMapping: {
+          Groceries: { action: 'link-existing', categoryId: 'cat-groceries' },
+          'Brand New Category': { action: 'link-existing', categoryId: 'cat-groceries' },
+        },
+      }),
+    );
   });
 });

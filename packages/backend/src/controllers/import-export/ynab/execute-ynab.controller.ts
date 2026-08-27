@@ -3,9 +3,19 @@ import { createController } from '@controllers/helpers/controller-factory';
 import { queueYnabImport } from '@root/services/import-export/ynab-import';
 import { z } from 'zod';
 
-const accountMappingValueSchema = z.object({
-  currencyCode: currencyCode(),
-});
+// A skipped account is never created, so an empty `currencyCode` is valid on it.
+// The refine re-issues the shared validator's message at the `currencyCode` path
+// so the client can attach it to the picker.
+const accountMappingValueSchema = z
+  .object({ skip: z.boolean().optional(), currencyCode: z.string().trim().toUpperCase() })
+  .superRefine((mapping, ctx) => {
+    if (mapping.skip) return;
+
+    const parsed = currencyCode().safeParse(mapping.currencyCode);
+    if (!parsed.success) {
+      ctx.addIssue({ code: 'custom', message: parsed.error.issues[0]!.message, path: ['currencyCode'] });
+    }
+  });
 
 export const executeYnabController = createController(
   z.object({

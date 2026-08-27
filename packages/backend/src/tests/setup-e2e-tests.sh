@@ -31,7 +31,7 @@ export TEST_RUNNER_IMAGE="${TEST_RUNNER_IMAGE:-${COMPOSE_PROJECT_NAME}-test-runn
 compose up ${BUILD_FLAG} -d
 
 wait_for() {
-  for _ in $(seq 1 60); do
+  for _ in $(seq 1 120); do
     if "$@" >/dev/null 2>&1; then return 0; fi
     sleep 0.5
   done
@@ -40,7 +40,10 @@ wait_for() {
 }
 
 echo "Waiting for Postgres health check..."
-wait_for compose exec -T test-db pg_isready -U "${APPLICATION_DB_USERNAME}" -d "${APPLICATION_DB_DATABASE}" || exit 1
+# -h 127.0.0.1 is load-bearing: during initdb the postgres image runs a socket-only
+# bootstrap server that answers pg_isready over the socket and then shuts down, so a
+# socket check passes before the real server exists.
+wait_for compose exec -T test-db pg_isready -h 127.0.0.1 -U "${APPLICATION_DB_USERNAME}" -d "${APPLICATION_DB_DATABASE}" || exit 1
 echo "Waiting for Redis health check..."
 wait_for compose exec -T test-redis redis-cli ping || exit 1
 
@@ -50,7 +53,7 @@ recreate_template_db() {
   compose exec -T test-db bash -c "
     psql -U \"${APPLICATION_DB_USERNAME}\" -d postgres -c \"DROP DATABASE IF EXISTS \\\"${TEMPLATE_DB}\\\";\"
     psql -U \"${APPLICATION_DB_USERNAME}\" -d postgres -c \"CREATE DATABASE \\\"${TEMPLATE_DB}\\\";\"
-  "
+  " || { echo "ERROR: could not create template database \"${TEMPLATE_DB}\" — is Postgres up?"; exit 1; }
 }
 
 echo "Creating template database..."

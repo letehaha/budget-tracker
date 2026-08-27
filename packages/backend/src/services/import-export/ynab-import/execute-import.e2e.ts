@@ -206,4 +206,130 @@ describe('Execute YNAB import endpoint', () => {
     const linkedPair = await helpers.getTransactionsByTransferId({ transferId: legA!.transferId!, raw: true });
     expect(linkedPair).toHaveLength(2);
   });
+
+  it('skips a mapped-to-skip account: no account, no rows, no orphan entities', async () => {
+    const fileContent = helpers.loadYnabFixture('register-basic.csv');
+    const parsed = await helpers.parseYnab({ payload: { fileContent }, raw: true });
+    const plnName = parsed.result.accounts.find((a) => a.detectedCurrency === 'PLN')!.originalName;
+
+    // The PLN account owns exactly one row (Carrefour / "Weekly shop"), the only
+    // user of the "Needs" category group and the green flag.
+    const accountMapping = Object.fromEntries(
+      parsed.result.accounts.map((a) => [
+        a.originalName,
+        { currencyCode: a.detectedCurrency!, ...(a.originalName === plnName ? { skip: true } : {}) },
+      ]),
+    );
+
+    const { jobId } = await helpers.executeYnab({ payload: { fileContent, accountMapping }, raw: true });
+    const progress = await waitForYnabImportCompletion({ jobId });
+    expectYnabImportCompleted(progress);
+    const summary = progress.summary;
+
+    expect(summary.accountsSkipped).toBe(1);
+    expect(summary.accountsCreated).toBe(2);
+    // 4 payees in the file, Carrefour belonged to the skipped account.
+    expect(summary.payeesCreated).toBe(3);
+    // 4 flag colors in the file, green was only used by the skipped row.
+    expect(summary.tagsCreated).toBe(3);
+    expect(summary.transactionsImported).toBe(3);
+    // The only transfer runs between the two kept accounts, so it survives.
+    expect(summary.transfersImported).toBe(1);
+    expect(summary.errors).toHaveLength(0);
+
+    const accountsAfter = await helpers.getAccounts();
+    expect(accountsAfter.map((a) => a.name)).not.toContain(plnName);
+    expect(accountsAfter).toHaveLength(2);
+
+    const transactionsAfter = await helpers.getTransactions({ raw: true });
+    expect(transactionsAfter.find((t) => t.note === 'Weekly shop')).toBeUndefined();
+
+    // "Needs" only exists in the CSV as the skipped row's category group; the
+    // seeded defaults never contain it, so its absence proves nothing orphaned.
+    const categoriesAfter = await helpers.getCategoriesList();
+    expect(categoriesAfter.map((c) => c.name)).not.toContain('Needs');
+
+    const tagsAfter = await helpers.getTags({ raw: true });
+    expect(tagsAfter.map((t) => t.name)).not.toContain('YNAB Green');
+  });
+
+  it('drops a transfer entirely when one of its two accounts is skipped', async () => {
+    const fileContent = helpers.loadYnabFixture('register-basic.csv');
+    const parsed = await helpers.parseYnab({ payload: { fileContent }, raw: true });
+    const eurName = parsed.result.accounts.find((a) => a.detectedCurrency === 'EUR')!.originalName;
+
+    // The fixture's only transfer is USD Checking → EUR Savings. Skipping the
+    // destination must remove BOTH legs, not just the one on the skipped account.
+    const accountMapping = Object.fromEntries(
+      parsed.result.accounts.map((a) => [
+        a.originalName,
+        { currencyCode: a.detectedCurrency!, ...(a.originalName === eurName ? { skip: true } : {}) },
+      ]),
+    );
+
+    const { jobId } = await helpers.executeYnab({ payload: { fileContent, accountMapping }, raw: true });
+    const progress = await waitForYnabImportCompletion({ jobId });
+    expectYnabImportCompleted(progress);
+    const summary = progress.summary;
+
+    expect(summary.accountsSkipped).toBe(1);
+    expect(summary.transfersImported).toBe(0);
+    // Every ordinary row belongs to a kept account, so none of them are lost.
+    expect(summary.transactionsImported).toBe(4);
+    // Blue was only used by the transfer pair.
+    expect(summary.tagsCreated).toBe(3);
+    expect(summary.errors).toHaveLength(0);
+
+    const transactionsAfter = await helpers.getTransactions({ raw: true });
+    expect(transactionsAfter.filter((t) => t.note === 'Move to savings')).toHaveLength(0);
+    expect(transactionsAfter.some((t) => t.transferId)).toBe(false);
+  });
+
+  it('completes with a zeroed summary when every account is skipped', async () => {
+    const fileContent = helpers.loadYnabFixture('register-basic.csv');
+    const parsed = await helpers.parseYnab({ payload: { fileContent }, raw: true });
+    // Empty currency on purpose: skipping is the escape hatch for an account
+    // whose currency the parser could not detect, so the payload must be accepted.
+    const accountMapping = Object.fromEntries(
+      parsed.result.accounts.map((a) => [a.originalName, { currencyCode: '', skip: true }]),
+    );
+
+    const { jobId } = await helpers.executeYnab({ payload: { fileContent, accountMapping }, raw: true });
+    const progress = await waitForYnabImportCompletion({ jobId });
+    expectYnabImportCompleted(progress);
+    const summary = progress.summary;
+
+    expect(summary.accountsSkipped).toBe(3);
+    expect(summary.accountsCreated).toBe(0);
+    expect(summary.categoriesCreated).toBe(0);
+    expect(summary.payeesCreated).toBe(0);
+    expect(summary.tagsCreated).toBe(0);
+    expect(summary.transactionsImported).toBe(0);
+    expect(summary.transfersImported).toBe(0);
+    expect(summary.errors).toHaveLength(0);
+    // Nothing will be written, so the progress bar must not advertise a total.
+    expect(progress.totalCount).toBe(0);
+
+    expect(await helpers.getAccounts()).toHaveLength(0);
+    expect(await helpers.getTransactions({ raw: true })).toHaveLength(0);
+  });
+
+  it('rejects an account that is kept but carries an invalid currencyCode', async () => {
+    const fileContent = helpers.loadYnabFixture('register-basic.csv');
+    const parsed = await helpers.parseYnab({ payload: { fileContent }, raw: true });
+    // Only skipping waives the ISO check, so an empty picker on a kept account
+    // must be refused with a message naming the field the wizard has to fix.
+    const accountMapping = Object.fromEntries(
+      parsed.result.accounts.map((a, index) => [
+        a.originalName,
+        index === 0 ? { currencyCode: '' } : { currencyCode: a.detectedCurrency! },
+      ]),
+    );
+
+    const response: unknown = await helpers.executeYnab({ payload: { fileContent, accountMapping } });
+    const rejection = response as helpers.CustomResponse<{ message: string }>;
+
+    expect(rejection.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(rejection.body.response.message).toContain('currencyCode');
+  });
 });

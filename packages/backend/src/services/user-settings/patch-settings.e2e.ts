@@ -233,6 +233,57 @@ describe('Patch user settings', () => {
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
+  it('persists category mapping presets and reads them back', async () => {
+    const preset = {
+      fingerprint: 'a'.repeat(64),
+      name: 'PKO Bank',
+      categoryMapping: {
+        Groceries: { action: 'link-existing', categoryId: generateRandomRecordId() },
+        Fuel: { action: 'create-new' },
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: { import: { categoryMappingPresets: [preset] } },
+    });
+    expect(patched.import?.categoryMappingPresets).toStrictEqual([preset]);
+
+    const fetched = await helpers.getUserSettings({ raw: true });
+    expect(fetched.import?.categoryMappingPresets).toStrictEqual([preset]);
+  });
+
+  it('rejects invalid category mapping presets', async () => {
+    const validPreset = { fingerprint: 'a'.repeat(64), categoryMapping: {}, updatedAt: new Date().toISOString() };
+
+    const missingCategoryId = await helpers.patchUserSettings({
+      patch: {
+        import: {
+          categoryMappingPresets: [{ ...validPreset, categoryMapping: { Groceries: { action: 'link-existing' } } }],
+        },
+      },
+    });
+    expect(missingCategoryId.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const blankName = await helpers.patchUserSettings({
+      patch: { import: { categoryMappingPresets: [{ ...validPreset, name: '' }] } },
+    });
+    expect(blankName.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const overCap = await helpers.patchUserSettings({
+      patch: {
+        import: {
+          categoryMappingPresets: Array.from({ length: 21 }, (_, index) => ({
+            ...validPreset,
+            fingerprint: `fingerprint-${index}`,
+          })),
+        },
+      },
+    });
+    expect(overCap.statusCode).toBe(ERROR_CODES.ValidationError);
+  });
+
   it('persists the accounts slice and reads both fields back', async () => {
     const accountId = generateRandomRecordId();
     const patched = await helpers.patchUserSettings({

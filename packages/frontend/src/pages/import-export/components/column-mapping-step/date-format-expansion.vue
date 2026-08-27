@@ -104,7 +104,7 @@ const DEFAULT_SEPARATOR = '/';
 const dateColumnValues = computed<string[]>(() => {
   const column = importStore.columnMapping.date;
   if (!column) return [];
-  const index = importStore.csvHeaders.indexOf(column);
+  const index = importStore.csvDataRowHeaders.indexOf(column);
   if (index === -1) return [];
 
   const values: string[] = [];

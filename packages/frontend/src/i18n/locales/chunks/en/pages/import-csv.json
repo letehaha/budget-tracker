@@ -9,7 +9,8 @@
           "steps": {
             "upload": "Upload",
             "map": "Map Columns",
-            "resolve": "Resolve Values",
+            "resolveAccounts": "Accounts",
+            "resolveCategories": "Categories",
             "review": "Review",
             "results": "Done"
           }
@@ -115,6 +116,7 @@
           "imported": "Imported",
           "skippedDuplicates": "Skipped (Duplicates)",
           "accountsCreated": "Accounts Created",
+          "accountsSkipped": "Accounts skipped",
           "categoriesCreated": "Categories Created",
           "tagsCreated": "Tags Created",
           "payeesCreated": "Payees Created",
@@ -232,7 +234,6 @@
           "createNewForUnmatched": "Create new for unmatched",
           "skipAll": "Skip all",
           "reset": "Reset",
-          "menuLabel": "Quick actions",
           "tooltips": {
             "mapExactMatchesAccounts": "Links each CSV account to an existing account that has the same name and currency. Accounts with no exact match stay unchanged.",
             "mapExactMatchesCategories": "Links each CSV category to an existing category with the same name. Categories with no exact match stay unchanged.",
@@ -255,7 +256,8 @@
           "empty": "No accounts found in CSV",
           "currentBalanceLabel": "Current balance",
           "currentBalancePlaceholder": "0.00",
-          "currentBalanceHint": "The balance this account holds right now — the import will set the account to exactly this value. Leave blank to use the sum of imported transactions."
+          "currentBalanceHint": "The balance this account holds right now — the import will set the account to exactly this value. Leave blank to use the sum of imported transactions.",
+          "skippedNote": "{count} account(s) will be skipped. Their transactions will not be imported."
         },
         "categories": {
           "sectionTitle": "Category Mapping",

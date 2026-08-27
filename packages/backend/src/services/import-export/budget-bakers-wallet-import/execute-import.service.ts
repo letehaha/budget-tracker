@@ -22,6 +22,7 @@ import { createAccountsIfNeeded } from '@services/import-export/core/resolve/cre
 import { createCategoriesIfNeeded } from '@services/import-export/core/resolve/create-categories-if-needed';
 import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
 import { createNamedTagsIfNeeded } from '@services/import-export/core/resolve/create-tags-if-needed';
+import { excludeSkippedAccounts } from '@services/import-export/core/resolve/exclude-skipped-accounts';
 import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { createTransaction } from '@services/transactions';
@@ -93,6 +94,15 @@ export async function executeBudgetBakersWalletImport({
     });
   }
 
+  const skippedAccountNames = new Set(
+    parsed.accounts
+      .filter((account) => accountMapping[account.originalName]!.action === 'skip')
+      .map((account) => account.originalName),
+  );
+  const importableAccounts = parsed.accounts.filter((account) => !skippedAccountNames.has(account.originalName));
+
+  const importableMapping = excludeSkippedAccounts({ accountMapping });
+
   const importDetails: TransactionImportDetails = {
     batchId: uuidv4(),
     importedAt: new Date().toISOString(),
@@ -109,6 +119,7 @@ export async function executeBudgetBakersWalletImport({
   } = {
     accountsCreated: 0,
     accountsLinked: 0,
+    accountsSkipped: skippedAccountNames.size,
     categoriesCreated: 0,
     payeesCreated: 0,
     tagsCreated: 0,
@@ -123,11 +134,18 @@ export async function executeBudgetBakersWalletImport({
 
   const skipSet = new Set(skipDuplicateIndices);
 
+  // Drop a transfer when either leg lands on a skipped account: writing the
+  // surviving leg alone would reference an account that was never resolved.
+  const importableTransactions = parsed.transactions.filter((tx) => !skippedAccountNames.has(tx.accountName));
+  const transfersToWrite = parsed.transfers.filter(
+    (xfer) => !skippedAccountNames.has(xfer.sourceAccountName) && !skippedAccountNames.has(xfer.destinationAccountName),
+  );
+
   // Progress total counts only rows that will actually be written: transactions
   // not flagged as duplicates, plus every paired transfer. Skipped rows never
   // tick, so the worker's `processedCount === totalCount` completion check holds.
-  const transactionsToWrite = parsed.transactions.filter((tx) => !skipSet.has(tx.rowIndex));
-  const totalCount = transactionsToWrite.length + parsed.transfers.length;
+  const transactionsToWrite = importableTransactions.filter((tx) => !skipSet.has(tx.rowIndex));
+  const totalCount = transactionsToWrite.length + transfersToWrite.length;
 
   // Report the real total once up front. The per-row `tick` is the only other
   // caller of `onProgress`, so an import that writes no rows would otherwise
@@ -142,7 +160,7 @@ export async function executeBudgetBakersWalletImport({
   // Phase 1: bootstrap currencies for every account that will be created. Linked
   // accounts already have their currency connected (it's an existing account).
   const currencyCodes = new Set<string>();
-  for (const account of parsed.accounts) {
+  for (const account of importableAccounts) {
     const mapping = accountMapping[account.originalName]!;
     if (mapping.action === 'create-new') currencyCodes.add(mapping.currencyCode);
   }
@@ -157,7 +175,7 @@ export async function executeBudgetBakersWalletImport({
   // Wallet-specific messages and tallies `accountsLinked`; the actual id
   // resolution and new-account creation is then delegated to
   // `createAccountsIfNeeded`.
-  for (const account of parsed.accounts) {
+  for (const account of importableAccounts) {
     const mapping = accountMapping[account.originalName]!;
     if (mapping.action !== 'link-existing') continue;
 
@@ -175,7 +193,7 @@ export async function executeBudgetBakersWalletImport({
     summary.accountsLinked += 1;
   }
 
-  // Resolve every parsed account to an app account id, creating new ones with a
+  // Resolve every importable account to an app account id, creating new ones with a
   // zero starting balance (the imported rows build the balance up; the
   // user-entered target is restored in Phase 7). New-account currency comes from
   // the user-confirmed mapping; the fx reference date is the earliest CSV date.
@@ -183,8 +201,8 @@ export async function executeBudgetBakersWalletImport({
   // create-new. `accountsCreated` counts only genuine inserts.
   const { accountNameToId: accountIdByName, accountsCreated } = await createAccountsIfNeeded({
     userId,
-    accountNames: parsed.accounts.map((account) => account.originalName),
-    accountMapping,
+    accountNames: importableAccounts.map((account) => account.originalName),
+    accountMapping: importableMapping,
     resolveCurrencyCode: (accountName) => {
       const mapping = accountMapping[accountName];
       return mapping?.action === 'create-new' ? mapping.currencyCode : undefined;
@@ -199,7 +217,7 @@ export async function executeBudgetBakersWalletImport({
   // they have no history to protect and follow the Phase-7 target-balance path.
   const { capturedAccountIds, createdAccounts } = partitionReconcileAccounts({
     accountNameToId: accountIdByName,
-    accountMapping,
+    accountMapping: importableMapping,
   });
   const reconciler = await startBalanceReconciliation({ userId, accountIds: capturedAccountIds });
 
@@ -218,10 +236,14 @@ export async function executeBudgetBakersWalletImport({
   // Phase 4: tags. Find-or-create each verbatim Wallet label, picking a random
   // colour per requested name for the create case. The shared helper batches the
   // existing-lookup and is fail-fast: a failing tag insert aborts the whole
-  // import rather than being swallowed into `summary.errors`.
+  // import rather than being swallowed into `summary.errors`. Narrowed to labels
+  // the surviving rows use so a skipped account leaves no orphan tag.
+  const importableTagNames = new Set(importableTransactions.flatMap((tx) => tx.tags));
   const { tagIdByName, tagsCreated } = await createNamedTagsIfNeeded({
     userId,
-    tags: parsed.tags.map((tag) => ({ name: tag.name, color: pickRandomColor() })),
+    tags: parsed.tags
+      .filter((tag) => importableTagNames.has(tag.name))
+      .map((tag) => ({ name: tag.name, color: pickRandomColor() })),
   });
   summary.tagsCreated = tagsCreated;
 
@@ -260,7 +282,7 @@ export async function executeBudgetBakersWalletImport({
 
   // Phase 5: transactions (ordinary rows + unpaired transfer legs). Rows the
   // user confirmed as duplicates are counted and skipped without a tick.
-  for (const tx of parsed.transactions) {
+  for (const tx of importableTransactions) {
     if (skipSet.has(tx.rowIndex)) {
       summary.duplicatesSkipped += 1;
       continue;
@@ -396,7 +418,7 @@ export async function executeBudgetBakersWalletImport({
   // passed straight through: `createTransaction` with `common_transfer` writes
   // the source (expense) and destination (income) legs and links them via
   // `transferId`.
-  for (const xfer of parsed.transfers) {
+  for (const xfer of transfersToWrite) {
     try {
       const sourceAccountId = accountIdByName.get(xfer.sourceAccountName);
       const destinationAccountId = accountIdByName.get(xfer.destinationAccountName);

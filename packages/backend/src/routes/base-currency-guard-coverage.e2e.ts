@@ -69,6 +69,9 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   // so a base-currency migration and a run cannot corrupt each other.
   'POST /api/v1/user/ai/categorization/trigger',
 
+  // AI suggestion call — reads nothing monetary, writes nothing.
+  'POST /api/v1/import/ai-map-categories',
+
   // Admin-only investment price maintenance — these write GLOBAL SecurityPricing
   // reference data, not any user's ref amounts, so a per-user base-currency
   // migration has no bearing on them.

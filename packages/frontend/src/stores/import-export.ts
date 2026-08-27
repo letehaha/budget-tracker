@@ -3,6 +3,7 @@ import {
   type AccountMappingValue,
   AccountOptionValue,
   type CategoryMappingConfig,
+  type CategoryMappingPreset,
   type CategoryMappingValue,
   CategoryOptionValue,
   type CsvImportProgress,
@@ -22,6 +23,7 @@ import type { AccountMappingConfig } from '@bt/shared/types';
 type UnpriceableRow = NonNullable<DetectDuplicatesResponse['unpriceableRows']>[number];
 import { executeImport as executeImportApi, getCsvImportStatus } from '@/api/import-export';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const/vue-query';
+import { useCategoryMappingPresets } from '@/composable/use-category-mapping-presets';
 import { useImportJobProgress } from '@/composable/use-import-job-progress';
 import { useRecalculateBalanceToggle } from '@/composable/use-recalculate-balance-toggle';
 import { useResolveMapping } from '@/composable/use-resolve-mapping';
@@ -54,26 +56,20 @@ import { useOnboardingStore } from './onboarding';
 import { useTagsStore } from './tags';
 
 /**
- * Wizard step identifiers, in canonical order. `'resolve'` is conditional —
- * `visibleSteps` omits it when `needsResolveStep` is false. Keys are the single
- * source of truth for navigation; the numeric `currentStep` / `completedSteps`
- * the store still exposes are projected from the key via STEP_KEY_TO_NUMBER.
+ * Wizard step identifiers, in canonical order. Both resolve steps are
+ * conditional: `visibleSteps` drops each one when its entities need no mapping.
  */
-export type ImportStepKey = 'upload' | 'map' | 'resolve' | 'review' | 'results';
+export type ImportStepKey = 'upload' | 'map' | 'resolve-accounts' | 'resolve-categories' | 'review' | 'results';
 
 /** Every step in canonical order, before conditional filtering. */
-const ALL_STEP_KEYS: readonly ImportStepKey[] = ['upload', 'map', 'resolve', 'review', 'results'];
-
-/** Maps a step key to its 1-based number for the numeric step view. */
-const STEP_KEY_TO_NUMBER: Record<ImportStepKey, number> = {
-  upload: 1,
-  map: 2,
-  // Resolve shares the Map step's number so the numeric view keeps detect/review
-  // at 3+ whether or not the conditional Resolve step is shown.
-  resolve: 2,
-  review: 3,
-  results: 4,
-};
+const ALL_STEP_KEYS: readonly ImportStepKey[] = [
+  'upload',
+  'map',
+  'resolve-accounts',
+  'resolve-categories',
+  'review',
+  'results',
+];
 
 const emptyColumnMapping = (): ColumnMapping => ({
   date: null,
@@ -88,6 +84,11 @@ const emptyColumnMapping = (): ColumnMapping => ({
   transactionType: { option: TransactionTypeOptionValue.amountSign },
 });
 
+const sha256Hex = async ({ value }: { value: string }): Promise<string> => {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
 export const useImportExportStore = defineStore('importExport', () => {
   const queryClient = useQueryClient();
 
@@ -97,12 +98,20 @@ export const useImportExportStore = defineStore('importExport', () => {
   const fileContent = ref<string | null>(null);
 
   // Step 2: Parsing
+  // Column names the mapping UI offers: the parsed headers minus the empty ones.
   const csvHeaders = ref<string[]>([]);
   const csvPreview = ref<Record<string, string>[]>([]);
-  // All data rows of the combined CSV (no header), aligned to `csvHeaders`. The
-  // backend preview is capped at 50 rows, so the Map step scans these for the full
-  // set of transaction-type values (which can appear past the preview window).
+  // All data rows of the combined CSV (no header). The backend preview is capped
+  // at 50 rows, so the Map step scans these for the full set of transaction-type
+  // values (which can appear past the preview window).
   const csvDataRows = ref<string[][]>([]);
+  // Row lookups must index against this list, never `csvHeaders`: `csvHeaders`
+  // drops empty header names, which shifts every column that follows one. Holds
+  // every parsed header, positionally aligned with `csvDataRows`.
+  const csvDataRowHeaders = ref<string[]>([]);
+  // Identifies the file's column layout, so a category mapping saved by an earlier import of a
+  // same-layout file can be offered again. Null until a file is parsed.
+  const headersFingerprint = ref<string | null>(null);
   const detectedDelimiter = ref<string>(',');
   const totalRows = ref<number>(0);
 
@@ -126,6 +135,17 @@ export const useImportExportStore = defineStore('importExport', () => {
   // Resolve step: extraction + entity-list loading state.
   const isExtracting = ref<boolean>(false);
   const extractError = ref<string | null>(null);
+  // Column choices the unique account/category/tag lists were extracted from.
+  // Re-extraction runs only when they change, so both Resolve steps share one fetch.
+  const resolveExtractionKey = computed(() =>
+    JSON.stringify([
+      columnMapping.value.account,
+      columnMapping.value.category,
+      columnMapping.value.tags,
+      columnMapping.value.currency,
+    ]),
+  );
+  const extractedForColumns = ref<string | null>(null);
   // Set when loading the existing tags list fails, so the Resolve step can warn
   // that link-to-existing targets may be missing while still letting create/skip through.
   const tagsLoadFailed = ref<boolean>(false);
@@ -262,18 +282,9 @@ export const useImportExportStore = defineStore('importExport', () => {
   /** Tags assignment maps per-row values from a CSV column → Resolve must map them. */
   const needsTagResolution = computed(() => columnMapping.value.tags?.option === TagOptionValue.mapDataSourceColumn);
 
-  /**
-   * True when at least one assignment uses a per-value method that the Resolve
-   * step must reconcile: category (map-to-column or create-new), account
-   * (from-column), or tags (map-to-column). Currency / transaction-type
-   * "from column" do NOT need Resolve — they read straight from the row.
-   */
-  const needsResolveStep = computed(
-    () => needsCategoryResolution.value || needsAccountResolution.value || needsTagResolution.value,
-  );
+  const needsCategoriesResolveStep = computed(() => needsCategoryResolution.value || needsTagResolution.value);
 
-  // UI state — key-based step model (the single source of truth). `'resolve'` is
-  // omitted from `visibleSteps` when `needsResolveStep` is false.
+  // UI state — key-based step model (the single source of truth).
   const {
     currentStepKey,
     completedStepKeys,
@@ -285,32 +296,11 @@ export const useImportExportStore = defineStore('importExport', () => {
     reset: resetSteps,
   } = useWizardSteps<ImportStepKey>({
     stepKeys: ALL_STEP_KEYS,
-    isStepVisible: (key) => key !== 'resolve' || needsResolveStep.value,
-  });
-
-  // Numeric step view derived from the key model. A numeric step API is part of
-  // this store's public surface (template consumers reference step numbers), so
-  // it is projected through STEP_KEY_TO_NUMBER rather than tracked separately.
-  // `currentStep` is writable: setting a number jumps to the first key that maps
-  // to it (Resolve and Map share number 2; Map is canonical).
-  const NUMBER_TO_STEP_KEY = ALL_STEP_KEYS.reduce<Record<number, ImportStepKey>>((acc, key) => {
-    const num = STEP_KEY_TO_NUMBER[key];
-    if (!(num in acc)) acc[num] = key;
-    return acc;
-  }, {});
-
-  const currentStep = computed<number>({
-    get: () => STEP_KEY_TO_NUMBER[currentStepKey.value],
-    set: (value) => {
-      const key = NUMBER_TO_STEP_KEY[value];
-      if (key) goToStep(key);
+    isStepVisible: (key) => {
+      if (key === 'resolve-accounts') return needsAccountResolution.value;
+      if (key === 'resolve-categories') return needsCategoriesResolveStep.value;
+      return true;
     },
-  });
-
-  const completedSteps = computed<number[]>(() => {
-    const numbers = new Set<number>();
-    for (const key of completedStepKeys.value) numbers.add(STEP_KEY_TO_NUMBER[key]);
-    return [...numbers];
   });
 
   /**
@@ -324,7 +314,7 @@ export const useImportExportStore = defineStore('importExport', () => {
       return [];
     }
     return distinctColumnValues({
-      headers: csvHeaders.value,
+      headers: csvDataRowHeaders.value,
       dataRows: csvDataRows.value,
       columnName: transactionType.columnName,
     });
@@ -383,13 +373,93 @@ export const useImportExportStore = defineStore('importExport', () => {
    * so the backend receives a valid reference rather than an empty string.
    */
   const isAccountResolved = (mapping: AccountMappingValue | undefined): boolean =>
-    mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.accountId);
+    mapping?.action === 'create-new' ||
+    mapping?.action === 'skip' ||
+    (mapping?.action === 'link-existing' && !!mapping.accountId);
   const isCategoryResolved = (mapping: CategoryMappingValue | undefined): boolean =>
     mapping?.action === 'create-new' || (mapping?.action === 'link-existing' && !!mapping.categoryId);
   const isTagResolved = (mapping: TagMappingValue | undefined): boolean =>
     mapping?.action === 'create-new' ||
     mapping?.action === 'skip' ||
     (mapping?.action === 'link-existing' && !!mapping.tagId);
+
+  const skippedAccountNames = computed<string[]>(() =>
+    Object.entries(accountMapping.value)
+      .filter(([, value]) => value.action === 'skip')
+      .map(([name]) => name),
+  );
+
+  /**
+   * Values of `columnName` on rows whose account is not skipped. Returns null when
+   * the caller must keep its full list: nothing is skipped, the account is not read
+   * from a column, or a column is absent from the data rows.
+   */
+  const valuesInKeptRows = ({
+    columnName,
+    splitCell,
+  }: {
+    columnName: string;
+    splitCell: (cell: string | undefined) => string[];
+  }): Set<string> | null => {
+    const account = columnMapping.value.account;
+    if (skippedAccountNames.value.length === 0 || account?.option !== AccountOptionValue.dataSourceColumn) return null;
+
+    const accountIndex = csvDataRowHeaders.value.indexOf(account.columnName);
+    const valueIndex = csvDataRowHeaders.value.indexOf(columnName);
+    if (accountIndex === -1 || valueIndex === -1) return null;
+
+    const skipped = new Set(skippedAccountNames.value);
+    const referenced = new Set<string>();
+    for (const row of csvDataRows.value) {
+      const accountName = row[accountIndex]?.trim();
+      if (accountName && skipped.has(accountName)) continue;
+      for (const value of splitCell(row[valueIndex])) referenced.add(value);
+    }
+    return referenced;
+  };
+
+  /** Must match the backend's `extract-categories` split: one trimmed name per cell. */
+  const categoryNameInCell = (cell: string | undefined): string[] => {
+    const name = cell?.trim();
+    return name ? [name] : [];
+  };
+
+  /** Must match the backend's `splitTagCell`: comma-separated names in one cell. */
+  const tagNamesInCell = (cell: string | undefined): string[] =>
+    (cell ?? '')
+      .split(',')
+      .map((segment) => segment.trim())
+      .filter((segment) => segment.length > 0);
+
+  /**
+   * Categories used by at least one row of a non-skipped account. Falls back to
+   * the full `uniqueCategoriesInCSV` when the account or category column is not
+   * a data-source column.
+   */
+  const visibleCategoriesToResolve = computed<string[]>(() => {
+    const category = columnMapping.value.category;
+    const columnName =
+      category?.option === CategoryOptionValue.mapDataSourceColumn ||
+      category?.option === CategoryOptionValue.createNewCategories
+        ? category.columnName
+        : null;
+    if (!columnName) return uniqueCategoriesInCSV.value;
+
+    const referenced = valuesInKeptRows({ columnName, splitCell: categoryNameInCell });
+    if (!referenced) return uniqueCategoriesInCSV.value;
+    return uniqueCategoriesInCSV.value.filter((name) => referenced.has(name));
+  });
+
+  /** Same rule for tags, whose cell holds several comma-separated names. */
+  const visibleTagsToResolve = computed<string[]>(() => {
+    const tags = columnMapping.value.tags;
+    const columnName = tags?.option === TagOptionValue.mapDataSourceColumn ? tags.columnName : null;
+    if (!columnName) return uniqueTagsInCSV.value;
+
+    const referenced = valuesInKeptRows({ columnName, splitCell: tagNamesInCell });
+    if (!referenced) return uniqueTagsInCSV.value;
+    return uniqueTagsInCSV.value.filter((name) => referenced.has(name));
+  });
 
   /**
    * Shared resolve engine (bulk actions, step validity, duplicate-unmark toggle).
@@ -422,7 +492,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     },
     categories: {
       isActive: () => needsCategoryResolution.value,
-      getSources: () => uniqueCategoriesInCSV.value.map((name) => ({ name })),
+      getSources: () => visibleCategoriesToResolve.value.map((name) => ({ name })),
       getTargets: () =>
         flattenCategories({ categories: useCategoriesStore().formattedCategories }).map((category) => ({
           id: category.id,
@@ -435,7 +505,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     },
     tags: {
       isActive: () => needsTagResolution.value,
-      getSources: () => uniqueTagsInCSV.value.map((name) => ({ name })),
+      getSources: () => visibleTagsToResolve.value.map((name) => ({ name })),
       getTargets: () => useTagsStore().tags.map((tag) => ({ id: String(tag.id), name: tag.name })),
       mapping: tagMapping,
       toLink: (id) => ({ action: 'link-existing', tagId: id }),
@@ -450,10 +520,54 @@ export const useImportExportStore = defineStore('importExport', () => {
     autoMatchResolveValues,
     quickMapExactMatches,
     quickCreateNewForUnmatched,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
+    resetAiMapping,
     quickSkipAllTags,
     resetResolveEntity,
-    isResolveStepValid,
   } = resolveEngine;
+
+  // A failed extraction leaves the unique lists empty, and `.every()` over an
+  // empty list reads as "all resolved" — so both resolve steps must hard-block
+  // on the error itself, or Next would walk past the failure to Review.
+  const isResolveAccountsStepValid = computed(
+    () =>
+      !needsAccountResolution.value ||
+      (!extractError.value &&
+        uniqueAccountsInCSV.value.every((account) => isAccountResolved(accountMapping.value[account.name]))),
+  );
+
+  const isResolveCategoriesStepValid = computed(() => {
+    if (needsCategoriesResolveStep.value && extractError.value) return false;
+    if (
+      needsCategoryResolution.value &&
+      !visibleCategoriesToResolve.value.every((name) => isCategoryResolved(categoryMapping.value[name]))
+    ) {
+      return false;
+    }
+    if (
+      needsTagResolution.value &&
+      !visibleTagsToResolve.value.every((name) => isTagResolved(tagMapping.value[name]))
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  // ---- Remembered category mappings ----
+
+  const {
+    matchingPreset: matchingCategoryPreset,
+    namedPresets: namedCategoryPresets,
+    applyPreset,
+    persistPreset: persistCategoryPreset,
+    renamePreset: renameCategoryPreset,
+    deletePreset: deleteCategoryPreset,
+  } = useCategoryMappingPresets({ fingerprint: headersFingerprint });
+
+  const applyCategoryPreset = ({ preset }: { preset: CategoryMappingPreset }) =>
+    applyPreset({ preset, categoryMapping, validSourceNames: uniqueCategoriesInCSV.value });
 
   // ---- Other getters ----
 
@@ -462,8 +576,11 @@ export const useImportExportStore = defineStore('importExport', () => {
     const duplicateIndicesToSkip = new Set(
       duplicates.value.filter((d) => !unmarkedDuplicateIndices.value.has(d.rowIndex)).map((d) => d.rowIndex),
     );
+    const skippedAccounts = new Set(skippedAccountNames.value);
 
-    return validRows.value.filter((row) => !duplicateIndicesToSkip.has(row.rowIndex));
+    return validRows.value.filter(
+      (row) => !duplicateIndicesToSkip.has(row.rowIndex) && !skippedAccounts.has(row.accountName),
+    );
   });
 
   const importSummary = computed(() => ({
@@ -491,6 +608,8 @@ export const useImportExportStore = defineStore('importExport', () => {
       fileContent: fileContent.value,
     });
 
+    csvDataRowHeaders.value = response.headers;
+    headersFingerprint.value = await sha256Hex({ value: JSON.stringify(response.headers) });
     csvHeaders.value = response.headers.filter((h) => h !== '');
     csvPreview.value = response.preview;
     detectedDelimiter.value = response.detectedDelimiter;
@@ -559,12 +678,9 @@ export const useImportExportStore = defineStore('importExport', () => {
       unmarkedDuplicateIndices.value = new Set();
       unpriceableRows.value = response.unpriceableRows ?? [];
 
-      // Mapping (and Resolve, if it was shown) are done once detection succeeds;
-      // advance the wizard to the Review step.
       markStepCompleted('map');
-      if (needsResolveStep.value) {
-        markStepCompleted('resolve');
-      }
+      if (needsAccountResolution.value) markStepCompleted('resolve-accounts');
+      if (needsCategoriesResolveStep.value) markStepCompleted('resolve-categories');
       goToStep('review');
     } catch (error) {
       // Surface the error message so the UI can render it; re-throw so callers
@@ -608,11 +724,21 @@ export const useImportExportStore = defineStore('importExport', () => {
       .filter((d) => !unmarkedDuplicateIndices.value.has(d.rowIndex))
       .map((d) => d.rowIndex);
 
+    // Stored decisions for categories and tags hidden by an account skip must not
+    // reach the backend: it would create entities no imported row references.
+    const visibleCategories = new Set(visibleCategoriesToResolve.value);
+    const categoryMappingPayload = Object.fromEntries(
+      Object.entries(categoryMapping.value).filter(([name]) => visibleCategories.has(name)),
+    );
+
     // Only send tagMapping when a tags column is actually mapped. When the user
     // deselects the tags column, tagMapping may still hold stale entries; sending
     // them would make the backend create tags the user opted out of. The backend
     // treats an omitted tagMapping as "no tags" (see execute-import service).
-    const tagMappingPayload = columnMapping.value.tags ? tagMapping.value : undefined;
+    const visibleTags = new Set(visibleTagsToResolve.value);
+    const tagMappingPayload = columnMapping.value.tags
+      ? Object.fromEntries(Object.entries(tagMapping.value).filter(([name]) => visibleTags.has(name)))
+      : undefined;
 
     isEnqueuing.value = true;
     let response: Awaited<ReturnType<typeof executeImportApi>>;
@@ -622,7 +748,7 @@ export const useImportExportStore = defineStore('importExport', () => {
         delimiter: detectedDelimiter.value,
         columnMapping: config,
         accountMapping: accountMapping.value,
-        categoryMapping: categoryMapping.value,
+        categoryMapping: categoryMappingPayload,
         tagMapping: tagMappingPayload,
         skipDuplicateIndices,
         skipUnpriceableIndices,
@@ -645,6 +771,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     // Job accepted: remember the balance-recalculation choice for the next
     // import (fire-and-forget), then advance the wizard and arm the watchdog.
     persistRecalculateBalanceSetting();
+    if (needsCategoryResolution.value) persistCategoryPreset({ mapping: categoryMappingPayload });
     markStepCompleted('review');
     goToStep('results');
     jobProgress.start({
@@ -710,6 +837,8 @@ export const useImportExportStore = defineStore('importExport', () => {
       Object.keys(accountMapping.value).forEach((name) => {
         if (!sourceAccountNames.has(name)) delete accountMapping.value[name];
       });
+
+      extractedForColumns.value = resolveExtractionKey.value;
     } catch (error) {
       if (
         error instanceof ApiErrorResponseError &&
@@ -728,18 +857,13 @@ export const useImportExportStore = defineStore('importExport', () => {
   };
 
   /**
-   * Readies the Resolve step: extracts the unique source values when missing,
-   * loads the existing category/tag lists that link targets need, then runs a
-   * non-destructive auto-match. Each fetch is independently guarded so a single
-   * failure neither aborts the rest nor rejects the caller.
+   * Readies either Resolve step: re-extracts unique source values when the column
+   * choices changed, loads the category/tag lists that link targets need, then
+   * auto-matches non-destructively. Each fetch is guarded, so one failure neither
+   * aborts the rest nor rejects the caller.
    */
   const prepareResolveStep = async (): Promise<void> => {
-    const needsExtraction =
-      (needsAccountResolution.value && uniqueAccountsInCSV.value.length === 0) ||
-      (needsCategoryResolution.value && uniqueCategoriesInCSV.value.length === 0) ||
-      (needsTagResolution.value && uniqueTagsInCSV.value.length === 0);
-
-    if (needsExtraction) {
+    if (extractedForColumns.value !== resolveExtractionKey.value) {
       await extractUniqueValues();
     }
 
@@ -769,6 +893,8 @@ export const useImportExportStore = defineStore('importExport', () => {
     csvHeaders.value = [];
     csvPreview.value = [];
     csvDataRows.value = [];
+    csvDataRowHeaders.value = [];
+    headersFingerprint.value = null;
     detectedDelimiter.value = ',';
     totalRows.value = 0;
     columnMapping.value = emptyColumnMapping();
@@ -782,6 +908,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     currencyMismatchWarning.value = null;
     isExtracting.value = false;
     extractError.value = null;
+    extractedForColumns.value = null;
     tagsLoadFailed.value = false;
     validRows.value = [];
     invalidRows.value = [];
@@ -791,6 +918,7 @@ export const useImportExportStore = defineStore('importExport', () => {
     isDetectingDuplicates.value = false;
     detectError.value = null;
     isEnqueuing.value = false;
+    resetAiMapping();
     resetRecalculateBalanceOverride();
     jobProgress.stop();
     jobProgress.setExecuteError(null);
@@ -805,6 +933,8 @@ export const useImportExportStore = defineStore('importExport', () => {
     csvHeaders,
     csvPreview,
     csvDataRows,
+    csvDataRowHeaders,
+    headersFingerprint,
     detectedDelimiter,
     totalRows,
     columnMapping,
@@ -834,18 +964,22 @@ export const useImportExportStore = defineStore('importExport', () => {
     recalculateBalanceSettingLoadFailed,
     currentStepKey,
     completedStepKeys,
-    currentStep,
-    completedSteps,
 
     // Getters
-    needsResolveStep,
     needsAccountResolution,
     needsCategoryResolution,
     needsTagResolution,
+    needsCategoriesResolveStep,
     visibleSteps,
     isMapStepValid,
     uncoveredTransactionTypeValues,
-    isResolveStepValid,
+    isResolveAccountsStepValid,
+    isResolveCategoriesStepValid,
+    skippedAccountNames,
+    visibleCategoriesToResolve,
+    visibleTagsToResolve,
+    matchingCategoryPreset,
+    namedCategoryPresets,
     importSummary,
 
     // Actions
@@ -860,8 +994,14 @@ export const useImportExportStore = defineStore('importExport', () => {
     autoMatchResolveValues,
     quickMapExactMatches,
     quickCreateNewForUnmatched,
+    quickAiMapCategories,
+    isAiMappingCategories,
+    aiMappingCategoriesError,
     quickSkipAllTags,
     resetResolveEntity,
+    applyCategoryPreset,
+    renameCategoryPreset,
+    deleteCategoryPreset,
     prepareResolveStep,
     reset,
   };

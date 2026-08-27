@@ -19,6 +19,7 @@ import modelsCurrenciesRoutes from './routes/currencies.route';
 import demoRoutes from './routes/demo.route';
 import exchangeRatesRoutes from './routes/exchange-rates';
 import githubRoutes from './routes/github.route';
+import aiMappingRoutes from './routes/import-export/ai-mapping.route';
 import batchesHistoryRoutes from './routes/import-export/batches-history.route';
 import budgetBakersWalletImportRoutes from './routes/import-export/budget-bakers-wallet.route';
 import csvImportExportRoutes from './routes/import-export/csv.route';
@@ -198,6 +199,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/import`, budgetBakersWalletImportRoutes);
   app.use(`${API_PREFIX}/import`, msMoneyImportRoutes);
   app.use(`${API_PREFIX}/import`, batchesHistoryRoutes);
+  app.use(`${API_PREFIX}/import`, aiMappingRoutes);
   app.use(`${API_PREFIX}/resource-leases`, resourceLeasesRoutes);
   app.use(`${API_PREFIX}/sse`, sseRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
