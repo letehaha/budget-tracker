@@ -10,14 +10,29 @@ import { Op, WhereOptions } from 'sequelize';
 
 import { dataProviderFactory } from '../data-providers';
 import { BulkPriceData, toProviderSymbol } from '../data-providers/base-provider';
-import { partitionByMarketStatus } from '../data-providers/utils';
-import { startOfDayUtc } from './pricing-anchor';
+import { bucketByUtcDay, startOfDayUtc } from './pricing-anchor';
 
+/**
+ * Providers publish end-of-day bars with variable lag (Yahoo's EU bars can
+ * appear a full day late), so a run that only asked for yesterday would
+ * permanently lose any day it happened to miss. Each stocks run re-requests
+ * this many trailing days; upserts on (securityId, date) make overlap free.
+ */
+export const STOCKS_LOOKBACK_DAYS = 7;
+
+/**
+ * Sentry alert fires only when both hold: a quarter of the queue failed AND
+ * at least this many securities. The floor keeps a small instance with one
+ * dead symbol from warning every run.
+ */
+const FAILED_SYNC_WARN_RATIO = 0.25;
+const FAILED_SYNC_WARN_MIN_SECURITIES = 5;
+
+/** All counters are per security, not per stored price row. */
 interface SecuritiesPricesSyncResult {
   totalProcessed: number;
   successfulUpdates: number;
   failedUpdates: number;
-  skippedClosedMarket: number;
   errors: Array<{ securityId: string; symbol: string | null; error: string }>;
 }
 
@@ -36,12 +51,18 @@ interface SyncOptions {
    */
   forDate: Date;
   /**
-   * Computes the `date` column for each upserted row. Stocks anchor every row
-   * to midnight UTC of yesterday (one row per day per security). Crypto uses
-   * the provider's `priceAsOf` (= CoinGecko's `last_updated_at`) so multiple
-   * intraday snapshots coexist as separate rows.
+   * Start of the fetch window passed to the composite provider. Stocks set it
+   * `STOCKS_LOOKBACK_DAYS` before `forDate`; crypto omits it (single
+   * current-price snapshot).
    */
-  computeStoredDate: (price: BulkPriceData) => Date;
+  fetchStartDate?: Date;
+  /**
+   * Maps one security's provider bars to the rows to store. Each returned
+   * bar's `date` is written to the `date` column verbatim and must be unique
+   * within the array, or the bulk upsert's ON CONFLICT clause rejects the
+   * whole batch.
+   */
+  prepareBars: (bars: BulkPriceData[]) => BulkPriceData[];
   /** Tagged log label used for traceability. */
   label: SyncLabel;
 }
@@ -53,7 +74,7 @@ interface SyncOptions {
  * 1. Queries securities connected to holdings, scoped by `assetClassWhere`.
  * 2. Prioritizes by pricingLastSyncedAt (oldest first).
  * 3. Uses composite data provider for automatic provider routing.
- * 4. Stores each row at the timestamp returned by `computeStoredDate`.
+ * 4. Stores one row per bar returned by `prepareBars`.
  * 5. Updates pricingLastSyncedAt after successful sync.
  *
  * No `withTransaction` wrapper: bulk and individual upserts are idempotent
@@ -63,7 +84,7 @@ interface SyncOptions {
  * into total data loss with a misleading success counter in the result.
  */
 const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<SecuritiesPricesSyncResult> => {
-  const { assetClassWhere, forDate, computeStoredDate, label } = options;
+  const { assetClassWhere, forDate, fetchStartDate, prepareBars, label } = options;
   logger.info(`[${label}] Starting securities prices sync`);
 
   // Query securities with holdings, prioritized by staleness.
@@ -102,7 +123,6 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
       totalProcessed: 0,
       successfulUpdates: 0,
       failedUpdates: 0,
-      skippedClosedMarket: 0,
       errors: [],
     };
   }
@@ -113,7 +133,6 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
     totalProcessed: securitiesFromDb.length,
     successfulUpdates: 0,
     failedUpdates: 0,
-    skippedClosedMarket: 0,
     errors: [],
   };
 
@@ -138,12 +157,14 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
   // from per-row work (upserts, the `pricingLastSyncedAt` patch) are handled
   // in their own narrow try/catch blocks below so their errors surface with
   // accurate context instead of being mis-reported as a fetch failure.
-  let fetchedPrices: Map<string, BulkPriceData>;
+  let fetchedPrices: Map<string, BulkPriceData[]>;
   try {
     // Composite returns a Map keyed by securityId; the type guarantees every
     // value carries the originating securityId, so no defensive guards are
     // needed when consuming it.
-    fetchedPrices = await compositeProvider.fetchPricesForSecurities(securitiesInputs, forDate);
+    fetchedPrices = await compositeProvider.fetchPricesForSecurities(securitiesInputs, forDate, {
+      startDate: fetchStartDate,
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error({
@@ -171,27 +192,31 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
   let securitiesIdsToPatch: string[] = [];
 
   // Store fetched prices and update timestamps
-  for (const [securityId, priceData] of fetchedPrices) {
+  for (const [securityId, rawBars] of fetchedPrices) {
     if (!securitiesById.has(securityId)) {
       // Composite returned a securityId we didn't ask for. This should be
       // impossible — composite only fetches inputs we supplied — so it
       // signals a provider bug or data corruption.
       logger.error(
         `[${label}] Composite returned unrequested securityId "${securityId}" ` +
-          `(providerSymbol "${priceData.providerSymbol}" from ${priceData.providerName}). Dropping.`,
+          `(providerSymbol "${rawBars[0]?.providerSymbol}" from ${rawBars[0]?.providerName}). Dropping.`,
       );
       continue;
     }
 
-    securityPricesToUpsert.push({
-      securityId,
-      date: computeStoredDate(priceData),
-      priceClose: priceData.priceClose.toString(),
-      source: priceData.providerName,
-    });
+    for (const priceData of prepareBars(rawBars)) {
+      securityPricesToUpsert.push({
+        securityId,
+        date: priceData.date,
+        priceClose: priceData.priceClose.toString(),
+        source: priceData.providerName,
+      });
+    }
 
     securitiesIdsToPatch.push(securityId);
   }
+
+  const fetchedSecuritiesCount = securitiesIdsToPatch.length;
 
   const failedPricesUpdates: typeof securityPricesToUpsert = [];
 
@@ -213,8 +238,10 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
         updateOnDuplicate: ['priceClose', 'source'],
       });
 
-      result.successfulUpdates = securityPricesToUpsert.length;
-      logger.info(`[${label}] Bulk created/updated ${securityPricesToUpsert.length} security prices`);
+      result.successfulUpdates = fetchedSecuritiesCount;
+      logger.info(
+        `[${label}] Bulk created/updated ${securityPricesToUpsert.length} price rows for ${fetchedSecuritiesCount} securities`,
+      );
     } catch (bulkError) {
       // A bulk failure indicates a schema/constraint mismatch or a transient
       // DB issue — both deserve more visibility than a buried info line. Log
@@ -225,28 +252,33 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
         error: bulkError as Error,
       });
 
+      const failedBySecurityId = new Map<string, string>();
       for (const priceData of securityPricesToUpsert) {
         try {
           await SecurityPricing.upsert(priceData);
-          result.successfulUpdates++;
         } catch (individualError) {
           failedPricesUpdates.push(priceData);
-          result.failedUpdates++;
 
           const security = securitiesById.get(priceData.securityId);
-
           const errorMessage = individualError instanceof Error ? individualError.message : 'Unknown error';
-
-          result.errors.push({
-            securityId: priceData.securityId,
-            symbol: security?.symbol || null,
-            error: errorMessage,
-          });
+          if (!failedBySecurityId.has(priceData.securityId)) {
+            failedBySecurityId.set(priceData.securityId, errorMessage);
+          }
 
           logger.error(
             `[${label}] Failed to upsert price for security ${security?.symbol || priceData.securityId}: ${errorMessage}`,
           );
         }
+      }
+
+      result.failedUpdates += failedBySecurityId.size;
+      result.successfulUpdates = fetchedSecuritiesCount - failedBySecurityId.size;
+      for (const [securityId, error] of failedBySecurityId) {
+        result.errors.push({
+          securityId,
+          symbol: securitiesById.get(securityId)?.symbol || null,
+          error,
+        });
       }
     }
   }
@@ -256,52 +288,29 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
     securitiesIdsToPatch = securitiesIdsToPatch.filter((i) => !failedPricesUpdates.some((e) => e.securityId === i));
   }
 
-  // Handle securities that didn't get price data from provider
+  // Securities the provider returned nothing for. The stocks fetch window
+  // always spans open market days (and crypto trades 24/7), so an empty
+  // result is a real gap, never "market was closed".
   const missedInputs = securitiesInputs.filter((s) => !fetchedPrices.has(s.securityId));
 
   if (missedInputs.length > 0) {
-    const { expectedClosed, actuallyMissing } = partitionByMarketStatus({
-      items: missedInputs,
-      date: forDate,
-    });
+    // Info level, not warn: the logger sends all warn records to Sentry, and a
+    // single symbol with no price is usually a normal provider gap (delisted,
+    // low trade volume). Broad failures surface via the ratio warn below.
+    logger.info(
+      `[${label}] ${missedInputs.length} symbols had no price data from provider: ${missedInputs.map((s) => s.symbol).join(', ')}`,
+    );
 
-    if (expectedClosed.length > 0) {
-      result.skippedClosedMarket = expectedClosed.length;
-      // Advance pricingLastSyncedAt for closed-market symbols so they don't dominate
-      // the staleness queue on every weekend/holiday run.
-      for (const { securityId } of expectedClosed) {
-        securitiesIdsToPatch.push(securityId);
-      }
-      logger.info(
-        `[${label}] ${expectedClosed.length} symbols skipped (markets closed on ${forDate.toISOString()}): ${expectedClosed.map((s) => s.symbol).join(', ')}`,
-      );
-    }
-
-    if (actuallyMissing.length > 0) {
-      // Info level, not warn: the logger sends all warn records to Sentry. On a
-      // weekday, a symbol with no price is usually a normal provider gap. The
-      // cause is an exchange holiday, which `isMarketClosedOn` does not find, or
-      // a security with a low trade volume. The code counts the true failures in
-      // `result.failedUpdates` and `result.errors`.
-      logger.info(
-        `[${label}] ${actuallyMissing.length} symbols had no price data from provider: ${actuallyMissing.map((s) => s.symbol).join(', ')}`,
-      );
-
-      // Advance `pricingLastSyncedAt` so a permanently-delisted or otherwise
-      // unfetchable security doesn't dominate the staleness-prioritised queue
-      // run after run. Without this, a single broken security at the head of
-      // the queue would be retried on every sync while the rest of the table
-      // also gets processed but stays "fresher" — slowly creating an
-      // ever-growing backlog of work that always fails first.
-      for (const { securityId, symbol } of actuallyMissing) {
-        result.failedUpdates++;
-        result.errors.push({
-          securityId,
-          symbol,
-          error: 'No price data returned from provider',
-        });
-        securitiesIdsToPatch.push(securityId);
-      }
+    // Advance `pricingLastSyncedAt` so a permanently-unfetchable security
+    // doesn't dominate the staleness-prioritised queue run after run.
+    for (const { securityId, symbol } of missedInputs) {
+      result.failedUpdates++;
+      result.errors.push({
+        securityId,
+        symbol,
+        error: 'No price data returned from provider',
+      });
+      securitiesIdsToPatch.push(securityId);
     }
   }
 
@@ -331,8 +340,22 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
   }
 
   logger.info(
-    `[${label}] Securities prices sync completed. Processed: ${result.totalProcessed}, Success: ${result.successfulUpdates}, Failed: ${result.failedUpdates}, SkippedClosedMarket: ${result.skippedClosedMarket}`,
+    `[${label}] Securities prices sync completed. Processed: ${result.totalProcessed}, Success: ${result.successfulUpdates}, Failed: ${result.failedUpdates}`,
   );
+
+  // warn goes to Sentry; per-symbol misses alone stay at info by design, so
+  // without this line a run losing much of the queue is invisible.
+  if (
+    result.failedUpdates >= FAILED_SYNC_WARN_MIN_SECURITIES &&
+    result.failedUpdates >= result.totalProcessed * FAILED_SYNC_WARN_RATIO
+  ) {
+    logger.warn(
+      `[${label}] ${result.failedUpdates}/${result.totalProcessed} securities failed price sync: ${result.errors
+        .slice(0, 20)
+        .map((e) => e.symbol ?? e.securityId)
+        .join(', ')}`,
+    );
+  }
 
   return result;
 };
@@ -340,16 +363,18 @@ const securitiesPricesSyncImpl = async (options: SyncOptions): Promise<Securitie
 /**
  * Daily sync for non-crypto securities (stocks, ETFs, etc.).
  *
- * Anchors every row to midnight UTC of yesterday — one row per security per day,
- * matching the original DATEONLY-era semantics. Held under a stocks-specific
- * lock so it doesn't serialize against the hourly crypto sync.
+ * Fetches the trailing `STOCKS_LOOKBACK_DAYS` window ending at yesterday and
+ * stores one row per security per UTC day, anchored to midnight UTC of the
+ * bar's own day. Held under a stocks-specific lock so it doesn't serialize
+ * against the hourly crypto sync.
  */
 export const securitiesPricesStocksDailySync = withLock('lock:sync:securities-prices:stocks', () => {
   const yesterdayMidnightUtc = startOfDayUtc(subDays(new Date(), 1));
   return securitiesPricesSyncImpl({
     assetClassWhere: { assetClass: { [Op.notIn]: [ASSET_CLASS.crypto] } },
     forDate: yesterdayMidnightUtc,
-    computeStoredDate: () => yesterdayMidnightUtc,
+    fetchStartDate: subDays(yesterdayMidnightUtc, STOCKS_LOOKBACK_DAYS - 1),
+    prepareBars: bucketByUtcDay,
     label: 'stocks-daily',
   });
 });
@@ -370,7 +395,7 @@ export const securitiesPricesCryptoSync = withLock('lock:sync:securities-prices:
   securitiesPricesSyncImpl({
     assetClassWhere: { assetClass: { [Op.in]: [ASSET_CLASS.crypto] } },
     forDate: new Date(),
-    computeStoredDate: (price) => price.priceAsOf,
+    prepareBars: (bars) => bars.map((bar) => ({ ...bar, date: bar.priceAsOf })),
     label: 'crypto-hourly',
   }),
 );
