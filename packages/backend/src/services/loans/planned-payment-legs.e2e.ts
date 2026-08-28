@@ -51,40 +51,12 @@ const seedLoanWithPlannedLeg = async ({ paymentAmount }: { paymentAmount: number
 
 describe('Loans and planned payment legs', () => {
   it(
-    'excludes a planned leg from paymentsCount on the detail and list responses',
+    'excludes a planned leg from paymentsCount on the detail and list responses, and lets the loan be deleted',
     async () => {
       const { loan } = await seedLoanWithPlannedLeg({ paymentAmount: 500 });
 
       expect((await helpers.getLoanById({ id: loan.id, raw: true })).paymentsCount).toBe(0);
       expect((await helpers.getLoans({ raw: true })).find((row) => row.id === loan.id)?.paymentsCount).toBe(0);
-    },
-    TIMEOUT,
-  );
-
-  it(
-    'counts a real leg alongside a planned one exactly once',
-    async () => {
-      const { loan, sourceAccount } = await seedLoanWithPlannedLeg({ paymentAmount: 500 });
-
-      await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 300 }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
-          destinationAmount: 300,
-          destinationAccountId: loan.id as RecordId,
-        },
-        raw: true,
-      });
-
-      expect((await helpers.getLoanById({ id: loan.id, raw: true })).paymentsCount).toBe(1);
-    },
-    TIMEOUT,
-  );
-
-  it(
-    'lets a loan whose only leg is planned be deleted',
-    async () => {
-      const { loan } = await seedLoanWithPlannedLeg({ paymentAmount: 500 });
 
       const response = await helpers.deleteLoan({ id: loan.id, raw: false });
 
@@ -95,7 +67,7 @@ describe('Loans and planned payment legs', () => {
   );
 
   it(
-    'keeps a planned leg out of the recomputed outstanding balance',
+    'counts a real leg alongside a planned one exactly once and keeps the planned one out of the balance',
     async () => {
       const { loan, sourceAccount } = await seedLoanWithPlannedLeg({ paymentAmount: 500 });
 
@@ -111,7 +83,9 @@ describe('Loans and planned payment legs', () => {
         raw: true,
       });
 
-      expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-4_700);
+      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloaded.paymentsCount).toBe(1);
+      expect(reloaded.currentBalance).toBe(-4_700);
     },
     TIMEOUT,
   );

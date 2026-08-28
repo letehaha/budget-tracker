@@ -76,6 +76,81 @@ async function createLoanFixture(
   return { account };
 }
 
+// $1,000 loan at 12% APR (1%/mo) with a 3-month term: the scheduled
+// payment is $340.02/mo and the full schedule costs $20.07 in interest
+// (1,000¢ + 670¢ + 337¢) — small enough to hand-verify to the cent.
+const createTermLoan = (overrides: Record<string, unknown> = {}) =>
+  helpers.createLoan({
+    payload: helpers.buildCreateLoanPayload({
+      currencyCode: global.BASE_CURRENCY_CODE,
+      initialBalance: 1_000,
+      originalPrincipal: 1_000,
+      interestRate: 12,
+      termMonths: 3,
+      ...overrides,
+    }),
+    raw: true,
+  });
+
+const payLoanFromNewAccount = async ({ loanId, amount, time }: { loanId: string; amount: number; time?: string }) => {
+  const sourceAccount = await helpers.createAccount({ raw: true });
+  await helpers.createTransaction({
+    payload: {
+      ...helpers.buildTransactionPayload({
+        accountId: sourceAccount.id,
+        amount,
+        ...(time && { time }),
+      }),
+      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+      destinationAmount: amount,
+      destinationAccountId: loanId as RecordId,
+    },
+    raw: true,
+  });
+};
+
+/** Base-currency loan owing `initialBalance`, plus a cash account to pay from. */
+const setupLoanWithSource = async ({ initialBalance }: { initialBalance: number }) => {
+  const loan = await helpers.createLoan({
+    payload: helpers.buildCreateLoanPayload({
+      currencyCode: global.BASE_CURRENCY_CODE,
+      initialBalance,
+      originalPrincipal: initialBalance,
+    }),
+    raw: true,
+  });
+  const sourceAccount = await helpers.createAccount({ raw: true });
+  return { loan, sourceAccount };
+};
+
+const payLoan = async ({
+  loanId,
+  sourceAccountId,
+  amount,
+  time,
+}: {
+  loanId: string;
+  sourceAccountId: RecordId;
+  amount: number;
+  /** ISO timestamp for backdated payments; defaults to now. */
+  time?: string;
+}) => {
+  const [base] = await helpers.createTransaction({
+    payload: {
+      ...helpers.buildTransactionPayload({
+        accountId: sourceAccountId,
+        amount,
+        ...(time && { time }),
+      }),
+      transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+      destinationAmount: amount,
+      destinationAccountId: loanId as RecordId,
+    },
+    raw: true,
+  });
+  return base;
+};
+
 describe('Loans read API', () => {
   describe('GET /loans', () => {
     it('returns an empty array when the user has no loans', async () => {
@@ -83,49 +158,18 @@ describe('Loans read API', () => {
       expect(list).toEqual([]);
     });
 
-    it('returns every loan owned by the user', async () => {
-      await createLoanFixture({ accountName: 'Mortgage A' });
-      await createLoanFixture({ accountName: 'Auto loan', loanType: LOAN_TYPE.auto });
+    it('returns every loan owned by the user, archived ones included', async () => {
+      const { account } = await createLoanFixture({
+        accountName: 'Mortgage A',
+      });
+      await createLoanFixture({
+        accountName: 'Auto loan',
+        loanType: LOAN_TYPE.auto,
+      });
 
-      const list = await helpers.getLoans({ raw: true });
-      expect(list).toHaveLength(2);
-      expect(list.map((row) => row.name).toSorted()).toEqual(['Auto loan', 'Mortgage A']);
-    });
-
-    it('serializes each row with flat Account fields plus nested loanDetails and projection', async () => {
-      const { account } = await createLoanFixture();
-
-      const list = await helpers.getLoans({ raw: true });
-      const row = list[0];
-      if (!row) throw new Error('Expected one loan in the list');
-
-      expect(row.id).toBe(account.id);
-      expect(row.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
-      expect(row.currentBalance).toBe(-200_000);
-
-      expect(row.loanDetails.loanType).toBe(LOAN_TYPE.mortgage);
-      expect(row.loanDetails.originalPrincipal).toBe(200_000);
-      expect(row.loanDetails.interestRate).toBe(6);
-      expect(row.loanDetails.plannedPayment).toBe(1_200);
-      expect(row.loanDetails.lenderName).toBe('Chase');
-      expect(row.loanDetails.events).toEqual([]);
-
-      expect(row.projection.isPaidOff).toBe(false);
-      expect(row.projection.warning).toBeNull();
-      expect(row.projection.monthsRemaining).toBe(360);
-      expect(row.projection.paidToDate).toBe(0);
-      // Near-zero on an untouched loan: the only drift is the gap between the
-      // $1,200 planned payment and the ~$1,199.10 scheduled payment.
-      expect(row.projection.estimatedInterestPaid).toBeGreaterThanOrEqual(0);
-      expect(row.projection.estimatedInterestPaid).toBeLessThan(1_000);
-    });
-
-    it('keeps an archived loan in the list and surfaces its archived status', async () => {
       // The /loans page renders archived loans in a collapsed "Archived" section,
       // so the list endpoint must keep returning them (no active-only filter) with
       // the status the frontend partitions on preserved through the serializer.
-      const { account } = await createLoanFixture({ accountName: 'Paid mortgage' });
-
       const archived = await helpers.updateAccount({
         id: account.id,
         payload: { status: ACCOUNT_STATUSES.archived },
@@ -134,26 +178,20 @@ describe('Loans read API', () => {
       expect(archived.status).toBe(ACCOUNT_STATUSES.archived);
 
       const list = await helpers.getLoans({ raw: true });
-      const row = list.find((loan) => loan.id === account.id);
-      expect(row).toBeDefined();
-      expect(row?.status).toBe(ACCOUNT_STATUSES.archived);
+      expect(list).toHaveLength(2);
+      expect(list.map((row) => row.name).toSorted()).toEqual(['Auto loan', 'Mortgage A']);
+
+      const archivedRow = list.find((loan) => loan.id === account.id);
+      expect(archivedRow).toBeDefined();
+      expect(archivedRow?.status).toBe(ACCOUNT_STATUSES.archived);
     });
   });
 
   describe('GET /loans/:id', () => {
-    it('returns the loan addressed by its underlying Account id', async () => {
-      const { account } = await createLoanFixture({ lenderName: 'Wells Fargo' });
-
-      const loan = await helpers.getLoanById({ id: account.id, raw: true });
-
-      expect(loan.id).toBe(account.id);
-      expect(loan.loanDetails.lenderName).toBe('Wells Fargo');
-      expect(loan.projection).toBeDefined();
-      expect(loan.projection.monthlyInterest).toBeGreaterThan(0);
-    });
-
     it('exposes the projection warning when planned payment cannot cover monthly interest', async () => {
-      const { account } = await createLoanFixture({ plannedPaymentCents: 10_000 });
+      const { account } = await createLoanFixture({
+        plannedPaymentCents: 10_000,
+      });
 
       const loan = await helpers.getLoanById({ id: account.id, raw: true });
       expect(loan.projection.warning).toBe('payment_below_interest');
@@ -162,16 +200,13 @@ describe('Loans read API', () => {
       expect(loan.projection.estimatedInterestPaid).toBeNull();
     });
 
-    it('responds 404 when no loan exists for the given Account id', async () => {
-      const result = await helpers.getLoanById({ id: generateRandomRecordId(), raw: false });
-      expect(result.statusCode).toBe(404);
-      expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.notFound);
-    });
-
     it('clamps paidToDate to zero when the outstanding balance exceeds the original principal', async () => {
       // Outstanding above principal (negative amortization/correction) must not render as a negative "paid" amount.
       const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ originalPrincipal: 1_000, initialBalance: 5_000 }),
+        payload: helpers.buildCreateLoanPayload({
+          originalPrincipal: 1_000,
+          initialBalance: 5_000,
+        }),
         raw: true,
       });
 
@@ -183,7 +218,10 @@ describe('Loans read API', () => {
 
   describe('paymentsCount exposure', () => {
     it('is zero for a freshly created loan, on both create and read responses', async () => {
-      const created = await helpers.createLoan({ payload: helpers.buildCreateLoanPayload(), raw: true });
+      const created = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload(),
+        raw: true,
+      });
       expect(created.paymentsCount).toBe(0);
 
       const fromGet = await helpers.getLoanById({ id: created.id, raw: true });
@@ -192,14 +230,20 @@ describe('Loans read API', () => {
 
     it('counts recorded payments on the detail and list responses', async () => {
       const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ initialBalance: 5_000, originalPrincipal: 5_000 }),
+        payload: helpers.buildCreateLoanPayload({
+          initialBalance: 5_000,
+          originalPrincipal: 5_000,
+        }),
         raw: true,
       });
       const sourceAccount = await helpers.createAccount({ raw: true });
 
       await helpers.createTransaction({
         payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 500 }),
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 500,
+          }),
           transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
           destinationAmount: 500,
           destinationAccountId: loan.id as RecordId,
@@ -216,35 +260,6 @@ describe('Loans read API', () => {
   });
 
   describe('estimatedInterestPaid exposure', () => {
-    // $1,000 loan at 12% APR (1%/mo) with a 3-month term: the scheduled
-    // payment is $340.02/mo and the full schedule costs $20.07 in interest
-    // (1,000¢ + 670¢ + 337¢) — small enough to hand-verify to the cent.
-    const createTermLoan = (overrides: Record<string, unknown> = {}) =>
-      helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({
-          currencyCode: global.BASE_CURRENCY_CODE,
-          initialBalance: 1_000,
-          originalPrincipal: 1_000,
-          interestRate: 12,
-          termMonths: 3,
-          ...overrides,
-        }),
-        raw: true,
-      });
-
-    const payLoan = async ({ loanId, amount, time }: { loanId: string; amount: number; time?: string }) => {
-      const sourceAccount = await helpers.createAccount({ raw: true });
-      await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount, ...(time && { time }) }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
-          destinationAmount: amount,
-          destinationAccountId: loanId as RecordId,
-        },
-        raw: true,
-      });
-    };
-
     it('is null for a loan created without a term — no schedule exists to estimate from', async () => {
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({ termMonths: null }),
@@ -258,7 +273,7 @@ describe('Loans read API', () => {
 
     it('reflects the scheduled share consumed after a partial payment', async () => {
       const loan = await createTermLoan();
-      await payLoan({ loanId: loan.id, amount: 500 });
+      await payLoanFromNewAccount({ loanId: loan.id, amount: 500 });
 
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.currentBalance).toBe(-500);
@@ -273,7 +288,7 @@ describe('Loans read API', () => {
       // exceeds the 3-month term — the accrual caps at the term and yields the
       // full-schedule $20.07, with no special-casing of "ran to term".
       const loan = await createTermLoan();
-      await payLoan({ loanId: loan.id, amount: 1_000 });
+      await payLoanFromNewAccount({ loanId: loan.id, amount: 1_000 });
 
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.projection.isPaidOff).toBe(true);
@@ -291,7 +306,7 @@ describe('Loans read API', () => {
       // strictly below the $20.07 full-schedule figure.
       const startDate = format(subDays(new Date(), 20), 'yyyy-MM-dd');
       const loan = await createTermLoan({ startDate });
-      await payLoan({ loanId: loan.id, amount: 1_000 });
+      await payLoanFromNewAccount({ loanId: loan.id, amount: 1_000 });
 
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.projection.isPaidOff).toBe(true);
@@ -314,7 +329,11 @@ describe('Loans read API', () => {
         payload: { currentBalance: 1_000, currentBalanceAsOf: startDate },
         raw: true,
       });
-      await payLoan({ loanId: loan.id, amount: 1_000, time: addDays(start, 45).toISOString() });
+      await payLoanFromNewAccount({
+        loanId: loan.id,
+        amount: 1_000,
+        time: addDays(start, 45).toISOString(),
+      });
 
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.projection.isPaidOff).toBe(true);
@@ -340,7 +359,7 @@ describe('Loans read API', () => {
   });
 
   describe('POST /loans', () => {
-    it('creates an Account + LoanDetails atomically and returns the projected payoff', async () => {
+    it('creates an Account + LoanDetails atomically and serializes the same shape on create, detail and list', async () => {
       const result = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: false,
@@ -361,7 +380,34 @@ describe('Loans read API', () => {
       expect(loan.projection.monthsRemaining).toBeGreaterThan(0);
 
       const fromGet = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(fromGet.id).toBe(loan.id);
       expect(fromGet.loanDetails.lenderName).toBe('Chase');
+      expect(fromGet.projection).toBeDefined();
+      expect(fromGet.projection.monthlyInterest).toBeGreaterThan(0);
+
+      const list = await helpers.getLoans({ raw: true });
+      const row = list[0];
+      if (!row) throw new Error('Expected one loan in the list');
+
+      expect(row.id).toBe(loan.id);
+      expect(row.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
+      expect(row.currentBalance).toBe(-200_000);
+
+      expect(row.loanDetails.loanType).toBe(LOAN_TYPE.mortgage);
+      expect(row.loanDetails.originalPrincipal).toBe(200_000);
+      expect(row.loanDetails.interestRate).toBe(6);
+      expect(row.loanDetails.plannedPayment).toBe(1_200);
+      expect(row.loanDetails.lenderName).toBe('Chase');
+      expect(row.loanDetails.events).toEqual([]);
+
+      expect(row.projection.isPaidOff).toBe(false);
+      expect(row.projection.warning).toBeNull();
+      expect(row.projection.monthsRemaining).toBe(360);
+      expect(row.projection.paidToDate).toBe(0);
+      // Near-zero on an untouched loan: the only drift is the gap between the
+      // $1,200 planned payment and the ~$1,199.10 scheduled payment.
+      expect(row.projection.estimatedInterestPaid).toBeGreaterThanOrEqual(0);
+      expect(row.projection.estimatedInterestPaid).toBeLessThan(1_000);
     });
 
     it('does not mark a loan paid off when outstanding is below principal and the start date is years in the past', async () => {
@@ -387,7 +433,10 @@ describe('Loans read API', () => {
 
     it('surfaces the no_planned_payment warning through the API when created without plannedPayment', async () => {
       const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ plannedPayment: null, minPayment: null }),
+        payload: helpers.buildCreateLoanPayload({
+          plannedPayment: null,
+          minPayment: null,
+        }),
         raw: true,
       });
 
@@ -399,82 +448,39 @@ describe('Loans read API', () => {
       expect(loan.projection.estimatedInterestPaid).toBeNull();
     });
 
-    it('rejects payload missing required fields', async () => {
-      const result = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ originalPrincipal: undefined }),
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
+    it('rejects invalid create payloads with 422', async () => {
+      // Only SUPPORTED_LOAN_TYPES flow through the form; the remaining LOAN_TYPE members
+      // (e.g. HELOC) need multi-disbursement handling first, so creation is gated to the
+      // supported subset rather than the full enum.
+      const badPayloads: [label: string, overrides: Record<string, unknown>][] = [
+        ['payload missing required fields', { originalPrincipal: undefined }],
+        ['negative interestRate', { interestRate: -1 }],
+        ['interestRate >= 100', { interestRate: 100 }],
+        ['non-positive originalPrincipal', { originalPrincipal: 0 }],
+        ['paymentDayOfMonth outside 1-31', { paymentDayOfMonth: 32 }],
+        ['calendar-invalid startDate 2024-02-30', { startDate: '2024-02-30' }],
+        ['calendar-invalid startDate 2024-13-45', { startDate: '2024-13-45' }],
+        ['startDate in the future', { startDate: format(addDays(new Date(), 2), 'yyyy-MM-dd') }],
+        ['a loanType the UI does not support yet', { loanType: LOAN_TYPE.heloc }],
+      ];
 
-    it('rejects negative interestRate', async () => {
-      const result = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ interestRate: -1 }),
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it('rejects interestRate >= 100', async () => {
-      const result = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ interestRate: 100 }),
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it('rejects non-positive originalPrincipal', async () => {
-      const result = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ originalPrincipal: 0 }),
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it('rejects paymentDayOfMonth outside 1-31', async () => {
-      const result = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ paymentDayOfMonth: 32 }),
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it.each(['2024-02-30', '2024-13-45'])(
-      'rejects a calendar-invalid startDate (%s) with 422 instead of failing at the DATEONLY column',
-      async (startDate) => {
+      for (const [label, overrides] of badPayloads) {
         const result = await helpers.createLoan({
-          payload: helpers.buildCreateLoanPayload({ startDate }),
+          payload: helpers.buildCreateLoanPayload(overrides),
           raw: false,
         });
-        expect(result.statusCode).toBe(422);
-      },
-    );
-
-    it('rejects a startDate in the future with 422', async () => {
-      const result = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ startDate: format(addDays(new Date(), 2), 'yyyy-MM-dd') }),
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
+        expect([label, result.statusCode]).toEqual([label, 422]);
+      }
+    }, 30_000);
 
     it('accepts a startDate of today (boundary)', async () => {
       const result = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ startDate: format(new Date(), 'yyyy-MM-dd') }),
+        payload: helpers.buildCreateLoanPayload({
+          startDate: format(new Date(), 'yyyy-MM-dd'),
+        }),
         raw: false,
       });
       expect(result.statusCode).toBe(201);
-    });
-
-    it('rejects a loanType the UI does not support yet', async () => {
-      // Only SUPPORTED_LOAN_TYPES flow through the form; the remaining LOAN_TYPE
-      // members (e.g. HELOC) need multi-disbursement handling first, so creation
-      // must be gated to the supported subset rather than the full enum.
-      const result = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ loanType: LOAN_TYPE.heloc }),
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
     });
 
     it.each(SUPPORTED_LOAN_TYPES)('accepts the supported loanType %s', async (loanType) => {
@@ -489,92 +495,92 @@ describe('Loans read API', () => {
   });
 
   describe('PATCH /loans/:id', () => {
-    it('appends a rate_change event when interestRate changes', async () => {
+    it('appends rate_change, term_change and planned_payment_change events as those fields change', async () => {
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
       });
 
-      const updated = await helpers.updateLoan({
+      const afterRate = await helpers.updateLoan({
         id: created.id,
         payload: { interestRate: 7.25 },
         raw: true,
       });
 
-      expect(updated.loanDetails.interestRate).toBe(7.25);
-      expect(updated.loanDetails.events).toHaveLength(1);
-      const event = updated.loanDetails.events[0];
-      expect(event?.type).toBe('rate_change');
-      if (event?.type === 'rate_change') {
-        expect(event.from).toBe(6);
-        expect(event.to).toBe(7.25);
+      expect(afterRate.loanDetails.interestRate).toBe(7.25);
+      expect(afterRate.loanDetails.events).toHaveLength(1);
+      const rateEvent = afterRate.loanDetails.events[0];
+      expect(rateEvent?.type).toBe('rate_change');
+      if (rateEvent?.type === 'rate_change') {
+        expect(rateEvent.from).toBe(6);
+        expect(rateEvent.to).toBe(7.25);
       }
-    });
 
-    it('appends a term_change event when termMonths changes', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const updated = await helpers.updateLoan({
+      const afterTerm = await helpers.updateLoan({
         id: created.id,
         payload: { termMonths: 180 },
         raw: true,
       });
 
-      expect(updated.loanDetails.termMonths).toBe(180);
-      const event = updated.loanDetails.events.at(-1);
-      expect(event?.type).toBe('term_change');
-      if (event?.type === 'term_change') {
-        expect(event.from).toBe(360);
-        expect(event.to).toBe(180);
+      expect(afterTerm.loanDetails.termMonths).toBe(180);
+      const termEvent = afterTerm.loanDetails.events.at(-1);
+      expect(termEvent?.type).toBe('term_change');
+      if (termEvent?.type === 'term_change') {
+        expect(termEvent.from).toBe(360);
+        expect(termEvent.to).toBe(180);
       }
-    });
 
-    it('appends a planned_payment_change event when plannedPayment changes', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const updated = await helpers.updateLoan({
+      const afterPlanned = await helpers.updateLoan({
         id: created.id,
         payload: { plannedPayment: 1500 },
         raw: true,
       });
 
-      expect(updated.loanDetails.plannedPayment).toBe(1500);
-      const event = updated.loanDetails.events.at(-1);
-      expect(event?.type).toBe('planned_payment_change');
-      if (event?.type === 'planned_payment_change') {
-        expect(event.from).toBe(1_200);
-        expect(event.to).toBe(1_500);
+      expect(afterPlanned.loanDetails.plannedPayment).toBe(1500);
+      const plannedEvent = afterPlanned.loanDetails.events.at(-1);
+      expect(plannedEvent?.type).toBe('planned_payment_change');
+      if (plannedEvent?.type === 'planned_payment_change') {
+        expect(plannedEvent.from).toBe(1_200);
+        expect(plannedEvent.to).toBe(1_500);
       }
     });
 
-    it('clears plannedPayment when patched to null and records the change with `to: null`', async () => {
+    it('records term_change and planned_payment_change with `to: null` when those fields are cleared', async () => {
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
       });
 
-      const updated = await helpers.updateLoan({
+      const afterTerm = await helpers.updateLoan({
+        id: created.id,
+        payload: { termMonths: null },
+        raw: true,
+      });
+
+      expect(afterTerm.loanDetails.termMonths).toBeNull();
+      const termEvent = afterTerm.loanDetails.events.at(-1);
+      expect(termEvent?.type).toBe('term_change');
+      if (termEvent?.type === 'term_change') {
+        expect(termEvent.from).toBe(360);
+        expect(termEvent.to).toBeNull();
+      }
+
+      const afterPlanned = await helpers.updateLoan({
         id: created.id,
         payload: { plannedPayment: null },
         raw: true,
       });
 
       // Clearing drops both the loan-currency amount and its ref (base-currency) mirror.
-      expect(updated.loanDetails.plannedPayment).toBeNull();
-      expect(updated.loanDetails.refPlannedPayment).toBeNull();
+      expect(afterPlanned.loanDetails.plannedPayment).toBeNull();
+      expect(afterPlanned.loanDetails.refPlannedPayment).toBeNull();
 
-      const event = updated.loanDetails.events.at(-1);
-      expect(event?.type).toBe('planned_payment_change');
-      if (event?.type === 'planned_payment_change') {
-        expect(event.from).toBe(1_200);
+      const plannedEvent = afterPlanned.loanDetails.events.at(-1);
+      expect(plannedEvent?.type).toBe('planned_payment_change');
+      if (plannedEvent?.type === 'planned_payment_change') {
+        expect(plannedEvent.from).toBe(1_200);
         // A cleared payment serializes as `to: null` — distinct from a $0 payment.
-        expect(event.to).toBeNull();
+        expect(plannedEvent.to).toBeNull();
       }
 
       const fromGet = await helpers.getLoanById({ id: created.id, raw: true });
@@ -610,203 +616,80 @@ describe('Loans read API', () => {
       expect(fromGet.loanDetails.plannedPayment).toBe(0);
     });
 
-    it('does not append a rate_change event when interestRate is patched to the same value', async () => {
+    it('appends no event for same-value, echoed or non-timeline-worthy patches', async () => {
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
       });
 
-      const updated = await helpers.updateLoan({
+      const sameRate = await helpers.updateLoan({
         id: created.id,
         payload: { interestRate: 6 },
         raw: true,
       });
+      expect(sameRate.loanDetails.interestRate).toBe(6);
+      expect(sameRate.loanDetails.events).toEqual([]);
 
-      expect(updated.loanDetails.interestRate).toBe(6);
-      expect(updated.loanDetails.events).toEqual([]);
-    });
-
-    it('records a term_change event with `to: null` when the term is cleared', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const updated = await helpers.updateLoan({
-        id: created.id,
-        payload: { termMonths: null },
-        raw: true,
-      });
-
-      expect(updated.loanDetails.termMonths).toBeNull();
-      const event = updated.loanDetails.events.at(-1);
-      expect(event?.type).toBe('term_change');
-      if (event?.type === 'term_change') {
-        expect(event.from).toBe(360);
-        expect(event.to).toBeNull();
-      }
-    });
-
-    it('applies a manual currentBalance correction and records a balance_correction event', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const updated = await helpers.updateLoan({
-        id: created.id,
-        payload: { currentBalance: 150_000 },
-        raw: true,
-      });
-
-      expect(updated.currentBalance).toBe(-150_000);
-      const event = updated.loanDetails.events.at(-1);
-      expect(event?.type).toBe('balance_correction');
-      if (event?.type === 'balance_correction') {
-        expect(event.from).toBe(200_000);
-        expect(event.to).toBe(150_000);
-      }
-      expect(updated.projection.paidToDate).toBe(50_000);
-    });
-
-    it('treats an echoed unchanged currentBalance as a no-op (no event, no balance churn)', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const updated = await helpers.updateLoan({
+      const echoedBalance = await helpers.updateLoan({
         id: created.id,
         payload: { currentBalance: 200_000 },
         raw: true,
       });
+      expect(echoedBalance.currentBalance).toBe(-200_000);
+      expect(echoedBalance.loanDetails.events).toEqual([]);
 
-      expect(updated.currentBalance).toBe(-200_000);
-      expect(updated.loanDetails.events).toEqual([]);
-    });
-
-    it('rejects a negative currentBalance', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const result = await helpers.updateLoan({
-        id: created.id,
-        payload: { currentBalance: -50 },
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it('does not append events for non-timeline-worthy field changes', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const updated = await helpers.updateLoan({
+      const lenderPatch = await helpers.updateLoan({
         id: created.id,
         payload: { lenderName: 'Wells Fargo', paymentDayOfMonth: 20 },
         raw: true,
       });
+      expect(lenderPatch.loanDetails.lenderName).toBe('Wells Fargo');
+      expect(lenderPatch.loanDetails.paymentDayOfMonth).toBe(20);
+      expect(lenderPatch.loanDetails.events).toEqual([]);
 
-      expect(updated.loanDetails.lenderName).toBe('Wells Fargo');
-      expect(updated.loanDetails.paymentDayOfMonth).toBe(20);
-      expect(updated.loanDetails.events).toEqual([]);
-    });
-
-    it('updates Account.name when name is patched', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const updated = await helpers.updateLoan({
+      const renamed = await helpers.updateLoan({
         id: created.id,
         payload: { name: 'Renamed mortgage' },
         raw: true,
       });
-
-      expect(updated.name).toBe('Renamed mortgage');
+      expect(renamed.name).toBe('Renamed mortgage');
+      expect(renamed.loanDetails.events).toEqual([]);
     });
 
-    it('responds 404 when the loan does not exist', async () => {
-      const result = await helpers.updateLoan({
-        id: generateRandomRecordId(),
-        payload: { interestRate: 5 },
-        raw: false,
-      });
-      expect(result.statusCode).toBe(404);
-    });
-
-    it('rejects an empty patch body', async () => {
+    it('rejects invalid patch payloads with 422 and leaves the loan untouched', async () => {
       const created = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
       });
-      const result = await helpers.updateLoan({
-        id: created.id,
-        payload: {},
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
 
-    it('rejects a calendar-invalid startDate on PATCH with 422', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-      const result = await helpers.updateLoan({
-        id: created.id,
-        payload: { startDate: '2024-02-30' },
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it('rejects patching startDate to a future date with 422', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-      const result = await helpers.updateLoan({
-        id: created.id,
-        payload: { startDate: format(addDays(new Date(), 2), 'yyyy-MM-dd') },
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it('rejects a calendar-invalid currentBalanceAsOf with 422', async () => {
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-      const result = await helpers.updateLoan({
-        id: created.id,
-        payload: { currentBalance: 150_000, currentBalanceAsOf: '2024-02-30' },
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it('rejects currentBalanceAsOf sent without currentBalance', async () => {
       // The anchor date is a statement "the outstanding was X as-of Y" — a date
       // with no amount has nothing to anchor, so it must be a clean 400-class
       // rejection rather than a 200 that silently drops the payload.
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-      const result = await helpers.updateLoan({
-        id: created.id,
-        payload: { currentBalanceAsOf: format(subDays(new Date(), 5), 'yyyy-MM-dd') },
-        raw: false,
-      });
-      expect(result.statusCode).toBe(422);
-    });
+      const badPayloads: [label: string, payload: Record<string, unknown>][] = [
+        ['negative currentBalance', { currentBalance: -50 }],
+        ['empty patch body', {}],
+        ['calendar-invalid startDate', { startDate: '2024-02-30' }],
+        ['future startDate', { startDate: format(addDays(new Date(), 2), 'yyyy-MM-dd') }],
+        ['calendar-invalid currentBalanceAsOf', { currentBalance: 150_000, currentBalanceAsOf: '2024-02-30' }],
+        [
+          'currentBalanceAsOf without currentBalance',
+          { currentBalanceAsOf: format(subDays(new Date(), 5), 'yyyy-MM-dd') },
+        ],
+      ];
+
+      for (const [label, payload] of badPayloads) {
+        const result = await helpers.updateLoan({
+          id: created.id,
+          payload,
+          raw: false,
+        });
+        expect([label, result.statusCode]).toEqual([label, 422]);
+      }
+
+      const reloaded = await helpers.getLoanById({ id: created.id, raw: true });
+      expect(reloaded.currentBalance).toBe(-200_000);
+      expect(reloaded.loanDetails.events).toEqual([]);
+    }, 30_000);
 
     it('re-anchors when the same balance is asserted as-of an earlier date, re-counting later payments', async () => {
       const created = await helpers.createLoan({
@@ -822,7 +705,10 @@ describe('Loans read API', () => {
       // Payment dated today (on the creation anchor) — outstanding drops to 8000.
       await helpers.createTransaction({
         payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 2_000 }),
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 2_000,
+          }),
           transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
           destinationAmount: 2_000,
           destinationAccountId: created.id as RecordId,
@@ -837,7 +723,10 @@ describe('Loans read API', () => {
       // on top of the asserted 8000.
       const updated = await helpers.updateLoan({
         id: created.id,
-        payload: { currentBalance: 8_000, currentBalanceAsOf: format(subDays(new Date(), 1), 'yyyy-MM-dd') },
+        payload: {
+          currentBalance: 8_000,
+          currentBalanceAsOf: format(subDays(new Date(), 1), 'yyyy-MM-dd'),
+        },
         raw: true,
       });
 
@@ -861,7 +750,10 @@ describe('Loans read API', () => {
       const sourceAccount = await helpers.createAccount({ raw: true });
       await helpers.createTransaction({
         payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 250 }),
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 250,
+          }),
           transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
           destinationAmount: 250,
           destinationAccountId: created.id as RecordId,
@@ -871,7 +763,10 @@ describe('Loans read API', () => {
 
       const result = await helpers.updateLoan({
         id: created.id,
-        payload: { name: 'Renamed loan', currencyCode: 'EUR' } as unknown as Record<string, unknown>,
+        payload: {
+          name: 'Renamed loan',
+          currencyCode: 'EUR',
+        } as unknown as Record<string, unknown>,
         raw: true,
       });
 
@@ -885,7 +780,7 @@ describe('Loans read API', () => {
     // LoanDetails sidecar. The generic account-update endpoint must not be a back
     // door around the dedicated loan path for balance or accountCategory changes.
 
-    it('F2a: rejects a currentBalance change on a loan account through the generic endpoint and leaves the balance untouched', async () => {
+    it('rejects currentBalance and accountCategory changes through the generic endpoint, but not the dedicated one', async () => {
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload(),
         raw: true,
@@ -904,37 +799,24 @@ describe('Loans read API', () => {
 
       const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloaded.currentBalance).toBe(-200_000);
-    });
 
-    it('F2b: rejects an accountCategory change on a loan account through the generic endpoint and keeps it a loan', async () => {
-      const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
-      const result = await helpers.updateAccount({
+      const categoryResult = await helpers.updateAccount({
         id: loan.id,
         payload: { accountCategory: ACCOUNT_CATEGORIES.general },
         raw: false,
       });
 
-      expect(result.statusCode).toBe(422);
-      expect((result.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.validationError);
+      expect(categoryResult.statusCode).toBe(422);
+      expect((categoryResult.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.validationError);
 
-      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloaded.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
-    });
-
-    it('regression: the dedicated PATCH /loans/:id still edits the outstanding balance and records a balance_correction event', async () => {
-      // Confirms the generic-endpoint carve-out above doesn't break the legitimate
-      // loan-balance edit path, which negates to the liability convention.
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
+      const afterCategory = await helpers.getLoanById({
+        id: loan.id,
         raw: true,
       });
+      expect(afterCategory.accountCategory).toBe(ACCOUNT_CATEGORIES.loan);
 
       const updated = await helpers.updateLoan({
-        id: created.id,
+        id: loan.id,
         payload: { currentBalance: 150_000 },
         raw: true,
       });
@@ -956,19 +838,20 @@ describe('Loans read API', () => {
         raw: true,
       });
 
-      const deleteResult = await helpers.deleteLoan({ id: created.id, raw: false });
+      const deleteResult = await helpers.deleteLoan({
+        id: created.id,
+        raw: false,
+      });
       expect(deleteResult.statusCode).toBe(204);
 
-      const followUp = await helpers.getLoanById({ id: created.id, raw: false });
+      const followUp = await helpers.getLoanById({
+        id: created.id,
+        raw: false,
+      });
       expect(followUp.statusCode).toBe(404);
 
       const list = await helpers.getLoans({ raw: true });
       expect(list.find((l) => l.id === created.id)).toBeUndefined();
-    });
-
-    it('responds 404 when deleting a non-existent loan', async () => {
-      const result = await helpers.deleteLoan({ id: generateRandomRecordId(), raw: false });
-      expect(result.statusCode).toBe(404);
     });
 
     it('rejects deleting a loan that has recorded payments', async () => {
@@ -982,7 +865,10 @@ describe('Loans read API', () => {
 
       await helpers.createTransaction({
         payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 500 }),
+          ...helpers.buildTransactionPayload({
+            accountId: sourceAccount.id,
+            amount: 500,
+          }),
           transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
           destinationAmount: 500,
           destinationAccountId: created.id as RecordId,
@@ -999,11 +885,14 @@ describe('Loans read API', () => {
       expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
       expect(errorBody.message).toMatch(/payment/i);
 
-      const stillThere = await helpers.getLoanById({ id: created.id, raw: false });
+      const stillThere = await helpers.getLoanById({
+        id: created.id,
+        raw: false,
+      });
       expect(stillThere.statusCode).toBe(200);
     });
 
-    it('deletes a loan that has timeline events but no payments', async () => {
+    it('deletes a loan whose history is a note and a balance correction but no payments', async () => {
       // Timeline events are self-contained metadata that disappears with the loan,
       // so only real payment legs block deletion.
       const created = await helpers.createLoan({
@@ -1017,20 +906,6 @@ describe('Loans read API', () => {
         raw: true,
       });
 
-      const response = await helpers.deleteLoan({ id: created.id, raw: false });
-      expect(response.statusCode).toBe(204);
-
-      const followUp = await helpers.getLoanById({ id: created.id, raw: false });
-      expect(followUp.statusCode).toBe(404);
-    });
-
-    it('deletes a loan whose only history is a balance correction', async () => {
-      // A balance_correction event must not block deletion.
-      const created = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload(),
-        raw: true,
-      });
-
       const corrected = await helpers.updateLoan({
         id: created.id,
         payload: { currentBalance: 150_000 },
@@ -1041,7 +916,10 @@ describe('Loans read API', () => {
       const response = await helpers.deleteLoan({ id: created.id, raw: false });
       expect(response.statusCode).toBe(204);
 
-      const followUp = await helpers.getLoanById({ id: created.id, raw: false });
+      const followUp = await helpers.getLoanById({
+        id: created.id,
+        raw: false,
+      });
       expect(followUp.statusCode).toBe(404);
     });
   });
@@ -1073,78 +951,64 @@ describe('Loans read API', () => {
         raw: true,
       });
 
-      const result = await helpers.appendLoanNote({ id: created.id, text: '   ', raw: false });
-      expect(result.statusCode).toBe(422);
-    });
-
-    it('responds 404 when the loan does not exist', async () => {
       const result = await helpers.appendLoanNote({
-        id: generateRandomRecordId(),
-        text: 'note',
+        id: created.id,
+        text: '   ',
         raw: false,
       });
-      expect(result.statusCode).toBe(404);
+      expect(result.statusCode).toBe(422);
     });
   });
 
+  it('responds 404 on every id-addressed loan endpoint for an unknown id', async () => {
+    const unknownId = generateRandomRecordId();
+
+    const getResult = await helpers.getLoanById({ id: unknownId, raw: false });
+    expect(getResult.statusCode).toBe(404);
+    expect((getResult.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.notFound);
+
+    const patchResult = await helpers.updateLoan({
+      id: unknownId,
+      payload: { interestRate: 5 },
+      raw: false,
+    });
+    expect(patchResult.statusCode).toBe(404);
+
+    const deleteResult = await helpers.deleteLoan({
+      id: unknownId,
+      raw: false,
+    });
+    expect(deleteResult.statusCode).toBe(404);
+
+    const noteResult = await helpers.appendLoanNote({
+      id: unknownId,
+      text: 'note',
+      raw: false,
+    });
+    expect(noteResult.statusCode).toBe(404);
+  });
+
   describe('paid_off timeline event', () => {
-    /** Base-currency loan owing `initialBalance`, plus a cash account to pay from. */
-    const setupLoanWithSource = async ({ initialBalance }: { initialBalance: number }) => {
-      const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({
-          currencyCode: global.BASE_CURRENCY_CODE,
-          initialBalance,
-          originalPrincipal: initialBalance,
-        }),
-        raw: true,
+    it('stamps a single paid_off event on payoff, drops it on reopen, and stamps one again when the loan re-zeroes', async () => {
+      const { loan, sourceAccount } = await setupLoanWithSource({
+        initialBalance: 1_000,
       });
-      const sourceAccount = await helpers.createAccount({ raw: true });
-      return { loan, sourceAccount };
-    };
 
-    const payLoan = async ({
-      loanId,
-      sourceAccountId,
-      amount,
-      time,
-    }: {
-      loanId: string;
-      sourceAccountId: RecordId;
-      amount: number;
-      /** ISO timestamp for backdated payments; defaults to now. */
-      time?: string;
-    }) => {
-      const [base] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({ accountId: sourceAccountId, amount, ...(time && { time }) }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
-          destinationAmount: amount,
-          destinationAccountId: loanId as RecordId,
-        },
-        raw: true,
+      const payment = await payLoan({
+        loanId: loan.id,
+        sourceAccountId: sourceAccount.id as RecordId,
+        amount: 1_000,
       });
-      return base;
-    };
 
-    it('appends a single paid_off event when a payment zeroes the outstanding', async () => {
-      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
-
-      await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
-
-      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloaded.currentBalance).toBe(0);
-      expect(reloaded.projection.isPaidOff).toBe(true);
-      const paidOffEvents = reloaded.loanDetails.events.filter((e) => e.type === 'paid_off');
+      const paidOff = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(paidOff.currentBalance).toBe(0);
+      expect(paidOff.projection.isPaidOff).toBe(true);
+      const paidOffEvents = paidOff.loanDetails.events.filter((e) => e.type === 'paid_off');
       expect(paidOffEvents).toHaveLength(1);
       if (paidOffEvents[0]?.type === 'paid_off') {
         expect(typeof paidOffEvents[0].at).toBe('string');
       }
-    });
 
-    it('drops the paid_off event on reopen and stamps exactly one when the loan re-zeroes', async () => {
-      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
-
-      const payment = await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
       // Deleting the payoff payment reopens the loan — the balance goes negative
       // again and the timeline must no longer claim the loan is paid off.
       await helpers.deleteTransaction({ id: payment.id });
@@ -1154,7 +1018,11 @@ describe('Loans read API', () => {
       expect(reopened.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(0);
 
       // Paying it off again is a fresh negative→zero transition — exactly one event.
-      await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
+      await payLoan({
+        loanId: loan.id,
+        sourceAccountId: sourceAccount.id as RecordId,
+        amount: 1_000,
+      });
 
       const repaid = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(repaid.currentBalance).toBe(0);
@@ -1162,51 +1030,34 @@ describe('Loans read API', () => {
     });
 
     it('drops the paid_off event when shrinking the settling payment reopens the loan', async () => {
-      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
+      const { loan, sourceAccount } = await setupLoanWithSource({
+        initialBalance: 1_000,
+      });
 
-      const payment = await payLoan({ loanId: loan.id, sourceAccountId: sourceAccount.id as RecordId, amount: 1_000 });
+      const payment = await payLoan({
+        loanId: loan.id,
+        sourceAccountId: sourceAccount.id as RecordId,
+        amount: 1_000,
+      });
       const paidOff = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(paidOff.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(1);
 
       // Shrinking the payoff payment reopens the loan: −1,000 + 400 = −600 owed.
-      await helpers.updateTransaction({ id: payment.id, payload: { destinationAmount: 400 }, raw: true });
+      await helpers.updateTransaction({
+        id: payment.id,
+        payload: { destinationAmount: 400 },
+        raw: true,
+      });
 
       const reopened = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reopened.currentBalance).toBe(-600);
       expect(reopened.loanDetails.events.filter((e) => e.type === 'paid_off')).toHaveLength(0);
     });
 
-    it('stamps paid_off with the settling payment date, not the recompute time', async () => {
-      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
-
-      // Re-anchor a month back so a backdated payment counts toward the balance.
-      const anchorDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
-      await helpers.updateLoan({
-        id: loan.id,
-        payload: { currentBalance: 1_000, currentBalanceAsOf: anchorDate },
-        raw: true,
-      });
-
-      // Single backdated payment settles the whole loan.
-      const paymentTime = subDays(new Date(), 10);
-      await payLoan({
-        loanId: loan.id,
-        sourceAccountId: sourceAccount.id as RecordId,
-        amount: 1_000,
-        time: paymentTime.toISOString(),
-      });
-
-      const reloaded = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloaded.currentBalance).toBe(0);
-      const paidOffEvents = reloaded.loanDetails.events.filter((e) => e.type === 'paid_off');
-      expect(paidOffEvents).toHaveLength(1);
-      if (paidOffEvents[0]?.type === 'paid_off') {
-        expect(paidOffEvents[0].at.slice(0, 10)).toBe(paymentTime.toISOString().slice(0, 10));
-      }
-    });
-
     it('stamps paid_off with the date of the payment that actually settles when several payments exist', async () => {
-      const { loan, sourceAccount } = await setupLoanWithSource({ initialBalance: 1_000 });
+      const { loan, sourceAccount } = await setupLoanWithSource({
+        initialBalance: 1_000,
+      });
 
       const anchorDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
       await helpers.updateLoan({
@@ -1263,7 +1114,9 @@ describe('Loans read API', () => {
         cookies: userBCookies,
         fn: async () => {
           const loan = await helpers.createLoan({
-            payload: helpers.buildCreateLoanPayload({ currencyCode: global.BASE_CURRENCY_CODE }),
+            payload: helpers.buildCreateLoanPayload({
+              currencyCode: global.BASE_CURRENCY_CODE,
+            }),
             raw: true,
           });
           return loan.id;
@@ -1272,7 +1125,10 @@ describe('Loans read API', () => {
 
       // All four id-addressed endpoints must behave exactly as if the loan does
       // not exist — a real foreign id and a random id are indistinguishable.
-      const getResult = await helpers.getLoanById({ id: userBLoanId, raw: false });
+      const getResult = await helpers.getLoanById({
+        id: userBLoanId,
+        raw: false,
+      });
       expect(getResult.statusCode).toBe(404);
 
       const patchResult = await helpers.updateLoan({
@@ -1282,10 +1138,17 @@ describe('Loans read API', () => {
       });
       expect(patchResult.statusCode).toBe(404);
 
-      const deleteResult = await helpers.deleteLoan({ id: userBLoanId, raw: false });
+      const deleteResult = await helpers.deleteLoan({
+        id: userBLoanId,
+        raw: false,
+      });
       expect(deleteResult.statusCode).toBe(404);
 
-      const noteResult = await helpers.appendLoanNote({ id: userBLoanId, text: 'intrusion', raw: false });
+      const noteResult = await helpers.appendLoanNote({
+        id: userBLoanId,
+        text: 'intrusion',
+        raw: false,
+      });
       expect(noteResult.statusCode).toBe(404);
 
       // The owner's loan is untouched by all of the rejected calls above.

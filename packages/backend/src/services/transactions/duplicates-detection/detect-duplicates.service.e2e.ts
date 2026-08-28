@@ -5,82 +5,80 @@ import * as helpers from '@tests/helpers';
 
 import { type TransactionToCheck, detectDuplicates } from './detect-duplicates.service';
 
+const createTransactionsToCheck = (overrides: Partial<TransactionToCheck>[] = []): TransactionToCheck[] => {
+  const defaults: TransactionToCheck[] = [
+    {
+      date: '2024-01-15 10:30:00',
+      amount: asCents(10050),
+      type: 'expense',
+    },
+    {
+      date: '2024-01-16 14:20:00',
+      amount: asCents(5000),
+      type: 'expense',
+    },
+    {
+      date: '2024-01-17 09:00:00',
+      amount: asCents(250000),
+      type: 'income',
+    },
+  ];
+
+  return defaults.map((tx, i) => ({
+    ...tx,
+    ...overrides[i],
+  }));
+};
+
 describe('Generic Detect Duplicates Service', () => {
-  /**
-   * Helper to create transactions to check.
-   */
-  const createTransactionsToCheck = (overrides: Partial<TransactionToCheck>[] = []): TransactionToCheck[] => {
-    const defaults: TransactionToCheck[] = [
-      {
-        date: '2024-01-15 10:30:00',
-        amount: asCents(10050),
-        type: 'expense',
-      },
-      {
-        date: '2024-01-16 14:20:00',
-        amount: asCents(5000),
-        type: 'expense',
-      },
-      {
-        date: '2024-01-17 09:00:00',
-        amount: asCents(250000),
-        type: 'income',
-      },
-    ];
-
-    return defaults.map((tx, i) => ({
-      ...tx,
-      ...overrides[i],
-    }));
-  };
-
   describe('basic duplicate detection', () => {
-    it('should return empty array when no transactions to check', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions: [],
-      });
-
-      expect(result).toEqual([]);
-    });
-
-    it('should return empty array when no existing transactions in account', async () => {
+    it('should return an empty array for every no-match path', async () => {
       const account = await helpers.createAccount({ raw: true });
       const transactions = createTransactionsToCheck();
 
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
+      expect(
+        await detectDuplicates({
+          userId: account.userId,
+          accountId: account.id,
+          transactions: [],
+        }),
+      ).toEqual([]);
+
+      // The account holds no transactions yet, so this assertion must precede the seed below.
+      expect(
+        await detectDuplicates({
+          userId: account.userId,
+          accountId: account.id,
+          transactions,
+        }),
+      ).toHaveLength(0);
+
+      // Existing transaction that matches nothing in the check list
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 999.99,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: new Date('2020-01-01').toISOString(),
+        }),
+        raw: true,
       });
 
-      expect(result).toHaveLength(0);
-    });
+      expect(
+        await detectDuplicates({
+          userId: account.userId,
+          accountId: account.id,
+          transactions,
+        }),
+      ).toHaveLength(0);
 
-    it('should return empty array when no matches found', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create transaction that doesn't match
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 999.99,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2020-01-01').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const transactions = createTransactionsToCheck();
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
-      });
-
-      expect(result).toHaveLength(0);
+      expect(
+        await detectDuplicates({
+          userId: account.userId,
+          accountId: generateRandomRecordId(),
+          transactions,
+        }),
+      ).toHaveLength(0);
     });
 
     it('should detect duplicate when date + amount + type match', async () => {
@@ -128,11 +126,13 @@ describe('Generic Detect Duplicates Service', () => {
       });
       await helpers.createTransaction({ payload: tx2, raw: true });
 
+      // 18:00 on the last date of the range: the match needs the lookup window to cover that
+      // whole final day.
       const tx3 = helpers.buildTransactionPayload({
         accountId: account.id,
         amount: 2500.0,
         transactionType: TRANSACTION_TYPES.income,
-        time: new Date('2024-01-17').toISOString(),
+        time: new Date('2024-01-17T18:00:00').toISOString(),
       });
       await helpers.createTransaction({ payload: tx3, raw: true });
 
@@ -150,88 +150,110 @@ describe('Generic Detect Duplicates Service', () => {
   });
 
   describe('matching criteria', () => {
-    it('should NOT match when transaction type differs', async () => {
-      const account = await helpers.createAccount({ raw: true });
+    it('should NOT match on a near miss of type, amount or date', async () => {
+      const [typeAccount, amountAccount, dateAccount] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createAccount({ raw: true }),
+        helpers.createAccount({ raw: true }),
+      ]);
 
-      // Create INCOME with same date and amount as EXPENSE in check list
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.income, // Different type
-        time: new Date('2024-01-15').toISOString(),
+      // INCOME with the same date and amount as the EXPENSE in the check list
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: typeAccount.id,
+          amount: 100.5,
+          transactionType: TRANSACTION_TYPES.income,
+          time: new Date('2024-01-15').toISOString(),
+        }),
+        raw: true,
       });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: amountAccount.id,
+          amount: 100.51, // 1 cent difference
+          transactionType: TRANSACTION_TYPES.expense,
+          time: new Date('2024-01-15').toISOString(),
+        }),
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: dateAccount.id,
+          amount: 100.5,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: new Date('2024-01-14').toISOString(), // 1 day before
+        }),
+        raw: true,
+      });
 
       const transactions = createTransactionsToCheck();
 
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
-      });
-
-      expect(result).toHaveLength(0);
+      expect(
+        await detectDuplicates({
+          userId: typeAccount.userId,
+          accountId: typeAccount.id,
+          transactions,
+        }),
+      ).toHaveLength(0);
+      expect(
+        await detectDuplicates({
+          userId: amountAccount.userId,
+          accountId: amountAccount.id,
+          transactions,
+        }),
+      ).toHaveLength(0);
+      expect(
+        await detectDuplicates({
+          userId: dateAccount.userId,
+          accountId: dateAccount.id,
+          transactions,
+        }),
+      ).toHaveLength(0);
     });
 
-    it('should NOT match when amount differs by 1 cent', async () => {
+    it('should match on the day regardless of time and of the incoming date format', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100.51, // 1 cent difference
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const transactions = createTransactionsToCheck();
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100.5,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: new Date('2024-01-15T23:59:59').toISOString(),
+        }),
+        raw: true,
       });
 
-      expect(result).toHaveLength(0);
-    });
-
-    it('should NOT match when date differs by 1 day', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-14').toISOString(), // 1 day before
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const transactions = createTransactionsToCheck();
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100.5,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: new Date('2024-01-20T14:00:00').toISOString(),
+        }),
+        raw: true,
       });
 
-      expect(result).toHaveLength(0);
-    });
-
-    it('should match transactions on same day regardless of time', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create transaction at 23:59 on same day
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15T23:59:59').toISOString(),
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 50.0,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: new Date('2024-01-31T23:59:59').toISOString(),
+        }),
+        raw: true,
       });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
 
-      // Check transaction at 10:30 on same day
       const transactions: TransactionToCheck[] = [
-        { date: '2024-01-15 10:30:00', amount: asCents(10050), type: 'expense' },
+        {
+          date: '2024-01-15 10:30:00',
+          amount: asCents(10050),
+          type: 'expense',
+        },
+        { date: '2024-01-20', amount: asCents(10050), type: 'expense' },
+        { date: '2024-01-31 12:00:00', amount: asCents(5000), type: 'expense' },
       ];
 
       const result = await detectDuplicates({
@@ -240,58 +262,12 @@ describe('Generic Detect Duplicates Service', () => {
         transactions,
       });
 
-      expect(result).toHaveLength(1);
-    });
-
-    it('should match using date-only format (YYYY-MM-DD)', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15T14:00:00').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      // Check with date-only format
-      const transactions: TransactionToCheck[] = [{ date: '2024-01-15', amount: asCents(10050), type: 'expense' }];
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
-      });
-
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(3);
+      expect(result.map((d) => d.index).toSorted()).toEqual([0, 1, 2]);
     });
   });
 
   describe('date range handling', () => {
-    it('should correctly detect duplicates on the last day of range', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create transaction on the last date
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 2500.0,
-        transactionType: TRANSACTION_TYPES.income,
-        time: new Date('2024-01-17T18:00:00').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const transactions = createTransactionsToCheck();
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0]!.index).toBe(2); // Third transaction (income)
-    });
-
     it('should handle transactions spanning multiple months', async () => {
       const account = await helpers.createAccount({ raw: true });
 
@@ -317,30 +293,6 @@ describe('Generic Detect Duplicates Service', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]!.index).toBe(1);
-    });
-
-    it('should handle single transaction at end of month', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 50.0,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-31T23:59:59').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const transactions: TransactionToCheck[] = [
-        { date: '2024-01-31 12:00:00', amount: asCents(5000), type: 'expense' },
-      ];
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
-      });
-
-      expect(result).toHaveLength(1);
     });
   });
 
@@ -385,6 +337,27 @@ describe('Generic Detect Duplicates Service', () => {
       expect(match.existing.date).toBe('2024-01-15');
       expect(match.existing.amount).toBe(10050);
       expect(match.existing.note).toBe('Test note for matching');
+
+      const emptyNoteAccount = await helpers.createAccount({ raw: true });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: emptyNoteAccount.id,
+          amount: 100.5,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: new Date('2024-01-15').toISOString(),
+          note: '',
+        }),
+        raw: true,
+      });
+
+      const emptyNoteResult = await detectDuplicates({
+        userId: emptyNoteAccount.userId,
+        accountId: emptyNoteAccount.id,
+        transactions,
+      });
+
+      expect(emptyNoteResult).toHaveLength(1);
+      expect(emptyNoteResult[0]!.existing.note).toBe('');
     });
 
     it('should preserve generic type T in incoming field', async () => {
@@ -428,31 +401,6 @@ describe('Generic Detect Duplicates Service', () => {
   });
 
   describe('account isolation', () => {
-    it('should only find duplicates in specified account', async () => {
-      const account1 = await helpers.createAccount({ raw: true });
-      const account2 = await helpers.createAccount({ raw: true });
-
-      // Create transaction in account1
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account1.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const transactions = createTransactionsToCheck();
-
-      // Check against account2
-      const result = await detectDuplicates({
-        userId: account2.userId,
-        accountId: account2.id,
-        transactions,
-      });
-
-      expect(result).toHaveLength(0);
-    });
-
     it('should find correct duplicate when both accounts have similar transactions', async () => {
       const account1 = await helpers.createAccount({ raw: true });
       const account2 = await helpers.createAccount({ raw: true });
@@ -559,44 +507,6 @@ describe('Generic Detect Duplicates Service', () => {
 
       // Should return one match (uses first matching transaction)
       expect(result).toHaveLength(1);
-    });
-
-    it('should handle empty note in existing transaction', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15').toISOString(),
-        note: '', // Empty note
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const transactions = createTransactionsToCheck();
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: account.id,
-        transactions,
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0]!.existing.note).toBe('');
-    });
-
-    it('should handle non-existent account gracefully', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const transactions = createTransactionsToCheck();
-
-      const result = await detectDuplicates({
-        userId: account.userId,
-        accountId: generateRandomRecordId(), // Non-existent
-        transactions,
-      });
-
-      // Should return empty array (no transactions found)
-      expect(result).toHaveLength(0);
     });
   });
 });

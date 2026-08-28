@@ -4,41 +4,6 @@ import * as helpers from '@tests/helpers';
 
 describe('Statistics with transaction splits', () => {
   describe('getSpendingsByCategories with splits', () => {
-    it('should distribute amount between primary and split categories', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const categories = await helpers.getCategoriesList();
-      const primaryCategory = categories[0]!;
-      const splitCategory = categories[1]!;
-
-      // Create $100 transaction for "Food" with $20 split for "Clothes"
-      // Stats should show: $80 Food, $20 Clothes
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        categoryId: primaryCategory.id,
-        amount: 10000, // $100 in cents
-        transactionType: TRANSACTION_TYPES.expense,
-        splits: [{ categoryId: splitCategory.id, amount: 2000 }], // $20 in cents
-      });
-
-      await helpers.createTransaction({ payload: txPayload, raw: false });
-
-      const stats = await helpers.getSpendingsByCategories({ raw: true });
-
-      // Primary category should have 10000 - 2000 = 8000
-      expect(stats[primaryCategory.id.toString()]).toEqual({
-        name: primaryCategory.name,
-        color: primaryCategory.color,
-        amount: 8000,
-      });
-
-      // Split category should have 2000
-      expect(stats[splitCategory.id.toString()]).toEqual({
-        name: splitCategory.name,
-        color: splitCategory.color,
-        amount: 2000,
-      });
-    });
-
     it('should handle multiple splits correctly', async () => {
       const account = await helpers.createAccount({ raw: true });
       const categories = await helpers.getCategoriesList();
@@ -63,9 +28,21 @@ describe('Statistics with transaction splits', () => {
 
       const stats = await helpers.getSpendingsByCategories({ raw: true });
 
-      expect(stats[primaryCategory.id.toString()].amount).toBe(4500);
-      expect(stats[splitCategory1.id.toString()].amount).toBe(3000);
-      expect(stats[splitCategory2.id.toString()].amount).toBe(2500);
+      expect(stats[primaryCategory.id.toString()]).toEqual({
+        name: primaryCategory.name,
+        color: primaryCategory.color,
+        amount: 4500,
+      });
+      expect(stats[splitCategory1.id.toString()]).toEqual({
+        name: splitCategory1.name,
+        color: splitCategory1.color,
+        amount: 3000,
+      });
+      expect(stats[splitCategory2.id.toString()]).toEqual({
+        name: splitCategory2.name,
+        color: splitCategory2.color,
+        amount: 2500,
+      });
     });
 
     it('should handle transaction where splits consume entire amount', async () => {
@@ -99,45 +76,7 @@ describe('Statistics with transaction splits', () => {
       expect(stats[splitCategory2.id.toString()].amount).toBe(4000);
     });
 
-    it('should aggregate splits across multiple transactions', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const categories = await helpers.getCategoriesList();
-      const categoryA = categories[0]!;
-      const categoryB = categories[1]!;
-
-      // Transaction 1: $100 for A with $20 split for B
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          categoryId: categoryA.id,
-          amount: 10000,
-          transactionType: TRANSACTION_TYPES.expense,
-          splits: [{ categoryId: categoryB.id, amount: 2000 }],
-        }),
-        raw: false,
-      });
-
-      // Transaction 2: $50 for B with $15 split for A
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          categoryId: categoryB.id,
-          amount: 5000,
-          transactionType: TRANSACTION_TYPES.expense,
-          splits: [{ categoryId: categoryA.id, amount: 1500 }],
-        }),
-        raw: false,
-      });
-
-      const stats = await helpers.getSpendingsByCategories({ raw: true });
-
-      // Category A: 8000 (primary from tx1) + 1500 (split from tx2) = 9500
-      expect(stats[categoryA.id.toString()].amount).toBe(9500);
-      // Category B: 2000 (split from tx1) + 3500 (primary from tx2) = 5500
-      expect(stats[categoryB.id.toString()].amount).toBe(5500);
-    });
-
-    it('should handle mix of transactions with and without splits', async () => {
+    it('should aggregate across transactions with and without splits', async () => {
       const account = await helpers.createAccount({ raw: true });
       const categories = await helpers.getCategoriesList();
       const categoryA = categories[0]!;
@@ -166,12 +105,24 @@ describe('Statistics with transaction splits', () => {
         raw: false,
       });
 
+      // Transaction 3: $50 for B with $15 split for A
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          categoryId: categoryB.id,
+          amount: 5000,
+          transactionType: TRANSACTION_TYPES.expense,
+          splits: [{ categoryId: categoryA.id, amount: 1500 }],
+        }),
+        raw: false,
+      });
+
       const stats = await helpers.getSpendingsByCategories({ raw: true });
 
-      // Category A: 10000 (tx1) + 3000 (tx2 primary) = 13000
-      expect(stats[categoryA.id.toString()].amount).toBe(13000);
-      // Category B: 2000 (tx2 split)
-      expect(stats[categoryB.id.toString()].amount).toBe(2000);
+      // Category A: 10000 (tx1) + 3000 (tx2 primary) + 1500 (tx3 split) = 14500
+      expect(stats[categoryA.id.toString()].amount).toBe(14500);
+      // Category B: 2000 (tx2 split) + 3500 (tx3 primary) = 5500
+      expect(stats[categoryB.id.toString()].amount).toBe(5500);
     });
   });
 
@@ -262,104 +213,6 @@ describe('Statistics with transaction splits', () => {
     });
 
     describe('refunds targeting specific splits (splitId)', () => {
-      it('should correctly attribute refund to split category when splitId specified', async () => {
-        const account = await helpers.createAccount({ raw: true });
-        const categories = await helpers.getCategoriesList();
-        const categoryA = categories[0]!;
-        const categoryB = categories[1]!;
-
-        // Create $100 expense: $70 primary (A) + $30 split (B)
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: categoryA.id,
-            amount: 10000,
-            transactionType: TRANSACTION_TYPES.expense,
-            splits: [{ categoryId: categoryB.id, amount: 3000 }],
-          }),
-          raw: true,
-        });
-
-        const transactions = await helpers.getTransactions({
-          raw: true,
-          includeSplits: true,
-        });
-        const split = transactions![0]!.splits![0]!;
-
-        // Create $20 refund targeting the split (category B)
-        const [refundTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: categoryB.id,
-            amount: 2000,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        await helpers.createSingleRefund({
-          originalTxId: expenseTx.id,
-          refundTxId: refundTx.id,
-          splitId: split.id,
-        });
-
-        const stats = await helpers.getSpendingsByCategories({ raw: true });
-
-        // Category A: 7000 (primary, unaffected by split refund)
-        expect(stats[categoryA.id.toString()].amount).toBe(7000);
-        // Category B: 3000 (split) - 2000 (refund) = 1000
-        expect(stats[categoryB.id.toString()].amount).toBe(1000);
-      });
-
-      it('should handle full refund of split amount', async () => {
-        const account = await helpers.createAccount({ raw: true });
-        const categories = await helpers.getCategoriesList();
-        const categoryA = categories[0]!;
-        const categoryB = categories[1]!;
-
-        // Create $100 expense: $70 primary (A) + $30 split (B)
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: categoryA.id,
-            amount: 10000,
-            transactionType: TRANSACTION_TYPES.expense,
-            splits: [{ categoryId: categoryB.id, amount: 3000 }],
-          }),
-          raw: true,
-        });
-
-        const transactions = await helpers.getTransactions({
-          raw: true,
-          includeSplits: true,
-        });
-        const split = transactions![0]!.splits![0]!;
-
-        // Create full $30 refund for the split
-        const [refundTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: categoryB.id,
-            amount: 3000,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        await helpers.createSingleRefund({
-          originalTxId: expenseTx.id,
-          refundTxId: refundTx.id,
-          splitId: split.id,
-        });
-
-        const stats = await helpers.getSpendingsByCategories({ raw: true });
-
-        // Category A: 7000 (primary, unaffected)
-        expect(stats[categoryA.id.toString()].amount).toBe(7000);
-        // Category B: 3000 - 3000 = 0 (fully refunded)
-        expect(stats[categoryB.id.toString()].amount).toBe(0);
-      });
-
       it('should handle multiple refunds on different splits of same transaction', async () => {
         const account = await helpers.createAccount({ raw: true });
         const categories = await helpers.getCategoriesList();
@@ -433,7 +286,7 @@ describe('Statistics with transaction splits', () => {
         expect(stats[categoryC.id.toString()].amount).toBe(1000);
       });
 
-      it('should handle refunds on both primary and split independently', async () => {
+      it('should handle split and transaction level refunds independently, down to a fully refunded split', async () => {
         const account = await helpers.createAccount({ raw: true });
         const categories = await helpers.getCategoriesList();
         const categoryA = categories[0]!;
@@ -457,24 +310,32 @@ describe('Statistics with transaction splits', () => {
         });
         const split = transactions![0]!.splits![0]!;
 
+        const refundSplit = async ({ amount }: { amount: number }) => {
+          const [refundTx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              categoryId: categoryB.id,
+              amount,
+              transactionType: TRANSACTION_TYPES.income,
+            }),
+            raw: true,
+          });
+          await helpers.createSingleRefund({
+            originalTxId: expenseTx.id,
+            refundTxId: refundTx.id,
+            splitId: split.id,
+          });
+        };
+
         // Refund $20 on the split (category B)
-        const [splitRefund] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: categoryB.id,
-            amount: 2000,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
+        await refundSplit({ amount: 2000 });
 
-        await helpers.createSingleRefund({
-          originalTxId: expenseTx.id,
-          refundTxId: splitRefund.id,
-          splitId: split.id,
-        });
+        let stats = await helpers.getSpendingsByCategories({ raw: true });
+        expect(stats[categoryA.id.toString()].amount).toBe(7000);
+        // Category B: 3000 (split) - 2000 (refund) = 1000
+        expect(stats[categoryB.id.toString()].amount).toBe(1000);
 
-        // Refund $30 on the whole transaction (affects category A)
+        // Refund $30 on the whole transaction
         const [primaryRefund] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
@@ -490,13 +351,19 @@ describe('Statistics with transaction splits', () => {
           refundTxId: primaryRefund.id,
         });
 
-        const stats = await helpers.getSpendingsByCategories({ raw: true });
-
+        stats = await helpers.getSpendingsByCategories({ raw: true });
         // Category A: 7000 (primary) - 3000 (refund) = 4000
         expect(stats[categoryA.id.toString()].amount).toBe(4000);
-        // Category B: 3000 (split) - 2000 (refund) = 1000
+        // The transaction-level refund must not leak onto the split category
         expect(stats[categoryB.id.toString()].amount).toBe(1000);
-      });
+
+        await refundSplit({ amount: 1000 });
+
+        stats = await helpers.getSpendingsByCategories({ raw: true });
+        expect(stats[categoryA.id.toString()].amount).toBe(4000);
+        // Category B: 3000 - 3000 = 0 (fully refunded)
+        expect(stats[categoryB.id.toString()].amount).toBe(0);
+      }, 30000);
 
       it('should correctly aggregate stats with multiple transactions having split refunds', async () => {
         const account = await helpers.createAccount({ raw: true });

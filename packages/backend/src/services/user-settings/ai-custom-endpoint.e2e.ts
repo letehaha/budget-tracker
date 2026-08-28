@@ -62,7 +62,10 @@ async function corruptStoredKey({ userId, endpointId }: { userId: number; endpoi
   const settings = await UserSettings.findOne({ where: { userId } });
   if (!settings) throw new Error('Test user has no settings row');
 
-  const aiSettings = settings.settings.ai ?? { apiKeys: [], featureConfigs: [] };
+  const aiSettings = settings.settings.ai ?? {
+    apiKeys: [],
+    featureConfigs: [],
+  };
   settings.settings = {
     ...settings.settings,
     ai: {
@@ -74,6 +77,29 @@ async function corruptStoredKey({ userId, endpointId }: { userId: number; endpoi
   };
 
   await settings.save();
+}
+
+/** Self-host stands the outbound URL guard down, which the mock endpoint hosts need. */
+function runAsSelfHost() {
+  process.env.IS_SELF_HOST = 'true';
+}
+
+/** The guard rejects anything that is not a public internet host. */
+function runAsCloud() {
+  delete process.env.IS_SELF_HOST;
+}
+
+async function burnProbeBudget({ attempts }: { attempts: number }) {
+  const userId = await getTestUserId();
+  await RateLimitService.resetRateLimit(`ai-custom-endpoint-test:user:${userId}`);
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const response = await helpers.testAiCustomEndpoint({
+      baseUrl: CUSTOM_ENDPOINT_BASE_URL,
+      defaultModel: CUSTOM_ENDPOINT_MODEL,
+    });
+    expect(response.statusCode).toBe(200);
+  }
 }
 
 describe('AI custom endpoints', () => {
@@ -110,51 +136,30 @@ describe('AI custom endpoints', () => {
     }
   });
 
-  /** Self-host stands the outbound URL guard down, which the mock endpoint hosts need. */
-  function runAsSelfHost() {
-    process.env.IS_SELF_HOST = 'true';
-  }
-
-  /** The guard rejects anything that is not a public internet host. */
-  function runAsCloud() {
-    delete process.env.IS_SELF_HOST;
-  }
-
   describe('Authentication', () => {
-    it('returns 401 for an unauthenticated list', async () => {
-      const response = await request(app).get(`${API_PREFIX}/user/settings/ai/custom-endpoints`);
+    it('refuses every custom-endpoint route without a session', async () => {
+      const endpointId = generateRandomRecordId();
 
-      expect(response.statusCode).toBe(401);
-    });
+      const listed = await request(app).get(`${API_PREFIX}/user/settings/ai/custom-endpoints`);
+      expect(listed.statusCode).toBe(401);
 
-    it('returns 401 for an unauthenticated create', async () => {
-      const response = await request(app)
-        .post(`${API_PREFIX}/user/settings/ai/custom-endpoints`)
-        .send({ name: FIRST_ENDPOINT_NAME, baseUrl: CUSTOM_ENDPOINT_BASE_URL, defaultModel: CUSTOM_ENDPOINT_MODEL });
+      const created = await request(app).post(`${API_PREFIX}/user/settings/ai/custom-endpoints`).send({
+        name: FIRST_ENDPOINT_NAME,
+        baseUrl: CUSTOM_ENDPOINT_BASE_URL,
+        defaultModel: CUSTOM_ENDPOINT_MODEL,
+      });
+      expect(created.statusCode).toBe(401);
 
-      expect(response.statusCode).toBe(401);
-    });
-
-    it('returns 401 for an unauthenticated update', async () => {
-      const response = await request(app)
-        .put(`${API_PREFIX}/user/settings/ai/custom-endpoints/${generateRandomRecordId()}`)
+      const updated = await request(app)
+        .put(`${API_PREFIX}/user/settings/ai/custom-endpoints/${endpointId}`)
         .send({ name: FIRST_ENDPOINT_NAME });
+      expect(updated.statusCode).toBe(401);
 
-      expect(response.statusCode).toBe(401);
-    });
+      const removed = await request(app).delete(`${API_PREFIX}/user/settings/ai/custom-endpoints/${endpointId}`);
+      expect(removed.statusCode).toBe(401);
 
-    it('returns 401 for an unauthenticated delete', async () => {
-      const response = await request(app).delete(
-        `${API_PREFIX}/user/settings/ai/custom-endpoints/${generateRandomRecordId()}`,
-      );
-
-      expect(response.statusCode).toBe(401);
-    });
-
-    it('returns 401 for an unauthenticated connection test', async () => {
-      const response = await request(app).post(`${API_PREFIX}/user/settings/ai/custom-endpoints/test`).send({});
-
-      expect(response.statusCode).toBe(401);
+      const tested = await request(app).post(`${API_PREFIX}/user/settings/ai/custom-endpoints/test`).send({});
+      expect(tested.statusCode).toBe(401);
     });
   });
 
@@ -165,10 +170,13 @@ describe('AI custom endpoints', () => {
       expect(endpoints).toEqual([]);
     });
 
-    it('lists every saved endpoint with its id and name, in creation order', async () => {
+    it('lists both endpoints in creation order without key material', async () => {
       runAsSelfHost();
-      const first = await createFirstEndpoint();
-      const second = await createSecondEndpoint();
+      const apiKey = 'super-secret-endpoint-key';
+      const first = await createFirstEndpoint({ apiKey });
+      const second = await createSecondEndpoint({ apiKey: `${apiKey}-two` });
+
+      expect(first.id).not.toBe(second.id);
 
       const endpoints = await helpers.getAiCustomEndpoints({ raw: true });
 
@@ -178,16 +186,6 @@ describe('AI custom endpoints', () => {
       expect(endpoints[0]!.baseUrl).toBe(CUSTOM_ENDPOINT_BASE_URL);
       expect(endpoints[1]!.baseUrl).toBe(CUSTOM_ENDPOINT_LOOPBACK_BASE_URL);
       expect(endpoints[1]!.defaultModel).toBe(SECOND_ENDPOINT_MODEL);
-    });
-
-    it('never returns key material for any endpoint', async () => {
-      runAsSelfHost();
-      const apiKey = 'super-secret-endpoint-key';
-      await createFirstEndpoint({ apiKey });
-      await createSecondEndpoint({ apiKey: `${apiKey}-two` });
-
-      const endpoints = await helpers.getAiCustomEndpoints({ raw: true });
-
       expect(endpoints.every((endpoint) => endpoint.hasApiKey)).toBe(true);
       expect(JSON.stringify(endpoints)).not.toContain(apiKey);
       for (const endpoint of endpoints) {
@@ -222,15 +220,6 @@ describe('AI custom endpoints', () => {
       expect(created.invalidatedAt).toBeUndefined();
     });
 
-    it('gives each endpoint its own id', async () => {
-      runAsSelfHost();
-
-      const first = await createFirstEndpoint();
-      const second = await createSecondEndpoint();
-
-      expect(first.id).not.toBe(second.id);
-    });
-
     it('rejects a name already taken, regardless of case, and persists nothing new', async () => {
       runAsSelfHost();
       await createFirstEndpoint();
@@ -245,54 +234,45 @@ describe('AI custom endpoints', () => {
       expect(await helpers.getAiCustomEndpoints({ raw: true })).toHaveLength(1);
     });
 
-    it('rejects a name that is blank once trimmed', async () => {
+    it('rejects malformed create payloads and persists nothing', async () => {
       runAsSelfHost();
 
-      const response = await helpers.createAiCustomEndpoint({
-        name: '   ',
-        baseUrl: CUSTOM_ENDPOINT_BASE_URL,
-        defaultModel: CUSTOM_ENDPOINT_MODEL,
-      });
+      const invalidPayloads = [
+        {
+          name: '   ',
+          baseUrl: CUSTOM_ENDPOINT_BASE_URL,
+          defaultModel: CUSTOM_ENDPOINT_MODEL,
+        },
+        {
+          name: 'e'.repeat(AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH + 1),
+          baseUrl: CUSTOM_ENDPOINT_BASE_URL,
+          defaultModel: CUSTOM_ENDPOINT_MODEL,
+        },
+        {
+          name: FIRST_ENDPOINT_NAME,
+          baseUrl: `${CUSTOM_ENDPOINT_BASE_URL}/${'p'.repeat(500)}`,
+          defaultModel: CUSTOM_ENDPOINT_MODEL,
+        },
+        {
+          name: FIRST_ENDPOINT_NAME,
+          baseUrl: CUSTOM_ENDPOINT_BASE_URL,
+          defaultModel: 'm'.repeat(AI_CUSTOM_MODEL_NAME_MAX_LENGTH + 1),
+        },
+        {
+          name: FIRST_ENDPOINT_NAME,
+          baseUrl: 'not-a-url',
+          defaultModel: CUSTOM_ENDPOINT_MODEL,
+        },
+      ];
 
-      expect(response.statusCode).toBe(422);
-      expect(await helpers.getAiCustomEndpoints({ raw: true })).toEqual([]);
-    });
+      for (const payload of invalidPayloads) {
+        const response = await helpers.createAiCustomEndpoint(payload);
+        expect({ payload, statusCode: response.statusCode }).toStrictEqual({
+          payload,
+          statusCode: 422,
+        });
+      }
 
-    it('rejects a name longer than the allowed maximum', async () => {
-      runAsSelfHost();
-
-      const response = await helpers.createAiCustomEndpoint({
-        name: 'e'.repeat(AI_CUSTOM_ENDPOINT_NAME_MAX_LENGTH + 1),
-        baseUrl: CUSTOM_ENDPOINT_BASE_URL,
-        defaultModel: CUSTOM_ENDPOINT_MODEL,
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects a base URL longer than the allowed maximum', async () => {
-      runAsSelfHost();
-
-      const response = await helpers.createAiCustomEndpoint({
-        name: FIRST_ENDPOINT_NAME,
-        baseUrl: `${CUSTOM_ENDPOINT_BASE_URL}/${'p'.repeat(500)}`,
-        defaultModel: CUSTOM_ENDPOINT_MODEL,
-      });
-
-      expect(response.statusCode).toBe(422);
-      expect(await helpers.getAiCustomEndpoints({ raw: true })).toEqual([]);
-    });
-
-    it('rejects a model name longer than the allowed maximum', async () => {
-      runAsSelfHost();
-
-      const response = await helpers.createAiCustomEndpoint({
-        name: FIRST_ENDPOINT_NAME,
-        baseUrl: CUSTOM_ENDPOINT_BASE_URL,
-        defaultModel: 'm'.repeat(AI_CUSTOM_MODEL_NAME_MAX_LENGTH + 1),
-      });
-
-      expect(response.statusCode).toBe(422);
       expect(await helpers.getAiCustomEndpoints({ raw: true })).toEqual([]);
     });
 
@@ -365,18 +345,6 @@ describe('AI custom endpoints', () => {
       expect(await helpers.getAiCustomEndpoints({ raw: true })).toEqual([first]);
     });
 
-    it('rejects a malformed URL with 422', async () => {
-      runAsSelfHost();
-
-      const response = await helpers.createAiCustomEndpoint({
-        name: FIRST_ENDPOINT_NAME,
-        baseUrl: 'not-a-url',
-        defaultModel: CUSTOM_ENDPOINT_MODEL,
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
-
     it('tells an unreachable endpoint apart from one that rejects the key', async () => {
       runAsSelfHost();
 
@@ -425,7 +393,9 @@ describe('AI custom endpoints', () => {
     it('saves a model the endpoint lists without asking it to generate', async () => {
       runAsSelfHost();
 
-      const probes = countEndpointProbes({ baseUrl: CUSTOM_ENDPOINT_LISTING_BASE_URL });
+      const probes = countEndpointProbes({
+        baseUrl: CUSTOM_ENDPOINT_LISTING_BASE_URL,
+      });
 
       const created = await helpers.createAiCustomEndpoint({
         name: FIRST_ENDPOINT_NAME,
@@ -456,7 +426,10 @@ describe('AI custom endpoints', () => {
     it('rejects a model missing from a list served at a base URL that also answers generate calls', async () => {
       runAsSelfHost();
       global.mswMockServer.use(
-        getCustomEndpointModelListMock({ baseUrl: CUSTOM_ENDPOINT_BASE_URL, modelIds: ['phi4'] }),
+        getCustomEndpointModelListMock({
+          baseUrl: CUSTOM_ENDPOINT_BASE_URL,
+          modelIds: ['phi4'],
+        }),
       );
 
       const response = await helpers.createAiCustomEndpoint({
@@ -473,7 +446,11 @@ describe('AI custom endpoints', () => {
     it('rejects an endpoint whose model list refuses the key, without a generate call', async () => {
       runAsSelfHost();
 
-      global.mswMockServer.use(getCustomEndpointModelListAuthErrorMock({ baseUrl: CUSTOM_ENDPOINT_BASE_URL }));
+      global.mswMockServer.use(
+        getCustomEndpointModelListAuthErrorMock({
+          baseUrl: CUSTOM_ENDPOINT_BASE_URL,
+        }),
+      );
       const probes = countEndpointProbes();
 
       const response = await helpers.createAiCustomEndpoint({
@@ -490,7 +467,11 @@ describe('AI custom endpoints', () => {
 
     it('allows a loopback endpoint on a self-hosted instance', async () => {
       runAsSelfHost();
-      global.mswMockServer.use(getCustomEndpointSuccessMock({ baseUrl: CUSTOM_ENDPOINT_LOOPBACK_BASE_URL }));
+      global.mswMockServer.use(
+        getCustomEndpointSuccessMock({
+          baseUrl: CUSTOM_ENDPOINT_LOOPBACK_BASE_URL,
+        }),
+      );
 
       const created = await helpers.createAiCustomEndpoint({
         name: SECOND_ENDPOINT_NAME,
@@ -536,7 +517,11 @@ describe('AI custom endpoints', () => {
 
       const probes = countEndpointProbes();
 
-      const renamed = await helpers.updateAiCustomEndpoint({ id: created.id, name: 'Renamed Ollama', raw: true });
+      const renamed = await helpers.updateAiCustomEndpoint({
+        id: created.id,
+        name: 'Renamed Ollama',
+        raw: true,
+      });
 
       expect(probes.count).toBe(0);
       expect(renamed.name).toBe('Renamed Ollama');
@@ -565,10 +550,16 @@ describe('AI custom endpoints', () => {
 
     it('keeps the stored key when apiKey is omitted', async () => {
       runAsSelfHost();
-      const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
+      const created = await createFirstEndpoint({
+        apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+      });
 
       // Only the stored key gets a 200, so a passing update proves it was sent
-      global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY }));
+      global.mswMockServer.use(
+        getCustomEndpointRequireKeyMock({
+          apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+        }),
+      );
 
       const updated = await helpers.updateAiCustomEndpoint({
         id: created.id,
@@ -583,9 +574,15 @@ describe('AI custom endpoints', () => {
     it('removes the stored key when apiKey is null', async () => {
       runAsSelfHost();
       const userId = await getTestUserId();
-      const created = await createFirstEndpoint({ apiKey: 'key-to-be-removed' });
+      const created = await createFirstEndpoint({
+        apiKey: 'key-to-be-removed',
+      });
 
-      const updated = await helpers.updateAiCustomEndpoint({ id: created.id, apiKey: null, raw: true });
+      const updated = await helpers.updateAiCustomEndpoint({
+        id: created.id,
+        apiKey: null,
+        raw: true,
+      });
 
       expect(updated.hasApiKey).toBe(false);
       const [stored] = await readStoredEndpoints({ userId });
@@ -595,11 +592,21 @@ describe('AI custom endpoints', () => {
     it('removes the stored key even when the endpoint then refuses anonymous calls', async () => {
       runAsSelfHost();
       const userId = await getTestUserId();
-      const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
+      const created = await createFirstEndpoint({
+        apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+      });
 
-      global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY }));
+      global.mswMockServer.use(
+        getCustomEndpointRequireKeyMock({
+          apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+        }),
+      );
 
-      const updated = await helpers.updateAiCustomEndpoint({ id: created.id, apiKey: null, raw: true });
+      const updated = await helpers.updateAiCustomEndpoint({
+        id: created.id,
+        apiKey: null,
+        raw: true,
+      });
 
       expect(updated.hasApiKey).toBe(false);
       expect(updated.status).toBe('invalid');
@@ -620,11 +627,18 @@ describe('AI custom endpoints', () => {
 
       global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: 'second-key' }));
 
-      const updated = await helpers.updateAiCustomEndpoint({ id: created.id, apiKey: 'second-key', raw: true });
+      const updated = await helpers.updateAiCustomEndpoint({
+        id: created.id,
+        apiKey: 'second-key',
+        raw: true,
+      });
       expect(updated.hasApiKey).toBe(true);
 
       // Re-testing with no key in the body proves the replacement is what got stored
-      const result = await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
+      const result = await helpers.testAiCustomEndpoint({
+        endpointId: created.id,
+        raw: true,
+      });
       expect(result.isValid).toBe(true);
     });
 
@@ -633,7 +647,10 @@ describe('AI custom endpoints', () => {
       const first = await createFirstEndpoint();
       const second = await createSecondEndpoint();
 
-      await helpers.updateAiCustomEndpoint({ id: first.id, name: 'Renamed Ollama' });
+      await helpers.updateAiCustomEndpoint({
+        id: first.id,
+        name: 'Renamed Ollama',
+      });
 
       const endpoints = await helpers.getAiCustomEndpoints({ raw: true });
       expect(endpoints.find((endpoint) => endpoint.id === second.id)).toEqual(second);
@@ -644,7 +661,10 @@ describe('AI custom endpoints', () => {
       await createFirstEndpoint();
       const second = await createSecondEndpoint();
 
-      const response = await helpers.updateAiCustomEndpoint({ id: second.id, name: FIRST_ENDPOINT_NAME });
+      const response = await helpers.updateAiCustomEndpoint({
+        id: second.id,
+        name: FIRST_ENDPOINT_NAME,
+      });
 
       expect(response.statusCode).toBe(422);
     });
@@ -660,23 +680,6 @@ describe('AI custom endpoints', () => {
       });
 
       expect(renamed.name).toBe(FIRST_ENDPOINT_NAME.toUpperCase());
-    });
-
-    it('returns 404 for an unknown endpoint id', async () => {
-      runAsSelfHost();
-      await createFirstEndpoint();
-
-      const response = await helpers.updateAiCustomEndpoint({ id: generateRandomRecordId(), name: 'Nowhere' });
-
-      expect(response.statusCode).toBe(404);
-    });
-
-    it('returns 422 for an id that is not a UUID', async () => {
-      runAsSelfHost();
-
-      const response = await helpers.updateAiCustomEndpoint({ id: 'not-a-uuid', name: 'Nowhere' });
-
-      expect(response.statusCode).toBe(422);
     });
 
     it('leaves the endpoint untouched when revalidation fails', async () => {
@@ -708,74 +711,60 @@ describe('AI custom endpoints', () => {
   });
 
   describe('Unreadable stored API key', () => {
-    it('asks for the key again instead of probing the endpoint without one', async () => {
+    it('refuses every path that falls back to the unreadable key, until it is replaced', async () => {
       runAsSelfHost();
       const userId = await getTestUserId();
-      const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
+      const created = await createFirstEndpoint({
+        apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+      });
       await corruptStoredKey({ userId, endpointId: created.id });
 
       // The moved URL answers, so a probe that did go out would come back valid
       const movedBaseUrl = `${CUSTOM_ENDPOINT_BASE_URL}/alt`;
       global.mswMockServer.use(getCustomEndpointSuccessMock({ baseUrl: movedBaseUrl }));
-      const probes = countEndpointProbes({ baseUrl: movedBaseUrl });
+      const movedProbes = countEndpointProbes({ baseUrl: movedBaseUrl });
 
-      const updated = await helpers.updateAiCustomEndpoint({ id: created.id, baseUrl: movedBaseUrl });
+      const updated = await helpers.updateAiCustomEndpoint({
+        id: created.id,
+        baseUrl: movedBaseUrl,
+      });
 
       expect(updated.statusCode).toBe(422);
-      expect(probes.count).toBe(0);
+      expect(movedProbes.count).toBe(0);
 
       const [stored] = await readStoredEndpoints({ userId });
       expect(stored?.baseUrl).toBe(CUSTOM_ENDPOINT_BASE_URL);
       expect(stored?.keyEncrypted).toBe('unreadable-ciphertext');
-    });
 
-    it('refuses a connection test that would fall back to the unreadable key', async () => {
-      runAsSelfHost();
-      const userId = await getTestUserId();
-      const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
-      await corruptStoredKey({ userId, endpointId: created.id });
-
-      const response = await helpers.testAiCustomEndpoint({ endpointId: created.id });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('refuses a feature config pointed at the endpoint and stores nothing', async () => {
-      runAsSelfHost();
-      const userId = await getTestUserId();
-      const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
-      await corruptStoredKey({ userId, endpointId: created.id });
+      const connectionTest = await helpers.testAiCustomEndpoint({
+        endpointId: created.id,
+      });
+      expect(connectionTest.statusCode).toBe(422);
 
       const probes = countEndpointProbes();
 
-      const response = await helpers.setAiFeatureConfig({
+      const featureConfig = await helpers.setAiFeatureConfig({
         feature: AI_FEATURE.categorization,
         modelId: CUSTOM_MODEL_ID,
         customEndpointId: created.id,
       });
 
-      expect(response.statusCode).toBe(422);
+      expect(featureConfig.statusCode).toBe(422);
       expect(probes.count).toBe(0);
       expect(await readStoredFeatureConfigs({ userId })).toEqual([]);
-    });
 
-    it('still accepts a replacement key for the same endpoint', async () => {
-      runAsSelfHost();
-      const userId = await getTestUserId();
-      const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
-      await corruptStoredKey({ userId, endpointId: created.id });
-
+      // Replacing the key clears the unreadable ciphertext every step above depends on, so it stays last.
       global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: 'freshly-entered-key' }));
 
-      const updated = await helpers.updateAiCustomEndpoint({
+      const replaced = await helpers.updateAiCustomEndpoint({
         id: created.id,
         apiKey: 'freshly-entered-key',
         raw: true,
       });
 
-      expect(updated.hasApiKey).toBe(true);
-      expect(updated.status).toBe('valid');
-    });
+      expect(replaced.hasApiKey).toBe(true);
+      expect(replaced.status).toBe('valid');
+    }, 30_000);
   });
 
   describe('DELETE /user/settings/ai/custom-endpoints/:id', () => {
@@ -784,27 +773,17 @@ describe('AI custom endpoints', () => {
       const first = await createFirstEndpoint({ apiKey: 'key-that-goes-away' });
       const second = await createSecondEndpoint();
 
-      const removed = await helpers.deleteAiCustomEndpoint({ id: first.id, raw: true });
+      const removed = await helpers.deleteAiCustomEndpoint({
+        id: first.id,
+        raw: true,
+      });
 
       expect(removed.success).toBe(true);
       expect(await helpers.getAiCustomEndpoints({ raw: true })).toEqual([second]);
-      const stored = await readStoredEndpoints({ userId: await getTestUserId() });
+      const stored = await readStoredEndpoints({
+        userId: await getTestUserId(),
+      });
       expect(stored.map((endpoint) => endpoint.id)).toEqual([second.id]);
-    });
-
-    it('returns 404 for an unknown endpoint id', async () => {
-      runAsSelfHost();
-      await createFirstEndpoint();
-
-      const response = await helpers.deleteAiCustomEndpoint({ id: generateRandomRecordId() });
-
-      expect(response.statusCode).toBe(404);
-    });
-
-    it('returns 404 when nothing is configured', async () => {
-      const response = await helpers.deleteAiCustomEndpoint({ id: generateRandomRecordId() });
-
-      expect(response.statusCode).toBe(404);
     });
 
     it('drops a config bound to the removed endpoint when no key provider remains', async () => {
@@ -818,7 +797,10 @@ describe('AI custom endpoints', () => {
 
       await helpers.deleteAiCustomEndpoint({ id: first.id });
 
-      const config = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.categorization, raw: true });
+      const config = await helpers.getAiFeatureConfig({
+        feature: AI_FEATURE.categorization,
+        raw: true,
+      });
       expect(config.isConfigured).toBe(false);
       expect(config.modelId.startsWith('custom/')).toBe(false);
       expect(config.customEndpointId).toBeUndefined();
@@ -826,7 +808,10 @@ describe('AI custom endpoints', () => {
 
     it('remaps a config bound to the removed endpoint to a provider the user still has a key for', async () => {
       runAsSelfHost();
-      await seedApiKey({ userId: await getTestUserId(), provider: AI_PROVIDER.openai });
+      await seedApiKey({
+        userId: await getTestUserId(),
+        provider: AI_PROVIDER.openai,
+      });
       const first = await createFirstEndpoint();
       await helpers.setAiFeatureConfig({
         feature: AI_FEATURE.categorization,
@@ -836,7 +821,10 @@ describe('AI custom endpoints', () => {
 
       await helpers.deleteAiCustomEndpoint({ id: first.id });
 
-      const config = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.categorization, raw: true });
+      const config = await helpers.getAiFeatureConfig({
+        feature: AI_FEATURE.categorization,
+        raw: true,
+      });
       expect(config.isConfigured).toBe(true);
       expect(config.modelId.startsWith(`${AI_PROVIDER.openai}/`)).toBe(true);
       expect(config.customEndpointId).toBeUndefined();
@@ -870,7 +858,10 @@ describe('AI custom endpoints', () => {
         customEndpointId: second.id,
       });
 
-      const status = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.statementParsing, raw: true });
+      const status = await helpers.getAiFeatureConfig({
+        feature: AI_FEATURE.statementParsing,
+        raw: true,
+      });
       expect(status.endpointName).toBe(SECOND_ENDPOINT_NAME);
       expect(status.usingUserKey).toBe(true);
     });
@@ -878,7 +869,10 @@ describe('AI custom endpoints', () => {
     it('leaves catalog-model configs alone', async () => {
       runAsSelfHost();
       const first = await createFirstEndpoint();
-      await helpers.setAiFeatureConfig({ feature: AI_FEATURE.statementParsing, modelId: CATALOG_MODEL_ID });
+      await helpers.setAiFeatureConfig({
+        feature: AI_FEATURE.statementParsing,
+        modelId: CATALOG_MODEL_ID,
+      });
       await helpers.setAiFeatureConfig({
         feature: AI_FEATURE.categorization,
         modelId: CUSTOM_MODEL_ID,
@@ -887,7 +881,10 @@ describe('AI custom endpoints', () => {
 
       await helpers.deleteAiCustomEndpoint({ id: first.id });
 
-      const statementParsing = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.statementParsing, raw: true });
+      const statementParsing = await helpers.getAiFeatureConfig({
+        feature: AI_FEATURE.statementParsing,
+        raw: true,
+      });
       expect(statementParsing.isConfigured).toBe(true);
       expect(statementParsing.modelId).toBe(CATALOG_MODEL_ID);
     });
@@ -927,32 +924,35 @@ describe('AI custom endpoints', () => {
       expect(config.modelName).toBe('library/llama3.2:8b');
     });
 
-    it('rejects a custom model without customEndpointId', async () => {
+    it('rejects malformed custom model configs', async () => {
       runAsSelfHost();
-      await createFirstEndpoint();
+      const first = await createFirstEndpoint();
 
-      const response = await helpers.setAiFeatureConfig({
+      const withoutEndpointId = await helpers.setAiFeatureConfig({
         feature: AI_FEATURE.categorization,
         modelId: CUSTOM_MODEL_ID,
       });
+      expect(withoutEndpointId.statusCode).toBe(422);
 
-      expect(response.statusCode).toBe(422);
-
-      const config = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.categorization, raw: true });
-      expect(config.isConfigured).toBe(false);
-    });
-
-    it('rejects a customEndpointId that names no saved endpoint', async () => {
-      runAsSelfHost();
-      await createFirstEndpoint();
-
-      const response = await helpers.setAiFeatureConfig({
+      const unknownEndpointId = await helpers.setAiFeatureConfig({
         feature: AI_FEATURE.categorization,
         modelId: CUSTOM_MODEL_ID,
         customEndpointId: generateRandomRecordId(),
       });
+      expect(unknownEndpointId.statusCode).toBe(422);
 
-      expect(response.statusCode).toBe(422);
+      const emptyModelName = await helpers.setAiFeatureConfig({
+        feature: AI_FEATURE.categorization,
+        modelId: 'custom/',
+        customEndpointId: first.id,
+      });
+      expect(emptyModelName.statusCode).toBe(422);
+
+      const config = await helpers.getAiFeatureConfig({
+        feature: AI_FEATURE.categorization,
+        raw: true,
+      });
+      expect(config.isConfigured).toBe(false);
     });
 
     it('rejects a custom model when the user has no endpoints at all', async () => {
@@ -960,19 +960,6 @@ describe('AI custom endpoints', () => {
         feature: AI_FEATURE.categorization,
         modelId: CUSTOM_MODEL_ID,
         customEndpointId: generateRandomRecordId(),
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects a custom model ID with an empty model name', async () => {
-      runAsSelfHost();
-      const first = await createFirstEndpoint();
-
-      const response = await helpers.setAiFeatureConfig({
-        feature: AI_FEATURE.categorization,
-        modelId: 'custom/',
-        customEndpointId: first.id,
       });
 
       expect(response.statusCode).toBe(422);
@@ -993,7 +980,10 @@ describe('AI custom endpoints', () => {
       const stored = (await readStoredFeatureConfigs({ userId })).find(
         (config) => config.feature === AI_FEATURE.statementParsing,
       );
-      expect(stored).toEqual({ feature: AI_FEATURE.statementParsing, modelId: CATALOG_MODEL_ID });
+      expect(stored).toEqual({
+        feature: AI_FEATURE.statementParsing,
+        modelId: CATALOG_MODEL_ID,
+      });
     });
 
     it('labels each feature with the endpoint that serves it', async () => {
@@ -1082,20 +1072,35 @@ describe('AI custom endpoints', () => {
 
     it('falls back to the named endpoint base URL, model and key', async () => {
       runAsSelfHost();
-      const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
+      const created = await createFirstEndpoint({
+        apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+      });
 
-      global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY }));
+      global.mswMockServer.use(
+        getCustomEndpointRequireKeyMock({
+          apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+        }),
+      );
 
-      const result = await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
+      const result = await helpers.testAiCustomEndpoint({
+        endpointId: created.id,
+        raw: true,
+      });
 
       expect(result.isValid).toBe(true);
     });
 
     it('prefers a key supplied in the request over the saved one', async () => {
       runAsSelfHost();
-      const created = await createFirstEndpoint({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY });
+      const created = await createFirstEndpoint({
+        apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+      });
 
-      global.mswMockServer.use(getCustomEndpointRequireKeyMock({ apiKey: VALID_CUSTOM_ENDPOINT_API_KEY }));
+      global.mswMockServer.use(
+        getCustomEndpointRequireKeyMock({
+          apiKey: VALID_CUSTOM_ENDPOINT_API_KEY,
+        }),
+      );
 
       const result = await helpers.testAiCustomEndpoint({
         endpointId: created.id,
@@ -1113,8 +1118,14 @@ describe('AI custom endpoints', () => {
 
       global.mswMockServer.use(getCustomEndpointAuthErrorMock({ baseUrl: CUSTOM_ENDPOINT_BASE_URL }));
 
-      const onSecond = await helpers.testAiCustomEndpoint({ endpointId: second.id, raw: true });
-      const onFirst = await helpers.testAiCustomEndpoint({ endpointId: first.id, raw: true });
+      const onSecond = await helpers.testAiCustomEndpoint({
+        endpointId: second.id,
+        raw: true,
+      });
+      const onFirst = await helpers.testAiCustomEndpoint({
+        endpointId: first.id,
+        raw: true,
+      });
 
       expect(onSecond.isValid).toBe(true);
       expect(onFirst.isValid).toBe(false);
@@ -1136,91 +1147,98 @@ describe('AI custom endpoints', () => {
       expect(result.error).not.toContain(CUSTOM_ENDPOINT_MODEL);
     });
 
-    it('marks a saved endpoint invalid when re-testing its stored settings fails', async () => {
+    it('mirrors test results into the stored status, except for overridden fields', async () => {
       runAsSelfHost();
       const created = await createFirstEndpoint();
-      global.mswMockServer.use(getCustomEndpointOfflineMock());
 
-      const result = await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
-
-      expect(result.isValid).toBe(false);
-
-      const [stored] = await helpers.getAiCustomEndpoints({ raw: true });
-      expect(stored!.status).toBe('invalid');
-      expect(stored!.lastError).toBe(result.error);
-      expect(stored!.invalidatedAt).toEqual(expect.any(String));
-    });
-
-    it('clears the invalid state once the endpoint answers again', async () => {
-      runAsSelfHost();
-      const created = await createFirstEndpoint();
-      global.mswMockServer.use(getCustomEndpointOfflineMock());
-      await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
-
-      // Shadows the offline override instead of resetting every runtime handler,
-      // which would drop overrides other parts of the test rely on.
-      global.mswMockServer.use(getCustomEndpointSuccessMock());
-      const result = await helpers.testAiCustomEndpoint({ endpointId: created.id, raw: true });
-
-      expect(result.isValid).toBe(true);
-
-      const [stored] = await helpers.getAiCustomEndpoints({ raw: true });
-      expect(stored!.status).toBe('valid');
-      expect(stored!.lastError).toBeUndefined();
-      expect(stored!.invalidatedAt).toBeUndefined();
-    });
-
-    it('leaves the stored status alone when the test overrides a saved field', async () => {
-      runAsSelfHost();
-      const created = await createFirstEndpoint();
+      // Successive `use()` calls shadow earlier overrides; `resetHandlers()` would drop
+      // overrides other parts of this test rely on.
       global.mswMockServer.use(getCustomEndpointAuthErrorMock());
-
-      const result = await helpers.testAiCustomEndpoint({
+      const overridden = await helpers.testAiCustomEndpoint({
         endpointId: created.id,
         apiKey: INVALID_CUSTOM_ENDPOINT_API_KEY,
         raw: true,
       });
 
-      expect(result.isValid).toBe(false);
+      expect(overridden.isValid).toBe(false);
 
-      const [stored] = await helpers.getAiCustomEndpoints({ raw: true });
-      expect(stored!.status).toBe('valid');
-      expect(stored!.lastError).toBeUndefined();
-    });
+      const [afterOverride] = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(afterOverride!.status).toBe('valid');
+      expect(afterOverride!.lastError).toBeUndefined();
 
-    it('returns 404 for an unknown endpoint id', async () => {
+      global.mswMockServer.use(getCustomEndpointOfflineMock());
+      const offline = await helpers.testAiCustomEndpoint({
+        endpointId: created.id,
+        raw: true,
+      });
+
+      expect(offline.isValid).toBe(false);
+
+      const [afterOffline] = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(afterOffline!.status).toBe('invalid');
+      expect(afterOffline!.lastError).toBe(offline.error);
+      expect(afterOffline!.invalidatedAt).toEqual(expect.any(String));
+
+      global.mswMockServer.use(getCustomEndpointSuccessMock());
+      const recovered = await helpers.testAiCustomEndpoint({
+        endpointId: created.id,
+        raw: true,
+      });
+
+      expect(recovered.isValid).toBe(true);
+
+      const [afterRecovery] = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(afterRecovery!.status).toBe('valid');
+      expect(afterRecovery!.lastError).toBeUndefined();
+      expect(afterRecovery!.invalidatedAt).toBeUndefined();
+    }, 30_000);
+  });
+
+  describe('Ids that address no saved endpoint', () => {
+    it('refuses ids that address no saved endpoint', async () => {
       runAsSelfHost();
 
-      const response = await helpers.testAiCustomEndpoint({ endpointId: generateRandomRecordId() });
+      expect((await helpers.deleteAiCustomEndpoint({ id: generateRandomRecordId() })).statusCode).toBe(404);
+      expect(
+        (
+          await helpers.testAiCustomEndpoint({
+            endpointId: generateRandomRecordId(),
+          })
+        ).statusCode,
+      ).toBe(404);
+      expect(
+        (
+          await helpers.testAiCustomEndpoint({
+            defaultModel: CUSTOM_ENDPOINT_MODEL,
+          })
+        ).statusCode,
+      ).toBe(422);
+      expect(
+        (
+          await helpers.updateAiCustomEndpoint({
+            id: 'not-a-uuid',
+            name: 'Nowhere',
+          })
+        ).statusCode,
+      ).toBe(422);
 
-      expect(response.statusCode).toBe(404);
-    });
+      await createFirstEndpoint();
 
-    it('returns 422 when no endpoint is named and the body supplies no base URL', async () => {
-      runAsSelfHost();
-
-      const response = await helpers.testAiCustomEndpoint({ defaultModel: CUSTOM_ENDPOINT_MODEL });
-
-      expect(response.statusCode).toBe(422);
+      expect(
+        (
+          await helpers.updateAiCustomEndpoint({
+            id: generateRandomRecordId(),
+            name: 'Nowhere',
+          })
+        ).statusCode,
+      ).toBe(404);
+      expect((await helpers.deleteAiCustomEndpoint({ id: generateRandomRecordId() })).statusCode).toBe(404);
     });
   });
 
   describe('Outbound probe rate limit', () => {
-    async function burnProbeBudget({ attempts }: { attempts: number }) {
-      const userId = await getTestUserId();
-      await RateLimitService.resetRateLimit(`ai-custom-endpoint-test:user:${userId}`);
-
-      for (let attempt = 1; attempt <= attempts; attempt++) {
-        const response = await helpers.testAiCustomEndpoint({
-          baseUrl: CUSTOM_ENDPOINT_BASE_URL,
-          defaultModel: CUSTOM_ENDPOINT_MODEL,
-        });
-        expect(response.statusCode).toBe(200);
-      }
-    }
-
-    // The extended timeout covers 16 sequential requests, each with its own outbound probe.
-    it('allows 15 connection tests per minute per user and rejects the 16th with 429', async () => {
+    // The extended timeout covers the budget-burning requests, each with its own outbound probe.
+    it('spends one per-user budget across test, create and update, and gives each user their own', async () => {
       runAsSelfHost();
       await burnProbeBudget({ attempts: 15 });
 
@@ -1230,13 +1248,10 @@ describe('AI custom endpoints', () => {
       });
 
       expect(blocked.statusCode).toBe(429);
-      const errorBody = blocked.body as unknown as { response?: { code?: string } };
+      const errorBody = blocked.body as unknown as {
+        response?: { code?: string };
+      };
       expect(errorBody.response?.code).toBe(API_ERROR_CODES.tooManyRequests);
-    }, 30_000);
-
-    it('counts connection tests against create and update as well', async () => {
-      runAsSelfHost();
-      await burnProbeBudget({ attempts: 15 });
 
       const created = await helpers.createAiCustomEndpoint({
         name: FIRST_ENDPOINT_NAME,
@@ -1247,16 +1262,14 @@ describe('AI custom endpoints', () => {
       expect(created.statusCode).toBe(429);
       expect(await helpers.getAiCustomEndpoints({ raw: true })).toEqual([]);
 
-      const updated = await helpers.updateAiCustomEndpoint({ id: generateRandomRecordId(), name: 'Nowhere' });
+      const updated = await helpers.updateAiCustomEndpoint({
+        id: generateRandomRecordId(),
+        name: 'Nowhere',
+      });
       expect(updated.statusCode).toBe(429);
-    }, 30_000);
-
-    it('gives each user their own budget', async () => {
-      runAsSelfHost();
-      await burnProbeBudget({ attempts: 15 });
 
       const secondUser = await helpers.signUpSecondUser();
-      const created = await helpers.asUser({
+      const createdForSecondUser = await helpers.asUser({
         cookies: secondUser.cookies,
         fn: () =>
           helpers.createAiCustomEndpoint({
@@ -1266,14 +1279,17 @@ describe('AI custom endpoints', () => {
           }),
       });
 
-      expect(created.statusCode).toBe(201);
-    }, 30_000);
+      expect(createdForSecondUser.statusCode).toBe(201);
+    }, 40_000);
   });
 
   describe('Interaction with API key removal', () => {
     it('keeps every custom endpoint when all API keys are deleted', async () => {
       runAsSelfHost();
-      await seedApiKey({ userId: await getTestUserId(), provider: AI_PROVIDER.openai });
+      await seedApiKey({
+        userId: await getTestUserId(),
+        provider: AI_PROVIDER.openai,
+      });
       const first = await createFirstEndpoint({ apiKey: 'endpoint-key' });
       const second = await createSecondEndpoint();
 
@@ -1287,20 +1303,27 @@ describe('AI custom endpoints', () => {
     const customAsKeyProvider = AI_PROVIDER.custom as unknown as AIKeyProvider;
 
     it('rejects a key set for custom', async () => {
-      const response = await helpers.setAiApiKey({ provider: customAsKeyProvider, apiKey: 'sk-not-a-provider-key' });
+      const response = await helpers.setAiApiKey({
+        provider: customAsKeyProvider,
+        apiKey: 'sk-not-a-provider-key',
+      });
 
       expect(response.statusCode).toBe(422);
       expect((await helpers.getAiApiKeyStatus({ raw: true })).hasApiKey).toBe(false);
     });
 
     it('rejects a key delete for custom', async () => {
-      const response = await helpers.deleteAiApiKey({ provider: customAsKeyProvider });
+      const response = await helpers.deleteAiApiKey({
+        provider: customAsKeyProvider,
+      });
 
       expect(response.statusCode).toBe(422);
     });
 
     it('rejects custom as the default provider', async () => {
-      const response = await helpers.setDefaultAiProvider({ provider: customAsKeyProvider });
+      const response = await helpers.setDefaultAiProvider({
+        provider: customAsKeyProvider,
+      });
 
       expect(response.statusCode).toBe(422);
       expect((await helpers.getAiApiKeyStatus({ raw: true })).defaultProvider).toBeUndefined();

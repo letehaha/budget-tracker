@@ -160,18 +160,16 @@ describe('GET /currencies/rates/pair', () => {
     expect(result.baseCode).toBe('JPY');
     expect(result.quoteCode).toBe(global.BASE_CURRENCY_CODE);
     expect(result.rate).toBeCloseTo(USD_TO_AED / USD_TO_JPY, 5);
-  });
 
-  it('normalizes lowercase codes to uppercase', async () => {
-    const result = await helpers.getExchangeRatePair({
+    const lowercased = await helpers.getExchangeRatePair({
       from: 'jpy',
       to: global.BASE_CURRENCY_CODE.toLowerCase(),
       date: RATE_DATE,
       raw: true,
     });
 
-    expect(result.baseCode).toBe('JPY');
-    expect(result.quoteCode).toBe(global.BASE_CURRENCY_CODE);
+    expect(lowercased.baseCode).toBe('JPY');
+    expect(lowercased.quoteCode).toBe(global.BASE_CURRENCY_CODE);
   });
 
   it('returns 1 when both codes are the same, even for an unconnected currency', async () => {
@@ -243,22 +241,15 @@ describe('GET /currencies/rates/pair', () => {
     expect(result.custom).toBeUndefined();
   });
 
-  it('rejects a non-ISO currency code', async () => {
-    const res = await helpers.getExchangeRatePair({ from: 'ZZZ', to: 'USD', date: RATE_DATE });
+  it('rejects a non-ISO currency code, a malformed date and an impossible calendar day', async () => {
+    const nonIso = await helpers.getExchangeRatePair({ from: 'ZZZ', to: 'USD', date: RATE_DATE });
+    expect(nonIso.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
+    const malformedDate = await helpers.getExchangeRatePair({ from: 'JPY', to: 'USD', date: '15-03-2020' });
+    expect(malformedDate.statusCode).toBe(ERROR_CODES.ValidationError);
 
-  it('rejects a malformed date', async () => {
-    const res = await helpers.getExchangeRatePair({ from: 'JPY', to: 'USD', date: '15-03-2020' });
-
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('rejects a well-formed date that is not a real calendar day', async () => {
-    const res = await helpers.getExchangeRatePair({ from: 'JPY', to: 'USD', date: '2020-13-45' });
-
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+    const impossibleDate = await helpers.getExchangeRatePair({ from: 'JPY', to: 'USD', date: '2020-13-45' });
+    expect(impossibleDate.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
   it('answers not-found when the currency has no rate on any date', async () => {
