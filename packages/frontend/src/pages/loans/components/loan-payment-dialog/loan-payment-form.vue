@@ -8,6 +8,7 @@ import AccountSelectField from '@/components/fields/account-select-field.vue';
 import FormRow from '@/components/dialogs/manage-transaction/components/form-row.vue';
 import { useDeleteTransaction, useSubmitTransaction } from '@/components/dialogs/manage-transaction/composables';
 import { useLoans, useUnlinkLoanPayment } from '@/composable/data-queries/loans';
+import { useDateLocale } from '@/composable/use-date-locale';
 import { useNotificationCenter } from '@/components/notification-center';
 import { ApiErrorResponseError } from '@/js/errors';
 import { FORM_TYPES, type UI_FORM_STRUCT } from '@/components/dialogs/manage-transaction/types';
@@ -24,6 +25,7 @@ import { useAccountsStore, useCategoriesStore, useCurrenciesStore } from '@/stor
 import { AccountModel, PAYMENT_TYPES, type TransactionModel } from '@bt/shared/types';
 import { helpers, minValue, required } from '@vuelidate/validators';
 import { HandCoinsIcon, InfoIcon } from '@lucide/vue';
+import { parseISO } from 'date-fns';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
@@ -80,6 +82,7 @@ const isCurrenciesDifferent = computed(
 
 const { convert: convertCurrency, data: exchangeRates } = useExchangeRates();
 const { formatAmountByCurrencyCode } = useFormatCurrency();
+const { format: formatDate } = useDateLocale();
 
 // Largest payment that keeps the loan at or above zero. In edit mode the
 // existing leg is credited back so re-saving the same value isn't an overpay.
@@ -93,15 +96,19 @@ const maxLoanPaymentAllowed = computed(() =>
 // Reuses the Loans page's TanStack Query cache to reach the loan's balance anchor date.
 const { data: loansData } = useLoans();
 
+const loanAnchorDate = computed(
+  () => loansData.value?.find((l) => l.id === props.loanAccount.id)?.loanDetails.balanceAnchorDate,
+);
+
 // A payment dated before the anchor is already baked into the opening snapshot and
 // exempt from the overpay guard on the backend, so the client-side rule skips it too.
-const isPreAnchorPayment = computed(() => {
-  const loan = loansData.value?.find((l) => l.id === props.loanAccount.id);
-  return isLoanPaymentPreAnchor({
-    paymentDate: form.value.time,
-    balanceAnchorDate: loan?.loanDetails.balanceAnchorDate,
-  });
-});
+const isPreAnchorPayment = computed(() =>
+  isLoanPaymentPreAnchor({ paymentDate: form.value.time, balanceAnchorDate: loanAnchorDate.value }),
+);
+
+const anchorDateDisplay = computed(() =>
+  loanAnchorDate.value ? formatDate(parseISO(loanAnchorDate.value), 'MMM d, yyyy') : '',
+);
 
 // Soft heads-up only: flags a positive-balance account being driven negative. Accounts already in the
 // red (credit lines) overdraw by design, so they're excluded; the app allows negative balances anyway.
@@ -379,6 +386,10 @@ const unlinkPayment = () => {
           :calendar-options="{ maxDate: new Date() }"
         />
       </FormRow>
+
+      <p v-if="isPreAnchorPayment" class="text-warning-text -mt-1 px-1 text-xs">
+        {{ $t('loans.detail.payment.preAnchorWarning', { date: anchorDateDisplay }) }}
+      </p>
 
       <div class="flex items-center justify-between pt-6">
         <div v-if="isEdit" class="flex gap-2">
