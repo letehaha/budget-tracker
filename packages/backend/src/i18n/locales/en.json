@@ -299,6 +299,11 @@
     "invalidDefaultCurrency": "Invalid default currency code: \"{{defaultCurrency}}\"",
     "payeeColumnNotFound": "Payee column \"{{column}}\" not found in CSV headers"
   },
+  "importExport": {
+    "batchDeleteBankLinkedAccount": "This import can no longer be undone because its account is now connected to a bank. Deleting these transactions could throw off the synced balance.",
+    "batchDeleteLinkedLoanTransfer": "This import is linked to a loan payment and can't be undone on its own. Enable \"also delete linked transfer transactions\" to remove it.",
+    "batchDeleteTooLarge": "This import has too many transactions to undo in one request right now. Please contact support if you need help removing it."
+  },
   "statementParser": {
     "invalidFile": "Invalid file",
     "textExtractionFailed": "Text extraction failed. The PDF may be a scanned document. Image-based extraction is not yet implemented.",

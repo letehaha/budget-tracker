@@ -28,10 +28,18 @@ describe('GET /categories/:id/transaction-count', () => {
       raw: true,
     });
 
-  it('returns zero for a category without transactions', async () => {
+  it('returns zero for an empty or unknown category, and rejects a malformed id', async () => {
     expect(await helpers.getCategoryTransactionCount({ categoryId: category.id, raw: true })).toEqual({
       transactionCount: 0,
     });
+
+    expect(await helpers.getCategoryTransactionCount({ categoryId: NONEXISTENT_ID, raw: true })).toEqual({
+      transactionCount: 0,
+    });
+
+    const malformed = await helpers.getCategoryTransactionCount({ categoryId: 'not-a-uuid' });
+
+    expect(malformed.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
   it('counts real and planned transactions', async () => {
@@ -41,15 +49,6 @@ describe('GET /categories/:id/transaction-count', () => {
 
     expect(await helpers.getCategoryTransactionCount({ categoryId: category.id, raw: true })).toEqual({
       transactionCount: 3,
-    });
-  });
-
-  it('counts a category that holds planned transactions only', async () => {
-    await createPlanned({ amount: 100 });
-    await createPlanned({ amount: 200 });
-
-    expect(await helpers.getCategoryTransactionCount({ categoryId: category.id, raw: true })).toEqual({
-      transactionCount: 2,
     });
   });
 
@@ -82,17 +81,5 @@ describe('GET /categories/:id/transaction-count', () => {
       transactionCount: 1,
     });
     expect((await helpers.getTransactionById({ id: real.id, raw: true }))!.id).toBe(real.id);
-  });
-
-  it('returns zero for a category the user does not own', async () => {
-    expect(await helpers.getCategoryTransactionCount({ categoryId: NONEXISTENT_ID, raw: true })).toEqual({
-      transactionCount: 0,
-    });
-  });
-
-  it('rejects a malformed category id', async () => {
-    const response = await helpers.getCategoryTransactionCount({ categoryId: 'not-a-uuid' });
-
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 });

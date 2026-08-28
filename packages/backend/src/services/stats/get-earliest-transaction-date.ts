@@ -19,7 +19,7 @@ export const getEarliestTransactionDate = async ({
 }: GetEarliestTransactionDateParams): Promise<string | null> => {
   const [oldest] = await findTransactions({
     planned: 'exclude',
-    access: { creator: userId },
+    access: { accessibleTo: userId },
     balanceAdjustments: 'include',
     completeness: 'probe',
     include: [

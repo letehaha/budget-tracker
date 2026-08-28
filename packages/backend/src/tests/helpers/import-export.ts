@@ -1,10 +1,12 @@
 import type {
   AccountMappingConfig,
+  AiMapImportCategoriesResponse,
   BudgetBakersWalletAccountMapping,
   BudgetBakersWalletImportProgress,
   CategoryMappingConfig,
   ColumnMappingConfig,
   CsvImportProgress,
+  DeleteImportBatchResponse,
   DetectBudgetBakersWalletDuplicatesResponse,
   DetectDuplicatesResponse,
   DetectMsMoneyDuplicatesResponse,
@@ -96,6 +98,25 @@ export function parseCsv<R extends boolean | undefined = false>({
   return makeRequest<ParseCsvResponse, R>({
     method: 'post',
     url: '/import/csv/parse',
+    payload,
+    raw,
+  });
+}
+
+// ============================================
+// AI Category Mapping Endpoint
+// ============================================
+
+export function aiMapImportCategories<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: { sourceCategories: string[] };
+  raw?: R;
+}): UtilizeReturnType<() => AiMapImportCategoriesResponse, R> {
+  return makeRequest<AiMapImportCategoriesResponse, R>({
+    method: 'post',
+    url: '/import/ai-map-categories',
     payload,
     raw,
   });
@@ -804,6 +825,27 @@ export function getBatchesHistory<R extends boolean | undefined = false>({
     method: 'get',
     url: '/import/batches-history',
     payload,
+    raw,
+  });
+}
+
+// ============================================
+// Delete Import Batch Endpoint
+// ============================================
+
+export function deleteImportBatch<R extends boolean | undefined = false>({
+  batchId,
+  deleteLinkedTransfers,
+  raw,
+}: {
+  batchId: string;
+  deleteLinkedTransfers?: boolean;
+  raw?: R;
+}): UtilizeReturnType<() => DeleteImportBatchResponse, R> {
+  return makeRequest<DeleteImportBatchResponse, R>({
+    method: 'delete',
+    url: `/import/batch/${batchId}`,
+    payload: deleteLinkedTransfers !== undefined ? { deleteLinkedTransfers } : undefined,
     raw,
   });
 }

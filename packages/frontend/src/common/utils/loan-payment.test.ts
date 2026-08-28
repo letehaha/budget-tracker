@@ -49,14 +49,22 @@ describe('isLoanPaymentPreAnchor', () => {
 
   it('is false when the payment date equals the anchor date (counted, not exempt)', () => {
     expect(
-      isLoanPaymentPreAnchor({ paymentDate: new Date('2026-01-15T00:00:00'), balanceAnchorDate: '2026-01-15' }),
+      isLoanPaymentPreAnchor({ paymentDate: new Date('2026-01-15T00:00:00Z'), balanceAnchorDate: '2026-01-15' }),
     ).toBe(false);
   });
 
   it('is false when the payment date is after the anchor date', () => {
     expect(
-      isLoanPaymentPreAnchor({ paymentDate: new Date('2026-02-01T10:00:00'), balanceAnchorDate: '2026-01-15' }),
+      isLoanPaymentPreAnchor({ paymentDate: new Date('2026-02-01T10:00:00Z'), balanceAnchorDate: '2026-01-15' }),
     ).toBe(false);
+  });
+
+  it('classifies by the UTC day, matching the backend, not the browser-local day', () => {
+    // 23:00 UTC on Jan 14 is already Jan 15 in UTC+2 — still pre-anchor, because the
+    // backend buckets legs by SQL DATE("time") in a UTC database.
+    expect(
+      isLoanPaymentPreAnchor({ paymentDate: new Date('2026-01-14T23:00:00Z'), balanceAnchorDate: '2026-01-15' }),
+    ).toBe(true);
   });
 
   it('accepts an ISO date string for the payment date', () => {

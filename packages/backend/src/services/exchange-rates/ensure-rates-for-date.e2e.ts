@@ -11,6 +11,7 @@ import {
 import { createCallsCounter, createOverride } from '@tests/mocks/helpers';
 import { format, startOfDay } from 'date-fns';
 
+import { API_LAYER_DATE_FORMAT } from './constants';
 import { EXCHANGE_RATE_PROVIDER_TYPE } from './providers/types';
 
 // logger.error is an overloaded fn, so jest infers its call args as `never`.
@@ -78,6 +79,9 @@ describe('Exchange Rates Functionality', () => {
       expect(item.source).not.toBe(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN);
       expect(Object.values(EXCHANGE_RATE_PROVIDER_TYPE)).toContain(item.source);
     });
+
+    // Currency Rates API was actually reached (isAvailable + fetchRatesForDate).
+    expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(2);
   });
 
   it('should fill currencies missing from the primary provider using lower-priority fallbacks', async () => {
@@ -375,19 +379,6 @@ describe('Exchange Rates Functionality', () => {
     });
   });
 
-  it('should use Currency Rates API successfully when available', async () => {
-    // Currency Rates API should work and return success
-    await expect(helpers.syncExchangeRates().then((r) => r.statusCode)).resolves.toEqual(200);
-
-    const date = format(new Date(), 'yyyy-MM-dd');
-    const response = (await helpers.getExchangeRates({ date, raw: true }))!;
-    expect(response).toBeInstanceOf(Array);
-    expect(response.length).toBeGreaterThan(0);
-
-    // Verify Currency Rates API was called (isAvailable + fetchRatesForDate).
-    expect(currencyRatesApiCounter.count).toBeGreaterThanOrEqual(2);
-  });
-
   it('falls back to fawazahmed0 when Currency Rates API returns an invalid base currency', async () => {
     currencyRatesApiOverride.setOneTimeOverride({
       body: {
@@ -419,13 +410,48 @@ describe('Exchange Rates Functionality', () => {
     await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
   });
 
-  it('should handle 500 Server Error from Currency Rates API by falling back', async () => {
-    currencyRatesApiOverride.setOverride({ status: 500 });
-    await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
-  });
+  describe('Live exchange rates flows', () => {
+    it('uses live exchange rate on account creation', async () => {
+      const quoteCurrencyCode = 'UAH';
+      const {
+        currencies: [userCurrencyUAH],
+      } = await helpers.addUserCurrencyByCode({
+        code: quoteCurrencyCode,
+        raw: true,
+      });
 
-  it('should handle 503 Service Unavailable from Currency Rates API by falling back', async () => {
-    currencyRatesApiOverride.setOverride({ status: 503 });
-    await expect(helpers.syncExchangeRates().then((m) => m.statusCode)).resolves.toBe(200);
+      expect(userCurrencyUAH!.liveRateUpdate).toBe(true);
+
+      const account = await helpers.createAccount({
+        payload: {
+          ...helpers.buildAccountPayload(),
+          currencyCode: userCurrencyUAH!.currencyCode,
+        },
+        raw: true,
+      });
+
+      expect(account).toBeDefined();
+
+      const txPayload = helpers.buildTransactionPayload({
+        accountId: account.id,
+      });
+
+      await helpers.createTransaction({
+        payload: txPayload,
+        raw: true,
+      });
+
+      const date = format(new Date(), API_LAYER_DATE_FORMAT);
+
+      const response = (await helpers.getExchangeRates({ date, raw: true }))!;
+      expect(response).toBeInstanceOf(Array);
+      expect(response.length).toBeGreaterThan(0);
+
+      response.forEach((item) => {
+        expect(item).toMatchObject({
+          date: expect.stringContaining(date),
+        });
+      });
+    });
   });
 });

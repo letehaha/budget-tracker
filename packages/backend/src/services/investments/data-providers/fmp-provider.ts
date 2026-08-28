@@ -5,6 +5,7 @@ import { logger } from '@js/utils';
 import {
   BaseSecurityDataProvider,
   BulkPriceData,
+  BulkPriceFetchOptions,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -156,13 +157,14 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
   public async fetchPricesForSecurities(
     securities: SecurityPriceFetchInput[],
     forDate: Date,
-  ): Promise<Map<string, BulkPriceData>> {
+    options?: BulkPriceFetchOptions,
+  ): Promise<Map<string, BulkPriceData[]>> {
     const FMP_FREE_DAILY_LIMIT = 250;
     const FMP_MINUTE_LIMIT = 5; // Conservative limit for free tier
     const MINUTE_DELAY = 60 * 1000 + 1000; // 61 seconds to be safe
     const REQUEST_DELAY = 12 * 1000; // 12 seconds between requests for free tier
 
-    const result = new Map<string, BulkPriceData>();
+    const result = new Map<string, BulkPriceData[]>();
     if (securities.length === 0) {
       return result;
     }
@@ -205,14 +207,16 @@ export class FmpDataProvider extends BaseSecurityDataProvider {
         requestsThisMinute++;
 
         const historicalPrices = await this.getHistoricalPrices(providerSymbol, {
-          startDate: forDate,
+          startDate: options?.startDate ?? forDate,
           endDate: forDate,
         });
-        if (historicalPrices[0]) {
-          const priceData = historicalPrices[0];
-          result.set(securityId, { ...priceData, securityId });
+        if (historicalPrices.length > 0) {
+          result.set(
+            securityId,
+            historicalPrices.map((priceData) => ({ ...priceData, securityId })),
+          );
           logger.info(
-            `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`,
+            `Fetched ${historicalPrices.length} price(s) for ${providerSymbol} up to ${forDate.toISOString().split('T')[0]}`,
           );
         } else {
           logger.info(`No price data found for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}`);

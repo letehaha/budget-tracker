@@ -1,7 +1,9 @@
 import { api } from '@/api/_api';
 import type {
+  AiMapImportCategoriesResponse,
   ColumnMappingConfig,
   CsvImportProgress,
+  DeleteImportBatchResponse,
   DetectDuplicatesRequest,
   DetectDuplicatesResponse,
   ExecuteImportRequest,
@@ -44,6 +46,13 @@ export const extractUniqueValues = async (
   return result;
 };
 
+export const aiMapImportCategories = async (payload: {
+  sourceCategories: string[];
+}): Promise<AiMapImportCategoriesResponse> => {
+  const result = await api.post('/import/ai-map-categories', payload);
+  return result;
+};
+
 export const detectDuplicates = async (payload: DetectDuplicatesRequest): Promise<DetectDuplicatesResponse> => {
   const result = await api.post('/import/csv/detect-duplicates', payload);
   return result;
@@ -65,6 +74,16 @@ export const getBatchesHistory = async (params: {
   offset?: number;
 }): Promise<ImportBatchesHistoryResponse> => {
   return api.get('/import/batches-history', params);
+};
+
+export const deleteImportBatch = async ({
+  batchId,
+  deleteLinkedTransfers,
+}: {
+  batchId: string;
+  deleteLinkedTransfers?: boolean;
+}): Promise<DeleteImportBatchResponse> => {
+  return api.delete(`/import/batch/${batchId}`, { data: { deleteLinkedTransfers } });
 };
 
 // Statement Parser API (supports PDF, CSV, TXT)

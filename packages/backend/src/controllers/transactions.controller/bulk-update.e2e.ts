@@ -315,63 +315,44 @@ describe('Bulk update transactions controller', () => {
   });
 
   describe('validation', () => {
-    it('should fail when no update fields are provided', async () => {
+    it('rejects invalid payloads (no update fields, empty ids, missing category, missing transactions)', async () => {
       const account = await helpers.createAccount({ raw: true });
+      const category = await helpers.addCustomCategory({ name: 'Test Category', color: '#0000FF', raw: true });
       const [tx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id }),
         raw: true,
       });
 
-      const result = await helpers.bulkUpdateTransactions({
+      const noUpdateFields = await helpers.bulkUpdateTransactions({
         payload: {
           transactionIds: [tx.id],
         },
       });
+      expect(noUpdateFields.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should fail when transaction IDs array is empty', async () => {
-      const category = await helpers.addCustomCategory({ name: 'Test Category', color: '#0000FF', raw: true });
-
-      const result = await helpers.bulkUpdateTransactions({
+      const emptyTransactionIds = await helpers.bulkUpdateTransactions({
         payload: {
           transactionIds: [],
           categoryId: category.id,
         },
       });
+      expect(emptyTransactionIds.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should fail when category does not exist', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id }),
-        raw: true,
-      });
-
-      const result = await helpers.bulkUpdateTransactions({
+      const missingCategory = await helpers.bulkUpdateTransactions({
         payload: {
           transactionIds: [tx.id],
           categoryId: generateRandomRecordId(),
         },
       });
+      expect(missingCategory.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('should fail when no valid transactions found', async () => {
-      const category = await helpers.addCustomCategory({ name: 'Test Category', color: '#FFFF00', raw: true });
-
-      const result = await helpers.bulkUpdateTransactions({
+      const missingTransactions = await helpers.bulkUpdateTransactions({
         payload: {
           transactionIds: [generateRandomRecordId()],
           categoryId: category.id,
         },
       });
-
-      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
+      expect(missingTransactions.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 

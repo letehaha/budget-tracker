@@ -156,7 +156,7 @@ export async function cleanupTestOAuthData(): Promise<void> {
   await authPool.query(`DELETE FROM "ba_oauth_access_token" WHERE "userId" = $1`, [TEST_AUTH_USER_ID]);
   await authPool.query(`DELETE FROM "ba_oauth_refresh_token" WHERE "userId" = $1`, [TEST_AUTH_USER_ID]);
   await authPool.query(`DELETE FROM "ba_oauth_consent" WHERE "userId" = $1`, [TEST_AUTH_USER_ID]);
-  await authPool.query(`DELETE FROM "ba_oauth_client" WHERE id = 'test-internal-client-id'`);
+  await authPool.query(`DELETE FROM "ba_oauth_client" WHERE id LIKE 'test-internal-client-id%'`);
 }
 
 /**

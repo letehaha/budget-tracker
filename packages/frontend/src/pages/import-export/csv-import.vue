@@ -31,7 +31,8 @@
     <div class="min-w-0">
       <FileUploadStep v-if="store.currentStepKey === 'upload'" />
       <ColumnMappingStep v-else-if="store.currentStepKey === 'map'" />
-      <ResolveValuesStep v-else-if="store.currentStepKey === 'resolve'" />
+      <ResolveValuesStep v-else-if="store.currentStepKey === 'resolve-accounts'" section="accounts" />
+      <ResolveValuesStep v-else-if="store.currentStepKey === 'resolve-categories'" section="categories" />
       <ReviewDuplicatesStep v-else-if="store.currentStepKey === 'review'" />
       <template v-else-if="store.currentStepKey === 'results'">
         <ImportResultsStep v-if="store.progress?.status === 'completed'" />
@@ -60,7 +61,8 @@ import ReviewDuplicatesStep from './components/review-duplicates-step/index.vue'
 const STEP_LABEL_KEYS: Record<ImportStepKey, string> = {
   upload: 'pages.importExport.csvImport.stepper.steps.upload',
   map: 'pages.importExport.csvImport.stepper.steps.map',
-  resolve: 'pages.importExport.csvImport.stepper.steps.resolve',
+  'resolve-accounts': 'pages.importExport.csvImport.stepper.steps.resolveAccounts',
+  'resolve-categories': 'pages.importExport.csvImport.stepper.steps.resolveCategories',
   review: 'pages.importExport.csvImport.stepper.steps.review',
   results: 'pages.importExport.csvImport.stepper.steps.results',
 };

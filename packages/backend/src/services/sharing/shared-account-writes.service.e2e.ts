@@ -17,25 +17,9 @@ import * as helpers from '@tests/helpers';
  * slice. See `docs/prds/family-sharing.md` (F3, F4) and `docs/prds/family-sharing-categories.md`.
  */
 
-interface RecipientHandle extends helpers.SecondUserHandle {}
-
-async function provisionRecipient(): Promise<RecipientHandle> {
-  const handle = await helpers.signUpSecondUser();
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
-
 interface ShareAccountParams {
   accountId: string;
-  recipient: RecipientHandle;
+  recipient: helpers.SecondUserHandle;
   permission: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
   transactionsWriteScope?: 'own' | 'all';
 }
@@ -69,36 +53,9 @@ async function ownerCreatesCategory(name: string) {
 
 describe('Shared account writes — S4', () => {
   describe('POST /transactions on a shared account', () => {
-    it('allows a recipient with write/all to create a transaction with the owner category', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createTransaction({
-            payload: helpers.buildTransactionPayload({
-              accountId: account.id,
-              amount: 1234,
-              transactionType: TRANSACTION_TYPES.expense,
-              categoryId: ownerCategory.id,
-            }),
-          }),
-      });
-
-      expect(res.statusCode).toBe(200);
-    });
-
     it('rejects a recipient supplying their own categoryId on a shared account (must be owner-set)', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -129,40 +86,9 @@ describe('Shared account writes — S4', () => {
       expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
 
-    it('returns 404 to a non-recipient creating a transaction on the account (existence masked)', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const stranger = await provisionRecipient();
-
-      const res = await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () =>
-          helpers.createTransaction({
-            payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
-          }),
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('returns 404 to a recipient with read-only permission attempting to create', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionRecipient();
-      await shareAccount({ accountId: account.id, recipient, permission: SHARE_PERMISSIONS.read });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createTransaction({
-            payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
-          }),
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
     it('blocks a recipient from creating a transfer on a shared account (deferred to a later slice)', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -197,140 +123,6 @@ describe('Shared account writes — S4', () => {
   });
 
   describe('PUT /transactions/:id on a shared account', () => {
-    it("allows write/all recipient to update an owner's transaction", async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          categoryId: ownerCategory.id,
-        }),
-        raw: true,
-      });
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.updateTransaction({
-            id: ownerTx.id,
-            payload: { amount: 200 },
-          }),
-      });
-
-      expect(res.statusCode).toBe(200);
-    });
-
-    it("forbids write/own recipient from updating an owner's transaction", async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          categoryId: ownerCategory.id,
-        }),
-        raw: true,
-      });
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own,
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.updateTransaction({
-            id: ownerTx.id,
-            payload: { amount: 999 },
-          }),
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('allows write/own recipient to update their own transaction on the shared account', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own,
-      });
-
-      // Recipient creates their own transaction on the shared account.
-      const [recipientTx] = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createTransaction({
-            payload: helpers.buildTransactionPayload({
-              accountId: account.id,
-              amount: 50,
-              categoryId: ownerCategory.id,
-            }),
-            raw: true,
-          }),
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.updateTransaction({
-            id: recipientTx.id,
-            payload: { amount: 60 },
-          }),
-      });
-
-      expect(res.statusCode).toBe(200);
-    });
-
-    it('returns 403 to a non-recipient updating a transaction on a shared account', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
-        raw: true,
-      });
-      const stranger = await provisionRecipient();
-
-      const res = await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () => helpers.updateTransaction({ id: ownerTx.id, payload: { amount: 200 } }),
-      });
-
-      // Tx exists but the caller has no write claim — surface "forbidden" rather than
-      // the misleading "not found". UUID ids make existence-leak via 403 vs 404 moot.
-      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
-    });
-
-    it('returns 403 to a read-only recipient attempting an update', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
-        raw: true,
-      });
-      const recipient = await provisionRecipient();
-      await shareAccount({ accountId: account.id, recipient, permission: SHARE_PERMISSIONS.read });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.updateTransaction({ id: ownerTx.id, payload: { amount: 200 } }),
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
-    });
-
     it("blocks a write/all recipient from changing the transaction's accountId", async () => {
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
@@ -342,7 +134,7 @@ describe('Shared account writes — S4', () => {
         }),
         raw: true,
       });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -368,14 +160,19 @@ describe('Shared account writes — S4', () => {
     });
   });
 
-  describe('DELETE /transactions/:id on a shared account', () => {
-    it("allows write/all recipient to delete an owner's transaction", async () => {
+  describe('recipient permission matrix on a shared account', () => {
+    it('lets a write/all recipient create with the owner category, then update and delete the owner tx', async () => {
       const account = await helpers.createAccount({ raw: true });
+      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
       const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          categoryId: ownerCategory.id,
+        }),
         raw: true,
       });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -383,46 +180,67 @@ describe('Shared account writes — S4', () => {
         transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
       });
 
-      const res = await helpers.asUser({
+      const createRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount: 1234,
+              transactionType: TRANSACTION_TYPES.expense,
+              categoryId: ownerCategory.id,
+            }),
+          }),
+      });
+      expect(createRes.statusCode).toBe(200);
+
+      const updateRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.updateTransaction({ id: ownerTx.id, payload: { amount: 200 } }),
+      });
+      expect(updateRes.statusCode).toBe(200);
+
+      const deleteRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () => helpers.deleteTransaction({ id: ownerTx.id }),
       });
+      expect(deleteRes.statusCode).toBe(200);
+    }, 30000);
 
-      expect(res.statusCode).toBe(200);
-    });
-
-    it("forbids write/own recipient from deleting an owner's transaction", async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
-        raw: true,
-      });
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own,
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.deleteTransaction({ id: ownerTx.id }),
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('allows write/own recipient to delete their own transaction on the shared account', async () => {
+    it('blocks a write/own recipient on owner-authored rows while allowing their own', async () => {
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
-      const recipient = await provisionRecipient();
+      const [ownerTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          categoryId: ownerCategory.id,
+        }),
+        raw: true,
+      });
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
         permission: SHARE_PERMISSIONS.write,
         transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own,
       });
+
+      const ownerUpdateRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.updateTransaction({
+            id: ownerTx.id,
+            payload: { amount: 999 },
+          }),
+      });
+      expect(ownerUpdateRes.statusCode).toBe(ERROR_CODES.Unauthorized);
+
+      const ownerDeleteRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.deleteTransaction({ id: ownerTx.id }),
+      });
+      expect(ownerDeleteRes.statusCode).toBe(ERROR_CODES.Unauthorized);
 
       const [recipientTx] = await helpers.asUser({
         cookies: recipient.cookies,
@@ -437,91 +255,93 @@ describe('Shared account writes — S4', () => {
           }),
       });
 
-      const res = await helpers.asUser({
+      const ownUpdateRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.updateTransaction({
+            id: recipientTx.id,
+            payload: { amount: 60 },
+          }),
+      });
+      expect(ownUpdateRes.statusCode).toBe(200);
+
+      const ownDeleteRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () => helpers.deleteTransaction({ id: recipientTx.id }),
       });
+      expect(ownDeleteRes.statusCode).toBe(200);
+    }, 30000);
 
-      expect(res.statusCode).toBe(200);
-    });
-
-    it('returns 403 to a non-recipient deleting a transaction', async () => {
+    it('returns 404 on create and 403 on update/delete to a non-recipient', async () => {
       const account = await helpers.createAccount({ raw: true });
       const [ownerTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
         raw: true,
       });
-      const stranger = await provisionRecipient();
+      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
 
-      const res = await helpers.asUser({
+      const createRes = await helpers.asUser({
+        cookies: stranger.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
+          }),
+      });
+      expect(createRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      // Tx exists but the caller has no write claim: surface "forbidden" rather than
+      // the misleading "not found". UUID ids make existence-leak via 403 vs 404 moot.
+      const updateRes = await helpers.asUser({
+        cookies: stranger.cookies,
+        fn: () => helpers.updateTransaction({ id: ownerTx.id, payload: { amount: 200 } }),
+      });
+      expect(updateRes.statusCode).toBe(ERROR_CODES.Forbidden);
+
+      const deleteRes = await helpers.asUser({
         cookies: stranger.cookies,
         fn: () => helpers.deleteTransaction({ id: ownerTx.id }),
       });
+      expect(deleteRes.statusCode).toBe(ERROR_CODES.Forbidden);
+    }, 30000);
 
-      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
-    });
-
-    it('returns 403 to a read-only recipient attempting delete', async () => {
+    it('returns 404 on create and 403 on update/delete to a read-only recipient', async () => {
       const account = await helpers.createAccount({ raw: true });
       const [ownerTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
         raw: true,
       });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({ accountId: account.id, recipient, permission: SHARE_PERMISSIONS.read });
 
-      const res = await helpers.asUser({
+      const createRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
+          }),
+      });
+      expect(createRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      const updateRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.updateTransaction({ id: ownerTx.id, payload: { amount: 200 } }),
+      });
+      expect(updateRes.statusCode).toBe(ERROR_CODES.Forbidden);
+
+      const deleteRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () => helpers.deleteTransaction({ id: ownerTx.id }),
       });
-
-      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
-    });
-
-    /**
-     * Refund-link guards (Phase-1): recipients cannot create, modify, or remove refund
-     * relationships on shared accounts — those flows touch transactions across the
-     * caller/owner boundary and need their own slice. Owners always pass through.
-     */
-    it("rejects recipient deleting an owner's refund-linked transaction with ValidationError", async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [originalTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-      const [refundTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 50,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        raw: true,
-      });
-      await helpers.createSingleRefund({ originalTxId: originalTx.id, refundTxId: refundTx.id });
-
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.deleteTransaction({ id: originalTx.id }),
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      expect(deleteRes.statusCode).toBe(ERROR_CODES.Forbidden);
+    }, 30000);
   });
 
-  describe('Phase-1 refund guards on PUT /transactions/:id', () => {
-    it('rejects recipient supplying refundsTxId in update payload', async () => {
+  describe('Phase-1 refund guards on a shared account', () => {
+    /**
+     * Recipients cannot create, modify, or remove refund relationships on shared accounts:
+     * those flows touch transactions across the caller/owner boundary. Owners always pass.
+     */
+    it('rejects a recipient linking, modifying or deleting refund-linked rows', async () => {
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
       const [originalTx] = await helpers.createTransaction({
@@ -543,7 +363,7 @@ describe('Shared account writes — S4', () => {
         raw: true,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -551,7 +371,7 @@ describe('Shared account writes — S4', () => {
         transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
       });
 
-      const res = await helpers.asUser({
+      const refundsTxIdRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.updateTransaction({
@@ -559,41 +379,9 @@ describe('Shared account writes — S4', () => {
             payload: { refundsTxId: originalTx.id },
           }),
       });
+      expect(refundsTxIdRes.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('rejects recipient supplying refundedByTxIds in update payload', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
-      const [originalTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: ownerCategory.id,
-        }),
-        raw: true,
-      });
-      const [refundCandidate] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 50,
-          transactionType: TRANSACTION_TYPES.income,
-          categoryId: ownerCategory.id,
-        }),
-        raw: true,
-      });
-
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-      });
-
-      const res = await helpers.asUser({
+      const refundedByRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.updateTransaction({
@@ -601,32 +389,40 @@ describe('Shared account writes — S4', () => {
             payload: { refundedByTxIds: [refundCandidate.id] },
           }),
       });
+      expect(refundedByRes.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      await helpers.createSingleRefund({ originalTxId: originalTx.id, refundTxId: refundCandidate.id });
+
+      const deleteRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.deleteTransaction({ id: originalTx.id }),
+      });
+      expect(deleteRes.statusCode).toBe(ERROR_CODES.ValidationError);
+    }, 30000);
   });
 
   describe('GET /categories?accountId=', () => {
-    it("returns the caller's categories when no accountId is provided (back-compat)", async () => {
+    it("returns the caller's categories with or without an owned accountId, and rejects combining accountId with includeAccessible", async () => {
+      const account = await helpers.createAccount({ raw: true });
       const ownCat = await helpers.addCustomCategory({ name: 'mine-1', color: '#000000', raw: true });
 
-      const list = await helpers.getCategoriesList();
-      expect(list.find((c) => c.id === ownCat.id)).toBeDefined();
-    });
+      const listWithoutAccount = await helpers.getCategoriesList();
+      expect(listWithoutAccount.find((c) => c.id === ownCat.id)).toBeDefined();
 
-    it("returns the caller's categories when accountId is an owned account", async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownCat = await helpers.addCustomCategory({ name: 'mine-2', color: '#111111', raw: true });
+      const listForOwnedAccount = await helpers.getCategoriesList({ accountId: account.id });
+      expect(listForOwnedAccount.find((c) => c.id === ownCat.id)).toBeDefined();
 
-      const list = await helpers.getCategoriesList({ accountId: account.id });
-      const found = list.find((c) => c.id === ownCat.id);
-      expect(found).toBeDefined();
+      const res = await helpers.getCategoriesListResponse({
+        accountId: account.id,
+        includeAccessible: true,
+      });
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it("returns the *owner's* categories when accountId is shared with the caller", async () => {
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('owner-only-cat');
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -644,7 +440,7 @@ describe('Shared account writes — S4', () => {
 
     it('returns 404 when accountId references an account the caller has no claim on', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const stranger = await provisionRecipient();
+      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
 
       const res = await helpers.asUser({
         cookies: stranger.cookies,
@@ -656,10 +452,10 @@ describe('Shared account writes — S4', () => {
   });
 
   describe('CRIT6 — Owner editing recipient-authored tx on shared account', () => {
-    it('owner PUTs a tx authored by recipient → 200, tx updated', async () => {
+    it('lets the owner update and then delete a tx authored by the recipient', async () => {
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('Groceries-crit6');
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -667,7 +463,6 @@ describe('Shared account writes — S4', () => {
         transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
       });
 
-      // Recipient creates tx on owner's account
       const [recipientTx] = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
@@ -681,54 +476,20 @@ describe('Shared account writes — S4', () => {
           }),
       });
 
-      // Owner PUTs the recipient's tx
-      const res = await helpers.updateTransaction({
-        id: recipientTx.id,
-        payload: { amount: 9.99 },
-      });
+      const updateRes = await helpers.updateTransaction({ id: recipientTx.id, payload: { amount: 9.99 } });
+      expect(updateRes.statusCode).toBe(200);
 
-      expect(res.statusCode).toBe(200);
-
-      // Confirm amount changed — fetch via GET and compare decimal
       const updated = await helpers.getTransactionById({ id: recipientTx.id, raw: true });
       expect(updated).not.toBeNull();
       expect(updated!.amount).toBe(9.99);
-    });
 
-    it('owner DELETEs a tx authored by recipient → 200, tx gone', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Groceries-crit6-del');
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-      });
+      const deleteRes = await helpers.deleteTransaction({ id: recipientTx.id });
+      expect(deleteRes.statusCode).toBe(200);
 
-      const [recipientTx] = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createTransaction({
-            payload: helpers.buildTransactionPayload({
-              accountId: account.id,
-              amount: 150,
-              categoryId: ownerCategory.id,
-            }),
-            raw: true,
-          }),
-      });
-
-      // Owner deletes the recipient's tx
-      const res = await helpers.deleteTransaction({ id: recipientTx.id });
-
-      expect(res.statusCode).toBe(200);
-
-      // Confirm it's gone — owner's own GET returns null
       const fetched = await helpers.getTransactionById({ id: recipientTx.id, raw: false });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((fetched as any).body.response).toBeNull();
-    });
+    }, 30000);
   });
 
   describe('CRIT6 — Splits managed by recipient on owner-authored tx', () => {
@@ -747,7 +508,7 @@ describe('Shared account writes — S4', () => {
       // Add a second owner category for the split target
       const ownerCategory2 = await ownerCreatesCategory('Splits-owner-cat-2');
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -808,7 +569,7 @@ describe('Shared account writes — S4', () => {
         raw: true,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -847,7 +608,7 @@ describe('Shared account writes — S4', () => {
       // frontend regression that re-introduces the wrong picker is caught here.
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('Splits-recipient-leak-owner-cat');
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -884,12 +645,8 @@ describe('Shared account writes — S4', () => {
     it("returns the union of caller's own categories plus all shared-owner categories", async () => {
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('owner-union-cat');
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.read,
-      });
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+      await shareAccount({ accountId: account.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       // Recipient creates one of their own — must appear in the union too.
       const recipientOwnCategory = await helpers.asUser({
@@ -910,7 +667,7 @@ describe('Shared account writes — S4', () => {
       // Owner has a category on a private (unshared) account; recipient must not see it via
       // the union endpoint.
       const privateCategory = await ownerCreatesCategory('private-owner-cat');
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
 
       const list = await helpers.asUser({
         cookies: recipient.cookies,
@@ -918,17 +675,6 @@ describe('Shared account writes — S4', () => {
       });
 
       expect(list.find((c) => c.id === privateCategory.id)).toBeUndefined();
-    });
-
-    it('rejects combining accountId with includeAccessible', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const res = await helpers.getCategoriesListResponse({
-        accountId: account.id,
-        includeAccessible: true,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 
@@ -942,7 +688,7 @@ describe('Shared account writes — S4', () => {
       });
       const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -997,7 +743,7 @@ describe('Shared account writes — S4', () => {
         raw: true,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -1033,7 +779,7 @@ describe('Shared account writes — S4', () => {
       // Account in recipient's base currency — no auto-connect needed, and creation succeeds.
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('Groceries (owner)');
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -1084,44 +830,22 @@ describe('Shared account writes — S4', () => {
    * re-categorize. Owner's rules, owner's account.
    */
   describe('Payee linking on shared accounts', () => {
-    it("links a recipient-created tx to the owner's payeeId when supplied", async () => {
+    it("accepts the owner's payee and rejects the recipient's own on both create and update", async () => {
       const account = await helpers.createAccount({ raw: true });
       const ownerCategory = await ownerCreatesCategory('Payee-owner-cat');
       const ownerPayee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: `Owner Payee ${Date.now()}` }),
         raw: true,
       });
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
+      const [ownerTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 100,
+          categoryId: ownerCategory.id,
+        }),
+        raw: true,
       });
-
-      const [tx] = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createTransaction({
-            payload: {
-              ...helpers.buildTransactionPayload({
-                accountId: account.id,
-                amount: 100,
-                categoryId: ownerCategory.id,
-              }),
-              payeeId: ownerPayee.id,
-            },
-            raw: true,
-          }),
-      });
-
-      expect(tx.payeeId).toBe(ownerPayee.id);
-    });
-
-    it('rejects a recipient supplying their own payeeId on a shared account (must be owner-set)', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Payee-owner-cat-2');
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -1138,7 +862,24 @@ describe('Shared account writes — S4', () => {
           }),
       });
 
-      const res = await helpers.asUser({
+      const [createdWithOwnerPayee] = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.createTransaction({
+            payload: {
+              ...helpers.buildTransactionPayload({
+                accountId: account.id,
+                amount: 100,
+                categoryId: ownerCategory.id,
+              }),
+              payeeId: ownerPayee.id,
+            },
+            raw: true,
+          }),
+      });
+      expect(createdWithOwnerPayee.payeeId).toBe(ownerPayee.id);
+
+      const createWithOwnPayeeRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.createTransaction({
@@ -1152,34 +893,9 @@ describe('Shared account writes — S4', () => {
             },
           }),
       });
+      expect(createWithOwnPayeeRes.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it("allows a recipient to attach an owner's payee via PUT", async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Payee-owner-cat-update');
-      const ownerPayee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: `Owner Payee Update ${Date.now()}` }),
-        raw: true,
-      });
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          categoryId: ownerCategory.id,
-        }),
-        raw: true,
-      });
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-      });
-
-      const res = await helpers.asUser({
+      const attachOwnerPayeeRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.updateTransaction({
@@ -1187,41 +903,12 @@ describe('Shared account writes — S4', () => {
             payload: { payeeId: ownerPayee.id },
           }),
       });
+      expect(attachOwnerPayeeRes.statusCode).toBe(200);
 
-      expect(res.statusCode).toBe(200);
       const fetched = await helpers.getTransactionById({ id: ownerTx.id, raw: true });
       expect(fetched!.payeeId).toBe(ownerPayee.id);
-    });
 
-    it('rejects a recipient supplying their own payeeId via PUT on a shared-account tx', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownerCategory = await ownerCreatesCategory('Payee-owner-cat-update-2');
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          categoryId: ownerCategory.id,
-        }),
-        raw: true,
-      });
-      const recipient = await provisionRecipient();
-      await shareAccount({
-        accountId: account.id,
-        recipient,
-        permission: SHARE_PERMISSIONS.write,
-        transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-      });
-
-      const recipientPayee = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createPayee({
-            payload: helpers.buildPayeePayload({ name: `Recipient Payee Update ${Date.now()}` }),
-            raw: true,
-          }),
-      });
-
-      const res = await helpers.asUser({
+      const attachOwnPayeeRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.updateTransaction({
@@ -1229,9 +916,8 @@ describe('Shared account writes — S4', () => {
             payload: { payeeId: recipientPayee.id },
           }),
       });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
+      expect(attachOwnPayeeRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    }, 30000);
 
     it("note-extraction respects the owner's payeeExtractionUsesDescription setting", async () => {
       // Owner enables description-based extraction and seeds an exact-match
@@ -1251,7 +937,7 @@ describe('Shared account writes — S4', () => {
       });
 
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,
@@ -1315,25 +1001,18 @@ describe('Shared account writes — S4', () => {
      * Mirrors `GET /categories?accountId=` for the categories picker.
      */
     describe('GET /payees?accountId=', () => {
-      it("returns the caller's payees when no accountId is provided (back-compat)", async () => {
+      it("returns the caller's payees with or without an owned accountId (back-compat)", async () => {
+        const account = await helpers.createAccount({ raw: true });
         const ownPayee = await helpers.createPayee({
           payload: helpers.buildPayeePayload({ name: `Own Payee List ${Date.now()}` }),
           raw: true,
         });
 
-        const list = await helpers.listPayees({ raw: true });
-        expect(list.find((p) => p.id === ownPayee.id)).toBeDefined();
-      });
+        const listWithoutAccount = await helpers.listPayees({ raw: true });
+        expect(listWithoutAccount.find((p) => p.id === ownPayee.id)).toBeDefined();
 
-      it("returns the caller's payees when accountId is an owned account", async () => {
-        const account = await helpers.createAccount({ raw: true });
-        const ownPayee = await helpers.createPayee({
-          payload: helpers.buildPayeePayload({ name: `Own Payee Account ${Date.now()}` }),
-          raw: true,
-        });
-
-        const list = await helpers.listPayees({ accountId: account.id, raw: true });
-        expect(list.find((p) => p.id === ownPayee.id)).toBeDefined();
+        const listForOwnedAccount = await helpers.listPayees({ accountId: account.id, raw: true });
+        expect(listForOwnedAccount.find((p) => p.id === ownPayee.id)).toBeDefined();
       });
 
       it("returns the *owner's* payees when accountId is shared with the caller", async () => {
@@ -1342,7 +1021,7 @@ describe('Shared account writes — S4', () => {
           payload: helpers.buildPayeePayload({ name: `Owner Picker Payee ${Date.now()}` }),
           raw: true,
         });
-        const recipient = await provisionRecipient();
+        const recipient = await helpers.provisionSecondUserWithBaseCurrency();
         await shareAccount({
           accountId: account.id,
           recipient,
@@ -1373,7 +1052,7 @@ describe('Shared account writes — S4', () => {
 
       it('returns 404 when accountId references an account the caller has no claim on', async () => {
         const account = await helpers.createAccount({ raw: true });
-        const stranger = await provisionRecipient();
+        const stranger = await helpers.provisionSecondUserWithBaseCurrency();
 
         const res = await helpers.asUser({
           cookies: stranger.cookies,
@@ -1399,7 +1078,7 @@ describe('Shared account writes — S4', () => {
         raw: true,
       });
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccount({
         accountId: account.id,
         recipient,

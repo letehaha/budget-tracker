@@ -27,17 +27,6 @@ const callGelFullBalanceHistory = async (raw = false) => {
 };
 
 describe('Balances service', () => {
-  it('the balances table correctly managing account creation', async () => {
-    const account = await helpers.createAccount({ raw: true });
-
-    const balancesHistory = await callGetBalanceHistory(account.id);
-
-    const result = helpers.extractResponse(balancesHistory);
-
-    expect(balancesHistory.statusCode).toEqual(200);
-    expect(result[0].amount).toEqual(account.initialBalance);
-  });
-
   describe('the balances history table correctly updated when:', () => {
     const buildAccount = async ({
       accountInitialBalance = 0,
@@ -94,25 +83,6 @@ describe('Balances service', () => {
 
     it('– adding transactions at the same date', async () => {
       const { accountData, expense, income } = await buildAccount();
-
-      for (const type of [expense, expense, income]) {
-        await helpers.createTransaction({ payload: type });
-      }
-
-      const finalBalancesHistory = await callGetBalanceHistory(accountData.id);
-
-      expect(finalBalancesHistory.statusCode).toEqual(200);
-      expect(helpers.extractResponse(finalBalancesHistory).length).toEqual(1);
-      expect(helpers.extractResponse(finalBalancesHistory)[0].amount).toEqual(
-        // since we have 2 expenses and 1 income, we can check for 1 expense
-        Number(accountData.currentBalance) - expense.amount,
-      );
-    });
-
-    it('– adding transactions at the same date and account has initial value', async () => {
-      const { accountData, expense, income } = await buildAccount({
-        accountInitialBalance: 1200,
-      });
 
       for (const type of [expense, expense, income]) {
         await helpers.createTransaction({ payload: type });

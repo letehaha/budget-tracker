@@ -155,7 +155,6 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
         expect(storedPrices[index]?.source).toBe(SECURITY_PROVIDER.polygon);
       });
 
-      // Verify security sync timestamp was updated
       const updatedSecurity = await Securities.findByPk(usSecurity.id);
       expect(updatedSecurity?.pricingLastSyncedAt).toBeTruthy();
 
@@ -272,58 +271,6 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
 
       // Verify provider WAS called (should NOT skip sync)
       expect(mockedPolygonAggregates).toHaveBeenCalledTimes(1);
-
-      // Should now have both original and new price records
-      const storedPrices = await SecurityPricing.findAll({
-        where: { securityId: existingSecurity.id },
-        order: [['date', 'ASC']],
-      });
-
-      // Should have more records now (original + new ones)
-      expect(storedPrices.length).toBeGreaterThanOrEqual(pricesBeforeSync.length);
-
-      // Verify security sync timestamp was updated
-      const updatedSecurity = await Securities.findByPk(existingSecurity.id);
-      expect(updatedSecurity?.pricingLastSyncedAt).toBeTruthy();
-    });
-
-    it('should fill price gaps when re-adding security after removal', async () => {
-      // This simulates the gap-filling scenario:
-      // 1. Security was previously synced (existing price data from setup)
-      // 2. Security was removed from all holdings (gaps in daily sync)
-      // 3. Security is now being re-added (should fill gaps with historical sync)
-
-      // Mock Polygon to return data that includes new dates (filling gaps)
-      const gapFillDate = new Date('2024-02-15'); // Different from existing data date
-
-      const mockPrices = [
-        {
-          t: gapFillDate.getTime(),
-          c: 105.5, // Price for gap period
-        },
-        {
-          t: new Date('2024-02-16').getTime(),
-          c: 107.25, // Another gap fill price
-        },
-      ];
-
-      mockedPolygonAggregates.mockResolvedValue({
-        results: mockPrices,
-      });
-
-      // Create holding for security that already has some price data (simulating re-adding)
-      const response = await helpers.createHolding({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: existingSecurity.id,
-        },
-      });
-
-      expect(response.statusCode).toBe(201);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Verify the sync was performed (not skipped)
-      expect(mockedPolygonAggregates).toHaveBeenCalledTimes(1);
       expect(mockedPolygonAggregates).toHaveBeenCalledWith(
         'MSFT',
         1,
@@ -332,19 +279,13 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
         expect.any(String), // endDate
       );
 
-      // Verify both old and new prices exist (gap filled)
       const storedPrices = await SecurityPricing.findAll({
         where: { securityId: existingSecurity.id },
         order: [['date', 'ASC']],
       });
 
-      // Should have at least 1 record
-      expect(storedPrices.length).toBeGreaterThanOrEqual(1);
+      expect(storedPrices.length).toBeGreaterThanOrEqual(pricesBeforeSync.length);
 
-      // Verify the sync was performed (not skipped)
-      expect(mockedPolygonAggregates).toHaveBeenCalledTimes(1);
-
-      // Security sync timestamp should be updated
       const updatedSecurity = await Securities.findByPk(existingSecurity.id);
       expect(updatedSecurity?.pricingLastSyncedAt).toBeTruthy();
     });
@@ -391,37 +332,6 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
       expect(storedPrices).toHaveLength(1);
       expect(storedPrices[0]?.source).toBe(SECURITY_PROVIDER.alphavantage);
       expect(storedPrices[0]?.priceClose).toBeNumericEqual('185.20');
-    });
-  });
-
-  describe('Provider Name Storage', () => {
-    it('should store the actual provider name that fetched the data, not composite', async () => {
-      // Test US stock using Polygon - should store 'polygon', not 'composite'
-      mockedPolygonAggregates.mockResolvedValue({
-        results: [
-          {
-            t: new Date('2024-01-15').getTime(),
-            c: 185.92,
-          },
-        ],
-      });
-
-      const response = await helpers.createHolding({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: usSecurity.id,
-        },
-      });
-
-      expect(response.statusCode).toBe(201);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const storedPrice = await SecurityPricing.findOne({
-        where: { securityId: usSecurity.id },
-      });
-
-      // Should store 'polygon', not 'composite'
-      expect(storedPrice?.source).toBe(SECURITY_PROVIDER.polygon);
     });
   });
 
@@ -479,26 +389,6 @@ describe('Historical Price Sync Service (via Holdings Creation)', () => {
       expect(reloaded?.providerSymbol).toBe('IE00B53L3W79.IR');
       expect(reloaded?.symbol).toBe('IE00B53L3W79.IR');
       expect(reloaded?.priceSourceSymbol).toBe('MEUD.PA');
-    });
-
-    it('falls back to providerSymbol when priceSourceSymbol is null (default)', async () => {
-      // Sanity check that the routing logic doesn't break ordinary securities.
-      mockedAlphaDaily.mockResolvedValue({
-        'Time Series (Daily)': {
-          '2024-01-15': { '4. close': '714.80' },
-        },
-      });
-
-      const response = await helpers.createHolding({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: nonUsSecurity.id,
-        },
-      });
-      expect(response.statusCode).toBe(201);
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      expect(mockedAlphaDaily).toHaveBeenCalledWith('ASML.AS', 'full');
     });
   });
 

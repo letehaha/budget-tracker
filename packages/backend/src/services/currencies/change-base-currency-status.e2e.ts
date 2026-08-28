@@ -6,6 +6,21 @@ import { redisClient } from '@root/redis-client';
 import { REDIS_KEYS, SyncStatus } from '@services/bank-data-providers/sync/sync-status-tracker';
 import * as helpers from '@tests/helpers';
 
+// Mark one of the user's accounts as actively syncing so the worker's drain never
+// clears — used to deterministically fail the job on drain timeout.
+const holdAccountSyncing = async ({ accountId }: { accountId: string }) => {
+  await redisClient.set(
+    REDIS_KEYS.accountSyncStatus(accountId),
+    JSON.stringify({
+      accountId,
+      status: SyncStatus.SYNCING,
+      startedAt: new Date().toISOString(),
+      completedAt: null,
+      error: null,
+    }),
+  );
+};
+
 /**
  * GET /user/currencies/change-base/status. The change runs as a background job any
  * device polls to drive the blocking overlay. These tests drive the full lifecycle
@@ -16,33 +31,23 @@ describe('Base-currency change status endpoint', () => {
   beforeEach(async () => {
     // Pin base to GBP (matching the sibling suites — the seed carries GBP/EUR→USD
     // historical rates), then connect EUR (the account currency) and USD (the target).
-    await helpers.makeRequest({ method: 'post', url: '/user/currencies/base', payload: { currencyCode: 'GBP' } });
-    await helpers.addUserCurrencies({ currencyCodes: ['EUR', 'USD'], raw: true });
-  });
-
-  // Mark one of the user's accounts as actively syncing so the worker's drain never
-  // clears — used to deterministically fail the job on drain timeout.
-  const holdAccountSyncing = async ({ accountId }: { accountId: string }) => {
-    await redisClient.set(
-      REDIS_KEYS.accountSyncStatus(accountId),
-      JSON.stringify({
-        accountId,
-        status: SyncStatus.SYNCING,
-        startedAt: new Date().toISOString(),
-        completedAt: null,
-        error: null,
-      }),
-    );
-  };
-
-  it('reports idle for a user who has never changed base currency', async () => {
-    const status = await helpers.getBaseCurrencyChangeStatus({ raw: true });
-    expect(status.state).toEqual('idle');
+    await helpers.makeRequest({
+      method: 'post',
+      url: '/user/currencies/base',
+      payload: { currencyCode: 'GBP' },
+    });
+    await helpers.addUserCurrencies({
+      currencyCodes: ['EUR', 'USD'],
+      raw: true,
+    });
   });
 
   it('walks idle → queued/running → completed and actually changes refAmounts', async () => {
     const account = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ currencyCode: 'EUR', initialBalance: 10000 }),
+      payload: helpers.buildAccountPayload({
+        currencyCode: 'EUR',
+        initialBalance: 10000,
+      }),
       raw: true,
     });
     const [tx] = await helpers.createTransaction({
@@ -59,7 +64,9 @@ describe('Base-currency change status endpoint', () => {
     const before = await helpers.getBaseCurrencyChangeStatus({ raw: true });
     expect(before.state).toEqual('idle');
 
-    const enqueue = await helpers.changeBaseCurrency({ newCurrencyCode: 'USD' });
+    const enqueue = await helpers.changeBaseCurrency({
+      newCurrencyCode: 'USD',
+    });
     expect(enqueue.statusCode).toEqual(202);
     expect(enqueue.body.response.jobId).toBeTruthy();
     expect(enqueue.body.response.state).toEqual('queued');
@@ -84,7 +91,10 @@ describe('Base-currency change status endpoint', () => {
 
   it('holds the job non-terminal while an account syncs, then completes once the sync clears', async () => {
     const account = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ currencyCode: 'EUR', initialBalance: 10000 }),
+      payload: helpers.buildAccountPayload({
+        currencyCode: 'EUR',
+        initialBalance: 10000,
+      }),
       raw: true,
     });
     await helpers.createTransaction({
@@ -101,7 +111,9 @@ describe('Base-currency change status endpoint', () => {
     // its recalc while this holds.
     await holdAccountSyncing({ accountId: account.id });
 
-    const enqueue = await helpers.changeBaseCurrency({ newCurrencyCode: 'USD' });
+    const enqueue = await helpers.changeBaseCurrency({
+      newCurrencyCode: 'USD',
+    });
     expect(enqueue.statusCode).toEqual(202);
 
     // While the sync is held, the job stays non-terminal. Poll a short window
@@ -146,7 +158,9 @@ describe('Base-currency change status endpoint', () => {
     await holdAccountSyncing({ accountId: account.id });
 
     try {
-      const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+      const status = await helpers.changeBaseCurrencyAndWait({
+        newCurrencyCode: 'USD',
+      });
       helpers.expectBaseCurrencyChangeFailed(status);
       expect(status.error).toBeTruthy();
     } finally {

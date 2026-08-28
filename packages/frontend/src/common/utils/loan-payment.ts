@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { utcDayKey } from '@/common/utils/date';
 
 // Half-cent slack: backend compares cents, frontend compares decimals — keeps
 // an exact payoff valid without letting a real overpay through.
@@ -39,7 +39,8 @@ export const isLoanPaymentPreAnchor = ({
   balanceAnchorDate: string | null | undefined;
 }): boolean => {
   if (paymentDate == null || !balanceAnchorDate) return false;
-  // yyyy-MM-dd lexicographic compare is correct for ISO date strings, matching the
-  // backend's DATE(paymentDate) < balanceAnchorDate boundary.
-  return format(new Date(paymentDate), 'yyyy-MM-dd') < balanceAnchorDate;
+  // UTC calendar day, not the browser-local day: the backend classifies legs via
+  // SQL `DATE("time")` in a UTC database, and the two sides must agree for
+  // timestamps near midnight in non-UTC browser timezones.
+  return utcDayKey({ date: paymentDate }) < balanceAnchorDate;
 };

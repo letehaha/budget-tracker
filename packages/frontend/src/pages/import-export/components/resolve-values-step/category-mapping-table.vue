@@ -19,8 +19,11 @@ import SelectField from '@/components/fields/select-field.vue';
 import { MappingTable, type MappingTableColumn } from '@/components/lib/ui/mapping-table';
 import { StatusIndicator } from '@/components/lib/ui/status-indicator';
 import { buildCategoryMapById } from '@/pages/import-export/utils/flatten-categories';
+import type { CategoryMappingPreset } from '@bt/shared/types';
+import { Loader2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import CategoryPresetMenu from './category-preset-menu.vue';
 import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vue';
 
 const { t } = useI18n();
@@ -47,11 +50,20 @@ const props = defineProps<{
   resolvedLabel: string;
   /** Bulk-action buttons the parent builds with i18n labels + store handlers. */
   quickActions: QuickAction[];
+  /** Saved mapping for the current file's layout. Omit to hide the preset menu. */
+  matchingPreset?: CategoryMappingPreset | null;
+  /** Named mapping templates offered by the preset menu. */
+  namedPresets?: CategoryMappingPreset[];
+  /** Blocks the whole section behind a spinner overlay (e.g. while AI matching runs). */
+  loading?: boolean;
 }>();
 
 const emit = defineEmits<{
   'set-action': [payload: { name: string; action: 'create-new' | 'link-existing' }];
   'set-target': [payload: { name: string; categoryId: string }];
+  'apply-preset': [payload: { preset: CategoryMappingPreset }];
+  'rename-preset': [payload: { fingerprint: string; name: string }];
+  'delete-preset': [payload: { fingerprint: string }];
 }>();
 
 // ---- Option lists ----
@@ -120,18 +132,43 @@ function onTargetChange({ name, category }: { name: string; category: FormattedC
 </script>
 
 <template>
-  <section>
+  <section class="relative isolate" :aria-busy="loading || undefined">
+    <!-- Blocks the section while an async bulk action runs: this overlay stops
+         pointer input, the inert siblings below stop keyboard access. -->
+    <div
+      v-if="loading"
+      class="bg-background/60 absolute inset-0 z-10 flex justify-center rounded-lg pt-24 backdrop-blur-[2px]"
+    >
+      <div
+        class="border-border bg-card sticky top-1/3 flex h-fit items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium shadow-lg"
+      >
+        <Loader2Icon class="text-primary-text size-5 animate-spin" />
+        {{ $t('importShared.aiMapping.inProgress') }}
+      </div>
+    </div>
+
     <!-- Section header: title + resolved counter on the left, quick actions on the right -->
-    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2" :inert="loading || undefined">
       <div>
         <h3 class="text-sm font-semibold">{{ title }}</h3>
         <p class="text-muted-foreground text-xs">{{ resolvedCount }} / {{ items.length }} {{ resolvedLabel }}</p>
       </div>
 
-      <QuickActionsToolbar :actions="quickActions" />
+      <div class="flex items-center gap-2">
+        <CategoryPresetMenu
+          :matching-preset="matchingPreset ?? null"
+          :named-presets="namedPresets ?? []"
+          @apply="emit('apply-preset', $event)"
+          @rename="emit('rename-preset', $event)"
+          @delete="emit('delete-preset', $event)"
+        />
+
+        <QuickActionsToolbar :actions="quickActions" />
+      </div>
     </div>
 
     <MappingTable
+      :inert="loading || undefined"
       :columns="columns"
       :items="items"
       :row-key="(row) => row.name"

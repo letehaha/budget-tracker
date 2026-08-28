@@ -21,6 +21,8 @@ const linkExistingSchema = z.object({
   accountId: recordId(),
 });
 
+const skipSchema = z.object({ action: z.literal('skip') });
+
 // Budget Bakers Wallet's `create-new` variant carries a required `currencyCode`
 // (the CSV importer derives currency from the rows instead) and a required-but-nullable
 // `currentBalance`, which makes it a different shape from the CSV importer's
@@ -28,5 +30,5 @@ const linkExistingSchema = z.object({
 // the distinct contract.
 export const budgetBakersWalletAccountMappingSchema = z.record(
   z.string(),
-  z.discriminatedUnion('action', [createNewSchema, linkExistingSchema]),
+  z.discriminatedUnion('action', [createNewSchema, linkExistingSchema, skipSchema]),
 );

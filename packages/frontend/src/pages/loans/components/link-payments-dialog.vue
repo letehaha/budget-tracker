@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { type LoanApi } from '@/api/loans';
+import { isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import RecordsFiltersDialog from '@/components/records-filters/filters-dialog.vue';
 import RecordsFilters from '@/components/records-filters/index.vue';
@@ -11,6 +13,7 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
 import { useLinkLoanPayments } from '@/composable/data-queries/loans';
 import { useFormatCurrency } from '@/composable/formatters';
+import { useDateLocale } from '@/composable/use-date-locale';
 import { useShiftMultiSelect } from '@/composable/shift-multi-select';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { CUSTOM_BREAKPOINTS } from '@/composable/window-breakpoints';
@@ -73,6 +76,22 @@ const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
 const parentRef = computed<HTMLElement | null>(() => scrollAreaRef.value?.viewportRef?.viewportElement ?? null);
 const flatTransactions = computed(() => transactionsPages.value?.pages?.flat() ?? []);
 const isListEmpty = computed(() => isFetched.value && flatTransactions.value.length === 0);
+
+const { format: formatDate } = useDateLocale();
+
+// Payments dated before the balance anchor link as history only — the anchor
+// snapshot already includes them, so they never reduce the outstanding balance.
+// Warn upfront instead of letting the link silently "do nothing".
+const preAnchorPickedCount = computed(() => {
+  const anchorDate = props.loan.loanDetails.balanceAnchorDate;
+  return flatTransactions.value.filter(
+    (tx) =>
+      pickedTransactionsIds.has(tx.id) &&
+      isLoanPaymentPreAnchor({ paymentDate: tx.time, balanceAnchorDate: anchorDate }),
+  ).length;
+});
+
+const anchorDateDisplay = computed(() => formatDate(parseISO(props.loan.loanDetails.balanceAnchorDate), 'MMM d, yyyy'));
 
 const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   items: flatTransactions,
@@ -193,6 +212,16 @@ watch(
             {{ $t('loans.linkPayments.linkSelected', { count: pickedTransactionsIds.size }) }}
           </Button>
         </div>
+
+        <Callout v-if="preAnchorPickedCount > 0" class="mb-3 text-xs">
+          {{
+            $t(
+              'loans.linkPayments.preAnchorWarning',
+              { count: preAnchorPickedCount, date: anchorDateDisplay },
+              preAnchorPickedCount,
+            )
+          }}
+        </Callout>
 
         <div v-if="isListEmpty" class="flex min-h-[40vh] flex-col items-center justify-center gap-2 text-center">
           <SearchXIcon class="text-muted-foreground size-8" />

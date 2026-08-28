@@ -146,8 +146,11 @@ export const getCashFlow = withTransaction(
     // Fetch all transactions (both income and expense) in the date range. Refund pairs come
     // resolved because this report nets them against income as well as expenses.
     const { rows: transactions, refundPairs } = await statsTransactions({
-      access: { creator: userId },
-      planned: excludePlanned ? 'exclude' : 'include',
+      access: { accessibleTo: userId },
+      // `{ visibleTo }` rather than `'include'`: once the row scope spans a shared
+      // account, `'include'` would count the other members' plans as this caller's
+      // forecast. A plan is an intention of whoever recorded it.
+      planned: excludePlanned ? 'exclude' : { visibleTo: userId },
       refunds: 'net',
       window: { from, to },
       where: removeUndefinedKeys({

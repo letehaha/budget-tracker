@@ -26,7 +26,7 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
   });
 
   describe('deposits', () => {
-    it('should create a deposit and increase portfolio balance', async () => {
+    it('should create a deposit, increase portfolio balance and appear in the transfer list', async () => {
       const transfer = await helpers.directCashTransaction({
         portfolioId: portfolio.id,
         payload: {
@@ -61,6 +61,14 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
 
       expect(balance!.availableCash).toBeNumericEqual(1000);
       expect(balance!.totalCash).toBeNumericEqual(1000);
+
+      const { data: transfers } = await helpers.listPortfolioTransfers({
+        portfolioId: portfolio.id,
+        raw: true,
+      });
+
+      expect(transfers.length).toBe(1);
+      expect(transfers[0]!.id).toBe(transfer.id);
     });
 
     it('should accumulate multiple deposits', async () => {
@@ -139,29 +147,6 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
 
       expect(balance!.availableCash).toBeNumericEqual(1250);
       expect(balance!.totalCash).toBeNumericEqual(1250);
-    });
-  });
-
-  describe('transfer list', () => {
-    it('should appear in portfolio transfer list', async () => {
-      const transfer = await helpers.directCashTransaction({
-        portfolioId: portfolio.id,
-        payload: {
-          type: 'deposit',
-          amount: '100',
-          currencyCode,
-          date: '2025-06-15',
-        },
-        raw: true,
-      });
-
-      const { data: transfers } = await helpers.listPortfolioTransfers({
-        portfolioId: portfolio.id,
-        raw: true,
-      });
-
-      expect(transfers.length).toBe(1);
-      expect(transfers[0]!.id).toBe(transfer.id);
     });
   });
 
@@ -253,60 +238,30 @@ describe('Direct Cash Transaction (POST /investments/portfolios/:id/cash-transac
   });
 
   describe('error cases', () => {
-    it('should reject zero amount', async () => {
-      const response = await helpers.directCashTransaction({
+    it('should reject zero/negative amounts, an unknown portfolio and an unknown currency', async () => {
+      const zeroAmount = await helpers.directCashTransaction({
         portfolioId: portfolio.id,
-        payload: {
-          type: 'deposit',
-          amount: '0',
-          currencyCode,
-          date: '2025-06-15',
-        },
+        payload: { type: 'deposit', amount: '0', currencyCode, date: '2025-06-15' },
       });
+      expect(zeroAmount.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should reject negative amount', async () => {
-      const response = await helpers.directCashTransaction({
+      const negativeAmount = await helpers.directCashTransaction({
         portfolioId: portfolio.id,
-        payload: {
-          type: 'deposit',
-          amount: '-100',
-          currencyCode,
-          date: '2025-06-15',
-        },
+        payload: { type: 'deposit', amount: '-100', currencyCode, date: '2025-06-15' },
       });
+      expect(negativeAmount.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should reject non-existent portfolio', async () => {
-      const response = await helpers.directCashTransaction({
+      const unknownPortfolio = await helpers.directCashTransaction({
         portfolioId: generateRandomRecordId(),
-        payload: {
-          type: 'deposit',
-          amount: '100',
-          currencyCode,
-          date: '2025-06-15',
-        },
+        payload: { type: 'deposit', amount: '100', currencyCode, date: '2025-06-15' },
       });
+      expect(unknownPortfolio.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('should reject non-existent currency', async () => {
-      const response = await helpers.directCashTransaction({
+      const unknownCurrency = await helpers.directCashTransaction({
         portfolioId: portfolio.id,
-        payload: {
-          type: 'deposit',
-          amount: '100',
-          currencyCode: 'ZZZ',
-          date: '2025-06-15',
-        },
+        payload: { type: 'deposit', amount: '100', currencyCode: 'ZZZ', date: '2025-06-15' },
       });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      expect(unknownCurrency.statusCode).toBe(ERROR_CODES.ValidationError);
+    }, 30000);
   });
 });

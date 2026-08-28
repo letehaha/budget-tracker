@@ -50,7 +50,11 @@ export const getRefundTransactions = async ({
         {
           model: Transactions.default,
           as: 'originalTransaction',
-          where: transactionWhereClause,
+          // An empty `where` still makes Sequelize require the join, which would hide
+          // refunds that legitimately have no original transaction.
+          ...(Object.keys(transactionWhereClause).length
+            ? { where: transactionWhereClause, required: true }
+            : { required: false }),
         },
         {
           model: Transactions.default,

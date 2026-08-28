@@ -57,18 +57,17 @@ describe('Initialize Historical Rates Service', () => {
     providerAvailabilityConfig.retryIntervalMs = originalRetryIntervalMs;
   });
 
-  it('should successfully load historical rates on initialization', async () => {
-    // Clear any existing rates
+  it('backfills historical rates non-blockingly, attributed to the provider that supplied them', async () => {
     await ExchangeRates.destroy({ where: {} });
 
-    // Call the initialization service
-    await initializeHistoricalRates();
+    // Startup calls this un-awaited, so it must return a promise instead of blocking boot.
+    const promise = initializeHistoricalRates();
+    expect(promise).toBeInstanceOf(Promise);
+    await promise;
 
-    // Verify rates were loaded
     const rates = await ExchangeRates.findAll({ raw: true });
     expect(rates.length).toBeGreaterThan(0);
 
-    // Verify data structure
     rates.forEach((rate) => {
       expect(rate).toMatchObject({
         baseCode: expect.any(String),
@@ -77,7 +76,24 @@ describe('Initialize Historical Rates Service', () => {
         date: expect.any(Date),
       });
       expect(rate.baseCode).toBe('USD');
+      // Currency Rates API (priority 1) is the only registered historical provider, so
+      // every row must carry its source rather than the UNKNOWN fallback.
+      expect(rate.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API);
     });
+
+    const sampleRate = rates[0]!;
+    expect(sampleRate.quoteCode).toMatch(/^[A-Z]{3}$/);
+    expect(sampleRate.rate).toBeGreaterThan(0);
+    expect(sampleRate.date).toBeInstanceOf(Date);
+    expect(sampleRate.source).not.toBe(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN);
+    expect(Object.values(EXCHANGE_RATE_PROVIDER_TYPE)).toContain(sampleRate.source);
+
+    const dates = [...new Set(rates.map((rate) => format(new Date(rate.date), 'yyyy-MM-dd')))];
+    expect(dates.length).toBeGreaterThanOrEqual(2);
+
+    const startDate = exchangeRateProviderRegistry.getEarliestHistoricalDate();
+    expect(startDate).not.toBeNull();
+    expect(dates).toContain(format(startDate!, 'yyyy-MM-dd'));
   });
 
   it('should be idempotent - running twice should not duplicate data', async () => {
@@ -95,124 +111,23 @@ describe('Initialize Historical Rates Service', () => {
     expect(secondRunCount).toBe(firstRunCount);
   });
 
-  it('should handle provider errors gracefully without crashing', async () => {
-    // Make the historical provider return 500 error
+  it('never rejects when the provider fails or answers with a malformed body', async () => {
     currencyRatesApiOverride.setOneTimeOverride({ status: 500 });
-
-    // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
-  });
 
-  it('should handle provider 404 error gracefully', async () => {
-    // Make the historical provider return 404 error
     currencyRatesApiOverride.setOneTimeOverride({ status: 404 });
-
-    // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
-  });
 
-  it('should handle invalid provider response gracefully', async () => {
     const startDate = exchangeRateProviderRegistry.getEarliestHistoricalDate();
     const startDateStr = startDate ? format(startDate, 'yyyy-MM-dd') : '1999-01-04';
-
-    // Return invalid response (missing rates) from the historical provider.
     currencyRatesApiOverride.setOneTimeOverride({
       body: { base: 'USD', start_date: startDateStr, end_date: '2025-01-01' },
     });
-
-    // Should not throw - just log error
     await expect(initializeHistoricalRates()).resolves.toBeUndefined();
-  });
 
-  it('should load rates from start date to current date', async () => {
-    // Clear any existing rates
-    await ExchangeRates.destroy({ where: {} });
-
-    await initializeHistoricalRates();
-
-    const rates = await ExchangeRates.findAll({
-      attributes: ['date'],
-      group: ['date'],
-      raw: true,
-    });
-
-    // Should have at least 2 unique dates (start and end from our mock)
-    expect(rates.length).toBeGreaterThanOrEqual(2);
-
-    const dates = rates.map((r) => r.date);
-    const startDate = exchangeRateProviderRegistry.getEarliestHistoricalDate();
-    expect(startDate).not.toBeNull();
-    const startDateStr = format(startDate!, 'yyyy-MM-dd');
-
-    // Check if rates include the start date (from mock)
-    const hasStartDate = dates.some((date) => format(new Date(date), 'yyyy-MM-dd') === startDateStr);
-    expect(hasStartDate).toBe(true);
-  });
-
-  it('should correctly save all rate fields to database', async () => {
-    // Clear any existing rates
-    await ExchangeRates.destroy({ where: {} });
-
-    await initializeHistoricalRates();
-
-    const sampleRate = await ExchangeRates.findOne({ raw: true });
-    expect(sampleRate).toBeTruthy();
-    expect(sampleRate!.baseCode).toBe('USD');
-    expect(sampleRate!.quoteCode).toMatch(/^[A-Z]{3}$/); // 3-letter currency code
-    expect(sampleRate!.rate).toBeGreaterThan(0);
-    expect(sampleRate!.date).toBeInstanceOf(Date);
-    // `source` must reflect the provider that supplied the rate, not the
-    // UNKNOWN fallback – protects against providerType being dropped from
-    // the insert path in a future refactor.
-    expect(sampleRate!.source).not.toBe(EXCHANGE_RATE_PROVIDER_TYPE.UNKNOWN);
-    expect(Object.values(EXCHANGE_RATE_PROVIDER_TYPE)).toContain(sampleRate!.source);
-  });
-
-  it('attributes backfilled rates to the highest-priority provider that supplied them', async () => {
-    // Currency Rates API (priority 1) is the only registered historical provider,
-    // so every row must be attributed to it – proving the source flows through
-    // the merge → bulk-insert pipeline rather than being dropped to UNKNOWN.
-    await ExchangeRates.destroy({ where: {} });
-
-    await initializeHistoricalRates();
-
-    const rates = await ExchangeRates.findAll({ raw: true });
-    expect(rates.length).toBeGreaterThan(0);
-    rates.forEach((rate) => {
-      expect(rate.source).toBe(EXCHANGE_RATE_PROVIDER_TYPE.CURRENCY_RATES_API);
-    });
-  });
-
-  it('should work as a fire-and-forget operation (non-blocking startup pattern)', async () => {
-    // Clear any existing rates
-    await ExchangeRates.destroy({ where: {} });
-
-    // Simulate startup pattern - call without await
-    const promise = initializeHistoricalRates();
-
-    // This simulates that the app continues to start up
-    // The function should be running in background
-    expect(promise).toBeInstanceOf(Promise);
-
-    // Wait for it to complete (in real app, this happens in background)
-    await promise;
-
-    // Verify it still loaded data
-    const count = await ExchangeRates.count();
-    expect(count).toBeGreaterThan(0);
-  });
-
-  it('should not crash the app even if initialization fails (fire-and-forget safety)', async () => {
-    // Make the historical provider return error
+    // An un-awaited failing run must still resolve so startup sees no unhandled rejection.
     currencyRatesApiOverride.setOneTimeOverride({ status: 500 });
-
-    // Call without await - simulating startup
     const promise = initializeHistoricalRates();
-
-    // Should not throw
     await expect(promise).resolves.toBeUndefined();
-
-    // App should continue running normally (no crash)
-    expect(true).toBe(true);
   });
 });

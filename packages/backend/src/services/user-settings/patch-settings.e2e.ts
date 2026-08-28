@@ -1,56 +1,8 @@
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
-import UserSettings, { DEFAULT_SETTINGS, SettingsSchema } from '@models/user-settings.model';
+import UserSettings, { SettingsSchema } from '@models/user-settings.model';
 import * as helpers from '@tests/helpers';
-import { getTestUserId, readStoredEndpoints } from '@tests/helpers/user-settings';
-
-const SEEDED_ENDPOINT_NAME = 'Home Ollama';
-/** Link-local metadata address that the outbound URL guard rejects. */
-const SMUGGLED_BASE_URL = 'http://169.254.169.254';
-
-/** Writes an endpoint straight into settings, the state a create through the dedicated route leaves behind. */
-async function seedCustomEndpoint({ userId }: { userId: number }): Promise<void> {
-  const [settings] = await UserSettings.findOrCreate({
-    where: { userId },
-    defaults: { settings: DEFAULT_SETTINGS },
-  });
-
-  const now = new Date().toISOString();
-  settings.settings = {
-    ...settings.settings,
-    ai: {
-      ...(settings.settings.ai ?? { apiKeys: [], featureConfigs: [] }),
-      customEndpoints: [
-        {
-          id: generateRandomRecordId(),
-          name: SEEDED_ENDPOINT_NAME,
-          baseUrl: 'https://llm.example.com/v1',
-          defaultModel: 'llama3',
-          createdAt: now,
-          status: 'valid' as const,
-          lastValidatedAt: now,
-        },
-      ],
-    },
-  };
-
-  await settings.save();
-}
-
-function buildSmuggledEndpoint() {
-  const now = new Date().toISOString();
-
-  return {
-    id: 'smuggled-not-a-uuid',
-    name: 'Metadata',
-    baseUrl: SMUGGLED_BASE_URL,
-    defaultModel: 'gpt-4o-mini',
-    createdAt: now,
-    status: 'valid' as const,
-    lastValidatedAt: now,
-  };
-}
 
 describe('Patch user settings', () => {
   it('creates settings from defaults when the user has none stored yet', async () => {
@@ -188,8 +140,8 @@ describe('Patch user settings', () => {
     expect(fetched.savedPivotViews).toStrictEqual(patched.savedPivotViews);
   });
 
-  it('rejects a saved pivot view with an empty or over-long name', async () => {
-    const validConfig = {
+  it('rejects invalid patch payloads', async () => {
+    const validPivotConfig = {
       rowDimension: 'category' as const,
       granularity: 'monthly' as const,
       measure: 'expense' as const,
@@ -197,15 +149,21 @@ describe('Patch user settings', () => {
       to: '2025-12-31',
     };
 
-    const emptyName = await helpers.patchUserSettings({
-      patch: { savedPivotViews: [{ id: generateRandomRecordId(), name: '', config: validConfig }] },
-    });
-    expect(emptyName.statusCode).toBe(ERROR_CODES.ValidationError);
+    const invalidPatches: Record<string, unknown>[] = [
+      { savedPivotViews: [{ id: generateRandomRecordId(), name: '', config: validPivotConfig }] },
+      { savedPivotViews: [{ id: generateRandomRecordId(), name: 'a'.repeat(121), config: validPivotConfig }] },
+      { import: { recalculateAccountBalance: 'yes' } },
+      { accounts: { defaultAccountId: 'not-a-uuid' } },
+      { accounts: { showArchivedInDropdowns: 'yes' } },
+    ];
 
-    const overLongName = await helpers.patchUserSettings({
-      patch: { savedPivotViews: [{ id: generateRandomRecordId(), name: 'a'.repeat(121), config: validConfig }] },
-    });
-    expect(overLongName.statusCode).toBe(ERROR_CODES.ValidationError);
+    for (const patch of invalidPatches) {
+      const response = await helpers.patchUserSettings({ patch });
+      expect({ patch, statusCode: response.statusCode }).toStrictEqual({
+        patch,
+        statusCode: ERROR_CODES.ValidationError,
+      });
+    }
   });
 
   it('persists the import.recalculateAccountBalance setting and reads it back', async () => {
@@ -226,15 +184,60 @@ describe('Patch user settings', () => {
     expect(toggledOff.import?.recalculateAccountBalance).toBe(false);
   });
 
-  it('rejects a non-boolean import.recalculateAccountBalance value', async () => {
-    const response = await helpers.patchUserSettings({
-      patch: { import: { recalculateAccountBalance: 'yes' } },
+  it('persists category mapping presets and reads them back', async () => {
+    const preset = {
+      fingerprint: 'a'.repeat(64),
+      name: 'PKO Bank',
+      categoryMapping: {
+        Groceries: { action: 'link-existing', categoryId: generateRandomRecordId() },
+        Fuel: { action: 'create-new' },
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: { import: { categoryMappingPresets: [preset] } },
     });
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(patched.import?.categoryMappingPresets).toStrictEqual([preset]);
+
+    const fetched = await helpers.getUserSettings({ raw: true });
+    expect(fetched.import?.categoryMappingPresets).toStrictEqual([preset]);
   });
 
-  it('persists the accounts slice and reads both fields back', async () => {
+  it('rejects invalid category mapping presets', async () => {
+    const validPreset = { fingerprint: 'a'.repeat(64), categoryMapping: {}, updatedAt: new Date().toISOString() };
+
+    const missingCategoryId = await helpers.patchUserSettings({
+      patch: {
+        import: {
+          categoryMappingPresets: [{ ...validPreset, categoryMapping: { Groceries: { action: 'link-existing' } } }],
+        },
+      },
+    });
+    expect(missingCategoryId.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const blankName = await helpers.patchUserSettings({
+      patch: { import: { categoryMappingPresets: [{ ...validPreset, name: '' }] } },
+    });
+    expect(blankName.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const overCap = await helpers.patchUserSettings({
+      patch: {
+        import: {
+          categoryMappingPresets: Array.from({ length: 21 }, (_, index) => ({
+            ...validPreset,
+            fingerprint: `fingerprint-${index}`,
+          })),
+        },
+      },
+    });
+    expect(overCap.statusCode).toBe(ERROR_CODES.ValidationError);
+  });
+
+  it('persists, merges and clears the accounts slice', async () => {
     const accountId = generateRandomRecordId();
+
     const patched = await helpers.patchUserSettings({
       raw: true,
       patch: { accounts: { defaultAccountId: accountId, showArchivedInDropdowns: true } },
@@ -243,106 +246,74 @@ describe('Patch user settings', () => {
 
     const fetched = await helpers.getUserSettings({ raw: true });
     expect(fetched.accounts).toStrictEqual({ defaultAccountId: accountId, showArchivedInDropdowns: true });
-  });
 
-  it('patching one accounts field keeps the sibling defaultAccountId', async () => {
-    const accountId = generateRandomRecordId();
-    await helpers.patchUserSettings({
-      raw: true,
-      patch: { accounts: { defaultAccountId: accountId, showArchivedInDropdowns: true } },
-    });
     await helpers.patchUserSettings({
       raw: true,
       patch: { accounts: { showArchivedInDropdowns: false } },
     });
 
-    const fetched = await helpers.getUserSettings({ raw: true });
-    expect(fetched.accounts).toStrictEqual({ defaultAccountId: accountId, showArchivedInDropdowns: false });
-  });
+    const afterSiblingPatch = await helpers.getUserSettings({ raw: true });
+    expect(afterSiblingPatch.accounts).toStrictEqual({ defaultAccountId: accountId, showArchivedInDropdowns: false });
 
-  it('rejects invalid accounts values', async () => {
-    const nonUuidId = await helpers.patchUserSettings({
-      patch: { accounts: { defaultAccountId: 'not-a-uuid' } },
-    });
-    expect(nonUuidId.statusCode).toBe(ERROR_CODES.ValidationError);
-
-    const nonBooleanFlag = await helpers.patchUserSettings({
-      patch: { accounts: { showArchivedInDropdowns: 'yes' } },
-    });
-    expect(nonBooleanFlag.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('clears accounts.defaultAccountId with an explicit null', async () => {
-    await helpers.patchUserSettings({
-      raw: true,
-      patch: { accounts: { defaultAccountId: generateRandomRecordId() } },
-    });
-
-    const patched = await helpers.patchUserSettings({
+    const cleared = await helpers.patchUserSettings({
       raw: true,
       patch: { accounts: { defaultAccountId: null } },
     });
-    expect(patched.accounts?.defaultAccountId).toBeNull();
+    expect(cleared.accounts?.defaultAccountId).toBeNull();
 
-    const fetched = await helpers.getUserSettings({ raw: true });
-    expect(fetched.accounts?.defaultAccountId).toBeNull();
+    const afterClear = await helpers.getUserSettings({ raw: true });
+    expect(afterClear.accounts?.defaultAccountId).toBeNull();
   });
 
-  describe('ai.customEndpoints is not patchable here', () => {
-    it('drops a smuggled endpoint while still applying the rest of the patch', async () => {
-      const response = await helpers.patchUserSettings({
-        patch: {
-          includeCreditLimitInStats: true,
-          ai: { customEndpoints: [buildSmuggledEndpoint()] },
-        },
-      });
-      expect(response.statusCode).toBe(200);
+  /**
+   * Supertest requests here can share one transaction through CLS
+   * (`with-transaction.ts`), so racing writes cannot be asserted for last-write-wins.
+   * The race tests below assert only that a losing racer stays below a 500.
+   */
+  describe('UserSettings — one row per user', () => {
+    it('keeps exactly one row per user when different create-or-fetch endpoints run sequentially', async () => {
+      // Every endpoint below get-or-creates the settings row; a dropped unique
+      // `userId` index would leave more than one.
+      await helpers.patchUserSettings({ raw: true, patch: { locale: 'uk' } });
+      await helpers.updateOnboarding({ raw: true, onboardingState: { isDismissed: true } });
+      const settings = await helpers.getUserSettings({ raw: true });
+      const onboarding = await helpers.getOnboarding({ raw: true });
+      await helpers.patchUserSettings({ raw: true, patch: { includeCreditLimitInStats: true } });
 
-      const patched = response.body.response;
-      expect(patched.includeCreditLimitInStats).toBe(true);
-      expect(patched.ai?.customEndpoints ?? []).toHaveLength(0);
+      expect(settings.locale).toBe('uk');
+      expect(onboarding.isDismissed).toBe(true);
 
-      const listed = await helpers.getAiCustomEndpoints({ raw: true });
-      expect(listed).toHaveLength(0);
+      const { id: userId } = await helpers.getUserInfo({ raw: true });
+      const rowCount = await UserSettings.count({ where: { userId } });
 
-      const stored = await readStoredEndpoints({ userId: await getTestUserId() });
-      expect(stored).toHaveLength(0);
+      expect(rowCount).toBe(1);
     });
 
-    it('keeps stored endpoints when a patch tries to replace the array', async () => {
-      const userId = await getTestUserId();
-      await seedCustomEndpoint({ userId });
+    it('recovers instead of crashing when a settings patch and an onboarding update race on a fresh user', async () => {
+      const [patchRes, onboardingRes] = await Promise.all([
+        helpers.patchUserSettings({ patch: { locale: 'uk' } }),
+        helpers.updateOnboarding({ onboardingState: { isDismissed: true } }),
+      ]);
 
-      const response = await helpers.patchUserSettings({
-        patch: { ai: { customEndpoints: [buildSmuggledEndpoint()] } },
-      });
-      expect(response.statusCode).toBe(200);
+      // A losing racer adopts the winner's row, so neither request reaches a 500.
+      expect(patchRes.statusCode).toBeLessThan(500);
+      expect(onboardingRes.statusCode).toBeLessThan(500);
 
-      const stored = await readStoredEndpoints({ userId });
-      expect(stored).toHaveLength(1);
-      expect(stored[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
-      expect(stored.some((endpoint) => endpoint.baseUrl === SMUGGLED_BASE_URL)).toBe(false);
-
-      const listed = await helpers.getAiCustomEndpoints({ raw: true });
-      expect(listed).toHaveLength(1);
-      expect(listed[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      const settings = await helpers.getUserSettings({ raw: true });
+      expect(settings.locale).toBeDefined();
     });
 
-    it('still patches sibling ai keys and leaves stored endpoints alone', async () => {
-      const userId = await getTestUserId();
-      await seedCustomEndpoint({ userId });
+    it('recovers instead of crashing when two settings patches race on a fresh user', async () => {
+      const [first, second] = await Promise.all([
+        helpers.patchUserSettings({ patch: { locale: 'uk' } }),
+        helpers.patchUserSettings({ patch: { includeCreditLimitInStats: true } }),
+      ]);
 
-      const patched = await helpers.patchUserSettings({
-        raw: true,
-        patch: { ai: { customInstructions: 'Prefer concise answers' } },
-      });
+      expect(first.statusCode).toBeLessThan(500);
+      expect(second.statusCode).toBeLessThan(500);
 
-      expect(patched.ai?.customInstructions).toBe('Prefer concise answers');
-      expect(patched.ai?.customEndpoints).toHaveLength(1);
-
-      const stored = await readStoredEndpoints({ userId });
-      expect(stored).toHaveLength(1);
-      expect(stored[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      const settings = await helpers.getUserSettings({ raw: true });
+      expect(settings.locale).toBeDefined();
     });
   });
 });

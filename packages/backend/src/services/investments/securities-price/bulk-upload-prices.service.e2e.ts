@@ -25,135 +25,75 @@ describe('POST /investments/securities/prices/bulk-upload', () => {
   });
 
   describe('Authorization', () => {
-    it('should reject request when ADMIN_USERS is not configured', async () => {
+    it('enforces the admin guard', async () => {
+      const payload = {
+        searchResult: helpers.buildSecuritySearchResult(),
+        prices: [{ price: 100, date: '2024-01-01', currency: 'USD' }],
+      };
+
       delete process.env.ADMIN_USERS;
+      const unconfigured = await helpers.bulkUploadSecurityPrices({ payload });
+      expect(unconfigured.statusCode).toBe(ERROR_CODES.Unauthorized);
 
-      const response = await helpers.bulkUploadSecurityPrices({
-        payload: {
-          searchResult: helpers.buildSecuritySearchResult(),
-          prices: [{ price: 100, date: '2024-01-01', currency: 'USD' }],
-        },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('should reject request from non-admin user', async () => {
-      // Set a different user as admin (not test1)
       process.env.ADMIN_USERS = 'admin-user';
+      const nonAdmin = await helpers.bulkUploadSecurityPrices({ payload });
+      expect(nonAdmin.statusCode).toBe(ERROR_CODES.Unauthorized);
 
-      const response = await helpers.bulkUploadSecurityPrices({
-        payload: {
-          searchResult: helpers.buildSecuritySearchResult(),
-          prices: [{ price: 100, date: '2024-01-01', currency: 'USD' }],
-        },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('should allow request from admin user', async () => {
-      // test1 is configured as admin in beforeEach
-      const searchResult = helpers.buildSecuritySearchResult();
-
-      const response = await helpers.bulkUploadSecurityPrices({
-        payload: {
-          searchResult,
-          prices: [{ price: 100, date: '2024-01-01', currency: 'USD' }],
-        },
-      });
-
-      // Will fail validation (no exchange rates), but should pass authorization
-      expect(response.statusCode).not.toBe(ERROR_CODES.Unauthorized);
-    });
+      if (originalAdminUsers === undefined) {
+        delete process.env.ADMIN_USERS;
+      } else {
+        process.env.ADMIN_USERS = originalAdminUsers;
+      }
+      const admin = await helpers.bulkUploadSecurityPrices({ payload });
+      // Fails deeper on validation (no exchange rates), but passes authorization
+      expect(admin.statusCode).not.toBe(ERROR_CODES.Unauthorized);
+    }, 30000);
   });
 
   describe('Validation', () => {
-    it('should validate required fields', async () => {
-      const response = await helpers.bulkUploadSecurityPrices({
+    it('rejects malformed payloads', async () => {
+      const emptyPrices = await helpers.bulkUploadSecurityPrices({
         payload: {
           searchResult: helpers.buildSecuritySearchResult(),
           prices: [],
         },
       });
+      expect(emptyPrices.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should validate price is positive', async () => {
-      const response = await helpers.bulkUploadSecurityPrices({
+      const negativePrice = await helpers.bulkUploadSecurityPrices({
         payload: {
           searchResult: helpers.buildSecuritySearchResult(),
           prices: [{ price: -100, date: '2024-01-01', currency: 'USD' }],
         },
       });
+      expect(negativePrice.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should validate price is not too large', async () => {
-      const response = await helpers.bulkUploadSecurityPrices({
+      const oversizedPrice = await helpers.bulkUploadSecurityPrices({
         payload: {
           searchResult: helpers.buildSecuritySearchResult(),
           prices: [{ price: 1e13, date: '2024-01-01', currency: 'USD' }],
         },
       });
+      expect(oversizedPrice.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should validate date format', async () => {
-      const response = await helpers.bulkUploadSecurityPrices({
+      const badDateFormat = await helpers.bulkUploadSecurityPrices({
         payload: {
           searchResult: helpers.buildSecuritySearchResult(),
           prices: [{ price: 100, date: '01/01/2024', currency: 'USD' }],
         },
       });
+      expect(badDateFormat.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should validate currency code length', async () => {
-      const response = await helpers.bulkUploadSecurityPrices({
+      const badCurrencyCode = await helpers.bulkUploadSecurityPrices({
         payload: {
           searchResult: helpers.buildSecuritySearchResult(),
           prices: [{ price: 100, date: '2024-01-01', currency: 'US' }],
         },
       });
+      expect(badCurrencyCode.statusCode).toBe(ERROR_CODES.ValidationError);
+    }, 30000);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should reject when no exchange rates exist for currency', async () => {
-      // Valid ISO code with no exchange rates seeded, so the request passes
-      // schema validation and fails deeper on the missing rate lookup.
-      const response = await helpers.bulkUploadSecurityPrices({
-        payload: {
-          searchResult: helpers.buildSecuritySearchResult({ currencyCode: 'SSP' }),
-          prices: [{ price: 100, date: '2024-01-01', currency: 'SSP' }],
-        },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should reject when price currency does not match security currency', async () => {
-      const searchResult = helpers.buildSecuritySearchResult({ currencyCode: 'USD' });
-
-      const response = await helpers.bulkUploadSecurityPrices({
-        payload: {
-          searchResult,
-          prices: [{ price: 100, date: '2024-01-01', currency: 'EUR' }],
-        },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should reject when date is outside exchange rate range (without autoFilter)', async () => {
-      const searchResult = helpers.buildSecuritySearchResult({ currencyCode: 'USD' });
-
-      // Get the newest exchange rate to find a date beyond it
+    it('rejects payloads the rate and currency checks cannot satisfy', async () => {
       const newestRate = await ExchangeRates.findOne({
         order: [['date', 'DESC']],
         attributes: ['date'],
@@ -164,51 +104,51 @@ describe('POST /investments/securities/prices/bulk-upload', () => {
         throw new Error('No exchange rates found in test database');
       }
 
-      // Date far in the future
       const futureDate = new Date(newestRate.date);
       futureDate.setFullYear(futureDate.getFullYear() + 10);
       const futureDateStr = futureDate.toISOString().split('T')[0]!;
 
-      const response = await helpers.bulkUploadSecurityPrices({
+      // SSP is a valid ISO code with no exchange rates seeded, so the request
+      // passes schema validation and fails deeper on the missing rate lookup.
+      // Its own symbol keeps the SSP security separate from the USD cases below.
+      const missingRates = await helpers.bulkUploadSecurityPrices({
         payload: {
-          searchResult,
+          searchResult: helpers.buildSecuritySearchResult({
+            symbol: 'TESTSSP',
+            providerSymbol: 'TESTSSP',
+            currencyCode: 'SSP',
+          }),
+          prices: [{ price: 100, date: '2024-01-01', currency: 'SSP' }],
+        },
+      });
+      expect(missingRates.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const currencyMismatch = await helpers.bulkUploadSecurityPrices({
+        payload: {
+          searchResult: helpers.buildSecuritySearchResult({ currencyCode: 'USD' }),
+          prices: [{ price: 100, date: '2024-01-01', currency: 'EUR' }],
+        },
+      });
+      expect(currencyMismatch.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const outOfRange = await helpers.bulkUploadSecurityPrices({
+        payload: {
+          searchResult: helpers.buildSecuritySearchResult({ currencyCode: 'USD' }),
           prices: [{ price: 100, date: futureDateStr, currency: 'USD' }],
           autoFilter: false,
         },
       });
+      expect(outOfRange.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should reject when all prices are filtered out with autoFilter', async () => {
-      const searchResult = helpers.buildSecuritySearchResult({ currencyCode: 'USD' });
-
-      // Get the newest exchange rate
-      const newestRate = await ExchangeRates.findOne({
-        order: [['date', 'DESC']],
-        attributes: ['date'],
-        raw: true,
-      });
-
-      if (!newestRate) {
-        throw new Error('No exchange rates found in test database');
-      }
-
-      // Date far in the future
-      const futureDate = new Date(newestRate.date);
-      futureDate.setFullYear(futureDate.getFullYear() + 10);
-      const futureDateStr = futureDate.toISOString().split('T')[0]!;
-
-      const response = await helpers.bulkUploadSecurityPrices({
+      const everythingFiltered = await helpers.bulkUploadSecurityPrices({
         payload: {
-          searchResult,
+          searchResult: helpers.buildSecuritySearchResult({ currencyCode: 'USD' }),
           prices: [{ price: 100, date: futureDateStr, currency: 'USD' }],
           autoFilter: true,
         },
       });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      expect(everythingFiltered.statusCode).toBe(ERROR_CODES.ValidationError);
+    }, 30000);
   });
 
   describe('Successful Upload', () => {
@@ -455,33 +395,19 @@ describe('POST /investments/securities/price-upload-info', () => {
   });
 
   describe('Authorization', () => {
-    it('should reject request when ADMIN_USERS is not configured', async () => {
+    it('enforces the admin guard', async () => {
       delete process.env.ADMIN_USERS;
+      const unconfigured = await helpers.getPriceUploadInfo({ payload: { currencyCode: 'USD' } });
+      expect(unconfigured.statusCode).toBe(ERROR_CODES.Unauthorized);
 
-      const response = await helpers.getPriceUploadInfo({
-        payload: { currencyCode: 'USD' },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('should reject request from non-admin user', async () => {
       process.env.ADMIN_USERS = 'admin-user';
+      const nonAdmin = await helpers.getPriceUploadInfo({ payload: { currencyCode: 'USD' } });
+      expect(nonAdmin.statusCode).toBe(ERROR_CODES.Unauthorized);
 
-      const response = await helpers.getPriceUploadInfo({
-        payload: { currencyCode: 'USD' },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('should allow request from admin user', async () => {
-      const response = await helpers.getPriceUploadInfo({
-        payload: { currencyCode: 'USD' },
-      });
-
-      expect(response.statusCode).not.toBe(ERROR_CODES.Unauthorized);
-    });
+      process.env.ADMIN_USERS = 'test1';
+      const admin = await helpers.getPriceUploadInfo({ payload: { currencyCode: 'USD' } });
+      expect(admin.statusCode).not.toBe(ERROR_CODES.Unauthorized);
+    }, 30000);
   });
 
   describe('Validation', () => {

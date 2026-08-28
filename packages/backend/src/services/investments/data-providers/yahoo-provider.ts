@@ -9,6 +9,7 @@ import YahooFinance from 'yahoo-finance2';
 import {
   BaseSecurityDataProvider,
   BulkPriceData,
+  BulkPriceFetchOptions,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -224,8 +225,9 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
   public async fetchPricesForSecurities(
     securities: SecurityPriceFetchInput[],
     forDate: Date,
-  ): Promise<Map<string, BulkPriceData>> {
-    const result = new Map<string, BulkPriceData>();
+    options?: BulkPriceFetchOptions,
+  ): Promise<Map<string, BulkPriceData[]>> {
+    const result = new Map<string, BulkPriceData[]>();
     if (securities.length === 0) return result;
 
     logger.info(`Yahoo: Starting fetch for ${securities.length} securities`);
@@ -240,12 +242,16 @@ export class YahooDataProvider extends BaseSecurityDataProvider {
         }
 
         // Use chart() with next day as period2 since Yahoo rejects same period1/period2
+        const startDate = options?.startDate ?? forDate;
         const nextDay = new Date(forDate.getTime() + 24 * 60 * 60 * 1000);
-        const prices = await this.getHistoricalPrices(providerSymbol, { startDate: forDate, endDate: nextDay });
-        if (prices[0]) {
-          result.set(securityId, { ...prices[0], securityId });
+        const prices = await this.getHistoricalPrices(providerSymbol, { startDate, endDate: nextDay });
+        if (prices.length > 0) {
+          result.set(
+            securityId,
+            prices.map((price) => ({ ...price, securityId })),
+          );
           logger.info(
-            `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${prices[0].priceClose}`,
+            `Fetched ${prices.length} price(s) for ${providerSymbol} up to ${forDate.toISOString().split('T')[0]}`,
           );
         } else {
           logger.info(`No price data found for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}`);

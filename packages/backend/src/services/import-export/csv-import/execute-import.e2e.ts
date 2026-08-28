@@ -852,6 +852,207 @@ describe('Execute Import endpoint (async)', () => {
     });
   });
 
+  describe('skipped accounts', () => {
+    it('skips a mapped-out account and imports the remaining rows', async () => {
+      const accountsBefore = await helpers.getAccounts();
+
+      const fileContent = buildCsv([
+        {
+          date: '2024-01-15',
+          amount: '100.50',
+          description: 'skipped-row-1',
+          account: 'Skipped Account',
+          currency: 'USD',
+          type: 'expense',
+        },
+        {
+          date: '2024-01-16',
+          amount: '20.00',
+          description: 'skipped-row-2',
+          account: 'Skipped Account',
+          currency: 'USD',
+          type: 'expense',
+        },
+        {
+          date: '2024-01-17',
+          amount: '75.00',
+          description: 'kept-row',
+          account: 'Kept Account',
+          currency: 'USD',
+          type: 'expense',
+        },
+      ]);
+
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: {
+          'Skipped Account': { action: 'skip' },
+          'Kept Account': { action: 'create-new', currentBalance: null },
+        },
+      });
+      expectCsvImportCompleted(progress);
+      const { summary } = progress;
+
+      expect(summary.imported).toBe(1);
+      expect(summary.accountsSkipped).toBe(1);
+      expect(summary.accountsCreated).toBe(1);
+      expect(summary.errors).toHaveLength(0);
+      expect(progress.totalCount).toBe(1);
+
+      const accountsAfter = await helpers.getAccounts();
+      expect(accountsAfter.length).toBe(accountsBefore.length + 1);
+      expect(accountsAfter.find((a) => a.name === 'Skipped Account')).toBeUndefined();
+      const keptAccount = accountsAfter.find((a) => a.name === 'Kept Account');
+      expect(keptAccount).toBeDefined();
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      const importedTxs = transactions.filter((tx) => summary.newTransactionIds.includes(tx.id));
+      expect(importedTxs).toHaveLength(1);
+      expect(importedTxs[0]!.note).toBe('kept-row');
+      expect(importedTxs[0]!.accountId).toBe(keptAccount!.id);
+    });
+
+    it('completes with zeroed counts when every account is mapped to skip', async () => {
+      const accountsBefore = await helpers.getAccounts();
+
+      const { progress } = await runImport({
+        fileContent: buildCsv(defaultRows({ account: 'Skipped Account', currency: 'USD' })),
+        accountMapping: { 'Skipped Account': { action: 'skip' } },
+      });
+      expectCsvImportCompleted(progress);
+
+      expect(progress.processedCount).toBe(0);
+      expect(progress.totalCount).toBe(0);
+      expect(progress.summary).toMatchObject({
+        imported: 0,
+        skipped: 0,
+        skippedUnpriceable: 0,
+        accountsSkipped: 1,
+        accountsCreated: 0,
+        categoriesCreated: 0,
+        tagsCreated: 0,
+        payeesCreated: 0,
+        errors: [],
+        newTransactionIds: [],
+        accountBalanceChanges: [],
+      });
+
+      expect((await helpers.getAccounts()).length).toBe(accountsBefore.length);
+      expect(await helpers.getTransactions({ raw: true })).toHaveLength(0);
+    });
+
+    it('imports only the linked account rows when the other source account is skipped', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const accountsBefore = await helpers.getAccounts();
+      // The skipped rows carry a currency the linked account does not use: they
+      // are filtered before the currency guard, so the import still completes.
+      const skippedCurrency = account.currencyCode === 'USD' ? 'EUR' : 'USD';
+
+      const fileContent = buildCsv([
+        {
+          date: '2024-01-15',
+          amount: '30.00',
+          description: 'linked-row',
+          account: 'Linked Account',
+          currency: account.currencyCode,
+          type: 'expense',
+        },
+        {
+          date: '2024-01-16',
+          amount: '40.00',
+          description: 'skipped-row',
+          account: 'Other Account',
+          currency: skippedCurrency,
+          type: 'expense',
+        },
+      ]);
+
+      const { progress } = await runImport({
+        fileContent,
+        accountMapping: {
+          'Linked Account': { action: 'link-existing', accountId: account.id },
+          'Other Account': { action: 'skip' },
+        },
+      });
+      expectCsvImportCompleted(progress);
+      const { summary } = progress;
+
+      expect(summary.imported).toBe(1);
+      expect(summary.accountsSkipped).toBe(1);
+      expect(summary.accountsCreated).toBe(0);
+      expect(summary.errors).toHaveLength(0);
+
+      const transactions = await helpers.getTransactions({ raw: true });
+      expect(transactions.map((tx) => tx.note)).toEqual(['linked-row']);
+      expect(transactions[0]!.accountId).toBe(account.id);
+      expect((await helpers.getAccounts()).length).toBe(accountsBefore.length);
+    });
+
+    it('creates no category or tag that only skipped-account rows reference', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const fileContent = buildCsv([
+        {
+          date: '2024-01-15',
+          amount: '100.50',
+          description: 'kept-row',
+          category: 'KeptCategory',
+          account: 'Kept Account',
+          currency: account.currencyCode,
+          type: 'expense',
+          tags: 'KeptTag',
+        },
+        {
+          date: '2024-01-16',
+          amount: '20.00',
+          description: 'skipped-row',
+          category: 'OrphanCategory',
+          account: 'Skipped Account',
+          currency: account.currencyCode,
+          type: 'expense',
+          tags: 'OrphanTag',
+        },
+      ]);
+
+      const { progress } = await runImport({
+        fileContent,
+        columnMapping: buildColumnMapping({
+          tags: { option: TagOptionValue.mapDataSourceColumn, columnName: 'Tags' },
+        }),
+        accountMapping: {
+          'Kept Account': { action: 'link-existing', accountId: account.id },
+          'Skipped Account': { action: 'skip' },
+        },
+        // The client sends the mapping it built before the account was skipped,
+        // so the orphan entries arrive alongside the surviving row's entries.
+        categoryMapping: {
+          KeptCategory: { action: 'create-new' },
+          OrphanCategory: { action: 'create-new' },
+        },
+        tagMapping: {
+          KeptTag: { action: 'create-new' },
+          OrphanTag: { action: 'create-new' },
+        },
+      });
+      expectCsvImportCompleted(progress);
+      const { summary } = progress;
+
+      expect(summary.imported).toBe(1);
+      expect(summary.accountsSkipped).toBe(1);
+      expect(summary.categoriesCreated).toBe(1);
+      expect(summary.tagsCreated).toBe(1);
+      expect(summary.errors).toHaveLength(0);
+
+      const categoryNames = (await helpers.getCategoriesList()).map((category) => category.name);
+      expect(categoryNames).toContain('KeptCategory');
+      expect(categoryNames).not.toContain('OrphanCategory');
+
+      const tagNames = (await helpers.getTags({ raw: true })).map((tag) => tag.name);
+      expect(tagNames).toContain('KeptTag');
+      expect(tagNames).not.toContain('OrphanTag');
+    });
+  });
+
   describe('error handling – failed jobs', () => {
     // The controller only validates the request shape; mapping/ownership failures
     // happen inside the worker and surface as `status: 'failed'`, mirroring the

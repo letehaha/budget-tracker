@@ -50,50 +50,6 @@ describe('Transaction categoryId ownership validation', () => {
 
       expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
-
-    it("returns 404 when user B creates a transaction with user A's categoryId (IDOR)", async () => {
-      const userACategory = await helpers.addCustomCategory({
-        name: 'userA-only-category',
-        color: '#FF0000',
-        raw: true,
-      });
-
-      const userBCookies = await createSecondUser();
-
-      const res = await asUser({
-        cookies: userBCookies,
-        fn: async () => {
-          const account = await helpers.createAccount({ raw: true });
-          return helpers.createTransaction({
-            payload: {
-              ...helpers.buildTransactionPayload({ accountId: account.id }),
-              categoryId: userACategory.id,
-            },
-          });
-        },
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('accepts a categoryId owned by the same user', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const ownCategory = await helpers.addCustomCategory({
-        name: 'own-category',
-        color: '#00FF00',
-        raw: true,
-      });
-
-      const [tx] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({ accountId: account.id }),
-          categoryId: ownCategory.id,
-        },
-        raw: true,
-      });
-
-      expect(tx.categoryId).toBe(ownCategory.id);
-    });
   });
 
   describe('update', () => {
@@ -111,57 +67,79 @@ describe('Transaction categoryId ownership validation', () => {
 
       expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
+  });
 
-    it("returns 404 when user B updates own transaction with user A's categoryId (IDOR)", async () => {
-      const userACategory = await helpers.addCustomCategory({
-        name: 'userA-only-category',
-        color: '#FF0000',
-        raw: true,
-      });
-
-      const userBCookies = await createSecondUser();
-
-      const res = await asUser({
-        cookies: userBCookies,
-        fn: async () => {
-          const account = await helpers.createAccount({ raw: true });
-          const userBCategories = await helpers.getCategoriesList();
-          const [tx] = await helpers.createTransaction({
-            payload: {
-              ...helpers.buildTransactionPayload({ accountId: account.id }),
-              categoryId: userBCategories[0]!.id,
-            },
-            raw: true,
-          });
-          return helpers.updateTransaction({
-            id: tx.id,
-            payload: { categoryId: userACategory.id },
-          });
-        },
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+  it("returns 404 when user B creates or updates a transaction with user A's categoryId (IDOR)", async () => {
+    const userACategory = await helpers.addCustomCategory({
+      name: 'userA-only-category',
+      color: '#FF0000',
+      raw: true,
     });
 
-    it('accepts a categoryId owned by the same user', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id }),
-        raw: true,
-      });
-      const ownCategory = await helpers.addCustomCategory({
-        name: 'own-category',
-        color: '#00FF00',
-        raw: true,
-      });
+    const userBCookies = await createSecondUser();
 
-      const [updated] = await helpers.updateTransaction({
-        id: tx.id,
-        payload: { categoryId: ownCategory.id },
-        raw: true,
-      });
+    const { createRes, updateRes } = await asUser({
+      cookies: userBCookies,
+      fn: async () => {
+        const account = await helpers.createAccount({ raw: true });
+        const userBCategories = await helpers.getCategoriesList();
 
-      expect(updated.categoryId).toBe(ownCategory.id);
+        const createAttempt = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({ accountId: account.id }),
+            categoryId: userACategory.id,
+          },
+        });
+
+        const [tx] = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({ accountId: account.id }),
+            categoryId: userBCategories[0]!.id,
+          },
+          raw: true,
+        });
+        const updateAttempt = await helpers.updateTransaction({
+          id: tx.id,
+          payload: { categoryId: userACategory.id },
+        });
+
+        return { createRes: createAttempt, updateRes: updateAttempt };
+      },
     });
+
+    expect(createRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    expect(updateRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+  });
+
+  it('accepts a categoryId owned by the same user on create and on update', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const ownCategory = await helpers.addCustomCategory({
+      name: 'own-category',
+      color: '#00FF00',
+      raw: true,
+    });
+    const otherOwnCategory = await helpers.addCustomCategory({
+      name: 'own-category-2',
+      color: '#0000FF',
+      raw: true,
+    });
+
+    const [tx] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({ accountId: account.id }),
+        categoryId: ownCategory.id,
+      },
+      raw: true,
+    });
+
+    expect(tx.categoryId).toBe(ownCategory.id);
+
+    const [updated] = await helpers.updateTransaction({
+      id: tx.id,
+      payload: { categoryId: otherOwnCategory.id },
+      raw: true,
+    });
+
+    expect(updated.categoryId).toBe(otherOwnCategory.id);
   });
 });

@@ -85,34 +85,41 @@ describe('GET /investments/securities/search', () => {
     // Stock providers don't surface logo URLs – the frontend derives them
     // from the ticker via logo.dev, so logoUrl is absent here.
     expect(results[0]?.logoUrl).toBeFalsy();
+    // isInPortfolio is only attached when the request carries a portfolioId
+    expect(results[0]!.isInPortfolio).toBeUndefined();
 
     // Verify FMP client was called with correct parameters
     expect(mockedFmpSearch).toHaveBeenCalledWith('apple', 10);
     expect(mockedFmpSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('should return empty array when no securities found', async () => {
-    // Mock FMP client returning no results
+  it('returns an empty list for no results, provider failures and short queries', async () => {
     mockedFmpSearch.mockResolvedValue([]);
 
-    const results = await helpers.searchSecurities({ payload: { query: 'nonexistent' }, raw: true });
+    const noResults = await helpers.searchSecurities({ payload: { query: 'nonexistent' }, raw: true });
 
-    expect(results).toHaveLength(0);
+    expect(noResults).toHaveLength(0);
     expect(mockedFmpSearch).toHaveBeenCalledWith('nonexistent', 10);
     expect(mockedFmpSearch).toHaveBeenCalledTimes(1);
-  });
 
-  it('should handle provider errors gracefully', async () => {
-    // Mock FMP client throwing an error
+    mockedFmpSearch.mockClear();
     mockedFmpSearch.mockRejectedValue(new Error('FMP API error'));
 
-    const results = await helpers.searchSecurities({ payload: { query: 'apple' }, raw: true });
+    const failedResults = await helpers.searchSecurities({ payload: { query: 'apple' }, raw: true });
 
-    // Service should return empty array on provider error (graceful degradation)
-    expect(results).toHaveLength(0);
+    // Provider rejection degrades to an empty list instead of propagating
+    expect(failedResults).toHaveLength(0);
     expect(mockedFmpSearch).toHaveBeenCalledWith('apple', 10);
     expect(mockedFmpSearch).toHaveBeenCalledTimes(1);
-  });
+
+    mockedFmpSearch.mockClear();
+    mockedFmpSearch.mockResolvedValue([]);
+
+    const shortQueryResults = await helpers.searchSecurities({ payload: { query: 'a' }, raw: true });
+
+    expect(shortQueryResults).toHaveLength(0);
+    expect(mockedFmpSearch).toHaveBeenCalled();
+  }, 30000);
 
   it('should handle validation errors properly', async () => {
     // Test invalid input validation
@@ -125,19 +132,8 @@ describe('GET /investments/securities/search', () => {
 
     expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    // Verify FMP client was not called due to validation failure
     expect(mockedFmpSearch).not.toHaveBeenCalled();
-  });
-
-  it('should handle short query gracefully', async () => {
-    // Test the service's built-in validation for short queries
-    const results = await helpers.searchSecurities({ payload: { query: 'a' }, raw: true });
-
-    // Service should return empty array for queries < 2 characters
-    expect(results).toHaveLength(0);
-
-    // FMP client should be called for short queries
-    expect(mockedFmpSearch).toHaveBeenCalled();
+    expect(mockedCoingeckoSearch).not.toHaveBeenCalled();
   });
 
   it('should apply limit parameter correctly', async () => {
@@ -164,53 +160,6 @@ describe('GET /investments/securities/search', () => {
 
     expect(mockedFmpSearch).toHaveBeenCalledWith('test', 10);
     expect(mockedFmpSearch).toHaveBeenCalledTimes(1);
-  });
-
-  it('should not include isInPortfolio flag when portfolioId is not provided', async () => {
-    // Mock FMP client response
-    mockedFmpSearch.mockResolvedValue([
-      {
-        symbol: 'AAPL',
-        name: 'Apple Inc.',
-        currency: 'USD',
-        stockExchange: 'NASDAQ Global Select',
-        exchangeShortName: 'NASDAQ',
-      },
-    ]);
-
-    const results = await helpers.searchSecurities({ payload: { query: 'apple' }, raw: true });
-
-    expect(results).toHaveLength(1);
-    expect(results[0]!).toMatchObject({
-      symbol: 'AAPL',
-      name: 'Apple Inc.',
-    });
-    // isInPortfolio should be undefined when portfolioId is not provided
-    expect(results[0]!.isInPortfolio).toBeUndefined();
-  });
-
-  it('should mark securities as not in portfolio when portfolio is empty', async () => {
-    // Create a portfolio
-    const portfolio = await helpers.createPortfolio({ raw: true });
-
-    // Mock FMP client response
-    mockedFmpSearch.mockResolvedValue([
-      {
-        symbol: 'AAPL',
-        name: 'Apple Inc.',
-        currency: 'USD',
-        stockExchange: 'NASDAQ Global Select',
-        exchangeShortName: 'NASDAQ',
-      },
-    ]);
-
-    const results = await helpers.searchSecurities({
-      payload: { query: 'apple', portfolioId: portfolio.id },
-      raw: true,
-    });
-
-    expect(results).toHaveLength(1);
-    expect(results[0]!.isInPortfolio).toBe(false);
   });
 
   it('drops crypto results from stock providers (CoinGecko owns crypto)', async () => {

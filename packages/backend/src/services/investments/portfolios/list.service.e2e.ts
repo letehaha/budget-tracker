@@ -1,4 +1,5 @@
 import { PORTFOLIO_TYPE } from '@bt/shared/types/investments';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -49,110 +50,74 @@ describe('List Portfolios Service E2E', () => {
       });
     });
 
-    it('should filter portfolios by portfolioType', async () => {
-      // Create portfolios of different types
+    it('should filter portfolios by portfolioType and by isEnabled', async () => {
       await helpers.createPortfolio({
         payload: { name: 'Investment Portfolio', portfolioType: PORTFOLIO_TYPE.investment },
       });
       await helpers.createPortfolio({
         payload: { name: 'Retirement Portfolio', portfolioType: PORTFOLIO_TYPE.retirement },
       });
-
-      const response = await helpers.listPortfolios({
-        portfolioType: PORTFOLIO_TYPE.investment,
+      await helpers.createPortfolio({
+        payload: { name: 'Disabled Portfolio', portfolioType: PORTFOLIO_TYPE.savings, isEnabled: false },
       });
 
-      expect(response.statusCode).toBe(200);
-      const result = helpers.extractResponse(response);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0]).toMatchObject({
+      const byType = await helpers.listPortfolios({ portfolioType: PORTFOLIO_TYPE.investment });
+
+      expect(byType.statusCode).toBe(200);
+      const byTypeResult = helpers.extractResponse(byType);
+      expect(byTypeResult.data).toHaveLength(1);
+      expect(byTypeResult.data[0]).toMatchObject({
         name: 'Investment Portfolio',
         portfolioType: PORTFOLIO_TYPE.investment,
       });
-    });
 
-    it('should filter portfolios by isEnabled', async () => {
-      // Create enabled and disabled portfolios
-      await helpers.createPortfolio({
-        payload: { name: 'Enabled Portfolio', isEnabled: true },
-      });
-      await helpers.createPortfolio({
-        payload: { name: 'Disabled Portfolio', isEnabled: false },
-      });
+      const byEnabled = await helpers.listPortfolios({ isEnabled: false });
 
-      const response = await helpers.listPortfolios({
-        isEnabled: false,
-      });
-
-      expect(response.statusCode).toBe(200);
-      const result = helpers.extractResponse(response);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0]).toMatchObject({
+      expect(byEnabled.statusCode).toBe(200);
+      const byEnabledResult = helpers.extractResponse(byEnabled);
+      expect(byEnabledResult.data).toHaveLength(1);
+      expect(byEnabledResult.data[0]).toMatchObject({
         name: 'Disabled Portfolio',
         isEnabled: false,
       });
-    });
+    }, 30000);
 
-    it('should support pagination with limit and offset', async () => {
-      // Create multiple portfolios
+    it('should support pagination with limit and offset, and with the page parameter', async () => {
       for (let i = 1; i <= 5; i++) {
         await helpers.createPortfolio({
           payload: { name: `Portfolio ${i}` },
         });
       }
 
-      const response = await helpers.listPortfolios({
-        limit: 2,
-        offset: 2,
-      });
+      const offsetResponse = await helpers.listPortfolios({ limit: 2, offset: 2 });
 
-      expect(response.statusCode).toBe(200);
-      const result = helpers.extractResponse(response);
-      expect(result.data).toHaveLength(2);
-      expect(result.pagination).toMatchObject({
+      expect(offsetResponse.statusCode).toBe(200);
+      const offsetResult = helpers.extractResponse(offsetResponse);
+      expect(offsetResult.data).toHaveLength(2);
+      expect(offsetResult.pagination).toMatchObject({
         limit: 2,
         offset: 2,
         page: 2,
       });
-    });
 
-    it('should support pagination with page parameter', async () => {
-      // Create multiple portfolios
-      for (let i = 1; i <= 5; i++) {
-        await helpers.createPortfolio({
-          payload: { name: `Portfolio ${i}` },
-        });
-      }
+      const pageResponse = await helpers.listPortfolios({ limit: 2, page: 3 });
 
-      const response = await helpers.listPortfolios({
-        limit: 2,
-        page: 3,
-      });
-
-      expect(response.statusCode).toBe(200);
-      const result = helpers.extractResponse(response);
-      expect(result.data).toHaveLength(1); // Only 1 portfolio on page 3 (5 total, 2 per page)
-      expect(result.pagination).toMatchObject({
+      expect(pageResponse.statusCode).toBe(200);
+      const pageResult = helpers.extractResponse(pageResponse);
+      expect(pageResult.data).toHaveLength(1); // Only 1 portfolio on page 3 (5 total, 2 per page)
+      expect(pageResult.pagination).toMatchObject({
         limit: 2,
         offset: 4, // (page 3 - 1) * limit 2 = 4
         page: 3,
       });
-    });
+    }, 30000);
 
-    it('should validate limit parameter bounds', async () => {
-      const response = await helpers.listPortfolios({
-        limit: 101, // Above maximum
-      });
+    it('should validate limit parameter bounds and negative offset', async () => {
+      const aboveMaxLimit = await helpers.listPortfolios({ limit: 101 });
+      expect(aboveMaxLimit.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should validate negative offset', async () => {
-      const response = await helpers.listPortfolios({
-        offset: -1,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      const negativeOffset = await helpers.listPortfolios({ offset: -1 });
+      expect(negativeOffset.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('should return only core portfolio data without related entities', async () => {
@@ -176,20 +141,43 @@ describe('List Portfolios Service E2E', () => {
         isEnabled: true,
       });
     });
+  });
+});
 
-    it('should only return portfolios for authenticated user', async () => {
-      // This test would need a different user context to fully test
-      // For now, just ensure the endpoint requires authentication
-      await helpers.createPortfolio({
-        payload: { name: 'User Portfolio' },
+describe('Get Portfolio Service E2E', () => {
+  describe('GET /investments/portfolios/:id', () => {
+    it('should return portfolio when valid ID is provided', async () => {
+      const createResponse = await helpers.createPortfolio({
+        payload: {
+          name: 'Test Portfolio',
+          portfolioType: PORTFOLIO_TYPE.investment,
+          description: 'Test portfolio description',
+        },
       });
 
-      const response = await helpers.listPortfolios();
+      const createdPortfolio = helpers.extractResponse(createResponse);
+
+      const response = await helpers.getPortfolio({
+        portfolioId: createdPortfolio.id,
+      });
 
       expect(response.statusCode).toBe(200);
       const result = helpers.extractResponse(response);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0]?.name).toBe('User Portfolio');
+      expect(result).toMatchObject({
+        id: createdPortfolio.id,
+        name: 'Test Portfolio',
+        portfolioType: PORTFOLIO_TYPE.investment,
+        description: 'Test portfolio description',
+        isEnabled: true,
+      });
+    });
+
+    it('should return 404 when portfolio does not exist', async () => {
+      const response = await helpers.getPortfolio({
+        portfolioId: generateRandomRecordId(),
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 });

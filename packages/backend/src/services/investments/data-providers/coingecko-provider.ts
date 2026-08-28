@@ -244,8 +244,8 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
   public async fetchPricesForSecurities(
     securities: SecurityPriceFetchInput[],
     forDate: Date,
-  ): Promise<Map<string, BulkPriceData>> {
-    const result = new Map<string, BulkPriceData>();
+  ): Promise<Map<string, BulkPriceData[]>> {
+    const result = new Map<string, BulkPriceData[]>();
     if (securities.length === 0) return result;
 
     const cryptoOnly = securities.filter((s) => s.assetClass === ASSET_CLASS.crypto);
@@ -289,14 +289,16 @@ export class CoinGeckoDataProvider extends BaseSecurityDataProvider {
             continue;
           }
           const priceAsOf = entry.last_updated_at ? new Date(entry.last_updated_at * 1000) : forDate;
-          result.set(input.securityId, {
-            providerSymbol: toProviderSymbol(id),
-            date: forDate,
-            priceClose: entry.usd,
-            priceAsOf,
-            providerName: SECURITY_PROVIDER.coingecko,
-            securityId: input.securityId,
-          });
+          result.set(input.securityId, [
+            {
+              providerSymbol: toProviderSymbol(id),
+              date: forDate,
+              priceClose: entry.usd,
+              priceAsOf,
+              providerName: SECURITY_PROVIDER.coingecko,
+              securityId: input.securityId,
+            },
+          ]);
         }
       } catch (error) {
         // Per-batch failures are non-fatal — the composite still merges what other

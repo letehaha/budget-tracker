@@ -244,6 +244,7 @@ export const getNetWorthHistory = async ({
       // are excluded because cards/overdrafts/loans get their own series.
       getPerAccountBalanceHistory({
         userId,
+        accountScope: 'owned',
         ...accountsRange,
         categoryFilter: { exclude: [ACCOUNT_CATEGORIES.vehicle, ...endpointsTypes.NET_WORTH_LIABILITY_KINDS] },
       }),
@@ -252,11 +253,13 @@ export const getNetWorthHistory = async ({
       // must land on opposite sides of the split.
       getPerAccountBalanceHistory({
         userId,
+        accountScope: 'owned',
         ...accountsRange,
         categoryFilter: { only: [ACCOUNT_CATEGORIES.creditCard] },
       }),
       getPerAccountBalanceHistory({
         userId,
+        accountScope: 'owned',
         ...accountsRange,
         categoryFilter: { only: [ACCOUNT_CATEGORIES.overdraft] },
       }),
@@ -275,6 +278,7 @@ export const getNetWorthHistory = async ({
 
         return getAggregatedBalanceHistory({
           userId,
+          accountScope: 'owned',
           ...accountsRange,
           categoryFilter: { only: [ACCOUNT_CATEGORIES.loan] },
           openingCentsByAccount,

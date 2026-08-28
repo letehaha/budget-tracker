@@ -91,16 +91,31 @@ export const useImportYnabStore = defineStore('importYnab', () => {
   // Internal execute machinery — components never read these.
   let fileContent: string | null = null;
 
+  const skippedAccountNames = computed<string[]>(() =>
+    Object.entries(accountPicks.value)
+      .filter(([, value]) => value.skip)
+      .map(([name]) => name),
+  );
+
   const canExecute = computed(() => {
     if (!parsedResult.value) return false;
-    // Every YNAB account must have resolved to a valid 3-letter ISO currency
-    // code before the worker can boot user currencies and create the row.
+    // Every account the user keeps must have resolved to a valid 3-letter ISO
+    // currency code before the worker can boot user currencies and create the
+    // row. Skipped accounts are never created, so their currency is irrelevant.
     for (const acc of parsedResult.value.accounts) {
       const mapping = accountPicks.value[acc.originalName];
-      if (!mapping || mapping.currencyCode.length !== 3) return false;
+      if (!mapping) return false;
+      if (!mapping.skip && mapping.currencyCode.length !== 3) return false;
     }
     return true;
   });
+
+  /** Keeps `currencyCode` so unskipping restores the picker's previous value. */
+  function toggleAccountSkip({ accountName }: { accountName: string }) {
+    const mapping = accountPicks.value[accountName];
+    if (!mapping) return;
+    accountPicks.value[accountName] = { ...mapping, skip: !mapping.skip };
+  }
 
   async function parseFile(file: File) {
     uploadedFile.value = file;
@@ -183,6 +198,8 @@ export const useImportYnabStore = defineStore('importYnab', () => {
     parseError,
     executeError,
     canExecute,
+    skippedAccountNames,
+    toggleAccountSkip,
     parseFile,
     execute,
     reset,

@@ -104,8 +104,9 @@ describe('POST /transaction (create investment transaction)', () => {
     expect(holding!.costBasis).toBeNumericEqual(120);
   });
 
-  it('should reject a sell transaction with insufficient shares', async () => {
-    const response = await helpers.createInvestmentTransaction({
+  it('rejects invalid create requests', async () => {
+    // Runs first, while the holding is still at quantity 0
+    const insufficientShares = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
         securityId: vooSecurity.id,
@@ -114,12 +115,9 @@ describe('POST /transaction (create investment transaction)', () => {
         price: '50',
       },
     });
+    expect(insufficientShares.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('should fail to create a transaction for non-existent portfolio', async () => {
-    const response = await helpers.createInvestmentTransaction({
+    const unknownPortfolio = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: generateRandomRecordId(),
         securityId: vooSecurity.id,
@@ -128,12 +126,9 @@ describe('POST /transaction (create investment transaction)', () => {
         price: '50',
       },
     });
+    expect(unknownPortfolio.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-  });
-
-  it('should fail to create a transaction for non-existent security', async () => {
-    const response = await helpers.createInvestmentTransaction({
+    const unknownSecurity = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
         securityId: generateRandomRecordId(),
@@ -142,12 +137,9 @@ describe('POST /transaction (create investment transaction)', () => {
         price: '50',
       },
     });
+    expect(unknownSecurity.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-  });
-
-  it('should fail to create a transaction with invalid quantity', async () => {
-    const response = await helpers.createInvestmentTransaction({
+    const negativeQuantity = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
         securityId: vooSecurity.id,
@@ -156,12 +148,9 @@ describe('POST /transaction (create investment transaction)', () => {
         price: '50',
       },
     });
+    expect(negativeQuantity.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('should fail to create a transaction with invalid price', async () => {
-    const response = await helpers.createInvestmentTransaction({
+    const negativePrice = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
         securityId: vooSecurity.id,
@@ -170,9 +159,8 @@ describe('POST /transaction (create investment transaction)', () => {
         price: '-50',
       },
     });
-
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
+    expect(negativePrice.statusCode).toBe(ERROR_CODES.ValidationError);
+  }, 30000);
 
   it('accepts a zero-price buy (staking reward, airdrop, balance adjustment)', async () => {
     // A zero-price BUY is a real position change with no cash consideration —
@@ -201,13 +189,11 @@ describe('POST /transaction (create investment transaction)', () => {
     expect(holding!.quantity).toBeNumericEqual(3);
     // No price paid, no fees → cost basis stays at zero.
     expect(holding!.costBasis).toBeNumericEqual(0);
-  });
 
-  it('accepts a zero-price buy with numeric (not string) price payload', async () => {
     // The frontend InputField with type="number" emits a JS number, so the
     // payload sends `price: 0` rather than `price: "0"`. Both must be valid —
     // the zod schema is a union of string/number on numericString.
-    const response = await helpers.createInvestmentTransaction({
+    const numericPayloadResponse = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
         securityId: vooSecurity.id,
@@ -219,17 +205,17 @@ describe('POST /transaction (create investment transaction)', () => {
       } as any,
     });
 
-    expect(response.statusCode).toBe(201);
-    const tx = helpers.extractResponse(response);
-    expect(tx.price).toBeNumericEqual(0);
-    expect(tx.quantity).toBeNumericEqual(2);
-  });
+    expect(numericPayloadResponse.statusCode).toBe(201);
+    const numericPayloadTx = helpers.extractResponse(numericPayloadResponse);
+    expect(numericPayloadTx.price).toBeNumericEqual(0);
+    expect(numericPayloadTx.quantity).toBeNumericEqual(2);
+  }, 30000);
 
-  it('creates a fee transaction', async () => {
-    // FEE category records a standalone broker/exchange fee against the holding
-    // without changing the share count. Quantity must still be > 0 (the "size"
-    // of the fee), and amount = qty * price + fees.
-    const response = await helpers.createInvestmentTransaction({
+  it('creates fee, tax and dividend transactions', async () => {
+    // FEE and TAX record standalone broker/withholding events against the
+    // holding without changing the share count; DIVIDEND records cash income.
+    // All three keep amount = quantity * price + fees.
+    const feeResponse = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
         securityId: vooSecurity.id,
@@ -240,16 +226,12 @@ describe('POST /transaction (create investment transaction)', () => {
       },
     });
 
-    expect(response.statusCode).toBe(201);
-    const tx = helpers.extractResponse(response);
-    expect(tx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.fee);
-    expect(tx.price).toBeNumericEqual(10);
-  });
+    expect(feeResponse.statusCode).toBe(201);
+    const feeTx = helpers.extractResponse(feeResponse);
+    expect(feeTx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.fee);
+    expect(feeTx.price).toBeNumericEqual(10);
 
-  it('creates a tax transaction', async () => {
-    // TAX category records a standalone tax withholding event. Same shape as
-    // FEE — quantity * price + fees = amount, no share-count change.
-    const response = await helpers.createInvestmentTransaction({
+    const taxResponse = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
         securityId: vooSecurity.id,
@@ -260,16 +242,12 @@ describe('POST /transaction (create investment transaction)', () => {
       },
     });
 
-    expect(response.statusCode).toBe(201);
-    const tx = helpers.extractResponse(response);
-    expect(tx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.tax);
-    expect(tx.price).toBeNumericEqual(5);
-  });
+    expect(taxResponse.statusCode).toBe(201);
+    const taxTx = helpers.extractResponse(taxResponse);
+    expect(taxTx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.tax);
+    expect(taxTx.price).toBeNumericEqual(5);
 
-  it('creates a dividend transaction', async () => {
-    // DIVIDEND category records cash income earned by the position (e.g. a
-    // stock dividend payout). No share count change; cash goes up.
-    const response = await helpers.createInvestmentTransaction({
+    const dividendResponse = await helpers.createInvestmentTransaction({
       payload: {
         portfolioId: investmentPortfolio.id,
         securityId: vooSecurity.id,
@@ -280,11 +258,11 @@ describe('POST /transaction (create investment transaction)', () => {
       },
     });
 
-    expect(response.statusCode).toBe(201);
-    const tx = helpers.extractResponse(response);
-    expect(tx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.dividend);
-    expect(tx.price).toBeNumericEqual(25);
-  });
+    expect(dividendResponse.statusCode).toBe(201);
+    const dividendTx = helpers.extractResponse(dividendResponse);
+    expect(dividendTx.category).toBe(INVESTMENT_TRANSACTION_CATEGORY.dividend);
+    expect(dividendTx.price).toBeNumericEqual(25);
+  }, 30000);
 
   it('stores a date-only input as UTC midnight', async () => {
     // A date-only string (no time component) must be stored as UTC midnight so

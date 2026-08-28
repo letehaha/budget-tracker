@@ -16,13 +16,13 @@ import { Money } from './money';
 
 describe('MoneyField integration', () => {
   describe('Transactions model (INTEGER cents storage)', () => {
-    it('findOne returns Money objects via getters', async () => {
+    it('exposes Money via getters, plain cents via raw: true, and decimals through toJSON and the API', async () => {
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ initialBalance: 500 }),
         raw: true,
       });
 
-      await helpers.createTransaction({
+      const [createdTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 25.5,
@@ -30,6 +30,11 @@ describe('MoneyField integration', () => {
         }),
         raw: true,
       });
+
+      // POST /transactions response carries decimals
+      expect(createdTx.amount).toBe(25.5);
+      expect(createdTx.commissionRate).toBe(0);
+      expect(createdTx.cashbackAmount).toBe(0);
 
       const tx = await Transactions.findOne({
         where: { accountId: account.id },
@@ -46,34 +51,33 @@ describe('MoneyField integration', () => {
       // Values should be correct decimals (not cents)
       expect(tx!.amount.toNumber()).toBe(25.5);
       expect(tx!.commissionRate.toNumber()).toBe(0);
-    });
 
-    it('findOne with raw: true returns plain cents numbers (no getters)', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 500 }),
-        raw: true,
-      });
+      // Simulate what res.json() does
+      const json = JSON.parse(JSON.stringify(tx!.toJSON()));
 
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 25.5,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
+      expect(typeof json.amount).toBe('number');
+      expect(json.amount).toBe(25.5);
+      expect(typeof json.commissionRate).toBe('number');
+      expect(json.commissionRate).toBe(0);
 
-      const tx = await Transactions.findOne({
+      const rawTx = await Transactions.findOne({
         where: { accountId: account.id },
         raw: true,
       });
 
-      expect(tx).not.toBeNull();
+      expect(rawTx).not.toBeNull();
       // raw: true bypasses getters, returns plain DB values (cents)
-      expect(Money.isMoney(tx!.amount)).toBe(false);
-      expect(typeof tx!.amount).toBe('number');
-      expect(tx!.amount as unknown as number).toBe(2550); // 25.50 * 100 = 2550 cents
-      expect(tx!.commissionRate as unknown as number).toBe(0);
+      expect(Money.isMoney(rawTx!.amount)).toBe(false);
+      expect(typeof rawTx!.amount).toBe('number');
+      expect(rawTx!.amount as unknown as number).toBe(2550); // 25.50 * 100 = 2550 cents
+      expect(rawTx!.commissionRate as unknown as number).toBe(0);
+
+      const response = await helpers.getTransactions({ raw: true });
+
+      expect(response.length).toBeGreaterThan(0);
+      const listed = response.find((t) => t.accountId === account.id);
+      expect(listed).toBeDefined();
+      expect(listed!.amount).toBe(25.5);
     });
 
     it('create accepts Money objects via setters', async () => {
@@ -112,7 +116,10 @@ describe('MoneyField integration', () => {
       expect(normal!.amount.toNumber()).toBe(42.99);
     });
 
-    it('update with save() works with Money', async () => {
+    it('instance.save() persists Money via the setter for amount and refAmount', async () => {
+      // Mirrors change-base-currency: set Money on the instance, then save.
+      // Model.update() would instead trigger the getter during SQL generation and hand
+      // Sequelize a Money object it cannot serialize into an INTEGER column.
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ initialBalance: 500 }),
         raw: true,
@@ -128,139 +135,63 @@ describe('MoneyField integration', () => {
       });
 
       const tx = await Transactions.findByPk(baseTx.id);
-      tx!.amount = Money.fromDecimal(20.5);
-      await tx!.save();
+      if (!tx) throw new Error('Transaction not found');
+
+      tx.amount = Money.fromDecimal(20.5);
+      await tx.save();
+      // hooks: false covers the change-base-currency path, which writes refAmount without triggering update hooks
+      tx.refAmount = Money.fromDecimal(55.17);
+      await tx.save({ hooks: false });
 
       // Verify via raw query
       const raw = await Transactions.findByPk(baseTx.id, { raw: true });
       expect(raw!.amount as unknown as number).toBe(2050);
+      expect(raw!.refAmount as unknown as number).toBe(5517); // 55.17 * 100 = 5517 cents
     });
   });
 
   describe('Balances model (INTEGER cents storage)', () => {
-    it('findOne returns Money for amount field', async () => {
+    it('returns Money via getters, applies and accumulates literal updates, and sums raw cents', async () => {
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ initialBalance: 100 }),
         raw: true,
       });
 
-      const balance = await Balances.findOne({
-        where: { accountId: account.id },
-      });
+      const readBalance = () => Balances.findOne({ where: { accountId: account.id } });
+      const applyLiteral = (expression: string) =>
+        Balances.update({ amount: Balances.sequelize!.literal(expression) }, { where: { accountId: account.id } });
 
-      expect(balance).not.toBeNull();
-      expect(Money.isMoney(balance!.amount)).toBe(true);
+      const initial = await readBalance();
+      expect(initial).not.toBeNull();
+      expect(Money.isMoney(initial!.amount)).toBe(true);
       // initialBalance = 100 decimal → refInitialBalance in base currency
-      expect(balance!.amount.toNumber()).toBe(100);
-    });
+      expect(initial!.amount.toNumber()).toBe(100);
 
-    it('Model.update with literal does not crash getters', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 100 }),
-        raw: true,
-      });
+      // Sequelize internally builds a temp instance and triggers setter then getter on the Literal.
+      await expect(applyLiteral('amount + 5000')).resolves.not.toThrow();
+      // 10000 cents + 5000 cents = 15000 cents = 150 decimal
+      expect((await readBalance())!.amount.toNumber()).toBe(150);
 
-      // This is the pattern that previously crashed — Sequelize internally
-      // builds a temp instance, triggers setter then getter on the Literal.
-      await expect(
-        Balances.update({ amount: Balances.sequelize!.literal('amount + 5000') }, { where: { accountId: account.id } }),
-      ).resolves.not.toThrow();
-
-      // Verify the update worked (100 * 100 cents + 5000 cents = 15000 cents = 150 decimal)
-      const balance = await Balances.findOne({
-        where: { accountId: account.id },
-      });
-      expect(balance!.amount.toNumber()).toBe(150);
-    });
-
-    it('Model.update with negative literal works correctly', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 200 }),
-        raw: true,
-      });
-
-      await Balances.update(
-        { amount: Balances.sequelize!.literal('amount - 5000') },
-        { where: { accountId: account.id } },
-      );
-
-      const balance = await Balances.findOne({
-        where: { accountId: account.id },
-      });
-      // 200 * 100 cents - 5000 cents = 15000 cents = 150 decimal
-      expect(balance!.amount.toNumber()).toBe(150);
-    });
-
-    it('Model.update with Money.toCents() in literal (real cascade pattern)', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 300 }),
-        raw: true,
-      });
+      await applyLiteral('amount - 5000');
+      // 15000 cents - 5000 cents = 10000 cents = 100 decimal
+      expect((await readBalance())!.amount.toNumber()).toBe(100);
 
       // This is the exact pattern used in Balances.updateBalanceIncremental()
       const incrementAmount = Money.fromDecimal(25.5);
-      await Balances.update(
-        { amount: Balances.sequelize!.literal(`amount + ${incrementAmount.toCents()}`) },
-        { where: { accountId: account.id } },
-      );
-
-      const balance = await Balances.findOne({
-        where: { accountId: account.id },
-      });
-      expect(balance!.amount.toNumber()).toBe(325.5);
-    });
-
-    it('Model.update with negated Money.toCents() in literal', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 300 }),
-        raw: true,
-      });
+      await applyLiteral(`amount + ${incrementAmount.toCents()}`);
+      expect((await readBalance())!.amount.toNumber()).toBe(125.5);
 
       // Pattern: amount.negate().toCents() for reversing a transaction
       const amount = Money.fromDecimal(50);
-      await Balances.update(
-        { amount: Balances.sequelize!.literal(`amount + ${amount.negate().toCents()}`) },
-        { where: { accountId: account.id } },
-      );
-
-      const balance = await Balances.findOne({
-        where: { accountId: account.id },
-      });
-      expect(balance!.amount.toNumber()).toBe(250);
-    });
-
-    it('sequential literal updates accumulate correctly', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 100 }),
-        raw: true,
-      });
+      await applyLiteral(`amount + ${amount.negate().toCents()}`);
+      expect((await readBalance())!.amount.toNumber()).toBe(75.5);
 
       // Simulate multiple transactions affecting the same balance record
-      await Balances.update(
-        { amount: Balances.sequelize!.literal('amount + 1000') },
-        { where: { accountId: account.id } },
-      );
-      await Balances.update(
-        { amount: Balances.sequelize!.literal('amount + 2000') },
-        { where: { accountId: account.id } },
-      );
-      await Balances.update(
-        { amount: Balances.sequelize!.literal('amount - 500') },
-        { where: { accountId: account.id } },
-      );
-
-      const balance = await Balances.findOne({
-        where: { accountId: account.id },
-      });
-      // 10000 + 1000 + 2000 - 500 = 12500 cents = 125 decimal
-      expect(balance!.amount.toNumber()).toBe(125);
-    });
-
-    it('aggregate sum returns raw number (not Money)', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 200 }),
-        raw: true,
-      });
+      await applyLiteral('amount + 1000');
+      await applyLiteral('amount + 2000');
+      await applyLiteral('amount - 500');
+      // 7550 + 1000 + 2000 - 500 = 10050 cents = 100.5 decimal
+      expect((await readBalance())!.amount.toNumber()).toBe(100.5);
 
       const result = await Balances.sum('amount', {
         where: { accountId: account.id },
@@ -268,12 +199,12 @@ describe('MoneyField integration', () => {
 
       // Sequelize aggregates return raw DB values
       expect(typeof result).toBe('number');
-      expect(result).toBe(20000); // 200 * 100 = 20000 cents
+      expect(result).toBe(10050);
     });
   });
 
   describe('Accounts model (INTEGER cents storage)', () => {
-    it('findOne returns Money for all money fields', async () => {
+    it('findOne returns Money for all money fields, raw: true returns plain cents', async () => {
       const created = await helpers.createAccount({
         payload: helpers.buildAccountPayload({
           initialBalance: 250.75,
@@ -294,97 +225,12 @@ describe('MoneyField integration', () => {
 
       expect(account!.initialBalance.toNumber()).toBe(250.75);
       expect(account!.creditLimit.toNumber()).toBe(1000);
-    });
 
-    it('raw: true returns plain cents for money fields', async () => {
-      const created = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          initialBalance: 250.75,
-          creditLimit: 1000,
-        }),
-        raw: true,
-      });
+      const rawAccount = await Accounts.findByPk(created.id, { raw: true });
 
-      const account = await Accounts.findByPk(created.id, { raw: true });
-
-      expect(typeof (account!.initialBalance as unknown)).toBe('number');
-      expect(account!.initialBalance as unknown as number).toBe(25075); // 250.75 * 100
-      expect(account!.creditLimit as unknown as number).toBe(100000); // 1000 * 100
-    });
-  });
-
-  describe('JSON serialization (toJSON)', () => {
-    it('Money fields auto-serialize to numbers via toJSON', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 42.5 }),
-        raw: true,
-      });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 15.25,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const tx = await Transactions.findOne({
-        where: { accountId: account.id },
-      });
-
-      // Simulate what res.json() does
-      const json = JSON.parse(JSON.stringify(tx!.toJSON()));
-
-      expect(typeof json.amount).toBe('number');
-      expect(json.amount).toBe(15.25);
-      expect(typeof json.commissionRate).toBe('number');
-      expect(json.commissionRate).toBe(0);
-    });
-  });
-
-  describe('API response serialization', () => {
-    it('GET /transactions returns decimal amounts (not cents)', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 500 }),
-        raw: true,
-      });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 33.33,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.getTransactions({ raw: true });
-
-      expect(response.length).toBeGreaterThan(0);
-      const tx = response.find((t) => t.accountId === account.id);
-      expect(tx).toBeDefined();
-      expect(tx!.amount).toBe(33.33);
-    });
-
-    it('POST /transactions returns decimal amounts in response', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 500 }),
-        raw: true,
-      });
-
-      const [baseTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 77.77,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      expect(baseTx.amount).toBe(77.77);
-      expect(baseTx.commissionRate).toBe(0);
-      expect(baseTx.cashbackAmount).toBe(0);
+      expect(typeof (rawAccount!.initialBalance as unknown)).toBe('number');
+      expect(rawAccount!.initialBalance as unknown as number).toBe(25075); // 250.75 * 100
+      expect(rawAccount!.creditLimit as unknown as number).toBe(100000); // 1000 * 100
     });
   });
 
@@ -448,37 +294,6 @@ describe('MoneyField integration', () => {
 
       // API should return the same decimal value that was sent
       expect(reminder.settings.amountThreshold).toBe(1500);
-    });
-
-    it('instance.save() correctly persists Money via setter (not getter)', async () => {
-      // Bug: Model.update() triggers getter during SQL generation, which returns
-      // a Money object that Sequelize can't serialize to INTEGER. Using instance.save()
-      // avoids this because save() reads from dataValues directly.
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 500 }),
-        raw: true,
-      });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 25,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const tx = await Transactions.findOne({ where: { accountId: account.id } });
-      if (!tx) throw new Error('Transaction not found');
-
-      // Simulate what change-base-currency does: set Money on instance, then save
-      const newRefAmount = Money.fromDecimal(55.17);
-      tx.refAmount = newRefAmount;
-      await tx.save({ hooks: false });
-
-      // Verify via raw query
-      const raw = await Transactions.findByPk(tx.id, { raw: true });
-      expect(raw!.refAmount as unknown as number).toBe(5517); // 55.17 * 100 = 5517 cents
     });
 
     it('GET /accounts returns array of serialized accounts', async () => {

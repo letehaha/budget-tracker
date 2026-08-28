@@ -1,8 +1,16 @@
+import { getDefaultValue } from '@common/helpers/get-default-value-from-zod-schema';
 import { describe, expect, it } from '@jest/globals';
-import { SettingsSchema } from '@models/user-settings.model';
+import { SettingsSchema, ZodSettingsSchema } from '@models/user-settings.model';
 import * as helpers from '@tests/helpers';
 
 describe('Update user settings', () => {
+  it('returns default value when no settings were ever set', async () => {
+    const useSettings = await helpers.getUserSettings({ raw: true });
+    const defaultUserSettingsValue = getDefaultValue(ZodSettingsSchema);
+
+    expect(useSettings).toStrictEqual(defaultUserSettingsValue);
+  });
+
   it('updates empty settings and returns new value right away', async () => {
     const newSettings: SettingsSchema = {
       locale: 'en',
@@ -14,39 +22,39 @@ describe('Update user settings', () => {
     });
 
     expect(updatedUserSettings).toStrictEqual(newSettings);
+    expect(await helpers.getUserSettings({ raw: true })).toStrictEqual(newSettings);
 
-    const useSettings = await helpers.getUserSettings({ raw: true });
+    const overridingSettings: SettingsSchema = { locale: 'uk' };
 
-    expect(useSettings).toStrictEqual(newSettings);
-  });
-
-  it('overrides existing settings', async () => {
-    await helpers.updateUserSettings({
+    const overridden = await helpers.updateUserSettings({
       raw: true,
-      settings: { locale: 'en' },
+      settings: overridingSettings,
     });
 
-    const newSettings: SettingsSchema = { locale: 'uk' };
-
-    const updatedUserSettings = await helpers.updateUserSettings({
-      raw: true,
-      settings: newSettings,
-    });
-
-    expect(updatedUserSettings).toStrictEqual(newSettings);
-
-    const useSettings = await helpers.getUserSettings({ raw: true });
-
-    expect(useSettings).toStrictEqual(newSettings);
+    expect(overridden).toStrictEqual(overridingSettings);
+    expect(await helpers.getUserSettings({ raw: true })).toStrictEqual(overridingSettings);
   });
 
-  it('saves and returns dashboard widgets with custom config field', async () => {
+  it('saves every accepted widget config shape', async () => {
     const newSettings: SettingsSchema = {
       locale: 'en',
       dashboard: {
         widgets: [
           { widgetId: 'subscriptions-overview', colSpan: 1, rowSpan: 1, config: { type: 'subscription' } },
           { widgetId: 'balance-trend', colSpan: 2, rowSpan: 1 },
+          { widgetId: 'balance-trend', colSpan: 2, rowSpan: 1, config: { spikesEnabled: false } },
+          {
+            widgetId: 'balance-trend',
+            colSpan: 2,
+            rowSpan: 1,
+            config: { spikesEnabled: true, spikePercentThreshold: 10, someOtherKey: 'value' },
+          },
+          {
+            widgetId: 'some-other-widget',
+            colSpan: 1,
+            rowSpan: 1,
+            config: { customKey: 'any-value', anotherKey: 42 },
+          },
         ],
       },
     };
@@ -57,28 +65,11 @@ describe('Update user settings', () => {
     });
 
     expect(updatedSettings).toStrictEqual(newSettings);
+    expect(updatedSettings.dashboard?.widgets[1]?.config).toBeUndefined();
 
-    // Verify it persists on re-fetch
     const fetchedSettings = await helpers.getUserSettings({ raw: true });
-    expect(fetchedSettings.dashboard?.widgets[0]?.config).toStrictEqual({ type: 'subscription' });
+    expect(fetchedSettings.dashboard).toStrictEqual(newSettings.dashboard);
     expect(fetchedSettings.dashboard?.widgets[1]?.config).toBeUndefined();
-  });
-
-  it('saves dashboard widget without config field (backwards compatible)', async () => {
-    const newSettings: SettingsSchema = {
-      locale: 'en',
-      dashboard: {
-        widgets: [{ widgetId: 'balance-trend', colSpan: 2, rowSpan: 1 }],
-      },
-    };
-
-    const updatedSettings = await helpers.updateUserSettings({
-      raw: true,
-      settings: newSettings,
-    });
-
-    expect(updatedSettings).toStrictEqual(newSettings);
-    expect(updatedSettings.dashboard?.widgets[0]?.config).toBeUndefined();
   });
 
   describe('spike detection config in dashboard widgets', () => {
@@ -117,61 +108,6 @@ describe('Update user settings', () => {
         spikeAbsoluteThreshold: 1000,
         spikeMaxCount: 15,
       });
-    });
-
-    it('saves widget with partial spike config (only some keys)', async () => {
-      const newSettings: SettingsSchema = {
-        locale: 'en',
-        dashboard: {
-          widgets: [
-            {
-              widgetId: 'balance-trend',
-              colSpan: 2,
-              rowSpan: 1,
-              config: {
-                spikesEnabled: false,
-              },
-            },
-          ],
-        },
-      };
-
-      const updatedSettings = await helpers.updateUserSettings({
-        raw: true,
-        settings: newSettings,
-      });
-
-      expect(updatedSettings).toStrictEqual(newSettings);
-      expect(updatedSettings.dashboard?.widgets[0]?.config).toStrictEqual({
-        spikesEnabled: false,
-      });
-    });
-
-    it('saves widget with spike config mixed with other config keys', async () => {
-      const newSettings: SettingsSchema = {
-        locale: 'en',
-        dashboard: {
-          widgets: [
-            {
-              widgetId: 'balance-trend',
-              colSpan: 2,
-              rowSpan: 1,
-              config: {
-                spikesEnabled: true,
-                spikePercentThreshold: 10,
-                someOtherKey: 'value',
-              },
-            },
-          ],
-        },
-      };
-
-      const updatedSettings = await helpers.updateUserSettings({
-        raw: true,
-        settings: newSettings,
-      });
-
-      expect(updatedSettings).toStrictEqual(newSettings);
     });
 
     it('saves widget with boundary spike config values', async () => {
@@ -227,127 +163,30 @@ describe('Update user settings', () => {
       expect(upperResult).toStrictEqual(upperSettings);
     });
 
-    it('rejects spikePercentThreshold below minimum (1)', async () => {
-      const res = await helpers.updateUserSettings({
-        settings: {
-          locale: 'en',
-          dashboard: {
-            widgets: [
-              {
-                widgetId: 'balance-trend',
-                colSpan: 2,
-                rowSpan: 1,
-                config: { spikePercentThreshold: 0 },
-              },
-            ],
-          },
-        },
-      });
+    it('rejects out-of-range spike config values', async () => {
+      const invalidConfigs: Record<string, unknown>[] = [
+        { spikePercentThreshold: 0 },
+        { spikePercentThreshold: 51 },
+        { spikeAbsoluteThreshold: 10001 },
+        { spikeMaxCount: 5.5 },
+        { spikeMaxCount: 21 },
+      ];
 
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects spikePercentThreshold above maximum (50)', async () => {
-      const res = await helpers.updateUserSettings({
-        settings: {
-          locale: 'en',
-          dashboard: {
-            widgets: [
-              {
-                widgetId: 'balance-trend',
-                colSpan: 2,
-                rowSpan: 1,
-                config: { spikePercentThreshold: 51 },
-              },
-            ],
-          },
-        },
-      });
-
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects spikeAbsoluteThreshold above maximum (10000)', async () => {
-      const res = await helpers.updateUserSettings({
-        settings: {
-          locale: 'en',
-          dashboard: {
-            widgets: [
-              {
-                widgetId: 'balance-trend',
-                colSpan: 2,
-                rowSpan: 1,
-                config: { spikeAbsoluteThreshold: 10001 },
-              },
-            ],
-          },
-        },
-      });
-
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects non-integer spikeMaxCount', async () => {
-      const res = await helpers.updateUserSettings({
-        settings: {
-          locale: 'en',
-          dashboard: {
-            widgets: [
-              {
-                widgetId: 'balance-trend',
-                colSpan: 2,
-                rowSpan: 1,
-                config: { spikeMaxCount: 5.5 },
-              },
-            ],
-          },
-        },
-      });
-
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects spikeMaxCount above maximum (20)', async () => {
-      const res = await helpers.updateUserSettings({
-        settings: {
-          locale: 'en',
-          dashboard: {
-            widgets: [
-              {
-                widgetId: 'balance-trend',
-                colSpan: 2,
-                rowSpan: 1,
-                config: { spikeMaxCount: 21 },
-              },
-            ],
-          },
-        },
-      });
-
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('allows widgets without spike keys in config (no validation triggered)', async () => {
-      const newSettings: SettingsSchema = {
-        locale: 'en',
-        dashboard: {
-          widgets: [
-            {
-              widgetId: 'some-other-widget',
-              colSpan: 1,
-              rowSpan: 1,
-              config: { customKey: 'any-value', anotherKey: 42 },
+      for (const config of invalidConfigs) {
+        const res = await helpers.updateUserSettings({
+          settings: {
+            locale: 'en',
+            dashboard: {
+              widgets: [{ widgetId: 'balance-trend', colSpan: 2, rowSpan: 1, config }],
             },
-          ],
-        },
-      };
+          },
+        });
 
-      const updatedSettings = await helpers.updateUserSettings({
-        raw: true,
-        settings: newSettings,
-      });
+        expect({ config, statusCode: res.statusCode }).toStrictEqual({ config, statusCode: 422 });
+      }
 
-      expect(updatedSettings).toStrictEqual(newSettings);
+      const fetched = await helpers.getUserSettings({ raw: true });
+      expect(fetched.dashboard).toBeUndefined();
     });
   });
 });

@@ -442,11 +442,21 @@ const isAmountFieldDisabled = computed(() => {
   return false;
 });
 
-// Planned mode is chosen once, at creation: un-planning a row means deleting the plan.
+// Only the bank sync confirms a plan on a connected account, so edit mode keeps the
+// toggle interactive solely for manual-account plans: turning it off books the money
+// for real on save. Plans on accounts shared *with* the caller belong to the owner only.
+const isSavedManualPlanTogglable = computed(
+  () =>
+    !isFormCreation.value &&
+    Boolean(transaction.value?.isPlanned) &&
+    transaction.value?.accountType === ACCOUNT_TYPES.system &&
+    !isAccountSharedWithCaller.value,
+);
+
 // Loan and vehicle balances are recomputed by replaying transactions, and plans on
 // accounts shared *with* the caller belong to the owner only.
 const isPlannedToggleVisible = computed(() => {
-  if (!isFormCreation.value) return false;
+  if (!isFormCreation.value) return isSavedManualPlanTogglable.value;
   if (isTransferTx.value) return false;
   if (isAccountSharedWithCaller.value) return false;
   // The toggle is what unlocks bank-connected accounts in the picker, so an empty picker
@@ -457,7 +467,9 @@ const isPlannedToggleVisible = computed(() => {
   return !isDedicatedFlowAccountCategory(account.accountCategory);
 });
 
-const isPlannedBadgeVisible = computed(() => !isFormCreation.value && Boolean(form.value.isPlanned));
+const isPlannedBadgeVisible = computed(
+  () => !isFormCreation.value && Boolean(form.value.isPlanned) && !isSavedManualPlanTogglable.value,
+);
 
 // Real transactions on a bank-connected account come from the sync, so the account picker
 // only offers those once the row is a plan.
@@ -476,12 +488,19 @@ const hasConnectedAccountsToOffer = computed(() =>
 );
 
 // Turning the mode off strands both fields it had unlocked, so the tooltip warns before
-// the click rather than explaining the empty account afterwards.
-const plannedTooltipOverride = computed(() =>
-  isSelectedAccountConnected.value ? t('dialogs.manageTransaction.form.plannedConnectedAccountTooltip') : undefined,
-);
+// the click rather than explaining the empty account afterwards. In edit mode the toggle
+// means "the money actually moved", which deserves its own wording.
+const plannedTooltipOverride = computed(() => {
+  if (!isFormCreation.value) return t('dialogs.manageTransaction.form.plannedConfirmTooltip');
+  return isSelectedAccountConnected.value
+    ? t('dialogs.manageTransaction.form.plannedConnectedAccountTooltip')
+    : undefined;
+});
 
 watch(isPlannedToggleVisible, (isVisible) => {
+  // Edit mode: visibility only shifts while shared-account access resolves; the saved
+  // flag must survive that, so only creation-mode account switches reset it.
+  if (!isFormCreation.value) return;
   if (isVisible || !form.value.isPlanned) return;
   form.value.isPlanned = false;
   addInfoNotification(t('dialogs.manageTransaction.form.plannedUnavailableNotification'));

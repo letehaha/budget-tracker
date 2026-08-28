@@ -1,4 +1,4 @@
-import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import { type BudgetBakersWalletAccountMapping, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -24,6 +24,21 @@ async function buildCreateNewMappingFromFixture({ fileContent }: { fileContent: 
     ]),
   );
   return { parsed: result, accountMapping };
+}
+
+async function buildMappingWithSkippedAccounts({
+  fileContent,
+  skippedAccountNames,
+}: {
+  fileContent: string;
+  skippedAccountNames: string[];
+}) {
+  const { parsed, accountMapping } = await buildCreateNewMappingFromFixture({ fileContent });
+  const skipped = new Set(skippedAccountNames);
+  const mapping: BudgetBakersWalletAccountMapping = Object.fromEntries(
+    Object.entries(accountMapping).map(([name, value]) => [name, skipped.has(name) ? { action: 'skip' } : value]),
+  );
+  return { parsed, accountMapping: mapping };
 }
 
 // ---------------------------------------------------------------------------
@@ -929,5 +944,124 @@ describe('Execute Budget Bakers Wallet import endpoint', () => {
       // rowIndex is number | null per WalletImportSummary — both are valid.
       expect(entry.rowIndex === null || typeof entry.rowIndex === 'number').toBe(true);
     }
+  });
+  describe('skipped accounts', () => {
+    it('leaves out a skipped account: its account, its rows and its out-of-wallet leg', async () => {
+      const accountsBefore = await helpers.getAccounts();
+      const fileContent = helpers.loadBudgetBakersWalletFixture('multi-currency.csv');
+      const { accountMapping } = await buildMappingWithSkippedAccounts({
+        fileContent,
+        skippedAccountNames: ['Monobank UAH'],
+      });
+
+      const { jobId } = await helpers.executeBudgetBakersWallet({
+        payload: { fileContent, accountMapping, skipDuplicateIndices: [] },
+        raw: true,
+      });
+      const progress = await waitForBudgetBakersWalletCompletion({ jobId });
+      expectCompleted(progress);
+      const { summary } = progress;
+
+      expect(summary.accountsSkipped).toBe(1);
+      expect(summary.accountsCreated).toBe(4);
+      // Monobank UAH owned 2 ordinary rows and the lone (out-of-wallet) leg.
+      expect(summary.transactionsImported).toBe(2);
+      expect(summary.outOfWalletImported).toBe(0);
+      // Neither transfer pair touches Monobank UAH, so both still land.
+      expect(summary.transfersImported).toBe(2);
+      // "Refund" only ever labelled a Monobank row; "Travel" also labels a PKO row.
+      expect(summary.tagsCreated).toBe(1);
+      expect(summary.errors).toHaveLength(0);
+      // 2 transactions + 2 transfers.
+      expect(progress.totalCount).toBe(4);
+
+      const accountsAfter = await helpers.getAccounts();
+      expect(accountsAfter.length).toBe(accountsBefore.length + 4);
+      expect(accountsAfter.find((a) => a.name === 'Monobank UAH')).toBeUndefined();
+
+      const transactionsAfter = await helpers.getTransactions({ raw: true });
+      const notes = transactionsAfter.map((t) => t.note);
+      expect(notes).toContain('Project payment');
+      expect(notes).toContain('Morning coffee');
+      expect(notes).not.toContain('Weekly shop');
+      expect(notes).not.toContain('December salary');
+      expect(
+        transactionsAfter.filter((t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet),
+      ).toHaveLength(0);
+    });
+
+    it('drops a transfer whole when one of its legs belongs to a skipped account', async () => {
+      const fileContent = helpers.loadBudgetBakersWalletFixture('multi-currency.csv');
+      const { accountMapping } = await buildMappingWithSkippedAccounts({
+        fileContent,
+        skippedAccountNames: ['Wise USD'],
+      });
+
+      const { jobId } = await helpers.executeBudgetBakersWallet({
+        payload: { fileContent, accountMapping, skipDuplicateIndices: [] },
+        raw: true,
+      });
+      const progress = await waitForBudgetBakersWalletCompletion({ jobId });
+      expectCompleted(progress);
+      const { summary } = progress;
+
+      expect(summary.accountsSkipped).toBe(1);
+      expect(summary.accountsCreated).toBe(4);
+      // Wise USD owns no ordinary rows, so every non-transfer row still lands.
+      expect(summary.transactionsImported).toBe(4);
+      expect(summary.outOfWalletImported).toBe(1);
+      // Only PKO USD -> PKO PLN survives; Crypto USD -> Wise USD is dropped whole.
+      expect(summary.transfersImported).toBe(1);
+      expect(summary.errors).toHaveLength(0);
+      // 4 ordinary rows + 1 out-of-wallet leg + 1 transfer.
+      expect(progress.totalCount).toBe(6);
+
+      const accountsAfter = await helpers.getAccounts();
+      expect(accountsAfter.find((a) => a.name === 'Wise USD')).toBeUndefined();
+
+      // The surviving leg of the dropped transfer must not be written on its
+      // own: Crypto USD is created but stays empty.
+      const cryptoAccount = accountsAfter.find((a) => a.name === 'Crypto USD')!;
+      const transactionsAfter = await helpers.getTransactions({ raw: true });
+      expect(transactionsAfter.filter((t) => t.accountId === cryptoAccount.id)).toHaveLength(0);
+      expect(
+        transactionsAfter.filter((t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer),
+      ).toHaveLength(2);
+    });
+
+    it('completes with zeroed counts when every account is mapped to skip', async () => {
+      const accountsBefore = await helpers.getAccounts();
+      const fileContent = helpers.loadBudgetBakersWalletFixture('multi-currency.csv');
+      const { parsed } = await buildCreateNewMappingFromFixture({ fileContent });
+      const accountMapping: BudgetBakersWalletAccountMapping = Object.fromEntries(
+        parsed.accounts.map((account) => [account.originalName, { action: 'skip' }]),
+      );
+
+      const { jobId } = await helpers.executeBudgetBakersWallet({
+        payload: { fileContent, accountMapping, skipDuplicateIndices: [] },
+        raw: true,
+      });
+      const progress = await waitForBudgetBakersWalletCompletion({ jobId });
+      expectCompleted(progress);
+
+      expect(progress.processedCount).toBe(0);
+      expect(progress.totalCount).toBe(0);
+      expect(progress.summary).toMatchObject({
+        accountsSkipped: parsed.accounts.length,
+        accountsCreated: 0,
+        accountsLinked: 0,
+        categoriesCreated: 0,
+        tagsCreated: 0,
+        payeesCreated: 0,
+        transactionsImported: 0,
+        transfersImported: 0,
+        outOfWalletImported: 0,
+        duplicatesSkipped: 0,
+        errors: [],
+      });
+
+      expect((await helpers.getAccounts()).length).toBe(accountsBefore.length);
+      expect(await helpers.getTransactions({ raw: true })).toHaveLength(0);
+    });
   });
 });

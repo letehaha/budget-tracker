@@ -1,4 +1,4 @@
-import type { AccountMappingConfig } from '@bt/shared/types';
+import type { AccountMappingValue } from '@bt/shared/types';
 import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
@@ -10,7 +10,7 @@ interface CreateAccountsIfNeededParams {
   userId: number;
   /** Distinct source account names to ensure an account exists for. */
   accountNames: string[];
-  accountMapping: AccountMappingConfig;
+  accountMapping: Record<string, Exclude<AccountMappingValue, { action: 'skip' }>>;
   /**
    * Currency code to use when creating a new account for `accountName`. CSV
    * passes the currency of the first row that uses the account. Returning

@@ -8,6 +8,7 @@ import { AlphaVantageDataProvider } from './alphavantage-provider';
 import {
   BaseSecurityDataProvider,
   BulkPriceData,
+  BulkPriceFetchOptions,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -190,10 +191,11 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
   public async fetchPricesForSecurities(
     securities: SecurityPriceFetchInput[],
     forDate: Date,
-  ): Promise<Map<string, BulkPriceData>> {
+    options?: BulkPriceFetchOptions,
+  ): Promise<Map<string, BulkPriceData[]>> {
     const securitiesByProvider = this.groupSecuritiesByProvider(securities);
 
-    const allResults = new Map<string, BulkPriceData>();
+    const allResults = new Map<string, BulkPriceData[]>();
     const failedSecurities: SecurityPriceFetchInput[] = [];
 
     // Phase 1: Fetch from primary providers concurrently
@@ -201,17 +203,17 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
       const provider = this.providers.get(providerName);
       if (!provider) {
         logger.info(`Provider ${providerName} not available, skipping ${securityList.length} symbols`);
-        return { fetched: new Map<string, BulkPriceData>(), failed: securityList };
+        return { fetched: new Map<string, BulkPriceData[]>(), failed: securityList };
       }
 
       try {
         logger.info(`Fetching prices for ${securityList.length} symbols from ${providerName}`);
-        const res = await provider.fetchPricesForSecurities(securityList, forDate);
+        const res = await provider.fetchPricesForSecurities(securityList, forDate, options);
         const failed = securityList.filter((s) => !res.has(s.securityId));
         return { fetched: res, failed };
       } catch (error) {
         logger.error({ message: `Provider ${providerName} failed for bulk fetch:`, error: error as Error });
-        return { fetched: new Map<string, BulkPriceData>(), failed: securityList };
+        return { fetched: new Map<string, BulkPriceData[]>(), failed: securityList };
       }
     });
 
@@ -241,9 +243,9 @@ export class CompositeDataProvider extends BaseSecurityDataProvider {
           if (!fallbackProvider) continue;
 
           try {
-            const prices = await fallbackProvider.fetchPricesForSecurities([security], forDate);
+            const prices = await fallbackProvider.fetchPricesForSecurities([security], forDate, options);
             const price = prices.get(security.securityId);
-            if (price) {
+            if (price && price.length > 0) {
               allResults.set(security.securityId, price);
               logger.info(`Fallback ${fallbackName} succeeded for ${security.symbol}`);
               break;

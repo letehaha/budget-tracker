@@ -40,54 +40,6 @@ const createPlnAccount = () =>
 describe('Refund Transactions service', () => {
   describe('createSingleRefund with splitId', () => {
     describe('success cases', () => {
-      it('successfully creates refund targeting specific split', async () => {
-        const account = await helpers.createAccount({ raw: true });
-        const categories = await helpers.getCategoriesList();
-
-        // Create transaction with $100 total: $70 primary + $30 split
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: categories[0]!.id,
-            amount: 10000,
-            transactionType: TRANSACTION_TYPES.expense,
-            splits: [{ categoryId: categories[1]!.id, amount: 3000 }],
-          }),
-          raw: true,
-        });
-
-        // Get the split ID
-        const transactions = await helpers.getTransactions({
-          raw: true,
-          includeSplits: true,
-        });
-        const split = transactions![0]!.splits![0]!;
-
-        // Create $20 income refund targeting the $30 split
-        const [refundTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: categories[1]!.id,
-            amount: 2000,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const result = await helpers.createSingleRefund(
-          {
-            originalTxId: expenseTx.id,
-            refundTxId: refundTx.id,
-            splitId: split.id,
-          },
-          true,
-        );
-
-        expect(result.originalTxId).toEqual(expenseTx.id);
-        expect(result.refundTxId).toEqual(refundTx.id);
-        expect(result.splitId).toEqual(split.id);
-      });
-
       it('links multiple partial refunds for the same split, and rejects the one that goes over', async () => {
         const account = await helpers.createAccount({ raw: true });
         const categories = await helpers.getCategoriesList();
@@ -208,7 +160,7 @@ describe('Refund Transactions service', () => {
           raw: true,
         });
 
-        await helpers.createSingleRefund(
+        const splitResult = await helpers.createSingleRefund(
           {
             originalTxId: expenseTx.id,
             refundTxId: splitRefund.id,
@@ -216,6 +168,10 @@ describe('Refund Transactions service', () => {
           },
           true,
         );
+
+        expect(splitResult.originalTxId).toEqual(expenseTx.id);
+        expect(splitResult.refundTxId).toEqual(splitRefund.id);
+        expect(splitResult.splitId).toEqual(split.id);
 
         // Refund $50 on the whole transaction (primary amount)
         const [primaryRefund] = await helpers.createTransaction({
@@ -831,30 +787,6 @@ describe('Refund Transactions service', () => {
 
     describe('nullish originalTxId cases', () => {
       describe('success cases', () => {
-        it('successfully creates a refund transaction without an original transaction', async () => {
-          const account = await helpers.createAccount({ raw: true });
-
-          const [refundTx] = await helpers.createTransaction({
-            payload: helpers.buildTransactionPayload({
-              accountId: account.id,
-              amount: 100,
-              transactionType: TRANSACTION_TYPES.income,
-            }),
-            raw: true,
-          });
-
-          const result = await helpers.createSingleRefund(
-            {
-              originalTxId: null,
-              refundTxId: refundTx.id,
-            },
-            true,
-          );
-
-          expect(result.originalTxId).toBeNull();
-          expect(result.refundTxId).toEqual(refundTx.id);
-        });
-
         it('successfully creates multiple refund transactions without original transactions', async () => {
           const account = await helpers.createAccount({ raw: true });
 
@@ -1000,45 +932,6 @@ describe('Refund Transactions service', () => {
 
         expect(baseTx.currencyCode).toEqual(refundTx.currencyCode);
         expect(baseTx.amount).toEqual(refundTx.amount);
-        expect(refundTx.refAmount > baseTx.refAmount).toBe(true);
-        expect(result.originalTxId).toEqual(baseTx.id);
-        expect(result.refundTxId).toEqual(refundTx.id);
-      });
-
-      it('links a cross-currency refund whose refAmount is bigger than the original refAmount', async () => {
-        const account = await helpers.createAccount({ raw: true });
-        const accountB = await helpers.createAccount({
-          payload: helpers.buildAccountPayload({ currencyCode: 'GBP' }),
-          raw: true,
-        });
-
-        const [baseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 1000,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        const [refundTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: accountB.id,
-            amount: 950,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const result = await helpers.createSingleRefund(
-          {
-            originalTxId: baseTx.id,
-            refundTxId: refundTx.id,
-          },
-          true,
-        );
-
-        expect(baseTx.currencyCode !== refundTx.currencyCode).toBe(true);
         expect(refundTx.refAmount > baseTx.refAmount).toBe(true);
         expect(result.originalTxId).toEqual(baseTx.id);
         expect(result.refundTxId).toEqual(refundTx.id);

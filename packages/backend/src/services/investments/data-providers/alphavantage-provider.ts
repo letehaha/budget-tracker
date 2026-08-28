@@ -7,6 +7,7 @@ import { differenceInCalendarDays, endOfDay, isWithinInterval, startOfDay } from
 import {
   BaseSecurityDataProvider,
   BulkPriceData,
+  BulkPriceFetchOptions,
   HistoricalPriceOptions,
   PriceData,
   ProviderSymbol,
@@ -172,13 +173,14 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
   public async fetchPricesForSecurities(
     securities: SecurityPriceFetchInput[],
     forDate: Date,
-  ): Promise<Map<string, BulkPriceData>> {
+    options?: BulkPriceFetchOptions,
+  ): Promise<Map<string, BulkPriceData[]>> {
     const ALPHA_VANTAGE_DAILY_LIMIT = 25;
     const ALPHA_VANTAGE_MINUTE_LIMIT = 5;
     const MINUTE_DELAY = 60 * 1000 + 1000; // 61 seconds to be safe
     const REQUEST_DELAY = 12 * 1000; // 12 seconds between requests to stay under 5/minute
 
-    const result = new Map<string, BulkPriceData>();
+    const result = new Map<string, BulkPriceData[]>();
     if (securities.length === 0) {
       return result;
     }
@@ -223,15 +225,17 @@ export class AlphaVantageDataProvider extends BaseSecurityDataProvider {
         requestsThisMinute++;
 
         const historicalPrices = await this.getHistoricalPrices(providerSymbol, {
-          startDate: startOfDay(forDate),
+          startDate: startOfDay(options?.startDate ?? forDate),
           endDate: endOfDay(forDate),
         });
 
-        if (historicalPrices[0]) {
-          const priceData = historicalPrices[0];
-          result.set(securityId, { ...priceData, securityId });
+        if (historicalPrices.length > 0) {
+          result.set(
+            securityId,
+            historicalPrices.map((priceData) => ({ ...priceData, securityId })),
+          );
           logger.info(
-            `Fetched price for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}: ${priceData.priceClose}`,
+            `Fetched ${historicalPrices.length} price(s) for ${providerSymbol} up to ${forDate.toISOString().split('T')[0]}`,
           );
         } else {
           logger.info(`No price data found for ${providerSymbol} on ${forDate.toISOString().split('T')[0]}`);

@@ -149,10 +149,11 @@ export interface ParseYnabResponse {
   result: YnabParseResult;
 }
 
-/** Per-account currency override the user confirms in the preview step.
- *  The wizard always creates fresh accounts — no opt-in to merge into an
- *  existing app account — so currency is the only decision left to make. */
-export type YnabAccountMappingValue = { currencyCode: string };
+/** Per-account decision the user confirms in the preview step. The wizard always
+ *  creates fresh accounts, with no opt-in to merge into an existing app account.
+ *  A skipped account keeps its `currencyCode` so unskipping restores the picker's
+ *  value; the executor ignores it. */
+export type YnabAccountMappingValue = { currencyCode: string; skip?: boolean };
 
 /** Keyed by `YnabParseAccount.originalName`. */
 export type YnabAccountMapping = Record<string, YnabAccountMappingValue>;
@@ -174,6 +175,8 @@ export type YnabImportJobStatus = ImportJobStatus;
 /** Cumulative numbers reported once the worker finishes. */
 export interface YnabImportSummary {
   accountsCreated: number;
+  /** Number of source accounts mapped to skip. Optional: retained results predate the field. */
+  accountsSkipped?: number;
   categoriesCreated: number;
   payeesCreated: number;
   tagsCreated: number;

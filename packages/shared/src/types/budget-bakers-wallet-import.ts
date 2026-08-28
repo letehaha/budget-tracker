@@ -202,10 +202,13 @@ export interface ParseBudgetBakersWalletResponse {
  *    (captured before importing, restored via `updateAccount` afterwards).
  *    Only accounts with the same currency as the CSV account are selectable
  *    in the UI.
+ *  - `skip` — the account and all its rows are left out of the import, along
+ *    with every transfer that touches it.
  */
 export type BudgetBakersWalletAccountMappingValue =
   | { action: 'create-new'; currencyCode: string; currentBalance: number | null }
-  | { action: 'link-existing'; accountId: string };
+  | { action: 'link-existing'; accountId: string }
+  | { action: 'skip' };
 
 /** Keyed by `BudgetBakersWalletParseAccount.originalName`. */
 export type BudgetBakersWalletAccountMapping = Record<string, BudgetBakersWalletAccountMappingValue>;
@@ -281,6 +284,8 @@ export type BudgetBakersWalletImportError = ImportError;
 export interface BudgetBakersWalletImportSummary extends ImportSummaryBase {
   accountsCreated: number;
   accountsLinked: number;
+  /** Number of source accounts mapped to skip. Optional: retained results predate the field. */
+  accountsSkipped?: number;
   categoriesCreated: number;
   payeesCreated: number;
   tagsCreated: number;

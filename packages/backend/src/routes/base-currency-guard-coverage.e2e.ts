@@ -69,6 +69,9 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   // so a base-currency migration and a run cannot corrupt each other.
   'POST /api/v1/user/ai/categorization/trigger',
 
+  // AI suggestion call — reads nothing monetary, writes nothing.
+  'POST /api/v1/import/ai-map-categories',
+
   // Admin-only investment price maintenance — these write GLOBAL SecurityPricing
   // reference data, not any user's ref amounts, so a per-user base-currency
   // migration has no bearing on them.
@@ -205,45 +208,27 @@ describe('Base-currency lock returns 423 on guarded routes', () => {
     expect((response.body.response as ErrorResponse).code).toBe(LOCK_CODE);
   }
 
-  it('blocks PUT /user/currency/rates', async () => {
-    const user = await helpers.getUserInfo({ raw: true });
-    const response = await withUserLock({
-      userId: user.id,
-      fn: () => helpers.makeRequest({ method: 'put', url: '/user/currency/rates', payload: { pairs: [] } }),
-    });
-    expectLocked(response);
-  });
-
-  it('blocks POST /import/csv/execute', async () => {
-    const user = await helpers.getUserInfo({ raw: true });
-    const response = await withUserLock({
-      userId: user.id,
-      fn: () => helpers.makeRequest({ method: 'post', url: '/import/csv/execute', payload: { rows: [] } }),
-    });
-    expectLocked(response);
-  });
-
-  it('blocks POST /accounts/:id/balance-adjustment', async () => {
+  it('blocks PUT /user/currency/rates, POST /import/csv/execute, POST /accounts/:id/balance-adjustment and POST /categories', async () => {
+    // The account has to exist before the lock is taken: POST /accounts is guarded too.
     const account = await helpers.createAccount({ raw: true });
-    const response = await withUserLock({
-      userId: account.userId,
-      fn: () =>
-        helpers.makeRequest({
-          method: 'post',
-          url: `/accounts/${account.id}/balance-adjustment`,
-          payload: { amount: 100 },
-        }),
-    });
-    expectLocked(response);
-  });
 
-  it('blocks POST /categories', async () => {
-    const user = await helpers.getUserInfo({ raw: true });
-    const response = await withUserLock({
-      userId: user.id,
-      fn: () => helpers.makeRequest({ method: 'post', url: '/categories', payload: { name: 'Blocked category' } }),
+    await withUserLock({
+      userId: account.userId,
+      fn: async () => {
+        expectLocked(await helpers.makeRequest({ method: 'put', url: '/user/currency/rates', payload: { pairs: [] } }));
+        expectLocked(await helpers.makeRequest({ method: 'post', url: '/import/csv/execute', payload: { rows: [] } }));
+        expectLocked(
+          await helpers.makeRequest({
+            method: 'post',
+            url: `/accounts/${account.id}/balance-adjustment`,
+            payload: { amount: 100 },
+          }),
+        );
+        expectLocked(
+          await helpers.makeRequest({ method: 'post', url: '/categories', payload: { name: 'Blocked category' } }),
+        );
+      },
     });
-    expectLocked(response);
   });
 
   it('still serves GET /user/currencies/change-base/status while locked (200, not 423)', async () => {

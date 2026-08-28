@@ -37,219 +37,77 @@ describe('Investment Transaction Cash Balance Updates', () => {
     });
   });
 
-  describe('BUY transactions', () => {
-    it('should decrease cash balance on BUY (qty*price + fees)', async () => {
-      await helpers.createInvestmentTransaction({
-        payload: {
+  describe('Cash balance per transaction category', () => {
+    it('applies the right cash delta for every transaction category', async () => {
+      const readAvailableCash = async () => {
+        const [balance] = await helpers.getPortfolioBalance({
           portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '10',
-          price: '100',
-          fees: '5',
-        },
-        raw: true,
-      });
+          currencyCode: holdingCurrencyCode,
+          raw: true,
+        });
+        return balance!;
+      };
 
-      // Cash should decrease by: 10*100 + 5 = 1005
-      const [balance] = await helpers.getPortfolioBalance({
-        portfolioId: investmentPortfolio.id,
-        currencyCode: holdingCurrencyCode,
-        raw: true,
-      });
+      const createTx = async ({
+        category,
+        quantity,
+        price,
+        fees,
+      }: {
+        category: INVESTMENT_TRANSACTION_CATEGORY;
+        quantity: string;
+        price: string;
+        fees: string;
+      }) => {
+        await helpers.createInvestmentTransaction({
+          payload: { portfolioId: investmentPortfolio.id, securityId: vooSecurity.id, category, quantity, price, fees },
+          raw: true,
+        });
+      };
 
-      expect(balance!.availableCash).toBeNumericEqual(8995); // 10000 - 1005
-      expect(balance!.totalCash).toBeNumericEqual(8995);
-    });
+      // BUY costs qty*price + fees: 10000 - 1005
+      await createTx({ category: INVESTMENT_TRANSACTION_CATEGORY.buy, quantity: '10', price: '100', fees: '5' });
+      const afterBuyWithFees = await readAvailableCash();
+      expect(afterBuyWithFees.availableCash).toBeNumericEqual(8995);
+      expect(afterBuyWithFees.totalCash).toBeNumericEqual(8995);
 
-    it('should decrease cash with zero fees', async () => {
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '5',
-          price: '200',
-          fees: '0',
-        },
-        raw: true,
-      });
+      // 8995 - 1000
+      await createTx({ category: INVESTMENT_TRANSACTION_CATEGORY.buy, quantity: '5', price: '200', fees: '0' });
+      expect((await readAvailableCash()).availableCash).toBeNumericEqual(7995);
 
-      // Cash should decrease by: 5*200 + 0 = 1000
-      const [balance] = await helpers.getPortfolioBalance({
-        portfolioId: investmentPortfolio.id,
-        currencyCode: holdingCurrencyCode,
-        raw: true,
-      });
+      // SELL credits qty*price - fees: 7995 + 590
+      await createTx({ category: INVESTMENT_TRANSACTION_CATEGORY.sell, quantity: '5', price: '120', fees: '10' });
+      expect((await readAvailableCash()).availableCash).toBeNumericEqual(8585);
 
-      expect(balance!.availableCash).toBeNumericEqual(9000);
-    });
-  });
+      // DIVIDEND credits qty*price - fees: 8585 + 17
+      await createTx({ category: INVESTMENT_TRANSACTION_CATEGORY.dividend, quantity: '10', price: '2', fees: '3' });
+      expect((await readAvailableCash()).availableCash).toBeNumericEqual(8602);
 
-  describe('SELL transactions', () => {
-    it('should increase cash balance on SELL (qty*price - fees)', async () => {
-      // First buy some shares
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '10',
-          price: '100',
-          fees: '0',
-        },
-        raw: true,
-      });
+      // FEE debits the whole amount: 8602 - 25
+      await createTx({ category: INVESTMENT_TRANSACTION_CATEGORY.fee, quantity: '1', price: '25', fees: '0' });
+      expect((await readAvailableCash()).availableCash).toBeNumericEqual(8577);
 
-      // Cash after buy: 10000 - 1000 = 9000
-      // Now sell
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
-          quantity: '5',
-          price: '120',
-          fees: '10',
-        },
-        raw: true,
-      });
-
-      // Cash should increase by: 5*120 - 10 = 590
-      // Total: 9000 + 590 = 9590
-      const [balance] = await helpers.getPortfolioBalance({
-        portfolioId: investmentPortfolio.id,
-        currencyCode: holdingCurrencyCode,
-        raw: true,
-      });
-
-      expect(balance!.availableCash).toBeNumericEqual(9590);
-    });
-  });
-
-  describe('DIVIDEND transactions', () => {
-    it('should increase cash balance on DIVIDEND (qty*price - fees)', async () => {
-      // Buy first so holding exists
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '10',
-          price: '100',
-          fees: '0',
-        },
-        raw: true,
-      });
-
-      // Cash after buy: 10000 - 1000 = 9000
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.dividend,
-          quantity: '10',
-          price: '2',
-          fees: '3',
-        },
-        raw: true,
-      });
-
-      // Cash should increase by: 10*2 - 3 = 17
-      // Total: 9000 + 17 = 9017
-      const [balance] = await helpers.getPortfolioBalance({
-        portfolioId: investmentPortfolio.id,
-        currencyCode: holdingCurrencyCode,
-        raw: true,
-      });
-
-      expect(balance!.availableCash).toBeNumericEqual(9017);
-    });
-  });
-
-  describe('FEE transactions', () => {
-    it('should decrease cash balance on FEE', async () => {
-      // Buy first
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '10',
-          price: '100',
-          fees: '0',
-        },
-        raw: true,
-      });
-
-      // Cash after buy: 9000
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.fee,
-          quantity: '1',
-          price: '25',
-          fees: '0',
-        },
-        raw: true,
-      });
-
-      // FEE delta = -amount = -(1*25 + 0) = -25
-      // Total: 9000 - 25 = 8975
-      const [balance] = await helpers.getPortfolioBalance({
-        portfolioId: investmentPortfolio.id,
-        currencyCode: holdingCurrencyCode,
-        raw: true,
-      });
-
-      expect(balance!.availableCash).toBeNumericEqual(8975);
-    });
-  });
-
-  describe('TAX transactions', () => {
-    it('should decrease cash balance on TAX', async () => {
-      // Buy first so holding exists
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '10',
-          price: '100',
-          fees: '0',
-        },
-        raw: true,
-      });
-
-      // Cash after buy: 10000 - 1000 = 9000
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.tax,
-          quantity: '1',
-          price: '50',
-          fees: '0',
-        },
-        raw: true,
-      });
-
-      // TAX delta = -amount = -(1*50 + 0) = -50
-      // Total: 9000 - 50 = 8950
-      const [balance] = await helpers.getPortfolioBalance({
-        portfolioId: investmentPortfolio.id,
-        currencyCode: holdingCurrencyCode,
-        raw: true,
-      });
-
-      expect(balance!.availableCash).toBeNumericEqual(8950);
-    });
+      // TAX debits the whole amount: 8577 - 50
+      await createTx({ category: INVESTMENT_TRANSACTION_CATEGORY.tax, quantity: '1', price: '50', fees: '0' });
+      expect((await readAvailableCash()).availableCash).toBeNumericEqual(8527);
+    }, 30000);
   });
 
   describe('SELL validation', () => {
-    it('should reject selling more shares than currently owned', async () => {
-      // Buy 5 shares
+    it('should reject selling from a zero-quantity holding and selling more shares than owned', async () => {
+      const fromEmptyHolding = await helpers.createInvestmentTransaction({
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          securityId: vooSecurity.id,
+          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          quantity: '1',
+          price: '100',
+          fees: '0',
+        },
+      });
+
+      expect(fromEmptyHolding.statusCode).toBe(422);
+
       await helpers.createInvestmentTransaction({
         payload: {
           portfolioId: investmentPortfolio.id,
@@ -262,8 +120,7 @@ describe('Investment Transaction Cash Balance Updates', () => {
         raw: true,
       });
 
-      // Try to sell 10 shares (more than the 5 owned)
-      const response = await helpers.createInvestmentTransaction({
+      const overselling = await helpers.createInvestmentTransaction({
         payload: {
           portfolioId: investmentPortfolio.id,
           securityId: vooSecurity.id,
@@ -274,24 +131,8 @@ describe('Investment Transaction Cash Balance Updates', () => {
         },
       });
 
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('should reject selling from zero-quantity holding', async () => {
-      // No buy transactions — holding quantity is 0
-      const response = await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: vooSecurity.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.sell,
-          quantity: '1',
-          price: '100',
-          fees: '0',
-        },
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
+      expect(overselling.statusCode).toBe(422);
+    }, 30000);
   });
 
   describe('Delete transaction reverses cash', () => {
