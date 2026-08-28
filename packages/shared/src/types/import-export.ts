@@ -77,6 +77,12 @@ export interface ImportBatchesHistoryResponse {
   totalCount: number | null;
 }
 
+/** Response of DELETE /import/batch/:batchId. */
+export interface DeleteImportBatchResponse {
+  deletedCount: number;
+  deletedIds: string[];
+}
+
 export enum CategoryOptionValue {
   mapDataSourceColumn = 'map-data-source-column',
   createNewCategories = 'create-new-categories',

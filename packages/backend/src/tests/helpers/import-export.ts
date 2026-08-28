@@ -6,6 +6,7 @@ import type {
   CategoryMappingConfig,
   ColumnMappingConfig,
   CsvImportProgress,
+  DeleteImportBatchResponse,
   DetectBudgetBakersWalletDuplicatesResponse,
   DetectDuplicatesResponse,
   DetectMsMoneyDuplicatesResponse,
@@ -824,6 +825,27 @@ export function getBatchesHistory<R extends boolean | undefined = false>({
     method: 'get',
     url: '/import/batches-history',
     payload,
+    raw,
+  });
+}
+
+// ============================================
+// Delete Import Batch Endpoint
+// ============================================
+
+export function deleteImportBatch<R extends boolean | undefined = false>({
+  batchId,
+  deleteLinkedTransfers,
+  raw,
+}: {
+  batchId: string;
+  deleteLinkedTransfers?: boolean;
+  raw?: R;
+}): UtilizeReturnType<() => DeleteImportBatchResponse, R> {
+  return makeRequest<DeleteImportBatchResponse, R>({
+    method: 'delete',
+    url: `/import/batch/${batchId}`,
+    payload: deleteLinkedTransfers !== undefined ? { deleteLinkedTransfers } : undefined,
     raw,
   });
 }

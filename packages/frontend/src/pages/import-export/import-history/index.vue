@@ -48,7 +48,7 @@
 
       <ScrollArea v-else>
         <ul class="divide-y">
-          <li v-for="batch in batches" :key="batch.batchId">
+          <li v-for="batch in batches" :key="batch.batchId" class="relative">
             <Button
               variant="ghost"
               class="h-auto w-full justify-between gap-3 rounded-none px-4 py-3"
@@ -81,8 +81,23 @@
                   }}
                 </span>
               </span>
-              <ChevronRightIcon class="text-muted-foreground size-4 shrink-0" />
+              <span class="flex shrink-0 items-center gap-3">
+                <!-- Reserves the slot the absolutely-positioned delete button overlays. -->
+                <span class="size-10" aria-hidden="true" />
+                <ChevronRightIcon class="text-muted-foreground size-4" />
+              </span>
             </Button>
+            <DesktopOnlyTooltip :content="$t('pages.importExport.importHistory.deleteButton')">
+              <Button
+                variant="ghost-destructive"
+                size="icon"
+                class="absolute top-1/2 right-11 -translate-y-1/2"
+                :aria-label="$t('pages.importExport.importHistory.deleteButton')"
+                @click="confirmDeleteBatch(batch)"
+              >
+                <Trash2Icon class="size-4" />
+              </Button>
+            </DesktopOnlyTooltip>
           </li>
         </ul>
 
@@ -91,16 +106,75 @@
         </div>
       </ScrollArea>
     </Card>
+
+    <ResponsiveAlertDialog
+      v-model:open="isDeleteDialogOpen"
+      :confirm-label="$t('pages.importExport.importHistory.deleteButton')"
+      confirm-variant="destructive"
+      :confirm-disabled="deleteBatchMutation.isPending.value"
+      @confirm="handleDeleteConfirm"
+      @cancel="resetDeleteState"
+    >
+      <template #title>{{ $t('pages.importExport.importHistory.deleteConfirmTitle') }}</template>
+      <template #description>
+        {{
+          batchPendingDelete
+            ? $t(
+                'pages.importExport.importHistory.deleteConfirmDescription',
+                { count: batchPendingDelete.transactionCount },
+                batchPendingDelete.transactionCount,
+              )
+            : ''
+        }}
+      </template>
+
+      <Callout variant="destructive" :title="$t('pages.importExport.importHistory.deleteLinkedTransfersWarningTitle')">
+        <label class="flex cursor-pointer items-start gap-2">
+          <Checkbox
+            class="mt-0.5"
+            :model-value="deleteLinkedTransfers"
+            @update:model-value="(val) => (deleteLinkedTransfers = !!val)"
+          />
+          <span>{{ $t('pages.importExport.importHistory.deleteLinkedTransfersCheckbox') }}</span>
+        </label>
+        <p class="mt-2 text-xs">{{ $t('pages.importExport.importHistory.deleteLinkedTransfersDescription') }}</p>
+      </Callout>
+    </ResponsiveAlertDialog>
+
+    <ResponsiveAlertDialog
+      v-model:open="isConfirmLinkedTransfersOpen"
+      :confirm-label="$t('pages.importExport.importHistory.deleteButton')"
+      confirm-variant="destructive"
+      :confirm-disabled="deleteBatchMutation.isPending.value"
+      @confirm="handleConfirmLinkedTransfersDelete"
+      @cancel="resetDeleteState"
+    >
+      <template #title>{{ $t('pages.importExport.importHistory.deleteLinkedTransfersConfirmTitle') }}</template>
+      <template #description>
+        {{ $t('pages.importExport.importHistory.deleteLinkedTransfersConfirmDescription') }}
+      </template>
+    </ResponsiveAlertDialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import { Button } from '@/components/lib/ui/button';
+import { Callout } from '@/components/lib/ui/callout';
 import { Card } from '@/components/lib/ui/card';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
-import { ChevronLeftIcon, ChevronRightIcon, HistoryIcon, Loader2Icon, TriangleAlertIcon } from '@lucide/vue';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  HistoryIcon,
+  Loader2Icon,
+  Trash2Icon,
+  TriangleAlertIcon,
+} from '@lucide/vue';
 import { useIntersectionObserver } from '@vueuse/core';
 import { ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
@@ -109,6 +183,7 @@ import { ImportSource, type ImportBatchSummary } from '@bt/shared/types';
 import { useI18n } from 'vue-i18n';
 
 import { useBatchesHistory } from './use-batches-history';
+import { useDeleteImportBatch } from './use-delete-import-batch';
 
 defineOptions({
   name: 'import-history',
@@ -138,6 +213,48 @@ const sourceLabel = (source: ImportSource) => t(`settings.dataManagement.${SOURC
 
 const openBatch = (batch: ImportBatchSummary) => {
   router.push({ name: ROUTES_NAMES.transactions, query: { batchId: batch.batchId } });
+};
+
+const isDeleteDialogOpen = ref(false);
+const isConfirmLinkedTransfersOpen = ref(false);
+const batchPendingDelete = ref<ImportBatchSummary | null>(null);
+const deleteLinkedTransfers = ref(false);
+
+const resetDeleteState = () => {
+  batchPendingDelete.value = null;
+  deleteLinkedTransfers.value = false;
+};
+
+const deleteBatchMutation = useDeleteImportBatch({
+  onSuccess: () => {
+    isDeleteDialogOpen.value = false;
+    isConfirmLinkedTransfersOpen.value = false;
+    resetDeleteState();
+  },
+});
+
+const confirmDeleteBatch = (batch: ImportBatchSummary) => {
+  batchPendingDelete.value = batch;
+  deleteLinkedTransfers.value = false;
+  isDeleteDialogOpen.value = true;
+};
+
+const handleDeleteConfirm = () => {
+  if (!batchPendingDelete.value) return;
+  // Checking the box gates the actual delete behind a second, explicit confirmation —
+  // it's easy to tick accidentally, and this path also destroys a linked transaction
+  // outside the batch.
+  if (deleteLinkedTransfers.value) {
+    isDeleteDialogOpen.value = false;
+    isConfirmLinkedTransfersOpen.value = true;
+    return;
+  }
+  deleteBatchMutation.mutate({ batchId: batchPendingDelete.value.batchId, deleteLinkedTransfers: false });
+};
+
+const handleConfirmLinkedTransfersDelete = () => {
+  if (!batchPendingDelete.value) return;
+  deleteBatchMutation.mutate({ batchId: batchPendingDelete.value.batchId, deleteLinkedTransfers: true });
 };
 
 const sentinelRef = ref<HTMLElement | null>(null);
