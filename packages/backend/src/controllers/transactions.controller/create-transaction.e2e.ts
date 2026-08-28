@@ -11,42 +11,33 @@ import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Create transaction controller', () => {
-  it('should return validation error if no data passed', async () => {
-    const res = await helpers.createTransaction({
+  it('rejects invalid payloads (no data, negative amount, time before year 2000)', async () => {
+    const account = await helpers.createAccount({ raw: true });
+
+    const noPayload = await helpers.createTransaction({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       payload: null as any,
       raw: false,
     });
+    expect(noPayload.statusCode).toEqual(ERROR_CODES.ValidationError);
 
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
-  });
-
-  it('should reject negative amount', async () => {
-    const account = await helpers.createAccount({ raw: true });
-
-    const res = await helpers.createTransaction({
+    const negativeAmount = await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
         accountId: account.id,
         amount: -100,
       }),
       raw: false,
     });
+    expect(negativeAmount.statusCode).toEqual(ERROR_CODES.ValidationError);
 
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
-  });
-
-  it('rejects time before year 2000', async () => {
-    const account = await helpers.createAccount({ raw: true });
-
-    const res = await helpers.createTransaction({
+    const timeBefore2000 = await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
         accountId: account.id,
         time: '0026-08-22T00:00:00.000Z',
       }),
       raw: false,
     });
-
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    expect(timeBefore2000.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
   it('accepts time exactly at 2000-01-01', async () => {
@@ -411,35 +402,10 @@ describe('Create transaction controller', () => {
         expect(baseTx.amount).toBe(expectedValues.amount);
       },
     );
-    it('throws an error when trying to link tx with same transactionType', async () => {
+    it('rejects linking to a tx with the same transactionType, from the same account, or already a transfer', async () => {
       const accountA = await helpers.createAccount({ raw: true });
       const accountB = await helpers.createAccount({ raw: true });
-
-      const transactionType = TRANSACTION_TYPES.income;
-
-      const [destinationTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          transactionType,
-          accountId: accountA.id,
-        }),
-        raw: true,
-      });
-
-      const transferTxPayload = helpers.buildTransactionPayload({
-        accountId: accountB.id,
-        transactionType,
-        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationTransactionId: destinationTx.id,
-      });
-
-      const result = await helpers.createTransaction({
-        payload: transferTxPayload,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-    it('throws an error when trying to link tx from the same account', async () => {
-      const accountA = await helpers.createAccount({ raw: true });
+      const accountC = await helpers.createAccount({ raw: true });
 
       const [destinationTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
@@ -449,51 +415,48 @@ describe('Create transaction controller', () => {
         raw: true,
       });
 
-      const transferTxPayload = helpers.buildTransactionPayload({
-        accountId: accountA.id,
-        transactionType: TRANSACTION_TYPES.expense,
-        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationTransactionId: destinationTx.id,
-      });
-
-      const result = await helpers.createTransaction({
-        payload: transferTxPayload,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-    it('throws an error when trying to link to the transaction that is already a transfer', async () => {
-      const accountA = await helpers.createAccount({ raw: true });
-      const accountB = await helpers.createAccount({ raw: true });
-
       const defaultTxPayload = helpers.buildTransactionPayload({
         accountId: accountA.id,
       });
-      const txPayload = {
-        ...defaultTxPayload,
-        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationAmount: defaultTxPayload.amount,
-        destinationAccountId: accountB.id,
-      };
-      const [, oppositeTx] = await helpers.createTransaction({
-        payload: txPayload,
+      const [, transferOppositeTx] = await helpers.createTransaction({
+        payload: {
+          ...defaultTxPayload,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: defaultTxPayload.amount,
+          destinationAccountId: accountB.id,
+        },
         raw: true,
       });
 
-      const accountC = await helpers.createAccount({ raw: true });
-
-      const transferTxPayload = helpers.buildTransactionPayload({
-        accountId: accountC.id,
-        transactionType: TRANSACTION_TYPES.expense,
-        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationTransactionId: oppositeTx!.id,
+      const sameType = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountB.id,
+          transactionType: TRANSACTION_TYPES.income,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationTransactionId: destinationTx.id,
+        }),
       });
+      expect(sameType.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      const result = await helpers.createTransaction({
-        payload: transferTxPayload,
+      const sameAccount = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationTransactionId: destinationTx.id,
+        }),
       });
+      expect(sameAccount.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      const alreadyTransfer = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountC.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationTransactionId: transferOppositeTx!.id,
+        }),
+      });
+      expect(alreadyTransfer.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
   describe('Create refund transaction', () => {
@@ -531,93 +494,66 @@ describe('Create transaction controller', () => {
       expect(refundResponse.statusCode).toBe(200);
     });
 
-    it('should throw an error when trying to create a refund for non-existent transaction', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const refundTxPayload = {
-        ...helpers.buildTransactionPayload({
-          accountId: account.id,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        refundForTxId: generateRandomRecordId(), // Non-existent ID
-      };
-
-      const result = await helpers.createTransaction({
-        payload: refundTxPayload,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('should not allow creating a refund for a transaction that is already a transfer', async () => {
+    it('rejects a refund for a non-existent tx, for a transfer, or carrying a transferNature', async () => {
       const accountA = await helpers.createAccount({ raw: true });
       const accountB = await helpers.createAccount({ raw: true });
 
-      const transferTxPayload = {
-        ...helpers.buildTransactionPayload({
+      const [originalTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
           accountId: accountA.id,
           transactionType: TRANSACTION_TYPES.expense,
         }),
-        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-        destinationAmount: 100,
-        destinationAccountId: accountB.id,
-      };
+        raw: true,
+      });
+
       const [transferTx] = await helpers.createTransaction({
-        payload: transferTxPayload,
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: accountA.id,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAmount: 100,
+          destinationAccountId: accountB.id,
+        },
         raw: true,
       });
 
-      const refundTxPayload = {
-        ...helpers.buildTransactionPayload({
-          accountId: accountA.id,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        refundForTxId: transferTx.id,
-      };
-
-      const result = await helpers.createTransaction({
-        payload: refundTxPayload,
+      const refundTxPayload = helpers.buildTransactionPayload({
+        accountId: accountA.id,
+        transactionType: TRANSACTION_TYPES.income,
       });
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should not allow creating a refund with transferNature', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const originalTxPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        transactionType: TRANSACTION_TYPES.expense,
+      const nonExistentOriginal = await helpers.createTransaction({
+        payload: { ...refundTxPayload, refundForTxId: generateRandomRecordId() },
       });
-      const [originalTx] = await helpers.createTransaction({
-        payload: originalTxPayload,
-        raw: true,
+      expect(nonExistentOriginal.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      const transferOriginal = await helpers.createTransaction({
+        payload: { ...refundTxPayload, refundForTxId: transferTx.id },
       });
+      expect(transferOriginal.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      const refundTxPayload = {
-        ...helpers.buildTransactionPayload({
-          accountId: account.id,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        refundForTxId: originalTx.id,
-        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-      };
-
-      const result = await helpers.createTransaction({
-        payload: refundTxPayload,
+      const refundWithTransferNature = await helpers.createTransaction({
+        payload: {
+          ...refundTxPayload,
+          refundForTxId: originalTx.id,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        },
       });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(refundWithTransferNature.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 
   describe('Payee linking', () => {
-    it('stores the caller-supplied payeeId on the transaction', async () => {
+    it('stores the caller-supplied payeeId and payeeLocked on the transaction', async () => {
       const account = await helpers.createAccount({ raw: true });
       const payee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'Linked Co' }),
         raw: true,
       });
 
-      const [tx] = await helpers.createTransaction({
+      const [unlockedTx] = await helpers.createTransaction({
         payload: {
           ...helpers.buildTransactionPayload({ accountId: account.id }),
           payeeId: payee.id,
@@ -625,21 +561,13 @@ describe('Create transaction controller', () => {
         raw: true,
       });
 
-      expect(tx.payeeId).toBe(payee.id);
+      expect(unlockedTx.payeeId).toBe(payee.id);
       // Without explicit payeeLocked, the row defaults to unlocked even when a
       // payee is attached — locking is a separate, intentional gesture (manual
       // override).
-      expect(tx.payeeLocked).toBe(false);
-    });
+      expect(unlockedTx.payeeLocked).toBe(false);
 
-    it('stores payeeLocked=true when the caller passes it explicitly', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Locked Co' }),
-        raw: true,
-      });
-
-      const [tx] = await helpers.createTransaction({
+      const [lockedTx] = await helpers.createTransaction({
         payload: {
           ...helpers.buildTransactionPayload({ accountId: account.id }),
           payeeId: payee.id,
@@ -648,141 +576,95 @@ describe('Create transaction controller', () => {
         raw: true,
       });
 
-      expect(tx.payeeId).toBe(payee.id);
-      expect(tx.payeeLocked).toBe(true);
+      expect(lockedTx.payeeId).toBe(payee.id);
+      expect(lockedTx.payeeLocked).toBe(true);
     });
 
-    it('applies the payee defaultCategoryId via payee_rule auto-categorization', async () => {
-      // The caller passes a different categoryId than the payee's default —
-      // the payee_rule pass should overwrite it because the row carries no
-      // higher-precedence categorizationMeta source.
+    it('applies the payee defaultCategoryId according to the payee categorizationMode', async () => {
+      // Every row passes a categoryId different from the payee's default, so the
+      // payee_rule pass is observable: it may only overwrite the caller's category
+      // when the row carries no higher-precedence categorizationMeta source.
       const account = await helpers.createAccount({ raw: true });
       const otherCategory = await helpers.addCustomCategory({
         raw: true,
         name: `Other Cat ${Date.now()}`,
         color: '#ffffff',
       });
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({
-          name: 'CatRule Co',
+
+      const cases: {
+        payeeName: string;
+        defaultCategoryId?: string;
+        categorizationMode?: CATEGORIZATION_MODE;
+        expectedCategoryId: string;
+        expectedMeta?: CATEGORIZATION_SOURCE | null;
+      }[] = [
+        {
+          payeeName: 'CatRule Co',
           defaultCategoryId: global.DEFAULT_CATEGORY_ID,
-        }),
-        raw: true,
-      });
-
-      const [tx] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: otherCategory.id,
-          }),
-          payeeId: payee.id,
+          expectedCategoryId: global.DEFAULT_CATEGORY_ID,
         },
-        raw: true,
-      });
-
-      expect(tx.payeeId).toBe(payee.id);
-      expect(tx.categoryId).toBe(global.DEFAULT_CATEGORY_ID);
-    });
-
-    it('with mode=enforce, stamps categorizationMeta.source=payee_rule so AI skips the row', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const otherCategory = await helpers.addCustomCategory({
-        raw: true,
-        name: `Enforce Other Cat ${Date.now()}`,
-        color: '#ffffff',
-      });
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({
-          name: 'EnforceMode Co',
+        {
+          payeeName: 'EnforceMode Co',
           defaultCategoryId: global.DEFAULT_CATEGORY_ID,
           categorizationMode: CATEGORIZATION_MODE.enforce,
-        }),
-        raw: true,
-      });
-
-      const [tx] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: otherCategory.id,
-          }),
-          payeeId: payee.id,
+          expectedCategoryId: global.DEFAULT_CATEGORY_ID,
+          // The stamped source is what makes AI skip the row.
+          expectedMeta: CATEGORIZATION_SOURCE.payeeRule,
         },
-        raw: true,
-      });
-
-      expect(tx.categoryId).toBe(global.DEFAULT_CATEGORY_ID);
-      expect(tx.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
-    });
-
-    it('with mode=hint, applies the default category but leaves categorizationMeta null', async () => {
-      // `hint` is the "Amazon iPhone vs Garden tool" case — the Payee provides
-      // a reasonable starting category, but AI is still free to override based
-      // on the transaction's own details. The null meta is the signal AI's
-      // listener uses to decide it may run.
-      const account = await helpers.createAccount({ raw: true });
-      const otherCategory = await helpers.addCustomCategory({
-        raw: true,
-        name: `Hint Other Cat ${Date.now()}`,
-        color: '#ffffff',
-      });
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({
-          name: 'HintMode Co',
+        {
+          payeeName: 'HintMode Co',
           defaultCategoryId: global.DEFAULT_CATEGORY_ID,
           categorizationMode: CATEGORIZATION_MODE.hint,
-        }),
-        raw: true,
-      });
-
-      const [tx] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: otherCategory.id,
-          }),
-          payeeId: payee.id,
+          expectedCategoryId: global.DEFAULT_CATEGORY_ID,
+          // `hint` is the "Amazon iPhone vs Garden tool" case — the Payee provides a
+          // reasonable starting category, but the null meta lets AI still override it.
+          expectedMeta: null,
         },
-        raw: true,
-      });
-
-      expect(tx.categoryId).toBe(global.DEFAULT_CATEGORY_ID);
-      expect(tx.categorizationMeta).toBeNull();
-    });
-
-    it('with mode=off, leaves both categoryId and categorizationMeta untouched', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const otherCategory = await helpers.addCustomCategory({
-        raw: true,
-        name: `Off Other Cat ${Date.now()}`,
-        color: '#ffffff',
-      });
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({
-          name: 'OffMode Co',
+        {
+          payeeName: 'OffMode Co',
           defaultCategoryId: global.DEFAULT_CATEGORY_ID,
           categorizationMode: CATEGORIZATION_MODE.off,
-        }),
-        raw: true,
-      });
-
-      const [tx] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: otherCategory.id,
-          }),
-          payeeId: payee.id,
+          expectedCategoryId: otherCategory.id,
+          expectedMeta: null,
         },
-        raw: true,
-      });
+        {
+          payeeName: 'NoDefault Co',
+          expectedCategoryId: otherCategory.id,
+        },
+      ];
 
-      // Payee is still linked — only the categorization side is disabled.
-      expect(tx.payeeId).toBe(payee.id);
-      expect(tx.categoryId).toBe(otherCategory.id);
-      expect(tx.categorizationMeta).toBeNull();
-    });
+      for (const testCase of cases) {
+        const payee = await helpers.createPayee({
+          payload: helpers.buildPayeePayload({
+            name: testCase.payeeName,
+            defaultCategoryId: testCase.defaultCategoryId,
+            categorizationMode: testCase.categorizationMode,
+          }),
+          raw: true,
+        });
+
+        const [tx] = await helpers.createTransaction({
+          payload: {
+            ...helpers.buildTransactionPayload({
+              accountId: account.id,
+              categoryId: otherCategory.id,
+            }),
+            payeeId: payee.id,
+          },
+          raw: true,
+        });
+
+        // The payee stays linked in every mode — only the categorization side varies.
+        expect(tx.payeeId).toBe(payee.id);
+        expect(tx.categoryId).toBe(testCase.expectedCategoryId);
+
+        if (testCase.expectedMeta === null) {
+          expect(tx.categorizationMeta).toBeNull();
+        } else if (testCase.expectedMeta) {
+          expect(tx.categorizationMeta?.source).toBe(testCase.expectedMeta);
+        }
+      }
+    }, 20000);
 
     it('rejects a foreign-user payeeId with 404 (cross-user injection guard)', async () => {
       // The DB FK on `Transactions.payeeId` only references `Payees(id)`, not
@@ -813,33 +695,6 @@ describe('Create transaction controller', () => {
       });
 
       expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('leaves categoryId untouched when the payee has no defaultCategoryId', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const otherCategory = await helpers.addCustomCategory({
-        raw: true,
-        name: `Untouched Cat ${Date.now()}`,
-        color: '#ffffff',
-      });
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'NoDefault Co' }),
-        raw: true,
-      });
-
-      const [tx] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: account.id,
-            categoryId: otherCategory.id,
-          }),
-          payeeId: payee.id,
-        },
-        raw: true,
-      });
-
-      expect(tx.payeeId).toBe(payee.id);
-      expect(tx.categoryId).toBe(otherCategory.id);
     });
   });
 });

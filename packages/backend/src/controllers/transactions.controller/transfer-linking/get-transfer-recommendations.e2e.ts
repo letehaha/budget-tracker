@@ -3,430 +3,245 @@ import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
-import { addDays, startOfDay, subDays } from 'date-fns';
+import { addDays, startOfDay } from 'date-fns';
 
 describe('getTransferRecommendations', () => {
   describe('success cases', () => {
-    describe('using transactionId parameter', () => {
-      it('returns income recommendations for an expense transaction', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
+    it('returns opposite-type recommendations for transactionId and form data queries', async () => {
+      const account1 = await helpers.createAccount({ raw: true });
+      const account2 = await helpers.createAccount({ raw: true });
 
-        // Create an expense transaction (source)
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100, // 100.00 decimal = 10000 cents
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Create an income transaction on different account
-        const [incomeTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100, // Same amount
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.length).toBeGreaterThanOrEqual(1);
-        expect(response.some((tx) => tx.id === incomeTx.id)).toBe(true);
-        expect(response.every((tx) => tx.transactionType === TRANSACTION_TYPES.income)).toBe(true);
-      });
-
-      it('returns expense recommendations for an income transaction', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        const today = startOfDay(new Date());
-
-        // Create an income transaction (source) - today
-        const [incomeTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            time: today.toISOString(),
-          }),
-          raw: true,
-        });
-
-        // Create an expense transaction on different account - 3 days ago (within 2 weeks before income)
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: subDays(today, 3).toISOString(),
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: incomeTx.id,
-          raw: true,
-        });
-
-        expect(response.length).toBeGreaterThanOrEqual(1);
-        expect(response.some((tx) => tx.id === expenseTx.id)).toBe(true);
-        expect(response.every((tx) => tx.transactionType === TRANSACTION_TYPES.expense)).toBe(true);
-      });
-    });
-
-    describe('using form data parameters', () => {
-      it('returns income recommendations when form specifies expense type', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        // Create an income transaction on different account
-        const [incomeTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionType: TRANSACTION_TYPES.expense,
-          originAmount: 100,
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
           accountId: account1.id,
-          raw: true,
-        });
-
-        expect(response.length).toBeGreaterThanOrEqual(1);
-        expect(response.some((tx) => tx.id === incomeTx.id)).toBe(true);
-        expect(response.every((tx) => tx.transactionType === TRANSACTION_TYPES.income)).toBe(true);
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
       });
+
+      const [incomeTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+
+      const fromExpense = await helpers.getTransferRecommendations({
+        transactionId: expenseTx.id,
+        raw: true,
+      });
+
+      expect(fromExpense.length).toBeGreaterThanOrEqual(1);
+      expect(fromExpense.some((tx) => tx.id === incomeTx.id)).toBe(true);
+      expect(fromExpense.every((tx) => tx.transactionType === TRANSACTION_TYPES.income)).toBe(true);
+
+      const fromIncome = await helpers.getTransferRecommendations({
+        transactionId: incomeTx.id,
+        raw: true,
+      });
+
+      expect(fromIncome.length).toBeGreaterThanOrEqual(1);
+      expect(fromIncome.some((tx) => tx.id === expenseTx.id)).toBe(true);
+      expect(fromIncome.every((tx) => tx.transactionType === TRANSACTION_TYPES.expense)).toBe(true);
+
+      const fromFormData = await helpers.getTransferRecommendations({
+        transactionType: TRANSACTION_TYPES.expense,
+        originAmount: 100,
+        accountId: account1.id,
+        raw: true,
+      });
+
+      expect(fromFormData.length).toBeGreaterThanOrEqual(1);
+      expect(fromFormData.some((tx) => tx.id === incomeTx.id)).toBe(true);
+      expect(fromFormData.every((tx) => tx.transactionType === TRANSACTION_TYPES.income)).toBe(true);
     });
 
-    describe('amount filtering (±10% range)', () => {
-      it('returns transactions within ±10% refAmount range', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
+    it('excludes out-of-range, same-account, transfer-linked, refund-linked and split candidates', async () => {
+      const account1 = await helpers.createAccount({ raw: true });
+      const account2 = await helpers.createAccount({ raw: true });
+      const account3 = await helpers.createAccount({ raw: true });
+      const categories = await helpers.getCategoriesList();
+      const category1 = categories[0]!;
+      const category2 = categories[1]!;
 
-        // Create an expense: 100.00 decimal = 10000 cents
-        // ±10% range: 9000 to 11000 cents = 90 to 110 decimal
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Income within range: 105 (10500 cents, within 9000-11000)
-        const [incomeInRange] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 105,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === incomeInRange.id)).toBe(true);
+      // Source of 100.00 gives a ±10% window of 90.00 to 110.00
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account1.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
       });
 
-      it('excludes transactions outside ±10% refAmount range', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        // Create an expense: 100.00 decimal = 10000 cents
-        // ±10% range: 9000 to 11000 cents
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Income outside range: 150 (15000 cents, outside 9000-11000)
-        const [incomeOutOfRange] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 150,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === incomeOutOfRange.id)).toBe(false);
+      const [incomeInRange] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 105,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
       });
-    });
+
+      const [incomeOutOfRange] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 150,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+
+      const [incomeSameAccount] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account1.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+
+      const [transferIncome] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAccountId: account3.id,
+          destinationAmount: 100,
+        }),
+        raw: true,
+      });
+
+      const [originalExpense] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const [refundIncome] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+
+      await helpers.createSingleRefund(
+        {
+          originalTxId: originalExpense.id,
+          refundTxId: refundIncome.id,
+        },
+        true,
+      );
+
+      const [incomeWithSplits] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+          categoryId: category1.id,
+          splits: [{ categoryId: category2.id, amount: 50 }],
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.getTransferRecommendations({
+        transactionId: expenseTx.id,
+        raw: true,
+      });
+
+      expect(response).toHaveLength(1);
+      expect(response.some((tx) => tx.id === incomeInRange.id)).toBe(true);
+      expect(response.some((tx) => tx.id === incomeOutOfRange.id)).toBe(false);
+      expect(response.some((tx) => tx.id === incomeSameAccount.id)).toBe(false);
+      expect(response.some((tx) => tx.id === transferIncome.id)).toBe(false);
+      expect(response.some((tx) => tx.id === refundIncome.id)).toBe(false);
+      expect(response.some((tx) => tx.id === incomeWithSplits.id)).toBe(false);
+    }, 20000);
 
     describe('date filtering (±14 days symmetric window)', () => {
-      it('includes income after expense within 2 weeks', async () => {
+      it('applies the ±14 day window symmetrically in both directions', async () => {
         const account1 = await helpers.createAccount({ raw: true });
         const account2 = await helpers.createAccount({ raw: true });
 
-        const expenseDate = startOfDay(new Date());
+        const baseDate = startOfDay(new Date());
 
-        // Create expense
-        const [expenseTx] = await helpers.createTransaction({
+        const createIncomeOnDay = async (offsetDays: number) => {
+          const [tx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account2.id,
+              amount: 100,
+              transactionType: TRANSACTION_TYPES.income,
+              time: addDays(baseDate, offsetDays).toISOString(),
+            }),
+            raw: true,
+          });
+          return tx;
+        };
+
+        const [sourceExpense] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account1.id,
             amount: 100,
             transactionType: TRANSACTION_TYPES.expense,
-            time: expenseDate.toISOString(),
+            time: baseDate.toISOString(),
           }),
           raw: true,
         });
 
-        // Income 5 days after expense (within 2 weeks)
-        const [incomeAfter] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            time: addDays(expenseDate, 5).toISOString(),
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === incomeAfter.id)).toBe(true);
-      });
-
-      it('includes income before expense within symmetric window', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        const expenseDate = startOfDay(new Date());
-
-        // Income 5 days before expense (within ±14 days)
-        const [incomeBefore] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            time: subDays(expenseDate, 5).toISOString(),
-          }),
-          raw: true,
-        });
-
-        // Create expense
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: expenseDate.toISOString(),
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        // Symmetric window: income before expense IS included
-        expect(response.some((tx) => tx.id === incomeBefore.id)).toBe(true);
-      });
-
-      it('includes expense before income when searching from income', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        const incomeDate = startOfDay(new Date());
-
-        // Expense 5 days before income (within 2 weeks)
-        const [expenseBefore] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: subDays(incomeDate, 5).toISOString(),
-          }),
-          raw: true,
-        });
-
-        // Create income
-        const [incomeTx] = await helpers.createTransaction({
+        const [sourceIncome] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account1.id,
             amount: 100,
             transactionType: TRANSACTION_TYPES.income,
-            time: incomeDate.toISOString(),
+            time: baseDate.toISOString(),
           }),
           raw: true,
         });
 
-        const response = await helpers.getTransferRecommendations({
-          transactionId: incomeTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === expenseBefore.id)).toBe(true);
-      });
-
-      it('excludes transactions outside 2-week window (forward)', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        const expenseDate = startOfDay(new Date());
-
-        // Create expense
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: expenseDate.toISOString(),
-          }),
-          raw: true,
-        });
-
-        // Income 20 days after expense (outside 2 weeks)
-        const [incomeTooLate] = await helpers.createTransaction({
+        const [expenseBefore5] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account2.id,
             amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            time: addDays(expenseDate, 20).toISOString(),
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === incomeTooLate.id)).toBe(false);
-      });
-
-      it('excludes transactions outside 2-week window (backward)', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        const expenseDate = startOfDay(new Date());
-
-        // Create expense
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
             transactionType: TRANSACTION_TYPES.expense,
-            time: expenseDate.toISOString(),
+            time: addDays(baseDate, -5).toISOString(),
           }),
           raw: true,
         });
 
-        // Income 20 days before expense (outside 2 weeks backward)
-        const [incomeTooEarly] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            time: subDays(expenseDate, 20).toISOString(),
-          }),
+        const incomeBefore20 = await createIncomeOnDay(-20);
+        const incomeBefore5 = await createIncomeOnDay(-5);
+        const incomeAfter5 = await createIncomeOnDay(5);
+        const incomeAtBoundary14 = await createIncomeOnDay(14);
+        const incomeAtBoundary15 = await createIncomeOnDay(15);
+        const incomeAfter20 = await createIncomeOnDay(20);
+
+        const fromExpense = await helpers.getTransferRecommendations({
+          transactionId: sourceExpense.id,
           raw: true,
         });
 
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
+        expect(fromExpense.some((tx) => tx.id === incomeBefore5.id)).toBe(true);
+        expect(fromExpense.some((tx) => tx.id === incomeAfter5.id)).toBe(true);
+        expect(fromExpense.some((tx) => tx.id === incomeAtBoundary14.id)).toBe(true);
+        expect(fromExpense.some((tx) => tx.id === incomeBefore20.id)).toBe(false);
+        expect(fromExpense.some((tx) => tx.id === incomeAtBoundary15.id)).toBe(false);
+        expect(fromExpense.some((tx) => tx.id === incomeAfter20.id)).toBe(false);
+
+        const fromIncome = await helpers.getTransferRecommendations({
+          transactionId: sourceIncome.id,
           raw: true,
         });
 
-        expect(response.some((tx) => tx.id === incomeTooEarly.id)).toBe(false);
-      });
-
-      it('includes transaction exactly at 14-day boundary', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        const expenseDate = startOfDay(new Date());
-
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: expenseDate.toISOString(),
-          }),
-          raw: true,
-        });
-
-        // Income exactly 14 days after (should be included due to endOfDay)
-        const [incomeAtBoundary] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            time: addDays(expenseDate, 14).toISOString(),
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === incomeAtBoundary.id)).toBe(true);
-      });
-
-      it('excludes transaction at 15-day boundary', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        const expenseDate = startOfDay(new Date());
-
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-            time: expenseDate.toISOString(),
-          }),
-          raw: true,
-        });
-
-        // Income 15 days after (should be excluded)
-        const [incomeOutsideBoundary] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            time: addDays(expenseDate, 15).toISOString(),
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === incomeOutsideBoundary.id)).toBe(false);
+        expect(fromIncome.some((tx) => tx.id === expenseBefore5.id)).toBe(true);
       });
 
       it('includes same-day transactions regardless of time-of-day differences', async () => {
@@ -470,169 +285,6 @@ describe('getTransferRecommendations', () => {
           raw: true,
         });
         expect(responseFromIncome.some((tx) => tx.id === expenseTx.id)).toBe(true);
-      });
-    });
-
-    describe('account filtering', () => {
-      it('excludes transactions from the same account', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-
-        // Create expense
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Income on SAME account - should be excluded
-        const [incomeSameAccount] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id, // Same account
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === incomeSameAccount.id)).toBe(false);
-      });
-    });
-
-    describe('transfer exclusion', () => {
-      it('excludes already-linked transfer transactions', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-        const account3 = await helpers.createAccount({ raw: true });
-
-        // Create expense
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Create a transfer (income that is already part of a transfer)
-        const [transferIncome] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-            destinationAccountId: account3.id,
-            destinationAmount: 100,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === transferIncome.id)).toBe(false);
-      });
-    });
-
-    describe('refund exclusion', () => {
-      it('excludes refund-linked transactions', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-
-        // Create expense
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Create an original expense to refund
-        const [originalExpense] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Create income and link as refund
-        const [refundIncome] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        await helpers.createSingleRefund(
-          {
-            originalTxId: originalExpense.id,
-            refundTxId: refundIncome.id,
-          },
-          true,
-        );
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        // Refund-linked transaction should be excluded
-        expect(response.some((tx) => tx.id === refundIncome.id)).toBe(false);
-      });
-    });
-
-    describe('splits exclusion', () => {
-      it('excludes parent transactions that have splits', async () => {
-        const account1 = await helpers.createAccount({ raw: true });
-        const account2 = await helpers.createAccount({ raw: true });
-        const categories = await helpers.getCategoriesList();
-        const category1 = categories[0]!;
-        const category2 = categories[1]!;
-
-        // Create expense
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account1.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Create income with splits - should be excluded
-        const [incomeWithSplits] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account2.id,
-            amount: 100,
-            transactionType: TRANSACTION_TYPES.income,
-            categoryId: category1.id,
-            splits: [{ categoryId: category2.id, amount: 50 }],
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getTransferRecommendations({
-          transactionId: expenseTx.id,
-          raw: true,
-        });
-
-        expect(response.some((tx) => tx.id === incomeWithSplits.id)).toBe(false);
       });
     });
 
@@ -765,10 +417,9 @@ describe('getTransferRecommendations', () => {
     });
 
     describe('empty results', () => {
-      it('returns empty array when no matching transactions exist', async () => {
+      it('returns empty array for no matches, unknown transactionId and unknown accountId', async () => {
         const account = await helpers.createAccount({ raw: true });
 
-        // Create only an expense, no incomes on other accounts
         const [expenseTx] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
@@ -778,118 +429,65 @@ describe('getTransferRecommendations', () => {
           raw: true,
         });
 
-        const response = await helpers.getTransferRecommendations({
+        const noMatches = await helpers.getTransferRecommendations({
           transactionId: expenseTx.id,
           raw: true,
         });
+        expect(noMatches).toEqual([]);
 
-        expect(Array.isArray(response)).toBe(true);
-      });
-
-      it('returns empty array for non-existent transactionId', async () => {
-        const response = await helpers.getTransferRecommendations({
+        const unknownTransaction = await helpers.getTransferRecommendations({
           transactionId: generateRandomRecordId(),
           raw: true,
         });
+        expect(unknownTransaction).toEqual([]);
 
-        expect(response).toEqual([]);
-      });
-
-      it('returns empty array for non-existent accountId in form data', async () => {
-        const response = await helpers.getTransferRecommendations({
+        const unknownAccount = await helpers.getTransferRecommendations({
           transactionType: TRANSACTION_TYPES.expense,
           originAmount: 100,
           accountId: generateRandomRecordId(),
           raw: true,
         });
-
-        expect(response).toEqual([]);
+        expect(unknownAccount).toEqual([]);
       });
     });
   });
 
   describe('failure cases', () => {
-    it('fails when no parameters are provided', async () => {
-      const response = await helpers.getTransferRecommendations({});
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when only transactionType is provided without other form fields', async () => {
-      const response = await helpers.getTransferRecommendations({
-        transactionType: TRANSACTION_TYPES.expense,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when only originAmount is provided without other form fields', async () => {
-      const response = await helpers.getTransferRecommendations({
-        originAmount: 100,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when only accountId is provided without other form fields', async () => {
+    it('fails validation for incomplete or malformed parameters', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const response = await helpers.getTransferRecommendations({
-        accountId: account.id,
-      });
+      const cases = [
+        { name: 'no parameters', params: {} },
+        { name: 'only transactionType', params: { transactionType: TRANSACTION_TYPES.expense } },
+        { name: 'only originAmount', params: { originAmount: 100 } },
+        { name: 'only accountId', params: { accountId: account.id } },
+        {
+          name: 'transactionType and originAmount without accountId',
+          params: { transactionType: TRANSACTION_TYPES.expense, originAmount: 100 },
+        },
+        {
+          name: 'invalid transactionType',
+          params: { transactionType: 'invalid' as TRANSACTION_TYPES, originAmount: 100, accountId: account.id },
+        },
+        {
+          name: 'negative originAmount',
+          params: { transactionType: TRANSACTION_TYPES.expense, originAmount: -100, accountId: account.id },
+        },
+        { name: 'invalid transactionId', params: { transactionId: 'not-a-uuid' } },
+        {
+          name: 'invalid accountId',
+          params: { transactionType: TRANSACTION_TYPES.expense, originAmount: 100, accountId: 'not-a-uuid' },
+        },
+      ];
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      const results: { name: string; statusCode: number }[] = [];
 
-    it('fails when transactionType and originAmount are provided but accountId is missing', async () => {
-      const response = await helpers.getTransferRecommendations({
-        transactionType: TRANSACTION_TYPES.expense,
-        originAmount: 100,
-      });
+      for (const testCase of cases) {
+        const response = await helpers.getTransferRecommendations(testCase.params);
+        results.push({ name: testCase.name, statusCode: response.statusCode });
+      }
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when invalid transactionType is provided', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.getTransferRecommendations({
-        transactionType: 'invalid' as TRANSACTION_TYPES,
-        originAmount: 100,
-        accountId: account.id,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when negative originAmount is provided', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.getTransferRecommendations({
-        transactionType: TRANSACTION_TYPES.expense,
-        originAmount: -100,
-        accountId: account.id,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when invalid transactionId is provided', async () => {
-      const response = await helpers.getTransferRecommendations({
-        transactionId: 'not-a-uuid' as unknown as string,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails when invalid accountId is provided', async () => {
-      const response = await helpers.getTransferRecommendations({
-        transactionType: TRANSACTION_TYPES.expense,
-        originAmount: 100,
-        accountId: 'not-a-uuid' as unknown as string,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(results).toEqual(cases.map(({ name }) => ({ name, statusCode: ERROR_CODES.ValidationError })));
     });
   });
 });

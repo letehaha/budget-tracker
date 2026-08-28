@@ -15,8 +15,8 @@ import { makeAuthRequest, makeRequest } from '@tests/helpers';
  */
 describe('Auth Integration', () => {
   describe('Auth Endpoints Routing', () => {
-    it('should route sign-up endpoint correctly', async () => {
-      const res = await makeAuthRequest({
+    it('should route sign-up endpoint correctly and return 404 for unknown auth paths', async () => {
+      const signUpRes = await makeAuthRequest({
         method: 'post',
         url: '/auth/sign-up/email',
         payload: {
@@ -27,83 +27,50 @@ describe('Auth Integration', () => {
       });
 
       // Mock returns 200 with user data
-      expect(res.statusCode).toEqual(200);
-      expect(res.body.user).toBeDefined();
-    });
+      expect(signUpRes.statusCode).toEqual(200);
+      expect(signUpRes.body.user).toBeDefined();
 
-    it('should route sign-in endpoint correctly', async () => {
-      const res = await makeAuthRequest({
-        method: 'post',
-        url: '/auth/sign-in/email',
-        payload: {
-          email: 'test@test.local',
-          password: 'password123',
-        },
-      });
-
-      expect(res.statusCode).toEqual(200);
-      expect(res.body.user).toBeDefined();
-      expect(res.body.session).toBeDefined();
-    });
-
-    it('should route get-session endpoint correctly', async () => {
-      const res = await makeAuthRequest({
-        method: 'get',
-        url: '/auth/get-session',
-      });
-
-      // Without cookies, should return null session
-      expect(res.statusCode).toEqual(200);
-    });
-
-    it('should route sign-out endpoint correctly', async () => {
-      const res = await makeAuthRequest({
-        method: 'post',
-        url: '/auth/sign-out',
-        headers: { Cookie: 'bt_auth.session_token=test-token' },
-      });
-
-      expect(res.statusCode).toEqual(200);
-    });
-
-    it('should return 404 for unknown auth paths', async () => {
-      const res = await makeAuthRequest({
+      const unknownRes = await makeAuthRequest({
         method: 'get',
         url: '/auth/unknown-endpoint',
       });
 
-      expect(res.statusCode).toEqual(404);
+      expect(unknownRes.statusCode).toEqual(404);
     });
   });
 
   describe('Session Middleware', () => {
-    it('should return session data when valid cookie is present', async () => {
-      const res = await makeAuthRequest({
+    it('should return session data matching the cookie header (absent, empty, valid)', async () => {
+      const noHeaderRes = await makeAuthRequest({
         method: 'get',
         url: '/auth/get-session',
-        headers: { Cookie: 'bt_auth.session_token=test-token' },
       });
 
-      expect(res.statusCode).toEqual(200);
-      expect(res.body.user).toBeDefined();
-      expect(res.body.session).toBeDefined();
-    });
+      expect(noHeaderRes.statusCode).toEqual(200);
 
-    it('should return null session when no cookie is present', async () => {
-      const res = await makeAuthRequest({
+      const emptyCookieRes = await makeAuthRequest({
         method: 'get',
         url: '/auth/get-session',
         headers: { Cookie: '' },
       });
 
-      expect(res.statusCode).toEqual(200);
-      expect(res.body.session).toBeNull();
+      expect(emptyCookieRes.statusCode).toEqual(200);
+      expect(emptyCookieRes.body.session).toBeNull();
+
+      const validCookieRes = await makeAuthRequest({
+        method: 'get',
+        url: '/auth/get-session',
+        headers: { Cookie: 'bt_auth.session_token=test-token' },
+      });
+
+      expect(validCookieRes.statusCode).toEqual(200);
+      expect(validCookieRes.body.user).toBeDefined();
+      expect(validCookieRes.body.session).toBeDefined();
     });
   });
 
   describe('Protected Routes', () => {
-    it('should reject unauthenticated requests to protected endpoints', async () => {
-      // Clear the global auth cookies to simulate unauthenticated request
+    it('should reject unauthenticated requests and return user data for authenticated ones', async () => {
       const originalCookies = global.APP_AUTH_COOKIES;
       global.APP_AUTH_COOKIES = null;
 
@@ -115,23 +82,9 @@ describe('Auth Integration', () => {
 
         expect(res.statusCode).toEqual(401);
       } finally {
-        // Restore cookies
         global.APP_AUTH_COOKIES = originalCookies;
       }
-    });
 
-    it('should allow authenticated requests to protected endpoints', async () => {
-      // This uses the global auth cookies set up in beforeEach
-      const res = await makeRequest({
-        method: 'get',
-        url: '/user',
-      });
-
-      expect(res.statusCode).toEqual(200);
-      expect(res.body.response).toBeDefined();
-    });
-
-    it('should return user data for authenticated requests', async () => {
       const res = await makeRequest({
         method: 'get',
         url: '/user',
@@ -155,6 +108,8 @@ describe('Auth Integration', () => {
       });
 
       expect(res.statusCode).toEqual(200);
+      expect(res.body.user).toBeDefined();
+      expect(res.body.session).toBeDefined();
 
       // Check for Set-Cookie header
       const setCookie = res.headers['set-cookie'];
