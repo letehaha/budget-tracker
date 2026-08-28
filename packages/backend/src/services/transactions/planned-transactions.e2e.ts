@@ -61,81 +61,23 @@ describe('Planned transactions', () => {
       expect(await helpers.getBalanceHistory({ accountId: account.id, raw: true })).toEqual(historyBefore);
     });
 
-    it('rejects a planned transfer', async () => {
-      const [source, destination] = await Promise.all([createOwnedAccount(), createOwnedAccount()]);
-
-      const response = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: source.id,
-          amount: 100,
-          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationAccountId: destination.id,
-          destinationAmount: 100,
-          isPlanned: true,
-        }),
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('rejects a planned refund', async () => {
-      const account = await createOwnedAccount({ initialBalance: 1000 });
+    it('rejects every unsupported planned creation', async () => {
+      const [source, destination] = await Promise.all([
+        createOwnedAccount({ initialBalance: 1000 }),
+        createOwnedAccount(),
+      ]);
       const [original] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
-          accountId: account.id,
+          accountId: source.id,
           amount: 100,
           transactionType: TRANSACTION_TYPES.expense,
         }),
         raw: true,
       });
-
-      const response = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.income,
-          refundForTxId: original.id,
-          isPlanned: true,
-        }),
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('rejects a zero amount', async () => {
-      const account = await createOwnedAccount();
-
-      const response = await helpers.createPlannedTransaction({
-        payload: { accountId: account.id, amount: 0 },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('rejects a negative amount', async () => {
-      const account = await createOwnedAccount();
-
-      const response = await helpers.createPlannedTransaction({
-        payload: { accountId: account.id, amount: -100 },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('rejects a loan account', async () => {
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({ currencyCode: global.BASE_CURRENCY.code }),
         raw: true,
       });
-
-      const response = await helpers.createPlannedTransaction({
-        payload: { accountId: loan.id as RecordId, amount: 100 },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('rejects a vehicle account', async () => {
       const vehicle = await helpers.createVehicle({
         name: 'Toyota Camry 2020',
         currencyCode: global.BASE_CURRENCY.code,
@@ -148,12 +90,49 @@ describe('Planned transactions', () => {
         raw: true,
       });
 
-      const response = await helpers.createPlannedTransaction({
+      const transferResponse = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: source.id,
+          amount: 100,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAccountId: destination.id,
+          destinationAmount: 100,
+          isPlanned: true,
+        }),
+      });
+      expect(transferResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const refundResponse = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: source.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+          refundForTxId: original.id,
+          isPlanned: true,
+        }),
+      });
+      expect(refundResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const zeroResponse = await helpers.createPlannedTransaction({
+        payload: { accountId: source.id, amount: 0 },
+      });
+      expect(zeroResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const negativeResponse = await helpers.createPlannedTransaction({
+        payload: { accountId: source.id, amount: -100 },
+      });
+      expect(negativeResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const loanResponse = await helpers.createPlannedTransaction({
+        payload: { accountId: loan.id as RecordId, amount: 100 },
+      });
+      expect(loanResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const vehicleResponse = await helpers.createPlannedTransaction({
         payload: { accountId: vehicle.accountId, amount: 100 },
       });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      expect(vehicleResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+    }, 30000);
 
     it('rejects a full-scope member planning on an account shared with them', async () => {
       const account = await createOwnedAccount({ initialBalance: 1000 });
@@ -170,29 +149,7 @@ describe('Planned transactions', () => {
   });
 
   describe('PUT /transactions/:id on a provider-linked account', () => {
-    it('lets the owner edit amount, time and note of a planned row', async () => {
-      const account = await createMonobankAccount();
-
-      const [planned] = await helpers.createPlannedTransaction({
-        payload: { accountId: account.id, amount: 250, time: FUTURE_TIME() },
-        raw: true,
-      });
-
-      const newTime = addDays(new Date(), 9).toISOString();
-      const response = await helpers.updateTransaction({
-        id: planned.id,
-        payload: { amount: 310, time: newTime, note: 'rent' },
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      const updated = await helpers.getTransactionById({ id: planned.id, raw: true });
-      expect(updated!.amount).toBe(310);
-      expect(updated!.note).toBe('rent');
-      expect(updated!.isPlanned).toBe(true);
-    });
-
-    it('deletes a planned row and leaves the account balance alone', async () => {
+    it('stamps the provider account type, lets the owner edit the plan, then delete it', async () => {
       const account = await createMonobankAccount();
       const balanceBefore = await getBalance({ accountId: account.id });
 
@@ -201,48 +158,47 @@ describe('Planned transactions', () => {
         raw: true,
       });
 
-      const response = await helpers.deleteTransaction({ id: planned.id });
-
-      expect(response.statusCode).toBe(200);
-      expect(await helpers.getTransactionById({ id: planned.id, raw: true })).toBe(null);
-      expect(await getBalance({ accountId: account.id })).toBe(balanceBefore);
-    });
-
-    it('stamps the provider account type on a plan the user types in', async () => {
-      const account = await createMonobankAccount();
-
-      const [planned] = await helpers.createPlannedTransaction({
-        payload: { accountId: account.id, amount: 250, time: FUTURE_TIME() },
-        raw: true,
-      });
-
       const stored = await helpers.getTransactionById({ id: planned.id, raw: true });
       expect(stored!.accountType).toBe(ACCOUNT_TYPES.monobank);
-    });
 
-    it('rejects a non-planned transaction and leaves the balance alone', async () => {
-      const account = await createMonobankAccount();
-      const balanceBefore = Number(await getBalance({ accountId: account.id }));
+      const newTime = addDays(new Date(), 9).toISOString();
+      const editResponse = await helpers.updateTransaction({
+        id: planned.id,
+        payload: { amount: 310, time: newTime, note: 'rent' },
+      });
+      expect(editResponse.statusCode).toBe(200);
 
-      const response = await helpers.createTransaction({
+      const updated = await helpers.getTransactionById({ id: planned.id, raw: true });
+      expect(updated!.amount).toBe(310);
+      expect(updated!.note).toBe('rent');
+      expect(updated!.isPlanned).toBe(true);
+
+      const deleteResponse = await helpers.deleteTransaction({ id: planned.id });
+      expect(deleteResponse.statusCode).toBe(200);
+      expect(await helpers.getTransactionById({ id: planned.id, raw: true })).toBe(null);
+      expect(await getBalance({ accountId: account.id })).toBe(balanceBefore);
+    }, 30000);
+
+    it('rejects every write that would put unconfirmed money on the bank account', async () => {
+      const [manualAccount, bankAccount] = await Promise.all([
+        createOwnedAccount({ initialBalance: 1000 }),
+        createMonobankAccount(),
+      ]);
+      const bankBalanceBefore = Number(await getBalance({ accountId: bankAccount.id }));
+
+      const createResponse = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
-          accountId: account.id,
+          accountId: bankAccount.id,
           amount: 250,
           transactionType: TRANSACTION_TYPES.expense,
         }),
       });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(Number(await getBalance({ accountId: account.id }))).toBe(balanceBefore);
-    });
-
-    it('rejects unchecking planned, because only the sync confirms money on a bank account', async () => {
-      const account = await createMonobankAccount();
-      const balanceBefore = Number(await getBalance({ accountId: account.id }));
+      expect(createResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(Number(await getBalance({ accountId: bankAccount.id }))).toBe(bankBalanceBefore);
 
       const [planned] = await helpers.createPlannedTransaction({
         payload: {
-          accountId: account.id,
+          accountId: bankAccount.id,
           amount: 250,
           transactionType: TRANSACTION_TYPES.expense,
           time: FUTURE_TIME(),
@@ -250,20 +206,32 @@ describe('Planned transactions', () => {
         raw: true,
       });
 
-      const response = await helpers.updateTransaction({ id: planned.id, payload: { isPlanned: false } });
+      const uncheckResponse = await helpers.updateTransaction({ id: planned.id, payload: { isPlanned: false } });
+      expect(uncheckResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect((await helpers.getTransactionById({ id: planned.id, raw: true }))!.isPlanned).toBe(true);
+      expect(Number(await getBalance({ accountId: bankAccount.id }))).toBe(bankBalanceBefore);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      const uncheckAndMoveResponse = await helpers.updateTransaction({
+        id: planned.id,
+        payload: { isPlanned: false, accountId: bankAccount.id },
+      });
+      expect(uncheckAndMoveResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect((await helpers.getTransactionById({ id: planned.id, raw: true }))!.isPlanned).toBe(true);
 
-      const updated = await helpers.getTransactionById({ id: planned.id, raw: true });
-      expect(updated!.isPlanned).toBe(true);
-      expect(Number(await getBalance({ accountId: account.id }))).toBe(balanceBefore);
-    });
-
-    it('rejects moving an ordinary transaction onto the bank account', async () => {
-      const [manualAccount, bankAccount] = await Promise.all([
-        createOwnedAccount({ initialBalance: 1000 }),
-        createMonobankAccount(),
-      ]);
+      // A cross-account move while unchecking bypasses the planned-unflip guard and is
+      // judged by the destination check instead, which also rejects bank targets.
+      const siblingBankAccount = (await helpers.getAccounts()).find(
+        (account) => account.type === ACCOUNT_TYPES.monobank && account.id !== bankAccount.id,
+      );
+      expect(siblingBankAccount).toBeDefined();
+      const uncheckAndCrossMoveResponse = await helpers.updateTransaction({
+        id: planned.id,
+        payload: { isPlanned: false, accountId: siblingBankAccount!.id },
+      });
+      expect(uncheckAndCrossMoveResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+      const afterCrossMove = await helpers.getTransactionById({ id: planned.id, raw: true });
+      expect(afterCrossMove!.isPlanned).toBe(true);
+      expect(afterCrossMove!.accountId).toBe(bankAccount.id);
 
       const [tx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
@@ -274,13 +242,10 @@ describe('Planned transactions', () => {
         raw: true,
       });
 
-      const response = await helpers.updateTransaction({ id: tx.id, payload: { accountId: bankAccount.id } });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-
-      const untouched = await helpers.getTransactionById({ id: tx.id, raw: true });
-      expect(untouched!.accountId).toBe(manualAccount.id);
-    });
+      const moveResponse = await helpers.updateTransaction({ id: tx.id, payload: { accountId: bankAccount.id } });
+      expect(moveResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect((await helpers.getTransactionById({ id: tx.id, raw: true }))!.accountId).toBe(manualAccount.id);
+    }, 30000);
 
     it('accepts unchecking planned when the same request moves the row to a manual account', async () => {
       const [manualAccount, bankAccount] = await Promise.all([
@@ -311,28 +276,6 @@ describe('Planned transactions', () => {
       expect(updated!.accountType).toBe(ACCOUNT_TYPES.system);
       // The row is real money now, so it lands on the manual account it moved to.
       expect(Number(await getBalance({ accountId: manualAccount.id }))).toBeCloseTo(750, 2);
-    });
-
-    it('still rejects unchecking planned when the row moves to another bank account', async () => {
-      const bankAccount = await createMonobankAccount();
-
-      const [planned] = await helpers.createPlannedTransaction({
-        payload: {
-          accountId: bankAccount.id,
-          amount: 250,
-          transactionType: TRANSACTION_TYPES.expense,
-          time: FUTURE_TIME(),
-        },
-        raw: true,
-      });
-
-      const response = await helpers.updateTransaction({
-        id: planned.id,
-        payload: { isPlanned: false, accountId: bankAccount.id },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect((await helpers.getTransactionById({ id: planned.id, raw: true }))!.isPlanned).toBe(true);
     });
   });
 
@@ -432,11 +375,25 @@ describe('Planned transactions', () => {
   });
 
   describe('flipping an existing row to planned', () => {
-    it('rejects both legs of a transfer and leaves the balances alone', async () => {
+    it('rejects transfer legs and flips that add transfer or loan fields in the same request', async () => {
       const [source, destination] = await Promise.all([
         createOwnedAccount({ initialBalance: 1000 }),
         createOwnedAccount({ initialBalance: 1000 }),
       ]);
+      const loan = await helpers.createLoan({
+        payload: helpers.buildCreateLoanPayload({ currencyCode: global.BASE_CURRENCY.code }),
+        raw: true,
+      });
+      const loanBalanceBefore = (await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance;
+
+      const [ordinaryTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: source.id,
+          amount: 250,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
 
       const [baseTx, oppositeTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
@@ -454,9 +411,36 @@ describe('Planned transactions', () => {
         expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
       }
 
-      expect(await getBalance({ accountId: source.id })).toBe(900);
+      const withTransferFieldsResponse = await helpers.updateTransaction({
+        id: ordinaryTx.id,
+        payload: {
+          isPlanned: true,
+          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          destinationAccountId: destination.id,
+          destinationAmount: 250,
+        },
+      });
+      expect(withTransferFieldsResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const afterTransferFields = await helpers.getTransactionById({ id: ordinaryTx.id, raw: true });
+      expect(afterTransferFields!.isPlanned).toBe(false);
+      expect(afterTransferFields!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+
+      const ontoLoanResponse = await helpers.updateTransaction({
+        id: ordinaryTx.id,
+        payload: { isPlanned: true, accountId: loan.id as RecordId },
+      });
+      expect(ontoLoanResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const afterLoanMove = await helpers.getTransactionById({ id: ordinaryTx.id, raw: true });
+      expect(afterLoanMove!.isPlanned).toBe(false);
+      expect(afterLoanMove!.accountId).toBe(source.id);
+      expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(loanBalanceBefore);
+
+      // 1000 - 250 expense - 100 transfer out
+      expect(await getBalance({ accountId: source.id })).toBe(650);
       expect(await getBalance({ accountId: destination.id })).toBe(1100);
-    });
+    }, 30000);
 
     it('rejects a refund-linked row and leaves the balance alone', async () => {
       const account = await createOwnedAccount({ initialBalance: 1000 });
@@ -500,69 +484,6 @@ describe('Planned transactions', () => {
 
       expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
       expect(await getBalance({ accountId: account.id })).toBe(900);
-    });
-
-    it('rejects a flip that adds transfer fields in the same request', async () => {
-      const [source, destination] = await Promise.all([
-        createOwnedAccount({ initialBalance: 1000 }),
-        createOwnedAccount({ initialBalance: 1000 }),
-      ]);
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: source.id,
-          amount: 250,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.updateTransaction({
-        id: tx.id,
-        payload: {
-          isPlanned: true,
-          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationAccountId: destination.id,
-          destinationAmount: 250,
-        },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-
-      const untouched = await helpers.getTransactionById({ id: tx.id, raw: true });
-      expect(untouched!.isPlanned).toBe(false);
-      expect(untouched!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
-      expect(await getBalance({ accountId: source.id })).toBe(750);
-      expect(await getBalance({ accountId: destination.id })).toBe(1000);
-    });
-
-    it('rejects a flip that moves the row onto a loan account in the same request', async () => {
-      const account = await createOwnedAccount({ initialBalance: 1000 });
-      const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ currencyCode: global.BASE_CURRENCY.code }),
-        raw: true,
-      });
-      const loanBalanceBefore = (await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance;
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 250,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.updateTransaction({
-        id: tx.id,
-        payload: { isPlanned: true, accountId: loan.id as RecordId },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-
-      const untouched = await helpers.getTransactionById({ id: tx.id, raw: true });
-      expect(untouched!.isPlanned).toBe(false);
-      expect(untouched!.accountId).toBe(account.id);
-      expect(await getBalance({ accountId: account.id })).toBe(750);
-      expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(loanBalanceBefore);
     });
 
     it('applies and reverts the amount as the flag toggles on a manual account', async () => {

@@ -4,6 +4,11 @@ import ResourceShares from '@models/resource-shares.model';
 import * as helpers from '@tests/helpers';
 import { ErrorResponse } from '@tests/helpers/common';
 
+// Share-blocker rejections still surface synchronously at enqueue, so these tests
+// read the immediate response. The "allows" cases enqueue a real job and poll it
+// to completion via changeBaseCurrencyAndWait instead.
+const callChangeBase = () => helpers.changeBaseCurrency({ newCurrencyCode: 'USD' });
+
 /**
  * Verifies the active-share guard on `POST /user/currencies/change-base`. Both ends of
  * an accepted share must agree on a base currency; letting either side flip currency
@@ -19,12 +24,7 @@ describe('Change Base Currency — active share guard', () => {
     await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
   });
 
-  // Share-blocker rejections still surface synchronously at enqueue, so these tests
-  // read the immediate response. The "allows" cases enqueue a real job and poll it
-  // to completion via changeBaseCurrencyAndWait instead.
-  const callChangeBase = () => helpers.changeBaseCurrency({ newCurrencyCode: 'USD' });
-
-  it('rejects the change when the caller is the owner of an accepted share', async () => {
+  it('rejects the change for both sides of an accepted per-resource share', async () => {
     const account = await helpers.createAccount({ raw: true });
     const recipient = await helpers.provisionSecondUserWithBaseCurrency();
 
@@ -42,32 +42,11 @@ describe('Change Base Currency — active share guard', () => {
     });
     expect(acceptRes.statusCode).toBe(200);
 
-    const res = await callChangeBase();
+    const ownerRes = await callChangeBase();
+    expect(ownerRes.statusCode).toBe(409);
+    expect((ownerRes.body.response as unknown as ErrorResponse).code).toBe(API_ERROR_CODES.baseCurrencyLockedByShares);
 
-    expect(res.statusCode).toBe(409);
-    const err = res.body.response as unknown as ErrorResponse;
-    expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByShares);
-  });
-
-  it('rejects the change when the caller is the recipient of an accepted share', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-
-    const invitation = await helpers.createShareInvitation({
-      inviteeEmail: recipient.email,
-      resourceType: RESOURCE_TYPES.account,
-      resourceId: account.id,
-      permission: SHARE_PERMISSIONS.read,
-      raw: true,
-    });
-
-    const acceptRes = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () => helpers.acceptShareInvitation({ token: invitation.token }),
-    });
-    expect(acceptRes.statusCode).toBe(200);
-
-    const res = await helpers.asUser({
+    const recipientRes = await helpers.asUser({
       cookies: recipient.cookies,
       fn: async () => {
         // Mirror the owner's currency setup so the only thing standing between the
@@ -77,9 +56,10 @@ describe('Change Base Currency — active share guard', () => {
       },
     });
 
-    expect(res.statusCode).toBe(409);
-    const err = res.body.response as unknown as ErrorResponse;
-    expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByShares);
+    expect(recipientRes.statusCode).toBe(409);
+    expect((recipientRes.body.response as unknown as ErrorResponse).code).toBe(
+      API_ERROR_CODES.baseCurrencyLockedByShares,
+    );
   });
 
   it('allows the change when only a pending (not-yet-accepted) invitation exists', async () => {
@@ -94,22 +74,21 @@ describe('Change Base Currency — active share guard', () => {
       raw: true,
     });
 
-    const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
+    const status = await helpers.changeBaseCurrencyAndWait({
+      newCurrencyCode: 'USD',
+    });
     helpers.expectBaseCurrencyChangeCompleted(status);
   });
 
-  it('allows the change when the user has no shares at all', async () => {
-    const status = await helpers.changeBaseCurrencyAndWait({ newCurrencyCode: 'USD' });
-    helpers.expectBaseCurrencyChangeCompleted(status);
-  });
-
-  it('rejects with BASE_CURRENCY_LOCKED_BY_HOUSEHOLD when an active household membership blocks', async () => {
-    // Seed an accepted household row where caller is the owner. Household rows are
-    // user-scoped, not account-scoped — one membership blocks regardless of how many
-    // accounts the user owns.
+  it('rejects with BASE_CURRENCY_LOCKED_BY_HOUSEHOLD for both sides, and lists every blocker type', async () => {
+    // Household rows are user-scoped: one membership blocks the change whatever the
+    // account count. The per-resource share is created last so the household-only
+    // assertions above it still hold.
     const account = await helpers.createAccount({ raw: true });
     const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-    const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+    const recipientApp = await helpers.findAppUserByEmail({
+      email: recipient.email,
+    });
 
     await ResourceShares.create({
       ownerUserId: account.userId,
@@ -120,37 +99,39 @@ describe('Change Base Currency — active share guard', () => {
       acceptedAt: new Date(),
     });
 
-    const res = await callChangeBase();
-
-    expect(res.statusCode).toBe(409);
-    const err = res.body.response as unknown as ErrorResponse & {
+    type BlockerError = ErrorResponse & {
       details?: { blockers?: Array<{ type: string; count: number }> };
     };
-    expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByHousehold);
-    expect(err.details?.blockers).toEqual(expect.arrayContaining([{ type: 'household', count: 1 }]));
-  });
 
-  it('surfaces both blocker types in details when household and per-resource shares both block', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-    const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+    const ownerRes = await callChangeBase();
+    expect(ownerRes.statusCode).toBe(409);
+    const ownerErr = ownerRes.body.response as unknown as BlockerError;
+    expect(ownerErr.code).toBe(API_ERROR_CODES.baseCurrencyLockedByHousehold);
+    expect(ownerErr.details?.blockers).toEqual(expect.arrayContaining([{ type: 'household', count: 1 }]));
 
-    // Accepted household row.
-    await ResourceShares.create({
-      ownerUserId: account.userId,
-      sharedWithUserId: recipientApp.id,
-      resourceType: RESOURCE_TYPES.household,
-      resourceId: String(account.userId),
-      permission: SHARE_PERMISSIONS.write,
-      acceptedAt: new Date(),
+    const recipientRes = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: async () => {
+        // Recipient also needs USD available before they can try to change base into it.
+        await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
+        return callChangeBase();
+      },
     });
+
+    expect(recipientRes.statusCode).toBe(409);
+    const recipientErr = recipientRes.body.response as unknown as BlockerError;
+    expect(recipientErr.code).toBe(API_ERROR_CODES.baseCurrencyLockedByHousehold);
+    expect(recipientErr.details?.blockers).toEqual(expect.arrayContaining([{ type: 'household', count: 1 }]));
+
     // Accepted per-resource share to a different user — same owner can still have both
     // a household member and a per-account share (different recipients). Provision a
     // third user to receive the per-resource share so the per-resource count is 1.
     const otherRecipient = await helpers.provisionSecondUserWithBaseCurrency({
       email: `other-${Date.now()}@test.local`,
     });
-    const otherRecipientApp = await helpers.findAppUserByEmail({ email: otherRecipient.email });
+    const otherRecipientApp = await helpers.findAppUserByEmail({
+      email: otherRecipient.email,
+    });
     await ResourceShares.create({
       ownerUserId: account.userId,
       sharedWithUserId: otherRecipientApp.id,
@@ -160,54 +141,16 @@ describe('Change Base Currency — active share guard', () => {
       acceptedAt: new Date(),
     });
 
-    const res = await callChangeBase();
-
-    expect(res.statusCode).toBe(409);
-    const err = res.body.response as unknown as ErrorResponse & {
-      details?: { blockers?: Array<{ type: string; count: number }> };
-    };
+    const bothRes = await callChangeBase();
+    expect(bothRes.statusCode).toBe(409);
+    const bothErr = bothRes.body.response as unknown as BlockerError;
     // Household takes the primary code when both are present.
-    expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByHousehold);
-    expect(err.details?.blockers).toEqual(
+    expect(bothErr.code).toBe(API_ERROR_CODES.baseCurrencyLockedByHousehold);
+    expect(bothErr.details?.blockers).toEqual(
       expect.arrayContaining([
         { type: 'household', count: 1 },
         { type: 'share', count: 1 },
       ]),
     );
-  });
-
-  it('rejects the change when the caller is the recipient of an accepted household membership', async () => {
-    // Mirror of the owner-side household lock test. The query uses
-    // `Op.or [ownerUserId, sharedWithUserId]` so both sides of the membership are
-    // blocked; without this test a regression that dropped the `sharedWithUserId`
-    // clause would only be caught for owners.
-    const owner = await helpers.createAccount({ raw: true });
-    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-    const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-
-    await ResourceShares.create({
-      ownerUserId: owner.userId,
-      sharedWithUserId: recipientApp.id,
-      resourceType: RESOURCE_TYPES.household,
-      resourceId: String(owner.userId),
-      permission: SHARE_PERMISSIONS.write,
-      acceptedAt: new Date(),
-    });
-
-    const res = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: async () => {
-        // Recipient also needs USD available before they can try to change base into it.
-        await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
-        return callChangeBase();
-      },
-    });
-
-    expect(res.statusCode).toBe(409);
-    const err = res.body.response as unknown as ErrorResponse & {
-      details?: { blockers?: Array<{ type: string; count: number }> };
-    };
-    expect(err.code).toBe(API_ERROR_CODES.baseCurrencyLockedByHousehold);
-    expect(err.details?.blockers).toEqual(expect.arrayContaining([{ type: 'household', count: 1 }]));
   });
 });

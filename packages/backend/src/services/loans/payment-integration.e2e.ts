@@ -95,7 +95,7 @@ describe('Loan payment integration', () => {
       expect(reloadedLoan.currentBalance).toBe(-2_000);
     });
 
-    it('rejects a transfer_to_loan transfer whose destination is not a loan-category account', async () => {
+    it('rejects a transfer_to_loan whose destination is not a loan account, or that carries a destinationTransactionId', async () => {
       const [sourceAccount, regularDestination] = await Promise.all([
         helpers.createAccount({ raw: true }),
         helpers.createAccount({ raw: true }),
@@ -117,6 +117,17 @@ describe('Loan payment integration', () => {
       const errorBody = extractError(response);
       expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
       expect(errorBody.message).toMatch(/loan account/i);
+
+      const withDestinationTx = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: sourceAccount.id,
+          amount: 500,
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationTransactionId: generateRandomRecordId(),
+        }),
+      });
+
+      expect(withDestinationTx.statusCode).toBe(422);
     });
 
     it('auto-stamps transfer_to_loan when a common_transfer-labeled transfer targets a loan account', async () => {
@@ -182,25 +193,10 @@ describe('Loan payment integration', () => {
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-1_000);
     });
-
-    it('rejects transfer_to_loan combined with destinationTransactionId at schema level', async () => {
-      const sourceAccount = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: sourceAccount.id,
-          amount: 500,
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
-          destinationTransactionId: generateRandomRecordId(),
-        }),
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
   });
 
   describe('PUT /transactions/:id — transfer kind is frozen on existing pairs', () => {
-    it('rejects relabeling an existing common_transfer pair as transfer_to_loan', async () => {
+    it('rejects relabeling a common_transfer pair as transfer_to_loan, and re-pointing one onto a loan account', async () => {
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -226,7 +222,7 @@ describe('Loan payment integration', () => {
         raw: true,
       });
 
-      const response = await helpers.updateTransaction({
+      const relabelResponse = await helpers.updateTransaction({
         id: base.id,
         payload: {
           transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
@@ -235,17 +231,31 @@ describe('Loan payment integration', () => {
         },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-      expect(errorBody.message).toMatch(/transfer kind/i);
+      expect(relabelResponse.statusCode).toBe(422);
+      const relabelError = extractError(relabelResponse);
+      expect(relabelError.code).toBe(API_ERROR_CODES.validationError);
+      expect(relabelError.message).toMatch(/transfer kind/i);
+
+      // Nature omitted, so the pair stays common_transfer and the loan destination is still refused.
+      const rePointResponse = await helpers.updateTransaction({
+        id: base.id,
+        payload: { destinationAccountId: loan.id as RecordId, destinationAmount: 300 },
+      });
+
+      expect(rePointResponse.statusCode).toBe(422);
+      const rePointError = extractError(rePointResponse);
+      expect(rePointError.code).toBe(API_ERROR_CODES.validationError);
+      expect(rePointError.message).toMatch(/unlink/i);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-1_000);
     });
 
-    it('rejects relabeling an existing transfer_to_loan pair as common_transfer', async () => {
-      const { expenseLeg } = await setupLoanPaymentPair({ initialBalance: 2_500, amount: 500 });
+    it('freezes an existing transfer_to_loan pair against relabeling, re-pointing and unlinking', async () => {
+      const { loan, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 2_500, amount: 500 });
       const regularAccount = await helpers.createAccount({ raw: true });
 
-      const response = await helpers.updateTransaction({
+      const relabelResponse = await helpers.updateTransaction({
         id: expenseLeg.id,
         payload: {
           transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
@@ -254,18 +264,13 @@ describe('Loan payment integration', () => {
         },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-      expect(errorBody.message).toMatch(/transfer kind/i);
-    });
-
-    it('rejects re-pointing a transfer_to_loan destination to a non-loan account', async () => {
-      const { expenseLeg } = await setupLoanPaymentPair({ initialBalance: 2_500, amount: 500 });
-      const regularAccount = await helpers.createAccount({ raw: true });
+      expect(relabelResponse.statusCode).toBe(422);
+      const relabelError = extractError(relabelResponse);
+      expect(relabelError.code).toBe(API_ERROR_CODES.validationError);
+      expect(relabelError.message).toMatch(/transfer kind/i);
 
       // Nature omitted — pair stays transfer_to_loan, so destination must remain a loan-category account.
-      const response = await helpers.updateTransaction({
+      const rePointResponse = await helpers.updateTransaction({
         id: expenseLeg.id,
         payload: {
           destinationAccountId: regularAccount.id,
@@ -273,26 +278,22 @@ describe('Loan payment integration', () => {
         },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-      expect(errorBody.message).toMatch(/loan account/i);
-    });
+      expect(rePointResponse.statusCode).toBe(422);
+      const rePointError = extractError(rePointResponse);
+      expect(rePointError.code).toBe(API_ERROR_CODES.validationError);
+      expect(rePointError.message).toMatch(/loan account/i);
 
-    it('rejects unlinking a loan payment because it would orphan the loan-side leg', async () => {
       // Unlinking sets the loan-side income leg to not_transfer, leaving a standalone
       // transaction on the loan account — forbidden by the write guard. Deleting the
       // payment (which restores the balance) is the only supported undo.
-      const { loan, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 2_500, amount: 500 });
-
-      const response = await helpers.updateTransaction({
+      const unlinkResponse = await helpers.updateTransaction({
         id: expenseLeg.id,
         payload: { transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(unlinkResponse.statusCode).toBe(422);
+      const unlinkError = extractError(unlinkResponse);
+      expect(unlinkError.code).toBe(API_ERROR_CODES.validationError);
 
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-2_000);
@@ -430,7 +431,7 @@ describe('Loan payment integration', () => {
       expect(reloadedBig.currentBalance).toBe(-1_500);
     });
 
-    it('rejects re-pointing a payment to a different loan it would overpay', async () => {
+    it('rejects re-pointing a payment to a different loan it would overpay, with or without an explicit amount', async () => {
       // The overpay guard must project against the NEW loan's balance without backing out
       // the old leg (which never touched that loan) — otherwise a $500 payment re-pointed
       // onto a $100 loan would slip through and drive it into credit.
@@ -444,83 +445,29 @@ describe('Loan payment integration', () => {
         raw: true,
       });
 
-      const response = await helpers.updateTransaction({
+      const withAmount = await helpers.updateTransaction({
         id: expenseLeg.id,
         payload: { destinationAccountId: smallLoan.id as RecordId, destinationAmount: 500 },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-      expect(errorBody.message).toMatch(/overpay|exceed|owed/i);
+      expect(withAmount.statusCode).toBe(422);
+      const withAmountError = extractError(withAmount);
+      expect(withAmountError.code).toBe(API_ERROR_CODES.validationError);
+      expect(withAmountError.message).toMatch(/overpay|exceed|owed/i);
 
-      expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-500);
-      expect((await helpers.getLoanById({ id: smallLoan.id, raw: true })).currentBalance).toBe(-100);
-    });
-
-    it('runs the overpay guard when only destinationAccountId changes (amount omitted)', async () => {
       // A PATCH that re-points the destination but keeps the amount must still run balance validation.
-      const { expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 500 });
-      const smallLoan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({
-          name: 'Small loan',
-          initialBalance: 100,
-          originalPrincipal: 100,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.updateTransaction({
+      const amountOmitted = await helpers.updateTransaction({
         id: expenseLeg.id,
         payload: { destinationAccountId: smallLoan.id as RecordId },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-      expect(errorBody.message).toMatch(/overpay|exceed|owed/i);
+      expect(amountOmitted.statusCode).toBe(422);
+      const amountOmittedError = extractError(amountOmitted);
+      expect(amountOmittedError.code).toBe(API_ERROR_CODES.validationError);
+      expect(amountOmittedError.message).toMatch(/overpay|exceed|owed/i);
 
+      expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-500);
       expect((await helpers.getLoanById({ id: smallLoan.id, raw: true })).currentBalance).toBe(-100);
-    });
-
-    it('rejects re-pointing a common_transfer pair onto a loan account (unlink first)', async () => {
-      const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({
-          initialBalance: 1_000,
-          originalPrincipal: 1_000,
-        }),
-        raw: true,
-      });
-      const [sourceAccount, destinationAccount] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        helpers.createAccount({ raw: true }),
-      ]);
-
-      const [base] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: sourceAccount.id,
-            amount: 300,
-          }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationAmount: 300,
-          destinationAccountId: destinationAccount.id,
-        },
-        raw: true,
-      });
-
-      const response = await helpers.updateTransaction({
-        id: base.id,
-        payload: { destinationAccountId: loan.id as RecordId, destinationAmount: 300 },
-      });
-
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-      expect(errorBody.message).toMatch(/unlink/i);
-
-      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloadedLoan.currentBalance).toBe(-1_000);
     });
 
     it('rejects POST overpay when source account currency differs from the loan currency', async () => {
@@ -646,41 +593,34 @@ describe('Loan payment integration', () => {
   });
 
   describe('PUT /transactions/:id targeting the loan-side income leg', () => {
-    it('rejects a direct amount edit of the loan-side income leg', async () => {
+    it('rejects any edit of the loan-side income leg (payments are edited via the expense leg)', async () => {
       // The income leg is system-managed: a direct amount edit would move the
       // loan balance without passing the overpay assertion (the destination
       // fields the source-leg edit path keys on are absent from the payload).
       const { loan, base, opposite, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
       const incomeLeg = base.id === expenseLeg.id ? opposite : base;
 
-      const response = await helpers.updateTransaction({
+      const amountResponse = await helpers.updateTransaction({
         id: incomeLeg.id,
         payload: { amount: 1_500 },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(amountResponse.statusCode).toBe(422);
+      expect(extractError(amountResponse).code).toBe(API_ERROR_CODES.validationError);
 
-      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloadedLoan.currentBalance).toBe(-700);
-    });
-
-    it('rejects any edit of the loan-side income leg (payments are edited via the expense leg)', async () => {
       // Even a "harmless" note edit is rejected: routing an income-leg edit
       // through the transfer-update machinery would restamp the opposite
       // (cash) leg's transactionType, corrupting the cash account balance.
-      const { base, opposite, expenseLeg } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 300 });
-      const incomeLeg = base.id === expenseLeg.id ? opposite : base;
-
-      const response = await helpers.updateTransaction({
+      const noteResponse = await helpers.updateTransaction({
         id: incomeLeg.id,
         payload: { note: 'edited from the loan side' },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(noteResponse.statusCode).toBe(422);
+      expect(extractError(noteResponse).code).toBe(API_ERROR_CODES.validationError);
+
+      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
+      expect(reloadedLoan.currentBalance).toBe(-700);
     });
   });
 
@@ -757,65 +697,7 @@ describe('Loan payment integration', () => {
   });
 
   describe('Loan accounts reject direct writes outside the transfer_to_loan flow', () => {
-    it('rejects a plain income transaction posted directly onto a loan account', async () => {
-      // A loan balance may only move through the validated transfer_to_loan flow — a
-      // standalone income leg would bump it (toward credit here) with no overpay check
-      // and no payment record the loan guards can see.
-      const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({
-          initialBalance: 1_000,
-          originalPrincipal: 1_000,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: loan.id as RecordId,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.income,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        }),
-      });
-
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-
-      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloadedLoan.currentBalance).toBe(-1_000);
-    });
-
-    it('rejects a plain expense transaction posted directly onto a loan account', async () => {
-      // A standalone expense leg drives the loan deeper into debt, skipping the payment flow and its audit trail.
-      const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({
-          initialBalance: 1_000,
-          originalPrincipal: 1_000,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: loan.id as RecordId,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.expense,
-          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
-        }),
-      });
-
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-
-      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloadedLoan.currentBalance).toBe(-1_000);
-    });
-
-    it('rejects a common_transfer that uses the loan account as the transfer source', async () => {
-      // With the loan as source, the expense leg lands on the loan labeled common_transfer —
-      // it moves the balance yet stays invisible to delete guards that only recognise transfer_to_loan.
+    it('rejects plain income, plain expense and loan-as-source transfers, but still accepts a real payment', async () => {
       const loan = await helpers.createLoan({
         payload: helpers.buildCreateLoanPayload({
           initialBalance: 1_000,
@@ -825,7 +707,37 @@ describe('Loan payment integration', () => {
       });
       const cashAccount = await helpers.createAccount({ raw: true });
 
-      const response = await helpers.createTransaction({
+      // A loan balance may only move through the validated transfer_to_loan flow — a
+      // standalone income leg would bump it (toward credit here) with no overpay check
+      // and no payment record the loan guards can see.
+      const incomeResponse = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: loan.id as RecordId,
+          amount: 500,
+          transactionType: TRANSACTION_TYPES.income,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        }),
+      });
+
+      expect(incomeResponse.statusCode).toBe(422);
+      expect(extractError(incomeResponse).code).toBe(API_ERROR_CODES.validationError);
+
+      // A standalone expense leg drives the loan deeper into debt, skipping the payment flow and its audit trail.
+      const expenseResponse = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: loan.id as RecordId,
+          amount: 500,
+          transactionType: TRANSACTION_TYPES.expense,
+          transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+        }),
+      });
+
+      expect(expenseResponse.statusCode).toBe(422);
+      expect(extractError(expenseResponse).code).toBe(API_ERROR_CODES.validationError);
+
+      // With the loan as source, the expense leg lands on the loan labeled common_transfer —
+      // it moves the balance yet stays invisible to delete guards that only recognise transfer_to_loan.
+      const loanAsSourceResponse = await helpers.createTransaction({
         payload: {
           ...helpers.buildTransactionPayload({
             accountId: loan.id as RecordId,
@@ -837,18 +749,25 @@ describe('Loan payment integration', () => {
         },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(loanAsSourceResponse.statusCode).toBe(422);
+      expect(extractError(loanAsSourceResponse).code).toBe(API_ERROR_CODES.validationError);
 
-      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloadedLoan.currentBalance).toBe(-1_000);
-    });
+      expect((await helpers.getLoanById({ id: loan.id, raw: true })).currentBalance).toBe(-1_000);
 
-    it('still accepts a legitimate transfer_to_loan payment from a cash account into the loan', async () => {
       // The readonly guard must still let the one sanctioned write through — the income leg
       // of a transfer_to_loan payment — and move the balance toward zero.
-      const { loan } = await setupLoanPaymentPair({ initialBalance: 1_000, amount: 400 });
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: cashAccount.id as RecordId,
+            amount: 400,
+          }),
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+          destinationAmount: 400,
+          destinationAccountId: loan.id as RecordId,
+        },
+        raw: true,
+      });
 
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-600);
@@ -856,7 +775,7 @@ describe('Loan payment integration', () => {
   });
 
   describe('rejects an income base for a loan payment', () => {
-    it('rejects a transfer_to_loan whose base transaction is income', async () => {
+    it('rejects an income base on create (both labels) and on promotion via update', async () => {
       // A loan payment is an outflow — the base leg must be the expense leaving the user's
       // cash account. An income base would invert both legs, stamping the loan with an
       // expense leg that grows the debt.
@@ -866,7 +785,7 @@ describe('Loan payment integration', () => {
       });
       const sourceAccount = await helpers.createAccount({ raw: true });
 
-      const response = await helpers.createTransaction({
+      const labeledResponse = await helpers.createTransaction({
         payload: {
           ...helpers.buildTransactionPayload({
             accountId: sourceAccount.id,
@@ -879,24 +798,12 @@ describe('Loan payment integration', () => {
         },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(labeledResponse.statusCode).toBe(422);
+      expect(extractError(labeledResponse).code).toBe(API_ERROR_CODES.validationError);
 
-      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloadedLoan.currentBalance).toBe(-1_000);
-    });
-
-    it('rejects an income base even when labeled common_transfer (the loan auto-stamp path)', async () => {
       // A common_transfer into a loan is auto-stamped transfer_to_loan, so the income guard
       // keys off the loan destination, not the label, to catch this bypass.
-      const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ initialBalance: 1_000, originalPrincipal: 1_000 }),
-        raw: true,
-      });
-      const sourceAccount = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.createTransaction({
+      const autoStampResponse = await helpers.createTransaction({
         payload: {
           ...helpers.buildTransactionPayload({
             accountId: sourceAccount.id,
@@ -909,20 +816,8 @@ describe('Loan payment integration', () => {
         },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
-
-      const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
-      expect(reloadedLoan.currentBalance).toBe(-1_000);
-    });
-
-    it('rejects promoting an existing income transaction into a transfer_to_loan via update', async () => {
-      const loan = await helpers.createLoan({
-        payload: helpers.buildCreateLoanPayload({ initialBalance: 1_000, originalPrincipal: 1_000 }),
-        raw: true,
-      });
-      const sourceAccount = await helpers.createAccount({ raw: true });
+      expect(autoStampResponse.statusCode).toBe(422);
+      expect(extractError(autoStampResponse).code).toBe(API_ERROR_CODES.validationError);
 
       const [incomeTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
@@ -933,7 +828,7 @@ describe('Loan payment integration', () => {
         raw: true,
       });
 
-      const response = await helpers.updateTransaction({
+      const promoteResponse = await helpers.updateTransaction({
         id: incomeTx.id,
         payload: {
           transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
@@ -942,9 +837,8 @@ describe('Loan payment integration', () => {
         },
       });
 
-      expect(response.statusCode).toBe(422);
-      const errorBody = extractError(response);
-      expect(errorBody.code).toBe(API_ERROR_CODES.validationError);
+      expect(promoteResponse.statusCode).toBe(422);
+      expect(extractError(promoteResponse).code).toBe(API_ERROR_CODES.validationError);
 
       const reloadedLoan = await helpers.getLoanById({ id: loan.id, raw: true });
       expect(reloadedLoan.currentBalance).toBe(-1_000);

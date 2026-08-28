@@ -34,22 +34,21 @@ describe('Add user currencies', () => {
     expect(returnedEur.liveRateUpdate).toBe(false);
   });
 
-  it('should return validation error if non-existent currency code is provided', async () => {
-    const res = await helpers.addUserCurrencies({ currencyCodes: ['ZZZ'] });
+  it('rejects an unknown currency code, a negative exchange rate and an empty currencies array', async () => {
+    const unknownCode = await helpers.addUserCurrencies({ currencyCodes: ['ZZZ'] });
+    expect(unknownCode.statusCode).toEqual(ERROR_CODES.ValidationError);
 
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
-  });
-
-  it('should return validation error if exchange rate is negative', async () => {
     const allCurrencies = await helpers.getAllCurrencies();
     const uah = allCurrencies.find((i) => i.code === 'UAH')!;
 
-    const res = await helpers.addUserCurrenciesWithRates({
+    const negativeRate = await helpers.addUserCurrenciesWithRates({
       currencies: [{ currencyCode: uah.code, exchangeRate: -1 }],
       raw: false,
     });
+    expect(negativeRate.statusCode).toEqual(ERROR_CODES.ValidationError);
 
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
+    const emptyList = await helpers.addUserCurrenciesWithRates({ currencies: [], raw: false });
+    expect(emptyList.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 
   it('should successfully add currencies without optional fields', async () => {
@@ -99,14 +98,5 @@ describe('Add user currencies', () => {
     });
 
     expect(res.statusCode).toEqual(200);
-  });
-
-  it('should return validation error when currencies array is empty', async () => {
-    const res = await helpers.addUserCurrenciesWithRates({
-      currencies: [],
-      raw: false,
-    });
-
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 });

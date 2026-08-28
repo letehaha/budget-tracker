@@ -1,5 +1,5 @@
 import { CATEGORIZATION_MODE, TRANSACTION_TYPES } from '@bt/shared/types';
-import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
+import { NONEXISTENT_ID, generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -16,25 +16,34 @@ describe('Payees API', () => {
       expect(payee.name).toBe('Amazon');
       expect(payee.normalizedName).toBe('amazon');
       expect(payee.defaultCategoryId).toBeNull();
+      expect(payee.categorizationMode).toBe(CATEGORIZATION_MODE.enforce);
     });
 
-    it('accepts a defaultCategoryId owned by the user', async () => {
+    it('honors optional fields supplied on create', async () => {
       const payee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({
           name: 'Netflix',
           defaultCategoryId: global.DEFAULT_CATEGORY_ID,
+          categorizationMode: CATEGORIZATION_MODE.hint,
         }),
         raw: true,
       });
       expect(payee.defaultCategoryId).toBe(global.DEFAULT_CATEGORY_ID);
+      expect(payee.categorizationMode).toBe(CATEGORIZATION_MODE.hint);
     });
 
-    it('rejects an empty name', async () => {
-      const response = await helpers.createPayee({
+    it('rejects invalid create payloads', async () => {
+      const emptyName = await helpers.createPayee({
         payload: { name: '   ' },
         raw: false,
       });
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(emptyName.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const unknownMode = await helpers.createPayee({
+        payload: { name: 'BadMode Co', categorizationMode: 'whatever' as CATEGORIZATION_MODE },
+        raw: false,
+      });
+      expect(unknownMode.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('rejects a duplicate Payee for the same user', async () => {
@@ -107,6 +116,82 @@ describe('Payees API', () => {
     });
   });
 
+  describe('GET /payees/lookup (getPayeesLookup)', () => {
+    it('returns all payees as a minimal {id, name, logo fields} projection with no stats', async () => {
+      const withLogo = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Aaa Lookup', logoDomain: 'stripe.com' }),
+        raw: true,
+      });
+      const explicitNoLogo = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Bbb Lookup', logoDomain: null }),
+        raw: true,
+      });
+      const defaultLogo = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Ccc Lookup' }),
+        raw: true,
+      });
+      const withMonogram = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Ddd Lookup', logoInitials: 'DL', logoColor: '#7355be' }),
+        raw: true,
+      });
+
+      const lookup = await helpers.lookupPayees({ raw: true });
+
+      expect(lookup.map((p) => p.name)).toEqual(['Aaa Lookup', 'Bbb Lookup', 'Ccc Lookup', 'Ddd Lookup']);
+
+      for (const item of lookup) {
+        expect(Object.keys(item).toSorted()).toEqual(['id', 'logoColor', 'logoDomain', 'logoInitials', 'name']);
+        expect(item).not.toHaveProperty('stats');
+      }
+
+      expect(lookup.find((p) => p.id === withLogo.id)?.logoDomain).toBe('stripe.com');
+      expect(lookup.find((p) => p.id === explicitNoLogo.id)?.logoDomain).toBeNull();
+      expect(lookup.find((p) => p.id === defaultLogo.id)).toBeDefined();
+
+      const monogramItem = lookup.find((p) => p.id === withMonogram.id);
+      expect(monogramItem?.logoInitials).toBe('DL');
+      expect(monogramItem?.logoColor).toBe('#7355be');
+    });
+
+    it('returns an empty array for a fresh user, and 401 without a session', async () => {
+      const lookup = await helpers.lookupPayees({ raw: true });
+      expect(lookup).toEqual([]);
+
+      const unauthenticated = await helpers.withoutSession(() => helpers.lookupPayees({ raw: false }));
+      expect(unauthenticated.statusCode).toBe(401);
+    });
+
+    it('returns every payee even past the top-50, including a zero-transaction one', async () => {
+      // The `/payees` list endpoint caps at the top 50 by transaction count, so
+      // 55 payees push the zero-transaction one past that cap.
+      const totalPayees = 55;
+      const fillerNames = Array.from({ length: totalPayees - 1 }, () => `Filler ${generateRandomRecordId()}`);
+
+      // `logoInitials` stamps logoSource 'manual' at create, so the logo-resolution
+      // worker skips all 54 fillers.
+      for (let i = 0; i < fillerNames.length; i += 10) {
+        await Promise.all(
+          fillerNames.slice(i, i + 10).map((name) =>
+            helpers.createPayee({
+              payload: helpers.buildPayeePayload({ name, logoInitials: 'FL' }),
+              raw: true,
+            }),
+          ),
+        );
+      }
+
+      const zeroTxTarget = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: `Target ${generateRandomRecordId()}` }),
+        raw: true,
+      });
+
+      const lookup = await helpers.lookupPayees({ raw: true });
+
+      expect(lookup).toHaveLength(totalPayees);
+      expect(lookup.some((p) => p.id === zeroTxTarget.id)).toBe(true);
+    }, 30000);
+  });
+
   describe('GET /payees/:id (getPayee)', () => {
     it('returns the Payee with aliases array', async () => {
       const created = await helpers.createPayee({
@@ -144,34 +229,32 @@ describe('Payees API', () => {
       expect(detail.aliases?.some((a) => a.normalizedName === 'old brand')).toBe(true);
     });
 
-    it('sets defaultCategoryId', async () => {
+    it('sets, switches, and clears the optional fields', async () => {
       const created = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'Cat Test' }),
         raw: true,
       });
-      const updated = await helpers.updatePayee({
+
+      const withCategory = await helpers.updatePayee({
         id: created.id,
         payload: { defaultCategoryId: global.DEFAULT_CATEGORY_ID },
         raw: true,
       });
-      expect(updated.defaultCategoryId).toBe(global.DEFAULT_CATEGORY_ID);
-    });
+      expect(withCategory.defaultCategoryId).toBe(global.DEFAULT_CATEGORY_ID);
 
-    it('clears defaultCategoryId when null is passed', async () => {
-      const created = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({
-          name: 'Clearable',
-          defaultCategoryId: global.DEFAULT_CATEGORY_ID,
-        }),
+      const modeSwitched = await helpers.updatePayee({
+        id: created.id,
+        payload: { categorizationMode: CATEGORIZATION_MODE.off },
         raw: true,
       });
+      expect(modeSwitched.categorizationMode).toBe(CATEGORIZATION_MODE.off);
 
-      const updated = await helpers.updatePayee({
+      const cleared = await helpers.updatePayee({
         id: created.id,
         payload: { defaultCategoryId: null },
         raw: true,
       });
-      expect(updated.defaultCategoryId).toBeNull();
+      expect(cleared.defaultCategoryId).toBeNull();
     });
 
     it('returns 409 when renaming to a colliding name', async () => {
@@ -406,120 +489,50 @@ describe('Payees API', () => {
       expect(tx!.payeeId).toBe(payee.id);
     });
 
-    it('rejects an empty alias name', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'EmptyAliasGuard' }),
-        raw: true,
-      });
-
-      const response = await helpers.createPayeeAlias({
-        payeeId: payee.id,
-        rawName: '   ',
-        raw: false,
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 409 on duplicate alias for the same Payee', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'DupAliasGuard' }),
-        raw: true,
-      });
-      await helpers.createPayeeAlias({
-        payeeId: payee.id,
-        rawName: 'Variant A',
-        raw: true,
-      });
-
-      // Same normalized form ("variant a") – the second insert must fail
-      // before hitting the UNIQUE index so the caller gets a friendly 409.
-      const response = await helpers.createPayeeAlias({
-        payeeId: payee.id,
-        rawName: 'VARIANT A',
-        raw: false,
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
-    });
-
-    it('returns 404 for an unknown payee id', async () => {
-      const response = await helpers.createPayeeAlias({
-        payeeId: NONEXISTENT_ID,
-        rawName: 'Whatever',
-        raw: false,
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('returns 409 with conflictingPayee details when alias matches another Payee canonical name', async () => {
-      // "Globex" canonical → adding it as an alias on a different Payee would
-      // make the extraction's exact-match step ambiguous. Server must refuse
-      // and tell the caller which Payee already owns that string so the UI
-      // can offer a "go to Globex" or "merge" affordance.
-      const owner = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Globex' }),
-        raw: true,
-      });
-      const other = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'Initech' }),
-        raw: true,
-      });
-
-      const response = await helpers.createPayeeAlias({
-        payeeId: other.id,
-        rawName: 'Globex',
-        raw: false,
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
-      const errorBody = response.body.response as unknown as { details?: { conflictingPayee?: unknown } };
-      expect(errorBody.details?.conflictingPayee).toEqual({ id: owner.id, name: 'Globex' });
-    });
-
-    it('returns 409 with conflictingPayee details when alias matches another Payee alias', async () => {
+    it('rejects invalid and conflicting alias payloads', async () => {
+      // Every request below is a 4xx that leaves the DB untouched, so one
+      // fixture serves them all.
       const owner = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'Acme' }),
         raw: true,
       });
-      await helpers.createPayeeAlias({
-        payeeId: owner.id,
-        rawName: 'Acme Holdings',
-        raw: true,
-      });
+      await helpers.createPayeeAlias({ payeeId: owner.id, rawName: 'Acme Holdings', raw: true });
       const other = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'Hooli' }),
         raw: true,
       });
+      await helpers.createPayeeAlias({ payeeId: other.id, rawName: 'Variant A', raw: true });
 
-      const response = await helpers.createPayeeAlias({
-        payeeId: other.id,
-        rawName: 'ACME HOLDINGS',
+      const emptyName = await helpers.createPayeeAlias({ payeeId: other.id, rawName: '   ', raw: false });
+      expect(emptyName.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      // Same normalized form ("variant a") – the second insert must fail
+      // before hitting the UNIQUE index so the caller gets a friendly 409.
+      const duplicate = await helpers.createPayeeAlias({ payeeId: other.id, rawName: 'VARIANT A', raw: false });
+      expect(duplicate.statusCode).toBe(ERROR_CODES.ConflictError);
+
+      const unknownPayee = await helpers.createPayeeAlias({
+        payeeId: NONEXISTENT_ID,
+        rawName: 'Whatever',
         raw: false,
       });
-      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
-      const aliasErrorBody = response.body.response as unknown as { details?: { conflictingPayee?: unknown } };
-      expect(aliasErrorBody.details?.conflictingPayee).toEqual({ id: owner.id, name: 'Acme' });
-    });
+      expect(unknownPayee.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-    it("returns 404 when adding an alias to another user's payee", async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'AliasCreateCrossUserGuard' }),
-        raw: true,
-      });
+      // A string another Payee already owns, as its canonical name or as one of
+      // its aliases, would make extraction's exact-match step ambiguous. The 409
+      // names the owning Payee so the UI can offer "go to Acme" or "merge".
+      const canonicalClash = await helpers.createPayeeAlias({ payeeId: other.id, rawName: 'Acme', raw: false });
+      expect(canonicalClash.statusCode).toBe(ERROR_CODES.ConflictError);
+      const canonicalBody = canonicalClash.body.response as unknown as {
+        details?: { conflictingPayee?: unknown };
+      };
+      expect(canonicalBody.details?.conflictingPayee).toEqual({ id: owner.id, name: 'Acme' });
 
-      const handle = await helpers.signUpSecondUser();
-      const response = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () =>
-          helpers.createPayeeAlias({
-            payeeId: payee.id,
-            rawName: 'Hijack Attempt',
-            raw: false,
-          }),
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-
-      const after = await helpers.getPayeeById({ id: payee.id, raw: true });
-      expect(after.aliases?.some((a) => a.normalizedName === 'hijack attempt')).toBe(false);
-    });
+      const aliasClash = await helpers.createPayeeAlias({ payeeId: other.id, rawName: 'ACME HOLDINGS', raw: false });
+      expect(aliasClash.statusCode).toBe(ERROR_CODES.ConflictError);
+      const aliasBody = aliasClash.body.response as unknown as { details?: { conflictingPayee?: unknown } };
+      expect(aliasBody.details?.conflictingPayee).toEqual({ id: owner.id, name: 'Acme' });
+    }, 30000);
 
     it('still detects the own-namespace conflict when another user has the same alias text', async () => {
       // Conflict detection must resolve the alias within THIS user's payee
@@ -617,48 +630,6 @@ describe('Payees API', () => {
     });
   });
 
-  describe('categorizationMode', () => {
-    it('defaults a freshly created Payee to `enforce`', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'DefaultMode Co' }),
-        raw: true,
-      });
-      expect(payee.categorizationMode).toBe(CATEGORIZATION_MODE.enforce);
-    });
-
-    it('honors a `categorizationMode` supplied on create', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({
-          name: 'HintMode Co',
-          categorizationMode: CATEGORIZATION_MODE.hint,
-        }),
-        raw: true,
-      });
-      expect(payee.categorizationMode).toBe(CATEGORIZATION_MODE.hint);
-    });
-
-    it('updates `categorizationMode` via PATCH', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'SwitchMode Co' }),
-        raw: true,
-      });
-      const updated = await helpers.updatePayee({
-        id: payee.id,
-        payload: { categorizationMode: CATEGORIZATION_MODE.off },
-        raw: true,
-      });
-      expect(updated.categorizationMode).toBe(CATEGORIZATION_MODE.off);
-    });
-
-    it('rejects an unknown `categorizationMode` value', async () => {
-      const response = await helpers.createPayee({
-        payload: { name: 'BadMode Co', categorizationMode: 'whatever' as CATEGORIZATION_MODE },
-        raw: false,
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-  });
-
   describe('PATCH /payees/bulk-categorization-mode', () => {
     it('updates every Payee owned by the caller', async () => {
       const first = await helpers.createPayee({
@@ -685,7 +656,13 @@ describe('Payees API', () => {
       expect(secondAfter.categorizationMode).toBe(CATEGORIZATION_MODE.off);
     });
 
-    it('returns updatedCount=0 when the user has no Payees', async () => {
+    it('rejects an unknown mode, and returns updatedCount=0 when the user has no Payees', async () => {
+      const rejected = await helpers.bulkUpdatePayeeCategorizationMode({
+        mode: 'nope' as CATEGORIZATION_MODE,
+        raw: false,
+      });
+      expect(rejected.statusCode).toBe(ERROR_CODES.ValidationError);
+
       const result = await helpers.bulkUpdatePayeeCategorizationMode({
         mode: CATEGORIZATION_MODE.enforce,
         raw: true,
@@ -728,90 +705,13 @@ describe('Payees API', () => {
       expect(userAAfter.categorizationMode).toBe(CATEGORIZATION_MODE.enforce);
       expect(userBAfter.categorizationMode).toBe(CATEGORIZATION_MODE.off);
     });
-
-    it('rejects an unknown mode value', async () => {
-      const response = await helpers.bulkUpdatePayeeCategorizationMode({
-        mode: 'nope' as CATEGORIZATION_MODE,
-        raw: false,
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
   });
 
   describe('cross-user isolation', () => {
     // Payees are user-scoped. A second user must not be able to read, mutate,
     // merge, or peel aliases off the first user's records – the service must
     // produce 404, not silently leak or destroy data.
-    it("returns 404 when fetching another user's payee", async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'OwnedByUserA' }),
-        raw: true,
-      });
-
-      const handle = await helpers.signUpSecondUser();
-      const response = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () => helpers.getPayeeById({ id: payee.id, raw: false }),
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it("returns 404 when updating another user's payee", async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'UpdateGuard' }),
-        raw: true,
-      });
-
-      const handle = await helpers.signUpSecondUser();
-      const response = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () => helpers.updatePayee({ id: payee.id, payload: { name: 'Hijacked' }, raw: false }),
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it("returns 404 when deleting another user's payee", async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'DeleteGuard' }),
-        raw: true,
-      });
-
-      const handle = await helpers.signUpSecondUser();
-      const response = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () => helpers.deletePayee({ id: payee.id, raw: false }),
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('returns 404 when merging using a foreign source or target', async () => {
-      const userAPayee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'UserAPayee' }),
-        raw: true,
-      });
-
-      const handle = await helpers.signUpSecondUser();
-      // user B has their own payee for the target slot – neither slot may
-      // reach across users.
-      const userBPayee = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () =>
-          helpers.createPayee({
-            payload: helpers.buildPayeePayload({ name: 'UserBPayee' }),
-            raw: true,
-          }),
-      });
-
-      // user B trying to merge their (legitimate) payee into user A's payee –
-      // the target id doesn't exist from B's perspective.
-      const responseAsB = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () => helpers.mergePayees({ sourceId: userBPayee.id, targetId: userAPayee.id, raw: false }),
-      });
-      expect(responseAsB.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('returns 404 when deleting an alias on a foreign payee', async () => {
+    it('rejects every mutation from a second user', async () => {
       // Build a payee with an alias by renaming – the previous canonical name
       // sticks around as an alias.
       const payee = await helpers.createPayee({
@@ -828,20 +728,51 @@ describe('Payees API', () => {
       expect(alias).toBeDefined();
 
       const handle = await helpers.signUpSecondUser();
-      const response = await helpers.asUser({
+      await helpers.asUser({
         cookies: handle.cookies,
-        fn: () =>
-          helpers.deletePayeeAlias({
+        fn: async () => {
+          const fetched = await helpers.getPayeeById({ id: payee.id, raw: false });
+          expect(fetched.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+          const updated = await helpers.updatePayee({ id: payee.id, payload: { name: 'Hijacked' }, raw: false });
+          expect(updated.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+          const aliasAdded = await helpers.createPayeeAlias({
+            payeeId: payee.id,
+            rawName: 'Hijack Attempt',
+            raw: false,
+          });
+          expect(aliasAdded.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+          // B's source payee is legitimate, so only the foreign target slot can
+          // refuse the merge.
+          const userBPayee = await helpers.createPayee({
+            payload: helpers.buildPayeePayload({ name: 'UserBPayee' }),
+            raw: true,
+          });
+          const merged = await helpers.mergePayees({
+            sourceId: userBPayee.id,
+            targetId: payee.id,
+            raw: false,
+          });
+          expect(merged.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+          const aliasDeleted = await helpers.deletePayeeAlias({
             payeeId: payee.id,
             aliasId: alias!.id,
             raw: false,
-          }),
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+          });
+          expect(aliasDeleted.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      // The alias is still on the original owner's payee.
+          const deleted = await helpers.deletePayee({ id: payee.id, raw: false });
+          expect(deleted.statusCode).toBe(ERROR_CODES.NotFoundError);
+        },
+      });
+
       const after = await helpers.getPayeeById({ id: payee.id, raw: true });
+      expect(after.id).toBe(payee.id);
       expect(after.aliases?.some((a) => a.id === alias!.id)).toBe(true);
-    });
+      expect(after.aliases?.some((a) => a.normalizedName === 'hijack attempt')).toBe(false);
+    }, 30000);
   });
 });

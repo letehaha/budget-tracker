@@ -5,16 +5,20 @@ import * as helpers from '@tests/helpers';
 
 describe('Payee Ignored Names', () => {
   describe('CRUD endpoints', () => {
-    it('starts empty', async () => {
-      const rows = await helpers.listIgnoredNames({ raw: true });
-      expect(rows).toEqual([]);
-    });
-
     it('adds, lists, and removes an ignored name', async () => {
+      const empty = await helpers.listIgnoredNames({ raw: true });
+      expect(empty).toEqual([]);
+
       const added = await helpers.addIgnoredName({ rawName: 'Переказ на картку', raw: true });
       expect(added.id).toBeDefined();
       expect(added.normalizedName).toBe('переказ на картку');
       expect(added.rawSample).toBe('Переказ на картку');
+
+      const duplicate = await helpers.addIgnoredName({ rawName: 'Переказ на картку', raw: true });
+      expect(duplicate.id).toBe(added.id);
+
+      const emptyName = await helpers.addIgnoredName({ rawName: '   ', raw: false });
+      expect(emptyName.statusCode).toBe(ERROR_CODES.ValidationError);
 
       const after = await helpers.listIgnoredNames({ raw: true });
       expect(after.some((r) => r.id === added.id)).toBe(true);
@@ -25,33 +29,17 @@ describe('Payee Ignored Names', () => {
       expect(final.some((r) => r.id === added.id)).toBe(false);
     });
 
-    it('returns the existing row when adding a duplicate', async () => {
-      const first = await helpers.addIgnoredName({ rawName: 'Duplicate Probe', raw: true });
-      const second = await helpers.addIgnoredName({ rawName: 'Duplicate Probe', raw: true });
-      expect(second.id).toBe(first.id);
-    });
-
-    it('rejects empty name', async () => {
-      const response = await helpers.addIgnoredName({ rawName: '   ', raw: false });
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 409 when an existing Payee matches the normalized name (no force)', async () => {
-      await helpers.createPayee({
+    it('returns 409 when an existing Payee matches the normalized name, and force=true deletes it', async () => {
+      const payee = await helpers.createPayee({
         payload: helpers.buildPayeePayload({ name: 'Glovo' }),
         raw: true,
       });
-      const response = await helpers.addIgnoredName({ rawName: 'glovo', raw: false });
-      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
-    });
 
-    it('force=true deletes the conflicting Payee and adds the ignored name', async () => {
-      const payee = await helpers.createPayee({
-        payload: helpers.buildPayeePayload({ name: 'NoiseyMerchant' }),
-        raw: true,
-      });
-      const added = await helpers.addIgnoredName({ rawName: 'noiseymerchant', force: true, raw: true });
-      expect(added.normalizedName).toBe('noiseymerchant');
+      const rejected = await helpers.addIgnoredName({ rawName: 'glovo', raw: false });
+      expect(rejected.statusCode).toBe(ERROR_CODES.ConflictError);
+
+      const added = await helpers.addIgnoredName({ rawName: 'glovo', force: true, raw: true });
+      expect(added.normalizedName).toBe('glovo');
 
       const lookup = await helpers.getPayeeById({ id: payee.id, raw: false });
       expect(lookup.statusCode).toBe(ERROR_CODES.NotFoundError);
@@ -142,14 +130,9 @@ describe('Payee Ignored Names', () => {
       expect(normalizedNames.has('thirdname')).toBe(true);
       expect(normalizedNames.has('originalname')).toBe(true);
       expect(normalizedNames.has('secondname')).toBe(true);
-    });
 
-    it('returns 404 for an unknown payeeId', async () => {
-      const response = await helpers.deletePayeeAndIgnore({
-        id: NONEXISTENT_ID,
-        raw: false,
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+      const unknown = await helpers.deletePayeeAndIgnore({ id: NONEXISTENT_ID, raw: false });
+      expect(unknown.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 });

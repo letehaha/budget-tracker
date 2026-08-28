@@ -18,82 +18,125 @@ import { HttpResponse, http } from 'msw';
 
 import { DOMAIN_EVENTS, eventBus } from '../../common/event-bus';
 
+const unixSeconds = (date: Date) => Math.floor(date.getTime() / 1000);
+
+const readExternalData = async ({ id }: { id: string }) => {
+  const row = await Transactions.findByPk(id);
+  return (row!.externalData ?? {}) as {
+    plannedMerge?: { mergedAt?: string };
+    rawTransaction?: { status?: string };
+  };
+};
+
+const nonDefaultCategoryId = async () => {
+  const categories = await helpers.getCategoriesList();
+  const other = categories.find((category) => category.id !== global.DEFAULT_CATEGORY_ID);
+  if (!other) throw new Error('Expected the test user to have more than one category');
+  return other.id;
+};
+
+const syncAccount = async ({
+  connectionId,
+  accountId,
+  transactions,
+}: {
+  connectionId: string;
+  accountId: RecordId;
+  transactions: ExternalMonobankTransactionResponse[];
+}) => {
+  global.mswMockServer.use(getMonobankTransactionsMock({ response: transactions }));
+
+  const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
+    connectionId,
+    accountId,
+    raw: true,
+  });
+
+  const result = await helpers.bankDataProviders.waitForSyncJobsToComplete({
+    connectionId,
+    jobGroupId: jobGroupId!,
+    timeoutMs: 20000,
+  });
+  expect(result.status).toBe('completed');
+};
+
+const listAccountTransactions = ({ accountId }: { accountId: RecordId }) =>
+  helpers.getTransactions({ accountIds: [accountId], raw: true });
+
 /**
- * Merge-on-sync: a bank transaction arriving through a provider sync confirming a planned
- * transaction. Every case drives the real queue/sync endpoints, never the matcher directly.
+ * Matching requires the provider account to already hold one real transaction. A sync into an
+ * account without one counts as an initial pull and never merges.
  */
+const anchoredAccount = async ({ anchorTime }: { anchorTime: Date }) => {
+  const { account } = await helpers.monobank.mockTransactions({
+    transactions: [{ amount: -1234, time: anchorTime, description: 'ANCHOR CHARGE' }],
+  });
+
+  const { connections } = await helpers.bankDataProviders.listUserConnections({
+    raw: true,
+  });
+  const connectionId = connections.find((connection) => connection.providerType === BANK_PROVIDER_TYPE.MONOBANK)!.id;
+
+  let seeded = await listAccountTransactions({ accountId: account.id });
+  for (let attempt = 0; attempt < 10 && seeded.length === 0; attempt += 1) {
+    await helpers.sleep(300);
+    seeded = await listAccountTransactions({ accountId: account.id });
+  }
+  expect(seeded).toHaveLength(1);
+
+  return { connectionId, accountId: account.id };
+};
+
+const seedHouseholdMember = async ({ ownerUserId }: { ownerUserId: number }) => {
+  const member = await helpers.provisionSecondUserWithBaseCurrency();
+  const memberApp = await helpers.findAppUserByEmail({ email: member.email });
+
+  await ResourceShares.create({
+    ownerUserId,
+    sharedWithUserId: memberApp.id,
+    resourceType: RESOURCE_TYPES.household,
+    resourceId: String(ownerUserId),
+    permission: SHARE_PERMISSIONS.write,
+    policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all },
+    acceptedAt: new Date(),
+  });
+
+  return member;
+};
+
+async function setupConnectionWithAccount(): Promise<{
+  connectionId: string;
+  accountId: RecordId;
+}> {
+  const connectResult = await helpers.bankDataProviders.connectProvider({
+    providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+    credentials: helpers.enablebanking.mockCredentials(),
+    raw: true,
+  });
+  const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+  await helpers.makeRequest({
+    method: 'post',
+    url: '/bank-data-providers/enablebanking/oauth-callback',
+    payload: {
+      connectionId: connectResult.connectionId,
+      code: helpers.enablebanking.mockAuthCode,
+      state,
+    },
+  });
+  const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+    connectionId: connectResult.connectionId,
+    accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
+    raw: true,
+  });
+  return {
+    connectionId: connectResult.connectionId,
+    accountId: syncedAccounts[0]!.id,
+  };
+}
+
 describe('Planned transactions – merge on sync', () => {
-  const unixSeconds = (date: Date) => Math.floor(date.getTime() / 1000);
-
-  const readExternalData = async ({ id }: { id: string }) => {
-    const row = await Transactions.findByPk(id);
-    return (row!.externalData ?? {}) as {
-      plannedMerge?: { mergedAt?: string };
-      rawTransaction?: { status?: string };
-    };
-  };
-
-  const nonDefaultCategoryId = async () => {
-    const categories = await helpers.getCategoriesList();
-    const other = categories.find((category) => category.id !== global.DEFAULT_CATEGORY_ID);
-    if (!other) throw new Error('Expected the test user to have more than one category');
-    return other.id;
-  };
-
   describe('Monobank', () => {
-    const syncAccount = async ({
-      connectionId,
-      accountId,
-      transactions,
-    }: {
-      connectionId: string;
-      accountId: RecordId;
-      transactions: ExternalMonobankTransactionResponse[];
-    }) => {
-      global.mswMockServer.use(getMonobankTransactionsMock({ response: transactions }));
-
-      const { jobGroupId } = await helpers.bankDataProviders.syncTransactionsForAccount({
-        connectionId,
-        accountId,
-        raw: true,
-      });
-
-      const result = await helpers.bankDataProviders.waitForSyncJobsToComplete({
-        connectionId,
-        jobGroupId: jobGroupId!,
-        timeoutMs: 20000,
-      });
-      expect(result.status).toBe('completed');
-    };
-
-    const listAccountTransactions = ({ accountId }: { accountId: RecordId }) =>
-      helpers.getTransactions({ accountIds: [accountId], raw: true });
-
-    /**
-     * A synced account carrying one real transaction. That anchor is what unlocks matching:
-     * a provider account with no real row is treated as an initial pull and never merges.
-     */
-    const anchoredAccount = async ({ anchorTime }: { anchorTime: Date }) => {
-      const { account } = await helpers.monobank.mockTransactions({
-        transactions: [{ amount: -1234, time: anchorTime, description: 'ANCHOR CHARGE' }],
-      });
-
-      const { connections } = await helpers.bankDataProviders.listUserConnections({ raw: true });
-      const connectionId = connections.find(
-        (connection) => connection.providerType === BANK_PROVIDER_TYPE.MONOBANK,
-      )!.id;
-
-      let seeded = await listAccountTransactions({ accountId: account.id });
-      for (let attempt = 0; attempt < 10 && seeded.length === 0; attempt += 1) {
-        await helpers.sleep(300);
-        seeded = await listAccountTransactions({ accountId: account.id });
-      }
-      expect(seeded).toHaveLength(1);
-
-      return { connectionId, accountId: account.id };
-    };
-
-    it('merges the incoming bank transaction into the plan and keeps the plan fields', async () => {
+    it('merges the incoming bank transaction into the plan, files its balance history and skips the categorization batch', async () => {
       const now = new Date();
       const anchorTime = subDays(startOfDay(now), 10);
       const { connectionId, accountId } = await anchoredAccount({ anchorTime });
@@ -107,39 +150,6 @@ describe('Planned transactions – merge on sync', () => {
           note: 'Rent',
           categoryId,
         },
-        raw: true,
-      });
-
-      const incoming = helpers.monobank.buildTransaction({
-        amount: -25000,
-        time: subDays(startOfDay(now), 1),
-        description: 'RENT LANDLORD',
-      });
-
-      await syncAccount({ connectionId, accountId, transactions: [incoming] });
-
-      const rows = await listAccountTransactions({ accountId });
-      expect(rows).toHaveLength(2);
-
-      const merged = rows.find((row) => row.id === plan.id)!;
-      expect(merged.isPlanned).toBe(false);
-      expect(merged.accountType).toBe(ACCOUNT_TYPES.monobank);
-      expect(merged.categoryId).toBe(categoryId);
-      expect(merged.originalId).toBe(incoming.id);
-      expect(merged.amount).toBe(250);
-      expect(merged.note).toBe('Rent | RENT LANDLORD');
-
-      const { plannedMerge } = await readExternalData({ id: plan.id });
-      expect(typeof plannedMerge?.mergedAt).toBe('string');
-    });
-
-    it('files the merge day balance history row from the bank balance', async () => {
-      const now = new Date();
-      const anchorTime = subDays(startOfDay(now), 10);
-      const { connectionId, accountId } = await anchoredAccount({ anchorTime });
-
-      const [plan] = await helpers.createPlannedTransaction({
-        payload: { accountId, amount: 250, time: addDays(startOfDay(now), 2).toISOString(), note: 'Rent' },
         raw: true,
       });
 
@@ -162,10 +172,39 @@ describe('Planned transactions – merge on sync', () => {
         description: 'COFFEE',
       });
 
-      await syncAccount({ connectionId, accountId, transactions: [merging, plain] });
+      const emitSpy = jest.spyOn(eventBus, 'emit');
+      let syncedIds: string[] = [];
+      try {
+        await syncAccount({
+          connectionId,
+          accountId,
+          transactions: [merging, plain],
+        });
+
+        syncedIds = emitSpy.mock.calls
+          .filter((call) => call[0] === DOMAIN_EVENTS.TRANSACTIONS_SYNCED)
+          .flatMap((call) => (call[1] as { transactionIds: string[] }).transactionIds);
+      } finally {
+        emitSpy.mockRestore();
+      }
 
       const rows = await listAccountTransactions({ accountId });
-      expect(rows.find((row) => row.id === plan.id)!.isPlanned).toBe(false);
+      expect(rows).toHaveLength(3);
+
+      const plainRow = rows.find((row) => row.originalId === plain.id)!;
+      expect(syncedIds).toContain(plainRow.id);
+      expect(syncedIds).not.toContain(plan.id);
+
+      const merged = rows.find((row) => row.id === plan.id)!;
+      expect(merged.isPlanned).toBe(false);
+      expect(merged.accountType).toBe(ACCOUNT_TYPES.monobank);
+      expect(merged.categoryId).toBe(categoryId);
+      expect(merged.originalId).toBe(merging.id);
+      expect(merged.amount).toBe(250);
+      expect(merged.note).toBe('Rent | RENT LANDLORD');
+
+      const { plannedMerge } = await readExternalData({ id: plan.id });
+      expect(typeof plannedMerge?.mergedAt).toBe('string');
 
       const history = await helpers.getBalanceHistory({ accountId, raw: true });
       const amountOn = ({ day }: { day: Date }) =>
@@ -173,7 +212,12 @@ describe('Planned transactions – merge on sync', () => {
 
       expect(amountOn({ day: plainDay })).toBeGreaterThan(0);
       expect(amountOn({ day: mergeDay })).toBe(amountOn({ day: plainDay }));
-    });
+
+      // TRANSACTIONS_SYNCED listeners run after the sync returns; the user's category must
+      // survive them.
+      await helpers.sleep(1000);
+      expect((await helpers.getTransactionById({ id: plan.id, raw: true }))!.categoryId).toBe(categoryId);
+    }, 30000);
 
     it('anchors the sync window to the newest real transaction, not to a future-dated plan', async () => {
       const now = new Date();
@@ -182,7 +226,12 @@ describe('Planned transactions – merge on sync', () => {
 
       const planTime = addDays(startOfDay(now), 10);
       await helpers.createPlannedTransaction({
-        payload: { accountId, amount: 250, time: planTime.toISOString(), note: 'Future rent' },
+        payload: {
+          accountId,
+          amount: 250,
+          time: planTime.toISOString(),
+          note: 'Future rent',
+        },
         raw: true,
       });
 
@@ -212,62 +261,18 @@ describe('Planned transactions – merge on sync', () => {
       }
     });
 
-    it('keeps the merged row out of the post-sync categorization batch', async () => {
-      const now = new Date();
-      const anchorTime = subDays(startOfDay(now), 10);
-      const { connectionId, accountId } = await anchoredAccount({ anchorTime });
-
-      const categoryId = await nonDefaultCategoryId();
-      const [plan] = await helpers.createPlannedTransaction({
-        payload: {
-          accountId,
-          amount: 250,
-          time: addDays(startOfDay(now), 2).toISOString(),
-          note: 'Rent',
-          categoryId,
-        },
-        raw: true,
-      });
-
-      const merging = helpers.monobank.buildTransaction({
-        amount: -25000,
-        time: subDays(startOfDay(now), 1),
-        description: 'RENT LANDLORD',
-      });
-      const plain = helpers.monobank.buildTransaction({
-        amount: -777,
-        time: subDays(startOfDay(now), 1),
-        description: 'COFFEE',
-      });
-
-      const emitSpy = jest.spyOn(eventBus, 'emit');
-      try {
-        await syncAccount({ connectionId, accountId, transactions: [merging, plain] });
-
-        const syncedIds = emitSpy.mock.calls
-          .filter((call) => call[0] === DOMAIN_EVENTS.TRANSACTIONS_SYNCED)
-          .flatMap((call) => (call[1] as { transactionIds: string[] }).transactionIds);
-
-        const plainRow = (await listAccountTransactions({ accountId })).find((row) => row.originalId === plain.id)!;
-        expect(syncedIds).toContain(plainRow.id);
-        expect(syncedIds).not.toContain(plan.id);
-      } finally {
-        emitSpy.mockRestore();
-      }
-
-      // Whatever the listeners did with the batch, the user's category must survive it.
-      await helpers.sleep(1000);
-      const merged = await helpers.getTransactionById({ id: plan.id, raw: true });
-      expect(merged!.categoryId).toBe(categoryId);
-    });
-
     it('keeps exactly one row per originalId when the same window syncs twice', async () => {
       const now = new Date();
       const anchorTime = subDays(startOfDay(now), 10);
       const { connectionId, accountId } = await anchoredAccount({ anchorTime });
 
       const [plan] = await helpers.createPlannedTransaction({
-        payload: { accountId, amount: 250, time: addDays(startOfDay(now), 2).toISOString(), note: 'Rent' },
+        payload: {
+          accountId,
+          amount: 250,
+          time: addDays(startOfDay(now), 2).toISOString(),
+          note: 'Rent',
+        },
         raw: true,
       });
 
@@ -292,7 +297,12 @@ describe('Planned transactions – merge on sync', () => {
       const { connectionId, accountId } = await anchoredAccount({ anchorTime });
 
       const [plan] = await helpers.createPlannedTransaction({
-        payload: { accountId, amount: 250, time: addDays(startOfDay(now), 2).toISOString(), note: 'Rent' },
+        payload: {
+          accountId,
+          amount: 250,
+          time: addDays(startOfDay(now), 2).toISOString(),
+          note: 'Rent',
+        },
         raw: true,
       });
 
@@ -310,7 +320,11 @@ describe('Planned transactions – merge on sync', () => {
         to: now.toISOString(),
         raw: true,
       });
-      await helpers.bankDataProviders.waitForSyncJobsToComplete({ connectionId, jobGroupId, timeoutMs: 20000 });
+      await helpers.bankDataProviders.waitForSyncJobsToComplete({
+        connectionId,
+        jobGroupId,
+        timeoutMs: 20000,
+      });
 
       const rows = await listAccountTransactions({ accountId });
       expect(rows).toHaveLength(3);
@@ -319,33 +333,25 @@ describe('Planned transactions – merge on sync', () => {
     });
 
     describe('shared accounts', () => {
-      const seedHouseholdMember = async ({ ownerUserId }: { ownerUserId: number }) => {
-        const member = await helpers.provisionSecondUserWithBaseCurrency();
-        const memberApp = await helpers.findAppUserByEmail({ email: member.email });
-
-        await ResourceShares.create({
-          ownerUserId,
-          sharedWithUserId: memberApp.id,
-          resourceType: RESOURCE_TYPES.household,
-          resourceId: String(ownerUserId),
-          permission: SHARE_PERMISSIONS.write,
-          policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all },
-          acceptedAt: new Date(),
-        });
-
-        return member;
-      };
-
       it('hides the owner plan from a member until the sync turns it into a real row', async () => {
         const now = new Date();
         const anchorTime = subDays(startOfDay(now), 10);
-        const { connectionId, accountId } = await anchoredAccount({ anchorTime });
+        const { connectionId, accountId } = await anchoredAccount({
+          anchorTime,
+        });
 
         const account = await helpers.getAccount({ id: accountId, raw: true });
-        const member = await seedHouseholdMember({ ownerUserId: account.userId });
+        const member = await seedHouseholdMember({
+          ownerUserId: account.userId,
+        });
 
         const [plan] = await helpers.createPlannedTransaction({
-          payload: { accountId, amount: 250, time: addDays(startOfDay(now), 2).toISOString(), note: 'Rent' },
+          payload: {
+            accountId,
+            amount: 250,
+            time: addDays(startOfDay(now), 2).toISOString(),
+            note: 'Rent',
+          },
           raw: true,
         });
 
@@ -360,7 +366,11 @@ describe('Planned transactions – merge on sync', () => {
           time: subDays(startOfDay(now), 1),
           description: 'RENT LANDLORD',
         });
-        await syncAccount({ connectionId, accountId, transactions: [incoming] });
+        await syncAccount({
+          connectionId,
+          accountId,
+          transactions: [incoming],
+        });
 
         const afterSync = await helpers.asUser({
           cookies: member.cookies,
@@ -383,7 +393,11 @@ describe('Planned transactions – merge on sync', () => {
       helpers.enablebanking.resetTransactionConfig();
     });
 
-    const CARD = { currency: 'EUR', isExpense: true, counterpartyIban: null } as const;
+    const CARD = {
+      currency: 'EUR',
+      isExpense: true,
+      counterpartyIban: null,
+    } as const;
 
     const ANCHOR: FixedTransaction = {
       ...CARD,
@@ -406,29 +420,6 @@ describe('Planned transactions – merge on sync', () => {
 
     const PLAN_TIME = '2025-10-22T00:00:00.000Z';
 
-    async function setupConnectionWithAccount(): Promise<{ connectionId: string; accountId: RecordId }> {
-      const connectResult = await helpers.bankDataProviders.connectProvider({
-        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
-        credentials: helpers.enablebanking.mockCredentials(),
-        raw: true,
-      });
-      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
-      await helpers.makeRequest({
-        method: 'post',
-        url: '/bank-data-providers/enablebanking/oauth-callback',
-        payload: { connectionId: connectResult.connectionId, code: helpers.enablebanking.mockAuthCode, state },
-      });
-      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId: connectResult.connectionId,
-        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1],
-        raw: true,
-      });
-      return { connectionId: connectResult.connectionId, accountId: syncedAccounts[0]!.id };
-    }
-
-    const listAccountTransactions = ({ accountId }: { accountId: RecordId }) =>
-      helpers.getTransactions({ accountIds: [accountId], raw: true });
-
     /**
      * One booked row (the anchor that unlocks matching), one plan, then the pending payload
      * that confirms it. Returns the merged row id.
@@ -439,12 +430,22 @@ describe('Planned transactions – merge on sync', () => {
       expect(await listAccountTransactions({ accountId })).toHaveLength(1);
 
       const [plan] = await helpers.createPlannedTransaction({
-        payload: { accountId, amount: 50, time: PLAN_TIME, note: 'Season ticket', splits },
+        payload: {
+          accountId,
+          amount: 50,
+          time: PLAN_TIME,
+          note: 'Season ticket',
+          splits,
+        },
         raw: true,
       });
 
       helpers.enablebanking.setFixedTransactions([PENDING]);
-      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+      await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId,
+        accountId,
+        raw: true,
+      });
 
       const rows = await listAccountTransactions({ accountId });
       expect(rows).toHaveLength(2);
@@ -460,7 +461,11 @@ describe('Planned transactions – merge on sync', () => {
       const { connectionId, accountId, planId } = await mergePendingIntoPlan();
 
       helpers.enablebanking.setFixedTransactions([{ ...PENDING, status: 'CNCL' }]);
-      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+      await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId,
+        accountId,
+        raw: true,
+      });
 
       expect(await Transactions.findByPk(planId)).toBeNull();
       const rows = await listAccountTransactions({ accountId });
@@ -475,9 +480,17 @@ describe('Planned transactions – merge on sync', () => {
       });
 
       helpers.enablebanking.setFixedTransactions([{ ...PENDING, status: 'CNCL' }]);
-      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+      await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId,
+        accountId,
+        raw: true,
+      });
 
-      const survivor = await helpers.getTransactionById({ id: planId, includeSplits: true, raw: true });
+      const survivor = await helpers.getTransactionById({
+        id: planId,
+        includeSplits: true,
+        raw: true,
+      });
       expect(survivor).not.toBeNull();
       expect(survivor!.isPlanned).toBe(false);
       expect(survivor!.splits).toHaveLength(1);
@@ -497,7 +510,11 @@ describe('Planned transactions – merge on sync', () => {
           remittanceInformation: ['CARD SETTLED'],
         },
       ]);
-      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+      await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId,
+        accountId,
+        raw: true,
+      });
 
       const rows = await listAccountTransactions({ accountId });
       expect(rows).toHaveLength(2);
@@ -521,7 +538,11 @@ describe('Planned transactions – merge on sync', () => {
           remittanceInformation: ['CARD CAPTURE'],
         },
       ]);
-      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+      await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId,
+        accountId,
+        raw: true,
+      });
 
       const rows = await listAccountTransactions({ accountId });
       expect(rows).toHaveLength(3);

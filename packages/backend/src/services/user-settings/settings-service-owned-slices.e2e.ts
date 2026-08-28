@@ -121,13 +121,21 @@ describe('Settings slices owned by their own endpoints', () => {
       expect(listed).toHaveLength(0);
     });
 
-    it('keeps stored endpoints when the client sends back settings that omit them', async () => {
+    it('keeps every service-owned slice when the client sends settings back', async () => {
       // The wipe scenario: a page reads settings, changes one field and sends the whole cached object back.
       const userId = await getTestUserId();
+      await helpers.seedApiKey({ userId, provider: AI_PROVIDER.openai });
       const keyEncrypted = await seedCustomEndpoint({ userId });
+      await helpers.updateOnboarding({ raw: true, onboardingState: { isDismissed: true } });
 
       const fetched = await helpers.getUserSettings({ raw: true });
-      const response = await helpers.updateUserSettings({ settings: { ...fetched, locale: 'uk' } });
+      const response = await putRawSettings({
+        settings: {
+          ...fetched,
+          locale: 'uk',
+          onboarding: { completedTasks: [], isDismissed: false, dismissedAt: null },
+        },
+      });
       expect(response.statusCode).toBe(200);
 
       const stored = await readStoredEndpoints({ userId });
@@ -140,38 +148,15 @@ describe('Settings slices owned by their own endpoints', () => {
       expect(listed[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
       expect(listed[0]!.hasApiKey).toBe(true);
 
-      const reFetched = await helpers.getUserSettings({ raw: true });
-      expect(reFetched.locale).toBe('uk');
-    });
-
-    it('keeps stored api keys when the client sends back settings that omit them', async () => {
-      const userId = await getTestUserId();
-      await helpers.seedApiKey({ userId, provider: AI_PROVIDER.openai });
-
-      const fetched = await helpers.getUserSettings({ raw: true });
-      const response = await helpers.updateUserSettings({ settings: { ...fetched, locale: 'uk' } });
-      expect(response.statusCode).toBe(200);
-
       const status = await helpers.getAiApiKeyStatus({ raw: true });
       expect(status.hasApiKey).toBe(true);
       expect(status.providers.map((entry) => entry.provider)).toContain(AI_PROVIDER.openai);
-    });
-
-    it('keeps the stored onboarding state', async () => {
-      await helpers.updateOnboarding({ raw: true, onboardingState: { isDismissed: true } });
-
-      const response = await putRawSettings({
-        settings: { locale: 'uk', onboarding: { completedTasks: [], isDismissed: false, dismissedAt: null } },
-      });
-      expect(response.statusCode).toBe(200);
 
       const onboarding = await helpers.getOnboarding({ raw: true });
       expect(onboarding.isDismissed).toBe(true);
-    });
 
-    it('still updates sibling ai keys and leaves stored endpoints alone', async () => {
-      const userId = await getTestUserId();
-      await seedCustomEndpoint({ userId });
+      const reFetched = await helpers.getUserSettings({ raw: true });
+      expect(reFetched.locale).toBe('uk');
 
       const updated = await helpers.updateUserSettings({
         raw: true,
@@ -184,13 +169,13 @@ describe('Settings slices owned by their own endpoints', () => {
       expect(updated.ai?.customInstructions).toBe('Prefer concise answers');
       expect(updated.ai?.customEndpoints).toHaveLength(1);
 
-      const fetched = await helpers.getUserSettings({ raw: true });
-      expect(fetched.ai?.customInstructions).toBe('Prefer concise answers');
+      const afterSiblingUpdate = await helpers.getUserSettings({ raw: true });
+      expect(afterSiblingUpdate.ai?.customInstructions).toBe('Prefer concise answers');
 
-      const stored = await readStoredEndpoints({ userId });
-      expect(stored).toHaveLength(1);
-      expect(stored[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
-    });
+      const storedAfterSiblingUpdate = await readStoredEndpoints({ userId });
+      expect(storedAfterSiblingUpdate).toHaveLength(1);
+      expect(storedAfterSiblingUpdate[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+    }, 30_000);
 
     it('rejects a payload that is invalid outside the ignored slices', async () => {
       const response = await putRawSettings({ settings: { locale: 'klingon' } });
@@ -221,5 +206,52 @@ describe('Settings slices owned by their own endpoints', () => {
 
       expect(collectKeyMaterial({ value: fetched })).toHaveLength(0);
     });
+  });
+
+  describe('PATCH /user/settings', () => {
+    it('never writes ai.customEndpoints, whatever the rest of the patch does', async () => {
+      const userId = await getTestUserId();
+
+      const response = await helpers.patchUserSettings({
+        patch: {
+          includeCreditLimitInStats: true,
+          ai: { customEndpoints: [buildSmuggledEndpoint()] },
+        },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const patched = response.body.response;
+      expect(patched.includeCreditLimitInStats).toBe(true);
+      expect(patched.ai?.customEndpoints ?? []).toHaveLength(0);
+      expect(await helpers.getAiCustomEndpoints({ raw: true })).toHaveLength(0);
+      expect(await readStoredEndpoints({ userId })).toHaveLength(0);
+
+      await seedCustomEndpoint({ userId });
+
+      const replaceAttempt = await helpers.patchUserSettings({
+        patch: { ai: { customEndpoints: [buildSmuggledEndpoint()] } },
+      });
+      expect(replaceAttempt.statusCode).toBe(200);
+
+      const stored = await readStoredEndpoints({ userId });
+      expect(stored).toHaveLength(1);
+      expect(stored[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+      expect(stored.some((endpoint) => endpoint.baseUrl === SMUGGLED_BASE_URL)).toBe(false);
+
+      const listed = await helpers.getAiCustomEndpoints({ raw: true });
+      expect(listed).toHaveLength(1);
+      expect(listed[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+
+      const withSiblingKey = await helpers.patchUserSettings({
+        raw: true,
+        patch: { ai: { customInstructions: 'Prefer concise answers' } },
+      });
+      expect(withSiblingKey.ai?.customInstructions).toBe('Prefer concise answers');
+      expect(withSiblingKey.ai?.customEndpoints).toHaveLength(1);
+
+      const storedAfterSiblingPatch = await readStoredEndpoints({ userId });
+      expect(storedAfterSiblingPatch).toHaveLength(1);
+      expect(storedAfterSiblingPatch[0]!.name).toBe(SEEDED_ENDPOINT_NAME);
+    }, 30_000);
   });
 });
