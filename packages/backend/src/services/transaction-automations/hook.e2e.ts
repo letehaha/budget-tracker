@@ -162,24 +162,85 @@ const runCsvImport = async (payload: {
 };
 
 describe('Transaction automations hook', () => {
-  it('categorizes a synced row whose note matches and stamps user_rule + counters', async () => {
-    const category = await helpers.addCustomCategory({ name: 'Rides', color: '#111111', raw: true });
-    const rule = await noteRule({
+  it('applies note, merchant, type+amount and note-append rules to their own rows of one sync', async () => {
+    const [rides, groceries, salary] = await Promise.all([
+      helpers.addCustomCategory({ name: 'Rides', color: '#111111', raw: true }),
+      helpers.addCustomCategory({ name: 'Groceries', color: '#222222', raw: true }),
+      helpers.addCustomCategory({ name: 'Salary', color: '#eeeeee', raw: true }),
+    ]);
+
+    const uberRule = await noteRule({
       name: 'Uber is transport',
       keyword: 'uber',
-      actions: [{ type: 'set_category', categoryId: category.id }],
+      actions: [{ type: 'set_category', categoryId: rides.id }],
+    });
+    await helpers.createAutomation({
+      payload: {
+        name: 'Biedronka is groceries',
+        conditions: { match: 'all', items: [{ field: 'merchant', operator: 'contains_any', value: ['biedronka'] }] },
+        actions: [{ type: 'set_category', categoryId: groceries.id }],
+      },
+      raw: true,
+    });
+    await helpers.createAutomation({
+      payload: {
+        name: 'Big income is salary',
+        conditions: {
+          match: 'all',
+          items: [
+            { field: 'transactionType', operator: 'equals', value: TRANSACTION_TYPES.income },
+            { field: 'amount', operator: 'gte', value: { min: 1000 }, currency: { mode: 'transaction' } },
+          ],
+        } satisfies AutomationConditions,
+        actions: [{ type: 'set_category', categoryId: salary.id }],
+      },
+      raw: true,
+    });
+    await noteRule({
+      name: 'note append',
+      keyword: 'longnote',
+      actions: [{ type: 'set_note', mode: 'append', value: 'x'.repeat(200) }],
     });
 
-    await syncLunchFlow({ transactions: [buildLunchFlowTx({ description: 'UBER TRIP 4521' })] });
+    await syncLunchFlow({
+      transactions: [
+        buildLunchFlowTx({ description: 'UBER TRIP 4521' }),
+        buildLunchFlowTx({ merchant: 'BIEDRONKA 4102', description: 'Card payment 4102' }),
+        buildLunchFlowTx({ merchant: 'Some Other Shop', description: 'Card payment 9911' }),
+        buildLunchFlowTx({ description: 'payroll march', amount: asDecimal(2500) }),
+        buildLunchFlowTx({ description: 'big card spend', amount: asDecimal(-2500) }),
+        buildLunchFlowTx({ description: `longnote ${'y'.repeat(1900)}` }),
+      ],
+    });
 
-    const tx = await txByNote('UBER TRIP 4521');
-    expect(tx?.categoryId).toBe(category.id);
-    expect(tx?.categorizationMeta).toMatchObject({ source: CATEGORIZATION_SOURCE.userRule, ruleId: rule.id });
+    const defaultCategoryId = await userDefaultCategoryId();
 
-    const stored = await helpers.getAutomationById({ id: rule.id });
+    const transactions = await helpers.getTransactions({ includeTags: true, raw: true });
+    const byNote = (note: string) => transactions.find((tx) => tx.note === note);
+
+    const uber = byNote('UBER TRIP 4521');
+    const biedronka = byNote('Card payment 4102');
+    const uncategorized = byNote('Card payment 9911');
+    const payroll = byNote('payroll march');
+    const bigSpend = byNote('big card spend');
+    const appended = transactions.find((tx) => tx.note?.startsWith('longnote'));
+
+    expect(uber?.categoryId).toBe(rides.id);
+    expect(uber?.categorizationMeta).toMatchObject({ source: CATEGORIZATION_SOURCE.userRule, ruleId: uberRule.id });
+
+    expect(biedronka?.categoryId).toBe(groceries.id);
+    expect(uncategorized?.categoryId).toBe(defaultCategoryId);
+
+    expect(payroll?.categoryId).toBe(salary.id);
+    expect(bigSpend?.categoryId).toBe(defaultCategoryId);
+
+    expect(appended?.note).toHaveLength(2000);
+    expect(appended?.note?.endsWith('x')).toBe(true);
+
+    const stored = await helpers.getAutomationById({ id: uberRule.id });
     expect(stored?.matchCount).toBe(1);
     expect(stored?.lastMatchedAt).not.toBeNull();
-  });
+  }, 20000);
 
   it('leaves a manual transaction and a planned row on a connected account untouched', async () => {
     const category = await helpers.addCustomCategory({ name: 'Rides', color: '#111111', raw: true });
@@ -232,28 +293,6 @@ describe('Transaction automations hook', () => {
       cookies: second.cookies,
       fn: async () => expect((await helpers.getAutomationById({ id: foreignRule.id }))?.matchCount).toBe(0),
     });
-  });
-
-  it('matches `merchant contains` against externalData.merchant, not the note', async () => {
-    const category = await helpers.addCustomCategory({ name: 'Groceries', color: '#222222', raw: true });
-    await helpers.createAutomation({
-      payload: {
-        name: 'Biedronka is groceries',
-        conditions: { match: 'all', items: [{ field: 'merchant', operator: 'contains_any', value: ['biedronka'] }] },
-        actions: [{ type: 'set_category', categoryId: category.id }],
-      },
-      raw: true,
-    });
-
-    await syncLunchFlow({
-      transactions: [
-        buildLunchFlowTx({ merchant: 'BIEDRONKA 4102', description: 'Card payment 4102' }),
-        buildLunchFlowTx({ merchant: 'Some Other Shop', description: 'Card payment 9911' }),
-      ],
-    });
-
-    expect((await txByNote('Card payment 4102'))?.categoryId).toBe(category.id);
-    expect((await txByNote('Card payment 9911'))?.categoryId).toBe(await userDefaultCategoryId());
   });
 
   it('matches `payee in` on an imported row and skips a row with no payee', async () => {
@@ -637,24 +676,6 @@ describe('Transaction automations hook', () => {
     expect((await helpers.getAutomationById({ id: rule.id }))?.matchCount).toBe(1);
   });
 
-  it('truncates an appended note at 2000 characters', async () => {
-    await helpers.createAutomation({
-      payload: {
-        name: 'note append',
-        conditions: { match: 'all', items: [{ field: 'note', operator: 'contains_any', value: ['longnote'] }] },
-        actions: [{ type: 'set_note', mode: 'append', value: 'x'.repeat(200) }],
-      },
-      raw: true,
-    });
-
-    await syncLunchFlow({ transactions: [buildLunchFlowTx({ description: `longnote ${'y'.repeat(1900)}` })] });
-
-    const list = await helpers.getTransactions({ raw: true });
-    const tx = list.find((item) => item.note?.startsWith('longnote'));
-    expect(tx?.note).toHaveLength(2000);
-    expect(tx?.note?.endsWith('x')).toBe(true);
-  });
-
   describe('AI categorization candidates', () => {
     let originalGeminiApiKey: string | undefined;
 
@@ -690,33 +711,5 @@ describe('Transaction automations hook', () => {
       expect(notes).toContain('Bakery on the corner');
       expect(notes).not.toContain('UBER TRIP 7788');
     });
-  });
-
-  it('combines transactionType and amount items under match: all', async () => {
-    const category = await helpers.addCustomCategory({ name: 'Salary', color: '#eeeeee', raw: true });
-    await helpers.createAutomation({
-      payload: {
-        name: 'Big income is salary',
-        conditions: {
-          match: 'all',
-          items: [
-            { field: 'transactionType', operator: 'equals', value: TRANSACTION_TYPES.income },
-            { field: 'amount', operator: 'gte', value: { min: 1000 }, currency: { mode: 'transaction' } },
-          ],
-        } satisfies AutomationConditions,
-        actions: [{ type: 'set_category', categoryId: category.id }],
-      },
-      raw: true,
-    });
-
-    await syncLunchFlow({
-      transactions: [
-        buildLunchFlowTx({ description: 'payroll march', amount: asDecimal(2500) }),
-        buildLunchFlowTx({ description: 'big card spend', amount: asDecimal(-2500) }),
-      ],
-    });
-
-    expect((await txByNote('payroll march'))?.categoryId).toBe(category.id);
-    expect((await txByNote('big card spend'))?.categoryId).toBe(await userDefaultCategoryId());
   });
 });

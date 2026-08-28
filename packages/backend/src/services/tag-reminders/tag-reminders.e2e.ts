@@ -16,13 +16,13 @@ import {
 
 describe('Tag Reminders API', () => {
   describe('POST /tags/:tagId/reminders (createTagReminder)', () => {
-    it('successfully creates a scheduled tag reminder', async () => {
+    it('creates every reminder shape and rejects an exact duplicate', async () => {
       const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Test Tag' }),
+        payload: helpers.buildTagPayload({ name: 'Create Shapes Tag' }),
         raw: true,
       });
 
-      const reminder = await helpers.createTagReminder({
+      const scheduled = await helpers.createTagReminder({
         tagId: tag.id,
         payload: helpers.buildTagReminderPayload({
           type: TAG_REMINDER_TYPES.amountThreshold,
@@ -33,22 +33,15 @@ describe('Tag Reminders API', () => {
         raw: true,
       });
 
-      expect(reminder.id).toBeDefined();
-      expect(reminder.tagId).toBe(tag.id);
-      expect(reminder.type).toBe(TAG_REMINDER_TYPES.amountThreshold);
-      expect(reminder.frequency).toBe(TAG_REMINDER_FREQUENCIES.monthly);
-      expect(reminder.dayOfMonth).toBe(15);
-      expect((reminder.settings as { amountThreshold?: number })?.amountThreshold).toBe(500);
-      expect(reminder.isEnabled).toBe(true);
-    });
+      expect(scheduled.id).toBeDefined();
+      expect(scheduled.tagId).toBe(tag.id);
+      expect(scheduled.type).toBe(TAG_REMINDER_TYPES.amountThreshold);
+      expect(scheduled.frequency).toBe(TAG_REMINDER_FREQUENCIES.monthly);
+      expect(scheduled.dayOfMonth).toBe(15);
+      expect((scheduled.settings as { amountThreshold?: number })?.amountThreshold).toBe(500);
+      expect(scheduled.isEnabled).toBe(true);
 
-    it('creates a real-time reminder (no schedule)', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Real-time Tag' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
+      const realTime = await helpers.createTagReminder({
         tagId: tag.id,
         payload: helpers.buildRealTimeReminderPayload({
           type: TAG_REMINDER_TYPES.amountThreshold,
@@ -57,18 +50,11 @@ describe('Tag Reminders API', () => {
         raw: true,
       });
 
-      expect(reminder.type).toBe(TAG_REMINDER_TYPES.amountThreshold);
-      expect(reminder.frequency).toBeNull();
-      expect(reminder.dayOfMonth).toBeNull();
-    });
+      expect(realTime.type).toBe(TAG_REMINDER_TYPES.amountThreshold);
+      expect(realTime.frequency).toBeNull();
+      expect(realTime.dayOfMonth).toBeNull();
 
-    it('creates existence check reminder without amount threshold', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Existence Test Tag' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
+      const existenceCheck = await helpers.createTagReminder({
         tagId: tag.id,
         payload: helpers.buildTagReminderPayload({
           type: TAG_REMINDER_TYPES.existenceCheck,
@@ -78,102 +64,10 @@ describe('Tag Reminders API', () => {
         raw: true,
       });
 
-      expect(reminder.type).toBe(TAG_REMINDER_TYPES.existenceCheck);
-      expect(reminder.frequency).toBe(TAG_REMINDER_FREQUENCIES.weekly);
-    });
+      expect(existenceCheck.type).toBe(TAG_REMINDER_TYPES.existenceCheck);
+      expect(existenceCheck.frequency).toBe(TAG_REMINDER_FREQUENCIES.weekly);
 
-    it('allows multiple reminders with same type but different settings', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Multiple Reminders Tag' }),
-        raw: true,
-      });
-
-      const reminder1 = await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({
-          type: TAG_REMINDER_TYPES.amountThreshold,
-          settings: { amountThreshold: 100 },
-        }),
-        raw: true,
-      });
-
-      const reminder2 = await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({
-          type: TAG_REMINDER_TYPES.amountThreshold,
-          settings: { amountThreshold: 500 },
-        }),
-        raw: true,
-      });
-
-      expect(reminder1.id).not.toBe(reminder2.id);
-      expect((reminder1.settings as { amountThreshold?: number })?.amountThreshold).toBe(100);
-      expect((reminder2.settings as { amountThreshold?: number })?.amountThreshold).toBe(500);
-    });
-
-    it('rejects exact duplicate reminders', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Duplicate Test Tag' }),
-        raw: true,
-      });
-
-      await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({
-          type: TAG_REMINDER_TYPES.amountThreshold,
-          frequency: TAG_REMINDER_FREQUENCIES.monthly,
-          dayOfMonth: 1,
-          settings: { amountThreshold: 500 },
-        }),
-        raw: true,
-      });
-
-      const duplicateResponse = await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({
-          type: TAG_REMINDER_TYPES.amountThreshold,
-          frequency: TAG_REMINDER_FREQUENCIES.monthly,
-          dayOfMonth: 1,
-          settings: { amountThreshold: 500 },
-        }),
-        raw: false,
-      });
-
-      expect(duplicateResponse.statusCode).toBe(409);
-    });
-
-    it('creates a disabled reminder', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Disabled Reminder Tag' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({ isEnabled: false }),
-        raw: true,
-      });
-
-      expect(reminder.isEnabled).toBe(false);
-    });
-
-    it('fails for non-existent tag', async () => {
-      const response = await helpers.createTagReminder({
-        tagId: NONEXISTENT_ID,
-        payload: helpers.buildTagReminderPayload(),
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(404);
-    });
-
-    it('accepts valid frequency values', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Valid Frequency Tag' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
+      const quarterly = await helpers.createTagReminder({
         tagId: tag.id,
         payload: {
           type: TAG_REMINDER_TYPES.amountThreshold,
@@ -184,20 +78,64 @@ describe('Tag Reminders API', () => {
         raw: true,
       });
 
-      expect(reminder.frequency).toBe(TAG_REMINDER_FREQUENCIES.quarterly);
-      expect(reminder.dayOfMonth).toBe(15);
-    });
-  });
+      expect(quarterly.frequency).toBe(TAG_REMINDER_FREQUENCIES.quarterly);
+      expect(quarterly.dayOfMonth).toBe(15);
 
-  describe('GET /tags/:tagId/reminders (getRemindersForTag)', () => {
-    it('returns all reminders for a tag', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Multi Reminder Tag' }),
+      const sameScheduleOtherThreshold = await helpers.createTagReminder({
+        tagId: tag.id,
+        payload: helpers.buildTagReminderPayload({
+          type: TAG_REMINDER_TYPES.amountThreshold,
+          frequency: TAG_REMINDER_FREQUENCIES.monthly,
+          dayOfMonth: 15,
+          settings: { amountThreshold: 100 },
+        }),
         raw: true,
       });
 
-      await helpers.createTagReminder({
+      expect(sameScheduleOtherThreshold.id).not.toBe(scheduled.id);
+      expect((sameScheduleOtherThreshold.settings as { amountThreshold?: number })?.amountThreshold).toBe(100);
+      expect((scheduled.settings as { amountThreshold?: number })?.amountThreshold).toBe(500);
+
+      const disabled = await helpers.createTagReminder({
         tagId: tag.id,
+        payload: helpers.buildTagReminderPayload({ isEnabled: false }),
+        raw: true,
+      });
+
+      expect(disabled.isEnabled).toBe(false);
+
+      const duplicateResponse = await helpers.createTagReminder({
+        tagId: tag.id,
+        payload: helpers.buildTagReminderPayload({
+          type: TAG_REMINDER_TYPES.amountThreshold,
+          frequency: TAG_REMINDER_FREQUENCIES.monthly,
+          dayOfMonth: 15,
+          settings: { amountThreshold: 500 },
+        }),
+        raw: false,
+      });
+
+      expect(duplicateResponse.statusCode).toBe(409);
+    });
+  });
+
+  describe('GET + PUT /tags/:tagId/reminders (read and update)', () => {
+    it('lists reminders per tag and for the user, then patches one of them', async () => {
+      const tag1 = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Lifecycle Tag 1' }),
+        raw: true,
+      });
+      const tag2 = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Lifecycle Tag 2' }),
+        raw: true,
+      });
+      const tag3 = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Lifecycle Tag 3' }),
+        raw: true,
+      });
+
+      const amountReminder = await helpers.createTagReminder({
+        tagId: tag1.id,
         payload: helpers.buildTagReminderPayload({
           type: TAG_REMINDER_TYPES.amountThreshold,
           settings: { amountThreshold: 100 },
@@ -205,45 +143,11 @@ describe('Tag Reminders API', () => {
         raw: true,
       });
       await helpers.createTagReminder({
-        tagId: tag.id,
+        tagId: tag1.id,
         payload: helpers.buildTagReminderPayload({
           type: TAG_REMINDER_TYPES.existenceCheck,
           settings: {},
         }),
-        raw: true,
-      });
-
-      const reminders = await helpers.getRemindersForTag({ tagId: tag.id, raw: true });
-
-      expect(reminders.length).toBeGreaterThanOrEqual(2);
-    });
-
-    it('returns empty array for tag with no reminders', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'No Reminders Tag' }),
-        raw: true,
-      });
-
-      const reminders = await helpers.getRemindersForTag({ tagId: tag.id, raw: true });
-
-      expect(reminders).toEqual([]);
-    });
-  });
-
-  describe('GET /tag-reminders (getAllReminders)', () => {
-    it('returns all reminders for the user', async () => {
-      const tag1 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'All Reminders Tag 1' }),
-        raw: true,
-      });
-      const tag2 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'All Reminders Tag 2' }),
-        raw: true,
-      });
-
-      await helpers.createTagReminder({
-        tagId: tag1.id,
-        payload: helpers.buildTagReminderPayload(),
         raw: true,
       });
       await helpers.createTagReminder({
@@ -252,97 +156,26 @@ describe('Tag Reminders API', () => {
         raw: true,
       });
 
-      const reminders = await helpers.getAllReminders({ raw: true });
+      const tag1Reminders = await helpers.getRemindersForTag({ tagId: tag1.id, raw: true });
+      const tag3Reminders = await helpers.getRemindersForTag({ tagId: tag3.id, raw: true });
+      const allReminders = await helpers.getAllReminders({ raw: true });
 
-      expect(reminders.length).toBeGreaterThanOrEqual(2);
-    });
-  });
+      expect(tag1Reminders).toHaveLength(2);
+      expect(tag3Reminders).toEqual([]);
+      expect(allReminders).toHaveLength(3);
 
-  describe('GET /tags/:tagId/reminders/:id (getReminderById)', () => {
-    it('returns a specific reminder by ID', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Specific Reminder Tag' }),
-        raw: true,
-      });
-
-      const created = await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({ settings: { amountThreshold: 1500 } }),
-        raw: true,
-      });
-
-      const reminder = await helpers.getReminderById({
-        tagId: tag.id,
-        id: created.id,
-        raw: true,
-      });
-
-      expect(reminder.id).toBe(created.id);
-      expect((reminder.settings as { amountThreshold?: number })?.amountThreshold).toBe(1500);
-    });
-
-    it('returns 404 for non-existent reminder', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Non Existent Reminder' }),
-        raw: true,
-      });
-
-      const response = await helpers.getReminderById({
-        tagId: tag.id,
-        id: NONEXISTENT_ID,
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(404);
-    });
-
-    it('returns 404 when tagId in URL does not match reminder tagId', async () => {
-      const tag1 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Tag 1' }),
-        raw: true,
-      });
-      const tag2 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Tag 2' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
+      const fetched = await helpers.getReminderById({
         tagId: tag1.id,
-        payload: helpers.buildTagReminderPayload(),
+        id: amountReminder.id,
         raw: true,
       });
 
-      // Try to get reminder with wrong tagId
-      const response = await helpers.getReminderById({
-        tagId: tag2.id,
-        id: reminder.id,
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(404);
-    });
-  });
-
-  describe('PUT /tags/:tagId/reminders/:id (updateTagReminder)', () => {
-    it('updates reminder properties', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Update Reminder Tag' }),
-        raw: true,
-      });
-
-      const created = await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({
-          type: TAG_REMINDER_TYPES.amountThreshold,
-          frequency: TAG_REMINDER_FREQUENCIES.monthly,
-          settings: { amountThreshold: 1000 },
-        }),
-        raw: true,
-      });
+      expect(fetched.id).toBe(amountReminder.id);
+      expect((fetched.settings as { amountThreshold?: number })?.amountThreshold).toBe(100);
 
       const updated = await helpers.updateTagReminder({
-        tagId: tag.id,
-        id: created.id,
+        tagId: tag1.id,
+        id: amountReminder.id,
         payload: {
           settings: { amountThreshold: 2000 },
           frequency: TAG_REMINDER_FREQUENCIES.weekly,
@@ -350,74 +183,18 @@ describe('Tag Reminders API', () => {
         raw: true,
       });
 
-      expect(updated.id).toBe(created.id);
+      expect(updated.id).toBe(amountReminder.id);
       expect((updated.settings as { amountThreshold?: number })?.amountThreshold).toBe(2000);
       expect(updated.frequency).toBe(TAG_REMINDER_FREQUENCIES.weekly);
-    });
 
-    it('can disable a reminder', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Disable Reminder Tag' }),
-        raw: true,
-      });
-
-      const created = await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({ isEnabled: true }),
-        raw: true,
-      });
-
-      const updated = await helpers.updateTagReminder({
-        tagId: tag.id,
-        id: created.id,
-        payload: { isEnabled: false },
-        raw: true,
-      });
-
-      expect(updated.isEnabled).toBe(false);
-    });
-
-    it('returns 404 for non-existent reminder', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Update Non Existent' }),
-        raw: true,
-      });
-
-      const response = await helpers.updateTagReminder({
-        tagId: tag.id,
-        id: NONEXISTENT_ID,
-        payload: { isEnabled: false },
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(404);
-    });
-
-    it('returns 404 when tagId in URL does not match reminder tagId', async () => {
-      const tag1 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Update Tag 1' }),
-        raw: true,
-      });
-      const tag2 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Update Tag 2' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
+      const disabled = await helpers.updateTagReminder({
         tagId: tag1.id,
-        payload: helpers.buildTagReminderPayload(),
+        id: amountReminder.id,
+        payload: { isEnabled: false },
         raw: true,
       });
 
-      // Try to update reminder with wrong tagId
-      const response = await helpers.updateTagReminder({
-        tagId: tag2.id,
-        id: reminder.id,
-        payload: { isEnabled: false },
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(404);
+      expect(disabled.isEnabled).toBe(false);
     });
   });
 
@@ -448,29 +225,50 @@ describe('Tag Reminders API', () => {
       });
       expect(getResponse.statusCode).toBe(404);
     });
+  });
 
-    it('returns 404 for non-existent reminder', async () => {
+  describe('unknown ids', () => {
+    it('returns 404 on every reminder route', async () => {
       const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Delete Non Existent' }),
+        payload: helpers.buildTagPayload({ name: 'Unknown Ids Tag' }),
         raw: true,
       });
 
-      const response = await helpers.deleteTagReminder({
+      const createResponse = await helpers.createTagReminder({
+        tagId: NONEXISTENT_ID,
+        payload: helpers.buildTagReminderPayload(),
+        raw: false,
+      });
+      const getResponse = await helpers.getReminderById({
+        tagId: tag.id,
+        id: NONEXISTENT_ID,
+        raw: false,
+      });
+      const updateResponse = await helpers.updateTagReminder({
+        tagId: tag.id,
+        id: NONEXISTENT_ID,
+        payload: { isEnabled: false },
+        raw: false,
+      });
+      const deleteResponse = await helpers.deleteTagReminder({
         tagId: tag.id,
         id: NONEXISTENT_ID,
         raw: false,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(createResponse.statusCode).toBe(404);
+      expect(getResponse.statusCode).toBe(404);
+      expect(updateResponse.statusCode).toBe(404);
+      expect(deleteResponse.statusCode).toBe(404);
     });
 
-    it('returns 404 when tagId in URL does not match reminder tagId', async () => {
+    it('keeps a reminder invisible under another tag id', async () => {
       const tag1 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Delete Tag 1' }),
+        payload: helpers.buildTagPayload({ name: 'Cross Tag 1' }),
         raw: true,
       });
       const tag2 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Delete Tag 2' }),
+        payload: helpers.buildTagPayload({ name: 'Cross Tag 2' }),
         raw: true,
       });
 
@@ -480,22 +278,33 @@ describe('Tag Reminders API', () => {
         raw: true,
       });
 
-      // Try to delete reminder with wrong tagId
-      const response = await helpers.deleteTagReminder({
+      const getResponse = await helpers.getReminderById({
+        tagId: tag2.id,
+        id: reminder.id,
+        raw: false,
+      });
+      const updateResponse = await helpers.updateTagReminder({
+        tagId: tag2.id,
+        id: reminder.id,
+        payload: { isEnabled: false },
+        raw: false,
+      });
+      const deleteResponse = await helpers.deleteTagReminder({
         tagId: tag2.id,
         id: reminder.id,
         raw: false,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(getResponse.statusCode).toBe(404);
+      expect(updateResponse.statusCode).toBe(404);
+      expect(deleteResponse.statusCode).toBe(404);
 
-      // Verify the reminder still exists with the correct tagId
-      const getResponse = await helpers.getReminderById({
+      const survivor = await helpers.getReminderById({
         tagId: tag1.id,
         id: reminder.id,
         raw: true,
       });
-      expect(getResponse.id).toBe(reminder.id);
+      expect(survivor.id).toBe(reminder.id);
     });
   });
 });
@@ -509,35 +318,23 @@ describe('Tag Reminders Check Service', () => {
   });
 
   describe('shouldCheckReminderToday', () => {
-    it('returns true for reminder without schedule (real-time)', async () => {
+    it('returns a verdict per frequency', async () => {
       const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Should Check Real-time' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildRealTimeReminderPayload(),
-        raw: true,
-      });
-
-      const dbReminder = await TagReminders.findByPk(reminder.id);
-      const result = shouldCheckReminderToday({ reminder: dbReminder! });
-
-      // Real-time reminders should NOT be checked by the daily cron
-      expect(result).toBe(false);
-    });
-
-    it('returns true on matching dayOfMonth for monthly reminders', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Monthly Day Match' }),
+        payload: helpers.buildTagPayload({ name: 'Should Check Tag' }),
         raw: true,
       });
 
       const today = new Date();
       const currentDay = today.getDate();
+      let differentDay = currentDay + 1;
+      if (differentDay > 28) differentDay = 1;
 
-      const reminder = await helpers.createTagReminder({
+      const realTime = await helpers.createTagReminder({
+        tagId: tag.id,
+        payload: helpers.buildRealTimeReminderPayload(),
+        raw: true,
+      });
+      const monthlyToday = await helpers.createTagReminder({
         tagId: tag.id,
         payload: helpers.buildTagReminderPayload({
           frequency: TAG_REMINDER_FREQUENCIES.monthly,
@@ -545,24 +342,7 @@ describe('Tag Reminders Check Service', () => {
         }),
         raw: true,
       });
-
-      const dbReminder = await TagReminders.findByPk(reminder.id);
-      const result = shouldCheckReminderToday({ reminder: dbReminder! });
-
-      expect(result).toBe(true);
-    });
-
-    it('returns false when dayOfMonth does not match', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Monthly Day No Match' }),
-        raw: true,
-      });
-
-      const today = new Date();
-      let differentDay = today.getDate() + 1;
-      if (differentDay > 28) differentDay = 1;
-
-      const reminder = await helpers.createTagReminder({
+      const monthlyOtherDay = await helpers.createTagReminder({
         tagId: tag.id,
         payload: helpers.buildTagReminderPayload({
           frequency: TAG_REMINDER_FREQUENCIES.monthly,
@@ -570,20 +350,7 @@ describe('Tag Reminders Check Service', () => {
         }),
         raw: true,
       });
-
-      const dbReminder = await TagReminders.findByPk(reminder.id);
-      const result = shouldCheckReminderToday({ reminder: dbReminder! });
-
-      expect(result).toBe(false);
-    });
-
-    it('returns true for daily reminders', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Daily Reminder Test' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
+      const daily = await helpers.createTagReminder({
         tagId: tag.id,
         payload: helpers.buildTagReminderPayload({
           frequency: TAG_REMINDER_FREQUENCIES.daily,
@@ -591,44 +358,34 @@ describe('Tag Reminders Check Service', () => {
         raw: true,
       });
 
-      const dbReminder = await TagReminders.findByPk(reminder.id);
-      const result = shouldCheckReminderToday({ reminder: dbReminder! });
+      const verdictFor = async ({ id }: { id: string }) => {
+        const dbReminder = await TagReminders.findByPk(id);
+        return shouldCheckReminderToday({ reminder: dbReminder! });
+      };
 
-      expect(result).toBe(true);
+      // Real-time reminders fire when transactions get tagged, so the daily cron skips them.
+      expect(await verdictFor({ id: realTime.id })).toBe(false);
+      expect(await verdictFor({ id: monthlyToday.id })).toBe(true);
+      expect(await verdictFor({ id: monthlyOtherDay.id })).toBe(false);
+      expect(await verdictFor({ id: daily.id })).toBe(true);
     });
   });
 
-  describe('getDateRangeForScheduledReminder', () => {
-    it('returns correct date range for monthly reminder', async () => {
+  describe('reminder date ranges', () => {
+    it('spans the frequency window for scheduled reminders and the month for real-time ones', async () => {
       const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Date Range Monthly' }),
+        payload: helpers.buildTagPayload({ name: 'Date Range Tag' }),
         raw: true,
       });
 
-      const reminder = await helpers.createTagReminder({
+      const monthly = await helpers.createTagReminder({
         tagId: tag.id,
         payload: helpers.buildTagReminderPayload({
           frequency: TAG_REMINDER_FREQUENCIES.monthly,
         }),
         raw: true,
       });
-
-      const dbReminder = await TagReminders.findByPk(reminder.id);
-      const { from, to } = getDateRangeForScheduledReminder({ reminder: dbReminder! });
-
-      // Should span approximately 30-31 days
-      const daysDiff = Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
-      expect(daysDiff).toBeGreaterThanOrEqual(28);
-      expect(daysDiff).toBeLessThanOrEqual(31);
-    });
-
-    it('returns correct date range for weekly reminder', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Date Range Weekly' }),
-        raw: true,
-      });
-
-      const reminder = await helpers.createTagReminder({
+      const weekly = await helpers.createTagReminder({
         tagId: tag.id,
         payload: helpers.buildTagReminderPayload({
           frequency: TAG_REMINDER_FREQUENCIES.weekly,
@@ -637,81 +394,29 @@ describe('Tag Reminders Check Service', () => {
         raw: true,
       });
 
-      const dbReminder = await TagReminders.findByPk(reminder.id);
-      const { from, to } = getDateRangeForScheduledReminder({ reminder: dbReminder! });
+      const daysBetween = ({ from, to }: { from: Date; to: Date }) =>
+        Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
 
-      const daysDiff = Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
-      expect(daysDiff).toBeGreaterThanOrEqual(6);
-      expect(daysDiff).toBeLessThanOrEqual(7);
-    });
-  });
+      const monthlyReminder = await TagReminders.findByPk(monthly.id);
+      const monthlyDays = daysBetween(getDateRangeForScheduledReminder({ reminder: monthlyReminder! }));
 
-  describe('getDateRangeForRealTimeReminder', () => {
-    it('returns current month date range', () => {
-      const { from, to } = getDateRangeForRealTimeReminder();
+      expect(monthlyDays).toBeGreaterThanOrEqual(28);
+      expect(monthlyDays).toBeLessThanOrEqual(31);
 
-      // From should be 1st of current month
-      expect(from.getDate()).toBe(1);
-      // To should be today
-      const today = new Date();
-      expect(to.getDate()).toBe(today.getDate());
+      const weeklyReminder = await TagReminders.findByPk(weekly.id);
+      const weeklyDays = daysBetween(getDateRangeForScheduledReminder({ reminder: weeklyReminder! }));
+
+      expect(weeklyDays).toBeGreaterThanOrEqual(6);
+      expect(weeklyDays).toBeLessThanOrEqual(7);
+
+      const realTimeRange = getDateRangeForRealTimeReminder();
+
+      expect(realTimeRange.from.getDate()).toBe(1);
+      expect(realTimeRange.to.getDate()).toBe(new Date().getDate());
     });
   });
 
   describe('checkScheduledReminders - amount threshold', () => {
-    it('triggers notification when amount exceeds threshold', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Amount Threshold Test' }),
-        raw: true,
-      });
-
-      const today = new Date();
-      const currentDay = today.getDate();
-
-      // Create a transaction
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 600, // More than threshold of 500
-          transactionType: TRANSACTION_TYPES.expense,
-          time: today.toISOString(),
-        }),
-        raw: true,
-      });
-
-      await helpers.addTransactionsToTag({
-        tagId: tag.id,
-        transactionIds: [tx.id],
-        raw: true,
-      });
-
-      await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({
-          type: TAG_REMINDER_TYPES.amountThreshold,
-          frequency: TAG_REMINDER_FREQUENCIES.monthly,
-          dayOfMonth: currentDay,
-          settings: { amountThreshold: 500 },
-          isEnabled: true,
-        }),
-        raw: true,
-      });
-
-      const result = await checkScheduledReminders();
-
-      expect(result.totalChecked).toBeGreaterThan(0);
-
-      const notifications = await Notifications.findAll({
-        where: {
-          userId: testUserId,
-          type: NOTIFICATION_TYPES.tagReminder,
-        },
-      });
-
-      expect(notifications.length).toBeGreaterThan(0);
-    });
-
     it('sums all tagged transactions, not just the newest page of them', async () => {
       const account = await helpers.createAccount({ raw: true });
       const tag = await helpers.createTag({
@@ -763,35 +468,56 @@ describe('Tag Reminders Check Service', () => {
       expect(checkResult?.transactionCount).toBe(25);
       expect(checkResult?.triggered).toBe(true);
     });
+  });
 
-    it('does not trigger when amount is below threshold', async () => {
+  describe('checkScheduledReminders - sweep outcomes', () => {
+    it('notifies only the reminders whose condition is met and leaves disabled ones unchecked', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Below Threshold Test' }),
-        raw: true,
-      });
 
       const today = new Date();
       const currentDay = today.getDate();
 
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100, // Less than threshold of 500
-          transactionType: TRANSACTION_TYPES.expense,
-          time: today.toISOString(),
-        }),
+      const aboveThresholdTag = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Above Threshold Test' }),
+        raw: true,
+      });
+      const belowThresholdTag = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Below Threshold Test' }),
+        raw: true,
+      });
+      const existenceTag = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Existence Check Tag' }),
+        raw: true,
+      });
+      const disabledTag = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Disabled Reminder Test' }),
         raw: true,
       });
 
-      await helpers.addTransactionsToTag({
-        tagId: tag.id,
-        transactionIds: [tx.id],
-        raw: true,
-      });
+      const createTaggedTransaction = async ({ tagId, amount }: { tagId: string; amount: number }) => {
+        const [tx] = await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount,
+            transactionType: TRANSACTION_TYPES.expense,
+            time: today.toISOString(),
+          }),
+          raw: true,
+        });
+
+        await helpers.addTransactionsToTag({
+          tagId,
+          transactionIds: [tx.id],
+          raw: true,
+        });
+      };
+
+      await createTaggedTransaction({ tagId: aboveThresholdTag.id, amount: 600 });
+      await createTaggedTransaction({ tagId: belowThresholdTag.id, amount: 100 });
+      await createTaggedTransaction({ tagId: existenceTag.id, amount: 50 });
 
       await helpers.createTagReminder({
-        tagId: tag.id,
+        tagId: aboveThresholdTag.id,
         payload: helpers.buildTagReminderPayload({
           type: TAG_REMINDER_TYPES.amountThreshold,
           frequency: TAG_REMINDER_FREQUENCIES.monthly,
@@ -801,56 +527,19 @@ describe('Tag Reminders Check Service', () => {
         }),
         raw: true,
       });
-
-      const notificationsBefore = await Notifications.count({
-        where: {
-          userId: testUserId,
-          type: NOTIFICATION_TYPES.tagReminder,
-        },
-      });
-
-      await checkScheduledReminders();
-
-      const notificationsAfter = await Notifications.count({
-        where: {
-          userId: testUserId,
-          type: NOTIFICATION_TYPES.tagReminder,
-        },
-      });
-
-      expect(notificationsAfter).toBe(notificationsBefore);
-    });
-  });
-
-  describe('checkScheduledReminders - existence check', () => {
-    it('triggers notification when transactions exist with the tag', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Existence Check Tag' }),
-        raw: true,
-      });
-
-      const today = new Date();
-      const currentDay = today.getDate();
-
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 50,
-          transactionType: TRANSACTION_TYPES.expense,
-          time: today.toISOString(),
+      await helpers.createTagReminder({
+        tagId: belowThresholdTag.id,
+        payload: helpers.buildTagReminderPayload({
+          type: TAG_REMINDER_TYPES.amountThreshold,
+          frequency: TAG_REMINDER_FREQUENCIES.monthly,
+          dayOfMonth: currentDay,
+          settings: { amountThreshold: 500 },
+          isEnabled: true,
         }),
         raw: true,
       });
-
-      await helpers.addTransactionsToTag({
-        tagId: tag.id,
-        transactionIds: [tx.id],
-        raw: true,
-      });
-
       await helpers.createTagReminder({
-        tagId: tag.id,
+        tagId: existenceTag.id,
         payload: helpers.buildTagReminderPayload({
           type: TAG_REMINDER_TYPES.existenceCheck,
           frequency: TAG_REMINDER_FREQUENCIES.monthly,
@@ -860,11 +549,36 @@ describe('Tag Reminders Check Service', () => {
         }),
         raw: true,
       });
+      await helpers.createTagReminder({
+        tagId: disabledTag.id,
+        payload: helpers.buildTagReminderPayload({
+          type: TAG_REMINDER_TYPES.existenceCheck,
+          frequency: TAG_REMINDER_FREQUENCIES.monthly,
+          dayOfMonth: currentDay,
+          isEnabled: false,
+        }),
+        raw: true,
+      });
 
       const result = await checkScheduledReminders();
+      const outcomeFor = ({ tagName }: { tagName: string }) => result.results.find((r) => r.tagName === tagName);
 
-      expect(result.triggered).toBeGreaterThan(0);
-    });
+      expect(result.totalChecked).toBe(3);
+      expect(result.triggered).toBe(2);
+      expect(outcomeFor({ tagName: 'Above Threshold Test' })?.triggered).toBe(true);
+      expect(outcomeFor({ tagName: 'Below Threshold Test' })?.triggered).toBe(false);
+      expect(outcomeFor({ tagName: 'Existence Check Tag' })?.triggered).toBe(true);
+      expect(result.results.map((r) => r.tagName)).not.toContain('Disabled Reminder Test');
+
+      const notifications = await Notifications.findAll({
+        where: {
+          userId: testUserId,
+          type: NOTIFICATION_TYPES.tagReminder,
+        },
+      });
+
+      expect(notifications).toHaveLength(2);
+    }, 20000);
   });
 
   describe('checkRealTimeReminders', () => {
@@ -904,7 +618,7 @@ describe('Tag Reminders Check Service', () => {
       const dbReminder = await TagReminders.findByPk(reminder.id);
       const result = await checkRealTimeReminders({ reminders: [dbReminder!] });
 
-      expect(result.triggered).toBeGreaterThan(0);
+      expect(result.triggered).toBe(1);
     });
 
     it('respects 24h cooldown', async () => {
@@ -929,36 +643,8 @@ describe('Tag Reminders Check Service', () => {
       const dbReminder = await TagReminders.findByPk(reminder.id);
       const result = await checkRealTimeReminders({ reminders: [dbReminder!] });
 
-      expect(result.skipped).toBeGreaterThan(0);
-    });
-  });
-
-  describe('checkScheduledReminders - disabled reminders', () => {
-    it('skips disabled reminders', async () => {
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Disabled Reminder Test' }),
-        raw: true,
-      });
-
-      const today = new Date();
-      const currentDay = today.getDate();
-
-      await helpers.createTagReminder({
-        tagId: tag.id,
-        payload: helpers.buildTagReminderPayload({
-          type: TAG_REMINDER_TYPES.existenceCheck,
-          frequency: TAG_REMINDER_FREQUENCIES.monthly,
-          dayOfMonth: currentDay,
-          isEnabled: false, // Disabled
-        }),
-        raw: true,
-      });
-
-      const result = await checkScheduledReminders();
-
-      // Disabled reminder should not be in the checked count
-      const checkedTagNames = result.results.map((r) => r.tagName);
-      expect(checkedTagNames).not.toContain('Disabled Reminder Test');
+      expect(result.skipped).toBe(1);
+      expect(result.triggered).toBe(0);
     });
   });
 });

@@ -203,16 +203,17 @@ describe('POST /automations/preview', () => {
     expect(result.matches.map((match) => match.note)).toEqual(['Uber ride', 'Coffee']);
   });
 
-  it('compares an amount bound against the transaction currency', async () => {
+  it('bounds an amount in transaction currency, filters by a specific one and matches a UTC day', async () => {
+    const dates = [daysAgo(1), daysAgo(2), daysAgo(3)];
     await syncBankRows({
       transactions: [
-        bankRow({ amount: 150, date: daysAgo(1), description: 'Salary top-up' }),
-        bankRow({ amount: 50, date: daysAgo(2), description: 'Refund' }),
-        bankRow({ amount: -200, date: daysAgo(3), description: 'Rent' }),
+        bankRow({ amount: 150, date: dates[0]!, description: 'Salary top-up' }),
+        bankRow({ amount: 50, date: dates[1]!, description: 'Refund' }),
+        bankRow({ amount: -200, date: dates[2]!, description: 'Rent' }),
       ],
     });
 
-    const result = await preview({
+    const byAmount = await preview({
       match: 'all',
       items: [
         { field: 'transactionType', operator: 'equals', value: TRANSACTION_TYPES.income },
@@ -220,15 +221,9 @@ describe('POST /automations/preview', () => {
       ],
     });
 
-    expect(result.scannedCount).toBe(2);
-    expect(result.matchedCount).toBe(1);
-    expect(result.matches.map((match) => match.note)).toEqual(['Salary top-up']);
-  });
-
-  it('treats a specific currency as a filter, never converting other currencies', async () => {
-    await syncBankRows({
-      transactions: [bankRow({ amount: -100, date: daysAgo(1), description: 'USD row' })],
-    });
+    expect(byAmount.scannedCount).toBe(2);
+    expect(byAmount.matchedCount).toBe(1);
+    expect(byAmount.matches.map((match) => match.note)).toEqual(['Salary top-up']);
 
     const inUsd = await preview({
       match: 'all',
@@ -239,26 +234,19 @@ describe('POST /automations/preview', () => {
       items: [{ field: 'amount', operator: 'gte', value: { min: 1 }, currency: { mode: 'specific', code: 'EUR' } }],
     });
 
-    expect(inUsd.matchedCount).toBe(1);
-    expect(inEur).toEqual({ matchedCount: 0, scannedCount: 1, matches: [] });
-  });
-
-  it('matches a single UTC calendar day', async () => {
-    const dates = [daysAgo(1), daysAgo(2), daysAgo(3)];
-    await syncBankRows({
-      transactions: dates.map((date, index) => bankRow({ amount: -10, date, description: `Row ${index}` })),
-    });
+    expect(inUsd.matchedCount).toBe(3);
+    expect(inEur).toEqual({ matchedCount: 0, scannedCount: 3, matches: [] });
 
     const targetDay = dates[1]!.getUTCDate();
-    const result = await preview({
+    const byDay = await preview({
       match: 'all',
       items: [{ field: 'dayOfMonth', operator: 'between', value: { min: targetDay, max: targetDay } }],
     });
 
-    expect(result.scannedCount).toBe(3);
-    expect(result.matchedCount).toBe(1);
-    expect(result.matches.map((match) => match.note)).toEqual(['Row 1']);
-  });
+    expect(byDay.scannedCount).toBe(3);
+    expect(byDay.matchedCount).toBe(1);
+    expect(byDay.matches.map((match) => match.note)).toEqual(['Refund']);
+  }, 20000);
 
   it('still scans synced rows after the account was unlinked and relinked', async () => {
     const { account, connectionId, externalAccountId } = await syncBankRows({
@@ -277,16 +265,14 @@ describe('POST /automations/preview', () => {
     expect(result.matchedCount).toBe(1);
   });
 
-  it('returns zeros for a user with no eligible rows', async () => {
+  it('returns zeros for a user with no eligible rows and rejects an empty condition list', async () => {
     const result = await preview({
       match: 'all',
       items: [{ field: 'note', operator: 'contains_any', value: ['uber'] }],
     });
 
     expect(result).toEqual({ matchedCount: 0, scannedCount: 0, matches: [] });
-  });
 
-  it('rejects an empty condition list', async () => {
     const response = await helpers.previewAutomation({ payload: { conditions: { match: 'all', items: [] } } });
 
     expect(response.statusCode).toBe(422);

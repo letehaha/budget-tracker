@@ -1,5 +1,5 @@
 import { ACCOUNT_STATUSES, ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
-import type { CreateTransactionTemplateBody, UpdateTransactionTemplateBody } from '@bt/shared/types/endpoints';
+import type { CreateTransactionTemplateBody } from '@bt/shared/types/endpoints';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
@@ -9,28 +9,6 @@ const buildPayload = (overrides: Partial<CreateTransactionTemplateBody> = {}): C
   transactionType: TRANSACTION_TYPES.expense,
   ...overrides,
 });
-
-const foreignReferenceCases: [string, () => Promise<UpdateTransactionTemplateBody>][] = [
-  ['accountId', async () => ({ accountId: (await helpers.createAccount({ raw: true })).id })],
-  [
-    'categoryId',
-    async () => ({
-      categoryId: (await helpers.addCustomCategory({ name: 'Foreign', color: '#AABBCC', raw: true })).id,
-    }),
-  ],
-  [
-    'payeeId',
-    async () => ({
-      payeeId: (await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Foreign' }), raw: true })).id,
-    }),
-  ],
-  [
-    'tagIds',
-    async () => ({
-      tagIds: [(await helpers.createTag({ payload: { name: 'foreign', color: '#333333' }, raw: true })).id],
-    }),
-  ],
-];
 
 describe('Transaction templates', () => {
   describe('GET /transaction-templates', () => {
@@ -82,18 +60,6 @@ describe('Transaction templates', () => {
       expect(salary!.amount).toBeNull();
       expect(salary!.tagIds).toEqual([]);
     });
-
-    it("never returns another user's templates", async () => {
-      await helpers.createTransactionTemplate({ payload: buildPayload({ name: 'Mine' }), raw: true });
-
-      const other = await helpers.provisionSecondUserWithBaseCurrency();
-      await helpers.asUser({
-        cookies: other.cookies,
-        fn: () => helpers.createTransactionTemplate({ payload: buildPayload({ name: 'Theirs' }), raw: true }),
-      });
-
-      expect((await helpers.getTransactionTemplates({ raw: true })).map((tpl) => tpl.name)).toEqual(['Mine']);
-    });
   });
 
   describe('POST /transaction-templates', () => {
@@ -105,60 +71,54 @@ describe('Transaction templates', () => {
       expect(fetched!.amount).toBeNull();
     });
 
-    it('rejects an amount without an account', async () => {
-      const response = await helpers.createTransactionTemplate({ payload: buildPayload({ amount: 10 }) });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('rejects a negative amount', async () => {
+    it('rejects an amount without an account, a negative amount, a bank-connected account and an archived account with 422', async () => {
       const account = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.createTransactionTemplate({
-        payload: buildPayload({ amount: -10, accountId: account.id }),
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('rejects an account owned by another user with 404', async () => {
-      const other = await helpers.provisionSecondUserWithBaseCurrency();
-      const foreignAccount = await helpers.asUser({
-        cookies: other.cookies,
-        fn: () => helpers.createAccount({ raw: true }),
-      });
-
-      const response = await helpers.createTransactionTemplate({
-        payload: buildPayload({ accountId: foreignAccount.id }),
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('rejects a bank-connected (non-system) account with 422', async () => {
-      const account = await helpers.createAccount({
+      const bankAccount = await helpers.createAccount({
         payload: { ...helpers.buildAccountPayload(), type: ACCOUNT_TYPES.monobank },
         raw: true,
       });
-
-      const response = await helpers.createTransactionTemplate({
-        payload: buildPayload({ accountId: account.id }),
+      const archivedAccount = await helpers.createAccount({ raw: true });
+      await helpers.updateAccount({
+        id: archivedAccount.id,
+        payload: { status: ACCOUNT_STATUSES.archived },
+        raw: true,
       });
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      const amountWithoutAccountRes = await helpers.createTransactionTemplate({
+        payload: buildPayload({ amount: 10 }),
+      });
+      const negativeAmountRes = await helpers.createTransactionTemplate({
+        payload: buildPayload({ amount: -10, accountId: account.id }),
+      });
+      const bankAccountRes = await helpers.createTransactionTemplate({
+        payload: buildPayload({ accountId: bankAccount.id }),
+      });
+      const archivedAccountRes = await helpers.createTransactionTemplate({
+        payload: buildPayload({ accountId: archivedAccount.id }),
+      });
+
+      expect(amountWithoutAccountRes.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(negativeAmountRes.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(bankAccountRes.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(archivedAccountRes.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(await helpers.getTransactionTemplates({ raw: true })).toEqual([]);
     });
 
-    it('rejects a category, payee or tag owned by another user with 404', async () => {
+    it('create rejects every foreign reference with 404', async () => {
       const other = await helpers.provisionSecondUserWithBaseCurrency();
       const foreign = await helpers.asUser({
         cookies: other.cookies,
         fn: async () => ({
+          account: await helpers.createAccount({ raw: true }),
           category: await helpers.addCustomCategory({ name: 'Foreign', color: '#AABBCC', raw: true }),
           payee: await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Foreign' }), raw: true }),
           tag: await helpers.createTag({ payload: { name: 'foreign', color: '#333333' }, raw: true }),
         }),
       });
 
+      const accountRes = await helpers.createTransactionTemplate({
+        payload: buildPayload({ accountId: foreign.account.id }),
+      });
       const categoryRes = await helpers.createTransactionTemplate({
         payload: buildPayload({ categoryId: foreign.category.id }),
       });
@@ -169,46 +129,12 @@ describe('Transaction templates', () => {
         payload: buildPayload({ tagIds: [foreign.tag.id] }),
       });
 
+      expect(accountRes.statusCode).toBe(ERROR_CODES.NotFoundError);
       expect(categoryRes.statusCode).toBe(ERROR_CODES.NotFoundError);
       expect(payeeRes.statusCode).toBe(ERROR_CODES.NotFoundError);
       expect(tagRes.statusCode).toBe(ERROR_CODES.NotFoundError);
       expect(await helpers.getTransactionTemplates({ raw: true })).toEqual([]);
-    });
-
-    it('rejects an archived account with 422', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      await helpers.updateAccount({ id: account.id, payload: { status: ACCOUNT_STATUSES.archived }, raw: true });
-
-      const response = await helpers.createTransactionTemplate({
-        payload: buildPayload({ accountId: account.id }),
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it.each([
-      ['the exact same name', 'Groceries'],
-      ['a different case', 'GROCERIES'],
-      ['surrounding whitespace', '  Groceries  '],
-    ])('returns 409 when the name collides by %s', async (_label, name) => {
-      await helpers.createTransactionTemplate({ payload: buildPayload({ name: 'Groceries' }), raw: true });
-
-      const response = await helpers.createTransactionTemplate({ payload: buildPayload({ name }) });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
-    });
-
-    it('lets another user reuse the same name', async () => {
-      await helpers.createTransactionTemplate({ payload: buildPayload({ name: 'Groceries' }), raw: true });
-      const other = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const response = await helpers.asUser({
-        cookies: other.cookies,
-        fn: () => helpers.createTransactionTemplate({ payload: buildPayload({ name: 'groceries' }) }),
-      });
-
-      expect(response.statusCode).toBe(201);
-    });
+    }, 30000);
   });
 
   describe('PUT /transaction-templates/:id', () => {
@@ -276,36 +202,6 @@ describe('Transaction templates', () => {
       expect(template!.tagIds).toEqual([]);
     });
 
-    it('returns 409 when renaming onto an existing name', async () => {
-      await helpers.createTransactionTemplate({ payload: buildPayload({ name: 'Groceries' }), raw: true });
-      const second = await helpers.createTransactionTemplate({
-        payload: buildPayload({ name: 'Salary' }),
-        raw: true,
-      });
-
-      const response = await helpers.updateTransactionTemplate({
-        id: second.id,
-        payload: { name: 'groceries' },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
-    });
-
-    it('allows a template to keep its own name', async () => {
-      const created = await helpers.createTransactionTemplate({
-        payload: buildPayload({ name: 'Groceries' }),
-        raw: true,
-      });
-
-      const updated = await helpers.updateTransactionTemplate({
-        id: created.id,
-        payload: { name: 'Groceries', note: 'same name' },
-        raw: true,
-      });
-
-      expect(updated.note).toBe('same name');
-    });
-
     it('rejects clearing the account while an amount is still pinned', async () => {
       const account = await helpers.createAccount({ raw: true });
       const created = await helpers.createTransactionTemplate({
@@ -326,16 +222,6 @@ describe('Transaction templates', () => {
         id: '00000000-0000-0000-0000-000000000000',
         payload: { name: 'nope' },
       });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it.each(foreignReferenceCases)('returns 404 when %s belongs to another user', async (_label, buildForeignRef) => {
-      const created = await helpers.createTransactionTemplate({ payload: buildPayload(), raw: true });
-      const other = await helpers.provisionSecondUserWithBaseCurrency();
-      const payload = await helpers.asUser({ cookies: other.cookies, fn: buildForeignRef });
-
-      const response = await helpers.updateTransactionTemplate({ id: created.id, payload });
 
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
@@ -380,25 +266,6 @@ describe('Transaction templates', () => {
       expect(updated.accountId).toBeNull();
       expect(updated.amount).toBeNull();
     });
-
-    it('returns 404 and changes nothing when another user targets the template', async () => {
-      const created = await helpers.createTransactionTemplate({
-        payload: buildPayload({ note: 'mine' }),
-        raw: true,
-      });
-      const other = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const response = await helpers.asUser({
-        cookies: other.cookies,
-        fn: () => helpers.updateTransactionTemplate({ id: created.id, payload: { name: 'hijacked', note: 'theirs' } }),
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-
-      const [template] = await helpers.getTransactionTemplates({ raw: true });
-      expect(template!.name).toBe('Groceries');
-      expect(template!.note).toBe('mine');
-    });
   });
 
   describe('DELETE /transaction-templates/:id', () => {
@@ -417,19 +284,6 @@ describe('Transaction templates', () => {
       expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
 
-    it('returns 404 and keeps the template when another user targets it', async () => {
-      const created = await helpers.createTransactionTemplate({ payload: buildPayload(), raw: true });
-      const other = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const response = await helpers.asUser({
-        cookies: other.cookies,
-        fn: () => helpers.deleteTransactionTemplate({ id: created.id }),
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-      expect((await helpers.getTransactionTemplates({ raw: true })).map((tpl) => tpl.id)).toEqual([created.id]);
-    });
-
     it('releases its tag links, so the tag can be deleted afterwards', async () => {
       const tag = await helpers.createTag({ payload: { name: 'weekly', color: '#111111' }, raw: true });
       const created = await helpers.createTransactionTemplate({
@@ -444,6 +298,99 @@ describe('Transaction templates', () => {
       expect(tagResponse.statusCode).toBe(200);
     });
   });
+
+  it('returns 409 for a colliding name on create and on rename, but lets a template keep its own name', async () => {
+    const groceries = await helpers.createTransactionTemplate({
+      payload: buildPayload({ name: 'Groceries' }),
+      raw: true,
+    });
+
+    const sameNameRes = await helpers.createTransactionTemplate({ payload: buildPayload({ name: 'Groceries' }) });
+    const differentCaseRes = await helpers.createTransactionTemplate({ payload: buildPayload({ name: 'GROCERIES' }) });
+    const whitespaceRes = await helpers.createTransactionTemplate({ payload: buildPayload({ name: '  Groceries  ' }) });
+
+    expect(sameNameRes.statusCode).toBe(ERROR_CODES.ConflictError);
+    expect(differentCaseRes.statusCode).toBe(ERROR_CODES.ConflictError);
+    expect(whitespaceRes.statusCode).toBe(ERROR_CODES.ConflictError);
+
+    const salary = await helpers.createTransactionTemplate({ payload: buildPayload({ name: 'Salary' }), raw: true });
+    const renameRes = await helpers.updateTransactionTemplate({ id: salary.id, payload: { name: 'groceries' } });
+
+    expect(renameRes.statusCode).toBe(ERROR_CODES.ConflictError);
+
+    const updated = await helpers.updateTransactionTemplate({
+      id: groceries.id,
+      payload: { name: 'Groceries', note: 'same name' },
+      raw: true,
+    });
+
+    expect(updated.note).toBe('same name');
+  });
+
+  it('another user can neither see nor touch my template', async () => {
+    const created = await helpers.createTransactionTemplate({
+      payload: buildPayload({ note: 'mine' }),
+      raw: true,
+    });
+
+    const other = await helpers.provisionSecondUserWithBaseCurrency();
+    const foreign = await helpers.asUser({
+      cookies: other.cookies,
+      fn: async () => ({
+        account: await helpers.createAccount({ raw: true }),
+        category: await helpers.addCustomCategory({ name: 'Foreign', color: '#AABBCC', raw: true }),
+        payee: await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Foreign' }), raw: true }),
+        tag: await helpers.createTag({ payload: { name: 'foreign', color: '#333333' }, raw: true }),
+      }),
+    });
+
+    const accountRes = await helpers.updateTransactionTemplate({
+      id: created.id,
+      payload: { accountId: foreign.account.id },
+    });
+    const categoryRes = await helpers.updateTransactionTemplate({
+      id: created.id,
+      payload: { categoryId: foreign.category.id },
+    });
+    const payeeRes = await helpers.updateTransactionTemplate({
+      id: created.id,
+      payload: { payeeId: foreign.payee.id },
+    });
+    const tagRes = await helpers.updateTransactionTemplate({
+      id: created.id,
+      payload: { tagIds: [foreign.tag.id] },
+    });
+
+    expect(accountRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    expect(categoryRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    expect(payeeRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    expect(tagRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+    const hijackRes = await helpers.asUser({
+      cookies: other.cookies,
+      fn: () => helpers.updateTransactionTemplate({ id: created.id, payload: { name: 'hijacked', note: 'theirs' } }),
+    });
+    const foreignDeleteRes = await helpers.asUser({
+      cookies: other.cookies,
+      fn: () => helpers.deleteTransactionTemplate({ id: created.id }),
+    });
+
+    expect(hijackRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    expect(foreignDeleteRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+    const untouched = await helpers.getTransactionTemplates({ raw: true });
+    expect(untouched.map((tpl) => ({ id: tpl.id, name: tpl.name, note: tpl.note }))).toEqual([
+      { id: created.id, name: 'Groceries', note: 'mine' },
+    ]);
+
+    const foreignCreateRes = await helpers.asUser({
+      cookies: other.cookies,
+      fn: () => helpers.createTransactionTemplate({ payload: buildPayload({ name: 'groceries' }) }),
+    });
+
+    expect(foreignCreateRes.statusCode).toBe(201);
+    expect((await helpers.getTransactionTemplates({ raw: true })).map((tpl) => tpl.name)).toEqual(['Groceries']);
+  }, 30000);
 
   describe('reference lifecycle', () => {
     it('nulls categoryId when the category is deleted', async () => {

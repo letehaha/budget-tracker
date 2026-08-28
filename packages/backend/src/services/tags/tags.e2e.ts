@@ -1,49 +1,54 @@
 import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Tags API', () => {
+  it('returns 404 for a non-existent tag on get, update and delete', async () => {
+    const getResponse = await helpers.getTagById({ id: NONEXISTENT_ID, raw: false });
+    expect(getResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+    const updateResponse = await helpers.updateTag({
+      id: NONEXISTENT_ID,
+      payload: { name: 'Does not exist' },
+      raw: false,
+    });
+    expect(updateResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+    const deleteResponse = await helpers.deleteTag({ id: NONEXISTENT_ID, raw: false });
+    expect(deleteResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+  });
+
   describe('POST /tags (createTag)', () => {
-    it('successfully creates a tag', async () => {
-      const payload = helpers.buildTagPayload({ name: 'Groceries', color: '#10b981' });
-      const tag = await helpers.createTag({ payload, raw: true });
-
-      expect(tag.id).toBeDefined();
-      expect(tag.name).toBe('Groceries');
-      expect(tag.color).toBe('#10b981');
-      expect(tag.icon).toBeNull();
-      expect(tag.description).toBeNull();
-    });
-
-    it('creates a tag with icon and description', async () => {
-      const payload = helpers.buildTagPayload({
-        name: 'Entertainment',
-        color: '#8b5cf6',
-        icon: 'film',
-        description: 'Movies, games, and fun activities',
-      });
-      const tag = await helpers.createTag({ payload, raw: true });
-
-      expect(tag.name).toBe('Entertainment');
-      expect(tag.icon).toBe('film');
-      expect(tag.description).toBe('Movies, games, and fun activities');
-    });
-
-    it('allows creating multiple tags with different names', async () => {
-      const tag1 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Tag One' }),
-        raw: true,
-      });
-      const tag2 = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Tag Two' }),
+    it('creates distinct tags, defaulting icon and description to null', async () => {
+      const groceries = await helpers.createTag({
+        payload: helpers.buildTagPayload({ name: 'Groceries', color: '#10b981' }),
         raw: true,
       });
 
-      expect(tag1.id).toBeDefined();
-      expect(tag2.id).toBeDefined();
-      expect(tag1.id).not.toBe(tag2.id);
+      expect(groceries.id).toBeDefined();
+      expect(groceries.name).toBe('Groceries');
+      expect(groceries.color).toBe('#10b981');
+      expect(groceries.icon).toBeNull();
+      expect(groceries.description).toBeNull();
+
+      const entertainment = await helpers.createTag({
+        payload: helpers.buildTagPayload({
+          name: 'Entertainment',
+          color: '#8b5cf6',
+          icon: 'film',
+          description: 'Movies, games, and fun activities',
+        }),
+        raw: true,
+      });
+
+      expect(entertainment.name).toBe('Entertainment');
+      expect(entertainment.icon).toBe('film');
+      expect(entertainment.description).toBe('Movies, games, and fun activities');
+      expect(entertainment.id).toBeDefined();
+      expect(entertainment.id).not.toBe(groceries.id);
     });
 
     it('fails to create a tag without required fields', async () => {
@@ -63,9 +68,9 @@ describe('Tags API', () => {
 
       const tags = await helpers.getTags({ raw: true });
 
-      expect(tags.length).toBeGreaterThanOrEqual(2);
-      expect(tags.some((t) => t.name === 'Tag A')).toBe(true);
-      expect(tags.some((t) => t.name === 'Tag B')).toBe(true);
+      // fresh users are seeded with default tags, so the list is seeds + created
+      expect(tags.filter((t) => ['Tag A', 'Tag B'].includes(t.name))).toHaveLength(2);
+      expect(tags).toHaveLength(getTranslatedDefaultTags({ locale: 'en' }).length + 2);
     });
   });
 
@@ -80,12 +85,6 @@ describe('Tags API', () => {
 
       expect(tag.id).toBe(created.id);
       expect(tag.name).toBe('Specific Tag');
-    });
-
-    it('returns 404 for non-existent tag', async () => {
-      const response = await helpers.getTagById({ id: NONEXISTENT_ID, raw: false });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 
@@ -124,16 +123,6 @@ describe('Tags API', () => {
       expect(updated.color).toBe('#3b82f6');
       expect(updated.description).toBe('New description');
     });
-
-    it('returns 404 for non-existent tag', async () => {
-      const response = await helpers.updateTag({
-        id: NONEXISTENT_ID,
-        payload: { name: 'Does not exist' },
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
   });
 
   describe('DELETE /tags/:id (deleteTag)', () => {
@@ -149,16 +138,10 @@ describe('Tags API', () => {
       const getResponse = await helpers.getTagById({ id: created.id, raw: false });
       expect(getResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
-
-    it('returns 404 for non-existent tag', async () => {
-      const response = await helpers.deleteTag({ id: NONEXISTENT_ID, raw: false });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
   });
 
-  describe('POST /tags/:id/transactions (addTransactionsToTag)', () => {
-    it('adds transactions to a tag', async () => {
+  describe('POST & DELETE /tags/:id/transactions (add/removeTransactionsToTag)', () => {
+    it('adds transactions, skips already-tagged ones, removes them and ignores unlinked ones', async () => {
       const account = await helpers.createAccount({ raw: true });
       const [[tx1], [tx2]] = await Promise.all([
         helpers.createTransaction({
@@ -184,107 +167,35 @@ describe('Tags API', () => {
         raw: true,
       });
 
-      const result = await helpers.addTransactionsToTag({
+      const added = await helpers.addTransactionsToTag({
         tagId: tag.id,
         transactionIds: [tx1.id, tx2.id],
         raw: true,
       });
+      expect(added.addedCount).toBe(2);
+      expect(added.skippedCount).toBe(0);
 
-      expect(result.addedCount).toBe(2);
-      expect(result.skippedCount).toBe(0);
-    });
-
-    it('skips already-tagged transactions', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Skip Test' }),
-        raw: true,
-      });
-
-      // Add once
-      await helpers.addTransactionsToTag({
+      const addedAgain = await helpers.addTransactionsToTag({
         tagId: tag.id,
-        transactionIds: [tx.id],
+        transactionIds: [tx1.id, tx2.id],
         raw: true,
       });
+      expect(addedAgain.addedCount).toBe(0);
+      expect(addedAgain.skippedCount).toBe(2);
 
-      // Try to add again
-      const result = await helpers.addTransactionsToTag({
+      const removed = await helpers.removeTransactionsFromTag({
         tagId: tag.id,
-        transactionIds: [tx.id],
+        transactionIds: [tx1.id],
         raw: true,
       });
+      expect(removed.removedCount).toBe(1);
 
-      expect(result.addedCount).toBe(0);
-      expect(result.skippedCount).toBe(1);
-    });
-  });
-
-  describe('DELETE /tags/:id/transactions (removeTransactionsFromTag)', () => {
-    it('removes transactions from a tag', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Remove Test' }),
-        raw: true,
-      });
-
-      await helpers.addTransactionsToTag({
+      const removedAgain = await helpers.removeTransactionsFromTag({
         tagId: tag.id,
-        transactionIds: [tx.id],
+        transactionIds: [tx1.id],
         raw: true,
       });
-
-      const result = await helpers.removeTransactionsFromTag({
-        tagId: tag.id,
-        transactionIds: [tx.id],
-        raw: true,
-      });
-
-      expect(result.removedCount).toBe(1);
-    });
-
-    it('handles removing non-linked transactions gracefully', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const tag = await helpers.createTag({
-        payload: helpers.buildTagPayload({ name: 'Not Linked' }),
-        raw: true,
-      });
-
-      // Try to remove without adding first
-      const result = await helpers.removeTransactionsFromTag({
-        tagId: tag.id,
-        transactionIds: [tx.id],
-        raw: true,
-      });
-
-      expect(result.removedCount).toBe(0);
+      expect(removedAgain.removedCount).toBe(0);
     });
   });
 });
