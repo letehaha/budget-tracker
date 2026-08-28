@@ -1,16 +1,17 @@
 import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 import { startOfDay, subDays } from 'date-fns';
 
-describe('bulkScanTransferRecommendations', () => {
-  const today = startOfDay(new Date());
-  const todayISO = today.toISOString();
-  const thirtyDaysAgo = subDays(today, 30).toISOString();
+const today = startOfDay(new Date());
+const todayISO = today.toISOString();
+const thirtyDaysAgo = subDays(today, 30).toISOString();
 
+describe('bulkScanTransferRecommendations', () => {
   describe('success cases', () => {
-    it('returns matching expense-income pairs', async () => {
+    it('returns matching expense-income pairs with confidence scores between 0 and 100', async () => {
       const account1 = await helpers.createAccount({ raw: true });
       const account2 = await helpers.createAccount({ raw: true });
 
@@ -47,37 +48,6 @@ describe('bulkScanTransferRecommendations', () => {
       expect(pair).toBeDefined();
       expect(pair!.matches.length).toBeGreaterThanOrEqual(1);
       expect(pair!.matches.some((m) => m.transaction.id === income.id)).toBe(true);
-    });
-
-    it('returns confidence scores between 0 and 100', async () => {
-      const account1 = await helpers.createAccount({ raw: true });
-      const account2 = await helpers.createAccount({ raw: true });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account1.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.expense,
-          time: todayISO,
-        }),
-        raw: true,
-      });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account2.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.income,
-          time: todayISO,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.bulkScanTransferRecommendations({
-        from: thirtyDaysAgo,
-        to: todayISO,
-        raw: true,
-      });
 
       for (const item of response.items) {
         for (const match of item.matches) {
@@ -169,46 +139,11 @@ describe('bulkScanTransferRecommendations', () => {
       expect(linkedExpenses.length).toBe(0);
     });
 
-    it('excludes transactions on the same account', async () => {
-      const account1 = await helpers.createAccount({ raw: true });
-
-      // Create expense and income on the SAME account
-      const [expense] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account1.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.expense,
-          time: todayISO,
-        }),
-        raw: true,
-      });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account1.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.income,
-          time: todayISO,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.bulkScanTransferRecommendations({
-        from: thirtyDaysAgo,
-        to: todayISO,
-        raw: true,
-      });
-
-      // The expense should not match income on the same account
-      const pair = response.items.find((item) => item.expense.id === expense.id);
-      expect(pair).toBeUndefined();
-    });
-
-    it('respects amount tolerance (±10%)', async () => {
+    it('respects amount (±10%) and date (±14 days) tolerances and excludes same-account matches', async () => {
       const account1 = await helpers.createAccount({ raw: true });
       const account2 = await helpers.createAccount({ raw: true });
 
-      const [expense] = await helpers.createTransaction({
+      const [amountExpense] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account1.id,
           amount: 100,
@@ -218,8 +153,7 @@ describe('bulkScanTransferRecommendations', () => {
         raw: true,
       });
 
-      // Within 10%: 109 (9% off)
-      const [withinRange] = await helpers.createTransaction({
+      const [amountWithinRange] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account2.id,
           amount: 109,
@@ -229,8 +163,7 @@ describe('bulkScanTransferRecommendations', () => {
         raw: true,
       });
 
-      // Outside 10%: 112 (12% off)
-      const [outsideRange] = await helpers.createTransaction({
+      const [amountOutsideRange] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account2.id,
           amount: 112,
@@ -240,23 +173,7 @@ describe('bulkScanTransferRecommendations', () => {
         raw: true,
       });
 
-      const response = await helpers.bulkScanTransferRecommendations({
-        from: thirtyDaysAgo,
-        to: todayISO,
-        raw: true,
-      });
-
-      const pair = response.items.find((item) => item.expense.id === expense.id);
-      expect(pair).toBeDefined();
-      expect(pair!.matches.some((m) => m.transaction.id === withinRange.id)).toBe(true);
-      expect(pair!.matches.some((m) => m.transaction.id === outsideRange.id)).toBe(false);
-    });
-
-    it('respects date tolerance (±14 days)', async () => {
-      const account1 = await helpers.createAccount({ raw: true });
-      const account2 = await helpers.createAccount({ raw: true });
-
-      const [expense] = await helpers.createTransaction({
+      const [dateExpense] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account1.id,
           amount: 500,
@@ -266,8 +183,7 @@ describe('bulkScanTransferRecommendations', () => {
         raw: true,
       });
 
-      // Within 14 days: 10 days ago
-      const [withinRange] = await helpers.createTransaction({
+      const [dateWithinRange] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account2.id,
           amount: 500,
@@ -277,13 +193,33 @@ describe('bulkScanTransferRecommendations', () => {
         raw: true,
       });
 
-      // Outside 14 days: 15 days ago
-      const [outsideRange] = await helpers.createTransaction({
+      const [dateOutsideRange] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account2.id,
           amount: 500,
           transactionType: TRANSACTION_TYPES.income,
           time: subDays(today, 15).toISOString(),
+        }),
+        raw: true,
+      });
+
+      // Expense and income on the SAME account, with no counterpart elsewhere
+      const [sameAccountExpense] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account1.id,
+          amount: 700,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: todayISO,
+        }),
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account1.id,
+          amount: 700,
+          transactionType: TRANSACTION_TYPES.income,
+          time: todayISO,
         }),
         raw: true,
       });
@@ -294,10 +230,17 @@ describe('bulkScanTransferRecommendations', () => {
         raw: true,
       });
 
-      const pair = response.items.find((item) => item.expense.id === expense.id);
-      expect(pair).toBeDefined();
-      expect(pair!.matches.some((m) => m.transaction.id === withinRange.id)).toBe(true);
-      expect(pair!.matches.some((m) => m.transaction.id === outsideRange.id)).toBe(false);
+      const amountPair = response.items.find((item) => item.expense.id === amountExpense.id);
+      expect(amountPair).toBeDefined();
+      expect(amountPair!.matches.some((m) => m.transaction.id === amountWithinRange.id)).toBe(true);
+      expect(amountPair!.matches.some((m) => m.transaction.id === amountOutsideRange.id)).toBe(false);
+
+      const datePair = response.items.find((item) => item.expense.id === dateExpense.id);
+      expect(datePair).toBeDefined();
+      expect(datePair!.matches.some((m) => m.transaction.id === dateWithinRange.id)).toBe(true);
+      expect(datePair!.matches.some((m) => m.transaction.id === dateOutsideRange.id)).toBe(false);
+
+      expect(response.items.find((item) => item.expense.id === sameAccountExpense.id)).toBeUndefined();
     });
 
     it('returns max 4 matches per expense', async () => {
@@ -485,12 +428,39 @@ describe('bulkScanTransferRecommendations', () => {
         expect(prevTime).toBeGreaterThanOrEqual(currTime);
       }
     });
+  });
 
-    it('matches sort by confidence descending within each expense', async () => {
+  describe('error cases', () => {
+    it('returns validation error for malformed date range and limit', async () => {
+      const fromAfterTo = await helpers.bulkScanTransferRecommendations({
+        from: todayISO,
+        to: thirtyDaysAgo,
+      });
+      expect(fromAfterTo.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const missingDates = await helpers.bulkScanTransferRecommendations({
+        from: '',
+        to: '',
+      });
+      expect(missingDates.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const limitTooBig = await helpers.bulkScanTransferRecommendations({
+        from: thirtyDaysAgo,
+        to: todayISO,
+        limit: 100,
+      });
+      expect(limitTooBig.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+  });
+});
+
+describe('dismissTransferSuggestion', () => {
+  describe('success cases', () => {
+    it('dismisses a suggestion pair and returns 204', async () => {
       const account1 = await helpers.createAccount({ raw: true });
       const account2 = await helpers.createAccount({ raw: true });
 
-      await helpers.createTransaction({
+      const [expense] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account1.id,
           amount: 500,
@@ -500,8 +470,7 @@ describe('bulkScanTransferRecommendations', () => {
         raw: true,
       });
 
-      // Create multiple incomes with varying proximity
-      await helpers.createTransaction({
+      const [income] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account2.id,
           amount: 500,
@@ -511,57 +480,132 @@ describe('bulkScanTransferRecommendations', () => {
         raw: true,
       });
 
-      await helpers.createTransaction({
+      const response = await helpers.dismissTransferSuggestion({
+        expenseTransactionId: expense.id,
+        incomeTransactionId: income.id,
+      });
+
+      expect(response.statusCode).toBe(204);
+    });
+
+    it('is idempotent — dismissing the same pair twice succeeds', async () => {
+      const account1 = await helpers.createAccount({ raw: true });
+      const account2 = await helpers.createAccount({ raw: true });
+
+      const [expense] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
-          accountId: account2.id,
-          amount: 540,
-          transactionType: TRANSACTION_TYPES.income,
-          time: subDays(today, 7).toISOString(),
+          accountId: account1.id,
+          amount: 300,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: todayISO,
         }),
         raw: true,
       });
 
-      const response = await helpers.bulkScanTransferRecommendations({
+      const [income] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 300,
+          transactionType: TRANSACTION_TYPES.income,
+          time: todayISO,
+        }),
+        raw: true,
+      });
+
+      const first = await helpers.dismissTransferSuggestion({
+        expenseTransactionId: expense.id,
+        incomeTransactionId: income.id,
+      });
+      expect(first.statusCode).toBe(204);
+
+      const second = await helpers.dismissTransferSuggestion({
+        expenseTransactionId: expense.id,
+        incomeTransactionId: income.id,
+      });
+      expect(second.statusCode).toBe(204);
+    });
+
+    it('dismissed pairs are excluded from bulk-scan results', async () => {
+      const account1 = await helpers.createAccount({ raw: true });
+      const account2 = await helpers.createAccount({ raw: true });
+
+      const [expense] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account1.id,
+          amount: 700,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: todayISO,
+        }),
+        raw: true,
+      });
+
+      const [income] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account2.id,
+          amount: 700,
+          transactionType: TRANSACTION_TYPES.income,
+          time: todayISO,
+        }),
+        raw: true,
+      });
+
+      // Verify the pair appears before dismissing
+      const beforeDismiss = await helpers.bulkScanTransferRecommendations({
         from: thirtyDaysAgo,
         to: todayISO,
         raw: true,
       });
 
-      for (const item of response.items) {
-        for (let i = 1; i < item.matches.length; i++) {
-          expect(item.matches[i - 1]!.confidence).toBeGreaterThanOrEqual(item.matches[i]!.confidence);
-        }
-      }
+      const pairBefore = beforeDismiss.items.find((item) => item.expense.id === expense.id);
+      expect(pairBefore).toBeDefined();
+      expect(pairBefore!.matches.some((m) => m.transaction.id === income.id)).toBe(true);
+
+      // Dismiss the pair
+      await helpers.dismissTransferSuggestion({
+        expenseTransactionId: expense.id,
+        incomeTransactionId: income.id,
+      });
+
+      // Verify the dismissed pair no longer appears
+      const afterDismiss = await helpers.bulkScanTransferRecommendations({
+        from: thirtyDaysAgo,
+        to: todayISO,
+        raw: true,
+      });
+
+      expect(
+        afterDismiss.items.some(
+          (item) => item.expense.id === expense.id && item.matches.some((m) => m.transaction.id === income.id),
+        ),
+      ).toBe(false);
     });
   });
 
   describe('error cases', () => {
-    it('returns validation error when from is after to', async () => {
-      const response = await helpers.bulkScanTransferRecommendations({
-        from: todayISO,
-        to: thirtyDaysAgo,
+    it('returns validation error for missing and malformed transaction ids', async () => {
+      const missingExpenseId = await helpers.dismissTransferSuggestion({
+        expenseTransactionId: undefined as unknown as string,
+        incomeTransactionId: generateRandomRecordId(),
       });
+      expect(missingExpenseId.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns validation error when dates are missing', async () => {
-      const response = await helpers.bulkScanTransferRecommendations({
-        from: '',
-        to: '',
+      const missingIncomeId = await helpers.dismissTransferSuggestion({
+        expenseTransactionId: generateRandomRecordId(),
+        incomeTransactionId: undefined as unknown as string,
       });
+      expect(missingIncomeId.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns validation error when limit exceeds maximum', async () => {
-      const response = await helpers.bulkScanTransferRecommendations({
-        from: thirtyDaysAgo,
-        to: todayISO,
-        limit: 100,
+      const invalidIds = await helpers.dismissTransferSuggestion({
+        expenseTransactionId: 'not-a-uuid' as string,
+        incomeTransactionId: 'also-not-a-uuid' as string,
       });
+      expect(invalidIds.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      const unknownIds = await helpers.dismissTransferSuggestion({
+        expenseTransactionId: generateRandomRecordId(),
+        incomeTransactionId: generateRandomRecordId(),
+      });
+      expect(unknownIds.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 });

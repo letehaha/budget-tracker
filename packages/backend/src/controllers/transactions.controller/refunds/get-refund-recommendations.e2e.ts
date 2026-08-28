@@ -6,127 +6,63 @@ import * as helpers from '@tests/helpers';
 
 describe('getRefundRecommendations', () => {
   describe('success cases', () => {
-    describe('using transactionId parameter', () => {
-      it('returns income recommendations for an expense transaction', async () => {
+    describe('recommendation direction', () => {
+      it('recommends the opposite type for both transactionId and form-data lookups', async () => {
         const account = await helpers.createAccount({ raw: true });
 
-        // Create an expense transaction (the "original" transaction)
+        // 50.00 decimal = 5000 cents, so both sit inside each other's ±5000-cent window.
         const [expenseTx] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
-            amount: 5000,
+            amount: 50,
             transactionType: TRANSACTION_TYPES.expense,
           }),
           raw: true,
         });
-
-        // Create an income transaction that should be recommended
         const [incomeTx] = await helpers.createTransaction({
           payload: helpers.buildTransactionPayload({
             accountId: account.id,
-            amount: 5000,
+            amount: 50,
             transactionType: TRANSACTION_TYPES.income,
           }),
           raw: true,
         });
 
-        const response = await helpers.getRefundRecommendations({
+        const fromExpense = await helpers.getRefundRecommendations({
           transactionId: expenseTx.id,
           raw: true,
         });
 
-        expect(response.length).toBeGreaterThanOrEqual(1);
-        expect(response.some((tx) => tx.id === incomeTx.id)).toBe(true);
-        expect(response.every((tx) => tx.transactionType === TRANSACTION_TYPES.income)).toBe(true);
-      });
+        expect(fromExpense.some((tx) => tx.id === incomeTx.id)).toBe(true);
+        expect(fromExpense.every((tx) => tx.transactionType === TRANSACTION_TYPES.income)).toBe(true);
 
-      it('returns expense recommendations for an income transaction', async () => {
-        const account = await helpers.createAccount({ raw: true });
-
-        // Create an income transaction (the "original" transaction)
-        const [incomeTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 5000,
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        // Create an expense transaction that should be recommended
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 5000,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        const response = await helpers.getRefundRecommendations({
+        const fromIncome = await helpers.getRefundRecommendations({
           transactionId: incomeTx.id,
           raw: true,
         });
 
-        expect(response.length).toBeGreaterThanOrEqual(1);
-        expect(response.some((tx) => tx.id === expenseTx.id)).toBe(true);
-        expect(response.every((tx) => tx.transactionType === TRANSACTION_TYPES.expense)).toBe(true);
-      });
-    });
+        expect(fromIncome.some((tx) => tx.id === expenseTx.id)).toBe(true);
+        expect(fromIncome.every((tx) => tx.transactionType === TRANSACTION_TYPES.expense)).toBe(true);
 
-    describe('using form data parameters', () => {
-      it('returns income recommendations when form specifies expense type', async () => {
-        const account = await helpers.createAccount({ raw: true });
-
-        // Create an income transaction that should be recommended
-        // Amount: 50.00 decimal = 5000 cents
-        const [incomeTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 50, // 50.00 decimal = 5000 cents
-            transactionType: TRANSACTION_TYPES.income,
-          }),
-          raw: true,
-        });
-
-        // Call with form data: expense type at 50.00 decimal should find income near 5000 cents
-        const response = await helpers.getRefundRecommendations({
+        const formExpense = await helpers.getRefundRecommendations({
           transactionType: TRANSACTION_TYPES.expense,
-          originAmount: 50, // 50.00 decimal = 5000 cents
+          originAmount: 50,
           accountId: account.id,
           raw: true,
         });
 
-        expect(response.length).toBeGreaterThanOrEqual(1);
-        expect(response.some((tx) => tx.id === incomeTx.id)).toBe(true);
-        expect(response.every((tx) => tx.transactionType === TRANSACTION_TYPES.income)).toBe(true);
-      });
+        expect(formExpense.some((tx) => tx.id === incomeTx.id)).toBe(true);
+        expect(formExpense.every((tx) => tx.transactionType === TRANSACTION_TYPES.income)).toBe(true);
 
-      it('returns expense recommendations when form specifies income type', async () => {
-        const account = await helpers.createAccount({ raw: true });
-
-        // Create an expense transaction that should be recommended
-        // Amount: 50.00 decimal = 5000 cents
-        const [expenseTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 50, // 50.00 decimal = 5000 cents
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        });
-
-        // Call with form data: income type at 50.00 decimal should find expense near 5000 cents
-        const response = await helpers.getRefundRecommendations({
+        const formIncome = await helpers.getRefundRecommendations({
           transactionType: TRANSACTION_TYPES.income,
-          originAmount: 50, // 50.00 decimal = 5000 cents
+          originAmount: 50,
           accountId: account.id,
           raw: true,
         });
 
-        expect(response.length).toBeGreaterThanOrEqual(1);
-        expect(response.some((tx) => tx.id === expenseTx.id)).toBe(true);
-        expect(response.every((tx) => tx.transactionType === TRANSACTION_TYPES.expense)).toBe(true);
+        expect(formIncome.some((tx) => tx.id === expenseTx.id)).toBe(true);
+        expect(formIncome.every((tx) => tx.transactionType === TRANSACTION_TYPES.expense)).toBe(true);
       });
     });
 
@@ -415,7 +351,7 @@ describe('getRefundRecommendations', () => {
     });
 
     describe('empty results', () => {
-      it('returns empty array when no matching transactions exist', async () => {
+      it('returns an empty array with no candidates, an unknown transactionId or an unknown accountId', async () => {
         const account = await helpers.createAccount({ raw: true });
 
         // Create only an expense transaction, no incomes
@@ -428,32 +364,28 @@ describe('getRefundRecommendations', () => {
           raw: true,
         });
 
-        const response = await helpers.getRefundRecommendations({
+        const noCandidates = await helpers.getRefundRecommendations({
           transactionId: expenseTx.id,
           raw: true,
         });
 
-        expect(Array.isArray(response)).toBe(true);
-      });
+        expect(noCandidates).toEqual([]);
 
-      it('returns empty array for non-existent transactionId', async () => {
-        const response = await helpers.getRefundRecommendations({
+        const unknownTransaction = await helpers.getRefundRecommendations({
           transactionId: generateRandomRecordId(),
           raw: true,
         });
 
-        expect(response).toEqual([]);
-      });
+        expect(unknownTransaction).toEqual([]);
 
-      it('returns empty array for non-existent accountId in form data', async () => {
-        const response = await helpers.getRefundRecommendations({
+        const unknownAccount = await helpers.getRefundRecommendations({
           transactionType: TRANSACTION_TYPES.expense,
           originAmount: 50,
           accountId: generateRandomRecordId(),
           raw: true,
         });
 
-        expect(response).toEqual([]);
+        expect(unknownAccount).toEqual([]);
       });
     });
 
