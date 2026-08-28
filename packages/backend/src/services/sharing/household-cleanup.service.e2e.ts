@@ -46,7 +46,10 @@ const findLatestNotification = async ({
 }) =>
   Notifications.findOne({
     where: { userId, type },
-    order: [['createdAt', 'DESC']],
+    order: [
+      ['createdAt', 'DESC'],
+      ['id', 'DESC'],
+    ],
   });
 
 describe('Household cleanup + notification lifecycle', () => {
@@ -120,31 +123,8 @@ describe('Household cleanup + notification lifecycle', () => {
     });
   });
 
-  describe('owner revokes member', () => {
-    it('emits household_revoked to the member when the owner revokes them', async () => {
-      const ownerAccount = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-
-      await seedHousehold({ ownerUserId: ownerAccount.userId, sharedWithUserId: recipientApp.id });
-
-      await helpers.revokeShareMember({
-        resourceType: RESOURCE_TYPES.household,
-        resourceId: String(ownerAccount.userId),
-        memberUserId: recipientApp.id,
-        raw: true,
-      });
-
-      const note = await findLatestNotification({
-        userId: recipientApp.id,
-        type: NOTIFICATION_TYPES.householdRevoked,
-      });
-      expect(note).not.toBeNull();
-    });
-  });
-
-  describe('owner changes member permission', () => {
-    it('emits household_permission_changed to the member when permission level changes', async () => {
+  describe('owner changes membership', () => {
+    it('emits household_permission_changed on a permission level change and on a policy-only change, then household_revoked on revoke', async () => {
       const ownerAccount = await helpers.createAccount({ raw: true });
       const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
@@ -163,30 +143,17 @@ describe('Household cleanup + notification lifecycle', () => {
         raw: true,
       });
 
-      const note = await findLatestNotification({
+      const permissionNote = await findLatestNotification({
         userId: recipientApp.id,
         type: NOTIFICATION_TYPES.householdPermissionChanged,
       });
-      expect(note).not.toBeNull();
-      const payload = note!.payload as { permission: string };
-      expect(payload.permission).toBe(SHARE_PERMISSIONS.write);
-    });
+      expect(permissionNote).not.toBeNull();
+      expect((permissionNote!.payload as { permission: string }).permission).toBe(SHARE_PERMISSIONS.write);
 
-    it('emits household_permission_changed when only the policy changes', async () => {
       // Policy changes are user-visible (writeScope flips between `all` and `own`), so
       // we surface them through the same notification. The recipient otherwise has no
       // way to learn that their write scope tightened or relaxed until they hit a
       // surprise 403.
-      const ownerAccount = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-
-      await seedHousehold({
-        ownerUserId: ownerAccount.userId,
-        sharedWithUserId: recipientApp.id,
-        permission: SHARE_PERMISSIONS.write,
-      });
-
       const before = await Notifications.count({
         where: { userId: recipientApp.id, type: NOTIFICATION_TYPES.householdPermissionChanged },
       });
@@ -207,12 +174,25 @@ describe('Household cleanup + notification lifecycle', () => {
       // Notification payload must carry the new policy so the recipient's UI can render
       // "your write scope is now `own`" — a count-only assertion would still pass if the
       // payload regressed to omit the policy field.
-      const latest = await Notifications.findOne({
-        where: { userId: recipientApp.id, type: NOTIFICATION_TYPES.householdPermissionChanged },
-        order: [['createdAt', 'DESC']],
+      const policyNote = await findLatestNotification({
+        userId: recipientApp.id,
+        type: NOTIFICATION_TYPES.householdPermissionChanged,
       });
-      const payload = latest!.payload as { policy?: { transactionsWriteScope?: string } };
+      const payload = policyNote!.payload as { policy?: { transactionsWriteScope?: string } };
       expect(payload.policy?.transactionsWriteScope).toBe('own');
-    });
+
+      await helpers.revokeShareMember({
+        resourceType: RESOURCE_TYPES.household,
+        resourceId: String(ownerAccount.userId),
+        memberUserId: recipientApp.id,
+        raw: true,
+      });
+
+      const revokedNote = await findLatestNotification({
+        userId: recipientApp.id,
+        type: NOTIFICATION_TYPES.householdRevoked,
+      });
+      expect(revokedNote).not.toBeNull();
+    }, 30000);
   });
 });

@@ -19,25 +19,9 @@ import { addDays } from 'date-fns';
 // Shared test scaffold helpers
 // ---------------------------------------------------------------------------
 
-interface RecipientHandle extends helpers.SecondUserHandle {}
-
-async function provisionRecipient(): Promise<RecipientHandle> {
-  const handle = await helpers.signUpSecondUser();
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
-
 interface ShareBudgetParams {
   budgetId: string;
-  recipient: RecipientHandle;
+  recipient: helpers.SecondUserHandle;
   permission: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
 }
 
@@ -84,7 +68,7 @@ describe('Shared budget visibility', () => {
         name: 'Shared to recipient',
         raw: true,
       });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       const budgets = await helpers.asUser({
@@ -110,39 +94,71 @@ describe('Shared budget visibility', () => {
       expect(found!.share!.permission).toBe(SHARE_PERMISSIONS.read);
       expect(found!.share!.owner.username).toBeTruthy();
     });
+  });
 
-    it("does not include budget in a non-recipient's list", async () => {
-      const budget = await helpers.createCustomBudget({
-        name: 'Private budget',
+  describe('no budget access', () => {
+    it('hides owner budgets from a stranger across list, detail, spending-stats and category-transactions', async () => {
+      const manualBudget = await helpers.createCustomBudget({ name: 'Private budget', raw: true });
+
+      const category = await helpers.addCustomCategory({ name: 'Cat-stranger', color: '#654321', raw: true });
+      const ownerAccount = await helpers.createAccount({ raw: true });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: ownerAccount.id,
+          amount: 75,
+          transactionType: TRANSACTION_TYPES.expense,
+          categoryId: category.id,
+        }),
         raw: true,
       });
-      const stranger = await provisionRecipient();
+      const categoryBudget = await helpers.createCustomBudget({
+        name: 'Category budget stranger',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category.id],
+        limitAmount: 500,
+        raw: true,
+      });
+
+      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
 
       const budgets = await helpers.asUser({
         cookies: stranger.cookies,
         fn: () => helpers.getCustomBudgets({ raw: true }),
       });
+      const visibleIds = (budgets as Array<{ id: string }>).map((b) => b.id);
+      expect(visibleIds).not.toContain(manualBudget.id);
+      expect(visibleIds).not.toContain(categoryBudget.id);
 
-      expect((budgets as Array<{ id: string }>).find((b) => b.id === budget.id)).toBeUndefined();
-    });
+      const detailRes = await helpers.asUser({
+        cookies: stranger.cookies,
+        fn: () => helpers.getCustomBudgetById({ id: manualBudget.id, raw: false }),
+      });
+      expect(detailRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      const spendingRes = (await helpers.asUser({
+        cookies: stranger.cookies,
+        fn: () => helpers.getSpendingStats({ id: manualBudget.id, raw: false }),
+      })) as CustomResponse<unknown>;
+      expect(spendingRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      const categoryTxRes = (await helpers.asUser({
+        cookies: stranger.cookies,
+        fn: () => helpers.getCategoryBudgetTransactions({ id: categoryBudget.id, raw: false }),
+      })) as CustomResponse<unknown>;
+      expect(categoryTxRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+      const unknownIdRes = (await helpers.getSpendingStats({
+        id: NONEXISTENT_ID,
+        raw: false,
+      })) as CustomResponse<unknown>;
+      expect(unknownIdRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    }, 30000);
   });
 
   describe('GET /budgets/:id — detail', () => {
-    it('returns 404 for a non-recipient accessing the budget by id', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Owner-only', raw: true });
-      const stranger = await provisionRecipient();
-
-      const res = await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () => helpers.getCustomBudgetById({ id: budget.id, raw: false }),
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
     it('returns the shared budget to a recipient with share block (isOwner=false)', async () => {
       const budget = await helpers.createCustomBudget({ name: 'Shared detail', raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       const res = await helpers.asUser({
@@ -166,7 +182,7 @@ describe('Shared budget visibility', () => {
 
     it('returns 404 on GET /budgets/:id after share is revoked', async () => {
       const budget = await helpers.createCustomBudget({ name: 'Revoke test', raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       // Confirm recipient could access before revoke
@@ -193,10 +209,12 @@ describe('Shared budget visibility', () => {
   });
 
   describe('GET /budgets/:id/stats — stats parity', () => {
-    it('returns identical stats for owner and recipient on the same budget', async () => {
+    it('returns identical stats and spending-stats for owner and recipient on the same budget', async () => {
+      // Both endpoints run auth inside the service and resolve the owner's userId
+      // internally; dropping the owner-scope switch would silently return empty
+      // results to the recipient.
       const account = await helpers.createAccount({ raw: true });
 
-      // Create a few transactions to populate stats
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
@@ -221,7 +239,7 @@ describe('Shared budget visibility', () => {
         raw: true,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       const ownerStats = await helpers.getStats({ id: budget.id, raw: true });
@@ -233,31 +251,6 @@ describe('Shared budget visibility', () => {
       // Both should get stats back (may be null if no transactions in budget period,
       // but the shape must match regardless)
       expect(JSON.stringify(ownerStats)).toBe(JSON.stringify(recipientStats));
-    });
-
-    it('GET /budgets/:id/spending-stats — read recipient sees the same rows as the owner', async () => {
-      // Defends the controller→service auth move: spending-stats now runs auth inside
-      // the service and resolves the owner's userId internally. A regression that drops
-      // the owner-scope switch would silently return empty results to the recipient.
-      const account = await helpers.createAccount({ raw: true });
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 120,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const budget = await helpers.createCustomBudget({
-        name: 'Spending-stats parity',
-        autoInclude: true,
-        limitAmount: 1000,
-        raw: true,
-      });
-
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       const ownerSpending = await helpers.getSpendingStats({ id: budget.id, raw: true });
       const recipientSpending = await helpers.asUser({
@@ -266,66 +259,10 @@ describe('Shared budget visibility', () => {
       });
 
       expect(JSON.stringify(ownerSpending)).toBe(JSON.stringify(recipientSpending));
-    });
-
-    it('GET /budgets/:id/spending-stats — stranger gets 404', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Spending-stats stranger', raw: true });
-      const stranger = await provisionRecipient();
-
-      const response = (await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () => helpers.getSpendingStats({ id: budget.id, raw: false }),
-      })) as CustomResponse<unknown>;
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('GET /budgets/:id/spending-stats — 404 for an unknown budget id', async () => {
-      const response = (await helpers.getSpendingStats({
-        id: NONEXISTENT_ID,
-        raw: false,
-      })) as CustomResponse<unknown>;
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
+    }, 30000);
   });
 
   describe('GET /budgets/:id/category-transactions — recipient access', () => {
-    it('read recipient on a shared category budget sees the owner-scoped transactions', async () => {
-      // Defends the same controller→service auth move for the category-budget
-      // transaction list. Recipient must see owner-scoped txs, not their own slice.
-      const category = await helpers.addCustomCategory({ name: 'Cat-shared', color: '#123456', raw: true });
-      const ownerAccount = await helpers.createAccount({ raw: true });
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: ownerAccount.id,
-          amount: 75,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-        }),
-        raw: true,
-      });
-
-      const budget = await helpers.createCustomBudget({
-        name: 'Category budget shared',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category.id],
-        limitAmount: 500,
-        raw: true,
-      });
-
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
-
-      const recipientView = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true }),
-      });
-
-      expect(recipientView.total).toBe(1);
-      expect(recipientView.transactions[0]!.id).toBe(ownerTx!.id);
-    });
-
     it("keeps the owner's planned transaction out of the recipient's list and stats while the owner still counts it", async () => {
       const category = await helpers.addCustomCategory({ name: 'Cat-planned', color: '#0f0f0f', raw: true });
       const ownerAccount = await helpers.createAccount({ raw: true });
@@ -358,7 +295,7 @@ describe('Shared budget visibility', () => {
         raw: true,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       const ownerView = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true });
@@ -392,25 +329,6 @@ describe('Shared budget visibility', () => {
         fn: () => helpers.getSpendingStats({ id: budget.id, raw: true }),
       });
       expect(recipientSpending.spendingsByCategory.find((c) => c.categoryId === category.id)?.amount).toBe(60);
-    });
-
-    it('stranger calling GET /budgets/:id/category-transactions gets 404', async () => {
-      const category = await helpers.addCustomCategory({ name: 'Cat-stranger', color: '#654321', raw: true });
-      const budget = await helpers.createCustomBudget({
-        name: 'Category budget stranger',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category.id],
-        limitAmount: 500,
-        raw: true,
-      });
-      const stranger = await provisionRecipient();
-
-      const response = (await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () => helpers.getCategoryBudgetTransactions({ id: budget.id, raw: false }),
-      })) as CustomResponse<unknown>;
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 
@@ -449,7 +367,7 @@ describe('Shared budget visibility', () => {
         payload: { transactionIds: [realTx!.id, plannedTx!.id] },
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       const ownerStats = (await helpers.getStats({ id: budget.id, raw: true }))!;
@@ -475,11 +393,11 @@ describe('Shared budget visibility', () => {
   });
 
   describe('Household auto-grant — explicitly blocked for budgets', () => {
-    it('returns 404 for a household member who has no explicit budget share', async () => {
+    it('returns 404 on detail and omits the budget from the list for a household member with no explicit budget share', async () => {
       const budget = await helpers.createCustomBudget({ name: 'Household-no-grant', raw: true });
 
       const ownerApp = await helpers.findAppUserByEmail({ email: 'test1@test.local' });
-      const householdMember = await provisionRecipient();
+      const householdMember = await helpers.provisionSecondUserWithBaseCurrency();
 
       // Grant household membership — this should NOT auto-grant budget access
       const householdInvitation = await helpers.createHouseholdInvitation({
@@ -492,30 +410,12 @@ describe('Shared budget visibility', () => {
         fn: () => helpers.acceptShareInvitation({ token: householdInvitation.token, raw: true }),
       });
 
-      // Household member must NOT see the budget — no explicit share
       const res = await helpers.asUser({
         cookies: householdMember.cookies,
         fn: () => helpers.getCustomBudgetById({ id: budget.id, raw: false }),
       });
 
       expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it("does not include owner's budget in household member's GET /budgets list without explicit share", async () => {
-      const budget = await helpers.createCustomBudget({ name: 'HH-list-no-grant', raw: true });
-
-      const ownerApp = await helpers.findAppUserByEmail({ email: 'test1@test.local' });
-      const householdMember = await provisionRecipient();
-
-      const householdInvitation = await helpers.createHouseholdInvitation({
-        ownerUserId: ownerApp.id,
-        inviteeEmail: householdMember.email,
-        permission: SHARE_PERMISSIONS.write,
-      });
-      await helpers.asUser({
-        cookies: householdMember.cookies,
-        fn: () => helpers.acceptShareInvitation({ token: householdInvitation.token, raw: true }),
-      });
 
       const budgets = await helpers.asUser({
         cookies: householdMember.cookies,
@@ -523,7 +423,7 @@ describe('Shared budget visibility', () => {
       });
 
       expect((budgets as Array<{ id: string }>).find((b) => b.id === budget.id)).toBeUndefined();
-    });
+    }, 30000);
   });
 
   describe('GET /categories?includeAccessible=true — budget-share scope', () => {
@@ -563,7 +463,7 @@ describe('Shared budget visibility', () => {
         raw: false,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       const recipientOwnCategory = await helpers.asUser({

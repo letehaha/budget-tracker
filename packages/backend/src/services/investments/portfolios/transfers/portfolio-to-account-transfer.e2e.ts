@@ -33,7 +33,7 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
     });
   });
 
-  it('should transfer funds from portfolio to account (new transaction)', async () => {
+  it('should transfer funds from portfolio to account, create the income transaction and list the transfer', async () => {
     const transfer = await helpers.portfolioToAccountTransfer({
       portfolioId: portfolio.id,
       payload: {
@@ -67,19 +67,6 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
 
     expect(balance!.availableCash).toBeNumericEqual(700);
     expect(balance!.totalCash).toBeNumericEqual(700);
-  });
-
-  it('should create an income transaction on the account', async () => {
-    const transfer = await helpers.portfolioToAccountTransfer({
-      portfolioId: portfolio.id,
-      payload: {
-        accountId: account.id,
-        amount: '200',
-        currencyCode,
-        date: '2025-06-15',
-      },
-      raw: true,
-    });
 
     const transactions = await helpers.getTransactions({
       raw: true,
@@ -90,14 +77,20 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
     const tx = transactions[0]!;
     expect(tx.transactionType).toBe(TRANSACTION_TYPES.income);
     expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio);
-    expect(tx.amount).toBeNumericEqual(200);
+    expect(tx.amount).toBeNumericEqual(300);
     expect(tx.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
-
-    // Verify the PortfolioTransfer record points to the transaction
     expect(transfer.transactionId).toBe(tx.id);
-  });
 
-  it('should link an existing income transaction instead of creating one', async () => {
+    const { data: transfers } = await helpers.listPortfolioTransfers({
+      portfolioId: portfolio.id,
+      raw: true,
+    });
+
+    expect(transfers.length).toBe(1);
+    expect(transfers[0]!.id).toBe(transfer.id);
+  }, 30000);
+
+  it('should link an existing income transaction instead of creating one, and reject re-linking it', async () => {
     // First create an income transaction manually
     const [incomeTx] = await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
@@ -139,7 +132,20 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
 
     // Verify the PortfolioTransfer record points to the existing transaction
     expect(transfer.transactionId).toBe(incomeTx!.id);
-  });
+
+    const relinkResponse = await helpers.portfolioToAccountTransfer({
+      portfolioId: portfolio.id,
+      payload: {
+        accountId: account.id,
+        amount: '500',
+        currencyCode,
+        date: '2025-06-20',
+        existingTransactionId: incomeTx!.id,
+      },
+    });
+
+    expect(relinkResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+  }, 30000);
 
   it('should set refCurrencyCode to base currency when account currency differs from base', async () => {
     const { account: eurAccount } = await helpers.createAccountWithNewCurrency({ currency: 'EUR' });
@@ -179,68 +185,6 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
     expect(transactions[0]!.refCurrencyCode).toBe(global.BASE_CURRENCY.code);
   });
 
-  it('should reject linking a non-income transaction', async () => {
-    const [expenseTx] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 500,
-        transactionType: TRANSACTION_TYPES.expense,
-      }),
-      raw: true,
-    });
-
-    const response = await helpers.portfolioToAccountTransfer({
-      portfolioId: portfolio.id,
-      payload: {
-        accountId: account.id,
-        amount: '500',
-        currencyCode,
-        date: '2025-06-15',
-        existingTransactionId: expenseTx!.id,
-      },
-    });
-
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('should reject linking a transaction already linked to another transfer', async () => {
-    const [incomeTx] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 500,
-        transactionType: TRANSACTION_TYPES.income,
-      }),
-      raw: true,
-    });
-
-    // Link it once
-    await helpers.portfolioToAccountTransfer({
-      portfolioId: portfolio.id,
-      payload: {
-        accountId: account.id,
-        amount: '500',
-        currencyCode,
-        date: '2025-06-15',
-        existingTransactionId: incomeTx!.id,
-      },
-      raw: true,
-    });
-
-    // Try to link the same transaction again
-    const response = await helpers.portfolioToAccountTransfer({
-      portfolioId: portfolio.id,
-      payload: {
-        accountId: account.id,
-        amount: '500',
-        currencyCode,
-        date: '2025-06-20',
-        existingTransactionId: incomeTx!.id,
-      },
-    });
-
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
   it('should allow portfolio balance to go negative (soft tracking)', async () => {
     // Withdraw more than available (1000 in portfolio)
     const transfer = await helpers.portfolioToAccountTransfer({
@@ -266,68 +210,46 @@ describe('Portfolio to Account Transfer (POST /investments/portfolios/:id/transf
     expect(balance!.totalCash).toBeNumericEqual(-500);
   });
 
-  it('should reject zero amount', async () => {
-    const response = await helpers.portfolioToAccountTransfer({
+  it('should reject zero amount, unknown portfolio or account, and linking a non-income transaction', async () => {
+    const zeroAmount = await helpers.portfolioToAccountTransfer({
       portfolioId: portfolio.id,
-      payload: {
-        accountId: account.id,
-        amount: '0',
-        currencyCode,
-        date: '2025-06-15',
-      },
+      payload: { accountId: account.id, amount: '0', currencyCode, date: '2025-06-15' },
     });
+    expect(zeroAmount.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('should reject non-existent portfolio', async () => {
-    const response = await helpers.portfolioToAccountTransfer({
+    const unknownPortfolio = await helpers.portfolioToAccountTransfer({
       portfolioId: generateRandomRecordId(),
-      payload: {
-        accountId: account.id,
-        amount: '100',
-        currencyCode,
-        date: '2025-06-15',
-      },
+      payload: { accountId: account.id, amount: '100', currencyCode, date: '2025-06-15' },
     });
+    expect(unknownPortfolio.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-  });
-
-  it('should reject non-existent account', async () => {
-    const response = await helpers.portfolioToAccountTransfer({
+    const unknownAccount = await helpers.portfolioToAccountTransfer({
       portfolioId: portfolio.id,
-      payload: {
-        accountId: generateRandomRecordId(),
-        amount: '100',
-        currencyCode,
-        date: '2025-06-15',
-      },
+      payload: { accountId: generateRandomRecordId(), amount: '100', currencyCode, date: '2025-06-15' },
     });
+    expect(unknownAccount.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-  });
-
-  it('should appear in portfolio transfer list', async () => {
-    const transfer = await helpers.portfolioToAccountTransfer({
-      portfolioId: portfolio.id,
-      payload: {
+    const [expenseTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
         accountId: account.id,
-        amount: '100',
-        currencyCode,
-        date: '2025-06-15',
-      },
+        amount: 500,
+        transactionType: TRANSACTION_TYPES.expense,
+      }),
       raw: true,
     });
 
-    const { data: transfers } = await helpers.listPortfolioTransfers({
+    const nonIncomeLink = await helpers.portfolioToAccountTransfer({
       portfolioId: portfolio.id,
-      raw: true,
+      payload: {
+        accountId: account.id,
+        amount: '500',
+        currencyCode,
+        date: '2025-06-15',
+        existingTransactionId: expenseTx!.id,
+      },
     });
-
-    expect(transfers.length).toBe(1);
-    expect(transfers[0]!.id).toBe(transfer.id);
-  });
+    expect(nonIncomeLink.statusCode).toBe(ERROR_CODES.ValidationError);
+  }, 30000);
 
   it('should not change total wealth when transferring from portfolio to account', async () => {
     // Portfolio starts with 1000 cash (from beforeEach), account starts with 0

@@ -104,39 +104,6 @@ describe('Investment transaction settlement currency', () => {
       });
       expect(balance!.availableCash).toBeNumericEqual(9590);
     });
-
-    it('rejects totalSpent below quantity*price on BUY (negative fee)', async () => {
-      const response = await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '5',
-          price: '100',
-          settlementCurrencyCode: securityCurrencyCode,
-          settlementAmount: '480',
-        },
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects settlementFees for same-currency settlement', async () => {
-      const response = await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '5',
-          price: '99.5',
-          settlementCurrencyCode: securityCurrencyCode,
-          settlementAmount: '500',
-          settlementFees: '2.5',
-        },
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
   });
 
   describe('cross-currency settlement (PLN cash, USD security)', () => {
@@ -389,90 +356,87 @@ describe('Investment transaction settlement currency', () => {
       });
       expect(plnBalance!.availableCash).toBeNumericEqual(-1700);
     });
-
-    it('rejects settlementFees and settlementRate together', async () => {
-      const response = await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '5',
-          price: '92.07',
-          settlementCurrencyCode: 'PLN',
-          settlementAmount: '1700',
-          settlementFees: '15',
-          settlementRate: '3.66',
-        },
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects cross-currency settlement with zero price (no rate derivable)', async () => {
-      const response = await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '5',
-          price: '0',
-          settlementCurrencyCode: 'PLN',
-          settlementAmount: '1700',
-          settlementFees: '0',
-        },
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects fees not covered by cash moved on BUY', async () => {
-      const response = await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '5',
-          price: '92.07',
-          settlementCurrencyCode: 'PLN',
-          settlementAmount: '10',
-          settlementFees: '15',
-        },
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
   });
 
-  describe('settlement field pairing validation', () => {
-    it('rejects settlementCurrencyCode without settlementAmount', async () => {
-      const response = await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '5',
-          price: '100',
-          settlementCurrencyCode: 'PLN',
+  describe('settlement payload rejections', () => {
+    it('rejects invalid settlement payloads', async () => {
+      const cases = [
+        {
+          name: 'totalSpent below quantity*price on BUY (negative fee)',
+          payload: {
+            quantity: '5',
+            price: '100',
+            settlementCurrencyCode: securityCurrencyCode,
+            settlementAmount: '480',
+          },
         },
-      });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects settlementAmount without settlementCurrencyCode', async () => {
-      const response = await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          quantity: '5',
-          price: '100',
-          settlementAmount: '500',
+        {
+          name: 'settlementFees for same-currency settlement',
+          payload: {
+            quantity: '5',
+            price: '99.5',
+            settlementCurrencyCode: securityCurrencyCode,
+            settlementAmount: '500',
+            settlementFees: '2.5',
+          },
         },
-      });
+        {
+          name: 'settlementFees and settlementRate together',
+          payload: {
+            quantity: '5',
+            price: '92.07',
+            settlementCurrencyCode: 'PLN',
+            settlementAmount: '1700',
+            settlementFees: '15',
+            settlementRate: '3.66',
+          },
+        },
+        {
+          name: 'cross-currency settlement with zero price (no rate derivable)',
+          payload: {
+            quantity: '5',
+            price: '0',
+            settlementCurrencyCode: 'PLN',
+            settlementAmount: '1700',
+            settlementFees: '0',
+          },
+        },
+        {
+          name: 'fees not covered by cash moved on BUY',
+          payload: {
+            quantity: '5',
+            price: '92.07',
+            settlementCurrencyCode: 'PLN',
+            settlementAmount: '10',
+            settlementFees: '15',
+          },
+        },
+        {
+          name: 'settlementCurrencyCode without settlementAmount',
+          payload: { quantity: '5', price: '100', settlementCurrencyCode: 'PLN' },
+        },
+        {
+          name: 'settlementAmount without settlementCurrencyCode',
+          payload: { quantity: '5', price: '100', settlementAmount: '500' },
+        },
+      ];
 
-      expect(response.statusCode).toBe(422);
-    });
+      const outcomes: { name: string; statusCode: number }[] = [];
+
+      for (const { name, payload } of cases) {
+        const response = await helpers.createInvestmentTransaction({
+          payload: {
+            portfolioId: portfolio.id,
+            securityId: security.id,
+            category: INVESTMENT_TRANSACTION_CATEGORY.buy,
+            ...payload,
+          },
+        });
+        outcomes.push({ name, statusCode: response.statusCode });
+      }
+
+      expect(outcomes).toEqual(cases.map(({ name }) => ({ name, statusCode: 422 })));
+    }, 30000);
   });
 
   describe('delete reverses settlement-currency cash', () => {

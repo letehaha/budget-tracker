@@ -5,7 +5,7 @@ import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Exchange Currency', () => {
-  it('should exchange currency within a portfolio', async () => {
+  it('should exchange currency within a portfolio, auto-creating and accumulating the target balance', async () => {
     const portfolio = await helpers.createPortfolio({
       payload: { name: 'Forex Portfolio', portfolioType: PORTFOLIO_TYPE.investment },
       raw: true,
@@ -15,15 +15,13 @@ describe('Exchange Currency', () => {
       currencies: [eurCurrency, usdCurrency],
     } = await helpers.addUserCurrencies({ currencyCodes: ['EUR', 'USD'], raw: true });
 
-    // Seed EUR balance
     await helpers.updatePortfolioBalance({
       portfolioId: portfolio.id,
       currencyCode: eurCurrency!.currencyCode,
-      setAvailableCash: '1000',
-      setTotalCash: '1000',
+      setAvailableCash: '2000',
+      setTotalCash: '2000',
     });
 
-    // Exchange 500 EUR -> 540 USD
     const transfer = await helpers.exchangeCurrency({
       portfolioId: portfolio.id,
       payload: helpers.buildExchangeCurrencyPayload({
@@ -47,16 +45,15 @@ describe('Exchange Currency', () => {
       description: 'EUR to USD exchange',
     });
 
-    // Verify EUR balance decreased
     const [eurBalance] = await helpers.getPortfolioBalance({
       portfolioId: portfolio.id,
       currencyCode: eurCurrency!.currencyCode,
       raw: true,
     });
-    expect(eurBalance!.availableCash).toBeNumericEqual(500);
-    expect(eurBalance!.totalCash).toBeNumericEqual(500);
+    expect(eurBalance!.availableCash).toBeNumericEqual(1500);
+    expect(eurBalance!.totalCash).toBeNumericEqual(1500);
 
-    // Verify USD balance was created and has correct amount
+    // The USD balance row is never seeded, so it must be created by the exchange itself.
     const [usdBalance] = await helpers.getPortfolioBalance({
       portfolioId: portfolio.id,
       currencyCode: usdCurrency!.currencyCode,
@@ -64,43 +61,34 @@ describe('Exchange Currency', () => {
     });
     expect(usdBalance!.availableCash).toBeNumericEqual(540);
     expect(usdBalance!.totalCash).toBeNumericEqual(540);
-  });
 
-  it('should auto-create target currency balance if it does not exist', async () => {
-    const portfolio = await helpers.createPortfolio({ raw: true });
-
-    const {
-      currencies: [gbpCurrency, jpyCurrency],
-    } = await helpers.addUserCurrencies({ currencyCodes: ['GBP', 'JPY'], raw: true });
-
-    // Seed GBP balance
-    await helpers.updatePortfolioBalance({
-      portfolioId: portfolio.id,
-      currencyCode: gbpCurrency!.currencyCode,
-      setAvailableCash: '2000',
-      setTotalCash: '2000',
-    });
-
-    // Exchange GBP -> JPY (JPY balance does not exist yet)
     await helpers.exchangeCurrency({
       portfolioId: portfolio.id,
       payload: helpers.buildExchangeCurrencyPayload({
-        fromCurrencyCode: gbpCurrency!.currencyCode,
-        toCurrencyCode: jpyCurrency!.currencyCode,
-        fromAmount: '100',
-        toAmount: '18500',
+        fromCurrencyCode: eurCurrency!.currencyCode,
+        toCurrencyCode: usdCurrency!.currencyCode,
+        fromAmount: '200',
+        toAmount: '216',
       }),
       raw: true,
     });
 
-    const [jpyBalance] = await helpers.getPortfolioBalance({
+    const [eurBalanceAfter] = await helpers.getPortfolioBalance({
       portfolioId: portfolio.id,
-      currencyCode: jpyCurrency!.currencyCode,
+      currencyCode: eurCurrency!.currencyCode,
       raw: true,
     });
-    expect(jpyBalance!.availableCash).toBeNumericEqual(18500);
-    expect(jpyBalance!.totalCash).toBeNumericEqual(18500);
-  });
+    expect(eurBalanceAfter!.availableCash).toBeNumericEqual(1300);
+    expect(eurBalanceAfter!.totalCash).toBeNumericEqual(1300);
+
+    const [usdBalanceAfter] = await helpers.getPortfolioBalance({
+      portfolioId: portfolio.id,
+      currencyCode: usdCurrency!.currencyCode,
+      raw: true,
+    });
+    expect(usdBalanceAfter!.availableCash).toBeNumericEqual(756);
+    expect(usdBalanceAfter!.totalCash).toBeNumericEqual(756);
+  }, 30000);
 
   it('should allow negative balance (margin)', async () => {
     const portfolio = await helpers.createPortfolio({ raw: true });
@@ -132,14 +120,14 @@ describe('Exchange Currency', () => {
     expect(eurBalance!.totalCash).toBeNumericEqual(-100);
   });
 
-  it('should reject exchange with same from and to currency', async () => {
+  it('should reject same from/to currency, zero or negative amounts, unknown currency codes and an unknown portfolio', async () => {
     const portfolio = await helpers.createPortfolio({ raw: true });
 
     const {
-      currencies: [usdCurrency],
-    } = await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
+      currencies: [eurCurrency, usdCurrency],
+    } = await helpers.addUserCurrencies({ currencyCodes: ['EUR', 'USD'], raw: true });
 
-    const response = await helpers.exchangeCurrency({
+    const sameCurrency = await helpers.exchangeCurrency({
       portfolioId: portfolio.id,
       payload: helpers.buildExchangeCurrencyPayload({
         fromCurrencyCode: usdCurrency!.currencyCode,
@@ -148,19 +136,9 @@ describe('Exchange Currency', () => {
         toAmount: '100',
       }),
     });
+    expect(sameCurrency.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('should reject zero or negative amounts', async () => {
-    const portfolio = await helpers.createPortfolio({ raw: true });
-
-    const {
-      currencies: [eurCurrency, usdCurrency],
-    } = await helpers.addUserCurrencies({ currencyCodes: ['EUR', 'USD'], raw: true });
-
-    // Zero fromAmount
-    const zeroResponse = await helpers.exchangeCurrency({
+    const zeroFromAmount = await helpers.exchangeCurrency({
       portfolioId: portfolio.id,
       payload: helpers.buildExchangeCurrencyPayload({
         fromCurrencyCode: eurCurrency!.currencyCode,
@@ -169,10 +147,9 @@ describe('Exchange Currency', () => {
         toAmount: '100',
       }),
     });
-    expect(zeroResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(zeroFromAmount.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    // Negative fromAmount
-    const negativeFromResponse = await helpers.exchangeCurrency({
+    const negativeFromAmount = await helpers.exchangeCurrency({
       portfolioId: portfolio.id,
       payload: helpers.buildExchangeCurrencyPayload({
         fromCurrencyCode: eurCurrency!.currencyCode,
@@ -181,10 +158,9 @@ describe('Exchange Currency', () => {
         toAmount: '100',
       }),
     });
-    expect(negativeFromResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(negativeFromAmount.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    // Negative toAmount
-    const negativeResponse = await helpers.exchangeCurrency({
+    const negativeToAmount = await helpers.exchangeCurrency({
       portfolioId: portfolio.id,
       payload: helpers.buildExchangeCurrencyPayload({
         fromCurrencyCode: eurCurrency!.currencyCode,
@@ -193,18 +169,9 @@ describe('Exchange Currency', () => {
         toAmount: '-50',
       }),
     });
-    expect(negativeResponse.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
+    expect(negativeToAmount.statusCode).toBe(ERROR_CODES.ValidationError);
 
-  it('should reject exchange with non-existent currency codes', async () => {
-    const portfolio = await helpers.createPortfolio({ raw: true });
-
-    const {
-      currencies: [eurCurrency],
-    } = await helpers.addUserCurrencies({ currencyCodes: ['EUR'], raw: true });
-
-    // Non-existent fromCurrencyCode
-    const badFromResponse = await helpers.exchangeCurrency({
+    const unknownFromCurrency = await helpers.exchangeCurrency({
       portfolioId: portfolio.id,
       payload: helpers.buildExchangeCurrencyPayload({
         fromCurrencyCode: 'ZZZ',
@@ -213,10 +180,9 @@ describe('Exchange Currency', () => {
         toAmount: '100',
       }),
     });
-    expect(badFromResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(unknownFromCurrency.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    // Non-existent toCurrencyCode
-    const badToResponse = await helpers.exchangeCurrency({
+    const unknownToCurrency = await helpers.exchangeCurrency({
       portfolioId: portfolio.id,
       payload: helpers.buildExchangeCurrencyPayload({
         fromCurrencyCode: eurCurrency!.currencyCode,
@@ -225,65 +191,17 @@ describe('Exchange Currency', () => {
         toAmount: '100',
       }),
     });
-    expect(badToResponse.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
+    expect(unknownToCurrency.statusCode).toBe(ERROR_CODES.ValidationError);
 
-  it('should accumulate balances correctly across multiple sequential exchanges', async () => {
-    const portfolio = await helpers.createPortfolio({ raw: true });
-
-    const {
-      currencies: [eurCurrency, usdCurrency],
-    } = await helpers.addUserCurrencies({ currencyCodes: ['EUR', 'USD'], raw: true });
-
-    await helpers.updatePortfolioBalance({
-      portfolioId: portfolio.id,
-      currencyCode: eurCurrency!.currencyCode,
-      setAvailableCash: '2000',
-      setTotalCash: '2000',
-    });
-
-    // First exchange: 500 EUR -> 540 USD
-    await helpers.exchangeCurrency({
-      portfolioId: portfolio.id,
+    const unknownPortfolio = await helpers.exchangeCurrency({
+      portfolioId: generateRandomRecordId(),
       payload: helpers.buildExchangeCurrencyPayload({
         fromCurrencyCode: eurCurrency!.currencyCode,
         toCurrencyCode: usdCurrency!.currencyCode,
-        fromAmount: '500',
-        toAmount: '540',
       }),
-      raw: true,
     });
-
-    // Second exchange: 200 EUR -> 216 USD
-    await helpers.exchangeCurrency({
-      portfolioId: portfolio.id,
-      payload: helpers.buildExchangeCurrencyPayload({
-        fromCurrencyCode: eurCurrency!.currencyCode,
-        toCurrencyCode: usdCurrency!.currencyCode,
-        fromAmount: '200',
-        toAmount: '216',
-      }),
-      raw: true,
-    });
-
-    // EUR: 2000 - 500 - 200 = 1300
-    const [eurBalance] = await helpers.getPortfolioBalance({
-      portfolioId: portfolio.id,
-      currencyCode: eurCurrency!.currencyCode,
-      raw: true,
-    });
-    expect(eurBalance!.availableCash).toBeNumericEqual(1300);
-    expect(eurBalance!.totalCash).toBeNumericEqual(1300);
-
-    // USD: 540 + 216 = 756
-    const [usdBalance] = await helpers.getPortfolioBalance({
-      portfolioId: portfolio.id,
-      currencyCode: usdCurrency!.currencyCode,
-      raw: true,
-    });
-    expect(usdBalance!.availableCash).toBeNumericEqual(756);
-    expect(usdBalance!.totalCash).toBeNumericEqual(756);
-  });
+    expect(unknownPortfolio.statusCode).toBe(ERROR_CODES.NotFoundError);
+  }, 30000);
 
   it('should handle decimal precision amounts correctly', async () => {
     const portfolio = await helpers.createPortfolio({ raw: true });
@@ -362,22 +280,6 @@ describe('Exchange Currency', () => {
     expect(transfers[0]!.currency).toBeDefined();
     expect(transfers[0]!.toCurrency).toBeDefined();
     expect(transfers[0]!.toCurrency!.code).toBe(usdCurrency!.currencyCode);
-  });
-
-  it('should reject exchange for non-existent portfolio', async () => {
-    const {
-      currencies: [eurCurrency, usdCurrency],
-    } = await helpers.addUserCurrencies({ currencyCodes: ['EUR', 'USD'], raw: true });
-
-    const response = await helpers.exchangeCurrency({
-      portfolioId: generateRandomRecordId(),
-      payload: helpers.buildExchangeCurrencyPayload({
-        fromCurrencyCode: eurCurrency!.currencyCode,
-        toCurrencyCode: usdCurrency!.currencyCode,
-      }),
-    });
-
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
   });
 
   it('should reverse balances when exchange is deleted', async () => {

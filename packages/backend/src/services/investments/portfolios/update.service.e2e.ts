@@ -95,7 +95,7 @@ describe('Update Portfolio Service E2E', () => {
         expect(sameNamePortfolio.name).toBe('Multi-field Update');
       });
 
-      it('should set, uppercase, and reset displayCurrencyCode', async () => {
+      it('should set, uppercase, keep across unrelated updates, and reset displayCurrencyCode', async () => {
         const createResponse = await helpers.createPortfolio({
           payload: { name: 'Display Currency Portfolio' },
         });
@@ -112,6 +112,17 @@ describe('Update Portfolio Service E2E', () => {
         expect(setResponse.statusCode).toBe(200);
         expect(helpers.extractResponse(setResponse).displayCurrencyCode).toBe('EUR');
 
+        // An update payload without the displayCurrencyCode key must not reset it
+        const nameUpdateResponse = await helpers.updatePortfolio({
+          portfolioId: createdPortfolio.id,
+          payload: { name: 'Renamed Portfolio' },
+        });
+
+        expect(nameUpdateResponse.statusCode).toBe(200);
+        const renamedPortfolio = helpers.extractResponse(nameUpdateResponse);
+        expect(renamedPortfolio.name).toBe('Renamed Portfolio');
+        expect(renamedPortfolio.displayCurrencyCode).toBe('EUR');
+
         // Null resets back to the user's base currency
         const resetResponse = await helpers.updatePortfolio({
           portfolioId: createdPortfolio.id,
@@ -120,33 +131,7 @@ describe('Update Portfolio Service E2E', () => {
 
         expect(resetResponse.statusCode).toBe(200);
         expect(helpers.extractResponse(resetResponse).displayCurrencyCode).toBeNull();
-      });
-
-      it('should keep displayCurrencyCode when updating unrelated fields', async () => {
-        const createResponse = await helpers.createPortfolio({
-          payload: { name: 'Sticky Display Currency Portfolio' },
-        });
-        const createdPortfolio = helpers.extractResponse(createResponse);
-
-        await helpers.addUserCurrencyByCode({ code: 'EUR', raw: true });
-
-        const setResponse = await helpers.updatePortfolio({
-          portfolioId: createdPortfolio.id,
-          payload: { displayCurrencyCode: 'EUR' },
-        });
-        expect(setResponse.statusCode).toBe(200);
-
-        // An update payload without the displayCurrencyCode key must not reset it
-        const nameUpdateResponse = await helpers.updatePortfolio({
-          portfolioId: createdPortfolio.id,
-          payload: { name: 'Renamed Portfolio' },
-        });
-
-        expect(nameUpdateResponse.statusCode).toBe(200);
-        const updatedPortfolio = helpers.extractResponse(nameUpdateResponse);
-        expect(updatedPortfolio.name).toBe('Renamed Portfolio');
-        expect(updatedPortfolio.displayCurrencyCode).toBe('EUR');
-      });
+      }, 30000);
     });
 
     describe('Error cases', () => {
@@ -183,74 +168,46 @@ describe('Update Portfolio Service E2E', () => {
     });
 
     describe('Validation cases', () => {
-      it('should return ValidationError when no fields are provided', async () => {
+      it('should return ValidationError for an empty payload, invalid type/name, bad display currency and invalid portfolioId', async () => {
         const createResponse = await helpers.createPortfolio();
         const createdPortfolio = helpers.extractResponse(createResponse);
 
-        const response = await helpers.updatePortfolio({
+        const emptyPayload = await helpers.updatePortfolio({
           portfolioId: createdPortfolio.id,
           payload: {},
         });
+        expect(emptyPayload.statusCode).toBe(ERROR_CODES.ValidationError);
 
-        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      });
-
-      it('should return ValidationError for invalid portfolio type', async () => {
-        const createResponse = await helpers.createPortfolio();
-        const createdPortfolio = helpers.extractResponse(createResponse);
-
-        const response = await helpers.updatePortfolio({
+        const invalidType = await helpers.updatePortfolio({
           portfolioId: createdPortfolio.id,
           payload: { portfolioType: 'invalid' as PORTFOLIO_TYPE },
         });
+        expect(invalidType.statusCode).toBe(ERROR_CODES.ValidationError);
 
-        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      });
-
-      it('should return ValidationError for empty name', async () => {
-        const createResponse = await helpers.createPortfolio();
-        const createdPortfolio = helpers.extractResponse(createResponse);
-
-        const response = await helpers.updatePortfolio({
+        const emptyName = await helpers.updatePortfolio({
           portfolioId: createdPortfolio.id,
           payload: { name: '' },
         });
+        expect(emptyName.statusCode).toBe(ERROR_CODES.ValidationError);
 
-        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      });
-
-      it('should return ValidationError for a display currency not connected to the user', async () => {
-        const createResponse = await helpers.createPortfolio();
-        const createdPortfolio = helpers.extractResponse(createResponse);
-
-        const response = await helpers.updatePortfolio({
+        const unconnectedCurrency = await helpers.updatePortfolio({
           portfolioId: createdPortfolio.id,
           payload: { displayCurrencyCode: 'PLN' },
         });
+        expect(unconnectedCurrency.statusCode).toBe(ERROR_CODES.ValidationError);
 
-        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      });
-
-      it('should return ValidationError for a malformed display currency code', async () => {
-        const createResponse = await helpers.createPortfolio();
-        const createdPortfolio = helpers.extractResponse(createResponse);
-
-        const response = await helpers.updatePortfolio({
+        const malformedCurrency = await helpers.updatePortfolio({
           portfolioId: createdPortfolio.id,
           payload: { displayCurrencyCode: 'EURO' },
         });
+        expect(malformedCurrency.statusCode).toBe(ERROR_CODES.ValidationError);
 
-        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      });
-
-      it('should return ValidationError for invalid portfolioId parameter', async () => {
-        const response = await helpers.updatePortfolio({
+        const invalidPortfolioId = await helpers.updatePortfolio({
           portfolioId: 'invalid' as unknown as string,
           payload: { name: 'Test' },
         });
-
-        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      });
+        expect(invalidPortfolioId.statusCode).toBe(ERROR_CODES.ValidationError);
+      }, 30000);
     });
   });
 });

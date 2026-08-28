@@ -48,8 +48,19 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     });
   });
 
-  it('should update transaction quantity successfully', async () => {
-    const response = await helpers.updateInvestmentTransaction({
+  it('updates single and multiple fields and echoes the recomputed amount', async () => {
+    const unchanged = await helpers.updateInvestmentTransaction({
+      transactionId: transaction.id,
+      payload: {},
+      raw: true,
+    });
+
+    expect(unchanged.quantity).toBeNumericEqual(2);
+    expect(unchanged.price).toBeNumericEqual(50);
+    expect(unchanged.fees).toBeNumericEqual(5);
+    expect(unchanged.name).toBe(''); // Empty string since no name was provided during creation
+
+    const quantityUpdated = await helpers.updateInvestmentTransaction({
       transactionId: transaction.id,
       payload: {
         quantity: '3',
@@ -57,14 +68,12 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
       raw: true,
     });
 
-    expect(response.quantity).toBeNumericEqual(3);
-    expect(response.amount).toBeNumericEqual(155); // (3 * 50) + 5 fees
-    expect(response.price).toBeNumericEqual(50); // Should remain the same
-    expect(response.fees).toBeNumericEqual(5); // Should remain the same
-  });
+    expect(quantityUpdated.quantity).toBeNumericEqual(3);
+    expect(quantityUpdated.amount).toBeNumericEqual(155); // (3 * 50) + 5 fees
+    expect(quantityUpdated.price).toBeNumericEqual(50);
+    expect(quantityUpdated.fees).toBeNumericEqual(5);
 
-  it('should update transaction price successfully', async () => {
-    const response = await helpers.updateInvestmentTransaction({
+    const priceUpdated = await helpers.updateInvestmentTransaction({
       transactionId: transaction.id,
       payload: {
         price: '60',
@@ -72,11 +81,23 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
       raw: true,
     });
 
-    expect(response.price).toBeNumericEqual(60);
-    expect(response.amount).toBeNumericEqual(125); // (2 * 60) + 5 fees
-    expect(response.quantity).toBeNumericEqual(2); // Should remain the same
-    expect(response.fees).toBeNumericEqual(5); // Should remain the same
-  });
+    expect(priceUpdated.price).toBeNumericEqual(60);
+    expect(priceUpdated.amount).toBeNumericEqual(185); // (3 * 60) + 5 fees
+    expect(priceUpdated.quantity).toBeNumericEqual(3);
+    expect(priceUpdated.fees).toBeNumericEqual(5);
+
+    const multiFieldUpdated = await helpers.updateInvestmentTransaction({
+      transactionId: transaction.id,
+      payload: { quantity: '4', price: '75', fees: '10', name: 'Updated transaction' },
+      raw: true,
+    });
+
+    expect(multiFieldUpdated.quantity).toBeNumericEqual(4);
+    expect(multiFieldUpdated.price).toBeNumericEqual(75);
+    expect(multiFieldUpdated.fees).toBeNumericEqual(10);
+    expect(multiFieldUpdated.amount).toBeNumericEqual(310); // (4 * 75) + 10 fees
+    expect(multiFieldUpdated.name).toBe('Updated transaction');
+  }, 30000);
 
   it('should update transaction category successfully', async () => {
     const newTransaction = await helpers.createInvestmentTransaction({
@@ -103,25 +124,6 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     // Should change from expense to income, because `transactionType` is about
     // cash flow, and when stocks are `selled`, it means we got income for `cash`
     expect(response.transactionType).toBe(TRANSACTION_TYPES.income);
-  });
-
-  it('should update multiple fields successfully', async () => {
-    const response = await helpers.updateInvestmentTransaction({
-      transactionId: transaction.id,
-      payload: {
-        quantity: '4',
-        price: '75',
-        fees: '10',
-        name: 'Updated transaction',
-      },
-      raw: true,
-    });
-
-    expect(response.quantity).toBeNumericEqual(4);
-    expect(response.price).toBeNumericEqual(75);
-    expect(response.fees).toBeNumericEqual(10);
-    expect(response.amount).toBeNumericEqual(310); // (4 * 75) + 10 fees
-    expect(response.name).toBe('Updated transaction');
   });
 
   it('should recalculate holding after transaction update', async () => {
@@ -155,23 +157,18 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
     expect(holdingAfter!.costBasis).toBeNumericEqual(255); // (5 * 50) + 5 fees
   });
 
-  it('should handle updating date field', async () => {
-    const newDate = '2023-01-15';
-    const response = await helpers.updateInvestmentTransaction({
+  it('normalizes date input', async () => {
+    const dateOnly = await helpers.updateInvestmentTransaction({
       transactionId: transaction.id,
-      payload: {
-        date: newDate,
-      },
+      payload: { date: '2023-01-15' },
       raw: true,
     });
 
     // A date-only input is normalized to UTC midnight before storage and
     // returned as a full ISO 8601 datetime string.
-    expect(response.date).toBe('2023-01-15T00:00:00.000Z');
-  });
+    expect(dateOnly.date).toBe('2023-01-15T00:00:00.000Z');
 
-  it('preserves the time component when updating with a full datetime', async () => {
-    const response = await helpers.updateInvestmentTransaction({
+    const fullDatetime = await helpers.updateInvestmentTransaction({
       transactionId: transaction.id,
       payload: {
         date: '2023-01-15T13:45:00.000Z',
@@ -179,45 +176,7 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
       raw: true,
     });
 
-    expect(response.date).toBe('2023-01-15T13:45:00.000Z');
-  });
-
-  it('should fail to update non-existent transaction', async () => {
-    const response = await helpers.updateInvestmentTransaction({
-      transactionId: generateRandomRecordId(),
-      payload: {
-        quantity: '3',
-      },
-      raw: false,
-    });
-
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-  });
-
-  it('should fail with invalid transaction ID', async () => {
-    const response = await helpers.updateInvestmentTransaction({
-      transactionId: 'invalid' as unknown as string,
-      payload: {
-        quantity: '3',
-      },
-      raw: false,
-    });
-
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('should handle empty update payload', async () => {
-    const response = await helpers.updateInvestmentTransaction({
-      transactionId: transaction.id,
-      payload: {},
-      raw: true,
-    });
-
-    // Should return the transaction unchanged
-    expect(response.quantity).toBeNumericEqual(2);
-    expect(response.price).toBeNumericEqual(50);
-    expect(response.fees).toBeNumericEqual(5);
-    expect(response.name).toBe(''); // Empty string since no name was provided during creation
+    expect(fullDatetime.date).toBe('2023-01-15T13:45:00.000Z');
   });
 
   it('should handle complex scenario with multiple transactions', async () => {
@@ -374,41 +333,48 @@ describe('PUT /investments/transaction/:transactionId (update investment transac
       expect(holding!.quantity).toBeNumericEqual(9); // 10 (from second buy) - 1 (from updated sell)
     });
 
-    it('should fail with negative quantity in update', async () => {
-      const response = await helpers.updateInvestmentTransaction({
+    it('rejects invalid update requests', async () => {
+      const negativeQuantity = await helpers.updateInvestmentTransaction({
         transactionId: transaction.id,
         payload: {
           quantity: '-5',
         },
         raw: false,
       });
+      expect(negativeQuantity.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should fail with negative price in update', async () => {
-      const response = await helpers.updateInvestmentTransaction({
+      const negativePrice = await helpers.updateInvestmentTransaction({
         transactionId: transaction.id,
         payload: {
           price: '-100',
         },
         raw: false,
       });
+      expect(negativePrice.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('should fail with negative fees in update', async () => {
-      const response = await helpers.updateInvestmentTransaction({
+      const negativeFees = await helpers.updateInvestmentTransaction({
         transactionId: transaction.id,
         payload: {
           fees: '-10',
         },
         raw: false,
       });
+      expect(negativeFees.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      const malformedId = await helpers.updateInvestmentTransaction({
+        transactionId: 'invalid' as unknown as string,
+        payload: { quantity: '3' },
+        raw: false,
+      });
+      expect(malformedId.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const unknownId = await helpers.updateInvestmentTransaction({
+        transactionId: generateRandomRecordId(),
+        payload: { quantity: '3' },
+        raw: false,
+      });
+      expect(unknownId.statusCode).toBe(ERROR_CODES.NotFoundError);
+    }, 30000);
 
     it('should handle edge case: updating sell transaction back to buy with same quantity', async () => {
       // Create more shares first

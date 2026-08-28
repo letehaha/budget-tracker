@@ -25,7 +25,7 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
   });
 
   describe('account-to-portfolio transfer deletion', () => {
-    it('should reverse portfolio balance when deleting account→portfolio transfer', async () => {
+    it('should reverse portfolio balance and keep the account transaction as out-of-wallet, by default and with deleteLinkedTransaction=false', async () => {
       const transfer = await helpers.accountToPortfolioTransfer({
         portfolioId: portfolio.id,
         payload: {
@@ -36,7 +36,6 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
         raw: true,
       });
 
-      // Verify balance was set
       const [balanceBefore] = await helpers.getPortfolioBalance({
         portfolioId: portfolio.id,
         currencyCode,
@@ -44,51 +43,51 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
       });
       expect(balanceBefore!.availableCash).toBeNumericEqual(500);
 
-      // Delete the transfer
       await helpers.deletePortfolioTransfer({
         portfolioId: portfolio.id,
         transferId: transfer.id,
         raw: true,
       });
 
-      // Verify balance is back to 0
+      // The balance record might be zeroed or removed entirely.
       const balancesAfter = await helpers.getPortfolioBalance({
         portfolioId: portfolio.id,
         currencyCode,
         raw: true,
       });
 
-      // Balance record might be 0 or might not exist anymore
       if (balancesAfter.length > 0) {
         expect(balancesAfter[0]!.availableCash).toBeNumericEqual(0);
         expect(balancesAfter[0]!.totalCash).toBeNumericEqual(0);
       }
-    });
 
-    it('should keep account transaction and mark as out-of-wallet by default', async () => {
-      const transfer = await helpers.accountToPortfolioTransfer({
+      const transactions = await helpers.getTransactions({ raw: true });
+      expect(transactions.length).toBe(1);
+      expect(transactions[0]!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
+
+      const secondTransfer = await helpers.accountToPortfolioTransfer({
         portfolioId: portfolio.id,
         payload: {
           accountId: account.id,
           amount: '500',
-          date: '2025-06-15',
+          date: '2025-06-16',
         },
         raw: true,
       });
 
-      // Delete the transfer (default: keep linked transaction)
       await helpers.deletePortfolioTransfer({
         portfolioId: portfolio.id,
-        transferId: transfer.id,
+        transferId: secondTransfer.id,
+        deleteLinkedTransaction: false,
         raw: true,
       });
 
-      // The account transaction should still exist but marked as out_of_wallet
-      const transactions = await helpers.getTransactions({ raw: true });
-
-      expect(transactions.length).toBe(1);
-      expect(transactions[0]!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
-    });
+      const transactionsAfter = await helpers.getTransactions({ raw: true });
+      expect(transactionsAfter.length).toBe(2);
+      expect(
+        transactionsAfter.every((tx) => tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet),
+      ).toBe(true);
+    }, 30000);
 
     it('should delete linked account transaction when deleteLinkedTransaction=true', async () => {
       const transfer = await helpers.accountToPortfolioTransfer({
@@ -113,34 +112,10 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
       const transactions = await helpers.getTransactions({ raw: true });
       expect(transactions.length).toBe(0);
     });
-
-    it('should explicitly keep account transaction when deleteLinkedTransaction=false', async () => {
-      const transfer = await helpers.accountToPortfolioTransfer({
-        portfolioId: portfolio.id,
-        payload: {
-          accountId: account.id,
-          amount: '500',
-          date: '2025-06-15',
-        },
-        raw: true,
-      });
-
-      await helpers.deletePortfolioTransfer({
-        portfolioId: portfolio.id,
-        transferId: transfer.id,
-        deleteLinkedTransaction: false,
-        raw: true,
-      });
-
-      const transactions = await helpers.getTransactions({ raw: true });
-      expect(transactions.length).toBe(1);
-      expect(transactions[0]!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
-    });
   });
 
   describe('portfolio-to-account transfer deletion', () => {
-    it('should reverse portfolio balance when deleting portfolio→account transfer', async () => {
-      // Seed portfolio with cash
+    it('should reverse portfolio balance and keep the account transaction as out-of-wallet, by default and with deleteLinkedTransaction=false', async () => {
       await helpers.updatePortfolioBalance({
         portfolioId: portfolio.id,
         currencyCode,
@@ -181,40 +156,35 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
       });
       expect(balanceAfter!.availableCash).toBeNumericEqual(1000);
       expect(balanceAfter!.totalCash).toBeNumericEqual(1000);
-    });
 
-    it('should keep account transaction and mark as out-of-wallet by default', async () => {
-      await helpers.updatePortfolioBalance({
-        portfolioId: portfolio.id,
-        currencyCode,
-        setAvailableCash: '1000',
-        setTotalCash: '1000',
-      });
+      const transactions = await helpers.getTransactions({ raw: true });
+      expect(transactions.length).toBe(1);
+      expect(transactions[0]!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
 
-      const transfer = await helpers.portfolioToAccountTransfer({
+      const secondTransfer = await helpers.portfolioToAccountTransfer({
         portfolioId: portfolio.id,
         payload: {
           accountId: account.id,
           amount: '300',
           currencyCode,
-          date: '2025-06-15',
+          date: '2025-06-16',
         },
         raw: true,
       });
 
-      // Delete the transfer (default: keep linked transaction)
       await helpers.deletePortfolioTransfer({
         portfolioId: portfolio.id,
-        transferId: transfer.id,
+        transferId: secondTransfer.id,
+        deleteLinkedTransaction: false,
         raw: true,
       });
 
-      // The account transaction should still exist but marked as out_of_wallet
-      const transactions = await helpers.getTransactions({ raw: true });
-
-      expect(transactions.length).toBe(1);
-      expect(transactions[0]!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
-    });
+      const transactionsAfter = await helpers.getTransactions({ raw: true });
+      expect(transactionsAfter.length).toBe(2);
+      expect(
+        transactionsAfter.every((tx) => tx.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet),
+      ).toBe(true);
+    }, 30000);
 
     it('should delete linked account transaction when deleteLinkedTransaction=true', async () => {
       await helpers.updatePortfolioBalance({
@@ -246,37 +216,6 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
       // The account transaction should be deleted
       const transactions = await helpers.getTransactions({ raw: true });
       expect(transactions.length).toBe(0);
-    });
-
-    it('should explicitly keep account transaction when deleteLinkedTransaction=false', async () => {
-      await helpers.updatePortfolioBalance({
-        portfolioId: portfolio.id,
-        currencyCode,
-        setAvailableCash: '1000',
-        setTotalCash: '1000',
-      });
-
-      const transfer = await helpers.portfolioToAccountTransfer({
-        portfolioId: portfolio.id,
-        payload: {
-          accountId: account.id,
-          amount: '300',
-          currencyCode,
-          date: '2025-06-15',
-        },
-        raw: true,
-      });
-
-      await helpers.deletePortfolioTransfer({
-        portfolioId: portfolio.id,
-        transferId: transfer.id,
-        deleteLinkedTransaction: false,
-        raw: true,
-      });
-
-      const transactions = await helpers.getTransactions({ raw: true });
-      expect(transactions.length).toBe(1);
-      expect(transactions[0]!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
     });
   });
 
@@ -405,16 +344,14 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
   });
 
   describe('idempotent deletion', () => {
-    it('should return 204 for non-existent transfer', async () => {
-      const response = await helpers.deletePortfolioTransfer({
+    it('should return 204 for a non-existent transfer and for deleting the same transfer twice', async () => {
+      const unknownTransfer = await helpers.deletePortfolioTransfer({
         portfolioId: portfolio.id,
         transferId: generateRandomRecordId(),
       });
 
-      expect(response.statusCode).toBe(204);
-    });
+      expect(unknownTransfer.statusCode).toBe(204);
 
-    it('should return 204 when deleting the same transfer twice', async () => {
       const transfer = await helpers.accountToPortfolioTransfer({
         portfolioId: portfolio.id,
         payload: {
@@ -438,7 +375,7 @@ describe('Delete Portfolio Transfer (DELETE /investments/portfolios/:id/transfer
         transferId: transfer.id,
       });
       expect(secondResponse.statusCode).toBe(204);
-    });
+    }, 30000);
   });
 
   describe('deleting account transaction cascades to portfolio-to-account transfer', () => {
