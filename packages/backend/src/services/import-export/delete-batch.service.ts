@@ -5,6 +5,7 @@ import { captureException } from '@js/utils/sentry';
 import Accounts from '@models/accounts.model';
 import { findTransactions, updateTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
+import { withTransaction } from '@services/common/with-transaction';
 import { bulkDelete } from '@services/transactions/bulk-delete';
 import { Op } from 'sequelize';
 
@@ -29,19 +30,16 @@ interface DeleteImportBatchResult {
 // being refused outright. The Sentry capture below is the signal to prioritize it.
 const MAX_BATCH_DELETE_TRANSACTIONS = 1000;
 
-// 10 chunks at the cap, so even a 1000-row delete runs as several smaller DB
-// transactions instead of one long one.
-const BATCH_DELETE_CHUNK_SIZE = 100;
-
 /**
  * Resolves every row stamped with this batch's `importDetails.batchId`, scoped to the
  * caller, then delegates to `bulkDelete` — balance recalculation, transfer-pair handling,
- * and refund unlinking all come from that same pipeline.
+ * and refund unlinking all come from that same pipeline. The whole undo runs in one DB
+ * transaction, so a mid-run failure rolls back every delete and unlink.
  *
  * A batchId with no matching rows is a no-op success, not a 404: it's already deleted or
  * belongs to another user, not a mistaken id to correct.
  */
-export const deleteImportBatch = async ({
+const deleteImportBatchImpl = async ({
   userId,
   batchId,
   deleteLinkedTransfers = false,
@@ -102,7 +100,8 @@ export const deleteImportBatch = async ({
   // row linked to a pre-existing manual transaction would silently destroy it too, uncounted.
   // Transfers created entirely within this batch (both legs present) are exempt: their
   // normal cascade-delete-together destroys nothing external.
-  const batchRowIds = new Set(rows.map((row) => row.id));
+  const transactionIds = rows.map((row) => row.id);
+  const batchRowIds = new Set(transactionIds);
   const linkedLegs = rows.filter((row) => isTwoLegTransfer(row.transferNature) && row.transferId);
 
   let externalTwinIds: string[] = [];
@@ -121,12 +120,9 @@ export const deleteImportBatch = async ({
       raw: true,
     })) as unknown as { id: string; transferId: string }[];
 
-    const transferIdsWithExternalTwin = new Set(
-      twins.filter((twin) => !batchRowIds.has(twin.id)).map((twin) => twin.transferId),
-    );
-    externalTwinIds = twins
-      .filter((twin) => transferIdsWithExternalTwin.has(twin.transferId) && !batchRowIds.has(twin.id))
-      .map((twin) => twin.id);
+    const externalTwins = twins.filter((twin) => !batchRowIds.has(twin.id));
+    const transferIdsWithExternalTwin = new Set(externalTwins.map((twin) => twin.transferId));
+    externalTwinIds = externalTwins.map((twin) => twin.id);
     legsWithExternalTwin = linkedLegs.filter((row) => transferIdsWithExternalTwin.has(row.transferId!));
   }
 
@@ -158,25 +154,14 @@ export const deleteImportBatch = async ({
     });
   }
 
-  const transactionIds = rows.map((row) => row.id);
-  let deletedCount = 0;
-  const deletedIds: string[] = [];
-  for (let offset = 0; offset < transactionIds.length; offset += BATCH_DELETE_CHUNK_SIZE) {
-    const chunkResult = await bulkDelete({
-      userId,
-      transactionIds: transactionIds.slice(offset, offset + BATCH_DELETE_CHUNK_SIZE),
-    });
-    deletedCount += chunkResult.deletedCount;
-    deletedIds.push(...chunkResult.deletedIds);
-  }
+  // Never chunk this list: `bulkDelete` skips a cascade-deleted transfer twin only
+  // within one call. A twin in a later chunk gets re-queried after deletion and 404s.
+  await bulkDelete({ userId, transactionIds });
 
-  // Opted-in cascade deletes happened as a side effect of `bulkDelete` above (via
-  // `deleteTransaction`'s two-leg branch) but were never in its own input list, so its
-  // count doesn't include them — add them in now that they're confirmed gone.
-  if (deleteLinkedTransfers && externalTwinIds.length > 0) {
-    deletedCount += externalTwinIds.length;
-    deletedIds.push(...externalTwinIds);
-  }
-
-  return { deletedCount, deletedIds };
+  // `bulkDelete`'s result omits cascade-deleted twins. Once it returns, every batch row
+  // plus the opted-in twins is gone, so report the full list.
+  const deletedIds = deleteLinkedTransfers ? [...transactionIds, ...externalTwinIds] : transactionIds;
+  return { deletedCount: deletedIds.length, deletedIds };
 };
+
+export const deleteImportBatch = withTransaction(deleteImportBatchImpl);

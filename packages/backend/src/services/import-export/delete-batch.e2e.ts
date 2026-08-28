@@ -28,6 +28,7 @@ async function runCsvImport({
   accountId,
   currencyCode,
   recalculateBalance = false,
+  incomeAccountId,
 }: {
   accountId: string;
   currencyCode: string;
@@ -35,6 +36,9 @@ async function runCsvImport({
    *  current balance (mirrors the real "import new transactions" case) instead
    *  of leaving the balance untouched (the default "backfill history" case). */
   recalculateBalance?: boolean;
+  /** Adds a third income row on this account, giving the batch a row linkable
+   *  to one of the expenses as a transfer pair. */
+  incomeAccountId?: string;
 }) {
   const { jobId } = await helpers.executeImport({
     payload: {
@@ -42,6 +46,7 @@ async function runCsvImport({
         'Date,Amount,Description,Category,Account,Currency,Type',
         `2024-01-15,10.00,Coffee,,A,${currencyCode},expense`,
         `2024-01-16,20.00,Lunch,,A,${currencyCode},expense`,
+        ...(incomeAccountId ? [`2024-01-17,20.00,Moved in,,B,${currencyCode},income`] : []),
       ].join('\n'),
       delimiter: ',',
       columnMapping: {
@@ -59,7 +64,10 @@ async function runCsvImport({
         },
         account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
       },
-      accountMapping: { A: { action: 'link-existing', accountId } },
+      accountMapping: {
+        A: { action: 'link-existing', accountId },
+        ...(incomeAccountId ? { B: { action: 'link-existing', accountId: incomeAccountId } } : {}),
+      },
       categoryMapping: {},
       skipDuplicateIndices: [],
       recalculateBalance,
@@ -235,5 +243,31 @@ describe('DELETE /import/batch/:batchId', () => {
 
     const manualTxAfter = await helpers.getTransactions({ accountIds: [otherAccount.id], raw: true });
     expect(manualTxAfter).toHaveLength(0);
+  });
+
+  it('deletes an intra-batch transfer pair fully and counts both legs', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const otherAccount = await helpers.createAccount({ raw: true });
+    const summary = await runCsvImport({
+      accountId: account.id,
+      currencyCode: account.currencyCode,
+      incomeAccountId: otherAccount.id,
+    });
+    expect(summary.newTransactionIds).toHaveLength(3);
+
+    const imported = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
+    const income = imported.find((tx) => tx.transactionType === TRANSACTION_TYPES.income)!;
+    const expense = imported.find((tx) => tx.transactionType === TRANSACTION_TYPES.expense)!;
+    await helpers.linkTransactions({
+      payload: { ids: [[income.id as RecordId, expense.id as RecordId]] },
+      raw: true,
+    });
+
+    const result = await helpers.deleteImportBatch({ batchId: summary.batchId, raw: true });
+    expect(result.deletedCount).toBe(3);
+    expect(result.deletedIds.toSorted()).toEqual(summary.newTransactionIds.toSorted());
+
+    const remaining = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
+    expect(remaining).toHaveLength(0);
   });
 });

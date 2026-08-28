@@ -43,6 +43,13 @@ jest.mock('@js/utils/sentry', () => ({
   captureException: (...args: unknown[]) => captureExceptionMock(...args),
 }));
 
+// The real wrapper needs a DB connection this unit test has none of. Running the body
+// straight through is what a committed run looks like to the caller.
+jest.mock('@services/common/with-transaction', () => ({
+  __esModule: true,
+  withTransaction: <T extends unknown[], R>(fn: (...args: T) => Promise<R>) => fn,
+}));
+
 /* eslint-disable import/first */
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 
@@ -73,31 +80,43 @@ describe('deleteImportBatch', () => {
     expect(captureExceptionMock).toHaveBeenCalledTimes(1);
   });
 
-  it('deletes an at-cap batch in 10 chunks of 100', async () => {
+  it('deletes an at-cap batch in a single bulkDelete call', async () => {
     mockRows(1000);
-    bulkDeleteMock.mockImplementation(async ({ transactionIds }: { transactionIds: string[] }) => ({
-      deletedCount: transactionIds.length,
-      deletedIds: transactionIds,
-    }));
 
     const result = await deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID });
 
-    expect(bulkDeleteMock).toHaveBeenCalledTimes(10);
-    for (const call of bulkDeleteMock.mock.calls) {
-      expect((call[0] as { transactionIds: string[] }).transactionIds).toHaveLength(100);
-    }
+    expect(bulkDeleteMock).toHaveBeenCalledTimes(1);
+    expect(bulkDeleteMock.mock.calls[0]![0].transactionIds).toHaveLength(1000);
     expect(result.deletedCount).toBe(1000);
     expect(result.deletedIds).toHaveLength(1000);
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
-  it('runs a batch under the chunk size as a single chunk', async () => {
-    mockRows(2);
-    bulkDeleteMock.mockResolvedValue({ deletedCount: 2, deletedIds: ['tx-0', 'tx-1'] });
+  it('reports every batch row as deleted even when bulkDelete skips a cascade-deleted intra-batch twin', async () => {
+    findWithFiltersMock.mockResolvedValue([
+      {
+        id: 'tx-0',
+        accountId: 'acc-1',
+        transferId: 'transfer-1',
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      },
+      {
+        id: 'tx-1',
+        accountId: 'acc-1',
+        transferId: 'transfer-1',
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      },
+    ]);
+    transactionsFindAllMock.mockResolvedValue([
+      { id: 'tx-0', transferId: 'transfer-1' },
+      { id: 'tx-1', transferId: 'transfer-1' },
+    ]);
+    bulkDeleteMock.mockResolvedValue({ deletedCount: 1, deletedIds: ['tx-0'] });
 
     const result = await deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID });
 
     expect(bulkDeleteMock).toHaveBeenCalledTimes(1);
+    expect(updateTransactionsMock).not.toHaveBeenCalled();
     expect(result).toEqual({ deletedCount: 2, deletedIds: ['tx-0', 'tx-1'] });
   });
 
