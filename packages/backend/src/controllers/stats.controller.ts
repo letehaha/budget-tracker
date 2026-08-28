@@ -50,6 +50,7 @@ export const getBalanceHistory = createController(balanceHistorySchema, async ({
   } else {
     balanceHistory = await statsService.getBalanceHistory({
       userId,
+      accountScope: 'accessible',
       from,
       to,
     });

@@ -176,10 +176,10 @@ describe('GET /stats/cash-flow', () => {
       fn: () => helpers.getCashFlow({ ...RANGE, raw: true }),
     });
 
-    // Assert: recipient sees their own tx in cash-flow (tx.userId === recipient)
+    // Assert: the report covers the whole shared account, not just the caller's own rows.
     expect(result.periods).toHaveLength(1);
     const period = result.periods[0]!;
-    expect(period.expenses).toBe(20); // only recipient's tx ($20 expense)
+    expect(period.expenses).toBe(50); // owner's $30 + recipient's $20
 
     // The category breakdown must resolve to the owner's category — NOT "Unknown"
     expect(period.categories).toBeDefined();

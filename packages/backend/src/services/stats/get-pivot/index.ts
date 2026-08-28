@@ -74,7 +74,7 @@ export const getPivotReport = async ({
   // The report is money that moved, so planned rows are out with no way to opt back in.
   // Refunds are netted per dimension by the strategies, not by the read model.
   const { rows: transactions } = await statsTransactions({
-    access: { creator: userId },
+    access: { accessibleTo: userId },
     planned: 'exclude',
     refunds: 'ignore',
     window: { from, to },
