@@ -20,8 +20,8 @@ export const startOfDayUtc = (date: Date): Date =>
  * and Yahoo's per-day timestamps vary by exchange close; this normalizes both
  * to the same anchor the going-forward stock cron writes.
  */
-export const bucketByUtcDay = (prices: PriceData[]): PriceData[] => {
-  const byDay = new Map<string, PriceData>();
+export const bucketByUtcDay = <T extends PriceData>(prices: T[]): T[] => {
+  const byDay = new Map<string, T>();
   for (const price of prices) {
     const dayKey = startOfDayUtc(price.date).toISOString();
     const existing = byDay.get(dayKey);

@@ -201,8 +201,8 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
   public async fetchPricesForSecurities(
     securities: SecurityPriceFetchInput[],
     forDate: Date,
-  ): Promise<Map<string, BulkPriceData>> {
-    const result = new Map<string, BulkPriceData>();
+  ): Promise<Map<string, BulkPriceData[]>> {
+    const result = new Map<string, BulkPriceData[]>();
     if (securities.length === 0) {
       return result;
     }
@@ -233,7 +233,7 @@ export class PolygonDataProvider extends BaseSecurityDataProvider {
         continue;
       }
 
-      result.set(security.securityId, { ...priceData, securityId: security.securityId });
+      result.set(security.securityId, [{ ...priceData, securityId: security.securityId }]);
       logger.info(`Fetched price for ${security.providerSymbol}: ${priceData.priceClose}`);
     }
 

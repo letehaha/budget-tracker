@@ -103,6 +103,17 @@ export interface SecurityPriceFetchInput {
   assetClass: ASSET_CLASS;
 }
 
+/**
+ * Options for {@link BaseSecurityDataProvider.fetchPricesForSecurities}.
+ *
+ * `startDate` widens the fetch window to [startDate, forDate] so callers can
+ * re-request days a previous run missed. Providers that can only serve a
+ * single date (Polygon, CoinGecko) ignore it and return just `forDate`'s bar.
+ */
+export interface BulkPriceFetchOptions {
+  startDate?: Date;
+}
+
 export abstract class BaseSecurityDataProvider {
   abstract readonly providerName: SECURITY_PROVIDER;
 
@@ -135,24 +146,29 @@ export abstract class BaseSecurityDataProvider {
   abstract getLatestPrice(providerSymbol: ProviderSymbol): Promise<PriceData>;
 
   /**
-   * Fetch prices for multiple securities for a specific date. This method only
-   * handles fetching and normalizing price data; database operations should be
-   * handled by the calling service.
+   * Fetch prices for multiple securities. This method only handles fetching
+   * and normalizing price data; database operations should be handled by the
+   * calling service.
    *
-   * Returns a `Map<securityId, BulkPriceData>` so the caller can look results
-   * up by the same UUID it supplied without doing its own re-join. Securities
-   * that did not produce a price (delisted, market closed, provider error)
-   * are simply absent from the map — callers should diff input ids against
-   * map keys to detect partial failures.
+   * Returns a `Map<securityId, BulkPriceData[]>` so the caller can look
+   * results up by the same UUID it supplied without doing its own re-join.
+   * Each entry holds every bar the provider returned inside the requested
+   * window ([options.startDate ?? forDate, forDate]); single-date providers
+   * return one-element arrays. Securities that did not produce any price
+   * (delisted, market closed, provider error) are simply absent from the map —
+   * callers should diff input ids against map keys to detect partial failures.
+   * A present entry always has at least one bar.
    *
    * @param securities - Securities to fetch prices for
-   * @param forDate - The date to fetch prices for
+   * @param forDate - The last (most recent) date to fetch prices for
+   * @param options - Optional window widening, see {@link BulkPriceFetchOptions}
    * @returns Map keyed by `securityId` containing successfully fetched prices.
    */
   abstract fetchPricesForSecurities(
     securities: SecurityPriceFetchInput[],
     forDate: Date,
-  ): Promise<Map<string, BulkPriceData>>;
+    options?: BulkPriceFetchOptions,
+  ): Promise<Map<string, BulkPriceData[]>>;
 
   // TODO: processSearchToSecurity method, because each security after search can provide different schema
   // and it should be processed uniquely when adding security from the search

@@ -13,6 +13,7 @@ import YahooFinance from 'yahoo-finance2';
 
 import { FmpClient } from '../data-providers/clients/fmp-client';
 import { dataProviderFactory } from '../data-providers/provider-factory';
+import { STOCKS_LOOKBACK_DAYS } from './securities-daily-sync.service';
 
 // Mock data provider clients
 const mockedRestClient = jest.mocked(restClient);
@@ -809,6 +810,53 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
       // Wrap in `new Date()` so the assertion is robust to whether Sequelize hydrates
       // the TIMESTAMPTZ column as a Date or as an ISO string.
       expect(new Date(usPrice!.date).toISOString()).toBe(yesterdayMidnightUtc.toISOString());
+    });
+  });
+
+  describe('Trailing-window backfill', () => {
+    it('requests a multi-day window and stores one row per returned trading day', async () => {
+      // Drain createHolding-triggered historical syncs so recorded chart calls
+      // belong to the daily-sync run alone.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      mockedYahooChart.mockClear();
+
+      const yesterdayMidnightUtc = startOfDay(subDays(new Date(), 1));
+      const dayBars = [3, 2, 1].map((daysAgo) => {
+        const dayMidnightUtc = subDays(yesterdayMidnightUtc, daysAgo - 1);
+        return {
+          dayMidnightUtc,
+          close: 100 + daysAgo,
+          bar: {
+            date: new Date(dayMidnightUtc.getTime() + 12 * 60 * 60 * 1000),
+            close: 100 + daysAgo,
+            adjclose: 100 + daysAgo,
+          },
+        };
+      });
+
+      mockedYahooChart.mockResolvedValue({ quotes: dayBars.map((d) => d.bar) });
+
+      const response = await helpers.triggerSecuritiesSync();
+      expect(response.statusCode).toBe(200);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // The chart request must cover the trailing lookback window, not just yesterday.
+      const expectedPeriod1 = format(subDays(yesterdayMidnightUtc, STOCKS_LOOKBACK_DAYS - 1), 'yyyy-MM-dd');
+      const chartCall = mockedYahooChart.mock.calls.filter((call) => (call[0] as string) === 'AAPL').at(-1);
+      expect(chartCall).toBeDefined();
+      expect((chartCall![1] as { period1: string }).period1).toBe(expectedPeriod1);
+
+      // Every returned bar becomes exactly one row, anchored to midnight UTC of
+      // the bar's day, carrying that day's close.
+      const rows = await SecurityPricing.findAll({
+        where: { securityId: usSecurity.id },
+        order: [['date', 'ASC']],
+      });
+      expect(rows.length).toBe(dayBars.length);
+      rows.forEach((row, i) => {
+        expect(new Date(row.date).toISOString()).toBe(dayBars[i]!.dayMidnightUtc.toISOString());
+        expect(row.priceClose.toNumber()).toBeCloseTo(dayBars[i]!.close, 5);
+      });
     });
   });
 
