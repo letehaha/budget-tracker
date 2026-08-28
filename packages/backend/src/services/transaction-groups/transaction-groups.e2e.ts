@@ -3,25 +3,49 @@ import { TRANSACTION_TYPES } from '@bt/shared/types';
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import { MAX_GROUP_SIZE } from '@services/transaction-groups/constants';
 import * as helpers from '@tests/helpers';
 
+// The test DB pool caps at 50 connections and every create contends on the same account row,
+// so the fixture is built in bounded batches rather than one unbounded Promise.all.
+const CREATE_BATCH_SIZE = 10;
+
 describe('Transaction Groups API', () => {
-  // Helper to create N transactions for a given account
   const createTransactions = async ({ accountId, count }: { accountId: RecordId; count: number }) => {
     const txs: { id: string }[] = [];
-    for (let i = 0; i < count; i++) {
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId,
-          amount: 100 + i,
-          transactionType: TRANSACTION_TYPES.expense,
+    for (let start = 0; start < count; start += CREATE_BATCH_SIZE) {
+      const batch = await Promise.all(
+        Array.from({ length: Math.min(CREATE_BATCH_SIZE, count - start) }, async (_, offset) => {
+          const [tx] = await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId,
+              amount: 100 + start + offset,
+              transactionType: TRANSACTION_TYPES.expense,
+            }),
+            raw: true,
+          });
+          return tx;
         }),
-        raw: true,
-      });
-      txs.push(tx);
+      );
+      txs.push(...batch);
     }
     return txs;
   };
+
+  it('returns 404 for a non-existent group on get, update and delete', async () => {
+    const getResponse = await helpers.getTransactionGroupById({ id: NONEXISTENT_ID, raw: false });
+    expect(getResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+    const updateResponse = await helpers.updateTransactionGroup({
+      id: NONEXISTENT_ID,
+      payload: { name: 'Nope' },
+      raw: false,
+    });
+    expect(updateResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+    const deleteResponse = await helpers.deleteTransactionGroup({ id: NONEXISTENT_ID, raw: false });
+    expect(deleteResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
+  });
 
   describe('POST /transaction-groups (create)', () => {
     it('successfully creates a group with 2 transactions', async () => {
@@ -43,19 +67,37 @@ describe('Transaction Groups API', () => {
       expect(group.transactions).toHaveLength(2);
     });
 
-    it('fails to create a group with less than 2 transactions', async () => {
+    it('rejects fewer than 2 transactions, malformed ids and an empty name', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const txs = await createTransactions({ accountId: account.id, count: 1 });
+      const txs = await createTransactions({ accountId: account.id, count: 2 });
 
-      const response = await helpers.createTransactionGroup({
+      const tooSmall = await helpers.createTransactionGroup({
         payload: helpers.buildTransactionGroupPayload({
           name: 'Too Small',
+          transactionIds: [txs[0]!.id],
+        }),
+        raw: false,
+      });
+      expect(tooSmall.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const malformedIds = await helpers.createTransactionGroup({
+        payload: helpers.buildTransactionGroupPayload({
+          name: 'Invalid',
+          transactionIds: ['999999', '999998'],
+        }),
+        raw: false,
+      });
+      expect(malformedIds.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      const emptyName = await helpers.createTransactionGroup({
+        payload: helpers.buildTransactionGroupPayload({
+          name: '',
           transactionIds: txs.map((t) => t.id),
         }),
         raw: false,
       });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(emptyName.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(await helpers.getTransactionGroups({ raw: true })).toEqual([]);
     });
 
     it('fails when transactions already belong to another group', async () => {
@@ -82,39 +124,12 @@ describe('Transaction Groups API', () => {
 
       expect(response.statusCode).toBe(ERROR_CODES.ConflictError);
     });
-
-    it('fails with malformed (non-UUID) transaction IDs', async () => {
-      const response = await helpers.createTransactionGroup({
-        payload: helpers.buildTransactionGroupPayload({
-          name: 'Invalid',
-          transactionIds: ['999999', '999998'],
-        }),
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails with empty name', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const txs = await createTransactions({ accountId: account.id, count: 2 });
-
-      const response = await helpers.createTransactionGroup({
-        payload: helpers.buildTransactionGroupPayload({
-          name: '',
-          transactionIds: txs.map((t) => t.id),
-        }),
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
   });
 
   describe('GET /transaction-groups (list)', () => {
-    it('returns all groups for the user', async () => {
+    it('returns all groups for the user with computed aggregates', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const txs = await createTransactions({ accountId: account.id, count: 4 });
+      const txs = await createTransactions({ accountId: account.id, count: 5 });
 
       await helpers.createTransactionGroup({
         payload: helpers.buildTransactionGroupPayload({
@@ -127,17 +142,22 @@ describe('Transaction Groups API', () => {
       await helpers.createTransactionGroup({
         payload: helpers.buildTransactionGroupPayload({
           name: 'Group B',
-          transactionIds: [txs[2]!.id, txs[3]!.id],
+          transactionIds: [txs[2]!.id, txs[3]!.id, txs[4]!.id],
         }),
         raw: true,
       });
 
       const groups = await helpers.getTransactionGroups({ raw: true });
 
-      expect(groups.length).toBeGreaterThanOrEqual(2);
+      expect(groups).toHaveLength(2);
       const names = groups.map((g) => g.name);
       expect(names).toContain('Group A');
       expect(names).toContain('Group B');
+
+      const groupB = groups.find((g) => g.name === 'Group B');
+      expect(groupB).toBeDefined();
+      expect(groupB!.transactionCount).toBe(3);
+      expect(new Date(groupB!.dateFrom!).getTime()).toBeLessThanOrEqual(new Date(groupB!.dateTo!).getTime());
     });
 
     it('includeGroups reports the full group size even when only a slice of members is fetched', async () => {
@@ -173,27 +193,6 @@ describe('Transaction Groups API', () => {
         expect(group.transactionCount).toBe(5);
       }
     });
-
-    it('returns groups with computed aggregates', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const txs = await createTransactions({ accountId: account.id, count: 3 });
-
-      await helpers.createTransactionGroup({
-        payload: helpers.buildTransactionGroupPayload({
-          name: 'Aggregated Group',
-          transactionIds: txs.map((t) => t.id),
-        }),
-        raw: true,
-      });
-
-      const groups = await helpers.getTransactionGroups({ raw: true });
-      const group = groups.find((g) => g.name === 'Aggregated Group');
-
-      expect(group).toBeDefined();
-      expect(group!.transactionCount).toBe(3);
-      expect(group!.dateFrom).toBeDefined();
-      expect(group!.dateTo).toBeDefined();
-    });
   });
 
   describe('GET /transaction-groups/:id (get by id)', () => {
@@ -214,15 +213,6 @@ describe('Transaction Groups API', () => {
       expect(group.id).toBe(created.id);
       expect(group.name).toBe('Detail Group');
       expect(group.transactions).toHaveLength(2);
-    });
-
-    it('returns 404 for non-existent group', async () => {
-      const response = await helpers.getTransactionGroupById({
-        id: NONEXISTENT_ID,
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 
@@ -271,16 +261,6 @@ describe('Transaction Groups API', () => {
 
       expect(updated.note).toBeNull();
     });
-
-    it('returns 404 for non-existent group', async () => {
-      const response = await helpers.updateTransactionGroup({
-        id: NONEXISTENT_ID,
-        payload: { name: 'Nope' },
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
   });
 
   describe('DELETE /transaction-groups/:id (delete/dissolve)', () => {
@@ -309,12 +289,6 @@ describe('Transaction Groups API', () => {
         raw: true,
       });
       expect(txsAfter).toHaveLength(2);
-    });
-
-    it('returns 404 for non-existent group', async () => {
-      const response = await helpers.deleteTransactionGroup({ id: NONEXISTENT_ID, raw: false });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
   });
 
@@ -372,18 +346,16 @@ describe('Transaction Groups API', () => {
 
     it('fails when exceeding max group size', async () => {
       const account = await helpers.createAccount({ raw: true });
-      // Create 50 transactions for max size group
-      const txs = await createTransactions({ accountId: account.id, count: 50 });
+      const txs = await createTransactions({ accountId: account.id, count: MAX_GROUP_SIZE });
 
       const group = await helpers.createTransactionGroup({
         payload: helpers.buildTransactionGroupPayload({
           name: 'Max Size',
-          transactionIds: txs.slice(0, 50).map((t) => t.id),
+          transactionIds: txs.map((t) => t.id),
         }),
         raw: true,
       });
 
-      // Create one more transaction
       const [extraTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,

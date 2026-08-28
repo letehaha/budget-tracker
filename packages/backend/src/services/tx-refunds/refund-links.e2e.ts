@@ -18,180 +18,92 @@ const errorMessage = ({ response }: { response: unknown }) =>
 
 describe('getRefundTransactions', () => {
   describe('success cases', () => {
-    it('successfully retrieves all refund transactions when no filters are applied', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [originalTx] = await helpers.createTransaction({
+    it('returns every refund when unfiltered and only the matching pair for each filter', async () => {
+      const categories = await helpers.getCategoriesList();
+      const expenseCategory = categories[0]!;
+      const incomeCategory = categories[1]!;
+
+      const expenseAccount = await helpers.createAccount({ raw: true });
+      const incomeAccount = await helpers.createAccount({ raw: true });
+      const orphanAccount = await helpers.createAccount({ raw: true });
+
+      const [expenseOriginalTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
-          accountId: account.id,
+          accountId: expenseAccount.id,
+          categoryId: expenseCategory.id,
           amount: 100,
           transactionType: TRANSACTION_TYPES.expense,
         }),
         raw: true,
       });
-      const [refundTx] = await helpers.createTransaction({
+      const [expenseRefundTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
-          accountId: account.id,
+          accountId: expenseAccount.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+      const [incomeOriginalTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: incomeAccount.id,
+          categoryId: incomeCategory.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.income,
+        }),
+        raw: true,
+      });
+      const [incomeRefundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: incomeAccount.id,
+          amount: 100,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+      const [orphanRefundTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: orphanAccount.id,
           amount: 100,
           transactionType: TRANSACTION_TYPES.income,
         }),
         raw: true,
       });
 
-      await helpers.createSingleRefund({
-        originalTxId: originalTx.id,
-        refundTxId: refundTx.id,
-      });
+      await helpers.createSingleRefund({ originalTxId: expenseOriginalTx.id, refundTxId: expenseRefundTx.id });
+      await helpers.createSingleRefund({ originalTxId: incomeOriginalTx.id, refundTxId: incomeRefundTx.id });
+      await helpers.createSingleRefund({ originalTxId: null, refundTxId: orphanRefundTx.id });
 
-      const response = await helpers.getRefundTransactions({});
+      const unfiltered = await helpers.getRefundTransactions({ page: 1, limit: 10 }, true);
 
-      expect(response.statusCode).toBe(200);
-      expect(helpers.extractResponse(response).data.length).toBe(1);
-      expect(helpers.extractResponse(response).meta.total).toBe(1);
-    });
+      expect(unfiltered.data.length).toBe(3);
+      expect(unfiltered.meta.total).toBe(3);
 
-    it('successfully filters refund transactions by categoryId', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [originalTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
+      const expectOnlyExpensePair = async ({
+        filters,
+      }: {
+        filters: Parameters<typeof helpers.getRefundTransactions>[0];
+      }) => {
+        const response = await helpers.getRefundTransactions(filters, true);
+
+        expect(response.meta.total).toBe(1);
+        expect(response.data.length).toBe(1);
+        expect(response.data[0]!.originalTxId).toBe(expenseOriginalTx.id);
+        expect(response.data[0]!.originalTransaction?.id).toBe(expenseOriginalTx.id);
+        expect(response.data[0]!.refundTxId).toBe(expenseRefundTx.id);
+      };
+
+      await expectOnlyExpensePair({ filters: { categoryId: expenseCategory.id } });
+      await expectOnlyExpensePair({ filters: { transactionType: TRANSACTION_TYPES.expense } });
+      await expectOnlyExpensePair({ filters: { accountId: expenseAccount.id } });
+      await expectOnlyExpensePair({
+        filters: {
+          categoryId: expenseCategory.id,
           transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-      const categoryId = originalTx.categoryId;
-      const [refundTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        raw: true,
-      });
-
-      await helpers.createSingleRefund({
-        originalTxId: originalTx.id,
-        refundTxId: refundTx.id,
-      });
-
-      const response = await helpers.getRefundTransactions({
-        categoryId: categoryId,
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      expect(helpers.extractResponse(response).data.length).toBe(1);
-      expect(
-        helpers.extractResponse(response).data.every((refund) => refund.originalTransaction.categoryId === categoryId),
-      ).toBe(true);
-    });
-
-    it('successfully filters refund transactions by transactionType', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [originalTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-      const [refundTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        raw: true,
-      });
-
-      await helpers.createSingleRefund({
-        originalTxId: originalTx.id,
-        refundTxId: refundTx.id,
-      });
-
-      const response = await helpers.getRefundTransactions({ transactionType: TRANSACTION_TYPES.expense }, true);
-
-      expect(response.data.length).toBeGreaterThan(0);
-      expect(
-        response.data.every((refund) => refund.originalTransaction.transactionType === TRANSACTION_TYPES.expense),
-      ).toBe(true);
-    });
-
-    it('successfully filters refund transactions by accountId', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [originalTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-      const [refundTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        raw: true,
-      });
-
-      await helpers.createSingleRefund({
-        originalTxId: originalTx.id,
-        refundTxId: refundTx.id,
-      });
-
-      const response = await helpers.getRefundTransactions({ accountId: account.id }, true);
-
-      expect(response.data.length).toBeGreaterThan(0);
-      expect(response.data.every((refund) => refund.originalTransaction.accountId === account.id)).toBe(true);
-    });
-
-    it('successfully applies multiple filters simultaneously', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [originalTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-      const categoryId = originalTx.categoryId;
-      const [refundTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        raw: true,
-      });
-
-      await helpers.createSingleRefund({
-        originalTxId: originalTx.id,
-        refundTxId: refundTx.id,
-      });
-
-      const response = await helpers.getRefundTransactions(
-        {
-          categoryId,
-          transactionType: TRANSACTION_TYPES.expense,
-          accountId: account.id,
+          accountId: expenseAccount.id,
         },
-        true,
-      );
-
-      expect(response.data.length).toBeGreaterThan(0);
-      expect(
-        response.data.every(
-          (refund) =>
-            refund.originalTransaction.categoryId === categoryId &&
-            refund.originalTransaction.transactionType === TRANSACTION_TYPES.expense &&
-            refund.originalTransaction.accountId === account.id,
-        ),
-      ).toBe(true);
-    });
+      });
+    }, 20000);
 
     it.todo('successfully applies pagination');
     // it('successfully applies pagination', async () => {
@@ -603,50 +515,31 @@ describe('Refund links against planned transactions', () => {
   };
 
   describe('PUT /transactions/:id with refundedByTxIds', () => {
-    it('rejects a planned transaction as the refunding side', async () => {
+    it('rejects a planned refunding side on its own, over the original amount, and mixed with a real one', async () => {
       const original = await createReal({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
-      const planned = await createPlanned({ amount: 40, transactionType: TRANSACTION_TYPES.income });
-
-      const response = await helpers.updateTransaction({
-        id: original.id,
-        payload: { refundedByTxIds: [planned.id] },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(errorMessage({ response })).toBe(PLANNED_REFUND_MESSAGE);
-      await expectNothingLinked({ ids: [original.id, planned.id] });
-      expect((await getTx({ id: planned.id })).isPlanned).toBe(true);
-      expect((await helpers.getAccount({ id: accountId, raw: true })).currentBalance).toBe(900);
-    });
-
-    it('rejects a planned refunding side whose amount exceeds the original', async () => {
-      const original = await createReal({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
-      const planned = await createPlanned({ amount: 150, transactionType: TRANSACTION_TYPES.income });
-
-      const response = await helpers.updateTransaction({
-        id: original.id,
-        payload: { refundedByTxIds: [planned.id] },
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(errorMessage({ response })).toBe(PLANNED_REFUND_MESSAGE);
-      await expectNothingLinked({ ids: [original.id, planned.id] });
-    });
-
-    it('rejects a batch that mixes a real and a planned refunding side, linking neither', async () => {
-      const original = await createReal({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
+      const plannedUnderOriginal = await createPlanned({ amount: 40, transactionType: TRANSACTION_TYPES.income });
+      const plannedOverOriginal = await createPlanned({ amount: 150, transactionType: TRANSACTION_TYPES.income });
       const real = await createReal({ amount: 30, transactionType: TRANSACTION_TYPES.income });
-      const planned = await createPlanned({ amount: 30, transactionType: TRANSACTION_TYPES.income });
 
-      const response = await helpers.updateTransaction({
-        id: original.id,
-        payload: { refundedByTxIds: [real.id, planned.id] },
+      const refundedBy = async ({ refundedByTxIds }: { refundedByTxIds: string[] }) => {
+        const response = await helpers.updateTransaction({ id: original.id, payload: { refundedByTxIds } });
+
+        return { statusCode: response.statusCode, message: errorMessage({ response }) };
+      };
+
+      const rejection = { statusCode: ERROR_CODES.ValidationError, message: PLANNED_REFUND_MESSAGE };
+
+      expect(await refundedBy({ refundedByTxIds: [plannedUnderOriginal.id] })).toEqual(rejection);
+      expect(await refundedBy({ refundedByTxIds: [plannedOverOriginal.id] })).toEqual(rejection);
+      expect(await refundedBy({ refundedByTxIds: [real.id, plannedUnderOriginal.id] })).toEqual(rejection);
+
+      await expectNothingLinked({
+        ids: [original.id, plannedUnderOriginal.id, plannedOverOriginal.id, real.id],
       });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(errorMessage({ response })).toBe(PLANNED_REFUND_MESSAGE);
-      await expectNothingLinked({ ids: [original.id, real.id, planned.id] });
-    });
+      expect((await getTx({ id: plannedUnderOriginal.id })).isPlanned).toBe(true);
+      expect((await getTx({ id: plannedOverOriginal.id })).isPlanned).toBe(true);
+      expect((await helpers.getAccount({ id: accountId, raw: true })).currentBalance).toBe(930);
+    }, 20000);
 
     it('keeps an existing real refund link intact when the replacing batch contains a plan', async () => {
       const original = await createReal({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
@@ -670,48 +563,40 @@ describe('Refund links against planned transactions', () => {
   });
 
   describe('PUT /transactions/:id with refundsTxId', () => {
-    it('rejects a planned transaction as the original side', async () => {
-      const planned = await createPlanned({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
-      const real = await createReal({ amount: 40, transactionType: TRANSACTION_TYPES.income });
+    it('rejects a planned transaction on either side of the link', async () => {
+      const plannedOriginal = await createPlanned({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
+      const realRefund = await createReal({ amount: 40, transactionType: TRANSACTION_TYPES.income });
+      const realOriginal = await createReal({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
+      const plannedRefund = await createPlanned({ amount: 40, transactionType: TRANSACTION_TYPES.income });
 
-      const response = await helpers.updateTransaction({
-        id: real.id,
-        payload: { refundsTxId: planned.id },
+      const plannedAsOriginal = await helpers.updateTransaction({
+        id: realRefund.id,
+        payload: { refundsTxId: plannedOriginal.id },
       });
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(errorMessage({ response })).toBe(PLANNED_REFUND_MESSAGE);
-      await expectNothingLinked({ ids: [real.id, planned.id] });
-      expect((await getTx({ id: planned.id })).isPlanned).toBe(true);
-    });
+      expect(plannedAsOriginal.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(errorMessage({ response: plannedAsOriginal })).toBe(PLANNED_REFUND_MESSAGE);
 
-    it('rejects a planned row being pointed at a real original', async () => {
-      const original = await createReal({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
-      const planned = await createPlanned({ amount: 40, transactionType: TRANSACTION_TYPES.income });
-
-      const response = await helpers.updateTransaction({
-        id: planned.id,
-        payload: { refundsTxId: original.id },
+      const plannedPointedAtOriginal = await helpers.updateTransaction({
+        id: plannedRefund.id,
+        payload: { refundsTxId: realOriginal.id },
       });
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      await expectNothingLinked({ ids: [original.id, planned.id] });
-      expect((await getTx({ id: planned.id })).isPlanned).toBe(true);
-    });
+      expect(plannedPointedAtOriginal.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    it('rejects a planned row being marked as refunded by a real row', async () => {
-      const planned = await createPlanned({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
-      const real = await createReal({ amount: 40, transactionType: TRANSACTION_TYPES.income });
-
-      const response = await helpers.updateTransaction({
-        id: planned.id,
-        payload: { refundedByTxIds: [real.id] },
+      const plannedMarkedAsRefunded = await helpers.updateTransaction({
+        id: plannedOriginal.id,
+        payload: { refundedByTxIds: [realRefund.id] },
       });
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      await expectNothingLinked({ ids: [real.id, planned.id] });
-      expect((await getTx({ id: planned.id })).isPlanned).toBe(true);
-    });
+      expect(plannedMarkedAsRefunded.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      await expectNothingLinked({
+        ids: [plannedOriginal.id, realRefund.id, realOriginal.id, plannedRefund.id],
+      });
+      expect((await getTx({ id: plannedOriginal.id })).isPlanned).toBe(true);
+      expect((await getTx({ id: plannedRefund.id })).isPlanned).toBe(true);
+    }, 20000);
   });
 
   describe('POST /transactions with refundForTxId', () => {
@@ -735,24 +620,29 @@ describe('Refund links against planned transactions', () => {
   });
 
   describe('POST /transactions/refund', () => {
-    it('rejects a planned refunding side', async () => {
-      const original = await createReal({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
-      const planned = await createPlanned({ amount: 40, transactionType: TRANSACTION_TYPES.income });
+    it('rejects a planned transaction on either side of the link', async () => {
+      const realOriginal = await createReal({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
+      const plannedRefund = await createPlanned({ amount: 40, transactionType: TRANSACTION_TYPES.income });
+      const plannedOriginal = await createPlanned({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
+      const realRefund = await createReal({ amount: 40, transactionType: TRANSACTION_TYPES.income });
 
-      const response = await helpers.createSingleRefund({ originalTxId: original.id, refundTxId: planned.id });
+      const plannedAsRefund = await helpers.createSingleRefund({
+        originalTxId: realOriginal.id,
+        refundTxId: plannedRefund.id,
+      });
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      await expectNothingLinked({ ids: [original.id, planned.id] });
-    });
+      expect(plannedAsRefund.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    it('rejects a planned original side', async () => {
-      const planned = await createPlanned({ amount: 100, transactionType: TRANSACTION_TYPES.expense });
-      const real = await createReal({ amount: 40, transactionType: TRANSACTION_TYPES.income });
+      const plannedAsOriginal = await helpers.createSingleRefund({
+        originalTxId: plannedOriginal.id,
+        refundTxId: realRefund.id,
+      });
 
-      const response = await helpers.createSingleRefund({ originalTxId: planned.id, refundTxId: real.id });
+      expect(plannedAsOriginal.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      await expectNothingLinked({ ids: [real.id, planned.id] });
-    });
+      await expectNothingLinked({
+        ids: [realOriginal.id, plannedRefund.id, plannedOriginal.id, realRefund.id],
+      });
+    }, 20000);
   });
 });
