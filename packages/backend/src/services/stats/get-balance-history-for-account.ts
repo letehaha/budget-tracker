@@ -1,5 +1,4 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS } from '@bt/shared/types';
-import * as Accounts from '@models/accounts.model';
 import * as Balances from '@models/balances.model';
 import { canUserAccessResource } from '@services/sharing/auth/can-user-access-resource.service';
 import { Op } from 'sequelize';
@@ -52,15 +51,8 @@ export const getBalanceHistoryForAccount = async ({
 
     const dataAttributes = ['date', 'amount'];
     const balancesInRange = await Balances.default.findAll({
-      where: getWhereConditionForTime({ from, to, columnName: 'date' }),
+      where: { ...getWhereConditionForTime({ from, to, columnName: 'date' }), accountId },
       order: [['date', 'ASC']],
-      include: [
-        {
-          model: Accounts.default,
-          where: { id: accountId },
-          attributes: [],
-        },
-      ],
       attributes: dataAttributes,
     });
 

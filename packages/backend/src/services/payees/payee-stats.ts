@@ -44,7 +44,7 @@ type CountableScope = Pick<
  * accounts flagged `excludeFromStats` are out of every report.
  */
 const countableScope = ({ userId }: { userId: number }): CountableScope => ({
-  access: { accessibleTo: userId },
+  access: { creator: userId },
   planned: 'exclude',
   transfers: 'exclude',
   balanceAdjustments: 'exclude',
@@ -60,10 +60,9 @@ const countableScope = ({ userId }: { userId: number }): CountableScope => ({
  *   - first / last seen timestamps
  *   - the single most-frequent category id ("top category")
  *
- * Aggregated in the database; there are no denormalized counters to keep in sync. The scope
- * is the accounts the caller can reach, so the access path is `(accountId, time)` plus the
- * `payeeId` index rather than the `(userId, payeeId, time DESC)` composite. Ties on the top
- * category resolve to the lowest category id so the answer is stable across calls.
+ * Aggregated in the database off the `(userId, payeeId, time DESC)` index; there are no
+ * denormalized counters to keep in sync. Ties on the top category resolve to the lowest
+ * category id so the answer is stable across calls.
  *
  * When `payeeIds` is empty, returns `[]` without hitting the DB.
  */

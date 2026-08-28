@@ -236,13 +236,14 @@ const getBalanceHistoryRows = async ({
  *
  * @param {Object} params - The parameters for fetching balances.
  * @param {number} params.userId - The ID of the user for whom balances are to be fetched.
+ * @param {AccountScope} params.accountScope - Account set the read runs over — see `AccountScope`.
  * @param {string} [params.from] - The start date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @returns {Promise<Balances.default[]>} - A promise that resolves to an array of balance records.
  * @throws {Error} - Throws an error if the database query fails.
  *
  * @example
- * const balances = await getBalanceHistory({ userId: 1, from: '2023-01-01', to: '2023-12-31' });
+ * const balances = await getBalanceHistory({ userId: 1, accountScope: 'accessible', from: '2023-01-01', to: '2023-12-31' });
  */
 export const getBalanceHistory = async ({
   userId,
@@ -487,6 +488,7 @@ function aggregateBalanceTrendData({
  *
  * @param {Object} params - The parameters for fetching aggregated balances.
  * @param {number} params.userId - The ID of the user for whom balances are to be fetched.
+ * @param {AccountScope} params.accountScope - Account set the read runs over — see `AccountScope`.
  * @param {string} [params.from] - The start date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @param {string} [params.to] - The end date (inclusive) of the date range in 'yyyy-mm-dd' format.
  * @returns {Promise<AggregatedBalanceHistoryItem[]>} - A promise that resolves to an array of aggregated balance records.

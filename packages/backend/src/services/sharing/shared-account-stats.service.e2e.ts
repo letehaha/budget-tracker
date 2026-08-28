@@ -1,23 +1,19 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  ACCOUNT_CATEGORIES,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTIONS_WRITE_SCOPES,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
 import { addDays, format, subDays } from 'date-fns';
 
 /**
- * Stats on a shared account.
- *
- * The recipient of a shared account already sees its balance and its transaction list —
- * `getTransactions` scopes rows with `'pre-scoped' + getAccessibleAccountIdsForUser`. The
- * reports were still scoped by `{ creator }`, so they counted only the rows the caller
- * authored and disagreed with the two numbers next to them.
- *
- * The boundary matters as much as the fix: widening the scope must not pull in rows the
- * recipient has no claim to — another user's account, or the owner's *planned* rows, which
- * are an intention rather than money that moved.
- *
- * And it must not widen the wrong surface. Balance surfaces report what the caller can
- * reach; net-worth surfaces report what they own. A shared account belongs to the first and
- * not the second, and the last block here pins both halves against one another.
+ * Reports on a shared account count every row on it, not only the ones the caller authored —
+ * except planned rows, which stay with whoever made them, and accounts nobody shared with the
+ * caller. Net worth is the one surface that counts ownership instead of access, so a shared
+ * account belongs in the balance numbers and not in that one.
  */
 
 const WINDOW = () => ({
@@ -32,20 +28,6 @@ const OWNER_PLANNED_EXPENSE = 9999;
 const OWNER_TX_DATE = () => subDays(new Date(), 20);
 const RECIPIENT_TX_DATE = () => subDays(new Date(), 10);
 const PLANNED_TX_DATE = () => addDays(new Date(), 5);
-
-async function provisionSecondUser(): Promise<helpers.SecondUserHandle> {
-  const handle = await helpers.signUpSecondUser();
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
 
 async function shareAccountWith({ accountId, recipient }: { accountId: string; recipient: helpers.SecondUserHandle }) {
   const invitation = await helpers.createShareInvitation({
@@ -73,7 +55,7 @@ async function seedSharedAccount() {
     payload: helpers.buildAccountPayload({ name: 'Shared Checking', initialBalance: 0 }),
     raw: true,
   });
-  const recipient = await provisionSecondUser();
+  const recipient = await helpers.provisionSecondUserWithBaseCurrency();
   await shareAccountWith({ accountId: account.id, recipient });
 
   await helpers.createTransaction({
@@ -172,9 +154,8 @@ describe('Stats on a shared account', () => {
     });
 
     it('serves the shared account’s balance history when asked for it by id', async () => {
-      // `/stats/balance-history?accountId=` takes a different branch from the unscoped call
-      // and authorized on ownership, so the recipient got an empty series for an account
-      // whose balance the app was already showing them.
+      // Naming one account by id authorizes on access, not ownership, so the series matches
+      // the balance the app already shows the recipient for that account.
       const { account, recipient } = await seedSharedAccount();
 
       const history = await helpers.asUser({
@@ -204,7 +185,7 @@ describe('Stats on a shared account', () => {
   describe('the boundary holds', () => {
     it('shows nothing of an account that was never shared with the caller', async () => {
       await seedSharedAccount();
-      const stranger = await provisionSecondUser();
+      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
 
       const amount = await helpers.asUser({
         cookies: stranger.cookies,
@@ -238,6 +219,33 @@ describe('Stats on a shared account', () => {
       });
 
       expect(result.totals.expenses).toBe(OWNER_EXPENSE + RECIPIENT_EXPENSE);
+    });
+
+    it('keeps the owner’s planned rows out of the recipient’s expenses total', async () => {
+      const { account, recipient } = await seedSharedAccount();
+
+      await helpers.createPlannedTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: OWNER_PLANNED_EXPENSE,
+            transactionType: TRANSACTION_TYPES.expense,
+          }),
+          time: PLANNED_TX_DATE().toISOString(),
+        },
+        raw: true,
+      });
+
+      const recipientAmount = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.getExpensesAmountForPeriod({ ...WINDOW(), raw: true }),
+      });
+      const ownerAmount = await helpers.getExpensesAmountForPeriod({ ...WINDOW(), raw: true });
+
+      expect(recipientAmount).toBe(OWNER_EXPENSE + RECIPIENT_EXPENSE);
+      // The owner's total keeps the recipient's honest: without it, a plan that landed in no
+      // report at all would pass just as well.
+      expect(ownerAmount).toBe(OWNER_EXPENSE + RECIPIENT_EXPENSE + OWNER_PLANNED_EXPENSE);
     });
 
     it('keeps the recipient’s own plans on their own account in their cash flow', async () => {
@@ -306,13 +314,19 @@ describe('Stats on a shared account', () => {
   describe('net worth stays personal', () => {
     const SHARED_BALANCE = 5000;
 
-    /** An account with real money in it, shared read-only with a second user. */
-    async function seedFundedSharedAccount() {
+    /** An account with real money in it, shared with a second user. */
+    async function seedFundedSharedAccount({
+      accountOverrides,
+    }: { accountOverrides?: Parameters<typeof helpers.buildAccountPayload>[0] } = {}) {
       const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Owner Savings', initialBalance: SHARED_BALANCE }),
+        payload: helpers.buildAccountPayload({
+          name: 'Owner Savings',
+          initialBalance: SHARED_BALANCE,
+          ...accountOverrides,
+        }),
         raw: true,
       });
-      const recipient = await provisionSecondUser();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareAccountWith({ accountId: account.id, recipient });
       return { account, recipient };
     }
@@ -351,6 +365,26 @@ describe('Stats on a shared account', () => {
 
       expect(history.at(-1)!.amount).toBe(SHARED_BALANCE);
       expect(total).toBe(SHARED_BALANCE);
+    });
+
+    it('subtracts a shared credit card’s limit from the recipient’s total balance', async () => {
+      const CREDIT_LIMIT = 3000;
+      const { recipient } = await seedFundedSharedAccount({
+        accountOverrides: { accountCategory: ACCOUNT_CATEGORIES.creditCard, creditLimit: CREDIT_LIMIT },
+      });
+
+      const total = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: async () => {
+          await helpers.updateUserSettings({
+            settings: { locale: 'en', includeCreditLimitInStats: true },
+            raw: true,
+          });
+          return helpers.getTotalBalance({ date: format(new Date(), 'yyyy-MM-dd'), raw: true });
+        },
+      });
+
+      expect(total).toBe(SHARED_BALANCE - CREDIT_LIMIT);
     });
 
     it('still shows the owner their own account in their net worth', async () => {
