@@ -24,9 +24,14 @@
         "preview": {
           "emptyList": "No hay nada que importar aquí.",
           "accounts": "Cuentas",
+          "categories": "Categorías",
+          "payees": "Beneficiarios",
+          "tags": "Etiquetas",
           "transactions": "Transacciones",
+          "transfers": "Transferencias",
           "dateRange": "Rango: {from} → {to}",
           "accountsHelper": "Para cada cuenta YNAB, confirma la divisa.",
+          "skippedNote": "Se omitirá(n) {count} cuenta(s). Sus transacciones —y cualquier transferencia hacia o desde ellas— no se importarán.",
           "warningsTitle": "Advertencias",
           "rowPrefix": "Fila {rowIndex}:",
           "startOver": "Empezar de nuevo",
@@ -38,7 +43,8 @@
           "currencyPlaceholder": "USD",
           "currencyLabel": "Divisa",
           "currencyInvalid": "Introduce un código de divisa de 3 letras (p. ej. USD)",
-          "autoDetected": "detectado automáticamente: {code}"
+          "autoDetected": "detectado automáticamente: {code}",
+          "undoSkip": "Incluir en la importación"
         },
         "execute": {
           "starting": "Iniciando la importación…",
@@ -53,6 +59,7 @@
           "successTitle": "Importación completada",
           "successDescription": "Tus datos YNAB están ahora en MoneyMatter.",
           "accountsCreated": "Cuentas creadas",
+          "accountsSkipped": "Cuentas omitidas",
           "categoriesCreated": "Categorías creadas",
           "payeesCreated": "Beneficiarios creados",
           "tagsCreated": "Etiquetas creadas",

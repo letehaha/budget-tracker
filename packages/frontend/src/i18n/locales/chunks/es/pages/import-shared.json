@@ -7,6 +7,10 @@
     },
     "selectAction": "Seleccionar acción",
     "resolvedCounterWord": "resuelto",
+    "quickActionsMenuLabel": "Acciones masivas",
+    "quickActions": {
+      "menu": "Acciones"
+    },
     "columns": {
       "sourceName": "Nombre de fuente",
       "currency": "Moneda",
@@ -63,6 +67,22 @@
         "category": "Categoría"
       },
       "importAnywayAriaLabel": "Importar fila {row} de todas formas"
+    },
+    "aiMapping": {
+      "action": "Coincidir con IA",
+      "tooltipCategories": "Deja que la IA vincule cada categoría de origen con la categoría existente más parecida. Las filas que ya vinculaste a una categoría no se modifican.",
+      "failed": "La coincidencia con IA falló. Inténtalo de nuevo.",
+      "inProgress": "Coincidencia con IA en curso…"
+    },
+    "categoryPreset": {
+      "menuTrigger": "Aplicar mapeo",
+      "currentLayout": "El diseño de este archivo",
+      "savedTemplates": "Plantillas guardadas",
+      "lastUsed": "Último mapeo usado",
+      "namePlaceholder": "Nombra este mapeo",
+      "renameAria": "Renombrar mapeo",
+      "deleteAria": "Eliminar mapeo",
+      "confirmRenameAria": "Guardar nombre"
     }
   },
   "pages": {

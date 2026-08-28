@@ -24,9 +24,14 @@
         "preview": {
           "emptyList": "Тут немає чого імпортувати.",
           "accounts": "Рахунки",
+          "categories": "Категорії",
+          "payees": "Отримувачі",
+          "tags": "Теги",
           "transactions": "Транзакції",
+          "transfers": "Перекази",
           "dateRange": "Діапазон: {from} → {to}",
           "accountsHelper": "Для кожного рахунку YNAB підтвердіть валюту.",
+          "skippedNote": "{count} рахунків буде пропущено. Їхні транзакції — і будь-які перекази до них або з них — не будуть імпортовані.",
           "warningsTitle": "Попередження",
           "rowPrefix": "Рядок {rowIndex}:",
           "startOver": "Почати спочатку",
@@ -38,7 +43,8 @@
           "currencyPlaceholder": "USD",
           "currencyLabel": "Валюта",
           "currencyInvalid": "Введіть 3-літерний код валюти (наприклад, USD)",
-          "autoDetected": "автоматично виявлено: {code}"
+          "autoDetected": "автоматично виявлено: {code}",
+          "undoSkip": "Включити в імпорт"
         },
         "execute": {
           "starting": "Початок імпортування…",
@@ -53,6 +59,7 @@
           "successTitle": "Імпортування завершено",
           "successDescription": "Ваші дані YNAB тепер у MoneyMatter.",
           "accountsCreated": "Рахунки створено",
+          "accountsSkipped": "Рахунки пропущено",
           "categoriesCreated": "Категорії створено",
           "payeesCreated": "Отримувачів створено",
           "tagsCreated": "Теги створено",

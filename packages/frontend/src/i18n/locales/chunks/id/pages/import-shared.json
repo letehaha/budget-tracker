@@ -7,6 +7,10 @@
     },
     "selectAction": "Pilih tindakan",
     "resolvedCounterWord": "terselesaikan",
+    "quickActionsMenuLabel": "Tindakan massal",
+    "quickActions": {
+      "menu": "Tindakan"
+    },
     "columns": {
       "sourceName": "Nama sumber",
       "currency": "Mata Uang",
@@ -63,6 +67,22 @@
         "category": "Kategori"
       },
       "importAnywayAriaLabel": "Tetap impor baris {row}"
+    },
+    "aiMapping": {
+      "action": "Cocokkan AI",
+      "tooltipCategories": "Biarkan AI menautkan setiap kategori sumber ke kategori yang ada yang paling mendekati. Baris yang sudah Anda tautkan ke kategori tetap tidak berubah.",
+      "failed": "Pencocokan AI gagal. Silakan coba lagi.",
+      "inProgress": "Pencocokan AI sedang berlangsung…"
+    },
+    "categoryPreset": {
+      "menuTrigger": "Terapkan pemetaan",
+      "currentLayout": "Tata letak file ini",
+      "savedTemplates": "Templat tersimpan",
+      "lastUsed": "Pemetaan terakhir digunakan",
+      "namePlaceholder": "Beri nama pemetaan ini",
+      "renameAria": "Ganti nama pemetaan",
+      "deleteAria": "Hapus pemetaan",
+      "confirmRenameAria": "Simpan nama"
     }
   },
   "pages": {

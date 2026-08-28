@@ -10,6 +10,8 @@
             "upload": "Unggah",
             "map": "Petakan Kolom",
             "resolve": "Selesaikan Nilai",
+            "resolveAccounts": "Akun",
+            "resolveCategories": "Kategori",
             "review": "Tinjau",
             "results": "Selesai"
           }
@@ -115,6 +117,7 @@
           "imported": "Diimpor",
           "skippedDuplicates": "Dilewati (Duplikat)",
           "accountsCreated": "Akun Dibuat",
+          "accountsSkipped": "Akun dilewati",
           "categoriesCreated": "Kategori Dibuat",
           "tagsCreated": "Tag Dibuat",
           "payeesCreated": "Penerima Dibuat",
@@ -255,7 +258,8 @@
           "empty": "Tidak ada akun ditemukan di CSV",
           "currentBalanceLabel": "Saldo saat ini",
           "currentBalancePlaceholder": "0.00",
-          "currentBalanceHint": "Saldo yang dimiliki akun ini saat ini — impor akan mengatur akun ke nilai ini secara persis. Biarkan kosong untuk menggunakan jumlah dari transaksi yang diimpor."
+          "currentBalanceHint": "Saldo yang dimiliki akun ini saat ini — impor akan mengatur akun ke nilai ini secara persis. Biarkan kosong untuk menggunakan jumlah dari transaksi yang diimpor.",
+          "skippedNote": "{count} akun akan dilewati. Transaksinya tidak akan diimpor."
         },
         "categories": {
           "sectionTitle": "Pemetaan Kategori",
