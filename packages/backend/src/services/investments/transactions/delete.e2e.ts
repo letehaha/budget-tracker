@@ -48,20 +48,7 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
     });
   });
 
-  it('should delete an investment transaction successfully', async () => {
-    const response = await helpers.deleteInvestmentTransaction({
-      transactionId: transaction.id,
-      raw: false,
-    });
-
-    expect(response.statusCode).toBe(200);
-
-    // Verify transaction is deleted
-    const deletedTransaction = await InvestmentTransaction.findByPk(transaction.id);
-    expect(deletedTransaction).toBeNull();
-  });
-
-  it('should recalculate holding after transaction deletion', async () => {
+  it('should delete a transaction and recalculate the holding', async () => {
     // Get holding before deletion
     const [holdingBefore] = await helpers.getHoldings({
       portfolioId: portfolio.id,
@@ -72,11 +59,9 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
     expect(holdingBefore!.quantity).toBeNumericEqual(2); // From the buy transaction
     expect(holdingBefore!.costBasis).toBeNumericEqual(100); // 2 * 50
 
-    // Delete the transaction
-    await helpers.deleteInvestmentTransaction({
-      transactionId: transaction.id,
-      raw: false,
-    });
+    const response = await helpers.deleteInvestmentTransaction({ transactionId: transaction.id, raw: false });
+    expect(response.statusCode).toBe(200);
+    expect(await InvestmentTransaction.findByPk(transaction.id)).toBeNull();
 
     // Get holding after deletion
     const [holdingAfter] = await helpers.getHoldings({
@@ -137,22 +122,20 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
     expect(holdingAfter!.quantity).toBeNumericEqual(2); // 3 - 1 (first buy deleted)
   });
 
-  it('should successfully delete non-existent transaction', async () => {
-    const response = await helpers.deleteInvestmentTransaction({
+  it('is idempotent for an unknown id and rejects a malformed one', async () => {
+    const unknownId = await helpers.deleteInvestmentTransaction({
       transactionId: generateRandomRecordId(),
       raw: false,
     });
 
-    expect(response.statusCode).toBe(200);
-  });
+    expect(unknownId.statusCode).toBe(200);
 
-  it('should fail with invalid transaction ID', async () => {
-    const response = await helpers.deleteInvestmentTransaction({
+    const malformedId = await helpers.deleteInvestmentTransaction({
       transactionId: 'invalid' as unknown as string,
       raw: false,
     });
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(malformedId.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
   // Regression for MONEY-MATTER-BACKEND-5R: deleting a transaction whose
@@ -197,7 +180,10 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
     expect(deleted).toBeNull();
   });
 
-  it('should block disconnecting a user currency that is still in use by investment holdings', async () => {
+  it('should block disconnecting a user currency in use by holdings, including in a trashed portfolio', async () => {
+    // Guards the paranoid:false bypass in user.service.deleteUserCurrency:
+    // a currency removed while a trashed portfolio still references it would
+    // leave restored holdings with no UsersCurrencies link.
     const [eurSecurity] = await helpers.seedSecurities([{ symbol: 'ASML', name: 'ASML Holding', currencyCode: 'EUR' }]);
 
     const eurPortfolio = await helpers.createPortfolio({
@@ -209,45 +195,24 @@ describe('DELETE /investments/transaction/:transactionId (delete investment tran
       payload: { portfolioId: eurPortfolio.id, securityId: eurSecurity!.id },
     });
 
-    const response = await makeRequest({
+    const activePortfolioResponse = await makeRequest({
       method: 'delete',
       url: '/user/currency',
       payload: { currencyCode: 'EUR' },
     });
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-
-    const stillLinked = await UsersCurrencies.findOne({ where: { currencyCode: 'EUR' } });
-    expect(stillLinked).not.toBeNull();
-  });
-
-  it('should still block currency removal when the holding belongs to a soft-deleted (trashed) portfolio', async () => {
-    // Guard for the paranoid:false bypass in user.service.deleteUserCurrency.
-    // Without it, a user could remove a currency while a portfolio in trash
-    // still references it — restoring the portfolio later would surface broken
-    // holding rows with no UsersCurrencies link.
-    const [eurSecurity] = await helpers.seedSecurities([{ symbol: 'SAP', name: 'SAP SE', currencyCode: 'EUR' }]);
-
-    const eurPortfolio = await helpers.createPortfolio({
-      payload: helpers.buildPortfolioPayload({ name: 'EUR Portfolio Trash' }),
-      raw: true,
-    });
-
-    await helpers.createHolding({
-      payload: { portfolioId: eurPortfolio.id, securityId: eurSecurity!.id },
-    });
+    expect(activePortfolioResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(await UsersCurrencies.findOne({ where: { currencyCode: 'EUR' } })).not.toBeNull();
 
     await helpers.deletePortfolio({ portfolioId: eurPortfolio.id });
 
-    const response = await makeRequest({
+    const trashedPortfolioResponse = await makeRequest({
       method: 'delete',
       url: '/user/currency',
       payload: { currencyCode: 'EUR' },
     });
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-
-    const stillLinked = await UsersCurrencies.findOne({ where: { currencyCode: 'EUR' } });
-    expect(stillLinked).not.toBeNull();
-  });
+    expect(trashedPortfolioResponse.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect(await UsersCurrencies.findOne({ where: { currencyCode: 'EUR' } })).not.toBeNull();
+  }, 30000);
 });

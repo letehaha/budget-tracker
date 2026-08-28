@@ -21,8 +21,6 @@ import * as helpers from '@tests/helpers';
 // Shared scaffold helpers
 // ---------------------------------------------------------------------------
 
-interface RecipientHandle extends helpers.SecondUserHandle {}
-
 /**
  * Creates a recipient-owned account + category, then creates one transaction
  * belonging to that recipient. Returns the transaction so callers can use its id.
@@ -44,23 +42,9 @@ async function recipientCreatesTx({ cookies }: { cookies: string }) {
   return tx!;
 }
 
-async function provisionRecipient(): Promise<RecipientHandle> {
-  const handle = await helpers.signUpSecondUser();
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
-
 interface ShareBudgetParams {
   budgetId: string;
-  recipient: RecipientHandle;
+  recipient: helpers.SecondUserHandle;
   permission: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
 }
 
@@ -84,12 +68,24 @@ async function shareBudget({ budgetId, recipient, permission }: ShareBudgetParam
 
 describe('Shared budget writes', () => {
   describe('read recipient — all mutations return 404', () => {
-    it('PATCH /budgets/:id returns 404 for read recipient', async () => {
+    it('returns 404 to a read recipient on metadata edit, attach, detach, archive and delete', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const [ownerTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 50 }),
+        raw: true,
+      });
       const budget = await helpers.createCustomBudget({ name: 'Read-only budget', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
+      await helpers.addTransactionToCustomBudget({
+        id: budget.id,
+        payload: { transactionIds: [ownerTx!.id] },
+        raw: true,
+      });
 
-      const res = await helpers.asUser({
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
+      const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });
+
+      const editRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.editCustomBudget({
@@ -98,18 +94,9 @@ describe('Shared budget writes', () => {
             raw: false,
           }),
       });
+      expect(editRes.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('POST /budgets/:id/transactions returns 404 for read recipient', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Read tx block', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
-
-      const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });
-
-      const res = await helpers.asUser({
+      const attachRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.addTransactionToCustomBudget({
@@ -118,27 +105,9 @@ describe('Shared budget writes', () => {
             raw: false,
           }),
       });
+      expect(attachRes.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('DELETE /budgets/:id/transactions returns 404 for read recipient', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 50 }),
-        raw: true,
-      });
-      const budget = await helpers.createCustomBudget({ name: 'Read del block', raw: true });
-      await helpers.addTransactionToCustomBudget({
-        id: budget.id,
-        payload: { transactionIds: [ownerTx!.id] },
-        raw: true,
-      });
-
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
-
-      const res = await helpers.asUser({
+      const detachRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.removeTransactionFromCustomBudget({
@@ -147,16 +116,9 @@ describe('Shared budget writes', () => {
             raw: false,
           }),
       });
+      expect(detachRes.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('PATCH /budgets/:id/archive returns 404 for read recipient', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Read archive block', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
-
-      const res = await helpers.asUser({
+      const archiveRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.archiveCustomBudget({
@@ -165,31 +127,23 @@ describe('Shared budget writes', () => {
             raw: false,
           }),
       });
+      expect(archiveRes.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('DELETE /budgets/:id returns 404 for read recipient', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Read delete block', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
-
-      const res = await helpers.asUser({
+      const deleteRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () => helpers.deleteCustomBudget({ id: budget.id, raw: false }),
       });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
+      expect(deleteRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    }, 30000);
   });
 
   describe('write recipient on a manual budget', () => {
-    it('PATCH /budgets/:id returns 404 (write does not grant metadata edits)', async () => {
+    it('rejects metadata edits and archive with 404 (write grants neither)', async () => {
       const budget = await helpers.createCustomBudget({ name: 'Write no meta', raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
 
-      const res = await helpers.asUser({
+      const editRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.editCustomBudget({
@@ -198,18 +152,28 @@ describe('Shared budget writes', () => {
             raw: false,
           }),
       });
+      expect(editRes.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
+      const archiveRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.archiveCustomBudget({
+            id: budget.id,
+            isArchived: true,
+            raw: false,
+          }),
+      });
+      expect(archiveRes.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
 
-    it("POST tx with recipient's own tx → 200 and metadata.addedByUserId stamped", async () => {
+    it("attaches and detaches the recipient's own tx → 200, metadata.addedByUserId stamped, row gone", async () => {
       const budget = await helpers.createCustomBudget({ name: 'Write attach own', raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
 
       const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });
 
-      const res = await helpers.asUser({
+      const attachRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.addTransactionToCustomBudget({
@@ -219,9 +183,8 @@ describe('Shared budget writes', () => {
           }),
       });
 
-      expect(res.statusCode).toBe(200);
+      expect(attachRes.statusCode).toBe(200);
 
-      // Verify metadata.addedByUserId is stamped on the BudgetTransactions row
       const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
       const btRow = await BudgetTransactions.findOne({
         where: { budgetId: budget.id, transactionId: recipientTx.id },
@@ -229,19 +192,43 @@ describe('Shared budget writes', () => {
       expect(btRow).not.toBeNull();
       expect(btRow!.metadata).not.toBeNull();
       expect(btRow!.metadata!.addedByUserId).toBe(recipientApp.id);
-    });
 
-    it("POST tx with owner's tx id → 400 someTransactionIdsInvalid", async () => {
+      const detachRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.removeTransactionFromCustomBudget({
+            id: budget.id,
+            payload: { transactionIds: [recipientTx.id] },
+            raw: false,
+          }),
+      });
+
+      expect(detachRes.statusCode).toBe(200);
+
+      const afterRow = await BudgetTransactions.findOne({
+        where: { budgetId: budget.id, transactionId: recipientTx.id },
+      });
+      expect(afterRow).toBeNull();
+    }, 30000);
+
+    it("rejects attaching an owner's tx (alone or mixed with own) and silently ignores detaching one", async () => {
       const account = await helpers.createAccount({ raw: true });
       const [ownerTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
         raw: true,
       });
       const budget = await helpers.createCustomBudget({ name: 'Write owner tx reject', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
+      await helpers.addTransactionToCustomBudget({
+        id: budget.id,
+        payload: { transactionIds: [ownerTx!.id] },
+        raw: true,
+      });
 
-      const res = await helpers.asUser({
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
+      const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });
+
+      const ownerOnlyRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.addTransactionToCustomBudget({
@@ -250,23 +237,9 @@ describe('Shared budget writes', () => {
             raw: false,
           }),
       });
+      expect(ownerOnlyRes.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('POST tx with mix of own + owner tx → 400', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
-        raw: true,
-      });
-      const budget = await helpers.createCustomBudget({ name: 'Write mix reject', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
-
-      const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });
-
-      const res = await helpers.asUser({
+      const mixedRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.addTransactionToCustomBudget({
@@ -275,9 +248,26 @@ describe('Shared budget writes', () => {
             raw: false,
           }),
       });
+      expect(mixedRes.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      // The service silently ignores rows not matching the JSONB filter and returns 200
+      const detachRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.removeTransactionFromCustomBudget({
+            id: budget.id,
+            payload: { transactionIds: [ownerTx!.id] },
+            raw: false,
+          }),
+      });
+      expect(detachRes.statusCode).toBe(200);
+
+      // Row must still be present — the JSONB filter excluded it from the destroy
+      const afterRow = await BudgetTransactions.findOne({
+        where: { budgetId: budget.id, transactionId: ownerTx!.id },
+      });
+      expect(afterRow).not.toBeNull();
+    }, 30000);
 
     it("POST tx with own tx whose category is NOT in budget's category list → 200 (no category check on manual attach)", async () => {
       // Budget has a category list (via category ids). A manual budget does NOT enforce
@@ -292,7 +282,7 @@ describe('Shared budget writes', () => {
         categoryIds: [ownerCategory.id],
         raw: true,
       });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
 
       // Recipient creates a tx using their own (different) category — not in budget's list
@@ -331,96 +321,6 @@ describe('Shared budget writes', () => {
       // No category-match check on manual budgets — should succeed
       expect(res.statusCode).toBe(200);
     });
-
-    it('DELETE tx recipient attached → 200 and row gone', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Write detach own', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
-
-      const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });
-      // Attach
-      await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.addTransactionToCustomBudget({
-            id: budget.id,
-            payload: { transactionIds: [recipientTx.id] },
-            raw: true,
-          }),
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.removeTransactionFromCustomBudget({
-            id: budget.id,
-            payload: { transactionIds: [recipientTx.id] },
-            raw: false,
-          }),
-      });
-
-      expect(res.statusCode).toBe(200);
-
-      const afterRow = await BudgetTransactions.findOne({
-        where: { budgetId: budget.id, transactionId: recipientTx.id },
-      });
-      expect(afterRow).toBeNull();
-    });
-
-    it('DELETE tx owner attached — silently ignores (no row deleted, 200 returned)', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [ownerTx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 80 }),
-        raw: true,
-      });
-      const budget = await helpers.createCustomBudget({ name: 'Write detach owner tx', raw: true });
-      // Owner attaches
-      await helpers.addTransactionToCustomBudget({
-        id: budget.id,
-        payload: { transactionIds: [ownerTx!.id] },
-        raw: true,
-      });
-
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.removeTransactionFromCustomBudget({
-            id: budget.id,
-            payload: { transactionIds: [ownerTx!.id] },
-            raw: false,
-          }),
-      });
-
-      // The service silently ignores rows not matching the JSONB filter and returns 200
-      expect(res.statusCode).toBe(200);
-
-      // Row must still be present — the JSONB filter excluded it from the destroy
-      const afterRow = await BudgetTransactions.findOne({
-        where: { budgetId: budget.id, transactionId: ownerTx!.id },
-      });
-      expect(afterRow).not.toBeNull();
-    });
-
-    it('PATCH /budgets/:id/archive returns 404 for write recipient (manage-only)', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Write archive block', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.archiveCustomBudget({
-            id: budget.id,
-            isArchived: true,
-            raw: false,
-          }),
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
   });
 
   describe('write recipient on a category-type budget', () => {
@@ -436,7 +336,7 @@ describe('Shared budget writes', () => {
         categoryIds: [category.id],
         raw: true,
       });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
 
       const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });
@@ -456,12 +356,13 @@ describe('Shared budget writes', () => {
   });
 
   describe('manage recipient', () => {
-    it('PATCH /budgets/:id metadata edits → 200', async () => {
+    it('allows metadata edits and archive but not invitations or budget deletion', async () => {
       const budget = await helpers.createCustomBudget({ name: 'Manage meta', raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.manage });
+      const thirdUser = await helpers.provisionSecondUserWithBaseCurrency();
 
-      const res = await helpers.asUser({
+      const editRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.editCustomBudget({
@@ -470,36 +371,9 @@ describe('Shared budget writes', () => {
             raw: false,
           }),
       });
+      expect(editRes.statusCode).toBe(200);
 
-      expect(res.statusCode).toBe(200);
-    });
-
-    it('archive → 200 (manage can archive)', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Manage archive', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.manage });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.archiveCustomBudget({
-            id: budget.id,
-            isArchived: true,
-            raw: false,
-          }),
-      });
-
-      expect(res.statusCode).toBe(200);
-    });
-
-    it('manage recipient cannot create new invitations (owner-only) — 404', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Manage invite', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.manage });
-
-      const thirdUser = await provisionRecipient();
-
-      const res = await helpers.asUser({
+      const inviteRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () =>
           helpers.createShareInvitation({
@@ -509,22 +383,25 @@ describe('Shared budget writes', () => {
             permission: SHARE_PERMISSIONS.read,
           }),
       });
+      expect(inviteRes.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('DELETE /budgets/:id returns 404 for manage recipient (owner-only delete)', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Manage no delete', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.manage });
-
-      const res = await helpers.asUser({
+      const deleteRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () => helpers.deleteCustomBudget({ id: budget.id, raw: false }),
       });
+      expect(deleteRes.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
+      const archiveRes = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.archiveCustomBudget({
+            id: budget.id,
+            isArchived: true,
+            raw: false,
+          }),
+      });
+      expect(archiveRes.statusCode).toBe(200);
+    }, 30000);
   });
 
   describe('direct PUT/DELETE on a tx visible only via budget share', () => {
@@ -549,7 +426,7 @@ describe('Shared budget writes', () => {
         payload: { transactionIds: [ownerTx!.id] },
         raw: true,
       });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission });
       return { ownerTx: ownerTx!, recipient };
     };
@@ -565,44 +442,31 @@ describe('Shared budget writes', () => {
       expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
     });
 
-    it('PUT /transactions/:id → 403 for a manage-permission budget recipient on owner tx', async () => {
+    it('returns 403 to a manage-permission budget recipient on PUT and DELETE of an owner tx, 404 for a missing tx', async () => {
       const { ownerTx, recipient } = await setup({ permission: SHARE_PERMISSIONS.manage });
 
-      const res = await helpers.asUser({
+      const updateRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () => helpers.updateTransaction({ id: ownerTx.id, payload: { amount: 200 } }),
       });
+      expect(updateRes.statusCode).toBe(ERROR_CODES.Forbidden);
 
-      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
-    });
-
-    it('DELETE /transactions/:id → 403 for a manage-permission budget recipient on owner tx', async () => {
-      const { ownerTx, recipient } = await setup({ permission: SHARE_PERMISSIONS.manage });
-
-      const res = await helpers.asUser({
+      const deleteRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () => helpers.deleteTransaction({ id: ownerTx.id }),
       });
+      expect(deleteRes.statusCode).toBe(ERROR_CODES.Forbidden);
 
-      expect(res.statusCode).toBe(ERROR_CODES.Forbidden);
-    });
-
-    it('PUT /transactions/:id → 404 when the tx truly does not exist (no leak vs 403)', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'missing tx', raw: true });
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.manage });
-
-      const res = await helpers.asUser({
+      const missingRes = await helpers.asUser({
         cookies: recipient.cookies,
         fn: () => helpers.updateTransaction({ id: generateRandomRecordId(), payload: { amount: 1 } }),
       });
-
-      expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
+      expect(missingRes.statusCode).toBe(ERROR_CODES.NotFoundError);
+    }, 30000);
 
     it('PUT /transactions/:id → 200 when recipient edits their own attached tx (sanity check)', async () => {
       const budget = await helpers.createCustomBudget({ name: 'own edit ok', raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
 
       const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });
@@ -628,7 +492,7 @@ describe('Shared budget writes', () => {
   describe('owner detaches recipient-attached row', () => {
     it('owner can detach a row that a write recipient attached → 200, row gone', async () => {
       const budget = await helpers.createCustomBudget({ name: 'Owner detach recipient row', raw: true });
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
 
       const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies });

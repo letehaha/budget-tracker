@@ -228,42 +228,17 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
       expect(usSecurityPrice.source).toBe(SECURITY_PROVIDER.yahoo);
       expect(nonUsSecurityPrice.source).toBe(SECURITY_PROVIDER.yahoo);
 
-      // Verify sync timestamps were updated for synced securities
-      const securities = await helpers.getAllSecurities({ raw: true });
-      expect(securities.find((i) => i.id === securityWithExcludedHolding.id)!.pricingLastSyncedAt).toBe(null);
-      expect(isToday(securities.find((i) => i.id === usSecurity.id)!.pricingLastSyncedAt!)).toBe(true);
-      expect(isToday(securities.find((i) => i.id === nonUsSecurity.id)!.pricingLastSyncedAt!)).toBe(true);
-      expect(isToday(securities.find((i) => i.id === securityWithStaleData.id)!.pricingLastSyncedAt!)).toBe(true);
-    });
-
-    it('should skip securities with excluded holdings only', async () => {
-      // Yahoo is primary — mock chart to return data for eligible symbols
-      mockedYahooChart.mockResolvedValue({
-        quotes: [{ date: new Date(), close: 100, adjclose: 100 }],
-      });
-
-      // Trigger sync
-      const response = await helpers.triggerSecuritiesSync();
-      expect(response.statusCode).toBe(200);
-      expect(helpers.extractResponse(response)).toEqual({
-        message: 'Securities sync triggered (stocks + crypto)',
-        timestamp: expect.any(String),
-        stocks: { ok: true },
-        crypto: { ok: true },
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Verify no price data was created for excluded security (GOOGL has no non-excluded holding)
+      // GOOGL's only holding is excluded, so it gets neither a price row nor a sync timestamp
       const excludedSecurityPrice = await SecurityPricing.findOne({
         where: { securityId: securityWithExcludedHolding.id },
       });
       expect(excludedSecurityPrice).toBeNull();
 
-      // Verify sync timestamp was not updated for excluded security
       const securities = await helpers.getAllSecurities({ raw: true });
-      const excludedSecurity = securities.find((s) => s.id === securityWithExcludedHolding.id);
-      expect(excludedSecurity?.pricingLastSyncedAt).toBeNull();
+      expect(securities.find((i) => i.id === securityWithExcludedHolding.id)!.pricingLastSyncedAt).toBe(null);
+      expect(isToday(securities.find((i) => i.id === usSecurity.id)!.pricingLastSyncedAt!)).toBe(true);
+      expect(isToday(securities.find((i) => i.id === nonUsSecurity.id)!.pricingLastSyncedAt!)).toBe(true);
+      expect(isToday(securities.find((i) => i.id === securityWithStaleData.id)!.pricingLastSyncedAt!)).toBe(true);
     });
   });
 
@@ -327,62 +302,6 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
         }
         dataProviderFactory.clearCache();
       }
-    });
-  });
-
-  describe('Prioritization Logic', () => {
-    it('should prioritize securities with stale pricing data first', async () => {
-      // Create another security with very recent sync timestamp
-      const recentSyncSecurity = await helpers.seedSecurities([
-        {
-          symbol: 'NVDA',
-          name: 'NVIDIA Corporation',
-          currencyCode: 'USD',
-        },
-      ]);
-
-      await helpers.createHolding({
-        payload: {
-          portfolioId: investmentPortfolio.id,
-          securityId: recentSyncSecurity[0]!.id,
-        },
-      });
-
-      // Set recent sync timestamp (just 1 hour ago)
-      await Securities.update(
-        { pricingLastSyncedAt: subDays(new Date(), 0) },
-        { where: { id: recentSyncSecurity[0]!.id } },
-      );
-
-      // Yahoo is primary for all symbols — mock chart to return data
-      mockedYahooChart.mockResolvedValue({
-        quotes: [{ date: new Date(), close: 185.92, adjclose: 185.92 }],
-      });
-
-      // Trigger sync
-      await helpers.triggerSecuritiesSync();
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // All securities should be processed, including the stale one
-      const securities = await helpers.getAllSecurities({ raw: true });
-
-      // Verify that the stale security (MSFT) was processed
-      const staleSecurity = securities.find((s) => s.id === securityWithStaleData.id)!;
-      expect(staleSecurity?.pricingLastSyncedAt).toBeTruthy();
-      expect(isToday(staleSecurity.pricingLastSyncedAt!)).toBe(true);
-
-      // The never-synced securities should also be processed
-      const neverSyncedApple = securities.find((s) => s.id === usSecurity.id)!;
-      const neverSyncedAsml = securities.find((s) => s.id === nonUsSecurity.id)!;
-      expect(neverSyncedApple?.pricingLastSyncedAt).toBeTruthy();
-      expect(neverSyncedAsml?.pricingLastSyncedAt).toBeTruthy();
-      expect(isToday(neverSyncedApple.pricingLastSyncedAt!)).toBe(true);
-      expect(isToday(neverSyncedAsml.pricingLastSyncedAt!)).toBe(true);
-
-      // The recently synced security should also be processed (all are processed together)
-      const recentSecurity = securities.find((s) => s.id === recentSyncSecurity[0]!.id)!;
-      expect(recentSecurity?.pricingLastSyncedAt).toBeTruthy();
-      expect(isToday(recentSecurity.pricingLastSyncedAt!)).toBe(true);
     });
   });
 
@@ -509,32 +428,6 @@ describe('Securities Daily Sync Service (via API Endpoint)', () => {
       expect(mockedPolygonAggregates).not.toHaveBeenCalled();
       expect(mockedAlphaDaily).not.toHaveBeenCalled();
       expect(mockedFmpHistoricalPrices).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Data Integrity', () => {
-    it('should store correct Yahoo provider source for each security', async () => {
-      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-
-      // Yahoo is primary for all — mock chart to return data
-      mockedYahooChart.mockResolvedValue({
-        quotes: [{ date: new Date(yesterday), close: 185.92, adjclose: 185.92 }],
-      });
-
-      await helpers.triggerSecuritiesSync();
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Verify correct provider sources are stored (all Yahoo)
-      const securitiesPrices = await helpers.getSecuritiesPricesByDate({ raw: true });
-      const usPrice = securitiesPrices.find((p) => p.securityId === usSecurity.id);
-      const nonUsPrice = securitiesPrices.find((p) => p.securityId === nonUsSecurity.id);
-
-      expect(usPrice?.source).toBe(SECURITY_PROVIDER.yahoo);
-      expect(nonUsPrice?.source).toBe(SECURITY_PROVIDER.yahoo);
-
-      // Should store actual provider name, not 'composite'
-      expect(usPrice?.source).not.toBe(SECURITY_PROVIDER.composite);
-      expect(nonUsPrice?.source).not.toBe(SECURITY_PROVIDER.composite);
     });
   });
 

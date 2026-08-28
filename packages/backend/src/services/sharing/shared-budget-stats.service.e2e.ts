@@ -22,25 +22,9 @@ import * as helpers from '@tests/helpers';
 // Scaffold helpers (mirrors shared-budget-writes.service.e2e.ts)
 // ---------------------------------------------------------------------------
 
-interface RecipientHandle extends helpers.SecondUserHandle {}
-
-async function provisionRecipient(): Promise<RecipientHandle> {
-  const handle = await helpers.signUpSecondUser();
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
-
 interface ShareBudgetParams {
   budgetId: string;
-  recipient: RecipientHandle;
+  recipient: helpers.SecondUserHandle;
   permission: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
 }
 
@@ -138,7 +122,7 @@ describe('Shared budget stats with recipient transactions', () => {
       });
 
       // Recipient with write permission attaches their own 50-expense tx.
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
       const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies, amount: 50 });
 
@@ -157,6 +141,8 @@ describe('Shared budget stats with recipient transactions', () => {
       expect(ownerStats!.summary.actualExpense).toBe(150);
       expect(ownerStats!.summary.balance).toBe(-150);
       expect(ownerStats!.summary.transactionsCount).toBe(2);
+      // 150 / 1000 * 100 = 15; recipient spend counts against the owner-defined limit.
+      expect(ownerStats!.summary.utilizationRate).toBe(15);
 
       // Recipient-side stats: same numbers — both viewers see the full picture.
       const recipientStats = await helpers.asUser({
@@ -164,33 +150,6 @@ describe('Shared budget stats with recipient transactions', () => {
         fn: () => helpers.getStats({ id: budget.id, raw: true }),
       });
       expect(JSON.stringify(ownerStats)).toBe(JSON.stringify(recipientStats));
-    });
-
-    it('utilizationRate accounts for recipient contributions against the owner-defined limit', async () => {
-      const budget = await helpers.createCustomBudget({
-        name: 'Utilization shared',
-        autoInclude: false, // no owner-side auto-attach; budget gets ONLY recipient tx
-        limitAmount: 200,
-        raw: true,
-      });
-
-      const recipient = await provisionRecipient();
-      await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
-      const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies, amount: 50 });
-
-      await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.addTransactionToCustomBudget({
-            id: budget.id,
-            payload: { transactionIds: [recipientTx.id] },
-            raw: false,
-          }),
-      });
-
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
-      // 50 / 200 * 100 = 25.
-      expect(stats!.summary.utilizationRate).toBe(25);
     });
   });
 
@@ -229,7 +188,7 @@ describe('Shared budget stats with recipient transactions', () => {
         raw: false,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
 
       // Recipient's matching seeded `transportation` category — different id, same key.
@@ -275,7 +234,7 @@ describe('Shared budget stats with recipient transactions', () => {
         raw: true,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
 
       // Recipient creates a CUSTOM category (key=null) and attaches a tx using it.
@@ -339,7 +298,7 @@ describe('Shared budget stats with recipient transactions', () => {
         raw: false,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.write });
       const recipientTx = await recipientCreatesTx({ cookies: recipient.cookies, amount: 50 });
       await helpers.asUser({
@@ -395,7 +354,7 @@ describe('Shared budget stats with recipient transactions', () => {
         raw: false,
       });
 
-      const recipient = await provisionRecipient();
+      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
       await shareBudget({ budgetId: budget.id, recipient, permission: SHARE_PERMISSIONS.read });
 
       const rows = await helpers.asUser({
@@ -431,7 +390,7 @@ describe('Shared budget stats with recipient transactions', () => {
 
   describe('Inaccessible budgetIds — silently dropped', () => {
     it('returns [] when caller filters by a budget they have no share for', async () => {
-      const otherOwner = await provisionRecipient();
+      const otherOwner = await helpers.provisionSecondUserWithBaseCurrency();
       const otherBudget = await helpers.asUser({
         cookies: otherOwner.cookies,
         fn: () => helpers.createCustomBudget({ name: 'Foreign budget', raw: true }),

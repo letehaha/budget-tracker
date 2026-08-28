@@ -63,24 +63,35 @@ describe('Holdings display currency (GET /investments/portfolios/:id/holdings)',
     });
   });
 
-  it('returns no display fields when the portfolio has no display currency', async () => {
-    const holdings = await helpers.getHoldings({
+  it('reflects the portfolio display currency in holding values', async () => {
+    const withoutDisplayCurrency = await helpers.getHoldings({ portfolioId: portfolio.id, payload: {}, raw: true });
+
+    expect(withoutDisplayCurrency).toHaveLength(1);
+    const nativeOnly = withoutDisplayCurrency[0]!;
+
+    expect(parseFloat(nativeOnly.marketValue!)).toBeCloseTo(1100, 1);
+    expect(parseFloat(nativeOnly.costBasis)).toBeCloseTo(1000, 1);
+    expect(nativeOnly.displayCurrencyCode).toBeUndefined();
+    expect(nativeOnly.displayMarketValue).toBeUndefined();
+    expect(nativeOnly.displayCostBasis).toBeUndefined();
+
+    await helpers.updatePortfolio({
       portfolioId: portfolio.id,
-      payload: {},
-      raw: true,
+      payload: { displayCurrencyCode: global.BASE_CURRENCY_CODE },
     });
 
-    expect(holdings).toHaveLength(1);
-    const holding = holdings[0]!;
+    await helpers.sleep(DEDUP_CACHE_MS);
 
-    expect(parseFloat(holding.marketValue!)).toBeCloseTo(1100, 1);
-    expect(parseFloat(holding.costBasis)).toBeCloseTo(1000, 1);
-    expect(holding.displayCurrencyCode).toBeUndefined();
-    expect(holding.displayMarketValue).toBeUndefined();
-    expect(holding.displayCostBasis).toBeUndefined();
-  });
+    const withBaseCurrency = await helpers.getHoldings({ portfolioId: portfolio.id, payload: {}, raw: true });
 
-  it('returns money values converted to the display currency', async () => {
+    expect(withBaseCurrency).toHaveLength(1);
+    const identityConverted = withBaseCurrency[0]!;
+
+    expect(identityConverted.displayCurrencyCode).toBe(global.BASE_CURRENCY_CODE);
+    expect(parseFloat(identityConverted.displayMarketValue!)).toBeCloseTo(1100, 1);
+    expect(parseFloat(identityConverted.displayCostBasis!)).toBeCloseTo(1000, 1);
+    expect(parseFloat(identityConverted.displayUnrealizedGainValue!)).toBeCloseTo(100, 1);
+
     await helpers.addUserCurrencyByCode({ code: 'EUR', raw: true });
     await helpers.updatePortfolio({
       portfolioId: portfolio.id,
@@ -89,25 +100,21 @@ describe('Holdings display currency (GET /investments/portfolios/:id/holdings)',
 
     await helpers.sleep(DEDUP_CACHE_MS);
 
-    const holdings = await helpers.getHoldings({
-      portfolioId: portfolio.id,
-      payload: {},
-      raw: true,
-    });
+    const withEur = await helpers.getHoldings({ portfolioId: portfolio.id, payload: {}, raw: true });
 
-    expect(holdings).toHaveLength(1);
-    const holding = holdings[0]!;
+    expect(withEur).toHaveLength(1);
+    const converted = withEur[0]!;
 
     // Native values untouched
-    expect(parseFloat(holding.marketValue!)).toBeCloseTo(1100, 1);
-    expect(parseFloat(holding.costBasis)).toBeCloseTo(1000, 1);
+    expect(parseFloat(converted.marketValue!)).toBeCloseTo(1100, 1);
+    expect(parseFloat(converted.costBasis)).toBeCloseTo(1000, 1);
 
-    expect(holding.displayCurrencyCode).toBe('EUR');
-    expect(parseFloat(holding.displayMarketValue!)).toBeCloseTo(1100 * AED_TO_EUR, 1);
-    expect(parseFloat(holding.displayCostBasis!)).toBeCloseTo(1000 * AED_TO_EUR, 1);
-    expect(parseFloat(holding.displayUnrealizedGainValue!)).toBeCloseTo(100 * AED_TO_EUR, 1);
-    expect(parseFloat(holding.displayRealizedGainValue!)).toBeCloseTo(0, 2);
-  });
+    expect(converted.displayCurrencyCode).toBe('EUR');
+    expect(parseFloat(converted.displayMarketValue!)).toBeCloseTo(1100 * AED_TO_EUR, 1);
+    expect(parseFloat(converted.displayCostBasis!)).toBeCloseTo(1000 * AED_TO_EUR, 1);
+    expect(parseFloat(converted.displayUnrealizedGainValue!)).toBeCloseTo(100 * AED_TO_EUR, 1);
+    expect(parseFloat(converted.displayRealizedGainValue!)).toBeCloseTo(0, 2);
+  }, 30000);
 
   it('omits display fields when the display currency is no longer connected to the user', async () => {
     await helpers.addUserCurrencyByCode({ code: 'EUR', raw: true });
@@ -178,28 +185,5 @@ describe('Holdings display currency (GET /investments/portfolios/:id/holdings)',
     expect(holding.displayCostBasis).toBeUndefined();
     expect(holding.displayUnrealizedGainValue).toBeUndefined();
     expect(holding.displayRealizedGainValue).toBeUndefined();
-  });
-
-  it('returns identity-converted values when display currency equals the holding currency', async () => {
-    await helpers.updatePortfolio({
-      portfolioId: portfolio.id,
-      payload: { displayCurrencyCode: global.BASE_CURRENCY_CODE },
-    });
-
-    await helpers.sleep(DEDUP_CACHE_MS);
-
-    const holdings = await helpers.getHoldings({
-      portfolioId: portfolio.id,
-      payload: {},
-      raw: true,
-    });
-
-    expect(holdings).toHaveLength(1);
-    const holding = holdings[0]!;
-
-    expect(holding.displayCurrencyCode).toBe(global.BASE_CURRENCY_CODE);
-    expect(parseFloat(holding.displayMarketValue!)).toBeCloseTo(1100, 1);
-    expect(parseFloat(holding.displayCostBasis!)).toBeCloseTo(1000, 1);
-    expect(parseFloat(holding.displayUnrealizedGainValue!)).toBeCloseTo(100, 1);
   });
 });

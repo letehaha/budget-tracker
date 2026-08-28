@@ -20,6 +20,48 @@ import * as helpers from '@tests/helpers';
  *      describing the counterpart, leaving balances intact.
  *   3. Same-user transfers untouched by the household break.
  */
+const setupCrossUserTransfer = async () => {
+  const sourceAccount = await helpers.createAccount({
+    payload: helpers.buildAccountPayload({ name: 'A Account', initialBalance: 10000 }),
+    raw: true,
+  });
+  const sourceUser = await helpers.findAppUserByEmail({ email: 'test1@test.local' });
+
+  const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+  const recipientUser = await helpers.findAppUserByEmail({ email: recipient.email });
+
+  const destAccount = await helpers.asUser({
+    cookies: recipient.cookies,
+    fn: () =>
+      helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'B Account', initialBalance: 2000 }),
+        raw: true,
+      }),
+  });
+
+  const invitation = await helpers.asUser({
+    cookies: recipient.cookies,
+    fn: () => helpers.createHouseholdInvitation({ ownerUserId: recipientUser.id, inviteeEmail: 'test1@test.local' }),
+  });
+  await helpers.acceptShareInvitation({ token: invitation.token, raw: true });
+
+  const [baseTx, oppositeTx] = await helpers.createTransaction({
+    payload: {
+      ...helpers.buildTransactionPayload({
+        accountId: sourceAccount.id,
+        amount: 5000,
+        transactionType: TRANSACTION_TYPES.expense,
+      }),
+      transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      destinationAmount: 5000,
+      destinationAccountId: destAccount.id,
+    },
+    raw: true,
+  });
+
+  return { sourceAccount, destAccount, sourceUser, recipient, recipientUser, baseTx, oppositeTx: oppositeTx! };
+};
+
 describe('Cross-user transfer (household membership)', () => {
   describe('creation', () => {
     it('writes each leg under its own owner and updates both balances', async () => {
@@ -115,51 +157,23 @@ describe('Cross-user transfer (household membership)', () => {
   });
 
   describe('on household share break', () => {
-    const setupCrossUserTransfer = async () => {
-      const sourceAccount = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'A Account', initialBalance: 10000 }),
-        raw: true,
-      });
-      const sourceUser = await helpers.findAppUserByEmail({ email: 'test1@test.local' });
+    it('converts the cross-user pair, leaves same-user transfers linked and keeps both tx lists readable', async () => {
+      const ctx = await setupCrossUserTransfer();
 
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientUser = await helpers.findAppUserByEmail({ email: recipient.email });
-
-      const destAccount = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createAccount({
-            payload: helpers.buildAccountPayload({ name: 'B Account', initialBalance: 2000 }),
-            raw: true,
-          }),
-      });
-
-      const invitation = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createHouseholdInvitation({ ownerUserId: recipientUser.id, inviteeEmail: 'test1@test.local' }),
-      });
-      await helpers.acceptShareInvitation({ token: invitation.token, raw: true });
-
-      const [baseTx, oppositeTx] = await helpers.createTransaction({
+      // test1 also has a *self* transfer between two of their own accounts. The household
+      // break only affects transfers that cross the membership boundary; intra-user pairs
+      // must keep their `common_transfer` link.
+      const selfA = await helpers.createAccount({ raw: true });
+      const selfB = await helpers.createAccount({ raw: true });
+      const [selfBase, selfOpposite] = await helpers.createTransaction({
         payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: sourceAccount.id,
-            amount: 5000,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
+          ...helpers.buildTransactionPayload({ accountId: selfA.id, amount: 2000 }),
           transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationAmount: 5000,
-          destinationAccountId: destAccount.id,
+          destinationAmount: 2000,
+          destinationAccountId: selfB.id,
         },
         raw: true,
       });
-
-      return { sourceAccount, destAccount, sourceUser, recipient, recipientUser, baseTx, oppositeTx: oppositeTx! };
-    };
-
-    it('converts the pair when the recipient leaves the household', async () => {
-      const ctx = await setupCrossUserTransfer();
 
       await helpers.leaveShare({
         resourceType: RESOURCE_TYPES.household,
@@ -199,7 +213,25 @@ describe('Cross-user transfer (household membership)', () => {
         fn: () => helpers.getAccount({ id: ctx.destAccount.id, raw: true }),
       });
       expect(destAfter.currentBalance).toBe(Number(ctx.destAccount.currentBalance) + 5000);
-    });
+
+      const selfBaseAfter = await helpers.getTransactionById({ id: selfBase.id, raw: true });
+      const selfOppositeAfter = await helpers.getTransactionById({ id: selfOpposite!.id, raw: true });
+      expect(selfBaseAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+      expect(selfBaseAfter!.transferId).toBe(selfBase.transferId);
+      expect(selfOppositeAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+      expect(selfOppositeAfter!.transferId).toBe(selfOpposite!.transferId);
+
+      // Post-conversion the transferId is null, so the per-user tx list must still surface
+      // each side's leg with its new out_of_wallet shape.
+      const sourceTxList = await helpers.getTransactions({ raw: true });
+      expect(sourceTxList.some((tx) => tx.id === ctx.baseTx.id)).toBe(true);
+
+      const recipientTxList = await helpers.asUser({
+        cookies: ctx.recipient.cookies,
+        fn: () => helpers.getTransactions({ raw: true }),
+      });
+      expect(recipientTxList.some((tx) => tx.id === ctx.oppositeTx.id)).toBe(true);
+    }, 30000);
 
     it('converts the pair when the recipient (owner) revokes the member', async () => {
       const ctx = await setupCrossUserTransfer();
@@ -226,60 +258,6 @@ describe('Cross-user transfer (household membership)', () => {
       expect(oppositeAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
       expect(oppositeAfter!.transferId).toBeNull();
     });
-
-    it('leaves same-user transfers in place when the household ends', async () => {
-      // test1 also has a *self* transfer between two of their own accounts. The household
-      // break only affects transfers that cross the membership boundary; intra-user pairs
-      // must keep their `common_transfer` link.
-      const ctx = await setupCrossUserTransfer();
-
-      const selfA = await helpers.createAccount({ raw: true });
-      const selfB = await helpers.createAccount({ raw: true });
-      const [selfBase, selfOpposite] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({ accountId: selfA.id, amount: 2000 }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationAmount: 2000,
-          destinationAccountId: selfB.id,
-        },
-        raw: true,
-      });
-
-      await helpers.leaveShare({
-        resourceType: RESOURCE_TYPES.household,
-        resourceId: ctx.recipientUser.id,
-        raw: true,
-      });
-
-      const selfBaseAfter = await helpers.getTransactionById({ id: selfBase.id, raw: true });
-      const selfOppositeAfter = await helpers.getTransactionById({ id: selfOpposite!.id, raw: true });
-      expect(selfBaseAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
-      expect(selfBaseAfter!.transferId).toBe(selfBase.transferId);
-      expect(selfOppositeAfter!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
-      expect(selfOppositeAfter!.transferId).toBe(selfOpposite!.transferId);
-    });
-
-    it('tx-list reads on both sides keep working after conversion', async () => {
-      // Regression guard: post-conversion the transferId is null, so the get-by-transfer-id
-      // endpoint should return an empty list (rather than crash) and the per-user tx list
-      // should still surface each side's leg with its new out_of_wallet shape.
-      const ctx = await setupCrossUserTransfer();
-
-      await helpers.leaveShare({
-        resourceType: RESOURCE_TYPES.household,
-        resourceId: ctx.recipientUser.id,
-        raw: true,
-      });
-
-      const sourceTxList = await helpers.getTransactions({ raw: true });
-      expect(sourceTxList.some((tx) => tx.id === ctx.baseTx.id)).toBe(true);
-
-      const recipientTxList = await helpers.asUser({
-        cookies: ctx.recipient.cookies,
-        fn: () => helpers.getTransactions({ raw: true }),
-      });
-      expect(recipientTxList.some((tx) => tx.id === ctx.oppositeTx.id)).toBe(true);
-    });
   });
 
   describe('deletion', () => {
@@ -288,47 +266,6 @@ describe('Cross-user transfer (household membership)', () => {
     // transfer semantically. The legacy delete query filtered the partner lookup by the
     // caller's userId, so the opposite leg used to survive as an orphaned income on the
     // counterpart's wallet (transferId set but no twin row).
-    const setupCrossUserTransfer = async () => {
-      const sourceAccount = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'A Account', initialBalance: 10000 }),
-        raw: true,
-      });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientUser = await helpers.findAppUserByEmail({ email: recipient.email });
-
-      const destAccount = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createAccount({
-            payload: helpers.buildAccountPayload({ name: 'B Account', initialBalance: 2000 }),
-            raw: true,
-          }),
-      });
-
-      const invitation = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.createHouseholdInvitation({ ownerUserId: recipientUser.id, inviteeEmail: 'test1@test.local' }),
-      });
-      await helpers.acceptShareInvitation({ token: invitation.token, raw: true });
-
-      const [baseTx, oppositeTx] = await helpers.createTransaction({
-        payload: {
-          ...helpers.buildTransactionPayload({
-            accountId: sourceAccount.id,
-            amount: 5000,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
-          destinationAmount: 5000,
-          destinationAccountId: destAccount.id,
-        },
-        raw: true,
-      });
-
-      return { sourceAccount, destAccount, recipient, recipientUser, baseTx, oppositeTx: oppositeTx! };
-    };
-
     it('removes both legs when the source-side caller deletes the transfer', async () => {
       const ctx = await setupCrossUserTransfer();
 

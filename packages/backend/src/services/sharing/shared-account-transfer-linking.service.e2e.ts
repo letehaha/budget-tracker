@@ -19,25 +19,9 @@ import * as helpers from '@tests/helpers';
  * `userId`, so cross-user pairs always failed with `linkUnexpectedError`.
  */
 
-interface RecipientHandle extends helpers.SecondUserHandle {}
-
-async function provisionRecipient(): Promise<RecipientHandle> {
-  const handle = await helpers.signUpSecondUser();
-  await helpers.asUser({
-    cookies: handle.cookies,
-    fn: async () => {
-      const res = await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
-      if (res.statusCode !== 200) {
-        throw new Error(`Failed to set base currency: ${res.statusCode} ${JSON.stringify(res.body)}`);
-      }
-    },
-  });
-  return handle;
-}
-
 interface ShareAccountParams {
   accountId: string;
-  recipient: RecipientHandle;
+  recipient: helpers.SecondUserHandle;
   permission: (typeof SHARE_PERMISSIONS)[keyof typeof SHARE_PERMISSIONS];
   transactionsWriteScope?: 'own' | 'all';
 }
@@ -64,7 +48,7 @@ async function shareAccount({
 }
 
 describe('Transfer linking on shared accounts', () => {
-  it('lets a recipient (write/all) link owner-authored tx on shared account with own tx on own account', async () => {
+  it('lets a recipient (write/all) link a cross-user pair, edit both sides, keep explicit discard blocked and unlink it', async () => {
     // Owner creates an expense on account A.
     const accountOwner = await helpers.createAccount({ raw: true });
     const [ownerExpense] = await helpers.createTransaction({
@@ -77,7 +61,7 @@ describe('Transfer linking on shared accounts', () => {
     });
 
     // Owner shares A with the recipient on write/all.
-    const recipient = await provisionRecipient();
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
     await shareAccount({
       accountId: accountOwner.id,
       recipient,
@@ -126,7 +110,62 @@ describe('Transfer linking on shared accounts', () => {
     expect(linkedRecipientSide.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
     expect(linkedOwnerSide.transferId).toEqual(expect.any(String));
     expect(linkedOwnerSide.transferId).toBe(linkedRecipientSide.transferId);
-  });
+    const transferId = linkedOwnerSide.transferId!;
+
+    // Recipient edits the owner-authored linked tx (notes change) on the shared account.
+    // With write/all and an owner-set category every auth invariant is satisfied, so
+    // involvesTransfer alone must not block the edit.
+    const ownerSideEdit = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () =>
+        helpers.updateTransaction({
+          id: ownerExpense.id,
+          payload: { note: 'edited by recipient' },
+        }),
+    });
+
+    expect(ownerSideEdit.statusCode).toBe(200);
+
+    // Recipient edits THEIR OWN side. `updateTransferTransaction` must resolve the
+    // opposite (owner-authored) leg across users; a userId=recipient lookup finds nothing.
+    const ownSideEdit = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () =>
+        helpers.updateTransaction({
+          id: recipientIncome.id,
+          payload: { note: 'edited by recipient on their own side' },
+        }),
+    });
+
+    expect(ownSideEdit.statusCode).toBe(200);
+
+    // Explicit discard on the OWNER'S side (isOwner=false on the base tx's account, so the
+    // recipient gate fires) rides code paths not audited for cross-user safety; keep blocking it.
+    const discard = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () =>
+        helpers.updateTransaction({
+          id: ownerExpense.id,
+          payload: { transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer },
+        }),
+    });
+
+    expect(discard.statusCode).toBe(ERROR_CODES.ValidationError);
+
+    const unlinked = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.unlinkTransferTransactions({ transferIds: [transferId], raw: true }),
+    });
+
+    expect(unlinked).toHaveLength(2);
+    unlinked.forEach((tx) => {
+      expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+      expect(tx.transferId).toBeNull();
+    });
+
+    const unlinkedIds = unlinked.map((tx) => tx.id).toSorted();
+    expect(unlinkedIds).toEqual([ownerExpense.id, recipientIncome.id].toSorted());
+  }, 30000);
 
   it('rejects a recipient with read-only permission attempting to link an owner tx', async () => {
     const accountOwner = await helpers.createAccount({ raw: true });
@@ -139,7 +178,7 @@ describe('Transfer linking on shared accounts', () => {
       raw: true,
     });
 
-    const recipient = await provisionRecipient();
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
     await shareAccount({ accountId: accountOwner.id, recipient, permission: SHARE_PERMISSIONS.read });
 
     const res = await helpers.asUser({
@@ -180,7 +219,7 @@ describe('Transfer linking on shared accounts', () => {
       raw: true,
     });
 
-    const recipient = await provisionRecipient();
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
     await shareAccount({
       accountId: accountOwner.id,
       recipient,
@@ -223,7 +262,7 @@ describe('Transfer linking on shared accounts', () => {
       raw: true,
     });
 
-    const recipient = await provisionRecipient();
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
     await shareAccount({
       accountId: accountOwner.id,
       recipient,
@@ -281,130 +320,6 @@ describe('Transfer linking on shared accounts', () => {
     });
   });
 
-  it('lets a recipient (write/all) update an owner-authored linked transfer tx on the shared account', async () => {
-    const accountOwner = await helpers.createAccount({ raw: true });
-    const [ownerExpense] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: accountOwner.id,
-        amount: 500,
-        transactionType: TRANSACTION_TYPES.expense,
-      }),
-      raw: true,
-    });
-
-    const recipient = await provisionRecipient();
-    await shareAccount({
-      accountId: accountOwner.id,
-      recipient,
-      permission: SHARE_PERMISSIONS.write,
-      transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-    });
-
-    // Recipient links owner's expense with their own income.
-    await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: async () => {
-        const accountRecipient = await helpers.createAccount({ raw: true });
-        const recipientCategory = await helpers.addCustomCategory({
-          name: 'recipient-cat',
-          color: '#00FF00',
-          raw: true,
-        });
-        const [recipientIncome] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: accountRecipient.id,
-            amount: 500,
-            transactionType: TRANSACTION_TYPES.income,
-            categoryId: recipientCategory.id,
-          }),
-          raw: true,
-        });
-        return helpers.linkTransactions({
-          payload: { ids: [[ownerExpense.id, recipientIncome!.id]] },
-          raw: true,
-        });
-      },
-    });
-
-    // Recipient edits the owner-authored linked tx (notes change) on the shared account.
-    // Without the `involvesTransfer` guard drop, this is blocked even though all the
-    // auth invariants (write/all, owner-set category) are satisfied.
-    const res = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () =>
-        helpers.updateTransaction({
-          id: ownerExpense.id,
-          payload: { note: 'edited by recipient' },
-        }),
-    });
-
-    expect(res.statusCode).toBe(200);
-  });
-
-  it('lets a recipient (write/all) unlink a cross-user transfer they created', async () => {
-    const accountOwner = await helpers.createAccount({ raw: true });
-    const [ownerExpense] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: accountOwner.id,
-        amount: 500,
-        transactionType: TRANSACTION_TYPES.expense,
-      }),
-      raw: true,
-    });
-
-    const recipient = await provisionRecipient();
-    await shareAccount({
-      accountId: accountOwner.id,
-      recipient,
-      permission: SHARE_PERMISSIONS.write,
-      transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-    });
-
-    // Recipient links owner's expense with their own income, then unlinks.
-    const { transferId, recipientIncomeId } = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: async () => {
-        const accountRecipient = await helpers.createAccount({ raw: true });
-        const recipientCategory = await helpers.addCustomCategory({
-          name: 'recipient-cat',
-          color: '#00FF00',
-          raw: true,
-        });
-        const [recipientIncome] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: accountRecipient.id,
-            amount: 500,
-            transactionType: TRANSACTION_TYPES.income,
-            categoryId: recipientCategory.id,
-          }),
-          raw: true,
-        });
-        const linkResult = await helpers.linkTransactions({
-          payload: { ids: [[ownerExpense.id, recipientIncome!.id]] },
-          raw: true,
-        });
-        return {
-          transferId: linkResult[0]![0]!.transferId!,
-          recipientIncomeId: recipientIncome!.id,
-        };
-      },
-    });
-
-    const unlinked = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () => helpers.unlinkTransferTransactions({ transferIds: [transferId], raw: true }),
-    });
-
-    expect(unlinked).toHaveLength(2);
-    unlinked.forEach((tx) => {
-      expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
-      expect(tx.transferId).toBeNull();
-    });
-
-    const unlinkedIds = unlinked.map((tx) => tx.id).toSorted();
-    expect(unlinkedIds).toEqual([ownerExpense.id, recipientIncomeId].toSorted());
-  });
-
   it('rejects a read-only stranger attempting to unlink a transfer they did not link', async () => {
     // Owner links two of their own txs across two accounts.
     const accountA = await helpers.createAccount({ raw: true });
@@ -432,136 +347,12 @@ describe('Transfer linking on shared accounts', () => {
     const transferId = linkResult[0]![0]!.transferId!;
 
     // Stranger (no share at all) attempts to unlink.
-    const stranger = await provisionRecipient();
+    const stranger = await helpers.provisionSecondUserWithBaseCurrency();
     const res = await helpers.asUser({
       cookies: stranger.cookies,
       fn: () => helpers.unlinkTransferTransactions({ transferIds: [transferId] }),
     });
 
     expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-  });
-
-  it('lets a recipient (write/all) update their own-authored linked transfer tx on their own account', async () => {
-    const accountOwner = await helpers.createAccount({ raw: true });
-    const [ownerExpense] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: accountOwner.id,
-        amount: 500,
-        transactionType: TRANSACTION_TYPES.expense,
-      }),
-      raw: true,
-    });
-
-    const recipient = await provisionRecipient();
-    await shareAccount({
-      accountId: accountOwner.id,
-      recipient,
-      permission: SHARE_PERMISSIONS.write,
-      transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-    });
-
-    // Recipient links owner's expense with their own income.
-    const recipientIncomeId = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: async () => {
-        const accountRecipient = await helpers.createAccount({ raw: true });
-        const recipientCategory = await helpers.addCustomCategory({
-          name: 'recipient-cat',
-          color: '#00FF00',
-          raw: true,
-        });
-        const [recipientIncome] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: accountRecipient.id,
-            amount: 500,
-            transactionType: TRANSACTION_TYPES.income,
-            categoryId: recipientCategory.id,
-          }),
-          raw: true,
-        });
-        await helpers.linkTransactions({
-          payload: { ids: [[ownerExpense.id, recipientIncome!.id]] },
-          raw: true,
-        });
-        return recipientIncome!.id;
-      },
-    });
-
-    // Recipient edits THEIR OWN side. Without the cross-user opposite-tx fix this fails
-    // because `updateTransferTransaction` fetches the opposite (owner-authored) by
-    // userId=recipient and finds nothing.
-    const res = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () =>
-        helpers.updateTransaction({
-          id: recipientIncomeId,
-          payload: { note: 'edited by recipient on their own side' },
-        }),
-    });
-
-    expect(res.statusCode).toBe(200);
-  });
-
-  it('blocks a recipient explicitly setting transferNature to not_transfer on a linked tx (explicit discard via PATCH)', async () => {
-    // Setup mirrors the "edit own side" test — recipient links cross-user, then attempts
-    // an explicit discard via PATCH instead of plain field edits. This is the path the
-    // narrowed `involvesTransfer` guard is supposed to keep blocking.
-    const accountOwner = await helpers.createAccount({ raw: true });
-    const [ownerExpense] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: accountOwner.id,
-        amount: 500,
-        transactionType: TRANSACTION_TYPES.expense,
-      }),
-      raw: true,
-    });
-
-    const recipient = await provisionRecipient();
-    await shareAccount({
-      accountId: accountOwner.id,
-      recipient,
-      permission: SHARE_PERMISSIONS.write,
-      transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-    });
-
-    await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: async () => {
-        const accountRecipient = await helpers.createAccount({ raw: true });
-        const recipientCategory = await helpers.addCustomCategory({
-          name: 'recipient-cat',
-          color: '#00FF00',
-          raw: true,
-        });
-        const [recipientIncome] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: accountRecipient.id,
-            amount: 500,
-            transactionType: TRANSACTION_TYPES.income,
-            categoryId: recipientCategory.id,
-          }),
-          raw: true,
-        });
-        await helpers.linkTransactions({
-          payload: { ids: [[ownerExpense.id, recipientIncome!.id]] },
-          raw: true,
-        });
-      },
-    });
-
-    // Recipient explicitly sets transferNature to not_transfer on the OWNER'S side
-    // (where isOwner=false on the base tx's account, so the Phase-1 guard's recipient
-    // gate actually fires). PATCH-side discard is still routed through code paths
-    // that haven't been fully audited for cross-user safety — keep blocking it.
-    const res = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () =>
-        helpers.updateTransaction({
-          id: ownerExpense.id,
-          payload: { transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer },
-        }),
-    });
-
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 });
