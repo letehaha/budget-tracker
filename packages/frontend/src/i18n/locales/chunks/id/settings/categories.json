@@ -2,8 +2,27 @@
   "settings": {
     "categories": {
       "title": "Kategori",
+      "description": "Atur transaksi Anda ke dalam kategori dan subkategori. Seret kategori untuk memindahkannya ke induk lain atau ke tingkat atas.",
       "addButton": "Tambah Kategori",
+      "organizeButton": "Atur",
       "empty": "Belum ada kategori. Buat kategori pertama Anda untuk memulai.",
+      "categoriesCount": "{n} kategori | {n} kategori",
+      "organizeHint": "Seret ke induk baru, atau letakkan di sini untuk tingkat atas.",
+      "dropToTopLevel": "Letakkan di sini untuk menjadikan “{name}” kategori tingkat atas",
+      "movesQueued": "{n} pemindahan dalam antrean | {n} pemindahan dalam antrean",
+      "unqueueMove": "Hapus pemindahan ini",
+      "topLevel": "Tingkat atas",
+      "saveChanges": "Simpan Perubahan",
+      "parentField": {
+        "label": "Kategori induk",
+        "placeholder": "Pilih kategori induk",
+        "hiddenHint": "Kategori yang tidak dapat digunakan sebagai induk disembunyikan dari daftar."
+      },
+      "moveDialog": {
+        "title": "Pindahkan “{name}”",
+        "description": "Pilih kategori induk baru.",
+        "moveButton": "Pindahkan"
+      },
       "delete": {
         "title": "Hapus kategori?",
         "description": "Ini akan menghapus \"{name}\" secara permanen. Tindakan ini tidak dapat dibatalkan.",
@@ -16,7 +35,18 @@
       "notifications": {
         "deleteSuccess": "Kategori dihapus",
         "deleteFailed": "Gagal menghapus kategori",
-        "checkFailed": "Gagal memeriksa kategori"
+        "checkFailed": "Gagal memeriksa kategori",
+        "moveFailed": "Gagal memindahkan kategori.",
+        "saveSuccess": "Perubahan disimpan.",
+        "staleMovesRemoved": "{n} pemindahan dalam antrean yang sudah tidak berlaku dihapus | {n} pemindahan dalam antrean yang sudah tidak berlaku dihapus"
+      },
+      "dropErrors": {
+        "currentParent": "Sudah berada di dalam kategori ini",
+        "insideItself": "Kategori tidak dapat dipindahkan ke dalam subkategorinya sendiri",
+        "internalTarget": "Kategori sistem tidak dapat berisi kategori lain",
+        "tooDeep": "Kategori hanya dapat disarangkan hingga {max} tingkat",
+        "childrenTooDeep": "Subkategorinya akan menjadi lebih dalam dari {max} tingkat",
+        "alreadyTopLevel": "Sudah menjadi kategori tingkat atas"
       }
     }
   }

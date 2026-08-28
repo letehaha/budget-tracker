@@ -2,8 +2,27 @@
   "settings": {
     "categories": {
       "title": "Categorías",
+      "description": "Organice sus transacciones en categorías y subcategorías. Arrastre una categoría para moverla a otra categoría padre o al nivel superior.",
       "addButton": "Añadir categoría",
+      "organizeButton": "Organizar",
       "empty": "Aún no hay categorías. Cree su primera categoría para comenzar.",
+      "categoriesCount": "{n} categoría | {n} categorías",
+      "organizeHint": "Arrastre sobre una nueva categoría padre, o suéltela aquí para el nivel superior.",
+      "dropToTopLevel": "Suelte aquí para convertir «{name}» en una categoría de nivel superior",
+      "movesQueued": "{n} movimiento en cola | {n} movimientos en cola",
+      "unqueueMove": "Quitar este movimiento",
+      "topLevel": "Nivel superior",
+      "saveChanges": "Guardar cambios",
+      "parentField": {
+        "label": "Categoría padre",
+        "placeholder": "Seleccione una categoría padre",
+        "hiddenHint": "Las categorías que no se pueden usar como categoría padre están ocultas en la lista."
+      },
+      "moveDialog": {
+        "title": "Mover «{name}»",
+        "description": "Elija una nueva categoría padre.",
+        "moveButton": "Mover"
+      },
       "delete": {
         "title": "¿Eliminar categoría?",
         "description": "Esto eliminará permanentemente «{name}». Esta acción no se puede deshacer.",
@@ -16,7 +35,18 @@
       "notifications": {
         "deleteSuccess": "Categoría eliminada",
         "deleteFailed": "Error al eliminar la categoría",
-        "checkFailed": "Error al verificar la categoría"
+        "checkFailed": "Error al verificar la categoría",
+        "moveFailed": "Error al mover la categoría.",
+        "saveSuccess": "Cambios guardados.",
+        "staleMovesRemoved": "Se eliminó {n} movimiento en cola que ya no aplica | Se eliminaron {n} movimientos en cola que ya no aplican"
+      },
+      "dropErrors": {
+        "currentParent": "Ya está dentro de esta categoría",
+        "insideItself": "Una categoría no se puede mover dentro de su propia subcategoría",
+        "internalTarget": "Las categorías del sistema no pueden contener otras categorías",
+        "tooDeep": "Las categorías solo se pueden anidar hasta {max} niveles",
+        "childrenTooDeep": "Sus subcategorías quedarían a más de {max} niveles de profundidad",
+        "alreadyTopLevel": "Ya es una categoría de nivel superior"
       }
     }
   }

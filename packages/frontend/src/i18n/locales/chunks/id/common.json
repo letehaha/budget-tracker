@@ -26,7 +26,8 @@
       "clear": "Bersihkan",
       "apply": "Terapkan",
       "retry": "Coba lagi",
-      "copyInviteLink": "Salin tautan undangan"
+      "copyInviteLink": "Salin tautan undangan",
+      "moveTo": "Pindahkan ke…"
     },
     "ui": {
       "close": "Tutup",

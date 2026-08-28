@@ -63,6 +63,7 @@
           "allFailedDescription": "Tidak ada baris yang diimpor. Tinjau error di bawah dan coba lagi.",
           "accountsCreated": "Akun dibuat",
           "accountsLinked": "Akun ditautkan",
+          "accountsSkipped": "Akun dilewati",
           "categoriesCreated": "Kategori dibuat",
           "tagsCreated": "Tag dibuat",
           "transactionsImported": "Transaksi diimpor",
@@ -91,7 +92,8 @@
             "sectionTitle": "Akun",
             "currentBalanceLabel": "Saldo saat ini (opsional)",
             "currentBalancePlaceholder": "Kosongkan untuk menggunakan total impor",
-            "willCreateHint": "Akan membuat akun {currency} baru"
+            "willCreateHint": "Akan membuat akun {currency} baru",
+            "skippedNote": "{count} akun akan dilewati. Transaksinya — dan transfer apa pun ke atau darinya — tidak akan diimpor."
           },
           "categories": {
             "sectionTitle": "Kategori"

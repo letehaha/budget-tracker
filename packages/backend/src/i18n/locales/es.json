@@ -29,6 +29,15 @@
     "accountGroupNotFound": "Grupo de cuentas con ese id no encontrado.",
     "groupUpdateFailed": "No se pudo actualizar el grupo"
   },
+  "categories": {
+    "notFound": "No existe ninguna categoría con el id proporcionado.",
+    "systemCannotBeMoved": "Las categorías del sistema no se pueden mover.",
+    "parentNotFound": "No existe ninguna categoría con ese parentId.",
+    "systemParentForbidden": "Las categorías del sistema no se pueden usar como categoría padre.",
+    "ownParent": "Una categoría no puede ser su propia categoría padre.",
+    "underOwnSubcategory": "Una categoría no se puede mover dentro de su propia subcategoría.",
+    "nestingTooDeep": "Las categorías no se pueden anidar a más de {{max}} niveles."
+  },
   "transactions": {
     "notFound": "Transacción no encontrada",
     "missingRequiredFields": "Falta uno de los campos requeridos: destinationAmount, destinationAccountId.",
@@ -280,6 +289,11 @@
     "amountColumnNotFound": "Columna de importe \"{{columnName}}\" no encontrada en el CSV",
     "invalidDefaultCurrency": "Código de moneda predeterminada no válido: \"{{defaultCurrency}}\"",
     "payeeColumnNotFound": "Columna de beneficiario \"{{column}}\" no encontrada en las cabeceras del CSV"
+  },
+  "importExport": {
+    "batchDeleteBankLinkedAccount": "Esta importación ya no se puede deshacer porque su cuenta ahora está conectada a un banco. Eliminar estas transacciones podría desajustar el saldo sincronizado.",
+    "batchDeleteLinkedLoanTransfer": "Esta importación está vinculada a un pago de préstamo y no se puede deshacer por sí sola. Active \"también eliminar las transacciones de transferencia vinculadas\" para eliminarla.",
+    "batchDeleteTooLarge": "Esta importación tiene demasiadas transacciones para deshacerla en una sola solicitud en este momento. Póngase en contacto con soporte si necesita ayuda para eliminarla."
   },
   "statementParser": {
     "invalidFile": "Archivo no válido",

@@ -234,7 +234,11 @@
       "morePlansAtLeast": "+{count}+ terencana lainnya",
       "deletePlanTitle": "Hapus transaksi terencana?",
       "deletePlanDescription": "Tindakan ini tidak dapat dibatalkan.",
-      "plansLoadFailed": "Tidak dapat memuat transaksi terencana"
+      "plansLoadFailed": "Tidak dapat memuat transaksi terencana",
+      "confirmAction": "Konfirmasi",
+      "confirmTooltip": "Uang sudah berpindah — catat dan perbarui saldo",
+      "confirmPlanSuccess": "Rencana dicatat — saldo diperbarui",
+      "confirmPlanError": "Gagal mencatat rencana"
     }
   }
 }

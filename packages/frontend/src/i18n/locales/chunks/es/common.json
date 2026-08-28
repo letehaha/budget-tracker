@@ -26,7 +26,8 @@
       "clear": "Limpiar",
       "apply": "Aplicar",
       "retry": "Reintentar",
-      "copyInviteLink": "Copiar enlace de invitación"
+      "copyInviteLink": "Copiar enlace de invitación",
+      "moveTo": "Mover a…"
     },
     "ui": {
       "close": "Cerrar",

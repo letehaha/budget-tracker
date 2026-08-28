@@ -29,6 +29,15 @@
     "accountGroupNotFound": "Grup akun dengan id tersebut tidak ditemukan.",
     "groupUpdateFailed": "Pembaruan grup tidak berhasil"
   },
+  "categories": {
+    "notFound": "Kategori dengan id yang diberikan tidak ada.",
+    "systemCannotBeMoved": "Kategori sistem tidak dapat dipindahkan.",
+    "parentNotFound": "Kategori dengan parentId tersebut tidak ada.",
+    "systemParentForbidden": "Kategori sistem tidak dapat digunakan sebagai induk.",
+    "ownParent": "Kategori tidak dapat menjadi induk bagi dirinya sendiri.",
+    "underOwnSubcategory": "Kategori tidak dapat dipindahkan ke bawah subkategorinya sendiri.",
+    "nestingTooDeep": "Kategori tidak dapat disarangkan lebih dari {{max}} tingkat."
+  },
   "transactions": {
     "notFound": "Transaksi tidak ditemukan",
     "missingRequiredFields": "Salah satu field wajib hilang: destinationAmount, destinationAccountId.",
@@ -280,6 +289,11 @@
     "amountColumnNotFound": "Kolom jumlah \"{{columnName}}\" tidak ditemukan dalam CSV",
     "invalidDefaultCurrency": "Kode mata uang bawaan tidak valid: \"{{defaultCurrency}}\"",
     "payeeColumnNotFound": "Kolom penerima \"{{column}}\" tidak ditemukan di header CSV"
+  },
+  "importExport": {
+    "batchDeleteBankLinkedAccount": "Impor ini tidak dapat lagi dibatalkan karena akunnya kini terhubung ke bank. Menghapus transaksi-transaksi ini dapat mengacaukan saldo yang tersinkronisasi.",
+    "batchDeleteLinkedLoanTransfer": "Impor ini tertaut ke pembayaran pinjaman dan tidak dapat dibatalkan sendiri. Aktifkan \"juga hapus transaksi transfer tertaut\" untuk menghapusnya.",
+    "batchDeleteTooLarge": "Impor ini memiliki terlalu banyak transaksi untuk dibatalkan dalam satu permintaan saat ini. Hubungi dukungan jika Anda memerlukan bantuan untuk menghapusnya."
   },
   "statementParser": {
     "invalidFile": "File tidak valid",

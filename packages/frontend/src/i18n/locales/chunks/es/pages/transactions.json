@@ -234,7 +234,11 @@
       "morePlansAtLeast": "+{count}+ planificadas más",
       "deletePlanTitle": "¿Eliminar la transacción planificada?",
       "deletePlanDescription": "Esta acción no se puede deshacer.",
-      "plansLoadFailed": "No se pudieron cargar las transacciones planificadas"
+      "plansLoadFailed": "No se pudieron cargar las transacciones planificadas",
+      "confirmAction": "Confirmar",
+      "confirmTooltip": "El dinero se movió — regístrelo y actualice el saldo",
+      "confirmPlanSuccess": "Plan registrado — saldo actualizado",
+      "confirmPlanError": "No se pudo registrar el plan"
     }
   }
 }
