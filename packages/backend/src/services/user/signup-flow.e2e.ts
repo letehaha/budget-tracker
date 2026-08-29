@@ -1,9 +1,10 @@
+import { CategoryModel } from '@bt/shared/types';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { connection } from '@models/index';
 import Tags from '@models/tags.model';
 import Users from '@models/users.model';
 import * as userService from '@services/user.service';
-import { makeAuthRequest } from '@tests/helpers';
+import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 
 /**
  * Signup-flow integration tests.
@@ -46,6 +47,11 @@ describe('Signup flow', () => {
       const originalUser = await Users.findOne({ where: { username: 'test1' }, raw: true });
       expect(originalUser).not.toBeNull();
       expect(originalUser!.authUserId).toEqual('test-user-id');
+
+      // The username-collision retry must leave exactly one Users row per authUserId;
+      // the rejected first insert must not stay half-committed.
+      const matches = await Users.findAll({ where: { authUserId: newAuthUserId }, raw: true });
+      expect(matches).toHaveLength(1);
     });
 
     it('should produce distinct usernames across multiple consecutive collisions', async () => {
@@ -140,70 +146,6 @@ describe('Signup flow', () => {
       expect(appUser!.firstName).toEqual('Felix');
       expect(appUser!.lastName).toEqual('Ironwood');
     });
-
-    it('should handle two distinct emails sharing the same name without affecting each other', async () => {
-      // Two new signups with the same fresh name (not colliding with the seed
-      // user) — first succeeds with the literal name, second must take the
-      // suffixed retry path. Verifies that the retry only fires when the DB
-      // actually rejects the insert.
-      const sharedName = `shared-${Date.now()}`;
-
-      const first = await makeAuthRequest({
-        method: 'post',
-        url: '/auth/sign-up/email',
-        payload: {
-          email: `first-${Date.now()}@test.local`,
-          password: 'password123',
-          name: sharedName,
-        },
-      });
-      expect(first.statusCode).toEqual(200);
-
-      const second = await makeAuthRequest({
-        method: 'post',
-        url: '/auth/sign-up/email',
-        payload: {
-          email: `second-${Date.now() + 1}@test.local`,
-          password: 'password123',
-          name: sharedName,
-        },
-      });
-      expect(second.statusCode).toEqual(200);
-
-      const firstAppUser = await Users.findOne({
-        where: { authUserId: first.body.user.id },
-        raw: true,
-      });
-      const secondAppUser = await Users.findOne({
-        where: { authUserId: second.body.user.id },
-        raw: true,
-      });
-
-      expect(firstAppUser).not.toBeNull();
-      expect(secondAppUser).not.toBeNull();
-      expect(firstAppUser!.username).toEqual(sharedName);
-      expect(secondAppUser!.username).toMatch(new RegExp(`^${sharedName}-[0-9a-f]{8}$`));
-    });
-
-    it('should create exactly one app user per signup (no duplicate or partial rows)', async () => {
-      // Sanity check — the retry path must NOT leave behind a half-committed
-      // row from the first failed insert. Exactly one app user should exist
-      // for the new authUserId.
-      const res = await makeAuthRequest({
-        method: 'post',
-        url: '/auth/sign-up/email',
-        payload: {
-          email: 'one-row@test.local',
-          password: 'password123',
-          name: 'test1',
-        },
-      });
-      expect(res.statusCode).toEqual(200);
-
-      const authUserId = res.body.user?.id;
-      const matches = await Users.findAll({ where: { authUserId }, raw: true });
-      expect(matches).toHaveLength(1);
-    });
   });
 
   describe('Slugify on signup', () => {
@@ -222,22 +164,6 @@ describe('Signup flow', () => {
       const appUser = await Users.findOne({ where: { authUserId: res.body.user.id }, raw: true });
       expect(appUser).not.toBeNull();
       expect(appUser!.username).toEqual('john-doe-smith');
-    });
-
-    it('should slugify uppercase input to all-lowercase', async () => {
-      const res = await makeAuthRequest({
-        method: 'post',
-        url: '/auth/sign-up/email',
-        payload: {
-          email: 'slug-upper@test.local',
-          password: 'password123',
-          name: 'JOHN',
-        },
-      });
-      expect(res.statusCode).toEqual(200);
-
-      const appUser = await Users.findOne({ where: { authUserId: res.body.user.id }, raw: true });
-      expect(appUser!.username).toEqual('john');
     });
 
     it('should strip special characters and trailing whitespace from the name', async () => {
@@ -371,24 +297,6 @@ describe('Signup flow', () => {
       expect(appUser!.lastName).toBeNull();
       expect(appUser!.middleName).toBeNull();
     });
-
-    it('should preserve original casing in firstName/lastName even when slugifying username', async () => {
-      const res = await makeAuthRequest({
-        method: 'post',
-        url: '/auth/sign-up/email',
-        payload: {
-          email: 'parse-case@test.local',
-          password: 'password123',
-          name: 'Quentin Blackwood',
-        },
-      });
-      expect(res.statusCode).toEqual(200);
-
-      const appUser = await Users.findOne({ where: { authUserId: res.body.user.id }, raw: true });
-      expect(appUser!.username).toEqual('quentin-blackwood');
-      expect(appUser!.firstName).toEqual('Quentin');
-      expect(appUser!.lastName).toEqual('Blackwood');
-    });
   });
 
   describe('Stage-1: app-user creation failure (rollback)', () => {
@@ -470,5 +378,276 @@ describe('Signup flow', () => {
       const appUser = await Users.findOne({ where: { authUserId: res.body.user.id }, raw: true });
       expect(appUser).not.toBeNull();
     });
+  });
+});
+
+describe('Locale-aware signup', () => {
+  /**
+   * Helper to create a new user via signup endpoint with specific locale.
+   * Returns the session cookies for the new user.
+   */
+  async function signupWithLocale({ email, locale }: { email: string; locale: string }): Promise<string> {
+    const signupRes = await makeAuthRequest({
+      method: 'post',
+      url: '/auth/sign-up/email',
+      payload: {
+        email,
+        password: 'testpassword123',
+        name: `Test User ${locale}`,
+      },
+      headers: {
+        'Accept-Language': locale,
+      },
+    });
+
+    expect(signupRes.statusCode).toEqual(200);
+
+    return extractCookies(signupRes);
+  }
+
+  /**
+   * Helper to get categories for a specific user session.
+   */
+  async function getCategoriesForSession({ cookies }: { cookies: string }): Promise<CategoryModel[]> {
+    const originalCookies = global.APP_AUTH_COOKIES;
+    global.APP_AUTH_COOKIES = cookies;
+
+    try {
+      const result = await makeRequest<CategoryModel[], true>({
+        method: 'get',
+        url: '/categories',
+        raw: true,
+      });
+      return result;
+    } finally {
+      global.APP_AUTH_COOKIES = originalCookies;
+    }
+  }
+
+  function assertNoNamesAreI18nPaths(categories: CategoryModel[]) {
+    for (const cat of categories) {
+      expect(cat.name).toBeTruthy();
+      expect(cat.name.startsWith('defaultCategories.')).toBe(false);
+    }
+  }
+
+  /**
+   * Canonical set of keys expected on every fresh user, regardless of locale.
+   * Hardcoded here as an independent reference — if the seed structure in
+   * `default-categories.ts` changes, this set must be updated explicitly. That
+   * coupling is intentional: it forces a test review whenever the canonical key
+   * set shifts.
+   */
+  const EXPECTED_MAIN_KEYS = new Set([
+    'food',
+    'shopping',
+    'housing',
+    'transportation',
+    'vehicle',
+    'life',
+    'communication',
+    'financial-expenses',
+    'investments',
+    'income',
+    'other',
+  ]);
+
+  /** Composite (parentKey, key) — subcategory keys aren't globally unique
+   *  (e.g. 'lottery-gambling' appears under both `life` and `income`). */
+  const EXPECTED_SUBCATEGORY_KEYS = new Set([
+    'food/groceries',
+    'food/restaurant',
+    'food/bar-cafe',
+    'shopping/clothes-shoes',
+    'shopping/jewels-accessories',
+    'shopping/health-beauty',
+    'shopping/kids',
+    'shopping/home-garden',
+    'shopping/pets-animals',
+    'shopping/electronics-accessories',
+    'shopping/gifts-joy',
+    'shopping/stationery-tools',
+    'shopping/free-time',
+    'shopping/drugstore-chemist',
+    'housing/rent',
+    'housing/mortgage',
+    'housing/energy-utilities',
+    'housing/services',
+    'housing/maintenance-repairs',
+    'housing/property-insurance',
+    'transportation/public-transport',
+    'transportation/taxi',
+    'transportation/long-distance',
+    'transportation/business-trips',
+    'vehicle/fuel',
+    'vehicle/parking',
+    'vehicle/vehicle-maintenance',
+    'vehicle/rentals',
+    'vehicle/vehicle-insurance',
+    'vehicle/leasing',
+    'life/health-care-doctor',
+    'life/wellness-beauty',
+    'life/active-sport-fitness',
+    'life/culture-sport-events',
+    'life/hobbies',
+    'life/education-development',
+    'life/books-audio-subscriptions',
+    'life/tv-streaming',
+    'life/holiday-trips-hotels',
+    'life/charity-gifts',
+    'life/alcohol-tobacco',
+    'life/lottery-gambling',
+    'communication/phone-cell-phone',
+    'communication/internet',
+    'communication/software-apps-games',
+    'communication/postal-services',
+    'financial-expenses/taxes',
+    'financial-expenses/insurances',
+    'financial-expenses/loan-interests',
+    'financial-expenses/fines',
+    'financial-expenses/advisory',
+    'financial-expenses/charges-fees',
+    'financial-expenses/child-support',
+    'investments/realty',
+    'investments/vehicles-chattels',
+    'investments/financial-investments',
+    'investments/savings',
+    'investments/collections',
+    'income/wage-invoices',
+    'income/interests-dividends',
+    'income/sale',
+    'income/rental-income',
+    'income/dues-grants',
+    'income/lending-renting',
+    'income/checks-coupons',
+    'income/lottery-gambling',
+    'income/refunds',
+    'income/freelance',
+    'income/gifts',
+  ]);
+
+  const KEBAB_CASE_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+
+  /**
+   * Asserts that the user's seeded categories all carry valid `key` values matching
+   * the canonical kebab-case set. Locale-independent — names differ per locale but
+   * keys are the same identifier.
+   */
+  function assertKeysAreCanonicalAndKebab(categories: CategoryModel[]) {
+    const main = categories.filter((c) => c.parentId === null);
+    const subs = categories.filter((c) => c.parentId !== null);
+
+    for (const cat of categories) {
+      expect(cat.key).toBeTruthy();
+      expect(cat.key).toMatch(KEBAB_CASE_RE);
+    }
+
+    const mainKeysSeen = new Set(main.map((c) => c.key as string));
+    expect(mainKeysSeen).toEqual(EXPECTED_MAIN_KEYS);
+
+    const idToKey = new Map<string, string>();
+    for (const cat of main) idToKey.set(cat.id, cat.key as string);
+
+    const subKeysSeen = new Set(subs.map((c) => `${idToKey.get(c.parentId as string) ?? '?'}/${c.key}`));
+    expect(subKeysSeen).toEqual(EXPECTED_SUBCATEGORY_KEYS);
+  }
+
+  it('seeds English category names and canonical keys when Accept-Language is en', async () => {
+    const cookies = await signupWithLocale({ email: `en-test-${Date.now()}@test.local`, locale: 'en' });
+    const categories = await getCategoriesForSession({ cookies });
+
+    const mainCategoryNames = categories.filter((c) => c.parentId === null).map((c) => c.name);
+    expect(mainCategoryNames).toContain('Food & Drinks');
+    expect(mainCategoryNames).toContain('Shopping');
+    expect(mainCategoryNames).toContain('Housing');
+    expect(mainCategoryNames).toContain('Other');
+    expect(mainCategoryNames).toContain('Income');
+
+    const allCategoryNames = categories.map((c) => c.name);
+    expect(allCategoryNames).toContain('Groceries');
+    expect(allCategoryNames).toContain('Restaurant, fast-food');
+
+    assertKeysAreCanonicalAndKebab(categories);
+    assertNoNamesAreI18nPaths(categories);
+  });
+
+  it('seeds Ukrainian category names and canonical keys when Accept-Language is uk', async () => {
+    const cookies = await signupWithLocale({ email: `uk-test-${Date.now()}@test.local`, locale: 'uk' });
+    const categories = await getCategoriesForSession({ cookies });
+
+    const mainCategoryNames = categories.filter((c) => c.parentId === null).map((c) => c.name);
+    expect(mainCategoryNames).toContain('Їжа та напої');
+    expect(mainCategoryNames).toContain('Покупки');
+    expect(mainCategoryNames).toContain('Житло');
+    expect(mainCategoryNames).toContain('Інше');
+    expect(mainCategoryNames).toContain('Дохід');
+
+    const allCategoryNames = categories.map((c) => c.name);
+    expect(allCategoryNames).toContain('Продукти');
+    expect(allCategoryNames).toContain('Ресторан, фаст-фуд');
+
+    assertKeysAreCanonicalAndKebab(categories);
+    assertNoNamesAreI18nPaths(categories);
+  });
+
+  it('should create English category names when Accept-Language is unsupported', async () => {
+    const cookies = await signupWithLocale({ email: `fr-test-${Date.now()}@test.local`, locale: 'fr' });
+    const categories = await getCategoriesForSession({ cookies });
+
+    const mainCategoryNames = categories.filter((c) => c.parentId === null).map((c) => c.name);
+
+    expect(mainCategoryNames).toContain('Food & Drinks');
+    expect(mainCategoryNames).toContain('Shopping');
+    expect(mainCategoryNames).toContain('Other');
+
+    expect(mainCategoryNames).not.toContain('Їжа та напої');
+    expect(mainCategoryNames).not.toContain('Інше');
+  });
+});
+
+/** Suite setup inserts one ba_user, so a cap of 1 means the instance is already full. */
+describe('Signup cap (SYSTEM_MAX_SIGNUPS_ALLOWED)', () => {
+  afterEach(() => {
+    delete process.env.SYSTEM_MAX_SIGNUPS_ALLOWED;
+  });
+
+  const trySignup = () =>
+    makeAuthRequest({
+      method: 'post',
+      url: '/auth/sign-up/email',
+      payload: {
+        email: `cap-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`,
+        password: 'testpassword123',
+        name: 'Cap Test',
+      },
+    });
+
+  it('unset: signups open and signup succeeds', async () => {
+    const status = await makeRequest({ method: 'get', url: '/auth/signups-open', raw: true });
+    expect(status).toEqual({ signupsOpen: true });
+
+    const res = await trySignup();
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('at the limit: signups closed and signup rejected', async () => {
+    process.env.SYSTEM_MAX_SIGNUPS_ALLOWED = '1';
+
+    const status = await makeRequest({ method: 'get', url: '/auth/signups-open', raw: true });
+    expect(status).toEqual({ signupsOpen: false });
+
+    const res = await trySignup();
+    expect(res.statusCode).toBe(403);
+    expect(res.body.code).toBe('SIGNUPS_DISABLED');
+  });
+
+  it('under the limit: signup succeeds and closes once the slot is taken', async () => {
+    process.env.SYSTEM_MAX_SIGNUPS_ALLOWED = '2';
+
+    const res = await trySignup();
+    expect(res.statusCode).toBe(200);
+
+    const status = await makeRequest({ method: 'get', url: '/auth/signups-open', raw: true });
+    expect(status).toEqual({ signupsOpen: false });
   });
 });

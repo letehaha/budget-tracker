@@ -479,7 +479,9 @@ describe('Budget Bakers Wallet import balance recalculation', () => {
     });
   });
 
-  it('rejects a create-new currentBalance beyond the integer-cents cap with 422', async () => {
+  it('rejects a create-new currentBalance beyond the integer-cents cap with 422 on both signs', async () => {
+    // The bound is symmetric: a target past ±20,000,000 fails Zod validation
+    // synchronously with 422 and never enqueues a job.
     const fileContent = [
       CSV_HEADER,
       walletRow({
@@ -492,26 +494,39 @@ describe('Budget Bakers Wallet import balance recalculation', () => {
       }),
     ].join('\n');
 
-    const response = await helpers.executeBudgetBakersWallet({
-      payload: {
-        fileContent,
-        accountMapping: {
-          'Big UAH': { action: 'create-new', currencyCode: 'UAH', currentBalance: 20_000_001 },
+    for (const currentBalance of [20_000_001, -20_000_001]) {
+      const response = await helpers.executeBudgetBakersWallet({
+        payload: {
+          fileContent,
+          accountMapping: {
+            'Big UAH': { action: 'create-new', currencyCode: 'UAH', currentBalance },
+          },
         },
-      },
-      raw: false,
-    });
+        raw: false,
+      });
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    }
   });
 
-  it('rejects a create-new currentBalance below the negative integer-cents cap with 422', async () => {
-    // The bound is symmetric: a target past −20,000,000 must fail Zod validation
-    // synchronously (422), the same as the positive over-cap.
+  it('accepts a create-new currentBalance exactly on the integer-cents cap (both signs)', async () => {
+    // The cap is inclusive: ±20,000,000 is the last accepted value, so the
+    // import must run to completion and leave each account on its exact
+    // boundary balance.
+    const positiveName = 'Boundary UAH 20000000';
+    const negativeName = 'Boundary UAH -20000000';
     const fileContent = [
       CSV_HEADER,
       walletRow({
-        account: 'Big Negative UAH',
+        account: positiveName,
+        currency: 'UAH',
+        amount: '100',
+        type: 'Income',
+        date: '2025-06-01T12:00:00.000Z',
+        note: 'Salary',
+      }),
+      walletRow({
+        account: negativeName,
         currency: 'UAH',
         amount: '100',
         type: 'Income',
@@ -520,57 +535,30 @@ describe('Budget Bakers Wallet import balance recalculation', () => {
       }),
     ].join('\n');
 
-    const response = await helpers.executeBudgetBakersWallet({
-      payload: {
-        fileContent,
-        accountMapping: {
-          'Big Negative UAH': { action: 'create-new', currencyCode: 'UAH', currentBalance: -20_000_001 },
-        },
+    const progress = await runImport({
+      fileContent,
+      accountMapping: {
+        [positiveName]: { action: 'create-new', currencyCode: 'UAH', currentBalance: 20_000_000 },
+        [negativeName]: { action: 'create-new', currencyCode: 'UAH', currentBalance: -20_000_000 },
       },
-      raw: false,
+      recalculateBalance: true,
     });
+    expectCompleted(progress);
+    expect(progress.summary.accountsCreated).toBe(2);
+    expect(progress.summary.errors).toHaveLength(0);
 
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it.each([{ currentBalance: 20_000_000 }, { currentBalance: -20_000_000 }])(
-    'accepts a create-new currentBalance exactly on the integer-cents cap ($currentBalance)',
-    async ({ currentBalance }) => {
-      // The cap is inclusive: ±20,000,000 is the last accepted value, so the
-      // import must run to completion and leave the account on that exact
-      // boundary balance.
-      const accountName = `Boundary UAH ${currentBalance}`;
-      const fileContent = [
-        CSV_HEADER,
-        walletRow({
-          account: accountName,
-          currency: 'UAH',
-          amount: '100',
-          type: 'Income',
-          date: '2025-06-01T12:00:00.000Z',
-          note: 'Salary',
-        }),
-      ].join('\n');
-
-      const progress = await runImport({
-        fileContent,
-        accountMapping: {
-          [accountName]: { action: 'create-new', currencyCode: 'UAH', currentBalance },
-        },
-        recalculateBalance: true,
-      });
-      expectCompleted(progress);
-      expect(progress.summary.accountsCreated).toBe(1);
-      expect(progress.summary.errors).toHaveLength(0);
-
-      const accounts = await helpers.getAccounts();
-      const created = accounts.find((a) => a.name === accountName)!;
+    const accounts = await helpers.getAccounts();
+    // The imported +100 income is absorbed into initialBalance so currentBalance
+    // lands exactly on the entered boundary value.
+    for (const [name, currentBalance] of [
+      [positiveName, 20_000_000],
+      [negativeName, -20_000_000],
+    ] as const) {
+      const created = accounts.find((a) => a.name === name)!;
       expect(created).toBeDefined();
-      // The imported +100 income is absorbed into initialBalance so currentBalance
-      // lands exactly on the entered boundary value.
       expect(Number(created.currentBalance)).toBe(currentBalance);
-    },
-  );
+    }
+  });
 
   it('recalc ON: a row that fails at the database layer is excluded from the balance and reported in errors', async () => {
     const { account, balanceBefore } = await createLinkedAccountWithBoundaryTx({
@@ -635,7 +623,7 @@ describe('Budget Bakers Wallet import balance recalculation', () => {
     });
   });
 
-  it('fails the import when link-existing targets a vehicle account', async () => {
+  it('fails the import when link-existing targets a vehicle or a loan account', async () => {
     const vehicle = await helpers.createVehicle({
       name: 'Toyota Camry 2020',
       currencyCode: 'USD',
@@ -650,60 +638,46 @@ describe('Budget Bakers Wallet import balance recalculation', () => {
     // The depreciation model sets the vehicle account's value, so only
     // before/after equality is stable to assert — not an absolute number.
     const balanceBefore = Number((await helpers.getAccount({ id: vehicle.accountId, raw: true })).currentBalance);
+    // LoanApiResponse extends the account response — `loan.id` IS the account id.
+    const loan = await helpers.createLoan({ payload: helpers.buildCreateLoanPayload(), raw: true });
 
-    const fileContent = [
-      CSV_HEADER,
-      walletRow({
-        account: 'Car USD',
-        currency: 'USD',
-        amount: '100',
-        type: 'Income',
-        date: '2025-06-01T12:00:00.000Z',
-        note: 'Payment',
-      }),
-    ].join('\n');
+    const buildFile = ({ account }: { account: string }) =>
+      [
+        CSV_HEADER,
+        walletRow({
+          account,
+          currency: 'USD',
+          amount: '100',
+          type: 'Income',
+          date: '2025-06-01T12:00:00.000Z',
+          note: 'Payment',
+        }),
+      ].join('\n');
 
-    const progress = await runImport({
-      fileContent,
+    const vehicleProgress = await runImport({
+      fileContent: buildFile({ account: 'Car USD' }),
       accountMapping: { 'Car USD': { action: 'link-existing', accountId: vehicle.accountId } },
       recalculateBalance: true,
     });
 
-    expect(progress.status).toBe('failed');
-    if (progress.status === 'failed') {
-      expect(progress.error).toContain('cannot be an import target');
+    expect(vehicleProgress.status).toBe('failed');
+    if (vehicleProgress.status === 'failed') {
+      expect(vehicleProgress.error).toContain('cannot be an import target');
     }
 
     // The vehicle's managed balance must be untouched.
     const after = await helpers.getAccount({ id: vehicle.accountId, raw: true });
     expect(Number(after.currentBalance)).toBe(balanceBefore);
-  });
 
-  it('fails the import when link-existing targets a loan account', async () => {
-    const loan = await helpers.createLoan({ payload: helpers.buildCreateLoanPayload(), raw: true });
-
-    // LoanApiResponse extends the account response — `loan.id` IS the account id.
-    const fileContent = [
-      CSV_HEADER,
-      walletRow({
-        account: 'Loan USD',
-        currency: 'USD',
-        amount: '100',
-        type: 'Income',
-        date: '2025-06-01T12:00:00.000Z',
-        note: 'Payment',
-      }),
-    ].join('\n');
-
-    const progress = await runImport({
-      fileContent,
+    const loanProgress = await runImport({
+      fileContent: buildFile({ account: 'Loan USD' }),
       accountMapping: { 'Loan USD': { action: 'link-existing', accountId: loan.id } },
       recalculateBalance: true,
     });
 
-    expect(progress.status).toBe('failed');
-    if (progress.status === 'failed') {
-      expect(progress.error).toContain('cannot be an import target');
+    expect(loanProgress.status).toBe('failed');
+    if (loanProgress.status === 'failed') {
+      expect(loanProgress.error).toContain('cannot be an import target');
     }
-  });
+  }, 30_000);
 });

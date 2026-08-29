@@ -48,15 +48,6 @@ interface GuardedCallResult {
   body: { response: unknown };
 }
 
-const expectForbidden = (res: GuardedCallResult) => {
-  expect(res.statusCode).toBe(403);
-  // Helpers are typed for their success-payload `T`, but on a 403 the body carries the
-  // error shape `{ code, message }`. Narrow at the assertion site so the array can stay
-  // typed against `CustomResponse<unknown>` without per-call casts.
-  const errorBody = res.body.response as { code?: string };
-  expect(errorBody.code).toBe(API_ERROR_CODES.forbidden);
-};
-
 /**
  * Each entry hits one write endpoint guarded by `blockDemoUsers`. The arguments are
  * intentionally bogus — `blockDemoUsers` runs before payload/data validation, so demo
@@ -65,7 +56,7 @@ const expectForbidden = (res: GuardedCallResult) => {
  *
  * The call signature uses `unknown` for `body.response` because each helper returns a
  * different success-payload type — widening to `unknown` lets every helper fit without
- * per-call casts, and `expectForbidden` narrows to the error shape at the assertion site.
+ * per-call casts, and the loop narrows to the error shape at the assertion site.
  */
 const guardedCalls: Array<{ name: string; call: () => Promise<GuardedCallResult> }> = [
   {
@@ -128,11 +119,19 @@ const guardedCalls: Array<{ name: string; call: () => Promise<GuardedCallResult>
 ];
 
 describe('Demo guards on /share/* write endpoints', () => {
-  it.each(guardedCalls)('blocks demo users on $name', async ({ call }) => {
+  it('blocks demo users on every guarded /share/* write endpoint', async () => {
     const demo = await provisionDemoUser();
-    const res = await asUser({ cookies: demo.cookies, fn: call });
-    expectForbidden(res);
-  });
+
+    for (const { name, call } of guardedCalls) {
+      const res = await asUser({ cookies: demo.cookies, fn: call });
+      const errorBody = res.body.response as { code?: string };
+      expect({ name, statusCode: res.statusCode, code: errorBody.code }).toEqual({
+        name,
+        statusCode: 403,
+        code: API_ERROR_CODES.forbidden,
+      });
+    }
+  }, 60_000);
 
   it('lets non-demo users past the guard (control case)', async () => {
     // The primary test user is a normal user — the guard must not fire. Bogus invitation

@@ -214,13 +214,12 @@ describe('Budget Bakers Wallet import — auto-create Payee', () => {
   });
 
   /**
-   * TRANSFERS carry no payee: paired transfer legs are never scanned, even when
-   * both legs hold a `payee` value. The two `common_transfer` legs end up with a
-   * null `payeeId`, and the transfer payee name creates no Payee.
+   * Paired transfer legs are never scanned for a payee, and a blank `payee` cell
+   * normalizes to nothing before the resolver runs.
    */
-  it('transfer: paired legs get a null payeeId and create no Payee even with a payee cell present', async () => {
+  it('transfer legs and blank payee cells import with a null payeeId and create no Payee', async () => {
     const transferPayee = `Transfer Payee ${generateRandomRecordId()}`;
-    const date = '2025-08-01T10:00:00.000Z';
+    const transferDate = '2025-08-01T10:00:00.000Z';
 
     const fileContent = [
       WALLET_HEADER,
@@ -230,7 +229,7 @@ describe('Budget Bakers Wallet import — auto-create Payee', () => {
         currency: 'USD',
         amount: 100,
         type: 'Expense',
-        date,
+        date: transferDate,
         transfer: true,
         payee: transferPayee,
       }),
@@ -240,50 +239,10 @@ describe('Budget Bakers Wallet import — auto-create Payee', () => {
         currency: 'USD',
         amount: 100,
         type: 'Income',
-        date,
+        date: transferDate,
         transfer: true,
         payee: transferPayee,
       }),
-    ].join('\n');
-
-    const accountMapping = {
-      'XferSrc USD': { action: 'create-new' as const, currencyCode: 'USD', currentBalance: null },
-      'XferDst USD': { action: 'create-new' as const, currencyCode: 'USD', currentBalance: null },
-    };
-
-    const { jobId } = await helpers.executeBudgetBakersWallet({
-      payload: { fileContent, accountMapping, skipDuplicateIndices: [] },
-      raw: true,
-    });
-    expect(jobId).toBeTruthy();
-
-    const progress = await waitForBudgetBakersWalletCompletion({ jobId });
-    expectCompleted(progress);
-    expect(progress.summary.errors).toHaveLength(0);
-    // The two legs paired into a single transfer.
-    expect(progress.summary.transfersImported).toBe(1);
-    // Transfer payees are never resolved → nothing created.
-    expect(progress.summary.payeesCreated).toBe(0);
-
-    const txs = await helpers.getTransactions({ raw: true });
-    const transferLegs = txs.filter((t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer);
-    expect(transferLegs).toHaveLength(2);
-    for (const leg of transferLegs) {
-      expect(leg.payeeId).toBeNull();
-    }
-
-    // The value in the transfer rows' payee cell must not have become a Payee.
-    const payees = await helpers.listPayees({ raw: true });
-    expect(payees).toHaveLength(0);
-  });
-
-  /**
-   * EMPTY payee cells: a blank `payee` normalizes to nothing, so it never enters
-   * the resolver — no Payee created, row imports with a null `payeeId`.
-   */
-  it('empty payee cells: no Payee created and the transactions have a null payeeId', async () => {
-    const fileContent = [
-      WALLET_HEADER,
       walletRow({
         account: 'EmptyAcc UAH',
         amount: 100,
@@ -303,6 +262,8 @@ describe('Budget Bakers Wallet import — auto-create Payee', () => {
     ].join('\n');
 
     const accountMapping = {
+      'XferSrc USD': { action: 'create-new' as const, currencyCode: 'USD', currentBalance: null },
+      'XferDst USD': { action: 'create-new' as const, currencyCode: 'USD', currentBalance: null },
       'EmptyAcc UAH': { action: 'create-new' as const, currencyCode: 'UAH', currentBalance: null },
     };
 
@@ -315,11 +276,18 @@ describe('Budget Bakers Wallet import — auto-create Payee', () => {
     const progress = await waitForBudgetBakersWalletCompletion({ jobId });
     expectCompleted(progress);
     expect(progress.summary.errors).toHaveLength(0);
+    // The two legs paired into a single transfer.
+    expect(progress.summary.transfersImported).toBe(1);
     expect(progress.summary.transactionsImported).toBe(2);
-    // Blank cells never reach the resolver.
     expect(progress.summary.payeesCreated).toBe(0);
 
     const txs = await helpers.getTransactions({ raw: true });
+    const transferLegs = txs.filter((t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(transferLegs).toHaveLength(2);
+    for (const leg of transferLegs) {
+      expect(leg.payeeId).toBeNull();
+    }
+
     const emptyA = txs.find((t) => t.note === 'empty-a')!;
     const emptyB = txs.find((t) => t.note === 'empty-b')!;
     expect(emptyA).toBeDefined();
@@ -327,26 +295,24 @@ describe('Budget Bakers Wallet import — auto-create Payee', () => {
     expect(emptyA.payeeId).toBeNull();
     expect(emptyB.payeeId).toBeNull();
 
-    // No Payee was created for the blank rows.
     const payees = await helpers.listPayees({ raw: true });
     expect(payees).toHaveLength(0);
   });
 
   /**
-   * Category precedence — MAPPED column wins over an enforce Payee: a row with a
-   * mapped category AND a linked `enforce` Payee (with `defaultCategoryId`) must
-   * carry the mapped category id, NOT the Payee's default.
+   * A mapped category column beats an `enforce` Payee's `defaultCategoryId`.
+   * The Payee default only fills rows whose category cell is blank.
    */
-  it('category precedence: a mapped category column wins over an enforce Payee default', async () => {
+  it('category precedence: a mapped category wins over the enforce Payee default, which fills an unmapped row', async () => {
     const suffix = generateRandomRecordId();
 
-    // The category the CSV row maps to (the winner).
+    // The category the mapped CSV row points at (the winner on that row).
     const mappedCategory = await helpers.addCustomCategory({
       name: `Mapped Cat ${suffix}`,
       color: '#3366AA',
       raw: true,
     });
-    // A different category set as the Payee's enforce default (the loser here).
+    // The Payee's enforce default: loses on the mapped row, fills the blank one.
     const payeeDefaultCategory = await helpers.addCustomCategory({
       name: `Payee Default Cat ${suffix}`,
       color: '#AA3366',
@@ -377,6 +343,16 @@ describe('Budget Bakers Wallet import — auto-create Payee', () => {
         date: '2025-06-08T10:00:00.000Z',
         payee: payeeName,
       }),
+      // Blank category cell → no mapped category for this row.
+      walletRow({
+        account: 'PrecAcc UAH',
+        category: '',
+        amount: 400,
+        type: 'Expense',
+        note: 'prec-default',
+        date: '2025-06-09T10:00:00.000Z',
+        payee: payeeName,
+      }),
     ].join('\n');
 
     const accountMapping = {
@@ -395,84 +371,25 @@ describe('Budget Bakers Wallet import — auto-create Payee', () => {
     const progress = await waitForBudgetBakersWalletCompletion({ jobId });
     expectCompleted(progress);
     expect(progress.summary.errors).toHaveLength(0);
-    expect(progress.summary.transactionsImported).toBe(1);
+    expect(progress.summary.transactionsImported).toBe(2);
     // Payee already existed (reused), category was link-existing.
     expect(progress.summary.payeesCreated).toBe(0);
     expect(progress.summary.categoriesCreated).toBe(0);
 
     const txs = await helpers.getTransactions({ raw: true });
-    const tx = txs.find((t) => t.note === 'prec-mapped')!;
-    expect(tx).toBeDefined();
-    // The Payee is linked...
-    expect(tx.payeeId).toBe(enforcePayee.id);
+    const mappedTx = txs.find((t) => t.note === 'prec-mapped')!;
+    const defaultTx = txs.find((t) => t.note === 'prec-default')!;
+    expect(mappedTx).toBeDefined();
+    expect(defaultTx).toBeDefined();
+
+    // Both rows link the Payee...
+    expect(mappedTx.payeeId).toBe(enforcePayee.id);
+    expect(defaultTx.payeeId).toBe(enforcePayee.id);
     // ...but the MAPPED category wins over the Payee's enforce default.
-    expect(tx.categoryId).toBe(mappedCategory.id);
-    expect(tx.categoryId).not.toBe(payeeDefaultCategory.id);
-  });
-
-  /**
-   * Category precedence — enforce Payee fills an UNMAPPED row: with a linked
-   * enforce Payee but NO mapped category (blank cell), the Payee's `enforce`/`hint`
-   * default IS applied, so the transaction carries the Payee's default category id.
-   */
-  it('category precedence: an enforce Payee default is applied when the row has no mapped category', async () => {
-    const suffix = generateRandomRecordId();
-
-    const payeeDefaultCategory = await helpers.addCustomCategory({
-      name: `Enforce Default Cat ${suffix}`,
-      color: '#22AA88',
-      raw: true,
-    });
-    expect(payeeDefaultCategory.id).toBeTruthy();
-
-    const payeeName = `Enforce Payee ${suffix}`;
-    const enforcePayee = await helpers.createPayee({
-      payload: {
-        name: payeeName,
-        categorizationMode: CATEGORIZATION_MODE.enforce,
-        defaultCategoryId: payeeDefaultCategory.id,
-      },
-      raw: true,
-    });
-    expect(enforcePayee.id).toBeTruthy();
-
-    const fileContent = [
-      WALLET_HEADER,
-      // Blank category cell → no mapped category for this row.
-      walletRow({
-        account: 'PrecAcc2 UAH',
-        category: '',
-        amount: 400,
-        type: 'Expense',
-        note: 'prec-default',
-        date: '2025-06-09T10:00:00.000Z',
-        payee: payeeName,
-      }),
-    ].join('\n');
-
-    const accountMapping = {
-      'PrecAcc2 UAH': { action: 'create-new' as const, currencyCode: 'UAH', currentBalance: null },
-    };
-
-    const { jobId } = await helpers.executeBudgetBakersWallet({
-      payload: { fileContent, accountMapping, categoryMapping: {}, skipDuplicateIndices: [] },
-      raw: true,
-    });
-    expect(jobId).toBeTruthy();
-
-    const progress = await waitForBudgetBakersWalletCompletion({ jobId });
-    expectCompleted(progress);
-    expect(progress.summary.errors).toHaveLength(0);
-    expect(progress.summary.transactionsImported).toBe(1);
-    expect(progress.summary.payeesCreated).toBe(0);
-    expect(progress.summary.categoriesCreated).toBe(0);
-
-    const txs = await helpers.getTransactions({ raw: true });
-    const tx = txs.find((t) => t.note === 'prec-default')!;
-    expect(tx).toBeDefined();
-    expect(tx.payeeId).toBe(enforcePayee.id);
+    expect(mappedTx.categoryId).toBe(mappedCategory.id);
+    expect(mappedTx.categoryId).not.toBe(payeeDefaultCategory.id);
     // With no mapped category, the Payee's enforce default fills the category.
-    expect(tx.categoryId).toBe(payeeDefaultCategory.id);
+    expect(defaultTx.categoryId).toBe(payeeDefaultCategory.id);
   });
 
   /**

@@ -190,36 +190,28 @@ describe('[Stats] Net worth history', () => {
       }
     });
 
-    it('rejects `from` after `to` with 422', async () => {
-      const res = await helpers.getNetWorthHistory({
+    it('rejects an inverted range, an unknown granularity and an over-capacity bucket count with 422', async () => {
+      const invertedRange = await helpers.getNetWorthHistory({
         from: '2024-02-01',
         to: '2024-01-01',
         granularity: 'monthly',
       });
-
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects an unknown granularity with 422', async () => {
-      const res = await helpers.getNetWorthHistory({
+      const unknownGranularity = await helpers.getNetWorthHistory({
         from: '2024-01-01',
         to: '2024-03-01',
         granularity: 'hourly' as endpointsTypes.NetWorthHistoryGranularity,
       });
-
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects a range producing more than 500 buckets with 422', async () => {
       // ~730 weekly buckets over 14 years — past the 500 cap.
-      const res = await helpers.getNetWorthHistory({
+      const tooManyBuckets = await helpers.getNetWorthHistory({
         from: '2010-01-01',
         to: '2024-01-01',
         granularity: 'weekly',
       });
 
-      expect(res.statusCode).toBe(422);
-    });
+      expect(invertedRange.statusCode).toBe(422);
+      expect(unknownGranularity.statusCode).toBe(422);
+      expect(tooManyBuckets.statusCode).toBe(422);
+    }, 60_000);
 
     it('excludes excludeFromStats credit-card accounts from liabilities', async () => {
       const from = formatDay(startOfMonth(new Date()));
@@ -261,45 +253,6 @@ describe('[Stats] Net worth history', () => {
       expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
       expect(point.liabilitiesTotal).toBe(0);
       expect(point.netWorth).toBe(1000);
-    });
-
-    it('counts a positive-balance credit card as an asset, not a liability', async () => {
-      const from = formatDay(startOfMonth(new Date()));
-      const to = formatDay(new Date());
-
-      await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
-        raw: true,
-      });
-
-      const creditCard = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          accountCategory: ACCOUNT_CATEGORIES.creditCard,
-          initialBalance: 0,
-        }),
-        raw: true,
-      });
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: creditCard.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-        raw: true,
-      });
-
-      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
-
-      expect(result.points).toHaveLength(1);
-      const point = result.points[0]!;
-      // Sign rule: the card holds own funds, so it moves to assets and the
-      // liability kind reads 0; netWorth stays assets + liabilitiesTotal. The
-      // card's positive balance folds into the `cash` kind alongside the account.
-      expect(point.assetsTotal).toBe(1200);
-      expect(point.assets.cash).toBe(1200);
-      expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
-      expect(point.liabilitiesTotal).toBe(0);
-      expect(point.netWorth).toBe(1200);
     });
 
     it('splits mixed credit cards per account: owing card stays a liability, positive card counts as an asset', async () => {
@@ -354,7 +307,7 @@ describe('[Stats] Net worth history', () => {
       expect(point.netWorth).toBe(800);
     });
 
-    it('includes a priced portfolio holding in assets, not silently zero', async () => {
+    it('includes a priced portfolio holding in assets and adds uninvested portfolio cash on top of it', async () => {
       // Fixed past window: December 2025 is already fully elapsed, so the single
       // bucket is never the in-progress "current" one and the price is deterministic.
       const from = '2025-12-01';
@@ -385,94 +338,43 @@ describe('[Stats] Net worth history', () => {
       // whole point value is the 10-share holding priced at the bucket-end close.
       await setPrice({ securityId: security.id, date: to, price: '150' });
 
-      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
+      const funded = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
 
-      expect(result.points).toHaveLength(1);
-      const point = result.points[0]!;
-      // This path had zero coverage before — the holding must land in the
-      // `investments` asset kind (and net worth), not silently read as 0 or leak
-      // into the cash bucket.
-      expect(point.assetsTotal).toBe(1500);
-      expect(point.assets.investments).toBe(1500);
-      expect(point.assets.cash).toBe(0);
-      expect(point.netWorth).toBe(1500);
-    });
+      expect(funded.points).toHaveLength(1);
+      const fundedPoint = funded.points[0]!;
+      expect(fundedPoint.assetsTotal).toBe(1500);
+      expect(fundedPoint.assets.investments).toBe(1500);
+      expect(fundedPoint.assets.cash).toBe(0);
+      expect(fundedPoint.netWorth).toBe(1500);
 
-    it('classifies an owing overdraft account as a liability', async () => {
-      const from = formatDay(startOfMonth(new Date()));
-      const to = formatDay(new Date());
-
-      const overdraftAccount = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          accountCategory: ACCOUNT_CATEGORIES.overdraft,
-          initialBalance: 0,
-        }),
-        raw: true,
-      });
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: overdraftAccount.id,
-          amount: 400,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
+      await helpers.directCashTransaction({
+        portfolioId: portfolio.id,
+        payload: { type: 'deposit', amount: '500', currencyCode: global.BASE_CURRENCY.code, date: '2025-12-10' },
         raw: true,
       });
 
-      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
+      const withCash = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
 
-      expect(result.points).toHaveLength(1);
-      const point = result.points[0]!;
-      // Existing coverage only ever asserts overdraft == 0 from absence — this
-      // proves the owing (negative) branch actually flows into liabilities.
-      expect(point.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(-400);
-      expect(point.liabilitiesTotal).toBe(-400);
-      expect(point.netWorth).toBe(-400);
-      expect(point.assetsTotal).toBe(0);
-    });
+      expect(withCash.points).toHaveLength(1);
+      const withCashPoint = withCash.points[0]!;
+      // `investments` carries 10 shares @ 150 = 1500 plus the 500 uninvested portfolio cash.
+      expect(withCashPoint.assets.investments).toBe(2000);
+      expect(withCashPoint.assets.cash).toBe(0);
+      expect(withCashPoint.assetsTotal).toBe(2000);
+      expect(withCashPoint.netWorth).toBe(2000);
+    }, 60_000);
 
-    it('classifies an overdrawn deposit account as an overdraft liability, keeping cash non-negative', async () => {
+    it('folds an overdrawn deposit account and an owing overdraft account into one overdraft liability, keeping cash non-negative', async () => {
       const from = formatDay(startOfMonth(new Date()));
       const to = formatDay(new Date());
 
       // A plain deposit account holding the user's own funds.
-      const positiveAccount = await helpers.createAccount({
+      await helpers.createAccount({
         payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
         raw: true,
       });
 
       // A second deposit account overdrawn into the negative by an expense.
-      const overdrawnAccount = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 0 }),
-        raw: true,
-      });
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: overdrawnAccount.id,
-          amount: 300,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
-
-      expect(result.points).toHaveLength(1);
-      const point = result.points[0]!;
-      // Per-account sign split: the positive account's own funds stay in `cash`, the
-      // overdrawn account's owed balance moves to the overdraft liability kind rather
-      // than dragging cash negative. Net worth is the same either way.
-      expect(point.assets.cash).toBe(1000);
-      expect(point.assetsTotal).toBe(1000);
-      expect(point.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(-300);
-      expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
-      expect(point.liabilitiesTotal).toBe(-300);
-      expect(point.netWorth).toBe(700);
-    });
-
-    it('folds an overdrawn deposit account and an owing overdraft account into one overdraft total', async () => {
-      const from = formatDay(startOfMonth(new Date()));
-      const to = formatDay(new Date());
-
       const overdrawnDeposit = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ initialBalance: 0 }),
         raw: true,
@@ -506,12 +408,15 @@ describe('[Stats] Net worth history', () => {
 
       expect(result.points).toHaveLength(1);
       const point = result.points[0]!;
-      // Both owed balances share the overdraft kind — there is no separate bucket
-      // for an overdrawn plain account.
+      // `cash` sums only the positive accounts. Both owed balances land in the single
+      // overdraft kind; there is no separate bucket for an overdrawn plain account.
+      expect(point.assets.cash).toBe(1000);
+      expect(point.assetsTotal).toBe(1000);
       expect(point.liabilities[ACCOUNT_CATEGORIES.overdraft]).toBe(-400);
-      expect(point.assets.cash).toBe(0);
-      expect(point.netWorth).toBe(-400);
-    });
+      expect(point.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
+      expect(point.liabilitiesTotal).toBe(-400);
+      expect(point.netWorth).toBe(600);
+    }, 60_000);
 
     it('backfills a loan payoff dated on the anchor day without rewriting earlier buckets', async () => {
       const monthTwoAgoStart = startOfMonth(subMonths(new Date(), 2));
@@ -617,48 +522,6 @@ describe('[Stats] Net worth history', () => {
       expect(point.assets.cash).toBe(0);
       expect(point.assetsTotal).toBe(10000);
       expect(point.netWorth).toBe(10000);
-    });
-
-    it('adds uninvested portfolio cash on top of the holding value in investments', async () => {
-      // Fixed past window so the single bucket is elapsed and the price is deterministic.
-      const from = '2025-12-01';
-      const to = '2025-12-31';
-
-      const portfolio = await helpers.createPortfolio({ raw: true });
-      const security = await createBaseCurrencySecurity();
-      await seedHolding({ portfolioId: portfolio.id, securityId: security.id });
-
-      // Deposit more than the buy costs, so 500 of uninvested cash is left in the
-      // portfolio — the report must add it to the holding value, not drop it.
-      await helpers.directCashTransaction({
-        portfolioId: portfolio.id,
-        payload: { type: 'deposit', amount: '1500', currencyCode: global.BASE_CURRENCY.code, date: '2025-11-15' },
-        raw: true,
-      });
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          date: '2025-11-20',
-          quantity: '10',
-          price: '100',
-          fees: '0',
-        },
-        raw: true,
-      });
-      await setPrice({ securityId: security.id, date: to, price: '150' });
-
-      const result = await helpers.getNetWorthHistory({ from, to, granularity: 'monthly', raw: true });
-
-      expect(result.points).toHaveLength(1);
-      const point = result.points[0]!;
-      // 10 shares @ 150 = 1500 holdings + 500 uninvested cash = 2000; the leftover
-      // portfolio cash had zero coverage before and must not silently vanish.
-      expect(point.assets.investments).toBe(2000);
-      expect(point.assets.cash).toBe(0);
-      expect(point.assetsTotal).toBe(2000);
-      expect(point.netWorth).toBe(2000);
     });
   });
 });

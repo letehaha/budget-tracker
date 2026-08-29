@@ -133,24 +133,20 @@ describe('Statement parser extraction of an encrypted PDF', () => {
   useSelfHostWithoutServerAiKeys();
 
   // Retyping the password fixes this, so it must not answer as a server fault.
-  it('answers 422 and names the password when the PDF is encrypted and none was sent', async () => {
+  it('answers 422 and names the password when none was sent and when it was rejected', async () => {
     await createFirstEndpoint();
 
-    const response = await helpers.statementExtract({ payload: { fileBase64: encryptedPdfBase64() } });
+    const missingPassword = await helpers.statementExtract({ payload: { fileBase64: encryptedPdfBase64() } });
 
-    expect(response.statusCode).toBe(422);
-    expect(errorMessage({ response })).toMatch(/password/i);
-  });
+    expect(missingPassword.statusCode).toBe(422);
+    expect(errorMessage({ response: missingPassword })).toMatch(/password/i);
 
-  it('answers 422 for a rejected password', async () => {
-    await createFirstEndpoint();
-
-    const response = await helpers.statementExtract({
+    const rejectedPassword = await helpers.statementExtract({
       payload: { fileBase64: encryptedPdfBase64(), password: 'not-the-password' },
     });
 
-    expect(response.statusCode).toBe(422);
-    expect(errorMessage({ response })).toMatch(/password/i);
+    expect(rejectedPassword.statusCode).toBe(422);
+    expect(errorMessage({ response: rejectedPassword })).toMatch(/password/i);
   });
 
   it('extracts the statement once the correct password is supplied', async () => {

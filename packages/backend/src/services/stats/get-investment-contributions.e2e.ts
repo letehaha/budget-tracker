@@ -272,7 +272,7 @@ describe('GET /stats/investment-contributions', () => {
   });
 
   describe('adjustments', () => {
-    it('excludes a deposit created as an adjustment', async () => {
+    it('excludes a deposit created as an adjustment while still moving its portfolio cash', async () => {
       const portfolio = await createNamedPortfolio({ name: 'Reconciled' });
       await deposit({ portfolioId: portfolio.id, amount: '500', date: '2026-01-10' });
       await helpers.directCashTransaction({
@@ -291,21 +291,6 @@ describe('GET /stats/investment-contributions', () => {
 
       expect(buckets[0]!.total).toBe(500);
       expect(buckets[0]!.byPortfolio).toEqual([{ portfolioId: portfolio.id, amount: 500 }]);
-    });
-
-    it('still moves portfolio cash for an adjustment it excludes from contributions', async () => {
-      const portfolio = await createNamedPortfolio({ name: 'CashMoves' });
-      await helpers.directCashTransaction({
-        portfolioId: portfolio.id,
-        payload: {
-          type: 'deposit',
-          amount: '9000',
-          currencyCode: global.BASE_CURRENCY_CODE,
-          date: '2026-01-20',
-          isAdjustment: true,
-        },
-        raw: true,
-      });
 
       const [balance] = await helpers.getPortfolioBalance({
         portfolioId: portfolio.id,
@@ -314,10 +299,10 @@ describe('GET /stats/investment-contributions', () => {
       });
 
       // The correction is not a contribution, but the money is genuinely there.
-      expect(balance!.totalCash).toBeNumericEqual(9000);
-    });
+      expect(balance!.totalCash).toBeNumericEqual(9500);
+    }, 60_000);
 
-    it('drops an existing deposit from contributions once it is flagged as an adjustment', async () => {
+    it('drops a deposit from contributions once it is flagged as an adjustment and restores it when cleared', async () => {
       const portfolio = await createNamedPortfolio({ name: 'Reclassified' });
       const transfer = await deposit({ portfolioId: portfolio.id, amount: '700', date: '2026-01-12' });
 
@@ -331,24 +316,9 @@ describe('GET /stats/investment-contributions', () => {
         raw: true,
       });
 
-      const after = await helpers.getInvestmentContributions({ ...RANGE, raw: true });
-      expect(after.buckets[0]!.total).toBe(0);
-      expect(after.buckets[0]!.byPortfolio).toEqual([]);
-    });
-
-    it('restores an adjustment to a contribution when the flag is cleared', async () => {
-      const portfolio = await createNamedPortfolio({ name: 'Restored' });
-      const transfer = await helpers.directCashTransaction({
-        portfolioId: portfolio.id,
-        payload: {
-          type: 'deposit',
-          amount: '400',
-          currencyCode: global.BASE_CURRENCY_CODE,
-          date: '2026-01-18',
-          isAdjustment: true,
-        },
-        raw: true,
-      });
+      const flagged = await helpers.getInvestmentContributions({ ...RANGE, raw: true });
+      expect(flagged.buckets[0]!.total).toBe(0);
+      expect(flagged.buckets[0]!.byPortfolio).toEqual([]);
 
       await helpers.setTransferAdjustment({
         portfolioId: portfolio.id,
@@ -357,9 +327,9 @@ describe('GET /stats/investment-contributions', () => {
         raw: true,
       });
 
-      const { buckets } = await helpers.getInvestmentContributions({ ...RANGE, raw: true });
-      expect(buckets[0]!.total).toBe(400);
-    });
+      const cleared = await helpers.getInvestmentContributions({ ...RANGE, raw: true });
+      expect(cleared.buckets[0]!.total).toBe(700);
+    }, 60_000);
 
     it('returns 404 for a transfer that does not exist', async () => {
       const portfolio = await createNamedPortfolio({ name: 'Missing' });
@@ -375,41 +345,29 @@ describe('GET /stats/investment-contributions', () => {
   });
 
   describe('validation', () => {
-    it('rejects an unknown granularity', async () => {
-      const response = await helpers.makeRequest({
+    it('rejects malformed contribution queries with 422', async () => {
+      const unknownGranularity = await helpers.makeRequest({
         method: 'get',
         url: `/stats/investment-contributions?from=${JAN.start}&to=${FEB.end}&granularity=weekly`,
       });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects a missing from date', async () => {
-      const response = await helpers.makeRequest({
+      const missingFrom = await helpers.makeRequest({
         method: 'get',
         url: `/stats/investment-contributions?to=${FEB.end}&granularity=monthly`,
       });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects a malformed from date', async () => {
-      const response = await helpers.makeRequest({
+      const malformedFrom = await helpers.makeRequest({
         method: 'get',
         url: `/stats/investment-contributions?from=not-a-date&to=${FEB.end}&granularity=monthly`,
       });
-
-      expect(response.statusCode).toBe(422);
-    });
-
-    it('rejects a range whose start is after its end', async () => {
-      const response = await helpers.getInvestmentContributions({
+      const invertedRange = await helpers.getInvestmentContributions({
         from: FEB.end,
         to: JAN.start,
         granularity: 'monthly',
       });
 
-      expect(response.statusCode).toBe(422);
-    });
+      expect(unknownGranularity.statusCode).toBe(422);
+      expect(missingFrom.statusCode).toBe(422);
+      expect(malformedFrom.statusCode).toBe(422);
+      expect(invertedRange.statusCode).toBe(422);
+    }, 60_000);
   });
 });

@@ -32,10 +32,12 @@ describe('Back-invite from accepted household invitation', () => {
     const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
 
     const inv = await helpers.createHouseholdInvitation({ ownerUserId, inviteeEmail: recipient.email });
-    await helpers.asUser({
+    const accepted = await helpers.asUser({
       cookies: recipient.cookies,
       fn: () => helpers.acceptShareInvitation({ token: inv.token, raw: true }),
     });
+    // No reciprocal share exists yet, so the accept response invites B to share back.
+    expect(accepted.canBackInvite).toBe(true);
 
     // B back-invites A. The endpoint creates a household invitation owned by B, targeting
     // A's email — resolved server-side from the source invitation's owner.
@@ -164,63 +166,6 @@ describe('Back-invite from accepted household invitation', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('rejects when a reciprocal household share already exists between the two users', async () => {
-    // A invites B → B accepts. B back-invites A and A accepts. A second back-invite
-    // attempt from B should fail because the share already exists in the reciprocal
-    // direction — the back-invite service's own reciprocalAcceptedShare guard rejects
-    // it before delegating to createInvitation.
-    const ownerAccount = await helpers.createAccount({ raw: true });
-    const ownerUserId = ownerAccount.userId;
-    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-
-    const inv = await helpers.createHouseholdInvitation({ ownerUserId, inviteeEmail: recipient.email });
-    await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () => helpers.acceptShareInvitation({ token: inv.token, raw: true }),
-    });
-
-    const backInvite = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () =>
-        helpers.backInviteFromShareInvitation({
-          sourceInvitationId: inv.id,
-          permission: SHARE_PERMISSIONS.write,
-          raw: true,
-        }),
-    });
-
-    // The default (primary) user accepts the back-invite — now both households are
-    // reciprocally shared.
-    await helpers.acceptShareInvitation({ token: backInvite.token, raw: true });
-
-    // Second attempt should bounce.
-    const res = (await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () =>
-        helpers.backInviteFromShareInvitation({
-          sourceInvitationId: inv.id,
-          permission: SHARE_PERMISSIONS.write,
-          raw: false,
-        }),
-    })) as unknown as CustomResponse<unknown>;
-
-    // back-invite service's reciprocalAcceptedShare guard fires here — 409.
-    expect(res.statusCode).toBe(409);
-
-    // Pin down that no second back-invite row was leaked. A regression that creates the
-    // row first and then throws (e.g. re-ordering the duplicate check after createInvitation)
-    // would otherwise pass the status assertion above while leaving an orphan pending row.
-    const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-    const backInviteCount = await ShareInvitations.count({
-      where: {
-        ownerUserId: recipientApp.id,
-        inviteeUserId: ownerUserId,
-        resourceType: RESOURCE_TYPES.household,
-      },
-    });
-    expect(backInviteCount).toBe(1);
-  });
-
   it('rejects when a pending back-invite already exists in the reciprocal direction', async () => {
     // B accepts A's household, then back-invites A. A hasn't accepted yet, so the back-invite
     // is still pending. A second back-invite attempt from B must bounce (409) — without this
@@ -313,26 +258,10 @@ describe('Back-invite from accepted household invitation', () => {
   });
 
   describe('accept response carries canBackInvite gate', () => {
-    it('returns canBackInvite=true on the first leg (no reciprocal share yet)', async () => {
-      const ownerAccount = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const inv = await helpers.createHouseholdInvitation({
-        ownerUserId: ownerAccount.userId,
-        inviteeEmail: recipient.email,
-      });
-
-      const accepted = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.acceptShareInvitation({ token: inv.token, raw: true }),
-      });
-
-      expect(accepted.canBackInvite).toBe(true);
-    });
-
-    it('returns canBackInvite=false on the second leg to break the prompt cycle', async () => {
-      // A invites B → B accepts → B back-invites A → A accepts. The accept response on
-      // A's side must signal `canBackInvite=false` so the dialog doesn't prompt A to
-      // "share back" with B (A already shares their household with B by definition).
+    it('second-leg accept reports canBackInvite=false and a repeat back-invite is rejected', async () => {
+      // A invites B, B accepts, B back-invites A, A accepts. A's accept response must
+      // carry canBackInvite=false because A already shares their household with B, and
+      // B's second back-invite must bounce on the reciprocalAcceptedShare guard.
       const ownerAccount = await helpers.createAccount({ raw: true });
       const ownerUserId = ownerAccount.userId;
       const recipient = await helpers.provisionSecondUserWithBaseCurrency();
@@ -355,7 +284,30 @@ describe('Back-invite from accepted household invitation', () => {
 
       const acceptedSecondLeg = await helpers.acceptShareInvitation({ token: backInvite.token, raw: true });
       expect(acceptedSecondLeg.canBackInvite).toBe(false);
-    });
+
+      const res = (await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () =>
+          helpers.backInviteFromShareInvitation({
+            sourceInvitationId: inv.id,
+            permission: SHARE_PERMISSIONS.write,
+            raw: false,
+          }),
+      })) as unknown as CustomResponse<unknown>;
+      expect(res.statusCode).toBe(409);
+
+      // The duplicate check must run before createInvitation: the reverse order leaves an
+      // orphan pending row while the 409 assertion above still passes.
+      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+      const backInviteCount = await ShareInvitations.count({
+        where: {
+          ownerUserId: recipientApp.id,
+          inviteeUserId: ownerUserId,
+          resourceType: RESOURCE_TYPES.household,
+        },
+      });
+      expect(backInviteCount).toBe(1);
+    }, 60_000);
 
     it('returns canBackInvite=false for non-household accepts (account share)', async () => {
       // The flag is only meaningful for households. Per-resource accepts must always come

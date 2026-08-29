@@ -53,37 +53,40 @@ describe('Share invitations: create + list', () => {
       expect(received[0]!.owner).not.toBeNull();
     });
 
-    it('normalizes write permission with default transactionsWriteScope = all', async () => {
+    it('normalizes policy by permission', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+      const inviteeEmail = (suffix: string) => `policy-${suffix}-${Date.now()}@test.local`;
 
-      const invitation = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
+      const writeDefault = await helpers.createShareInvitation({
+        inviteeEmail: inviteeEmail('write-default'),
         resourceType: RESOURCE_TYPES.account,
         resourceId: account.id,
         permission: SHARE_PERMISSIONS.write,
         raw: true,
       });
+      expect(writeDefault.permission).toBe(SHARE_PERMISSIONS.write);
+      expect(writeDefault.policy).toEqual({ transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all });
 
-      expect(invitation.permission).toBe(SHARE_PERMISSIONS.write);
-      expect(invitation.policy).toEqual({ transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all });
-    });
-
-    it('preserves explicit transactionsWriteScope = own when provided', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const invitation = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
+      const writeOwn = await helpers.createShareInvitation({
+        inviteeEmail: inviteeEmail('write-own'),
         resourceType: RESOURCE_TYPES.account,
         resourceId: account.id,
         permission: SHARE_PERMISSIONS.write,
         policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own },
         raw: true,
       });
+      expect(writeOwn.policy).toEqual({ transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own });
 
-      expect(invitation.policy).toEqual({ transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own });
-    });
+      const readWithScope = await helpers.createShareInvitation({
+        inviteeEmail: inviteeEmail('read'),
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: account.id,
+        permission: SHARE_PERMISSIONS.read,
+        policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own },
+        raw: true,
+      });
+      expect(readWithScope.policy).toBeNull();
+    }, 60_000);
 
     it('attempts the invitation email for unregistered invitees on create and resend', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -103,22 +106,6 @@ describe('Share invitations: create + list', () => {
       const resendRes = await helpers.resendShareInvitation({ invitationId: invitation.id });
       expect(resendRes.statusCode).toBe(200);
       expect(resendRes.body.response.emailOutcome).toBe('skipped');
-    });
-
-    it('drops policy when permission is read (scope is meaningless)', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const invitation = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: account.id,
-        permission: SHARE_PERMISSIONS.read,
-        policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own },
-        raw: true,
-      });
-
-      expect(invitation.policy).toBeNull();
     });
   });
 
@@ -210,49 +197,39 @@ describe('Share invitations: create + list', () => {
   });
 
   describe('owner-side validation errors (kept loud — no leak)', () => {
-    it('rejects self-invitation', async () => {
+    it('rejects self-invitation, missing resources and resources owned by someone else', async () => {
       const account = await helpers.createAccount({ raw: true });
+      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
 
-      const res = await helpers.createShareInvitation({
+      const selfRes = await helpers.createShareInvitation({
         inviteeEmail: 'test1@test.local',
         resourceType: RESOURCE_TYPES.account,
         resourceId: account.id,
         permission: SHARE_PERMISSIONS.read,
       });
+      expect(selfRes.statusCode).toBe(422);
+      expect((selfRes.body.response as unknown as ErrorResponse).message).toMatch(/yourself/i);
 
-      expect(res.statusCode).toBe(422);
-      expect((res.body.response as unknown as ErrorResponse).message).toMatch(/yourself/i);
-    });
+      const missingRes = await helpers.createShareInvitation({
+        inviteeEmail: `stranger-${Date.now()}@test.local`,
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: NONEXISTENT_ID,
+        permission: SHARE_PERMISSIONS.read,
+      });
+      expect(missingRes.statusCode).toBe(404);
 
-    it('returns 404 when the resource is not owned by the caller', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
-      const yetAnotherUser = await helpers.signUpSecondUser();
-
-      const res = await helpers.asUser({
+      const notOwnedRes = await helpers.asUser({
         cookies: otherUser.cookies,
         fn: () =>
           helpers.createShareInvitation({
-            inviteeEmail: yetAnotherUser.email,
+            inviteeEmail: `outsider-${Date.now()}@test.local`,
             resourceType: RESOURCE_TYPES.account,
             resourceId: account.id,
             permission: SHARE_PERMISSIONS.read,
           }),
       });
-
-      expect(res.statusCode).toBe(404);
-    });
-
-    it('returns 404 for a non-existent account id', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const res = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: NONEXISTENT_ID,
-        permission: SHARE_PERMISSIONS.read,
-      });
-      expect(res.statusCode).toBe(404);
-    });
+      expect(notOwnedRes.statusCode).toBe(404);
+    }, 60_000);
   });
 
   describe('conflict / limit errors', () => {

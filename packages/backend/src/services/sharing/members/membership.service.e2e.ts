@@ -95,22 +95,6 @@ describe('Share membership (S5)', () => {
       expect(res.statusCode).toBe(404);
     });
 
-    it('404s for a stranger', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const res = await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () =>
-          helpers.listShareMembers({
-            resourceType: RESOURCE_TYPES.account,
-            resourceId: account.id,
-            raw: false,
-          }),
-      });
-      expect(res.statusCode).toBe(404);
-    });
-
     it('does not surface pending (not-yet-accepted) invitations as members', async () => {
       const account = await helpers.createAccount({ raw: true });
       const recipient = await helpers.provisionSecondUserWithBaseCurrency();
@@ -178,72 +162,6 @@ describe('Share membership (S5)', () => {
       expect(res.body.response.permission).toBe(SHARE_PERMISSIONS.write);
       expect(res.body.response.policy).toEqual({ transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.own });
     });
-
-    it('rejects targeting the owner', async () => {
-      const { account } = await setupAcceptedShare();
-
-      const res = await helpers.updateShareMember({
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: account.id,
-        memberUserId: account.userId,
-        permission: SHARE_PERMISSIONS.read,
-        raw: false,
-      });
-      expect(res.statusCode).toBe(422);
-      const err = res.body.response as unknown as ErrorResponse;
-      expect(err.message).toMatch(/owner/i);
-    });
-
-    it('rejects an empty body', async () => {
-      const { account, recipientApp } = await setupAcceptedShare();
-
-      const res = await helpers.updateShareMember({
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: account.id,
-        memberUserId: recipientApp.id,
-        raw: false,
-      });
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects self-escalation (manage recipient widening their own membership)', async () => {
-      const { account, recipient, recipientApp } = await setupAcceptedShare({
-        permission: SHARE_PERMISSIONS.manage,
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.updateShareMember({
-            resourceType: RESOURCE_TYPES.account,
-            resourceId: account.id,
-            memberUserId: recipientApp.id,
-            policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all },
-            raw: false,
-          }),
-      });
-      expect(res.statusCode).toBe(422);
-      const err = res.body.response as unknown as ErrorResponse;
-      expect(err.message).toMatch(/own membership/i);
-    });
-
-    it('404s for a stranger', async () => {
-      const { account, recipientApp } = await setupAcceptedShare();
-      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const res = await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () =>
-          helpers.updateShareMember({
-            resourceType: RESOURCE_TYPES.account,
-            resourceId: account.id,
-            memberUserId: recipientApp.id,
-            permission: SHARE_PERMISSIONS.write,
-            raw: false,
-          }),
-      });
-      expect(res.statusCode).toBe(404);
-    });
   });
 
   describe('DELETE /share/resources/:type/:id/members/:userId', () => {
@@ -283,55 +201,6 @@ describe('Share membership (S5)', () => {
         fn: () => helpers.getAccounts(),
       });
       expect(recipientAccounts.find((a) => a.id === account.id)).toBeUndefined();
-    });
-
-    it('rejects targeting the owner', async () => {
-      const { account } = await setupAcceptedShare();
-
-      const res = await helpers.revokeShareMember({
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: account.id,
-        memberUserId: account.userId,
-        raw: false,
-      });
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects self-revoke (caller is the manage recipient targeting themselves)', async () => {
-      const { account, recipient, recipientApp } = await setupAcceptedShare({
-        permission: SHARE_PERMISSIONS.manage,
-      });
-
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () =>
-          helpers.revokeShareMember({
-            resourceType: RESOURCE_TYPES.account,
-            resourceId: account.id,
-            memberUserId: recipientApp.id,
-            raw: false,
-          }),
-      });
-      expect(res.statusCode).toBe(422);
-      const err = res.body.response as unknown as ErrorResponse;
-      expect(err.message).toMatch(/leave/i);
-    });
-
-    it('404s for a stranger', async () => {
-      const { account, recipientApp } = await setupAcceptedShare();
-      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const res = await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () =>
-          helpers.revokeShareMember({
-            resourceType: RESOURCE_TYPES.account,
-            resourceId: account.id,
-            memberUserId: recipientApp.id,
-            raw: false,
-          }),
-      });
-      expect(res.statusCode).toBe(404);
     });
   });
 
@@ -425,21 +294,120 @@ describe('Share membership (S5)', () => {
       });
       expect(res.statusCode).toBe(404);
     });
-
-    it('404s for a stranger', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const res = await helpers.asUser({
-        cookies: stranger.cookies,
-        fn: () =>
-          helpers.leaveShare({
-            resourceType: RESOURCE_TYPES.account,
-            resourceId: account.id,
-            raw: false,
-          }),
-      });
-      expect(res.statusCode).toBe(404);
-    });
   });
+
+  it('masks every member endpoint with 404 for a stranger', async () => {
+    const { account, recipientApp } = await setupAcceptedShare();
+    const stranger = await helpers.provisionSecondUserWithBaseCurrency();
+
+    const listRes = await helpers.asUser({
+      cookies: stranger.cookies,
+      fn: () =>
+        helpers.listShareMembers({
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: account.id,
+          raw: false,
+        }),
+    });
+    expect(listRes.statusCode).toBe(404);
+
+    const updateRes = await helpers.asUser({
+      cookies: stranger.cookies,
+      fn: () =>
+        helpers.updateShareMember({
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: account.id,
+          memberUserId: recipientApp.id,
+          permission: SHARE_PERMISSIONS.write,
+          raw: false,
+        }),
+    });
+    expect(updateRes.statusCode).toBe(404);
+
+    const revokeRes = await helpers.asUser({
+      cookies: stranger.cookies,
+      fn: () =>
+        helpers.revokeShareMember({
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: account.id,
+          memberUserId: recipientApp.id,
+          raw: false,
+        }),
+    });
+    expect(revokeRes.statusCode).toBe(404);
+
+    const leaveRes = await helpers.asUser({
+      cookies: stranger.cookies,
+      fn: () =>
+        helpers.leaveShare({
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: account.id,
+          raw: false,
+        }),
+    });
+    expect(leaveRes.statusCode).toBe(404);
+  }, 60_000);
+
+  it('rejects owner-targeted and empty-body member mutations', async () => {
+    const { account, recipientApp } = await setupAcceptedShare();
+
+    const ownerPatchRes = await helpers.updateShareMember({
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: account.id,
+      memberUserId: account.userId,
+      permission: SHARE_PERMISSIONS.read,
+      raw: false,
+    });
+    expect(ownerPatchRes.statusCode).toBe(422);
+    expect((ownerPatchRes.body.response as unknown as ErrorResponse).message).toMatch(/owner/i);
+
+    const emptyBodyRes = await helpers.updateShareMember({
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: account.id,
+      memberUserId: recipientApp.id,
+      raw: false,
+    });
+    expect(emptyBodyRes.statusCode).toBe(422);
+
+    const ownerRevokeRes = await helpers.revokeShareMember({
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: account.id,
+      memberUserId: account.userId,
+      raw: false,
+    });
+    expect(ownerRevokeRes.statusCode).toBe(422);
+  }, 60_000);
+
+  it('rejects a manage recipient acting on their own membership', async () => {
+    const { account, recipient, recipientApp } = await setupAcceptedShare({
+      permission: SHARE_PERMISSIONS.manage,
+    });
+
+    const escalationRes = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () =>
+        helpers.updateShareMember({
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: account.id,
+          memberUserId: recipientApp.id,
+          policy: { transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all },
+          raw: false,
+        }),
+    });
+    expect(escalationRes.statusCode).toBe(422);
+    expect((escalationRes.body.response as unknown as ErrorResponse).message).toMatch(/own membership/i);
+
+    const selfRevokeRes = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () =>
+        helpers.revokeShareMember({
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: account.id,
+          memberUserId: recipientApp.id,
+          raw: false,
+        }),
+    });
+    expect(selfRevokeRes.statusCode).toBe(422);
+    expect((selfRevokeRes.body.response as unknown as ErrorResponse).message).toMatch(/leave/i);
+  }, 60_000);
 });

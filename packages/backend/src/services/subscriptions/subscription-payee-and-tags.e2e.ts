@@ -58,7 +58,7 @@ describe('Subscription payee & tags', () => {
       expect((listed?.tagIds ?? []).toSorted()).toEqual([tagA.id, tagB.id].toSorted());
     });
 
-    it('replaces the whole tag set on update without restamping linked transactions', async () => {
+    it('replaces then clears the tag set on update without restamping linked transactions', async () => {
       const [account, payee, tagA, tagB] = await Promise.all([
         helpers.createAccount({ raw: true }),
         createPayee({ name: 'Spotify AB' }),
@@ -90,48 +90,19 @@ describe('Subscription payee & tags', () => {
       const updated = await helpers.updateSubscription({ id: sub.id, tagIds: [tagB.id], raw: true });
       expect(updated.tagIds).toEqual([tagB.id]);
 
-      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      expect(detail.tagIds).toEqual([tagB.id]);
-
+      const afterReplace = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(afterReplace.tagIds).toEqual([tagB.id]);
       expect(await tagIdsOfTransaction({ transactionId: tx.id })).toEqual([tagA.id]);
-    });
-
-    it('clears the tag set when an empty tagIds list is sent', async () => {
-      const [account, tag] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        createTag({ name: 'Streaming' }),
-      ]);
-
-      const sub = await helpers.createSubscription({
-        name: 'Spotify',
-        expectedAmount: 9.99,
-        expectedCurrencyCode: global.BASE_CURRENCY.code,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        tagIds: [tag.id],
-        raw: true,
-      });
-
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 999,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-      await helpers.linkTransactionsToSubscription({ id: sub.id, transactionIds: [tx.id], raw: true });
 
       await helpers.updateSubscription({ id: sub.id, tagIds: [], raw: true });
 
-      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      expect(detail.tagIds).toEqual([]);
+      const afterClear = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      expect(afterClear.tagIds).toEqual([]);
+      expect(await tagIdsOfTransaction({ transactionId: tx.id })).toEqual([tagA.id]);
+    }, 60_000);
 
-      expect(await tagIdsOfTransaction({ transactionId: tx.id })).toEqual([tag.id]);
-    });
-
-    it('rejects a payeeId that does not belong to the user', async () => {
-      const res = await helpers.createSubscription({
+    it('rejects a payeeId and tagIds that do not belong to the user', async () => {
+      const bogusPayee = await helpers.createSubscription({
         name: 'Bogus payee',
         expectedAmount: 5,
         expectedCurrencyCode: global.BASE_CURRENCY.code,
@@ -139,14 +110,10 @@ describe('Subscription payee & tags', () => {
         startDate: '2025-01-01',
         payeeId: generateRandomRecordId(),
       });
+      expect(bogusPayee.statusCode).toBe(404);
 
-      expect(res.statusCode).toBe(404);
-    });
-
-    it('rejects tagIds that do not belong to the user', async () => {
       const tag = await createTag({ name: 'Mine' });
-
-      const res = await helpers.createSubscription({
+      const bogusTags = await helpers.createSubscription({
         name: 'Bogus tags',
         expectedAmount: 5,
         expectedCurrencyCode: global.BASE_CURRENCY.code,
@@ -154,8 +121,7 @@ describe('Subscription payee & tags', () => {
         startDate: '2025-01-01',
         tagIds: [tag.id, generateRandomRecordId()],
       });
-
-      expect(res.statusCode).toBe(422);
+      expect(bogusTags.statusCode).toBe(422);
     });
   });
 

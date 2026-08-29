@@ -50,6 +50,7 @@ describe('Detect Duplicates endpoint', () => {
 
       expect(result.validRows).toHaveLength(5);
       expect(result.invalidRows).toHaveLength(0);
+      expect(result.duplicates).toHaveLength(0);
 
       // Verify first row is parsed correctly. `date` is a full ISO instant
       // (date-only cell anchored to UTC noon with no timezone supplied), so the
@@ -63,6 +64,10 @@ describe('Detect Duplicates endpoint', () => {
       expect(firstRow?.accountName).toBe('Main Account');
       expect(firstRow?.currencyCode).toBe('USD');
       expect(firstRow?.transactionType).toBe('expense');
+
+      // Amounts are stored as absolute cents, sign carried by transactionType.
+      expect(result.validRows.find((r) => r.description === 'Coffee shop')?.amount).toBe(5000);
+      expect(result.validRows.find((r) => r.description === 'Salary')?.amount).toBe(250000);
     });
 
     it('should identify invalid rows with errors', async () => {
@@ -131,66 +136,6 @@ describe('Detect Duplicates endpoint', () => {
   });
 
   describe('duplicate detection', () => {
-    it('should return no duplicates when all accounts are new', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: {
-            'Main Account': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      // No duplicates since account doesn't exist yet
-      expect(result.duplicates).toHaveLength(0);
-    });
-
-    it('should detect duplicate when matching transaction exists', async () => {
-      // Create an account
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create a transaction that will match CSV data
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100.5, // Amount in decimal format (API expects decimals)
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: {
-            'Main Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      // Should detect at least one duplicate
-      expect(result.duplicates.length).toBeGreaterThanOrEqual(1);
-
-      // Verify duplicate structure
-      const duplicate = result.duplicates[0];
-      expect(duplicate).toHaveProperty('rowIndex');
-      expect(duplicate).toHaveProperty('importedTransaction');
-      expect(duplicate).toHaveProperty('existingTransaction');
-      expect(duplicate).toHaveProperty('matchType');
-      expect(duplicate).toHaveProperty('confidence');
-    });
-
     it('should detect a duplicate against an existing balance-adjustment transaction', async () => {
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
@@ -290,53 +235,6 @@ describe('Detect Duplicates endpoint', () => {
       expect(duplicateForFirstRow).toBeUndefined();
     });
 
-    it('should detect duplicates only for existing accounts, not new ones', async () => {
-      const existingAccount = await helpers.createAccount({ raw: true });
-
-      // Create transactions in existing account
-      const tx1Payload = helpers.buildTransactionPayload({
-        accountId: existingAccount.id,
-        amount: 100.5,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2024-01-15').toISOString(),
-      });
-      await helpers.createTransaction({ payload: tx1Payload, raw: true });
-
-      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: {
-            'Checking Account': { action: 'link-existing', accountId: existingAccount.id },
-            'Savings Account': { action: 'create-new', currentBalance: null }, // New account - no duplicates possible
-            'Credit Card': { action: 'create-new', currentBalance: null }, // New account - no duplicates possible
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      // Should only detect duplicates for Checking Account (existing)
-      // No duplicates for Savings Account or Credit Card (new accounts)
-      const duplicatesForExisting = result.duplicates.filter((d) => {
-        const row = result.validRows.find((r) => r.rowIndex === d.rowIndex);
-        return row?.accountName === 'Checking Account';
-      });
-
-      expect(duplicatesForExisting.length).toBeGreaterThanOrEqual(1);
-
-      // Verify no duplicates for new accounts
-      const duplicatesForNew = result.duplicates.filter((d) => {
-        const row = result.validRows.find((r) => r.rowIndex === d.rowIndex);
-        return row?.accountName === 'Savings Account' || row?.accountName === 'Credit Card';
-      });
-
-      expect(duplicatesForNew).toHaveLength(0);
-    });
-
     it('should detect duplicates with existingAccount option', async () => {
       const account = await helpers.createAccount({ raw: true });
 
@@ -381,41 +279,8 @@ describe('Detect Duplicates endpoint', () => {
       });
     });
 
-    it('should handle account mapping with no matching transactions', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create transaction that doesn't match CSV data
-      const txPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 999.99,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: new Date('2020-01-01').toISOString(),
-      });
-      await helpers.createTransaction({ payload: txPayload, raw: true });
-
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: {
-            'Main Account': { action: 'link-existing', accountId: account.id },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      // No duplicates since amounts/dates don't match
-      expect(result.duplicates).toHaveLength(0);
-      expect(result.validRows.length).toBeGreaterThan(0);
-    });
-
     it('should detect duplicates across multiple existing accounts correctly', async () => {
       const account1 = await helpers.createAccount({ raw: true });
-      const account2 = await helpers.createAccount({ raw: true });
       const account3 = await helpers.createAccount({ raw: true });
 
       // Create transaction in account1 matching Checking Account CSV row
@@ -445,7 +310,7 @@ describe('Detect Duplicates endpoint', () => {
           columnMapping: buildColumnMapping(),
           accountMapping: {
             'Checking Account': { action: 'link-existing', accountId: account1.id },
-            'Savings Account': { action: 'link-existing', accountId: account2.id }, // No duplicates
+            'Savings Account': { action: 'create-new', currentBalance: null },
             'Credit Card': { action: 'link-existing', accountId: account3.id },
           },
           categoryMapping: {},
@@ -459,6 +324,12 @@ describe('Detect Duplicates endpoint', () => {
 
       expect(duplicatesAccount1.length).toBeGreaterThanOrEqual(1);
       expect(duplicatesAccount3.length).toBeGreaterThanOrEqual(1);
+
+      // A create-new account can never produce duplicates.
+      const duplicatesForNewAccount = result.duplicates.filter(
+        (d) => result.validRows.find((r) => r.rowIndex === d.rowIndex)?.accountName === 'Savings Account',
+      );
+      expect(duplicatesForNewAccount).toHaveLength(0);
     });
 
     it('should correctly match duplicates based on date, amount, and account combination', async () => {
@@ -506,13 +377,18 @@ describe('Detect Duplicates endpoint', () => {
         raw: true,
       });
 
-      // Should only find 1 duplicate (exact match)
+      expect(result.duplicates).toHaveLength(1);
       const duplicatesForFirstRow = result.duplicates.filter((d) => d.rowIndex === 2);
       expect(duplicatesForFirstRow).toHaveLength(1);
 
       // Verify it's the correct match. `importedTransaction.date` is a full ISO
       // instant; the meaningful match is on its calendar day.
       const duplicate = duplicatesForFirstRow[0];
+      expect(duplicate).toHaveProperty('rowIndex');
+      expect(duplicate).toHaveProperty('importedTransaction');
+      expect(duplicate).toHaveProperty('existingTransaction');
+      expect(duplicate).toHaveProperty('matchType');
+      expect(duplicate).toHaveProperty('confidence');
       expect(duplicate?.existingTransaction.amount).toBe(10050);
       expect(duplicate?.importedTransaction.date.split('T')[0]).toBe('2024-01-15');
     });
@@ -582,16 +458,16 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
   });
 
   describe('transaction type edge cases', () => {
-    it('should handle custom income/expense values', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+    it('resolves transaction types from custom, unknown, whitespaced and absent values', async () => {
+      const customValuesCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2024-01-15,100.50,Transaction 1,Food,USD,credit,Main Account
 2024-01-16,50.00,Transaction 2,Transport,USD,debit,Main Account
 2024-01-17,75.00,Transaction 3,Entertainment,USD,deposit,Main Account
 2024-01-18,25.00,Transaction 4,Food,USD,withdrawal,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const customValues = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: customValuesCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping({
             transactionType: {
@@ -609,30 +485,21 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.validRows).toHaveLength(4);
+      expect(customValues.validRows).toHaveLength(4);
+      expect(customValues.validRows.find((r) => r.description === 'Transaction 1')?.transactionType).toBe('income');
+      expect(customValues.validRows.find((r) => r.description === 'Transaction 2')?.transactionType).toBe('expense');
+      expect(customValues.validRows.find((r) => r.description === 'Transaction 3')?.transactionType).toBe('income');
+      expect(customValues.validRows.find((r) => r.description === 'Transaction 4')?.transactionType).toBe('expense');
 
-      // Verify custom values are recognized
-      const row1 = result.validRows.find((r) => r.description === 'Transaction 1');
-      const row2 = result.validRows.find((r) => r.description === 'Transaction 2');
-      const row3 = result.validRows.find((r) => r.description === 'Transaction 3');
-      const row4 = result.validRows.find((r) => r.description === 'Transaction 4');
-
-      expect(row1?.transactionType).toBe('income'); // credit -> income
-      expect(row2?.transactionType).toBe('expense'); // debit -> expense
-      expect(row3?.transactionType).toBe('income'); // deposit -> income
-      expect(row4?.transactionType).toBe('expense'); // withdrawal -> expense
-    });
-
-    it('should mark row as invalid when transaction type value is not recognized', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+      const unrecognizedCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2024-01-15,100.50,Transaction 1,Food,USD,income,Main Account
 2024-01-16,50.00,Transaction 2,Transport,USD,UNKNOWN,Main Account
 2024-01-17,75.00,Transaction 3,Entertainment,USD,expense,Main Account
 2024-01-18,25.00,Transaction 4,Food,USD,invalid_type,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const unrecognized = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: unrecognizedCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping({
             transactionType: {
@@ -650,28 +517,25 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.validRows).toHaveLength(2); // Only income and expense rows
-      expect(result.invalidRows).toHaveLength(2); // UNKNOWN and invalid_type rows
+      expect(unrecognized.validRows).toHaveLength(2);
+      expect(unrecognized.invalidRows).toHaveLength(2);
 
-      // Verify invalid rows have error messages about transaction type
-      const unknownTypeRow = result.invalidRows.find((r) => r.rawData['Type'] === 'UNKNOWN');
+      const unknownTypeRow = unrecognized.invalidRows.find((r) => r.rawData['Type'] === 'UNKNOWN');
       expect(unknownTypeRow).toBeDefined();
       expect(unknownTypeRow?.errors.some((e) => e.toLowerCase().includes('type'))).toBe(true);
 
-      const invalidTypeRow = result.invalidRows.find((r) => r.rawData['Type'] === 'invalid_type');
+      const invalidTypeRow = unrecognized.invalidRows.find((r) => r.rawData['Type'] === 'invalid_type');
       expect(invalidTypeRow).toBeDefined();
       expect(invalidTypeRow?.errors.some((e) => e.toLowerCase().includes('type'))).toBe(true);
-    });
 
-    it('should handle whitespace in transaction type values', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+      const whitespaceCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2024-01-15,100.50,Transaction 1,Food,USD,  income  ,Main Account
 2024-01-16,50.00,Transaction 2,Transport,USD,expense  ,Main Account
 2024-01-17,75.00,Transaction 3,Entertainment,USD,  INCOME,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const whitespace = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: whitespaceCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping({
             transactionType: {
@@ -689,23 +553,18 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         raw: true,
       });
 
-      // All rows should be valid - whitespace should be trimmed
-      expect(result.validRows).toHaveLength(3);
-      expect(result.invalidRows).toHaveLength(0);
+      expect(whitespace.validRows).toHaveLength(3);
+      expect(whitespace.invalidRows).toHaveLength(0);
+      expect(whitespace.validRows.filter((r) => r.transactionType === 'income')).toHaveLength(2);
 
-      const incomeRows = result.validRows.filter((r) => r.transactionType === 'income');
-      expect(incomeRows).toHaveLength(2);
-    });
-
-    it('should handle empty transaction type column with amountSign fallback', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+      const amountSignCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2024-01-15,100.50,Income transaction,Salary,USD,,Main Account
 2024-01-16,-50.00,Expense transaction,Food,USD,,Main Account
 2024-01-17,75.00,Another income,Bonus,USD,,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const amountSign = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: amountSignCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping({
             transactionType: { option: TransactionTypeOptionValue.amountSign },
@@ -718,63 +577,26 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.validRows).toHaveLength(3);
-
-      // Positive amounts = income, negative = expense
-      const row1 = result.validRows.find((r) => r.description === 'Income transaction');
-      const row2 = result.validRows.find((r) => r.description === 'Expense transaction');
-      const row3 = result.validRows.find((r) => r.description === 'Another income');
-
-      expect(row1?.transactionType).toBe('income');
-      expect(row2?.transactionType).toBe('expense');
-      expect(row3?.transactionType).toBe('income');
-    });
-  });
-
-  describe('amount parsing', () => {
-    it('should parse amounts with different formats correctly', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping({
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-          }),
-          accountMapping: {
-            'Main Account': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      // Check 100.50 is parsed as 10050 cents
-      const row1 = result.validRows.find((r) => r.description === 'Grocery shopping');
-      expect(row1?.amount).toBe(10050);
-
-      // Check -50.00 is parsed as 5000 cents (absolute value)
-      const row2 = result.validRows.find((r) => r.description === 'Coffee shop');
-      expect(row2?.amount).toBe(5000);
-
-      // Check 2500.00 is parsed as 250000 cents
-      const row3 = result.validRows.find((r) => r.description === 'Salary');
-      expect(row3?.amount).toBe(250000);
-    });
+      expect(amountSign.validRows).toHaveLength(3);
+      expect(amountSign.validRows.find((r) => r.description === 'Income transaction')?.transactionType).toBe('income');
+      expect(amountSign.validRows.find((r) => r.description === 'Expense transaction')?.transactionType).toBe(
+        'expense',
+      );
+      expect(amountSign.validRows.find((r) => r.description === 'Another income')?.transactionType).toBe('income');
+    }, 60_000);
   });
 
   describe('date engine and timezone anchoring', () => {
-    // Bug A: datetimes with a time component were rejected by the old date-only
-    // parser. Full ISO instants must now import, preserving the absolute moment.
-    it('imports full ISO datetimes (with time + explicit zone)', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+    it('anchors each supported date shape to the right instant', async () => {
+      // A cell carrying a time component imports as a full ISO instant and keeps
+      // the absolute moment.
+      const isoCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2026-06-16T18:17:19.587Z,100.50,Morning coffee,Food,USD,expense,Main Account
 2026-06-17T09:00:00Z,50.00,Lunch,Food,USD,expense,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const isoResult = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: isoCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
@@ -786,24 +608,23 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.invalidRows).toHaveLength(0);
-      expect(result.validRows).toHaveLength(2);
+      expect(isoResult.invalidRows).toHaveLength(0);
+      expect(isoResult.validRows).toHaveLength(2);
 
       // An explicit-zone instant is stored verbatim, ignoring the request tz.
-      const firstRow = result.validRows.find((r) => r.description === 'Morning coffee');
-      expect(firstRow?.date).toBe('2026-06-16T18:17:19.587Z');
-    });
+      expect(isoResult.validRows.find((r) => r.description === 'Morning coffee')?.date).toBe(
+        '2026-06-16T18:17:19.587Z',
+      );
 
-    // The user-confirmed day-first order applies to every row uniformly, so
-    // 08/06 is June 8 — never Aug 6 via a per-row US tiebreak.
-    it('reads a day-first date-only column as day-first (08/06 = June 8, not Aug 6)', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+      // The user-confirmed day-first order applies to every row uniformly, so
+      // 08/06 is June 8 — never Aug 6 via a per-row US tiebreak.
+      const dayFirstCsv = `Date,Amount,Description,Category,Currency,Type,Account
 08/06/2026,100.50,Ambiguous day,Food,USD,expense,Main Account
 15/06/2026,50.00,Disambiguating day,Food,USD,expense,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const dayFirstResult = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: dayFirstCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping({ dateFieldOrder: 'day-first' }),
           accountMapping: {
@@ -815,24 +636,21 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.invalidRows).toHaveLength(0);
-      expect(result.validRows).toHaveLength(2);
-
-      const ambiguousRow = result.validRows.find((r) => r.description === 'Ambiguous day');
+      expect(dayFirstResult.invalidRows).toHaveLength(0);
+      expect(dayFirstResult.validRows).toHaveLength(2);
       // June 8 in Montevideo (UTC-3) anchored at local noon -> 15:00 UTC, still June 8.
-      expect(ambiguousRow?.date.split('T')[0]).toBe('2026-06-08');
-    });
+      expect(dayFirstResult.validRows.find((r) => r.description === 'Ambiguous day')?.date.split('T')[0]).toBe(
+        '2026-06-08',
+      );
 
-    // Bug D: a date-only value stored as plain `new Date("2026-06-01")` is UTC
-    // midnight, which renders as May 31 for a UTC-3 user. Anchoring to local noon
-    // keeps it on June 1 for that user.
-    it('anchors a date-only row to the correct calendar day for a UTC-3 user (no off-by-one)', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+      // A date-only cell anchors to local noon. Plain `new Date("2026-06-01")` is
+      // UTC midnight and renders as May 31 for a UTC-3 user.
+      const dateOnlyCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2026-06-01,100.50,First of June,Food,USD,expense,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const anchoredResult = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: dateOnlyCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
@@ -844,11 +662,11 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.validRows).toHaveLength(1);
-      const row = result.validRows[0]!;
+      expect(anchoredResult.validRows).toHaveLength(1);
+      const anchoredRow = anchoredResult.validRows[0]!;
 
       // Stored instant is June 1 local noon = 15:00 UTC.
-      expect(row.date).toBe('2026-06-01T15:00:00.000Z');
+      expect(anchoredRow.date).toBe('2026-06-01T15:00:00.000Z');
 
       // And as seen by the UTC-3 user it must still be June 1, never May 31.
       const dayForUser = new Intl.DateTimeFormat('en-CA', {
@@ -856,21 +674,40 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-      }).format(new Date(row.date));
+      }).format(new Date(anchoredRow.date));
       expect(dayForUser).toBe('2026-06-01');
-    });
 
-    // The confirmed dateFieldOrder is applied to the whole column: a cell that
-    // is impossible under it (08/25 read day-first would be month 25) lands in
-    // invalidRows while the rest of the column parses under the chosen order.
-    it('marks rows impossible under the confirmed day/month order as invalid, never re-guessing', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+      // No timezone in the request must not crash: date-only falls back to UTC noon,
+      // which still lands on the right calendar day for every zone within ±11h.
+      const noTimezoneResult = await helpers.detectDuplicates({
+        payload: {
+          fileContent: `Date,Amount,Description,Category,Currency,Type,Account
+2026-06-01,100.50,No tz row,Food,USD,expense,Main Account`,
+          delimiter: ',',
+          columnMapping: buildColumnMapping(),
+          accountMapping: {
+            'Main Account': { action: 'create-new', currentBalance: null },
+          },
+          categoryMapping: {},
+        },
+        raw: true,
+      });
+
+      expect(noTimezoneResult.validRows).toHaveLength(1);
+      expect(noTimezoneResult.validRows[0]?.date).toBe('2026-06-01T12:00:00.000Z');
+    }, 60_000);
+
+    it('rejects date cells that are invalid under the confirmed order', async () => {
+      // The confirmed dateFieldOrder is applied to the whole column: a cell that
+      // is impossible under it (08/25 read day-first would be month 25) lands in
+      // invalidRows while the rest of the column parses under the chosen order.
+      const impossibleCsv = `Date,Amount,Description,Category,Currency,Type,Account
 25/08/2026,100.50,Day first row,Food,USD,expense,Main Account
 08/25/2026,50.00,Month first row,Food,USD,expense,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const impossibleResult = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: impossibleCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping({ dateFieldOrder: 'day-first' }),
           accountMapping: {
@@ -883,26 +720,24 @@ also-bad,50.00,Bad row 2,Transport,USD,expense,Main Account`;
       });
 
       // 25/08/2026 day-first is Aug 25; 08/25/2026 day-first would be month 25.
-      expect(result.validRows).toHaveLength(1);
-      expect(result.validRows[0]?.description).toBe('Day first row');
-      expect(result.validRows[0]?.date.split('T')[0]).toBe('2026-08-25');
+      expect(impossibleResult.validRows).toHaveLength(1);
+      expect(impossibleResult.validRows[0]?.description).toBe('Day first row');
+      expect(impossibleResult.validRows[0]?.date.split('T')[0]).toBe('2026-08-25');
 
-      expect(result.invalidRows).toHaveLength(1);
-      expect(result.invalidRows[0]?.rawData['Description']).toBe('Month first row');
-      expect(result.invalidRows[0]?.errors.some((e) => e.toLowerCase().includes('date'))).toBe(true);
-    });
+      expect(impossibleResult.invalidRows).toHaveLength(1);
+      expect(impossibleResult.invalidRows[0]?.rawData['Description']).toBe('Month first row');
+      expect(impossibleResult.invalidRows[0]?.errors.some((e) => e.toLowerCase().includes('date'))).toBe(true);
 
-    // Loud failure preserved: a value matching no known date shape still lands in
-    // invalidRows with a date error, while well-formed rows around it import.
-    it('still surfaces empty and unparseable date rows as invalid rows', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
+      // Loud failure preserved: a value matching no known date shape still lands in
+      // invalidRows with a date error, while well-formed rows around it import.
+      const unparseableCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2026-06-01,100.50,Good row,Food,USD,expense,Main Account
 not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
 ,75.00,Empty date,Food,USD,expense,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const unparseableResult = await helpers.detectDuplicates({
         payload: {
-          fileContent: csvContent,
+          fileContent: unparseableCsv,
           delimiter: ',',
           columnMapping: buildColumnMapping(),
           accountMapping: {
@@ -914,37 +749,14 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
         raw: true,
       });
 
-      expect(result.validRows).toHaveLength(1);
-      expect(result.validRows[0]?.description).toBe('Good row');
+      expect(unparseableResult.validRows).toHaveLength(1);
+      expect(unparseableResult.validRows[0]?.description).toBe('Good row');
 
-      expect(result.invalidRows).toHaveLength(2);
-      result.invalidRows.forEach((invalidRow) => {
+      expect(unparseableResult.invalidRows).toHaveLength(2);
+      unparseableResult.invalidRows.forEach((invalidRow) => {
         expect(invalidRow.errors.some((e) => e.toLowerCase().includes('date'))).toBe(true);
       });
-    });
-
-    // No timezone in the request must not crash: date-only falls back to UTC noon,
-    // which still lands on the right calendar day for every zone within ±11h.
-    it('falls back to UTC noon for a date-only row when no timezone is supplied', async () => {
-      const csvContent = `Date,Amount,Description,Category,Currency,Type,Account
-2026-06-01,100.50,No tz row,Food,USD,expense,Main Account`;
-
-      const result = await helpers.detectDuplicates({
-        payload: {
-          fileContent: csvContent,
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: {
-            'Main Account': { action: 'create-new', currentBalance: null },
-          },
-          categoryMapping: {},
-        },
-        raw: true,
-      });
-
-      expect(result.validRows).toHaveLength(1);
-      expect(result.validRows[0]?.date).toBe('2026-06-01T12:00:00.000Z');
-    });
+    }, 60_000);
 
     // After anchoring, a same-day CSV row must still match an existing same-day
     // transaction even though `row.date` is now a full instant at local noon and
@@ -1011,8 +823,8 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
     const MINIMAL_CSV = `Date,Amount,Description,Category,Type,Account
 2024-01-15,100.00,Test transaction,Food,expense,Main Account`;
 
-    it('omits unpriceableRows when all rows are in the user base currency (AED)', async () => {
-      const result = await helpers.detectDuplicates({
+    it('classifies unpriceable rows by currency', async () => {
+      const baseCurrencyResult = await helpers.detectDuplicates({
         payload: {
           fileContent: MINIMAL_CSV,
           delimiter: ',',
@@ -1023,11 +835,9 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
         raw: true,
       });
 
-      expect(result.unpriceableRows).toBeUndefined();
-    });
+      expect(baseCurrencyResult.unpriceableRows).toBeUndefined();
 
-    it('returns unpriceableRows for a currency with no stored rate (SSP)', async () => {
-      const result = await helpers.detectDuplicates({
+      const noRateResult = await helpers.detectDuplicates({
         payload: {
           fileContent: MINIMAL_CSV,
           delimiter: ',',
@@ -1038,18 +848,16 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
         raw: true,
       });
 
-      expect(result.unpriceableRows).toBeDefined();
-      expect(result.unpriceableRows).toHaveLength(1);
-      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 2, currencyCode: 'SSP' });
-    });
+      expect(noRateResult.unpriceableRows).toBeDefined();
+      expect(noRateResult.unpriceableRows).toHaveLength(1);
+      expect(noRateResult.unpriceableRows![0]).toMatchObject({ rowIndex: 2, currencyCode: 'SSP' });
 
-    it('returns only the SSP rows when a CSV mixes priceable (EUR) and unpriceable (SSP) currencies', async () => {
       const mixedCsv = `Date,Amount,Description,Category,Currency,Type,Account
 2024-01-15,100.00,EUR tx,Food,EUR,expense,Main Account
 2024-01-16,50.00,SSP tx,Food,SSP,expense,Main Account
 2024-01-17,75.00,USD tx,Food,USD,expense,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const mixedResult = await helpers.detectDuplicates({
         payload: {
           fileContent: mixedCsv,
           delimiter: ',',
@@ -1060,16 +868,14 @@ not-a-date,50.00,Garbage date,Food,USD,expense,Main Account
         raw: true,
       });
 
-      expect(result.unpriceableRows).toBeDefined();
-      expect(result.unpriceableRows).toHaveLength(1);
-      expect(result.unpriceableRows![0]).toMatchObject({ rowIndex: 3, currencyCode: 'SSP' });
-    });
+      expect(mixedResult.unpriceableRows).toBeDefined();
+      expect(mixedResult.unpriceableRows).toHaveLength(1);
+      expect(mixedResult.unpriceableRows![0]).toMatchObject({ rowIndex: 3, currencyCode: 'SSP' });
 
-    it('omits unpriceableRows when the CSV has no valid rows (all invalid)', async () => {
       const allInvalidCsv = `Date,Amount,Description,Category,Type,Account
 not-a-date,not-an-amount,Test,Food,expense,Main Account`;
 
-      const result = await helpers.detectDuplicates({
+      const allInvalidResult = await helpers.detectDuplicates({
         payload: {
           fileContent: allInvalidCsv,
           delimiter: ',',
@@ -1083,9 +889,9 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
       });
 
       // No valid rows → findUnpriceableRows gets an empty array → no property.
-      expect(result.unpriceableRows).toBeUndefined();
-      expect(result.invalidRows.length).toBeGreaterThan(0);
-    });
+      expect(allInvalidResult.unpriceableRows).toBeUndefined();
+      expect(allInvalidResult.invalidRows.length).toBeGreaterThan(0);
+    }, 60_000);
   });
 
   describe('tag column parsing', () => {
@@ -1094,8 +900,8 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
 2024-01-16,50.00,Coffee,Food,USD,expense,Main Account,
 2024-01-17,25.00,Gift,Other,USD,expense,Main Account,"  solo  "`;
 
-    it('splits the mapped tag column into per-row tagNames', async () => {
-      const result = await helpers.detectDuplicates({
+    it('splits the mapped tag column into per-row tagNames, and leaves them undefined when unmapped', async () => {
+      const mapped = await helpers.detectDuplicates({
         payload: {
           fileContent: csvWithTags,
           delimiter: ',',
@@ -1108,14 +914,12 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.validRows).toHaveLength(3);
-      expect(result.validRows[0]?.tagNames).toEqual(['food', 'travel']);
-      expect(result.validRows[1]?.tagNames).toEqual([]);
-      expect(result.validRows[2]?.tagNames).toEqual(['solo']);
-    });
+      expect(mapped.validRows).toHaveLength(3);
+      expect(mapped.validRows[0]?.tagNames).toEqual(['food', 'travel']);
+      expect(mapped.validRows[1]?.tagNames).toEqual([]);
+      expect(mapped.validRows[2]?.tagNames).toEqual(['solo']);
 
-    it('leaves tagNames undefined when no tag column is mapped', async () => {
-      const result = await helpers.detectDuplicates({
+      const unmapped = await helpers.detectDuplicates({
         payload: {
           fileContent: csvWithTags,
           delimiter: ',',
@@ -1126,7 +930,7 @@ not-a-date,not-an-amount,Test,Food,expense,Main Account`;
         raw: true,
       });
 
-      expect(result.validRows[0]?.tagNames).toBeUndefined();
+      expect(unmapped.validRows[0]?.tagNames).toBeUndefined();
     });
   });
 });

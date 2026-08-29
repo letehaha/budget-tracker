@@ -5,7 +5,7 @@ import { expectCompleted, waitForBudgetBakersWalletCompletion } from '@tests/hel
 /**
  * The default `express.json()` limit is 100KB. Every Wallet import step carries the
  * whole CSV inline as `fileContent`, so the request body must be allowed past that
- * ceiling. These tests assert the endpoints accept such a body.
+ * ceiling. This test asserts every step accepts such a body.
  */
 const MIN_BODY_BYTES = 100 * 1024;
 
@@ -29,71 +29,53 @@ function buildOversizedWalletCsv({ rowCount }: { rowCount: number }): string {
 }
 
 describe('Budget Bakers Wallet import - request body size limit', () => {
-  describe('POST /import/budget-bakers-wallet/parse', () => {
-    it('accepts a fileContent larger than the default 100KB body limit', async () => {
-      const fileContent = buildOversizedWalletCsv({ rowCount: ROW_COUNT });
-      expect(Buffer.byteLength(JSON.stringify({ fileContent }))).toBeGreaterThan(MIN_BODY_BYTES);
-
-      const response = await helpers.parseBudgetBakersWallet({ payload: { fileContent } });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.body.response.result.transactions).toHaveLength(ROW_COUNT);
+  it('accepts a fileContent larger than the default 100KB body limit on parse, detect and execute', async () => {
+    const fileContent = buildOversizedWalletCsv({ rowCount: ROW_COUNT });
+    const account = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ currencyCode: 'UAH', initialBalance: 0 }),
+      raw: true,
     });
-  });
 
-  describe('POST /import/budget-bakers-wallet/detect-duplicates', () => {
-    it('accepts a fileContent larger than the default 100KB body limit', async () => {
-      const fileContent = buildOversizedWalletCsv({ rowCount: ROW_COUNT });
-      const accountMapping = {
+    const parsePayload = { fileContent };
+    expect(Buffer.byteLength(JSON.stringify(parsePayload))).toBeGreaterThan(MIN_BODY_BYTES);
+
+    const parseResponse = await helpers.parseBudgetBakersWallet({ payload: parsePayload });
+    expect(parseResponse.statusCode).toBe(200);
+    expect(parseResponse.body.response.result.transactions).toHaveLength(ROW_COUNT);
+
+    const detectPayload = {
+      fileContent,
+      accountMapping: {
         [ACCOUNT_NAME]: { action: 'create-new' as const, currencyCode: 'UAH', currentBalance: null },
-      };
+      },
+    };
+    expect(Buffer.byteLength(JSON.stringify(detectPayload))).toBeGreaterThan(MIN_BODY_BYTES);
 
-      const payload = { fileContent, accountMapping };
-      expect(Buffer.byteLength(JSON.stringify(payload))).toBeGreaterThan(MIN_BODY_BYTES);
+    const detectResponse = await helpers.detectBudgetBakersWalletDuplicates({ payload: detectPayload });
+    expect(detectResponse.statusCode).toBe(200);
+    expect(detectResponse.body.response.duplicates).toEqual([]);
 
-      const response = await helpers.detectBudgetBakersWalletDuplicates({ payload });
+    // The whole CSV travels on the wire even when the user keeps only a few rows,
+    // so the body stays oversized while the worker writes a small slice.
+    const importedCount = 10;
+    const executePayload = {
+      fileContent,
+      accountMapping: { [ACCOUNT_NAME]: { action: 'link-existing' as const, accountId: account.id } },
+      skipDuplicateIndices: Array.from({ length: ROW_COUNT - importedCount }, (_, index) => FIRST_ROW_INDEX + index),
+    };
+    expect(Buffer.byteLength(JSON.stringify(executePayload))).toBeGreaterThan(MIN_BODY_BYTES);
 
-      expect(response.statusCode).toBe(200);
-      expect(response.body.response.duplicates).toEqual([]);
-    });
-  });
+    const executeResponse = await helpers.executeBudgetBakersWallet({ payload: executePayload });
+    expect(executeResponse.statusCode).toBe(200);
 
-  describe('POST /import/budget-bakers-wallet/execute', () => {
-    it('accepts a fileContent larger than the default 100KB body limit', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ currencyCode: 'UAH', initialBalance: 0 }),
-        raw: true,
-      });
+    const { jobId } = executeResponse.body.response;
+    expect(jobId).toBeTruthy();
 
-      const fileContent = buildOversizedWalletCsv({ rowCount: ROW_COUNT });
-      const accountMapping = {
-        [ACCOUNT_NAME]: { action: 'link-existing' as const, accountId: account.id },
-      };
+    const progress = await waitForBudgetBakersWalletCompletion({ jobId });
+    expectCompleted(progress);
 
-      // The whole CSV travels on the wire even when the user keeps only a few rows,
-      // so the body stays oversized while the worker writes a small slice.
-      const importedCount = 10;
-      const skipDuplicateIndices = Array.from(
-        { length: ROW_COUNT - importedCount },
-        (_, index) => FIRST_ROW_INDEX + index,
-      );
-
-      const payload = { fileContent, accountMapping, skipDuplicateIndices };
-      expect(Buffer.byteLength(JSON.stringify(payload))).toBeGreaterThan(MIN_BODY_BYTES);
-
-      const response = await helpers.executeBudgetBakersWallet({ payload });
-
-      expect(response.statusCode).toBe(200);
-
-      const { jobId } = response.body.response;
-      expect(jobId).toBeTruthy();
-
-      const progress = await waitForBudgetBakersWalletCompletion({ jobId });
-      expectCompleted(progress);
-
-      expect(progress.summary.transactionsImported).toBe(importedCount);
-      expect(progress.summary.duplicatesSkipped).toBe(ROW_COUNT - importedCount);
-      expect(progress.summary.errors).toHaveLength(0);
-    });
-  });
+    expect(progress.summary.errors).toHaveLength(0);
+    expect(progress.summary.transactionsImported).toBe(importedCount);
+    expect(progress.summary.duplicatesSkipped).toBe(ROW_COUNT - importedCount);
+  }, 60_000);
 });

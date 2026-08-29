@@ -45,80 +45,70 @@ async function shareAccountWithRecipient({
 
 describe('Account delete: family-sharing cleanup (S8)', () => {
   describe('happy paths', () => {
-    it('drops ResourceShares rows for the deleted account', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      await shareAccountWithRecipient({ accountId: account.id, recipient });
+    it('deleting an account drops its shares, revokes its pending invites, notifies recipients, and leaves sibling accounts alone', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+      const accountB = await helpers.createAccount({ raw: true });
+      const recipient1 = await helpers.provisionSecondUserWithBaseCurrency();
+      const recipient2 = await helpers.provisionSecondUserWithBaseCurrency();
+      const recipient1App = await helpers.findAppUserByEmail({ email: recipient1.email });
 
-      const beforeShares = await ResourceShares.findAll({
-        where: { resourceType: RESOURCE_TYPES.account, resourceId: String(account.id) },
-      });
-      expect(beforeShares).toHaveLength(1);
+      await shareAccountWithRecipient({ accountId: accountA.id, recipient: recipient1 });
+      await shareAccountWithRecipient({ accountId: accountB.id, recipient: recipient1 });
 
-      await helpers.deleteAccount({ id: account.id, raw: true });
-
-      const afterShares = await ResourceShares.findAll({
-        where: { resourceType: RESOURCE_TYPES.account, resourceId: String(account.id) },
-      });
-      expect(afterShares).toHaveLength(0);
-    });
-
-    it('emits share_owner_account_deleted to each accepted recipient', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      await shareAccountWithRecipient({ accountId: account.id, recipient });
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-
-      const before = await Notifications.findAll({
-        where: { userId: recipientApp.id, type: NOTIFICATION_TYPES.shareOwnerAccountDeleted },
-      });
-      expect(before).toHaveLength(0);
-
-      await helpers.deleteAccount({ id: account.id, raw: true });
-
-      const after = await Notifications.findAll({
-        where: { userId: recipientApp.id, type: NOTIFICATION_TYPES.shareOwnerAccountDeleted },
-      });
-      expect(after).toHaveLength(1);
-      expect(after[0]!.payload).toMatchObject({
+      const pendingA = await helpers.createShareInvitation({
+        inviteeEmail: recipient2.email,
         resourceType: RESOURCE_TYPES.account,
-        resourceId: String(account.id),
+        resourceId: accountA.id,
+        permission: SHARE_PERMISSIONS.read,
+        raw: true,
       });
-    });
-
-    it('flips pending invitations to revoked', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const invitation = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
+      const pendingB = await helpers.createShareInvitation({
+        inviteeEmail: recipient2.email,
         resourceType: RESOURCE_TYPES.account,
-        resourceId: account.id,
+        resourceId: accountB.id,
         permission: SHARE_PERMISSIONS.read,
         raw: true,
       });
 
-      await helpers.deleteAccount({ id: account.id, raw: true });
-
-      const after = await ShareInvitations.findByPk(invitation.id);
-      expect(after).not.toBeNull();
-      expect(after!.status).toBe(SHARE_INVITATION_STATUSES.revoked);
-      expect(after!.revokedAt).not.toBeNull();
-    });
-
-    it('isolates cleanup to the deleted account — sibling shares survive', async () => {
-      const accountA = await helpers.createAccount({ raw: true });
-      const accountB = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      await shareAccountWithRecipient({ accountId: accountA.id, recipient });
-      await shareAccountWithRecipient({ accountId: accountB.id, recipient });
+      const sharesABefore = await ResourceShares.findAll({
+        where: { resourceType: RESOURCE_TYPES.account, resourceId: String(accountA.id) },
+      });
+      expect(sharesABefore).toHaveLength(1);
+      const notifsBefore = await Notifications.findAll({
+        where: { userId: recipient1App.id, type: NOTIFICATION_TYPES.shareOwnerAccountDeleted },
+      });
+      expect(notifsBefore).toHaveLength(0);
 
       await helpers.deleteAccount({ id: accountA.id, raw: true });
 
-      const remainingB = await ResourceShares.findAll({
+      const sharesAAfter = await ResourceShares.findAll({
+        where: { resourceType: RESOURCE_TYPES.account, resourceId: String(accountA.id) },
+      });
+      expect(sharesAAfter).toHaveLength(0);
+
+      const notifsAfter = await Notifications.findAll({
+        where: { userId: recipient1App.id, type: NOTIFICATION_TYPES.shareOwnerAccountDeleted },
+      });
+      expect(notifsAfter).toHaveLength(1);
+      expect(notifsAfter[0]!.payload).toMatchObject({
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: String(accountA.id),
+      });
+
+      const pendingAAfter = await ShareInvitations.findByPk(pendingA.id);
+      expect(pendingAAfter).not.toBeNull();
+      expect(pendingAAfter!.status).toBe(SHARE_INVITATION_STATUSES.revoked);
+      expect(pendingAAfter!.revokedAt).not.toBeNull();
+
+      const sharesBAfter = await ResourceShares.findAll({
         where: { resourceType: RESOURCE_TYPES.account, resourceId: String(accountB.id) },
       });
-      expect(remainingB).toHaveLength(1);
-    });
+      expect(sharesBAfter).toHaveLength(1);
+
+      const pendingBAfter = await ShareInvitations.findByPk(pendingB.id);
+      expect(pendingBAfter).not.toBeNull();
+      expect(pendingBAfter!.status).toBe(SHARE_INVITATION_STATUSES.pending);
+    }, 60_000);
   });
 
   describe('quiet paths', () => {
@@ -138,25 +128,6 @@ describe('Account delete: family-sharing cleanup (S8)', () => {
         where: { userId: otherUserApp.id, type: NOTIFICATION_TYPES.shareOwnerAccountDeleted },
       });
       expect(after.length).toBe(before.length);
-    });
-
-    it('does not modify pending invitations belonging to a different account', async () => {
-      const accountA = await helpers.createAccount({ raw: true });
-      const accountB = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const inviteB = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: accountB.id,
-        permission: SHARE_PERMISSIONS.read,
-        raw: true,
-      });
-
-      await helpers.deleteAccount({ id: accountA.id, raw: true });
-
-      const after = await ShareInvitations.findByPk(inviteB.id);
-      expect(after).not.toBeNull();
-      expect(after!.status).toBe(SHARE_INVITATION_STATUSES.pending);
     });
   });
 

@@ -83,17 +83,29 @@ describe('[Stats] Combined balance history', () => {
     await UserExchangeRates.destroy({ where: { userId: 1 } });
   };
 
-  it('Returns correct combined balance data for accounts only', async () => {
-    const account = await helpers.createAccount({
+  it('Returns combined balance data for multiple accounts, with and without a date range', async () => {
+    const accountA = await helpers.createAccount({
       payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
       raw: true,
     });
+    const accountB = await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ initialBalance: 2000 }),
+      raw: true,
+    });
 
-    // Create transactions to generate balance history
     await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
-        accountId: account.id,
+        accountId: accountA.id,
         amount: 500,
+        transactionType: TRANSACTION_TYPES.income,
+        time: subDays(new Date(), 3).toISOString(),
+      }),
+      raw: true,
+    });
+    await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: accountB.id,
+        amount: 200,
         transactionType: TRANSACTION_TYPES.income,
         time: subDays(new Date(), 1).toISOString(),
       }),
@@ -102,10 +114,9 @@ describe('[Stats] Combined balance history', () => {
 
     const data = await helpers.getCombinedBalanceHistory({ raw: true });
 
-    const record = data[0]!;
-
     expect(data.length).toBeGreaterThan(0);
-    // Should have account balance data
+
+    const record = data[0]!;
     expect(record).toHaveProperty('accountsBalance');
     expect(record).toHaveProperty('portfoliosBalance', 0);
     expect(record).toHaveProperty('venturesBalance', 0);
@@ -119,91 +130,25 @@ describe('[Stats] Combined balance history', () => {
         record.vehiclesBalance +
         record.loansBalance,
     );
-  });
 
-  it('Returns correct combined balance data with date filtering', async () => {
-    const account = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+    // Latest entry sums both accounts: 1,000 + 500 + 2,000 + 200.
+    expect(data[data.length - 1]!.accountsBalance).toBeGreaterThan(3000);
+
+    for (const entry of data) {
+      expect(entry.loansBalance).toBe(0);
+    }
+
+    const ranged = await helpers.getCombinedBalanceHistory({
+      from: format(subDays(new Date(), 4), 'yyyy-MM-dd'),
+      to: format(subDays(new Date(), 2), 'yyyy-MM-dd'),
       raw: true,
     });
 
-    // Create transactions spanning multiple days
-    await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 500,
-        transactionType: TRANSACTION_TYPES.income,
-        time: subDays(new Date(), 3).toISOString(),
-      }),
-      raw: true,
-    });
-
-    await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 200,
-        transactionType: TRANSACTION_TYPES.income,
-        time: subDays(new Date(), 1).toISOString(),
-      }),
-      raw: true,
-    });
-
-    // Filter to get data from specific date range
-    const fromDate = format(subDays(new Date(), 4), 'yyyy-MM-dd');
-    const toDate = format(subDays(new Date(), 2), 'yyyy-MM-dd');
-
-    const data = await helpers.getCombinedBalanceHistory({
-      from: fromDate,
-      to: toDate,
-      raw: true,
-    });
-
-    expect(data.length).toBeGreaterThan(0);
-    expect(data[0]).toHaveProperty('accountsBalance');
-    expect(data[0]).toHaveProperty('portfoliosBalance', 0);
-    expect(data[0]).toHaveProperty('totalBalance');
-  });
-
-  it('Returns correct combined balance data for multiple accounts', async () => {
-    const account1 = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
-      raw: true,
-    });
-    const account2 = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ initialBalance: 2000 }),
-      raw: true,
-    });
-
-    // Create transactions for both accounts
-    await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account1.id,
-        amount: 100,
-        transactionType: TRANSACTION_TYPES.income,
-        time: subDays(new Date(), 1).toISOString(),
-      }),
-      raw: true,
-    });
-
-    await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account2.id,
-        amount: 200,
-        transactionType: TRANSACTION_TYPES.income,
-        time: subDays(new Date(), 1).toISOString(),
-      }),
-      raw: true,
-    });
-
-    const data = await helpers.getCombinedBalanceHistory({ raw: true });
-
-    expect(data.length).toBeGreaterThan(0);
-    expect(data[0]).toHaveProperty('accountsBalance');
-    expect(data[0]).toHaveProperty('portfoliosBalance', 0);
-    expect(data[0]).toHaveProperty('totalBalance');
-    // Should aggregate both accounts
-    expect(data[0]!.accountsBalance).toBeGreaterThan(1000); // Should include both accounts
-  });
+    expect(ranged.length).toBeGreaterThan(0);
+    expect(ranged[0]).toHaveProperty('accountsBalance');
+    expect(ranged[0]).toHaveProperty('portfoliosBalance', 0);
+    expect(ranged[0]).toHaveProperty('totalBalance');
+  }, 60_000);
 
   it('Returns empty array when no data exists', async () => {
     const data = await helpers.getCombinedBalanceHistory({ raw: true });
@@ -783,32 +728,11 @@ describe('[Stats] Combined balance history', () => {
   });
 
   describe('Venture deals', () => {
-    it('Reflects deal principal + entryFee in venturesBalance with no events', async () => {
+    it('reflects deal principal in venturesBalance from the investmentDate forward', async () => {
       const investmentDate = format(subDays(new Date(), 3), 'yyyy-MM-dd');
       await helpers.createVentureDeal({
         payload: {
           principal: '10000',
-          entryFeePct: '0',
-          investmentDate,
-        },
-        raw: true,
-      });
-
-      const data = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
-
-      expect(data.length).toBeGreaterThan(0);
-      const lastRecord = data[data.length - 1]!;
-      expect(lastRecord.venturesBalance).toBe(10000);
-      expect(lastRecord.totalBalance).toBe(
-        lastRecord.accountsBalance + lastRecord.portfoliosBalance + lastRecord.venturesBalance,
-      );
-    });
-
-    it('Returns zero venturesBalance on days before the investmentDate', async () => {
-      const investmentDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-      await helpers.createVentureDeal({
-        payload: {
-          principal: '5000',
           entryFeePct: '0',
           investmentDate,
         },
@@ -821,14 +745,23 @@ describe('[Stats] Combined balance history', () => {
         raw: true,
       })) as CombinedBalanceHistoryItem[];
 
-      const before = data.find((e) => e.date === format(subDays(new Date(), 3), 'yyyy-MM-dd'));
+      const before = data.find((e) => e.date === format(subDays(new Date(), 4), 'yyyy-MM-dd'));
       expect(before).toBeDefined();
       expect(before!.venturesBalance).toBe(0);
 
       const after = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
       expect(after).toBeDefined();
-      expect(after!.venturesBalance).toBe(5000);
-    });
+      expect(after!.venturesBalance).toBe(10000);
+
+      const autoRanged = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
+
+      expect(autoRanged.length).toBeGreaterThan(0);
+      const lastRecord = autoRanged[autoRanged.length - 1]!;
+      expect(lastRecord.venturesBalance).toBe(10000);
+      expect(lastRecord.totalBalance).toBe(
+        lastRecord.accountsBalance + lastRecord.portfoliosBalance + lastRecord.venturesBalance,
+      );
+    }, 60_000);
   });
 
   describe('Vehicles in combined balance history', () => {
@@ -846,9 +779,16 @@ describe('[Stats] Combined balance history', () => {
       ...overrides,
     });
 
-    it('reports non-zero vehiclesBalance on days at/after purchase for a base-currency vehicle', async () => {
+    it('tracks vehiclesBalance from the purchase day onward and drops it once excluded from stats', async () => {
+      // A non-vehicle account keeps the series non-empty. With the vehicle as the only
+      // asset, excluding it returns `[]` and every vehiclesBalance assertion passes vacuously.
+      await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
+        raw: true,
+      });
+
       // Base-currency vehicle dodges all FX lookups — the depreciation curve
-      // alone drives vehiclesBalance, which must be > 0 from purchase onward.
+      // alone drives vehiclesBalance.
       const vehicle = await helpers.createVehicle({
         ...buildVehiclePayload(),
         raw: true,
@@ -866,6 +806,13 @@ describe('[Stats] Combined balance history', () => {
       expect(data.length).toBeGreaterThan(0);
 
       const purchaseDay = vehicle.purchaseDate;
+
+      const prePurchase = data.filter((entry) => entry.date < purchaseDay);
+      expect(prePurchase.length).toBeGreaterThan(0);
+      for (const entry of prePurchase) {
+        expect(entry.vehiclesBalance).toBe(0);
+      }
+
       const postPurchase = data.filter((entry) => entry.date >= purchaseDay);
       expect(postPurchase.length).toBeGreaterThan(0);
       for (const entry of postPurchase) {
@@ -873,32 +820,6 @@ describe('[Stats] Combined balance history', () => {
         // Sanity: vehicle never appears richer than its purchase price.
         expect(entry.vehiclesBalance).toBeLessThanOrEqual(20000);
       }
-    });
-
-    it('excludes vehicle from vehiclesBalance once the account has excludeFromStats=true', async () => {
-      // Seed a non-vehicle account so the combined history endpoint always
-      // returns a non-empty series — otherwise excluding the only vehicle would
-      // make the response `[]` and the vehiclesBalance assertions would pass
-      // vacuously without proving exclusion actually happened.
-      await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
-        raw: true,
-      });
-
-      const vehicle = await helpers.createVehicle({
-        ...buildVehiclePayload({ name: 'Hidden vehicle' }),
-        raw: true,
-      });
-
-      // Confirm baseline first — without excludeFromStats the vehicle contributes.
-      const before = (await helpers.getCombinedBalanceHistory({
-        from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
-        to: format(new Date(), 'yyyy-MM-dd'),
-        raw: true,
-      })) as CombinedBalanceHistoryItem[];
-      const baselineToday = before.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
-      expect(baselineToday).toBeDefined();
-      expect(baselineToday!.vehiclesBalance).toBeGreaterThan(0);
 
       // Flip the vehicle account out of stats. `accountCategory` is omitted so
       // the controller's vehicle-category guard does not trip.
@@ -909,8 +830,8 @@ describe('[Stats] Combined balance history', () => {
       expect(updateResponse.statusCode).toBe(200);
 
       const after = (await helpers.getCombinedBalanceHistory({
-        from: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
-        to: format(new Date(), 'yyyy-MM-dd'),
+        from: fromDate,
+        to: toDate,
         raw: true,
       })) as CombinedBalanceHistoryItem[];
 
@@ -919,39 +840,7 @@ describe('[Stats] Combined balance history', () => {
       for (const entry of after) {
         expect(entry.vehiclesBalance).toBe(0);
       }
-    });
-
-    it('contributes 0 to vehiclesBalance on days strictly before purchase', async () => {
-      // Pick a window entirely BEFORE the vehicle's purchase date but still
-      // inside the seeded ExchangeRates 10-day cushion. The series for those
-      // days must be flat 0 because the vehicle did not exist yet.
-      const purchaseDay = subDays(new Date(), 2);
-      const purchaseDateStr = format(purchaseDay, 'yyyy-MM-dd');
-
-      await helpers.createVehicle({
-        ...buildVehiclePayload({
-          name: 'Future-buy vehicle',
-          purchaseDate: purchaseDateStr,
-        }),
-        raw: true,
-      });
-
-      const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
-      // Stop the range one day before purchase so every returned date is pre-purchase.
-      const toDate = format(subDays(purchaseDay, 1), 'yyyy-MM-dd');
-
-      const data = (await helpers.getCombinedBalanceHistory({
-        from: fromDate,
-        to: toDate,
-        raw: true,
-      })) as CombinedBalanceHistoryItem[];
-
-      expect(data.length).toBeGreaterThan(0);
-      for (const entry of data) {
-        expect(entry.date < purchaseDateStr).toBe(true);
-        expect(entry.vehiclesBalance).toBe(0);
-      }
-    });
+    }, 60_000);
   });
 
   describe('Loans in combined balance history', () => {
@@ -1096,20 +985,6 @@ describe('[Stats] Combined balance history', () => {
       expect(observerCash.id).toBeDefined();
     });
 
-    it('keeps loansBalance at 0 when the user has no loans', async () => {
-      await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
-        raw: true,
-      });
-
-      const data = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
-
-      expect(data.length).toBeGreaterThan(0);
-      for (const entry of data) {
-        expect(entry.loansBalance).toBe(0);
-      }
-    });
-
     it('does not retroactively change a past day loansBalance when a payoff is recorded today', async () => {
       // The demo scenario: a loan is recorded today (balanceAnchorDate = today) with
       // 7,200 outstanding, then paid off the same day. A payment dated today must not
@@ -1176,13 +1051,13 @@ describe('[Stats] Combined balance history', () => {
     // ambient AED/EUR row left over from another describe.
     beforeEach(wipeFxState);
 
-    it('reflects a direct cash deposit in portfoliosBalance from the deposit day forward', async () => {
+    it('reflects a direct cash deposit from the deposit day forward and extends the auto-range back to it', async () => {
       const portfolio = await helpers.createPortfolio({
         payload: helpers.buildPortfolioPayload({ name: 'Cash-only portfolio' }),
         raw: true,
       });
 
-      const depositDay = format(subDays(new Date(), 3), 'yyyy-MM-dd');
+      const depositDay = format(subDays(new Date(), 10), 'yyyy-MM-dd');
       await helpers.directCashTransaction({
         portfolioId: portfolio.id,
         payload: { type: 'deposit', amount: '500', currencyCode: global.BASE_CURRENCY_CODE, date: depositDay },
@@ -1190,13 +1065,13 @@ describe('[Stats] Combined balance history', () => {
       });
 
       const data = (await helpers.getCombinedBalanceHistory({
-        from: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
+        from: format(subDays(new Date(), 12), 'yyyy-MM-dd'),
         to: format(new Date(), 'yyyy-MM-dd'),
         raw: true,
       })) as CombinedBalanceHistoryItem[];
 
       // Before the deposit: no cash in the portfolio.
-      const beforeDeposit = data.find((e) => e.date === format(subDays(new Date(), 4), 'yyyy-MM-dd'));
+      const beforeDeposit = data.find((e) => e.date === format(subDays(new Date(), 11), 'yyyy-MM-dd'));
       expect(beforeDeposit).toBeDefined();
       expect(beforeDeposit!.portfoliosBalance).toBe(0);
 
@@ -1211,7 +1086,22 @@ describe('[Stats] Combined balance history', () => {
       expect(today.totalBalance).toBe(
         today.accountsBalance + today.portfoliosBalance + today.venturesBalance + today.vehiclesBalance,
       );
-    });
+
+      // Auto-range must count the oldest portfolio transfer. A cash-only portfolio has no
+      // investment transactions and no venture deals, so minDate collapses to today and the
+      // series returns a single point.
+      const autoRanged = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
+
+      expect(autoRanged.length).toBeGreaterThanOrEqual(10);
+      expect(autoRanged[0]!.date <= depositDay).toBe(true);
+
+      const autoOnDeposit = autoRanged.find((e) => e.date === depositDay);
+      expect(autoOnDeposit).toBeDefined();
+      expect(autoOnDeposit!.portfoliosBalance).toBe(500);
+
+      const autoToday = autoRanged.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
+      expect(autoToday!.portfoliosBalance).toBe(500);
+    }, 60_000);
 
     it('does not smear post-window cash activity into a window that ends in the past', async () => {
       // Regression: `computePortfolioCashByDate` anchors on the CURRENT stored
@@ -1378,39 +1268,6 @@ describe('[Stats] Combined balance history', () => {
       // Running balance carries forward.
       const today = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
       expect(today!.portfoliosBalance).toBe(1100);
-    });
-
-    it('extends the auto-range back to the oldest transfer when from is omitted', async () => {
-      // Without the `oldestTransfer` candidate in `getCombinedBalanceHistory`'s
-      // auto-range resolver, a cash-only portfolio (no investment transactions,
-      // no venture deals) would collapse minDate to today and the series would
-      // contain a single point. Asserting the series spans back to the deposit
-      // day proves the transfer candidate is load-bearing.
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'Auto-range cash portfolio' }),
-        raw: true,
-      });
-
-      const depositDay = format(subDays(new Date(), 10), 'yyyy-MM-dd');
-      await helpers.directCashTransaction({
-        portfolioId: portfolio.id,
-        payload: { type: 'deposit', amount: '500', currencyCode: global.BASE_CURRENCY_CODE, date: depositDay },
-        raw: true,
-      });
-
-      const data = (await helpers.getCombinedBalanceHistory({ raw: true })) as CombinedBalanceHistoryItem[];
-
-      // Series reaches back to (or before) the deposit day.
-      expect(data.length).toBeGreaterThanOrEqual(10);
-      expect(data[0]!.date <= depositDay).toBe(true);
-
-      // Cash is tracked from the deposit day forward.
-      const onDeposit = data.find((e) => e.date === depositDay);
-      expect(onDeposit).toBeDefined();
-      expect(onDeposit!.portfoliosBalance).toBe(500);
-
-      const today = data.find((e) => e.date === format(new Date(), 'yyyy-MM-dd'));
-      expect(today!.portfoliosBalance).toBe(500);
     });
 
     it('reflects direct PortfolioBalances writes when no transactions or transfers were issued', async () => {

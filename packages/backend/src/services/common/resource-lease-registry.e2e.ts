@@ -8,7 +8,8 @@ import { randomUUID } from 'node:crypto';
 /**
  * Contract tests for the one endpoint that refreshes every leased resource.
  * Nothing here mints a real lease — the behaviour of a live one is covered
- * where the resource lives, e.g. `ms-money-upload-lease.e2e.ts`.
+ * where the resource lives, e.g. the `upload lease` block of
+ * `ms-money-execute-import.e2e.ts`.
  */
 
 /** A well-formed lease id that was never issued. */

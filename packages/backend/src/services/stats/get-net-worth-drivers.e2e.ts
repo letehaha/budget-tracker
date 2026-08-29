@@ -126,30 +126,21 @@ describe('GET /stats/net-worth-drivers', () => {
         }),
         raw: true,
       });
-
-      const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
-
-      expect(buckets).toHaveLength(2);
-      expect(buckets[0]!.savings).toEqual({ income: 5000, expenses: 2000, net: 3000 });
-      expect(buckets[1]!.savings).toEqual({ income: 1000, expenses: 0, net: 1000 });
-    });
-
-    it('reports an overspent bucket as negative net savings', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
-          amount: 800,
+          amount: 1800,
           transactionType: TRANSACTION_TYPES.expense,
-          time: `${JAN.start}T10:00:00.000Z`,
+          time: `${FEB.start}T11:00:00.000Z`,
         }),
         raw: true,
       });
 
       const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
 
-      expect(buckets[0]!.savings.net).toBe(-800);
+      expect(buckets).toHaveLength(2);
+      expect(buckets[0]!.savings).toEqual({ income: 5000, expenses: 2000, net: 3000 });
+      expect(buckets[1]!.savings).toEqual({ income: 1000, expenses: 1800, net: -800 });
     });
 
     it('excludes transfers between the user own accounts', async () => {
@@ -195,7 +186,7 @@ describe('GET /stats/net-worth-drivers', () => {
       expect(buckets[0]!.savings.income).toBe(0);
     });
 
-    it('nets a refunded expense out of both sides of savings', async () => {
+    it('nets full and partial refunds out of both sides of savings', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       await helpers.createTransaction({
@@ -207,7 +198,7 @@ describe('GET /stats/net-worth-drivers', () => {
         }),
         raw: true,
       });
-      const [expenseTx] = await helpers.createTransaction({
+      const [fullyRefundedExpense] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 2000,
@@ -216,7 +207,7 @@ describe('GET /stats/net-worth-drivers', () => {
         }),
         raw: true,
       });
-      const [refundTx] = await helpers.createTransaction({
+      const [fullRefundTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 2000,
@@ -225,41 +216,34 @@ describe('GET /stats/net-worth-drivers', () => {
         }),
         raw: true,
       });
-      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+      await helpers.createSingleRefund({ originalTxId: fullyRefundedExpense.id, refundTxId: fullRefundTx.id });
 
-      const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
-
-      // Money that came back was never spent and is not earnings, so only the 5,000 salary
-      // survives on the income side and the expense side clears.
-      expect(buckets[0]!.savings).toEqual({ income: 5000, expenses: 0, net: 5000 });
-    });
-
-    it('leaves only the amount actually spent after a partial refund', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const [expenseTx] = await helpers.createTransaction({
+      const [partiallyRefundedExpense] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 1000,
           transactionType: TRANSACTION_TYPES.expense,
-          time: '2026-01-10T10:00:00.000Z',
+          time: '2026-01-11T10:00:00.000Z',
         }),
         raw: true,
       });
-      const [refundTx] = await helpers.createTransaction({
+      const [partialRefundTx] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 400,
           transactionType: TRANSACTION_TYPES.income,
-          time: '2026-01-20T10:00:00.000Z',
+          time: '2026-01-21T10:00:00.000Z',
         }),
         raw: true,
       });
-      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+      await helpers.createSingleRefund({ originalTxId: partiallyRefundedExpense.id, refundTxId: partialRefundTx.id });
 
       const { buckets } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
 
-      expect(buckets[0]!.savings).toEqual({ income: 0, expenses: 600, net: -600 });
+      // Refunds cancel the original spend and stay out of income: the fully refunded 2,000
+      // clears, the partially refunded 1,000 leaves the 600 actually spent, and the 5,000
+      // salary is the whole income side.
+      expect(buckets[0]!.savings).toEqual({ income: 5000, expenses: 600, net: 4400 });
     });
   });
 
@@ -542,7 +526,7 @@ describe('GET /stats/net-worth-drivers', () => {
       await setPrice({ securityId: security.id, date: '2025-12-31', price: '100' });
       await setPrice({ securityId: security.id, date: JAN.end, price: '120' });
 
-      const { buckets } = await helpers.getNetWorthDrivers({
+      const { buckets, degraded } = await helpers.getNetWorthDrivers({
         from: JAN.start,
         to: JAN.end,
         granularity: 'monthly',
@@ -553,6 +537,9 @@ describe('GET /stats/net-worth-drivers', () => {
       expect(buckets[0]!.composition.holdingsValue).toBe(1200);
       // 3,000 in the account plus the 500 of portfolio cash the buy left over.
       expect(buckets[0]!.composition.cashValue).toBe(3500);
+      // `degraded` stays absent while every snapshot day has a price and every amount
+      // is already in the base currency.
+      expect(degraded).toBeUndefined();
     });
 
     it('counts uninvested portfolio cash on the cash side', async () => {
@@ -611,7 +598,7 @@ describe('GET /stats/net-worth-drivers', () => {
       expect(buckets[1]!.investments.growth).toBe(0);
     });
 
-    it('excludes a disabled portfolio from the holdings composition', async () => {
+    it('excludes a disabled portfolio whether or not the filter names it', async () => {
       const security = await createBaseCurrencySecurity();
 
       const enabledPortfolio = await helpers.createPortfolio({ raw: true });
@@ -667,7 +654,18 @@ describe('GET /stats/net-worth-drivers', () => {
       // still counts and the disabled one is dropped whole.
       expect(buckets[0]!.composition.holdingsValue).toBe(1200);
       expect(buckets[0]!.composition.cashValue).toBe(0);
-    });
+
+      // Naming the disabled portfolio in `portfolioIds` must not bring it back.
+      const named = await helpers.getNetWorthDrivers({
+        from: JAN.start,
+        to: JAN.end,
+        granularity: 'monthly',
+        portfolioIds: [enabledPortfolio.id, disabledPortfolio.id],
+        raw: true,
+      });
+
+      expect(named.buckets[0]!.composition.holdingsValue).toBe(1200);
+    }, 60_000);
 
     it('excludes vehicle and loan accounts from cash while a credit-card negative stays in', async () => {
       await helpers.createAccount({
@@ -770,8 +768,19 @@ describe('GET /stats/net-worth-drivers', () => {
       return { securityId: security.id, portfolioA, portfolioB };
     };
 
-    it('scopes holdings and growth to the selected portfolio', async () => {
+    it('scopes holdings and growth to the named portfolios and leaves savings whole', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 900,
+          transactionType: TRANSACTION_TYPES.income,
+          time: `${JAN.start}T10:00:00.000Z`,
+        }),
+        raw: true,
+      });
       const { portfolioA, portfolioB } = await seedTwoPortfolios();
+      const foreignId = generateRandomRecordId();
 
       const onlyA = await helpers.getNetWorthDrivers({
         from: JAN.start,
@@ -796,10 +805,6 @@ describe('GET /stats/net-worth-drivers', () => {
 
       expect(onlyB.buckets[0]!.composition.holdingsValue).toBe(600);
       expect(onlyB.buckets[0]!.investments.growth).toBe(100);
-    });
-
-    it('includes every enabled portfolio when the filter is empty or names them all', async () => {
-      const { portfolioA, portfolioB } = await seedTwoPortfolios();
 
       const noFilter = await helpers.getNetWorthDrivers({
         from: JAN.start,
@@ -823,11 +828,6 @@ describe('GET /stats/net-worth-drivers', () => {
       // Naming every enabled portfolio is the same as naming none.
       expect(allNamed.buckets[0]!.composition.holdingsValue).toBe(1800);
       expect(allNamed.buckets[0]!.investments.growth).toBe(300);
-    });
-
-    it('ignores portfolio ids the user does not own', async () => {
-      const { portfolioA } = await seedTwoPortfolios();
-      const foreignId = generateRandomRecordId();
 
       // A foreign id alongside an owned one is dropped by the DB intersect, so the
       // result is exactly A's slice — no other user's portfolio can widen it.
@@ -855,91 +855,13 @@ describe('GET /stats/net-worth-drivers', () => {
       const onlyForeignData = helpers.extractResponse(onlyForeign);
       expect(onlyForeignData.buckets[0]!.composition.holdingsValue).toBe(0);
       expect(onlyForeignData.buckets[0]!.investments.growth).toBe(0);
-    });
-
-    it('ignores a disabled portfolio named in the filter', async () => {
-      const security = await createBaseCurrencySecurity();
-
-      const enabledPortfolio = await helpers.createPortfolio({ raw: true });
-      await seedHolding({ portfolioId: enabledPortfolio.id, securityId: security.id });
-      await fundPortfolio({ portfolioId: enabledPortfolio.id, amount: '1000', date: '2025-12-15' });
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: enabledPortfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          date: '2025-12-20',
-          quantity: '10',
-          price: '100',
-          fees: '0',
-        },
-        raw: true,
-      });
-
-      const disabledPortfolio = await helpers.createPortfolio({ raw: true });
-      await seedHolding({ portfolioId: disabledPortfolio.id, securityId: security.id });
-      await fundPortfolio({ portfolioId: disabledPortfolio.id, amount: '1000', date: '2025-12-15' });
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: disabledPortfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          date: '2025-12-20',
-          quantity: '5',
-          price: '100',
-          fees: '0',
-        },
-        raw: true,
-      });
-      await helpers.updatePortfolio({
-        portfolioId: disabledPortfolio.id,
-        payload: { isEnabled: false },
-        raw: true,
-      });
-
-      await setPrice({ securityId: security.id, date: '2025-12-31', price: '100' });
-      await setPrice({ securityId: security.id, date: JAN.end, price: '120' });
-
-      // The disabled portfolio is enforced out even when explicitly named: only the
-      // enabled one's 10 shares (1,200) count, never the disabled one's 5 (600).
-      const { buckets } = await helpers.getNetWorthDrivers({
-        from: JAN.start,
-        to: JAN.end,
-        granularity: 'monthly',
-        portfolioIds: [enabledPortfolio.id, disabledPortfolio.id],
-        raw: true,
-      });
-
-      expect(buckets[0]!.composition.holdingsValue).toBe(1200);
-    });
-
-    it('leaves user-wide savings unaffected by the filter', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 900,
-          transactionType: TRANSACTION_TYPES.income,
-          time: `${JAN.start}T10:00:00.000Z`,
-        }),
-        raw: true,
-      });
-      const { portfolioA } = await seedTwoPortfolios();
-
-      const filtered = await helpers.getNetWorthDrivers({
-        from: JAN.start,
-        to: JAN.end,
-        granularity: 'monthly',
-        portfolioIds: [portfolioA.id],
-        raw: true,
-      });
 
       // Savings is income minus expenses across all of the user's accounts — it is
       // not attributable to a portfolio, so narrowing the investment filter leaves
       // it whole while still scoping holdings to A alone.
-      expect(filtered.buckets[0]!.savings.net).toBe(900);
-      expect(filtered.buckets[0]!.composition.holdingsValue).toBe(1200);
-    });
+      expect(onlyA.buckets[0]!.savings.net).toBe(900);
+      expect(onlyA.buckets[0]!.composition.holdingsValue).toBe(1200);
+    }, 60_000);
   });
 
   describe('per-portfolio growth breakdown', () => {
@@ -999,7 +921,7 @@ describe('GET /stats/net-worth-drivers', () => {
       return { alpha, beta, gamma };
     };
 
-    it('splits each bucket growth across the portfolios that produced it', async () => {
+    it('splits each bucket growth across the portfolios that produced it and narrows to a filtered one', async () => {
       const { alpha, beta, gamma } = await seedThreePortfolios();
 
       const { buckets, portfolios } = await helpers.getNetWorthDrivers({ ...RANGE, raw: true });
@@ -1042,62 +964,24 @@ describe('GET /stats/net-worth-drivers', () => {
         { portfolioId: beta.id, name: 'Beta' },
         { portfolioId: gamma.id, name: 'Gamma' },
       ]);
-    });
 
-    it('narrows the breakdown and the legend to the filtered portfolio', async () => {
-      const { alpha } = await seedThreePortfolios();
-
-      const { buckets, portfolios } = await helpers.getNetWorthDrivers({
+      const narrowed = await helpers.getNetWorthDrivers({
         ...RANGE,
         portfolioIds: [alpha.id],
         raw: true,
       });
 
-      expect(portfolios).toEqual([{ portfolioId: alpha.id, name: 'Alpha' }]);
+      expect(narrowed.portfolios).toEqual([{ portfolioId: alpha.id, name: 'Alpha' }]);
       // With one portfolio in scope the bucket total is that portfolio's slice —
       // the other two contribute to neither the split nor the total.
-      expect(buckets[0]!.investments.growth).toBe(200);
-      expect(buckets[0]!.investments.byPortfolio).toEqual([{ portfolioId: alpha.id, growth: 200 }]);
-      expect(buckets[1]!.investments.growth).toBe(-100);
-      expect(buckets[1]!.investments.byPortfolio).toEqual([{ portfolioId: alpha.id, growth: -100 }]);
-    });
+      expect(narrowed.buckets[0]!.investments.growth).toBe(200);
+      expect(narrowed.buckets[0]!.investments.byPortfolio).toEqual([{ portfolioId: alpha.id, growth: 200 }]);
+      expect(narrowed.buckets[1]!.investments.growth).toBe(-100);
+      expect(narrowed.buckets[1]!.investments.byPortfolio).toEqual([{ portfolioId: alpha.id, growth: -100 }]);
+    }, 60_000);
   });
 
   describe('degraded data quality', () => {
-    it('omits the degraded field when every holding is priced', async () => {
-      const portfolio = await helpers.createPortfolio({ raw: true });
-      const security = await createBaseCurrencySecurity();
-      await seedHolding({ portfolioId: portfolio.id, securityId: security.id });
-
-      await fundPortfolio({ portfolioId: portfolio.id, amount: '1000', date: '2025-12-15' });
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: security.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          date: '2025-12-20',
-          quantity: '10',
-          price: '100',
-          fees: '0',
-        },
-        raw: true,
-      });
-
-      await setPrice({ securityId: security.id, date: '2025-12-31', price: '100' });
-      await setPrice({ securityId: security.id, date: JAN.end, price: '120' });
-
-      const result = await helpers.getNetWorthDrivers({
-        from: JAN.start,
-        to: JAN.end,
-        granularity: 'monthly',
-        raw: true,
-      });
-
-      // Every snapshot day had a price and every amount was already in the base
-      // currency, so the report carries no data-quality caveat and the key is absent.
-      expect(result.degraded).toBeUndefined();
-    });
-
     it('reports a held security with no price data via degraded.unpricedSecurities', async () => {
       const portfolio = await helpers.createPortfolio({ raw: true });
       const security = await createBaseCurrencySecurity();
@@ -1555,37 +1439,35 @@ describe('GET /stats/net-worth-drivers', () => {
   });
 
   describe('validation', () => {
-    it('rejects an unknown granularity', async () => {
-      const response = await helpers.makeRequest({
+    it('rejects malformed query parameters with 422', async () => {
+      const unknownGranularity = await helpers.makeRequest({
         method: 'get',
         url: `/stats/net-worth-drivers?from=${JAN.start}&to=${FEB.end}&granularity=weekly`,
       });
 
-      expect(response.statusCode).toBe(422);
-    });
+      expect(unknownGranularity.statusCode).toBe(422);
 
-    it('rejects a malformed date', async () => {
-      const response = await helpers.makeRequest({
+      const malformedDate = await helpers.makeRequest({
         method: 'get',
         url: `/stats/net-worth-drivers?from=not-a-date&to=${FEB.end}&granularity=monthly`,
       });
 
-      expect(response.statusCode).toBe(422);
-    });
+      expect(malformedDate.statusCode).toBe(422);
 
-    it('rejects a range whose start is after its end', async () => {
-      const response = await helpers.getNetWorthDrivers({ from: FEB.end, to: JAN.start, granularity: 'monthly' });
+      const invertedRange = await helpers.getNetWorthDrivers({
+        from: FEB.end,
+        to: JAN.start,
+        granularity: 'monthly',
+      });
 
-      expect(response.statusCode).toBe(422);
-    });
+      expect(invertedRange.statusCode).toBe(422);
 
-    it('rejects a missing granularity', async () => {
-      const response = await helpers.makeRequest({
+      const missingGranularity = await helpers.makeRequest({
         method: 'get',
         url: `/stats/net-worth-drivers?from=${JAN.start}&to=${FEB.end}`,
       });
 
-      expect(response.statusCode).toBe(422);
+      expect(missingGranularity.statusCode).toBe(422);
     });
   });
 });
