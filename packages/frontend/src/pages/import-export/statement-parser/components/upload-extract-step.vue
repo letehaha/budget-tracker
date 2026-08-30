@@ -152,6 +152,15 @@
       <p class="text-muted-foreground text-center text-sm">
         {{ $t('pages.statementParser.uploadExtract.continueMessage') }}
       </p>
+
+      <!-- Explicit way on, not just the auto-advance that fires when extraction
+           finishes. Coming back to this step leaves "Extract Transactions" as the
+           only forward control, and re-running it would spend another AI call to
+           reproduce transactions we are already holding. -->
+      <Button class="w-full" @click="store.goToStep('account')">
+        {{ $t('pages.statementParser.uploadExtract.continueButton') }}
+        <ArrowRightIcon class="size-4" />
+      </Button>
     </div>
   </div>
 </template>
@@ -164,7 +173,7 @@ import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import { CalculatorIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
+import { ArrowRightIcon, CalculatorIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
 import { computed, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

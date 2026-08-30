@@ -34,6 +34,7 @@
         "fromLabel": "dari",
         "inLabel": "dalam",
         "continueMessage": "Lanjutkan untuk memilih akun untuk transaksi ini.",
+        "continueButton": "Lanjut ke Akun",
         "tokenWarning": {
           "medium": {
             "title": "File besar terdeteksi",

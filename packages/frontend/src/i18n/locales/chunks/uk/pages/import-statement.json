@@ -34,6 +34,7 @@
         "fromLabel": "з",
         "inLabel": "в",
         "continueMessage": "Продовжуйте, щоб вибрати рахунок для цих транзакцій.",
+        "continueButton": "Перейти до рахунку",
         "tokenWarning": {
           "medium": {
             "title": "Виявлено великий файл",

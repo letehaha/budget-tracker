@@ -29,13 +29,33 @@ const emit = defineEmits<{
 const currentStepIndex = computed(() => props.steps.findIndex((step) => step.key === props.currentStepKey));
 
 /**
- * Clickable only when completed AND at or behind the current step. A forward jump
- * is refused even for a step completed on an earlier run, because the data that
- * validated it may since have been cleared (e.g. an emptied account on the Map
- * step). Forward progress runs through the wizard's own re-validating advance.
+ * The one step ahead that may be entered directly: the first not-yet-completed
+ * step, and only while it sits immediately after the current one.
+ *
+ * A step is marked completed when the user *leaves* it, so the step they had
+ * already reached is not itself completed. Without this, navigating back one step
+ * strands them: the step they came from fails the completed check, and a wizard
+ * whose forward control has already done its work (an extraction that succeeded,
+ * a file that is already parsed) has nothing left to click.
+ *
+ * Requiring the whole prefix to be completed is what keeps it from becoming a
+ * general forward jump — an unreached step still can't be opened, and neither can
+ * a later one be reached by skipping over the step in between.
+ */
+const nextOpenStepIndex = computed(() => {
+  const firstIncomplete = props.steps.findIndex((step) => !props.completedStepKeys.has(step.key));
+  return firstIncomplete === currentStepIndex.value + 1 ? firstIncomplete : -1;
+});
+
+/**
+ * A completed step is clickable at or behind the current one. A forward jump into
+ * a completed step is refused, because the data that validated it may since have
+ * been cleared (e.g. an emptied account on the Map step) — that path runs through
+ * the wizard's own re-validating advance instead.
  */
 function isStepNavigable({ step, index }: { step: WizardStep; index: number }): boolean {
-  return props.completedStepKeys.has(step.key) && index <= currentStepIndex.value;
+  if (props.completedStepKeys.has(step.key)) return index <= currentStepIndex.value;
+  return index === nextOpenStepIndex.value;
 }
 
 function onStepClick({ step }: { step: WizardStep }) {
