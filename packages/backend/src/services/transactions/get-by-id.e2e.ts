@@ -1,4 +1,11 @@
-import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTIONS_WRITE_SCOPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import {
+  API_RESPONSE_STATUS,
+  RESOURCE_TYPES,
+  SHARE_PERMISSIONS,
+  TRANSACTIONS_WRITE_SCOPES,
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+} from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
@@ -68,12 +75,17 @@ describe('GET /transactions/:id — getTransactionById 4-branch coverage', () =>
     expect(result).not.toBeNull();
     expect(result!.id).toBe(tx.id);
     expect(result!.amount).toBe(15);
+    expect(result!.canEdit).toBe(true);
   });
 
-  it('Branch 2: recipient-authored tx on shared account is visible to the recipient', async () => {
+  it('Branch 2: recipient-authored tx on a write/all shared account is visible and editable', async () => {
     // Owner creates account and category; shares with recipient (write/all)
     const account = await helpers.createAccount({ raw: true });
     const ownerCategory = await helpers.addCustomCategory({ name: 'shared-cat', color: '#FF0000', raw: true });
+    const [ownerTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 30 }),
+      raw: true,
+    });
 
     const recipient = await provisionRecipient();
     await shareAccountWithRecipient({
@@ -98,18 +110,24 @@ describe('GET /transactions/:id — getTransactionById 4-branch coverage', () =>
         }),
     });
 
-    // Recipient fetches that tx by id — branch 2: authored by caller but account belongs to owner
-    const result = await helpers.asUser({
+    // Branch 2: authored by caller but account belongs to owner
+    const ownView = await helpers.asUser({
       cookies: recipient.cookies,
       fn: () => helpers.getTransactionById({ id: recipientTx.id, raw: true }),
     });
 
-    expect(result).not.toBeNull();
-    expect(result!.id).toBe(recipientTx.id);
-    expect(result!.amount).toBe(20);
-  });
+    expect(ownView).not.toBeNull();
+    expect(ownView!.id).toBe(recipientTx.id);
+    expect(ownView!.amount).toBe(20);
 
-  it('Branch 3: non-author recipient with accepted read share can fetch the tx', async () => {
+    const ownerTxView = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.getTransactionById({ id: ownerTx.id, raw: true }),
+    });
+    expect(ownerTxView!.canEdit).toBe(true);
+  }, 60_000);
+
+  it('Branch 3: non-author recipient with accepted read share can fetch the tx but not edit it', async () => {
     // Owner creates account + tx
     const account = await helpers.createAccount({ raw: true });
     const [ownerTx] = await helpers.createTransaction({
@@ -138,9 +156,10 @@ describe('GET /transactions/:id — getTransactionById 4-branch coverage', () =>
     expect(result).not.toBeNull();
     expect(result!.id).toBe(ownerTx.id);
     expect(result!.amount).toBe(5);
+    expect(result!.canEdit).toBe(false);
   });
 
-  it('Branch 4: stranger with no share claim gets null (endpoint returns null)', async () => {
+  it('Branch 4: stranger and unknown ids both resolve to null', async () => {
     const account = await helpers.createAccount({ raw: true });
     const [ownerTx] = await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
@@ -152,23 +171,20 @@ describe('GET /transactions/:id — getTransactionById 4-branch coverage', () =>
 
     const stranger = await provisionRecipient();
 
-    const res = await helpers.asUser({
+    const strangerRes = await helpers.asUser({
       cookies: stranger.cookies,
       fn: () => helpers.getTransactionById({ id: ownerTx.id, raw: false }),
     });
 
     // Controller returns { data: null } with 200 when tx not found for caller
-    expect(res.statusCode).toBe(200);
+    expect(strangerRes.statusCode).toBe(200);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((res as any).body.response).toBeNull();
-  });
+    expect((strangerRes as any).body.response).toBeNull();
 
-  it('returns 404 for a completely non-existent transaction id', async () => {
-    const res = await helpers.getTransactionById({ id: generateRandomRecordId(), raw: false });
-    // Controller serializes missing tx as null with 200; verify no data leaks
-    expect(res.statusCode).toBe(200);
+    const unknownIdRes = await helpers.getTransactionById({ id: generateRandomRecordId(), raw: false });
+    expect(unknownIdRes.statusCode).toBe(200);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((res as any).body.response).toBeNull();
+    expect((unknownIdRes as any).body.response).toBeNull();
   });
 });
 
@@ -176,58 +192,6 @@ describe('GET /transactions/:id — canEdit flag', () => {
   // The single-tx endpoint surfaces `canEdit` from the already-resolved access result —
   // no extra DB cost. The FE uses it as the authoritative write-access signal when the
   // parent account isn't in its local store (typically a budget-share-only fetch).
-  it('owner gets canEdit: true on their own tx', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const [tx] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 15 }),
-      raw: true,
-    });
-
-    const result = await helpers.getTransactionById({ id: tx.id, raw: true });
-    expect(result!.canEdit).toBe(true);
-  });
-
-  it('write/all recipient on a shared account gets canEdit: true', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const [ownerTx] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 30 }),
-      raw: true,
-    });
-    const recipient = await provisionRecipient();
-    await shareAccountWithRecipient({
-      accountId: account.id,
-      recipient,
-      permission: SHARE_PERMISSIONS.write,
-      transactionsWriteScope: TRANSACTIONS_WRITE_SCOPES.all,
-    });
-
-    const result = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () => helpers.getTransactionById({ id: ownerTx.id, raw: true }),
-    });
-    expect(result!.canEdit).toBe(true);
-  });
-
-  it('read-only recipient on a shared account gets canEdit: false', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const [ownerTx] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 5 }),
-      raw: true,
-    });
-    const recipient = await provisionRecipient();
-    await shareAccountWithRecipient({
-      accountId: account.id,
-      recipient,
-      permission: SHARE_PERMISSIONS.read,
-    });
-
-    const result = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () => helpers.getTransactionById({ id: ownerTx.id, raw: true }),
-    });
-    expect(result!.canEdit).toBe(false);
-  });
-
   it("'own'-scope recipient gets canEdit: false on owner's tx, true on their own", async () => {
     const account = await helpers.createAccount({ raw: true });
     const [ownerTx] = await helpers.createTransaction({
@@ -373,5 +337,179 @@ describe('GET /transactions/:id — budget-share visibility fallback', () => {
     });
 
     expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('GET /transactions/by-ids', () => {
+  it('returns exactly the requested transactions with decimal amounts', async () => {
+    const account = await helpers.createAccount({ raw: true });
+
+    const [tx1] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
+      raw: true,
+    });
+    const [tx2] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 200 }),
+      raw: true,
+    });
+    const [tx3] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 300 }),
+      raw: true,
+    });
+
+    const result = await helpers.getTransactionsByIds({
+      ids: [tx1.id, tx2.id],
+      raw: true,
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result.map((t) => t.id).toSorted()).toEqual([tx1.id, tx2.id].toSorted());
+    expect(result.map((t) => t.id)).not.toContain(tx3.id);
+
+    // Verify amounts are serialized to decimals
+    expect(result.find((t) => t.id === tx1.id)!.amount).toBe(100);
+    expect(result.find((t) => t.id === tx2.id)!.amount).toBe(200);
+
+    const noMatches = await helpers.getTransactionsByIds({
+      ids: [generateRandomRecordId()],
+      raw: true,
+    });
+    expect(noMatches).toEqual([]);
+  });
+
+  it('returns 422 for malformed or missing ids', async () => {
+    const nonNumeric = await helpers.makeRequest({
+      method: 'get',
+      url: '/transactions/by-ids',
+      payload: { ids: 'abc,def' },
+    });
+
+    expect(nonNumeric.statusCode).toBe(422);
+    expect(nonNumeric.body.status).toBe(API_RESPONSE_STATUS.error);
+
+    const missing = await helpers.makeRequest({
+      method: 'get',
+      url: '/transactions/by-ids',
+    });
+
+    expect(missing.statusCode).toBe(422);
+    expect(missing.body.status).toBe(API_RESPONSE_STATUS.error);
+  });
+});
+
+describe('Retrieve transaction by transfer id', () => {
+  it('returns both legs for a real transferId and nothing for a null one', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+
+    const [transferBase] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          amount: 5000,
+        }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        destinationAmount: 10000,
+        destinationAccountId: accountB.id,
+      },
+      raw: true,
+    });
+    const [outOfWallet] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          amount: 5000,
+        }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      },
+      raw: true,
+    });
+
+    const legs = await helpers.getTransactionsByTransferId({
+      transferId: transferBase.transferId,
+      raw: true,
+    });
+    expect(legs.length).toBe(2);
+
+    const noLegs = await helpers.getTransactionsByTransferId({
+      transferId: outOfWallet.transferId,
+      raw: true,
+    });
+    expect(noLegs.length).toBe(0);
+  });
+
+  it('returns both legs to a household recipient even when neither leg was authored by them', async () => {
+    // Reproduces the "Hidden account" UI bug: inviter creates a transfer between two of
+    // their own accounts; the recipient (granted household access) used to see only zero
+    // legs because the model query filtered by `Transactions.userId` (the author), which
+    // never matches across users. Visibility must follow account access, not authorship.
+    const ownerAccountA = await helpers.createAccount({ raw: true });
+    const ownerAccountB = await helpers.createAccount({ raw: true });
+    const [base] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: ownerAccountA.id,
+          amount: 5000,
+        }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        destinationAmount: 5000,
+        destinationAccountId: ownerAccountB.id,
+      },
+      raw: true,
+    });
+
+    const recipient = await provisionRecipient();
+    const inv = await helpers.createHouseholdInvitation({
+      ownerUserId: ownerAccountA.userId,
+      inviteeEmail: recipient.email,
+    });
+    await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.acceptShareInvitation({ token: inv.token, raw: true }),
+    });
+
+    const res = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.getTransactionsByTransferId({ transferId: base.transferId, raw: true }),
+    });
+
+    expect(res.length).toBe(2);
+    const accountIds = new Set(res.map((tx) => tx.accountId));
+    expect(accountIds).toEqual(new Set([ownerAccountA.id, ownerAccountB.id]));
+  });
+
+  it('returns only the visible leg to a per-resource recipient when the other leg lives on a private account', async () => {
+    // Per-resource sharing narrows visibility to the shared account only — the opposite
+    // leg lives on the owner's still-private account, so the recipient must not see it.
+    // Keeps the "Hidden account" placeholder honest for genuinely-hidden counterparts.
+    const sharedAccount = await helpers.createAccount({ raw: true });
+    const privateAccount = await helpers.createAccount({ raw: true });
+    const [base] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: sharedAccount.id,
+          amount: 5000,
+        }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+        destinationAmount: 5000,
+        destinationAccountId: privateAccount.id,
+      },
+      raw: true,
+    });
+
+    const recipient = await provisionRecipient();
+    await shareAccountWithRecipient({
+      accountId: sharedAccount.id,
+      recipient,
+      permission: SHARE_PERMISSIONS.read,
+    });
+
+    const res = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.getTransactionsByTransferId({ transferId: base.transferId, raw: true }),
+    });
+
+    expect(res.length).toBe(1);
+    expect(res[0]!.accountId).toBe(sharedAccount.id);
   });
 });

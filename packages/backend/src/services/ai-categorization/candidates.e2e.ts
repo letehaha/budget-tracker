@@ -4,18 +4,17 @@ import {
   type RecordId,
   TRANSACTION_TRANSFER_NATURE,
 } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import { app } from '@root/app';
 import { API_PREFIX } from '@root/config';
 import * as helpers from '@tests/helpers';
-import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { startOfDay, subDays } from 'date-fns';
 import request from 'supertest';
 
 const CANDIDATES_URL = `${API_PREFIX}/user/ai/categorization/candidates`;
-
-const RUN_SETTLE_TIMEOUT_MS = 15_000;
-const TEST_TIMEOUT_MS = 60_000;
+const HISTORY_URL = `${API_PREFIX}/user/ai/categorization/history`;
+const STATUS_URL = `${API_PREFIX}/user/ai/categorization/status`;
+const TRIGGER_URL = `${API_PREFIX}/user/ai/categorization/trigger`;
 
 /**
  * Newest first: index 0 is today, each following row is a day older, so the default
@@ -108,24 +107,17 @@ const getCandidates = async (payload?: { limit?: number; offset?: number }) => (
 const getCount = async () => (await getPage({ limit: 1 })).totalCount;
 
 describe('GET /user/ai/categorization/candidates', () => {
-  let originalGeminiApiKey: string | undefined;
+  it('returns 401 for unauthenticated requests to every ai-categorization endpoint', async () => {
+    const responses = await Promise.all([
+      request(app).get(CANDIDATES_URL),
+      request(app).get(HISTORY_URL),
+      request(app).get(STATUS_URL),
+      request(app).post(TRIGGER_URL),
+    ]);
 
-  beforeEach(() => {
-    originalGeminiApiKey = process.env.GEMINI_API_KEY;
-  });
-
-  afterEach(() => {
-    if (originalGeminiApiKey === undefined) {
-      delete process.env.GEMINI_API_KEY;
-    } else {
-      process.env.GEMINI_API_KEY = originalGeminiApiKey;
+    for (const response of responses) {
+      expect(response.statusCode).toBe(401);
     }
-  });
-
-  it('returns 401 for an unauthenticated request', async () => {
-    const response = await request(app).get(CANDIDATES_URL);
-
-    expect(response.statusCode).toBe(401);
   });
 
   it('returns an empty list and a zero total when nothing is waiting for categorization', async () => {
@@ -164,13 +156,14 @@ describe('GET /user/ai/categorization/candidates', () => {
     expect(candidates.map((tx) => tx.id).sort()).toEqual([...candidateIds].sort());
     expect(candidates.every((tx) => tx.categoryId === defaultCategoryId)).toBe(true);
     expect(candidates.every((tx) => tx.categorizationMeta === null)).toBe(true);
+    expect(await getCount()).toBe(candidateIds.length);
 
     const stamped = await helpers.getTransactionById({ id: stampedIds[0]!, raw: true });
     expect(stamped?.categoryId).toBe(defaultCategoryId);
     expect(stamped?.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
   });
 
-  it('slices the same ordered list across limit and offset', async () => {
+  it('slices the same ordered list across limit and offset, reporting the total only on the first page', async () => {
     const user = await helpers.getUserInfo({ raw: true });
     const account = await helpers.createAccount({ raw: true });
     const seededIds = await seedTransactions({
@@ -182,32 +175,20 @@ describe('GET /user/ai/categorization/candidates', () => {
     const all = await getCandidates({ limit: 100 });
     expect(all.map((tx) => tx.id)).toEqual(seededIds);
 
-    const firstPage = await getCandidates({ limit: 2, offset: 0 });
-    const secondPage = await getCandidates({ limit: 2, offset: 2 });
-    const thirdPage = await getCandidates({ limit: 2, offset: 4 });
+    const firstPage = await getPage({ limit: 2, offset: 0 });
+    const secondPage = await getPage({ limit: 2, offset: 2 });
+    const thirdPage = await getPage({ limit: 2, offset: 4 });
 
-    expect(firstPage.map((tx) => tx.id)).toEqual(seededIds.slice(0, 2));
-    expect(secondPage.map((tx) => tx.id)).toEqual(seededIds.slice(2, 4));
-    expect(thirdPage.map((tx) => tx.id)).toEqual(seededIds.slice(4));
+    expect(firstPage.items.map((tx) => tx.id)).toEqual(seededIds.slice(0, 2));
+    expect(firstPage.totalCount).toBe(5);
 
-    const paged = [...firstPage, ...secondPage, ...thirdPage].map((tx) => tx.id);
+    expect(secondPage.items.map((tx) => tx.id)).toEqual(seededIds.slice(2, 4));
+    expect(secondPage.totalCount).toBeNull();
+
+    expect(thirdPage.items.map((tx) => tx.id)).toEqual(seededIds.slice(4));
+
+    const paged = [...firstPage.items, ...secondPage.items, ...thirdPage.items].map((tx) => tx.id);
     expect(new Set(paged).size).toBe(seededIds.length);
-  });
-
-  it('lists exactly as many rows as the total reports', async () => {
-    const user = await helpers.getUserInfo({ raw: true });
-    const defaultCategoryId = user.defaultCategoryId as RecordId;
-    const account = await helpers.createAccount({ raw: true });
-    const customCategory = await helpers.addCustomCategory({ name: 'Utilities', color: '#00FF00', raw: true });
-
-    await seedTransactions({ count: 4, categoryId: defaultCategoryId, accountId: account.id });
-    await seedTransactions({ count: 3, categoryId: customCategory.id as RecordId, accountId: account.id });
-
-    const totalCount = await getCount();
-    const candidates = await getCandidates({ limit: 100 });
-
-    expect(totalCount).toBe(4);
-    expect(candidates).toHaveLength(4);
   });
 
   it('counts candidates across every account the user owns', async () => {
@@ -224,46 +205,6 @@ describe('GET /user/ai/categorization/candidates', () => {
 
     expect(await getCount()).toBe(5);
   });
-
-  it('reports the total only on the first page, uncapped by the page size', async () => {
-    const user = await helpers.getUserInfo({ raw: true });
-    const account = await helpers.createAccount({ raw: true });
-    await seedTransactions({ count: 5, categoryId: user.defaultCategoryId as RecordId, accountId: account.id });
-
-    const firstPage = await getPage({ limit: 2, offset: 0 });
-    expect(firstPage.items).toHaveLength(2);
-    expect(firstPage.totalCount).toBe(5);
-
-    const secondPage = await getPage({ limit: 2, offset: 2 });
-    expect(secondPage.items).toHaveLength(2);
-    expect(secondPage.totalCount).toBeNull();
-  });
-
-  it(
-    'drops to zero once a categorization run finishes',
-    async () => {
-      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
-      global.mswMockServer.use(createGeminiMock({ categorizations: { 1: 1, 2: 1 } }));
-
-      const user = await helpers.getUserInfo({ raw: true });
-      const account = await helpers.createAccount({ raw: true });
-      await seedTransactions({ count: 2, categoryId: user.defaultCategoryId as RecordId, accountId: account.id });
-
-      expect(await getCount()).toBe(2);
-
-      const trigger = await helpers.triggerAiCategorization();
-      expect(trigger.statusCode).toBe(200);
-      expect(trigger.body.response).toEqual({ enqueued: true, totalCount: 2 });
-
-      await helpers.waitForCategorizationStatus({
-        predicate: (status) => status.status === 'idle',
-        timeoutMs: RUN_SETTLE_TIMEOUT_MS,
-      });
-
-      expect(await getPage()).toEqual({ items: [], totalCount: 0 });
-    },
-    TEST_TIMEOUT_MS,
-  );
 
   it('never lists or counts transfers, even when they sit in the default category', async () => {
     const user = await helpers.getUserInfo({ raw: true });

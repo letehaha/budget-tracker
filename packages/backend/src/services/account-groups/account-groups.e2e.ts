@@ -208,6 +208,7 @@ describe('Update account group', () => {
   it("returns 404 when user B tries to update user A's group", async () => {
     const userAGroup = await helpers.createAccountGroup({
       name: defaultName,
+      logoDomain: 'owned.com',
       raw: true,
     });
 
@@ -219,10 +220,16 @@ describe('Update account group', () => {
         helpers.updateAccountGroup({
           groupId: userAGroup.id,
           name: 'hacked',
+          logoDomain: 'hijack.com',
         }),
     });
 
     expect(res.statusCode).toBe(404);
+
+    // The foreign PUT is blocked: the owner's group is unchanged.
+    const after = await findGroupInList({ id: userAGroup.id });
+    expect(after?.name).toBe(defaultName);
+    expect(after?.logoDomain).toBe('owned.com');
   });
 
   it("returns 404 when user B tries to reparent their group under user A's group", async () => {
@@ -282,33 +289,6 @@ describe('Delete account group', () => {
 
 describe('AccountGroup POST logo', () => {
   describe('POST /account-group', () => {
-    it('creates with a logoDomain', async () => {
-      const created = await helpers.createAccountGroup({
-        name: 'Family',
-        logoDomain: 'family.example',
-        raw: true,
-      });
-
-      expect(created.logoDomain).toBe('family.example');
-      expect(created.logoInitials).toBeNull();
-      expect(created.logoColor).toBeNull();
-      expect(created).not.toHaveProperty('logoSource');
-    });
-
-    it('creates with logoInitials and logoColor', async () => {
-      const created = await helpers.createAccountGroup({
-        name: 'Cash',
-        logoInitials: 'CA',
-        logoColor: '#7355be',
-        raw: true,
-      });
-
-      expect(created.logoInitials).toBe('CA');
-      expect(created.logoColor).toBe('#7355be');
-      expect(created.logoDomain).toBeNull();
-      expect(created).not.toHaveProperty('logoSource');
-    });
-
     it('never resolves a group logo, even with a matching BrandLogos cache entry', async () => {
       // A cache entry that WOULD be picked up if groups had logo resolution.
       await BrandLogos.create({
@@ -363,7 +343,7 @@ describe('AccountGroup PUT logo', () => {
       expect(updated).not.toHaveProperty('logoSource');
     });
 
-    it('leaves the logo untouched when the payload omits the logo keys', async () => {
+    it('preserves the monogram across a payload with nothing to write and a rename', async () => {
       const group = await helpers.createAccountGroup({
         name: 'Keep Mono',
         logoInitials: 'KM',
@@ -371,36 +351,28 @@ describe('AccountGroup PUT logo', () => {
         raw: true,
       });
 
-      const [updated] = await helpers.updateAccountGroup({
+      const noopRes = await helpers.updateAccountGroup({ groupId: group.id, raw: false });
+      expect(noopRes.statusCode).toBe(200);
+
+      const [stored] = helpers.extractResponse(noopRes);
+      expect(stored).toMatchObject({
+        id: group.id,
+        name: 'Keep Mono',
+        logoDomain: null,
+        logoInitials: 'KM',
+        logoColor: '#7355be',
+      });
+
+      const [renamed] = await helpers.updateAccountGroup({
         groupId: group.id,
         name: 'Keep Mono Renamed',
         raw: true,
       });
 
-      expect(updated?.name).toBe('Keep Mono Renamed');
-      expect(updated?.logoInitials).toBe('KM');
-      expect(updated?.logoColor).toBe('#7355be');
-    });
-
-    it('returns the stored group when the payload carries nothing to write', async () => {
-      const group = await helpers.createAccountGroup({
-        name: 'Nothing To Write',
-        logoInitials: 'NW',
-        logoColor: '#7355be',
-        raw: true,
-      });
-
-      const res = await helpers.updateAccountGroup({ groupId: group.id, raw: false });
-      expect(res.statusCode).toBe(200);
-
-      const [updated] = helpers.extractResponse(res);
-      expect(updated).toMatchObject({
-        id: group.id,
-        name: 'Nothing To Write',
-        logoDomain: null,
-        logoInitials: 'NW',
-        logoColor: '#7355be',
-      });
+      expect(renamed?.name).toBe('Keep Mono Renamed');
+      expect(renamed?.logoInitials).toBe('KM');
+      expect(renamed?.logoColor).toBe('#7355be');
+      expect(renamed?.logoDomain).toBeNull();
     });
 
     it('clears a monogram back to null when both logo fields are sent as null', async () => {
@@ -446,54 +418,6 @@ describe('AccountGroup PUT logo', () => {
 
       expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
-
-    it("returns 404 when a different user tries to set another user's group logo", async () => {
-      const group = await helpers.createAccountGroup({
-        name: 'LogoCrossUserGuard',
-        logoDomain: 'owned.com',
-        raw: true,
-      });
-
-      const handle = await helpers.signUpSecondUser();
-      const response = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () =>
-          helpers.updateAccountGroup({
-            groupId: group.id,
-            logoDomain: 'hijack.com',
-            raw: false,
-          }),
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-
-      // The foreign PUT is blocked: the owner's logo is unchanged.
-      const after = await findGroupInList({ id: group.id });
-      expect(after?.logoDomain).toBe('owned.com');
-    });
-
-    it("returns 404 when a different user tries to clear another user's group logo", async () => {
-      const group = await helpers.createAccountGroup({
-        name: 'ClearCrossUserGuard',
-        logoDomain: 'owned.com',
-        raw: true,
-      });
-
-      const handle = await helpers.signUpSecondUser();
-      const response = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () =>
-          helpers.updateAccountGroup({
-            groupId: group.id,
-            logoDomain: null,
-            logoInitials: null,
-            raw: false,
-          }),
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-
-      const after = await findGroupInList({ id: group.id });
-      expect(after?.logoDomain).toBe('owned.com');
-    });
   });
 });
 
@@ -508,12 +432,21 @@ describe('AccountGroup logo read path', () => {
       logoDomain: 'listed.example',
       raw: true,
     });
+    expect(withDomain.logoDomain).toBe('listed.example');
+    expect(withDomain.logoInitials).toBeNull();
+    expect(withDomain.logoColor).toBeNull();
+    expect(withDomain).not.toHaveProperty('logoSource');
+
     const withMonogram = await helpers.createAccountGroup({
       name: 'Listed Mono',
       logoInitials: 'LM',
       logoColor: '#7355be',
       raw: true,
     });
+    expect(withMonogram.logoInitials).toBe('LM');
+    expect(withMonogram.logoColor).toBe('#7355be');
+    expect(withMonogram.logoDomain).toBeNull();
+    expect(withMonogram).not.toHaveProperty('logoSource');
 
     const list = await helpers.getAccountGroups({ raw: true });
 

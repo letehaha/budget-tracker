@@ -8,10 +8,6 @@ import { randomUUID } from 'node:crypto';
 /**
  * Contract tests for the Microsoft Money endpoints that need no `.mny` file:
  * rejected uploads, unknown upload ids, cross-user isolation and auth.
- * The import behaviour itself lives in `ms-money-execute-import.e2e.ts` and the
- * lease behaviour in `ms-money-upload-lease.e2e.ts`; both need a real fixture
- * and skip themselves when none is present. Refreshing a lease is not an
- * ms-money endpoint at all — it is covered in `resource-lease-registry.e2e.ts`.
  */
 
 /** A well-formed upload id that was never issued. */
@@ -22,29 +18,31 @@ const someAccountMapping = { 'Some Account': { action: 'skip' as const } };
 
 describe('Microsoft Money import endpoints', () => {
   describe('POST /import/ms-money/upload', () => {
-    it('rejects a body that is not a Microsoft Money database', async () => {
-      const result = await helpers.uploadMsMoney({
+    it('rejects bodies that are not an acceptable Microsoft Money upload', async () => {
+      const notADatabase = await helpers.uploadMsMoney({
         file: Buffer.from('this is a text file, not a Money database'),
       });
+      expect(notADatabase.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(notADatabase.errorMessage).toMatch(/not a Microsoft Money database/i);
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(result.errorMessage).toMatch(/not a Microsoft Money database/i);
-    });
-
-    it('rejects a body of the right size that is still not a Money database', async () => {
       // Random bytes long enough to clear any minimum-length check, so the
       // rejection comes from the file's own header rather than its size.
-      const result = await helpers.uploadMsMoney({ file: Buffer.alloc(8192, 0x42) });
+      const rightSize = await helpers.uploadMsMoney({ file: Buffer.alloc(8192, 0x42) });
+      expect(rightSize.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(rightSize.errorMessage).toBeTruthy();
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(result.errorMessage).toBeTruthy();
-    });
+      const empty = await helpers.uploadMsMoney({ file: Buffer.alloc(0) });
+      expect(empty.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(empty.errorMessage).toMatch(/No file was uploaded/i);
 
-    it('rejects an empty body', async () => {
-      const result = await helpers.uploadMsMoney({ file: Buffer.alloc(0) });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(result.errorMessage).toMatch(/No file was uploaded/i);
+      // Only `application/octet-stream` reaches the raw parser, so anything else
+      // leaves the handler with no buffer at all.
+      const wrongContentType = await helpers.uploadMsMoney({
+        file: Buffer.from('some bytes'),
+        contentType: 'text/plain',
+      });
+      expect(wrongContentType.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(wrongContentType.errorMessage).toMatch(/No file was uploaded/i);
     });
 
     /**
@@ -60,64 +58,62 @@ describe('Microsoft Money import endpoints', () => {
       // No upload id came back, so nothing was parsed or cached for it.
       expect(result.response).toBeNull();
     }, 30_000);
-
-    it('rejects a body sent without the octet-stream content type', async () => {
-      // Only `application/octet-stream` reaches the raw parser, so anything else
-      // leaves the handler with no buffer at all.
-      const result = await helpers.uploadMsMoney({
-        file: Buffer.from('some bytes'),
-        contentType: 'text/plain',
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect(result.errorMessage).toMatch(/No file was uploaded/i);
-    });
   });
 
-  describe('POST /import/ms-money/detect-duplicates', () => {
-    it('returns 404 for an upload id that was never issued', async () => {
-      const response = await helpers.detectMsMoneyDuplicates({
-        payload: { uploadId: unknownUploadId(), accountMapping: someAccountMapping },
+  describe('upload ids on the mapping steps', () => {
+    /**
+     * A cached upload is keyed by its owner: another user asking for one gets the
+     * same 404 as an id that never existed, never a 200 carrying someone else's
+     * data. With no `.mny` fixture the id here is a well-formed random UUID.
+     */
+    it("refuses unknown, malformed and other users' upload ids on detect and execute", async () => {
+      const neverIssued = unknownUploadId();
+
+      const detectUnknown = await helpers.detectMsMoneyDuplicates({
+        payload: { uploadId: neverIssued, accountMapping: someAccountMapping },
       });
+      expect(detectUnknown.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('returns 422 for an upload id that is not a UUID', async () => {
-      const response = await helpers.detectMsMoneyDuplicates({
+      const detectMalformed = await helpers.detectMsMoneyDuplicates({
         payload: { uploadId: '../../etc/passwd', accountMapping: someAccountMapping },
       });
+      expect(detectMalformed.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-  });
-
-  describe('POST /import/ms-money/execute', () => {
-    it('returns 404 for an upload id that was never issued', async () => {
       // The upload is checked before the job is queued, so an id the user cannot
       // act on fails immediately instead of becoming a job that dies later.
-      const response = await helpers.executeMsMoney({
-        payload: { uploadId: unknownUploadId(), accountMapping: someAccountMapping },
+      const executeUnknown = await helpers.executeMsMoney({
+        payload: { uploadId: neverIssued, accountMapping: someAccountMapping },
       });
+      expect(executeUnknown.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it('returns 422 for an upload id that is not a UUID', async () => {
-      const response = await helpers.executeMsMoney({
+      const executeMalformed = await helpers.executeMsMoney({
         payload: { uploadId: 'not-a-uuid', accountMapping: someAccountMapping },
       });
+      expect(executeMalformed.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      const otherUser = await provisionSecondUserWithBaseCurrency();
+      await asUser({
+        cookies: otherUser.cookies,
+        fn: async () => {
+          const detect = await helpers.detectMsMoneyDuplicates({
+            payload: { uploadId: neverIssued, accountMapping: someAccountMapping },
+          });
+          expect(detect.statusCode).toBe(ERROR_CODES.NotFoundError);
+
+          const execute = await helpers.executeMsMoney({
+            payload: { uploadId: neverIssued, accountMapping: someAccountMapping },
+          });
+          expect(execute.statusCode).toBe(ERROR_CODES.NotFoundError);
+        },
+      });
     });
 
     // Balances persist as INTEGER cents, so a target past ±20,000,000 must fail
     // request validation instead of the balance write at the end of the job. The
     // body schema runs before the upload is looked up, so an id that was never
     // issued still reaches the mapping and cannot answer 404 first.
-    it.each([{ currentBalance: 20_000_001 }, { currentBalance: -20_000_001 }])(
-      'returns 422 for a create-new balance beyond the integer-cents cap ($currentBalance)',
-      async ({ currentBalance }) => {
+    it('returns 422 for a create-new balance beyond the integer-cents cap', async () => {
+      for (const currentBalance of [20_000_001, -20_000_001]) {
         const response = await helpers.executeMsMoney({
           payload: {
             uploadId: unknownUploadId(),
@@ -126,8 +122,8 @@ describe('Microsoft Money import endpoints', () => {
         });
 
         expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-      },
-    );
+      }
+    });
   });
 
   describe('GET /import/ms-money/status/:jobId', () => {
@@ -138,68 +134,25 @@ describe('Microsoft Money import endpoints', () => {
     });
   });
 
-  describe('cross-user isolation', () => {
-    /**
-     * A cached upload is keyed by its owner, so a second user asking for one gets
-     * the same 404 as an id that does not exist — never a 200 carrying someone
-     * else's data.
-     *
-     * Without a `.mny` fixture there is no way to mint a real upload here, so the
-     * id is a well-formed random UUID. `ms-money-execute-import.e2e.ts` covers the
-     * same boundary with an upload that genuinely belongs to another user.
-     */
-    it("refuses another user's upload id on both mapping steps", async () => {
-      const otherUser = await provisionSecondUserWithBaseCurrency();
-      const uploadId = unknownUploadId();
-
-      await asUser({
-        cookies: otherUser.cookies,
-        fn: async () => {
-          const detect = await helpers.detectMsMoneyDuplicates({
-            payload: { uploadId, accountMapping: someAccountMapping },
-          });
-          expect(detect.statusCode).toBe(ERROR_CODES.NotFoundError);
-
-          const execute = await helpers.executeMsMoney({
-            payload: { uploadId, accountMapping: someAccountMapping },
-          });
-          expect(execute.statusCode).toBe(ERROR_CODES.NotFoundError);
-        },
-      });
-    });
-  });
-
   describe('authentication', () => {
-    it('rejects an unauthenticated upload', async () => {
-      const result = await withoutSession(() => helpers.uploadMsMoney({ file: Buffer.from('anything') }));
+    it('rejects unauthenticated upload, detect, execute and status calls', async () => {
+      await withoutSession(async () => {
+        const upload = await helpers.uploadMsMoney({ file: Buffer.from('anything') });
+        expect(upload.statusCode).toBe(ERROR_CODES.Unauthorized);
 
-      expect(result.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('rejects unauthenticated detect-duplicates', async () => {
-      const response = await withoutSession(() =>
-        helpers.detectMsMoneyDuplicates({
+        const detect = await helpers.detectMsMoneyDuplicates({
           payload: { uploadId: unknownUploadId(), accountMapping: someAccountMapping },
-        }),
-      );
+        });
+        expect(detect.statusCode).toBe(ERROR_CODES.Unauthorized);
 
-      expect(response.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('rejects an unauthenticated execute', async () => {
-      const response = await withoutSession(() =>
-        helpers.executeMsMoney({
+        const execute = await helpers.executeMsMoney({
           payload: { uploadId: unknownUploadId(), accountMapping: someAccountMapping },
-        }),
-      );
+        });
+        expect(execute.statusCode).toBe(ERROR_CODES.Unauthorized);
 
-      expect(response.statusCode).toBe(ERROR_CODES.Unauthorized);
-    });
-
-    it('rejects an unauthenticated status poll', async () => {
-      const response = await withoutSession(() => helpers.getMsMoneyImportStatus({ jobId: 'any-job' }));
-
-      expect(response.statusCode).toBe(ERROR_CODES.Unauthorized);
+        const status = await helpers.getMsMoneyImportStatus({ jobId: 'any-job' });
+        expect(status.statusCode).toBe(ERROR_CODES.Unauthorized);
+      });
     });
   });
 });

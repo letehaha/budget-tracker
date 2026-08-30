@@ -319,18 +319,26 @@ describe('Subscription monogram', () => {
       expect(updated.logoSource).toBe('manual');
     });
 
-    it('clears initials and color when logoInitials is null, keeping logoSource manual', async () => {
+    it('keeps the monogram on an unrelated update, recolors it, then clears it when logoInitials is null', async () => {
       const sub = await helpers.createSubscription({
-        ...buildBillPayload({ name: 'Clear Me', logoInitials: 'CM', logoColor: '#ef4444' }),
+        ...buildBillPayload({ name: 'Keep Mono', logoInitials: 'KM', logoColor: '#7355be' }),
         raw: true,
       });
 
-      const updated = await helpers.updateSubscription({ id: sub.id, logoInitials: null, raw: true });
+      const renamed = await helpers.updateSubscription({ id: sub.id, name: 'Keep Mono Renamed', raw: true });
+      expect(renamed.logoInitials).toBe('KM');
+      expect(renamed.logoColor).toBe('#7355be');
+      expect(renamed.logoSource).toBe('manual');
 
-      expect(updated.logoInitials).toBeNull();
-      expect(updated.logoColor).toBeNull();
-      expect(updated.logoSource).toBe('manual');
-    });
+      const recolored = await helpers.updateSubscription({ id: sub.id, logoColor: '#0ea5e9', raw: true });
+      expect(recolored.logoColor).toBe('#0ea5e9');
+      expect(recolored.logoInitials).toBe('KM');
+
+      const cleared = await helpers.updateSubscription({ id: sub.id, logoInitials: null, raw: true });
+      expect(cleared.logoInitials).toBeNull();
+      expect(cleared.logoColor).toBeNull();
+      expect(cleared.logoSource).toBe('manual');
+    }, 60_000);
 
     it('keeps the monogram when logoDomain is explicitly cleared', async () => {
       // Domain and initials are asymmetric on purpose: setting a domain evicts
@@ -345,31 +353,6 @@ describe('Subscription monogram', () => {
       expect(updated.logoDomain).toBeNull();
       expect(updated.logoInitials).toBe('MS');
       expect(updated.logoColor).toBe('#7355be');
-    });
-
-    it('updates logoColor alone when the subscription already has initials', async () => {
-      const sub = await helpers.createSubscription({
-        ...buildBillPayload({ name: 'Recolor', logoInitials: 'RC', logoColor: '#7355be' }),
-        raw: true,
-      });
-
-      const updated = await helpers.updateSubscription({ id: sub.id, logoColor: '#0ea5e9', raw: true });
-
-      expect(updated.logoColor).toBe('#0ea5e9');
-      expect(updated.logoInitials).toBe('RC');
-    });
-
-    it('leaves the monogram untouched when the payload omits the logo keys', async () => {
-      const sub = await helpers.createSubscription({
-        ...buildBillPayload({ name: 'Keep Mono', logoInitials: 'KM', logoColor: '#7355be' }),
-        raw: true,
-      });
-
-      const updated = await helpers.updateSubscription({ id: sub.id, name: 'Keep Mono Renamed', raw: true });
-
-      expect(updated.logoInitials).toBe('KM');
-      expect(updated.logoColor).toBe('#7355be');
-      expect(updated.logoSource).toBe('manual');
     });
 
     it('returns 422 when the payload carries both logoDomain and logoInitials', async () => {
@@ -387,24 +370,11 @@ describe('Subscription monogram', () => {
   });
 
   describe('read paths', () => {
-    it('returns the monogram fields on GET /subscriptions', async () => {
-      const created = await helpers.createSubscription({
-        ...buildBillPayload({ name: 'Listed Mono', logoInitials: 'LM', logoColor: '#7355be' }),
-        raw: true,
-      });
-
-      const list = await helpers.getSubscriptions({ raw: true });
-      const item = list.find((s) => s.id === created.id);
-
-      expect(item?.logoInitials).toBe('LM');
-      expect(item?.logoColor).toBe('#7355be');
-    });
-
-    it('returns the monogram fields on GET /subscriptions/upcoming', async () => {
+    it('returns the monogram fields on GET /subscriptions and GET /subscriptions/upcoming', async () => {
       const created = await helpers.createSubscription({
         ...buildBillPayload({
-          name: 'Upcoming Mono',
-          logoInitials: 'UM',
+          name: 'Listed Mono',
+          logoInitials: 'LM',
           logoColor: '#7355be',
           expectedAmount: 12.5,
           expectedCurrencyCode: global.BASE_CURRENCY_CODE,
@@ -412,11 +382,15 @@ describe('Subscription monogram', () => {
         raw: true,
       });
 
-      const upcoming = await helpers.getUpcomingPayments({ raw: true });
-      const item = upcoming.find((payment) => payment.subscriptionId === created.id);
+      const list = await helpers.getSubscriptions({ raw: true });
+      const listed = list.find((s) => s.id === created.id);
+      expect(listed?.logoInitials).toBe('LM');
+      expect(listed?.logoColor).toBe('#7355be');
 
-      expect(item?.logoInitials).toBe('UM');
-      expect(item?.logoColor).toBe('#7355be');
+      const upcoming = await helpers.getUpcomingPayments({ raw: true });
+      const upcomingItem = upcoming.find((payment) => payment.subscriptionId === created.id);
+      expect(upcomingItem?.logoInitials).toBe('LM');
+      expect(upcomingItem?.logoColor).toBe('#7355be');
     });
   });
 

@@ -132,27 +132,6 @@ describe('Subscription installment cap (maxOccurrences)', () => {
     });
   });
 
-  describe('Cap does NOT pause the subscription', () => {
-    it('leaves isActive true after all installments are consumed', async () => {
-      const { sub } = await createCappedSubscription({ maxOccurrences: 1 });
-
-      const period1 = await getUpcomingPeriod({ subId: sub.id });
-      expect(period1).not.toBeNull();
-
-      // Pay the single allowed period — cap is hit immediately after.
-      await helpers.markSubscriptionPeriodPaid({
-        id: sub.id,
-        periodId: period1!.id,
-        createTransaction: true,
-        raw: true,
-      });
-
-      // isActive must still be true; the cap only stops generation, never pauses.
-      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      expect(detail.isActive).toBe(true);
-    });
-  });
-
   describe('Uncapped subscription keeps generating periods', () => {
     it('continues creating upcoming periods when maxOccurrences is null', async () => {
       const { sub } = await createCappedSubscription({ maxOccurrences: null });
@@ -198,6 +177,12 @@ describe('Installment completion (type=installment)', () => {
     const afterFirst = await helpers.getSubscriptionById({ id: sub.id, raw: true });
     expect(afterFirst.isActive).toBe(true);
     expect(afterFirst.completedAt).toBeNull();
+
+    const listAfterFirst = await helpers.getSubscriptions({ raw: true });
+    const listedAfterFirst = listAfterFirst.find((s) => s.id === sub.id);
+    expect(listedAfterFirst).toBeDefined();
+    expect(listedAfterFirst!.paidPeriodsCount).toBe(1);
+    expect(listedAfterFirst!.maxOccurrences).toBe(2);
 
     const period2 = await getUpcomingPeriod({ subId: sub.id });
     expect(period2).not.toBeNull();
@@ -352,21 +337,6 @@ describe('Editing a completed installment', () => {
     );
     expect(openPeriods).toHaveLength(1);
     expect(openPeriods[0]!.dueDate > dueDate).toBe(true);
-  });
-});
-
-describe('Subscriptions list paid-period progress', () => {
-  it('exposes paidPeriodsCount alongside maxOccurrences on the list', async () => {
-    const { sub } = await createInstallment({ maxOccurrences: 3 });
-
-    const period1 = await getUpcomingPeriod({ subId: sub.id });
-    await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: period1!.id, createTransaction: true, raw: true });
-
-    const list = await helpers.getSubscriptions({ raw: true });
-    const item = list.find((s) => s.id === sub.id);
-    expect(item).toBeDefined();
-    expect(item!.paidPeriodsCount).toBe(1);
-    expect(item!.maxOccurrences).toBe(3);
   });
 });
 

@@ -120,13 +120,14 @@ describe('Extract Unique Values endpoint', () => {
       expect(result.currencyMismatchWarning).toBeUndefined();
     });
 
-    it('should handle mapDataSourceColumn category with existing account and currency', async () => {
+    it('extracts only the side that is not linked to an existing entity', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
+      const categories = await helpers.getCategoriesList();
+      const existingCategory = categories[0]!;
 
-      const result = await helpers.extractUniqueValues({
+      const existingAccountResult = await helpers.extractUniqueValues({
         payload: {
-          fileContent,
+          fileContent: helpers.loadCsvFixture('valid-comma.csv'),
           delimiter: ',',
           columnMapping: {
             date: 'Date',
@@ -142,11 +143,31 @@ describe('Extract Unique Values endpoint', () => {
         raw: true,
       });
 
-      // Should extract categories but not accounts
-      expect(result.sourceAccounts).toHaveLength(0);
-      expect(result.sourceCategories.length).toBeGreaterThan(0);
-      expect(result.sourceCategories).toContain('Food');
-      expect(result.sourceCategories).toContain('Income');
+      expect(existingAccountResult.sourceAccounts).toHaveLength(0);
+      expect(existingAccountResult.sourceCategories.length).toBeGreaterThan(0);
+      expect(existingAccountResult.sourceCategories).toContain('Food');
+      expect(existingAccountResult.sourceCategories).toContain('Income');
+
+      const existingCategoryResult = await helpers.extractUniqueValues({
+        payload: {
+          fileContent: helpers.loadCsvFixture('multiple-accounts.csv'),
+          delimiter: ',',
+          columnMapping: {
+            date: 'Date',
+            dateFieldOrder: 'month-first',
+            amount: 'Amount',
+            description: 'Description',
+            category: { option: CategoryOptionValue.existingCategory, categoryId: existingCategory.id },
+            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
+            transactionType: { option: TransactionTypeOptionValue.amountSign },
+            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
+          },
+        },
+        raw: true,
+      });
+
+      expect(existingCategoryResult.sourceAccounts.length).toBeGreaterThanOrEqual(3);
+      expect(existingCategoryResult.sourceCategories).toHaveLength(0);
     });
 
     it('should handle mapDataSourceColumn with dataSourceColumn for all options', async () => {
@@ -184,6 +205,10 @@ describe('Extract Unique Values endpoint', () => {
       expect(accountNames).toContain('Checking Account');
       expect(accountNames).toContain('Savings Account');
       expect(accountNames).toContain('Credit Card');
+
+      const currencies = result.sourceAccounts.map((a) => a.currency);
+      expect(currencies).toContain('USD');
+      expect(currencies).toContain('EUR');
     });
 
     it('should handle createNewCategories with dataSourceColumn transaction type and account', async () => {
@@ -217,34 +242,6 @@ describe('Extract Unique Values endpoint', () => {
       expect(result.sourceCategories).toContain('Food');
     });
 
-    it('should handle mixed options: existing category + datasource account/currency', async () => {
-      const categories = await helpers.getCategoriesList();
-      const existingCategory = categories[0]!;
-      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.existingCategory, categoryId: existingCategory.id },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: { option: TransactionTypeOptionValue.amountSign },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: true,
-      });
-
-      // Should extract accounts but not categories
-      expect(result.sourceAccounts.length).toBeGreaterThanOrEqual(3);
-      expect(result.sourceCategories).toHaveLength(0);
-    });
-
     it('should override CSV currencies when using existingCurrency with multiple accounts', async () => {
       const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
 
@@ -271,49 +268,6 @@ describe('Extract Unique Values endpoint', () => {
       result.sourceAccounts.forEach((acc) => {
         expect(acc.currency).toBe('GBP');
       });
-    });
-
-    it('should extract accounts with correct currencies when using dataSourceColumn for both', async () => {
-      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
-
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent,
-          delimiter: ',',
-          columnMapping: {
-            date: 'Date',
-            dateFieldOrder: 'month-first',
-            amount: 'Amount',
-            description: 'Description',
-            category: { option: CategoryOptionValue.createNewCategories, columnName: 'Category' },
-            currency: { option: CurrencyOptionValue.dataSourceColumn, columnName: 'Currency' },
-            transactionType: {
-              option: TransactionTypeOptionValue.dataSourceColumn,
-              columnName: 'Type',
-              incomeValues: ['income'],
-              expenseValues: ['expense'],
-            },
-            account: { option: AccountOptionValue.dataSourceColumn, columnName: 'Account' },
-          },
-        },
-        raw: true,
-      });
-
-      expect(result.sourceAccounts.length).toBeGreaterThanOrEqual(3);
-
-      // Verify each account is paired with the correct currency from CSV
-      const checkingAccount = result.sourceAccounts.find((a) => a.name === 'Checking Account');
-      const savingsAccount = result.sourceAccounts.find((a) => a.name === 'Savings Account');
-      const creditCard = result.sourceAccounts.find((a) => a.name === 'Credit Card');
-
-      expect(checkingAccount).toBeDefined();
-      expect(savingsAccount).toBeDefined();
-      expect(creditCard).toBeDefined();
-
-      // Verify currencies are from the CSV data
-      const currencies = result.sourceAccounts.map((a) => a.currency);
-      expect(currencies).toContain('USD');
-      expect(currencies).toContain('EUR');
     });
 
     it('should handle mapDataSourceColumn with mixed transaction type options', async () => {
@@ -453,23 +407,21 @@ describe('Extract Unique Values endpoint', () => {
       },
     ];
 
-    it.each(cases)('should return error for $name', async ({ columnMapping, statusCode }) => {
-      const result = await helpers.extractUniqueValues({
-        payload: {
-          fileContent: helpers.loadCsvFixture('valid-comma.csv'),
-          delimiter: ',',
-          columnMapping,
-        },
-        raw: false,
-      });
+    it('rejects every invalid column mapping permutation', async () => {
+      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
 
-      expect(result.statusCode).toBe(statusCode);
-    });
+      for (const { name, columnMapping, statusCode } of cases) {
+        const result = await helpers.extractUniqueValues({
+          payload: { fileContent, delimiter: ',', columnMapping },
+          raw: false,
+        });
 
-    it('should return error for empty currencyCode', async () => {
-      const result = await helpers.extractUniqueValues({
+        expect(`${name}: ${result.statusCode}`).toBe(`${name}: ${statusCode}`);
+      }
+
+      const emptyCurrencyResult = await helpers.extractUniqueValues({
         payload: {
-          fileContent: helpers.loadCsvFixture('valid-comma.csv'),
+          fileContent,
           delimiter: ',',
           columnMapping: {
             ...baseMapping,
@@ -479,9 +431,11 @@ describe('Extract Unique Values endpoint', () => {
         raw: false,
       });
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
-      expect((result.body.response as unknown as ErrorResponse).message).toContain('currency.currencyCode');
-    });
+      expect(emptyCurrencyResult.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect((emptyCurrencyResult.body.response as unknown as ErrorResponse).message).toContain(
+        'currency.currencyCode',
+      );
+    }, 60_000);
   });
 
   describe('sourceTags', () => {
@@ -554,170 +508,115 @@ describe('Extract Unique Values endpoint', () => {
 });
 
 describe('Parse CSV endpoint', () => {
-  describe('successful parsing', () => {
-    it('should parse a valid CSV with comma delimiter', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-comma.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
+  const expectedHeaders = ['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type'];
 
-      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
-      expect(result.detectedDelimiter).toBe(',');
-      expect(result.totalRows).toBe(5);
-      expect(result.preview).toHaveLength(5);
-      expect(result.preview[0]).toEqual({
-        Date: '2024-01-15',
-        Amount: '100.50',
-        Description: 'Grocery shopping',
-        Category: 'Food',
-        Account: 'Main Account',
-        Currency: 'USD',
-        Type: 'expense',
-      });
+  it('detects and honors delimiters', async () => {
+    const comma = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('valid-comma.csv') },
+      raw: true,
+    });
+    expect(comma.headers).toEqual(expectedHeaders);
+    expect(comma.detectedDelimiter).toBe(',');
+    expect(comma.totalRows).toBe(5);
+    expect(comma.preview).toHaveLength(5);
+    expect(comma.preview[0]).toEqual({
+      Date: '2024-01-15',
+      Amount: '100.50',
+      Description: 'Grocery shopping',
+      Category: 'Food',
+      Account: 'Main Account',
+      Currency: 'USD',
+      Type: 'expense',
     });
 
-    it('should parse a valid CSV with semicolon delimiter', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-semicolon.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
-
-      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
-      expect(result.detectedDelimiter).toBe(';');
-      expect(result.totalRows).toBe(3);
-      expect(result.preview).toHaveLength(3);
+    const semicolon = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('valid-semicolon.csv') },
+      raw: true,
     });
+    expect(semicolon.headers).toEqual(expectedHeaders);
+    expect(semicolon.detectedDelimiter).toBe(';');
+    expect(semicolon.totalRows).toBe(3);
+    expect(semicolon.preview).toHaveLength(3);
 
-    it('should parse a valid CSV with tab delimiter', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-tab.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
-
-      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
-      expect(result.detectedDelimiter).toBe('\t');
-      expect(result.totalRows).toBe(2);
+    const tab = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('valid-tab.csv') },
+      raw: true,
     });
+    expect(tab.headers).toEqual(expectedHeaders);
+    expect(tab.detectedDelimiter).toBe('\t');
+    expect(tab.totalRows).toBe(2);
 
-    it('should use provided delimiter instead of auto-detecting', async () => {
-      const fileContent = helpers.loadCsvFixture('valid-semicolon.csv');
-      // Force comma delimiter even though file uses semicolon
-      const result = await helpers.parseCsv({
-        payload: { fileContent, delimiter: ';' },
-        raw: true,
-      });
-
-      expect(result.detectedDelimiter).toBe(';');
-      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
+    const explicitDelimiter = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('valid-semicolon.csv'), delimiter: ';' },
+      raw: true,
     });
+    expect(explicitDelimiter.detectedDelimiter).toBe(';');
+    expect(explicitDelimiter.headers).toEqual(expectedHeaders);
 
-    it('should limit preview rows and return correct total count', async () => {
-      const fileContent = helpers.loadCsvFixture('large-file.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
-
-      // large-file.csv has 25 data rows
-      expect(result.totalRows).toBe(25);
-      // Preview should be limited to 50 rows (but we only have 25)
-      expect(result.preview).toHaveLength(25);
+    const european = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('european-format.csv') },
+      raw: true,
     });
+    expect(european.detectedDelimiter).toBe(';');
+    expect(european.preview[0]?.Date).toBe('15.01.2024');
+    expect(european.preview[0]?.Amount).toBe('100,50');
+  }, 60_000);
 
-    it('should handle CSV with special characters in values', async () => {
-      const fileContent = helpers.loadCsvFixture('special-characters.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
-
-      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
-      expect(result.preview[0]?.Description).toBe('Grocery, shopping & more');
-      expect(result.preview[1]?.Description).toBe('Coffee "Best" shop');
-      expect(result.preview[2]?.Description).toBe('Salary (monthly)');
+  it('returns headers, preview and totalRows for varied content shapes', async () => {
+    const large = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('large-file.csv') },
+      raw: true,
     });
+    expect(large.totalRows).toBe(25);
+    expect(large.preview).toHaveLength(25);
 
-    it('should parse CSV with minimal columns', async () => {
-      const fileContent = helpers.loadCsvFixture('minimal-columns.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
-
-      expect(result.headers).toEqual(['Date', 'Amount']);
-      expect(result.totalRows).toBe(3);
-      expect(result.preview[0]).toEqual({
-        Date: '2024-01-15',
-        Amount: '100.50',
-      });
+    const special = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('special-characters.csv') },
+      raw: true,
     });
+    expect(special.headers).toEqual(expectedHeaders);
+    expect(special.preview[0]?.Description).toBe('Grocery, shopping & more');
+    expect(special.preview[1]?.Description).toBe('Coffee "Best" shop');
+    expect(special.preview[2]?.Description).toBe('Salary (monthly)');
 
-    it('should parse CSV with multiple accounts and currencies', async () => {
-      const fileContent = helpers.loadCsvFixture('multiple-accounts.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
-
-      expect(result.totalRows).toBe(5);
-      // Verify different accounts are parsed correctly
-      const accounts = result.preview.map((row) => row.Account);
-      expect(accounts).toContain('Checking Account');
-      expect(accounts).toContain('Savings Account');
-      expect(accounts).toContain('Credit Card');
-
-      // Verify different currencies
-      const currencies = result.preview.map((row) => row.Currency);
-      expect(currencies).toContain('USD');
-      expect(currencies).toContain('EUR');
+    const minimal = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('minimal-columns.csv') },
+      raw: true,
     });
+    expect(minimal.headers).toEqual(['Date', 'Amount']);
+    expect(minimal.totalRows).toBe(3);
+    expect(minimal.preview[0]).toEqual({ Date: '2024-01-15', Amount: '100.50' });
 
-    it('should parse CSV with European date and number format', async () => {
-      const fileContent = helpers.loadCsvFixture('european-format.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
-
-      expect(result.detectedDelimiter).toBe(';');
-      expect(result.preview[0]?.Date).toBe('15.01.2024');
-      expect(result.preview[0]?.Amount).toBe('100,50');
+    const multipleAccounts = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('multiple-accounts.csv') },
+      raw: true,
     });
-  });
+    expect(multipleAccounts.totalRows).toBe(5);
+    const accounts = multipleAccounts.preview.map((row) => row.Account);
+    expect(accounts).toContain('Checking Account');
+    expect(accounts).toContain('Savings Account');
+    expect(accounts).toContain('Credit Card');
+    const currencies = multipleAccounts.preview.map((row) => row.Currency);
+    expect(currencies).toContain('USD');
+    expect(currencies).toContain('EUR');
 
-  describe('error handling', () => {
-    it('should return validation error for empty file content', async () => {
-      const result = await helpers.parseCsv({
-        payload: { fileContent: '' },
-        raw: false,
-      });
-
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    const headersOnly = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('headers-only.csv') },
+      raw: true,
     });
+    expect(headersOnly.headers).toEqual(expectedHeaders);
+    expect(headersOnly.totalRows).toBe(0);
+    expect(headersOnly.preview).toHaveLength(0);
+  }, 60_000);
 
-    it('should return validation error for empty CSV (no data)', async () => {
-      const fileContent = helpers.loadCsvFixture('empty.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: false,
-      });
+  it('rejects empty input', async () => {
+    const emptyString = await helpers.parseCsv({ payload: { fileContent: '' }, raw: false });
+    expect(emptyString.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(result.statusCode).toBe(ERROR_CODES.ValidationError);
+    const emptyFile = await helpers.parseCsv({
+      payload: { fileContent: helpers.loadCsvFixture('empty.csv') },
+      raw: false,
     });
-
-    it('should parse CSV with headers only (no data rows)', async () => {
-      const fileContent = helpers.loadCsvFixture('headers-only.csv');
-      const result = await helpers.parseCsv({
-        payload: { fileContent },
-        raw: true,
-      });
-
-      expect(result.headers).toEqual(['Date', 'Amount', 'Description', 'Category', 'Account', 'Currency', 'Type']);
-      expect(result.totalRows).toBe(0);
-      expect(result.preview).toHaveLength(0);
-    });
+    expect(emptyFile.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 });

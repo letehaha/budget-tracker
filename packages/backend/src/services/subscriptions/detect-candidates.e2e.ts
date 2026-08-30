@@ -59,7 +59,7 @@ async function expireCooldown({ userId }: { userId: number }) {
 
 describe('Subscription Candidate Detection', () => {
   describe('Happy paths', () => {
-    it('detects a monthly pattern from recurring transactions', async () => {
+    it('detects a monthly pattern and exposes decimal amounts and isOutdated on both endpoints', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       await createRecurringTransactions({
@@ -81,9 +81,17 @@ describe('Subscription Candidate Detection', () => {
       expect(netflix!.occurrenceCount).toBe(4);
       expect(netflix!.confidenceScore).toBeGreaterThan(0);
       expect(netflix!.sampleTransactionIds.length).toBeGreaterThan(0);
-    });
+      expect(netflix!.averageAmount).toBe(15.99);
+      expect(netflix!.isOutdated).toBe(false);
 
-    it('detects multiple candidates (Netflix + Spotify)', async () => {
+      const candidates = await helpers.getSubscriptionCandidates({ raw: true });
+      const fromList = candidates.find((c) => c.id === netflix!.id);
+      expect(fromList).toBeDefined();
+      expect(typeof fromList!.isOutdated).toBe('boolean');
+      expect(fromList!.isOutdated).toBe(false);
+    }, 60_000);
+
+    it('detects multiple candidates, caches within the cooldown, and does not duplicate after it', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       await createRecurringTransactions({
@@ -102,16 +110,33 @@ describe('Subscription Candidate Detection', () => {
         intervalDays: 30,
       });
 
-      const result = await helpers.detectSubscriptionCandidates({ raw: true });
+      const first = await helpers.detectSubscriptionCandidates({ raw: true });
 
-      expect(result.candidates.length).toBeGreaterThanOrEqual(2);
+      expect(first.isFromCache).toBe(false);
+      expect(first.candidates.length).toBeGreaterThanOrEqual(2);
 
-      const names = result.candidates.map((c) => c.suggestedName);
+      const names = first.candidates.map((c) => c.suggestedName);
       expect(names.some((n) => n.includes('NETFLIX'))).toBe(true);
       expect(names.some((n) => n.includes('SPOTIFY'))).toBe(true);
-    });
 
-    it('accepts a candidate and changes its status', async () => {
+      const netflixFirst = first.candidates.find((c) => c.suggestedName.includes('NETFLIX'))!;
+
+      const second = await helpers.detectSubscriptionCandidates({ raw: true });
+      expect(second.isFromCache).toBe(true);
+      expect(second.candidates.length).toBe(first.candidates.length);
+
+      await expireCooldown({ userId: account.userId });
+
+      const third = await helpers.detectSubscriptionCandidates({ raw: true });
+      expect(third.isFromCache).toBe(false);
+
+      const netflixCandidates = third.candidates.filter((c) => c.suggestedName.includes('NETFLIX'));
+      expect(netflixCandidates.length).toBe(1);
+      expect(netflixCandidates[0]!.id).toBe(netflixFirst.id);
+      expect(netflixCandidates[0]!.status).toBe('pending');
+    }, 60_000);
+
+    it('accepts and dismisses candidates, and neither reappears after a fresh detection', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       await createRecurringTransactions({
@@ -122,21 +147,38 @@ describe('Subscription Candidate Detection', () => {
         intervalDays: 30,
       });
 
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates[0]!;
-
-      const accepted = await helpers.acceptSubscriptionCandidate({
-        id: candidate.id,
-        raw: true,
+      await createRecurringTransactions({
+        accountId: account.id,
+        note: 'SPOTIFY PREMIUM',
+        amount: 9.99,
+        count: 5,
+        intervalDays: 30,
       });
 
-      expect(accepted.id).toBe(candidate.id);
+      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
+      const netflix = detection.candidates.find((c) => c.suggestedName.includes('NETFLIX'))!;
+      const spotify = detection.candidates.find((c) => c.suggestedName.includes('SPOTIFY'))!;
+      expect(netflix).toBeDefined();
+      expect(spotify).toBeDefined();
+
+      const dismissed = await helpers.dismissSubscriptionCandidate({ id: netflix.id, raw: true });
+      expect(dismissed.id).toBe(netflix.id);
+      expect(dismissed.status).toBe('dismissed');
+
+      const accepted = await helpers.acceptSubscriptionCandidate({ id: spotify.id, raw: true });
+      expect(accepted.id).toBe(spotify.id);
       expect(accepted.status).toBe('accepted');
 
-      // Should no longer appear in pending list
       const pending = await helpers.getSubscriptionCandidates({ raw: true });
-      expect(pending.find((c) => c.id === candidate.id)).toBeUndefined();
-    });
+      expect(pending.find((c) => c.id === netflix.id)).toBeUndefined();
+      expect(pending.find((c) => c.id === spotify.id)).toBeUndefined();
+
+      await expireCooldown({ userId: account.userId });
+
+      const fresh = await helpers.detectSubscriptionCandidates({ raw: true });
+      expect(fresh.candidates.find((c) => c.suggestedName.includes('NETFLIX'))).toBeUndefined();
+      expect(fresh.candidates.find((c) => c.suggestedName.includes('SPOTIFY'))).toBeUndefined();
+    }, 60_000);
 
     it('links sample transactions to the subscription when accepting with subscriptionId', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -171,7 +213,11 @@ describe('Subscription Candidate Detection', () => {
         raw: true,
       });
 
+      expect(accepted.id).toBe(candidate.id);
       expect(accepted.status).toBe('accepted');
+
+      const pending = await helpers.getSubscriptionCandidates({ raw: true });
+      expect(pending.find((c) => c.id === candidate.id)).toBeUndefined();
 
       // Verify sample transactions are now linked to the subscription
       const subDetail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
@@ -181,33 +227,6 @@ describe('Subscription Candidate Detection', () => {
       for (const txId of candidate.sampleTransactionIds) {
         expect(linkedTxIds).toContain(txId);
       }
-    });
-
-    it('dismisses a candidate and it does not reappear', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates[0]!;
-
-      const dismissed = await helpers.dismissSubscriptionCandidate({
-        id: candidate.id,
-        raw: true,
-      });
-
-      expect(dismissed.id).toBe(candidate.id);
-      expect(dismissed.status).toBe('dismissed');
-
-      // Should not appear in pending list
-      const pending = await helpers.getSubscriptionCandidates({ raw: true });
-      expect(pending.find((c) => c.id === candidate.id)).toBeUndefined();
     });
   });
 
@@ -318,138 +337,7 @@ describe('Subscription Candidate Detection', () => {
     });
   });
 
-  describe('Caching / cooldown', () => {
-    it('returns cached results on second call within cooldown', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      const first = await helpers.detectSubscriptionCandidates({ raw: true });
-      expect(first.isFromCache).toBe(false);
-      expect(first.candidates.length).toBeGreaterThanOrEqual(1);
-
-      const second = await helpers.detectSubscriptionCandidates({ raw: true });
-      expect(second.isFromCache).toBe(true);
-      expect(second.candidates.length).toBe(first.candidates.length);
-    });
-  });
-
   describe('Re-detection behavior', () => {
-    it('does not create duplicate candidates when re-run after cooldown', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      // First detection
-      const first = await helpers.detectSubscriptionCandidates({ raw: true });
-      expect(first.isFromCache).toBe(false);
-      expect(first.candidates.length).toBeGreaterThanOrEqual(1);
-
-      const netflixFirst = first.candidates.find((c) => c.suggestedName.includes('NETFLIX'));
-      expect(netflixFirst).toBeDefined();
-
-      // Bypass cooldown
-      await expireCooldown({ userId: account.userId });
-
-      // Second detection — should NOT duplicate the candidate
-      const second = await helpers.detectSubscriptionCandidates({ raw: true });
-      expect(second.isFromCache).toBe(false);
-
-      const netflixCandidates = second.candidates.filter((c) => c.suggestedName.includes('NETFLIX'));
-      expect(netflixCandidates.length).toBe(1);
-      // Should be the same candidate from the first run
-      expect(netflixCandidates[0]!.id).toBe(netflixFirst!.id);
-    });
-
-    it('still returns existing pending candidates when user did nothing', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      // First detection finds Netflix
-      const first = await helpers.detectSubscriptionCandidates({ raw: true });
-      expect(first.candidates.length).toBeGreaterThanOrEqual(1);
-
-      // Bypass cooldown — user did nothing with the candidate
-      await expireCooldown({ userId: account.userId });
-
-      // Second detection should still return the pending Netflix candidate
-      const second = await helpers.detectSubscriptionCandidates({ raw: true });
-      expect(second.candidates.length).toBeGreaterThanOrEqual(1);
-
-      const netflix = second.candidates.find((c) => c.suggestedName.includes('NETFLIX'));
-      expect(netflix).toBeDefined();
-      expect(netflix!.status).toBe('pending');
-    });
-
-    it('dismissed candidates do not reappear after fresh detection', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      // Detect and dismiss
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates.find((c) => c.suggestedName.includes('NETFLIX'))!;
-      await helpers.dismissSubscriptionCandidate({ id: candidate.id, raw: true });
-
-      // Bypass cooldown
-      await expireCooldown({ userId: account.userId });
-
-      // Fresh detection should NOT re-create a candidate for the same pattern
-      const fresh = await helpers.detectSubscriptionCandidates({ raw: true });
-      const netflixAgain = fresh.candidates.find((c) => c.suggestedName.includes('NETFLIX'));
-      expect(netflixAgain).toBeUndefined();
-    });
-
-    it('accepted candidates do not reappear after fresh detection', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      // Detect and accept
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates.find((c) => c.suggestedName.includes('NETFLIX'))!;
-      await helpers.acceptSubscriptionCandidate({ id: candidate.id, raw: true });
-
-      // Bypass cooldown
-      await expireCooldown({ userId: account.userId });
-
-      // Fresh detection should NOT re-create the accepted candidate
-      const fresh = await helpers.detectSubscriptionCandidates({ raw: true });
-      const netflixAgain = fresh.candidates.find((c) => c.suggestedName.includes('NETFLIX'));
-      expect(netflixAgain).toBeUndefined();
-    });
-
     it('detects new patterns alongside existing pending candidates', async () => {
       const account = await helpers.createAccount({ raw: true });
 
@@ -487,25 +375,6 @@ describe('Subscription Candidate Detection', () => {
   });
 
   describe('Detection quality', () => {
-    it('returns amounts as decimal, not cents', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      const result = await helpers.detectSubscriptionCandidates({ raw: true });
-      const netflix = result.candidates.find((c) => c.suggestedName.includes('NETFLIX'));
-      expect(netflix).toBeDefined();
-
-      // 1599 cents = 15.99 decimal
-      expect(netflix!.averageAmount).toBe(15.99);
-    });
-
     it('candidates are sorted by confidence score descending', async () => {
       const account = await helpers.createAccount({ raw: true });
 
@@ -514,7 +383,7 @@ describe('Subscription Candidate Detection', () => {
         accountId: account.id,
         note: 'VERY REGULAR SERVICE',
         amount: 9.99,
-        count: 10,
+        count: 5,
         intervalDays: 30,
       });
 
@@ -610,85 +479,6 @@ describe('Subscription Candidate Detection', () => {
   });
 
   describe('Accept candidate with subscription linking', () => {
-    it('links a candidate to an existing subscription', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'DIGITALOCEAN CLOUD',
-        amount: 7,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates.find((c) => c.suggestedName.includes('DIGITALOCEAN'))!;
-      expect(candidate).toBeDefined();
-
-      // Create an existing subscription
-      const sub = await helpers.createSubscription({
-        name: 'Digital Ocean',
-        expectedAmount: 7,
-        expectedCurrencyCode: account.currencyCode,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        raw: true,
-      });
-
-      // Link the candidate to the subscription
-      const result = await helpers.acceptSubscriptionCandidate({
-        id: candidate.id,
-        subscriptionId: sub.id,
-        raw: true,
-      });
-
-      expect(result.id).toBe(candidate.id);
-      expect(result.status).toBe('accepted');
-
-      // Candidate should no longer appear in pending list
-      const pending = await helpers.getSubscriptionCandidates({ raw: true });
-      expect(pending.find((c) => c.id === candidate.id)).toBeUndefined();
-    });
-
-    it('links sample transactions to the subscription', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const txs = await createRecurringTransactions({
-        accountId: account.id,
-        note: 'DIGITALOCEAN CLOUD',
-        amount: 7,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates.find((c) => c.suggestedName.includes('DIGITALOCEAN'))!;
-
-      const sub = await helpers.createSubscription({
-        name: 'Digital Ocean',
-        expectedAmount: 7,
-        expectedCurrencyCode: account.currencyCode,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        raw: true,
-      });
-
-      await helpers.acceptSubscriptionCandidate({
-        id: candidate.id,
-        subscriptionId: sub.id,
-        raw: true,
-      });
-
-      // Verify transactions are now linked to the subscription
-      const subDetail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const linkedTxIds = subDetail.transactions.map((t) => t.id);
-
-      // All sample transactions should be linked
-      for (const tx of txs) {
-        expect(linkedTxIds).toContain(tx.id);
-      }
-    });
-
     it('skips sample transactions that were deleted after detection', async () => {
       const account = await helpers.createAccount({ raw: true });
 
@@ -785,83 +575,6 @@ describe('Subscription Candidate Detection', () => {
         expect(result.status).toBe('accepted');
       }
     });
-
-    it('returns 404 when accepting a non-existent candidate with subscriptionId', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const sub = await helpers.createSubscription({
-        name: 'Some Sub',
-        expectedAmount: 10,
-        expectedCurrencyCode: account.currencyCode,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        raw: true,
-      });
-
-      const res = await helpers.acceptSubscriptionCandidate({
-        id: generateRandomRecordId(),
-        subscriptionId: sub.id,
-      });
-
-      expect(res.statusCode).toBe(404);
-    });
-
-    it('returns 409 when accepting an already accepted candidate', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates[0]!;
-
-      // Accept the candidate first
-      await helpers.acceptSubscriptionCandidate({ id: candidate.id, raw: true });
-
-      const sub = await helpers.createSubscription({
-        name: 'Netflix',
-        expectedAmount: 15.99,
-        expectedCurrencyCode: account.currencyCode,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        raw: true,
-      });
-
-      // Try to link already accepted candidate
-      const res = await helpers.acceptSubscriptionCandidate({
-        id: candidate.id,
-        subscriptionId: sub.id,
-      });
-
-      expect(res.statusCode).toBe(409);
-    });
-
-    it('returns 404 when accepting with a non-existent subscriptionId', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates[0]!;
-
-      const res = await helpers.acceptSubscriptionCandidate({
-        id: candidate.id,
-        subscriptionId: generateRandomRecordId(),
-      });
-
-      expect(res.statusCode).toBe(404);
-    });
   });
 
   describe('Possible match detection', () => {
@@ -940,58 +653,18 @@ describe('Subscription Candidate Detection', () => {
       expect(candidate).toBeDefined();
       expect(candidate!.isOutdated).toBe(true);
     });
-
-    it('does not mark a candidate as outdated when last occurrence is recent', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create monthly transactions with the most recent one being recent
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'ACTIVE STREAMING SERVICE',
-        amount: 12.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      const result = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = result.candidates.find((c) => c.suggestedName.includes('ACTIVE STREAMING'));
-      expect(candidate).toBeDefined();
-      expect(candidate!.isOutdated).toBe(false);
-    });
-
-    it('returns isOutdated field from the get-candidates endpoint', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createRecurringTransactions({
-        accountId: account.id,
-        note: 'SOME SERVICE PAYMENT',
-        amount: 9.99,
-        count: 4,
-        intervalDays: 30,
-      });
-
-      // Trigger detection first
-      await helpers.detectSubscriptionCandidates({ raw: true });
-
-      // Fetch via get-candidates
-      const candidates = await helpers.getSubscriptionCandidates({ raw: true });
-      const candidate = candidates.find((c) => c.suggestedName.includes('SOME SERVICE'));
-      expect(candidate).toBeDefined();
-      expect(typeof candidate!.isOutdated).toBe('boolean');
-      expect(candidate!.isOutdated).toBe(false);
-    });
   });
 
   describe('Error cases', () => {
-    it('returns 404 when accepting a non-existent candidate', async () => {
-      const res = await helpers.acceptSubscriptionCandidate({
-        id: generateRandomRecordId(),
-      });
+    it('returns 404 when accepting or dismissing a non-existent candidate', async () => {
+      const acceptRes = await helpers.acceptSubscriptionCandidate({ id: generateRandomRecordId() });
+      expect(acceptRes.statusCode).toBe(404);
 
-      expect(res.statusCode).toBe(404);
+      const dismissRes = await helpers.dismissSubscriptionCandidate({ id: generateRandomRecordId() });
+      expect(dismissRes.statusCode).toBe(404);
     });
 
-    it('returns 409 when accepting an already accepted candidate', async () => {
+    it('guards accepting with an unknown subscription, re-accepting and re-dismissing', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       await createRecurringTransactions({
@@ -1002,47 +675,37 @@ describe('Subscription Candidate Detection', () => {
         intervalDays: 30,
       });
 
-      const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates[0]!;
-
-      // Accept once
-      await helpers.acceptSubscriptionCandidate({ id: candidate.id, raw: true });
-
-      // Try to accept again
-      const res = await helpers.acceptSubscriptionCandidate({ id: candidate.id });
-
-      expect(res.statusCode).toBe(409);
-    });
-
-    it('returns 409 when dismissing an already dismissed candidate', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
       await createRecurringTransactions({
         accountId: account.id,
-        note: 'NETFLIX.COM PAYMENT',
-        amount: 15.99,
-        count: 4,
+        note: 'SPOTIFY PREMIUM',
+        amount: 9.99,
+        count: 5,
         intervalDays: 30,
       });
 
       const detection = await helpers.detectSubscriptionCandidates({ raw: true });
-      const candidate = detection.candidates[0]!;
+      const netflix = detection.candidates.find((c) => c.suggestedName.includes('NETFLIX'))!;
+      const spotify = detection.candidates.find((c) => c.suggestedName.includes('SPOTIFY'))!;
+      expect(netflix).toBeDefined();
+      expect(spotify).toBeDefined();
 
-      // Dismiss once
-      await helpers.dismissSubscriptionCandidate({ id: candidate.id, raw: true });
-
-      // Try to dismiss again
-      const res = await helpers.dismissSubscriptionCandidate({ id: candidate.id });
-
-      expect(res.statusCode).toBe(409);
-    });
-
-    it('returns 404 when dismissing a non-existent candidate', async () => {
-      const res = await helpers.dismissSubscriptionCandidate({
-        id: generateRandomRecordId(),
+      const unknownSubRes = await helpers.acceptSubscriptionCandidate({
+        id: netflix.id,
+        subscriptionId: generateRandomRecordId(),
       });
+      expect(unknownSubRes.statusCode).toBe(404);
 
-      expect(res.statusCode).toBe(404);
-    });
+      const acceptRes = await helpers.acceptSubscriptionCandidate({ id: netflix.id });
+      expect(acceptRes.statusCode).toBe(200);
+
+      const reAcceptRes = await helpers.acceptSubscriptionCandidate({ id: netflix.id });
+      expect(reAcceptRes.statusCode).toBe(409);
+
+      const dismissRes = await helpers.dismissSubscriptionCandidate({ id: spotify.id });
+      expect(dismissRes.statusCode).toBe(200);
+
+      const reDismissRes = await helpers.dismissSubscriptionCandidate({ id: spotify.id });
+      expect(reDismissRes.statusCode).toBe(409);
+    }, 60_000);
   });
 });

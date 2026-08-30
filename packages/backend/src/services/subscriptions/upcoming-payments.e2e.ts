@@ -64,7 +64,7 @@ describe('GET /subscriptions/upcoming', () => {
     expect(result).toEqual([]);
   });
 
-  it('excludes inactive subscriptions', async () => {
+  it('excludes inactive subscriptions and subscriptions with null expectedAmount', async () => {
     const activeSub = await helpers.createSubscription({
       name: 'Active Sub',
       expectedAmount: 10,
@@ -83,6 +83,14 @@ describe('GET /subscriptions/upcoming', () => {
       raw: true,
     });
 
+    await helpers.createSubscription({
+      name: 'Without Amount',
+      expectedAmount: null,
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      raw: true,
+    });
+
     await helpers.toggleSubscriptionActive({
       id: inactiveSub.id,
       isActive: false,
@@ -94,53 +102,15 @@ describe('GET /subscriptions/upcoming', () => {
     const ids = result.map((r) => r.subscriptionId);
     expect(ids).toContain(activeSub.id);
     expect(ids).not.toContain(inactiveSub.id);
-  });
-
-  it('excludes subscriptions with null expectedAmount', async () => {
-    await helpers.createSubscription({
-      name: 'With Amount',
-      expectedAmount: 15,
-      expectedCurrencyCode: 'USD',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: '2025-01-01',
-      raw: true,
-    });
-
-    await helpers.createSubscription({
-      name: 'Without Amount',
-      expectedAmount: null,
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: '2025-01-01',
-      raw: true,
-    });
-
-    const result = await helpers.getUpcomingPayments({ raw: true });
 
     const names = result.map((r) => r.subscriptionName);
-    expect(names).toContain('With Amount');
     expect(names).not.toContain('Without Amount');
   });
 
-  it('respects limit parameter', async () => {
-    for (let i = 0; i < 10; i++) {
-      await helpers.createSubscription({
-        name: `Sub ${i}`,
-        expectedAmount: 10,
-        expectedCurrencyCode: 'USD',
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        raw: true,
-      });
-    }
-
-    const result = await helpers.getUpcomingPayments({ limit: 3, raw: true });
-    expect(result.length).toBe(3);
-  });
-
-  it('defaults to 5 results when limit is not provided', async () => {
+  it('applies the explicit limit, the default limit of 5, and rejects an invalid limit', async () => {
     for (let i = 0; i < 7; i++) {
       await helpers.createSubscription({
-        name: `Default Limit Sub ${i}`,
+        name: `Limit Sub ${i}`,
         expectedAmount: 10,
         expectedCurrencyCode: 'USD',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -149,16 +119,17 @@ describe('GET /subscriptions/upcoming', () => {
       });
     }
 
-    const result = await helpers.getUpcomingPayments({ raw: true });
-    expect(result.length).toBe(5);
-  });
+    const limited = await helpers.getUpcomingPayments({ limit: 3, raw: true });
+    expect(limited.length).toBe(3);
 
-  it('returns 422 for invalid limit', async () => {
-    const result = await helpers.getUpcomingPayments({ limit: 0 });
-    expect(result.statusCode).toBe(422);
-  });
+    const defaulted = await helpers.getUpcomingPayments({ raw: true });
+    expect(defaulted.length).toBe(5);
 
-  it('filters by type=subscription', async () => {
+    const invalid = await helpers.getUpcomingPayments({ limit: 0 });
+    expect(invalid.statusCode).toBe(422);
+  }, 60_000);
+
+  it('filters by type and returns every type when no type is specified', async () => {
     await helpers.createSubscription({
       name: 'My Subscription',
       type: SUBSCRIPTION_TYPES.subscription,
@@ -178,62 +149,20 @@ describe('GET /subscriptions/upcoming', () => {
       raw: true,
     });
 
-    const result = await helpers.getUpcomingPayments({ type: SUBSCRIPTION_TYPES.subscription, raw: true });
-
-    expect(result.length).toBe(1);
-    expect(result[0]!.subscriptionName).toBe('My Subscription');
-  });
-
-  it('filters by type=bill', async () => {
-    await helpers.createSubscription({
-      name: 'My Subscription',
+    const subscriptionsOnly = await helpers.getUpcomingPayments({
       type: SUBSCRIPTION_TYPES.subscription,
-      expectedAmount: 10,
-      expectedCurrencyCode: 'USD',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: '2025-01-01',
       raw: true,
     });
-    await helpers.createSubscription({
-      name: 'My Bill',
-      type: SUBSCRIPTION_TYPES.bill,
-      expectedAmount: 20,
-      expectedCurrencyCode: 'USD',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: '2025-01-01',
-      raw: true,
-    });
+    expect(subscriptionsOnly.length).toBe(1);
+    expect(subscriptionsOnly[0]!.subscriptionName).toBe('My Subscription');
 
-    const result = await helpers.getUpcomingPayments({ type: SUBSCRIPTION_TYPES.bill, raw: true });
+    const billsOnly = await helpers.getUpcomingPayments({ type: SUBSCRIPTION_TYPES.bill, raw: true });
+    expect(billsOnly.length).toBe(1);
+    expect(billsOnly[0]!.subscriptionName).toBe('My Bill');
 
-    expect(result.length).toBe(1);
-    expect(result[0]!.subscriptionName).toBe('My Bill');
-  });
-
-  it('returns all types when type is not specified', async () => {
-    await helpers.createSubscription({
-      name: 'My Subscription',
-      type: SUBSCRIPTION_TYPES.subscription,
-      expectedAmount: 10,
-      expectedCurrencyCode: 'USD',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: '2025-01-01',
-      raw: true,
-    });
-    await helpers.createSubscription({
-      name: 'My Bill',
-      type: SUBSCRIPTION_TYPES.bill,
-      expectedAmount: 20,
-      expectedCurrencyCode: 'USD',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: '2025-01-01',
-      raw: true,
-    });
-
-    const result = await helpers.getUpcomingPayments({ raw: true });
-
-    expect(result.length).toBe(2);
-    const names = result.map((r) => r.subscriptionName);
+    const all = await helpers.getUpcomingPayments({ raw: true });
+    expect(all.length).toBe(2);
+    const names = all.map((r) => r.subscriptionName);
     expect(names).toContain('My Subscription');
     expect(names).toContain('My Bill');
   });

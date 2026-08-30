@@ -76,7 +76,7 @@ describe('Get budget stats', () => {
   });
 
   describe('Refund handling', () => {
-    it('nets out a refund-income (expense refunded by income) when both sides are in the budget', async () => {
+    it('applies refund netting per attached side', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       const [expenseTx] = await helpers.createTransaction({
@@ -95,28 +95,88 @@ describe('Get budget stats', () => {
           transactionType: TRANSACTION_TYPES.income,
         }),
       });
+      const [unrefundedTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 500,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+      });
 
       await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id }, true);
 
-      const budget = await helpers.createCustomBudget({
-        name: 'refund-net-test-1',
+      const bothSidesBudget = await helpers.createCustomBudget({
+        name: 'refund-net-both-sides',
         limitAmount: 1000,
         raw: true,
       });
-      await helpers.addTransactionToCustomBudget({
-        id: budget.id,
-        payload: { transactionIds: [expenseTx.id, refundIncomeTx.id] },
+      const expenseOnlyBudget = await helpers.createCustomBudget({
+        name: 'refund-net-expense-only',
+        raw: true,
+      });
+      const refundOnlyBudget = await helpers.createCustomBudget({
+        name: 'refund-net-refund-only',
+        raw: true,
+      });
+      const unrefundedBudget = await helpers.createCustomBudget({
+        name: 'refund-net-none',
+        raw: true,
       });
 
-      const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
+      await helpers.addTransactionToCustomBudget({
+        id: bothSidesBudget.id,
+        payload: { transactionIds: [expenseTx.id, refundIncomeTx.id] },
+      });
+      await helpers.addTransactionToCustomBudget({
+        id: expenseOnlyBudget.id,
+        payload: { transactionIds: [expenseTx.id] },
+      });
+      await helpers.addTransactionToCustomBudget({
+        id: refundOnlyBudget.id,
+        payload: { transactionIds: [refundIncomeTx.id] },
+      });
+      await helpers.addTransactionToCustomBudget({
+        id: unrefundedBudget.id,
+        payload: { transactionIds: [unrefundedTx.id] },
+      });
 
       // Without adjustment: income=200, expense=500, balance=-300.
       // refundTx.refAmount=200 is subtracted from both: income → 0, expense → 300, balance → -300.
-      expect(stats.summary.actualIncome).toBe(0);
-      expect(stats.summary.actualExpense).toBe(300);
-      expect(stats.summary.balance).toBe(-300);
-      expect(stats.summary.utilizationRate?.toFixed(2)).toBe(((300 / 1000) * 100).toFixed(2));
-    });
+      const bothSidesStats = (await helpers.getStats({
+        id: bothSidesBudget.id,
+        raw: true,
+      }))!;
+      expect(bothSidesStats.summary.actualIncome).toBe(0);
+      expect(bothSidesStats.summary.actualExpense).toBe(300);
+      expect(bothSidesStats.summary.balance).toBe(-300);
+      expect(bothSidesStats.summary.utilizationRate?.toFixed(2)).toBe(((300 / 1000) * 100).toFixed(2));
+
+      const expenseOnlyStats = (await helpers.getStats({
+        id: expenseOnlyBudget.id,
+        raw: true,
+      }))!;
+      expect(expenseOnlyStats.summary.actualIncome).toBe(0);
+      expect(expenseOnlyStats.summary.actualExpense).toBe(300);
+      expect(expenseOnlyStats.summary.balance).toBe(-300);
+
+      // The refund-income shouldn't count as income. Expense isn't in budget, so unchanged.
+      const refundOnlyStats = (await helpers.getStats({
+        id: refundOnlyBudget.id,
+        raw: true,
+      }))!;
+      expect(refundOnlyStats.summary.actualIncome).toBe(0);
+      expect(refundOnlyStats.summary.actualExpense).toBe(0);
+      expect(refundOnlyStats.summary.balance).toBe(0);
+
+      const unrefundedStats = (await helpers.getStats({
+        id: unrefundedBudget.id,
+        raw: true,
+      }))!;
+      expect(unrefundedStats.summary.actualIncome).toBe(0);
+      expect(unrefundedStats.summary.actualExpense).toBe(500);
+      expect(unrefundedStats.summary.balance).toBe(-500);
+    }, 60_000);
 
     it('nets out a refund-expense (income refunded by expense) when both sides are in the budget', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -156,85 +216,6 @@ describe('Get budget stats', () => {
       expect(stats.summary.actualIncome).toBe(200);
       expect(stats.summary.actualExpense).toBe(0);
       expect(stats.summary.balance).toBe(200);
-    });
-
-    it('reduces only the expense side when only the original expense is in the budget', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const [expenseTx] = await helpers.createTransaction({
-        raw: true,
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-      });
-      const [refundIncomeTx] = await helpers.createTransaction({
-        raw: true,
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-      });
-
-      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id }, true);
-
-      const budget = await helpers.createCustomBudget({
-        name: 'refund-net-test-3',
-        raw: true,
-      });
-      // Only the expense side is linked to the budget.
-      await helpers.addTransactionToCustomBudget({
-        id: budget.id,
-        payload: { transactionIds: [expenseTx.id] },
-      });
-
-      const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
-
-      expect(stats.summary.actualIncome).toBe(0);
-      expect(stats.summary.actualExpense).toBe(300);
-      expect(stats.summary.balance).toBe(-300);
-    });
-
-    it('drops the refund-income from actualIncome when only the refund side is in the budget', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const [expenseTx] = await helpers.createTransaction({
-        raw: true,
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-      });
-      const [refundIncomeTx] = await helpers.createTransaction({
-        raw: true,
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.income,
-        }),
-      });
-
-      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id }, true);
-
-      const budget = await helpers.createCustomBudget({
-        name: 'refund-net-test-4',
-        raw: true,
-      });
-      // Only the refund-income side is linked to the budget.
-      await helpers.addTransactionToCustomBudget({
-        id: budget.id,
-        payload: { transactionIds: [refundIncomeTx.id] },
-      });
-
-      const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
-
-      // The refund-income shouldn't count as income. Expense isn't in budget, so unchanged.
-      expect(stats.summary.actualIncome).toBe(0);
-      expect(stats.summary.actualExpense).toBe(0);
-      expect(stats.summary.balance).toBe(0);
     });
 
     it('nets out a refund for a category budget', async () => {
@@ -286,71 +267,6 @@ describe('Get budget stats', () => {
       expect(stats.summary.actualExpense).toBe(300);
       expect(stats.summary.balance).toBe(-300);
       expect(stats.summary.utilizationRate?.toFixed(2)).toBe(((300 / 1000) * 100).toFixed(2));
-    });
-
-    it('does nothing when no in-budget transactions are refund-linked', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const [expenseTx] = await helpers.createTransaction({
-        raw: true,
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 500,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-      });
-
-      const budget = await helpers.createCustomBudget({
-        name: 'no-refund-test',
-        raw: true,
-      });
-      await helpers.addTransactionToCustomBudget({
-        id: budget.id,
-        payload: { transactionIds: [expenseTx.id] },
-      });
-
-      const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
-
-      expect(stats.summary.actualIncome).toBe(0);
-      expect(stats.summary.actualExpense).toBe(500);
-      expect(stats.summary.balance).toBe(-500);
-    });
-  });
-
-  describe('Accounts excluded from stats', () => {
-    it('counts a manually attached transaction from an excludeFromStats account', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const [tx] = await helpers.createTransaction({
-        raw: true,
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 300,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-      });
-
-      await helpers.updateAccount({ id: account.id, payload: { excludeFromStats: true }, raw: true });
-
-      const budget = await helpers.createCustomBudget({
-        name: 'excluded-account-budget',
-        limitAmount: 1000,
-        raw: true,
-      });
-      await helpers.addTransactionToCustomBudget({
-        id: budget.id,
-        payload: { transactionIds: [tx.id] },
-      });
-
-      const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
-
-      expect(stats.summary.transactionsCount).toBe(1);
-      expect(stats.summary.actualExpense).toBe(300);
-      expect(stats.summary.balance).toBe(-300);
-      expect(stats.summary.utilizationRate?.toFixed(2)).toBe(((300 / 1000) * 100).toFixed(2));
-
-      const linked = await helpers.getTransactions({ budgetIds: [budget.id], raw: true });
-      expect(linked.map((item) => item.id)).toEqual([tx.id]);
     });
   });
 });

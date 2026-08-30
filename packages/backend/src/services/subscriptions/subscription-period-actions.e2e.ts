@@ -48,7 +48,7 @@ async function createSubWithPeriod({ dueDate }: { dueDate: string }) {
 // ---------------------------------------------------------------------------
 
 describe('POST /subscriptions/:id/periods/:periodId/skip', () => {
-  it('marks the period skipped and generates the next upcoming period for a recurring subscription', async () => {
+  it('skips a period, generates the next one, and rejects skipping a skipped or paid period', async () => {
     const dueDate = futureDate({ monthsAhead: 1, day: 15 });
     const { sub, period } = await createSubWithPeriod({ dueDate });
 
@@ -60,43 +60,28 @@ describe('POST /subscriptions/:id/periods/:periodId/skip', () => {
 
     expect(skipped.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.skipped);
 
-    // A new upcoming period must have been generated.
     const periodsResult = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
     const nextUpcoming = periodsResult.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
     expect(nextUpcoming).toBeDefined();
-    // Next period due date is 1 month after the skipped one.
     const expectedNext = format(addMonths(new Date(dueDate + 'T00:00:00Z'), 1), 'yyyy-MM-dd');
     expect(nextUpcoming!.dueDate).toBe(expectedNext);
-  });
 
-  it('returns 409 when skipping a paid period', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 15 });
-    const { sub, period } = await createSubWithPeriod({ dueDate });
-
-    // Pay the period first.
-    await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: period.id, raw: true });
-
-    const res = await helpers.skipSubscriptionPeriod({
+    const reSkipRes = await helpers.skipSubscriptionPeriod({
       id: sub.id,
       periodId: period.id,
       raw: false,
     });
-    expect(res.statusCode).toBe(409);
-  });
+    expect(reSkipRes.statusCode).toBe(409);
 
-  it('returns 409 when skipping an already-skipped period', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 15 });
-    const { sub, period } = await createSubWithPeriod({ dueDate });
+    await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: nextUpcoming!.id, raw: true });
 
-    await helpers.skipSubscriptionPeriod({ id: sub.id, periodId: period.id, raw: true });
-
-    const res = await helpers.skipSubscriptionPeriod({
+    const skipPaidRes = await helpers.skipSubscriptionPeriod({
       id: sub.id,
-      periodId: period.id,
+      periodId: nextUpcoming!.id,
       raw: false,
     });
-    expect(res.statusCode).toBe(409);
-  });
+    expect(skipPaidRes.statusCode).toBe(409);
+  }, 60_000);
 });
 
 // ---------------------------------------------------------------------------
@@ -138,6 +123,14 @@ describe('POST /subscriptions/:id/periods/:periodId/unlink', () => {
     expect(tx).not.toBeNull();
     expect(tx!.transactionType).toBe(TRANSACTION_TYPES.expense);
     expect(tx!.accountId).toBe(account.id);
+
+    const secondUnlinkRes = await helpers.unlinkSubscriptionPeriodTransaction({
+      id: sub.id,
+      periodId: period.id,
+      raw: false,
+    });
+    expect(secondUnlinkRes.statusCode).toBe(200);
+    expect(secondUnlinkRes.body.response.transactionId).toBeNull();
   });
 });
 
@@ -309,49 +302,32 @@ describe('POST /subscriptions/:id/periods/:periodId/revert (link-mode)', () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /subscriptions/:id/periods/:periodId/revert (error cases)', () => {
-  it('returns 409 when reverting an upcoming period (already active)', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 15 });
-    const { sub, period } = await createSubWithPeriod({ dueDate });
+  it('returns 409 when reverting an active period, future-dated or past-dated', async () => {
+    const { sub: futureSub, period: futurePeriod } = await createSubWithPeriod({
+      dueDate: futureDate({ monthsAhead: 1, day: 15 }),
+    });
 
-    const res = await helpers.revertSubscriptionPeriod({
-      id: sub.id,
-      periodId: period.id,
+    const futureRes = await helpers.revertSubscriptionPeriod({
+      id: futureSub.id,
+      periodId: futurePeriod.id,
       raw: false,
     });
-    expect(res.statusCode).toBe(409);
-  });
+    expect(futureRes.statusCode).toBe(409);
 
-  it('returns 409 when reverting an overdue period (already active)', async () => {
-    // Create a subscription with a past due date so the period is overdue.
-    const dueDate = pastDate({ monthsAgo: 1, day: 15 });
-    const account = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ initialBalance: 500 }),
-      raw: true,
-    });
-    const sub = await helpers.createSubscription({
-      name: 'Overdue Sub',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: dueDate,
-      dueDate,
-      accountId: account.id,
-      categoryId: global.DEFAULT_CATEGORY_ID,
-      expectedAmount: 10,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-    const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    const { sub: pastSub } = await createSubWithPeriod({ dueDate: pastDate({ monthsAgo: 1, day: 15 }) });
+    const pastDetail = await helpers.getSubscriptionById({ id: pastSub.id, raw: true });
     // Period may be overdue (past date) or upcoming depending on scheduler timing;
     // either way, an active period cannot be reverted.
-    const activePeriod = detail.periods.find(
+    const activePeriod = pastDetail.periods.find(
       (p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming || p.status === SUBSCRIPTION_PERIOD_STATUSES.overdue,
     )!;
 
-    const res = await helpers.revertSubscriptionPeriod({
-      id: sub.id,
+    const pastRes = await helpers.revertSubscriptionPeriod({
+      id: pastSub.id,
       periodId: activePeriod.id,
       raw: false,
     });
-    expect(res.statusCode).toBe(409);
+    expect(pastRes.statusCode).toBe(409);
   });
 });
 
@@ -525,52 +501,14 @@ describe('Subscription period actions reject a periodId that belongs to another 
 });
 
 // ---------------------------------------------------------------------------
-// Unlink — idempotent on a period that has no linked transaction
-// ---------------------------------------------------------------------------
-
-describe('POST /subscriptions/:id/periods/:periodId/unlink (idempotency)', () => {
-  it('is a no-op when the period already has no linked transaction', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 15 });
-    const { sub, period } = await createSubWithPeriod({ dueDate });
-
-    // Pay in create-mode so a transaction is linked.
-    const paid = await helpers.markSubscriptionPeriodPaid({
-      id: sub.id,
-      periodId: period.id,
-      createTransaction: true,
-      raw: true,
-    });
-    expect(paid.transactionId).toBeTruthy();
-
-    // First unlink clears the link.
-    const firstUnlink = await helpers.unlinkSubscriptionPeriodTransaction({
-      id: sub.id,
-      periodId: period.id,
-      raw: true,
-    });
-    expect(firstUnlink.transactionId).toBeNull();
-
-    // Second unlink on the now-unlinked period must succeed (no 404/500).
-    const secondUnlinkRes = await helpers.unlinkSubscriptionPeriodTransaction({
-      id: sub.id,
-      periodId: period.id,
-      raw: false,
-    });
-    expect(secondUnlinkRes.statusCode).toBe(200);
-    expect(secondUnlinkRes.body.response.transactionId).toBeNull();
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Get periods
 // ---------------------------------------------------------------------------
 
 describe('GET /subscriptions/:id/periods', () => {
-  it('returns periods with transaction info for paid periods', async () => {
+  it('hydrates transactions for paid periods, nulls them elsewhere, orders by dueDate DESC and pages', async () => {
     const dueDate = futureDate({ monthsAhead: 1, day: 15 });
     const { sub, period } = await createSubWithPeriod({ dueDate });
 
-    // Pay in create-mode so the period has a linked transaction.
     const paid = await helpers.markSubscriptionPeriodPaid({
       id: sub.id,
       periodId: period.id,
@@ -578,74 +516,40 @@ describe('GET /subscriptions/:id/periods', () => {
       raw: true,
     });
 
-    const result = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
+    const afterPay = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
+    const second = afterPay.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming)!;
 
-    expect(result.total).toBeGreaterThanOrEqual(1);
+    await helpers.skipSubscriptionPeriod({ id: sub.id, periodId: second.id, raw: true });
+
+    const afterSkip = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
+    const third = afterSkip.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming)!;
+    await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: third.id, raw: true });
+
+    const result = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
     expect(Array.isArray(result.periods)).toBe(true);
+    expect(result.total).toBeGreaterThanOrEqual(4);
 
     const paidEntry = result.periods.find((p) => p.id === paid.id);
     expect(paidEntry).toBeDefined();
-    // Transaction info is included for paid periods.
     expect(paidEntry!.transaction).not.toBeNull();
     expect(paidEntry!.transaction!.id).toBe(paid.transactionId);
     expect(typeof paidEntry!.transaction!.amount).toBe('number');
-  });
 
-  it('returns null transaction for periods without a linked transaction', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 15 });
-    const { sub, period } = await createSubWithPeriod({ dueDate });
-
-    // Skip the period — no transaction is created.
-    await helpers.skipSubscriptionPeriod({ id: sub.id, periodId: period.id, raw: true });
-
-    const result = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
-
-    const skippedEntry = result.periods.find((p) => p.id === period.id);
+    const skippedEntry = result.periods.find((p) => p.id === second.id);
     expect(skippedEntry).toBeDefined();
     expect(skippedEntry!.transaction).toBeNull();
-  });
 
-  it('respects limit and offset for pagination', async () => {
-    const dueDate = futureDate({ monthsAhead: 2, day: 1 });
-    const { sub, period } = await createSubWithPeriod({ dueDate });
-
-    // Generate several periods by paying and letting ensureNextPeriod run repeatedly.
-    let currentPeriodId = period.id;
-    for (let i = 0; i < 3; i++) {
-      await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: currentPeriodId, raw: true });
-      const periodsResult = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
-      const next = periodsResult.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-      if (next) currentPeriodId = next.id;
+    for (let i = 0; i < result.periods.length - 1; i++) {
+      expect(result.periods[i]!.dueDate >= result.periods[i + 1]!.dueDate).toBe(true);
     }
 
-    const total = (await helpers.getSubscriptionPeriods({ id: sub.id, raw: true })).total;
-    expect(total).toBeGreaterThanOrEqual(4);
-
-    // Page 1: first 2 periods.
     const page1 = await helpers.getSubscriptionPeriods({ id: sub.id, limit: 2, offset: 0, raw: true });
     expect(page1.periods).toHaveLength(2);
-    expect(page1.total).toBe(total);
+    expect(page1.total).toBe(result.total);
 
-    // Page 2: next 2 periods (different rows).
     const page2 = await helpers.getSubscriptionPeriods({ id: sub.id, limit: 2, offset: 2, raw: true });
     expect(page2.periods).toHaveLength(2);
     const page1Ids = new Set(page1.periods.map((p) => p.id));
     page2.periods.forEach((p) => expect(page1Ids.has(p.id)).toBe(false));
-  });
-
-  it('returns periods ordered by dueDate DESC (newest first)', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 15 });
-    const { sub, period } = await createSubWithPeriod({ dueDate });
-
-    // Pay to generate a second period.
-    await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: period.id, raw: true });
-
-    const result = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
-    expect(result.periods.length).toBeGreaterThanOrEqual(2);
-
-    // Dates must be in descending order.
-    for (let i = 0; i < result.periods.length - 1; i++) {
-      expect(result.periods[i]!.dueDate >= result.periods[i + 1]!.dueDate).toBe(true);
-    }
-  });
+  }, 60_000);
 });

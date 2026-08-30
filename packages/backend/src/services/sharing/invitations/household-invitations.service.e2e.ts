@@ -118,7 +118,20 @@ describe('Household invitation flow', () => {
         order: [['createdAt', 'DESC']],
       });
       expect(ownerNotification).not.toBeNull();
-    });
+
+      const items = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.listSharedWithMe({ raw: true }),
+      });
+      const householdRow = items.find(
+        (i) => i.resourceType === RESOURCE_TYPES.household && i.resourceId === String(ownerUserId),
+      );
+      expect(householdRow).toBeDefined();
+      expect(householdRow!.permission).toBe(SHARE_PERMISSIONS.write);
+      // Resource name is `${owner.username}'s household`, so match the whole shape: a
+      // regression that strips the owner prefix must fail here.
+      expect(householdRow!.resourceName).toMatch(/^.+'s household$/);
+    }, 60_000);
   });
 
   describe('decline path', () => {
@@ -159,40 +172,32 @@ describe('Household invitation flow', () => {
   });
 
   describe('validation', () => {
-    it('rejects creating a household invitation with manage permission', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+    it('rejects invalid household invitations', async () => {
+      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
+      const otherApp = await helpers.findAppUserByEmail({ email: otherUser.email });
       const ownerAccount = await helpers.createAccount({ raw: true });
 
-      const res = (await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
+      // Household members never get `manage`. Assert 422 exactly: a 500 masking the
+      // validation would satisfy a loose 4xx check.
+      const managePermissionRes = (await helpers.createShareInvitation({
+        inviteeEmail: otherUser.email,
         resourceType: RESOURCE_TYPES.household,
         resourceId: ownerAccount.userId,
         permission: SHARE_PERMISSIONS.manage,
         raw: false,
       })) as unknown as CustomResponse<unknown>;
+      expect(managePermissionRes.statusCode).toBe(422);
 
-      // 422 (ValidationError) — not just any 4xx, so a future server error masking
-      // the validation as a 500 won't accidentally satisfy the assertion.
-      expect(res.statusCode).toBe(422);
-    });
-
-    it("rejects creating a household invitation that targets someone else's household", async () => {
-      // Primary test user is authenticated by default. They try to create a household
-      // invite that targets some OTHER user's household — only that user can invite to
-      // their own household, so we expect a 422 ValidationError specifically.
-      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
-      const otherApp = await helpers.findAppUserByEmail({ email: otherUser.email });
-
-      const res = (await helpers.createShareInvitation({
+      // Only the household owner can invite to their own household.
+      const foreignHouseholdRes = (await helpers.createShareInvitation({
         inviteeEmail: otherUser.email,
         resourceType: RESOURCE_TYPES.household,
         resourceId: otherApp.id,
         permission: SHARE_PERMISSIONS.write,
         raw: false,
       })) as unknown as CustomResponse<unknown>;
-
-      expect(res.statusCode).toBe(422);
-    });
+      expect(foreignHouseholdRes.statusCode).toBe(422);
+    }, 60_000);
   });
 
   describe('currency mismatch on accept', () => {
@@ -302,38 +307,6 @@ describe('Household invitation flow', () => {
       const after = await ShareInvitations.findByPk(pendingInvite.id);
       expect(after).not.toBeNull();
       expect(after!.status).toBe(SHARE_INVITATION_STATUSES.revoked);
-    });
-  });
-
-  describe('shared-with-me surfaces the household membership', () => {
-    it('after accept, the household row appears in shared-with-me with the right shape', async () => {
-      const ownerAccount = await helpers.createAccount({ raw: true });
-      const ownerUserId = ownerAccount.userId;
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const invitation = await inviteToHousehold({
-        ownerUserId,
-        inviteeEmail: recipient.email,
-        permission: SHARE_PERMISSIONS.read,
-      });
-      await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
-      });
-
-      const items = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.listSharedWithMe({ raw: true }),
-      });
-      const householdRow = items.find(
-        (i) => i.resourceType === RESOURCE_TYPES.household && i.resourceId === String(ownerUserId),
-      );
-      expect(householdRow).toBeDefined();
-      expect(householdRow!.permission).toBe(SHARE_PERMISSIONS.read);
-      // Resource name format is `${owner.username}'s household` — assert the shape
-      // explicitly so a regression that strips the owner prefix is caught (the previous
-      // `toContain('household')` would pass for any string containing the substring).
-      expect(householdRow!.resourceName).toMatch(/^.+'s household$/);
     });
   });
 });

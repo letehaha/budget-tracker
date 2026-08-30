@@ -75,7 +75,7 @@ describe('GET /stats/pivot', () => {
     expect(result.columns.map((column) => column.key)).toEqual(['2025-01', '2025-02', '2025-03']);
   });
 
-  it('rejects an invalid granularity, rowDimension, or measure with 422', async () => {
+  it('rejects an invalid granularity, rowDimension, measure or range with 422', async () => {
     const invalidGranularity = await helpers.makeRequest({
       method: 'get',
       url: '/stats/pivot?from=2025-01-01&to=2025-12-31&granularity=daily&rowDimension=category&measure=expense',
@@ -93,18 +93,27 @@ describe('GET /stats/pivot', () => {
       url: '/stats/pivot?from=2025-01-01&to=2025-12-31&granularity=monthly&rowDimension=category&measure=savings',
     });
     expect(invalidMeasure.statusCode).toBe(422);
-  });
 
-  it('rejects from > to with 422', async () => {
-    const res = await helpers.getPivotReport({
+    const invertedRange = await helpers.getPivotReport({
       from: '2025-12-31',
       to: '2025-01-01',
       granularity: 'monthly',
       rowDimension: 'category',
       measure: 'expense',
     });
+    expect(invertedRange.statusCode).toBe(422);
 
-    expect(res.statusCode).toBe(422);
+    const emptyFrom = await helpers.makeRequest({
+      method: 'get',
+      url: '/stats/pivot?from=&to=2025-12-31&granularity=monthly&rowDimension=category&measure=expense',
+    });
+    expect(emptyFrom.statusCode).toBe(422);
+
+    const malformedTo = await helpers.makeRequest({
+      method: 'get',
+      url: '/stats/pivot?from=2025-01-01&to=nonsense&granularity=monthly&rowDimension=category&measure=expense',
+    });
+    expect(malformedTo.statusCode).toBe(422);
   });
 
   it('accuracy: a split transaction distributes across two category rows in the same bucket', async () => {
@@ -196,9 +205,10 @@ describe('GET /stats/pivot', () => {
     expect(result.grandTotal).toBe(70);
   });
 
-  it('payee dimension: groups by payee and includes an Unassigned row for null-payee txs', async () => {
+  it('payee dimension: groups by payee, adds an Unassigned row, and narrows to payeeIds', async () => {
     const account = await helpers.createAccount({ raw: true });
-    const payee = await helpers.createPayee({ payload: { name: uniqueName('Acme') }, raw: true });
+    const payeeA = await helpers.createPayee({ payload: { name: uniqueName('Acme') }, raw: true });
+    const payeeB = await helpers.createPayee({ payload: { name: uniqueName('PayeeB') }, raw: true });
 
     await helpers.createTransaction({
       payload: {
@@ -206,7 +216,7 @@ describe('GET /stats/pivot', () => {
           accountId: account.id,
           amount: 40,
           transactionType: TRANSACTION_TYPES.expense,
-          payeeId: payee.id,
+          payeeId: payeeA.id,
         }),
         time: '2025-02-05T12:00:00.000Z',
       },
@@ -218,8 +228,20 @@ describe('GET /stats/pivot', () => {
           accountId: account.id,
           amount: 25,
           transactionType: TRANSACTION_TYPES.expense,
+          payeeId: payeeB.id,
         }),
         time: '2025-02-06T12:00:00.000Z',
+      },
+      raw: true,
+    });
+    await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 15,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        time: '2025-02-07T12:00:00.000Z',
       },
       raw: true,
     });
@@ -233,19 +255,37 @@ describe('GET /stats/pivot', () => {
       raw: true,
     });
 
-    const payeeRow = result.rows.find((row) => row.id === payee.id);
+    const payeeRow = result.rows.find((row) => row.id === payeeA.id);
     expect(payeeRow).toBeDefined();
-    expect(payeeRow!.label).toBe(payee.name);
+    expect(payeeRow!.label).toBe(payeeA.name);
     expect(payeeRow!.color).toBeNull();
     expect(payeeRow!.total).toBe(40);
 
     const unassignedRow = result.rows.find((row) => row.id === 'unassigned');
     expect(unassignedRow).toBeDefined();
     expect(unassignedRow!.label).toBe('Unassigned');
-    expect(unassignedRow!.total).toBe(25);
+    expect(unassignedRow!.total).toBe(15);
 
-    expect(result.grandTotal).toBe(65);
-  });
+    expect(result.grandTotal).toBe(80);
+
+    // `payeeId IN (…)` never matches a null payee, so the filtered report is payee A alone.
+    const filtered = await helpers.getPivotReport({
+      from: '2025-02-01',
+      to: '2025-02-28',
+      granularity: 'monthly',
+      rowDimension: 'payee',
+      measure: 'expense',
+      payeeIds: [payeeA.id],
+      raw: true,
+    });
+
+    const filteredRowA = filtered.rows.find((row) => row.id === payeeA.id);
+    expect(filteredRowA).toBeDefined();
+    expect(filteredRowA!.label).toBe(payeeA.name);
+    expect(filteredRowA!.total).toBe(40);
+    expect(filtered.rows.find((row) => row.id === payeeB.id)).toBeUndefined();
+    expect(filtered.grandTotal).toBe(40);
+  }, 60_000);
 
   it('payee dimension: surfaces each payee logo (domain, monogram, or null)', async () => {
     const account = await helpers.createAccount({ raw: true });
@@ -553,48 +593,40 @@ describe('GET /stats/pivot', () => {
     expect(result.grandTotal).toBe(80);
   });
 
-  it('excludeFromStats: transactions on an excluded account are absent from the report', async () => {
-    const includedAccount = await helpers.createAccount({ raw: true });
+  it('excludeFromStats and accountIds each narrow the accounts the report reads', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
     const excludedAccount = await helpers.createAccount({ raw: true });
     await helpers.updateAccount({ id: excludedAccount.id, payload: { excludeFromStats: true }, raw: true });
 
-    const includedCategory = await helpers.addCustomCategory({
-      name: uniqueName('Counted'),
-      color: '#0a0a0a',
-      raw: true,
-    });
+    const categoryA = await helpers.addCustomCategory({ name: uniqueName('CatA'), color: '#0a0a0a', raw: true });
+    const categoryB = await helpers.addCustomCategory({ name: uniqueName('CatB'), color: '#0b0b0b', raw: true });
     const excludedCategory = await helpers.addCustomCategory({
       name: uniqueName('Skipped'),
-      color: '#0b0b0b',
+      color: '#0c0c0c',
       raw: true,
     });
 
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: includedAccount.id,
-          amount: 70,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: includedCategory.id,
-        }),
-        time: '2025-05-10T12:00:00.000Z',
-      },
-      raw: true,
-    });
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: excludedAccount.id,
-          amount: 50,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: excludedCategory.id,
-        }),
-        time: '2025-05-11T12:00:00.000Z',
-      },
-      raw: true,
-    });
+    for (const [accountId, amount, categoryId] of [
+      [accountA.id, 100, categoryA.id],
+      [accountB.id, 50, categoryB.id],
+      [excludedAccount.id, 70, excludedCategory.id],
+    ] as const) {
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId,
+            amount,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId,
+          }),
+          time: '2025-05-10T12:00:00.000Z',
+        },
+        raw: true,
+      });
+    }
 
-    const result = await helpers.getPivotReport({
+    const unfiltered = await helpers.getPivotReport({
       from: '2025-05-01',
       to: '2025-05-31',
       granularity: 'monthly',
@@ -603,10 +635,25 @@ describe('GET /stats/pivot', () => {
       raw: true,
     });
 
-    expect(result.rows.find((row) => row.id === includedCategory.id)!.total).toBe(70);
-    expect(result.rows.find((row) => row.id === excludedCategory.id)).toBeUndefined();
-    expect(result.grandTotal).toBe(70);
-  });
+    expect(unfiltered.rows.find((row) => row.id === categoryA.id)!.total).toBe(100);
+    expect(unfiltered.rows.find((row) => row.id === categoryB.id)!.total).toBe(50);
+    expect(unfiltered.rows.find((row) => row.id === excludedCategory.id)).toBeUndefined();
+    expect(unfiltered.grandTotal).toBe(150);
+
+    const scopedToA = await helpers.getPivotReport({
+      from: '2025-05-01',
+      to: '2025-05-31',
+      granularity: 'monthly',
+      rowDimension: 'category',
+      measure: 'expense',
+      accountIds: [accountA.id],
+      raw: true,
+    });
+
+    expect(scopedToA.rows.find((row) => row.id === categoryA.id)!.total).toBe(100);
+    expect(scopedToA.rows.find((row) => row.id === categoryB.id)).toBeUndefined();
+    expect(scopedToA.grandTotal).toBe(100);
+  }, 60_000);
 
   it('transfer exclusion: transfer legs never appear in the report', async () => {
     const source = await helpers.createAccount({ raw: true });
@@ -706,100 +753,6 @@ describe('GET /stats/pivot', () => {
     expect(result.columnTotals['2025-01']).toBe(100);
     expect(result.columnTotals['2025-02']).toBe(-30);
     expect(result.grandTotal).toBe(70);
-  });
-
-  it('accountIds filter: restricts rows to the selected accounts', async () => {
-    const accountA = await helpers.createAccount({ raw: true });
-    const accountB = await helpers.createAccount({ raw: true });
-    const categoryA = await helpers.addCustomCategory({ name: uniqueName('CatA'), color: '#111111', raw: true });
-    const categoryB = await helpers.addCustomCategory({ name: uniqueName('CatB'), color: '#222222', raw: true });
-
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: accountA.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: categoryA.id,
-        }),
-        time: '2025-07-10T12:00:00.000Z',
-      },
-      raw: true,
-    });
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: accountB.id,
-          amount: 50,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: categoryB.id,
-        }),
-        time: '2025-07-11T12:00:00.000Z',
-      },
-      raw: true,
-    });
-
-    const result = await helpers.getPivotReport({
-      from: '2025-07-01',
-      to: '2025-07-31',
-      granularity: 'monthly',
-      rowDimension: 'category',
-      measure: 'expense',
-      accountIds: [accountA.id],
-      raw: true,
-    });
-
-    expect(result.rows.find((row) => row.id === categoryA.id)!.total).toBe(100);
-    expect(result.rows.find((row) => row.id === categoryB.id)).toBeUndefined();
-    expect(result.grandTotal).toBe(100);
-  });
-
-  it('payeeIds filter: restricts rows to the selected payees', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const payeeA = await helpers.createPayee({ payload: { name: uniqueName('PayeeA') }, raw: true });
-    const payeeB = await helpers.createPayee({ payload: { name: uniqueName('PayeeB') }, raw: true });
-
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 40,
-          transactionType: TRANSACTION_TYPES.expense,
-          payeeId: payeeA.id,
-        }),
-        time: '2025-08-10T12:00:00.000Z',
-      },
-      raw: true,
-    });
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 25,
-          transactionType: TRANSACTION_TYPES.expense,
-          payeeId: payeeB.id,
-        }),
-        time: '2025-08-11T12:00:00.000Z',
-      },
-      raw: true,
-    });
-
-    const result = await helpers.getPivotReport({
-      from: '2025-08-01',
-      to: '2025-08-31',
-      granularity: 'monthly',
-      rowDimension: 'payee',
-      measure: 'expense',
-      payeeIds: [payeeA.id],
-      raw: true,
-    });
-
-    const rowA = result.rows.find((row) => row.id === payeeA.id);
-    expect(rowA).toBeDefined();
-    expect(rowA!.label).toBe(payeeA.name);
-    expect(rowA!.total).toBe(40);
-    expect(result.rows.find((row) => row.id === payeeB.id)).toBeUndefined();
-    expect(result.grandTotal).toBe(40);
   });
 
   it('cross-currency: row values use the base-currency refAmount, not the raw foreign amount', async () => {
@@ -917,37 +870,32 @@ describe('GET /stats/pivot', () => {
     expect(result.grandTotal).toBe(80);
   });
 
-  it('weekly granularity: transactions land in adjacent week columns', async () => {
+  it('weekly and quarterly granularity: transactions land in adjacent columns', async () => {
     const account = await helpers.createAccount({ raw: true });
-    const category = await helpers.addCustomCategory({ name: uniqueName('Weekly'), color: '#121212', raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Buckets'), color: '#121212', raw: true });
 
     // 2025-01-06 and 2025-01-13 are consecutive Mondays (weeks start on Monday).
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-        }),
-        time: '2025-01-08T12:00:00.000Z', // within the week of 2025-01-06
-      },
-      raw: true,
-    });
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 250,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-        }),
-        time: '2025-01-15T12:00:00.000Z', // within the week of 2025-01-13
-      },
-      raw: true,
-    });
+    for (const [amount, time] of [
+      [100, '2025-01-08T12:00:00.000Z'], // week of 2025-01-06, Q1
+      [250, '2025-01-15T12:00:00.000Z'], // week of 2025-01-13, Q1
+      [100, '2025-02-15T12:00:00.000Z'], // Q1 2025
+      [300, '2025-05-15T12:00:00.000Z'], // Q2 2025
+    ] as const) {
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: category.id,
+          }),
+          time,
+        },
+        raw: true,
+      });
+    }
 
-    const result = await helpers.getPivotReport({
+    const weekly = await helpers.getPivotReport({
       from: '2025-01-06',
       to: '2025-01-19',
       granularity: 'weekly',
@@ -956,48 +904,18 @@ describe('GET /stats/pivot', () => {
       raw: true,
     });
 
-    expect(result.columns.map((column) => column.key)).toEqual(['2025-01-06', '2025-01-13']);
-    expect(result.columns.map((column) => column.label)).toEqual(['Wk of 2025-01-06', 'Wk of 2025-01-13']);
+    expect(weekly.columns.map((column) => column.key)).toEqual(['2025-01-06', '2025-01-13']);
+    expect(weekly.columns.map((column) => column.label)).toEqual(['Wk of 2025-01-06', 'Wk of 2025-01-13']);
 
-    const row = result.rows.find((candidate) => candidate.id === category.id);
-    expect(row!.values['2025-01-06']).toBe(100);
-    expect(row!.values['2025-01-13']).toBe(250);
-    expect(row!.total).toBe(350);
-    expect(result.columnTotals['2025-01-06']).toBe(100);
-    expect(result.columnTotals['2025-01-13']).toBe(250);
-    expect(result.grandTotal).toBe(350);
-  });
+    const weeklyRow = weekly.rows.find((candidate) => candidate.id === category.id);
+    expect(weeklyRow!.values['2025-01-06']).toBe(100);
+    expect(weeklyRow!.values['2025-01-13']).toBe(250);
+    expect(weeklyRow!.total).toBe(350);
+    expect(weekly.columnTotals['2025-01-06']).toBe(100);
+    expect(weekly.columnTotals['2025-01-13']).toBe(250);
+    expect(weekly.grandTotal).toBe(350);
 
-  it('quarterly granularity: transactions land in adjacent quarter columns', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const category = await helpers.addCustomCategory({ name: uniqueName('Quarterly'), color: '#343434', raw: true });
-
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-        }),
-        time: '2025-02-15T12:00:00.000Z', // Q1 2025
-      },
-      raw: true,
-    });
-    await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 300,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-        }),
-        time: '2025-05-15T12:00:00.000Z', // Q2 2025
-      },
-      raw: true,
-    });
-
-    const result = await helpers.getPivotReport({
+    const quarterly = await helpers.getPivotReport({
       from: '2025-01-01',
       to: '2025-06-30',
       granularity: 'quarterly',
@@ -1006,17 +924,18 @@ describe('GET /stats/pivot', () => {
       raw: true,
     });
 
-    expect(result.columns.map((column) => column.key)).toEqual(['2025-Q1', '2025-Q2']);
-    expect(result.columns.map((column) => column.label)).toEqual(['Q1 2025', 'Q2 2025']);
+    expect(quarterly.columns.map((column) => column.key)).toEqual(['2025-Q1', '2025-Q2']);
+    expect(quarterly.columns.map((column) => column.label)).toEqual(['Q1 2025', 'Q2 2025']);
 
-    const row = result.rows.find((candidate) => candidate.id === category.id);
-    expect(row!.values['2025-Q1']).toBe(100);
-    expect(row!.values['2025-Q2']).toBe(300);
-    expect(row!.total).toBe(400);
-    expect(result.columnTotals['2025-Q1']).toBe(100);
-    expect(result.columnTotals['2025-Q2']).toBe(300);
-    expect(result.grandTotal).toBe(400);
-  });
+    const quarterlyRow = quarterly.rows.find((candidate) => candidate.id === category.id);
+    // Q1 holds the two January transactions plus the February one.
+    expect(quarterlyRow!.values['2025-Q1']).toBe(450);
+    expect(quarterlyRow!.values['2025-Q2']).toBe(300);
+    expect(quarterlyRow!.total).toBe(750);
+    expect(quarterly.columnTotals['2025-Q1']).toBe(450);
+    expect(quarterly.columnTotals['2025-Q2']).toBe(300);
+    expect(quarterly.grandTotal).toBe(750);
+  }, 60_000);
 
   it('payee dimension: nets a refund against the original expense payee', async () => {
     const account = await helpers.createAccount({ raw: true });
@@ -1261,19 +1180,5 @@ describe('GET /stats/pivot', () => {
     expect(row!.total).toBe(200);
     expect(result.columnTotals['2026-04']).toBe(200);
     expect(result.grandTotal).toBe(200);
-  });
-
-  it('rejects an empty or malformed from/to with 422', async () => {
-    const emptyFrom = await helpers.makeRequest({
-      method: 'get',
-      url: '/stats/pivot?from=&to=2025-12-31&granularity=monthly&rowDimension=category&measure=expense',
-    });
-    expect(emptyFrom.statusCode).toBe(422);
-
-    const malformedTo = await helpers.makeRequest({
-      method: 'get',
-      url: '/stats/pivot?from=2025-01-01&to=nonsense&granularity=monthly&rowDimension=category&measure=expense',
-    });
-    expect(malformedTo.statusCode).toBe(422);
   });
 });

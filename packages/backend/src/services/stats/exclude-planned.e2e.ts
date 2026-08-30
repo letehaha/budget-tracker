@@ -76,94 +76,58 @@ const sumBuckets = (result: Record<string, { income: number; expense: number }>)
   );
 
 describe('excludePlanned on stats endpoints', () => {
-  describe('GET /stats/cash-flow', () => {
-    it('counts planned rows by default', async () => {
-      await seedRealAndPlanned();
+  it('GET /stats/cash-flow honours the default, excludePlanned=true and an explicit excludePlanned=false', async () => {
+    await seedRealAndPlanned();
 
-      const result = await helpers.getCashFlow({ ...RANGE(), granularity: 'monthly', raw: true });
-
-      expect(sumTotals(result)).toMatchObject({ income: 170, expenses: 80 });
+    const byDefault = await helpers.getCashFlow({ ...RANGE(), granularity: 'monthly', raw: true });
+    const excluded = await helpers.getCashFlow({
+      ...RANGE(),
+      granularity: 'monthly',
+      excludePlanned: true,
+      raw: true,
+    });
+    const explicitlyIncluded = await helpers.getCashFlow({
+      ...RANGE(),
+      granularity: 'monthly',
+      excludePlanned: false,
+      raw: true,
     });
 
-    it('drops planned rows when excludePlanned=true', async () => {
-      await seedRealAndPlanned();
+    expect(sumTotals(byDefault)).toMatchObject({ income: 170, expenses: 80 });
+    expect(sumTotals(excluded)).toMatchObject({ income: 100, expenses: 50 });
+    expect(sumTotals(explicitlyIncluded)).toMatchObject({ income: 170, expenses: 80 });
+  }, 60_000);
 
-      const result = await helpers.getCashFlow({
-        ...RANGE(),
-        granularity: 'monthly',
-        excludePlanned: true,
-        raw: true,
-      });
+  it('GET /stats/spendings-by-categories honours excludePlanned in both the flat and the groupByType shape', async () => {
+    await seedRealAndPlanned();
 
-      expect(sumTotals(result)).toMatchObject({ income: 100, expenses: 50 });
-    });
+    const flatDefault = await helpers.getSpendingsByCategories({ ...RANGE(), raw: true });
+    const flatExcluded = await helpers.getSpendingsByCategories({ ...RANGE(), excludePlanned: true, raw: true });
+    const byTypeDefault = (await helpers.getSpendingsByCategories({
+      ...RANGE(),
+      groupByType: true,
+      raw: true,
+    })) as Record<string, { income: number; expense: number }>;
+    const byTypeExcluded = (await helpers.getSpendingsByCategories({
+      ...RANGE(),
+      groupByType: true,
+      excludePlanned: true,
+      raw: true,
+    })) as Record<string, { income: number; expense: number }>;
 
-    it('keeps planned rows when excludePlanned=false is passed explicitly', async () => {
-      await seedRealAndPlanned();
+    expect(sumAmounts(flatDefault)).toBe(80);
+    expect(sumAmounts(flatExcluded)).toBe(50);
+    expect(sumBuckets(byTypeDefault)).toEqual({ income: 170, expense: 80 });
+    expect(sumBuckets(byTypeExcluded)).toEqual({ income: 100, expense: 50 });
+  }, 60_000);
 
-      const result = await helpers.getCashFlow({
-        ...RANGE(),
-        granularity: 'monthly',
-        excludePlanned: false,
-        raw: true,
-      });
+  it('GET /stats/expenses-amount-for-period sums planned expenses by default and drops them on excludePlanned=true', async () => {
+    await seedRealAndPlanned();
 
-      expect(sumTotals(result)).toMatchObject({ income: 170, expenses: 80 });
-    });
-  });
+    const byDefault = await helpers.getExpensesAmountForPeriod({ ...RANGE(), raw: true });
+    const excluded = await helpers.getExpensesAmountForPeriod({ ...RANGE(), excludePlanned: true, raw: true });
 
-  describe('GET /stats/spendings-by-categories', () => {
-    it('counts planned expenses by default', async () => {
-      await seedRealAndPlanned();
-
-      const result = await helpers.getSpendingsByCategories({ ...RANGE(), raw: true });
-
-      expect(sumAmounts(result)).toBe(80);
-    });
-
-    it('drops planned expenses when excludePlanned=true', async () => {
-      await seedRealAndPlanned();
-
-      const result = await helpers.getSpendingsByCategories({ ...RANGE(), excludePlanned: true, raw: true });
-
-      expect(sumAmounts(result)).toBe(50);
-    });
-
-    it('applies excludePlanned to both buckets of the groupByType response', async () => {
-      await seedRealAndPlanned();
-
-      const byTypeDefault = (await helpers.getSpendingsByCategories({
-        ...RANGE(),
-        groupByType: true,
-        raw: true,
-      })) as Record<string, { income: number; expense: number }>;
-      const byTypeExcluded = (await helpers.getSpendingsByCategories({
-        ...RANGE(),
-        groupByType: true,
-        excludePlanned: true,
-        raw: true,
-      })) as Record<string, { income: number; expense: number }>;
-
-      expect(sumBuckets(byTypeDefault)).toEqual({ income: 170, expense: 80 });
-      expect(sumBuckets(byTypeExcluded)).toEqual({ income: 100, expense: 50 });
-    });
-  });
-
-  describe('GET /stats/expenses-amount-for-period', () => {
-    it('counts planned expenses by default', async () => {
-      await seedRealAndPlanned();
-
-      const amount = await helpers.getExpensesAmountForPeriod({ ...RANGE(), raw: true });
-
-      expect(amount).toBe(80);
-    });
-
-    it('drops planned expenses when excludePlanned=true', async () => {
-      await seedRealAndPlanned();
-
-      const amount = await helpers.getExpensesAmountForPeriod({ ...RANGE(), excludePlanned: true, raw: true });
-
-      expect(amount).toBe(50);
-    });
-  });
+    expect(byDefault).toBe(80);
+    expect(excluded).toBe(50);
+  }, 60_000);
 });

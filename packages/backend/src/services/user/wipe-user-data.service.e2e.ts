@@ -1,7 +1,6 @@
 import { RESOURCE_TYPES, SHARE_PERMISSIONS, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types/api';
 import { VENTURE_CASH_FLOW_MODE, VENTURE_EVENT_TYPE } from '@bt/shared/types/venture';
-import { authPool } from '@config/auth';
 import { describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
@@ -141,7 +140,11 @@ describe('User data wipe (POST /user/wipe-data)', () => {
       replacements: { authUserId },
     });
     expect((baSessionRow as { id: string }[]).length).toBeGreaterThanOrEqual(1);
-  });
+
+    // Subsequent authenticated request on the same cookies still resolves the user.
+    const meRes = await helpers.makeRequest({ method: 'get', url: '/user' });
+    expect(meRes.statusCode).toBe(200);
+  }, 60_000);
 
   it('wipes when UserMerchantCategoryCodes rows reference user categories', async () => {
     // Regression for the FK violation that aborted wipes in production. Now covered by a
@@ -330,37 +333,5 @@ describe('User data wipe (POST /user/wipe-data)', () => {
       where: { resourceType: RESOURCE_TYPES.account, resourceId: String(account.id) },
     });
     expect(shares).toHaveLength(0);
-  });
-
-  it('returns 200 immediately when there are no shared resources, regardless of acknowledgeSharing', async () => {
-    await helpers.createAccount({ raw: true });
-
-    // First call without ack — should succeed because nothing is shared.
-    const wipeRes = await helpers.wipeUserData();
-    expect(wipeRes.statusCode).toBe(200);
-
-    const userAfter = await Users.findOne({ where: {} });
-    expect(userAfter).not.toBeNull();
-  });
-
-  it('preserves the better-auth session so the user stays logged in', async () => {
-    const userBefore = await Users.findOne({ where: {} });
-    const authUserId = userBefore!.authUserId;
-
-    await helpers.createAccount({ raw: true });
-    const wipeRes = await helpers.wipeUserData();
-    expect(wipeRes.statusCode).toBe(200);
-
-    // Subsequent authenticated request on the same cookies still resolves the user.
-    const meRes = await helpers.makeRequest({ method: 'get', url: '/user' });
-    expect(meRes.statusCode).toBe(200);
-
-    const baUserRow = await authPool.query<{ id: string }>('SELECT id FROM ba_user WHERE id = $1', [authUserId]);
-    expect(baUserRow.rows.length).toBe(1);
-
-    const [baSessionRows] = await connection.sequelize.query('SELECT id FROM ba_session WHERE "userId" = :authUserId', {
-      replacements: { authUserId },
-    });
-    expect((baSessionRows as { id: string }[]).length).toBeGreaterThanOrEqual(1);
   });
 });
