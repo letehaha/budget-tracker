@@ -2,6 +2,7 @@
   "optimizations": {
     "title": "Optimizaciones",
     "landingDescription": "Herramientas para organizar y limpiar sus datos financieros.",
+    "backToOptimizations": "Volver a optimizaciones",
     "cards": {
       "transfers": {
         "title": "Asociación de transferencias",
@@ -12,48 +13,6 @@
         "description": "Deje que la IA clasifique las transacciones sin categorizar y revise ejecuciones anteriores."
       }
     },
-    "transferSuggestions": {
-      "description": "Encuentre transacciones que deben vincularse como transferencias entre sus cuentas",
-      "suggestionsFor": "Sugerencias para",
-      "selectExpense": "Seleccione una transacción para ver sugerencias",
-      "potentialTransfersFound": "posibles transferencias encontradas",
-      "empty": {
-        "title": "No se encontraron sugerencias de transferencias",
-        "description": "Intente ajustar el rango de fechas"
-      },
-      "initial": {
-        "title": "Buscar sugerencias de transferencias",
-        "description": "Analice sus transacciones para encontrar pares de ingresos y gastos que deban vincularse como transferencias entre cuentas"
-      },
-      "scanning": "Analizando transacciones…",
-      "confirmLink": {
-        "title": "¿Vincular como transferencia?",
-        "description": "Ambas transacciones se vincularán como una transferencia entre cuentas. Esto corregirá sus estadísticas y análisis excluyéndolas de los totales de ingresos y gastos."
-      },
-      "presets": {
-        "last3Months": "Últimos 3 meses",
-        "last6Months": "Últimos 6 meses",
-        "lastYear": "Último año",
-        "thisYear": "Este año",
-        "previousYear": "Año anterior"
-      },
-      "includeOutOfWallet": "Incluir transferencias fuera de cartera",
-      "skip": {
-        "action": "Omitir",
-        "title": "¿Omitir esta sugerencia?",
-        "description": "Este par quedará oculto en futuros resultados de análisis. Las transacciones en sí no se modificarán.",
-        "dontShowAgain": "No mostrar esta confirmación de nuevo"
-      },
-      "notifications": {
-        "loadError": "Error al cargar más sugerencias",
-        "scanError": "Error al analizar sugerencias de transferencias",
-        "linkSuccess": "Transacciones vinculadas como transferencia",
-        "linkError": "Error al vincular transacciones",
-        "skipSuccess": "Sugerencia descartada",
-        "skipError": "Error al omitir la sugerencia"
-      }
-    },
-    "backToOptimizations": "Volver a optimizaciones",
     "aiCategorization": {
       "title": "Categorización IA",
       "description": "Ejecute la IA sobre las transacciones que siguen en su categoría predeterminada y deje que elija una mejor. Siempre podrá cambiar la categoría después.",
@@ -126,6 +85,47 @@
         "alreadyRunning": "La categorización con IA ya está en curso",
         "rateLimited": "Ha alcanzado el límite de categorización manual. Inténtelo de nuevo en {time}.",
         "failed": "No se pudo iniciar la categorización con IA"
+      }
+    },
+    "transferSuggestions": {
+      "description": "Encuentre transacciones que deben vincularse como transferencias entre sus cuentas",
+      "suggestionsFor": "Sugerencias para",
+      "selectExpense": "Seleccione una transacción para ver sugerencias",
+      "potentialTransfersFound": "posibles transferencias encontradas",
+      "empty": {
+        "title": "No se encontraron sugerencias de transferencias",
+        "description": "Intente ajustar el rango de fechas"
+      },
+      "initial": {
+        "title": "Buscar sugerencias de transferencias",
+        "description": "Analice sus transacciones para encontrar pares de ingresos y gastos que deban vincularse como transferencias entre cuentas"
+      },
+      "scanning": "Analizando transacciones…",
+      "confirmLink": {
+        "title": "¿Vincular como transferencia?",
+        "description": "Ambas transacciones se vincularán como una transferencia entre cuentas. Esto corregirá sus estadísticas y análisis excluyéndolas de los totales de ingresos y gastos."
+      },
+      "presets": {
+        "last3Months": "Últimos 3 meses",
+        "last6Months": "Últimos 6 meses",
+        "lastYear": "Último año",
+        "thisYear": "Este año",
+        "previousYear": "Año anterior"
+      },
+      "includeOutOfWallet": "Incluir transferencias fuera de cartera",
+      "skip": {
+        "action": "Omitir",
+        "title": "¿Omitir esta sugerencia?",
+        "description": "Este par quedará oculto en futuros resultados de análisis. Las transacciones en sí no se modificarán.",
+        "dontShowAgain": "No mostrar esta confirmación de nuevo"
+      },
+      "notifications": {
+        "loadError": "Error al cargar más sugerencias",
+        "scanError": "Error al analizar sugerencias de transferencias",
+        "linkSuccess": "Transacciones vinculadas como transferencia",
+        "linkError": "Error al vincular transacciones",
+        "skipSuccess": "Sugerencia descartada",
+        "skipError": "Error al omitir la sugerencia"
       }
     }
   }

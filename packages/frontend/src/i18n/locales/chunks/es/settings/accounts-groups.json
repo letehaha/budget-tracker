@@ -25,6 +25,12 @@
         "inParent": "en {name}",
         "manageConnection": "Gestionar conexión"
       },
+      "update": {
+        "label": "Nombre del grupo",
+        "placeholder": "Introduzca el nombre del grupo",
+        "saveButton": "Guardar",
+        "emptyNameError": "El nombre del grupo no puede estar vacío"
+      },
       "accounts": {
         "heading": "Cuentas de este grupo",
         "empty": "Aún no hay cuentas en este grupo. Añada cuentas a un grupo desde la página de la cuenta.",
@@ -40,12 +46,6 @@
         "accountsKept": "Las cuentas se conservan — simplemente dejan de estar agrupadas.",
         "syncContinues": "La sincronización bancaria continúa — la conexión es independiente de este grupo.",
         "ungroupedHeading": "Quedarán sin agrupar"
-      },
-      "update": {
-        "label": "Nombre del grupo",
-        "placeholder": "Introduzca el nombre del grupo",
-        "saveButton": "Guardar",
-        "emptyNameError": "El nombre del grupo no puede estar vacío"
       }
     }
   }

@@ -27,7 +27,7 @@
       "apply": "Aplicar",
       "retry": "Reintentar",
       "copyInviteLink": "Copiar enlace de invitación",
-      "moveTo": "Mover a…"
+      "moveTo": ""
     },
     "ui": {
       "close": "Cerrar",
@@ -59,6 +59,9 @@
       "subscriptionCurrencyNotConnected": "El resumen de suscripciones no puede convertir {currencies} a su moneda base. Conecte la moneda en Ajustes → Monedas.",
       "backgroundJobFailed": "Ha fallado un trabajo en segundo plano mientras estaba ausente: {error}",
       "inviteLinkCopied": "Enlace de invitación copiado al portapapeles"
+    },
+    "sharing": {
+      "emailNotSent": "El envío de correos no está configurado — comparta el enlace de invitación manualmente"
     },
     "labels": {
       "email": "Correo electrónico",
@@ -180,31 +183,6 @@
       "description": "Hay una nueva versión lista. Recargue para obtener las últimas mejoras.",
       "reload": "Recargar"
     },
-    "logo": {
-      "searchPlaceholder": "Nombre de marca o dominio",
-      "searchHint": "Escriba un nombre de marca o un dominio como amazon.com",
-      "noResults": "No se encontraron marcas coincidentes.",
-      "useDomainDirectly": "Usar {domain}",
-      "autoLabel": "Automático (desde el nombre)",
-      "domainHint": "Para encontrar la marca exacta, escriba el dominio del sitio web de la empresa (p. ej. amazon.com) – eso siempre coincide con el logotipo correcto.",
-      "searchError": "No se pudieron cargar los logotipos – intente de nuevo",
-      "editAriaLabel": "Editar logo",
-      "dialogTitle": "Cambiar logo",
-      "resetToAuto": "Restablecer a automático",
-      "tabs": {
-        "brand": "Marca",
-        "letters": "Letras"
-      },
-      "noResultsLettersHint": "Usar letras en su lugar",
-      "lettersLabel": "Letras (1–2)",
-      "lettersPlaceholder": "AB",
-      "colorLabel": "Color",
-      "colorSwatchAriaLabel": "Usar color {color}",
-      "customColorAriaLabel": "Elegir un color personalizado",
-      "applyLetters": "Aplicar",
-      "lettersSelectedLabel": "Letras “{letters}”",
-      "remove": "Quitar logo"
-    },
     "resourceLease": {
       "activeLabel": "Sesión activa",
       "expiredLabel": "Sesión expirada",
@@ -224,13 +202,39 @@
         "hours": "{count} hora | {count} horas"
       }
     },
-    "sharing": {
-      "emailNotSent": "El envío de correos no está configurado — comparta el enlace de invitación manualmente"
+    "logo": {
+      "tabs": {
+        "brand": "Marca",
+        "letters": "Letras"
+      },
+      "searchPlaceholder": "Nombre de marca o dominio",
+      "searchHint": "Escriba un nombre de marca o un dominio como amazon.com",
+      "noResults": "No se encontraron marcas coincidentes.",
+      "noResultsLettersHint": "Usar letras en su lugar",
+      "useDomainDirectly": "Usar {domain}",
+      "autoLabel": "Automático (desde el nombre)",
+      "domainHint": "Para encontrar la marca exacta, escriba el dominio del sitio web de la empresa (p. ej. amazon.com) – eso siempre coincide con el logotipo correcto.",
+      "searchError": "No se pudieron cargar los logotipos – intente de nuevo",
+      "editAriaLabel": "Editar logo",
+      "dialogTitle": "Cambiar logo",
+      "resetToAuto": "Restablecer a automático",
+      "remove": "Quitar logo",
+      "lettersLabel": "Letras (1–2)",
+      "lettersPlaceholder": "AB",
+      "colorLabel": "Color",
+      "colorSwatchAriaLabel": "Usar color {color}",
+      "customColorAriaLabel": "Elegir un color personalizado",
+      "applyLetters": "Aplicar",
+      "lettersSelectedLabel": "Letras “{letters}”"
     }
   },
   "accountGroups": {
     "create": {
       "error": "Error al crear el grupo"
+    },
+    "update": {
+      "success": "El grupo ha sido actualizado",
+      "error": "Error al actualizar el grupo"
     },
     "delete": {
       "success": "El grupo ha sido eliminado",
@@ -243,10 +247,6 @@
     "unlink": {
       "success": "La cuenta ha sido quitada del grupo",
       "error": "Error al quitar la cuenta del grupo"
-    },
-    "update": {
-      "success": "El grupo ha sido actualizado",
-      "error": "Error al actualizar el grupo"
     }
   },
   "validation": {
@@ -258,6 +258,8 @@
     "title": "Notificaciones",
     "markAllAsRead": "Marcar todas como leídas",
     "empty": "No hay notificaciones todavía",
+    "containerAriaLabel": "Notificaciones",
+    "closeToast": "Cerrar notificación",
     "viewOnGitHub": "Ver en GitHub",
     "newVersion": "Nueva versión {version}",
     "newRelease": "Nueva versión publicada",
@@ -267,9 +269,7 @@
     },
     "share": {
       "sendFailedHint": "Abra el panel de compartir para reenviar."
-    },
-    "containerAriaLabel": "Notificaciones",
-    "closeToast": "Cerrar notificación"
+    }
   },
   "currencyNames": {
     "UAH": "Grivna ucraniana",

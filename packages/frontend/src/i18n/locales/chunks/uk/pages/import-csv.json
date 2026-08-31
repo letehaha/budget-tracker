@@ -9,9 +9,8 @@
           "steps": {
             "upload": "Завантажити",
             "map": "Зіставити стовпці",
-            "resolve": "Розпізнати значення",
-            "resolveAccounts": "Рахунки",
-            "resolveCategories": "Категорії",
+            "resolveAccounts": "",
+            "resolveCategories": "",
             "review": "Перегляд",
             "results": "Готово"
           }
@@ -117,7 +116,7 @@
           "imported": "Імпортовано",
           "skippedDuplicates": "Пропущено (дублікати)",
           "accountsCreated": "Створено рахунків",
-          "accountsSkipped": "Пропущено рахунків",
+          "accountsSkipped": "",
           "categoriesCreated": "Створено категорій",
           "tagsCreated": "Створено тегів",
           "payeesCreated": "Створено отримувачів",
@@ -235,7 +234,6 @@
           "createNewForUnmatched": "Створити нові для незіставлених",
           "skipAll": "Пропустити всі",
           "reset": "Скинути",
-          "menuLabel": "Швидкі дії",
           "tooltips": {
             "mapExactMatchesAccounts": "Пов'язує кожен рахунок CSV з наявним рахунком з однаковою назвою та валютою. Рахунки без точного збігу залишаються без змін.",
             "mapExactMatchesCategories": "Пов'язує кожну категорію CSV з наявною категорією з такою ж назвою. Категорії без точного збігу залишаються без змін.",
@@ -259,7 +257,7 @@
           "currentBalanceLabel": "Поточний баланс",
           "currentBalancePlaceholder": "0.00",
           "currentBalanceHint": "Баланс, який цей рахунок має зараз — імпорт встановить рахунку саме це значення. Залиште порожнім, щоб використати суму імпортованих транзакцій.",
-          "skippedNote": "{count} рахунків буде пропущено. Їхні транзакції не будуть імпортовані."
+          "skippedNote": ""
         },
         "categories": {
           "sectionTitle": "Зіставлення категорій",

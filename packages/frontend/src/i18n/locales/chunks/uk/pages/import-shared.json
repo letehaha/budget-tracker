@@ -1,4 +1,12 @@
 {
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "Завдання імпорту застаріло або не знайдено.",
+        "lostContact": "Втрачено зв'язок із завданням імпорту."
+      }
+    }
+  },
   "importShared": {
     "action": {
       "createNew": "Створити новий",
@@ -7,9 +15,9 @@
     },
     "selectAction": "Виберіть дію",
     "resolvedCounterWord": "вирішено",
-    "quickActionsMenuLabel": "Масові дії",
+    "quickActionsMenuLabel": "",
     "quickActions": {
-      "menu": "Дії"
+      "menu": ""
     },
     "columns": {
       "sourceName": "Назва джерела",
@@ -69,28 +77,20 @@
       "importAnywayAriaLabel": "Імпортувати рядок {row} все одно"
     },
     "aiMapping": {
-      "action": "Зіставити з AI",
-      "tooltipCategories": "Дозвольте AI пов'язати кожну вихідну категорію з найближчою наявною категорією. Рядки, які ви вже пов'язали з категорією, залишаться без змін.",
-      "failed": "Зіставлення через AI не вдалося. Спробуйте ще раз.",
-      "inProgress": "Зіставлення через AI триває…"
+      "action": "",
+      "tooltipCategories": "",
+      "failed": "",
+      "inProgress": ""
     },
     "categoryPreset": {
-      "menuTrigger": "Застосувати зіставлення",
-      "currentLayout": "Розкладка цього файлу",
-      "savedTemplates": "Збережені шаблони",
-      "lastUsed": "Останнє використане зіставлення",
-      "namePlaceholder": "Назвіть це зіставлення",
-      "renameAria": "Перейменувати зіставлення",
-      "deleteAria": "Видалити зіставлення",
-      "confirmRenameAria": "Зберегти назву"
-    }
-  },
-  "pages": {
-    "importExport": {
-      "progress": {
-        "jobExpired": "Завдання імпорту застаріло або не знайдено.",
-        "lostContact": "Втрачено зв'язок із завданням імпорту."
-      }
+      "menuTrigger": "",
+      "currentLayout": "",
+      "savedTemplates": "",
+      "lastUsed": "",
+      "namePlaceholder": "",
+      "renameAria": "",
+      "deleteAria": "",
+      "confirmRenameAria": ""
     }
   }
 }

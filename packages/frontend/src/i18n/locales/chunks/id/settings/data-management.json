@@ -27,6 +27,14 @@
         "title": "Wallet (BudgetBakers)",
         "listDescription": "Multi-mata uang dengan pemasangan transfer otomatis"
       },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Impor file .mny dari Microsoft Money"
+      },
+      "importHistory": {
+        "title": "Riwayat Impor",
+        "listDescription": "Lihat impor sebelumnya dan apa saja yang dibuatnya"
+      },
       "import": {
         "back": "Kembali ke Impor",
         "groups": {
@@ -80,14 +88,6 @@
           "clear": "Hapus rentang tanggal"
         },
         "listDescription": "Unduh zip untuk spreadsheet, pajak, atau migrasi"
-      },
-      "ms-money": {
-        "title": "Microsoft Money",
-        "listDescription": "Impor file .mny dari Microsoft Money"
-      },
-      "importHistory": {
-        "title": "Riwayat Impor",
-        "listDescription": "Lihat impor sebelumnya dan apa saja yang dibuatnya"
       }
     }
   }

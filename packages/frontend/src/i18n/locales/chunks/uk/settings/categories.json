@@ -2,26 +2,26 @@
   "settings": {
     "categories": {
       "title": "Категорії",
-      "description": "Організуйте свої транзакції за категоріями та підкатегоріями. Перетягніть категорію, щоб перемістити її під іншу батьківську категорію або на верхній рівень.",
+      "description": "",
       "addButton": "Додати категорію",
-      "organizeButton": "Упорядкувати",
+      "organizeButton": "",
       "empty": "Категорій ще немає. Створіть свою першу категорію, щоб почати.",
-      "categoriesCount": "{n} категорія | {n} категорій",
-      "organizeHint": "Перетягніть на нову батьківську категорію або відпустіть тут для верхнього рівня.",
-      "dropToTopLevel": "Відпустіть тут, щоб зробити «{name}» категорією верхнього рівня",
-      "movesQueued": "{n} переміщення в черзі | {n} переміщень в черзі",
-      "unqueueMove": "Прибрати це переміщення",
-      "topLevel": "Верхній рівень",
-      "saveChanges": "Зберегти зміни",
+      "categoriesCount": "",
+      "organizeHint": "",
+      "dropToTopLevel": "",
+      "movesQueued": "",
+      "unqueueMove": "",
+      "topLevel": "",
+      "saveChanges": "",
       "parentField": {
-        "label": "Батьківська категорія",
-        "placeholder": "Виберіть батьківську категорію",
-        "hiddenHint": "Категорії, які не можна використати як батьківські, приховані зі списку."
+        "label": "",
+        "placeholder": "",
+        "hiddenHint": ""
       },
       "moveDialog": {
-        "title": "Перемістити «{name}»",
-        "description": "Виберіть нову батьківську категорію.",
-        "moveButton": "Перемістити"
+        "title": "",
+        "description": "",
+        "moveButton": ""
       },
       "delete": {
         "title": "Видалити категорію?",
@@ -36,17 +36,17 @@
         "deleteSuccess": "Категорію видалено",
         "deleteFailed": "Не вдалося видалити категорію",
         "checkFailed": "Не вдалося перевірити категорію",
-        "moveFailed": "Не вдалося перемістити категорію.",
-        "saveSuccess": "Зміни збережено.",
-        "staleMovesRemoved": "Видалено {n} заплановане переміщення, яке більше не застосовується | Видалено {n} запланованих переміщень, які більше не застосовуються"
+        "moveFailed": "",
+        "saveSuccess": "",
+        "staleMovesRemoved": ""
       },
       "dropErrors": {
-        "currentParent": "Вже всередині цієї категорії",
-        "insideItself": "Категорію не можна перемістити всередину власної підкатегорії",
-        "internalTarget": "Системні категорії не можуть містити інші категорії",
-        "tooDeep": "Категорії можна вкладати не глибше ніж на {max} рівнів",
-        "childrenTooDeep": "Її підкатегорії опиняться глибше {max} рівнів",
-        "alreadyTopLevel": "Вже категорія верхнього рівня"
+        "currentParent": "",
+        "insideItself": "",
+        "internalTarget": "",
+        "tooDeep": "",
+        "childrenTooDeep": "",
+        "alreadyTopLevel": ""
       }
     }
   }

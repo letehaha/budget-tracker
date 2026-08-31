@@ -1,4 +1,12 @@
 {
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
+        "lostContact": "Kehilangan kontak dengan tugas impor."
+      }
+    }
+  },
   "importShared": {
     "action": {
       "createNew": "Buat baru",
@@ -7,9 +15,9 @@
     },
     "selectAction": "Pilih tindakan",
     "resolvedCounterWord": "terselesaikan",
-    "quickActionsMenuLabel": "Tindakan massal",
+    "quickActionsMenuLabel": "",
     "quickActions": {
-      "menu": "Tindakan"
+      "menu": ""
     },
     "columns": {
       "sourceName": "Nama sumber",
@@ -69,28 +77,20 @@
       "importAnywayAriaLabel": "Tetap impor baris {row}"
     },
     "aiMapping": {
-      "action": "Cocokkan AI",
-      "tooltipCategories": "Biarkan AI menautkan setiap kategori sumber ke kategori yang ada yang paling mendekati. Baris yang sudah Anda tautkan ke kategori tetap tidak berubah.",
-      "failed": "Pencocokan AI gagal. Silakan coba lagi.",
-      "inProgress": "Pencocokan AI sedang berlangsung…"
+      "action": "",
+      "tooltipCategories": "",
+      "failed": "",
+      "inProgress": ""
     },
     "categoryPreset": {
-      "menuTrigger": "Terapkan pemetaan",
-      "currentLayout": "Tata letak file ini",
-      "savedTemplates": "Templat tersimpan",
-      "lastUsed": "Pemetaan terakhir digunakan",
-      "namePlaceholder": "Beri nama pemetaan ini",
-      "renameAria": "Ganti nama pemetaan",
-      "deleteAria": "Hapus pemetaan",
-      "confirmRenameAria": "Simpan nama"
-    }
-  },
-  "pages": {
-    "importExport": {
-      "progress": {
-        "jobExpired": "Tugas impor kedaluwarsa atau tidak dapat ditemukan.",
-        "lostContact": "Kehilangan kontak dengan tugas impor."
-      }
+      "menuTrigger": "",
+      "currentLayout": "",
+      "savedTemplates": "",
+      "lastUsed": "",
+      "namePlaceholder": "",
+      "renameAria": "",
+      "deleteAria": "",
+      "confirmRenameAria": ""
     }
   }
 }

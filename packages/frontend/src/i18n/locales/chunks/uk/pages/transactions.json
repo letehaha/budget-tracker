@@ -235,10 +235,10 @@
       "deletePlanTitle": "Видалити заплановану транзакцію?",
       "deletePlanDescription": "Цю дію неможливо скасувати.",
       "plansLoadFailed": "Не вдалося завантажити заплановані транзакції",
-      "confirmAction": "Підтвердити",
-      "confirmTooltip": "Гроші вже перейшли — зафіксуйте це та оновіть баланс",
-      "confirmPlanSuccess": "План записано — баланс оновлено",
-      "confirmPlanError": "Не вдалося записати план"
+      "confirmAction": "",
+      "confirmTooltip": "",
+      "confirmPlanSuccess": "",
+      "confirmPlanError": ""
     }
   }
 }

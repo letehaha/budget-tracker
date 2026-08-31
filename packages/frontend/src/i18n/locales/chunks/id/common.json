@@ -27,7 +27,7 @@
       "apply": "Terapkan",
       "retry": "Coba lagi",
       "copyInviteLink": "Salin tautan undangan",
-      "moveTo": "Pindahkan ke…"
+      "moveTo": ""
     },
     "ui": {
       "close": "Tutup",
@@ -203,9 +203,14 @@
       }
     },
     "logo": {
+      "tabs": {
+        "brand": "Merek",
+        "letters": "Huruf"
+      },
       "searchPlaceholder": "Nama merek atau domain",
       "searchHint": "Ketik nama merek, atau domain seperti amazon.com",
       "noResults": "Tidak ada merek yang cocok ditemukan.",
+      "noResultsLettersHint": "Gunakan huruf sebagai gantinya",
       "useDomainDirectly": "Gunakan {domain}",
       "autoLabel": "Otomatis (dari nama)",
       "domainHint": "Untuk menemukan merek yang tepat, ketik domain situs web perusahaan (mis. amazon.com) — itu selalu mencocokkan logo yang benar.",
@@ -213,24 +218,23 @@
       "editAriaLabel": "Sunting logo",
       "dialogTitle": "Ganti logo",
       "resetToAuto": "Kembalikan ke otomatis",
-      "tabs": {
-        "brand": "Merek",
-        "letters": "Huruf"
-      },
-      "noResultsLettersHint": "Gunakan huruf sebagai gantinya",
+      "remove": "Hapus logo",
       "lettersLabel": "Huruf (1–2)",
       "lettersPlaceholder": "AB",
       "colorLabel": "Warna",
       "colorSwatchAriaLabel": "Gunakan warna {color}",
       "customColorAriaLabel": "Pilih warna khusus",
       "applyLetters": "Terapkan",
-      "lettersSelectedLabel": "Huruf “{letters}”",
-      "remove": "Hapus logo"
+      "lettersSelectedLabel": "Huruf “{letters}”"
     }
   },
   "accountGroups": {
     "create": {
       "error": "Gagal membuat grup"
+    },
+    "update": {
+      "success": "Grup diperbarui",
+      "error": "Gagal memperbarui grup"
     },
     "delete": {
       "success": "Grup telah dihapus",
@@ -243,10 +247,6 @@
     "unlink": {
       "success": "Akun telah dihapus dari grup",
       "error": "Gagal menghapus akun dari grup"
-    },
-    "update": {
-      "success": "Grup diperbarui",
-      "error": "Gagal memperbarui grup"
     }
   },
   "validation": {
@@ -258,6 +258,8 @@
     "title": "Notifikasi",
     "markAllAsRead": "Tandai semua sudah dibaca",
     "empty": "Belum ada notifikasi",
+    "containerAriaLabel": "Notifikasi",
+    "closeToast": "Tutup notifikasi",
     "viewOnGitHub": "Lihat di GitHub",
     "newVersion": "Versi baru {version}",
     "newRelease": "Rilis baru",
@@ -267,9 +269,7 @@
     },
     "share": {
       "sendFailedHint": "Buka panel berbagi untuk mengirim ulang."
-    },
-    "containerAriaLabel": "Notifikasi",
-    "closeToast": "Tutup notifikasi"
+    }
   },
   "currencyNames": {
     "UAH": "Hryvnia Ukraina",

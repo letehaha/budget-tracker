@@ -100,6 +100,7 @@
         "configTypeInstallments": "A plazos",
         "activeSummary": "{count} activa(s)",
         "perYear": " al año",
+        "incomeSummary": "{count} activa(s) · {amount}/mes de ingresos",
         "percentOfIncome": "{percent}% del ingreso promedio",
         "settings": {
           "title": "Ajustes",
@@ -112,8 +113,7 @@
             "6": "Últimos 6 meses",
             "12": "Últimos 12 meses"
           }
-        },
-        "incomeSummary": "{count} activa(s) · {amount}/mes de ingresos"
+        }
       },
       "categoryTracker": {
         "title": "Lista de seguimiento de categorías",

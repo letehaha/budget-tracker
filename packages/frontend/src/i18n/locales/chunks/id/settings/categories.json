@@ -2,26 +2,26 @@
   "settings": {
     "categories": {
       "title": "Kategori",
-      "description": "Atur transaksi Anda ke dalam kategori dan subkategori. Seret kategori untuk memindahkannya ke induk lain atau ke tingkat atas.",
+      "description": "",
       "addButton": "Tambah Kategori",
-      "organizeButton": "Atur",
+      "organizeButton": "",
       "empty": "Belum ada kategori. Buat kategori pertama Anda untuk memulai.",
-      "categoriesCount": "{n} kategori | {n} kategori",
-      "organizeHint": "Seret ke induk baru, atau letakkan di sini untuk tingkat atas.",
-      "dropToTopLevel": "Letakkan di sini untuk menjadikan “{name}” kategori tingkat atas",
-      "movesQueued": "{n} pemindahan dalam antrean | {n} pemindahan dalam antrean",
-      "unqueueMove": "Hapus pemindahan ini",
-      "topLevel": "Tingkat atas",
-      "saveChanges": "Simpan Perubahan",
+      "categoriesCount": "",
+      "organizeHint": "",
+      "dropToTopLevel": "",
+      "movesQueued": "",
+      "unqueueMove": "",
+      "topLevel": "",
+      "saveChanges": "",
       "parentField": {
-        "label": "Kategori induk",
-        "placeholder": "Pilih kategori induk",
-        "hiddenHint": "Kategori yang tidak dapat digunakan sebagai induk disembunyikan dari daftar."
+        "label": "",
+        "placeholder": "",
+        "hiddenHint": ""
       },
       "moveDialog": {
-        "title": "Pindahkan “{name}”",
-        "description": "Pilih kategori induk baru.",
-        "moveButton": "Pindahkan"
+        "title": "",
+        "description": "",
+        "moveButton": ""
       },
       "delete": {
         "title": "Hapus kategori?",
@@ -36,17 +36,17 @@
         "deleteSuccess": "Kategori dihapus",
         "deleteFailed": "Gagal menghapus kategori",
         "checkFailed": "Gagal memeriksa kategori",
-        "moveFailed": "Gagal memindahkan kategori.",
-        "saveSuccess": "Perubahan disimpan.",
-        "staleMovesRemoved": "{n} pemindahan dalam antrean yang sudah tidak berlaku dihapus | {n} pemindahan dalam antrean yang sudah tidak berlaku dihapus"
+        "moveFailed": "",
+        "saveSuccess": "",
+        "staleMovesRemoved": ""
       },
       "dropErrors": {
-        "currentParent": "Sudah berada di dalam kategori ini",
-        "insideItself": "Kategori tidak dapat dipindahkan ke dalam subkategorinya sendiri",
-        "internalTarget": "Kategori sistem tidak dapat berisi kategori lain",
-        "tooDeep": "Kategori hanya dapat disarangkan hingga {max} tingkat",
-        "childrenTooDeep": "Subkategorinya akan menjadi lebih dalam dari {max} tingkat",
-        "alreadyTopLevel": "Sudah menjadi kategori tingkat atas"
+        "currentParent": "",
+        "insideItself": "",
+        "internalTarget": "",
+        "tooDeep": "",
+        "childrenTooDeep": "",
+        "alreadyTopLevel": ""
       }
     }
   }

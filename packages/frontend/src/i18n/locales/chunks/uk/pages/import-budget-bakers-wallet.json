@@ -63,7 +63,7 @@
           "allFailedDescription": "Жодні рядки не були імпортовані. Перевірте помилки нижче та спробуйте ще раз.",
           "accountsCreated": "Рахунків створено",
           "accountsLinked": "Рахунків прив'язано",
-          "accountsSkipped": "Рахунків пропущено",
+          "accountsSkipped": "",
           "categoriesCreated": "Категорій створено",
           "tagsCreated": "Тегів створено",
           "transactionsImported": "Транзакцій імпортовано",
@@ -93,7 +93,7 @@
             "currentBalanceLabel": "Поточний баланс (необов'язково)",
             "currentBalancePlaceholder": "Залиште порожнім, щоб використати імпортовану суму",
             "willCreateHint": "Буде створено новий рахунок {currency}",
-            "skippedNote": "{count} рахунків буде пропущено. Їхні транзакції — і будь-які перекази до них або з них — не будуть імпортовані."
+            "skippedNote": ""
           },
           "categories": {
             "sectionTitle": "Категорії"

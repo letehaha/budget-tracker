@@ -23,20 +23,20 @@
   },
   "accountGroups": {
     "groupNotFound": "Групу не знайдено",
+    "groupUpdateFailed": "Не вдалося оновити групу",
     "parentGroupNotExist": "Батьківська група з таким id не існує.",
     "parentGroupDoesNotExist": "Батьківська група не існує.",
     "accountNotFound": "Рахунок з таким id не знайдено.",
-    "accountGroupNotFound": "Групу рахунків з таким id не знайдено.",
-    "groupUpdateFailed": "Не вдалося оновити групу"
+    "accountGroupNotFound": "Групу рахунків з таким id не знайдено."
   },
   "categories": {
-    "notFound": "Категорія з наданим id не існує.",
-    "systemCannotBeMoved": "Системні категорії не можна переміщати.",
-    "parentNotFound": "Категорія з таким parentId не існує.",
-    "systemParentForbidden": "Системні категорії не можна використовувати як батьківські.",
-    "ownParent": "Категорія не може бути батьківською для самої себе.",
-    "underOwnSubcategory": "Категорію не можна перемістити під власну підкатегорію.",
-    "nestingTooDeep": "Категорії не можна вкладати глибше ніж на {{max}} рівнів."
+    "notFound": "",
+    "systemCannotBeMoved": "",
+    "parentNotFound": "",
+    "systemParentForbidden": "",
+    "ownParent": "",
+    "underOwnSubcategory": "",
+    "nestingTooDeep": ""
   },
   "transactions": {
     "notFound": "Транзакція не знайдена",
@@ -94,12 +94,12 @@
       "amountTooSmall": "Сума розбиття повинна бути не менше {{min}} (системний мінімум)",
       "noteTooLong": "Примітка розбиття не може перевищувати {{max}} символів",
       "invalidCategory": "Категорію з id {{categoryId}} не знайдено або вона не належить користувачу",
+      "duplicateCategory": "Кожне розбиття повинно використовувати іншу категорію",
       "exceedTotal": "Загальна сума розбиттів ({{total}}) перевищує суму транзакції ({{transactionAmount}})",
       "invalidData": "Недійсні дані розбиття",
       "splitNotFound": "Розбиття не знайдено",
       "cannotDeleteWithRefunds": "Не можна видалити розбиття, на яке є повернення",
-      "cannotReduceBelowRefunded": "Це розбиття має повернення на загальну суму {{refundsText}}. Ви не можете зменшити його нижче суми повернень. Щоб зменшити далі, спочатку від'єднайте повернення.",
-      "duplicateCategory": "Кожне розбиття повинно використовувати іншу категорію"
+      "cannotReduceBelowRefunded": "Це розбиття має повернення на загальну суму {{refundsText}}. Ви не можете зменшити його нижче суми повернень. Щоб зменшити далі, спочатку від'єднайте повернення."
     }
   },
   "budgets": {
@@ -199,6 +199,15 @@
   "validation": {
     "dateInvalid": "\"date\" є недійсною датою."
   },
+  "urlGuard": {
+    "invalidUrl": "Це недійсна URL-адреса.",
+    "unsupportedProtocol": "Дозволені лише URL-адреси http:// та https://.",
+    "credentialsInUrlNotAllowed": "URL-адреса не повинна містити ім'я користувача або пароль. Використайте поле API ключа замість цього.",
+    "privateAddressBlocked": "{{host}} вказує на приватну або зарезервовану мережеву адресу, що не дозволено.",
+    "hostnameNotResolvable": "Не вдалося визначити {{host}}. Перевірте адресу на наявність помилок.",
+    "redirectNotAllowed": "Ендпоінт відповів переспрямуванням. Введіть кінцеву URL-адресу замість цього.",
+    "hostnameLookupUnavailable": "Зараз не вдалося перевірити {{host}}. Будь ласка, спробуйте ще раз за мить."
+  },
   "bankDataProviders": {
     "reauthorizationStarted": "Повторну авторизацію розпочато. Будь ласка, завершіть процес OAuth.",
     "connectionEstablished": "З'єднання успішно встановлено",
@@ -225,11 +234,11 @@
       "invalidApiToken": "Недійсний API токен Monobank",
       "rateLimitExceeded": "Перевищено ліміт запитів до API Monobank. Спробуйте ще раз через хвилину.",
       "accountNotFound": "Рахунок {{accountExternalId}} не знайдено в Monobank",
+      "accountReconnectRequired": "Цей рахунок більше не доступний у Monobank. Будь ласка, повторно підключіть з'єднання з Monobank, щоб відновити синхронізацію.",
       "webhookNotImplemented": "handleWebhook ще не реалізовано для Monobank",
       "unknownCurrencyCode": "Невідомий код валюти: {{numericCode}}",
       "geoBlocked": "Monobank блокує запити з IP-адреси цього сервера. Вимкніть VPN або використайте українську IP-адресу.",
-      "geoBlockedProduction": "Синхронізація Monobank тимчасово недоступна. Ми отримали сповіщення і працюємо над виправленням. Зверніться до підтримки, якщо це терміново.",
-      "accountReconnectRequired": "Цей рахунок більше не доступний у Monobank. Будь ласка, повторно підключіть з'єднання з Monobank, щоб відновити синхронізацію."
+      "geoBlockedProduction": "Синхронізація Monobank тимчасово недоступна. Ми отримали сповіщення і працюємо над виправленням. Зверніться до підтримки, якщо це терміново."
     },
     "enableBanking": {
       "invalidCredentialsFormat": "Недійсний формат облікових даних для Enable Banking",
@@ -291,9 +300,9 @@
     "payeeColumnNotFound": "Стовпець отримувача \"{{column}}\" не знайдено в заголовках CSV"
   },
   "importExport": {
-    "batchDeleteBankLinkedAccount": "Цей імпорт більше не можна скасувати, оскільки його рахунок тепер підключено до банку. Видалення цих транзакцій може порушити синхронізований баланс.",
-    "batchDeleteLinkedLoanTransfer": "Цей імпорт пов'язаний з платежем за кредитом і не може бути скасований окремо. Увімкніть опцію «також видалити пов'язані транзакції переказу», щоб видалити його.",
-    "batchDeleteTooLarge": "Цей імпорт містить забагато транзакцій, щоб скасувати його за один запит. Зверніться до підтримки, якщо вам потрібна допомога з його видаленням."
+    "batchDeleteBankLinkedAccount": "",
+    "batchDeleteLinkedLoanTransfer": "",
+    "batchDeleteTooLarge": ""
   },
   "statementParser": {
     "invalidFile": "Недійсний файл",
@@ -311,14 +320,14 @@
     "alreadyBaseCurrency": "Обрана валюта вже є базовою",
     "baseCurrencyLockedByShares": "Неможливо змінити базову валюту, поки є активні спільні ресурси. Спочатку відкличте їх або вийдіть з них.",
     "baseCurrencyLockedByHousehold": "Неможливо змінити базову валюту, поки ви є членом активної сім'ї. Спочатку відкличте або залиште членство в сім'ї.",
-    "cannotFindForRefAmount": "Не вдалося знайти валюту для розрахунку референтної суми!",
-    "cannotCalculateRefAmount": "Не вдалося розрахувати референтну суму",
-    "currencyNotConnected": "Запитана валюта не підключена",
-    "exchangeRateNotAvailable": "Курс обміну недоступний для {{baseCode}}/{{quoteCode}} на {{date}}",
     "baseCurrencyChangeInProgress": "Зміна базової валюти вже триває. Будь ласка, зачекайте, поки процес завершиться.",
     "baseCurrencyChangeSyncInProgress": "Синхронізація з банком ще завершується. Спробуйте змінити базову валюту знову за кілька хвилин.",
     "baseCurrencyChangeDrainCheckFailed": "Не вдалося перевірити, чи завершені банківські синхронізації. Спробуйте ще раз.",
-    "baseCurrencyChangeInProgressOtherUser": "Інший учасник наразі змінює свою базову валюту. Спробуйте ще раз, коли його міграція завершиться."
+    "baseCurrencyChangeInProgressOtherUser": "Інший учасник наразі змінює свою базову валюту. Спробуйте ще раз, коли його міграція завершиться.",
+    "cannotFindForRefAmount": "Не вдалося знайти валюту для розрахунку референтної суми!",
+    "cannotCalculateRefAmount": "Не вдалося розрахувати референтну суму",
+    "currencyNotConnected": "Запитана валюта не підключена",
+    "exchangeRateNotAvailable": "Курс обміну недоступний для {{baseCode}}/{{quoteCode}} на {{date}}"
   },
   "userSettings": {
     "userSettingsNotFound": "Налаштування користувача не знайдено"
@@ -467,6 +476,7 @@
   },
   "subscriptions": {
     "transactionsNotFoundOrNotBelongToUser": "Одну або кілька транзакцій не знайдено або вони не належать користувачу.",
+    "cannotLinkDifferentTransactionType": "Неможливо прив'язати транзакції з типом, відмінним від типу регулярного платежу",
     "summaryCurrencyNotConnected": "Неможливо розрахувати підсумок підписок: валюту {{currencyCodes}} не підключено до вашого акаунту. Підключіть її в Налаштування → Валюти.",
     "summaryBaseCurrencyNotSet": "Базову валюту не встановлено. Встановіть валюту за замовчуванням у ваших налаштуваннях, щоб переглянути підсумок підписок.",
     "payeeNotFoundOrNotBelongToUser": "Отримувача платежу не знайдено або він не належить користувачу.",
@@ -480,8 +490,7 @@
         "requiresAmountField": "Автоматичне записування потребує expectedAmount та expectedCurrencyCode.",
         "excludesMatchingField": "Автоматичне записування та правила зіставлення є взаємовиключними."
       }
-    },
-    "cannotLinkDifferentTransactionType": "Неможливо прив'язати транзакції з типом, відмінним від типу регулярного платежу"
+    }
   },
   "transactionTemplates": {
     "notFound": "Шаблон транзакції не знайдено.",
@@ -511,25 +520,16 @@
     "notFound": "Отримувача не знайдено",
     "renameCollision": "Інший отримувач уже використовує цю назву – об'єднайте їх замість цього"
   },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "Логотип бренду та власні літери не можна встановити одночасно.",
+    "colorRequiresInitials": "Колір монограми потребує літер монограми."
+  },
   "venture": {
     "dealNotFound": "Угоду венчура не знайдено",
     "eventNotFound": "Подію венчура не знайдено"
   },
   "vehicles": {
     "notFound": "Транспортний засіб не знайдено"
-  },
-  "urlGuard": {
-    "invalidUrl": "Це недійсна URL-адреса.",
-    "unsupportedProtocol": "Дозволені лише URL-адреси http:// та https://.",
-    "credentialsInUrlNotAllowed": "URL-адреса не повинна містити ім'я користувача або пароль. Використайте поле API ключа замість цього.",
-    "privateAddressBlocked": "{{host}} вказує на приватну або зарезервовану мережеву адресу, що не дозволено.",
-    "hostnameNotResolvable": "Не вдалося визначити {{host}}. Перевірте адресу на наявність помилок.",
-    "redirectNotAllowed": "Ендпоінт відповів переспрямуванням. Введіть кінцеву URL-адресу замість цього.",
-    "hostnameLookupUnavailable": "Зараз не вдалося перевірити {{host}}. Будь ласка, спробуйте ще раз за мить."
-  },
-  "brandLogos": {
-    "domainAndInitialsExclusive": "Логотип бренду та власні літери не можна встановити одночасно.",
-    "colorRequiresInitials": "Колір монограми потребує літер монограми."
   },
   "stats": {
     "netWorthHistoryTooManyPoints": "Цей діапазон дат і рівень деталізації дають забагато точок даних. Виберіть нижчий рівень деталізації або коротший діапазон."

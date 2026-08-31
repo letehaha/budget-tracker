@@ -24,14 +24,14 @@
         "preview": {
           "emptyList": "Tidak ada yang diimpor di sini.",
           "accounts": "Akun",
-          "categories": "Kategori",
-          "payees": "Penerima",
-          "tags": "Tag",
+          "categories": "",
+          "payees": "",
+          "tags": "",
           "transactions": "Transaksi",
-          "transfers": "Transfer",
+          "transfers": "",
           "dateRange": "Rentang: {from} → {to}",
           "accountsHelper": "Untuk setiap akun YNAB, konfirmasi mata uangnya.",
-          "skippedNote": "{count} akun akan dilewati. Transaksinya — dan transfer apa pun ke atau darinya — tidak akan diimpor.",
+          "skippedNote": "",
           "warningsTitle": "Peringatan",
           "rowPrefix": "Baris {rowIndex}:",
           "startOver": "Mulai ulang",
@@ -44,7 +44,7 @@
           "currencyLabel": "Mata Uang",
           "currencyInvalid": "Masukkan kode mata uang 3 huruf (mis: USD)",
           "autoDetected": "terdeteksi otomatis: {code}",
-          "undoSkip": "Sertakan dalam impor"
+          "undoSkip": ""
         },
         "execute": {
           "starting": "Memulai impor...",
@@ -59,7 +59,7 @@
           "successTitle": "Impor selesai",
           "successDescription": "Data YNAB Anda sekarang ada di MoneyMatter.",
           "accountsCreated": "Akun dibuat",
-          "accountsSkipped": "Akun dilewati",
+          "accountsSkipped": "",
           "categoriesCreated": "Kategori dibuat",
           "payeesCreated": "Penerima dibuat",
           "tagsCreated": "Tag dibuat",

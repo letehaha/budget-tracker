@@ -125,7 +125,7 @@
         "plannedUnavailableNotification": "Las transacciones planificadas no están disponibles aquí, así que la opción se ha desactivado.",
         "plannedTooltip": "Regístrela antes de que ocurra. Su saldo no cambia hasta que la transacción llegue realmente.",
         "plannedConnectedAccountTooltip": "Solo las transacciones planificadas pueden estar en una cuenta conectada al banco. Al desactivar esta opción se borran la cuenta y la fecha.",
-        "plannedConfirmTooltip": "Desactívela una vez que el dinero se haya movido — al guardar se registra en su saldo.",
+        "plannedConfirmTooltip": "",
         "plannedAccountsUnlockedHint": "Ya puede seleccionar cuentas conectadas al banco",
         "plannedDatesUnlockedHint": "Fechas futuras desbloqueadas",
         "datetimeLabel": "Fecha y hora",
@@ -438,7 +438,7 @@
       "nameLabel": "Nombre de la categoría",
       "namePlaceholder": "Introduzca el nombre de la categoría",
       "colorLabel": "Color",
-      "inheritParentColor": "Usar el color de la categoría padre",
+      "inheritParentColor": "",
       "iconLabel": "Icono",
       "iconPlaceholder": "Seleccionar icono",
       "settingsDivider": "Ajustes",
@@ -579,8 +579,8 @@
         "sentBody": "Hemos enviado una invitación a {owner}. Obtendrá acceso una vez que la acepte.",
         "success": "Invitación enviada.",
         "deliveryFailed": "Invitación creada, pero no se pudo enviar el correo electrónico. Inténtelo de nuevo más tarde.",
-        "error": "Error al enviar la invitación.",
-        "emailNotConfigured": "Invitación creada, pero este servidor no tiene configurado el envío de correos. Pídale que revise sus invitaciones en la aplicación."
+        "emailNotConfigured": "Invitación creada, pero este servidor no tiene configurado el envío de correos. Pídale que revise sus invitaciones en la aplicación.",
+        "error": "Error al enviar la invitación."
       }
     },
     "categoryExclusions": {

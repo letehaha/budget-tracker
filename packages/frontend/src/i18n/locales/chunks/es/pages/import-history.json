@@ -10,16 +10,16 @@
         "emptyAction": "Importar datos",
         "transactionCount": "{count} transacción | {count} transacciones",
         "accountCount": "{count} cuenta | {count} cuentas",
-        "deleteButton": "Eliminar importación",
-        "deleteConfirmTitle": "¿Eliminar este lote de importación?",
-        "deleteConfirmDescription": "Esto eliminará permanentemente {count} transacción de esta importación. Esta acción no se puede deshacer. | Esto eliminará permanentemente {count} transacciones de esta importación. Esta acción no se puede deshacer.",
-        "deleteSuccessMessage": "Se eliminó {count} transacción | Se eliminaron {count} transacciones",
-        "deleteUnexpectedError": "Algo salió mal al eliminar el lote de importación. Por favor, inténtelo de nuevo.",
-        "deleteLinkedTransfersWarningTitle": "Esta importación está vinculada a otra transacción",
-        "deleteLinkedTransfersCheckbox": "Eliminar también la transacción de transferencia vinculada",
-        "deleteLinkedTransfersDescription": "De forma predeterminada, cualquier transacción vinculada a esta importación como transferencia solo se desvincula, no se elimina. Al marcar esta casilla también se eliminará permanentemente — esto no se puede deshacer.",
-        "deleteLinkedTransfersConfirmTitle": "¿Eliminar también la transacción vinculada?",
-        "deleteLinkedTransfersConfirmDescription": "Está a punto de eliminar permanentemente una transacción fuera de este lote de importación, no solo desvincularla. Esta acción no se puede deshacer."
+        "deleteButton": "",
+        "deleteConfirmTitle": "",
+        "deleteConfirmDescription": "",
+        "deleteSuccessMessage": "",
+        "deleteUnexpectedError": "",
+        "deleteLinkedTransfersWarningTitle": "",
+        "deleteLinkedTransfersCheckbox": "",
+        "deleteLinkedTransfersDescription": "",
+        "deleteLinkedTransfersConfirmTitle": "",
+        "deleteLinkedTransfersConfirmDescription": ""
       }
     }
   }

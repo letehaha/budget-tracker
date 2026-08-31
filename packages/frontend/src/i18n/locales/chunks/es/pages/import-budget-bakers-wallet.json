@@ -63,7 +63,7 @@
           "allFailedDescription": "No se importaron filas. Revise los errores a continuación e intente de nuevo.",
           "accountsCreated": "Cuentas creadas",
           "accountsLinked": "Cuentas vinculadas",
-          "accountsSkipped": "Cuentas omitidas",
+          "accountsSkipped": "",
           "categoriesCreated": "Categorías creadas",
           "tagsCreated": "Etiquetas creadas",
           "transactionsImported": "Transacciones importadas",
@@ -93,7 +93,7 @@
             "currentBalanceLabel": "Saldo actual (opcional)",
             "currentBalancePlaceholder": "Déjelo en blanco para usar el total importado",
             "willCreateHint": "Se creará una nueva cuenta {currency}",
-            "skippedNote": "Se omitirá(n) {count} cuenta(s). Sus transacciones —y cualquier transferencia hacia o desde ellas— no se importarán."
+            "skippedNote": ""
           },
           "categories": {
             "sectionTitle": "Categorías"

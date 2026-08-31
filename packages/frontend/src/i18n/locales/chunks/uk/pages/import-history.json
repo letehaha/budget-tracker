@@ -10,16 +10,16 @@
         "emptyAction": "Імпорт даних",
         "transactionCount": "{count} транзакція | {count} транзакції | {count} транзакцій",
         "accountCount": "{count} рахунок | {count} рахунки | {count} рахунків",
-        "deleteButton": "Видалити імпорт",
-        "deleteConfirmTitle": "Видалити цей пакет імпорту?",
-        "deleteConfirmDescription": "Це назавжди видалить {count} транзакцію з цього імпорту. Цю дію неможливо скасувати. | Це назавжди видалить {count} транзакцій з цього імпорту. Цю дію неможливо скасувати.",
-        "deleteSuccessMessage": "Видалено {count} транзакцію | Видалено {count} транзакцій",
-        "deleteUnexpectedError": "Щось пішло не так під час видалення пакета імпорту. Спробуйте ще раз.",
-        "deleteLinkedTransfersWarningTitle": "Цей імпорт пов'язаний з іншою транзакцією",
-        "deleteLinkedTransfersCheckbox": "Також видалити пов'язану транзакцію переказу",
-        "deleteLinkedTransfersDescription": "За замовчуванням будь-яка транзакція, пов'язана з цим імпортом як переказ, лише відв'язується, а не видаляється. Якщо позначити цей прапорець, її також буде назавжди видалено — це неможливо скасувати.",
-        "deleteLinkedTransfersConfirmTitle": "Видалити також пов'язану транзакцію?",
-        "deleteLinkedTransfersConfirmDescription": "Ви збираєтеся назавжди видалити транзакцію поза межами цього пакета імпорту, а не просто відв'язати її. Цю дію неможливо скасувати."
+        "deleteButton": "",
+        "deleteConfirmTitle": "",
+        "deleteConfirmDescription": "",
+        "deleteSuccessMessage": "",
+        "deleteUnexpectedError": "",
+        "deleteLinkedTransfersWarningTitle": "",
+        "deleteLinkedTransfersCheckbox": "",
+        "deleteLinkedTransfersDescription": "",
+        "deleteLinkedTransfersConfirmTitle": "",
+        "deleteLinkedTransfersConfirmDescription": ""
       }
     }
   }
