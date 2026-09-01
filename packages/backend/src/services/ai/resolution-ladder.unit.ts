@@ -3,7 +3,13 @@ import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { pickResolutionStep, type LadderEndpoint } from './resolution-ladder';
 
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+const SERVER_KEY_ENV_VARS = [
+  'GEMINI_API_KEY',
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'GROQ_API_KEY',
+  'OPENROUTER_API_KEY',
+] as const;
 
 // Its default model is a Google one, so GEMINI_API_KEY is what backs the server arm here.
 const FEATURE = AI_FEATURE.categorization;
@@ -13,6 +19,10 @@ const SECOND_ENDPOINT: LadderEndpoint = { id: 'ep-2', name: 'Studio vLLM', defau
 
 const CUSTOM_CONFIG: AIFeatureConfig = { feature: FEATURE, modelId: 'custom/llama3.2', customEndpointId: ENDPOINT.id };
 const ANTHROPIC_CONFIG: AIFeatureConfig = { feature: FEATURE, modelId: 'anthropic/claude-haiku-4-5' };
+const OPENROUTER_CONFIG: AIFeatureConfig = {
+  feature: FEATURE,
+  modelId: 'openrouter/openai/gpt-oss-20b',
+};
 
 function pick({
   config = null,
@@ -98,6 +108,19 @@ describe('pickResolutionStep', () => {
       const step = pick({ config: ANTHROPIC_CONFIG });
 
       expect(step).toMatchObject({ kind: 'configured-catalog', usingUserKey: false });
+    });
+
+    it('runs an OpenRouter model on the OpenRouter server key', () => {
+      process.env.OPENROUTER_API_KEY = 'server-key';
+
+      const step = pick({ config: OPENROUTER_CONFIG });
+
+      expect(step).toEqual({
+        kind: 'configured-catalog',
+        provider: AI_PROVIDER.openrouter,
+        modelId: OPENROUTER_CONFIG.modelId,
+        usingUserKey: false,
+      });
     });
 
     it('falls through to the endpoint fallback when no key backs the configured provider', () => {

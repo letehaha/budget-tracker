@@ -1,7 +1,13 @@
 import { afterEach, beforeEach } from '@jest/globals';
 
 /** Providers the model resolver reads server-side keys for. */
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+const SERVER_KEY_ENV_VARS = [
+  'GEMINI_API_KEY',
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'GROQ_API_KEY',
+  'OPENROUTER_API_KEY',
+] as const;
 
 /**
  * Self-host stands the outbound URL guard down, which the mock endpoints need because they

@@ -10,7 +10,7 @@ import {
 import { logger } from '@js/utils/logger';
 
 import { AI_MODEL_ID } from './model-ids';
-import { ANTHROPIC_MODELS, GOOGLE_MODELS, GROQ_MODELS, OPENAI_MODELS } from './providers';
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, GROQ_MODELS, OPENAI_MODELS, OPENROUTER_MODELS } from './providers';
 import { FEATURE_DEFAULTS, FEATURE_RECOMMENDATIONS } from './recommendations';
 import { RETIRED_MODELS } from './retired-models';
 
@@ -25,6 +25,7 @@ const AVAILABLE_MODELS: Record<AI_MODEL_ID, AIModelInfo> = {
   ...ANTHROPIC_MODELS,
   ...GOOGLE_MODELS,
   ...GROQ_MODELS,
+  ...OPENROUTER_MODELS,
 };
 
 /**

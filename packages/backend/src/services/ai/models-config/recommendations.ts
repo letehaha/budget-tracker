@@ -17,6 +17,8 @@ const DOCUMENT_EXTRACTION_MODELS: AI_MODEL_ID[] = [
   // GPT-5.6 tiers all accept image input
   AI_MODEL_ID['openai/gpt-5.6-luna'], // Cheaper option with decent vision
   AI_MODEL_ID['openai/gpt-5.6-terra'], // Good vision capabilities for image-based extraction
+  AI_MODEL_ID['openrouter/google/gemini-3.5-flash-lite'], // Long-context document extraction through OpenRouter
+  AI_MODEL_ID['openrouter/anthropic/claude-haiku-4.5'], // Fast multimodal option through OpenRouter
 ];
 
 /**
@@ -30,6 +32,7 @@ export const FEATURE_RECOMMENDATIONS: Record<AI_FEATURE, AI_MODEL_ID[]> = {
     AI_MODEL_ID['groq/openai/gpt-oss-20b'], // Very cheap and the fastest option overall
     AI_MODEL_ID['openai/gpt-5.4-nano'], // Cheapest OpenAI tier
     AI_MODEL_ID['anthropic/claude-haiku-4-5'], // Fast Claude option
+    AI_MODEL_ID['openrouter/openai/gpt-oss-20b'], // Low-cost categorization through OpenRouter
   ],
   [AI_FEATURE.statementParsing]: DOCUMENT_EXTRACTION_MODELS,
   [AI_FEATURE.investmentTransactionsParsing]: DOCUMENT_EXTRACTION_MODELS,

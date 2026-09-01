@@ -105,7 +105,13 @@ async function burnProbeBudget({ attempts }: { attempts: number }) {
 describe('AI custom endpoints', () => {
   // Feature-status responses consult server-side AI keys, so an ambient key in the
   // local environment would flip which model the assertions here see answering.
-  const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+  const SERVER_KEY_ENV_VARS = [
+    'GEMINI_API_KEY',
+    'OPENAI_API_KEY',
+    'ANTHROPIC_API_KEY',
+    'GROQ_API_KEY',
+    'OPENROUTER_API_KEY',
+  ] as const;
   const serverKeysBeforeTest = new Map<string, string | undefined>();
   let selfHostFlagBeforeTest: string | undefined;
 

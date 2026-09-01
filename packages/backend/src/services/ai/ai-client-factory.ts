@@ -59,6 +59,13 @@ function createProviderModel(spec: ProviderModelSpec): LanguageModel {
       const groq = createGroq({ apiKey });
       return groq(modelName);
     }
+    case AI_PROVIDER.openrouter: {
+      const openrouter = createOpenAI({
+        apiKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+      });
+      return openrouter.chat(modelName);
+    }
     default: {
       const _exhaustiveCheck: never = provider;
       throw new Error(`Unsupported AI provider: ${_exhaustiveCheck}`);

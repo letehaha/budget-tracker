@@ -239,6 +239,13 @@ const PROVIDER_CONFIG = computed<Record<AIKeyProvider, ProviderConfigItem>>(() =
     apiKeyUrl: 'https://console.groq.com/keys',
     apiKeyUrlLabel: 'console.groq.com',
   },
+  [AI_PROVIDER.openrouter]: {
+    label: t('settings.ai.apiKeyManager.providers.openrouter.label'),
+    placeholder: t('settings.ai.apiKeyManager.providers.openrouter.placeholder'),
+    description: t('settings.ai.apiKeyManager.providers.openrouter.description'),
+    apiKeyUrl: 'https://openrouter.ai/settings/keys',
+    apiKeyUrlLabel: 'openrouter.ai',
+  },
 }));
 
 const { addErrorNotification, addSuccessNotification } = useNotificationCenter();

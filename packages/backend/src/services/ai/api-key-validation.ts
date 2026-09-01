@@ -16,6 +16,10 @@ const VALIDATION_MODELS: Record<AIKeyProvider, AI_MODEL_ID[]> = {
   [AI_PROVIDER.anthropic]: [AI_MODEL_ID['anthropic/claude-haiku-4-5'], AI_MODEL_ID['anthropic/claude-sonnet-5']],
   [AI_PROVIDER.google]: [AI_MODEL_ID['google/gemini-3.5-flash-lite'], AI_MODEL_ID['google/gemini-3.6-flash']],
   [AI_PROVIDER.groq]: [AI_MODEL_ID['groq/openai/gpt-oss-20b'], AI_MODEL_ID['groq/llama-3.3-70b-versatile']],
+  [AI_PROVIDER.openrouter]: [
+    AI_MODEL_ID['openrouter/openai/gpt-oss-20b'],
+    AI_MODEL_ID['openrouter/openai/gpt-5.4-nano'],
+  ],
 };
 
 /** Kept to one word so call sites can cap output at a few tokens. */

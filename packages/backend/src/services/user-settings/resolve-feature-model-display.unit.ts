@@ -5,7 +5,13 @@ import type { StoredAiSettings } from '@models/user-settings.model';
 import { getDefaultModelForFeature } from '../ai/models-config';
 import { resolveFeatureModelDisplay } from './resolve-feature-model-display';
 
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+const SERVER_KEY_ENV_VARS = [
+  'GEMINI_API_KEY',
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'GROQ_API_KEY',
+  'OPENROUTER_API_KEY',
+] as const;
 
 const FEATURE = AI_FEATURE.categorization;
 const DEFAULT_MODEL_ID = getDefaultModelForFeature({ feature: FEATURE });

@@ -21,7 +21,13 @@ const CATALOG_MODEL_ID = 'google/gemini-3.6-flash';
 const FREE_CATALOG_MODEL_ID = 'google/gemma-4-31b-it';
 
 /** Server keys let the ladder answer without user credentials, so every case starts without them. */
-const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
+const SERVER_KEY_ENV_VARS = [
+  'GEMINI_API_KEY',
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'GROQ_API_KEY',
+  'OPENROUTER_API_KEY',
+] as const;
 
 const STATEMENT_CSV = [
   'date;description;amount',

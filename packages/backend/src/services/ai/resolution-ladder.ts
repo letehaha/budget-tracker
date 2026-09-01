@@ -23,6 +23,8 @@ export function getServerApiKey({ provider }: { provider: AI_PROVIDER }): string
       return process.env.ANTHROPIC_API_KEY || null;
     case AI_PROVIDER.groq:
       return process.env.GROQ_API_KEY || null;
+    case AI_PROVIDER.openrouter:
+      return process.env.OPENROUTER_API_KEY || null;
     default:
       return null;
   }
