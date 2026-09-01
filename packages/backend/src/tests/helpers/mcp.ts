@@ -125,12 +125,13 @@ export async function createTestOAuthConsent({
 
 /**
  * Insert a test OAuth access token into `ba_oauth_access_token`.
- * Note: `clientId` here stores the **internal id** (from `ba_oauth_client.id`).
+ * Note: `clientId` here stores the **public clientId** (from `ba_oauth_client.clientId`),
+ * matching what better-auth's oauth-provider writes on token issue.
  */
 export async function createTestOAuthAccessToken({
   id = 'test-access-token-id',
   token = 'test-access-token-value',
-  clientId = 'test-internal-client-id',
+  clientId = 'test-public-client-id',
   userId = TEST_AUTH_USER_ID,
   scopes = '["finance:read","profile:read"]',
 }: {
@@ -149,6 +150,32 @@ export async function createTestOAuthAccessToken({
 }
 
 /**
+ * Insert a test OAuth refresh token into `ba_oauth_refresh_token`.
+ * Note: `clientId` here stores the **public clientId** (from `ba_oauth_client.clientId`),
+ * matching what better-auth's oauth-provider writes on token issue.
+ */
+export async function createTestOAuthRefreshToken({
+  id = 'test-refresh-token-id',
+  token = 'test-refresh-token-value',
+  clientId = 'test-public-client-id',
+  userId = TEST_AUTH_USER_ID,
+  scopes = '["finance:read","profile:read"]',
+}: {
+  id?: string;
+  token?: string;
+  clientId?: string;
+  userId?: string;
+  scopes?: string;
+} = {}): Promise<void> {
+  await authPool.query(
+    `INSERT INTO "ba_oauth_refresh_token" (id, token, "clientId", "userId", scopes, "expiresAt", "createdAt")
+     VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '60 days', NOW())
+     ON CONFLICT DO NOTHING`,
+    [id, token, clientId, userId, scopes],
+  );
+}
+
+/**
  * Clean up all test OAuth data from auth tables.
  * Deletes in dependency order to avoid FK constraint errors.
  */
@@ -160,16 +187,22 @@ export async function cleanupTestOAuthData(): Promise<void> {
 }
 
 /**
- * Query the auth DB to count remaining OAuth records for the test user.
+ * Query the auth DB to count remaining OAuth records for the test user, keyed on
+ * the **public clientId** (the value the token/consent rows actually store).
  * Useful for asserting that revocation cleaned up all records.
  */
-export async function getTestOAuthRecordCounts({ internalClientId }: { internalClientId: string }): Promise<{
+export async function getTestOAuthRecordCounts({ clientId }: { clientId: string }): Promise<{
   accessTokens: number;
+  refreshTokens: number;
   consents: number;
 }> {
   const accessTokenResult = await authPool.query(
     `SELECT COUNT(*)::int AS count FROM "ba_oauth_access_token" WHERE "clientId" = $1 AND "userId" = $2`,
-    [internalClientId, TEST_AUTH_USER_ID],
+    [clientId, TEST_AUTH_USER_ID],
+  );
+  const refreshTokenResult = await authPool.query(
+    `SELECT COUNT(*)::int AS count FROM "ba_oauth_refresh_token" WHERE "clientId" = $1 AND "userId" = $2`,
+    [clientId, TEST_AUTH_USER_ID],
   );
   const consentResult = await authPool.query(
     `SELECT COUNT(*)::int AS count FROM "ba_oauth_consent" WHERE "userId" = $1`,
@@ -178,6 +211,7 @@ export async function getTestOAuthRecordCounts({ internalClientId }: { internalC
 
   return {
     accessTokens: accessTokenResult.rows[0]?.count ?? 0,
+    refreshTokens: refreshTokenResult.rows[0]?.count ?? 0,
     consents: consentResult.rows[0]?.count ?? 0,
   };
 }
