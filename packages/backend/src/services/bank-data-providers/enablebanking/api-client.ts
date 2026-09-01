@@ -118,35 +118,47 @@ export function classifyAspspError({
  * PSD2 caps vary per ASPSP (BNP Fortis BE: 2y; others: 90d; German banks: up to 7y)
  * with no API to query the limit up-front.
  *
- * Match: concept anchor + limit verb + time window, all three required.
- *   concept    – datefrom/dateto OR range/period/window/lookback/history/interval/transactions
- *   limit verb – within/exceed/maximum/limited to/older than
+ * Match: method scope + limit verb + time window, all three required.
+ *   method     – must be getAccountTransactions (set by handleApiError, so this
+ *                already scopes to Enable Banking's own 4xx responses; the
+ *                wrapper `error` field is NOT checked here — despite the
+ *                "ASPSP_ERROR" wrapper handleApiError documents, some ASPSPs
+ *                (e.g. BNP Paribas) put their own machine code straight in
+ *                that field instead, so gating on a literal value there
+ *                silently dropped real date-range rejections)
+ *   limit verb – within/exceed/maximum/limited to/older than/less than/no more than
  *   time       – N day/week/month/year
- * Each alone is too permissive (e.g. "account opened within last 30 days" hits
- * limit + time but has no concept anchor).
+ * concept + limit + time, all three required, so an unrelated match like
+ * "account opened within last 30 days" (limit + time, no concept anchor)
+ * still misses. "date" alone counts as a concept anchor too — BNP Paribas's
+ * real rejection ("The date must be equal or less than 13 months") never
+ * says "range"/"period"/"dateFrom", just "date".
  */
 export function isAspspDateRangeRejection(error: unknown): boolean {
   if (!(error instanceof BadRequestError)) return false;
 
   const details = error.details as
-    | { method?: unknown; aspspError?: unknown; aspspMessage?: unknown; aspspErrorDataStr?: unknown }
+    | { method?: unknown; aspspMessage?: unknown; aspspErrorDataStr?: unknown; rawData?: unknown }
     | undefined;
   if (!details) return false;
   if (details.method !== 'getAccountTransactions') return false;
-  if (details.aspspError !== 'ASPSP_ERROR') return false;
 
   const parts: string[] = [];
   if (typeof details.aspspMessage === 'string') parts.push(details.aspspMessage);
   if (typeof details.aspspErrorDataStr === 'string') parts.push(details.aspspErrorDataStr);
+  if (typeof details.rawData === 'string') parts.push(details.rawData);
   if (typeof error.message === 'string') parts.push(error.message);
   const haystack = parts.join(' ').toLowerCase();
   if (haystack === '') return false;
 
-  const hasLimitVerb = /\b(?:within|exceed|exceeds|maximum|max|limited?\s+to|older\s+than)\b/.test(haystack);
+  const hasLimitVerb =
+    /\b(?:within|exceed|exceeds|maximum|max|limited?\s+to|older\s+than|(?:equal\s+or\s+)?less\s+than|no\s+more\s+than)\b/.test(
+      haystack,
+    );
   const hasTimeWindow = /\b\d+\s*(?:day|week|month|year)s?\b/.test(haystack);
   if (!hasLimitVerb || !hasTimeWindow) return false;
 
-  const hasFieldName = /\b(?:datefrom|dateto)\b/.test(haystack);
+  const hasFieldName = /\b(?:datefrom|dateto|dates?)\b/.test(haystack);
   const hasRangeNoun = /\b(?:range|period|window|lookback|history|interval|transactions?)\b/.test(haystack);
   return hasFieldName || hasRangeNoun;
 }
@@ -225,10 +237,14 @@ export class EnableBankingApiClient {
       const httpUrl = error.config?.url;
       const httpMethod = error.config?.method?.toUpperCase();
 
-      // Enable Banking wraps upstream bank failures as HTTP 400 with
-      // `error: "ASPSP_ERROR"` and nests the real payload in `detail.error_data`.
-      // Flatten those fields to top-level primitives so Sentry's default
-      // `normalizeDepth: 3` doesn't truncate them to "[Object]".
+      // Enable Banking usually wraps upstream bank failures as HTTP 400 with
+      // `error: "ASPSP_ERROR"` and nests the real payload in `detail.error_data` —
+      // but not always: some ASPSPs (e.g. BNP Paribas) put their own machine
+      // code straight in `error` instead (status can vary too, e.g. 422).
+      // Flatten these fields to top-level primitives so Sentry's default
+      // `normalizeDepth: 3` doesn't truncate them to "[Object]", and so callers
+      // like isAspspDateRangeRejection can match on message content rather
+      // than assuming a fixed wrapper shape.
       const detail = (data.detail ?? {}) as Record<string, unknown>;
       const aspspError = typeof data.error === 'string' ? data.error : undefined;
       const aspspMessage = typeof detail.message === 'string' ? detail.message : undefined;
