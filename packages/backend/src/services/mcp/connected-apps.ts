@@ -20,8 +20,8 @@ interface ConnectedAppRow {
   lastUsedAt: string | null;
 }
 
-interface ClientIdRow {
-  id: string;
+interface ClientExistsRow {
+  clientId: string;
 }
 
 /**
@@ -38,7 +38,7 @@ export async function getConnectedApps({ authUserId }: { authUserId: string }): 
        (
          SELECT MAX(at."createdAt")
          FROM "ba_oauth_access_token" at
-         WHERE at."clientId" = c."id" AND at."userId" = $1
+         WHERE at."clientId" = c."clientId" AND at."userId" = $1
        ) AS "lastUsedAt"
      FROM "ba_oauth_consent" con
      JOIN "ba_oauth_client" c ON con."clientId" = c."clientId"
@@ -67,9 +67,10 @@ export async function revokeConnectedApp({
   authUserId: string;
   clientId: string;
 }): Promise<void> {
-  // Get the internal client ID from the public clientId
-  const clientResult = await authPool.query<ClientIdRow>(
-    `SELECT "id" FROM "ba_oauth_client" WHERE "clientId" = $1 LIMIT 1`,
+  // Confirm the client exists so an unknown clientId is a 404 rather than a
+  // silent no-op.
+  const clientResult = await authPool.query<ClientExistsRow>(
+    `SELECT "clientId" FROM "ba_oauth_client" WHERE "clientId" = $1 LIMIT 1`,
     [clientId],
   );
 
@@ -77,18 +78,21 @@ export async function revokeConnectedApp({
     throw new NotFoundError({ message: 'Client not found' });
   }
 
-  const internalClientId = clientResult.rows[0]!.id;
-
-  // Delete all tokens and consent in a transaction
+  // The token and consent rows all key off the *public* clientId: the
+  // oauth-provider schema declares ba_oauth_access_token.clientId and
+  // ba_oauth_refresh_token.clientId as references to ba_oauth_client.clientId
+  // (not .id), and better-auth writes `client.clientId` into them on issue.
+  // Filtering by the internal ba_oauth_client.id matches zero token rows, which
+  // left the access token (72h) and refresh token (60d) usable after "revoke".
   const client = await authPool.connect();
   try {
     await client.query('BEGIN');
     await client.query(`DELETE FROM "ba_oauth_access_token" WHERE "clientId" = $1 AND "userId" = $2`, [
-      internalClientId,
+      clientId,
       authUserId,
     ]);
     await client.query(`DELETE FROM "ba_oauth_refresh_token" WHERE "clientId" = $1 AND "userId" = $2`, [
-      internalClientId,
+      clientId,
       authUserId,
     ]);
     await client.query(`DELETE FROM "ba_oauth_consent" WHERE "clientId" = $1 AND "userId" = $2`, [
