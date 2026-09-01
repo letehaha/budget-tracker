@@ -3,6 +3,7 @@ import { logger } from '@js/utils/logger';
 import { requestIdMiddleware } from '@middlewares/request-id';
 import { sessionMiddleware } from '@middlewares/session-id';
 import { MS_MONEY_FULL_PATHS } from '@routes/import-export/ms-money-paths';
+import { OFX_FULL_PATHS } from '@routes/import-export/ofx-paths';
 import cors from 'cors';
 import express, { Express, Request } from 'express';
 import morgan from 'morgan';
@@ -116,7 +117,7 @@ export function setupMiddleware(app: Express) {
   // Binary uploads: the body is a file, not JSON, and the route mounts its own
   // `express.raw` parser. Running the JSON parser here first would buffer a
   // multi-megabyte body a second time for nothing.
-  const binaryUploadPaths: string[] = [MS_MONEY_FULL_PATHS.upload];
+  const binaryUploadPaths: string[] = [MS_MONEY_FULL_PATHS.upload, OFX_FULL_PATHS.upload];
 
   // Body parser with conditional limits
   app.use((req, res, next) => {
@@ -144,6 +145,8 @@ export function setupMiddleware(app: Express) {
         // the user chooses to skip outgrow the default limit on a big import.
         MS_MONEY_FULL_PATHS.detectDuplicates,
         MS_MONEY_FULL_PATHS.execute,
+        OFX_FULL_PATHS.detectDuplicates,
+        OFX_FULL_PATHS.execute,
       ],
       '10mb': [
         `${API_PREFIX}/import/csv/parse`,

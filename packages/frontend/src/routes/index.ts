@@ -412,6 +412,14 @@ const routes: RouteRecordRaw[] = [
             },
           },
           {
+            path: 'data-management/import/ofx',
+            name: ROUTES_NAMES.importOfx,
+            component: () => import('@/pages/import-export/ofx-import/index.vue'),
+            meta: {
+              i18nChunks: ['pages/import-ofx', 'pages/import-shared', 'settings/data-management'] as I18nChunkName[],
+            },
+          },
+          {
             path: 'data-management/import/history',
             name: ROUTES_NAMES.importHistory,
             component: () => import('@/pages/import-export/import-history/index.vue'),

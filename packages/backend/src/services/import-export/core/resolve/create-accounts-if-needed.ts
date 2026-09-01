@@ -1,5 +1,4 @@
-import type { AccountMappingValue } from '@bt/shared/types';
-import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, type AccountMappingValue } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { ValidationError } from '@js/errors';
 import * as Accounts from '@models/accounts.model';
@@ -21,6 +20,10 @@ interface CreateAccountsIfNeededParams {
   resolveFxDate: (accountName: string) => Date;
   /** Initial balance in cents for a newly created account. Defaults to 0. */
   resolveInitialBalanceCents?: (accountName: string) => number;
+  /** Account category for a newly created account. Defaults to general. */
+  resolveAccountCategory?: (accountName: string) => ACCOUNT_CATEGORIES;
+  /** Local display name for a newly created account. Defaults to the source name. */
+  resolveAccountName?: (accountName: string) => string;
   /**
    * When true, every name is created as a new account regardless of mapping.
    * Defaults to false, which preserves the link-existing / create-new /
@@ -64,6 +67,8 @@ export async function createAccountsIfNeeded({
   resolveCurrencyCode,
   resolveFxDate,
   resolveInitialBalanceCents,
+  resolveAccountCategory,
+  resolveAccountName,
   alwaysCreate = false,
   defaultAccountId,
 }: CreateAccountsIfNeededParams): Promise<CreateAccountsIfNeededResult> {
@@ -93,9 +98,9 @@ export async function createAccountsIfNeeded({
 
     const newAccount = await Accounts.createAccount({
       userId,
-      name: accountName,
+      name: resolveAccountName?.(accountName) ?? accountName,
       currencyCode,
-      accountCategory: ACCOUNT_CATEGORIES.general,
+      accountCategory: resolveAccountCategory?.(accountName) ?? ACCOUNT_CATEGORIES.general,
       type: ACCOUNT_TYPES.system,
       initialBalance,
       refInitialBalance,

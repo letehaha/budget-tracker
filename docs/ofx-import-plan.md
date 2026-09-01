@@ -130,12 +130,12 @@ The execute service must still recheck IDs before each write. Treat a concurrent
 
 Add these authenticated endpoints under `/api/v1/import/ofx`:
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `POST` | `/upload` | Accept raw bytes, parse, cache the result, return `uploadId`, result, and lease. |
-| `POST` | `/detect-duplicates` | Read the cached result and compare mapped existing accounts. |
-| `POST` | `/execute` | Validate and claim the upload, then return `jobId`. |
-| `GET` | `/status/:jobId` | Return queued, running, completed, or failed progress. |
+| Method | Path                 | Purpose                                                                          |
+| ------ | -------------------- | -------------------------------------------------------------------------------- |
+| `POST` | `/upload`            | Accept raw bytes, parse, cache the result, return `uploadId`, result, and lease. |
+| `POST` | `/detect-duplicates` | Read the cached result and compare mapped existing accounts.                     |
+| `POST` | `/execute`           | Validate and claim the upload, then return `jobId`.                              |
+| `GET`  | `/status/:jobId`     | Return queued, running, completed, or failed progress.                           |
 
 Use the strict route to controller to service structure. Reuse `createStatusController`, `createImportJobQueue`, the base-currency lock, `createPayeesIfNeeded`, account balance reconciliation, and import batch metadata.
 

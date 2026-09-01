@@ -3,6 +3,7 @@ import type { BudgetBakersWalletImportProgress } from './budget-bakers-wallet-im
 import type { BaseCurrencyChangeStatus } from './currencies';
 import type { CsvImportProgress } from './import-export';
 import type { MsMoneyImportProgress } from './ms-money-import';
+import type { OfxImportProgress } from './ofx-import';
 /**
  * Server-Sent Events (SSE) shared types
  *
@@ -19,6 +20,7 @@ export const SSE_EVENT_TYPES = {
   YNAB_IMPORT_PROGRESS: 'ynab_import_progress',
   BUDGET_BAKERS_WALLET_IMPORT_PROGRESS: 'budget_bakers_wallet_import_progress',
   MS_MONEY_IMPORT_PROGRESS: 'ms_money_import_progress',
+  OFX_IMPORT_PROGRESS: 'ofx_import_progress',
   CSV_IMPORT_PROGRESS: 'csv_import_progress',
   BASE_CURRENCY_CHANGE_STATUS: 'base_currency_change_status',
   BACKUP_RESTORE_PROGRESS: 'backup_restore_progress',
@@ -121,6 +123,7 @@ export type SSEEventPayload =
   | YnabImportProgress
   | BudgetBakersWalletImportProgress
   | MsMoneyImportProgress
+  | OfxImportProgress
   | CsvImportProgress
   | BaseCurrencyChangeStatus
   | BackupRestoreSseProgress;
@@ -138,6 +141,7 @@ export interface SSEEventPayloadMap {
   [SSE_EVENT_TYPES.YNAB_IMPORT_PROGRESS]: YnabImportProgress;
   [SSE_EVENT_TYPES.BUDGET_BAKERS_WALLET_IMPORT_PROGRESS]: BudgetBakersWalletImportProgress;
   [SSE_EVENT_TYPES.MS_MONEY_IMPORT_PROGRESS]: MsMoneyImportProgress;
+  [SSE_EVENT_TYPES.OFX_IMPORT_PROGRESS]: OfxImportProgress;
   [SSE_EVENT_TYPES.CSV_IMPORT_PROGRESS]: CsvImportProgress;
   [SSE_EVENT_TYPES.BASE_CURRENCY_CHANGE_STATUS]: BaseCurrencyChangeStatus;
   [SSE_EVENT_TYPES.BACKUP_RESTORE_PROGRESS]: BackupRestoreSseProgress;
