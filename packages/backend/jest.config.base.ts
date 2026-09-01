@@ -27,6 +27,7 @@ export default {
     // which Jest's CommonJS runtime cannot load. Compile it down instead of
     // stubbing it, so tests exercise the real reader.
     '[/\\\\]node_modules[/\\\\]mdb-reader[/\\\\].+\\.js$': '<rootDir>/src/tests/transformers/esm-to-cjs.js',
+    '[/\\\\]node_modules[/\\\\]ofx-js[/\\\\].+\\.js$': '<rootDir>/src/tests/transformers/esm-to-cjs.js',
     // unpdf's CJS entry reaches its pdf.js bundle through `await import()`, which
     // Jest's VM refuses without --experimental-vm-modules. Compiling both files to
     // CommonJS turns that into a `require` Jest can resolve.
@@ -34,7 +35,7 @@ export default {
   },
   // Everything in node_modules stays untransformed except the ESM-only packages
   // listed here, which would otherwise fail to parse.
-  transformIgnorePatterns: ['/node_modules/(?!(mdb-reader|unpdf)/)'],
+  transformIgnorePatterns: ['/node_modules/(?!(mdb-reader|ofx-js|unpdf)/)'],
   moduleNameMapper: {
     '^unpdf/pdfjs$': UNPDF_PDFJS_BUNDLE,
     // Mock better-auth ESM modules with our CommonJS compatible versions

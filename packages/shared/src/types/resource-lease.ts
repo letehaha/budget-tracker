@@ -46,6 +46,7 @@ export const RESOURCE_LEASE_IDLE_AFTER_MS = 2 * 60 * 1000;
  */
 export enum ResourceLeaseType {
   msMoneyUpload = 'ms-money-upload',
+  ofxUpload = 'ofx-upload',
 }
 
 export interface RefreshResourceLeaseRequest {

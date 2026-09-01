@@ -15,6 +15,7 @@ import {
 import { budgetBakersWalletImportQueue } from '@services/import-export/budget-bakers-wallet-import';
 import { csvImportQueue } from '@services/import-export/csv-import/csv-import-queue';
 import { msMoneyImportQueue } from '@services/import-export/ms-money-import';
+import { ofxImportQueue } from '@services/import-export/ofx-import';
 import { ynabImportQueue } from '@services/import-export/ynab-import';
 import { Queue } from 'bullmq';
 
@@ -31,7 +32,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Typed as the base `Queue` so the importers' distinct generic data types
 // collapse to one callable `getJobs` signature.
-const importQueues: Queue[] = [csvImportQueue, ynabImportQueue, budgetBakersWalletImportQueue, msMoneyImportQueue];
+const importQueues: Queue[] = [
+  csvImportQueue,
+  ynabImportQueue,
+  budgetBakersWalletImportQueue,
+  msMoneyImportQueue,
+  ofxImportQueue,
+];
 
 /** Import workers write transactions row-by-row; an active job for this user could
  *  commit rows against the old base. Count active jobs across every importer. */

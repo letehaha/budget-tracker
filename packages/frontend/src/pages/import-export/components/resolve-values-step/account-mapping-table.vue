@@ -32,6 +32,7 @@ import type {
 } from '@bt/shared/types';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
 import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vue';
 
 const { t } = useI18n();
@@ -39,6 +40,8 @@ const { t } = useI18n();
 /** Source account discovered upstream. `transactionCount` is informational. */
 interface SourceItem {
   name: string;
+  /** Stable mapping key when the display name is not unique. Defaults to `name`. */
+  mappingKey?: string;
   currency: string;
   transactionCount?: number;
 }
@@ -110,6 +113,11 @@ const columns = computed<MappingTableColumn[]>(() => [
 
 type ResolveRowStatus = 'auto-matched' | 'will-create' | 'needs-attention' | 'skipped';
 
+/** Existing importers key mappings by display name. OFX can supply an opaque key. */
+function getMappingKey(item: SourceItem): string {
+  return item.mappingKey ?? item.name;
+}
+
 /** create-new ⇒ will-create; skip ⇒ skipped; link-existing with a target ⇒
  *  auto-matched; otherwise needs-attention. */
 function getStatus(name: string): ResolveRowStatus {
@@ -121,7 +129,9 @@ function getStatus(name: string): ResolveRowStatus {
   return 'needs-attention';
 }
 
-const resolvedCount = computed(() => props.items.filter((item) => getStatus(item.name) !== 'needs-attention').length);
+const resolvedCount = computed(
+  () => props.items.filter((item) => getStatus(getMappingKey(item)) !== 'needs-attention').length,
+);
 
 // ---- Link-target helpers ----
 
@@ -186,11 +196,11 @@ function onTargetChange({ name, account }: { name: string; account: AccountModel
     <MappingTable
       :columns="columns"
       :items="items"
-      :row-key="(row) => row.name"
-      :get-row-class="(row) => (getStatus(row.name) === 'needs-attention' ? 'bg-warning/5' : '')"
+      :row-key="getMappingKey"
+      :get-row-class="(row) => (getStatus(getMappingKey(row)) === 'needs-attention' ? 'bg-warning/5' : '')"
     >
       <template #cell:status="{ item }">
-        <StatusIndicator :status="getStatus(item.name)" size="sm" />
+        <StatusIndicator :status="getStatus(getMappingKey(item))" size="sm" />
       </template>
 
       <template #cell:name="{ item }">
@@ -203,36 +213,38 @@ function onTargetChange({ name, account }: { name: string; account: AccountModel
 
       <template #cell:action="{ item }">
         <SelectField
-          :model-value="getActionOption(item.name)"
+          :model-value="getActionOption(getMappingKey(item))"
           :values="actionOptions"
           class="w-full"
           :placeholder="$t('importShared.selectAction')"
-          @update:model-value="onActionChange({ name: item.name, option: $event })"
+          @update:model-value="onActionChange({ name: getMappingKey(item), option: $event })"
         />
       </template>
 
       <template #cell:target="{ item }">
         <!-- link-existing: currency-filtered account picker -->
-        <div v-if="mapping[item.name]?.action === 'link-existing'" class="w-full">
+        <div v-if="mapping[getMappingKey(item)]?.action === 'link-existing'" class="w-full">
           <p v-if="getFilteredAccounts(item.currency).length === 0" class="text-destructive-text text-sm">
             {{ $t('importShared.account.noMatchingCurrency', { currency: item.currency }) }}
           </p>
           <AccountSelectField
             v-else
-            :model-value="getSelectedAccount(item.name)"
+            :model-value="getSelectedAccount(getMappingKey(item))"
             :accounts="getFilteredAccounts(item.currency)"
             class="w-full"
             include-archived
             clearable
             :placeholder="$t('importShared.account.selectTarget')"
-            :option-disabled="(account: AccountModel) => isAccountAlreadyMapped({ account, currentName: item.name })"
-            @update:model-value="onTargetChange({ name: item.name, account: $event })"
+            :option-disabled="
+              (account: AccountModel) => isAccountAlreadyMapped({ account, currentName: getMappingKey(item) })
+            "
+            @update:model-value="onTargetChange({ name: getMappingKey(item), account: $event })"
           />
         </div>
 
         <!-- create-new: parent may override the cell (e.g. Wallet's balance input);
              default content is the shared "will create" hint. -->
-        <template v-else-if="mapping[item.name]?.action === 'create-new'">
+        <template v-else-if="mapping[getMappingKey(item)]?.action === 'create-new'">
           <slot name="create-new-cell" :item="item">
             <span class="text-muted-foreground text-sm">
               {{ $t('importShared.account.willCreate', { name: item.name, currency: item.currency || '—' }) }}
@@ -240,7 +252,7 @@ function onTargetChange({ name, account }: { name: string; account: AccountModel
           </slot>
         </template>
 
-        <span v-else-if="mapping[item.name]?.action === 'skip'" class="text-muted-foreground text-sm">
+        <span v-else-if="mapping[getMappingKey(item)]?.action === 'skip'" class="text-muted-foreground text-sm">
           {{ $t('importShared.account.willSkip') }}
         </span>
 
