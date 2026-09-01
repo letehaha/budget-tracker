@@ -56,6 +56,11 @@
             "label": "Groq (Llama, GPT-OSS)",
             "placeholder": "gsk_...",
             "description": "Get your API key from"
+          },
+          "openrouter": {
+            "label": "OpenRouter",
+            "placeholder": "sk-or-v1-...",
+            "description": "Get your API key from"
           }
         },
         "notifications": {
@@ -130,7 +135,8 @@
           "openai": "OpenAI",
           "anthropic": "Anthropic",
           "google": "Google",
-          "groq": "Groq"
+          "groq": "Groq",
+          "openrouter": "OpenRouter"
         },
         "costLabels": {
           "free": "Free",

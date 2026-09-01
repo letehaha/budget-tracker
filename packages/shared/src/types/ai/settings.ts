@@ -61,6 +61,7 @@ export const AI_KEY_PROVIDERS = [
   AI_PROVIDER.openai,
   AI_PROVIDER.google,
   AI_PROVIDER.groq,
+  AI_PROVIDER.openrouter,
 ] as const satisfies readonly AIKeyProvider[];
 
 /**

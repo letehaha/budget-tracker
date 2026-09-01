@@ -357,6 +357,7 @@ export enum AI_PROVIDER {
   openai = 'openai',
   google = 'google',
   groq = 'groq',
+  openrouter = 'openrouter',
   custom = 'custom',
 }
 

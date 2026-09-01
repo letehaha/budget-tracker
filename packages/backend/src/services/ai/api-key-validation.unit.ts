@@ -19,9 +19,11 @@ import { AI_PROVIDER } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { APICallError, generateText } from 'ai';
 
+import { createAIClientWithConfig } from './ai-client-factory';
 import { validateApiKey } from './api-key-validation';
 
 const generateTextMock = generateText as unknown as jest.Mock<() => Promise<unknown>>;
+const createAIClientWithConfigMock = createAIClientWithConfig as jest.MockedFunction<typeof createAIClientWithConfig>;
 
 // Minimal fields required by the APICallError constructor; url/requestBodyValues
 // are irrelevant to the classifier but the SDK type requires them.
@@ -47,6 +49,19 @@ describe('validateApiKey', () => {
 
     expect(result).toEqual({ isValid: true });
     expect(generateTextMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates OpenRouter with its low-cost routed model', async () => {
+    generateTextMock.mockResolvedValueOnce({});
+
+    const result = await validateApiKey({ provider: AI_PROVIDER.openrouter, apiKey: 'sk-or-v1-test' });
+
+    expect(result).toEqual({ isValid: true });
+    expect(createAIClientWithConfigMock).toHaveBeenCalledWith({
+      provider: AI_PROVIDER.openrouter,
+      modelId: 'openrouter/openai/gpt-oss-20b',
+      apiKey: 'sk-or-v1-test',
+    });
   });
 
   it('falls back to the next model when the first rejects a non-auth 400 (account-gated model)', async () => {

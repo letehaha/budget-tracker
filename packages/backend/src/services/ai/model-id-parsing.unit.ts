@@ -16,6 +16,10 @@ describe('getModelNameFromModelId', () => {
     expect(getModelNameFromModelId({ modelId: 'groq/openai/gpt-oss-20b' })).toBe('openai/gpt-oss-20b');
   });
 
+  it('keeps the upstream provider segment for an OpenRouter ID', () => {
+    expect(getModelNameFromModelId({ modelId: 'openrouter/openai/gpt-oss-20b' })).toBe('openai/gpt-oss-20b');
+  });
+
   it('strips only the provider segment for a single-slash ID', () => {
     expect(getModelNameFromModelId({ modelId: 'google/gemini-3.6-flash' })).toBe('gemini-3.6-flash');
   });
@@ -31,6 +35,7 @@ describe('getProviderFromModelId (strict, AVAILABLE_MODELS-backed)', () => {
     ['anthropic/claude-opus-5', AI_PROVIDER.anthropic],
     ['google/gemini-3.6-flash', AI_PROVIDER.google],
     ['groq/llama-3.3-70b-versatile', AI_PROVIDER.groq],
+    ['openrouter/openai/gpt-oss-20b', AI_PROVIDER.openrouter],
   ])('resolves %s to provider %s', (modelId, expectedProvider) => {
     expect(getProviderFromModelId({ modelId })).toBe(expectedProvider);
   });
