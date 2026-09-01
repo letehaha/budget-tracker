@@ -1,3 +1,5 @@
+import { decode as decodeBuffer } from 'iconv-lite';
+
 import { parseOfxHeader } from './header';
 import { OFX_MAX_FILE_BYTES, OfxParseError, type OfxDecodedFile } from './types';
 
@@ -28,7 +30,7 @@ export function decodeOfxFile({ bytes }: { bytes: Buffer }): OfxDecodedFile {
   const bodyBytes = bytes.subarray(bodyOffset);
   // `ofx-js` accepts a string, not bytes. Decode here only after the byte-safe
   // header pass has told us which charset the financial institution used.
-  const body = encoding === 'windows-1252' ? new TextDecoder(encoding).decode(bodyBytes) : bodyBytes.toString(encoding);
+  const body = encoding === 'windows-1252' ? decodeBuffer(bodyBytes, encoding) : bodyBytes.toString(encoding);
   if (!body.trim()) throw new OfxParseError({ code: 'empty-body', message: 'The OFX file has no body.' });
 
   return { body, formatVersion: Number(header.version) >= 200 ? '2.x' : '1.x' };
