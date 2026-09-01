@@ -1,5 +1,5 @@
 {
-  "issuer": "https://mcp.moneymatter.app",
+  "issuer": "https://mcp.moneymatter.app/api/v1/auth",
   "authorization_endpoint": "https://mcp.moneymatter.app/api/v1/auth/oauth2/authorize",
   "token_endpoint": "https://mcp.moneymatter.app/api/v1/auth/oauth2/token",
   "registration_endpoint": "https://mcp.moneymatter.app/api/v1/auth/oauth2/register",

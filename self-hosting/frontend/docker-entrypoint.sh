@@ -186,6 +186,13 @@ location = /.well-known/oauth-authorization-server/mcp {
   proxy_set_header Host \$host;
   proxy_set_header X-Forwarded-Proto \$scheme;
 }
+# RFC 8414 3.1 path-aware form: the AS issuer carries the /api/v1/auth path,
+# so clients look here (well-known segment after the host, then issuer path).
+location = /.well-known/oauth-authorization-server/api/v1/auth {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
 location = /.well-known/oauth-protected-resource {
   proxy_pass ${BACKEND_URL};
   proxy_set_header Host \$host;
@@ -217,6 +224,14 @@ location = /.well-known/oauth-authorization-server {
   add_header X-Content-Type-Options "nosniff" always;
 }
 location = /.well-known/oauth-authorization-server/mcp {
+  root /app;
+  try_files /.well-known/oauth-authorization-server =404;
+  default_type "application/json";
+  add_header Access-Control-Allow-Origin "*" always;
+  add_header Cache-Control "public, max-age=3600" always;
+  add_header X-Content-Type-Options "nosniff" always;
+}
+location = /.well-known/oauth-authorization-server/api/v1/auth {
   root /app;
   try_files /.well-known/oauth-authorization-server =404;
   default_type "application/json";
