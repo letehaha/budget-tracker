@@ -47,7 +47,7 @@
 <script setup lang="ts">
 import { ROUTES_NAMES } from '@/routes';
 import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
-import { DatabaseIcon, FileSpreadsheetIcon, HistoryIcon, PlusIcon, SparklesIcon } from '@lucide/vue';
+import { DatabaseIcon, FileTextIcon, FileSpreadsheetIcon, HistoryIcon, PlusIcon, SparklesIcon } from '@lucide/vue';
 import { type Component } from 'vue';
 import { type RouteLocationRaw } from 'vue-router';
 
@@ -83,6 +83,7 @@ const groups: ImportGroup[] = [
     sources: [
       { id: 'textSource', icon: SparklesIcon, to: { name: ROUTES_NAMES.importStatement }, accent: true, badge: true },
       { id: 'csv', icon: FileSpreadsheetIcon, to: { name: ROUTES_NAMES.importCsv } },
+      { id: 'ofx', icon: FileTextIcon, to: { name: ROUTES_NAMES.importOfx } },
     ],
   },
   {
