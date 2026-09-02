@@ -96,22 +96,27 @@ export enum ACCOUNT_CATEGORIES {
   overdraft = 'overdraft',
   crypto = 'crypto',
   vehicle = 'vehicle',
+  property = 'property',
 }
 
 /**
  * Account categories that own a required 1:1 sidecar row (LoanDetails,
- * Vehicles) and a dedicated creation flow (`/loans`, `/vehicles`). They must
- * never be created through the generic `POST /accounts` path — that would
- * produce a sidecar-less account with none of the managed-balance machinery,
- * so the create service rejects them and the create-account UI hides them.
- * Each is created only via its own endpoint, which writes the account and its
- * sidecar in one transaction.
+ * Vehicles, Properties) and a dedicated creation flow (`/loans`, `/vehicles`,
+ * `/properties`). They must never be created through the generic
+ * `POST /accounts` path — that would produce a sidecar-less account with none
+ * of the managed-balance machinery, so the create service rejects them and the
+ * create-account UI hides them. Each is created only via its own endpoint,
+ * which writes the account and its sidecar in one transaction.
  *
  * Their balance history belongs to the same dedicated flow (loan projection,
- * depreciation curve) rather than to `initialBalance + Σtransactions`, so the
- * balance-revalue paths skip them too.
+ * depreciation curve, appreciation curve) rather than to
+ * `initialBalance + Σtransactions`, so the balance-revalue paths skip them too.
  */
-export const DEDICATED_FLOW_ACCOUNT_CATEGORIES = [ACCOUNT_CATEGORIES.loan, ACCOUNT_CATEGORIES.vehicle] as const;
+export const DEDICATED_FLOW_ACCOUNT_CATEGORIES = [
+  ACCOUNT_CATEGORIES.loan,
+  ACCOUNT_CATEGORIES.vehicle,
+  ACCOUNT_CATEGORIES.property,
+] as const;
 
 type DedicatedFlowAccountCategory = (typeof DEDICATED_FLOW_ACCOUNT_CATEGORIES)[number];
 
@@ -146,6 +151,24 @@ export enum DEPRECIATION_PRESET {
   average = 'average',
   fast = 'fast',
   custom = 'custom',
+}
+
+/**
+ * Kind of real-estate asset. Metadata only — unlike `VEHICLE_CLASS` it does not
+ * select a valuation curve, because a property's value is driven by a single
+ * user-supplied `annualAppreciationRatePct`. VARCHAR in DB, TS-side enum for
+ * type safety (per project's no-DB-enums rule).
+ */
+export enum PROPERTY_TYPE {
+  house = 'house',
+  apartment = 'apartment',
+  condo = 'condo',
+  townhouse = 'townhouse',
+  land = 'land',
+  commercial = 'commercial',
+  industrial = 'industrial',
+  vacation = 'vacation',
+  other = 'other',
 }
 
 export enum PAYMENT_TYPES {

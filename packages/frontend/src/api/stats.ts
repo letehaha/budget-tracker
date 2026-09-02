@@ -134,6 +134,7 @@ export interface CombinedBalanceHistoryEntity {
   portfoliosBalance: number;
   venturesBalance: number;
   vehiclesBalance: number;
+  propertiesBalance: number;
   loansBalance: number;
   totalBalance: number;
 }

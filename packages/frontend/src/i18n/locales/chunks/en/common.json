@@ -77,7 +77,9 @@
     "dialogs": {
       "createAccount": "Create account",
       "createVehicle": "Add vehicle",
-      "editVehicle": "Edit vehicle"
+      "editVehicle": "Edit vehicle",
+      "createProperty": "Add property",
+      "editProperty": "Edit property"
     },
     "accountCategories": {
       "general": "General",
@@ -92,7 +94,8 @@
       "mortgage": "Mortgage",
       "overdraft": "Overdraft",
       "crypto": "Crypto",
-      "vehicle": "Vehicle"
+      "vehicle": "Vehicle",
+      "property": "Property"
     },
     "paymentTypes": {
       "creditCard": "Credit Card",
@@ -110,6 +113,17 @@
       "luxury": "Luxury",
       "ev": "Electric vehicle",
       "motorcycle": "Motorcycle",
+      "other": "Other"
+    },
+    "propertyTypes": {
+      "house": "House",
+      "apartment": "Apartment",
+      "condo": "Condo",
+      "townhouse": "Townhouse",
+      "land": "Land",
+      "commercial": "Commercial",
+      "industrial": "Industrial",
+      "vacation": "Vacation home",
       "other": "Other"
     },
     "depreciationPresets": {

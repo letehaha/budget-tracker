@@ -48,6 +48,12 @@ const routes: RouteRecordRaw[] = [
         meta: { i18nChunks: ['pages/accounts', 'pages/account', 'pages/transactions'] as I18nChunkName[] },
       },
       {
+        path: '/accounts/properties/:id',
+        name: ROUTES_NAMES.accountsPropertyDetails,
+        component: () => import('@/pages/accounts/property-details.vue'),
+        meta: { i18nChunks: ['pages/accounts', 'pages/account', 'pages/transactions'] as I18nChunkName[] },
+      },
+      {
         path: '/accounts/integrations',
         redirect: { name: ROUTES_NAMES.accounts },
       },
