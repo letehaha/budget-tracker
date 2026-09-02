@@ -50,6 +50,7 @@ export const BACKUP_FILE_NAMES = [
   'portfolios',
   'venture-deals',
   'vehicles',
+  'properties',
   'loan-details',
   'transaction-groups',
   'budgets',

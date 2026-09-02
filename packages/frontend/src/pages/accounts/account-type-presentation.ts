@@ -6,6 +6,7 @@ import {
   CreditCardIcon,
   GiftIcon,
   HandCoinsIcon,
+  HomeIcon,
   LandmarkIcon,
   PiggyBankIcon,
   ShieldIcon,
@@ -32,6 +33,7 @@ const ACCOUNT_CATEGORY_ICONS: Record<ACCOUNT_CATEGORIES, Component> = {
   [ACCOUNT_CATEGORIES.investment]: TrendingUpIcon,
   [ACCOUNT_CATEGORIES.crypto]: BitcoinIcon,
   [ACCOUNT_CATEGORIES.vehicle]: CarIcon,
+  [ACCOUNT_CATEGORIES.property]: HomeIcon,
   [ACCOUNT_CATEGORIES.loan]: HandCoinsIcon,
 };
 
@@ -51,6 +53,7 @@ const ACCOUNT_CATEGORY_TINTED_CHIP_CLASSES: Record<ACCOUNT_CATEGORIES, string> =
   [ACCOUNT_CATEGORIES.investment]: 'bg-account-investment/15 text-account-investment',
   [ACCOUNT_CATEGORIES.crypto]: 'bg-account-crypto/15 text-account-crypto',
   [ACCOUNT_CATEGORIES.vehicle]: 'bg-account-vehicle/15 text-account-vehicle',
+  [ACCOUNT_CATEGORIES.property]: 'bg-account-property/15 text-account-property',
   [ACCOUNT_CATEGORIES.loan]: 'bg-account-checking/15 text-account-checking',
 };
 

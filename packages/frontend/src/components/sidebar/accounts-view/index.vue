@@ -26,6 +26,7 @@ import {
   CarIcon,
   ChevronsUpDownIcon,
   HandCoinsIcon,
+  HomeIcon,
   LayersIcon,
   PlusIcon,
   RocketIcon,
@@ -81,13 +82,17 @@ const accountsInGroups = computed(() => {
 
   return flattenAccounts(accountGroups.value ?? []);
 });
-// Vehicle and loan accounts get their own "Cars" and "Loans" sections, so keep
-// them out of the Bank Accounts list.
+// Vehicle, property and loan accounts get their own "Cars", "Properties" and
+// "Loans" sections, so keep them out of the Bank Accounts list.
 const isVehicleAccount = (account: AccountModel) => account.accountCategory === ACCOUNT_CATEGORIES.vehicle;
+const isPropertyAccount = (account: AccountModel) => account.accountCategory === ACCOUNT_CATEGORIES.property;
 const isLoanAccount = (account: AccountModel) => account.accountCategory === ACCOUNT_CATEGORIES.loan;
 const vehicleAccounts = computed(() => activeAccounts.value.filter(isVehicleAccount));
+const propertyAccounts = computed(() => activeAccounts.value.filter(isPropertyAccount));
 const accountsWithoutGroups = computed(() =>
-  activeAccounts.value.filter((i) => !accountsInGroups.value[i.id] && !isVehicleAccount(i) && !isLoanAccount(i)),
+  activeAccounts.value.filter(
+    (i) => !accountsInGroups.value[i.id] && !isVehicleAccount(i) && !isPropertyAccount(i) && !isLoanAccount(i),
+  ),
 );
 
 const isPopoverOpen = ref(false);
@@ -97,6 +102,7 @@ const isBankAccountsOpen = useLocalStorage('sidebar:accounts-bank-open', true);
 const isPortfoliosOpen = useLocalStorage('sidebar:accounts-portfolios-open', true);
 const isVenturesOpen = useLocalStorage('sidebar:accounts-ventures-open', true);
 const isCarsOpen = useLocalStorage('sidebar:accounts-cars-open', true);
+const isPropertiesOpen = useLocalStorage('sidebar:accounts-properties-open', true);
 const isLoansOpen = useLocalStorage('sidebar:accounts-loans-open', true);
 
 const { baseCurrencyCode, sumBaseBalance } = useBaseBalanceTotals();
@@ -145,6 +151,10 @@ const venturesCount = computed(() => (ventureDeals.value?.data ?? []).length);
 const carsTotal = computed(() => sumBaseBalance({ accounts: vehicleAccounts.value }));
 const carsCount = computed(() => vehicleAccounts.value.length);
 
+// Properties total = property accounts in base currency.
+const propertiesTotal = computed(() => sumBaseBalance({ accounts: propertyAccounts.value }));
+const propertiesCount = computed(() => propertyAccounts.value.length);
+
 const { data: loans } = useLoans();
 const activeLoans = computed(() => partitionLoans({ loans: loans.value ?? [] }).active);
 const loansCount = computed(() => activeLoans.value.length);
@@ -155,23 +165,27 @@ const { sidebarSections } = useSidebarSections();
 const showPortfolios = computed(() => sidebarSections.value.portfolios);
 const showVentures = computed(() => sidebarSections.value.ventures);
 const showVehicles = computed(() => sidebarSections.value.vehicles);
+const showProperties = computed(() => sidebarSections.value.properties);
 const showLoans = computed(() => sidebarSections.value.loans);
 
 const venturesVisible = computed(() => showVentures.value && venturesCount.value > 0);
 const carsVisible = computed(() => showVehicles.value && carsCount.value > 0);
+const propertiesVisible = computed(() => showProperties.value && propertiesCount.value > 0);
 const loansVisible = computed(() => showLoans.value && loansCount.value > 0);
 
-type SidebarSection = 'bank' | 'portfolios' | 'ventures' | 'cars' | 'loans';
+type SidebarSection = 'bank' | 'portfolios' | 'ventures' | 'cars' | 'properties' | 'loans';
 
 // Ordered, top-to-bottom section list. `orderedVisibleSections` drops the ones hidden by user
-// prefs or emptiness (zero-count ventures/cars/loans auto-hide); `computeStickyOffsets` turns
-// that order into per-section stacked sticky-header offsets. Bank is always first and rendered
-// with a plain `top-0` and no bottom, so its computed entry is only used to count sections above.
+// prefs or emptiness (zero-count ventures/cars/properties/loans auto-hide); `computeStickyOffsets`
+// turns that order into per-section stacked sticky-header offsets. Bank is always first and
+// rendered with a plain `top-0` and no bottom, so its computed entry is only used to count
+// sections above.
 const SIDEBAR_SECTIONS = [
   'bank',
   'portfolios',
   'ventures',
   'cars',
+  'properties',
   'loans',
 ] as const satisfies readonly SidebarSection[];
 
@@ -182,6 +196,7 @@ const orderedVisibleSections = computed<SidebarSection[]>(() =>
       { key: 'portfolios', visible: showPortfolios.value },
       { key: 'ventures', visible: venturesVisible.value },
       { key: 'cars', visible: carsVisible.value },
+      { key: 'properties', visible: propertiesVisible.value },
       { key: 'loans', visible: loansVisible.value },
     ] as const
   )
@@ -375,6 +390,26 @@ const onSectionExpand = async ({ headerEl, wrapperEl }: { headerEl?: HTMLElement
             />
           </template>
           <AccountsList :accounts="vehicleAccounts" />
+        </SidebarCollapsibleSection>
+
+        <SidebarCollapsibleSection
+          v-if="propertiesVisible"
+          v-model:open="isPropertiesOpen"
+          :icon="HomeIcon"
+          :label="$t('sidebar.accountsView.properties')"
+          :top-class="stickyOffsets.properties.top"
+          :bottom-class="stickyOffsets.properties.bottom"
+          @expand="onSectionExpand"
+        >
+          <template v-if="baseCurrencyCode" #trailing>
+            <GroupTotal
+              :amount="propertiesTotal.total"
+              :currency-code="baseCurrencyCode"
+              :is-approx="propertiesTotal.isApprox"
+              emphasis
+            />
+          </template>
+          <AccountsList :accounts="propertyAccounts" />
         </SidebarCollapsibleSection>
 
         <SidebarCollapsibleSection

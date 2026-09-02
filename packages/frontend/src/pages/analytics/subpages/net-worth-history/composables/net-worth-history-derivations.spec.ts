@@ -32,6 +32,7 @@ const buildPoint = ({
   assets = 0,
   investments = 0,
   vehicles = 0,
+  properties = 0,
   ventures = 0,
   creditCard = 0,
   loan = 0,
@@ -41,13 +42,14 @@ const buildPoint = ({
   assets?: number;
   investments?: number;
   vehicles?: number;
+  properties?: number;
   ventures?: number;
   creditCard?: number;
   loan?: number;
   overdraft?: number;
 }): endpointsTypes.NetWorthHistoryPoint => {
-  const assetsByKind = { cash: assets, investments, vehicles, ventures };
-  const assetsTotal = assets + investments + vehicles + ventures;
+  const assetsByKind = { cash: assets, investments, vehicles, properties, ventures };
+  const assetsTotal = assets + investments + vehicles + properties + ventures;
   const liabilitiesTotal = creditCard + loan + overdraft;
   return {
     date,

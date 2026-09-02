@@ -18,6 +18,7 @@ export const NET_WORTH_ASSET_KIND_COLORS: Record<endpointsTypes.NetWorthAssetKin
   cash: 'rgb(16, 185, 129)', // emerald
   investments: 'rgb(59, 130, 246)', // blue
   vehicles: 'rgb(245, 158, 11)', // amber
+  properties: 'rgb(217, 119, 6)', // deeper amber
   ventures: 'rgb(168, 85, 247)', // purple
 };
 
@@ -26,6 +27,7 @@ export const NET_WORTH_ASSET_KIND_LABEL_KEYS: Record<endpointsTypes.NetWorthAsse
   cash: 'netWorthHistory.assetKinds.cash',
   investments: 'netWorthHistory.assetKinds.investments',
   vehicles: 'netWorthHistory.assetKinds.vehicles',
+  properties: 'netWorthHistory.assetKinds.properties',
   ventures: 'netWorthHistory.assetKinds.ventures',
 };
 
