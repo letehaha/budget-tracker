@@ -1,6 +1,6 @@
 import type { SidebarSectionsConfig } from '@/api/user-settings';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
-import { CarIcon, HandCoinsIcon, RocketIcon, TrendingUpIcon } from '@lucide/vue';
+import { CarIcon, HandCoinsIcon, HomeIcon, RocketIcon, TrendingUpIcon } from '@lucide/vue';
 import { type Component, computed } from 'vue';
 
 type SidebarSectionKey = keyof SidebarSectionsConfig;
@@ -22,6 +22,7 @@ const SIDEBAR_SECTION_META: Record<SidebarSectionKey, { labelKey: string; icon: 
   portfolios: { labelKey: 'sidebar.accountsView.portfolios', icon: TrendingUpIcon },
   ventures: { labelKey: 'sidebar.accountsView.ventures', icon: RocketIcon },
   vehicles: { labelKey: 'sidebar.accountsView.cars', icon: CarIcon },
+  properties: { labelKey: 'sidebar.accountsView.properties', icon: HomeIcon },
   loans: { labelKey: 'sidebar.accountsView.loans', icon: HandCoinsIcon },
 };
 
@@ -43,6 +44,7 @@ export const useSidebarSections = () => {
     portfolios: userSettings.value?.sidebarSections?.portfolios ?? true,
     ventures: userSettings.value?.sidebarSections?.ventures ?? true,
     vehicles: userSettings.value?.sidebarSections?.vehicles ?? true,
+    properties: userSettings.value?.sidebarSections?.properties ?? true,
     loans: userSettings.value?.sidebarSections?.loans ?? true,
   }));
 

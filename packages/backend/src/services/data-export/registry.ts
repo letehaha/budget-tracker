@@ -8,6 +8,7 @@ import { transformHoldings } from './transformers/holdings-transformer';
 import { transformInvestmentTransactions } from './transformers/investment-transactions-transformer';
 import { transformPortfolioTransfers } from './transformers/portfolio-transfers-transformer';
 import { transformPortfolios } from './transformers/portfolios-transformer';
+import { transformProperties } from './transformers/properties-transformer';
 import { transformSubscriptions } from './transformers/subscriptions-transformer';
 import { transformTags } from './transformers/tags-transformer';
 import { transformTransactionTemplates } from './transformers/transaction-templates-transformer';
@@ -187,6 +188,24 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
       { header: 'Currency', field: 'currency', kind: 'text' },
       { header: 'CurrentMileage', field: 'currentMileage', kind: 'number' },
       { header: 'DepreciationModel', field: 'depreciationModel', kind: 'text' },
+    ],
+  }),
+  defineDomain({
+    name: 'properties',
+    group: 'transactions',
+    build: ({ userId }) => transformProperties({ userId }),
+    columns: [
+      { header: 'Address', field: 'address', kind: 'text' },
+      { header: 'PropertyType', field: 'propertyType', kind: 'text' },
+      { header: 'City', field: 'city', kind: 'text' },
+      { header: 'Country', field: 'country', kind: 'text' },
+      { header: 'YearBuilt', field: 'yearBuilt', kind: 'number' },
+      { header: 'LinkedAccount', field: 'linkedAccount', kind: 'text' },
+      { header: 'PurchasePrice', field: 'purchasePrice', kind: 'money' },
+      { header: 'PurchaseDate', field: 'purchaseDate', kind: 'text' },
+      { header: 'Currency', field: 'currency', kind: 'text' },
+      { header: 'AnnualAppreciationRatePct', field: 'annualAppreciationRatePct', kind: 'number' },
+      { header: 'LinkedMortgage', field: 'linkedMortgage', kind: 'text' },
     ],
   }),
   defineDomain({

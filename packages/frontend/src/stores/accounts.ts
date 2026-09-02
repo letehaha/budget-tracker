@@ -61,13 +61,16 @@ export const useAccountsStore = defineStore('accounts', () => {
     ...systemAccounts.value.filter((item) => item.status === ACCOUNT_STATUSES.archived),
   ]);
 
-  // Vehicle accounts are assets whose balance is owned by the depreciation model
-  // and the override flow — the backend rejects any income/expense/transfer
+  // Vehicle and property accounts are assets whose balance is owned by a valuation
+  // model and the override flow — the backend rejects any income/expense/transfer
   // targeting them (only `transfer_out_wallet` overrides are allowed). Exclude
   // them from transaction/transfer account pickers so users never select an
-  // account that would 422 on submit. Their value is edited from the vehicle page.
+  // account that would 422 on submit. Their value is edited from their own page.
   const txTargetableAccountsActiveFirst = computed(() =>
-    systemAccountsActiveFirst.value.filter((item) => item.accountCategory !== ACCOUNT_CATEGORIES.vehicle),
+    systemAccountsActiveFirst.value.filter(
+      (item) =>
+        item.accountCategory !== ACCOUNT_CATEGORIES.vehicle && item.accountCategory !== ACCOUNT_CATEGORIES.property,
+    ),
   );
 
   // Loans are liabilities — money only flows in via transfer_to_loan, never out.
@@ -79,7 +82,7 @@ export const useAccountsStore = defineStore('accounts', () => {
     ),
   );
 
-  // Loan and vehicle balances are replayed from their transactions, which would count a plan
+  // Dedicated-flow balances are replayed from their transactions, which would count a plan
   // as money that already moved. Plans are owner-only: the backend rejects one on an account
   // shared with the user.
   const plannedTargetableAccountsActiveFirst = computed(() => {
@@ -93,10 +96,10 @@ export const useAccountsStore = defineStore('accounts', () => {
     ];
   });
 
-  // Vehicle and loan balances are derived (depreciation model / loan anchor), so
-  // data imports must never link imported rows to them or shift their balance.
+  // Dedicated-flow balances are derived (valuation curve / loan anchor), so data
+  // imports must never link imported rows to them or shift their balance.
   // Import wizards offer only the remaining accounts as link targets; the backend
-  // rejects a vehicle/loan link target as well.
+  // rejects a dedicated-flow link target as well.
   const importLinkableAccounts = computed(() =>
     (accounts.value ?? []).filter((item) => !isDedicatedFlowAccountCategory(item.accountCategory)),
   );

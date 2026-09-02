@@ -26,6 +26,7 @@ export const EXPORT_FILE_NAMES = [
   'categories',
   'tags',
   'vehicles',
+  'properties',
   'budgets',
   'subscriptions',
   'transaction_templates',

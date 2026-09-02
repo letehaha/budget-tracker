@@ -2,16 +2,13 @@ import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
-import ExchangeRates from '@models/exchange-rates.model';
 import { findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
-import UserExchangeRates from '@models/user-exchange-rates.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import Vehicles from '@models/vehicles.model';
-import { API_LAYER_BASE_CURRENCY_CODE } from '@services/exchange-rates/constants';
-import { buildUsdRateLookup } from '@services/stats/build-usd-rate-lookup';
+import { buildBaseConversionRateLookup } from '@services/stats/build-base-conversion-rate-lookup';
 import { computeVehicleValue } from '@services/vehicles/compute-vehicle-value';
-import { endOfDay, format, parseISO, startOfDay, subDays } from 'date-fns';
+import { endOfDay, format, parseISO } from 'date-fns';
 import { Op } from 'sequelize';
 
 const formatDate = (date: Date | string): string => format(date, 'yyyy-MM-dd');
@@ -175,92 +172,14 @@ export const calculateVehiclesBalanceHistory = async ({
   });
 
   const minRangeDate = uniqueDates[0] ?? maxDate;
-  const dataFetchMinDate = format(subDays(parseISO(minRangeDate), 7), 'yyyy-MM-dd');
 
-  const vehicleCurrencyCodes = [...new Set(vehicleComputes.map((v) => v.accountCurrencyCode))];
-  const usdRateQuoteCodes = [...new Set([userBaseCurrency.currencyCode, ...vehicleCurrencyCodes])].filter(
-    (code) => code !== API_LAYER_BASE_CURRENCY_CODE,
-  );
-
-  type ExchangeRateRow = Pick<UserExchangeRates, 'baseCode' | 'quoteCode' | 'date' | 'rate'>;
-
-  const [userCustomExchangeRates, systemExchangeRates] = await Promise.all([
-    UserExchangeRates.findAll({
-      where: {
-        userId,
-        baseCode: { [Op.in]: vehicleCurrencyCodes },
-        quoteCode: userBaseCurrency.currencyCode,
-        date: { [Op.between]: [dataFetchMinDate, maxDate] },
-      },
-      attributes: ['baseCode', 'quoteCode', 'date', 'rate'],
-      raw: true,
-    }) as Promise<ExchangeRateRow[]>,
-    ExchangeRates.findAll({
-      where: {
-        baseCode: API_LAYER_BASE_CURRENCY_CODE,
-        quoteCode: { [Op.in]: usdRateQuoteCodes },
-        date: {
-          [Op.between]: [startOfDay(parseISO(dataFetchMinDate)), endOfDay(parseISO(maxDate))],
-        },
-      },
-      order: [
-        ['quoteCode', 'ASC'],
-        ['date', 'ASC'],
-      ],
-      raw: true,
-    }),
-  ]);
-
-  const userRatesMap = new Map<string, number>();
-  for (const r of userCustomExchangeRates) {
-    userRatesMap.set(`${r.baseCode}_${formatDate(r.date)}`, r.rate);
-  }
-
-  const { usdRatesMap, usdRateDatesByQuote } = await buildUsdRateLookup({
-    systemRates: systemExchangeRates,
-    quoteCodes: usdRateQuoteCodes,
-    windowStart: dataFetchMinDate,
+  const { getExchangeRate, missingRateCurrencies } = await buildBaseConversionRateLookup({
+    userId,
+    currencyCodes: vehicleComputes.map((v) => v.accountCurrencyCode),
+    baseCurrencyCode: userBaseCurrency.currencyCode,
+    minDate: minRangeDate,
+    maxDate,
   });
-
-  const missingRateCurrencies = new Set<string>();
-
-  const findLatestUsdRate = (quoteCode: string, dateStr: string): number | null => {
-    if (quoteCode === API_LAYER_BASE_CURRENCY_CODE) return 1;
-    const exact = usdRatesMap.get(`${quoteCode}_${dateStr}`);
-    if (exact !== undefined) return exact;
-
-    const dates = usdRateDatesByQuote.get(quoteCode);
-    if (!dates || dates.length === 0) return null;
-
-    let candidate: number | null = null;
-    for (const d of dates) {
-      if (d <= dateStr) candidate = usdRatesMap.get(`${quoteCode}_${d}`) ?? candidate;
-      else break;
-    }
-    return candidate;
-  };
-
-  const getExchangeRate = (currencyCode: string, dateStr: string): number => {
-    if (currencyCode === userBaseCurrency.currencyCode) return 1;
-
-    const userOverride = userRatesMap.get(`${currencyCode}_${dateStr}`);
-    if (userOverride !== undefined) return userOverride;
-
-    const usdToCurrency = findLatestUsdRate(currencyCode, dateStr);
-    const usdToBase = findLatestUsdRate(userBaseCurrency.currencyCode, dateStr);
-
-    if (usdToCurrency == null || usdToBase == null) {
-      missingRateCurrencies.add(currencyCode);
-      return 1;
-    }
-    if (usdToCurrency === 0) {
-      logger.error(`Stored exchange rate is zero for USD->${currencyCode} on ${dateStr}; treating as missing.`);
-      missingRateCurrencies.add(currencyCode);
-      return 1;
-    }
-
-    return usdToBase / usdToCurrency;
-  };
 
   const vehicleValuesByDate = new Map<string, number>();
   for (const dateStr of uniqueDates) {
