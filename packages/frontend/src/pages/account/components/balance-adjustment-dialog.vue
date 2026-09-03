@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { overrideVehicleValue } from '@/api/vehicles';
+import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import { InputField } from '@/components/fields';
@@ -13,13 +15,23 @@ import * as validators from '@/js/helpers/validators';
 import { captureException } from '@/lib/sentry';
 import { cn } from '@/lib/utils';
 import { ACCOUNT_CATEGORIES, AccountModel } from '@bt/shared/types';
+import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{ account: AccountModel }>();
+/**
+ * `vehicleId` is required when `account` is a vehicle-category account — the
+ * vehicle's own id (not the account id) is what `POST /vehicles/:id/value`
+ * addresses. Callers on non-vehicle accounts omit it.
+ */
+const props = defineProps<{ account: AccountModel; vehicleId?: string }>();
 const emit = defineEmits<{ close: [] }>();
 
-const { mutateAsync: adjustBalance, isPending } = useAdjustAccountBalance();
+const queryClient = useQueryClient();
+const { mutateAsync: adjustBalance, isPending: isAdjustPending } = useAdjustAccountBalance();
+const { mutateAsync: overrideVehicle, isPending: isOverridePending } = useMutation({
+  mutationFn: overrideVehicleValue,
+});
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const { hasCreditLimitAdjustment, displayBalance } = useAccountDisplayBalance({
   account: toRef(() => props.account),
@@ -27,6 +39,7 @@ const { hasCreditLimitAdjustment, displayBalance } = useAccountDisplayBalance({
 const { t, te } = useI18n();
 
 const isVehicle = computed(() => props.account.accountCategory === ACCOUNT_CATEGORIES.vehicle);
+const isPending = computed(() => (isVehicle.value ? isOverridePending.value : isAdjustPending.value));
 
 /**
  * Look up a copy key, preferring the vehicle-override namespace when the
@@ -106,12 +119,28 @@ const submit = async () => {
   if (!isFormValid('form') || !isValid.value || computedTarget.value === null) return;
 
   try {
-    await adjustBalance({
-      id: props.account.id,
-      targetBalance: computedTarget.value,
-      note: form.value.note || undefined,
-      time: form.value.time,
-    });
+    if (isVehicle.value && props.vehicleId) {
+      await overrideVehicle({
+        id: props.vehicleId,
+        targetValue: computedTarget.value,
+        note: form.value.note || undefined,
+        time: form.value.time,
+      });
+      // Vehicle cache keys are prefixed with `transactionChange`, so this
+      // predicate invalidation covers vehiclesList / vehicleDetail /
+      // vehicleOverrideHistory too — useAdjustAccountBalance does the same for
+      // the generic path, but that composable isn't invoked here.
+      queryClient.invalidateQueries({
+        predicate: (query) => (query.queryKey as string[]).includes(VUE_QUERY_GLOBAL_PREFIXES.transactionChange),
+      });
+    } else {
+      await adjustBalance({
+        id: props.account.id,
+        targetBalance: computedTarget.value,
+        note: form.value.note || undefined,
+        time: form.value.time,
+      });
+    }
     addSuccessNotification(label('successNotification'));
     isOpen.value = false;
   } catch (error) {

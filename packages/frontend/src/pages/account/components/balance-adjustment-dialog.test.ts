@@ -1,20 +1,26 @@
 import formsEn from '@/i18n/locales/chunks/en/forms.json';
 import accountEn from '@/i18n/locales/chunks/en/pages/account.json';
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { type VueWrapper, flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 
 import BalanceAdjustmentDialog from './balance-adjustment-dialog.vue';
 
-/* ────────────────────────────── Hoisted mocks ────────────────────────── */
+/* ──────────────────────── Hoisted mocks ────────────────── */
 
-const { mockMutateAsync, mockAddSuccess, mockAddError } = vi.hoisted(() => ({
+const { mockMutateAsync, mockOverrideVehicleValue, mockAddSuccess, mockAddError } = vi.hoisted(() => ({
   mockMutateAsync: vi.fn(),
+  mockOverrideVehicleValue: vi.fn(),
   mockAddSuccess: vi.fn(),
   mockAddError: vi.fn(),
 }));
 
-/* ────────────────────────────── Module mocks ─────────────────────────── */
+/* ──────────────────────── Module mocks ─────────────────── */
+
+vi.mock('@/api/vehicles', () => ({
+  overrideVehicleValue: mockOverrideVehicleValue,
+}));
 
 vi.mock('@/composable/use-account-display-balance', async () => {
   const { computed } = await import('vue');
@@ -102,16 +108,35 @@ const ACCOUNT = {
   type: 'system',
 };
 
+const VEHICLE_ACCOUNT = {
+  id: 99,
+  name: 'Test Vehicle',
+  currentBalance: 20000,
+  currencyCode: 'USD',
+  type: 'system',
+  accountCategory: 'vehicle',
+};
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const mountDialog = (overrides: Record<string, unknown> = {}) =>
+const mountDialog = (overrides: Record<string, unknown> = {}, props: Record<string, unknown> = {}) =>
   mount(BalanceAdjustmentDialog, {
-    props: { account: { ...ACCOUNT, ...overrides } as any },
-    global: { plugins: [i18n] },
+    props: { account: { ...ACCOUNT, ...overrides } as any, ...props },
+    global: {
+      plugins: [
+        i18n,
+        [VueQueryPlugin, { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }) }],
+      ],
+    },
   });
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 const confirmBtn = (w: VueWrapper) =>
   w.findAll('button').find((b) => b.text().trim() === t('pages.account.balanceAdjustmentDialog.confirm'))!;
+
+// A vehicle account swaps the whole dialog's copy for `pages.vehicleDetails.valueOverrideDialog`
+// (see `label()` in the component), so its confirm button reads "Save value", not "Confirm".
+const vehicleConfirmBtn = (w: VueWrapper) =>
+  w.findAll('button').find((b) => b.text().trim() === t('pages.vehicleDetails.valueOverrideDialog.confirm'))!;
 
 const amountInput = (w: VueWrapper) => w.find('input[type="number"]');
 
@@ -121,6 +146,13 @@ const enterAmountAndSubmit = async (w: VueWrapper, amount: number | string) => {
   await amountInput(w).setValue(String(amount));
   await nextTick();
   await confirmBtn(w).trigger('click');
+  await flushPromises();
+};
+
+const enterAmountAndSubmitVehicle = async (w: VueWrapper, amount: number | string) => {
+  await amountInput(w).setValue(String(amount));
+  await nextTick();
+  await vehicleConfirmBtn(w).trigger('click');
   await flushPromises();
 };
 
@@ -141,6 +173,12 @@ describe('BalanceAdjustmentDialog', () => {
       transaction: { id: 1 },
       previousBalance: 1000,
       newBalance: 1500,
+    });
+    mockOverrideVehicleValue.mockResolvedValue({
+      vehicle: { id: 7 },
+      transaction: { id: 2 },
+      previousBalance: 20000,
+      newBalance: 25000,
     });
   });
 
@@ -317,6 +355,41 @@ describe('BalanceAdjustmentDialog', () => {
       // Amount cleared, confirm disabled again
       expect((amountInput(w).element as HTMLInputElement).value).toBe('');
       expect(confirmBtn(w).attributes('disabled')).toBeDefined();
+    });
+  });
+
+  describe('vehicle override', () => {
+    // Regression test: a vehicle account must never go through the generic
+    // POST /accounts/:id/balance-adjustment path — the backend rejects it with
+    // 422 (`balanceAdjustment.vehicleUseOverride`), because only the dedicated
+    // POST /vehicles/:id/value endpoint keeps `Vehicle.valueAnchor` in sync.
+    it('calls overrideVehicleValue with the vehicle id, not the generic balance-adjustment mutation', async () => {
+      const w = mountDialog(VEHICLE_ACCOUNT, { vehicleId: '7' });
+      await enterAmountAndSubmitVehicle(w, 25000);
+
+      expect(mockOverrideVehicleValue).toHaveBeenCalledWith(
+        expect.objectContaining({ id: '7', targetValue: 25000, note: undefined }),
+        expect.anything(),
+      );
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+    });
+
+    it('shows success notification and closes on successful override', async () => {
+      const w = mountDialog(VEHICLE_ACCOUNT, { vehicleId: '7' });
+      await enterAmountAndSubmitVehicle(w, 25000);
+
+      expect(mockAddSuccess).toHaveBeenCalledWith(t('pages.vehicleDetails.valueOverrideDialog.successNotification'));
+      expect(w.emitted('close')).toHaveLength(1);
+    });
+
+    it('shows error notification when the override mutation rejects', async () => {
+      mockOverrideVehicleValue.mockRejectedValueOnce(new Error('Server error'));
+
+      const w = mountDialog(VEHICLE_ACCOUNT, { vehicleId: '7' });
+      await enterAmountAndSubmitVehicle(w, 25000);
+
+      expect(mockAddError).toHaveBeenCalledWith(t('pages.vehicleDetails.valueOverrideDialog.errorNotification'));
+      expect(w.emitted('close')).toBeUndefined();
     });
   });
 });
