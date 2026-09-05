@@ -224,6 +224,7 @@
       <BalanceAdjustmentDialog
         v-if="isOverrideOpen && vehicle.account"
         :account="vehicle.account"
+        :vehicle-id="vehicle.id"
         @close="onOverrideClosed"
       />
 

@@ -1,5 +1,5 @@
 import { api } from '@/api/_api';
-import type { AccountModel, DEPRECIATION_PRESET, RecordId, VEHICLE_CLASS } from '@bt/shared/types';
+import type { AccountModel, DEPRECIATION_PRESET, RecordId, TransactionModel, VEHICLE_CLASS } from '@bt/shared/types';
 
 export interface VehicleModel {
   id: RecordId;
@@ -80,3 +80,25 @@ export const updateVehicle = async ({
 export const deleteVehicle = async ({ id }: { id: string }) => {
   return api.delete(`/vehicles/${id}`);
 };
+
+/**
+ * Manual override. This is the ONLY sanctioned way to move a vehicle account's
+ * balance — the generic `POST /accounts/:id/balance-adjustment` path is rejected
+ * server-side because it would leave `valueAnchor` stale.
+ */
+export const overrideVehicleValue = async ({
+  id,
+  targetValue,
+  note,
+  time,
+}: {
+  id: string;
+  targetValue: number;
+  note?: string;
+  time?: Date;
+}): Promise<{
+  vehicle: VehicleModel | null;
+  transaction: TransactionModel | null;
+  previousBalance: number;
+  newBalance: number;
+}> => api.post(`/vehicles/${id}/value`, { targetValue, note, time });
