@@ -35,7 +35,7 @@
   },
   "authentication": {
     "oauth2": {
-      "authorizationServer": "https://mcp.moneymatter.app",
+      "authorizationServer": "https://api.moneymatter.app/api/v1/auth",
       "metadata": "https://moneymatter.app/.well-known/oauth-authorization-server",
       "protectedResourceMetadata": "https://moneymatter.app/.well-known/oauth-protected-resource",
       "scopes": ["finance:read", "finance:write", "finance:delete", "profile:read", "offline_access"]

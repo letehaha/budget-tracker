@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
 
-import { API_PREFIX, MCP_BASE_URL } from '../config';
+import { API_PREFIX, BETTER_AUTH_BASE_URL, MCP_BASE_URL } from '../config';
 
 const MCP_SCOPES_SUPPORTED = ['finance:read', 'finance:write', 'finance:delete', 'profile:read', 'offline_access'];
 
@@ -19,16 +19,10 @@ const MCP_SCOPES_SUPPORTED = ['finance:read', 'finance:write', 'finance:delete',
  * block in self-hosting/frontend/docker-entrypoint.sh).
  */
 export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
-  // The authorization server's issuer identifier. better-auth derives its issuer
-  // from baseURL + basePath (basePath is `${API_PREFIX}/auth`) and stamps it as
-  // the RFC 9207 `iss` on every authorization response, so the discovery
-  // documents MUST advertise this exact string — an issuer of bare MCP_BASE_URL
-  // makes RFC 9207-validating clients (e.g. the MCP SDK used by Claude Code)
-  // reject the callback with an issuer mismatch.
-  const issuer = `${MCP_BASE_URL}${API_PREFIX}/auth`;
-  // The path component of `issuer`, e.g. `/api/v1/auth` — where RFC 8414 3.1
-  // says this AS's metadata lives (well-known segment inserted after the host).
-  const issuerPath = `${API_PREFIX}/auth`;
+  // better-auth stamps `${BETTER_AUTH_URL}${API_PREFIX}/auth` as the RFC 9207 `iss` on
+  // authorization responses; clients abort on a mismatch, so discovery must advertise
+  // that exact string (MCP_BASE_URL can be a different host in split-domain deployments).
+  const issuer = `${BETTER_AUTH_BASE_URL}${API_PREFIX}/auth`;
 
   // OAuth Protected Resource Metadata (RFC 9728)
   // MCP clients discover the authorization server via this endpoint.
@@ -65,10 +59,9 @@ export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
     });
   };
 
-  // RFC 8414 3.1 path-aware form for an issuer with a path: a client that takes
-  // `authorization_servers[0]` and inserts the well-known segment after the host
-  // requests `/.well-known/oauth-authorization-server${issuerPath}`.
-  app.get(`/.well-known/oauth-authorization-server${issuerPath}`, asMetadataHandler);
+  // RFC 8414 3.1 form for an issuer with a path: the well-known segment is inserted
+  // after the host, so the issuer's path follows it.
+  app.get(`/.well-known/oauth-authorization-server${API_PREFIX}/auth`, asMetadataHandler);
   // `/mcp` and root forms kept for clients (incl. Claude.ai) that request them.
   app.get('/.well-known/oauth-authorization-server/mcp', asMetadataHandler);
   app.get('/.well-known/oauth-authorization-server', asMetadataHandler);

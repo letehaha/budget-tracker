@@ -1,6 +1,7 @@
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
 import { afterEach, describe, expect, it } from '@jest/globals';
 import { app } from '@root/app';
+import { API_PREFIX, BETTER_AUTH_BASE_URL } from '@root/config';
 import { CustomResponse } from '@tests/helpers';
 import * as mcpHelpers from '@tests/helpers/mcp';
 import request from 'supertest';
@@ -155,12 +156,16 @@ describe('GET /auth/oauth2/client-info', () => {
 
 describe('OAuth Discovery Endpoints', () => {
   it('returns valid OAuth authorization server metadata from both the root and path-aware forms', async () => {
-    for (const url of ['/.well-known/oauth-authorization-server', '/.well-known/oauth-authorization-server/mcp']) {
+    for (const url of [
+      '/.well-known/oauth-authorization-server',
+      '/.well-known/oauth-authorization-server/mcp',
+      `/.well-known/oauth-authorization-server${API_PREFIX}/auth`,
+    ]) {
       const res = await request(app).get(url);
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
-        issuer: expect.any(String),
+        issuer: `${BETTER_AUTH_BASE_URL}${API_PREFIX}/auth`,
         authorization_endpoint: expect.stringContaining('/oauth2/authorize'),
         token_endpoint: expect.stringContaining('/oauth2/token'),
         registration_endpoint: expect.stringContaining('/oauth2/register'),
@@ -173,6 +178,7 @@ describe('OAuth Discovery Endpoints', () => {
       expect(res.body.token_endpoint_auth_methods_supported).toEqual(
         expect.arrayContaining(['client_secret_basic', 'none']),
       );
+      expect(res.body.authorization_endpoint).toBe(`${res.body.issuer}/oauth2/authorize`);
     }
   });
 
@@ -187,7 +193,7 @@ describe('OAuth Discovery Endpoints', () => {
         scopes_supported: expect.arrayContaining(['finance:read', 'profile:read', 'offline_access']),
         bearer_methods_supported: ['header'],
       });
-      expect(res.body.authorization_servers).toHaveLength(1);
+      expect(res.body.authorization_servers).toEqual([`${BETTER_AUTH_BASE_URL}${API_PREFIX}/auth`]);
     }
   });
 });
