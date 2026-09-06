@@ -250,7 +250,8 @@
         "summarySelected": "{count} selected · {amount}",
         "summaryOfLimit": "{count} selected · {amount} of {limit}",
         "summaryExceedsBy": "{count} selected · {amount} — exceeds the original by {excess}",
-        "summaryExceeds": "{count} selected · {amount} — exceeds the original amount"
+        "summaryExceeds": "{count} selected · {amount} — exceeds the original amount",
+        "summaryBelowRefund": "{amount} — smaller than this refund of {limit}"
       },
       "refundInfo": {
         "trigger": "How it works?",

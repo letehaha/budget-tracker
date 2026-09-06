@@ -48,6 +48,48 @@ describe('computeRefundLinkTotals', () => {
     expect(result.isExactComparison).toBe(true);
   });
 
+  it('in refunds mode, a partial refund of a larger original is within limit', () => {
+    const base = { currentAmount: 50, currentCurrencyCode: 'USD', ratesMap, baseCurrencyCode: 'USD' };
+
+    const partial = computeRefundLinkTotals({
+      ...base,
+      mode: 'refunds',
+      transactions: [{ amount: 100, currencyCode: 'USD' }],
+    });
+    expect(partial.isOverLimit).toBe(false);
+
+    const tooSmall = computeRefundLinkTotals({
+      ...base,
+      mode: 'refunds',
+      transactions: [{ amount: 30, currencyCode: 'USD' }],
+    });
+    expect(tooSmall.isOverLimit).toBe(true);
+
+    const exact = computeRefundLinkTotals({
+      ...base,
+      mode: 'refunds',
+      transactions: [{ amount: 50, currencyCode: 'USD' }],
+    });
+    expect(exact.isOverLimit).toBe(false);
+  });
+
+  it('in refunds mode, compares a cross-currency original through the base currency', () => {
+    const base = {
+      mode: 'refunds' as const,
+      currentAmount: 50,
+      currentCurrencyCode: 'USD',
+      ratesMap: { ...ratesMap, USD: { rate: 1 } },
+      baseCurrencyCode: 'USD',
+    };
+
+    const covers = computeRefundLinkTotals({ ...base, transactions: [{ amount: 400, currencyCode: 'PLN' }] });
+    expect(covers.isOverLimit).toBe(false);
+    expect(covers.isExactComparison).toBe(false);
+
+    const tooSmall = computeRefundLinkTotals({ ...base, transactions: [{ amount: 100, currencyCode: 'PLN' }] });
+    expect(tooSmall.isOverLimit).toBe(true);
+  });
+
   it('flags over-limit for exact same-currency comparison', () => {
     const result = computeRefundLinkTotals({
       transactions: [
