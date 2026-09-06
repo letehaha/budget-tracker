@@ -186,6 +186,13 @@ location = /.well-known/oauth-authorization-server/mcp {
   proxy_set_header Host \$host;
   proxy_set_header X-Forwarded-Proto \$scheme;
 }
+# RFC 8414 3.1 path-aware form: the AS issuer carries the /api/v1/auth path,
+# so clients look here (well-known segment after the host, then issuer path).
+location = /.well-known/oauth-authorization-server/api/v1/auth {
+  proxy_pass ${BACKEND_URL};
+  proxy_set_header Host \$host;
+  proxy_set_header X-Forwarded-Proto \$scheme;
+}
 location = /.well-known/oauth-protected-resource {
   proxy_pass ${BACKEND_URL};
   proxy_set_header Host \$host;
@@ -198,12 +205,12 @@ location = /.well-known/oauth-protected-resource/mcp {
 }
 EOF
 else
-  # The sed pattern must match the issuer baked into the mirror files
-  # (packages/frontend/public/.well-known/). On the hosted deployment
-  # MCP_BASE_URL equals that issuer, so the rewrite is a no-op there.
-  if [ -n "$MCP_BASE_URL" ]; then
+  # The mirror files (packages/frontend/public/.well-known/) name the hosted
+  # backend under two hosts: api. for the authorization server, mcp. for the
+  # resource. A self-host has one backend origin, so both collapse to MCP_BASE_URL.
+  if [ -n "$MCP_BASE_URL" ] && [ "${MCP_BASE_URL%/}" != "https://mcp.moneymatter.app" ]; then
     for doc in /app/.well-known/oauth-authorization-server /app/.well-known/oauth-protected-resource; do
-      sed "s|https://mcp\.moneymatter\.app|${MCP_BASE_URL%/}|g" "$doc" > "$doc.tmp"
+      sed -e "s|https://mcp\.moneymatter\.app|${MCP_BASE_URL%/}|g" -e "s|https://api\.moneymatter\.app|${MCP_BASE_URL%/}|g" "$doc" > "$doc.tmp"
       mv "$doc.tmp" "$doc"
     done
   fi
