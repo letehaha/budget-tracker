@@ -132,46 +132,44 @@ describe('Share invitations: accept', () => {
   });
 
   describe('error cases', () => {
-    it('returns 404 when the token does not exist', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const res = await helpers.asUser({
-        cookies: recipient.cookies,
-        // Well-formed but unknown token — exercises the service-level not-found path
-        // rather than the controller-level length validation.
-        fn: () => helpers.acceptShareInvitation({ token: 'a'.repeat(SHARING_LIMITS.invitationTokenLength) }),
-      });
-      expect(res.statusCode).toBe(404);
-    });
-
-    it('returns 404 when the token belongs to another user (resolved-invitee path)', async () => {
-      const { invitation } = await setupPendingInvitation();
-      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
-      const res = await helpers.asUser({
-        cookies: otherUser.cookies,
-        fn: () => helpers.acceptShareInvitation({ token: invitation.token }),
-      });
-      expect(res.statusCode).toBe(404);
-    });
-
-    it('returns 404 when an unresolved invite is opened by a user whose email does not match', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const futureEmail = `pending-${Date.now()}@test.local`;
-      const invitation = await helpers.createShareInvitation({
+    it('masks unknown, foreign and email-mismatched tokens with 404 on accept and decline', async () => {
+      const { account, invitation } = await setupPendingInvitation();
+      const futureEmail = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.local`;
+      const unresolvedInvitation = await helpers.createShareInvitation({
         inviteeEmail: futureEmail,
         resourceType: RESOURCE_TYPES.account,
         resourceId: account.id,
         permission: SHARE_PERMISSIONS.read,
         raw: true,
       });
+      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
 
-      // Sign up a different user (different email) and try to accept.
-      const wrongUser = await helpers.provisionSecondUserWithBaseCurrency();
-      const res = await helpers.asUser({
-        cookies: wrongUser.cookies,
+      // The token is well formed, so the request reaches the service not-found path; a
+      // malformed one would stop at the controller length validation.
+      const unknownTokenRes = await helpers.asUser({
+        cookies: otherUser.cookies,
+        fn: () => helpers.acceptShareInvitation({ token: 'a'.repeat(SHARING_LIMITS.invitationTokenLength) }),
+      });
+      expect(unknownTokenRes.statusCode).toBe(404);
+
+      const foreignTokenRes = await helpers.asUser({
+        cookies: otherUser.cookies,
         fn: () => helpers.acceptShareInvitation({ token: invitation.token }),
       });
-      expect(res.statusCode).toBe(404);
-    });
+      expect(foreignTokenRes.statusCode).toBe(404);
+
+      const emailMismatchRes = await helpers.asUser({
+        cookies: otherUser.cookies,
+        fn: () => helpers.acceptShareInvitation({ token: unresolvedInvitation.token }),
+      });
+      expect(emailMismatchRes.statusCode).toBe(404);
+
+      const declineForeignRes = await helpers.asUser({
+        cookies: otherUser.cookies,
+        fn: () => helpers.declineShareInvitation({ token: invitation.token }),
+      });
+      expect(declineForeignRes.statusCode).toBe(404);
+    }, 60_000);
 
     it('returns 409 when the invitation is already accepted', async () => {
       const { recipient, invitation } = await setupPendingInvitation();
@@ -423,15 +421,5 @@ describe('Share invitations: decline', () => {
       fn: () => helpers.declineShareInvitation({ token: invitation.token }),
     });
     expect(res.statusCode).toBe(409);
-  });
-
-  it('returns 404 when the token belongs to someone else', async () => {
-    const { invitation } = await setupPendingInvitation();
-    const other = await helpers.provisionSecondUserWithBaseCurrency();
-    const res = await helpers.asUser({
-      cookies: other.cookies,
-      fn: () => helpers.declineShareInvitation({ token: invitation.token }),
-    });
-    expect(res.statusCode).toBe(404);
   });
 });

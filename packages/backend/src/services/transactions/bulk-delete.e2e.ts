@@ -6,35 +6,52 @@ import * as helpers from '@tests/helpers';
 import { addDays } from 'date-fns';
 
 describe('POST /transactions/bulk-delete', () => {
-  it('deletes multiple transactions and updates the list', async () => {
+  it('deletes rows of every nature in one batch and updates the list', async () => {
     const account = await helpers.createAccount({ raw: true });
 
-    const [txA] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100 }),
+    const [expense] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 100,
+        transactionType: TRANSACTION_TYPES.expense,
+      }),
       raw: true,
     });
-    const [txB] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 200 }),
+    const [income] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 150,
+        transactionType: TRANSACTION_TYPES.income,
+      }),
       raw: true,
     });
-    const [txC] = await helpers.createTransaction({
+    const [outOfWallet] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({ accountId: account.id, amount: 250 }),
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      },
+      raw: true,
+    });
+    const [keeper] = await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 300 }),
       raw: true,
     });
 
+    const deletedIds = [expense.id, income.id, outOfWallet.id];
     const result = await helpers.bulkDeleteTransactions({
-      payload: { transactionIds: [txA.id, txB.id] },
+      payload: { transactionIds: deletedIds },
       raw: true,
     });
 
-    expect(result.deletedCount).toBe(2);
-    expect(result.deletedIds.toSorted()).toEqual([txA.id, txB.id].toSorted());
+    expect(result.deletedCount).toBe(3);
+    expect(result.deletedIds.toSorted()).toEqual(deletedIds.toSorted());
 
     const remaining = await helpers.getTransactions({ raw: true });
     const remainingIds = remaining.map((tx) => tx.id);
-    expect(remainingIds).toContain(txC.id);
-    expect(remainingIds).not.toContain(txA.id);
-    expect(remainingIds).not.toContain(txB.id);
+    expect(remainingIds).toContain(keeper.id);
+    expect(remainingIds).not.toContain(expense.id);
+    expect(remainingIds).not.toContain(income.id);
+    expect(remainingIds).not.toContain(outOfWallet.id);
   });
 
   it('deletes both legs of a transfer when one leg is selected, and tolerates both legs being selected', async () => {
@@ -65,12 +82,16 @@ describe('POST /transactions/bulk-delete', () => {
     expect(remainingIds).not.toContain(transferOpposite!.id);
   });
 
-  it('returns 404 when none of the ids exist', async () => {
-    const response = await helpers.bulkDeleteTransactions({
+  it('rejects unknown ids and an empty id list', async () => {
+    const unknownIds = await helpers.bulkDeleteTransactions({
       payload: { transactionIds: [generateRandomRecordId()] },
     });
+    expect(unknownIds.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-    expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+    const noIds = await helpers.bulkDeleteTransactions({
+      payload: { transactionIds: [] },
+    });
+    expect(noIds.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 
   it('refuses to delete bank-connected transactions and lists the disallowed ids', async () => {
@@ -114,40 +135,5 @@ describe('POST /transactions/bulk-delete', () => {
     expect(result.deletedCount).toBe(1);
     expect(await helpers.getTransactionById({ id: planned.id, raw: true })).toBe(null);
     expect(Number((await helpers.getAccount({ id: account.id, raw: true })).currentBalance)).toBe(balanceBefore);
-  });
-
-  it('validates that at least one id is required', async () => {
-    const response = await helpers.bulkDeleteTransactions({
-      payload: { transactionIds: [] },
-    });
-
-    expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('income/expense rows of all natures are deletable in one batch', async () => {
-    const account = await helpers.createAccount({ raw: true });
-
-    const [income] = await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 150,
-        transactionType: TRANSACTION_TYPES.income,
-      }),
-      raw: true,
-    });
-    const [outOfWallet] = await helpers.createTransaction({
-      payload: {
-        ...helpers.buildTransactionPayload({ accountId: account.id, amount: 250 }),
-        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-      },
-      raw: true,
-    });
-
-    const result = await helpers.bulkDeleteTransactions({
-      payload: { transactionIds: [income.id, outOfWallet.id] },
-      raw: true,
-    });
-
-    expect(result.deletedCount).toBe(2);
   });
 });

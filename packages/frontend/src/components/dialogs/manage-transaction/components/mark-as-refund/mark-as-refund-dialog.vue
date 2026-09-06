@@ -107,7 +107,9 @@ watch(
 
 watch(isDialogOpen, (open) => {
   if (open) {
-    selectedOption.value = props.refundedBy?.length ? 'refunded' : 'refunds';
+    // An expense is almost always the original that incomes refund, so a saved one opens on that tab.
+    const defaultsToRefunded = currentEntryType.value === TRANSACTION_TYPES.expense && !props.isRecordCreation;
+    selectedOption.value = props.refundedBy?.length || (defaultsToRefunded && !props.refunds) ? 'refunded' : 'refunds';
     selectionState.refunds = props.refunds ?? undefined;
     selectionState.refundedBy = props.refundedBy?.length ? [...props.refundedBy] : undefined;
     selectedSplitId.value = props.refunds?.splitId ?? null;
@@ -202,6 +204,7 @@ const selectedTransactions = computed(() => {
 
 const totals = computed(() =>
   computeRefundLinkTotals({
+    mode: selectedOption.value,
     transactions: selectedTransactions.value,
     currentAmount: props.currentAmount,
     currentCurrencyCode: props.currentCurrencyCode,
@@ -236,7 +239,12 @@ const summaryText = computed(() => {
   if (!totalLabel.value) return t(`${keyBase}.summaryCountOnly`, { count });
 
   const amount = totalLabel.value;
-  if (selectedOption.value === 'refunds') return t(`${keyBase}.summarySelected`, { count, amount });
+  if (selectedOption.value === 'refunds') {
+    if (totals.value.isOverLimit && limitLabel.value) {
+      return t(`${keyBase}.summaryBelowRefund`, { amount, limit: limitLabel.value });
+    }
+    return t(`${keyBase}.summarySelected`, { count, amount });
+  }
 
   if (totals.value.isOverLimit) {
     if (totals.value.isExactComparison && totals.value.total !== null && props.currentAmount) {

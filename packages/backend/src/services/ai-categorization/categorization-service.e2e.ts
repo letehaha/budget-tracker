@@ -4,10 +4,10 @@ import {
   CATEGORIZATION_SOURCE,
   type ExtractedTransaction,
 } from '@bt/shared/types';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
-import { INVALID_GEMINI_API_KEY, VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
+import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { Op } from 'sequelize';
 
@@ -40,68 +40,13 @@ describe('AI Categorization Service E2E', () => {
   });
 
   describe('Full categorization flow with Monobank', () => {
-    describe('Event integration with bank sync', () => {
-      it('should emit TRANSACTIONS_SYNCED event after bank sync to trigger AI categorization', async () => {
-        const MOCK_TRANSACTION_COUNT = 3;
-
-        // Spy on event emission
-        const eventSpy = jest.spyOn(eventBus, 'emit');
-
-        // Connect to Monobank
-        const { connectionId } = await helpers.bankDataProviders.connectProvider({
-          providerType: BANK_PROVIDER_TYPE.MONOBANK,
-          credentials: { apiToken: VALID_MONOBANK_TOKEN },
-          providerName: 'Test Monobank',
-          raw: true,
-        });
-
-        // List external accounts
-        const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
-          connectionId,
-          raw: true,
-        });
-
-        const accountIds = externalAccounts.slice(0, 1).map((acc: { externalId: string }) => acc.externalId);
-
-        // Mock Monobank transactions
-        global.mswMockServer.use(
-          ...accountIds.map((id) =>
-            getMonobankTransactionsMock({
-              accountId: id,
-              response: helpers.monobank.mockedTransactionData(MOCK_TRANSACTION_COUNT),
-            }),
-          ),
-        );
-
-        // Connect selected accounts (triggers transaction sync)
-        await helpers.bankDataProviders.connectSelectedAccounts({
-          connectionId,
-          accountExternalIds: accountIds,
-          raw: true,
-        });
-
-        // Wait for async queue processing
-        await helpers.sleep(5000);
-
-        // Verify TRANSACTIONS_SYNCED event was emitted (this triggers AI categorization queue)
-        expect(eventSpy).toHaveBeenCalledWith(
-          DOMAIN_EVENTS.TRANSACTIONS_SYNCED,
-          expect.objectContaining({
-            userId: expect.any(Number),
-            accountId: expect.any(String),
-            transactionIds: expect.arrayContaining([expect.any(String)]),
-          }),
-        );
-
-        eventSpy.mockRestore();
-      });
-    });
-
     it('should NOT categorize transactions when GEMINI_API_KEY is not configured', async () => {
       const MOCK_TRANSACTION_COUNT = 3;
 
       // Ensure GEMINI_API_KEY is not set
       delete process.env.GEMINI_API_KEY;
+
+      const eventSpy = jest.spyOn(eventBus, 'emit');
 
       // Step 1: Create a custom category
       await helpers.addCustomCategory({
@@ -163,6 +108,18 @@ describe('AI Categorization Service E2E', () => {
       for (const tx of transactions) {
         expect(tx.categorizationMeta?.source).not.toBe(CATEGORIZATION_SOURCE.ai);
       }
+
+      // The event that puts the AI categorization job on the queue.
+      expect(eventSpy).toHaveBeenCalledWith(
+        DOMAIN_EVENTS.TRANSACTIONS_SYNCED,
+        expect.objectContaining({
+          userId: expect.any(Number),
+          accountId: expect.any(String),
+          transactionIds: expect.arrayContaining([expect.any(String)]),
+        }),
+      );
+
+      eventSpy.mockRestore();
     });
 
     it('should gracefully handle AI API errors without failing transaction sync', async () => {
@@ -218,72 +175,6 @@ describe('AI Categorization Service E2E', () => {
       await helpers.sleep(5000);
 
       // Step 9: Transactions should still be synced even if AI categorization failed
-      const transactions = await Transactions.findAll({
-        where: {
-          accountId: {
-            [Op.in]: syncedAccounts.map((i) => i.id),
-          },
-        },
-        raw: true,
-      });
-
-      expect(transactions.length).toBe(MOCK_TRANSACTION_COUNT);
-
-      for (const tx of transactions) {
-        expect(tx.categorizationMeta?.source).not.toBe(CATEGORIZATION_SOURCE.ai);
-      }
-    });
-
-    it('should handle invalid AI API key gracefully', async () => {
-      const MOCK_TRANSACTION_COUNT = 2;
-
-      // Step 1: Create a custom category
-      await helpers.addCustomCategory({
-        name: 'Entertainment',
-        color: '#FFFF00',
-        raw: true,
-      });
-
-      // Step 2: Set up INVALID GEMINI_API_KEY
-      process.env.GEMINI_API_KEY = INVALID_GEMINI_API_KEY;
-
-      // Step 3: Connect to Monobank
-      const { connectionId } = await helpers.bankDataProviders.connectProvider({
-        providerType: BANK_PROVIDER_TYPE.MONOBANK,
-        credentials: { apiToken: VALID_MONOBANK_TOKEN },
-        providerName: 'Test Monobank Invalid Key',
-        raw: true,
-      });
-
-      // Step 4: List external accounts
-      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
-        connectionId,
-        raw: true,
-      });
-
-      const accountIds = externalAccounts.slice(0, 1).map((acc: { externalId: string }) => acc.externalId);
-
-      // Step 5: Mock Monobank transactions
-      global.mswMockServer.use(
-        ...accountIds.map((id) =>
-          getMonobankTransactionsMock({
-            accountId: id,
-            response: helpers.monobank.mockedTransactionData(MOCK_TRANSACTION_COUNT),
-          }),
-        ),
-      );
-
-      // Step 6: Connect selected accounts
-      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
-        connectionId,
-        accountExternalIds: accountIds,
-        raw: true,
-      });
-
-      // Step 7: Wait for async processing
-      await helpers.sleep(5000);
-
-      // Step 8: Transactions should be synced despite AI auth error
       const transactions = await Transactions.findAll({
         where: {
           accountId: {

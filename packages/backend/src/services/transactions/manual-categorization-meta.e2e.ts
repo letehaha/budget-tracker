@@ -97,7 +97,7 @@ describe('Manual category change stamping', () => {
       expect(await candidateIds()).toContain(transactionId);
     });
 
-    it('leaves the stamp alone when the update does not touch the category', async () => {
+    it('leaves the stamp alone on a note-only update and on a same-category resend', async () => {
       const account = await helpers.createAccount({ raw: true });
       const category = await createCustomCategory({ name: 'Groceries' });
       const transactionId = await seedStampedTransaction({
@@ -113,16 +113,6 @@ describe('Manual category change stamping', () => {
       });
 
       expect((await readMeta({ id: transactionId }))?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
-    });
-
-    it('leaves the stamp alone when the same category is sent again', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const category = await createCustomCategory({ name: 'Groceries' });
-      const transactionId = await seedStampedTransaction({
-        accountId: account.id,
-        categoryId: category.id,
-        name: 'Enforced Merchant',
-      });
 
       await helpers.updateTransaction({
         id: transactionId as RecordId,
@@ -135,31 +125,6 @@ describe('Manual category change stamping', () => {
   });
 
   describe('PUT /transactions/bulk', () => {
-    it('stamps a manual source on every row whose category changes', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const category = await createCustomCategory({ name: 'Groceries' });
-
-      const [first] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id }),
-        raw: true,
-      });
-      const [second] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id }),
-        raw: true,
-      });
-
-      await helpers.bulkUpdateTransactions({
-        payload: { transactionIds: [first.id, second.id], categoryId: category.id },
-        raw: true,
-      });
-
-      for (const id of [first.id, second.id]) {
-        const meta = await readMeta({ id });
-        expect(meta?.source).toBe(CATEGORIZATION_SOURCE.manual);
-        expect(Number.isNaN(Date.parse(meta!.categorizedAt!))).toBe(false);
-      }
-    });
-
     it('clears the stamp when the rows move back to the default category', async () => {
       const user = await helpers.getUserInfo({ raw: true });
       const account = await helpers.createAccount({ raw: true });
@@ -189,23 +154,6 @@ describe('Manual category change stamping', () => {
       expect(candidates).toContain(second);
     });
 
-    it('leaves the stamp alone on a note-only bulk update', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const category = await createCustomCategory({ name: 'Groceries' });
-      const transactionId = await seedStampedTransaction({
-        accountId: account.id,
-        categoryId: category.id,
-        name: 'Enforced Merchant',
-      });
-
-      await helpers.bulkUpdateTransactions({
-        payload: { transactionIds: [transactionId], note: 'Renamed in bulk' },
-        raw: true,
-      });
-
-      expect((await readMeta({ id: transactionId }))?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
-    });
-
     it('only restamps the rows that were not already in the target category', async () => {
       const account = await helpers.createAccount({ raw: true });
       const category = await createCustomCategory({ name: 'Groceries' });
@@ -215,18 +163,37 @@ describe('Manual category change stamping', () => {
         categoryId: category.id,
         name: 'Enforced Merchant',
       });
-      const [moving] = await helpers.createTransaction({
+      const [firstMoving] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+      const [secondMoving] = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id }),
         raw: true,
       });
 
+      const allIds = [alreadyThere, firstMoving.id, secondMoving.id];
+
       await helpers.bulkUpdateTransactions({
-        payload: { transactionIds: [alreadyThere, moving.id], categoryId: category.id },
+        payload: { transactionIds: allIds, note: 'Renamed in bulk' },
         raw: true,
       });
 
       expect((await readMeta({ id: alreadyThere }))?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
-      expect((await readMeta({ id: moving.id }))?.source).toBe(CATEGORIZATION_SOURCE.manual);
-    });
+      expect(await readMeta({ id: firstMoving.id })).toBeNull();
+      expect(await readMeta({ id: secondMoving.id })).toBeNull();
+
+      await helpers.bulkUpdateTransactions({
+        payload: { transactionIds: allIds, categoryId: category.id },
+        raw: true,
+      });
+
+      expect((await readMeta({ id: alreadyThere }))?.source).toBe(CATEGORIZATION_SOURCE.payeeRule);
+      for (const id of [firstMoving.id, secondMoving.id]) {
+        const meta = await readMeta({ id });
+        expect(meta?.source).toBe(CATEGORIZATION_SOURCE.manual);
+        expect(Number.isNaN(Date.parse(meta!.categorizedAt!))).toBe(false);
+      }
+    }, 60_000);
   });
 });

@@ -127,6 +127,22 @@ describe('Execute Budget Bakers Wallet import endpoint', () => {
     });
     expect(linkedPair).toHaveLength(2);
 
+    // --- Cross-currency pair keeps a distinct amount per leg ---
+    const pkoUsd = accountsAfter.find((a) => a.name === 'PKO USD')!;
+    const pkoPln = accountsAfter.find((a) => a.name === 'PKO PLN')!;
+    const pkoUsdLeg = transactionsAfter.find(
+      (t) => t.accountId === pkoUsd.id && t.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
+    );
+    const pkoPlnLeg = transactionsAfter.find(
+      (t) => t.accountId === pkoPln.id && t.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
+    );
+    expect(pkoUsdLeg).toBeDefined();
+    expect(pkoPlnLeg).toBeDefined();
+    expect(Number(pkoUsdLeg!.amount)).toBe(410.9);
+    expect(Number(pkoPlnLeg!.amount)).toBe(1484.2);
+    expect(pkoUsdLeg!.transferId).toBeTruthy();
+    expect(pkoUsdLeg!.transferId).toBe(pkoPlnLeg!.transferId);
+
     // --- Lone transfer leg imported as out-of-wallet ---
     const outOfWalletLegs = transactionsAfter.filter(
       (t) => t.transferNature === TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
@@ -710,46 +726,6 @@ describe('Execute Budget Bakers Wallet import endpoint', () => {
     expect(txs.filter((t) => t.accountId === aedAccount.id)).toHaveLength(0);
   });
 
-  /**
-   * Paired cross-currency transfer: the PKO USD → PKO PLN pair in
-   * multi-currency.csv has different `sourceAmount` (410.9 USD) and
-   * `destinationAmount` (1484.2 PLN). Both legs must share a `transferId`
-   * and each leg's amount must match the CSV values.
-   */
-  it('imports a cross-currency transfer pair with correct per-leg amounts and shared transferId', async () => {
-    const fileContent = helpers.loadBudgetBakersWalletFixture('multi-currency.csv');
-    const { accountMapping } = await buildCreateNewMappingFromFixture({ fileContent });
-
-    const { jobId } = await helpers.executeBudgetBakersWallet({
-      payload: { fileContent, accountMapping, skipDuplicateIndices: [] },
-      raw: true,
-    });
-    expect(jobId).toBeTruthy();
-    const progress = await waitForBudgetBakersWalletCompletion({ jobId });
-    expectCompleted(progress);
-    expect(progress.summary.transfersImported).toBe(2);
-
-    const accountsAfter = await helpers.getAccounts();
-    const pkoUsd = accountsAfter.find((a) => a.name === 'PKO USD')!;
-    const pkoPln = accountsAfter.find((a) => a.name === 'PKO PLN')!;
-
-    const txs = await helpers.getTransactions({ raw: true });
-    // The cross-currency pair is at 2025-07-02T09:45:00.000Z.
-    const pkoUsdLeg = txs.find(
-      (t) => t.accountId === pkoUsd.id && t.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
-    );
-    const pkoPLNLeg = txs.find(
-      (t) => t.accountId === pkoPln.id && t.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer,
-    );
-    expect(pkoUsdLeg).toBeDefined();
-    expect(pkoPLNLeg).toBeDefined();
-    expect(Number(pkoUsdLeg!.amount)).toBe(410.9);
-    expect(Number(pkoPLNLeg!.amount)).toBe(1484.2);
-    // Both legs of the same transfer must carry the same transferId.
-    expect(pkoUsdLeg!.transferId).toBeTruthy();
-    expect(pkoUsdLeg!.transferId).toBe(pkoPLNLeg!.transferId);
-  });
-
   // ---------------------------------------------------------------------------
   // Tag tests (T7, T8)
   // ---------------------------------------------------------------------------
@@ -894,57 +870,6 @@ describe('Execute Budget Bakers Wallet import endpoint', () => {
     expect(importedTags!.some((tag) => tag.id === tagB!.id)).toBe(true);
   });
 
-  // ---------------------------------------------------------------------------
-  // Per-row error shape (T9)
-  // ---------------------------------------------------------------------------
-
-  /**
-   * T9 — Verify that `summary.errors[]` is always an Array on a completed job
-   * and that any entries present conform to `{ rowIndex: number|null, error: string }`.
-   *
-   * Triggering a genuine per-row Phase-5 failure requires a `createTransaction`
-   * DB error, which cannot be produced via HTTP alone without modifying
-   * production code. The job-level `status:'failed'` tests already confirm that
-   * Phase-2 validation errors surface correctly. The YNAB comprehensive fixture
-   * test confirms the `errors` count when some rows fail.
-   *
-   * What we verify here: the `errors` field is always present and structurally
-   * correct on any completed job — no undefined, no wrong shape — covering the
-   * type contract of `WalletImportSummary.errors`.
-   *
-   * Note: the job-level `status:'failed'` tests cover a *complete* mapping
-   * omission (pre-validation in Phase 1). This test focuses on the
-   * `summary.errors` array shape that the per-row catch and Phase-6 transfer
-   * catch both emit.
-   */
-  it('summary.errors[] is always an Array on a completed job and any entries carry { rowIndex, error }', async () => {
-    const fileContent = [
-      'account;category;currency;amount;ref_currency_amount;type;payment_type;note;date;transfer;payee;labels',
-      'ErrShapeAcc UAH;Food;UAH;100;100;Expense;Cash;err-shape-row;2025-06-01T12:00:00.000Z;false;;',
-    ].join('\n');
-
-    const accountMapping = {
-      'ErrShapeAcc UAH': { action: 'create-new' as const, currencyCode: 'UAH', currentBalance: null },
-    };
-
-    const { jobId } = await helpers.executeBudgetBakersWallet({
-      payload: { fileContent, accountMapping, skipDuplicateIndices: [] },
-      raw: true,
-    });
-    expect(jobId).toBeTruthy();
-    const progress = await waitForBudgetBakersWalletCompletion({ jobId });
-    expectCompleted(progress);
-
-    // `errors` must always be an array — never undefined — on a completed job.
-    expect(Array.isArray(progress.summary.errors)).toBe(true);
-
-    // Structural shape check: every entry that exists must have the documented fields.
-    for (const entry of progress.summary.errors) {
-      expect(typeof entry.error).toBe('string');
-      // rowIndex is number | null per WalletImportSummary — both are valid.
-      expect(entry.rowIndex === null || typeof entry.rowIndex === 'number').toBe(true);
-    }
-  });
   describe('skipped accounts', () => {
     it('leaves out a skipped account: its account, its rows and its out-of-wallet leg', async () => {
       const accountsBefore = await helpers.getAccounts();
@@ -1062,6 +987,104 @@ describe('Execute Budget Bakers Wallet import endpoint', () => {
 
       expect((await helpers.getAccounts()).length).toBe(accountsBefore.length);
       expect(await helpers.getTransactions({ raw: true })).toHaveLength(0);
+    });
+  });
+
+  describe('POST /import/budget-bakers-wallet/detect-duplicates', () => {
+    /**
+     * Empty state: when every account in the mapping uses `create-new`, the
+     * service short-circuits before touching the DB (no linked account can
+     * have prior transactions) and returns an empty duplicates array.
+     */
+    it('returns empty duplicates when all accounts are create-new (no linked accounts)', async () => {
+      const fileContent = [
+        'account;category;currency;amount;ref_currency_amount;type;payment_type;note;date;transfer;payee;labels',
+        `NewAcc UAH;Food;UAH;500;500;Expense;Credit card;Test row;2025-06-01T12:00:00.000Z;false;;`,
+      ].join('\n');
+
+      const accountMapping = {
+        'NewAcc UAH': { action: 'create-new' as const, currencyCode: 'UAH', currentBalance: null },
+      };
+
+      const { duplicates } = await helpers.detectBudgetBakersWalletDuplicates({
+        payload: { fileContent, accountMapping },
+        raw: true,
+      });
+
+      expect(duplicates).toEqual([]);
+    });
+
+    /**
+     * Error case: empty fileContent violates the Zod min(1) constraint on the
+     * controller. The request must be rejected with a 422 validation error
+     * before any service logic runs.
+     */
+    it('returns 422 for an empty fileContent string', async () => {
+      const response = await helpers.detectBudgetBakersWalletDuplicates({
+        payload: {
+          fileContent: '',
+          accountMapping: {},
+        },
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
+    /**
+     * Mixed mapping: when the CSV has some accounts mapped to `link-existing`
+     * and some to `create-new`, only the linked accounts' transactions are
+     * candidates for duplicate detection. Transactions belonging to the
+     * create-new account must NOT appear in the duplicates array.
+     *
+     * Seeding is done via executeBudgetBakersWallet (the only route that writes
+     * transactions) to stay strictly HTTP-only — no direct service calls.
+     */
+    it('only considers link-existing accounts when detecting duplicates (create-new accounts are excluded)', async () => {
+      const existingAccount = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ currencyCode: 'UAH', initialBalance: 0 }),
+        raw: true,
+      });
+
+      // Unique notes avoid collisions with transactions seeded by other tests.
+      const noteLinked1 = `mixed-linked-a-${generateRandomRecordId()}`;
+      const noteLinked2 = `mixed-linked-b-${generateRandomRecordId()}`;
+
+      // Two rows for the linked account; one row for a create-new account.
+      const fileContent = [
+        'account;category;currency;amount;ref_currency_amount;type;payment_type;note;date;transfer;payee;labels',
+        `Linked UAH;Food;UAH;500;500;Expense;Credit card;${noteLinked1};2025-06-01T12:00:00.000Z;false;;`,
+        `Linked UAH;Salary;UAH;30000;30000;Income;Cash;${noteLinked2};2025-06-02T10:00:00.000Z;false;;`,
+        `New UAH;Groceries;UAH;200;200;Expense;Cash;new-acct-row;2025-06-03T08:00:00.000Z;false;;`,
+      ].join('\n');
+
+      const seedMapping = {
+        'Linked UAH': { action: 'link-existing' as const, accountId: existingAccount.id },
+        'New UAH': { action: 'create-new' as const, currencyCode: 'UAH', currentBalance: null },
+      };
+
+      const { jobId } = await helpers.executeBudgetBakersWallet({
+        payload: { fileContent, accountMapping: seedMapping, skipDuplicateIndices: [] },
+        raw: true,
+      });
+      expect(jobId).toBeTruthy();
+      const progress = await waitForBudgetBakersWalletCompletion({ jobId });
+      expectCompleted(progress);
+      // 2 linked + 1 create-new = 3 ordinary transactions seeded.
+      expect(progress.summary.transactionsImported).toBe(3);
+      expect(progress.summary.errors).toHaveLength(0);
+
+      const { duplicates } = await helpers.detectBudgetBakersWalletDuplicates({
+        payload: { fileContent, accountMapping: seedMapping },
+        raw: true,
+      });
+
+      // rowIndex counts file lines: the header is line 1, so the first data row
+      // is 2.
+      expect(duplicates.length).toBe(2);
+      const rowIndices = duplicates.map((d) => d.rowIndex);
+      expect(rowIndices).toContain(2);
+      expect(rowIndices).toContain(3);
+      expect(rowIndices).not.toContain(4);
     });
   });
 });

@@ -113,50 +113,46 @@ describe('Category-Based Budgets', () => {
       expect(categoryIds).toContain(child2.id);
     });
 
-    it('fails to create category budget without categories', async () => {
-      const response = await helpers.createCustomBudget({
+    it('fails to create a category budget with an empty or unknown category list', async () => {
+      const withoutCategories = await helpers.createCustomBudget({
         name: 'Invalid Budget',
         type: BUDGET_TYPES.category,
         categoryIds: [],
         raw: false,
       });
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      expect(withoutCategories.statusCode).toBe(ERROR_CODES.ValidationError);
 
-    it('fails to create category budget with non-existent category', async () => {
-      const response = await helpers.createCustomBudget({
+      const withUnknownCategory = await helpers.createCustomBudget({
         name: 'Invalid Budget',
         type: BUDGET_TYPES.category,
         categoryIds: [NONEXISTENT_ID],
         raw: false,
       });
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(withUnknownCategory.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
-    it('successfully creates manual budget (default type)', async () => {
-      const budget = await helpers.createCustomBudget({
+    it('creates a manual budget with the type omitted or passed explicitly', async () => {
+      const defaultTypeBudget = await helpers.createCustomBudget({
         name: 'Manual Budget',
         limitAmount: 1000,
         raw: true,
       });
 
-      expect(budget.type).toBe(BUDGET_TYPES.manual);
-      expect(budget.categories).toHaveLength(0);
-    });
+      expect(defaultTypeBudget.type).toBe(BUDGET_TYPES.manual);
+      expect(defaultTypeBudget.categories).toHaveLength(0);
 
-    it('successfully creates manual budget with explicit type', async () => {
-      const budget = await helpers.createCustomBudget({
+      const explicitTypeBudget = await helpers.createCustomBudget({
         name: 'Manual Budget Explicit',
         type: BUDGET_TYPES.manual,
         limitAmount: 1000,
         raw: true,
       });
 
-      expect(budget.type).toBe(BUDGET_TYPES.manual);
-      expect(budget.categories).toHaveLength(0);
-    });
+      expect(explicitTypeBudget.type).toBe(BUDGET_TYPES.manual);
+      expect(explicitTypeBudget.categories).toHaveLength(0);
+    }, 60_000);
   });
 
   describe('Budget Editing', () => {
@@ -411,95 +407,13 @@ describe('Category-Based Budgets', () => {
   });
 
   describe('Stats Calculation - Split Transactions', () => {
-    it('counts only the split amount for matching category', async () => {
-      const category1 = await helpers.addCustomCategory({ name: 'Groceries', color: '#FF0000', raw: true });
-      const category2 = await helpers.addCustomCategory({ name: 'Household', color: '#00FF00', raw: true });
-
-      // Budget only tracks category1
-      const budget = await helpers.createCustomBudget({
-        name: 'Grocery Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category1.id],
-        limitAmount: 500,
-        raw: true,
-      });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create transaction with splits
-      // Total: 100, split: 60 for Groceries, 40 for Household
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category1.id,
-          splits: [
-            { amount: 60, categoryId: category1.id },
-            { amount: 40, categoryId: category2.id },
-          ],
-        }),
-        raw: true,
-      });
-
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
-
-      // Should only count the 60 from the groceries split
-      expect(stats!.summary.actualExpense).toBe(60);
-      expect(stats!.summary.transactionsCount).toBe(1);
-    });
-
-    it('counts multiple splits from same transaction that match category', async () => {
-      const category1 = await helpers.addCustomCategory({ name: 'Groceries', color: '#FF0000', raw: true });
-      const category2 = await helpers.addCustomCategory({ name: 'Household', color: '#00FF00', raw: true });
-
-      // Budget tracks both categories
-      const budget = await helpers.createCustomBudget({
-        name: 'Shopping Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category1.id, category2.id],
-        raw: true,
-      });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create transaction with splits (all categories in budget)
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category1.id,
-          splits: [
-            { amount: 60, categoryId: category1.id },
-            { amount: 40, categoryId: category2.id },
-          ],
-        }),
-        raw: true,
-      });
-
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
-
-      // Should count both splits (60 + 40 = 100)
-      expect(stats!.summary.actualExpense).toBe(100);
-    });
-
-    it('handles split transaction where only some splits match budget categories', async () => {
+    it('counts only splits whose category the budget tracks', async () => {
       const category1 = await helpers.addCustomCategory({ name: 'Food', color: '#FF0000', raw: true });
       const category2 = await helpers.addCustomCategory({ name: 'Transport', color: '#00FF00', raw: true });
       const category3 = await helpers.addCustomCategory({ name: 'Entertainment', color: '#0000FF', raw: true });
 
-      // Budget only tracks Food and Transport
-      const budget = await helpers.createCustomBudget({
-        name: 'Essential Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category1.id, category2.id],
-        raw: true,
-      });
-
       const account = await helpers.createAccount({ raw: true });
 
-      // Transaction split across 3 categories, only 2 in budget
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
@@ -507,145 +421,86 @@ describe('Category-Based Budgets', () => {
           transactionType: TRANSACTION_TYPES.expense,
           categoryId: category1.id,
           splits: [
-            { amount: 50, categoryId: category1.id }, // In budget
-            { amount: 30, categoryId: category2.id }, // In budget
-            { amount: 70, categoryId: category3.id }, // NOT in budget
+            { amount: 50, categoryId: category1.id },
+            { amount: 30, categoryId: category2.id },
+            { amount: 70, categoryId: category3.id },
           ],
         }),
         raw: true,
       });
 
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
+      const oneCategoryBudget = await helpers.createCustomBudget({
+        name: 'Food Budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category1.id],
+        limitAmount: 500,
+        raw: true,
+      });
+      const twoCategoryBudget = await helpers.createCustomBudget({
+        name: 'Essential Budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category1.id, category2.id],
+        raw: true,
+      });
+      const allCategoryBudget = await helpers.createCustomBudget({
+        name: 'Everything Budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category1.id, category2.id, category3.id],
+        raw: true,
+      });
 
-      // Should only count 50 + 30 = 80
-      expect(stats!.summary.actualExpense).toBe(80);
-    });
+      const oneCategoryStats = await helpers.getStats({
+        id: oneCategoryBudget.id,
+        raw: true,
+      });
+      expect(oneCategoryStats!.summary.actualExpense).toBe(50);
+      expect(oneCategoryStats!.summary.transactionsCount).toBe(1);
+
+      const twoCategoryStats = await helpers.getStats({
+        id: twoCategoryBudget.id,
+        raw: true,
+      });
+      expect(twoCategoryStats!.summary.actualExpense).toBe(80);
+      expect(twoCategoryStats!.summary.transactionsCount).toBe(1);
+
+      const allCategoryStats = await helpers.getStats({
+        id: allCategoryBudget.id,
+        raw: true,
+      });
+      expect(allCategoryStats!.summary.actualExpense).toBe(150);
+      expect(allCategoryStats!.summary.transactionsCount).toBe(1);
+    }, 60_000);
   });
 
-  describe('Stats Calculation - Date Boundary Edge Cases', () => {
-    it('respects budget with only startDate (no endDate)', async () => {
+  describe('Stats Calculation - Date Windows', () => {
+    it('applies budget date windows when calculating stats', async () => {
       const category = await helpers.addCustomCategory({ name: 'Test', color: '#FF0000', raw: true });
-
-      // Budget with only startDate
-      const budget = await helpers.createCustomBudget({
-        name: 'Start Only Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category.id],
-        startDate: '2025-03-01T00:00:00Z',
-        endDate: null,
-        raw: true,
-      });
-
       const account = await helpers.createAccount({ raw: true });
 
-      // Transaction before startDate - should NOT be counted
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-02-15T12:00:00Z',
-        }),
-        raw: true,
-      });
+      const seedTimes: [number, string][] = [
+        [100, '2025-01-15T12:00:00Z'],
+        [200, '2025-02-15T12:00:00Z'],
+        [300, '2025-03-01T00:00:00Z'],
+        [400, '2025-03-15T12:00:00Z'],
+        [500, '2025-03-31T23:59:59Z'],
+        [600, '2025-04-15T12:00:00Z'],
+        [700, '2025-06-15T12:00:00Z'],
+      ];
 
-      // Transaction on startDate - should be counted
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-03-01T00:00:00Z',
-        }),
-        raw: true,
-      });
+      for (const [amount, time] of seedTimes) {
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: category.id,
+            time,
+          }),
+          raw: true,
+        });
+      }
 
-      // Transaction after startDate - should be counted
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 300,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-06-15T12:00:00Z',
-        }),
-        raw: true,
-      });
-
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
-
-      // Should count transactions from startDate onwards (200 + 300)
-      expect(stats!.summary.actualExpense).toBe(500);
-      expect(stats!.summary.transactionsCount).toBe(2);
-    });
-
-    it('respects budget with only endDate (no startDate)', async () => {
-      const category = await helpers.addCustomCategory({ name: 'Test', color: '#FF0000', raw: true });
-
-      // Budget with only endDate
-      const budget = await helpers.createCustomBudget({
-        name: 'End Only Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category.id],
-        startDate: null,
-        endDate: '2025-03-31T23:59:59Z',
-        raw: true,
-      });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Transaction before endDate - should be counted
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-01-15T12:00:00Z',
-        }),
-        raw: true,
-      });
-
-      // Transaction on endDate - should be counted
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-03-31T23:59:59Z',
-        }),
-        raw: true,
-      });
-
-      // Transaction after endDate - should NOT be counted
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 300,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-04-15T12:00:00Z',
-        }),
-        raw: true,
-      });
-
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
-
-      // Should count transactions up to endDate (100 + 200)
-      expect(stats!.summary.actualExpense).toBe(300);
-      expect(stats!.summary.transactionsCount).toBe(2);
-    });
-  });
-
-  describe('Stats Calculation - Date Range', () => {
-    it('respects budget date range when calculating stats', async () => {
-      const category = await helpers.addCustomCategory({ name: 'Test', color: '#FF0000', raw: true });
-
-      // Budget with specific date range
-      const budget = await helpers.createCustomBudget({
+      const rangeBudget = await helpers.createCustomBudget({
         name: 'March Budget',
         type: BUDGET_TYPES.category,
         categoryIds: [category.id],
@@ -653,94 +508,58 @@ describe('Category-Based Budgets', () => {
         endDate: '2025-03-31T23:59:59Z',
         raw: true,
       });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Transaction within date range
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-03-15T12:00:00Z',
-        }),
+      const startOnlyBudget = await helpers.createCustomBudget({
+        name: 'Start Only Budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category.id],
+        startDate: '2025-03-01T00:00:00Z',
+        endDate: null,
         raw: true,
       });
-
-      // Transaction outside date range (February)
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-02-15T12:00:00Z',
-        }),
+      const endOnlyBudget = await helpers.createCustomBudget({
+        name: 'End Only Budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category.id],
+        startDate: null,
+        endDate: '2025-03-31T23:59:59Z',
         raw: true,
       });
-
-      // Transaction outside date range (April)
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 300,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-04-15T12:00:00Z',
-        }),
-        raw: true,
-      });
-
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
-
-      // Should only count the March transaction
-      expect(stats!.summary.actualExpense).toBe(100);
-      expect(stats!.summary.transactionsCount).toBe(1);
-    });
-
-    it('counts all transactions when no date range specified', async () => {
-      const category = await helpers.addCustomCategory({ name: 'Test', color: '#FF0000', raw: true });
-
-      // Budget without date range
-      const budget = await helpers.createCustomBudget({
+      const openBudget = await helpers.createCustomBudget({
         name: 'Open Budget',
         type: BUDGET_TYPES.category,
         categoryIds: [category.id],
         raw: true,
       });
 
-      const account = await helpers.createAccount({ raw: true });
-
-      // Multiple transactions at different dates
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-01-15T12:00:00Z',
-        }),
+      // Both boundaries are inclusive: the 2025-03-01T00:00:00Z and 2025-03-31T23:59:59Z rows count.
+      const rangeStats = await helpers.getStats({
+        id: rangeBudget.id,
         raw: true,
       });
+      expect(rangeStats!.summary.actualExpense).toBe(1200);
+      expect(rangeStats!.summary.transactionsCount).toBe(3);
 
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-06-15T12:00:00Z',
-        }),
+      const startOnlyStats = await helpers.getStats({
+        id: startOnlyBudget.id,
         raw: true,
       });
+      expect(startOnlyStats!.summary.actualExpense).toBe(2500);
+      expect(startOnlyStats!.summary.transactionsCount).toBe(5);
 
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
+      const endOnlyStats = await helpers.getStats({
+        id: endOnlyBudget.id,
+        raw: true,
+      });
+      expect(endOnlyStats!.summary.actualExpense).toBe(1500);
+      expect(endOnlyStats!.summary.transactionsCount).toBe(5);
 
-      // Should count all transactions
-      expect(stats!.summary.actualExpense).toBe(300);
-      expect(stats!.summary.transactionsCount).toBe(2);
-    });
+      const openStats = await helpers.getStats({
+        id: openBudget.id,
+        raw: true,
+      });
+      expect(openStats!.summary.actualExpense).toBe(2800);
+      expect(openStats!.summary.transactionsCount).toBe(7);
+    }, 60_000);
   });
 
   describe('Category Budget vs Manual Budget Stats', () => {
@@ -883,47 +702,6 @@ describe('Category-Based Budgets', () => {
       // Should only have one category now
       expect(updatedBudget!.categories).toHaveLength(1);
       expect(updatedBudget!.categories![0]!.id).toBe(category2.id);
-    });
-
-    it('handles transaction category change', async () => {
-      const category1 = await helpers.addCustomCategory({ name: 'Groceries', color: '#FF0000', raw: true });
-      const category2 = await helpers.addCustomCategory({ name: 'Transport', color: '#00FF00', raw: true });
-
-      // Budget only tracks category1
-      const budget = await helpers.createCustomBudget({
-        name: 'Grocery Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category1.id],
-        raw: true,
-      });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create transaction with category1
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category1.id,
-        }),
-        raw: true,
-      });
-
-      // Verify transaction is counted
-      let stats = await helpers.getStats({ id: budget.id, raw: true });
-      expect(stats!.summary.actualExpense).toBe(100);
-
-      // Change transaction category
-      await helpers.updateTransaction({
-        id: tx.id,
-        payload: { categoryId: category2.id },
-        raw: true,
-      });
-
-      // Verify transaction is no longer counted
-      stats = await helpers.getStats({ id: budget.id, raw: true });
-      expect(stats!.summary.actualExpense).toBe(0);
     });
 
     it('handles multiple budgets tracking same category', async () => {
@@ -1167,123 +945,62 @@ describe('Category-Based Budgets', () => {
       expect(result.transactions[0]!.effectiveCategory?.id).toBe(category1.id);
     });
 
-    it('returns split transactions with only matching split amounts', async () => {
+    it('returns one entry per matching split', async () => {
       const category1 = await helpers.addCustomCategory({ name: 'Groceries', color: '#FF0000', raw: true });
       const category2 = await helpers.addCustomCategory({ name: 'Household', color: '#00FF00', raw: true });
-
-      // Budget only tracks Groceries
-      const budget = await helpers.createCustomBudget({
-        name: 'Grocery Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category1.id],
+      const category3 = await helpers.addCustomCategory({
+        name: 'Leisure',
+        color: '#0000FF',
         raw: true,
       });
 
       const account = await helpers.createAccount({ raw: true });
 
-      // Create split transaction
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
-          amount: 100,
+          amount: 150,
           transactionType: TRANSACTION_TYPES.expense,
           categoryId: category1.id,
           splits: [
-            { amount: 60, categoryId: category1.id },
-            { amount: 40, categoryId: category2.id },
+            { amount: 50, categoryId: category1.id },
+            { amount: 30, categoryId: category2.id },
+            { amount: 70, categoryId: category3.id },
           ],
         }),
         raw: true,
       });
 
-      const result = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true });
-
-      // Should return only the Groceries split
-      expect(result.total).toBe(1);
-      expect(result.transactions[0]!.effectiveCategory?.id).toBe(category1.id);
-      expect(result.transactions[0]!.effectiveRefAmount).toBe(60);
-    });
-
-    it('returns multiple split entries when multiple splits match budget categories', async () => {
-      const category1 = await helpers.addCustomCategory({ name: 'Groceries', color: '#FF0000', raw: true });
-      const category2 = await helpers.addCustomCategory({ name: 'Household', color: '#00FF00', raw: true });
-
-      // Budget tracks both categories
-      const budget = await helpers.createCustomBudget({
+      const oneCategoryBudget = await helpers.createCustomBudget({
+        name: 'Grocery Budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category1.id],
+        raw: true,
+      });
+      const twoCategoryBudget = await helpers.createCustomBudget({
         name: 'Shopping Budget',
         type: BUDGET_TYPES.category,
         categoryIds: [category1.id, category2.id],
         raw: true,
       });
 
-      const account = await helpers.createAccount({ raw: true });
-
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category1.id,
-          splits: [
-            { amount: 60, categoryId: category1.id },
-            { amount: 40, categoryId: category2.id },
-          ],
-        }),
+      const oneCategoryResult = await helpers.getCategoryBudgetTransactions({
+        id: oneCategoryBudget.id,
         raw: true,
       });
+      expect(oneCategoryResult.total).toBe(1);
+      expect(oneCategoryResult.transactions[0]!.effectiveCategory?.id).toBe(category1.id);
+      expect(oneCategoryResult.transactions[0]!.effectiveRefAmount).toBe(50);
 
-      const result = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true });
-
-      // Should return both splits as separate entries
-      expect(result.total).toBe(2);
-      const amounts = result.transactions.map((t) => t.effectiveRefAmount);
-      expect(amounts).toContain(60);
-      expect(amounts).toContain(40);
-    });
-
-    it('respects budget date range', async () => {
-      const category = await helpers.addCustomCategory({ name: 'Test', color: '#FF0000', raw: true });
-
-      const budget = await helpers.createCustomBudget({
-        name: 'March Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category.id],
-        startDate: '2025-03-01T00:00:00Z',
-        endDate: '2025-03-31T23:59:59Z',
+      const twoCategoryResult = await helpers.getCategoryBudgetTransactions({
+        id: twoCategoryBudget.id,
         raw: true,
       });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Transaction within range
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-03-15T12:00:00Z',
-        }),
-        raw: true,
-      });
-
-      // Transaction outside range
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-04-15T12:00:00Z',
-        }),
-        raw: true,
-      });
-
-      const result = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true });
-
-      expect(result.total).toBe(1);
-      expect(result.transactions[0]!.effectiveRefAmount).toBe(100);
-    });
+      expect(twoCategoryResult.total).toBe(2);
+      const amounts = twoCategoryResult.transactions.map((t) => t.effectiveRefAmount);
+      expect(amounts).toContain(50);
+      expect(amounts).toContain(30);
+    }, 60_000);
 
     it('supports pagination with from and limit', async () => {
       const category = await helpers.addCustomCategory({ name: 'Test', color: '#FF0000', raw: true });
@@ -1343,22 +1060,24 @@ describe('Category-Based Budgets', () => {
       expect(result.transactions).toHaveLength(0);
     });
 
-    it('fails for manual budget', async () => {
-      const budget = await helpers.createCustomBudget({
+    it('rejects a manual budget id and an unknown budget id', async () => {
+      const manualBudget = await helpers.createCustomBudget({
         name: 'Manual Budget',
         type: BUDGET_TYPES.manual,
         raw: true,
       });
 
-      const response = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: false });
+      const manualResponse = await helpers.getCategoryBudgetTransactions({
+        id: manualBudget.id,
+        raw: false,
+      });
+      expect(manualResponse.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('fails for non-existent budget', async () => {
-      const response = await helpers.getCategoryBudgetTransactions({ id: NONEXISTENT_ID, raw: false });
-
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+      const unknownResponse = await helpers.getCategoryBudgetTransactions({
+        id: NONEXISTENT_ID,
+        raw: false,
+      });
+      expect(unknownResponse.statusCode).toBe(ERROR_CODES.NotFoundError);
     });
 
     it('returns transactions sorted by date descending', async () => {
@@ -1416,10 +1135,42 @@ describe('Category-Based Budgets', () => {
       expect(result.transactions[2]!.effectiveRefAmount).toBe(100);
     });
 
-    it('respects budget with only startDate', async () => {
+    it('applies budget date windows to the transactions endpoint', async () => {
       const category = await helpers.addCustomCategory({ name: 'Test', color: '#FF0000', raw: true });
+      const account = await helpers.createAccount({ raw: true });
 
-      const budget = await helpers.createCustomBudget({
+      const seedTimes: [number, string][] = [
+        [100, '2025-01-15T12:00:00Z'],
+        [200, '2025-02-15T12:00:00Z'],
+        [300, '2025-03-01T00:00:00Z'],
+        [400, '2025-03-15T12:00:00Z'],
+        [500, '2025-03-31T23:59:59Z'],
+        [600, '2025-04-15T12:00:00Z'],
+        [700, '2025-06-15T12:00:00Z'],
+      ];
+
+      for (const [amount, time] of seedTimes) {
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount,
+            transactionType: TRANSACTION_TYPES.expense,
+            categoryId: category.id,
+            time,
+          }),
+          raw: true,
+        });
+      }
+
+      const rangeBudget = await helpers.createCustomBudget({
+        name: 'March Budget',
+        type: BUDGET_TYPES.category,
+        categoryIds: [category.id],
+        startDate: '2025-03-01T00:00:00Z',
+        endDate: '2025-03-31T23:59:59Z',
+        raw: true,
+      });
+      const startOnlyBudget = await helpers.createCustomBudget({
         name: 'Start Only Budget',
         type: BUDGET_TYPES.category,
         categoryIds: [category.id],
@@ -1427,43 +1178,7 @@ describe('Category-Based Budgets', () => {
         endDate: null,
         raw: true,
       });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Transaction before startDate - should NOT be returned
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-02-15T12:00:00Z',
-        }),
-        raw: true,
-      });
-
-      // Transaction after startDate - should be returned
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-06-15T12:00:00Z',
-        }),
-        raw: true,
-      });
-
-      const result = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true });
-
-      expect(result.total).toBe(1);
-      expect(result.transactions[0]!.effectiveRefAmount).toBe(200);
-    });
-
-    it('respects budget with only endDate', async () => {
-      const category = await helpers.addCustomCategory({ name: 'Test', color: '#FF0000', raw: true });
-
-      const budget = await helpers.createCustomBudget({
+      const endOnlyBudget = await helpers.createCustomBudget({
         name: 'End Only Budget',
         type: BUDGET_TYPES.category,
         categoryIds: [category.id],
@@ -1472,37 +1187,29 @@ describe('Category-Based Budgets', () => {
         raw: true,
       });
 
-      const account = await helpers.createAccount({ raw: true });
-
-      // Transaction before endDate - should be returned
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-02-15T12:00:00Z',
-        }),
+      const rangeResult = await helpers.getCategoryBudgetTransactions({
+        id: rangeBudget.id,
         raw: true,
       });
+      expect(rangeResult.total).toBe(3);
+      expect(rangeResult.transactions.map((t) => t.effectiveRefAmount).toSorted()).toEqual([300, 400, 500]);
 
-      // Transaction after endDate - should NOT be returned
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 200,
-          transactionType: TRANSACTION_TYPES.expense,
-          categoryId: category.id,
-          time: '2025-04-15T12:00:00Z',
-        }),
+      const startOnlyResult = await helpers.getCategoryBudgetTransactions({
+        id: startOnlyBudget.id,
         raw: true,
       });
+      expect(startOnlyResult.total).toBe(5);
+      expect(startOnlyResult.transactions.map((t) => t.effectiveRefAmount).toSorted()).toEqual([
+        300, 400, 500, 600, 700,
+      ]);
 
-      const result = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true });
-
-      expect(result.total).toBe(1);
-      expect(result.transactions[0]!.effectiveRefAmount).toBe(100);
-    });
+      const endOnlyResult = await helpers.getCategoryBudgetTransactions({
+        id: endOnlyBudget.id,
+        raw: true,
+      });
+      expect(endOnlyResult.total).toBe(5);
+      expect(endOnlyResult.transactions.map((t) => t.effectiveRefAmount).toSorted()).toEqual([100, 200, 300, 400, 500]);
+    }, 60_000);
   });
 
   describe('AI Categorization Simulation', () => {
@@ -1513,14 +1220,13 @@ describe('Category-Based Budgets', () => {
      * updating them to have a category (which is what AI categorization does).
      */
 
-    it('budget stats update when uncategorized transaction gets AI-categorized', async () => {
+    it('counts a batch of transactions once AI categorization assigns the budget category', async () => {
       const category = await helpers.addCustomCategory({
         name: 'AI Target Category',
         color: '#FF0000',
         raw: true,
       });
 
-      // Create category budget BEFORE transaction exists
       const budget = await helpers.createCustomBudget({
         name: 'AI Tracked Budget',
         type: BUDGET_TYPES.category,
@@ -1531,35 +1237,38 @@ describe('Category-Based Budgets', () => {
 
       const account = await helpers.createAccount({ raw: true });
 
-      // Simulate: Transaction created without category (like from bank sync)
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 150,
-          transactionType: TRANSACTION_TYPES.expense,
-          // No categoryId - uncategorized
-        }),
-        raw: true,
-      });
+      const transactions = await Promise.all(
+        [30, 45, 25].map((amount) =>
+          helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: account.id,
+              amount,
+              transactionType: TRANSACTION_TYPES.expense,
+            }),
+            raw: true,
+          }),
+        ),
+      );
 
-      // Verify budget doesn't count uncategorized transaction
       let stats = await helpers.getStats({ id: budget.id, raw: true });
       expect(stats!.summary.actualExpense).toBe(0);
       expect(stats!.summary.transactionsCount).toBe(0);
 
-      // Simulate: AI categorization assigns the category
-      await helpers.updateTransaction({
-        id: tx.id,
-        payload: { categoryId: category.id },
-        raw: true,
-      });
+      await Promise.all(
+        transactions.map(([tx]) =>
+          helpers.updateTransaction({
+            id: tx.id,
+            payload: { categoryId: category.id },
+            raw: true,
+          }),
+        ),
+      );
 
-      // Verify budget now counts the transaction
       stats = await helpers.getStats({ id: budget.id, raw: true });
-      expect(stats!.summary.actualExpense).toBe(150);
-      expect(stats!.summary.transactionsCount).toBe(1);
-      expect(stats!.summary.utilizationRate).toBeCloseTo((150 / 1000) * 100, 1);
-    });
+      expect(stats!.summary.actualExpense).toBe(100);
+      expect(stats!.summary.transactionsCount).toBe(3);
+      expect(stats!.summary.utilizationRate).toBeCloseTo((100 / 1000) * 100, 1);
+    }, 60_000);
 
     it('handles AI re-categorization (category changed by AI)', async () => {
       const category1 = await helpers.addCustomCategory({ name: 'Groceries', color: '#FF0000', raw: true });
@@ -1614,118 +1323,6 @@ describe('Category-Based Budgets', () => {
 
       expect(groceryStats!.summary.actualExpense).toBe(0);
       expect(restaurantStats!.summary.actualExpense).toBe(50);
-    });
-
-    it('handles batch of transactions getting AI-categorized', async () => {
-      const category = await helpers.addCustomCategory({
-        name: 'Shopping',
-        color: '#FF0000',
-        raw: true,
-      });
-
-      const budget = await helpers.createCustomBudget({
-        name: 'Shopping Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category.id],
-        limitAmount: 500,
-        raw: true,
-      });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Create multiple uncategorized transactions (like from bank sync batch)
-      const transactions = await Promise.all([
-        helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 30,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        }),
-        helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 45,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        }),
-        helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            amount: 25,
-            transactionType: TRANSACTION_TYPES.expense,
-          }),
-          raw: true,
-        }),
-      ]);
-
-      // Initially no transactions counted
-      let stats = await helpers.getStats({ id: budget.id, raw: true });
-      expect(stats!.summary.actualExpense).toBe(0);
-
-      // Simulate: AI batch categorization
-      await Promise.all(
-        transactions.map(([tx]) =>
-          helpers.updateTransaction({
-            id: tx.id,
-            payload: { categoryId: category.id },
-            raw: true,
-          }),
-        ),
-      );
-
-      // All transactions now counted
-      stats = await helpers.getStats({ id: budget.id, raw: true });
-      expect(stats!.summary.actualExpense).toBe(100); // 30 + 45 + 25
-      expect(stats!.summary.transactionsCount).toBe(3);
-    });
-
-    it('handles AI categorization to child category when parent is in budget', async () => {
-      const parentCategory = await helpers.addCustomCategory({
-        name: 'Food',
-        color: '#FF0000',
-        raw: true,
-      });
-      const childCategory = await helpers.addCustomCategory({
-        name: 'Fast Food',
-        color: '#00FF00',
-        parentId: parentCategory.id,
-        raw: true,
-      });
-
-      // Budget tracks parent (which auto-includes children)
-      const budget = await helpers.createCustomBudget({
-        name: 'Food Budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [parentCategory.id],
-        raw: true,
-      });
-
-      const account = await helpers.createAccount({ raw: true });
-
-      // Uncategorized transaction
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 15,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      // AI categorizes to child category
-      await helpers.updateTransaction({
-        id: tx.id,
-        payload: { categoryId: childCategory.id },
-        raw: true,
-      });
-
-      // Should be counted since child is part of parent's budget
-      const stats = await helpers.getStats({ id: budget.id, raw: true });
-      expect(stats!.summary.actualExpense).toBe(15);
-      expect(stats!.summary.transactionsCount).toBe(1);
     });
   });
 });

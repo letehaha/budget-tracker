@@ -61,14 +61,19 @@ describe('POST /user/currencies/base – issue #305 regression', () => {
     }
   });
 
-  it('lets a fresh user set their base currency even when no self-pair rate row exists', async () => {
+  it('lets a fresh user set their base currency once, with no self-pair rate row, and rejects bad follow-ups', async () => {
     const handle = await helpers.signUpSecondUser();
+
+    const unknownCode = await helpers.asUser({
+      cookies: handle.cookies,
+      fn: () => helpers.setBaseCurrencyForActiveUser({ currencyCode: 'ZZZ' }),
+    });
+    expect(unknownCode.statusCode).toEqual(ERROR_CODES.ValidationError);
 
     const res = await helpers.asUser({
       cookies: handle.cookies,
       fn: () => helpers.setBaseCurrencyForActiveUser({ currencyCode: 'GBP' }),
     });
-
     expect(res.statusCode).toEqual(200);
 
     const userCurrencies = await helpers.asUser({
@@ -78,35 +83,11 @@ describe('POST /user/currencies/base – issue #305 regression', () => {
     const baseCurrency = userCurrencies.find((c) => c.isDefaultCurrency);
     expect(baseCurrency?.currencyCode).toBe('GBP');
     expect(baseCurrency?.exchangeRate).toBe(1);
-  });
-
-  it('rejects a second call once the user already has a base currency', async () => {
-    const handle = await helpers.signUpSecondUser();
-
-    await helpers.asUser({
-      cookies: handle.cookies,
-      fn: async () => {
-        const first = await helpers.setBaseCurrencyForActiveUser({ currencyCode: 'GBP' });
-        expect(first.statusCode).toEqual(200);
-      },
-    });
 
     const second = await helpers.asUser({
       cookies: handle.cookies,
       fn: () => helpers.setBaseCurrencyForActiveUser({ currencyCode: 'EUR' }),
     });
-
     expect(second.statusCode).toEqual(ERROR_CODES.ValidationError);
-  });
-
-  it('rejects an unknown currency code', async () => {
-    const handle = await helpers.signUpSecondUser();
-
-    const res = await helpers.asUser({
-      cookies: handle.cookies,
-      fn: () => helpers.setBaseCurrencyForActiveUser({ currencyCode: 'ZZZ' }),
-    });
-
-    expect(res.statusCode).toEqual(ERROR_CODES.ValidationError);
-  });
+  }, 60_000);
 });

@@ -7,6 +7,7 @@ import Holdings from '@models/investments/holdings.model';
 import InvestmentTransaction from '@models/investments/investment-transaction.model';
 import Portfolios from '@models/investments/portfolios.model';
 import Securities from '@models/investments/securities.model';
+import SecurityPricing from '@models/investments/security-pricing.model';
 import { restClient } from '@polygon.io/client-js';
 import { dataProviderFactory } from '@services/investments/data-providers/provider-factory';
 import * as helpers from '@tests/helpers';
@@ -454,6 +455,44 @@ describe('Investment holdings', () => {
     });
 
     it.todo('prevents race condition on duplicate (only one succeeds)');
+
+    it('stores pence-quoted LSE (GBp) prices as pounds', async () => {
+      dataProviderFactory.clearCache();
+      const mockedYahooChart = jest.fn<any>().mockResolvedValue({
+        meta: { currency: 'GBp' },
+        quotes: [{ date: new Date('2024-01-15'), close: 4082, adjclose: 4082 }],
+      });
+      mockedYahooFinance.mockImplementation(
+        () =>
+          ({
+            search: jest.fn<any>().mockRejectedValue(new Error('not configured')),
+            quote: jest.fn<any>().mockRejectedValue(new Error('not configured')),
+            chart: mockedYahooChart,
+          }) as any,
+      );
+
+      const response = await makeRequest({
+        method: 'post',
+        url: '/investments/holding',
+        payload: {
+          portfolioId: investmentPortfolio.id,
+          searchResult: {
+            symbol: 'EMIM.L',
+            providerSymbol: 'EMIM.L',
+            name: 'iShares Core MSCI EM IMI',
+            assetClass: ASSET_CLASS.stocks,
+            providerName: SECURITY_PROVIDER.yahoo,
+            currencyCode: 'GBp',
+          },
+        },
+      });
+      expect(response.statusCode).toBe(201);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const stored = await Securities.findOne({ where: { symbol: 'EMIM.L' } });
+      const price = await SecurityPricing.findOne({ where: { securityId: stored!.id } });
+      expect(price?.priceClose.toNumber()).toBeCloseTo(40.82, 5);
+    });
 
     describe('searchResult with priceSourceSymbol (Yahoo ISIN fallback path)', () => {
       it('persists priceSourceSymbol on the new security and routes initial price fetch through it', async () => {

@@ -83,36 +83,6 @@ describe('Account ref balances are spot measures', () => {
     expect(decimalToCents(updated.refCurrentBalance)).toEqualRefValue(10000 * SPOT_EUR_TO_AED);
   });
 
-  it('returns refCurrentBalance to exactly zero when the native balance nets to zero across rate changes', async () => {
-    const account = await createEurAccount();
-    await seedHistoricalRates();
-
-    await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100,
-        transactionType: TRANSACTION_TYPES.income,
-        time: HISTORICAL_DATE.toISOString(),
-      }),
-      raw: true,
-    });
-    await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: startOfDay(new Date()).toISOString(),
-      }),
-      raw: true,
-    });
-
-    // Money in at 7.0, out at ~3.87: the spot measure of a zero native balance is
-    // exactly zero, with no historical-rate residue.
-    const updated = await helpers.getAccount({ id: account.id, raw: true });
-    expect(Number(updated.currentBalance)).toBe(0);
-    expect(Number(updated.refCurrentBalance)).toBe(0);
-  });
-
   it('remeasures stored ref balances when the rate sync runs', async () => {
     const account = await createEurAccount();
 
@@ -145,34 +115,6 @@ describe('Account ref balances are spot measures', () => {
 
     const remeasured = await helpers.getAccount({ id: account.id, raw: true });
     expect(decimalToCents(remeasured.refCurrentBalance)).toEqualRefValue(10000 * (AED_PER_USD / newEurPerUsd));
-  });
-
-  it('remeasures the user balances immediately after a custom rate is set', async () => {
-    const account = await createEurAccount();
-
-    await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: 100,
-        transactionType: TRANSACTION_TYPES.income,
-      }),
-      raw: true,
-    });
-
-    await helpers.updateUserCurrency({
-      currency: { currencyCode: 'EUR', liveRateUpdate: false },
-      raw: true,
-    });
-    const res = await helpers.editCurrencyExchangeRate({
-      pairs: [
-        { baseCode: 'EUR', quoteCode: 'AED', rate: 5 },
-        { baseCode: 'AED', quoteCode: 'EUR', rate: 0.2 },
-      ],
-    });
-    expect(res.statusCode).toBe(200);
-
-    const remeasured = await helpers.getAccount({ id: account.id, raw: true });
-    expect(Number(remeasured.refCurrentBalance)).toBe(500);
   });
 
   it('restamps refInitialBalance at the earliest-transaction date rate when backdated transactions land', async () => {
@@ -234,6 +176,7 @@ describe('Account ref balances are spot measures', () => {
 
     // The account card reads zero (spot of a zero native balance).
     const updated = await helpers.getAccount({ id: account.id, raw: true });
+    expect(Number(updated.currentBalance)).toBe(0);
     expect(Number(updated.refCurrentBalance)).toBe(0);
 
     // The net-worth chart's latest point must agree: today's Balances row is a

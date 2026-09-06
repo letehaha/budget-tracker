@@ -116,6 +116,7 @@ export interface UserSettingsSchema {
    * expense. Subcategories inherit from their parent. Empty or unset leaves cash flow unchanged.
    */
   savingsCategoryIds?: string[];
+  currencyDisplay?: endpointsTypes.CurrencyDisplayPreference;
 }
 
 export const getUserSettings = async (): Promise<UserSettingsSchema> => {

@@ -11,6 +11,10 @@ describe('Execute YNAB import endpoint', () => {
     // Parse once just to capture the YNAB account names — they are the keys
     // the wizard wires the per-account currency picker against.
     const parsed = await helpers.parseYnab({ payload: { fileContent }, raw: true });
+    expect(parsed.result.accounts.length).toBeGreaterThan(0);
+    expect(parsed.result.dateRange).not.toBeNull();
+    expect(Array.isArray(parsed.result.warnings)).toBe(true);
+
     const usdName = parsed.result.accounts.find((a) => a.detectedCurrency === 'USD')!.originalName;
     const eurName = parsed.result.accounts.find((a) => a.detectedCurrency === 'EUR')!.originalName;
     const plnName = parsed.result.accounts.find((a) => a.detectedCurrency === 'PLN')!.originalName;
@@ -65,6 +69,28 @@ describe('Execute YNAB import endpoint', () => {
     expect(electric).toBeDefined();
     expect(electric!.transactionType).toBe('expense');
     expect(Number(electric!.amount)).toBe(120.5);
+
+    // Both legs must share a transferId so the unlink/link APIs and the
+    // transactions list can pair them. The fixture's only transfer carries the
+    // memo "Move to savings" on both legs.
+    const transferLegs = transactionsAfter.filter((t) => t.note === 'Move to savings');
+    expect(transferLegs).toHaveLength(2);
+    const [legA, legB] = transferLegs;
+    expect(legA!.transferId).toBeTruthy();
+    expect(legA!.transferId).toBe(legB!.transferId);
+    expect(legA!.accountId).not.toBe(legB!.accountId);
+
+    // Hit the dedicated by-transferId endpoint too — the wizard's followup
+    // "look at the transfer" UX uses this exact route.
+    const linkedPair = await helpers.getTransactionsByTransferId({ transferId: legA!.transferId!, raw: true });
+    expect(linkedPair).toHaveLength(2);
+  });
+
+  describe('POST /import/ynab/parse', () => {
+    it('surfaces parser validation errors as HTTP 422', async () => {
+      const response = await helpers.parseYnab({ payload: { fileContent: '   ' } });
+      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
   });
 
   it('imports the comprehensive multi-account, multi-flag fixture without losing rows', async () => {
@@ -176,35 +202,6 @@ describe('Execute YNAB import endpoint', () => {
       fn: () => helpers.getYnabImportStatus({ jobId }),
     });
     expect(statusAsOther.statusCode).toBe(ERROR_CODES.NotFoundError);
-  });
-
-  it('persists the YNAB transfer pair as two linked legs', async () => {
-    const fileContent = helpers.loadYnabFixture('register-basic.csv');
-    const parsed = await helpers.parseYnab({ payload: { fileContent }, raw: true });
-    const accountMapping = Object.fromEntries(
-      parsed.result.accounts.map((a) => [a.originalName, { currencyCode: a.detectedCurrency! }]),
-    );
-
-    const { jobId } = await helpers.executeYnab({ payload: { fileContent, accountMapping }, raw: true });
-    const progress = await waitForYnabImportCompletion({ jobId });
-    expectYnabImportCompleted(progress);
-    expect(progress.summary.transfersImported).toBe(1);
-
-    // The basic fixture's only transfer carries the memo "Move to savings"
-    // on both legs. They must share a transferId so the unlink/link APIs and
-    // the transactions list can pair them.
-    const transactionsAfter = await helpers.getTransactions({ raw: true });
-    const transferLegs = transactionsAfter.filter((t) => t.note === 'Move to savings');
-    expect(transferLegs).toHaveLength(2);
-    const [legA, legB] = transferLegs;
-    expect(legA!.transferId).toBeTruthy();
-    expect(legA!.transferId).toBe(legB!.transferId);
-    expect(legA!.accountId).not.toBe(legB!.accountId);
-
-    // Hit the dedicated by-transferId endpoint too — the wizard's followup
-    // "look at the transfer" UX uses this exact route.
-    const linkedPair = await helpers.getTransactionsByTransferId({ transferId: legA!.transferId!, raw: true });
-    expect(linkedPair).toHaveLength(2);
   });
 
   it('skips a mapped-to-skip account: no account, no rows, no orphan entities', async () => {

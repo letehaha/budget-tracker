@@ -78,7 +78,11 @@
                   <span class="font-semibold">{{
                     t('pages.integrations.instructionsDialog.step1.steps.redirectUrls')
                   }}</span>
-                  <ClickToCopy class="w-auto max-w-68.75 min-w-auto sm:max-w-125" :value="callbackUrl" />
+                  <ClickToCopy
+                    v-if="callbackUrl"
+                    class="w-auto max-w-68.75 min-w-auto sm:max-w-125"
+                    :value="callbackUrl"
+                  />
                 </div>
                 <div class="flex flex-wrap gap-1">
                   <span class="font-semibold">{{
@@ -256,10 +260,14 @@
 </template>
 
 <script lang="ts" setup>
+import { type BankProvider, listProviders } from '@/api/bank-data-providers';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import ClickToCopy from '@/components/common/click-to-copy.vue';
 import ExternalLink from '@/components/external-link.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
+import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { InfoIcon, TriangleAlertIcon } from '@lucide/vue';
+import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -276,5 +284,14 @@ defineEmits<{
   'update:open': [value: boolean];
 }>();
 
-const callbackUrl = computed(() => `${window.location.origin}/bank-callback`);
+const { data: providers } = useQuery({
+  queryKey: VUE_QUERY_CACHE_KEYS.bankProviders,
+  queryFn: listProviders,
+  staleTime: Infinity,
+  placeholderData: [] as BankProvider[],
+});
+
+const callbackUrl = computed(
+  () => providers.value?.find((p) => p.type === BANK_PROVIDER_TYPE.ENABLE_BANKING)?.redirectUrl,
+);
 </script>

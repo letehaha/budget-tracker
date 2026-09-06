@@ -24,15 +24,6 @@ interface AdjustAccountBalanceParams {
   note?: string;
   /** Effective date of the adjustment. Defaults to now when omitted — pass a past date to backdate. */
   time?: Date;
-  /**
-   * Vehicle accounts may only have their value changed through the dedicated
-   * override endpoint (`POST /vehicles/:id/value` → `overrideVehicleValue`),
-   * which sets this to `true`. Every other caller (the public
-   * `POST /accounts/:id/balance-adjustment` controller) leaves it falsy, so a
-   * vehicle account is rejected below — there is exactly one sanctioned path to
-   * a vehicle's value, keeping `Vehicle.valueAnchor` authoritative.
-   */
-  allowVehicle?: boolean;
 }
 
 interface AdjustAccountBalanceResult {
@@ -48,7 +39,6 @@ export const adjustAccountBalance = withTransaction(
     targetBalance,
     note,
     time,
-    allowVehicle,
   }: AdjustAccountBalanceParams): Promise<AdjustAccountBalanceResult> => {
     const account = await getAccountById({ id: accountId, userId });
 
@@ -58,13 +48,10 @@ export const adjustAccountBalance = withTransaction(
       });
     }
 
-    // A vehicle's value is owned by the depreciation model + override flow. The
-    // generic balance-adjustment path leaves `allowVehicle` falsy, so reject it
-    // here and point the caller at the override endpoint — only that path keeps
-    // `Vehicle.valueAnchor` in sync.
-    if (account.accountCategory === ACCOUNT_CATEGORIES.vehicle && !allowVehicle) {
+    // Negative value for the car is impossible
+    if (account.accountCategory === ACCOUNT_CATEGORIES.vehicle && targetBalance.isNegative()) {
       throw new ValidationError({
-        message: t({ key: 'balanceAdjustment.vehicleUseOverride' }),
+        message: t({ key: 'balanceAdjustment.vehicleNegativeValue' }),
       });
     }
 

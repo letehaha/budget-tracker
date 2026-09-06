@@ -17,13 +17,13 @@ import Accounts from '@models/accounts.model';
 import UserSettings, { DEFAULT_SETTINGS, type SettingsSchema } from '@models/user-settings.model';
 import * as UsersCurrencies from '@models/users-currencies.model';
 import * as accountsService from '@services/accounts.service';
+import { adjustAccountBalance } from '@services/accounts/balance-adjustment';
 import { createBudget } from '@services/budgets/create-budget';
 import * as categoriesService from '@services/categories.service';
 import { createLoan } from '@services/loans/create-loan.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
 import { createVehicle } from '@services/vehicles/create-vehicle.service';
-import { overrideVehicleValue } from '@services/vehicles/override-vehicle-value.service';
 import { createVentureDeal } from '@services/venture/deals/create.service';
 import { createVentureEvent } from '@services/venture/events/create.service';
 import { createVenturePlatform } from '@services/venture/platforms/create.service';
@@ -393,10 +393,10 @@ export async function setupVehicles({ userId, referenceDate }: { userId: number;
     });
 
     if (vehicle && config.override) {
-      await overrideVehicleValue({
+      await adjustAccountBalance({
         userId,
-        vehicleId: vehicle.id,
-        targetValue: Money.fromDecimal(config.override.targetValue),
+        accountId: vehicle.accountId,
+        targetBalance: Money.fromDecimal(config.override.targetValue),
         note: config.override.note,
         time: subMonths(referenceDate, config.override.monthsAgo),
       });

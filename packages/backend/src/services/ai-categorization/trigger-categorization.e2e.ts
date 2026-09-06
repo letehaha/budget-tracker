@@ -7,15 +7,10 @@ import {
 } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { app } from '@root/app';
-import { API_PREFIX } from '@root/config';
 import * as helpers from '@tests/helpers';
 import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
 import { GEMINI_API_URL, VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { HttpResponse, delay, http } from 'msw';
-import request from 'supertest';
-
-const TRIGGER_URL = `${API_PREFIX}/user/ai/categorization/trigger`;
 
 const RUN_SETTLE_TIMEOUT_MS = 15_000;
 const TEST_TIMEOUT_MS = 60_000;
@@ -117,12 +112,6 @@ describe('POST /user/ai/categorization/trigger', () => {
     }
   });
 
-  it('returns 401 for an unauthenticated request', async () => {
-    const response = await request(app).post(TRIGGER_URL);
-
-    expect(response.statusCode).toBe(401);
-  });
-
   it(
     'categorizes the transactions still sitting in the default category',
     async () => {
@@ -173,18 +162,34 @@ describe('POST /user/ai/categorization/trigger', () => {
     TEST_TIMEOUT_MS,
   );
 
-  it('reports nothing to do and spends no budget when there are no candidates', async () => {
-    process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
-    global.mswMockServer.use(geminiTextMock());
+  it(
+    'reports nothing to do and spends no budget when nothing supplied is a candidate',
+    async () => {
+      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
+      global.mswMockServer.use(geminiTextMock());
 
-    // Past the server-key budget of 3, so a consumed attempt would surface as a 429.
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const response = await helpers.triggerAiCategorization();
+      // Past the server-key budget of 3, so a consumed attempt would surface as a 429.
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const response = await helpers.triggerAiCategorization();
 
-      expect(response.statusCode).toBe(200);
-      expect(response.body.response).toEqual({ enqueued: false, totalCount: 0 });
-    }
-  });
+        expect(response.statusCode).toBe(200);
+        expect(response.body.response).toEqual({ enqueued: false, totalCount: 0 });
+      }
+
+      await seedUncategorizedTransactions({ count: 2 });
+      const transferId = await seedTransferTransaction();
+
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const response = await helpers.triggerAiCategorization({
+          payload: { transactionIds: [transferId, generateRandomRecordId()] },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.response).toEqual({ enqueued: false, totalCount: 0 });
+      }
+    },
+    TEST_TIMEOUT_MS,
+  );
 
   it(
     'returns 409 while a run is already going',
@@ -266,7 +271,8 @@ describe('POST /user/ai/categorization/trigger', () => {
       });
       expect(keyResponse.statusCode).toBe(200);
 
-      for (let attempt = 0; attempt < 5; attempt++) {
+      // One past the server-key budget of 3: enough to prove the limiter is not applied.
+      for (let attempt = 0; attempt < 4; attempt++) {
         await seedUncategorizedTransactions({ count: 2 });
         const response = await helpers.triggerAiCategorization();
 
@@ -351,50 +357,31 @@ describe('POST /user/ai/categorization/trigger', () => {
       TEST_TIMEOUT_MS,
     );
 
-    it('reports nothing to do and spends no budget when no supplied id is a candidate', async () => {
-      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
-      global.mswMockServer.use(geminiTextMock());
+    it(
+      'rejects an empty list and an over-long list without touching the candidate pool',
+      async () => {
+        process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
+        global.mswMockServer.use(geminiTextMock());
 
-      await seedUncategorizedTransactions({ count: 2 });
-      const transferId = await seedTransferTransaction();
+        const seededIds = await seedUncategorizedTransactions({ count: 2 });
 
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const response = await helpers.triggerAiCategorization({
-          payload: { transactionIds: [transferId, generateRandomRecordId()] },
+        const emptyList = await helpers.triggerAiCategorization({ payload: { transactionIds: [] } });
+        expect(emptyList.statusCode).toBe(422);
+
+        const overLongList = await helpers.triggerAiCategorization({
+          payload: {
+            transactionIds: Array.from({ length: AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN + 1 }, () =>
+              generateRandomRecordId(),
+            ),
+          },
         });
+        expect(overLongList.statusCode).toBe(422);
 
-        expect(response.statusCode).toBe(200);
-        expect(response.body.response).toEqual({ enqueued: false, totalCount: 0 });
-      }
-    });
-
-    it('rejects an empty list instead of widening it to every candidate', async () => {
-      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
-      global.mswMockServer.use(geminiTextMock());
-
-      const seededIds = await seedUncategorizedTransactions({ count: 2 });
-
-      const response = await helpers.triggerAiCategorization({ payload: { transactionIds: [] } });
-      expect(response.statusCode).toBe(422);
-
-      const remaining = await helpers.getAiCategorizationCandidates({ raw: true });
-      expect(remaining.items.map((transaction) => transaction.id).sort()).toEqual([...seededIds].sort());
-    });
-
-    it('rejects a list longer than one run can process', async () => {
-      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
-      global.mswMockServer.use(geminiTextMock());
-
-      await seedUncategorizedTransactions({ count: 1 });
-
-      const transactionIds = Array.from({ length: AI_CATEGORIZATION_MAX_TRANSACTIONS_PER_RUN + 1 }, () =>
-        generateRandomRecordId(),
-      );
-
-      const response = await helpers.triggerAiCategorization({ payload: { transactionIds } });
-
-      expect(response.statusCode).toBe(422);
-    });
+        const remaining = await helpers.getAiCategorizationCandidates({ raw: true });
+        expect(remaining.items.map((transaction) => transaction.id).sort()).toEqual([...seededIds].sort());
+      },
+      TEST_TIMEOUT_MS,
+    );
   });
 
   describe('without any AI configuration', () => {

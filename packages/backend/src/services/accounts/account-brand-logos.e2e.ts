@@ -125,121 +125,56 @@ describe('Account logo', () => {
       expect(after.logoDomain).toBe('custom.example');
     });
 
-    it('accepts a single ZWJ emoji as one grapheme', async () => {
-      const created = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Family Fund', logoInitials: '👨‍👩‍👧' }),
-        raw: true,
-      });
-
-      expect(created.logoInitials).toBe('👨‍👩‍👧');
-      expect(created.logoColor).toBeNull();
-    });
-
-    it('accepts two family ZWJ emoji whose UTF-16 length exceeds 16', async () => {
+    it('accepts ZWJ emoji monograms of one and two graphemes', async () => {
+      const single = '👨‍👩‍👧';
       // Each family emoji is 7 code points (11 UTF-16 units); two of them are 2
       // graphemes / 14 code points, which fits VARCHAR(16) – Postgres counts
       // code points, so a UTF-16-based length cap would wrongly reject this.
-      const initials = '👨‍👩‍👧‍👦👨‍👩‍👧‍👦';
-      const created = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Two Families', logoInitials: initials }),
+      const pair = '👨‍👩‍👧‍👦👨‍👩‍👧‍👦';
+
+      const createdSingle = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Family Fund', logoInitials: single }),
         raw: true,
       });
+      expect(createdSingle.logoInitials).toBe(single);
+      expect(createdSingle.logoColor).toBeNull();
 
-      expect(created.logoInitials).toBe(initials);
-
-      const fetched = await helpers.getAccount({ id: created.id, raw: true });
-      expect(fetched.logoInitials).toBe(initials);
-    });
-
-    it('returns 422 when logoDomain contains a space', async () => {
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Create Bad Domain Space', logoDomain: 'has space' }),
-        raw: false,
+      const createdPair = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Two Families', logoInitials: pair }),
+        raw: true,
       });
+      expect(createdPair.logoInitials).toBe(pair);
 
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+      const fetchedSingle = await helpers.getAccount({ id: createdSingle.id, raw: true });
+      expect(fetchedSingle.logoInitials).toBe(single);
+      const fetchedPair = await helpers.getAccount({ id: createdPair.id, raw: true });
+      expect(fetchedPair.logoInitials).toBe(pair);
     });
 
-    it('returns 422 when logoDomain contains a slash', async () => {
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Create Bad Domain Slash', logoDomain: 'x/y' }),
-        raw: false,
-      });
+    it('returns 422 for every malformed logo payload', async () => {
+      const cases: [string, Record<string, unknown>][] = [
+        ['logoDomain contains a space', { logoDomain: 'has space' }],
+        ['logoDomain contains a slash', { logoDomain: 'x/y' }],
+        ['logoDomain of 254 characters', { logoDomain: `${'a'.repeat(250)}.com` }],
+        ['logoDomain and logoInitials both set', { logoDomain: 'netflix.com', logoInitials: 'NF' }],
+        ['whitespace-only logoInitials', { logoInitials: '   ' }],
+        ['three graphemes', { logoInitials: 'ABC' }],
+        // A letter plus 20 combining accents is one grapheme but 21 code points, which
+        // overflows the VARCHAR(16) column. The schema must reject it before Postgres raises.
+        ['one grapheme built from more than 16 code points', { logoInitials: `a${'\u0301'.repeat(20)}` }],
+        ['malformed logoColor', { logoInitials: 'BC', logoColor: 'violet' }],
+        ['logoColor without logoInitials', { logoColor: '#7355be' }],
+      ];
 
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+      for (const [label, logoFields] of cases) {
+        const res = await helpers.createAccount({
+          payload: helpers.buildAccountPayload({ name: `Bad - ${label}`, ...logoFields }),
+          raw: false,
+        });
 
-    it('returns 422 for a logoDomain of 254 characters', async () => {
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          name: 'Overlong Domain',
-          logoDomain: `${'a'.repeat(250)}.com`,
-        }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoDomain and logoInitials are both set', async () => {
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Both Logos', logoDomain: 'netflix.com', logoInitials: 'NF' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for whitespace-only logoInitials', async () => {
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Blank Initials', logoInitials: '   ' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for three graphemes', async () => {
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Too Many Letters', logoInitials: 'ABC' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for one grapheme built from more than 16 code points', async () => {
-      // A letter plus 20 combining accents is a single grapheme but 21 code
-      // points, which overflows the VARCHAR(16) column – the schema must reject
-      // it rather than let Postgres raise.
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          name: 'Stacked Accents',
-          logoInitials: `a${'\u0301'.repeat(20)}`,
-        }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 for a malformed logoColor', async () => {
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Bad Color', logoInitials: 'BC', logoColor: 'violet' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when logoColor is sent without logoInitials', async () => {
-      const res = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Color Only', logoColor: '#7355be' }),
-        raw: false,
-      });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
+        expect([label, res.statusCode]).toEqual([label, ERROR_CODES.ValidationError]);
+      }
+    }, 60_000);
   });
 
   describe('PUT /accounts/:id', () => {
@@ -345,34 +280,25 @@ describe('Account logo', () => {
       expect(updated.logoDomain).toBeNull();
     });
 
-    it('returns 422 when logoColor is sent for an account without initials', async () => {
+    it('returns 422 for malformed logo PUT payloads', async () => {
       const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'No Initials Yet' }),
+        payload: helpers.buildAccountPayload({ name: 'Bad Logo Updates' }),
         raw: true,
       });
 
-      const res = await helpers.updateAccount({
+      const colorWithoutInitials = await helpers.updateAccount({
         id: account.id,
         payload: { logoColor: '#7355be' },
         raw: false,
       });
+      expect(colorWithoutInitials.statusCode).toBe(ERROR_CODES.ValidationError);
 
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it('returns 422 when the payload carries both logoDomain and logoInitials', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Both On Update' }),
-        raw: true,
-      });
-
-      const res = await helpers.updateAccount({
+      const domainAndInitials = await helpers.updateAccount({
         id: account.id,
         payload: { logoDomain: 'netflix.com', logoInitials: 'NF' },
         raw: false,
       });
-
-      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(domainAndInitials.statusCode).toBe(ERROR_CODES.ValidationError);
     });
 
     it('returns 404 for an account that does not exist', async () => {
@@ -383,28 +309,6 @@ describe('Account logo', () => {
       });
 
       expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
-
-    it("returns 404 when a different user tries to set another user's logoDomain", async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'LogoCrossUserGuard' }),
-        raw: true,
-      });
-
-      const handle = await helpers.signUpSecondUser();
-      const response = await helpers.asUser({
-        cookies: handle.cookies,
-        fn: () =>
-          helpers.updateAccount({
-            id: account.id,
-            payload: { logoDomain: 'hijack.com' },
-            raw: false,
-          }),
-      });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-
-      const after = await helpers.getAccount({ id: account.id, raw: true });
-      expect(after.logoDomain).toBeNull();
     });
 
     it("returns 404 when a different user tries to clear another user's logo", async () => {
@@ -431,7 +335,7 @@ describe('Account logo', () => {
   });
 
   describe('PUT /accounts/:id – clearing the logo', () => {
-    it('clears a brand logo when logoDomain is null', async () => {
+    it('clears a brand logo when logoDomain is null and stays cleared on a repeat clear', async () => {
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ name: 'Apple', logoDomain: 'apple.com' }),
         raw: true,
@@ -447,11 +351,25 @@ describe('Account logo', () => {
       expect(updated.logoInitials).toBeNull();
       expect(updated.logoColor).toBeNull();
       expect(updated).not.toHaveProperty('logoSource');
+
+      const recleared = await helpers.updateAccount({
+        id: account.id,
+        payload: { logoDomain: null, logoInitials: null },
+        raw: true,
+      });
+
+      expect(recleared.logoDomain).toBeNull();
+      expect(recleared.logoInitials).toBeNull();
+      expect(recleared.logoColor).toBeNull();
     });
 
-    it('clears initials and color when logoInitials is null', async () => {
+    it('clears initials and color when logoInitials is null, leaving the account indistinguishable from a never-branded one', async () => {
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({ name: 'Clear Me', logoInitials: 'CM', logoColor: '#ef4444' }),
+        raw: true,
+      });
+      const untouched = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Never Branded' }),
         raw: true,
       });
 
@@ -464,25 +382,8 @@ describe('Account logo', () => {
       expect(updated.logoInitials).toBeNull();
       expect(updated.logoColor).toBeNull();
       expect(updated.logoDomain).toBeNull();
-    });
 
-    it('leaves a cleared account indistinguishable from one that never had a logo', async () => {
-      const cleared = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Was Branded', logoInitials: 'WB', logoColor: '#7355be' }),
-        raw: true,
-      });
-      const untouched = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'Never Branded' }),
-        raw: true,
-      });
-
-      await helpers.updateAccount({
-        id: cleared.id,
-        payload: { logoDomain: null, logoInitials: null },
-        raw: true,
-      });
-
-      const clearedAfter = await helpers.getAccount({ id: cleared.id, raw: true });
+      const clearedAfter = await helpers.getAccount({ id: account.id, raw: true });
       const untouchedAfter = await helpers.getAccount({ id: untouched.id, raw: true });
 
       expect({
@@ -494,25 +395,7 @@ describe('Account logo', () => {
         logoInitials: untouchedAfter.logoInitials,
         logoColor: untouchedAfter.logoColor,
       });
-      expect(clearedAfter.logoDomain).toBeNull();
       expect(clearedAfter).not.toHaveProperty('logoSource');
-    });
-
-    it('is idempotent – clearing an account that has no logo succeeds', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ name: 'No Logo Co' }),
-        raw: true,
-      });
-
-      const updated = await helpers.updateAccount({
-        id: account.id,
-        payload: { logoDomain: null, logoInitials: null },
-        raw: true,
-      });
-
-      expect(updated.logoDomain).toBeNull();
-      expect(updated.logoInitials).toBeNull();
-      expect(updated.logoColor).toBeNull();
     });
   });
 

@@ -1,8 +1,16 @@
 import { AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
-import { createFirstEndpoint, getTestUserId, seedApiKey, setAiFeatureConfig } from '@tests/helpers/user-settings';
-import { CUSTOM_ENDPOINT_MODEL } from '@tests/mocks/openai-compatible/mock-api';
+import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
+import {
+  createFirstEndpoint,
+  errorMessage,
+  getTestUserId,
+  readStoredEndpoints,
+  seedApiKey,
+  setAiFeatureConfig,
+} from '@tests/helpers/user-settings';
+import { CUSTOM_ENDPOINT_MODEL, getCustomEndpointOfflineMock } from '@tests/mocks/openai-compatible/mock-api';
 
 const CUSTOM_MODEL_ID = `custom/${CUSTOM_ENDPOINT_MODEL}`;
 
@@ -75,6 +83,7 @@ describe('Investment transactions parser cost estimation', () => {
     expect(estimate.modelName).toBe(CUSTOM_ENDPOINT_MODEL);
     expect(estimate.usingUserKey).toBe(true);
     expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
+    expect(estimate.estimatedOutputTokens).toBeGreaterThan(0);
     expect(estimate.estimatedCostUsd).toBeNull();
   });
 
@@ -89,5 +98,34 @@ describe('Investment transactions parser cost estimation', () => {
 
     expect(estimate.modelId).toBe(CATALOG_MODEL_ID);
     expect(estimate.estimatedCostUsd).toBeGreaterThan(0);
+  });
+});
+
+const BROKER_EXPORT_BASE64 = Buffer.from('Broker export\nBTC 0.05 @ 42000 USD on 2024-01-15', 'utf-8').toString(
+  'base64',
+);
+
+describe('Investment transactions AI extraction against a dead endpoint', () => {
+  useSelfHostWithoutServerAiKeys();
+
+  it('names the endpoint and flags it when the server is gone', async () => {
+    const userId = await getTestUserId();
+    await createFirstEndpoint();
+    const portfolio = await helpers.createPortfolio({
+      payload: helpers.buildPortfolioPayload({ name: 'AI import' }),
+      raw: true,
+    });
+    global.mswMockServer.use(getCustomEndpointOfflineMock());
+
+    const response = await helpers.investmentImportExtract({
+      payload: { fileBase64: BROKER_EXPORT_BASE64, defaultPortfolioId: portfolio.id },
+    });
+
+    expect(errorMessage({ response })).toMatch(/did not respond/i);
+    expect(errorMessage({ response })).not.toContain(CUSTOM_ENDPOINT_MODEL);
+
+    const [stored] = await readStoredEndpoints({ userId });
+    expect(stored?.status).toBe('invalid');
+    expect(stored?.lastError).toMatch(/did not respond/i);
   });
 });

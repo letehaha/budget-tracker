@@ -32,7 +32,7 @@ const expectRejectedBy = ({ response, rule }: { response: unknown; rule: string 
 
 describe('Transaction original-currency metadata', () => {
   describe('POST /transactions', () => {
-    it('stores and returns both fields as decimals', async () => {
+    it('stores the pair as decimals, defaults it to null and never connects the currency', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       const created = await createTx({
@@ -49,49 +49,28 @@ describe('Transaction original-currency metadata', () => {
 
       expect(fetched!.originalAmount).toBe(5000.55);
       expect(fetched!.originalCurrencyCode).toBe('JPY');
-    });
 
-    it('leaves both fields null when neither is provided', async () => {
-      const account = await helpers.createAccount({ raw: true });
+      const withoutPair = await createTx({ accountId: account.id, amount: 30 });
 
-      const created = await createTx({ accountId: account.id, amount: 30 });
-
-      expect(created.originalAmount).toBeNull();
-      expect(created.originalCurrencyCode).toBeNull();
-    });
-
-    it('accepts a currency the user has not connected', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 30,
-          originalAmount: 5000,
-          originalCurrencyCode: 'JPY',
-        }),
-      });
-
-      expect(response.statusCode).toBe(200);
+      expect(withoutPair.originalAmount).toBeNull();
+      expect(withoutPair.originalCurrencyCode).toBeNull();
 
       const connectedCurrencies = await helpers.getUserCurrencies();
       expect(connectedCurrencies.some((item) => item.currencyCode === 'JPY')).toBe(false);
     });
 
-    it('rejects originalAmount without originalCurrencyCode', async () => {
-      const account = await helpers.createAccount({ raw: true });
+    it('rejects half a pair, an unknown currency and the pair on a transfer', async () => {
+      const [account, destination] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createAccount({ raw: true }),
+      ]);
 
-      const response = await helpers.createTransaction({
+      const withoutCurrencyCode = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 30, originalAmount: 5000 }),
       });
+      expectRejectedBy({ response: withoutCurrencyCode, rule: RULES.createPairTogether });
 
-      expectRejectedBy({ response, rule: RULES.createPairTogether });
-    });
-
-    it('rejects an unknown currency code', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const response = await helpers.createTransaction({
+      const unknownCurrency = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 30,
@@ -99,19 +78,11 @@ describe('Transaction original-currency metadata', () => {
           originalCurrencyCode: 'ZZZ',
         }),
       });
+      expectRejectedBy({ response: unknownCurrency, rule: RULES.invalidCurrencyCode });
 
-      expectRejectedBy({ response, rule: RULES.invalidCurrencyCode });
-    });
-
-    it('rejects the pair on a transfer', async () => {
-      const [source, destination] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        helpers.createAccount({ raw: true }),
-      ]);
-
-      const response = await helpers.createTransaction({
+      const onTransfer = await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
-          accountId: source.id,
+          accountId: account.id,
           amount: 30,
           transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
           destinationAccountId: destination.id,
@@ -120,8 +91,7 @@ describe('Transaction original-currency metadata', () => {
           originalCurrencyCode: 'JPY',
         }),
       });
-
-      expectRejectedBy({ response, rule: RULES.transferPayload });
+      expectRejectedBy({ response: onTransfer, rule: RULES.transferPayload });
     });
 
     it('does not affect the account balance or refAmount', async () => {
@@ -209,42 +179,31 @@ describe('Transaction original-currency metadata', () => {
       expect(updated!.originalCurrencyCode).toBe('JPY');
     });
 
-    it('rejects setting only one half of the pair', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const created = await createTx({ accountId: account.id, amount: 30 });
-
-      const response = await helpers.updateTransaction({ id: created.id, payload: { originalAmount: 5000 } });
-
-      expectRejectedBy({ response, rule: RULES.updatePairTogether });
-    });
-
-    it('rejects clearing only one half of the pair', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const created = await createTx({
-        accountId: account.id,
+    it('rejects half a pair and the pair on anything that turns into a transfer', async () => {
+      const [source, destination] = await Promise.all([
+        helpers.createAccount({ raw: true }),
+        helpers.createAccount({ raw: true }),
+      ]);
+      const plain = await createTx({
+        accountId: source.id,
+        amount: 30,
+        transactionType: TRANSACTION_TYPES.expense,
+      });
+      const withPair = await createTx({
+        accountId: source.id,
         amount: 30,
         originalAmount: 5000,
         originalCurrencyCode: 'JPY',
       });
 
-      const response = await helpers.updateTransaction({ id: created.id, payload: { originalAmount: null } });
+      const halfSet = await helpers.updateTransaction({ id: plain.id, payload: { originalAmount: 5000 } });
+      expectRejectedBy({ response: halfSet, rule: RULES.updatePairTogether });
 
-      expectRejectedBy({ response, rule: RULES.updatePairTogether });
-    });
+      const halfCleared = await helpers.updateTransaction({ id: withPair.id, payload: { originalAmount: null } });
+      expectRejectedBy({ response: halfCleared, rule: RULES.updatePairTogether });
 
-    it('rejects the pair when the transaction becomes a transfer', async () => {
-      const [source, destination] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        helpers.createAccount({ raw: true }),
-      ]);
-      const created = await createTx({
-        accountId: source.id,
-        amount: 30,
-        transactionType: TRANSACTION_TYPES.expense,
-      });
-
-      const response = await helpers.updateTransaction({
-        id: created.id,
+      const toTransfer = await helpers.updateTransaction({
+        id: plain.id,
         payload: {
           transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
           destinationAccountId: destination.id,
@@ -253,23 +212,10 @@ describe('Transaction original-currency metadata', () => {
           originalCurrencyCode: 'JPY',
         },
       });
+      expectRejectedBy({ response: toTransfer, rule: RULES.transferPayload });
 
-      expectRejectedBy({ response, rule: RULES.transferPayload });
-    });
-
-    it('rejects the pair sent with destination fields but no explicit transferNature', async () => {
-      const [source, destination] = await Promise.all([
-        helpers.createAccount({ raw: true }),
-        helpers.createAccount({ raw: true }),
-      ]);
-      const created = await createTx({
-        accountId: source.id,
-        amount: 30,
-        transactionType: TRANSACTION_TYPES.expense,
-      });
-
-      const response = await helpers.updateTransaction({
-        id: created.id,
+      const implicitTransfer = await helpers.updateTransaction({
+        id: plain.id,
         payload: {
           destinationAccountId: destination.id,
           destinationAmount: 30,
@@ -277,8 +223,7 @@ describe('Transaction original-currency metadata', () => {
           originalCurrencyCode: 'JPY',
         },
       });
-
-      expectRejectedBy({ response, rule: RULES.transferPayload });
+      expectRejectedBy({ response: implicitTransfer, rule: RULES.transferPayload });
     });
 
     it('keeps the stored pair through a transfer round-trip and never copies it to the opposite leg', async () => {

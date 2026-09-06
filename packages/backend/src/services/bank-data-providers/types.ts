@@ -51,6 +51,8 @@ export interface ProviderMetadata {
   documentationUrl?: string;
   /** Provider feature capabilities */
   features: ProviderFeatures;
+  /** OAuth callback URL the user must register at the provider, when the provider needs one */
+  redirectUrl?: string;
 }
 
 // ============================================================================

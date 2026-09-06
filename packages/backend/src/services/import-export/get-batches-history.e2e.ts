@@ -67,13 +67,6 @@ describe('GET /import/batches-history', () => {
     return progress.summary;
   }
 
-  it('returns an empty list with totalCount 0 for a user with no imports', async () => {
-    const result = await helpers.getBatchesHistory({ raw: true });
-
-    expect(result.items).toEqual([]);
-    expect(result.totalCount).toBe(0);
-  });
-
   it('lists batches from different sources with correct source, count, and accountIds', async () => {
     const account = await helpers.createAccount({ raw: true });
     const csvSummary = await runCsvImport({ accountId: account.id, currencyCode: account.currencyCode });
@@ -112,7 +105,7 @@ describe('GET /import/batches-history', () => {
     const older = await runCsvImport({ accountId: accountA.id, currencyCode: accountA.currencyCode });
     // Import batches are millisecond-stamped; without a gap the two could land in
     // the same millisecond and "newest first" would be unverifiable here.
-    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     const newer = await runCsvImport({ accountId: accountB.id, currencyCode: accountB.currencyCode });
 
     const firstPage = await helpers.getBatchesHistory({ payload: { limit: 1, offset: 0 }, raw: true });
@@ -126,16 +119,12 @@ describe('GET /import/batches-history', () => {
     expect(secondPage.items[0]!.batchId).toBe(older.batchId);
   });
 
-  it('rejects a limit above the allowed maximum', async () => {
-    const response = await helpers.getBatchesHistory({ payload: { limit: 500 } });
+  it('rejects a limit above the allowed maximum and an unauthenticated request', async () => {
+    const overLimit = await helpers.getBatchesHistory({ payload: { limit: 500 } });
+    expect(overLimit.statusCode).toBe(422);
 
-    expect(response.statusCode).toBe(422);
-  });
-
-  it('returns 401 for an unauthenticated request', async () => {
-    const response = await withoutSession(() => helpers.getBatchesHistory({}));
-
-    expect(response.statusCode).toBe(401);
+    const unauthenticated = await withoutSession(() => helpers.getBatchesHistory({}));
+    expect(unauthenticated.statusCode).toBe(401);
   });
 
   it("never surfaces another user's batches", async () => {

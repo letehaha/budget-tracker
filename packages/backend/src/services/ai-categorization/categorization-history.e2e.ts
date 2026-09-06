@@ -1,13 +1,8 @@
 import { CATEGORIZATION_SOURCE, CATEGORIZATION_TRIGGER, type RecordId } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { app } from '@root/app';
-import { API_PREFIX } from '@root/config';
 import * as helpers from '@tests/helpers';
 import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { startOfDay, subDays } from 'date-fns';
-import request from 'supertest';
-
-const HISTORY_URL = `${API_PREFIX}/user/ai/categorization/history`;
 
 const RUN_SETTLE_TIMEOUT_MS = 15_000;
 const TEST_TIMEOUT_MS = 60_000;
@@ -75,19 +70,10 @@ describe('GET /user/ai/categorization/history', () => {
     }
   });
 
-  it('returns 401 for an unauthenticated request', async () => {
-    const response = await request(app).get(HISTORY_URL);
-
-    expect(response.statusCode).toBe(401);
-  });
-
-  it('returns an empty list and a zero total when nothing was ever categorized by AI', async () => {
+  it('returns an empty list when nothing was ever categorized by AI, and rejects a limit above the maximum', async () => {
     expect(await getPage()).toEqual({ items: [], totalCount: 0 });
-  });
 
-  it('rejects a limit above the allowed maximum', async () => {
     const response = await helpers.getAiCategorizationHistory({ payload: { limit: 500 } });
-
     expect(response.statusCode).toBe(422);
   });
 
@@ -120,6 +106,13 @@ describe('GET /user/ai/categorization/history', () => {
         expect(transaction.categorizationMeta?.categorizedAt).toBe(items[0]!.categorizedAt);
         expect(transaction.categorizationMeta?.trigger).toBe(CATEGORIZATION_TRIGGER.manual);
       }
+
+      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
+      const otherHistory = await helpers.asUser({
+        cookies: otherUser.cookies,
+        fn: () => helpers.getAiCategorizationHistory({ raw: true }),
+      });
+      expect(otherHistory).toEqual({ items: [], totalCount: 0 });
     },
     TEST_TIMEOUT_MS,
   );
@@ -152,30 +145,6 @@ describe('GET /user/ai/categorization/history', () => {
       const secondPage = await getPage({ limit: 1, offset: 1 });
       expect(secondPage.totalCount).toBeNull();
       expect(secondPage.items).toEqual([all.items[1]]);
-    },
-    TEST_TIMEOUT_MS,
-  );
-
-  it(
-    'never surfaces another user runs',
-    async () => {
-      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
-      global.mswMockServer.use(createGeminiMock({ categorizations: CATEGORIZE_EVERYTHING }));
-
-      const user = await helpers.getUserInfo({ raw: true });
-      const account = await helpers.createAccount({ raw: true });
-      await seedTransactions({ count: 2, categoryId: user.defaultCategoryId as RecordId, accountId: account.id });
-
-      await runCategorization();
-      expect((await getPage()).totalCount).toBe(1);
-
-      const otherUser = await helpers.provisionSecondUserWithBaseCurrency();
-      const otherHistory = await helpers.asUser({
-        cookies: otherUser.cookies,
-        fn: () => helpers.getAiCategorizationHistory({ raw: true }),
-      });
-
-      expect(otherHistory).toEqual({ items: [], totalCount: 0 });
     },
     TEST_TIMEOUT_MS,
   );

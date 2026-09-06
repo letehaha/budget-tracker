@@ -1,4 +1,10 @@
-import { formatFiat, formatUIAmount, toLocalCurrencyNumber } from './formatters';
+import {
+  currencyDisplayPreference,
+  formatFiat,
+  formatLargeNumber,
+  formatUIAmount,
+  toLocalCurrencyNumber,
+} from './formatters';
 
 describe('js/helpers/formatters', () => {
   describe('formatUIAmount', () => {
@@ -55,6 +61,30 @@ describe('js/helpers/formatters', () => {
 
     test('malformed currency code degrades to a bare number + code instead of throwing', () => {
       expect(formatUIAmount(1234.5, { currency: 'USDT' })).toBe('1,234.50 USDT');
+    });
+  });
+
+  describe('currencyDisplayPreference', () => {
+    beforeEach(() => {
+      currencyDisplayPreference.value = 'symbol';
+    });
+
+    test('symbol (default) keeps disambiguating codes', () => {
+      expect(currencyDisplayPreference.value).toBe('symbol');
+      expect(formatUIAmount(1234.5, { currency: 'IDR' })).toBe('IDR\u00a01,234.50');
+      expect(formatUIAmount(1234.5, { currency: 'CAD' })).toBe('CA$1,234.50');
+    });
+
+    test('narrowSymbol renders the local short symbol', () => {
+      currencyDisplayPreference.value = 'narrowSymbol';
+      expect(formatUIAmount(1234.5, { currency: 'IDR' })).toBe('Rp\u00a01,234.50');
+      expect(formatUIAmount(1234.5, { currency: 'CAD' })).toBe('$1,234.50');
+    });
+
+    test('applies to compact fiat formatting too', () => {
+      expect(formatLargeNumber(1630, { isFiat: true, currency: 'CAD' })).toBe('CA$1.63k');
+      currencyDisplayPreference.value = 'narrowSymbol';
+      expect(formatLargeNumber(1630, { isFiat: true, currency: 'CAD' })).toBe('$1.63k');
     });
   });
 

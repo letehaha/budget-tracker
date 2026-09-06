@@ -16,6 +16,11 @@
         "title": "Header",
         "description": "Choose which header actions are visible.",
         "supportButton": "Support button"
+      },
+      "currency": {
+        "title": "Currency symbols",
+        "description": "How amounts show their currency. Short symbols look like Rp, ₴ or zł instead of IDR, UAH or PLN, but currencies that share a symbol (USD, CAD, AUD, SGD) all become $.",
+        "narrowSymbol": "Use short currency symbols"
       }
     }
   }

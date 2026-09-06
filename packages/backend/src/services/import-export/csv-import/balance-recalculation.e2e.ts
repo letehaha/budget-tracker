@@ -533,9 +533,8 @@ describe('CSV import balance recalculation', () => {
     // (1000 − 2349.50 = −1349.50) so `currentBalance` lands exactly on the
     // entered value. The recalculate checkbox applies only to linked accounts,
     // so both flag states must produce the identical result for created ones.
-    it.each([{ recalculateBalance: true }, { recalculateBalance: false }])(
-      'forces the entered currentBalance as the final balance (recalculateBalance: $recalculateBalance)',
-      async ({ recalculateBalance }) => {
+    it('forces the entered currentBalance as the final balance, whatever recalculateBalance says', async () => {
+      for (const recalculateBalance of [true, false]) {
         const accountName = `Fresh USD recalc ${recalculateBalance}`;
         const progress = await runImport({
           fileContent: buildCsv(threeRows({ account: accountName, currency: 'USD' })),
@@ -564,8 +563,8 @@ describe('CSV import balance recalculation', () => {
           historicalCount: 0,
           isNewAccount: true,
         });
-      },
-    );
+      }
+    }, 60_000);
 
     // The wire schema defaults an omitted `currentBalance` to null, while the
     // shared type requires the key — so the omission needs the cast to be
@@ -640,49 +639,35 @@ describe('CSV import balance recalculation', () => {
     it('rejects a create-new currentBalance beyond the integer-cents cap with 422', async () => {
       // Balances persist as INTEGER cents, so a create-new target past the
       // ±20,000,000 bound must fail Zod validation synchronously (422) instead of
-      // surfacing as a raw integer-overflow deep inside the async job.
-      const response = await helpers.executeImport({
-        payload: {
-          fileContent: buildCsv(threeRows({ account: 'Big USD', currency: 'USD' })),
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: { 'Big USD': { action: 'create-new', currentBalance: 20_000_001 } },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: false,
-      });
+      // surfacing as a raw integer-overflow deep inside the async job. The bound
+      // is symmetric, so both signs must be rejected the same way.
+      for (const [accountName, currentBalance] of [
+        ['Big USD', 20_000_001],
+        ['Big Negative USD', -20_000_001],
+      ] as const) {
+        const response = await helpers.executeImport({
+          payload: {
+            fileContent: buildCsv(threeRows({ account: accountName, currency: 'USD' })),
+            delimiter: ',',
+            columnMapping: buildColumnMapping(),
+            accountMapping: { [accountName]: { action: 'create-new', currentBalance } },
+            categoryMapping: {},
+            skipDuplicateIndices: [],
+          },
+          raw: false,
+        });
 
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      }
     });
 
-    it('rejects a create-new currentBalance below the negative integer-cents cap with 422', async () => {
-      // The bound is symmetric: a target past −20,000,000 must fail Zod
-      // validation synchronously (422), the same as the positive over-cap, rather
-      // than surfacing as a raw integer-overflow deep inside the async job.
-      const response = await helpers.executeImport({
-        payload: {
-          fileContent: buildCsv(threeRows({ account: 'Big Negative USD', currency: 'USD' })),
-          delimiter: ',',
-          columnMapping: buildColumnMapping(),
-          accountMapping: { 'Big Negative USD': { action: 'create-new', currentBalance: -20_000_001 } },
-          categoryMapping: {},
-          skipDuplicateIndices: [],
-        },
-        raw: false,
-      });
-
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
-    });
-
-    it.each([{ currentBalance: 20_000_000 }, { currentBalance: -20_000_000 }])(
-      'accepts a create-new currentBalance exactly on the integer-cents cap ($currentBalance)',
-      async ({ currentBalance }) => {
-        // The cap is inclusive: ±20,000,000 is the last accepted value, so the
-        // import must run to completion and leave the account on that exact
-        // boundary balance. The account is created in the base currency so the
-        // forced `refCurrentBalance` equals the entered value (no FX
-        // multiplication that could push the ref side past the cap).
+    it('accepts a create-new currentBalance exactly on the integer-cents cap', async () => {
+      // The cap is inclusive: ±20,000,000 is the last accepted value, so the
+      // import must run to completion and leave the account on that exact
+      // boundary balance. The account is created in the base currency so the
+      // forced `refCurrentBalance` equals the entered value (no FX
+      // multiplication that could push the ref side past the cap).
+      for (const currentBalance of [20_000_000, -20_000_000]) {
         const accountName = `Boundary ${currentBalance}`;
         const progress = await runImport({
           fileContent: buildCsv(threeRows({ account: accountName, currency: global.BASE_CURRENCY_CODE })),
@@ -701,12 +686,12 @@ describe('CSV import balance recalculation', () => {
         // The imported rows' net (+2349.50) is absorbed into initialBalance so
         // currentBalance lands exactly on the entered boundary value.
         expect(Number(created.initialBalance)).toBe(currentBalance - 2349.5);
-      },
-    );
+      }
+    }, 60_000);
   });
 
   describe('vehicle/loan exclusion', () => {
-    it('fails the import when link-existing targets a vehicle account', async () => {
+    it('fails the import for every way of resolving a vehicle account as the target', async () => {
       const vehicle = await helpers.createVehicle({
         name: 'Toyota Camry 2020',
         currencyCode: 'USD',
@@ -722,35 +707,16 @@ describe('CSV import balance recalculation', () => {
       // before/after equality is stable to assert — not an absolute number.
       const balanceBefore = Number((await helpers.getAccount({ id: vehicle.accountId, raw: true })).currentBalance);
 
-      const progress = await runImport({
+      const linkExistingProgress = await runImport({
         fileContent: buildCsv(threeRows({ account: 'Car CSV', currency: 'USD' })),
         accountMapping: { 'Car CSV': { action: 'link-existing', accountId: vehicle.accountId } },
         recalculateBalance: true,
       });
 
-      expect(progress.status).toBe('failed');
-      if (progress.status === 'failed') {
-        expect(progress.error).toContain('cannot be an import target');
+      expect(linkExistingProgress.status).toBe('failed');
+      if (linkExistingProgress.status === 'failed') {
+        expect(linkExistingProgress.error).toContain('cannot be an import target');
       }
-
-      // The vehicle's managed balance must be untouched.
-      const after = await helpers.getAccount({ id: vehicle.accountId, raw: true });
-      expect(Number(after.currentBalance)).toBe(balanceBefore);
-    });
-
-    it('fails the import when the single-existing-account fallback targets a vehicle account', async () => {
-      const vehicle = await helpers.createVehicle({
-        name: 'Honda Civic 2019',
-        currencyCode: 'USD',
-        make: 'Honda',
-        model: 'Civic',
-        year: 2019,
-        vehicleClass: VEHICLE_CLASS.sedan,
-        purchasePrice: 20000,
-        purchaseDate: '2021-03-10',
-        raw: true,
-      });
-      const balanceBefore = Number((await helpers.getAccount({ id: vehicle.accountId, raw: true })).currentBalance);
 
       // "Single existing account" flow: no Account/Currency columns — the account
       // option carries the target id directly and every row's account name is
@@ -781,15 +747,16 @@ describe('CSV import balance recalculation', () => {
       expect(jobId).toBeTruthy();
       expect(jobId).toMatch(/^csv-import-/);
 
-      const progress = await waitForCsvImportCompletion({ jobId });
-      expect(progress.status).toBe('failed');
-      if (progress.status === 'failed') {
-        expect(progress.error).toContain('cannot be an import target');
+      const fallbackProgress = await waitForCsvImportCompletion({ jobId });
+      expect(fallbackProgress.status).toBe('failed');
+      if (fallbackProgress.status === 'failed') {
+        expect(fallbackProgress.error).toContain('cannot be an import target');
       }
 
+      // The vehicle's managed balance must be untouched by either attempt.
       const after = await helpers.getAccount({ id: vehicle.accountId, raw: true });
       expect(Number(after.currentBalance)).toBe(balanceBefore);
-    });
+    }, 60_000);
   });
 
   describe('non-base currency (FX)', () => {

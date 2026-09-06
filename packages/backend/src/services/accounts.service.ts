@@ -272,10 +272,7 @@ export const updateAccount = withTransaction(
       message: t({ key: 'accounts.accountNotFound' }),
     });
 
-    // A vehicle's value is owned by the depreciation model + override flow. A direct
-    // `currentBalance` write here would leave `Vehicle.valueAnchor` stale and the next
-    // refresh would overwrite the edit. Enforced in the service so non-HTTP callers
-    // (MCP, internal) must go through the override flow (`POST /vehicles/:id/value`).
+    // Vehicle value changes only via balance adjustment, which re-anchors depreciation
     if (accountData.accountCategory === ACCOUNT_CATEGORIES.vehicle && payload.currentBalance !== undefined) {
       throw new ValidationError({
         message: t({ key: 'balanceAdjustment.vehicleUseOverride' }),

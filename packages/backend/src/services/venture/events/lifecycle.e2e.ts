@@ -69,6 +69,7 @@ describe('Venture Investment Lifecycle E2E', () => {
       const initialEvent = helpers.extractResponse(initialEventResponse);
       expect(initialEvent.type).toBe(VENTURE_EVENT_TYPE.initial_investment);
       expect(Number(initialEvent.lpNetAmount)).toBeCloseTo(17360, 2);
+      expect(initialEvent.cashFlowMode).toBe(VENTURE_CASH_FLOW_MODE.linked);
       expect(initialEvent.links).toHaveLength(1);
 
       const linkedTx = await helpers.getTransactions({ raw: true });
@@ -144,7 +145,19 @@ describe('Venture Investment Lifecycle E2E', () => {
 
       const dealAfterExit = await helpers.getVentureDeal({ dealId: deal.id, raw: true });
       expect(dealAfterExit.status).toBe(VENTURE_DEAL_STATUS.fully_exited);
-    });
+
+      const metrics = await helpers.getVentureDealMetrics({ dealId: deal.id, raw: true });
+
+      expect(Number(metrics.costBasis)).toBeCloseTo(17360, 2);
+      expect(Number(metrics.totalDistributions)).toBeCloseTo(5000 + 22472, 2);
+      expect(Number(metrics.currentValue)).toBe(0);
+      expect(Number(metrics.pnlAbsolute)).toBeCloseTo(27472 - 17360, 2);
+      expect(Number(metrics.tvpi)).toBeCloseTo(27472 / 17360, 3);
+      expect(Number(metrics.dpi)).toBeCloseTo(27472 / 17360, 3);
+      expect(metrics.irr).not.toBeNull();
+      // A ~58% total return over 3 years puts IRR above 0.1.
+      expect(Number(metrics.irr)).toBeGreaterThan(0.1);
+    }, 120_000);
   });
 
   describe('failure flows', () => {
@@ -283,27 +296,6 @@ describe('Venture Investment Lifecycle E2E', () => {
 
       const reread = await helpers.getVentureDeal({ dealId: deal.id, raw: true });
       expect(reread.status).toBe(VENTURE_DEAL_STATUS.written_off);
-    });
-
-    it('out_of_wallet event → no link rows, no tx flip', async () => {
-      const deal = await helpers.createVentureDeal({
-        payload: { currencyCode: global.BASE_CURRENCY.code, principal: '10000', entryFeePct: '0' },
-        raw: true,
-      });
-
-      const response = await helpers.createVentureEvent({
-        dealId: deal.id,
-        payload: {
-          type: VENTURE_EVENT_TYPE.initial_investment,
-          eventDate: '2026-03-24',
-          cashFlowMode: VENTURE_CASH_FLOW_MODE.out_of_wallet,
-        },
-      });
-      expect(response.statusCode).toBe(200);
-
-      const event = helpers.extractResponse(response);
-      expect(event.cashFlowMode).toBe(VENTURE_CASH_FLOW_MODE.out_of_wallet);
-      expect(event.links).toEqual([]);
     });
 
     it('nav_update rejects cashFlowMode != none', async () => {
@@ -446,44 +438,6 @@ describe('Venture Investment Lifecycle E2E', () => {
   });
 
   describe('initial_investment creation paths', () => {
-    it('happy path: linked tx sum equals principal + entryFee → 200, lpNet matches', async () => {
-      const baseCurrencyCode = global.BASE_CURRENCY.code;
-      const account = await helpers.createAccount({ raw: true });
-      const deal = await helpers.createVentureDeal({
-        payload: { currencyCode: baseCurrencyCode, principal: '11000', entryFeePct: '0.085' },
-        raw: true,
-      });
-      // 11000 + 935 = 11935
-      expect(Number(deal.principal)).toBe(11000);
-      expect(Number(deal.entryFee)).toBeCloseTo(935, 2);
-
-      const tx = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 11935,
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      const response = await helpers.createVentureEvent({
-        dealId: deal.id,
-        payload: {
-          type: VENTURE_EVENT_TYPE.initial_investment,
-          eventDate: '2026-03-24',
-          cashFlowMode: VENTURE_CASH_FLOW_MODE.linked,
-          transactionIds: [tx[0].id],
-        },
-      });
-      expect(response.statusCode).toBe(200);
-
-      const event = helpers.extractResponse(response);
-      expect(event.type).toBe(VENTURE_EVENT_TYPE.initial_investment);
-      expect(Number(event.lpNetAmount)).toBeCloseTo(11935, 2);
-      expect(event.cashFlowMode).toBe(VENTURE_CASH_FLOW_MODE.linked);
-      expect(event.links).toHaveLength(1);
-    });
-
     it('happy path: out_of_wallet initial_investment → 200, no links', async () => {
       const deal = await helpers.createVentureDeal({
         payload: { currencyCode: global.BASE_CURRENCY.code, principal: '5000', entryFeePct: '0.05' },

@@ -129,7 +129,7 @@ Examples:
 
 - `src/services/accounts/delete-account.e2e.ts`
 - `src/services/transactions/get-transactions.e2e.ts`
-- `src/services/budgets/create-budget.e2e.ts`
+- `src/services/budgets/budget-crud.e2e.ts`
 
 **Never** place e2e tests in the controllers layer. Even when testing a full HTTP endpoint, the test file belongs next to the corresponding service.
 

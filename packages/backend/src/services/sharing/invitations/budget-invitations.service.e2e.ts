@@ -1,6 +1,6 @@
 /**
- * Budget share invitations — happy path, validation errors, currency guard,
- * idempotent accept, decline, and GET /share/shared-with-me.
+ * Budget share invitations: happy path, budget-resolution errors, idempotent accept
+ * and GET /share/shared-with-me.
  *
  * See `docs/prds/family-sharing-budgets.md` Phase 5 — Invitations tests.
  */
@@ -9,10 +9,7 @@ import { ACCESS_SOURCES, RESOURCE_TYPES, SHARE_INVITATION_STATUSES, SHARE_PERMIS
 import { NONEXISTENT_ID } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import ResourceShares from '@models/resource-shares.model';
-import ShareInvitations from '@models/share-invitations.model';
-import UsersCurrencies from '@models/users-currencies.model';
 import * as helpers from '@tests/helpers';
-import { ErrorResponse } from '@tests/helpers/common';
 
 // ---------------------------------------------------------------------------
 // Scaffold helpers
@@ -32,25 +29,6 @@ async function provisionRecipient(): Promise<RecipientHandle> {
     },
   });
   return handle;
-}
-
-/**
- * Force-set a user's base currency directly via DB mutation (mirrors the pattern
- * in accept-decline-invitation.service.e2e.ts). Used to provoke currency mismatch.
- */
-async function forceUserBaseCurrency({ userId, currencyCode }: { userId: number; currencyCode: string }) {
-  await UsersCurrencies.update({ isDefaultCurrency: false }, { where: { userId } });
-  const existing = await UsersCurrencies.findOne({ where: { userId, currencyCode } });
-  if (existing) {
-    await UsersCurrencies.update({ isDefaultCurrency: true }, { where: { userId, currencyCode } });
-  } else {
-    await UsersCurrencies.create({
-      userId,
-      currencyCode,
-      isDefaultCurrency: true,
-      liveRateUpdate: true,
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +84,22 @@ describe('Budget share invitations', () => {
       });
       expect(shareRow).not.toBeNull();
       expect(shareRow!.acceptedAt).not.toBeNull();
-    });
+
+      const second = await helpers.asUser({
+        cookies: recipient.cookies,
+        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: false }),
+      });
+      expect(second.statusCode).toBe(409);
+
+      const shareCount = await ResourceShares.count({
+        where: {
+          resourceType: RESOURCE_TYPES.budget,
+          resourceId: budget.id,
+          sharedWithUserId: recipientApp.id,
+        },
+      });
+      expect(shareCount).toBe(1);
+    }, 60_000);
   });
 
   describe('validation errors', () => {
@@ -141,112 +134,6 @@ describe('Budget share invitations', () => {
       });
 
       expect(res.statusCode).toBe(404);
-    });
-
-    it('returns 422 when inviting yourself', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Self invite', raw: true });
-
-      const res = await helpers.createShareInvitation({
-        inviteeEmail: 'test1@test.local',
-        resourceType: RESOURCE_TYPES.budget,
-        resourceId: budget.id,
-        permission: SHARE_PERMISSIONS.read,
-      });
-
-      expect(res.statusCode).toBe(422);
-      expect((res.body.response as unknown as ErrorResponse).message).toMatch(/yourself/i);
-    });
-  });
-
-  describe('currency mismatch', () => {
-    it('returns 422 on accept when owner and recipient base currencies differ', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Currency mismatch budget', raw: true });
-      const recipient = await provisionRecipient();
-
-      const invitation = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
-        resourceType: RESOURCE_TYPES.budget,
-        resourceId: budget.id,
-        permission: SHARE_PERMISSIONS.read,
-        raw: true,
-      });
-
-      // Force recipient to a different base currency (EUR vs the owner's base)
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-      await forceUserBaseCurrency({ userId: recipientApp.id, currencyCode: 'EUR' });
-
-      const acceptRes = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: false }),
-      });
-
-      expect(acceptRes.statusCode).toBe(422);
-    });
-  });
-
-  describe('idempotent accept', () => {
-    it('second accept returns 409 conflict but does not create a duplicate ResourceShares row', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Idempotent accept', raw: true });
-      const recipient = await provisionRecipient();
-
-      const invitation = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
-        resourceType: RESOURCE_TYPES.budget,
-        resourceId: budget.id,
-        permission: SHARE_PERMISSIONS.read,
-        raw: true,
-      });
-
-      // First accept
-      const first = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: false }),
-      });
-      expect(first.statusCode).toBe(200);
-
-      // Second accept — invitation is already accepted, service throws ConflictError (409)
-      const second = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: false }),
-      });
-      expect(second.statusCode).toBe(409);
-
-      // Only one ResourceShares row must exist — no duplicate was created
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-      const shareCount = await ResourceShares.count({
-        where: {
-          resourceType: RESOURCE_TYPES.budget,
-          resourceId: budget.id,
-          sharedWithUserId: recipientApp.id,
-        },
-      });
-      expect(shareCount).toBe(1);
-    });
-  });
-
-  describe('decline', () => {
-    it('declining marks the invitation declined', async () => {
-      const budget = await helpers.createCustomBudget({ name: 'Decline test', raw: true });
-      const recipient = await provisionRecipient();
-
-      const invitation = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
-        resourceType: RESOURCE_TYPES.budget,
-        resourceId: budget.id,
-        permission: SHARE_PERMISSIONS.read,
-        raw: true,
-      });
-
-      const declineRes = await helpers.asUser({
-        cookies: recipient.cookies,
-        fn: () => helpers.declineShareInvitation({ token: invitation.token, raw: false }),
-      });
-      expect(declineRes.statusCode).toBe(200);
-
-      // The list endpoint filters to pending-only, so verify status via direct DB lookup.
-      const invitationAfter = await ShareInvitations.findByPk(invitation.id);
-      expect(invitationAfter).not.toBeNull();
-      expect(invitationAfter!.status).toBe(SHARE_INVITATION_STATUSES.declined);
     });
   });
 

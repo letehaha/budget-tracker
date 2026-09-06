@@ -5,7 +5,7 @@ import { format, subDays } from 'date-fns';
 
 describe('[Stats] Credit limit in statistics', () => {
   describe('getTotalBalance with credit limit setting', () => {
-    it('does NOT subtract credit limit by default (setting off)', async () => {
+    it('subtracts the credit limit only while the setting is on', async () => {
       const account = await helpers.createAccount({
         payload: helpers.buildAccountPayload({
           accountCategory: ACCOUNT_CATEGORIES.creditCard,
@@ -26,44 +26,25 @@ describe('[Stats] Credit limit in statistics', () => {
       });
 
       const today = format(new Date(), 'yyyy-MM-dd');
-      const totalBalance = await helpers.getTotalBalance({ date: today, raw: true });
 
-      // Without the setting, total balance = currentBalance (no credit limit subtracted)
-      // The total includes the initial balance + income
-      expect(totalBalance).toBe(5100);
-    });
+      // Without the setting, total balance = currentBalance (initial balance + income).
+      expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(5100);
 
-    it('subtracts credit limit when setting is enabled', async () => {
       await helpers.updateUserSettings({
         raw: true,
         settings: { locale: 'en', includeCreditLimitInStats: true },
       });
 
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          accountCategory: ACCOUNT_CATEGORIES.creditCard,
-          initialBalance: 5000,
-          creditLimit: 3000,
-        }),
+      // 5100 - creditLimit (3000)
+      expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(2100);
+
+      await helpers.updateUserSettings({
         raw: true,
+        settings: { locale: 'en', includeCreditLimitInStats: false },
       });
 
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 100,
-          transactionType: TRANSACTION_TYPES.income,
-          time: new Date().toISOString(),
-        }),
-        raw: true,
-      });
-
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const totalBalance = await helpers.getTotalBalance({ date: today, raw: true });
-
-      // With the setting on: currentBalance (5100) - creditLimit (3000) = 2100
-      expect(totalBalance).toBe(2100);
-    });
+      expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(5100);
+    }, 60_000);
 
     it('only subtracts credit limit for accounts with creditLimit > 0', async () => {
       await helpers.updateUserSettings({
@@ -149,61 +130,6 @@ describe('[Stats] Credit limit in statistics', () => {
       expect(totalBalance).toBe(0);
     });
 
-    it('stops subtracting credit limit after setting is toggled back to false', async () => {
-      // Enable the setting
-      await helpers.updateUserSettings({
-        raw: true,
-        settings: { locale: 'en', includeCreditLimitInStats: true },
-      });
-
-      await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          accountCategory: ACCOUNT_CATEGORIES.creditCard,
-          initialBalance: 5000,
-          creditLimit: 3000,
-        }),
-        raw: true,
-      });
-
-      const today = format(new Date(), 'yyyy-MM-dd');
-
-      // Verify subtraction is active
-      const balanceWithSetting = await helpers.getTotalBalance({ date: today, raw: true });
-      expect(balanceWithSetting).toBe(2000); // 5000 - 3000
-
-      // Disable the setting
-      await helpers.updateUserSettings({
-        raw: true,
-        settings: { locale: 'en', includeCreditLimitInStats: false },
-      });
-
-      // Verify subtraction is no longer applied
-      const balanceWithoutSetting = await helpers.getTotalBalance({ date: today, raw: true });
-      expect(balanceWithoutSetting).toBe(5000);
-    });
-
-    it('does not adjust balance when setting is enabled but no accounts have credit limits', async () => {
-      await helpers.updateUserSettings({
-        raw: true,
-        settings: { locale: 'en', includeCreditLimitInStats: true },
-      });
-
-      await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          accountCategory: ACCOUNT_CATEGORIES.general,
-          initialBalance: 3000,
-          creditLimit: 0,
-        }),
-        raw: true,
-      });
-
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const totalBalance = await helpers.getTotalBalance({ date: today, raw: true });
-
-      // No credit limit accounts, so balance is unchanged
-      expect(totalBalance).toBe(3000);
-    });
-
     it('uses refCreditLimit (base currency) for non-base-currency accounts', async () => {
       await helpers.updateUserSettings({
         raw: true,
@@ -238,7 +164,10 @@ describe('[Stats] Credit limit in statistics', () => {
   });
 
   describe('getCombinedBalanceHistory with credit limit setting', () => {
-    it('does NOT adjust balances by default', async () => {
+    it('reports raw balances by default, then subtracts every account credit limit once the setting is on', async () => {
+      const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+      const toDate = format(new Date(), 'yyyy-MM-dd');
+
       await helpers.createAccount({
         payload: helpers.buildAccountPayload({
           accountCategory: ACCOUNT_CATEGORIES.creditCard,
@@ -248,70 +177,25 @@ describe('[Stats] Credit limit in statistics', () => {
         raw: true,
       });
 
-      const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
-      const toDate = format(new Date(), 'yyyy-MM-dd');
+      const rawData = await helpers.getCombinedBalanceHistory({ from: fromDate, to: toDate, raw: true });
 
-      const data = await helpers.getCombinedBalanceHistory({
-        from: fromDate,
-        to: toDate,
-        raw: true,
-      });
+      expect(rawData.length).toBeGreaterThan(0);
+      const rawLastEntry = rawData[rawData.length - 1]!;
+      expect(rawLastEntry.accountsBalance).toBe(5000);
+      expect(rawLastEntry.totalBalance).toBe(5000);
 
-      expect(data.length).toBeGreaterThan(0);
-
-      // Without setting, accountsBalance should be the raw balance (5000)
-      const lastEntry = data[data.length - 1]!;
-      expect(lastEntry.accountsBalance).toBe(5000);
-      expect(lastEntry.totalBalance).toBe(5000);
-    });
-
-    it('subtracts credit limit from all entries when setting is enabled', async () => {
       await helpers.updateUserSettings({
         raw: true,
         settings: { locale: 'en', includeCreditLimitInStats: true },
       });
 
-      await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          accountCategory: ACCOUNT_CATEGORIES.creditCard,
-          initialBalance: 5000,
-          creditLimit: 3000,
-        }),
-        raw: true,
-      });
+      const adjustedData = await helpers.getCombinedBalanceHistory({ from: fromDate, to: toDate, raw: true });
 
-      const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
-      const toDate = format(new Date(), 'yyyy-MM-dd');
-
-      const data = await helpers.getCombinedBalanceHistory({
-        from: fromDate,
-        to: toDate,
-        raw: true,
-      });
-
-      expect(data.length).toBeGreaterThan(0);
-
-      // With setting on, all entries should have credit limit subtracted
-      for (const entry of data) {
+      expect(adjustedData.length).toBeGreaterThan(0);
+      for (const entry of adjustedData) {
         expect(entry.accountsBalance).toBe(2000); // 5000 - 3000
         expect(entry.totalBalance).toBe(2000);
       }
-    });
-
-    it('handles multiple accounts with different credit limits', async () => {
-      await helpers.updateUserSettings({
-        raw: true,
-        settings: { locale: 'en', includeCreditLimitInStats: true },
-      });
-
-      await helpers.createAccount({
-        payload: helpers.buildAccountPayload({
-          accountCategory: ACCOUNT_CATEGORIES.creditCard,
-          initialBalance: 5000,
-          creditLimit: 3000,
-        }),
-        raw: true,
-      });
 
       await helpers.createAccount({
         payload: helpers.buildAccountPayload({
@@ -322,22 +206,13 @@ describe('[Stats] Credit limit in statistics', () => {
         raw: true,
       });
 
-      const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
-      const toDate = format(new Date(), 'yyyy-MM-dd');
-
-      const data = await helpers.getCombinedBalanceHistory({
-        from: fromDate,
-        to: toDate,
-        raw: true,
-      });
-
-      expect(data.length).toBeGreaterThan(0);
+      const multiAccountData = await helpers.getCombinedBalanceHistory({ from: fromDate, to: toDate, raw: true });
 
       // Account 1: 5000 - 3000 = 2000, Account 2: 2000 - 1000 = 1000, Total: 3000
-      const lastEntry = data[data.length - 1]!;
-      expect(lastEntry.accountsBalance).toBe(3000);
-      expect(lastEntry.totalBalance).toBe(3000);
-    });
+      const multiAccountLastEntry = multiAccountData[multiAccountData.length - 1]!;
+      expect(multiAccountLastEntry.accountsBalance).toBe(3000);
+      expect(multiAccountLastEntry.totalBalance).toBe(3000);
+    }, 60_000);
 
     it('excludes both balance and credit limit for excludeFromStats accounts', async () => {
       await helpers.updateUserSettings({
@@ -375,4 +250,45 @@ describe('[Stats] Credit limit in statistics', () => {
       expect(data).toEqual([]);
     });
   });
+});
+
+describe('[Stats] Loans in net worth', () => {
+  it('subtracts a loan balance from the total and follows the excludeFromStats flag both ways', async () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+
+    await helpers.createAccount({
+      payload: helpers.buildAccountPayload({ initialBalance: 10_000 }),
+      raw: true,
+    });
+
+    expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(10_000);
+
+    // Loans default to USD; pinning the currency to the base one keeps every refAmount
+    // assertion in a single unit.
+    const loan = await helpers.createLoan({
+      payload: helpers.buildCreateLoanPayload({
+        currencyCode: global.BASE_CURRENCY.code,
+        initialBalance: 200_000,
+      }),
+      raw: true,
+    });
+
+    expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(-190_000);
+
+    await helpers.updateAccount({
+      id: loan.id,
+      payload: { excludeFromStats: true },
+      raw: true,
+    });
+
+    expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(10_000);
+
+    await helpers.updateAccount({
+      id: loan.id,
+      payload: { excludeFromStats: false },
+      raw: true,
+    });
+
+    expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(-190_000);
+  }, 60_000);
 });

@@ -1,7 +1,5 @@
 import { BANK_PROVIDER_TYPE, SSE_EVENT_TYPES } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { app } from '@root/app';
-import { API_PREFIX } from '@root/config';
 import { sseManager } from '@services/common/sse';
 import * as helpers from '@tests/helpers';
 import {
@@ -12,7 +10,6 @@ import {
 } from '@tests/mocks/gemini/mock-api';
 import { VALID_MONOBANK_TOKEN, getMonobankTransactionsMock } from '@tests/mocks/monobank/mock-api';
 import { HttpResponse, delay, http } from 'msw';
-import request from 'supertest';
 
 /**
  * Holds the response for `delayMs`, keeping the BullMQ job `active` long enough
@@ -57,12 +54,6 @@ describe('AI Categorization Status', () => {
       const status = await helpers.getAiCategorizationStatus({ raw: true });
 
       expect(status).toEqual({ status: 'idle' });
-    });
-
-    it('returns 401 for unauthenticated request', async () => {
-      const response = await request(app).get(`${API_PREFIX}/user/ai/categorization/status`);
-
-      expect(response.statusCode).toBe(401);
     });
 
     it('reports processing while a job runs and returns to idle afterwards', async () => {

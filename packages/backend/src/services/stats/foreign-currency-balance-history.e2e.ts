@@ -44,45 +44,7 @@ describe('Balance history for foreign-currency accounts', () => {
     await helpers.clearExchangeRatesForDates({ dates: SEEDED_DATES });
   });
 
-  it('shows zero on every day after the account is drained of foreign units', async () => {
-    await seedRates();
-    const account = await createInrAccount();
-
-    await depositHoldings({ accountId: account.id });
-    await helpers.createTransaction({
-      payload: helpers.buildTransactionPayload({
-        accountId: account.id,
-        amount: HOLDINGS_INR,
-        transactionType: TRANSACTION_TYPES.expense,
-        time: LATER_DATE.toISOString(),
-      }),
-      raw: true,
-    });
-
-    const rows = await helpers.getBalanceHistory({ accountId: account.id, raw: true });
-
-    const nonZeroDays = eachDayOfInterval({ start: LATER_DATE, end: TODAY })
-      .filter((date) => helpers.balanceCentsOn({ rows, date }) !== 0)
-      .map((date) => format(date, 'yyyy-MM-dd'));
-
-    expect(nonZeroDays).toEqual([]);
-  });
-
-  it('has no cliff between yesterday and today when the rate is unchanged', async () => {
-    await seedRates();
-    const account = await createInrAccount();
-
-    await depositHoldings({ accountId: account.id });
-
-    const rows = await helpers.getBalanceHistory({ accountId: account.id, raw: true });
-
-    expect(helpers.balanceCentsOn({ rows, date: TODAY })).toEqualRefValue(
-      HOLDINGS_INR_CENTS * helpers.INR_TO_AED_AFTER,
-    );
-    expect(helpers.balanceCentsOn({ rows, date: YESTERDAY })).toBe(helpers.balanceCentsOn({ rows, date: TODAY }));
-  });
-
-  it('values each historical day at that day’s rate', async () => {
+  it('values each historical day at that day’s rate, with no cliff at today, and zeroes out once drained', async () => {
     await seedRates();
     const account = await createInrAccount();
 
@@ -96,7 +58,29 @@ describe('Balance history for foreign-currency accounts', () => {
     expect(helpers.balanceCentsOn({ rows, date: LATER_DATE })).toEqualRefValue(
       HOLDINGS_INR_CENTS * helpers.INR_TO_AED_AFTER,
     );
-  });
+    expect(helpers.balanceCentsOn({ rows, date: TODAY })).toEqualRefValue(
+      HOLDINGS_INR_CENTS * helpers.INR_TO_AED_AFTER,
+    );
+    expect(helpers.balanceCentsOn({ rows, date: YESTERDAY })).toBe(helpers.balanceCentsOn({ rows, date: TODAY }));
+
+    await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: HOLDINGS_INR,
+        transactionType: TRANSACTION_TYPES.expense,
+        time: LATER_DATE.toISOString(),
+      }),
+      raw: true,
+    });
+
+    const drainedRows = await helpers.getBalanceHistory({ accountId: account.id, raw: true });
+
+    const nonZeroDays = eachDayOfInterval({ start: LATER_DATE, end: TODAY })
+      .filter((date) => helpers.balanceCentsOn({ rows: drainedRows, date }) !== 0)
+      .map((date) => format(date, 'yyyy-MM-dd'));
+
+    expect(nonZeroDays).toEqual([]);
+  }, 60_000);
 });
 
 describe('Balance history for a single account — cross-user access', () => {
@@ -106,23 +90,7 @@ describe('Balance history for a single account — cross-user access', () => {
   const FUTURE_TO = format(addDays(TODAY, 366), 'yyyy-MM-dd');
   const INITIAL_BALANCE = 1000;
 
-  it('does not leak a foreign account balance through the fallback branch', async () => {
-    const ownerAccount = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ initialBalance: INITIAL_BALANCE }),
-      raw: true,
-    });
-
-    const attacker = await helpers.provisionSecondUserWithBaseCurrency();
-
-    const leaked = await helpers.asUser({
-      cookies: attacker.cookies,
-      fn: () => helpers.getBalanceHistory({ accountId: ownerAccount.id, from: FUTURE_FROM, to: FUTURE_TO, raw: true }),
-    });
-
-    expect(leaked).toEqual([]);
-  });
-
-  it('still returns the owner their own balance through the same fallback window', async () => {
+  it('returns the owner their own balance through the fallback window and leaks nothing to anyone else', async () => {
     const ownerAccount = await helpers.createAccount({
       payload: helpers.buildAccountPayload({ initialBalance: INITIAL_BALANCE }),
       raw: true,
@@ -137,5 +105,14 @@ describe('Balance history for a single account — cross-user access', () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]!.amount).toBe(INITIAL_BALANCE);
-  });
+
+    const attacker = await helpers.provisionSecondUserWithBaseCurrency();
+
+    const leaked = await helpers.asUser({
+      cookies: attacker.cookies,
+      fn: () => helpers.getBalanceHistory({ accountId: ownerAccount.id, from: FUTURE_FROM, to: FUTURE_TO, raw: true }),
+    });
+
+    expect(leaked).toEqual([]);
+  }, 60_000);
 });

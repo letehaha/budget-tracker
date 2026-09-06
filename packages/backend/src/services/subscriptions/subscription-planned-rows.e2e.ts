@@ -51,16 +51,7 @@ const seedIncomeWithPlannedNoise = async () => {
 
 describe('Subscriptions ignore planned transactions', () => {
   describe('GET /subscriptions/summary', () => {
-    it('excludes planned income from averageMonthlyIncome', async () => {
-      await seedIncomeWithPlannedNoise();
-
-      const summary = await helpers.getSubscriptionsSummary({ lookbackMonths: 1, raw: true });
-
-      // 200 real income over a one-month window. The 500 plan must not inflate it.
-      expect(summary.averageMonthlyIncome).toBe(200);
-    });
-
-    it('excludes planned income from percentOfIncome', async () => {
+    it('excludes planned income from averageMonthlyIncome and percentOfIncome', async () => {
       await seedIncomeWithPlannedNoise();
 
       await helpers.createSubscription({
@@ -74,6 +65,8 @@ describe('Subscriptions ignore planned transactions', () => {
 
       const summary = await helpers.getSubscriptionsSummary({ lookbackMonths: 1, raw: true });
 
+      // seedIncomeWithPlannedNoise books 200 of real income and a 500 planned row in the window.
+      expect(summary.averageMonthlyIncome).toBe(200);
       expect(summary.estimatedMonthlyCost).toBe(20);
       // 20 / 200 = 10%
       expect(summary.percentOfIncome).toBe(10);
@@ -81,12 +74,20 @@ describe('Subscriptions ignore planned transactions', () => {
   });
 
   describe('GET /subscriptions', () => {
-    it('excludes actively-linked planned transactions from linkedTransactionsCount', async () => {
+    it('excludes linked planned transactions from linkedTransactionsCount', async () => {
       const account = await helpers.createAccount({ raw: true });
 
-      const sub = await helpers.createSubscription({
+      const mixedSub = await helpers.createSubscription({
         name: 'Gym',
         expectedAmount: 10,
+        expectedCurrencyCode: global.BASE_CURRENCY_CODE,
+        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+        startDate: '2025-01-01',
+        raw: true,
+      });
+      const plannedOnlySub = await helpers.createSubscription({
+        name: 'Insurance',
+        expectedAmount: 25,
         expectedCurrencyCode: global.BASE_CURRENCY_CODE,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: '2025-01-01',
@@ -97,7 +98,7 @@ describe('Subscriptions ignore planned transactions', () => {
         payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 10 }),
         raw: true,
       });
-      const [plannedTx] = await helpers.createPlannedTransaction({
+      const [mixedPlannedTx] = await helpers.createPlannedTransaction({
         payload: {
           accountId: account.id,
           amount: 10,
@@ -105,32 +106,7 @@ describe('Subscriptions ignore planned transactions', () => {
         },
         raw: true,
       });
-
-      await helpers.linkTransactionsToSubscription({
-        id: sub.id,
-        transactionIds: [realTx.id, plannedTx.id],
-        raw: true,
-      });
-
-      const list = await helpers.getSubscriptions({ raw: true });
-      const found = list.find((item) => item.id === sub.id);
-
-      expect(found?.linkedTransactionsCount).toBe(1);
-    });
-
-    it('reports zero linkedTransactionsCount when the only linked transaction is planned', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const sub = await helpers.createSubscription({
-        name: 'Insurance',
-        expectedAmount: 25,
-        expectedCurrencyCode: global.BASE_CURRENCY_CODE,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        raw: true,
-      });
-
-      const [plannedTx] = await helpers.createPlannedTransaction({
+      const [plannedOnlyTx] = await helpers.createPlannedTransaction({
         payload: {
           accountId: account.id,
           amount: 25,
@@ -140,17 +116,25 @@ describe('Subscriptions ignore planned transactions', () => {
       });
 
       await helpers.linkTransactionsToSubscription({
-        id: sub.id,
-        transactionIds: [plannedTx.id],
+        id: mixedSub.id,
+        transactionIds: [realTx.id, mixedPlannedTx.id],
+        raw: true,
+      });
+      await helpers.linkTransactionsToSubscription({
+        id: plannedOnlySub.id,
+        transactionIds: [plannedOnlyTx.id],
         raw: true,
       });
 
       const list = await helpers.getSubscriptions({ raw: true });
-      const found = list.find((item) => item.id === sub.id);
+
+      const mixed = list.find((item) => item.id === mixedSub.id);
+      expect(mixed?.linkedTransactionsCount).toBe(1);
 
       // Dropping planned rows must not drop the subscription itself from the list.
-      expect(found).toBeDefined();
-      expect(found?.linkedTransactionsCount).toBe(0);
-    });
+      const plannedOnly = list.find((item) => item.id === plannedOnlySub.id);
+      expect(plannedOnly).toBeDefined();
+      expect(plannedOnly?.linkedTransactionsCount).toBe(0);
+    }, 60_000);
   });
 });

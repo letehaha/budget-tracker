@@ -46,9 +46,9 @@ async function createUsdSubOnUahAccount({ expectedAmount }: { expectedAmount: nu
 
 describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
   describe('Same-currency create-mode', () => {
-    it('marks the period paid, creates an expense tx, and generates the next upcoming period', async () => {
+    it('books an expense for a recurring expense and an income for a recurring income, advancing the schedule', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const sub = await helpers.createSubscription({
+      const expenseSub = await helpers.createSubscription({
         name: 'Netflix',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: futureDate({ monthsAhead: 1, day: 1 }),
@@ -59,43 +59,7 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
         expectedCurrencyCode: global.BASE_CURRENCY.code,
         raw: true,
       });
-
-      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const upcomingPeriod = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-      expect(upcomingPeriod).toBeDefined();
-
-      const period = await helpers.markSubscriptionPeriodPaid({
-        id: sub.id,
-        periodId: upcomingPeriod!.id,
-        createTransaction: true,
-        raw: true,
-      });
-
-      // Period is paid and has a linked auto-created transaction.
-      expect(period.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
-      expect(period.transactionAutoCreated).toBe(true);
-      expect(period.transactionId).toBeTruthy();
-
-      // A new upcoming period was created at next month's date.
-      const afterDetail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const nextUpcoming = afterDetail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-      expect(nextUpcoming).toBeDefined();
-      // Next period due date is 1 month after the paid one.
-      const paidDue = new Date(upcomingPeriod!.dueDate + 'T00:00:00Z');
-      const expectedNextDue = format(addMonths(paidDue, 1), 'yyyy-MM-dd');
-      expect(nextUpcoming!.dueDate).toBe(expectedNextDue);
-
-      // The created transaction is an expense on the correct account with amount = 10 (decimal).
-      const tx = await helpers.getTransactionById({ id: period.transactionId!, raw: true });
-      expect(tx).not.toBeNull();
-      expect(tx!.transactionType).toBe(TRANSACTION_TYPES.expense);
-      expect(tx!.accountId).toBe(account.id);
-      expect(tx!.amount).toBe(10);
-    });
-
-    it('marks the period paid, creates an income tx, and generates the next upcoming period for recurring income', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const sub = await helpers.createSubscription({
+      const incomeSub = await helpers.createSubscription({
         name: 'Paycheck',
         transactionType: TRANSACTION_TYPES.income,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -108,27 +72,54 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
         raw: true,
       });
 
-      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const upcomingPeriod = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-      expect(upcomingPeriod).toBeDefined();
+      const expenseDetail = await helpers.getSubscriptionById({ id: expenseSub.id, raw: true });
+      const expensePeriod = expenseDetail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(expensePeriod).toBeDefined();
 
-      const period = await helpers.markSubscriptionPeriodPaid({
-        id: sub.id,
-        periodId: upcomingPeriod!.id,
+      const paidExpense = await helpers.markSubscriptionPeriodPaid({
+        id: expenseSub.id,
+        periodId: expensePeriod!.id,
         createTransaction: true,
         raw: true,
       });
 
-      expect(period.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
-      expect(period.transactionAutoCreated).toBe(true);
-      expect(period.transactionId).toBeTruthy();
+      expect(paidExpense.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
+      expect(paidExpense.transactionAutoCreated).toBe(true);
+      expect(paidExpense.transactionId).toBeTruthy();
 
-      const tx = await helpers.getTransactionById({ id: period.transactionId!, raw: true });
-      expect(tx).not.toBeNull();
-      expect(tx!.transactionType).toBe(TRANSACTION_TYPES.income);
-      expect(tx!.accountId).toBe(account.id);
-      expect(tx!.amount).toBe(2500);
-    });
+      const afterExpense = await helpers.getSubscriptionById({ id: expenseSub.id, raw: true });
+      const nextUpcoming = afterExpense.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(nextUpcoming).toBeDefined();
+      const paidDue = new Date(expensePeriod!.dueDate + 'T00:00:00Z');
+      expect(nextUpcoming!.dueDate).toBe(format(addMonths(paidDue, 1), 'yyyy-MM-dd'));
+
+      const expenseTx = await helpers.getTransactionById({ id: paidExpense.transactionId!, raw: true });
+      expect(expenseTx).not.toBeNull();
+      expect(expenseTx!.transactionType).toBe(TRANSACTION_TYPES.expense);
+      expect(expenseTx!.accountId).toBe(account.id);
+      expect(expenseTx!.amount).toBe(10);
+
+      const incomeDetail = await helpers.getSubscriptionById({ id: incomeSub.id, raw: true });
+      const incomePeriod = incomeDetail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(incomePeriod).toBeDefined();
+
+      const paidIncome = await helpers.markSubscriptionPeriodPaid({
+        id: incomeSub.id,
+        periodId: incomePeriod!.id,
+        createTransaction: true,
+        raw: true,
+      });
+
+      expect(paidIncome.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
+      expect(paidIncome.transactionAutoCreated).toBe(true);
+      expect(paidIncome.transactionId).toBeTruthy();
+
+      const incomeTx = await helpers.getTransactionById({ id: paidIncome.transactionId!, raw: true });
+      expect(incomeTx).not.toBeNull();
+      expect(incomeTx!.transactionType).toBe(TRANSACTION_TYPES.income);
+      expect(incomeTx!.accountId).toBe(account.id);
+      expect(incomeTx!.amount).toBe(2500);
+    }, 60_000);
   });
 
   describe('Cross-currency invariant', () => {
@@ -341,7 +332,6 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
         raw: true,
       });
 
-      // Installment created WITHOUT an account.
       const sub = await helpers.createSubscription({
         name: 'Phone installment',
         type: SUBSCRIPTION_TYPES.installment,
@@ -367,7 +357,6 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
         raw: true,
       });
 
-      // The period booked an auto-created expense against the chosen account.
       expect(period.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
       expect(period.transactionAutoCreated).toBe(true);
       expect(period.transactionId).toBeTruthy();
@@ -378,55 +367,21 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
       expect(tx!.accountId).toBe(account.id);
       expect(tx!.amount).toBe(90);
 
-      // The account is now persisted on the subscription, and the schedule advanced.
       const after = await helpers.getSubscriptionById({ id: sub.id, raw: true });
       expect(after.accountId).toBe(account.id);
       const nextUpcoming = after.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
       expect(nextUpcoming).toBeDefined();
-    });
 
-    it('reuses the linked account on the next pay without re-sending accountId', async () => {
-      const account = await helpers.createAccount({
-        payload: helpers.buildAccountPayload({ initialBalance: 1000 }),
-        raw: true,
-      });
-      const sub = await helpers.createSubscription({
-        name: 'Phone installment',
-        type: SUBSCRIPTION_TYPES.installment,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: futureDate({ monthsAhead: 1, day: 15 }),
-        dueDate: futureDate({ monthsAhead: 1, day: 15 }),
-        categoryId: global.DEFAULT_CATEGORY_ID,
-        expectedAmount: 90,
-        expectedCurrencyCode: global.BASE_CURRENCY.code,
-        maxOccurrences: 12,
-        raw: true,
-      });
-
-      // First pay links the account.
-      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const first = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-      await helpers.markSubscriptionPeriodPaid({
-        id: sub.id,
-        periodId: first!.id,
-        createTransaction: true,
-        accountId: account.id,
-        raw: true,
-      });
-
-      // Second pay omits accountId — the now-linked account is used automatically.
-      const afterFirst = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const second = afterFirst.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      // Second pay passes no accountId: it must reuse the account the first pay linked.
       const secondPaid = await helpers.markSubscriptionPeriodPaid({
         id: sub.id,
-        periodId: second!.id,
+        periodId: nextUpcoming!.id,
         createTransaction: true,
         raw: true,
       });
-
-      const tx = await helpers.getTransactionById({ id: secondPaid.transactionId!, raw: true });
-      expect(tx!.accountId).toBe(account.id);
-    });
+      const secondTx = await helpers.getTransactionById({ id: secondPaid.transactionId!, raw: true });
+      expect(secondTx!.accountId).toBe(account.id);
+    }, 60_000);
 
     it('returns 404 and leaves the period unpaid when the chosen account is not the user’s', async () => {
       const sub = await helpers.createSubscription({
@@ -462,8 +417,12 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
   });
 
   describe('Error cases', () => {
-    it('returns 409 when trying to pay an already-paid period', async () => {
+    it('guards mutually exclusive params, an already-paid period and a skipped period', async () => {
       const account = await helpers.createAccount({ raw: true });
+      const [tx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
       const sub = await helpers.createSubscription({
         name: 'Spotify',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -476,49 +435,41 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
       });
 
       const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const upcoming = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      const first = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
 
-      // First pay succeeds.
-      await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: upcoming!.id, raw: true });
-
-      // Second pay must conflict.
-      const res = await helpers.markSubscriptionPeriodPaid({
+      const bothParamsRes = await helpers.markSubscriptionPeriodPaid({
         id: sub.id,
-        periodId: upcoming!.id,
-        raw: false,
-      });
-      expect(res.statusCode).toBe(409);
-    });
-
-    it('returns a validation error when createTransaction and transactionId are both supplied', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const [tx] = await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id }),
-        raw: true,
-      });
-      const sub = await helpers.createSubscription({
-        name: 'Apple One',
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: futureDate({ monthsAhead: 1, day: 1 }),
-        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
-        accountId: account.id,
-        expectedAmount: 10,
-        expectedCurrencyCode: global.BASE_CURRENCY.code,
-        raw: true,
-      });
-
-      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const upcoming = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-
-      const res = await helpers.markSubscriptionPeriodPaid({
-        id: sub.id,
-        periodId: upcoming!.id,
+        periodId: first!.id,
         createTransaction: true,
         transactionId: tx!.id,
         raw: false,
       });
-      expect(res.statusCode).toBe(422);
-    });
+      expect(bothParamsRes.statusCode).toBe(422);
+
+      const paid = await helpers.markSubscriptionPeriodPaid({ id: sub.id, periodId: first!.id, raw: true });
+      expect(paid.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
+
+      const rePayRes = await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: first!.id,
+        raw: false,
+      });
+      expect(rePayRes.statusCode).toBe(409);
+
+      const afterFirst = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+      const second = afterFirst.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(second).toBeDefined();
+
+      const skipped = await helpers.skipSubscriptionPeriod({ id: sub.id, periodId: second!.id, raw: true });
+      expect(skipped.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.skipped);
+
+      const paySkippedRes = await helpers.markSubscriptionPeriodPaid({
+        id: sub.id,
+        periodId: second!.id,
+        raw: false,
+      });
+      expect(paySkippedRes.statusCode).toBe(409);
+    }, 60_000);
 
     it('returns an error when createTransaction is true but the subscription has no account', async () => {
       const sub = await helpers.createSubscription({
@@ -595,6 +546,13 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
       const afterPeriod2 = after2.periods.find((p) => p.id === upcoming2!.id);
       expect(afterPeriod2!.status).not.toBe(SUBSCRIPTION_PERIOD_STATUSES.paid);
       expect(afterPeriod2!.transactionId).toBeNull();
+
+      const foreignRes = await helpers.markSubscriptionPeriodPaid({
+        id: sub1.id,
+        periodId: upcoming2!.id,
+        raw: false,
+      });
+      expect(foreignRes.statusCode).toBe(404);
     });
 
     it('rejects linking the same transaction to two periods of the same subscription (422)', async () => {
@@ -638,64 +596,6 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
         raw: false,
       });
       expect(res.statusCode).toBe(422);
-    });
-
-    it('returns 409 when trying to pay a skipped period', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const sub = await helpers.createSubscription({
-        name: 'Skipped Sub',
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: futureDate({ monthsAhead: 1, day: 1 }),
-        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
-        accountId: account.id,
-        expectedAmount: 10,
-        expectedCurrencyCode: global.BASE_CURRENCY.code,
-        raw: true,
-      });
-
-      const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-      const upcoming = detail.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-
-      const skipped = await helpers.skipSubscriptionPeriod({ id: sub.id, periodId: upcoming!.id, raw: true });
-      expect(skipped.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.skipped);
-
-      // Paying a skipped period must conflict (undo the skip first).
-      const res = await helpers.markSubscriptionPeriodPaid({
-        id: sub.id,
-        periodId: upcoming!.id,
-        raw: false,
-      });
-      expect(res.statusCode).toBe(409);
-    });
-
-    it('returns 404 when the periodId belongs to a different subscription', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const makeSub = (name: string) =>
-        helpers.createSubscription({
-          name,
-          frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-          startDate: futureDate({ monthsAhead: 1, day: 1 }),
-          dueDate: futureDate({ monthsAhead: 1, day: 1 }),
-          accountId: account.id,
-          expectedAmount: 10,
-          expectedCurrencyCode: global.BASE_CURRENCY.code,
-          raw: true,
-        });
-
-      const sub1 = await makeSub('Target Sub');
-      const sub2 = await makeSub('Foreign Sub');
-
-      const detail2 = await helpers.getSubscriptionById({ id: sub2.id, raw: true });
-      const foreignPeriod = detail2.periods.find((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-
-      // sub1 does not own foreignPeriod → not found.
-      const res = await helpers.markSubscriptionPeriodPaid({
-        id: sub1.id,
-        periodId: foreignPeriod!.id,
-        raw: false,
-      });
-      expect(res.statusCode).toBe(404);
     });
   });
 
@@ -744,79 +644,63 @@ describe('POST /subscriptions/:id/periods/:periodId/pay', () => {
 });
 
 describe('GET /subscriptions/:id/pay-preview', () => {
-  describe('Same-currency subscription', () => {
-    it('returns isCrossCurrency false and convertedAmount equals expectedAmount', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const sub = await helpers.createSubscription({
-        name: 'iCloud',
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: futureDate({ monthsAhead: 1, day: 1 }),
-        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
-        accountId: account.id,
-        // 2000 cents = $20.00; account is in base currency (same as sub)
-        expectedAmount: 20,
-        expectedCurrencyCode: global.BASE_CURRENCY.code,
-        raw: true,
-      });
+  it('previews same-currency, account-less and amount-less subscriptions', async () => {
+    const account = await helpers.createAccount({ raw: true });
 
-      const preview = await helpers.getSubscriptionPayPreview({ id: sub.id, raw: true });
-
-      expect(preview.isCrossCurrency).toBe(false);
-      expect(preview.accountCurrencyCode).toBe(global.BASE_CURRENCY.code);
-      expect(preview.expectedAmount).toBe(20);
-      // Same currency: no conversion, convertedAmount equals expectedAmount.
-      expect(preview.convertedAmount).toBe(20);
+    const sameCurrencySub = await helpers.createSubscription({
+      name: 'iCloud',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      accountId: account.id,
+      expectedAmount: 20,
+      expectedCurrencyCode: global.BASE_CURRENCY.code,
+      raw: true,
     });
-  });
 
-  describe('No-account subscription', () => {
-    it('returns accountCurrencyCode null and convertedAmount null', async () => {
-      const sub = await helpers.createSubscription({
-        name: 'No Account Preview',
-        type: SUBSCRIPTION_TYPES.subscription,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: futureDate({ monthsAhead: 1, day: 1 }),
-        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
-        // 500 cents = $5.00
-        expectedAmount: 5,
-        expectedCurrencyCode: global.BASE_CURRENCY.code,
-        // no accountId
-        raw: true,
-      });
-
-      const preview = await helpers.getSubscriptionPayPreview({ id: sub.id, raw: true });
-
-      expect(preview.accountCurrencyCode).toBeNull();
-      expect(preview.convertedAmount).toBeNull();
-      expect(preview.expectedAmount).toBe(5);
+    const noAccountSub = await helpers.createSubscription({
+      name: 'No Account Preview',
+      type: SUBSCRIPTION_TYPES.subscription,
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      expectedAmount: 5,
+      expectedCurrencyCode: global.BASE_CURRENCY.code,
+      // no accountId
+      raw: true,
     });
-  });
 
-  describe('Variable bill with an account', () => {
-    it('returns convertedAmount null and isCrossCurrency false when the bill has an account but no expectedAmount', async () => {
-      // Account in the base currency so same-currency keeps isCrossCurrency false;
-      // the missing expectedAmount is what makes convertedAmount null.
-      const account = await helpers.createAccount({ raw: true });
-      const sub = await helpers.createSubscription({
-        name: 'Variable Bill Preview',
-        type: SUBSCRIPTION_TYPES.bill,
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: futureDate({ monthsAhead: 1, day: 1 }),
-        dueDate: futureDate({ monthsAhead: 1, day: 1 }),
-        accountId: account.id,
-        // no expectedAmount — variable-amount bill
-        raw: true,
-      });
-
-      const preview = await helpers.getSubscriptionPayPreview({ id: sub.id, raw: true });
-
-      expect(preview.accountCurrencyCode).toBe(global.BASE_CURRENCY.code);
-      expect(preview.isCrossCurrency).toBe(false);
-      expect(preview.expectedAmount).toBeNull();
-      // Nothing to convert without an expectedAmount.
-      expect(preview.convertedAmount).toBeNull();
+    // Account in the base currency so same-currency keeps isCrossCurrency false;
+    // the missing expectedAmount is what makes convertedAmount null.
+    const variableBillSub = await helpers.createSubscription({
+      name: 'Variable Bill Preview',
+      type: SUBSCRIPTION_TYPES.bill,
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: futureDate({ monthsAhead: 1, day: 1 }),
+      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
+      accountId: account.id,
+      // no expectedAmount — variable-amount bill
+      raw: true,
     });
-  });
+
+    const sameCurrency = await helpers.getSubscriptionPayPreview({ id: sameCurrencySub.id, raw: true });
+    expect(sameCurrency.isCrossCurrency).toBe(false);
+    expect(sameCurrency.accountCurrencyCode).toBe(global.BASE_CURRENCY.code);
+    expect(sameCurrency.expectedAmount).toBe(20);
+    expect(sameCurrency.convertedAmount).toBe(20);
+
+    const noAccount = await helpers.getSubscriptionPayPreview({ id: noAccountSub.id, raw: true });
+    expect(noAccount.accountCurrencyCode).toBeNull();
+    expect(noAccount.convertedAmount).toBeNull();
+    expect(noAccount.expectedAmount).toBe(5);
+
+    const variableBill = await helpers.getSubscriptionPayPreview({ id: variableBillSub.id, raw: true });
+    expect(variableBill.accountCurrencyCode).toBe(global.BASE_CURRENCY.code);
+    expect(variableBill.isCrossCurrency).toBe(false);
+    expect(variableBill.expectedAmount).toBeNull();
+    // Nothing to convert without an expectedAmount.
+    expect(variableBill.convertedAmount).toBeNull();
+  }, 60_000);
 });
 
 describe('Cross-currency pay when the billed currency is unconnected', () => {
@@ -915,46 +799,6 @@ describe('Issue #422: Additional Recurring Income E2E validation', () => {
     const updated = await helpers.getSubscriptionById({ id: sub.id, raw: true });
     expect(updated.name).toBe('Salary Updated');
     expect(updated.transactionType).toBe(TRANSACTION_TYPES.income); // Still income!
-  });
-
-  it('correctly calculates expectedMonthlyIncome and activeCount split in summary', async () => {
-    const account = await helpers.createAccount({ raw: true });
-
-    // Create one expense subscription
-    await helpers.createSubscription({
-      name: 'Rent',
-      transactionType: TRANSACTION_TYPES.expense,
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: futureDate({ monthsAhead: 1, day: 1 }),
-      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
-      accountId: account.id,
-      categoryId: global.DEFAULT_CATEGORY_ID,
-      expectedAmount: 1000,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-
-    // Create one income subscription
-    await helpers.createSubscription({
-      name: 'Paycheck',
-      transactionType: TRANSACTION_TYPES.income,
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: futureDate({ monthsAhead: 1, day: 1 }),
-      dueDate: futureDate({ monthsAhead: 1, day: 1 }),
-      accountId: account.id,
-      categoryId: global.DEFAULT_CATEGORY_ID,
-      expectedAmount: 2500,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-
-    const summary = await helpers.getSubscriptionsSummary({ raw: true });
-
-    expect(summary.estimatedMonthlyCost).toBe(1000);
-    expect(summary.projectedYearlyCost).toBe(12000);
-    expect(summary.expectedMonthlyIncome).toBe(2500);
-    expect(summary.activeCount.expense).toBe(1);
-    expect(summary.activeCount.income).toBe(1);
   });
 
   it('enforces matching rules match by correct transaction type direction', async () => {

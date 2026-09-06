@@ -136,6 +136,8 @@
         "closeButton": "Закрити",
         "deleteButton": "Видалити",
         "deleteAriaLabel": "Видалити транзакцію",
+        "deleteConfirmTitle": "Видалити цю транзакцію?",
+        "deleteConfirmDescription": "Це неможливо скасувати. Усі розділення та прив'язки повернень, пов'язані з нею, також буде видалено.",
         "createAriaLabel": "Створити транзакцію",
         "editAriaLabel": "Редагувати транзакцію",
         "loadingButton": "Завантаження...",
@@ -248,7 +250,8 @@
         "summarySelected": "Вибрано: {count} · {amount}",
         "summaryOfLimit": "Вибрано: {count} · {amount} з {limit}",
         "summaryExceedsBy": "Вибрано: {count} · {amount} — перевищує оригінал на {excess}",
-        "summaryExceeds": "Вибрано: {count} · {amount} — перевищує оригінальну суму"
+        "summaryExceeds": "Вибрано: {count} · {amount} — перевищує оригінальну суму",
+        "summaryBelowRefund": "{amount} — менше, ніж це повернення на {limit}"
       },
       "refundInfo": {
         "trigger": "Як це працює?",

@@ -47,7 +47,7 @@ Ignored unless you use the [Traefik overlay](traefik-overlay.md)
 | `APP_URL`                                                                      | Public URL of your frontend, used as the base for links inside invitation / notification emails (defaults to `https://moneymatter.app`)                                     |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`                                    | Google sign-in                                                                                                                                                              |
 | `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET`                                    | GitHub sign-in                                                                                                                                                              |
-| `ENABLE_BANKING_REDIRECT_URL`                                                  | Open-banking integrations                                                                                                                                                   |
+| `ENABLE_BANKING_REDIRECT_URL`                                                  | Enable Banking bank linking. Must be `https://<your-domain>/bank-callback` and match the redirect URL registered in your Enable Banking application                         |
 | `POLYGON_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `FMP_API_KEY`, `COINGECKO_API_KEY` | Investments / market data                                                                                                                                                   |
 | `CRYPTO_PRICES_SYNC_INTERVAL_MINUTES`                                          | Crypto price sync cadence (1–59, default 15)                                                                                                                                |
 | `API_LAYER_API_KEYS`                                                           | APILayer paid currency-rate fallback                                                                                                                                        |
@@ -85,14 +85,17 @@ Desktop, ChatGPT). In same-origin mode set it to the origin you reach the app on
 (`https://money.example.com`): the frontend container proxies `/mcp` and the
 OAuth discovery endpoints to the backend, and the backend builds its discovery
 documents from this value, so clients are pointed at your instance rather than
-the hosted one. In split-domain mode set it to the backend's own origin. Leave
-it unset if you do not use MCP.
+the hosted one. In split-domain mode set it to the backend's own origin, the
+same value as `BETTER_AUTH_URL`: the OAuth issuer is built from
+`BETTER_AUTH_URL`, and the frontend's static discovery mirrors rewrite it to
+`MCP_BASE_URL`, so the two must agree. Leave it unset if you do not use MCP.
 
 Whatever fronts the frontend container must pass these paths through to it
 unchanged, alongside `/api/`: `/mcp`, `/.well-known/oauth-authorization-server`,
 `/.well-known/oauth-protected-resource` (both also in their `/mcp`-suffixed
-form), and `/authorize`, `/token`, `/register`. A proxy that forwards only `/`
-and `/api/` already covers them; one with an explicit path allow-list does not.
+form), `/.well-known/oauth-authorization-server/api/v1/auth`, and `/authorize`,
+`/token`, `/register`. A proxy that forwards only `/` and `/api/` already covers
+them; one with an explicit path allow-list does not.
 
 The `VITE_` prefix on the frontend keys above is historical: these are read from
 the container's env at start, not inlined at build time. `docker-compose.yml`

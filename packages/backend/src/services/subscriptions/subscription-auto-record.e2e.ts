@@ -70,7 +70,7 @@ async function countTransactionsForAccount({ accountId }: { accountId: string })
 
 describe('Subscription auto-record cron', () => {
   describe('happy path', () => {
-    it('books a transaction and marks the period paid for a due upcoming period', async () => {
+    it('books a due period, opens the next one, and does not double-book on a second tick', async () => {
       const account = await helpers.createAccount({ raw: true });
 
       const sub = await createAutoRecordSubscription({
@@ -91,9 +91,16 @@ describe('Subscription auto-record cron', () => {
       expect(paid!.transactionId).not.toBeNull();
       expect(paid!.transactionAutoCreated).toBe(true);
 
-      const txCount = await countTransactionsForAccount({ accountId: account.id });
-      expect(txCount).toBe(1);
-    });
+      expect(await countTransactionsForAccount({ accountId: account.id })).toBe(1);
+
+      const upcoming = periods.filter((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+      expect(upcoming.length).toBe(1);
+      expect(upcoming[0]!.dueDate > todayStr).toBe(true);
+
+      const second = await processAutoRecordPeriods();
+      expect(second.booked).toBe(0);
+      expect(await countTransactionsForAccount({ accountId: account.id })).toBe(1);
+    }, 60_000);
 
     it('books an income transaction and marks the period paid for a due upcoming income period', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -119,22 +126,6 @@ describe('Subscription auto-record cron', () => {
       expect(tx!.amount).toBe(12.5);
     });
 
-    it('ensures the next upcoming period after booking the current one', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const sub = await createAutoRecordSubscription({
-        name: 'Recurring',
-        accountId: account.id,
-      });
-
-      await processAutoRecordPeriods();
-
-      const { periods } = await helpers.getSubscriptionPeriods({ id: sub.id, raw: true });
-      const upcoming = periods.filter((p) => p.status === SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-      expect(upcoming.length).toBe(1);
-      expect(upcoming[0]!.dueDate > todayStr).toBe(true);
-    });
-
     it('dates the booked transaction at the period dueDate, not the current time', async () => {
       const account = await helpers.createAccount({ raw: true });
       const dueDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -153,102 +144,57 @@ describe('Subscription auto-record cron', () => {
     });
   });
 
-  describe('forward-only semantics', () => {
-    it('skips a period that is already overdue when the cron runs', async () => {
-      const account = await helpers.createAccount({ raw: true });
+  describe('skip reasons', () => {
+    it('skips every ineligible period in a single tick', async () => {
+      const overdueAccount = await helpers.createAccount({ raw: true });
+      const futureAccount = await helpers.createAccount({ raw: true });
+      const manualAccount = await helpers.createAccount({ raw: true });
+      const pausedAccount = await helpers.createAccount({ raw: true });
+      const finishedAccount = await helpers.createAccount({ raw: true });
 
       await createAutoRecordSubscription({
         name: 'Slipped',
-        accountId: account.id,
+        accountId: overdueAccount.id,
         periodDueDate: format(subDays(new Date(), 5), 'yyyy-MM-dd'),
         periodStatus: SUBSCRIPTION_PERIOD_STATUSES.overdue,
       });
 
-      const result = await processAutoRecordPeriods();
-
-      expect(result.booked).toBe(0);
-      expect(await countTransactionsForAccount({ accountId: account.id })).toBe(0);
-    });
-
-    it('skips a future-dated upcoming period (dueDate > today)', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
       await createAutoRecordSubscription({
         name: 'Future',
-        accountId: account.id,
+        accountId: futureAccount.id,
         periodDueDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
       });
-
-      const result = await processAutoRecordPeriods();
-
-      expect(result.booked).toBe(0);
-      expect(await countTransactionsForAccount({ accountId: account.id })).toBe(0);
-    });
-  });
-
-  describe('subscription filters', () => {
-    it('skips subscriptions with autoRecord=false', async () => {
-      const account = await helpers.createAccount({ raw: true });
 
       await helpers.createSubscription({
         name: 'Manual',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: todayStr,
         dueDate: todayStr,
-        accountId: account.id,
+        accountId: manualAccount.id,
         expectedAmount: 9,
         expectedCurrencyCode: global.BASE_CURRENCY.code,
         autoRecord: false,
         raw: true,
       });
 
-      const result = await processAutoRecordPeriods();
-      expect(result.booked).toBe(0);
-    });
+      const paused = await createAutoRecordSubscription({ name: 'Paused', accountId: pausedAccount.id });
+      await Subscriptions.update({ isActive: false }, { where: { id: paused.id } });
 
-    it('skips paused (isActive=false) subscriptions', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const sub = await createAutoRecordSubscription({
-        name: 'Paused',
-        accountId: account.id,
-      });
-      await Subscriptions.update({ isActive: false }, { where: { id: sub.id } });
+      const finished = await createAutoRecordSubscription({ name: 'Finished', accountId: finishedAccount.id });
+      await Subscriptions.update({ completedAt: new Date() }, { where: { id: finished.id } });
 
       const result = await processAutoRecordPeriods();
       expect(result.booked).toBe(0);
-    });
 
-    it('skips finished installments (completedAt set)', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const sub = await createAutoRecordSubscription({
-        name: 'Finished',
-        accountId: account.id,
-      });
-      await Subscriptions.update({ completedAt: new Date() }, { where: { id: sub.id } });
-
-      const result = await processAutoRecordPeriods();
-      expect(result.booked).toBe(0);
-    });
+      expect(await countTransactionsForAccount({ accountId: overdueAccount.id })).toBe(0);
+      expect(await countTransactionsForAccount({ accountId: futureAccount.id })).toBe(0);
+      expect(await countTransactionsForAccount({ accountId: manualAccount.id })).toBe(0);
+      expect(await countTransactionsForAccount({ accountId: pausedAccount.id })).toBe(0);
+      expect(await countTransactionsForAccount({ accountId: finishedAccount.id })).toBe(0);
+    }, 60_000);
   });
 
   describe('idempotency + isolation', () => {
-    it('does not double-book on a second tick', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      await createAutoRecordSubscription({
-        name: 'Idempotent',
-        accountId: account.id,
-      });
-
-      await processAutoRecordPeriods();
-      const second = await processAutoRecordPeriods();
-
-      expect(second.booked).toBe(0);
-      expect(await countTransactionsForAccount({ accountId: account.id })).toBe(1);
-    });
-
     it('books every eligible period in a single tick across multiple subscriptions', async () => {
       const accountA = await helpers.createAccount({ raw: true });
       const accountB = await helpers.createAccount({ raw: true });
@@ -283,9 +229,11 @@ describe('Subscription auto-record cron', () => {
     });
   });
 
-  describe('create validation', () => {
-    it('rejects autoRecord=true without an accountId', async () => {
-      const res = await helpers.createSubscription({
+  describe('validation', () => {
+    it('rejects invalid autoRecord combinations', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const withoutAccount = await helpers.createSubscription({
         name: 'No account',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: todayStr,
@@ -294,14 +242,9 @@ describe('Subscription auto-record cron', () => {
         expectedCurrencyCode: global.BASE_CURRENCY.code,
         autoRecord: true,
       });
+      expect(withoutAccount.statusCode).toBe(422);
 
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects autoRecord=true without expectedAmount + expectedCurrencyCode', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const res = await helpers.createSubscription({
+      const withoutAmount = await helpers.createSubscription({
         name: 'No amount',
         type: SUBSCRIPTION_TYPES.bill,
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -310,14 +253,9 @@ describe('Subscription auto-record cron', () => {
         accountId: account.id,
         autoRecord: true,
       });
+      expect(withoutAmount.statusCode).toBe(422);
 
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects autoRecord=true alongside non-empty matchingRules', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const res = await helpers.createSubscription({
+      const withMatchingRules = await helpers.createSubscription({
         name: 'Both',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: todayStr,
@@ -330,14 +268,9 @@ describe('Subscription auto-record cron', () => {
           rules: [{ field: 'note', operator: 'contains_any', value: ['x'] }],
         },
       });
+      expect(withMatchingRules.statusCode).toBe(422);
 
-      expect(res.statusCode).toBe(422);
-    });
-  });
-
-  describe('update validation', () => {
-    it('rejects flipping autoRecord ON when the stored row has no account', async () => {
-      const sub = await helpers.createSubscription({
+      const accountLess = await helpers.createSubscription({
         name: 'Account-less',
         frequency: SUBSCRIPTION_FREQUENCIES.monthly,
         startDate: todayStr,
@@ -346,32 +279,21 @@ describe('Subscription auto-record cron', () => {
         expectedCurrencyCode: global.BASE_CURRENCY.code,
         raw: true,
       });
+      const flipOn = await helpers.updateSubscription({ id: accountLess.id, autoRecord: true });
+      expect(flipOn.statusCode).toBe(422);
 
-      const res = await helpers.updateSubscription({
-        id: sub.id,
-        autoRecord: true,
-      });
-
-      expect(res.statusCode).toBe(422);
-    });
-
-    it('rejects adding matching rules to an existing auto-record subscription', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const sub = await createAutoRecordSubscription({
+      const autoSub = await createAutoRecordSubscription({
         name: 'Already auto',
         accountId: account.id,
       });
-
-      const res = await helpers.updateSubscription({
-        id: sub.id,
+      const addRules = await helpers.updateSubscription({
+        id: autoSub.id,
         matchingRules: {
           rules: [{ field: 'note', operator: 'contains_any', value: ['x'] }],
         },
       });
-
-      expect(res.statusCode).toBe(422);
-    });
+      expect(addRules.statusCode).toBe(422);
+    }, 60_000);
   });
 });
 

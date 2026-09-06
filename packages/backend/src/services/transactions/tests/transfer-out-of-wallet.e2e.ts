@@ -5,55 +5,49 @@ import * as helpers from '@tests/helpers';
 
 describe('out_of_wallet transfer', () => {
   describe('transaction creation', () => {
-    it.each([[TRANSACTION_TYPES.income], [TRANSACTION_TYPES.expense]])(
-      'successfully creates record for %s scenario',
-      async (txType) => {
-        const account = await helpers.createAccount({ raw: true });
+    it('successfully creates income and expense records, ignoring `destinationAmount`', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+      const accountB = await helpers.createAccount({ raw: true });
 
-        const txPayload = helpers.buildTransactionPayload({
-          accountId: account.id,
-          transactionType: txType,
-          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-        });
-        const [baseTx, oppositeTx] = await helpers.createTransaction({
-          payload: txPayload,
-          raw: true,
-        });
-
-        const account_after = await helpers.getAccount({ id: account.id, raw: true });
-
-        if (txType === TRANSACTION_TYPES.income) {
-          expect(account_after.currentBalance).toBe(Number(account.currentBalance) + txPayload.amount);
-        } else if (txType === TRANSACTION_TYPES.expense) {
-          expect(account_after.currentBalance).toBe(Number(account.currentBalance) - txPayload.amount);
-        }
-
-        expect(oppositeTx).toBe(undefined); // there's no opposite transaction when out_of_wallet created
-
-        expect(baseTx.accountId).toBe(account.id);
-        expect(baseTx.currencyCode).toBe(account.currencyCode);
-        expect(baseTx.amount).toBe(txPayload.amount);
-      },
-    );
-    it('it ignores `destinationAmount` if provided', async () => {
-      const account = await helpers.createAccount({ raw: true });
-
-      const defaultTxPayload = helpers.buildTransactionPayload({
-        accountId: account.id,
-      });
-
-      const txPayload = {
-        ...defaultTxPayload,
+      const incomePayload = helpers.buildTransactionPayload({
+        accountId: accountA.id,
+        transactionType: TRANSACTION_TYPES.income,
         transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-        destinationAmount: defaultTxPayload.amount,
-      };
-      const [baseTx] = await helpers.createTransaction({
-        payload: txPayload,
+      });
+      const [incomeTx, incomeOppositeTx] = await helpers.createTransaction({
+        payload: incomePayload,
         raw: true,
       });
 
-      expect(baseTx.amount).toBe(txPayload.amount);
-    });
+      const expenseDefaults = helpers.buildTransactionPayload({
+        accountId: accountB.id,
+        transactionType: TRANSACTION_TYPES.expense,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      });
+      const expensePayload = { ...expenseDefaults, destinationAmount: expenseDefaults.amount };
+      const [expenseTx, expenseOppositeTx] = await helpers.createTransaction({
+        payload: expensePayload,
+        raw: true,
+      });
+
+      // there's no opposite transaction when out_of_wallet created
+      expect(incomeOppositeTx).toBe(undefined);
+      expect(expenseOppositeTx).toBe(undefined);
+
+      expect(incomeTx.accountId).toBe(accountA.id);
+      expect(incomeTx.currencyCode).toBe(accountA.currencyCode);
+      expect(incomeTx.amount).toBe(incomePayload.amount);
+
+      expect(expenseTx.accountId).toBe(accountB.id);
+      expect(expenseTx.currencyCode).toBe(accountB.currencyCode);
+      expect(expenseTx.amount).toBe(expensePayload.amount);
+
+      const accountA_after = await helpers.getAccount({ id: accountA.id, raw: true });
+      const accountB_after = await helpers.getAccount({ id: accountB.id, raw: true });
+
+      expect(accountA_after.currentBalance).toBe(Number(accountA.currentBalance) + incomePayload.amount);
+      expect(accountB_after.currentBalance).toBe(Number(accountB.currentBalance) - expensePayload.amount);
+    }, 60_000);
 
     it('it throws validation error when `destinationAccountId` is provided', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -121,28 +115,35 @@ describe('out_of_wallet transfer', () => {
   });
 
   describe('transaction deletion', () => {
-    it.each([[TRANSACTION_TYPES.income], [TRANSACTION_TYPES.expense]])(
-      'successfully deletes record for %s scenario',
-      async (txType) => {
-        const account = await helpers.createAccount({ raw: true });
+    it('successfully deletes income and expense records and restores both balances', async () => {
+      const accountA = await helpers.createAccount({ raw: true });
+      const accountB = await helpers.createAccount({ raw: true });
 
-        const [createdTx] = await helpers.createTransaction({
-          payload: helpers.buildTransactionPayload({
-            accountId: account.id,
-            transactionType: txType,
-            transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
-          }),
-          raw: true,
-        });
+      const [incomeTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          transactionType: TRANSACTION_TYPES.income,
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+        }),
+        raw: true,
+      });
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountB.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+        }),
+        raw: true,
+      });
 
-        const response = await helpers.deleteTransaction({ id: createdTx.id });
+      expect((await helpers.deleteTransaction({ id: incomeTx.id })).statusCode).toBe(200);
+      expect((await helpers.deleteTransaction({ id: expenseTx.id })).statusCode).toBe(200);
 
-        expect(response.statusCode).toBe(200);
+      const accountA_after = await helpers.getAccount({ id: accountA.id, raw: true });
+      const accountB_after = await helpers.getAccount({ id: accountB.id, raw: true });
 
-        const account_after = await helpers.getAccount({ id: account.id, raw: true });
-
-        expect(account_after.currentBalance).toBe(account.currentBalance);
-      },
-    );
+      expect(accountA_after.currentBalance).toBe(accountA.currentBalance);
+      expect(accountB_after.currentBalance).toBe(accountB.currentBalance);
+    }, 60_000);
   });
 });

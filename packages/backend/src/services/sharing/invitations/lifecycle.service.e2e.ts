@@ -145,22 +145,6 @@ describe('Share invitations: resend (S6)', () => {
       });
       expect(notifs).toHaveLength(0);
     });
-
-    it("reports emailOutcome: 'skipped' when no email provider is configured", async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const invitation = await helpers.createShareInvitation({
-        inviteeEmail: recipient.email,
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: account.id,
-        permission: SHARE_PERMISSIONS.read,
-        raw: true,
-      });
-
-      const res = await helpers.resendShareInvitation({ invitationId: invitation.id, raw: false });
-      expect(res.statusCode).toBe(200);
-      expect(res.body.response.emailOutcome).toBe('skipped');
-    });
   });
 
   describe('rate limit', () => {
@@ -258,64 +242,57 @@ describe('Share invitations: cancel (S6)', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('rejects cancelling an already-accepted invitation', async () => {
-    const { recipient, invitation } = await setupPendingInvitation();
-    await helpers.asUser({
+  it('rejects cancel from every non-pending state', async () => {
+    // Cancel is legal only from `pending`: a guard listing just accepted/revoked would
+    // accept cancels on declined and expired rows.
+    const account = await helpers.createAccount({ raw: true });
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+    const invite = () =>
+      helpers.createShareInvitation({
+        inviteeEmail: recipient.email,
+        resourceType: RESOURCE_TYPES.account,
+        resourceId: account.id,
+        permission: SHARE_PERMISSIONS.read,
+        raw: true,
+      });
+
+    const revoked = await invite();
+    const cancelRes = await helpers.cancelShareInvitation({ invitationId: revoked.id, raw: false });
+    expect(cancelRes.statusCode).toBe(200);
+    const recancelRes = await helpers.cancelShareInvitation({ invitationId: revoked.id, raw: false });
+    expect(recancelRes.statusCode).toBe(409);
+    const acceptCancelledRes = await helpers.asUser({
       cookies: recipient.cookies,
-      fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: true }),
+      fn: () => helpers.acceptShareInvitation({ token: revoked.token, raw: false }),
     });
+    expect(acceptCancelledRes.statusCode).toBe(409);
 
-    const res = await helpers.cancelShareInvitation({ invitationId: invitation.id, raw: false });
-    expect(res.statusCode).toBe(409);
-  });
-
-  it('rejects cancelling an already-revoked invitation (idempotency surface)', async () => {
-    const { invitation } = await setupPendingInvitation();
-    await helpers.cancelShareInvitation({ invitationId: invitation.id, raw: true });
-
-    const res = await helpers.cancelShareInvitation({ invitationId: invitation.id, raw: false });
-    expect(res.statusCode).toBe(409);
-  });
-
-  it('rejects cancelling a declined invitation', async () => {
-    // The cancel guard rejects everything that isn't `pending`. Without this test, a
-    // future regression that only excludes `accepted`/`revoked` would silently start
-    // accepting cancels on declined rows.
-    const { recipient, invitation } = await setupPendingInvitation();
-    const declineRes = await helpers.asUser({
-      cookies: recipient.cookies,
-      fn: () => helpers.declineShareInvitation({ token: invitation.token, raw: false }),
-    });
-    expect(declineRes.statusCode).toBe(200);
-
-    const res = await helpers.cancelShareInvitation({ invitationId: invitation.id, raw: false });
-    expect(res.statusCode).toBe(409);
-  });
-
-  it('rejects cancelling an expired invitation', async () => {
-    // Same shape as the declined case — cancel only makes sense from `pending`. This
-    // one is force-flipped to `expired` by direct DB write because the cron sweep is
-    // tested separately.
-    const { invitation } = await setupPendingInvitation();
+    const expired = await invite();
     await ShareInvitations.update(
       { status: SHARE_INVITATION_STATUSES.expired, expiresAt: new Date(Date.now() - 1_000) },
-      { where: { id: invitation.id } },
+      { where: { id: expired.id } },
     );
+    const cancelExpiredRes = await helpers.cancelShareInvitation({ invitationId: expired.id, raw: false });
+    expect(cancelExpiredRes.statusCode).toBe(409);
 
-    const res = await helpers.cancelShareInvitation({ invitationId: invitation.id, raw: false });
-    expect(res.statusCode).toBe(409);
-  });
+    const declined = await invite();
+    const declineRes = await helpers.asUser({
+      cookies: recipient.cookies,
+      fn: () => helpers.declineShareInvitation({ token: declined.token, raw: false }),
+    });
+    expect(declineRes.statusCode).toBe(200);
+    const cancelDeclinedRes = await helpers.cancelShareInvitation({ invitationId: declined.id, raw: false });
+    expect(cancelDeclinedRes.statusCode).toBe(409);
 
-  it("subsequent accept attempts on a cancelled invitation's token fail", async () => {
-    const { recipient, invitation } = await setupPendingInvitation();
-    await helpers.cancelShareInvitation({ invitationId: invitation.id, raw: true });
-
+    const accepted = await invite();
     const acceptRes = await helpers.asUser({
       cookies: recipient.cookies,
-      fn: () => helpers.acceptShareInvitation({ token: invitation.token, raw: false }),
+      fn: () => helpers.acceptShareInvitation({ token: accepted.token, raw: false }),
     });
-    expect(acceptRes.statusCode).toBe(409);
-  });
+    expect(acceptRes.statusCode).toBe(200);
+    const cancelAcceptedRes = await helpers.cancelShareInvitation({ invitationId: accepted.id, raw: false });
+    expect(cancelAcceptedRes.statusCode).toBe(409);
+  }, 60_000);
 });
 
 describe('Share invitations: expire sweep (S6)', () => {

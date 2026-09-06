@@ -99,6 +99,94 @@ async function waitForEmailSent({ periodId, preset }: { periodId: string; preset
   );
 }
 
+describe('Reminder settings persistence', () => {
+  it('persists remindBefore and notifyEmail on create, defaults them when omitted, and updates both', async () => {
+    const bare = await helpers.createSubscription({
+      name: 'No Reminders',
+      expectedAmount: 9.99,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      raw: true,
+    });
+
+    const bareDetail = await helpers.getSubscriptionById({ id: bare.id, raw: true });
+    expect(bareDetail.remindBefore).toEqual([]);
+    expect(bareDetail.notifyEmail).toBe(false);
+
+    const sub = await helpers.createSubscription({
+      name: 'With Reminders',
+      expectedAmount: 9.99,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      remindBefore: [REMIND_BEFORE_PRESETS.oneDay, REMIND_BEFORE_PRESETS.oneWeek],
+      notifyEmail: true,
+      raw: true,
+    });
+
+    const created = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    expect(created.remindBefore).toEqual([REMIND_BEFORE_PRESETS.oneDay, REMIND_BEFORE_PRESETS.oneWeek]);
+    expect(created.notifyEmail).toBe(true);
+
+    await helpers.updateSubscription({ id: sub.id, remindBefore: [], raw: true });
+
+    const cleared = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    expect(cleared.remindBefore).toEqual([]);
+    // A remindBefore-only update must leave notifyEmail at true; the column default is false.
+    expect(cleared.notifyEmail).toBe(true);
+
+    await helpers.updateSubscription({
+      id: sub.id,
+      remindBefore: [REMIND_BEFORE_PRESETS.threeDays],
+      notifyEmail: false,
+      raw: true,
+    });
+
+    const updated = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    expect(updated.remindBefore).toEqual([REMIND_BEFORE_PRESETS.threeDays]);
+    expect(updated.notifyEmail).toBe(false);
+  }, 60_000);
+
+  it('rejects an invalid remindBefore preset on create and on update', async () => {
+    const createRes = await helpers.createSubscription({
+      name: 'Invalid Preset',
+      expectedAmount: 9.99,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      remindBefore: ['nonsense'] as unknown as (typeof REMIND_BEFORE_PRESETS)[keyof typeof REMIND_BEFORE_PRESETS][],
+    });
+
+    expect(createRes.statusCode).toBe(422);
+
+    const list = await helpers.getSubscriptions({ raw: true });
+    expect(list.some((s: { name: string }) => s.name === 'Invalid Preset')).toBe(false);
+
+    const sub = await helpers.createSubscription({
+      name: 'Reject Update',
+      expectedAmount: 9.99,
+      expectedCurrencyCode: 'USD',
+      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
+      startDate: '2025-01-01',
+      remindBefore: [REMIND_BEFORE_PRESETS.oneDay],
+      notifyEmail: true,
+      raw: true,
+    });
+
+    const updateRes = await helpers.updateSubscription({
+      id: sub.id,
+      remindBefore: ['nonsense'] as unknown as (typeof REMIND_BEFORE_PRESETS)[keyof typeof REMIND_BEFORE_PRESETS][],
+    });
+
+    expect(updateRes.statusCode).toBe(422);
+
+    const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    expect(detail.remindBefore).toEqual([REMIND_BEFORE_PRESETS.oneDay]);
+    expect(detail.notifyEmail).toBe(true);
+  });
+});
+
 describe('Subscriptions - Check Subscription Reminders (Cron Logic)', () => {
   describe('Overdue marking', () => {
     it('marks a past-due upcoming period as overdue', async () => {
@@ -133,7 +221,7 @@ describe('Subscriptions - Check Subscription Reminders (Cron Logic)', () => {
   });
 
   describe('Remind-before notifications', () => {
-    it('sends exactly one in-app notification and one dedup row when the trigger date has arrived', async () => {
+    it('sends exactly one in-app notification and one dedup row, and stays idempotent across runs', async () => {
       // dueDate = today+3 with a 3_days preset → triggerDate = today, so it fires.
       const dueDate = format(addDays(new Date(), 3), 'yyyy-MM-dd');
       const sub = await createSubscriptionWithReminder({
@@ -147,84 +235,38 @@ describe('Subscriptions - Check Subscription Reminders (Cron Logic)', () => {
       const result = await checkSubscriptionReminders();
       expect(result.remindersSent).toBeGreaterThanOrEqual(1);
 
-      const after = await countReminderNotifications({ userId: sub.userId });
-      expect(after).toBe(before + 1);
-
+      const afterFirstRun = await countReminderNotifications({ userId: sub.userId });
+      expect(afterFirstRun).toBe(before + 1);
       expect(await countDedupRows({ subscriptionId: sub.id })).toBe(1);
-    });
 
-    it('does not send when the trigger date has not arrived yet', async () => {
+      // The first run claims the dedup row, so the second run sends no notification and adds no row.
+      await checkSubscriptionReminders();
+      expect(await countReminderNotifications({ userId: sub.userId })).toBe(afterFirstRun);
+      expect(await countDedupRows({ subscriptionId: sub.id })).toBe(1);
+    }, 60_000);
+
+    it('does not send when the trigger date has not arrived yet, nor for inactive subscriptions', async () => {
       // dueDate = today+5 with a 1_day preset → triggerDate = today+4 (future).
-      const dueDate = format(addDays(new Date(), 5), 'yyyy-MM-dd');
-      const sub = await createSubscriptionWithReminder({
+      const tooEarly = await createSubscriptionWithReminder({
         name: 'Too Early Sub',
-        dueDate,
+        dueDate: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
         remindBefore: [REMIND_BEFORE_PRESETS.oneDay],
       });
-
-      const before = await countReminderNotifications({ userId: sub.userId });
-
-      await checkSubscriptionReminders();
-
-      const after = await countReminderNotifications({ userId: sub.userId });
-      expect(after).toBe(before);
-      expect(await countDedupRows({ subscriptionId: sub.id })).toBe(0);
-    });
-
-    it('does not send a duplicate notification on a second run', async () => {
-      const dueDate = format(addDays(new Date(), 3), 'yyyy-MM-dd');
-      const sub = await createSubscriptionWithReminder({
-        name: 'No Duplicate Sub',
-        dueDate,
-        remindBefore: [REMIND_BEFORE_PRESETS.threeDays],
-      });
-
-      await checkSubscriptionReminders();
-      const firstCount = await countReminderNotifications({ userId: sub.userId });
-
-      await checkSubscriptionReminders();
-      const secondCount = await countReminderNotifications({ userId: sub.userId });
-
-      expect(secondCount).toBe(firstCount);
-      expect(await countDedupRows({ subscriptionId: sub.id })).toBe(1);
-    });
-
-    it('does not send notifications for inactive subscriptions', async () => {
-      const sub = await createSubscriptionWithReminder({
+      const inactive = await createSubscriptionWithReminder({
         name: 'Inactive Sub',
         dueDate: todayStr,
         remindBefore: [REMIND_BEFORE_PRESETS.onDueDate],
         isActive: false,
       });
 
-      const before = await countReminderNotifications({ userId: sub.userId });
+      const before = await countReminderNotifications({ userId: tooEarly.userId });
 
       await checkSubscriptionReminders();
 
-      const after = await countReminderNotifications({ userId: sub.userId });
-      expect(after).toBe(before);
-      expect(await countDedupRows({ subscriptionId: sub.id })).toBe(0);
-    });
-
-    it('is idempotent: two runs create exactly one in-app notification and one dedup row', async () => {
-      // Guards the dedup gate: the row is claimed on the first run, so the second
-      // run finds it and neither re-fires the in-app notification nor adds a row.
-      const dueDate = format(addDays(new Date(), 3), 'yyyy-MM-dd');
-      const sub = await createSubscriptionWithReminder({
-        name: 'Idempotent Sub',
-        dueDate,
-        remindBefore: [REMIND_BEFORE_PRESETS.threeDays],
-      });
-
-      const before = await countReminderNotifications({ userId: sub.userId });
-
-      await checkSubscriptionReminders();
-      await checkSubscriptionReminders();
-
-      const after = await countReminderNotifications({ userId: sub.userId });
-      expect(after).toBe(before + 1);
-      expect(await countDedupRows({ subscriptionId: sub.id })).toBe(1);
-    });
+      expect(await countReminderNotifications({ userId: tooEarly.userId })).toBe(before);
+      expect(await countDedupRows({ subscriptionId: tooEarly.id })).toBe(0);
+      expect(await countDedupRows({ subscriptionId: inactive.id })).toBe(0);
+    }, 60_000);
 
     it('re-attempts the email when the dedup row has emailSent=false without re-firing the in-app notification', async () => {
       // Simulate an earlier run that claimed the slot (in-app already fired) but

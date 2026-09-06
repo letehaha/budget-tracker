@@ -19,7 +19,8 @@
   "balanceAdjustment": {
     "defaultNote": "Penyesuaian saldo",
     "accountNotFound": "Akun dengan id \"{{accountId}}\" tidak ditemukan.",
-    "vehicleUseOverride": "Nilai kendaraan hanya dapat diubah dari halaman kendaraan."
+    "vehicleUseOverride": "Nilai kendaraan hanya dapat diubah dari halaman kendaraan.",
+    "vehicleNegativeValue": "Nilai kendaraan tidak boleh negatif."
   },
   "accountGroups": {
     "groupNotFound": "Grup tidak ditemukan",

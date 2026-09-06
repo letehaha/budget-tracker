@@ -107,53 +107,50 @@ async function getOpenPeriod({ subId }: { subId: string }) {
 // ===========================================================================
 
 describe('Edit dueDate moves the existing open period', () => {
-  it('shifts the single open period onto the new date and reflects it on the list', async () => {
+  it('moves the single open period across future, past and cleared dates, re-resolving its status', async () => {
     const d1 = futureDate({ monthsAhead: 1, day: 10 });
     const { sub } = await createMonthlySub({ dueDate: d1 });
 
     const openBefore = await getOpenPeriod({ subId: sub.id });
     expect(openBefore!.dueDate).toBe(d1);
+    expect(openBefore!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
 
     const d2 = futureDate({ monthsAhead: 2, day: 20 });
     await helpers.updateSubscription({ id: sub.id, dueDate: d2, raw: true });
 
-    const openAfter = await getOpenPeriods({ subId: sub.id });
+    const movedOpen = await getOpenPeriods({ subId: sub.id });
     // Still exactly one open period — moved in place, not duplicated.
-    expect(openAfter).toHaveLength(1);
-    expect(openAfter[0]!.id).toBe(openBefore!.id);
-    expect(openAfter[0]!.dueDate).toBe(d2);
+    expect(movedOpen).toHaveLength(1);
+    expect(movedOpen[0]!.id).toBe(openBefore!.id);
+    expect(movedOpen[0]!.dueDate).toBe(d2);
 
     // The list's "due in N days" chip tracks the new date.
     const list = await helpers.getSubscriptions({ raw: true });
-    const item = list.find((s) => s.id === sub.id);
-    expect(item!.currentPeriod!.dueDate).toBe(d2);
-  });
-
-  it('re-resolves the moved period to overdue when the new date is in the past', async () => {
-    const d1 = futureDate({ monthsAhead: 1, day: 10 });
-    const { sub } = await createMonthlySub({ dueDate: d1 });
-    expect((await getOpenPeriod({ subId: sub.id }))!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+    expect(list.find((s) => s.id === sub.id)!.currentPeriod!.dueDate).toBe(d2);
 
     const past = pastDateDays({ daysAgo: 3 });
     await helpers.updateSubscription({ id: sub.id, dueDate: past, raw: true });
 
-    const open = await getOpenPeriod({ subId: sub.id });
-    expect(open!.dueDate).toBe(past);
-    expect(open!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.overdue);
-  });
-
-  it('re-resolves an overdue period to upcoming when rescheduled to the future', async () => {
-    const past = pastDateDays({ daysAgo: 2 });
-    const { sub } = await createMonthlySub({ dueDate: past });
-    expect((await getOpenPeriod({ subId: sub.id }))!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.overdue);
+    const overdue = await getOpenPeriod({ subId: sub.id });
+    expect(overdue!.dueDate).toBe(past);
+    expect(overdue!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.overdue);
 
     const future = futureDate({ monthsAhead: 1, day: 15 });
     await helpers.updateSubscription({ id: sub.id, dueDate: future, raw: true });
 
-    const open = await getOpenPeriod({ subId: sub.id });
-    expect(open!.dueDate).toBe(future);
-    expect(open!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
-  });
+    const upcoming = await getOpenPeriod({ subId: sub.id });
+    expect(upcoming!.dueDate).toBe(future);
+    expect(upcoming!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
+
+    await helpers.updateSubscription({ id: sub.id, dueDate: null, raw: true });
+
+    const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
+    expect(detail.periods.filter(isOpen)).toHaveLength(0);
+
+    // The list's "due in N days" chip is gone — nothing left to fall due.
+    const clearedList = await helpers.getSubscriptions({ raw: true });
+    expect(clearedList.find((s) => s.id === sub.id)!.currentPeriod).toBeNull();
+  }, 60_000);
 
   it('anchors the next generated period off the edited date (weekly)', async () => {
     const d1 = futureDate({ monthsAhead: 1, day: 7 });
@@ -202,27 +199,6 @@ describe('Edit dueDate moves the existing open period', () => {
     expect(open).toHaveLength(1);
     expect(open[0]!.id).toBe(openP2!.id);
     expect(open[0]!.dueDate).toBe(newDate);
-  });
-});
-
-// ===========================================================================
-// Clearing the schedule date
-// ===========================================================================
-
-describe('Clearing dueDate makes a subscription detection-only', () => {
-  it('removes the open period when the schedule date is cleared', async () => {
-    const d1 = futureDate({ monthsAhead: 1, day: 10 });
-    const { sub } = await createMonthlySub({ dueDate: d1 });
-    expect(await getOpenPeriods({ subId: sub.id })).toHaveLength(1);
-
-    await helpers.updateSubscription({ id: sub.id, dueDate: null, raw: true });
-
-    const detail = await helpers.getSubscriptionById({ id: sub.id, raw: true });
-    expect(detail.periods.filter(isOpen)).toHaveLength(0);
-
-    // The list's "due in N days" chip is gone — nothing left to fall due.
-    const list = await helpers.getSubscriptions({ raw: true });
-    expect(list.find((s) => s.id === sub.id)!.currentPeriod).toBeNull();
   });
 });
 
@@ -547,25 +523,7 @@ describe('Converting an installment to a subscription', () => {
 // ===========================================================================
 
 describe('Amount and currency must be edited together', () => {
-  it('rejects clearing the currency while keeping the amount', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const sub = await helpers.createSubscription({
-      name: 'Has amount',
-      type: SUBSCRIPTION_TYPES.bill,
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: futureDate({ monthsAhead: 1, day: 10 }),
-      accountId: account.id,
-      categoryId: global.DEFAULT_CATEGORY_ID,
-      expectedAmount: 10,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-
-    const res = await helpers.updateSubscription({ id: sub.id, expectedCurrencyCode: null, raw: false });
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
-
-  it('rejects setting an amount without a currency', async () => {
+  it('rejects an amount without a currency, allows both together, then rejects clearing the currency', async () => {
     const account = await helpers.createAccount({ raw: true });
     const bill = await helpers.createSubscription({
       name: 'No amount bill',
@@ -577,28 +535,18 @@ describe('Amount and currency must be edited together', () => {
       raw: true,
     });
 
-    const res = await helpers.updateSubscription({ id: bill.id, expectedAmount: 50, raw: false });
-    expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
-  });
+    const amountOnly = await helpers.updateSubscription({ id: bill.id, expectedAmount: 50, raw: false });
+    expect(amountOnly.statusCode).toBe(ERROR_CODES.ValidationError);
 
-  it('allows editing both together', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const bill = await helpers.createSubscription({
-      name: 'Bill',
-      type: SUBSCRIPTION_TYPES.bill,
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: futureDate({ monthsAhead: 1, day: 10 }),
-      accountId: account.id,
-      categoryId: global.DEFAULT_CATEGORY_ID,
-      raw: true,
-    });
-
-    const res = await helpers.updateSubscription({
+    const both = await helpers.updateSubscription({
       id: bill.id,
       expectedAmount: 20,
       expectedCurrencyCode: global.BASE_CURRENCY.code,
       raw: false,
     });
-    expect(res.statusCode).toBe(200);
+    expect(both.statusCode).toBe(200);
+
+    const clearCurrency = await helpers.updateSubscription({ id: bill.id, expectedCurrencyCode: null, raw: false });
+    expect(clearCurrency.statusCode).toBe(ERROR_CODES.ValidationError);
   });
 });

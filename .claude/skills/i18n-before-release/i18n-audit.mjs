@@ -154,7 +154,7 @@ function buildCorpus() {
       if (parentPaths.has(m[1])) dynamicPrefixes.push(m[1] + '.');
     }
 
-    for (const m of content.matchAll(/`([^`]*)`/gs)) {
+    for (const m of content.matchAll(/`(?=([^`]*)`)/gs)) {
       const lit = m[1];
       if (!lit.includes('${')) continue;
       const stripped = lit.replace(/\$\{[^}]*\}/g, '');

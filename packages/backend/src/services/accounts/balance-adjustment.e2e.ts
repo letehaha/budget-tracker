@@ -55,9 +55,10 @@ describe('Balance Adjustment', () => {
       raw: true,
     });
 
+    const note = 'Reconciliation with bank statement';
     const result = await helpers.balanceAdjustment({
       id: account.id,
-      payload: { targetBalance: asDecimal(1500) },
+      payload: { targetBalance: asDecimal(1500), note },
       raw: true,
     });
 
@@ -67,6 +68,12 @@ describe('Balance Adjustment', () => {
     expect(result.transaction!.transactionType).toBe(TRANSACTION_TYPES.income);
     expect(result.transaction!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.transfer_out_wallet);
     expect(result.transaction!.amount).toBe(500);
+    expect(result.transaction!.note).toBe(note);
+
+    const categories = await helpers.getCategoriesList();
+    const otherCategory = categories.find((c) => c.type === CATEGORY_TYPES.internal);
+    expect(otherCategory).toBeDefined();
+    expect(result.transaction!.categoryId).toBe(otherCategory!.id);
 
     const storedTx = await Transactions.findOne({ where: { id: result.transaction!.id } });
     expect(storedTx!.externalData).toEqual({ balanceAdjustment: true });
@@ -99,6 +106,15 @@ describe('Balance Adjustment', () => {
 
     const updatedAccount = await helpers.getAccount({ id: account.id, raw: true });
     expect(updatedAccount.currentBalance).toBe(800);
+
+    // Stats endpoints take date-only `YYYY-MM-DD` bounds.
+    const today = new Date();
+    const from = format(new Date(today.getFullYear(), today.getMonth(), 1), 'yyyy-MM-dd');
+    const to = format(new Date(today.getFullYear(), today.getMonth() + 1, 0), 'yyyy-MM-dd');
+
+    // The out_of_wallet adjustment must NOT appear in expense stats
+    const expenses = await helpers.getExpensesAmountForPeriod({ from, to, raw: true });
+    expect(expenses).toBe(0);
   });
 
   it('returns no transaction when target equals current balance', async () => {
@@ -130,44 +146,6 @@ describe('Balance Adjustment', () => {
     expect(res.statusCode).toBe(ERROR_CODES.NotFoundError);
   });
 
-  it('includes optional note in the created transaction', async () => {
-    const account = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ initialBalance: 0 }),
-      raw: true,
-    });
-
-    const customNote = 'Reconciliation with bank statement';
-
-    const result = await helpers.balanceAdjustment({
-      id: account.id,
-      payload: { targetBalance: asDecimal(300), note: customNote },
-      raw: true,
-    });
-
-    expect(result.transaction).not.toBeNull();
-    expect(result.transaction!.note).toBe(customNote);
-  });
-
-  it('assigns the "Other" (internal) category to the created transaction', async () => {
-    const account = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ initialBalance: 0 }),
-      raw: true,
-    });
-
-    const result = await helpers.balanceAdjustment({
-      id: account.id,
-      payload: { targetBalance: asDecimal(200) },
-      raw: true,
-    });
-
-    expect(result.transaction).not.toBeNull();
-
-    const categories = await helpers.getCategoriesList();
-    const otherCategory = categories.find((c) => c.type === CATEGORY_TYPES.internal);
-    expect(otherCategory).toBeDefined();
-    expect(result.transaction!.categoryId).toBe(otherCategory!.id);
-  });
-
   it('handles non-default currency correctly', async () => {
     const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
 
@@ -182,31 +160,6 @@ describe('Balance Adjustment', () => {
 
     const updatedAccount = await helpers.getAccount({ id: account.id, raw: true });
     expect(updatedAccount.currentBalance).toBe(5000);
-  });
-
-  it('does not affect expense statistics (marked as out_of_wallet transfer)', async () => {
-    const account = await helpers.createAccount({
-      payload: helpers.buildAccountPayload({ initialBalance: 5000 }),
-      raw: true,
-    });
-
-    // Adjust balance down — creates an expense-type adjustment
-    await helpers.balanceAdjustment({
-      id: account.id,
-      payload: { targetBalance: asDecimal(3000) },
-      raw: true,
-    });
-
-    // The stats endpoints take date-only `YYYY-MM-DD` bounds (matching the FE, which
-    // formats with `format(date, 'yyyy-MM-dd')`).
-    const today = new Date();
-    const from = format(new Date(today.getFullYear(), today.getMonth(), 1), 'yyyy-MM-dd');
-    const to = format(new Date(today.getFullYear(), today.getMonth() + 1, 0), 'yyyy-MM-dd');
-
-    const expenses = await helpers.getExpensesAmountForPeriod({ from, to, raw: true });
-
-    // Adjustment transaction should NOT appear in expense stats
-    expect(expenses).toBe(0);
   });
 
   describe('owner-scoping of account write paths', () => {

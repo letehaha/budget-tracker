@@ -11,14 +11,14 @@ import * as helpers from '@tests/helpers';
 describe('Category budget excludes accounts marked excludeFromStats', () => {
   const INCLUDED_TX_TIME = '2025-03-10T10:00:00Z';
 
-  const seedCategoryBudgetWithExcludedAccount = async () => {
+  it('excludes excludeFromStats accounts from stats, spending breakdown and transaction list', async () => {
     const category = await helpers.addCustomCategory({ name: 'Groceries', color: '#FF0000', raw: true });
 
     const includedAccount = await helpers.createAccount({ raw: true });
     const excludedAccount = await helpers.createAccount({ raw: true });
     await helpers.updateAccount({ id: excludedAccount.id, payload: { excludeFromStats: true }, raw: true });
 
-    const [includedTx] = await helpers.createTransaction({
+    await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
         accountId: includedAccount.id,
         amount: 100,
@@ -29,7 +29,7 @@ describe('Category budget excludes accounts marked excludeFromStats', () => {
       raw: true,
     });
 
-    const [excludedTx] = await helpers.createTransaction({
+    await helpers.createTransaction({
       payload: helpers.buildTransactionPayload({
         accountId: excludedAccount.id,
         amount: 400,
@@ -50,12 +50,6 @@ describe('Category budget excludes accounts marked excludeFromStats', () => {
       raw: true,
     });
 
-    return { budget, category, includedAccount, excludedAccount, includedTx, excludedTx };
-  };
-
-  it('omits excluded-account spend from budget stats', async () => {
-    const { budget } = await seedCategoryBudgetWithExcludedAccount();
-
     const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
 
     expect(stats.summary.actualExpense).toBe(100);
@@ -64,38 +58,34 @@ describe('Category budget excludes accounts marked excludeFromStats', () => {
     expect(stats.summary.transactionsCount).toBe(1);
     expect(stats.summary.utilizationRate).toBeCloseTo((100 / 500) * 100, 1);
     expect(new Date(stats.summary.lastTransactionDate!).toISOString()).toBe(new Date(INCLUDED_TX_TIME).toISOString());
-  });
 
-  it('omits excluded-account spend from the spending breakdown', async () => {
-    const { budget, category } = await seedCategoryBudgetWithExcludedAccount();
+    const spending = await helpers.getSpendingStats({
+      id: budget.id,
+      raw: true,
+    });
 
-    const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
+    expect(spending.spendingsByCategory).toHaveLength(1);
+    expect(spending.spendingsByCategory[0]!.categoryId).toBe(category.id);
+    expect(spending.spendingsByCategory[0]!.amount).toBe(100);
+    expect(spending.spendingOverTime.periods.reduce((sum, period) => sum + period.expense, 0)).toBe(100);
 
-    expect(result.spendingsByCategory).toHaveLength(1);
-    expect(result.spendingsByCategory[0]!.categoryId).toBe(category.id);
-    expect(result.spendingsByCategory[0]!.amount).toBe(100);
+    const transactions = await helpers.getCategoryBudgetTransactions({
+      id: budget.id,
+      raw: true,
+    });
 
-    const totalExpense = result.spendingOverTime.periods.reduce((sum, period) => sum + period.expense, 0);
-    expect(totalExpense).toBe(100);
-  });
-
-  it('omits excluded-account transactions from the budget transaction list', async () => {
-    const { budget, includedAccount, excludedAccount } = await seedCategoryBudgetWithExcludedAccount();
-
-    const result = await helpers.getCategoryBudgetTransactions({ id: budget.id, raw: true });
-
-    expect(result.total).toBe(1);
-    expect(result.transactions).toHaveLength(1);
-    expect(result.transactions[0]!.accountId).toBe(includedAccount.id);
-    expect(result.transactions[0]!.refAmount).toBe(100);
-    expect(result.transactions.map((tx) => tx.accountId)).not.toContain(excludedAccount.id);
-  });
+    expect(transactions.total).toBe(1);
+    expect(transactions.transactions).toHaveLength(1);
+    expect(transactions.transactions[0]!.accountId).toBe(includedAccount.id);
+    expect(transactions.transactions[0]!.refAmount).toBe(100);
+    expect(transactions.transactions.map((tx) => tx.accountId)).not.toContain(excludedAccount.id);
+  }, 60_000);
 });
 
 describe('Manual budget includes accounts marked excludeFromStats', () => {
   const EXCLUDED_TX_TIME = '2025-03-11T10:00:00Z';
 
-  const seedManualBudgetWithExcludedAccount = async () => {
+  it('counts excludeFromStats accounts in manual budget stats and spending breakdown', async () => {
     const category = await helpers.addCustomCategory({ name: 'Groceries', color: '#FF0000', raw: true });
 
     const includedAccount = await helpers.createAccount({ raw: true });
@@ -139,12 +129,6 @@ describe('Manual budget includes accounts marked excludeFromStats', () => {
       raw: true,
     });
 
-    return { budget, category, includedAccount, excludedAccount, includedTx, excludedTx };
-  };
-
-  it('counts excluded-account spend in manual budget stats', async () => {
-    const { budget } = await seedManualBudgetWithExcludedAccount();
-
     const stats = (await helpers.getStats({ id: budget.id, raw: true }))!;
 
     expect(stats.summary.actualExpense).toBe(500);
@@ -153,18 +137,18 @@ describe('Manual budget includes accounts marked excludeFromStats', () => {
     expect(stats.summary.transactionsCount).toBe(2);
     expect(stats.summary.utilizationRate).toBeCloseTo((500 / 500) * 100, 1);
     expect(new Date(stats.summary.lastTransactionDate!).toISOString()).toBe(new Date(EXCLUDED_TX_TIME).toISOString());
-  });
 
-  it('counts excluded-account spend in the manual spending breakdown', async () => {
-    const { budget, category } = await seedManualBudgetWithExcludedAccount();
+    const spending = await helpers.getSpendingStats({
+      id: budget.id,
+      raw: true,
+    });
 
-    const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
+    expect(spending.spendingsByCategory).toHaveLength(1);
+    expect(spending.spendingsByCategory[0]!.categoryId).toBe(category.id);
+    expect(spending.spendingsByCategory[0]!.amount).toBe(500);
+    expect(spending.spendingOverTime.periods.reduce((sum, period) => sum + period.expense, 0)).toBe(500);
 
-    expect(result.spendingsByCategory).toHaveLength(1);
-    expect(result.spendingsByCategory[0]!.categoryId).toBe(category.id);
-    expect(result.spendingsByCategory[0]!.amount).toBe(500);
-
-    const totalExpense = result.spendingOverTime.periods.reduce((sum, period) => sum + period.expense, 0);
-    expect(totalExpense).toBe(500);
-  });
+    const linked = await helpers.getTransactions({ budgetIds: [budget.id], raw: true });
+    expect(linked.map((item) => item.id).toSorted()).toEqual([includedTx!.id, excludedTx!.id].toSorted());
+  }, 60_000);
 });

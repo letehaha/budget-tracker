@@ -27,206 +27,157 @@ const futureDate = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 const uniqueToken = () => randomBytes(32).toString('base64url');
 
 describe('ResourceShares + ShareInvitations CHECK constraint enforcement for household rows', () => {
-  describe('ResourceShares', () => {
-    it('accepts a valid account row (control)', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-      const account = await helpers.createAccount({ raw: true });
+  it('ResourceShares CHECK constraints accept valid account/household rows and reject bad shapes', async () => {
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+    const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+    const account = await helpers.createAccount({ raw: true });
 
-      const row = await ResourceShares.create({
-        ownerUserId: account.userId,
-        sharedWithUserId: recipientApp.id,
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: String(account.id),
-        permission: SHARE_PERMISSIONS.read,
-        acceptedAt: new Date(),
-      });
-
-      expect(row.id).toBeTruthy();
+    const accountRow = await ResourceShares.create({
+      ownerUserId: account.userId,
+      sharedWithUserId: recipientApp.id,
+      resourceType: RESOURCE_TYPES.account,
+      resourceId: String(account.id),
+      permission: SHARE_PERMISSIONS.read,
+      acceptedAt: new Date(),
     });
 
-    it('accepts a valid household row where resourceId equals ownerUserId', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-      const account = await helpers.createAccount({ raw: true });
+    expect(accountRow.id).toBeTruthy();
 
-      const row = await ResourceShares.create({
-        ownerUserId: account.userId,
-        sharedWithUserId: recipientApp.id,
-        resourceType: RESOURCE_TYPES.household,
-        resourceId: String(account.userId),
-        permission: SHARE_PERMISSIONS.write,
-        acceptedAt: new Date(),
-      });
-
-      expect(row.id).toBeTruthy();
-      expect(row.resourceType).toBe(RESOURCE_TYPES.household);
+    const householdRow = await ResourceShares.create({
+      ownerUserId: account.userId,
+      sharedWithUserId: recipientApp.id,
+      resourceType: RESOURCE_TYPES.household,
+      resourceId: String(account.userId),
+      permission: SHARE_PERMISSIONS.write,
+      acceptedAt: new Date(),
     });
 
-    it('rejects a household row with permission=manage', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-      const account = await helpers.createAccount({ raw: true });
+    expect(householdRow.id).toBeTruthy();
+    expect(householdRow.resourceType).toBe(RESOURCE_TYPES.household);
 
-      await expectsCheckViolation(
-        () =>
-          ResourceShares.create({
-            ownerUserId: account.userId,
-            sharedWithUserId: recipientApp.id,
-            resourceType: RESOURCE_TYPES.household,
-            resourceId: String(account.userId),
-            permission: SHARE_PERMISSIONS.manage,
-            acceptedAt: new Date(),
-          }),
-        'chk_resource_shares_household_permission',
-      );
+    await expectsCheckViolation(
+      () =>
+        ResourceShares.create({
+          ownerUserId: account.userId,
+          sharedWithUserId: recipientApp.id,
+          resourceType: RESOURCE_TYPES.household,
+          resourceId: String(account.userId),
+          permission: SHARE_PERMISSIONS.manage,
+          acceptedAt: new Date(),
+        }),
+      'chk_resource_shares_household_permission',
+    );
+
+    await expectsCheckViolation(
+      () =>
+        ResourceShares.create({
+          ownerUserId: account.userId,
+          sharedWithUserId: recipientApp.id,
+          resourceType: RESOURCE_TYPES.household,
+          // Off-by-one — should equal ownerUserId.
+          resourceId: String(account.userId + 1),
+          permission: SHARE_PERMISSIONS.read,
+          acceptedAt: new Date(),
+        }),
+      'chk_resource_shares_type_shape',
+    );
+
+    await expectsCheckViolation(
+      () =>
+        ResourceShares.create({
+          ownerUserId: account.userId,
+          sharedWithUserId: recipientApp.id,
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: 'not-a-number',
+          permission: SHARE_PERMISSIONS.read,
+          acceptedAt: new Date(),
+        }),
+      'chk_resource_shares_type_shape',
+    );
+
+    await expectsCheckViolation(
+      () =>
+        ResourceShares.create({
+          ownerUserId: account.userId,
+          sharedWithUserId: recipientApp.id,
+          resourceType: RESOURCE_TYPES.household,
+          resourceId: 'household-foo',
+          permission: SHARE_PERMISSIONS.read,
+          acceptedAt: new Date(),
+        }),
+      'chk_resource_shares_type_shape',
+    );
+  }, 60_000);
+
+  it('ShareInvitations CHECK constraints accept a valid household invite and reject bad shapes', async () => {
+    const recipient = await helpers.provisionSecondUserWithBaseCurrency();
+    const account = await helpers.createAccount({ raw: true });
+
+    const row = await ShareInvitations.create({
+      ownerUserId: account.userId,
+      inviteeEmail: recipient.email,
+      inviteeUserId: null,
+      resourceType: RESOURCE_TYPES.household,
+      resourceId: String(account.userId),
+      permission: SHARE_PERMISSIONS.write,
+      policy: null,
+      token: uniqueToken(),
+      status: SHARE_INVITATION_STATUSES.pending,
+      expiresAt: futureDate(),
     });
 
-    it('rejects a household row where resourceId does not equal ownerUserId', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-      const account = await helpers.createAccount({ raw: true });
+    expect(row.id).toBeTruthy();
+    expect(row.resourceType).toBe(RESOURCE_TYPES.household);
 
-      await expectsCheckViolation(
-        () =>
-          ResourceShares.create({
-            ownerUserId: account.userId,
-            sharedWithUserId: recipientApp.id,
-            resourceType: RESOURCE_TYPES.household,
-            // Off-by-one — should equal ownerUserId.
-            resourceId: String(account.userId + 1),
-            permission: SHARE_PERMISSIONS.read,
-            acceptedAt: new Date(),
-          }),
-        'chk_resource_shares_type_shape',
-      );
-    });
+    await expectsCheckViolation(
+      () =>
+        ShareInvitations.create({
+          ownerUserId: account.userId,
+          inviteeEmail: recipient.email,
+          inviteeUserId: null,
+          resourceType: RESOURCE_TYPES.household,
+          resourceId: String(account.userId),
+          permission: SHARE_PERMISSIONS.manage,
+          policy: null,
+          token: uniqueToken(),
+          status: SHARE_INVITATION_STATUSES.pending,
+          expiresAt: futureDate(),
+        }),
+      'chk_share_invitations_household_permission',
+    );
 
-    it('rejects an account row with a non-numeric resourceId', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-      const account = await helpers.createAccount({ raw: true });
+    await expectsCheckViolation(
+      () =>
+        ShareInvitations.create({
+          ownerUserId: account.userId,
+          inviteeEmail: recipient.email,
+          inviteeUserId: null,
+          resourceType: RESOURCE_TYPES.household,
+          resourceId: String(account.userId + 1),
+          permission: SHARE_PERMISSIONS.read,
+          policy: null,
+          token: uniqueToken(),
+          status: SHARE_INVITATION_STATUSES.pending,
+          expiresAt: futureDate(),
+        }),
+      'chk_share_invitations_type_shape',
+    );
 
-      await expectsCheckViolation(
-        () =>
-          ResourceShares.create({
-            ownerUserId: account.userId,
-            sharedWithUserId: recipientApp.id,
-            resourceType: RESOURCE_TYPES.account,
-            resourceId: 'not-a-number',
-            permission: SHARE_PERMISSIONS.read,
-            acceptedAt: new Date(),
-          }),
-        'chk_resource_shares_type_shape',
-      );
-    });
-
-    it('rejects a household row with a non-numeric resourceId', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-      const account = await helpers.createAccount({ raw: true });
-
-      await expectsCheckViolation(
-        () =>
-          ResourceShares.create({
-            ownerUserId: account.userId,
-            sharedWithUserId: recipientApp.id,
-            resourceType: RESOURCE_TYPES.household,
-            resourceId: 'household-foo',
-            permission: SHARE_PERMISSIONS.read,
-            acceptedAt: new Date(),
-          }),
-        'chk_resource_shares_type_shape',
-      );
-    });
-  });
-
-  describe('ShareInvitations', () => {
-    it('accepts a valid household invitation where resourceId equals ownerUserId', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const account = await helpers.createAccount({ raw: true });
-
-      const row = await ShareInvitations.create({
-        ownerUserId: account.userId,
-        inviteeEmail: recipient.email,
-        inviteeUserId: null,
-        resourceType: RESOURCE_TYPES.household,
-        resourceId: String(account.userId),
-        permission: SHARE_PERMISSIONS.write,
-        policy: null,
-        token: uniqueToken(),
-        status: SHARE_INVITATION_STATUSES.pending,
-        expiresAt: futureDate(),
-      });
-
-      expect(row.id).toBeTruthy();
-      expect(row.resourceType).toBe(RESOURCE_TYPES.household);
-    });
-
-    it('rejects a household invitation with permission=manage', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const account = await helpers.createAccount({ raw: true });
-
-      await expectsCheckViolation(
-        () =>
-          ShareInvitations.create({
-            ownerUserId: account.userId,
-            inviteeEmail: recipient.email,
-            inviteeUserId: null,
-            resourceType: RESOURCE_TYPES.household,
-            resourceId: String(account.userId),
-            permission: SHARE_PERMISSIONS.manage,
-            policy: null,
-            token: uniqueToken(),
-            status: SHARE_INVITATION_STATUSES.pending,
-            expiresAt: futureDate(),
-          }),
-        'chk_share_invitations_household_permission',
-      );
-    });
-
-    it('rejects a household invitation where resourceId does not equal ownerUserId', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const account = await helpers.createAccount({ raw: true });
-
-      await expectsCheckViolation(
-        () =>
-          ShareInvitations.create({
-            ownerUserId: account.userId,
-            inviteeEmail: recipient.email,
-            inviteeUserId: null,
-            resourceType: RESOURCE_TYPES.household,
-            resourceId: String(account.userId + 1),
-            permission: SHARE_PERMISSIONS.read,
-            policy: null,
-            token: uniqueToken(),
-            status: SHARE_INVITATION_STATUSES.pending,
-            expiresAt: futureDate(),
-          }),
-        'chk_share_invitations_type_shape',
-      );
-    });
-
-    it('rejects an account invitation with a non-numeric resourceId', async () => {
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const account = await helpers.createAccount({ raw: true });
-
-      await expectsCheckViolation(
-        () =>
-          ShareInvitations.create({
-            ownerUserId: account.userId,
-            inviteeEmail: recipient.email,
-            inviteeUserId: null,
-            resourceType: RESOURCE_TYPES.account,
-            resourceId: 'not-a-number',
-            permission: SHARE_PERMISSIONS.read,
-            policy: null,
-            token: uniqueToken(),
-            status: SHARE_INVITATION_STATUSES.pending,
-            expiresAt: futureDate(),
-          }),
-        'chk_share_invitations_type_shape',
-      );
-    });
-  });
+    await expectsCheckViolation(
+      () =>
+        ShareInvitations.create({
+          ownerUserId: account.userId,
+          inviteeEmail: recipient.email,
+          inviteeUserId: null,
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: 'not-a-number',
+          permission: SHARE_PERMISSIONS.read,
+          policy: null,
+          token: uniqueToken(),
+          status: SHARE_INVITATION_STATUSES.pending,
+          expiresAt: futureDate(),
+        }),
+      'chk_share_invitations_type_shape',
+    );
+  }, 60_000);
 });

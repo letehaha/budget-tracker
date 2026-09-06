@@ -1,5 +1,11 @@
-import { AI_FEATURE, getModelNameFromModelId } from '@bt/shared/types';
-import { ASSET_CLASS, INVESTMENT_TRANSACTION_CATEGORY, SECURITY_PROVIDER } from '@bt/shared/types/investments';
+import { AI_FEATURE, type RecordId, getModelNameFromModelId } from '@bt/shared/types';
+import {
+  ASSET_CLASS,
+  INVESTMENT_IMPORT_SIDE_SKIP,
+  INVESTMENT_TRANSACTION_CATEGORY,
+  type InvestmentColumnMapping,
+  SECURITY_PROVIDER,
+} from '@bt/shared/types/investments';
 import Coingecko from '@coingecko/coingecko-typescript';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -109,30 +115,19 @@ function addDays({ date, days }: { date: string; days: number }): string {
 }
 
 /**
- * Fixed reference values for the date-window dedup tests. Every test in that
- * group seeds an existing BTC buy at these values and varies only the
- * *imported* row to exercise one boundary at a time. Quantity * price = 2100,
- * so any imported row with a different qty must adjust price to match amount.
+ * Reference values for the date-window dedup cases: quantity * price = 2100.
+ * An imported row with a different quantity must adjust price to keep that amount.
  */
 const DEDUP_BASE_DATE = '2024-01-15';
 const DEDUP_BASE_QUANTITY = '0.05';
 const DEDUP_BASE_PRICE = '42000';
 
 /**
- * Set up a portfolio + existing BTC buy at the DEDUP_BASE_* values, then run
- * the import-extract for a single row whose date is offset by `dayOffset` from
- * DEDUP_BASE_DATE (and optionally with overridden quantity/price). Returns
- * the imported row's `possibleDuplicateOf` so tests can just assert on it.
+ * The security must be CRYPTO with providerSymbol 'bitcoin': resolveSymbols
+ * matches on `(assetClass=crypto, symbol='BTC')`, and dedup only queries that
+ * securityId.
  */
-async function runBtcDedupExtract({
-  dayOffset,
-  importedQuantity = DEDUP_BASE_QUANTITY,
-  importedPrice = DEDUP_BASE_PRICE,
-}: {
-  dayOffset: number;
-  importedQuantity?: string;
-  importedPrice?: string;
-}) {
+async function seedBtcDedupState() {
   const portfolio = await helpers.createPortfolio({
     payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
     raw: true,
@@ -151,6 +146,22 @@ async function runBtcDedupExtract({
     },
   });
 
+  return portfolio;
+}
+
+async function extractBtcDedupRow({
+  portfolioId,
+  dayOffset,
+  side = 'B',
+  importedQuantity = DEDUP_BASE_QUANTITY,
+  importedPrice = DEDUP_BASE_PRICE,
+}: {
+  portfolioId: RecordId;
+  dayOffset: number;
+  side?: 'B' | 'S';
+  importedQuantity?: string;
+  importedPrice?: string;
+}) {
   installCoingeckoMock({
     coins: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', market_cap_rank: 1 }],
   });
@@ -159,7 +170,7 @@ async function runBtcDedupExtract({
   const csv = csvRow({
     symbol: 'BTC',
     date: importedDate,
-    side: 'B',
+    side,
     quantity: importedQuantity,
     price: importedPrice,
   });
@@ -168,9 +179,9 @@ async function runBtcDedupExtract({
   const result = await helpers.investmentImportExtract({
     payload: {
       fileBase64: encodeFile({
-        text: `BTC BUY ${dayOffset} days from base (qty=${importedQuantity}, px=${importedPrice})`,
+        text: `BTC ${side} ${dayOffset} days from base (qty=${importedQuantity}, px=${importedPrice})`,
       }),
-      defaultPortfolioId: portfolio.id,
+      defaultPortfolioId: portfolioId,
     },
     raw: true,
   });
@@ -227,33 +238,39 @@ describe('Investment transactions AI import — E2E', () => {
   });
 
   describe('extract', () => {
-    it('returns a hierarchical holding for an AI-resolved single coin', async () => {
+    it('resolves AI rows and groups them into one hierarchical holding per symbol', async () => {
       const portfolio = await helpers.createPortfolio({
         payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
         raw: true,
       });
 
       installCoingeckoMock({
-        coins: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', market_cap_rank: 1 }],
+        coins: [
+          { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', market_cap_rank: 1 },
+          { id: 'ethereum', symbol: 'eth', name: 'Ethereum', market_cap_rank: 2 },
+        ],
       });
 
-      const csv =
-        csvRow({ symbol: 'BTC', name: 'Bitcoin', date: '2024-01-15', side: 'B', quantity: '0.05', price: '42000' }) +
-        '\n' +
-        csvRow({ symbol: 'BTC', name: 'Bitcoin', date: '2024-02-20', side: 'S', quantity: '0.02', price: '50000' });
+      const csv = [
+        csvRow({ symbol: 'BTC', name: 'Bitcoin', date: '2024-01-15', side: 'B', quantity: '0.05', price: '42000' }),
+        csvRow({ symbol: 'BTC', name: 'Bitcoin', date: '2024-02-20', side: 'S', quantity: '0.02', price: '50000' }),
+        csvRow({ symbol: 'ETH', name: 'Ethereum', date: '2024-02-01', side: 'B', quantity: '1', price: '2300' }),
+      ].join('\n');
 
       global.mswMockServer.use(geminiCsvHandler({ csv }));
 
       const result = await helpers.investmentImportExtract({
         payload: {
-          fileBase64: encodeFile({ text: 'Binance export\nBTC 0.05 @ 42000 USDT on 2024-01-15' }),
+          fileBase64: encodeFile({ text: 'Binance export\nBTC 0.05 @ 42000 USDT on 2024-01-15\nETH 1 @ 2300' }),
           defaultPortfolioId: portfolio.id,
         },
         raw: true,
       });
 
-      expect(result.holdings).toHaveLength(1);
-      const holding = result.holdings[0]!;
+      expect(result.holdings).toHaveLength(2);
+      expect(result.holdings.map((h) => h.parsedSymbol).toSorted()).toEqual(['BTC', 'ETH']);
+
+      const holding = result.holdings.find((h) => h.parsedSymbol === 'BTC')!;
       expect(holding.parsedSymbol).toBe('BTC');
       expect(holding.resolvedSecurity).toMatchObject({
         providerSymbol: 'bitcoin',
@@ -295,53 +312,6 @@ describe('Investment transactions AI import — E2E', () => {
       expect(result.holdings).toHaveLength(1);
       expect(result.holdings[0]!.resolvedSecurity).toBeNull();
       expect(result.holdings[0]!.resolvedConfidence).toBe('ambiguous');
-    });
-
-    it('flags row as possible duplicate when an existing transaction matches', async () => {
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
-        raw: true,
-      });
-
-      // Seed a CRYPTO BTC (provider=coingecko, providerSymbol='bitcoin') so the
-      // AI's resolveSymbols path finds the user's existing security via
-      // `(assetClass=crypto, symbol='BTC')` and the dedup query uses that
-      // same securityId.
-      const btc = await createCryptoSecurity({ symbol: 'BTC', name: 'Bitcoin', providerSymbol: 'bitcoin' });
-      await helpers.createHolding({
-        payload: { portfolioId: portfolio.id, securityId: btc.id },
-      });
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: btc.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          date: '2024-01-15',
-          quantity: '0.05',
-          price: '42000',
-        },
-      });
-
-      // Even though resolution should match against the user's own security,
-      // install a CoinGecko mock to be safe (resolver falls through to provider
-      // if user security lookup misses).
-      installCoingeckoMock({
-        coins: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', market_cap_rank: 1 }],
-      });
-
-      const csv = csvRow({ symbol: 'BTC', date: '2024-01-15', side: 'B', quantity: '0.05', price: '42000' });
-      global.mswMockServer.use(geminiCsvHandler({ csv }));
-
-      const result = await helpers.investmentImportExtract({
-        payload: {
-          fileBase64: encodeFile({ text: 'BTC 0.05 @ 42000 USDT 2024-01-15' }),
-          defaultPortfolioId: portfolio.id,
-        },
-        raw: true,
-      });
-
-      const tx = result.holdings[0]!.transactions[0]!;
-      expect(tx.possibleDuplicateOf).not.toBeNull();
     });
 
     it('resolves a stocks row against a pre-existing stocks holding', async () => {
@@ -391,41 +361,35 @@ describe('Investment transactions AI import — E2E', () => {
       expect(holding.currencyCode).toBe('USD');
     });
 
-    it('fails with NO_AI_CONFIGURED when the AI key is unavailable', async () => {
-      delete process.env.GEMINI_API_KEY;
-
+    it('fails without an AI key (NO_AI_CONFIGURED) and on an empty AI CSV (NO_TRANSACTIONS_FOUND)', async () => {
       const portfolio = await helpers.createPortfolio({
         payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
         raw: true,
       });
 
-      const response = await helpers.investmentImportExtract({
+      delete process.env.GEMINI_API_KEY;
+
+      const withoutKey = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'BTC 0.05 @ 42000 USDT' }),
           defaultPortfolioId: portfolio.id,
         },
       });
 
-      expect(response.statusCode).not.toBe(200);
-    });
+      expect(withoutKey.statusCode).not.toBe(200);
 
-    it('fails when the AI returns an empty CSV (NO_TRANSACTIONS_FOUND)', async () => {
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
-        raw: true,
-      });
-
+      process.env.GEMINI_API_KEY = VALID_GEMINI_API_KEY;
       installCoingeckoMock({ coins: [] });
       global.mswMockServer.use(geminiCsvHandler({ csv: '' }));
 
-      const response = await helpers.investmentImportExtract({
+      const emptyCsv = await helpers.investmentImportExtract({
         payload: {
           fileBase64: encodeFile({ text: 'no transactions in here' }),
           defaultPortfolioId: portfolio.id,
         },
       });
 
-      expect(response.statusCode).not.toBe(200);
+      expect(emptyCsv.statusCode).not.toBe(200);
     });
 
     it('keeps currencyCode null and surfaces a warning when AI returns a crypto/crypto pair', async () => {
@@ -455,130 +419,49 @@ describe('Investment transactions AI import — E2E', () => {
       expect(result.warnings.length).toBeGreaterThan(0);
     });
 
-    it('groups multi-symbol CSVs into one holding per symbol', async () => {
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
-        raw: true,
+    // `extract` writes nothing, so every case below shares the one seeded BUY
+    // and runs in any order. Offsets derive from DUPLICATE_DATE_WINDOW_DAYS, so
+    // changing the window changes what is exercised with no edit here.
+    it('flags possible duplicates only inside the symmetric date window, at the same side and unit price', async () => {
+      const portfolio = await seedBtcDedupState();
+
+      const sameDay = await extractBtcDedupRow({ portfolioId: portfolio.id, dayOffset: 0 });
+      expect(sameDay).not.toBeNull();
+
+      const windowLater = await extractBtcDedupRow({
+        portfolioId: portfolio.id,
+        dayOffset: DUPLICATE_DATE_WINDOW_DAYS,
       });
+      expect(windowLater).not.toBeNull();
 
-      installCoingeckoMock({
-        coins: [
-          { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', market_cap_rank: 1 },
-          { id: 'ethereum', symbol: 'eth', name: 'Ethereum', market_cap_rank: 2 },
-        ],
+      const windowEarlier = await extractBtcDedupRow({
+        portfolioId: portfolio.id,
+        dayOffset: -DUPLICATE_DATE_WINDOW_DAYS,
       });
+      expect(windowEarlier).not.toBeNull();
 
-      const csv = [
-        csvRow({ symbol: 'BTC', date: '2024-01-15', side: 'B', quantity: '0.05', price: '42000' }),
-        csvRow({ symbol: 'ETH', date: '2024-02-01', side: 'B', quantity: '1', price: '2300' }),
-      ].join('\n');
-      global.mswMockServer.use(geminiCsvHandler({ csv }));
+      const oneDayOff = await extractBtcDedupRow({ portfolioId: portfolio.id, dayOffset: 1 });
+      expect(oneDayOff).not.toBeNull();
 
-      const result = await helpers.investmentImportExtract({
-        payload: {
-          fileBase64: encodeFile({ text: 'multi BTC/ETH csv' }),
-          defaultPortfolioId: portfolio.id,
-        },
-        raw: true,
+      const pastWindow = await extractBtcDedupRow({
+        portfolioId: portfolio.id,
+        dayOffset: DUPLICATE_DATE_WINDOW_DAYS + 1,
       });
+      expect(pastWindow).toBeNull();
 
-      expect(result.holdings).toHaveLength(2);
-      const symbols = result.holdings.map((h) => h.parsedSymbol).toSorted();
-      expect(symbols).toEqual(['BTC', 'ETH']);
-    });
+      const oppositeSide = await extractBtcDedupRow({ portfolioId: portfolio.id, dayOffset: 0, side: 'S' });
+      expect(oppositeSide).toBeNull();
 
-    it('does not flag a possible duplicate when buy/sell sides differ on the same date + quantity', async () => {
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
-        raw: true,
-      });
-
-      // Pre-seed an existing BUY of 0.05 BTC on 2024-01-15.
-      const btc = await createCryptoSecurity({ symbol: 'BTC', name: 'Bitcoin', providerSymbol: 'bitcoin' });
-      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: btc.id } });
-      await helpers.createInvestmentTransaction({
-        payload: {
-          portfolioId: portfolio.id,
-          securityId: btc.id,
-          category: INVESTMENT_TRANSACTION_CATEGORY.buy,
-          date: '2024-01-15',
-          quantity: '0.05',
-          price: '42000',
-        },
-      });
-
-      installCoingeckoMock({
-        coins: [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', market_cap_rank: 1 }],
-      });
-
-      // Import a SELL of 0.05 on the same date — must NOT be flagged as a dup.
-      const csv = csvRow({ symbol: 'BTC', date: '2024-01-15', side: 'S', quantity: '0.05', price: '42000' });
-      global.mswMockServer.use(geminiCsvHandler({ csv }));
-
-      const result = await helpers.investmentImportExtract({
-        payload: {
-          fileBase64: encodeFile({ text: 'BTC SELL same day same qty' }),
-          defaultPortfolioId: portfolio.id,
-        },
-        raw: true,
-      });
-
-      expect(result.holdings[0]!.transactions[0]!.possibleDuplicateOf).toBeNull();
-    });
-
-    // Date-window dedup boundary tests. All cases use the same seeded BUY
-    // (DEDUP_BASE_DATE / DEDUP_BASE_QUANTITY / DEDUP_BASE_PRICE) and vary
-    // only the imported row. Dates are derived from DUPLICATE_DATE_WINDOW_DAYS
-    // so widening or narrowing the window changes what these tests exercise
-    // without requiring any code changes here.
-    it(`flags a duplicate when the imported row is exactly +DUPLICATE_DATE_WINDOW_DAYS (${DUPLICATE_DATE_WINDOW_DAYS}) days later`, async () => {
-      const possibleDuplicateOf = await runBtcDedupExtract({ dayOffset: DUPLICATE_DATE_WINDOW_DAYS });
-      expect(possibleDuplicateOf).not.toBeNull();
-    });
-
-    it(`flags a duplicate when the imported row is exactly -DUPLICATE_DATE_WINDOW_DAYS (${DUPLICATE_DATE_WINDOW_DAYS}) days earlier (window is symmetric)`, async () => {
-      const possibleDuplicateOf = await runBtcDedupExtract({ dayOffset: -DUPLICATE_DATE_WINDOW_DAYS });
-      expect(possibleDuplicateOf).not.toBeNull();
-    });
-
-    it('flags a duplicate when the imported row is just 1 day off (regression for the original bug)', async () => {
-      const possibleDuplicateOf = await runBtcDedupExtract({ dayOffset: 1 });
-      expect(possibleDuplicateOf).not.toBeNull();
-    });
-
-    it(`does NOT flag a duplicate when the imported row is DUPLICATE_DATE_WINDOW_DAYS + 1 (${DUPLICATE_DATE_WINDOW_DAYS + 1}) days apart`, async () => {
-      const possibleDuplicateOf = await runBtcDedupExtract({ dayOffset: DUPLICATE_DATE_WINDOW_DAYS + 1 });
-      expect(possibleDuplicateOf).toBeNull();
-    });
-
-    it('does NOT flag a duplicate when price differs (even with same amount + date in window)', async () => {
-      // Existing: 0.05 @ 42000 → amount 2100. Imported: 0.1 @ 21000 → amount 2100
-      // (same total cash, different unit price). Imported date sits at the
-      // window boundary to also assert the price-strictness inside the window.
-      const possibleDuplicateOf = await runBtcDedupExtract({
+      // Unit price must match exactly even inside the window: 0.1 @ 21000 carries
+      // the same 2100 amount as the seeded 0.05 @ 42000.
+      const differentUnitPrice = await extractBtcDedupRow({
+        portfolioId: portfolio.id,
         dayOffset: DUPLICATE_DATE_WINDOW_DAYS,
         importedQuantity: '0.1',
         importedPrice: '21000',
       });
-      expect(possibleDuplicateOf).toBeNull();
-    });
-  });
-
-  describe('estimate-cost', () => {
-    it('returns a cost estimate for a valid file (no assetClass needed)', async () => {
-      const estimate = await helpers.investmentImportEstimateCost({
-        payload: {
-          fileBase64: encodeFile({
-            text: 'Coinbase export\nBTC,2024-01-15,B,0.05,42000,USDT\nAAPL,2024-05-01,B,10,180.25,USD',
-          }),
-        },
-        raw: true,
-      });
-
-      expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
-      expect(estimate.estimatedOutputTokens).toBeGreaterThan(0);
-      expect(estimate.modelId).toBeTruthy();
-    });
+      expect(differentUnitPrice).toBeNull();
+    }, 120_000);
   });
 
   describe('execute', () => {
@@ -794,13 +677,39 @@ describe('Investment transactions AI import — E2E', () => {
       expect(result.skippedPossibleDuplicates).toBe(1);
     });
 
-    it('rejects requests with no resolved security on a row', async () => {
+    it('rejects an unresolved row, a row with no currencyCode, and two rows picking the same security', async () => {
       const portfolio = await helpers.createPortfolio({
         payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
         raw: true,
       });
 
-      const response = await helpers.investmentImportExecute({
+      const [btc] = await helpers.seedSecurities([{ symbol: 'BTC', name: 'Bitcoin' }]);
+
+      const resolvedBtc = {
+        securityId: btc!.id,
+        providerSymbol: btc!.providerSymbol,
+        symbol: 'BTC',
+        name: 'Bitcoin',
+        assetClass: btc!.assetClass,
+        providerName: btc!.providerName,
+        currencyCode: btc!.currencyCode,
+        exchangeName: btc!.exchangeName ?? undefined,
+        cryptoCurrencyCode: btc!.cryptoCurrencyCode ?? undefined,
+        alreadyInDb: true,
+      };
+
+      const transaction = {
+        tempId: 'tx-1',
+        date: '2024-01-15',
+        side: 'buy' as const,
+        quantity: '0.1',
+        price: '42000',
+        fees: '0',
+        amount: '4200',
+        possibleDuplicateOf: null,
+      };
+
+      const unresolvedSecurity = await helpers.investmentImportExecute({
         payload: {
           holdings: [
             {
@@ -812,78 +721,58 @@ describe('Investment transactions AI import — E2E', () => {
               portfolioId: portfolio.id,
               currencyCode: 'USD',
               hasExistingHolding: false,
-              transactions: [
-                {
-                  tempId: 'tx-1',
-                  date: '2024-01-15',
-                  side: 'buy',
-                  quantity: '0.1',
-                  price: '42000',
-                  fees: '0',
-                  amount: '4200',
-                  possibleDuplicateOf: null,
-                },
-              ],
+              transactions: [transaction],
             },
           ],
           skipTempIds: [],
         },
       });
 
-      expect(response.statusCode).not.toBe(200);
-    });
+      expect(unresolvedSecurity.statusCode).not.toBe(200);
 
-    it('rejects requests with a missing currencyCode on a row', async () => {
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
-        raw: true,
-      });
-
-      const [btc] = await helpers.seedSecurities([{ symbol: 'BTC', name: 'Bitcoin' }]);
-
-      const response = await helpers.investmentImportExecute({
+      const missingCurrency = await helpers.investmentImportExecute({
         payload: {
           holdings: [
             {
               tempId: 'h-1',
               parsedSymbol: 'BTC',
               parsedName: null,
-              resolvedSecurity: {
-                securityId: btc!.id,
-                providerSymbol: btc!.providerSymbol,
-                symbol: 'BTC',
-                name: 'Bitcoin',
-                assetClass: btc!.assetClass,
-                providerName: btc!.providerName,
-                currencyCode: btc!.currencyCode,
-                exchangeName: btc!.exchangeName ?? undefined,
-                cryptoCurrencyCode: btc!.cryptoCurrencyCode ?? undefined,
-                alreadyInDb: true,
-              },
+              resolvedSecurity: resolvedBtc,
               resolvedConfidence: 'auto',
               portfolioId: portfolio.id,
               currencyCode: null,
               hasExistingHolding: false,
-              transactions: [
-                {
-                  tempId: 'tx-1',
-                  date: '2024-01-15',
-                  side: 'buy',
-                  quantity: '0.1',
-                  price: '42000',
-                  fees: '0',
-                  amount: '4200',
-                  possibleDuplicateOf: null,
-                },
-              ],
+              transactions: [transaction],
             },
           ],
           skipTempIds: [],
         },
       });
 
-      expect(response.statusCode).not.toBe(200);
-    });
+      expect(missingCurrency.statusCode).not.toBe(200);
+
+      const baseHolding = {
+        parsedSymbol: 'BTC',
+        parsedName: 'Bitcoin',
+        resolvedSecurity: resolvedBtc,
+        resolvedConfidence: 'auto' as const,
+        portfolioId: portfolio.id,
+        currencyCode: btc!.currencyCode,
+        hasExistingHolding: false,
+      };
+
+      const duplicateSecurity = await helpers.investmentImportExecute({
+        payload: {
+          holdings: [
+            { tempId: 'h-1', ...baseHolding, transactions: [{ ...transaction, tempId: 'tx-1' }] },
+            { tempId: 'h-2', ...baseHolding, transactions: [{ ...transaction, tempId: 'tx-2' }] },
+          ],
+          skipTempIds: [],
+        },
+      });
+
+      expect(duplicateSecurity.statusCode).not.toBe(200);
+    }, 60_000);
 
     it('surfaces a warning and skippedHoldings count when the portfolio is unknown', async () => {
       // Create one portfolio that belongs to the test user, then send a holding
@@ -943,60 +832,6 @@ describe('Investment transactions AI import — E2E', () => {
       expect(result.createdTransactions).toBe(0);
       expect(result.skippedHoldings).toBe(1);
       expect(result.warnings.length).toBeGreaterThan(0);
-    });
-
-    it('rejects requests where two rows pick the same security', async () => {
-      const portfolio = await helpers.createPortfolio({
-        payload: helpers.buildPortfolioPayload({ name: 'Crypto' }),
-        raw: true,
-      });
-
-      const [btc] = await helpers.seedSecurities([{ symbol: 'BTC', name: 'Bitcoin' }]);
-
-      const baseHolding = {
-        parsedSymbol: 'BTC',
-        parsedName: 'Bitcoin',
-        resolvedSecurity: {
-          securityId: btc!.id,
-          providerSymbol: btc!.providerSymbol,
-          symbol: 'BTC',
-          name: 'Bitcoin',
-          assetClass: btc!.assetClass,
-          providerName: btc!.providerName,
-          currencyCode: btc!.currencyCode,
-          exchangeName: btc!.exchangeName ?? undefined,
-          cryptoCurrencyCode: btc!.cryptoCurrencyCode ?? undefined,
-          alreadyInDb: true,
-        },
-        resolvedConfidence: 'auto' as const,
-        portfolioId: portfolio.id,
-        currencyCode: btc!.currencyCode,
-        hasExistingHolding: false,
-        transactions: [
-          {
-            tempId: 'tx',
-            date: '2024-01-15',
-            side: 'buy' as const,
-            quantity: '0.1',
-            price: '42000',
-            fees: '0',
-            amount: '4200',
-            possibleDuplicateOf: null,
-          },
-        ],
-      };
-
-      const response = await helpers.investmentImportExecute({
-        payload: {
-          holdings: [
-            { tempId: 'h-1', ...baseHolding, transactions: [{ ...baseHolding.transactions[0]!, tempId: 'tx-1' }] },
-            { tempId: 'h-2', ...baseHolding, transactions: [{ ...baseHolding.transactions[0]!, tempId: 'tx-2' }] },
-          ],
-          skipTempIds: [],
-        },
-      });
-
-      expect(response.statusCode).not.toBe(200);
     });
 
     it('imports a multi-holding batch with zero-price rows and a negative-going crypto position', async () => {
@@ -1123,6 +958,313 @@ describe('Investment transactions AI import — E2E', () => {
       });
       expect(h05!.quantity).toBeNumericEqual(-0.3);
       expect(h05!.costBasis).toBeNumericEqual(0);
+    });
+  });
+
+  describe('extract source=csv', () => {
+    /**
+     * Build a column mapping with sensible defaults for the BTC/ETH crypto CSVs
+     * the tests use. Individual tests override only the fields they care about.
+     */
+    function buildMapping(overrides: Partial<InvestmentColumnMapping> = {}): InvestmentColumnMapping {
+      return {
+        symbol: 'Symbol',
+        date: 'Date',
+        side: 'Action',
+        quantity: 'Quantity',
+        price: 'Price',
+        fees: 'Fees',
+        currency: 'Currency',
+        name: null,
+        defaultCurrency: 'USD',
+        defaultAssetClassHint: 'crypto',
+        sideValueMapping: {
+          Buy: INVESTMENT_TRANSACTION_CATEGORY.buy,
+          Sell: INVESTMENT_TRANSACTION_CATEGORY.sell,
+          Dividend: INVESTMENT_TRANSACTION_CATEGORY.dividend,
+        },
+        ...overrides,
+      };
+    }
+
+    it('groups rows into holdings, resolves the security, parses locale numbers and keeps dividends', async () => {
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'CSV Crypto' }),
+        raw: true,
+      });
+
+      const btc = await createCryptoSecurity({ symbol: 'BTC', name: 'Bitcoin', providerSymbol: 'bitcoin' });
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: btc.id } });
+
+      const csv = [
+        'Symbol,Date,Action,Quantity,Price,Fees,Currency',
+        // US locale, US$ symbol on price — also covers currency-symbol stripping.
+        'BTC,2024-01-15,Buy,0.05,"$42,000.00",5.25,USDT',
+        // European locale.
+        'BTC,2024-02-20,Sell,0.02,"50.000,00",2.10,USDT',
+        // Dividend row — quantity (units received), price (per-unit value), fees 0.
+        'BTC,2024-02-01,Dividend,0.001,42500,0,USDT',
+      ].join('\n');
+
+      const result = await helpers.investmentImportExtract({
+        payload: {
+          source: 'csv',
+          fileBase64: encodeFile({ text: csv }),
+          defaultPortfolioId: portfolio.id,
+          columnMapping: buildMapping(),
+        },
+        raw: true,
+      });
+
+      expect(result.holdings).toHaveLength(1);
+      const holding = result.holdings[0]!;
+      expect(holding.parsedSymbol).toBe('BTC');
+      expect(holding.resolvedSecurity?.securityId).toBe(btc.id);
+      expect(holding.resolvedConfidence).toBe('auto');
+      expect(holding.currencyCode).toBe('USD'); // USDT → USD
+      expect(holding.transactions).toHaveLength(3);
+      expect(holding.transactions.map((t) => t.side)).toEqual(['buy', 'sell', 'dividend']);
+      expect(holding.transactions[0]!.price).toBe('42000');
+      expect(holding.transactions[1]!.price).toBe('50000');
+      // amount = quantity * price + fees
+      expect(holding.transactions[0]!.amount).toBe('2105.2500000000');
+      expect(holding.transactions[1]!.amount).toBe('1002.1000000000');
+      expect(result.fileType).toBe('csv');
+      expect(result.tokenCount).toEqual({ input: 0, output: 0 });
+    });
+
+    it('rejects when a mapped column does not exist in the CSV headers', async () => {
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'CSV bad mapping' }),
+        raw: true,
+      });
+
+      const csv = ['Symbol,Date,Action,Quantity,Price', 'BTC,2024-01-15,Buy,0.05,42000'].join('\n');
+
+      const result = await helpers.investmentImportExtract({
+        payload: {
+          source: 'csv',
+          fileBase64: encodeFile({ text: csv }),
+          defaultPortfolioId: portfolio.id,
+          columnMapping: buildMapping({ symbol: 'TickerThatDoesntExist' }),
+        },
+      });
+
+      expect(result.statusCode).not.toBe(200);
+    });
+
+    it('surfaces unparseable rows as a warning instead of failing the extract', async () => {
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'CSV invalid rows' }),
+        raw: true,
+      });
+
+      const btc = await createCryptoSecurity({ symbol: 'BTC', name: 'Bitcoin', providerSymbol: 'bitcoin' });
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: btc.id } });
+
+      const csv = [
+        'Symbol,Date,Action,Quantity,Price,Fees,Currency',
+        // valid
+        'BTC,2024-01-15,Buy,0.05,42000,5.25,USDT',
+        // invalid: side "Swap" not in mapping
+        'BTC,2024-01-16,Swap,0.01,42000,0,USDT',
+        // invalid: unparseable date
+        'BTC,not-a-date,Buy,0.01,42000,0,USDT',
+        // invalid: missing symbol
+        ',2024-01-17,Buy,0.01,42000,0,USDT',
+      ].join('\n');
+
+      const result = await helpers.investmentImportExtract({
+        payload: {
+          source: 'csv',
+          fileBase64: encodeFile({ text: csv }),
+          defaultPortfolioId: portfolio.id,
+          columnMapping: buildMapping(),
+        },
+        raw: true,
+      });
+
+      expect(result.holdings).toHaveLength(1);
+      expect(result.holdings[0]!.transactions).toHaveLength(1);
+
+      const skipWarning = result.warnings.find((w) => w.startsWith('3 of 4 CSV row(s) were skipped'));
+      expect(skipWarning).toBeDefined();
+      expect(skipWarning).toContain('Unmapped side value "Swap"');
+      expect(skipWarning).toContain('Unparseable date "not-a-date"');
+      expect(skipWarning).toContain('Missing symbol');
+    });
+
+    it('silently drops rows whose side value is mapped to the skip sentinel', async () => {
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'CSV with skip' }),
+        raw: true,
+      });
+
+      const btc = await createCryptoSecurity({ symbol: 'BTC', name: 'Bitcoin', providerSymbol: 'bitcoin' });
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: btc.id } });
+
+      const csv = [
+        'Symbol,Date,Action,Quantity,Price,Fees,Currency',
+        'BTC,2024-01-15,Buy,0.05,42000,0,USDT',
+        // Cash-movement rows — user marked these as skip; they should not appear
+        // in holdings AND should not pollute the invalid-rows warning list.
+        'CASH,2024-01-20,Deposit,500,1,0,USD',
+        'CASH,2024-01-21,Withdrawal,200,1,0,USD',
+        'BTC,2024-02-20,Sell,0.02,50000,0,USDT',
+      ].join('\n');
+
+      const result = await helpers.investmentImportExtract({
+        payload: {
+          source: 'csv',
+          fileBase64: encodeFile({ text: csv }),
+          defaultPortfolioId: portfolio.id,
+          columnMapping: buildMapping({
+            sideValueMapping: {
+              Buy: INVESTMENT_TRANSACTION_CATEGORY.buy,
+              Sell: INVESTMENT_TRANSACTION_CATEGORY.sell,
+              Deposit: INVESTMENT_IMPORT_SIDE_SKIP,
+              Withdrawal: INVESTMENT_IMPORT_SIDE_SKIP,
+            },
+          }),
+        },
+        raw: true,
+      });
+
+      expect(result.holdings).toHaveLength(1);
+      expect(result.holdings[0]!.transactions.map((t) => t.side)).toEqual(['buy', 'sell']);
+      // Critical: no "N of M CSV rows were skipped" warning — skip is deliberate.
+      expect(result.warnings.find((w) => w.includes('CSV row(s) were skipped'))).toBeUndefined();
+    });
+
+    it('splits compound tickers like SOL-USD into ticker + quote currency', async () => {
+      // Yahoo Finance + most crypto-aware exports use TICKER-CURRENCY for the
+      // symbol column. Resolver only knows bare tickers — without the split
+      // we'd try to look up `SOL-USD` on CoinGecko and miss every row.
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'CSV compound tickers' }),
+        raw: true,
+      });
+
+      const sol = await createCryptoSecurity({ symbol: 'SOL', name: 'Solana', providerSymbol: 'solana' });
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: sol.id } });
+
+      const csv = [
+        // No currency column on purpose so the ticker suffix has to do the work.
+        'Symbol,Date,Action,Quantity,Price',
+        'SOL-USD,2024-01-15,Buy,1.5,85.12',
+        'SOL-USD,2024-02-20,Sell,0.5,90.00',
+      ].join('\n');
+
+      const result = await helpers.investmentImportExtract({
+        payload: {
+          source: 'csv',
+          fileBase64: encodeFile({ text: csv }),
+          defaultPortfolioId: portfolio.id,
+          columnMapping: buildMapping({
+            // Currency + Fees columns intentionally unmapped — relies on the
+            // ticker suffix for currency and on the parser's "fees default to 0".
+            fees: null,
+            currency: null,
+            defaultCurrency: null,
+          }),
+        },
+        raw: true,
+      });
+
+      expect(result.holdings).toHaveLength(1);
+      // Symbol is the SOL head, not the compound SOL-USD.
+      expect(result.holdings[0]!.parsedSymbol).toBe('SOL');
+      expect(result.holdings[0]!.resolvedSecurity?.securityId).toBe(sol.id);
+      // Currency was inferred from the ticker suffix.
+      expect(result.holdings[0]!.currencyCode).toBe('USD');
+      expect(result.holdings[0]!.transactions).toHaveLength(2);
+    });
+  });
+
+  /**
+   * The default `express.json()` limit is 100KB. Both endpoints receive the whole
+   * uploaded file as base64 (files up to 10MB are accepted), so the request body
+   * must be allowed to grow well past that ceiling.
+   */
+  describe('request body size limit', () => {
+    const MIN_BODY_BYTES = 100 * 1024;
+    const ROW_COUNT = 300;
+
+    // Broker exports carry a free-text description column the user never maps.
+    // Padding it grows the file without inflating the parsed row count.
+    const DESCRIPTION_LENGTH = 300;
+    const DESCRIPTION_PADDING = 'TRADE CONFIRMATION SETTLED VIA CLEARING HOUSE '.repeat(8);
+
+    const CSV_HEADERS = 'Symbol,Date,Action,Quantity,Price,Description';
+
+    const SYMBOL = 'AAPL';
+
+    function buildOversizedCsv({ rowCount }: { rowCount: number }): string {
+      const rows = Array.from({ length: rowCount }, (_, index) => {
+        const day = String((index % 28) + 1).padStart(2, '0');
+        const side = index % 3 === 0 ? 'SELL' : 'BUY';
+        const description = `Order ${index} ${DESCRIPTION_PADDING}`.slice(0, DESCRIPTION_LENGTH);
+        return `${SYMBOL},2024-03-${day},${side},${(index % 20) + 1},${180 + (index % 50)}.25,${description}`;
+      });
+
+      return [CSV_HEADERS, ...rows].join('\n');
+    }
+
+    const COLUMN_MAPPING: InvestmentColumnMapping = {
+      symbol: 'Symbol',
+      date: 'Date',
+      side: 'Action',
+      quantity: 'Quantity',
+      price: 'Price',
+      fees: null,
+      currency: null,
+      name: null,
+      defaultCurrency: null,
+      defaultAssetClassHint: 'stocks',
+      sideValueMapping: {
+        BUY: INVESTMENT_TRANSACTION_CATEGORY.buy,
+        SELL: INVESTMENT_TRANSACTION_CATEGORY.sell,
+      },
+    };
+
+    it('POST /investments/transactions-import/estimate-cost accepts an oversized base64 file', async () => {
+      const payload = { fileBase64: encodeFile({ text: buildOversizedCsv({ rowCount: ROW_COUNT }) }) };
+      expect(Buffer.byteLength(JSON.stringify(payload))).toBeGreaterThan(MIN_BODY_BYTES);
+
+      const response = await helpers.investmentImportEstimateCost({ payload });
+
+      // A file the model can't fit still answers 200 with `success: false` in
+      // the body, so the status alone is what proves the body was parsed.
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('POST /investments/transactions-import/extract accepts an oversized base64 file', async () => {
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Body limit' }),
+        raw: true,
+      });
+
+      // Seeding the security + holding keeps symbol resolution on the
+      // user-securities branch, so no provider lookup happens.
+      const [aapl] = await helpers.seedSecurities([{ symbol: SYMBOL, name: 'Apple Inc.' }]);
+      await helpers.createHolding({ payload: { portfolioId: portfolio.id, securityId: aapl!.id } });
+
+      const payload = {
+        source: 'csv' as const,
+        fileBase64: encodeFile({ text: buildOversizedCsv({ rowCount: ROW_COUNT }) }),
+        defaultPortfolioId: portfolio.id,
+        columnMapping: COLUMN_MAPPING,
+      };
+      expect(Buffer.byteLength(JSON.stringify(payload))).toBeGreaterThan(MIN_BODY_BYTES);
+
+      const response = await helpers.investmentImportExtract({ payload });
+
+      expect(response.statusCode).toBe(200);
+
+      const { holdings } = response.body.response;
+      expect(holdings).toHaveLength(1);
+      expect(holdings[0]!.parsedSymbol).toBe(SYMBOL);
+      expect(holdings[0]!.transactions).toHaveLength(ROW_COUNT);
     });
   });
 });

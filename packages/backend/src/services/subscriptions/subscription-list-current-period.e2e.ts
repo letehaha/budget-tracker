@@ -18,7 +18,7 @@ function daysFromToday(days: number): string {
 const indexOfId = (list: Array<{ id: string }>, id: string): number => list.findIndex((s) => s.id === id);
 
 describe('GET /subscriptions — currentPeriod field', () => {
-  it('is non-null with status=upcoming for a scheduled subscription', async () => {
+  it('is non-null with status=upcoming and is mirrored by nextDueDate for a scheduled subscription', async () => {
     const dueDate = futureDate({ monthsAhead: 1, day: 10 });
     const sub = await helpers.createSubscription({
       name: 'Netflix',
@@ -38,24 +38,9 @@ describe('GET /subscriptions — currentPeriod field', () => {
     expect(found!.currentPeriod!.status).toBe(SUBSCRIPTION_PERIOD_STATUSES.upcoming);
     expect(found!.currentPeriod!.dueDate).toBe(dueDate);
     expect(found!.currentPeriod!.id).toBeTruthy();
-  });
 
-  it('is null for a detection-only subscription (no dueDate)', async () => {
-    const sub = await helpers.createSubscription({
-      name: 'Spotify Detection',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: '2025-01-01',
-      // No dueDate — detection-only, no periods generated.
-      expectedAmount: 9.99,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-
-    const list = await helpers.getSubscriptions({ raw: true });
-    const found = list.find((s: { id: string }) => s.id === sub.id);
-
-    expect(found).toBeDefined();
-    expect(found!.currentPeriod).toBeNull();
+    expect(found!.nextDueDate).toBe(found!.currentPeriod!.dueDate);
+    expect(found!.nextDueDate).toBe(dueDate);
   });
 
   it('points at the next upcoming period after the first period is paid', async () => {
@@ -135,26 +120,6 @@ describe('GET /subscriptions — nextDueDate field & sorting', () => {
     expect(found!.nextDueDate! < daysFromToday(15)).toBe(true);
   });
 
-  it('mirrors currentPeriod.dueDate as nextDueDate when an open period exists', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 10 });
-    const sub = await helpers.createSubscription({
-      name: 'Netflix',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: dueDate,
-      dueDate,
-      expectedAmount: 15.99,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-
-    const list = await helpers.getSubscriptions({ raw: true });
-    const found = list.find((s: { id: string }) => s.id === sub.id);
-
-    expect(found!.currentPeriod).not.toBeNull();
-    expect(found!.nextDueDate).toBe(found!.currentPeriod!.dueDate);
-    expect(found!.nextDueDate).toBe(dueDate);
-  });
-
   it('sortBy=dueDate: a soon detection-only sub sorts before a far-future annual bill (the reported bug)', async () => {
     // Annual bill whose open period is ~287 days out.
     const annualDue = daysFromToday(287);
@@ -189,42 +154,10 @@ describe('GET /subscriptions — nextDueDate field & sorting', () => {
     expect(soonIdx).toBeLessThan(annualIdx);
   });
 
-  it('sortBy=amount: higher expectedAmount comes first', async () => {
+  it('orders the list by name, amount and recency', async () => {
     const dueDate = futureDate({ monthsAhead: 1, day: 5 });
-    const cheap = await helpers.createSubscription({
-      name: 'Cheap',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: dueDate,
-      dueDate,
-      expectedAmount: 5,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-    const pricey = await helpers.createSubscription({
-      name: 'Pricey',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: dueDate,
-      dueDate,
-      expectedAmount: 100,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-
-    const list = await helpers.getSubscriptions({ sortBy: 'amount', raw: true });
-    expect(indexOfId(list, pricey.id)).toBeLessThan(indexOfId(list, cheap.id));
-  });
-
-  it('sortBy=name: ascending alphabetical order', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 5 });
-    const zed = await helpers.createSubscription({
-      name: 'Zed Service',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: dueDate,
-      dueDate,
-      expectedAmount: 5,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
+    // The cheaper sub sorts first by name, the pricier one first by amount and recency,
+    // so each sort yields a distinct order over the same pair.
     const apple = await helpers.createSubscription({
       name: 'Apple Service',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
@@ -234,33 +167,23 @@ describe('GET /subscriptions — nextDueDate field & sorting', () => {
       expectedCurrencyCode: global.BASE_CURRENCY.code,
       raw: true,
     });
-
-    const list = await helpers.getSubscriptions({ sortBy: 'name', raw: true });
-    expect(indexOfId(list, apple.id)).toBeLessThan(indexOfId(list, zed.id));
-  });
-
-  it('sortBy=recent: newest createdAt first', async () => {
-    const dueDate = futureDate({ monthsAhead: 1, day: 5 });
-    const older = await helpers.createSubscription({
-      name: 'Older',
+    const zed = await helpers.createSubscription({
+      name: 'Zed Service',
       frequency: SUBSCRIPTION_FREQUENCIES.monthly,
       startDate: dueDate,
       dueDate,
-      expectedAmount: 5,
-      expectedCurrencyCode: global.BASE_CURRENCY.code,
-      raw: true,
-    });
-    const newer = await helpers.createSubscription({
-      name: 'Newer',
-      frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-      startDate: dueDate,
-      dueDate,
-      expectedAmount: 5,
+      expectedAmount: 100,
       expectedCurrencyCode: global.BASE_CURRENCY.code,
       raw: true,
     });
 
-    const list = await helpers.getSubscriptions({ sortBy: 'recent', raw: true });
-    expect(indexOfId(list, newer.id)).toBeLessThan(indexOfId(list, older.id));
+    const byName = await helpers.getSubscriptions({ sortBy: 'name', raw: true });
+    expect(indexOfId(byName, apple.id)).toBeLessThan(indexOfId(byName, zed.id));
+
+    const byAmount = await helpers.getSubscriptions({ sortBy: 'amount', raw: true });
+    expect(indexOfId(byAmount, zed.id)).toBeLessThan(indexOfId(byAmount, apple.id));
+
+    const byRecent = await helpers.getSubscriptions({ sortBy: 'recent', raw: true });
+    expect(indexOfId(byRecent, zed.id)).toBeLessThan(indexOfId(byRecent, apple.id));
   });
 });

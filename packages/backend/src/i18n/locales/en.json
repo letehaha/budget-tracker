@@ -19,7 +19,8 @@
   "balanceAdjustment": {
     "defaultNote": "Balance adjustment",
     "accountNotFound": "Account with id \"{{accountId}}\" not found.",
-    "vehicleUseOverride": "A vehicle's value can only be changed from its vehicle page."
+    "vehicleUseOverride": "A vehicle's value can only be changed from its vehicle page.",
+    "vehicleNegativeValue": "A vehicle's value cannot be negative."
   },
   "accountGroups": {
     "groupNotFound": "Group not found",

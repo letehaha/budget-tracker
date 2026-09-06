@@ -1,4 +1,10 @@
-import { MS_MONEY_VOID_TAG, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
+import {
+  MS_MONEY_UPLOAD_IDLE_TTL_MS,
+  MS_MONEY_UPLOAD_MAX_LIFETIME_MS,
+  MS_MONEY_VOID_TAG,
+  ResourceLeaseType,
+  TRANSACTION_TRANSFER_NATURE,
+} from '@bt/shared/types';
 import type { CategoryMappingConfig, MsMoneyAccountMapping } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
@@ -91,6 +97,15 @@ const createAudAccount = async ({ name, boundaryTime }: { name: string; boundary
   return { account, balanceBefore: Number(before.currentBalance) };
 };
 
+const at = ({ instant }: { instant: string }) => new Date(instant).getTime();
+
+/** Lease instants are whole milliseconds, so a refresh landing in the same
+ *  millisecond as the upload would return an identical instant and prove nothing. */
+const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+const refreshLease = <R extends boolean | undefined = false>({ uploadId, raw }: { uploadId: string; raw?: R }) =>
+  helpers.refreshResourceLease<R>({ payload: { type: ResourceLeaseType.msMoneyUpload, id: uploadId }, raw });
+
 const runImport = async (payload: Parameters<typeof helpers.executeMsMoney>[0]['payload']) => {
   const { jobId } = await helpers.executeMsMoney({ payload, raw: true });
   // Fail-fast: a broken enqueue must surface here, not as a poll timeout.
@@ -120,6 +135,9 @@ describeWithFixture('Microsoft Money import execution', () => {
 
     expect(upload.result.accounts).toHaveLength(3);
     expect(upload.result.baseCurrency).toBe(FIXTURE_CURRENCY);
+    // Fail fast if the fixture stops carrying voided rows — the opt-in test
+    // below would otherwise pass by asserting nothing.
+    expect(upload.result.transactions.filter((tx) => tx.isVoid).length).toBeGreaterThan(0);
 
     const categoryMapping = createNewCategoryMapping({ categories: upload.result.categories });
     // Fail fast if the fixture stops carrying these two: a silent no-op here
@@ -148,6 +166,7 @@ describeWithFixture('Microsoft Money import execution', () => {
     expect(summary.outOfWalletImported).toBe(1);
     expect(summary.transfersImported).toBe(7);
     expect(summary.duplicatesSkipped).toBe(0);
+    expect(summary.voidedImported).toBe(0);
     expect(summary.payeesCreated).toBe(10);
     // 9 of the 11 leaves are created under their group — one is linked to an
     // existing category, one is left out of the mapping — plus the groups those
@@ -165,6 +184,8 @@ describeWithFixture('Microsoft Money import execution', () => {
     const transactions = await helpers.getTransactions({ limit: 500, raw: true });
     // 67 ordinary + 1 out-of-wallet + 7 transfers × 2 legs.
     expect(transactions).toHaveLength(82);
+    // Voided rows are the only ones written at amount 0.
+    expect(transactions.filter((tx) => Number(tx.amount) === 0)).toHaveLength(0);
 
     // --- Ordinary row keeps its account, direction, amount and payee ---
     const insuranceRow = transactions.find(
@@ -319,23 +340,6 @@ describeWithFixture('Microsoft Money import execution', () => {
       [ACCOUNT_CREDIT_CARD]: { action: 'create-new', currencyCode: FIXTURE_CURRENCY, currentBalance: null },
       [ACCOUNT_STOCKS]: { action: 'create-new', currencyCode: FIXTURE_CURRENCY, currentBalance: null },
     });
-
-    it('parses them but leaves them out unless asked', async () => {
-      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
-      // Fail fast if the fixture stops carrying voided rows — the opt-in test
-      // below would otherwise pass by asserting nothing.
-      expect(upload.result.transactions.filter((tx) => tx.isVoid).length).toBeGreaterThan(0);
-
-      const progress = await runImport({ uploadId: upload.uploadId, accountMapping: allCreateNew() });
-      expectMsMoneyCompleted(progress);
-
-      expect(progress.summary.errors).toHaveLength(0);
-      expect(progress.summary.voidedImported).toBe(0);
-      expect(progress.summary.transactionsImported).toBe(67);
-
-      const transactions = await helpers.getTransactions({ limit: 500, raw: true });
-      expect(transactions.filter((tx) => Number(tx.amount) === 0)).toHaveLength(0);
-    }, 30000);
 
     it('imports them at zero with the Void tag when opted in', async () => {
       const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
@@ -620,57 +624,19 @@ describeWithFixture('Microsoft Money import execution', () => {
   });
 
   /**
-   * Every parsed account needs a stated decision. A missing entry is a mapping
-   * bug rather than an implied skip, so the worker refuses the whole job before
-   * writing anything.
-   */
-  it('fails the job when an account has no mapping entry', async () => {
-    const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
-
-    const progress = await runImport({
-      uploadId: upload.uploadId,
-      accountMapping: {
-        [ACCOUNT_CURRENT]: { action: 'skip' },
-        [ACCOUNT_CREDIT_CARD]: { action: 'skip' },
-      },
-    });
-
-    expectMsMoneyFailed(progress);
-    expect(progress.error).toMatch(/Missing account mapping/i);
-
-    const transactions = await helpers.getTransactions({ limit: 500, raw: true });
-    expect(transactions).toHaveLength(0);
-  });
-
-  /**
    * A `link-existing` mapping names an account id the client chose, so the
    * worker resolves it against the importing user before writing anything. An id
    * that is unknown or belongs to somebody else is the same refusal: the job
    * fails and the message never says which of the two it was.
    */
   describe('link-existing ownership', () => {
-    it('fails the job when the linked account does not exist', async () => {
-      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
-
-      const progress = await runImport({
-        uploadId: upload.uploadId,
-        accountMapping: onlyStocksMapping({ accountId: generateRandomRecordId() }),
-      });
-
-      expectMsMoneyFailed(progress);
-      expect(progress.error).toMatch(/does not exist or is not yours/i);
-      expect(progress.error).toContain(ACCOUNT_STOCKS);
-
-      const transactions = await helpers.getTransactions({ limit: 500, raw: true });
-      expect(transactions).toHaveLength(0);
-    });
-
     /**
      * The other user's account carries the file's own currency, so ownership is
      * the only thing left that can refuse it — a pass here would mean one user's
-     * import writing rows into another user's ledger.
+     * import writing rows into another user's ledger. A failed job releases its
+     * claim on the upload, so both refusals run off the one upload.
      */
-    it('fails the job when the linked account belongs to another user', async () => {
+    it('fails the job when the linked account is unknown or belongs to another user', async () => {
       const otherUser = await provisionSecondUserWithBaseCurrency();
       const foreignAccount = await asUser({
         cookies: otherUser.cookies,
@@ -682,13 +648,23 @@ describeWithFixture('Microsoft Money import execution', () => {
       });
       const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
 
-      const progress = await runImport({
+      const unknown = await runImport({
+        uploadId: upload.uploadId,
+        accountMapping: onlyStocksMapping({ accountId: generateRandomRecordId() }),
+      });
+
+      expectMsMoneyFailed(unknown);
+      expect(unknown.error).toMatch(/does not exist or is not yours/i);
+      expect(unknown.error).toContain(ACCOUNT_STOCKS);
+      expect(await helpers.getTransactions({ limit: 500, raw: true })).toHaveLength(0);
+
+      const foreign = await runImport({
         uploadId: upload.uploadId,
         accountMapping: onlyStocksMapping({ accountId: foreignAccount.id }),
       });
 
-      expectMsMoneyFailed(progress);
-      expect(progress.error).toMatch(/does not exist or is not yours/i);
+      expectMsMoneyFailed(foreign);
+      expect(foreign.error).toMatch(/does not exist or is not yours/i);
 
       // Nothing landed on either side of the boundary: not in the importing
       // user's ledger, and not in the account the mapping pointed at.
@@ -702,7 +678,7 @@ describeWithFixture('Microsoft Money import execution', () => {
           expect(theirs).toHaveLength(0);
         },
       });
-    });
+    }, 30_000);
   });
 
   /**
@@ -790,6 +766,8 @@ describeWithFixture('Microsoft Money import execution', () => {
     const { account } = await createAudAccount({ name: 'Retry AUD' });
     const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
 
+    // A missing mapping entry is a bug, not an implied skip: the worker refuses
+    // the whole job before writing anything.
     const failed = await runImport({
       uploadId: upload.uploadId,
       accountMapping: {
@@ -828,5 +806,108 @@ describeWithFixture('Microsoft Money import execution', () => {
       payload: { uploadId: upload.uploadId, accountMapping: onlyStocksMapping({ accountId: account.id }) },
     });
     expect(third.statusCode).toBe(ERROR_CODES.NotFoundError);
+  });
+
+  /**
+   * The wizard refreshes this lease while the user maps accounts, so a slow
+   * mapping step does not lose the cached `.mny` parse result.
+   */
+  describe('upload lease', () => {
+    it('pushes the expiry out on every refresh and leaves the absolute ceiling where it was', async () => {
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+
+      const issued = at({ instant: upload.lease.expiresAt });
+      expect(at({ instant: upload.lease.maxExpiresAt })).toBeGreaterThan(issued);
+
+      await tick();
+      const first = await refreshLease({ uploadId: upload.uploadId, raw: true });
+
+      expect(at({ instant: first.expiresAt })).toBeGreaterThan(issued);
+      // The ceiling is fixed when the upload is stored. Refreshing must not move
+      // it, or a wizard left open would hold the parse result forever.
+      expect(first.maxExpiresAt).toBe(upload.lease.maxExpiresAt);
+      expect(at({ instant: first.expiresAt })).toBeLessThanOrEqual(at({ instant: first.maxExpiresAt }));
+
+      await tick();
+      const second = await refreshLease({ uploadId: upload.uploadId, raw: true });
+
+      expect(at({ instant: second.expiresAt })).toBeGreaterThan(at({ instant: first.expiresAt }));
+      expect(second.maxExpiresAt).toBe(first.maxExpiresAt);
+
+      // A refresh is worth the whole idle TTL measured from now, not a top-up of
+      // whatever was left of the previous one. The slack absorbs the round trip.
+      const granted = at({ instant: second.expiresAt }) - Date.now();
+      expect(granted).toBeGreaterThan(MS_MONEY_UPLOAD_IDLE_TTL_MS - 60_000);
+      expect(granted).toBeLessThanOrEqual(MS_MONEY_UPLOAD_IDLE_TTL_MS);
+      expect(at({ instant: second.maxExpiresAt }) - Date.now()).toBeLessThanOrEqual(MS_MONEY_UPLOAD_MAX_LIFETIME_MS);
+    });
+
+    /**
+     * A refresh rewrites only the lease, so the parse result behind it has to
+     * come back whole: the same duplicate detection, and an import that still
+     * lands its row.
+     */
+    it('leaves the cached parse result intact for the following wizard steps', async () => {
+      const { account } = await createAudAccount({ name: 'Lease AUD' });
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+      const accountMapping = onlyStocksMapping({ accountId: account.id });
+
+      const before = await helpers.detectMsMoneyDuplicates({
+        payload: { uploadId: upload.uploadId, accountMapping },
+        raw: true,
+      });
+      // The linked account was created for this test and holds no transactions,
+      // so nothing can match. Pinning the value keeps the equality check below
+      // from passing on a stably-wrong result.
+      expect(before.duplicates).toEqual([]);
+
+      await refreshLease({ uploadId: upload.uploadId, raw: true });
+
+      const after = await helpers.detectMsMoneyDuplicates({
+        payload: { uploadId: upload.uploadId, accountMapping },
+        raw: true,
+      });
+      expect(after).toEqual(before);
+
+      const progress = await runImport({ uploadId: upload.uploadId, accountMapping });
+      expectMsMoneyCompleted(progress);
+      expect(progress.summary.errors).toHaveLength(0);
+      expect(progress.summary.outOfWalletImported).toBe(1);
+    });
+
+    /**
+     * The lease is scoped to the uploader. A second user holding the id gets the
+     * same 404 as an id that never existed, and their attempt must leave the
+     * entry usable by its owner.
+     */
+    it("refuses another user's upload id without disturbing it", async () => {
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+      const otherUser = await provisionSecondUserWithBaseCurrency();
+
+      await asUser({
+        cookies: otherUser.cookies,
+        fn: async () => {
+          const response = await refreshLease({ uploadId: upload.uploadId });
+          expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+        },
+      });
+
+      const stillMine = await refreshLease({ uploadId: upload.uploadId });
+      expect(stillMine.statusCode).toBe(200);
+    });
+
+    it('refuses an upload the import has already consumed', async () => {
+      const { account } = await createAudAccount({ name: 'Consumed AUD' });
+      const upload = await helpers.uploadMsMoneyFixture({ file: FIXTURE, password: FIXTURE_PASSWORD });
+
+      const progress = await runImport({
+        uploadId: upload.uploadId,
+        accountMapping: onlyStocksMapping({ accountId: account.id }),
+      });
+      expectMsMoneyCompleted(progress);
+
+      const response = await refreshLease({ uploadId: upload.uploadId });
+      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
   });
 });

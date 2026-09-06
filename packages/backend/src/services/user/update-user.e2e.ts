@@ -14,86 +14,69 @@ import { makeRequest } from '@tests/helpers/common';
  * The default test user is seeded as username='test1' (see setupIntegrationTests).
  */
 describe('PUT /user/update — username', () => {
-  it('updates to a valid slug', async () => {
-    const res = await makeRequest({
-      method: 'put',
-      url: '/user/update',
-      payload: { username: 'wendy-marlow' },
-    });
-
-    expect(res.statusCode).toEqual(200);
-
-    const updated = await Users.findOne({ where: { id: res.body.response.id }, raw: true });
-    expect(updated!.username).toEqual('wendy-marlow');
-  });
-
-  it("accepts updating to the user's own current username (no-op)", async () => {
-    const res = await makeRequest({
+  it('accepts the current name, a new slug, padded input, and leaves username alone when omitted', async () => {
+    const noOp = await makeRequest({
       method: 'put',
       url: '/user/update',
       payload: { username: 'test1' },
     });
+    expect(noOp.statusCode).toEqual(200);
+    expect(noOp.body.response.username).toEqual('test1');
 
-    expect(res.statusCode).toEqual(200);
-    expect(res.body.response.username).toEqual('test1');
-  });
+    const renamed = await makeRequest({
+      method: 'put',
+      url: '/user/update',
+      payload: { username: 'wendy-marlow' },
+    });
+    expect(renamed.statusCode).toEqual(200);
+    const updated = await Users.findOne({ where: { id: renamed.body.response.id }, raw: true });
+    expect(updated!.username).toEqual('wendy-marlow');
 
-  it('trims surrounding whitespace before validating', async () => {
-    const res = await makeRequest({
+    const padded = await makeRequest({
       method: 'put',
       url: '/user/update',
       payload: { username: '  felix-ironwood  ' },
     });
+    expect(padded.statusCode).toEqual(200);
+    expect(padded.body.response.username).toEqual('felix-ironwood');
 
-    expect(res.statusCode).toEqual(200);
-    expect(res.body.response.username).toEqual('felix-ironwood');
-  });
-
-  it('allows updating other fields without a username (no validation triggered)', async () => {
-    const res = await makeRequest({
+    const otherField = await makeRequest({
       method: 'put',
       url: '/user/update',
       payload: { firstName: 'Wendy' },
     });
-
-    expect(res.statusCode).toEqual(200);
-    expect(res.body.response.firstName).toEqual('Wendy');
-    expect(res.body.response.username).toEqual('test1');
-  });
+    expect(otherField.statusCode).toEqual(200);
+    expect(otherField.body.response.firstName).toEqual('Wendy');
+    expect(otherField.body.response.username).toEqual('felix-ironwood');
+  }, 30_000);
 
   describe('format rejection (422)', () => {
-    it.each([
-      ['empty after trim', '   '],
-      ['uppercase letters', 'WendyMarlow'],
-      ['underscore', 'wendy_marlow'],
-      ['leading hyphen', '-wendy'],
-      ['trailing hyphen', 'wendy-'],
-      ['consecutive hyphens', 'wendy--marlow'],
-      ['non-ASCII', 'wendy•marlow'],
-      ['whitespace inside', 'wendy marlow'],
-    ])('rejects %s', async (_label, username) => {
-      const res = await makeRequest({
-        method: 'put',
-        url: '/user/update',
-        payload: { username },
-      });
+    it('rejects every malformed username shape', async () => {
+      const rejected: [string, string][] = [
+        ['empty after trim', '   '],
+        ['uppercase letters', 'WendyMarlow'],
+        ['underscore', 'wendy_marlow'],
+        ['leading hyphen', '-wendy'],
+        ['trailing hyphen', 'wendy-'],
+        ['consecutive hyphens', 'wendy--marlow'],
+        ['non-ASCII', 'wendy•marlow'],
+        ['whitespace inside', 'wendy marlow'],
+        ['longer than 64 characters', 'a'.repeat(65)],
+      ];
 
-      expect(res.statusCode).toEqual(422);
+      for (const [label, username] of rejected) {
+        const res = await makeRequest({
+          method: 'put',
+          url: '/user/update',
+          payload: { username },
+        });
+
+        expect([label, res.statusCode]).toEqual([label, 422]);
+      }
 
       const unchanged = await Users.findOne({ where: { username: 'test1' }, raw: true });
       expect(unchanged).not.toBeNull();
-    });
-
-    it('rejects usernames longer than 64 characters', async () => {
-      const tooLong = 'a'.repeat(65);
-      const res = await makeRequest({
-        method: 'put',
-        url: '/user/update',
-        payload: { username: tooLong },
-      });
-
-      expect(res.statusCode).toEqual(422);
-    });
+    }, 30_000);
 
     it('accepts a 64-character slug at the limit', async () => {
       const atLimit = 'a'.repeat(64);
@@ -159,18 +142,18 @@ describe('PUT /user/update — username', () => {
       expect(stillTest1).not.toBeNull();
       const claimed = await Users.findOne({ where: { username: 'reserved-admin' }, raw: true });
       expect(claimed).toBeNull();
-    });
 
-    it('normalizes ADMIN_USERS whitespace the same way adminOnly does', async () => {
+      // The reservation must survive adminOnly's normalization: padded entries and
+      // multi-value ADMIN_USERS still block the claim.
       process.env.ADMIN_USERS = '  reserved-admin  , other-admin';
 
-      const res = await makeRequest({
+      const padded = await makeRequest({
         method: 'put',
         url: '/user/update',
         payload: { username: 'reserved-admin' },
       });
 
-      expect(res.statusCode).toEqual(422);
+      expect(padded.statusCode).toEqual(422);
     });
 
     it('still allows renaming to a non-admin username while ADMIN_USERS is set', async () => {

@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
 
-import { API_PREFIX, MCP_BASE_URL } from '../config';
+import { API_PREFIX, BETTER_AUTH_BASE_URL, MCP_BASE_URL } from '../config';
 
 const MCP_SCOPES_SUPPORTED = ['finance:read', 'finance:write', 'finance:delete', 'profile:read', 'offline_access'];
 
@@ -19,13 +19,18 @@ const MCP_SCOPES_SUPPORTED = ['finance:read', 'finance:write', 'finance:delete',
  * block in self-hosting/frontend/docker-entrypoint.sh).
  */
 export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
+  // better-auth stamps `${BETTER_AUTH_URL}${API_PREFIX}/auth` as the RFC 9207 `iss` on
+  // authorization responses; clients abort on a mismatch, so discovery must advertise
+  // that exact string (MCP_BASE_URL can be a different host in split-domain deployments).
+  const issuer = `${BETTER_AUTH_BASE_URL}${API_PREFIX}/auth`;
+
   // OAuth Protected Resource Metadata (RFC 9728)
   // MCP clients discover the authorization server via this endpoint.
   // Claude.ai fetches the path-aware form first, then falls back to root.
   const protectedResourceHandler = (_req: Request, res: Response) => {
     res.json({
       resource: `${MCP_BASE_URL}/mcp`,
-      authorization_servers: [MCP_BASE_URL],
+      authorization_servers: [issuer],
       scopes_supported: MCP_SCOPES_SUPPORTED,
       bearer_methods_supported: ['header'],
     });
@@ -37,20 +42,15 @@ export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
   app.get('/.well-known/oauth-protected-resource', protectedResourceHandler);
 
   // OAuth Authorization Server Metadata (RFC 8414)
-  // MCP clients discover OAuth endpoints via /.well-known/oauth-authorization-server
-  // Path-aware form (RFC 8414 Section 3.1) — MCP Inspector tries this first
-  // Root form — fallback for clients that don't use path-aware discovery
   const asMetadataHandler = (_req: Request, res: Response) => {
-    const authPath = `${MCP_BASE_URL}${API_PREFIX}/auth`;
-
     res.json({
-      issuer: MCP_BASE_URL,
-      authorization_endpoint: `${authPath}/oauth2/authorize`,
-      token_endpoint: `${authPath}/oauth2/token`,
-      registration_endpoint: `${authPath}/oauth2/register`,
-      revocation_endpoint: `${authPath}/oauth2/revoke`,
-      introspection_endpoint: `${authPath}/oauth2/introspect`,
-      jwks_uri: `${authPath}/.well-known/jwks.json`,
+      issuer,
+      authorization_endpoint: `${issuer}/oauth2/authorize`,
+      token_endpoint: `${issuer}/oauth2/token`,
+      registration_endpoint: `${issuer}/oauth2/register`,
+      revocation_endpoint: `${issuer}/oauth2/revoke`,
+      introspection_endpoint: `${issuer}/oauth2/introspect`,
+      jwks_uri: `${issuer}/.well-known/jwks.json`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code', 'refresh_token'],
       token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
@@ -59,6 +59,10 @@ export function setupOAuthMetadataRoutes({ app }: { app: Express }) {
     });
   };
 
+  // RFC 8414 3.1 form for an issuer with a path: the well-known segment is inserted
+  // after the host, so the issuer's path follows it.
+  app.get(`/.well-known/oauth-authorization-server${API_PREFIX}/auth`, asMetadataHandler);
+  // `/mcp` and root forms kept for clients (incl. Claude.ai) that request them.
   app.get('/.well-known/oauth-authorization-server/mcp', asMetadataHandler);
   app.get('/.well-known/oauth-authorization-server', asMetadataHandler);
 

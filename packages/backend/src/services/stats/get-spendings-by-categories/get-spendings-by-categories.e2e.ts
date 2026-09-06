@@ -63,9 +63,19 @@ describe('[Stats] Spendings by categories – categoryIds filter', () => {
     });
     // Root category should NOT appear (transaction tagged directly on root doesn't belong to childCategory)
     expect(childGrouped[rootCategory.id.toString()]).toBeUndefined();
-  });
 
-  it('Pre-initializes selected categories with zero when no transactions match', async () => {
+    // Each transaction rolls up to its nearest selected ancestor: child and sub-child
+    // land on child (500), root keeps only its own 100.
+    const bothSelected = await helpers.getSpendingsByCategories({
+      raw: true,
+      categoryIds: [rootCategory.id, childCategory.id],
+    });
+
+    expect(bothSelected[rootCategory.id.toString()].amount).toBe(100);
+    expect(bothSelected[childCategory.id.toString()].amount).toBe(500);
+  }, 60_000);
+
+  it('Pre-initializes selected categories with zero in both response shapes', async () => {
     await helpers.createAccount({ raw: true });
     const categoriesList = await helpers.getCategoriesList();
     const rootCategory = categoriesList.find((c) => !c.parentId)!;
@@ -81,36 +91,19 @@ describe('[Stats] Spendings by categories – categoryIds filter', () => {
       color: rootCategory.color,
       amount: 0,
     });
-  });
 
-  it('Handles overlapping parent + child selection (most specific match wins)', async () => {
-    const account = await helpers.createAccount({ raw: true });
-    const categoriesList = await helpers.getCategoriesList();
-
-    const rootCategory = categoriesList.find((c) => !c.parentId)!;
-    const childCategory = categoriesList.find((c) => c.parentId === rootCategory.id)!;
-
-    // 100 directly on root, 200 on child
-    await Promise.all([
-      helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 100, categoryId: rootCategory.id }),
-        raw: true,
-      }),
-      helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({ accountId: account.id, amount: 200, categoryId: childCategory.id }),
-        raw: true,
-      }),
-    ]);
-
-    // Select both root and child. Child's transaction maps to child (nearest ancestor in set).
-    // Root's transaction maps to root.
-    const result = await helpers.getSpendingsByCategories({
+    const groupedByType = await helpers.getSpendingsByCategories({
       raw: true,
-      categoryIds: [rootCategory.id, childCategory.id],
+      groupByType: true,
+      categoryIds: [rootCategory.id],
     });
 
-    expect(result[rootCategory.id.toString()].amount).toBe(100);
-    expect(result[childCategory.id.toString()].amount).toBe(200);
+    expect(groupedByType[rootCategory.id.toString()]).toEqual({
+      name: rootCategory.name,
+      color: rootCategory.color,
+      income: 0,
+      expense: 0,
+    });
   });
 });
 
@@ -168,44 +161,23 @@ describe('[Stats] Spendings by categories – groupByType', () => {
     });
   });
 
-  it('pre-initializes selected categories with zeroed income and expense when empty', async () => {
-    await helpers.createAccount({ raw: true });
-    const categoriesList = await helpers.getCategoriesList();
-    const category = categoriesList.find((c) => !c.parentId)!;
-
-    const result = await helpers.getSpendingsByCategories({
-      raw: true,
-      groupByType: true,
-      categoryIds: [category.id],
-    });
-
-    expect(result[category.id.toString()]).toEqual({
-      name: category.name,
-      color: category.color,
-      income: 0,
-      expense: 0,
-    });
-  });
-
-  it('rejects an inverted date range', async () => {
-    const response = await helpers.getSpendingsByCategories({
+  it('rejects an inverted date range and a malformed / non-real date', async () => {
+    const inverted = await helpers.getSpendingsByCategories({
       from: '2026-07-31',
       to: '2026-07-01',
       groupByType: true,
     });
 
-    expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
-  });
+    expect(inverted.statusCode).toEqual(ERROR_CODES.ValidationError);
 
-  it('rejects a malformed / non-real date', async () => {
-    const response = await helpers.getSpendingsByCategories({
+    const malformed = await helpers.getSpendingsByCategories({
       // Month 13 / day 45 is not a real calendar date.
       from: '2026-13-45',
       to: '2026-07-31',
       groupByType: true,
     });
 
-    expect(response.statusCode).toEqual(ERROR_CODES.ValidationError);
+    expect(malformed.statusCode).toEqual(ERROR_CODES.ValidationError);
   });
 });
 

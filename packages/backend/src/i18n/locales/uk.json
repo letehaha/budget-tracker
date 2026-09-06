@@ -19,7 +19,8 @@
   "balanceAdjustment": {
     "defaultNote": "Коригування балансу",
     "accountNotFound": "Рахунок з id \"{{accountId}}\" не знайдено.",
-    "vehicleUseOverride": "Вартість транспортного засобу можна змінити лише на його сторінці."
+    "vehicleUseOverride": "Вартість транспортного засобу можна змінити лише на його сторінці.",
+    "vehicleNegativeValue": "Вартість транспортного засобу не може бути від'ємною."
   },
   "accountGroups": {
     "groupNotFound": "Групу не знайдено",

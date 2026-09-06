@@ -10,6 +10,16 @@ export const ISIN_PATTERN = /^[A-Z]{2}[A-Z0-9]{9}\d$/;
 // the bare ISIN is not searchable.
 export const ISIN_EXCHANGE_SUFFIXES = ['.IR', '.DE', '.PA', '.AS', '.MI', '.L'] as const;
 
+// Yahoo quotes some venues in minor units (LSE pence, JSE cents, TASE agorot)
+// under a non-ISO currency code. Prices are scaled to the major unit at the
+// provider boundary so the rest of the app only ever sees ISO currencies.
+const MINOR_UNIT_CURRENCIES: Record<string, string> = { GBp: 'GBP', GBX: 'GBP', ZAc: 'ZAR', ILA: 'ILS' };
+
+export const toMajorUnit = ({ price, currency }: { price: number; currency?: string }) =>
+  currency && MINOR_UNIT_CURRENCIES[currency] ? price / 100 : price;
+
+export const toIsoCurrency = (currency: string) => MINOR_UNIT_CURRENCIES[currency] ?? currency;
+
 /**
  * Returns true when a quote() rejection is the routine "symbol doesn't exist
  * on this venue" case (404 HTTPError, NotFoundError, "not found" message).

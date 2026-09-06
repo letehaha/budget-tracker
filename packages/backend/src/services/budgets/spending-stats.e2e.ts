@@ -5,6 +5,43 @@ import { ERROR_CODES } from '@js/errors';
 import * as helpers from '@tests/helpers';
 
 describe('Get budget spending stats', () => {
+  it('returns empty stats for empty manual and category budgets', async () => {
+    const manualBudget = await helpers.createCustomBudget({
+      name: 'empty-budget',
+      startDate: '2025-03-01T00:00:00Z',
+      endDate: '2025-03-31T23:59:59Z',
+      raw: true,
+    });
+
+    const category = await helpers.addCustomCategory({
+      name: 'EmptyCategory',
+      color: '#999999',
+      raw: true,
+    });
+    const categoryBudget = await helpers.createCustomBudget({
+      name: 'empty-category-budget',
+      type: BUDGET_TYPES.category,
+      categoryIds: [category.id],
+      startDate: '2025-04-01T00:00:00Z',
+      endDate: '2025-04-30T23:59:59Z',
+      raw: true,
+    });
+
+    const manualResult = await helpers.getSpendingStats({
+      id: manualBudget.id,
+      raw: true,
+    });
+    expect(manualResult.spendingsByCategory).toEqual([]);
+    expect(manualResult.spendingOverTime.periods).toEqual([]);
+
+    const categoryResult = await helpers.getSpendingStats({
+      id: categoryBudget.id,
+      raw: true,
+    });
+    expect(categoryResult.spendingsByCategory).toEqual([]);
+    expect(categoryResult.spendingOverTime.periods).toEqual([]);
+  }, 60_000);
+
   describe('Manual budget', () => {
     it('returns spending stats for a manual budget with transactions', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -101,20 +138,6 @@ describe('Get budget spending stats', () => {
       // Sum of all period income should equal total income
       const totalIncome = result.spendingOverTime.periods.reduce((sum, p) => sum + p.income, 0);
       expect(totalIncome).toBe(1000);
-    });
-
-    it('returns empty stats for an empty manual budget', async () => {
-      const budget = await helpers.createCustomBudget({
-        name: 'empty-budget',
-        startDate: '2025-03-01T00:00:00Z',
-        endDate: '2025-03-31T23:59:59Z',
-        raw: true,
-      });
-
-      const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
-
-      expect(result.spendingsByCategory).toEqual([]);
-      expect(result.spendingOverTime.periods).toEqual([]);
     });
 
     it('returns subcategory breakdown for transactions under child categories', async () => {
@@ -340,28 +363,6 @@ describe('Get budget spending stats', () => {
       expect(result.spendingOverTime.periods.length).toBeGreaterThan(0);
     });
 
-    it('returns empty stats when category budget has no matching transactions', async () => {
-      const category = await helpers.addCustomCategory({
-        name: 'EmptyCategory',
-        color: '#999999',
-        raw: true,
-      });
-
-      const budget = await helpers.createCustomBudget({
-        name: 'empty-category-budget',
-        type: BUDGET_TYPES.category,
-        categoryIds: [category.id],
-        startDate: '2025-04-01T00:00:00Z',
-        endDate: '2025-04-30T23:59:59Z',
-        raw: true,
-      });
-
-      const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
-
-      expect(result.spendingsByCategory).toEqual([]);
-      expect(result.spendingOverTime.periods).toEqual([]);
-    });
-
     it('returns subcategory breakdown for category budget with child categories', async () => {
       const account = await helpers.createAccount({ raw: true });
 
@@ -484,36 +485,62 @@ describe('Get budget spending stats', () => {
   });
 
   describe('Refund handling', () => {
-    it('nets out a refund-income from category breakdown and timeline (manual budget)', async () => {
+    it('nets out refunds in the category breakdown and timeline, dropping fully refunded categories', async () => {
       const account = await helpers.createAccount({ raw: true });
-      const category = await helpers.addCustomCategory({
+      const travelCategory = await helpers.addCustomCategory({
         name: 'Travel',
         color: '#0000FF',
         raw: true,
       });
+      const returnsCategory = await helpers.addCustomCategory({
+        name: 'Returns',
+        color: '#00FFFF',
+        raw: true,
+      });
 
-      const [expenseTx] = await helpers.createTransaction({
+      const [travelExpenseTx] = await helpers.createTransaction({
         raw: true,
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 500,
-          categoryId: category.id,
+          categoryId: travelCategory.id,
           transactionType: TRANSACTION_TYPES.expense,
           time: '2025-04-10T10:00:00Z',
         }),
       });
-      const [refundIncomeTx] = await helpers.createTransaction({
+      const [travelRefundTx] = await helpers.createTransaction({
         raw: true,
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
           amount: 200,
-          categoryId: category.id,
+          categoryId: travelCategory.id,
           transactionType: TRANSACTION_TYPES.income,
           time: '2025-04-12T10:00:00Z',
         }),
       });
+      const [returnsExpenseTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 400,
+          categoryId: returnsCategory.id,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: '2025-04-05T10:00:00Z',
+        }),
+      });
+      const [returnsRefundTx] = await helpers.createTransaction({
+        raw: true,
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 400,
+          categoryId: returnsCategory.id,
+          transactionType: TRANSACTION_TYPES.income,
+          time: '2025-04-06T10:00:00Z',
+        }),
+      });
 
-      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id }, true);
+      await helpers.createSingleRefund({ originalTxId: travelExpenseTx.id, refundTxId: travelRefundTx.id }, true);
+      await helpers.createSingleRefund({ originalTxId: returnsExpenseTx.id, refundTxId: returnsRefundTx.id }, true);
 
       const budget = await helpers.createCustomBudget({
         name: 'spending-refund-test-manual',
@@ -523,72 +550,23 @@ describe('Get budget spending stats', () => {
       });
       await helpers.addTransactionToCustomBudget({
         id: budget.id,
-        payload: { transactionIds: [expenseTx.id, refundIncomeTx.id] },
+        payload: {
+          transactionIds: [travelExpenseTx.id, travelRefundTx.id, returnsExpenseTx.id, returnsRefundTx.id],
+        },
       });
 
       const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
 
+      // Returns nets to zero, so the category is omitted entirely.
       expect(result.spendingsByCategory).toHaveLength(1);
+      expect(result.spendingsByCategory[0]!.categoryId).toBe(travelCategory.id);
       expect(result.spendingsByCategory[0]!.amount).toBe(300);
 
       const totalExpense = result.spendingOverTime.periods.reduce((sum, p) => sum + p.expense, 0);
       const totalIncome = result.spendingOverTime.periods.reduce((sum, p) => sum + p.income, 0);
       expect(totalExpense).toBe(300);
       expect(totalIncome).toBe(0);
-    });
-
-    it('nets out a fully refunded expense to zero in the category breakdown', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const category = await helpers.addCustomCategory({
-        name: 'Returns',
-        color: '#00FFFF',
-        raw: true,
-      });
-
-      const [expenseTx] = await helpers.createTransaction({
-        raw: true,
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 400,
-          categoryId: category.id,
-          transactionType: TRANSACTION_TYPES.expense,
-          time: '2025-05-05T10:00:00Z',
-        }),
-      });
-      const [refundIncomeTx] = await helpers.createTransaction({
-        raw: true,
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: 400,
-          categoryId: category.id,
-          transactionType: TRANSACTION_TYPES.income,
-          time: '2025-05-06T10:00:00Z',
-        }),
-      });
-
-      await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundIncomeTx.id }, true);
-
-      const budget = await helpers.createCustomBudget({
-        name: 'spending-refund-full',
-        startDate: '2025-05-01T00:00:00Z',
-        endDate: '2025-05-31T23:59:59Z',
-        raw: true,
-      });
-      await helpers.addTransactionToCustomBudget({
-        id: budget.id,
-        payload: { transactionIds: [expenseTx.id, refundIncomeTx.id] },
-      });
-
-      const result = await helpers.getSpendingStats({ id: budget.id, raw: true });
-
-      // Both sides cancel out — category has zero amount, so it's omitted.
-      expect(result.spendingsByCategory).toHaveLength(0);
-
-      const totalExpense = result.spendingOverTime.periods.reduce((sum, p) => sum + p.expense, 0);
-      const totalIncome = result.spendingOverTime.periods.reduce((sum, p) => sum + p.income, 0);
-      expect(totalExpense).toBe(0);
-      expect(totalIncome).toBe(0);
-    });
+    }, 60_000);
 
     it('attaches a split-targeted refund to the split’s category, not the original primary category', async () => {
       const account = await helpers.createAccount({ raw: true });
@@ -703,17 +681,18 @@ describe('Get budget spending stats', () => {
   });
 
   describe('Error handling', () => {
-    it('returns 404 for non-existent budget', async () => {
-      const response = await helpers.getSpendingStats({ id: NONEXISTENT_ID, raw: false });
-      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
-    });
+    it('rejects unknown and malformed budget ids', async () => {
+      const notFound = await helpers.getSpendingStats({
+        id: NONEXISTENT_ID,
+        raw: false,
+      });
+      expect(notFound.statusCode).toBe(ERROR_CODES.NotFoundError);
 
-    it('returns validation error for invalid budget id', async () => {
-      const response = await helpers.getSpendingStats({
+      const invalid = await helpers.getSpendingStats({
         id: 'invalid' as unknown as string,
         raw: false,
       });
-      expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+      expect(invalid.statusCode).toBe(ERROR_CODES.ValidationError);
     });
   });
 });

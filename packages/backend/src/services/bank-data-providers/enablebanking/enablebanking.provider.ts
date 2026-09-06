@@ -87,6 +87,8 @@ import {
 
 type ReconcileSkipReason = EditMergeSkipReason | 'dependent_rows' | 'categorization_conflict';
 
+const getRedirectUrl = () => process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:8100/bank-callback';
+
 /**
  * Enable Banking provider implementation
  * Handles integration with Enable Banking API for multi-bank account access across Europe
@@ -94,6 +96,9 @@ type ReconcileSkipReason = EditMergeSkipReason | 'dependent_rows' | 'categorizat
  */
 export class EnableBankingProvider extends BaseBankDataProvider {
   readonly metadata: ProviderMetadata = {
+    get redirectUrl() {
+      return getRedirectUrl();
+    },
     type: BANK_PROVIDER_TYPE.ENABLE_BANKING,
     name: 'Enable Banking',
     description: 'Access 6000+ European banks via PSD2 open banking',
@@ -153,7 +158,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       apiClient,
       bankName,
       bankCountry,
-      redirectUrl || process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:8100/bank-callback',
+      redirectUrl || getRedirectUrl(),
       state,
       consentValidUntil,
     );
@@ -437,7 +442,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       apiClient,
       metadata.bankName,
       metadata.bankCountry,
-      process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:8100/bank-callback',
+      getRedirectUrl(),
       state,
       consentValidUntil,
     );

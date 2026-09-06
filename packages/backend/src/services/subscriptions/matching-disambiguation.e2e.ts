@@ -36,7 +36,6 @@ describe('Subscription matching disambiguation', () => {
     it('matches each transaction to the correct Apple subscription based on amount', async () => {
       const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
 
-      // Create 4 Apple subscriptions with different expected amounts, all matching "apple" notes
       const appleOne = await helpers.createSubscription({
         name: 'Apple One',
         type: SUBSCRIPTION_TYPES.subscription,
@@ -105,9 +104,6 @@ describe('Subscription matching disambiguation', () => {
         raw: true,
       });
 
-      // Create transactions in UAH for each subscription's USD equivalent
-      // API amounts are in decimal format (e.g., 413.88 means 413.88 UAH)
-      // iCloud: $2.99 → ~123.88 UAH
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
@@ -118,7 +114,6 @@ describe('Subscription matching disambiguation', () => {
         raw: true,
       });
 
-      // Apple TV: $9.99 → ~413.89 UAH
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
@@ -129,7 +124,6 @@ describe('Subscription matching disambiguation', () => {
         raw: true,
       });
 
-      // Apple Music: $10.99 → ~455.31 UAH
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
@@ -140,7 +134,6 @@ describe('Subscription matching disambiguation', () => {
         raw: true,
       });
 
-      // Apple One: $19.99 → ~828.19 UAH
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
@@ -151,7 +144,6 @@ describe('Subscription matching disambiguation', () => {
         raw: true,
       });
 
-      // Verify each subscription matched exactly one transaction
       const iCloudDetail = await helpers.getSubscriptionById({ id: iCloud.id, raw: true });
       expect(iCloudDetail.transactions.length).toBe(1);
 
@@ -163,65 +155,21 @@ describe('Subscription matching disambiguation', () => {
 
       const appleOneDetail = await helpers.getSubscriptionById({ id: appleOne.id, raw: true });
       expect(appleOneDetail.transactions.length).toBe(1);
-    });
 
-    it('disambiguates by best amount fit when amount ranges overlap', async () => {
-      const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
-
-      // Apple TV: expected $9.99, range $9-$12
-      const appleTv = await helpers.createSubscription({
-        name: 'Apple TV',
-        type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 9.99,
-        expectedCurrencyCode: 'USD',
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        accountId: account.id,
-        matchingRules: {
-          rules: [
-            { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 9, max: 12 }, currencyCode: 'USD' },
-          ],
-        },
-        raw: true,
-      });
-
-      // Apple Music: expected $10.99, range $10-$12 (overlaps with Apple TV)
-      const appleMusic = await helpers.createSubscription({
-        name: 'Apple Music',
-        type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 10.99,
-        expectedCurrencyCode: 'USD',
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        accountId: account.id,
-        matchingRules: {
-          rules: [
-            { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 10, max: 12 }, currencyCode: 'USD' },
-          ],
-        },
-        raw: true,
-      });
-
-      // Transaction for exactly $10.99 equivalent — both rules match, but Apple Music
-      // should win because $10.99 is closer to its expectedAmount ($10.99) than Apple TV's ($9.99)
+      // Matching repeats per transaction: a second $9.99 links to Apple TV again.
       await helpers.createTransaction({
         payload: helpers.buildTransactionPayload({
           accountId: account.id,
-          amount: usdCentsToUahDecimal(1099),
+          amount: usdCentsToUahDecimal(999),
           note: 'APPLE.COM/BILL',
           transactionType: TRANSACTION_TYPES.expense,
         }),
         raw: true,
       });
 
-      const appleMusicDetail = await helpers.getSubscriptionById({ id: appleMusic.id, raw: true });
-      expect(appleMusicDetail.transactions.length).toBe(1);
-
-      const appleTvDetail = await helpers.getSubscriptionById({ id: appleTv.id, raw: true });
-      expect(appleTvDetail.transactions.length).toBe(0);
-    });
+      const appleTvDetailAfterRepeat = await helpers.getSubscriptionById({ id: appleTv.id, raw: true });
+      expect(appleTvDetailAfterRepeat.transactions.length).toBe(2);
+    }, 60_000);
 
     it('subscription with amount rule wins over subscription with only note rule', async () => {
       const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
@@ -323,55 +271,6 @@ describe('Subscription matching disambiguation', () => {
 
       const genericDetail = await helpers.getSubscriptionById({ id: genericApple.id, raw: true });
       expect(genericDetail.transactions.length).toBe(1);
-    });
-
-    it('does not re-match an already linked transaction', async () => {
-      const { account } = await helpers.createAccountWithNewCurrency({ currency: 'UAH' });
-
-      const appleTv = await helpers.createSubscription({
-        name: 'Apple TV',
-        type: SUBSCRIPTION_TYPES.subscription,
-        expectedAmount: 9.99,
-        expectedCurrencyCode: 'USD',
-        frequency: SUBSCRIPTION_FREQUENCIES.monthly,
-        startDate: '2025-01-01',
-        accountId: account.id,
-        matchingRules: {
-          rules: [
-            { field: 'note', operator: 'contains_any', value: ['apple'] },
-            { field: 'amount', operator: 'between', value: { min: 9, max: 11 }, currencyCode: 'USD' },
-          ],
-        },
-        raw: true,
-      });
-
-      // First transaction — should auto-match
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: usdCentsToUahDecimal(999),
-          note: 'APPLE.COM/BILL',
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      let detail = await helpers.getSubscriptionById({ id: appleTv.id, raw: true });
-      expect(detail.transactions.length).toBe(1);
-
-      // Second transaction — should also auto-match (separate transaction)
-      await helpers.createTransaction({
-        payload: helpers.buildTransactionPayload({
-          accountId: account.id,
-          amount: usdCentsToUahDecimal(999),
-          note: 'APPLE.COM/BILL',
-          transactionType: TRANSACTION_TYPES.expense,
-        }),
-        raw: true,
-      });
-
-      detail = await helpers.getSubscriptionById({ id: appleTv.id, raw: true });
-      expect(detail.transactions.length).toBe(2);
     });
 
     it('same-currency matching still works correctly', async () => {

@@ -44,52 +44,64 @@ const getAccountAsUser = async ({ cookies, accountId }: { cookies: string; accou
   });
 
 describe('canUserAccessResource — household-membership resolution', () => {
-  describe('granted via household membership', () => {
-    it('returns the account with accessSource=household when the caller has an accepted household share with the owner', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+  it('resolves household grants by permission and requires acceptance', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const householdWriteUser = await helpers.provisionSecondUserWithBaseCurrency();
+    const householdReadUser = await helpers.provisionSecondUserWithBaseCurrency();
+    const unacceptedUser = await helpers.provisionSecondUserWithBaseCurrency();
+    const stranger = await helpers.provisionSecondUserWithBaseCurrency();
 
-      await seedHouseholdMembership({
-        ownerUserId: account.userId,
-        sharedWithUserId: recipientApp.id,
-        permission: SHARE_PERMISSIONS.write,
-      });
-
-      const res = (await getAccountAsUser({
-        cookies: recipient.cookies,
-        accountId: account.id,
-      })) as unknown as CustomResponse<AccountResponse>;
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.response.id).toBe(account.id);
-      expect(res.body.response.share).toBeDefined();
-      expect(res.body.response.share!.isOwner).toBe(false);
-      expect(res.body.response.share!.permission).toBe(SHARE_PERMISSIONS.write);
-      expect(res.body.response.share!.accessSource).toBe(ACCESS_SOURCES.household);
+    await seedHouseholdMembership({
+      ownerUserId: account.userId,
+      sharedWithUserId: (await helpers.findAppUserByEmail({ email: householdWriteUser.email })).id,
+      permission: SHARE_PERMISSIONS.write,
+    });
+    await seedHouseholdMembership({
+      ownerUserId: account.userId,
+      sharedWithUserId: (await helpers.findAppUserByEmail({ email: householdReadUser.email })).id,
+      permission: SHARE_PERMISSIONS.read,
+    });
+    // Pending household row — acceptedAt: null mirrors the not-yet-accepted state.
+    await ResourceShares.create({
+      ownerUserId: account.userId,
+      sharedWithUserId: (await helpers.findAppUserByEmail({ email: unacceptedUser.email })).id,
+      resourceType: RESOURCE_TYPES.household,
+      resourceId: String(account.userId),
+      permission: SHARE_PERMISSIONS.write,
+      acceptedAt: null,
     });
 
-    it('honors the household permission level — a household-read recipient gets read access only', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
+    const writeRes = (await getAccountAsUser({
+      cookies: householdWriteUser.cookies,
+      accountId: account.id,
+    })) as unknown as CustomResponse<AccountResponse>;
+    expect(writeRes.statusCode).toBe(200);
+    expect(writeRes.body.response.id).toBe(account.id);
+    expect(writeRes.body.response.share).toBeDefined();
+    expect(writeRes.body.response.share!.isOwner).toBe(false);
+    expect(writeRes.body.response.share!.permission).toBe(SHARE_PERMISSIONS.write);
+    expect(writeRes.body.response.share!.accessSource).toBe(ACCESS_SOURCES.household);
 
-      await seedHouseholdMembership({
-        ownerUserId: account.userId,
-        sharedWithUserId: recipientApp.id,
-        permission: SHARE_PERMISSIONS.read,
-      });
+    const readRes = (await getAccountAsUser({
+      cookies: householdReadUser.cookies,
+      accountId: account.id,
+    })) as unknown as CustomResponse<AccountResponse>;
+    expect(readRes.statusCode).toBe(200);
+    expect(readRes.body.response.share!.permission).toBe(SHARE_PERMISSIONS.read);
+    expect(readRes.body.response.share!.accessSource).toBe(ACCESS_SOURCES.household);
 
-      const res = (await getAccountAsUser({
-        cookies: recipient.cookies,
-        accountId: account.id,
-      })) as unknown as CustomResponse<AccountResponse>;
+    const unacceptedRes = (await getAccountAsUser({
+      cookies: unacceptedUser.cookies,
+      accountId: account.id,
+    })) as unknown as CustomResponse<AccountResponse | null>;
+    expect(unacceptedRes.body.response).toBeNull();
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.response.share!.permission).toBe(SHARE_PERMISSIONS.read);
-      expect(res.body.response.share!.accessSource).toBe(ACCESS_SOURCES.household);
-    });
-  });
+    const strangerRes = (await getAccountAsUser({
+      cookies: stranger.cookies,
+      accountId: account.id,
+    })) as unknown as CustomResponse<AccountResponse | null>;
+    expect(strangerRes.body.response).toBeNull();
+  }, 60_000);
 
   describe('per-resource precedence', () => {
     it('returns accessSource=share when caller has both a per-resource share and a household membership', async () => {
@@ -177,43 +189,6 @@ describe('canUserAccessResource — household-membership resolution', () => {
       expect(found).toBeDefined();
       expect(found.share!.isOwner).toBe(true);
       expect(found.share!.accessSource).toBe(ACCESS_SOURCES.owner);
-    });
-  });
-
-  describe('denied access', () => {
-    it('returns null for a caller with neither a per-resource share nor a household membership', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const stranger = await helpers.provisionSecondUserWithBaseCurrency();
-
-      const res = (await getAccountAsUser({
-        cookies: stranger.cookies,
-        accountId: account.id,
-      })) as unknown as CustomResponse<AccountResponse | null>;
-
-      expect(res.body.response).toBeNull();
-    });
-
-    it('denies access when the household share is not yet accepted', async () => {
-      const account = await helpers.createAccount({ raw: true });
-      const recipient = await helpers.provisionSecondUserWithBaseCurrency();
-      const recipientApp = await helpers.findAppUserByEmail({ email: recipient.email });
-
-      // Pending household row — acceptedAt: null mirrors the not-yet-accepted state.
-      await ResourceShares.create({
-        ownerUserId: account.userId,
-        sharedWithUserId: recipientApp.id,
-        resourceType: RESOURCE_TYPES.household,
-        resourceId: String(account.userId),
-        permission: SHARE_PERMISSIONS.write,
-        acceptedAt: null,
-      });
-
-      const res = (await getAccountAsUser({
-        cookies: recipient.cookies,
-        accountId: account.id,
-      })) as unknown as CustomResponse<AccountResponse | null>;
-
-      expect(res.body.response).toBeNull();
     });
   });
 });

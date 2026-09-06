@@ -144,23 +144,26 @@ describe('Statement parser cost estimation', () => {
   // An encrypted PDF and a scanned one both yield zero text, and the fix for one
   // (type the password) is useless for the other, so the codes must stay distinct.
   describe('PDFs no text can be read from', () => {
-    it('asks for a password when the PDF is encrypted', async () => {
-      const failure = await estimateFailure({ file: STATEMENT_PDF_FIXTURES.encrypted });
+    it('separates a missing password, a rejected password and a missing text layer', async () => {
+      const missingPassword = await estimateFailure({ file: STATEMENT_PDF_FIXTURES.encrypted });
 
-      expect(failure.success).toBe(false);
-      expect(failure.textExtraction.success).toBe(false);
-      expect(failure.textExtraction.errorCode).toBe('PASSWORD_REQUIRED');
-      expect(failure.fileType).toBe('pdf');
-    });
+      expect(missingPassword.success).toBe(false);
+      expect(missingPassword.textExtraction.success).toBe(false);
+      expect(missingPassword.textExtraction.errorCode).toBe('PASSWORD_REQUIRED');
+      expect(missingPassword.fileType).toBe('pdf');
 
-    it('reports a rejected password separately from a missing one', async () => {
-      const failure = await estimateFailure({
+      const rejectedPassword = await estimateFailure({
         file: STATEMENT_PDF_FIXTURES.encrypted,
         password: 'not-the-password',
       });
 
-      expect(failure.success).toBe(false);
-      expect(failure.textExtraction.errorCode).toBe('PASSWORD_INVALID');
+      expect(rejectedPassword.success).toBe(false);
+      expect(rejectedPassword.textExtraction.errorCode).toBe('PASSWORD_INVALID');
+
+      const noTextLayer = await estimateFailure({ file: STATEMENT_PDF_FIXTURES.noTextLayer });
+
+      expect(noTextLayer.success).toBe(false);
+      expect(noTextLayer.textExtraction.errorCode).toBe('NO_TEXT_CONTENT');
     });
 
     it('estimates normally once the correct password is supplied', async () => {
@@ -179,13 +182,6 @@ describe('Statement parser cost estimation', () => {
       expect(estimate.textExtraction.characterCount).toBeGreaterThan(0);
       expect(estimate.modelId).toBe(CATALOG_MODEL_ID);
       expect(estimate.estimatedInputTokens).toBeGreaterThan(0);
-    });
-
-    it('reports a PDF without a text layer as empty, not as protected', async () => {
-      const failure = await estimateFailure({ file: STATEMENT_PDF_FIXTURES.noTextLayer });
-
-      expect(failure.success).toBe(false);
-      expect(failure.textExtraction.errorCode).toBe('NO_TEXT_CONTENT');
     });
   });
 });
