@@ -293,7 +293,6 @@
         "applyButton": "Apply",
         "recommendedLabel": "Recommended",
         "allTransactionsLabel": "All transactions",
-        "loadMoreButton": "Load more",
         "noMoreTransactions": "No more transactions",
         "noIncomeTransactions": "No income transactions found. Try adjusting the filters.",
         "noExpenseTransactions": "No expense transactions found. Try adjusting the filters.",
