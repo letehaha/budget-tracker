@@ -2,7 +2,13 @@ import { SECURITY_PROVIDER, SecuritySearchResult } from '@bt/shared/types/invest
 import { logger } from '@js/utils';
 import type YahooFinance from 'yahoo-finance2';
 
-import { ISIN_EXCHANGE_SUFFIXES, isExpectedNotFoundError, mapYahooTypeToAssetClass, remapUcitsType } from './utils';
+import {
+  ISIN_EXCHANGE_SUFFIXES,
+  isExpectedNotFoundError,
+  mapYahooTypeToAssetClass,
+  remapUcitsType,
+  toIsoCurrency,
+} from './utils';
 
 // Cap on the number of additional local-ticker candidates we'll quote per ISIN
 // search – guards against a name-match search returning dozens of distantly
@@ -164,7 +170,7 @@ function buildIsinFallbackResult({ quote, isin }: { quote: YahooQuoteResult; isi
     exchangeName: fullExchangeName,
     exchangeAcronym: quote.exchange,
     exchangeMic: undefined,
-    currencyCode: quote.currency,
+    currencyCode: toIsoCurrency(quote.currency),
     cusip: undefined,
     isin,
   };

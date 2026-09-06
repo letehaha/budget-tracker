@@ -483,6 +483,27 @@ describe('GET /investments/securities/search', () => {
     expect(msftResult?.isInPortfolio).toBe(true);
   });
 
+  it('normalizes minor-unit Yahoo currencies (ZAc) to ISO (ZAR) in search results', async () => {
+    dataProviderFactory.clearCache();
+    mockedFmpSearch.mockResolvedValue([]);
+    const YahooFinance = (await import('yahoo-finance2')).default;
+    jest.mocked(YahooFinance).mockImplementation(
+      () =>
+        ({
+          search: jest.fn<any>().mockResolvedValue({
+            quotes: [{ symbol: 'NPN.JO', longname: 'Naspers', typeDisp: 'Equity', isYahooFinance: true }],
+          }),
+          quote: jest.fn<any>().mockResolvedValue({ symbol: 'NPN.JO', currency: 'ZAc' }),
+          chart: jest.fn<any>(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        }) as any,
+    );
+
+    const results = await helpers.searchSecurities({ payload: { query: 'NPN.JO' }, raw: true });
+
+    expect(results.find((r) => r.symbol === 'NPN.JO')?.currencyCode).toBe('ZAR');
+  });
+
   it('keeps crypto dedup keyed by (providerName, providerSymbol) so the existing CoinGecko BTC matches', async () => {
     // Crypto dedup MUST stay (providerName, providerSymbol) – the ticker "BTC"
     // alone is ambiguous (could be Bitcoin's CoinGecko slug, a different chain's
