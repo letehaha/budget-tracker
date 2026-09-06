@@ -128,6 +128,8 @@
         "closeButton": "Tutup",
         "deleteButton": "Hapus",
         "deleteAriaLabel": "Hapus transaksi",
+        "deleteConfirmTitle": "Hapus transaksi ini?",
+        "deleteConfirmDescription": "Tindakan ini tidak dapat dibatalkan. Pembagian dan tautan pengembalian dana yang melekat padanya juga akan dihapus.",
         "createAriaLabel": "Buat transaksi",
         "editAriaLabel": "Sunting transaksi",
         "loadingButton": "Memuat...",
@@ -248,7 +250,8 @@
         "summarySelected": "{count} dipilih · {amount}",
         "summaryOfLimit": "{count} dipilih · {amount} dari {limit}",
         "summaryExceedsBy": "{count} dipilih · {amount} — melebihi jumlah asli sebesar {excess}",
-        "summaryExceeds": "{count} dipilih · {amount} — melebihi jumlah asli"
+        "summaryExceeds": "{count} dipilih · {amount} — melebihi jumlah asli",
+        "summaryBelowRefund": "{amount} — lebih kecil dari pengembalian dana sebesar {limit}"
       },
       "refundInfo": {
         "trigger": "Bagaimana caranya?",

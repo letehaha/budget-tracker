@@ -136,6 +136,8 @@
         "closeButton": "Cerrar",
         "deleteButton": "Eliminar",
         "deleteAriaLabel": "Eliminar transacción",
+        "deleteConfirmTitle": "¿Eliminar esta transacción?",
+        "deleteConfirmDescription": "Esta acción no se puede deshacer. También se eliminarán las divisiones y los vínculos de reembolso asociados.",
         "createAriaLabel": "Crear transacción",
         "editAriaLabel": "Editar transacción",
         "loadingButton": "Cargando...",
@@ -248,7 +250,8 @@
         "summarySelected": "{count} seleccionadas · {amount}",
         "summaryOfLimit": "{count} seleccionadas · {amount} de {limit}",
         "summaryExceedsBy": "{count} seleccionadas · {amount} — supera el importe original en {excess}",
-        "summaryExceeds": "{count} seleccionadas · {amount} — supera el importe original"
+        "summaryExceeds": "{count} seleccionadas · {amount} — supera el importe original",
+        "summaryBelowRefund": "{amount} — inferior a este reembolso de {limit}"
       },
       "refundInfo": {
         "trigger": "¿Cómo funciona?",
