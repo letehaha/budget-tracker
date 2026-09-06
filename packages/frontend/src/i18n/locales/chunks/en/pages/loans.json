@@ -184,8 +184,7 @@
         "empty": "No payments recorded against this loan yet.",
         "loadError": "Failed to load recent payments.",
         "seeAll": "See all",
-        "allTitle": "All payments",
-        "loadMore": "Load more"
+        "allTitle": "All payments"
       },
       "recordPayment": "Record payment",
       "payment": {
