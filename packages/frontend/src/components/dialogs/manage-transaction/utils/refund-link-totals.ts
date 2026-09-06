@@ -5,8 +5,12 @@ export interface RefundLinkTotals {
   currencyCode: string | null;
   /** True when `total` itself is an exchange-rate conversion (mixed-currency selection). */
   isTotalConverted: boolean;
-  /** selected-total / original-amount, for the limit meter. Null when the sides can't be compared. */
+  /** selected-total / current-amount, for the "refunded" meter. Null when the sides can't be compared. */
   ratio: number | null;
+  /**
+   * True when the backend would reject the link: in "refunded" mode the selected total exceeds the
+   * original; in "refunds" mode the selected original is smaller than the current refund.
+   */
   isOverLimit: boolean;
   /** True when the over-limit verdict is exact (same currency on both sides) rather than rate-converted. */
   isExactComparison: boolean;
@@ -22,12 +26,14 @@ const EMPTY_TOTALS: RefundLinkTotals = {
 };
 
 export const computeRefundLinkTotals = ({
+  mode = 'refunded',
   transactions,
   currentAmount,
   currentCurrencyCode,
   ratesMap,
   baseCurrencyCode,
 }: {
+  mode?: 'refunds' | 'refunded';
   transactions: { amount: number; currencyCode: string }[];
   currentAmount?: number | null;
   currentCurrencyCode?: string;
@@ -72,13 +78,13 @@ export const computeRefundLinkTotals = ({
   if (limit && currentCurrencyCode && total !== null) {
     if (isExactComparison) {
       ratio = total / limit;
-      isOverLimit = total > limit;
+      isOverLimit = mode === 'refunds' ? total < limit : total > limit;
     } else {
       const totalInBase = sharedCurrency ? toBase(total, sharedCurrency) : total;
       const limitInBase = toBase(limit, currentCurrencyCode);
       if (totalInBase !== null && limitInBase !== null && limitInBase > 0) {
         ratio = totalInBase / limitInBase;
-        isOverLimit = totalInBase > limitInBase;
+        isOverLimit = mode === 'refunds' ? totalInBase < limitInBase : totalInBase > limitInBase;
       }
     }
   }
