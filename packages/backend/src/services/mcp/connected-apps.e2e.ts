@@ -38,7 +38,7 @@ describe('MCP Connected Apps API', () => {
     it('returns each connected app with its fields, and a null lastUsedAt when it has no access tokens', async () => {
       const withToken = await mcpHelpers.createTestOAuthClient();
       await mcpHelpers.createTestOAuthConsent({ clientId: withToken.clientId });
-      await mcpHelpers.createTestOAuthAccessToken({ clientId: withToken.id });
+      await mcpHelpers.createTestOAuthAccessToken({ clientId: withToken.clientId });
 
       const withoutToken = await mcpHelpers.createTestOAuthClient({
         id: 'test-internal-client-id-2',
@@ -75,14 +75,17 @@ describe('MCP Connected Apps API', () => {
     it('revokes a connected app, removing it from the list and deleting its auth-DB records', async () => {
       const client = await mcpHelpers.createTestOAuthClient();
       await mcpHelpers.createTestOAuthConsent({ clientId: client.clientId });
-      await mcpHelpers.createTestOAuthAccessToken({ clientId: client.id });
+      // Tokens key off the public clientId, exactly as better-auth writes them.
+      await mcpHelpers.createTestOAuthAccessToken({ clientId: client.clientId });
+      await mcpHelpers.createTestOAuthRefreshToken({ clientId: client.clientId });
 
       const appsBefore = await mcpHelpers.getConnectedApps({ raw: true });
       expect(appsBefore).toHaveLength(1);
       const countsBefore = await mcpHelpers.getTestOAuthRecordCounts({
-        internalClientId: client.id,
+        clientId: client.clientId,
       });
       expect(countsBefore.accessTokens).toBe(1);
+      expect(countsBefore.refreshTokens).toBe(1);
       expect(countsBefore.consents).toBe(1);
 
       const res: CustomResponse<{ success: boolean }> = await mcpHelpers.revokeConnectedApp({
@@ -96,9 +99,12 @@ describe('MCP Connected Apps API', () => {
       const appsAfter = await mcpHelpers.getConnectedApps({ raw: true });
       expect(appsAfter).toEqual([]);
       const countsAfter = await mcpHelpers.getTestOAuthRecordCounts({
-        internalClientId: client.id,
+        clientId: client.clientId,
       });
+      // The access token (72h TTL) and refresh token (60d TTL) must both be gone —
+      // otherwise the integration keeps authenticating after the user revokes it.
       expect(countsAfter.accessTokens).toBe(0);
+      expect(countsAfter.refreshTokens).toBe(0);
       expect(countsAfter.consents).toBe(0);
     });
   });
