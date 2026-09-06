@@ -136,6 +136,8 @@
         "closeButton": "Close",
         "deleteButton": "Delete",
         "deleteAriaLabel": "Delete transaction",
+        "deleteConfirmTitle": "Delete this transaction?",
+        "deleteConfirmDescription": "This can't be undone. Any splits and refund links attached to it will be removed too.",
         "createAriaLabel": "Create transaction",
         "editAriaLabel": "Edit transaction",
         "loadingButton": "Loading...",

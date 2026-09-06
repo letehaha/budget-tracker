@@ -292,6 +292,7 @@ watch(
 const submitMutation = useSubmitTransaction({ onSuccess: closeModal });
 const unlinkMutation = useUnlinkTransactions({ onSuccess: closeModal });
 const deleteMutation = useDeleteTransaction({ onSuccess: closeModal });
+const isDeleteConfirmOpen = ref(false);
 
 const isLoading = computed(
   () => submitMutation.isPending.value || unlinkMutation.isPending.value || deleteMutation.isPending.value,
@@ -1478,10 +1479,20 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
         :aria-label="$t('dialogs.manageTransaction.form.deleteAriaLabel')"
         variant="destructive"
-        @click="deleteTransactionHandler"
+        @click="isDeleteConfirmOpen = true"
       >
         {{ $t('dialogs.manageTransaction.form.deleteButton') }}
       </Button>
+      <ResponsiveAlertDialog
+        v-model:open="isDeleteConfirmOpen"
+        :confirm-label="$t('dialogs.manageTransaction.form.deleteButton')"
+        confirm-variant="destructive"
+        :confirm-disabled="isFormFieldsDisabled"
+        @confirm="deleteTransactionHandler"
+      >
+        <template #title>{{ $t('dialogs.manageTransaction.form.deleteConfirmTitle') }}</template>
+        <template #description>{{ $t('dialogs.manageTransaction.form.deleteConfirmDescription') }}</template>
+      </ResponsiveAlertDialog>
       <Button
         v-if="!isReadOnly"
         class="ml-auto min-w-30"
