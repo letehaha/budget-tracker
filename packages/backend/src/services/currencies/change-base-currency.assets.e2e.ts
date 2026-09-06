@@ -170,8 +170,8 @@ describe('Change Base Currency — vehicles', () => {
       raw: true,
     });
 
-    // Drive the SUV's current value down to 5,000 EUR via the override endpoint.
-    await helpers.overrideVehicleValue({ id: suv.id, targetValue: 5_000, raw: true });
+    // Drive the SUV's current value down to 5,000 EUR.
+    await helpers.overrideVehicleValue({ id: suv.id, accountId: suv.accountId, targetValue: 5_000 });
 
     const [camryBefore, suvBefore] = await Promise.all([
       Accounts.findByPk(camry.accountId),

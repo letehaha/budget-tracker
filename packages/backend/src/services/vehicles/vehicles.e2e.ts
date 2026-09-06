@@ -198,7 +198,7 @@ describe('Vehicles', () => {
     });
   });
 
-  describe('POST /vehicles/:id/value (manual override)', () => {
+  describe('Manual override via POST /accounts/:id/balance-adjustment', () => {
     it('creates a transfer_out_wallet income transaction when overriding above current value, and an expense when overriding below', async () => {
       const vehicle = await helpers.createVehicle({ ...basePayload(), raw: true });
       const previousBalance = vehicle.account!.currentBalance;
@@ -206,9 +206,9 @@ describe('Vehicles', () => {
 
       const response = await helpers.overrideVehicleValue({
         id: vehicle.id,
+        accountId: vehicle.accountId,
         targetValue: newValue,
         note: 'Got an appraisal',
-        raw: true,
       });
 
       expect(response.transaction).not.toBeNull();
@@ -221,8 +221,8 @@ describe('Vehicles', () => {
 
       const belowResponse = await helpers.overrideVehicleValue({
         id: vehicle.id,
+        accountId: vehicle.accountId,
         targetValue: response.newBalance - 1000,
-        raw: true,
       });
 
       expect(belowResponse.transaction!.transactionType).toBe(TRANSACTION_TYPES.expense);
@@ -310,8 +310,8 @@ describe('Vehicles', () => {
 
       const override = await helpers.overrideVehicleValue({
         id: vehicle.id,
+        accountId: vehicle.accountId,
         targetValue: baselineBalance + 4000,
-        raw: true,
       });
 
       expect(override.vehicle!.valueAnchor).not.toBeNull();
@@ -345,9 +345,9 @@ describe('Vehicles', () => {
       const olderTime = subDays(new Date(), 5);
       const olderOverride = await helpers.overrideVehicleValue({
         id: vehicle.id,
+        accountId: vehicle.accountId,
         targetValue: baseBalance + 2000,
         time: olderTime,
-        raw: true,
       });
       expect(olderOverride.transaction).not.toBeNull();
       const olderAnchorValue = olderOverride.vehicle!.valueAnchor!;
@@ -358,8 +358,8 @@ describe('Vehicles', () => {
       // Make the latest override happen now — anchor flips to today.
       const newerOverride = await helpers.overrideVehicleValue({
         id: vehicle.id,
+        accountId: vehicle.accountId,
         targetValue: baseBalance + 6000,
-        raw: true,
       });
       expect(newerOverride.transaction).not.toBeNull();
       expect(newerOverride.vehicle!.valueAnchorDate).toBe(format(new Date(), 'yyyy-MM-dd'));
@@ -528,7 +528,7 @@ describe('Vehicles', () => {
     });
 
     describe('Generic service guards', () => {
-      it('rejects balance-adjustment and direct currentBalance writes on a vehicle account', async () => {
+      it('re-anchors on balance-adjustment but rejects direct currentBalance writes on a vehicle account', async () => {
         const vehicle = await createVehicleAccount();
         const before = vehicle.account!.currentBalance;
 
@@ -537,16 +537,15 @@ describe('Vehicles', () => {
           payload: { targetBalance: asDecimal(18000) },
           raw: false,
         });
+        expect(adjustment.statusCode).toBe(200);
 
-        expect(adjustment.statusCode).toBe(422);
-
-        // The reject must leave no side effects: no adjustment tx, and the
-        // vehicle's value/anchor untouched.
-        const txs = await helpers.getTransactions({ raw: true });
-        expect(txs.length).toBe(0);
+        // Same-day override re-anchors to 18000 with no elapsed depreciation, so the
+        // value lands at the target and is strictly above the pre-override curve value.
         const afterAdjustment = await helpers.getVehicleById({ id: vehicle.id, raw: true });
-        expect(afterAdjustment.account!.currentBalance).toBe(before);
-        expect(afterAdjustment.valueAnchor).toBe(vehicle.valueAnchor);
+        expect(afterAdjustment.valueAnchor).toBeCloseTo(18000, 2);
+        expect(afterAdjustment.account!.currentBalance).toBeGreaterThan(before);
+        expect(afterAdjustment.account!.currentBalance).toBeLessThanOrEqual(18000);
+        expect(afterAdjustment.account!.currentBalance).toBeGreaterThan(17000);
 
         const directWrite = await helpers.makeRequest({
           method: 'put',
@@ -557,31 +556,28 @@ describe('Vehicles', () => {
         expect(directWrite.statusCode).toBe(422);
 
         const afterDirectWrite = await helpers.getVehicleById({ id: vehicle.id, raw: true });
-        expect(afterDirectWrite.account!.currentBalance).toBe(before);
-        expect(afterDirectWrite.valueAnchor).toBe(vehicle.valueAnchor);
+        expect(afterDirectWrite.account!.currentBalance).toBe(afterAdjustment.account!.currentBalance);
+        expect(afterDirectWrite.valueAnchor).toBe(afterAdjustment.valueAnchor);
       }, 30000);
+
+      it('rejects a negative target on a vehicle account without side effects', async () => {
+        const vehicle = await createVehicleAccount();
+
+        const adjustment = await helpers.balanceAdjustment({
+          id: vehicle.accountId,
+          payload: { targetBalance: asDecimal(-100) },
+          raw: false,
+        });
+        expect(adjustment.statusCode).toBe(422);
+
+        const txs = await helpers.getTransactions({ raw: true });
+        expect(txs.length).toBe(0);
+        const after = await helpers.getVehicleById({ id: vehicle.id, raw: true });
+        expect(after.valueAnchor).toBe(vehicle.valueAnchor);
+      });
     });
 
     describe('Sanctioned paths still work (positive controls)', () => {
-      it('allows the dedicated override endpoint to change a vehicle value', async () => {
-        const vehicle = await createVehicleAccount();
-        const before = vehicle.account!.currentBalance;
-
-        const response = await helpers.overrideVehicleValue({
-          id: vehicle.id,
-          targetValue: 18000,
-          raw: false,
-        });
-        expect(response.statusCode).toBe(200);
-
-        // Same-day override re-anchors to 18000 with no elapsed depreciation, so the
-        // value lands at the target and is strictly above the pre-override curve value.
-        const after = await helpers.getVehicleById({ id: vehicle.id, raw: true });
-        expect(after.account!.currentBalance).toBeGreaterThan(before);
-        expect(after.account!.currentBalance).toBeLessThanOrEqual(18000);
-        expect(after.account!.currentBalance).toBeGreaterThan(17000);
-      });
-
       it('leaves income, expense and transfers on normal accounts unaffected', async () => {
         const accountA = await helpers.createAccount({ raw: true });
         const accountB = await helpers.createAccount({ raw: true });

@@ -1,7 +1,7 @@
-import { DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
-import type { TransactionApiResponse } from '@root/serializers';
+import { asDecimal, DEPRECIATION_PRESET, VEHICLE_CLASS } from '@bt/shared/types';
 import type { VehicleApiResponse } from '@root/serializers/vehicles.serializer';
 
+import { balanceAdjustment } from './account';
 import { makeRequest } from './common';
 
 interface CreateVehiclePayload {
@@ -31,13 +31,6 @@ interface UpdateVehiclePayload {
   customAnnualRatePct?: number | null;
   salvageFloorPct?: number;
   currentMileage?: number | null;
-}
-
-export interface OverrideVehicleValueApiResponse {
-  vehicle: VehicleApiResponse | null;
-  transaction: TransactionApiResponse | null;
-  previousBalance: number;
-  newBalance: number;
 }
 
 export async function createVehicle<R extends boolean | undefined = undefined>({
@@ -81,29 +74,27 @@ export async function updateVehicle<R extends boolean | undefined = undefined>({
   });
 }
 
-export async function overrideVehicleValue<R extends boolean | undefined = undefined>({
+/** Vehicle value override = balance adjustment on the vehicle's account. */
+export async function overrideVehicleValue({
   id,
+  accountId,
   targetValue,
   note,
   time,
-  raw,
 }: {
   id: string;
+  accountId: string;
   targetValue: number;
   note?: string;
-  time?: Date | string;
-  raw?: R;
+  time?: Date;
 }) {
-  return makeRequest<OverrideVehicleValueApiResponse, R>({
-    method: 'post',
-    url: `/vehicles/${id}/value`,
-    payload: {
-      targetValue,
-      ...(note !== undefined ? { note } : {}),
-      ...(time !== undefined ? { time: time instanceof Date ? time.toISOString() : time } : {}),
-    },
-    raw,
+  const adjustment = await balanceAdjustment({
+    id: accountId,
+    payload: { targetBalance: asDecimal(targetValue), note, time: time?.toISOString() },
+    raw: true,
   });
+  const vehicle = await getVehicleById({ id, raw: true });
+  return { ...adjustment, vehicle };
 }
 
 export async function deleteVehicle<R extends boolean | undefined = undefined>({ id, raw }: { id: string; raw?: R }) {
