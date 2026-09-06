@@ -9,7 +9,7 @@ import type { Job } from 'bullmq';
 // are the only bullmq surface these tests reach.
 jest.mock('bullmq', () => ({
   __esModule: true,
-  Queue: jest.fn().mockImplementation(() => ({ add: jest.fn(), on: jest.fn(), close: jest.fn() })),
+  Queue: jest.fn().mockImplementation(() => ({ add: jest.fn(), addBulk: jest.fn(), on: jest.fn(), close: jest.fn() })),
   Worker: jest.fn().mockImplementation(() => ({ on: jest.fn(), close: jest.fn() })),
   UnrecoverableError: class UnrecoverableError extends Error {},
 }));
@@ -38,7 +38,7 @@ import { redisClient } from '@root/redis-client';
 import { runPendingLinkAbsorb } from '@services/accounts/absorb-link-residual';
 
 import { SyncStatus, setAccountSyncStatus } from '../sync/sync-status-tracker';
-import { handleCompletedBatch, queueTransactionSync } from './transaction-sync-queue';
+import { handleCompletedBatch, queueTransactionSync, syncPriorityForAccount } from './transaction-sync-queue';
 /* eslint-enable import/first */
 
 const runPendingLinkAbsorbMock = jest.mocked(runPendingLinkAbsorb);
@@ -151,5 +151,39 @@ describe('finalizeSyncGroup via queueTransactionSync empty window (absorb errors
 
     expect(setAccountSyncStatusMock).not.toHaveBeenCalled();
     expect(connectionsUpdateMock).not.toHaveBeenCalled();
+  });
+});
+
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
+
+describe('syncPriorityForAccount', () => {
+  it('ranks active accounts ahead of stale ones and fresh accounts first', () => {
+    const fresh = syncPriorityForAccount({ latestTransactionTime: null });
+    const active = syncPriorityForAccount({ latestTransactionTime: daysAgo(0.5) });
+    const stale = syncPriorityForAccount({ latestTransactionTime: daysAgo(180) });
+
+    expect(fresh).toBe(1);
+    expect(active).toBe(1);
+    expect(stale).toBe(180);
+    expect(syncPriorityForAccount({ latestTransactionTime: daysAgo(10_000_000) })).toBe(2 ** 21 - 1);
+  });
+
+  it('stamps every queued batch with the given priority', async () => {
+    const { Queue } = jest.requireMock('bullmq') as { Queue: jest.Mock };
+    await queueTransactionSync({
+      userId: USER_ID,
+      accountId: generateRandomRecordId(),
+      connectionId: CONNECTION_ID,
+      externalAccountId: 'external-1',
+      apiToken: 'token-priority',
+      from: new Date('2024-01-01T00:00:00.000Z'),
+      to: new Date('2024-03-15T00:00:00.000Z'),
+      priority: 7,
+    });
+
+    const queue = Queue.mock.results.at(-1)!.value as { addBulk: jest.Mock };
+    const jobs = queue.addBulk.mock.calls[0]![0] as Array<{ opts: { priority?: number } }>;
+    expect(jobs.length).toBeGreaterThan(1);
+    expect(jobs.every((job) => job.opts.priority === 7)).toBe(true);
   });
 });

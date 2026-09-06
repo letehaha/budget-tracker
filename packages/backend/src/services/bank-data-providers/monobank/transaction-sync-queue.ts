@@ -704,6 +704,18 @@ function splitDateRangeIntoChunks(from: Date, to: Date): Array<{ from: Date; to:
 }
 
 /**
+ * All accounts on one token share a single rate-limited lane, so a stale
+ * account's multi-chunk backfill must not delay an active account's one chunk.
+ * Priority grows with days since the last known transaction; an account with
+ * no rows yet is the one the user is waiting on and goes first.
+ */
+export function syncPriorityForAccount({ latestTransactionTime }: { latestTransactionTime?: Date | null }): number {
+  if (!latestTransactionTime) return 1;
+  const days = Math.ceil((Date.now() - latestTransactionTime.getTime()) / 86_400_000);
+  return Math.min(Math.max(1, days), 2 ** 21 - 1);
+}
+
+/**
  * Queue transaction sync job for a date range
  * Automatically splits into 31-day chunks
  */
@@ -716,8 +728,20 @@ export async function queueTransactionSync(params: {
   from: Date;
   to: Date;
   matchPlanned?: boolean;
+  /** BullMQ priority (lower runs sooner). Omitted = 0 = ahead of every prioritized job. */
+  priority?: number;
 }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
-  const { userId, accountId, connectionId, externalAccountId, apiToken, from, to, matchPlanned = false } = params;
+  const {
+    userId,
+    accountId,
+    connectionId,
+    externalAccountId,
+    apiToken,
+    from,
+    to,
+    matchPlanned = false,
+    priority,
+  } = params;
 
   const bundle = getOrCreateBundle(apiToken);
 
@@ -759,6 +783,7 @@ export async function queueTransactionSync(params: {
         },
         opts: {
           jobId: `${jobGroupId}-${index}`,
+          priority,
         },
       }));
 
