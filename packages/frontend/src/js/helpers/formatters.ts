@@ -1,4 +1,10 @@
+import type { endpointsTypes } from '@bt/shared/types';
+import { ref } from 'vue';
+
 export const formatFiat = (value: unknown): string => Number(value).toFixed(2);
+
+// Module-level so plain helpers, not just composables, follow the user's setting.
+export const currencyDisplayPreference = ref<endpointsTypes.CurrencyDisplayPreference>('symbol');
 
 export function toLocalNumber(
   value: string | number | undefined | null,
@@ -63,7 +69,7 @@ function toLocalFiatCurrency(
       minimumFractionDigits: options.minimumFractionDigits ?? currencyDigits,
       maximumFractionDigits: options.maximumFractionDigits ?? currencyDigits,
       currency,
-      currencyDisplay: options.currencyDisplay ?? 'symbol',
+      currencyDisplay: options.currencyDisplay ?? currencyDisplayPreference.value,
       useGrouping: options.useGrouping ?? true,
       style: 'currency',
     });
