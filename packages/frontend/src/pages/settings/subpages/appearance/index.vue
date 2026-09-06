@@ -70,6 +70,28 @@
 
       <Separator />
 
+      <!-- Currency symbol -->
+      <div>
+        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.appearance.currency.title') }}</h3>
+        <p class="mb-4 text-sm leading-relaxed">
+          {{ $t('settings.appearance.currency.description') }}
+        </p>
+
+        <div class="flex items-center justify-between gap-4">
+          <span class="flex items-center gap-2 text-sm">
+            <CoinsIcon class="text-muted-foreground size-4 shrink-0" />
+            {{ $t('settings.appearance.currency.narrowSymbol') }}
+          </span>
+          <Switch
+            :model-value="userSettings?.currencyDisplay === 'narrowSymbol'"
+            :disabled="isPatching"
+            @update:model-value="(v) => patch({ currencyDisplay: v ? 'narrowSymbol' : 'symbol' })"
+          />
+        </div>
+      </div>
+
+      <Separator />
+
       <!-- Header -->
       <div>
         <h3 class="mb-2 text-lg font-medium">{{ $t('settings.appearance.header.title') }}</h3>
@@ -100,13 +122,15 @@ import Button from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Separator } from '@/components/lib/ui/separator';
 import { Switch } from '@/components/lib/ui/switch';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { TOGGLEABLE_SIDEBAR_SECTIONS, useSidebarSections } from '@/composable/use-sidebar-sections';
 import { useSupportButton } from '@/composable/use-support-button';
-import { HeartIcon, InfoIcon, LayersIcon, MonitorIcon, MoonStarIcon, SunIcon } from '@lucide/vue';
+import { CoinsIcon, HeartIcon, InfoIcon, LayersIcon, MonitorIcon, MoonStarIcon, SunIcon } from '@lucide/vue';
 import { type Component } from 'vue';
 
 const { sidebarSections, toggleSection, isUpdating } = useSidebarSections();
 const { isSupportButtonVisible, setSupportButtonVisible, isUpdating: isSupportButtonUpdating } = useSupportButton();
+const { data: userSettings, patch, isPatching } = useUserSettings();
 
 interface ThemeOption {
   value: ThemePreference;

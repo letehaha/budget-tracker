@@ -65,6 +65,18 @@ describe('Patch user settings', () => {
     });
   });
 
+  it('persists currencyDisplay in both directions and keeps it through a rejected patch', async () => {
+    const patched = await helpers.patchUserSettings({ raw: true, patch: { currencyDisplay: 'narrowSymbol' } });
+    expect(patched.currencyDisplay).toBe('narrowSymbol');
+
+    const invalid = await helpers.patchUserSettings({ patch: { currencyDisplay: 'code' } });
+    expect(invalid.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect((await helpers.getUserSettings({ raw: true })).currencyDisplay).toBe('narrowSymbol');
+
+    await helpers.patchUserSettings({ raw: true, patch: { currencyDisplay: 'symbol' } });
+    expect((await helpers.getUserSettings({ raw: true })).currencyDisplay).toBe('symbol');
+  });
+
   it('replaces arrays wholesale instead of appending', async () => {
     await helpers.patchUserSettings({
       raw: true,
@@ -155,6 +167,7 @@ describe('Patch user settings', () => {
       { import: { recalculateAccountBalance: 'yes' } },
       { accounts: { defaultAccountId: 'not-a-uuid' } },
       { accounts: { showArchivedInDropdowns: 'yes' } },
+      { currencyDisplay: 'code' },
     ];
 
     for (const patch of invalidPatches) {

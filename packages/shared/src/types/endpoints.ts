@@ -381,6 +381,12 @@ export interface SidebarSectionsConfig {
   loans: boolean;
 }
 
+// How fiat amounts render their currency: `symbol` disambiguates (CA$, A$, SGD), `narrowSymbol`
+// is what locals use (Rp, ₴, zł) but collapses every dollar to `$`. Persisted in the
+// user-settings JSONB; the backend Zod enum is built straight off this tuple.
+export const CURRENCY_DISPLAY_PREFERENCES = ['symbol', 'narrowSymbol'] as const;
+export type CurrencyDisplayPreference = (typeof CURRENCY_DISPLAY_PREFERENCES)[number];
+
 // Net Worth Drivers Analytics
 // Splits net-worth growth per period into what the user saved (income - expenses,
 // transfers excluded) versus what the market returned on their holdings, plus the

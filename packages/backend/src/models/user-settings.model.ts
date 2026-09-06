@@ -284,6 +284,7 @@ export const ZodSettingsSchema = z.object({
   // savings rather than spend. Descendants are expanded server-side. Plain z.uuid(), not
   // recordId(): the branded RecordId output breaks the SettingsPatchSchemaIsInSync assertion below.
   savingsCategoryIds: z.array(z.uuid()).optional(),
+  currencyDisplay: z.enum(endpointsTypes.CURRENCY_DISPLAY_PREFERENCES).optional(),
 });
 
 export type SettingsSchema = z.infer<typeof ZodSettingsSchema>;
@@ -375,6 +376,7 @@ export const ZodSettingsPatchSchema = z.object({
   hideZeroBalances: z.boolean().optional(),
   matchTransfersWithManualAccounts: z.boolean().optional(),
   savingsCategoryIds: z.array(z.uuid()).optional(),
+  currencyDisplay: z.enum(endpointsTypes.CURRENCY_DISPLAY_PREFERENCES).optional(),
 });
 
 export type SettingsPatchSchema = z.infer<typeof ZodSettingsPatchSchema>;
