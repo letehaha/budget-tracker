@@ -34,5 +34,20 @@ describe('Bank Data Providers controller', () => {
       expect(monobankProvider).toBeDefined();
       expect(monobankProvider.name).toBe('Monobank');
     });
+
+    it('should expose the configured Enable Banking redirect URL so the UI can show what to register', async () => {
+      const previous = process.env.ENABLE_BANKING_REDIRECT_URL;
+      process.env.ENABLE_BANKING_REDIRECT_URL = 'https://budget.example.test/bank-callback';
+
+      try {
+        const { providers } = await helpers.bankDataProviders.getSupportedBankProviders({ raw: true });
+        const provider = providers.find((p) => p.type === BANK_PROVIDER_TYPE.ENABLE_BANKING);
+
+        expect(provider).toBeDefined();
+        expect(provider!.redirectUrl).toBe('https://budget.example.test/bank-callback');
+      } finally {
+        process.env.ENABLE_BANKING_REDIRECT_URL = previous;
+      }
+    });
   });
 });

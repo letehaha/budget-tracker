@@ -9,6 +9,7 @@ export interface BankProvider {
   description: string;
   logoUrl?: string;
   documentationUrl?: string;
+  redirectUrl?: string;
   features: {
     supportsAccountSync: boolean;
     supportsTransactionSync: boolean;

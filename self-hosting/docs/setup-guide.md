@@ -186,6 +186,16 @@ AUTH_ORIGIN=https://budget.example.com
 Then run `docker compose up -d` again. Skipping this step is the #1 cause of
 "login doesn't work" – the app only accepts logins coming from this exact URL.
 
+If you link bank accounts through Enable Banking, set the callback URL to the
+same domain and register that exact value in your Enable Banking application:
+
+```bash
+ENABLE_BANKING_REDIRECT_URL=https://budget.example.com/bank-callback
+```
+
+Without it the bank redirects to `localhost` after authorisation and linking
+silently fails.
+
 **Step 3 – close the direct port.** Setting up the proxy doesn't switch off
 the original port: the app is still reachable by anyone at
 `http://<server-ip>:8080`. You don't want that – traffic there is unencrypted,
