@@ -72,7 +72,7 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
         v-model:open="isDialogOpen"
         custom-close
         no-internal-scroll
-        dialog-content-class="h-[min(85dvh,46rem)] max-h-[90dvh]"
+        dialog-content-class="h-[min(85dvh,46rem)]"
         drawer-content-class="h-[calc(100dvh-1.25rem)] max-h-[calc(100dvh-1.25rem)]"
       >
         <template #trigger>

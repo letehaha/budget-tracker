@@ -13,7 +13,7 @@ import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import { isDate } from 'date-fns';
 import { isEqual, isNil, omitBy } from 'lodash-es';
-import { CircleAlert, ListFilterIcon, SparklesIcon } from '@lucide/vue';
+import { CircleAlertIcon, ListFilterIcon, SparklesIcon } from '@lucide/vue';
 import { useResizeObserver } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -172,7 +172,6 @@ const hasAnyTransactions = computed(
   () => (recommendations.value?.length ?? 0) > 0 || filteredTransactions.value.length > 0,
 );
 
-// 44px record (two text lines + py-1) + 8px gap
 const TRANSACTION_ROW_HEIGHT = 52;
 
 const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
@@ -198,7 +197,6 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   parentRef,
   scrollMargin,
   estimateSize: () => TRANSACTION_ROW_HEIGHT,
-  getItemKey: (index) => filteredTransactions.value[index]!.id,
 });
 </script>
 
@@ -314,16 +312,15 @@ const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
           <TransactionRecordSkeleton v-for="i in 6" :key="i" />
         </div>
 
-        <template v-if="isFetched && !hasNextPage && hasAnyTransactions">
-          <p class="mt-4 text-center text-sm">
+        <template v-if="isFetched && !hasNextPage">
+          <p v-if="hasAnyTransactions" class="mt-4 text-center text-sm">
             {{ t('dialogs.manageTransaction.transferRecordsList.noMoreTransactions') }}
           </p>
-        </template>
-        <template v-else-if="isFetched && !hasNextPage">
           <div
+            v-else
             class="text-muted-foreground flex min-h-[min(20rem,50dvh)] flex-col items-center justify-center gap-4 px-6 text-center text-sm"
           >
-            <CircleAlert :size="48" />
+            <CircleAlertIcon :size="48" />
             <p>
               <template v-if="transactionType === TRANSACTION_TYPES.income">
                 {{ t('dialogs.manageTransaction.transferRecordsList.noIncomeTransactions') }}
