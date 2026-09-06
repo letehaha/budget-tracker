@@ -119,21 +119,23 @@ export function classifyAspspError({
  * with no API to query the limit up-front.
  *
  * Match: concept anchor + limit verb + time window, all three required.
- *   concept    – datefrom/dateto OR range/period/window/lookback/history/interval/transactions
- *   limit verb – within/exceed/maximum/limited to/older than
+ *   concept    – datefrom/dateto/date OR range/period/window/lookback/history/interval/transactions
+ *   limit verb – within/exceed/maximum/limited to/older than/less than/no more than
  *   time       – N day/week/month/year
  * Each alone is too permissive (e.g. "account opened within last 30 days" hits
- * limit + time but has no concept anchor).
+ * limit + time but has no concept anchor). Bare "date" is an anchor because
+ * BNP Paribas rejects with "The date must be equal or less than 13 months".
+ * The wrapper `error` tag is not checked: BNP puts its own code there
+ * (WRONG_TRANSACTIONS_PERIOD), not "ASPSP_ERROR".
  */
 export function isAspspDateRangeRejection(error: unknown): boolean {
   if (!(error instanceof BadRequestError)) return false;
 
   const details = error.details as
-    | { method?: unknown; aspspError?: unknown; aspspMessage?: unknown; aspspErrorDataStr?: unknown }
+    | { method?: unknown; aspspMessage?: unknown; aspspErrorDataStr?: unknown }
     | undefined;
   if (!details) return false;
   if (details.method !== 'getAccountTransactions') return false;
-  if (details.aspspError !== 'ASPSP_ERROR') return false;
 
   const parts: string[] = [];
   if (typeof details.aspspMessage === 'string') parts.push(details.aspspMessage);
@@ -142,11 +144,12 @@ export function isAspspDateRangeRejection(error: unknown): boolean {
   const haystack = parts.join(' ').toLowerCase();
   if (haystack === '') return false;
 
-  const hasLimitVerb = /\b(?:within|exceed|exceeds|maximum|max|limited?\s+to|older\s+than)\b/.test(haystack);
+  const hasLimitVerb =
+    /\b(?:within|exceed|exceeds|maximum|max|limited?\s+to|older\s+than|less\s+than|no\s+more\s+than)\b/.test(haystack);
   const hasTimeWindow = /\b\d+\s*(?:day|week|month|year)s?\b/.test(haystack);
   if (!hasLimitVerb || !hasTimeWindow) return false;
 
-  const hasFieldName = /\b(?:datefrom|dateto)\b/.test(haystack);
+  const hasFieldName = /\b(?:datefrom|dateto|dates?)\b/.test(haystack);
   const hasRangeNoun = /\b(?:range|period|window|lookback|history|interval|transactions?)\b/.test(haystack);
   return hasFieldName || hasRangeNoun;
 }
@@ -225,8 +228,9 @@ export class EnableBankingApiClient {
       const httpUrl = error.config?.url;
       const httpMethod = error.config?.method?.toUpperCase();
 
-      // Enable Banking wraps upstream bank failures as HTTP 400 with
-      // `error: "ASPSP_ERROR"` and nests the real payload in `detail.error_data`.
+      // Enable Banking wraps upstream bank failures as HTTP 4xx with
+      // `error: "ASPSP_ERROR"` (some ASPSPs put their own code there instead)
+      // and nests the real payload in `detail.error_data`.
       // Flatten those fields to top-level primitives so Sentry's default
       // `normalizeDepth: 3` doesn't truncate them to "[Object]".
       const detail = (data.detail ?? {}) as Record<string, unknown>;
