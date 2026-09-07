@@ -1,0 +1,132 @@
+{
+  "optimizations": {
+    "title": "",
+    "landingDescription": "",
+    "backToOptimizations": "",
+    "cards": {
+      "transfers": {
+        "title": "",
+        "description": ""
+      },
+      "aiCategorization": {
+        "title": "",
+        "description": ""
+      }
+    },
+    "aiCategorization": {
+      "title": "",
+      "description": "",
+      "tabs": {
+        "categorize": "",
+        "history": ""
+      },
+      "count": {
+        "capNote": "",
+        "allDoneTitle": "",
+        "allDoneDescription": ""
+      },
+      "bar": {
+        "uncategorizedCount": "",
+        "capChip": ""
+      },
+      "table": {
+        "selectionHint": "",
+        "loadError": ""
+      },
+      "history": {
+        "emptyTitle": "",
+        "emptyDescription": "",
+        "loadError": "",
+        "runLoadError": "",
+        "backToRuns": "",
+        "runEmptyTitle": "",
+        "runEmptyDescription": "",
+        "transactionCount": "",
+        "trigger": {
+          "manual": "",
+          "import": "",
+          "sync": "",
+          "unknown": ""
+        },
+        "triggerTooltip": {
+          "manual": "",
+          "import": "",
+          "sync": "",
+          "unknown": ""
+        }
+      },
+      "setup": {
+        "title": "",
+        "model": "",
+        "notConfigured": "",
+        "endpoint": "",
+        "limits": "",
+        "limitsSharedKey": "",
+        "limitsOwnCredentials": "",
+        "changeModel": "",
+        "errorChip": "",
+        "loadError": ""
+      },
+      "run": {
+        "button": "",
+        "categorizeSelected": "",
+        "inProgress": "",
+        "progressLabel": "",
+        "processed": ""
+      },
+      "confirm": {
+        "title": "",
+        "description": "",
+        "action": ""
+      },
+      "notifications": {
+        "started": "",
+        "nothingToCategorize": "",
+        "alreadyRunning": "",
+        "rateLimited": "",
+        "failed": ""
+      }
+    },
+    "transferSuggestions": {
+      "description": "",
+      "suggestionsFor": "",
+      "selectExpense": "",
+      "potentialTransfersFound": "",
+      "empty": {
+        "title": "",
+        "description": ""
+      },
+      "initial": {
+        "title": "",
+        "description": ""
+      },
+      "scanning": "",
+      "confirmLink": {
+        "title": "",
+        "description": ""
+      },
+      "presets": {
+        "last3Months": "",
+        "last6Months": "",
+        "lastYear": "",
+        "thisYear": "",
+        "previousYear": ""
+      },
+      "includeOutOfWallet": "",
+      "skip": {
+        "action": "",
+        "title": "",
+        "description": "",
+        "dontShowAgain": ""
+      },
+      "notifications": {
+        "loadError": "",
+        "scanError": "",
+        "linkSuccess": "",
+        "linkError": "",
+        "skipSuccess": "",
+        "skipError": ""
+      }
+    }
+  }
+}

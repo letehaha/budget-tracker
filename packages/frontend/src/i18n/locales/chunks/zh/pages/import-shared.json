@@ -1,0 +1,96 @@
+{
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "",
+        "lostContact": ""
+      }
+    }
+  },
+  "importShared": {
+    "action": {
+      "createNew": "",
+      "linkExisting": "",
+      "skip": ""
+    },
+    "selectAction": "",
+    "resolvedCounterWord": "",
+    "quickActionsMenuLabel": "",
+    "quickActions": {
+      "menu": ""
+    },
+    "columns": {
+      "sourceName": "",
+      "currency": "",
+      "action": "",
+      "target": ""
+    },
+    "account": {
+      "selectTarget": "",
+      "noMatchingCurrency": "",
+      "willCreate": "",
+      "empty": "",
+      "willSkip": ""
+    },
+    "category": {
+      "selectTarget": "",
+      "willCreate": "",
+      "empty": ""
+    },
+    "recalculateBalance": {
+      "label": "",
+      "hint": "",
+      "loadFailedHint": ""
+    },
+    "balanceChanges": {
+      "title": "",
+      "columns": {
+        "account": "",
+        "before": "",
+        "after": "",
+        "delta": "",
+        "newRows": "",
+        "backfillRows": ""
+      },
+      "newAccount": ""
+    },
+    "duplicatesTable": {
+      "columnHeaders": {
+        "row": "",
+        "match": "",
+        "csvTransaction": "",
+        "existingTransaction": "",
+        "csvShort": "",
+        "existingShort": ""
+      },
+      "matchTypeLabels": {
+        "exact": "",
+        "idMatch": "",
+        "fuzzy": ""
+      },
+      "fieldLabels": {
+        "amount": "",
+        "date": "",
+        "note": "",
+        "category": ""
+      },
+      "importAnywayAriaLabel": ""
+    },
+    "aiMapping": {
+      "action": "",
+      "tooltipCategories": "",
+      "failed": "",
+      "inProgress": ""
+    },
+    "categoryPreset": {
+      "menuTrigger": "",
+      "currentLayout": "",
+      "savedTemplates": "",
+      "lastUsed": "",
+      "namePlaceholder": "",
+      "renameAria": "",
+      "deleteAria": "",
+      "confirmRenameAria": ""
+    }
+  }
+}

@@ -9,7 +9,6 @@
           "steps": {
             "upload": "Subir",
             "map": "Mapear columnas",
-            "resolve": "Resolver valores",
             "resolveAccounts": "Cuentas",
             "resolveCategories": "Categorías",
             "review": "Revisar",
@@ -235,7 +234,6 @@
           "createNewForUnmatched": "Crear nuevo para los no mapeados",
           "skipAll": "Omitir todos",
           "reset": "Restablecer",
-          "menuLabel": "Acciones rápidas",
           "tooltips": {
             "mapExactMatchesAccounts": "Vincula cada cuenta del CSV a una cuenta existente con el mismo nombre y moneda. Las cuentas sin coincidencia exacta no se modifican.",
             "mapExactMatchesCategories": "Vincula cada categoría del CSV a una categoría existente con el mismo nombre. Las categorías sin coincidencia exacta no se modifican.",

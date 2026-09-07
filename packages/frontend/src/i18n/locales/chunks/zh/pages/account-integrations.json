@@ -1,0 +1,471 @@
+{
+  "pages": {
+    "integrations": {
+      "addDialog": {
+        "titleSelect": "",
+        "titleConnect": "",
+        "selectProviderHint": "",
+        "betaBadge": ""
+      },
+      "providers": {
+        "monobank": {
+          "name": "",
+          "description": ""
+        },
+        "enableBanking": {
+          "name": "",
+          "description": ""
+        },
+        "lunchflow": {
+          "name": "",
+          "description": ""
+        },
+        "simplefin": {
+          "name": "",
+          "description": ""
+        },
+        "walutomat": {
+          "name": "",
+          "description": ""
+        }
+      },
+      "monobank": {
+        "apiTokenLabel": "",
+        "connectionNameLabel": "",
+        "tokenPlaceholder": "",
+        "accountNamePlaceholder": "",
+        "help": {
+          "trigger": "",
+          "title": "",
+          "step1": "",
+          "step2": "",
+          "note": ""
+        },
+        "backButton": "",
+        "connectingButton": "",
+        "connectButton": "",
+        "loadingAccounts": "",
+        "selectAccountsHint": "",
+        "syncingButton": "",
+        "syncButton": "",
+        "syncSuccess": "",
+        "errors": {
+          "connectFailed": "",
+          "syncFailed": ""
+        }
+      },
+      "enableBankingConnector": {
+        "beta": {
+          "title": "",
+          "description": ""
+        },
+        "credentials": {
+          "appIdLabel": "",
+          "appIdHint": "",
+          "privateKeyLabel": "",
+          "privateKeyHint": "",
+          "bicLabel": ""
+        },
+        "steps": {
+          "loadingCountries": "",
+          "selectCountryHint": "",
+          "countryLabel": "",
+          "loadingBanks": "",
+          "selectBankHint": "",
+          "bankLabel": "",
+          "connectingToBank": "",
+          "authDescription": "",
+          "authWarning": "",
+          "authorizeButton": "",
+          "loadingAccounts": "",
+          "selectAccountsHint": ""
+        },
+        "buttons": {
+          "back": "",
+          "loading": "",
+          "next": "",
+          "syncing": "",
+          "sync": ""
+        },
+        "errors": {
+          "loadCountriesFailed": "",
+          "loadAccountsFailed": "",
+          "syncFailed": ""
+        },
+        "syncSuccess": ""
+      },
+      "instructionsDialog": {
+        "title": "",
+        "overview": {
+          "title": "",
+          "text": ""
+        },
+        "step1": {
+          "title": "",
+          "intro": "",
+          "createApp": "",
+          "steps": {
+            "login": "",
+            "navigate": "",
+            "lookForm": "",
+            "selectEnv": "",
+            "selectEnvStrong": "",
+            "generateKey": "",
+            "generateKeyStrong": "",
+            "generateKeyWarning": "",
+            "fillForm": "",
+            "appName": "",
+            "redirectUrls": "",
+            "appDescription": "",
+            "emailProtection": "",
+            "privacyUrl": "",
+            "termsUrl": "",
+            "clickRegister": "",
+            "downloadKey": ""
+          }
+        },
+        "step2": {
+          "title": "",
+          "intro": "",
+          "breakdown": "",
+          "steps": {
+            "clickLink": "",
+            "newFields": "",
+            "country": "",
+            "countryValue": "",
+            "aspsp": "",
+            "aspspValue": "",
+            "usageType": "",
+            "usageTypeValue": "",
+            "clickSave": "",
+            "redirect": "",
+            "finishAuth": "",
+            "waitAccounts": ""
+          },
+          "warningNotLinked": "",
+          "infoAddMore": "",
+          "infoAddMoreStrong": ""
+        },
+        "step3": {
+          "title": "",
+          "intro": "",
+          "appId": "",
+          "appIdStrong": "",
+          "appIdCode": "",
+          "appIdExample": "",
+          "privateKey": "",
+          "privateKeyStrong": "",
+          "privateKeyCode": ""
+        },
+        "securityNote": {
+          "title": "",
+          "text": ""
+        },
+        "gotItButton": ""
+      },
+      "enableBanking": {
+        "instructions": {},
+        "placeholders": {
+          "appId": "",
+          "privateKey": "",
+          "searchCountries": "",
+          "searchBanks": ""
+        },
+        "errors": {
+          "noAuthUrl": "",
+          "failedToLoadBanks": "",
+          "failedToConnectProvider": ""
+        },
+        "help": {
+          "trigger": ""
+        }
+      },
+      "lunchflow": {
+        "apiKeyLabel": "",
+        "apiKeyPlaceholder": "",
+        "help": {
+          "trigger": "",
+          "title": "",
+          "step1": "",
+          "step2": "",
+          "step3": ""
+        },
+        "backButton": "",
+        "connectingButton": "",
+        "connectButton": "",
+        "loadingAccounts": "",
+        "accountsPreviewHint": "",
+        "importingButton": "",
+        "importButton": "",
+        "importSuccess": "",
+        "skipButton": "",
+        "skipTooltip": "",
+        "errors": {
+          "connectFailed": "",
+          "importFailed": ""
+        }
+      },
+      "common": {
+        "selectAll": "",
+        "availableLabel": "",
+        "clearAll": "",
+        "noCurrencyBadge": "",
+        "currencyPicker": {
+          "placeholder": "",
+          "missingCount": ""
+        }
+      },
+      "help": {
+        "openSite": ""
+      },
+      "simplefin": {
+        "setupTokenLabel": "",
+        "setupTokenPlaceholder": "",
+        "help": {
+          "trigger": "",
+          "title": "",
+          "step1": "",
+          "step2": "",
+          "step3": ""
+        },
+        "connectButton": "",
+        "connectingButton": "",
+        "backButton": "",
+        "loadingAccounts": "",
+        "backfillNote": "",
+        "importButton": "",
+        "importingButton": "",
+        "errors": {
+          "connectFailed": "",
+          "importFailed": ""
+        }
+      },
+      "walutomat": {
+        "help": {
+          "trigger": ""
+        },
+        "apiKeyLabel": "",
+        "apiKeyPlaceholder": "",
+        "apiKeyHint": "",
+        "privateKeyLabel": "",
+        "privateKeyPlaceholder": "",
+        "privateKeyHint": "",
+        "backButton": "",
+        "connectButton": "",
+        "connectingButton": "",
+        "loadingWallets": "",
+        "selectWalletsHint": "",
+        "selectAll": "",
+        "importButton": "",
+        "importingButton": "",
+        "importSuccess": "",
+        "errors": {
+          "connectFailed": "",
+          "importFailed": ""
+        },
+        "instructions": {
+          "title": "",
+          "overviewTitle": "",
+          "overviewText": "",
+          "step1Title": "",
+          "step1Intro": "",
+          "step1FilesCreated": "",
+          "step2Title": "",
+          "step2Login": "",
+          "step2GoToSettings": "",
+          "step2Upload": "",
+          "step2ApiKeyGenerated": "",
+          "step3Title": "",
+          "step3Intro": "",
+          "step3ApiKeyDesc": "",
+          "step3PrivateKeyDesc": "",
+          "securityNoteTitle": "",
+          "securityNoteText": "",
+          "closeButton": ""
+        }
+      },
+      "notifications": {
+        "disconnectSuccess": "",
+        "disconnectFailed": "",
+        "connectAccountsSuccess": "",
+        "connectAccountsFailed": "",
+        "updateNameSuccess": "",
+        "updateNameFailed": "",
+        "connectionEstablished": ""
+      },
+      "details": {
+        "error": {
+          "notFoundTitle": "",
+          "notFoundDescription": "",
+          "unexpectedTitle": "",
+          "unexpectedDescription": "",
+          "backButton": ""
+        },
+        "connectionDetails": {
+          "statusActive": "",
+          "statusInactive": "",
+          "autoSync": ""
+        },
+        "connectionValidity": {
+          "statusExpired": "",
+          "statusActive": "",
+          "daysCount": "",
+          "notAvailable": "",
+          "reconnectButton": ""
+        },
+        "connectedAccounts": {
+          "title": "",
+          "empty": "",
+          "connectButton": "",
+          "currencyFallback": "",
+          "columnAccount": "",
+          "columnExternalId": "",
+          "columnBalance": "",
+          "currencyFallbackChip": "",
+          "syncNow": "",
+          "connectRemainingWithCount": "",
+          "needsAttention": "",
+          "totalLabel": "",
+          "syncStarted": "",
+          "syncFailed": ""
+        },
+        "actions": {
+          "renameButton": "",
+          "disconnectButton": "",
+          "manage": ""
+        },
+        "fetchAccountsDialog": {
+          "title": "",
+          "description": "",
+          "missingAccountsQuestion": "",
+          "missingAccountsHint": "",
+          "missingAccountsSectionName": "",
+          "missingAccountsButtonName": "",
+          "missingAccountsPersist": "",
+          "sessionExpired": "",
+          "loadFailed": "",
+          "noAdditionalAccounts": "",
+          "connectSelectedButton": "",
+          "selectAccountsButton": "",
+          "alreadyConnected": "",
+          "creditLimitMeta": ""
+        },
+        "meta": {
+          "connectedSince": ""
+        },
+        "summary": {
+          "totalBalance": "",
+          "accounts": "",
+          "accountsCount": "",
+          "lastSync": "",
+          "consent": "",
+          "every": "",
+          "autoSyncOff": "",
+          "connectedOf": "",
+          "connectedSub": "",
+          "accountsFailed": ""
+        },
+        "consentStrip": {
+          "expiring": "",
+          "expired": ""
+        },
+        "relativeTime": {
+          "never": ""
+        },
+        "errors": {
+          "reauthorizationFailed": ""
+        }
+      },
+      "dialogs": {
+        "disconnect": {
+          "title": "",
+          "description": "",
+          "removeAccounts": "",
+          "removeAccountsHint": "",
+          "disconnecting": "",
+          "disconnect": ""
+        },
+        "editName": {
+          "title": "",
+          "description": "",
+          "label": "",
+          "saving": "",
+          "save": ""
+        },
+        "reconnect": {
+          "title": "",
+          "description": "",
+          "warning": "",
+          "preparing": "",
+          "continue": ""
+        }
+      },
+      "authFailure": {
+        "description": "",
+        "updateButton": ""
+      },
+      "updateCredentials": {
+        "title": "",
+        "apiKeyLabel": "",
+        "apiKeyPlaceholder": "",
+        "updatingButton": "",
+        "updateButton": "",
+        "success": "",
+        "failed": ""
+      },
+      "labels": {
+        "free": "",
+        "paid": "",
+        "easySetup": "",
+        "mediumSetup": "",
+        "veryDifficultSetup": ""
+      },
+      "regions": {
+        "ukraine": "",
+        "eu": "",
+        "uk": "",
+        "usa": "",
+        "poland": "",
+        "canada": "",
+        "australia": "",
+        "newZealand": ""
+      },
+      "filters": {
+        "all": "",
+        "usCanada": "",
+        "euUk": ""
+      },
+      "tooltips": {
+        "monobank": "",
+        "enableBanking": "",
+        "lunchflow": "",
+        "simplefin": "",
+        "walutomat": ""
+      }
+    },
+    "connectionName": {
+      "placeholder": ""
+    },
+    "bankCallback": {
+      "processing": {
+        "title": "",
+        "description": ""
+      },
+      "error": {
+        "title": "",
+        "backToIntegrations": ""
+      },
+      "success": {
+        "title": "",
+        "description": "",
+        "viewAccounts": ""
+      },
+      "errors": {
+        "authorizationDenied": "",
+        "missingParameters": "",
+        "connectionIdNotFound": "",
+        "failedToComplete": ""
+      }
+    }
+  }
+}

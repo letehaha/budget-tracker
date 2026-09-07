@@ -1,0 +1,267 @@
+{
+  "settings": {
+    "security": {
+      "title": "",
+      "description": "",
+      "tabs": {
+        "loginMethods": "",
+        "activeSessions": "",
+        "password": "",
+        "backup": "",
+        "dangerZone": ""
+      },
+      "loginMethods": {
+        "title": "",
+        "description": "",
+        "oauth": {
+          "connectedAs": "",
+          "accountName": "",
+          "notConnected": "",
+          "disconnect": "",
+          "connect": ""
+        },
+        "password": {
+          "title": "",
+          "passwordSet": "",
+          "noPassword": "",
+          "manageInTab": "",
+          "setupInTab": ""
+        },
+        "passkeys": {
+          "title": "",
+          "noPasskeys": "",
+          "passkeyCount": "",
+          "addButton": "",
+          "passkeyName": "",
+          "added": ""
+        },
+        "warningOneMethod": "",
+        "notifications": {
+          "oauthConnectFailed": "",
+          "oauthDisconnectSuccess": "",
+          "oauthDisconnectFailed": "",
+          "passkeyAddSuccess": "",
+          "passkeyAddFailed": "",
+          "passkeyRemoveSuccess": "",
+          "passkeyRemoveFailed": ""
+        }
+      },
+      "activeSessions": {
+        "title": "",
+        "description": "",
+        "currentBadge": "",
+        "unknownLocation": "",
+        "lastActive": "",
+        "noSessions": "",
+        "revokeAllButton": "",
+        "deviceTypes": {
+          "unknownDevice": "",
+          "unknownBrowser": ""
+        },
+        "timeAgo": {
+          "justNow": "",
+          "minutesAgo": "",
+          "hoursAgo": "",
+          "daysAgo": ""
+        },
+        "notifications": {
+          "loadFailed": "",
+          "revokeSuccess": "",
+          "revokeFailed": "",
+          "revokeAllSuccess": "",
+          "revokeAllFailed": ""
+        }
+      },
+      "passwordSection": {
+        "title": "",
+        "descriptionChange": "",
+        "descriptionSet": "",
+        "labels": {
+          "currentPassword": "",
+          "newPassword": "",
+          "password": "",
+          "confirmPassword": ""
+        },
+        "placeholders": {
+          "currentPassword": "",
+          "newPassword": "",
+          "confirmPassword": ""
+        },
+        "buttons": {
+          "change": "",
+          "set": ""
+        },
+        "strength": {
+          "veryWeak": "",
+          "weak": "",
+          "fair": "",
+          "strong": "",
+          "veryStrong": ""
+        },
+        "requirements": {
+          "title": "",
+          "minLength": "",
+          "mixedCase": "",
+          "specialChars": ""
+        },
+        "validation": {
+          "minLength": "",
+          "passwordsNoMatch": ""
+        },
+        "notifications": {
+          "changeSuccess": "",
+          "changeFailed": "",
+          "setSuccess": "",
+          "setFailed": "",
+          "unexpectedError": "",
+          "updateFailed": ""
+        }
+      },
+      "dangerZone": "",
+      "wipeData": {
+        "title": "",
+        "warningFull": "",
+        "warningStrong": "",
+        "button": "",
+        "dialog": {
+          "title": "",
+          "description": "",
+          "list": {
+            "accounts": "",
+            "transactions": "",
+            "budgets": "",
+            "portfolios": "",
+            "settings": "",
+            "baseCurrency": ""
+          },
+          "kept": "",
+          "typeConfirm": "",
+          "confirmLabel": "",
+          "confirmLoading": ""
+        },
+        "sharingDialog": {
+          "title": "",
+          "warning": "",
+          "description": "",
+          "householdsCount": "",
+          "confirmLabel": ""
+        },
+        "notifications": {
+          "success": "",
+          "failed": ""
+        }
+      },
+      "deleteAccount": {
+        "title": "",
+        "warningFull": "",
+        "warningStrong": "",
+        "button": "",
+        "dialog": {
+          "title": "",
+          "description": "",
+          "dataList": {
+            "accounts": "",
+            "categories": "",
+            "portfolios": "",
+            "settings": ""
+          },
+          "confirmFull": "",
+          "placeholder": "",
+          "acceptButton": "",
+          "acceptButtonLoading": ""
+        },
+        "notifications": {
+          "success": "",
+          "failed": ""
+        }
+      },
+      "backup": {
+        "download": {
+          "title": "",
+          "description": "",
+          "button": "",
+          "loading": "",
+          "success": "",
+          "failed": "",
+          "downloadBlocked": "",
+          "limitations": {
+            "trigger": "",
+            "title": "",
+            "intro": "",
+            "items": {
+              "bankConnectionsTerm": "",
+              "bankConnections": "",
+              "aiKeysTerm": "",
+              "aiKeys": ""
+            },
+            "included": ""
+          }
+        },
+        "restore": {
+          "title": "",
+          "description": "",
+          "button": "",
+          "reading": "",
+          "failedGeneric": "",
+          "invalidFileType": "",
+          "fileTooLarge": "",
+          "readFailed": "",
+          "confirm": {
+            "title": "",
+            "warning": "",
+            "description": "",
+            "selectedFile": "",
+            "confirmLabel": "",
+            "reconnectTitle": "",
+            "reconnectBankConnections": "",
+            "reconnectAiKeys": ""
+          },
+          "acknowledge": {
+            "title": "",
+            "description": "",
+            "householdsCount": "",
+            "checkbox": "",
+            "confirmLabel": ""
+          },
+          "progress": {
+            "title": "",
+            "description": "",
+            "inserted": "",
+            "phases": {
+              "validating": "",
+              "preparingSecurities": "",
+              "wiping": "",
+              "restoring": "",
+              "finalizing": ""
+            }
+          },
+          "summary": {
+            "title": "",
+            "description": "",
+            "recordsHeading": "",
+            "warningsHeading": "",
+            "noRecords": "",
+            "doneButton": ""
+          },
+          "failed": {
+            "title": "",
+            "genericError": "",
+            "unconfirmed": "",
+            "closeButton": ""
+          },
+          "overlay": {
+            "title": "",
+            "description": "",
+            "preparing": "",
+            "finishing": "",
+            "takingLong": "",
+            "unreachableTitle": "",
+            "unreachableDescription": "",
+            "failedTitle": "",
+            "dismiss": ""
+          }
+        }
+      }
+    }
+  }
+}

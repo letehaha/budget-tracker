@@ -1,0 +1,272 @@
+{
+  "settings": {
+    "ai": {
+      "title": "",
+      "description": "",
+      "tabs": {
+        "features": "",
+        "apiKeys": "",
+        "invalidKeysTooltip": "",
+        "customEndpoints": "",
+        "invalidEndpointsTooltip": ""
+      },
+      "apiKeyManager": {
+        "title": "",
+        "description": "",
+        "badges": {
+          "default": ""
+        },
+        "buttons": {
+          "setDefault": ""
+        },
+        "invalidKeyHelp": "",
+        "deleteDialog": {
+          "title": "",
+          "description": "",
+          "descriptionMultiple": "",
+          "cancel": "",
+          "remove": ""
+        },
+        "allConfigured": "",
+        "form": {
+          "titleAdd": "",
+          "titleAddAnother": "",
+          "providerLabel": "",
+          "apiKeyLabel": "",
+          "buttonSaving": "",
+          "buttonSave": ""
+        },
+        "providers": {
+          "anthropic": {
+            "label": "",
+            "placeholder": "",
+            "description": ""
+          },
+          "openai": {
+            "label": "",
+            "placeholder": "",
+            "description": ""
+          },
+          "google": {
+            "label": "",
+            "placeholder": "",
+            "description": ""
+          },
+          "groq": {
+            "label": "",
+            "placeholder": "",
+            "description": ""
+          }
+        },
+        "notifications": {
+          "saveSuccess": "",
+          "saveFailed": "",
+          "setDefaultSuccess": "",
+          "setDefaultFailed": "",
+          "removeSuccess": "",
+          "removeFailed": ""
+        }
+      },
+      "credentialStatus": {
+        "validated": "",
+        "failed": "",
+        "invalidBadge": ""
+      },
+      "features": {
+        "title": "",
+        "description": "",
+        "loading": ""
+      },
+      "categorization": {
+        "modelHint": {
+          "trigger": "",
+          "text": ""
+        },
+        "howItWorks": {
+          "title": "",
+          "points": {
+            "autoSync": "",
+            "analysis": "",
+            "override": ""
+          }
+        },
+        "loading": ""
+      },
+      "statementParsing": {
+        "modelHint": {
+          "trigger": "",
+          "text": ""
+        },
+        "howItWorks": {
+          "title": "",
+          "points": {
+            "upload": "",
+            "analysis": "",
+            "review": "",
+            "cost": ""
+          }
+        },
+        "loading": ""
+      },
+      "modelSelector": {
+        "badges": {
+          "yourKey": "",
+          "yourKeyTooltip": "",
+          "server": "",
+          "serverTooltip": ""
+        },
+        "modelLabel": "",
+        "resetButton": "",
+        "noApiKey": "",
+        "modelInfo": {
+          "context": "",
+          "capabilities": "",
+          "estimatedCost": "",
+          "per100Transactions": ""
+        },
+        "rateLimitWarning": "",
+        "groupLabels": {
+          "recommended": "",
+          "openai": "",
+          "anthropic": "",
+          "google": "",
+          "groq": ""
+        },
+        "costLabels": {
+          "free": "",
+          "low": "",
+          "medium": "",
+          "high": ""
+        },
+        "capabilities": {
+          "textGeneration": "",
+          "structuredOutput": "",
+          "functionCalling": "",
+          "vision": "",
+          "fastInference": "",
+          "agents": ""
+        },
+        "notifications": {
+          "updateSuccess": "",
+          "updateFailed": "",
+          "resetSuccess": "",
+          "resetFailed": ""
+        },
+        "addKeyHint": "",
+        "addKeyHintLink": "",
+        "customModel": {
+          "nameLabel": "",
+          "applyButton": "",
+          "hint": "",
+          "endpointOption": "",
+          "unknownEndpoint": "",
+          "missingModelName": "",
+          "endpointsLoadError": ""
+        }
+      },
+      "customEndpoint": {
+        "title": "",
+        "description": "",
+        "loading": "",
+        "addButton": "",
+        "empty": {
+          "title": "",
+          "description": ""
+        },
+        "loadError": {
+          "title": "",
+          "description": "",
+          "retry": ""
+        },
+        "status": {
+          "model": ""
+        },
+        "actions": {
+          "menuAriaLabel": "",
+          "reconnect": ""
+        },
+        "form": {
+          "titleAdd": "",
+          "titleEdit": "",
+          "nameLabel": "",
+          "namePlaceholder": "",
+          "baseUrlLabel": "",
+          "baseUrlPlaceholder": "",
+          "modelLabel": "",
+          "modelPlaceholder": "",
+          "apiKeyLabel": "",
+          "apiKeyPlaceholder": "",
+          "apiKeySavedHint": "",
+          "apiKeyOptionalHint": "",
+          "removeApiKeyButton": "",
+          "saveButton": "",
+          "testButton": "",
+          "removeButton": ""
+        },
+        "compatibilityHint": "",
+        "test": {
+          "success": "",
+          "failed": ""
+        },
+        "notifications": {
+          "saveSuccess": "",
+          "saveFailed": "",
+          "removeSuccess": "",
+          "removeFailed": "",
+          "removeKeySuccess": "",
+          "removeKeyFailed": "",
+          "removeKeyInvalid": "",
+          "editedEndpointGone": ""
+        },
+        "removeDialog": {
+          "title": "",
+          "descriptionNamed": "",
+          "confirm": ""
+        },
+        "removeKeyDialog": {
+          "title": "",
+          "description": "",
+          "confirm": ""
+        },
+        "setupHelp": {
+          "trigger": "",
+          "rule": "",
+          "ruleCheck": "",
+          "apiKeyEmpty": "",
+          "lmStudio": {
+            "startServer": "",
+            "baseUrl": "",
+            "model": ""
+          },
+          "ollama": {
+            "model": ""
+          },
+          "openRouter": {
+            "model": "",
+            "apiKeyRequired": ""
+          },
+          "other": {
+            "tabLabel": "",
+            "title": "",
+            "baseUrl": "",
+            "model": "",
+            "apiKey": ""
+          },
+          "localNetworkOnly": "",
+          "dockerHost": ""
+        }
+      },
+      "customInstructions": {
+        "title": "",
+        "description": "",
+        "placeholder": "",
+        "requiresOwnCredentials": "",
+        "credentialsCheckFailed": "",
+        "retryCredentialsCheck": "",
+        "save": "",
+        "saved": "",
+        "saveFailed": ""
+      }
+    }
+  }
+}

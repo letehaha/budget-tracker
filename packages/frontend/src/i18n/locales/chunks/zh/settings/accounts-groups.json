@@ -1,0 +1,52 @@
+{
+  "settings": {
+    "accountGroups": {
+      "page": {
+        "title": "",
+        "description": "",
+        "addButton": ""
+      },
+      "empty": {
+        "title": "",
+        "description": ""
+      },
+      "loadError": {
+        "title": "",
+        "description": "",
+        "retry": ""
+      },
+      "row": {
+        "bankBadge": "",
+        "bankBadgeShort": "",
+        "bankBadgeTooltip": "",
+        "accountsCount": "",
+        "noAccounts": "",
+        "accountsElsewhere": "",
+        "inParent": "",
+        "manageConnection": ""
+      },
+      "update": {
+        "label": "",
+        "placeholder": "",
+        "saveButton": "",
+        "emptyNameError": ""
+      },
+      "accounts": {
+        "heading": "",
+        "empty": "",
+        "emptyBankLinked": "",
+        "unlinkTooltip": "",
+        "removeConfirmTitle": "",
+        "removeConfirmDescription": "",
+        "removeConfirmAction": ""
+      },
+      "delete": {
+        "button": "",
+        "confirmTitle": "",
+        "accountsKept": "",
+        "syncContinues": "",
+        "ungroupedHeading": ""
+      }
+    }
+  }
+}

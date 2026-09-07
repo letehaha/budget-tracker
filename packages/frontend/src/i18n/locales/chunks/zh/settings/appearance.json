@@ -1,0 +1,27 @@
+{
+  "settings": {
+    "appearance": {
+      "title": "",
+      "description": "",
+      "theme": {
+        "title": "",
+        "description": ""
+      },
+      "sidebar": {
+        "title": "",
+        "description": "",
+        "alwaysVisibleTooltip": ""
+      },
+      "header": {
+        "title": "",
+        "description": "",
+        "supportButton": ""
+      },
+      "currency": {
+        "title": "",
+        "description": "",
+        "narrowSymbol": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "pages": {
+    "sharedWithMe": {
+      "title": "",
+      "loadError": "",
+      "empty": {
+        "title": "",
+        "description": ""
+      },
+      "sections": {
+        "account": "",
+        "household": "",
+        "budget": ""
+      },
+      "sharedBy": "",
+      "viaHousehold": "",
+      "unnamedResource": "",
+      "permissions": {
+        "read": "",
+        "write": "",
+        "manage": ""
+      },
+      "leave": "",
+      "leaveTitle": "",
+      "leaveDescription": "",
+      "leaveConfirm": "",
+      "leaveSuccess": "",
+      "leaveError": "",
+      "pending": {
+        "heading": "",
+        "review": ""
+      }
+    }
+  }
+}

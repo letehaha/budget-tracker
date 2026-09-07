@@ -1,0 +1,134 @@
+{
+  "pages": {
+    "importExport": {
+      "budgetBakersWalletImport": {
+        "pageTitle": "",
+        "pageDescription": "",
+        "fileUpload": {
+          "stepTitle": "",
+          "description": "",
+          "maxSize": "",
+          "parsing": "",
+          "errors": {
+            "invalidFormatNamed": "",
+            "parseFailed": "",
+            "merge": {
+              "emptySelection": "",
+              "fileReadFailed": "",
+              "fileEmpty": "",
+              "fileNoDataRows": "",
+              "headerMismatch": "",
+              "forbiddenHeader": "",
+              "tooManyRows": "",
+              "parseError": ""
+            }
+          },
+          "continue": ""
+        },
+        "preview": {
+          "accountsHelper": "",
+          "accounts": "",
+          "transactions": "",
+          "rowPrefix": ""
+        },
+        "accountRow": {
+          "transactionsCount": "",
+          "modeLabel": "",
+          "modePlaceholder": "",
+          "modeCreateNew": "",
+          "modeLinkExisting": "",
+          "currentBalanceLabel": "",
+          "currentBalancePlaceholder": "",
+          "currentBalanceHint": "",
+          "linkTargetLabel": "",
+          "linkTargetPlaceholder": "",
+          "keepBalanceNote": ""
+        },
+        "execute": {
+          "starting": "",
+          "progressCount": "",
+          "statusQueued": "",
+          "statusRunning": "",
+          "statusCompleted": "",
+          "statusFailed": "",
+          "failed": "",
+          "partialImportNote": ""
+        },
+        "done": {
+          "successTitle": "",
+          "successDescription": "",
+          "partialTitle": "",
+          "partialDescription": "",
+          "allFailedTitle": "",
+          "allFailedDescription": "",
+          "accountsCreated": "",
+          "accountsLinked": "",
+          "accountsSkipped": "",
+          "categoriesCreated": "",
+          "tagsCreated": "",
+          "transactionsImported": "",
+          "transfersImported": "",
+          "outOfWalletImported": "",
+          "mergedIntoPlanned": "",
+          "duplicatesSkipped": "",
+          "errorsTitle": "",
+          "errorsOverflow": "",
+          "balanceWarningTitle": "",
+          "balanceWarningBody": "",
+          "viewTransactions": "",
+          "importAnother": ""
+        },
+        "stepper": {
+          "steps": {
+            "upload": "",
+            "resolve": "",
+            "review": "",
+            "results": ""
+          }
+        },
+        "resolve": {
+          "resolvedCounterWord": "",
+          "accounts": {
+            "sectionTitle": "",
+            "currentBalanceLabel": "",
+            "currentBalancePlaceholder": "",
+            "willCreateHint": "",
+            "skippedNote": ""
+          },
+          "categories": {
+            "sectionTitle": ""
+          },
+          "quickActions": {
+            "mapExactMatches": "",
+            "createNewForUnmatched": "",
+            "reset": "",
+            "tooltips": {
+              "mapExactMatchesAccounts": "",
+              "mapExactMatchesCategories": "",
+              "createNewForUnmatched": "",
+              "reset": ""
+            }
+          },
+          "footer": {
+            "back": "",
+            "continue": ""
+          }
+        },
+        "review": {
+          "transactions": "",
+          "transfersDetected": "",
+          "outOfWallet": "",
+          "duplicatesSkipped": "",
+          "willImport": "",
+          "warningsTitle": "",
+          "rowPrefix": "",
+          "duplicatesTitle": "",
+          "duplicatesHint": "",
+          "back": "",
+          "importButton": "",
+          "importing": ""
+        }
+      }
+    }
+  }
+}

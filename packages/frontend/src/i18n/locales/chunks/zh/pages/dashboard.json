@@ -1,0 +1,258 @@
+{
+  "dashboard": {
+    "editMode": {
+      "customize": "",
+      "addWidgets": "",
+      "emptyState": ""
+    },
+    "widgets": {
+      "common": {
+        "includePlanned": "",
+        "includePlannedTooltip": "",
+        "includePlannedSaveError": ""
+      },
+      "balanceTrend": {
+        "title": "",
+        "balanceTypes": {
+          "total": "",
+          "accounts": "",
+          "portfolios": "",
+          "ventures": "",
+          "vehicles": "",
+          "loans": ""
+        },
+        "tooltip": {
+          "accounts": "",
+          "portfolios": "",
+          "total": "",
+          "ventures": "",
+          "vehicles": "",
+          "loans": ""
+        },
+        "today": "",
+        "vsPreviousPeriod": "",
+        "spikePanel": {
+          "accounts": "",
+          "portfolios": "",
+          "priceDrivenChange": "",
+          "noSignificantTransactions": "",
+          "seeAllTransactions": ""
+        },
+        "spikeSettings": {
+          "showMarkers": "",
+          "showMarkersTooltip": "",
+          "percentThreshold": "",
+          "percentThresholdTooltip": "",
+          "absoluteThreshold": "",
+          "absoluteThresholdTooltip": "",
+          "maxMarkers": "",
+          "maxMarkersTooltip": "",
+          "resetDefaults": "",
+          "accept": "",
+          "validation": {
+            "outOfRange": "",
+            "integer": ""
+          }
+        },
+        "settings": {
+          "title": "",
+          "spikeMarkers": "",
+          "fitToLatestData": "",
+          "fitToLatestDataTooltip": "",
+          "fitToLatestDataLockedTooltip": "",
+          "on": "",
+          "off": "",
+          "includeInTotal": "",
+          "includePlannedTooltip": ""
+        },
+        "componentsSettings": {
+          "description": "",
+          "vehicles": "",
+          "ventures": "",
+          "loans": "",
+          "loansTooltip": "",
+          "allIncluded": "",
+          "excluding": ""
+        },
+        "projection": {
+          "summary": ""
+        }
+      },
+      "expensesStructure": {
+        "title": "",
+        "today": "",
+        "vsPreviousPeriod": "",
+        "viewButton": ""
+      },
+      "latestTransactions": {
+        "title": "",
+        "showAll": ""
+      },
+      "subscriptions": {
+        "title": "",
+        "titleSubscriptions": "",
+        "titleBills": "",
+        "titleAll": "",
+        "titleInstallments": "",
+        "configTypeAll": "",
+        "configTypeSubscriptions": "",
+        "configTypeBills": "",
+        "configTypeInstallments": "",
+        "activeSummary": "",
+        "perYear": "",
+        "incomeSummary": "",
+        "percentOfIncome": "",
+        "settings": {
+          "title": "",
+          "show": "",
+          "incomeWindow": "",
+          "incomeWindowTooltip": "",
+          "lookbackOption": {
+            "1": "",
+            "3": "",
+            "6": "",
+            "12": ""
+          }
+        }
+      },
+      "categoryTracker": {
+        "title": "",
+        "addCategory": "",
+        "selectCategories": ""
+      },
+      "cashFlow": {
+        "title": "",
+        "description": "",
+        "vsPrevious": "",
+        "income": "",
+        "expenses": "",
+        "saved": "",
+        "previousPeriodsTrend": "",
+        "viewDetails": ""
+      },
+      "netWorth": {
+        "title": "",
+        "description": "",
+        "vsPrevious": "",
+        "start": "",
+        "end": "",
+        "growth": "",
+        "previousPeriodsTrend": "",
+        "excludedTooltip": "",
+        "viewHistory": "",
+        "loadFailed": "",
+        "components": {
+          "ventures": "",
+          "vehicles": "",
+          "loans": ""
+        },
+        "settings": {
+          "title": "",
+          "loans": "",
+          "vehicles": "",
+          "ventures": ""
+        },
+        "trendTooltip": {
+          "change": "",
+          "netWorth": "",
+          "noData": ""
+        }
+      },
+      "creditUtilization": {
+        "title": "",
+        "description": "",
+        "utilized": "",
+        "noAccounts": ""
+      },
+      "plannedOverview": {
+        "title": "",
+        "projectedTotal": "",
+        "pendingCount": "",
+        "through": "",
+        "loadFailed": ""
+      },
+      "emptyState": "",
+      "registry": {
+        "balanceTrend": {
+          "name": "",
+          "description": ""
+        },
+        "categoryTracker": {
+          "name": "",
+          "description": ""
+        },
+        "spendingCategories": {
+          "name": "",
+          "description": ""
+        },
+        "latestRecords": {
+          "name": "",
+          "description": ""
+        },
+        "subscriptions": {
+          "name": "",
+          "description": ""
+        },
+        "cashFlow": {
+          "name": "",
+          "description": ""
+        },
+        "netWorth": {
+          "name": "",
+          "description": ""
+        },
+        "creditUtilization": {
+          "name": "",
+          "description": ""
+        },
+        "plannedOverview": {
+          "name": "",
+          "description": ""
+        }
+      }
+    },
+    "periodSelector": {
+      "presets": {
+        "currentMonth": "",
+        "last3Months": "",
+        "last6Months": "",
+        "lastYear": "",
+        "thisYear": "",
+        "previousYear": ""
+      }
+    }
+  },
+  "widgets": {
+    "subscriptionsOverview": {
+      "upcoming": {
+        "collapsed": "",
+        "collapsedAction": ""
+      },
+      "empty": "",
+      "overdueBadge": "",
+      "payAction": ""
+    },
+    "latestRecords": {
+      "config": {
+        "includeScheduled": {
+          "label": "",
+          "on": "",
+          "off": ""
+        }
+      },
+      "settings": {
+        "excludeTitle": "",
+        "excludeTransfersDescription": "",
+        "excludeOutOfWalletDescription": "",
+        "balanceAdjustmentsTitle": "",
+        "excludeBalanceAdjustmentsDescription": "",
+        "plannedTitle": "",
+        "excludePlannedDescription": "",
+        "nothingExcluded": ""
+      },
+      "overdueBadge": "",
+      "scheduledBadge": "",
+      "payAction": ""
+    }
+  }
+}

@@ -1,0 +1,375 @@
+{
+  "forms": {
+    "investmentTransaction": {
+      "typeLabel": "",
+      "types": {
+        "buy": "",
+        "sell": "",
+        "dividend": "",
+        "fee": "",
+        "tax": ""
+      },
+      "securityLabel": "",
+      "securityPlaceholder": "",
+      "quantityLabel": "",
+      "quantityPlaceholder": "",
+      "priceLabel": "",
+      "pricePlaceholder": "",
+      "priceHelp": "",
+      "feesLabel": "",
+      "feesPlaceholder": "",
+      "dateLabel": "",
+      "noteLabel": "",
+      "notePlaceholder": "",
+      "cancelButton": "",
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      },
+      "settlement": {
+        "toggleLabel": "",
+        "toggleHint": "",
+        "currencyLabel": "",
+        "currencyPlaceholder": "",
+        "totalPaidLabel": "",
+        "totalReceivedLabel": "",
+        "totalPlaceholder": "",
+        "feeLabel": "",
+        "feePlaceholder": "",
+        "sameCurrencyFeeHint": "",
+        "crossCurrencyFeeHint": "",
+        "modeFee": "",
+        "modeAuto": "",
+        "modeRate": "",
+        "rateLabel": "",
+        "ratePlaceholder": "",
+        "rateHint": "",
+        "autoHint": "",
+        "previewRate": "",
+        "previewFee": "",
+        "previewUnavailable": "",
+        "previewFetchFailed": "",
+        "previewPlaceholder": ""
+      }
+    },
+    "portfolioSettings": {
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "nameRequired": "",
+      "typeLabel": "",
+      "typePlaceholder": "",
+      "descriptionLabel": "",
+      "descriptionPlaceholder": "",
+      "displayCurrencyLabel": "",
+      "displayCurrencyPlaceholder": "",
+      "displayCurrencyBaseOption": "",
+      "displayCurrencyDescription": "",
+      "cancelButton": "",
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "portfolioTransfer": {
+      "transferTypeLabel": "",
+      "transferTypes": {
+        "portfolioToPortfolio": "",
+        "portfolioToAccount": "",
+        "accountToPortfolio": ""
+      },
+      "comingSoonNotice": "",
+      "fromPortfolioLabel": "",
+      "fromPortfolioPlaceholder": "",
+      "fromAccountLabel": "",
+      "fromAccountPlaceholder": "",
+      "toPortfolioLabel": "",
+      "toPortfolioPlaceholder": "",
+      "toAccountLabel": "",
+      "toAccountPlaceholder": "",
+      "currencyLabel": "",
+      "currencyPlaceholder": "",
+      "amountLabel": "",
+      "amountLabelWithCurrency": "",
+      "amountPlaceholder": "",
+      "dateLabel": "",
+      "descriptionLabel": "",
+      "descriptionPlaceholder": "",
+      "cancelButton": "",
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "confirmDialog": {
+        "title": "",
+        "description": "",
+        "actionTransfer": "",
+        "actionWithdrawal": "",
+        "actionDeposit": "",
+        "cancelButton": "",
+        "confirmButton": ""
+      },
+      "validation": {
+        "required": "",
+        "minValue": ""
+      },
+      "notifications": {
+        "comingSoon": "",
+        "success": "",
+        "error": ""
+      },
+      "linkExistingTransaction": "",
+      "linkedTransactionLabel": "",
+      "noPortfoliosAvailable": ""
+    },
+    "createAccount": {
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "currencyLabel": "",
+      "currencyPlaceholder": "",
+      "addCurrencyButton": "",
+      "initialBalanceLabel": "",
+      "initialBalancePlaceholder": "",
+      "accountCategoryLabel": "",
+      "accountCategoryPlaceholder": "",
+      "creditLimitLabel": "",
+      "creditLimitPlaceholder": "",
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "directCashTransaction": {
+      "methodTypes": {
+        "direct": "",
+        "transfer": ""
+      },
+      "operationTypes": {
+        "deposit": "",
+        "withdrawal": ""
+      },
+      "fromAccountLabel": "",
+      "toAccountLabel": "",
+      "accountPlaceholder": "",
+      "orSeparator": "",
+      "linkExistingTransaction": "",
+      "linkedTransactionLabel": "",
+      "amountLabel": "",
+      "amountPlaceholder": "",
+      "currencyLabel": "",
+      "currencyPlaceholder": "",
+      "dateLabel": "",
+      "descriptionLabel": "",
+      "adjustmentLabel": "",
+      "adjustmentHint": "",
+      "descriptionPlaceholder": "",
+      "cancelButton": "",
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "confirmDialog": {
+        "title": "",
+        "description": "",
+        "cancelButton": "",
+        "confirmButton": "",
+        "actionDeposit": "",
+        "actionWithdrawal": ""
+      },
+      "validation": {
+        "required": "",
+        "minValue": ""
+      },
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "validators": {
+      "invalidCurrencyDecimal": "",
+      "mustBePositive": ""
+    },
+    "exchangeCurrency": {
+      "fromCurrencyLabel": "",
+      "toCurrencyLabel": "",
+      "currencyPlaceholder": "",
+      "fromAmountLabel": "",
+      "toAmountLabel": "",
+      "amountPlaceholder": "",
+      "maxButton": "",
+      "dateLabel": "",
+      "descriptionLabel": "",
+      "descriptionPlaceholder": "",
+      "cancelButton": "",
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "validation": {
+        "required": "",
+        "minValue": "",
+        "sameCurrency": ""
+      },
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "createVehicle": {
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "currencyLabel": "",
+      "makeLabel": "",
+      "modelLabel": "",
+      "trimLabel": "",
+      "yearLabel": "",
+      "vehicleClassLabel": "",
+      "purchasePriceLabel": "",
+      "purchaseDateLabel": "",
+      "depreciationPresetLabel": "",
+      "customAnnualRatePctLabel": "",
+      "salvageFloorPctLabel": "",
+      "currentMileageLabel": "",
+      "currentMileagePlaceholder": "",
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "editVehicle": {
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "loan": {
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "loanTypeLabel": "",
+      "loanTypePlaceholder": "",
+      "currencyLabel": "",
+      "currencyPlaceholder": "",
+      "originalPrincipalLabel": "",
+      "originalPrincipalPlaceholder": "",
+      "initialBalanceLabel": "",
+      "initialBalancePlaceholder": "",
+      "interestRateLabel": "",
+      "interestRatePlaceholder": "",
+      "minPaymentEstimateTooltip": "",
+      "minPaymentApplyEstimateAriaLabel": "",
+      "termMonthsLabel": "",
+      "termPresetsAriaLabel": "",
+      "termPresetsHeader": "",
+      "termMonthsSuffix": "",
+      "termPresetYears": "",
+      "termMonthsPlaceholder": "",
+      "startDateLabel": "",
+      "startDatePlaceholder": "",
+      "startDateTooltip": "",
+      "plannedPaymentLabel": "",
+      "plannedPaymentPlaceholder": "",
+      "minPaymentLabel": "",
+      "minPaymentPlaceholder": "",
+      "paymentDayLabel": "",
+      "paymentDayPlaceholder": "",
+      "lenderNameLabel": "",
+      "lenderNamePlaceholder": "",
+      "accountNumberLabel": "",
+      "accountNumberPlaceholder": "",
+      "currentBalanceLabel": "",
+      "balanceAsOfLabel": "",
+      "balanceAsOfPlaceholder": "",
+      "saveButton": "",
+      "submitButton": "",
+      "submitButtonLoading": "",
+      "cancelButton": "",
+      "notifications": {
+        "success": "",
+        "error": "",
+        "updateSuccess": "",
+        "updateError": ""
+      },
+      "errors": {
+        "required": "",
+        "mustBePositive": "",
+        "mustBeNonNegative": "",
+        "interestRateRange": "",
+        "termRange": "",
+        "paymentDayRange": "",
+        "asOfInFuture": ""
+      },
+      "balanceExceedsPrincipalWarning": ""
+    }
+  },
+  "fields": {
+    "categorySelect": {
+      "noCategoriesFound": "",
+      "selectCategoryLabel": "",
+      "searchCategoryLabel": "",
+      "clearSearchLabel": "",
+      "clearSelectionLabel": "",
+      "searchPlaceholder": "",
+      "sharedOwnerNotice": "",
+      "sharedOwnerNoticeTooltip": "",
+      "sharedOwnerCategoriesLoadError": ""
+    },
+    "select": {
+      "selectOption": "",
+      "searchPlaceholder": ""
+    },
+    "comboboxAccounts": {
+      "allAccounts": "",
+      "account": "",
+      "accountsSelected": "",
+      "selectedOne": "",
+      "selectedMany": "",
+      "searchPlaceholder": "",
+      "noResults": ""
+    },
+    "comboboxCategories": {
+      "searchPlaceholder": "",
+      "unselectedPlaceholder": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "accountMultiSelect": {
+      "ungrouped": ""
+    },
+    "tagSelect": {
+      "placeholder": "",
+      "noTagsAvailable": ""
+    },
+    "categoryMultiSelect": {
+      "placeholder": "",
+      "searchPlaceholder": "",
+      "noCategoriesFound": ""
+    },
+    "payeeMultiSelect": {
+      "label": "",
+      "searchPlaceholder": "",
+      "selectedMany": "",
+      "noResults": "",
+      "unknownPayee": "",
+      "loadError": ""
+    },
+    "budgetMultiSelect": {
+      "label": "",
+      "selectedMany": "",
+      "searchPlaceholder": "",
+      "noResults": "",
+      "unknownBudget": "",
+      "loadError": ""
+    },
+    "payeeSelect": {
+      "placeholder": "",
+      "searchPlaceholder": "",
+      "empty": "",
+      "createAffordance": "",
+      "createNew": "",
+      "sharedOwnerPayeesLoadError": ""
+    }
+  }
+}

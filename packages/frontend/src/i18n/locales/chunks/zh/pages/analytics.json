@@ -1,0 +1,362 @@
+{
+  "analytics": {
+    "backToAnalytics": "",
+    "timePeriods": {},
+    "navigation": {
+      "cashFlow": "",
+      "trendsComparison": "",
+      "investmentCalculator": "",
+      "pivotReport": "",
+      "netWorthDrivers": "",
+      "investmentContributions": "",
+      "netWorthHistory": "",
+      "collapse": "",
+      "sections": {
+        "investments": ""
+      }
+    },
+    "cashFlow": {
+      "income": "",
+      "expenses": "",
+      "netSavings": "",
+      "netFlow": "",
+      "savingsRate": "",
+      "loadError": "",
+      "noData": "",
+      "noDataHint": "",
+      "showTrendLine": "",
+      "showTrendLineHint": "",
+      "trendLine": "",
+      "vsPreviousPeriod": "",
+      "chartTypes": {
+        "stacked": "",
+        "mirrored": "",
+        "grouped": ""
+      },
+      "granularity": {
+        "monthly": "",
+        "biweekly": "",
+        "weekly": ""
+      },
+      "periods": {
+        "last3Months": "",
+        "last6Months": "",
+        "last12Months": "",
+        "thisYear": "",
+        "previousYear": "",
+        "allTime": ""
+      }
+    },
+    "trends": {
+      "metrics": {
+        "expenses": "",
+        "income": "",
+        "savings": ""
+      },
+      "chart": {
+        "selectedPeriod": "",
+        "comparisonPeriod": "",
+        "cumulativeNote": ""
+      },
+      "categoryBreakdown": {
+        "title": "",
+        "noData": "",
+        "viewAll": "",
+        "moreCount": ""
+      },
+      "monthlyComparison": {
+        "title": "",
+        "allCategories": "",
+        "average": "",
+        "total": "",
+        "vsLastMonth": "",
+        "viewTransactions": ""
+      },
+      "cumulativeProgress": {
+        "title": ""
+      },
+      "vsPreviousPeriod": "",
+      "loadError": "",
+      "noData": "",
+      "noDataHint": ""
+    },
+    "investmentCalculator": {
+      "initialBalance": "",
+      "useCurrentBalance": "",
+      "monthlyContribution": "",
+      "useAvgNetIncome": "",
+      "timeHorizon": "",
+      "annualReturn": "",
+      "annualReturnPlaceholder": "",
+      "annualInflation": "",
+      "totalInvested": "",
+      "nominalFinalValue": "",
+      "growth": "",
+      "realFinalValue": "",
+      "realGrowth": "",
+      "realMultiplier": "",
+      "realMultiplierTooltip": "",
+      "ofMoneyInvested": "",
+      "customIndicator": "",
+      "customReturnRate": "",
+      "inflationAdjustedSuffix": "",
+      "yearN": "",
+      "disclaimer": "",
+      "useAvgNetIncomeTooltip": "",
+      "inflationTooltip": "",
+      "totalInvestedBreakdown": "",
+      "configure": "",
+      "hideInputs": "",
+      "portfolioReturnOption": "",
+      "portfolioNoHistoryOption": ""
+    },
+    "portfolioFilter": {
+      "all": "",
+      "selectedOne": "",
+      "selectedMany": "",
+      "searchPlaceholder": "",
+      "noResults": ""
+    }
+  },
+  "pivotReport": {
+    "title": "",
+    "subtitle": "",
+    "controls": {
+      "rows": "",
+      "columns": "",
+      "measure": "",
+      "settings": ""
+    },
+    "dimensions": {
+      "category": "",
+      "subcategory": "",
+      "payee": "",
+      "tag": ""
+    },
+    "granularity": {
+      "yearly": "",
+      "quarterly": "",
+      "monthly": "",
+      "weekly": ""
+    },
+    "measure": {
+      "expense": "",
+      "income": ""
+    },
+    "display": {
+      "title": ""
+    },
+    "toggles": {
+      "heatmap": "",
+      "percentChange": ""
+    },
+    "filters": {
+      "period": "",
+      "allCategories": "",
+      "accounts": "",
+      "reset": "",
+      "resetTooltip": ""
+    },
+    "periods": {
+      "last6Months": "",
+      "last12Months": "",
+      "thisYear": "",
+      "previousYear": "",
+      "last3Years": "",
+      "last5Years": "",
+      "allTime": ""
+    },
+    "savedViews": {
+      "trigger": "",
+      "empty": "",
+      "saveCurrent": "",
+      "customView": "",
+      "dialogTitle": "",
+      "dialogDescription": "",
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "savedToast": "",
+      "deletedToast": "",
+      "saveError": ""
+    },
+    "table": {
+      "total": "",
+      "collapseAll": "",
+      "expandAll": "",
+      "expandRow": "",
+      "collapseRow": ""
+    },
+    "states": {
+      "emptyTitle": "",
+      "emptyHint": "",
+      "errorTitle": "",
+      "errorHint": ""
+    }
+  },
+  "netWorthDrivers": {
+    "title": "",
+    "subtitle": "",
+    "portfolioFilter": {
+      "scopeHint": ""
+    },
+    "calcInfo": {
+      "trigger": "",
+      "title": "",
+      "savedHeading": "",
+      "savedBody": "",
+      "grownHeading": "",
+      "grownBody": "",
+      "exampleHeading": "",
+      "exampleBody": "",
+      "noteBody": ""
+    },
+    "granularity": {
+      "monthly": "",
+      "quarterly": "",
+      "yearly": ""
+    },
+    "chart": {
+      "title": "",
+      "subtitle": "",
+      "saved": "",
+      "grown": "",
+      "totalGained": "",
+      "thisPeriod": "",
+      "periodSavings": "",
+      "periodGrowth": "",
+      "allocationContext": "",
+      "allocationContextNoReference": ""
+    },
+    "breakdownChart": {
+      "title": "",
+      "subtitle": "",
+      "periodTotal": "",
+      "others": "",
+      "grownTotal": ""
+    },
+    "degraded": {
+      "title": "",
+      "unpricedSecurities": "",
+      "unpricedSecuritiesTruncated": "",
+      "fxFallback": ""
+    },
+    "states": {
+      "loadError": "",
+      "noData": "",
+      "noDataHint": "",
+      "noPortfoliosHint": "",
+      "noPortfoliosTitle": "",
+      "noPortfoliosPlaceholder": "",
+      "noPortfoliosAction": ""
+    },
+    "target": {
+      "title": "",
+      "subtitle": "",
+      "targetShareLabel": "",
+      "savingsLabel": "",
+      "savingsPlaceholder": "",
+      "savingsResetToAverage": "",
+      "currentShareLine": "",
+      "valueNeeded": "",
+      "progressLine": "",
+      "progressReached": "",
+      "gapLabel": "",
+      "gapValue": "",
+      "reached": "",
+      "timeLabel": "",
+      "etaValue": "",
+      "etaReached": "",
+      "etaHint": "",
+      "noReturn": "",
+      "assumptionsLabel": "",
+      "disclaimer": ""
+    }
+  },
+  "investmentContributions": {
+    "title": "",
+    "subtitle": "",
+    "average": "",
+    "portfolioFilter": {
+      "scopeHint": ""
+    },
+    "granularity": {
+      "monthly": "",
+      "quarterly": "",
+      "yearly": ""
+    },
+    "cards": {
+      "totalContributed": "",
+      "shareOfSavings": "",
+      "averagePerPeriod": ""
+    },
+    "chart": {
+      "vsPrevious": ""
+    },
+    "states": {
+      "noData": "",
+      "noDataHint": "",
+      "noPortfoliosTitle": "",
+      "noPortfoliosPlaceholder": "",
+      "noPortfoliosAction": "",
+      "loadError": ""
+    }
+  },
+  "netWorthHistory": {
+    "title": "",
+    "subtitle": "",
+    "granularity": {
+      "weekly": "",
+      "monthly": "",
+      "quarterly": "",
+      "yearly": ""
+    },
+    "kindFilter": {
+      "all": "",
+      "scopeHint": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "assetKinds": {
+      "cash": "",
+      "investments": "",
+      "vehicles": "",
+      "ventures": ""
+    },
+    "assetFilter": {
+      "all": "",
+      "scopeHint": "",
+      "selectedOne": "",
+      "selectedMany": ""
+    },
+    "cards": {
+      "currentNetWorth": "",
+      "periodChange": "",
+      "annualized": "",
+      "averageLiabilities": "",
+      "noLiabilities": ""
+    },
+    "chart": {
+      "assets": "",
+      "liabilities": "",
+      "netWorth": "",
+      "averageLiabilities": "",
+      "liabilitiesZoomed": ""
+    },
+    "settings": {
+      "title": "",
+      "zoomLiabilities": "",
+      "zoomLiabilitiesHint": ""
+    },
+    "degraded": {
+      "title": "",
+      "unpricedSecurities": "",
+      "unpricedSecuritiesTruncated": "",
+      "fxFallback": ""
+    },
+    "states": {
+      "loadError": "",
+      "noData": "",
+      "noDataHint": ""
+    }
+  }
+}

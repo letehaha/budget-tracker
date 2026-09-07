@@ -1,0 +1,17 @@
+{
+  "auth": {
+    "verifyEmail": {
+      "title": "",
+      "description": "",
+      "descriptionYourEmail": "",
+      "descriptionContinued": "",
+      "didntReceive": "",
+      "resend": "",
+      "sending": "",
+      "resendIn": "",
+      "backToSignIn": "",
+      "resendSuccess": "",
+      "resendError": ""
+    }
+  }
+}

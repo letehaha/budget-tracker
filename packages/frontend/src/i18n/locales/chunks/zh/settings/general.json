@@ -1,0 +1,39 @@
+{
+  "settings": {
+    "general": {
+      "title": "",
+      "description": "",
+      "creditLimit": {
+        "label": "",
+        "description": "",
+        "successNotification": "",
+        "errorNotification": ""
+      },
+      "manualTransferMatching": {
+        "label": "",
+        "description": "",
+        "successNotification": "",
+        "errorNotification": ""
+      },
+      "savingsCategories": {
+        "label": "",
+        "description": "",
+        "successNotification": "",
+        "errorNotification": ""
+      },
+      "accountDropdowns": {
+        "defaultAccount": {
+          "label": "",
+          "description": "",
+          "placeholder": ""
+        },
+        "showArchived": {
+          "label": "",
+          "description": ""
+        },
+        "successNotification": "",
+        "errorNotification": ""
+      }
+    }
+  }
+}

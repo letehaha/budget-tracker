@@ -1,0 +1,332 @@
+{
+  "pages": {
+    "importExport": {
+      "csvImport": {
+        "pageTitle": "",
+        "pageDescription": "",
+        "stepper": {
+          "stepOf": "",
+          "steps": {
+            "upload": "",
+            "map": "",
+            "resolveAccounts": "",
+            "resolveCategories": "",
+            "review": "",
+            "results": ""
+          }
+        },
+        "steps": {
+          "uploadTitle": "",
+          "uploadDescription": "",
+          "mappingTitle": "",
+          "mappingDescription": "",
+          "reviewTitle": "",
+          "reviewDescription": "",
+          "completeTitle": "",
+          "completeDescription": ""
+        },
+        "fileUpload": {
+          "stepTitle": "",
+          "description": "",
+          "dragDrop": "",
+          "orBrowse": "",
+          "maxSize": "",
+          "removeFile": "",
+          "parsing": "",
+          "continueToMapping": "",
+          "errors": {
+            "invalidFormat": "",
+            "invalidFormatNamed": "",
+            "fileTooLarge": "",
+            "parseFailed": "",
+            "merge": {
+              "emptySelection": "",
+              "fileReadFailed": "",
+              "fileEmpty": "",
+              "fileNoDataRows": "",
+              "headerMismatch": "",
+              "forbiddenHeader": "",
+              "tooManyRows": "",
+              "parseError": ""
+            }
+          }
+        },
+        "columnMapping": {
+          "stepTitle": "",
+          "description": "",
+          "file": "",
+          "filesCount": "",
+          "totalRows": "",
+          "delimiter": "",
+          "extracting": "",
+          "detecting": "",
+          "nextExtract": "",
+          "continueToDuplicates": ""
+        },
+        "execute": {
+          "starting": "",
+          "progressCount": "",
+          "statusQueued": "",
+          "statusRunning": "",
+          "statusCompleted": "",
+          "statusFailed": "",
+          "failed": "",
+          "partialImportNote": ""
+        },
+        "review": {
+          "stepTitle": "",
+          "description": "",
+          "totalRows": "",
+          "validRows": "",
+          "invalidRows": "",
+          "duplicates": "",
+          "invalidRowsTitle": "",
+          "rowNumber": "",
+          "errors": "",
+          "rawData": "",
+          "duplicatesTitle": "",
+          "duplicatesHint": "",
+          "skip": "",
+          "match": "",
+          "csvTransaction": "",
+          "existingTransaction": "",
+          "importSummary": "",
+          "willBeImported": "",
+          "invalidWillBeSkipped": "",
+          "duplicatesWillBeSkipped": "",
+          "backToMapping": "",
+          "importing": "",
+          "importButton": "",
+          "unpriceableTitle": "",
+          "unpriceableDescription": "",
+          "unpriceableWillBeSkipped": "",
+          "currency": "",
+          "skipAndImport": "",
+          "cancelImport": "",
+          "noInvalidRows": "",
+          "noDuplicates": "",
+          "expand": "",
+          "collapse": ""
+        },
+        "results": {
+          "completeTitle": "",
+          "completeWithIssuesTitle": "",
+          "successDescription": "",
+          "partialDescription": "",
+          "imported": "",
+          "skippedDuplicates": "",
+          "accountsCreated": "",
+          "accountsSkipped": "",
+          "categoriesCreated": "",
+          "tagsCreated": "",
+          "payeesCreated": "",
+          "importErrors": "",
+          "rowNumber": "",
+          "error": "",
+          "batchIdLabel": "",
+          "batchIdDescription": "",
+          "viewTransactions": "",
+          "startNewImport": "",
+          "skippedUnpriceable": "",
+          "importFailed": "",
+          "successCallout": "",
+          "failed": "",
+          "noErrors": "",
+          "balanceWarningTitle": "",
+          "balanceWarningBody": ""
+        }
+      },
+      "columnMapping": {
+        "stepTitle": "",
+        "description": "",
+        "file": "",
+        "totalRows": "",
+        "delimiter": "",
+        "detecting": ""
+      },
+      "common": {
+        "selectOption": "",
+        "selectColumn": "",
+        "noneOptional": "",
+        "selectAction": ""
+      },
+      "transactionTypeMapping": {
+        "columnLabel": "",
+        "incomeValuesLabel": "",
+        "expenseValuesLabel": "",
+        "commaSeparatedHint": "",
+        "uncoveredValues": "",
+        "selectColumn": "",
+        "incomeValuesPlaceholder": "",
+        "expenseValuesPlaceholder": "",
+        "methodOptions": {
+          "amountSign": "",
+          "dataSourceColumn": ""
+        },
+        "amountSignInfo": ""
+      },
+      "currencyMapping": {
+        "selectCurrency": "",
+        "methodOptions": {
+          "dataSourceColumn": "",
+          "existingCurrency": ""
+        }
+      },
+      "categoryMapping": {
+        "selectCategory": ""
+      },
+      "accountMapping": {
+        "selectAccount": ""
+      },
+      "accountAssignment": {
+        "title": "",
+        "howToAssign": "",
+        "description": "",
+        "accountColumn": "",
+        "columnDescription": "",
+        "accountLabel": "",
+        "singleAccountDescription": "",
+        "mapOnNextStep": "",
+        "options": {
+          "mapToExisting": "",
+          "assignToSingle": ""
+        }
+      },
+      "accountMappingTable": {
+        "title": "",
+        "description": "",
+        "csvAccountName": "",
+        "currency": "",
+        "action": "",
+        "targetAccount": "",
+        "actions": {
+          "createNew": "",
+          "mapToExisting": ""
+        },
+        "noMatchingCurrency": "",
+        "willBeCreated": "",
+        "defaultCurrency": "",
+        "mappedTo": "",
+        "selectAccount": ""
+      },
+      "categoryMappingTable": {
+        "csvCategoryName": ""
+      },
+      "categoryAssignment": {
+        "options": {
+          "mapToExisting": "",
+          "createNew": "",
+          "assignToSingle": ""
+        }
+      },
+      "tagMappingTable": {
+        "csvTagName": ""
+      },
+      "resolveValues": {
+        "selectAction": "",
+        "actions": {
+          "createNew": "",
+          "linkExisting": "",
+          "skip": ""
+        },
+        "quickActions": {
+          "mapExactMatches": "",
+          "createNewForUnmatched": "",
+          "skipAll": "",
+          "reset": "",
+          "tooltips": {
+            "mapExactMatchesAccounts": "",
+            "mapExactMatchesCategories": "",
+            "mapExactMatchesTags": "",
+            "createNewForUnmatched": "",
+            "skipAll": "",
+            "reset": ""
+          }
+        },
+        "accounts": {
+          "sectionTitle": "",
+          "resolvedCount": "",
+          "csvName": "",
+          "currency": "",
+          "action": "",
+          "target": "",
+          "selectTarget": "",
+          "noMatchingCurrency": "",
+          "willCreate": "",
+          "empty": "",
+          "currentBalanceLabel": "",
+          "currentBalancePlaceholder": "",
+          "currentBalanceHint": "",
+          "skippedNote": ""
+        },
+        "categories": {
+          "sectionTitle": "",
+          "csvName": ""
+        },
+        "tags": {
+          "sectionTitle": "",
+          "resolvedCount": "",
+          "csvName": "",
+          "action": "",
+          "target": "",
+          "selectTarget": "",
+          "willCreate": "",
+          "willSkip": "",
+          "noExistingTags": "",
+          "loadFailed": "",
+          "empty": ""
+        },
+        "detectError": "",
+        "extractFailed": "",
+        "retry": "",
+        "footer": {
+          "back": "",
+          "next": ""
+        }
+      },
+      "mapColumns": {
+        "columnsTitle": "",
+        "assignmentsTitle": "",
+        "fieldHeader": "",
+        "csvColumnHeader": "",
+        "exampleHeader": "",
+        "howToAssignHeader": "",
+        "usingHeader": "",
+        "optionalSuffix": "",
+        "choosePlaceholder": "",
+        "alreadyMatchedSuffix": "",
+        "amountSignNote": "",
+        "back": "",
+        "next": "",
+        "missingHint": "",
+        "fields": {
+          "date": "",
+          "amount": "",
+          "description": "",
+          "category": "",
+          "account": "",
+          "currency": "",
+          "transactionType": "",
+          "payee": ""
+        },
+        "dateFormat": {
+          "label": "",
+          "placeholder": "",
+          "dayFirstOption": "",
+          "monthFirstOption": "",
+          "suggestedBadge": "",
+          "isoDetected": "",
+          "previewLabel": "",
+          "previewUnrecognized": "",
+          "mismatchWarning": ""
+        }
+      },
+      "importResults": {
+        "errorColumns": {
+          "row": "",
+          "error": ""
+        }
+      }
+    }
+  }
+}

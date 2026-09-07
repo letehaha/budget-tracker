@@ -1,0 +1,130 @@
+{
+  "investmentsImport": {
+    "title": "",
+    "description": "",
+    "backToPortfolio": "",
+    "upload": {
+      "fileTab": "",
+      "pasteTab": "",
+      "fileHintFormats": "",
+      "pastePlaceholder": "",
+      "estimatedCost": "",
+      "model": "",
+      "estimateButton": "",
+      "extractButton": "",
+      "extracting": "",
+      "modeAi": "",
+      "modeCsv": "",
+      "modeAiHint": "",
+      "modeCsvHint": "",
+      "csvHintFormats": "",
+      "parsingCsv": "",
+      "continueToMapping": ""
+    },
+    "review": {
+      "warningsTitle": "",
+      "empty": "",
+      "pickSecurity": "",
+      "pickCurrency": "",
+      "searchPlaceholder": "",
+      "searching": "",
+      "parsedSymbolHint": "",
+      "startTyping": "",
+      "noResults": "",
+      "alreadyPicked": "",
+      "duplicateSecurity": "",
+      "willMerge": "",
+      "txns": "",
+      "expand": "",
+      "collapse": "",
+      "deleteHolding": "",
+      "deleteTransaction": "",
+      "buy": "",
+      "sell": "",
+      "possibleDup": "",
+      "skipping": "",
+      "duplicateBadgeTooltip": "",
+      "back": "",
+      "commit": "",
+      "cols": {
+        "date": "",
+        "side": "",
+        "qty": "",
+        "price": "",
+        "fees": "",
+        "amount": "",
+        "security": "",
+        "currency": "",
+        "txCount": ""
+      },
+      "tooltips": {
+        "security": "",
+        "currency": "",
+        "parentRowDuplicates": ""
+      }
+    },
+    "done": {
+      "transactions": ""
+    },
+    "notifications": {
+      "imported": "",
+      "extractFailed": "",
+      "importFailed": "",
+      "skippedHoldings": "",
+      "failedTransactions": "",
+      "estimateFailed": "",
+      "csvParseFailed": ""
+    },
+    "columnMapping": {
+      "rowsAndDelimiter": "",
+      "backToUpload": "",
+      "previewTitle": "",
+      "requiredTitle": "",
+      "optionalTitle": "",
+      "defaultsTitle": "",
+      "sideValueMappingTitle": "",
+      "sideValueMappingHint": "",
+      "sideValueMappingEmpty": "",
+      "selectColumn": "",
+      "notMapped": "",
+      "pickCategory": "",
+      "cashMovementsNote": "",
+      "extractButton": "",
+      "extracting": "",
+      "fields": {
+        "symbol": "",
+        "date": "",
+        "side": "",
+        "quantity": "",
+        "price": "",
+        "fees": "",
+        "currency": "",
+        "name": "",
+        "defaultCurrency": "",
+        "defaultAssetClass": ""
+      },
+      "tooltips": {
+        "fees": "",
+        "currency": "",
+        "name": "",
+        "defaultCurrency": "",
+        "defaultAssetClass": ""
+      }
+    },
+    "categories": {
+      "buy": "",
+      "sell": "",
+      "dividend": "",
+      "transfer": "",
+      "tax": "",
+      "fee": "",
+      "cancel": "",
+      "other": "",
+      "skip": ""
+    },
+    "assetClasses": {
+      "stocks": "",
+      "crypto": ""
+    }
+  }
+}

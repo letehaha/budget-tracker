@@ -1,0 +1,53 @@
+{
+  "settings": {
+    "categories": {
+      "title": "",
+      "description": "",
+      "addButton": "",
+      "organizeButton": "",
+      "empty": "",
+      "categoriesCount": "",
+      "organizeHint": "",
+      "dropToTopLevel": "",
+      "movesQueued": "",
+      "unqueueMove": "",
+      "topLevel": "",
+      "saveChanges": "",
+      "parentField": {
+        "label": "",
+        "placeholder": "",
+        "hiddenHint": ""
+      },
+      "moveDialog": {
+        "title": "",
+        "description": "",
+        "moveButton": ""
+      },
+      "delete": {
+        "title": "",
+        "description": "",
+        "deleteButton": "",
+        "cancelButton": ""
+      },
+      "errors": {
+        "cannotLoad": ""
+      },
+      "notifications": {
+        "deleteSuccess": "",
+        "deleteFailed": "",
+        "checkFailed": "",
+        "moveFailed": "",
+        "saveSuccess": "",
+        "staleMovesRemoved": ""
+      },
+      "dropErrors": {
+        "currentParent": "",
+        "insideItself": "",
+        "internalTarget": "",
+        "tooDeep": "",
+        "childrenTooDeep": "",
+        "alreadyTopLevel": ""
+      }
+    }
+  }
+}

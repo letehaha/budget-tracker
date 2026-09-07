@@ -1,0 +1,98 @@
+{
+  "settings": {
+    "tags": {
+      "title": "",
+      "addButton": "",
+      "empty": "",
+      "tabs": {
+        "details": "",
+        "reminders": ""
+      },
+      "form": {
+        "createTitle": "",
+        "editTitle": "",
+        "name": "",
+        "namePlaceholder": "",
+        "color": "",
+        "icon": "",
+        "iconPlaceholder": "",
+        "iconSearchPlaceholder": "",
+        "clearIcon": "",
+        "description": "",
+        "descriptionPlaceholder": "",
+        "saveButton": "",
+        "previewPlaceholder": ""
+      },
+      "delete": {
+        "title": "",
+        "description": "",
+        "deleteButton": "",
+        "cancelButton": ""
+      },
+      "notifications": {
+        "createSuccess": "",
+        "createFailed": "",
+        "updateSuccess": "",
+        "updateFailed": "",
+        "deleteSuccess": "",
+        "deleteFailed": ""
+      },
+      "reminders": {
+        "addButton": "",
+        "empty": "",
+        "enabled": "",
+        "disabled": "",
+        "form": {
+          "createTitle": "",
+          "editTitle": "",
+          "type": "",
+          "typePlaceholder": "",
+          "amountThreshold": "",
+          "amountThresholdPlaceholder": "",
+          "amountThresholdHint": "",
+          "frequency": "",
+          "frequencyPlaceholder": "",
+          "dayOfMonth": "",
+          "dayOfMonthPlaceholder": "",
+          "dayOfMonthHint": "",
+          "isEnabled": "",
+          "saveButton": ""
+        },
+        "types": {
+          "amountThreshold": "",
+          "amountThresholdDescription": "",
+          "existenceCheck": "",
+          "existenceCheckDescription": ""
+        },
+        "frequencies": {
+          "immediate": "",
+          "immediateDescription": "",
+          "daily": "",
+          "dailyDescription": "",
+          "weekly": "",
+          "weeklyDescription": "",
+          "monthly": "",
+          "monthlyDescription": "",
+          "quarterly": "",
+          "quarterlyDescription": "",
+          "yearly": "",
+          "yearlyDescription": ""
+        },
+        "delete": {
+          "title": "",
+          "description": "",
+          "deleteButton": "",
+          "cancelButton": ""
+        },
+        "notifications": {
+          "createSuccess": "",
+          "createFailed": "",
+          "updateSuccess": "",
+          "updateFailed": "",
+          "deleteSuccess": "",
+          "deleteFailed": ""
+        }
+      }
+    }
+  }
+}

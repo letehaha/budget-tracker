@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "subscriptions": {
+      "title": "",
+      "defaultAutoRecord": {
+        "label": "",
+        "help": "",
+        "successNotification": "",
+        "errorNotification": ""
+      }
+    }
+  }
+}

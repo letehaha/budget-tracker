@@ -1,0 +1,43 @@
+{
+  "oauth": {
+    "authorize": {
+      "title": "",
+      "description": "",
+      "approve": "",
+      "deny": "",
+      "footer": "",
+      "error": "",
+      "unexpected_response": "",
+      "always_granted": "",
+      "optional": "",
+      "delete_warning": "",
+      "unknown_app": ""
+    },
+    "scopes": {
+      "finance_read": {
+        "label": "",
+        "desc": ""
+      },
+      "finance_write": {
+        "label": "",
+        "desc": ""
+      },
+      "finance_delete": {
+        "label": "",
+        "desc": ""
+      },
+      "profile_read": {
+        "label": "",
+        "desc": ""
+      },
+      "offline_access": {
+        "label": "",
+        "desc": ""
+      },
+      "unknown": {
+        "label": "",
+        "desc": ""
+      }
+    }
+  }
+}

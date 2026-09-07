@@ -1,0 +1,245 @@
+{
+  "transactions": {
+    "filters": {
+      "filtersLabel": "",
+      "selectFilters": "",
+      "reset": "",
+      "apply": "",
+      "dateRange": {
+        "placeholder": "",
+        "presets": {
+          "thisMonth": "",
+          "last3Months": "",
+          "last6Months": "",
+          "last12Months": ""
+        }
+      },
+      "transactionType": {
+        "label": "",
+        "income": "",
+        "expense": "",
+        "allTypes": ""
+      },
+      "amountRange": {
+        "from": "",
+        "to": "",
+        "placeholderFrom": "",
+        "placeholderTo": "",
+        "compactFrom": "",
+        "compactTo": ""
+      },
+      "refundsFilter": {
+        "label": ""
+      },
+      "transferFilter": {
+        "label": ""
+      },
+      "plannedFilter": {
+        "label": ""
+      },
+      "filterOperation": {
+        "all": "",
+        "exclude": "",
+        "only": ""
+      },
+      "noteIncludes": {
+        "label": "",
+        "placeholder": "",
+        "compactPlaceholder": ""
+      },
+      "tags": {
+        "allTags": "",
+        "tagSingular": "",
+        "tagPlural": "",
+        "selected": "",
+        "searchPlaceholder": ""
+      },
+      "payees": {
+        "label": "",
+        "selectedOne": "",
+        "selectedMany": ""
+      },
+      "removeFilter": "",
+      "menu": {
+        "type": "",
+        "tags": "",
+        "budgets": "",
+        "amount": "",
+        "note": ""
+      },
+      "transferNature": {
+        "label": "",
+        "disabledTooltip": "",
+        "commonTransfer": "",
+        "outOfWallet": "",
+        "toPortfolio": "",
+        "toVenture": "",
+        "selectedCount": ""
+      }
+    },
+    "list": {
+      "noMoreData": "",
+      "loadingMore": "",
+      "detailsTitle": "",
+      "detailsDescription": ""
+    },
+    "bulkEdit": {
+      "selectAll": "",
+      "cancelSelection": "",
+      "editButton": "",
+      "selectedCount": "",
+      "dialogTitle": "",
+      "dialogDescription": "",
+      "categoryLabel": "",
+      "categoryPlaceholder": "",
+      "payeeLabel": "",
+      "payeePlaceholder": "",
+      "tagsLabel": "",
+      "tagsPlaceholder": "",
+      "noteLabel": "",
+      "notePlaceholder": "",
+      "applyButton": "",
+      "applyingButton": "",
+      "confirmTitle": "",
+      "confirmDescription": "",
+      "confirmCategoryLabel": "",
+      "confirmPayeeLabel": "",
+      "confirmTagsLabel": "",
+      "confirmNoteLabel": "",
+      "cancelButton": "",
+      "confirmApplyButton": "",
+      "successMessage": "",
+      "unexpectedError": "",
+      "tagModeLabel": "",
+      "tagModeAdd": "",
+      "tagModeReplace": "",
+      "tagModeRemove": "",
+      "unselectableReasons": {
+        "split": "",
+        "sharedAccount": ""
+      }
+    },
+    "transactionGroups": {
+      "bulkActions": {
+        "createNewGroup": "",
+        "addToExistingGroup": "",
+        "groupButton": ""
+      },
+      "addToGroupDialog": {
+        "title": "",
+        "searchPlaceholder": "",
+        "noGroupsMessage": "",
+        "noSearchResultsMessage": "",
+        "addingText": "",
+        "buttonLabel": "",
+        "cancelButton": "",
+        "transactionCountLabel": ""
+      },
+      "createGroupDialog": {
+        "title": "",
+        "descriptionPrefix": "",
+        "groupNameLabel": "",
+        "groupNamePlaceholder": "",
+        "noteLabel": "",
+        "notePlaceholder": "",
+        "creatingText": "",
+        "buttonLabel": "",
+        "cancelButton": ""
+      },
+      "groupsPage": {
+        "title": "",
+        "searchPlaceholder": "",
+        "noGroupsMessage": "",
+        "emptyStateHint": "",
+        "transactionCountLabel": "",
+        "deleteError": ""
+      },
+      "errors": {
+        "nameRequired": "",
+        "minTransactions": "",
+        "alreadyInGroup": "",
+        "createFailed": "",
+        "addFailed": ""
+      }
+    },
+    "planned": {
+      "label": "",
+      "confirmedLabel": "",
+      "plannedTooltip": "",
+      "expiredTooltip": "",
+      "mergedTooltip": ""
+    },
+    "table": {
+      "columns": {
+        "date": "",
+        "account": "",
+        "category": "",
+        "payee": "",
+        "amount": "",
+        "refAmount": "",
+        "originalAmount": "",
+        "note": "",
+        "tags": "",
+        "categorizationSource": "",
+        "group": "",
+        "refund": "",
+        "split": ""
+      },
+      "outOfWallet": "",
+      "hint": "",
+      "emptyTitle": "",
+      "emptyDescription": "",
+      "columnConfig": {
+        "title": "",
+        "columns": "",
+        "visibleCount": "",
+        "resetDefaults": ""
+      },
+      "categorizationSourceValues": {
+        "manual": "",
+        "ai": "",
+        "mcc_rule": "",
+        "user_rule": "",
+        "subscription_rule": "",
+        "payee_rule": ""
+      },
+      "viewToggle": {
+        "list": "",
+        "table": ""
+      },
+      "fullscreen": {
+        "enter": "",
+        "exit": ""
+      }
+    },
+    "bulkDelete": {
+      "button": "",
+      "externalTooltip": "",
+      "confirmButton": "",
+      "confirmTitle": "",
+      "confirmDescription": "",
+      "successMessage": "",
+      "unexpectedError": ""
+    }
+  },
+  "records": {
+    "upcomingSection": {
+      "title": "",
+      "overdueBadge": "",
+      "scheduledBadge": "",
+      "payAction": "",
+      "hideToggle": "",
+      "expectedBadge": "",
+      "unconfirmedBadge": "",
+      "morePlans": "",
+      "morePlansAtLeast": "",
+      "deletePlanTitle": "",
+      "deletePlanDescription": "",
+      "plansLoadFailed": "",
+      "confirmAction": "",
+      "confirmTooltip": "",
+      "confirmPlanSuccess": "",
+      "confirmPlanError": ""
+    }
+  }
+}

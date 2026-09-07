@@ -1,0 +1,26 @@
+{
+  "pages": {
+    "importExport": {
+      "importHistory": {
+        "pageTitle": "",
+        "pageDescription": "",
+        "loadError": "",
+        "emptyTitle": "",
+        "emptyDescription": "",
+        "emptyAction": "",
+        "transactionCount": "",
+        "accountCount": "",
+        "deleteButton": "",
+        "deleteConfirmTitle": "",
+        "deleteConfirmDescription": "",
+        "deleteSuccessMessage": "",
+        "deleteUnexpectedError": "",
+        "deleteLinkedTransfersWarningTitle": "",
+        "deleteLinkedTransfersCheckbox": "",
+        "deleteLinkedTransfersDescription": "",
+        "deleteLinkedTransfersConfirmTitle": "",
+        "deleteLinkedTransfersConfirmDescription": ""
+      }
+    }
+  }
+}

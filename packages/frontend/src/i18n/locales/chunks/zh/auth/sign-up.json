@@ -1,0 +1,41 @@
+{
+  "auth": {
+    "signup": {
+      "title": "",
+      "divider": "",
+      "submitButton": "",
+      "alreadyHaveAccount": "",
+      "signInLink": "",
+      "labels": {
+        "displayName": "",
+        "verifyPassword": ""
+      },
+      "placeholders": {
+        "displayName": "",
+        "verifyPassword": ""
+      },
+      "errors": {
+        "invalidEmail": "",
+        "passwordTooShort": "",
+        "passwordTooLong": "",
+        "invalidPassword": "",
+        "userExists": "",
+        "signupsDisabled": "",
+        "genericErrorRetry": "",
+        "oauthFailed": "",
+        "oauthNotConfigured": ""
+      }
+    },
+    "shared": {
+      "divider": "",
+      "passkeyButton": {
+        "signIn": "",
+        "register": ""
+      },
+      "oauthButton": {
+        "signIn": "",
+        "signUp": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "pages": {
+    "household": {
+      "title": "",
+      "description": "",
+      "myHousehold": {
+        "title": "",
+        "description": ""
+      },
+      "youOwner": "",
+      "noMembers": "",
+      "loadMembersError": "",
+      "permissions": {
+        "read": "",
+        "write": "",
+        "manage": ""
+      },
+      "writeScope": {
+        "all": "",
+        "own": ""
+      },
+      "invite": {
+        "emailLabel": "",
+        "emailPlaceholder": "",
+        "permissionLabel": "",
+        "writeScopeLabel": "",
+        "submit": "",
+        "sent": "",
+        "error": "",
+        "emailDeliveryFailed": ""
+      },
+      "revoke": {
+        "action": "",
+        "title": "",
+        "description": "",
+        "confirm": "",
+        "success": "",
+        "error": ""
+      },
+      "permissionChange": {
+        "setRead": "",
+        "setWrite": "",
+        "success": "",
+        "error": ""
+      },
+      "imIn": {
+        "title": "",
+        "description": "",
+        "empty": "",
+        "unnamedHousehold": "",
+        "loadError": ""
+      },
+      "leave": {
+        "action": "",
+        "title": "",
+        "description": "",
+        "confirm": "",
+        "success": "",
+        "error": ""
+      },
+      "pending": {
+        "badge": "",
+        "resend": "",
+        "cancel": "",
+        "cancelTitle": "",
+        "cancelDescription": "",
+        "cancelConfirm": "",
+        "cancelSuccess": "",
+        "cancelError": "",
+        "resendSuccess": "",
+        "resendError": "",
+        "resendDeliveryFailed": ""
+      }
+    }
+  }
+}

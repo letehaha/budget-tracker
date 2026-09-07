@@ -295,7 +295,6 @@
         "applyButton": "Aplicar",
         "recommendedLabel": "Recomendado",
         "allTransactionsLabel": "Todas las transacciones",
-        "loadMoreButton": "Cargar más",
         "noMoreTransactions": "No hay más transacciones",
         "noIncomeTransactions": "No se encontraron transacciones de ingreso. Intente ajustar los filtros.",
         "noExpenseTransactions": "No se encontraron transacciones de gasto. Intente ajustar los filtros.",
@@ -585,8 +584,8 @@
         "sentBody": "Hemos enviado una invitación a {owner}. Obtendrá acceso una vez que la acepte.",
         "success": "Invitación enviada.",
         "deliveryFailed": "Invitación creada, pero no se pudo enviar el correo electrónico. Inténtelo de nuevo más tarde.",
-        "error": "Error al enviar la invitación.",
-        "emailNotConfigured": "Invitación creada, pero este servidor no tiene configurado el envío de correos. Pídale que revise sus invitaciones en la aplicación."
+        "emailNotConfigured": "Invitación creada, pero este servidor no tiene configurado el envío de correos. Pídale que revise sus invitaciones en la aplicación.",
+        "error": "Error al enviar la invitación."
       }
     },
     "categoryExclusions": {

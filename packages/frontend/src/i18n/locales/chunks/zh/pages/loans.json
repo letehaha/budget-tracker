@@ -1,0 +1,222 @@
+{
+  "loans": {
+    "title": "",
+    "loadError": "",
+    "tryAgain": "",
+    "addButton": {
+      "label": ""
+    },
+    "actions": {
+      "more": "",
+      "moreAriaLabel": "",
+      "excludeFromStats": "",
+      "linkPayments": ""
+    },
+    "linkPayments": {
+      "title": "",
+      "description": "",
+      "emptyTitle": "",
+      "emptyDescription": "",
+      "selectedCount": "",
+      "clearSelection": "",
+      "linkSelected": "",
+      "success": "",
+      "preAnchorWarning": "",
+      "error": "",
+      "overpayTitle": "",
+      "overpayDescription": "",
+      "overpayConfirmButton": ""
+    },
+    "dialog": {
+      "createTitle": "",
+      "createDescription": "",
+      "editTitle": "",
+      "editDescription": ""
+    },
+    "settings": {
+      "title": "",
+      "editTitle": "",
+      "editDescription": "",
+      "editButton": "",
+      "excludeFromStatsTitle": "",
+      "excludeFromStatsDescription": "",
+      "archiveTitle": "",
+      "archiveDescription": "",
+      "archiveButton": "",
+      "archivedTitle": "",
+      "archivedDescription": "",
+      "unarchiveButton": "",
+      "archiveConfirmTitle": "",
+      "archiveConfirmDescription": "",
+      "archiveAlsoExclude": "",
+      "deleteTitle": "",
+      "deleteDescription": "",
+      "deleteButton": "",
+      "deleteConfirmTitle": "",
+      "deleteConfirmDescription": "",
+      "toggleSuccess": "",
+      "toggleError": "",
+      "archiveSuccess": "",
+      "archiveError": "",
+      "unarchiveSuccess": "",
+      "deleteSuccess": "",
+      "deleteError": "",
+      "deleteBlockedByPayments": ""
+    },
+    "empty": {
+      "title": "",
+      "description": "",
+      "createFirstButton": ""
+    },
+    "paidOff": {
+      "sectionTitle": "",
+      "repaid": "",
+      "opened": "",
+      "closed": "",
+      "interestPaid": ""
+    },
+    "archivedList": {
+      "sectionTitle": "",
+      "badge": "",
+      "outstanding": ""
+    },
+    "aggregate": {
+      "avgApr": "",
+      "monthlyObligation": "",
+      "interestProjected": "",
+      "totalOutstanding": "",
+      "principalRepaid": "",
+      "debtFree": ""
+    },
+    "list": {
+      "columns": {
+        "loan": "",
+        "progress": "",
+        "balance": "",
+        "apr": "",
+        "monthly": "",
+        "payoff": "",
+        "interestLeft": ""
+      },
+      "paidPercent": "",
+      "monthsLeft": "",
+      "ofPrincipal": ""
+    },
+    "types": {
+      "mortgage": "",
+      "auto": "",
+      "student": "",
+      "personal": "",
+      "heloc": "",
+      "business": "",
+      "medical": "",
+      "other": ""
+    },
+    "warnings": {
+      "no_planned_payment": "",
+      "payment_below_interest": ""
+    },
+    "detail": {
+      "backToList": "",
+      "loadError": "",
+      "paidOffBadge": "",
+      "summary": {
+        "outstanding": "",
+        "principalOnlyTooltip": "",
+        "apr": "",
+        "originalPrincipal": "",
+        "term": "",
+        "termMonths": "",
+        "startDate": "",
+        "paymentDay": "",
+        "dayOfMonth": "",
+        "accountNumber": "",
+        "balanceAnchor": "",
+        "balanceAnchorTooltip": "",
+        "actualDuration": ""
+      },
+      "paidOff": {
+        "bannerTitle": "",
+        "bannerSubline": "",
+        "took": "",
+        "monthsEarly": "",
+        "duration": {
+          "full": "",
+          "years": "",
+          "months": ""
+        },
+        "cost": {
+          "title": "",
+          "totalLabel": "",
+          "principal": "",
+          "interest": "",
+          "estimateFootnote": "",
+          "effectiveCost": ""
+        },
+        "chart": {
+          "title": "",
+          "titleHint": "",
+          "noData": ""
+        }
+      },
+      "projection": {
+        "title": "",
+        "paidLabel": "",
+        "paidOfOriginal": "",
+        "payoffDate": "",
+        "monthsRemaining": "",
+        "totalInterestRemaining": "",
+        "nextMonthInterest": "",
+        "nextMonthPrincipal": "",
+        "plannedPayment": ""
+      },
+      "events": {
+        "title": "",
+        "empty": "",
+        "rateChange": "",
+        "termChange": "",
+        "plannedPaymentChange": "",
+        "paidOff": "",
+        "balanceCorrection": ""
+      },
+      "payments": {
+        "title": "",
+        "empty": "",
+        "loadError": "",
+        "seeAll": "",
+        "allTitle": ""
+      },
+      "recordPayment": "",
+      "payoffChart": {
+        "title": "",
+        "titleHint": "",
+        "customPaymentLabel": "",
+        "applyAsPlanned": "",
+        "applyConfirmTitle": "",
+        "applyConfirmDescription": "",
+        "applySuccess": "",
+        "applyError": "",
+        "belowInterest": "",
+        "paidOff": "",
+        "enterPaymentPrompt": "",
+        "paidOffShort": "",
+        "neverPaysOff": "",
+        "interestVsPlanned": "",
+        "payoffVsPlanned": "",
+        "sameAsPlanned": "",
+        "earlierBy": "",
+        "laterBy": "",
+        "monthsLabel": "",
+        "yearsLabel": "",
+        "yearsMonthsLabel": "",
+        "legend": {
+          "minimum": "",
+          "planned": "",
+          "custom": "",
+          "actual": "",
+          "schedule": ""
+        }
+      }
+    }
+  }
+}

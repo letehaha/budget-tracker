@@ -1,0 +1,428 @@
+{
+  "common": {
+    "loading": "",
+    "new": "",
+    "actions": {
+      "loading": "",
+      "signUp": "",
+      "save": "",
+      "cancel": "",
+      "back": "",
+      "accept": "",
+      "delete": "",
+      "edit": "",
+      "addSubcategory": "",
+      "settings": "",
+      "confirm": "",
+      "viewTransactions": "",
+      "viewAnalytics": "",
+      "saving": "",
+      "saveChanges": "",
+      "done": "",
+      "failed": "",
+      "viewAll": "",
+      "scan": "",
+      "link": "",
+      "clear": "",
+      "apply": "",
+      "retry": "",
+      "copyInviteLink": "",
+      "moveTo": ""
+    },
+    "ui": {
+      "close": "",
+      "actions": "",
+      "chooseAction": "",
+      "other": "",
+      "refund": "",
+      "split": "",
+      "deletedBadge": ""
+    },
+    "components": {
+      "statusIndicator": {
+        "autoMatched": "",
+        "suggested": "",
+        "willCreate": "",
+        "needsAttention": "",
+        "invalid": "",
+        "optional": "",
+        "skipped": ""
+      },
+      "selectField": {
+        "clearSelection": ""
+      }
+    },
+    "errors": {
+      "copyToClipboardFailed": ""
+    },
+    "notifications": {
+      "subscriptionCurrencyNotConnected": "",
+      "backgroundJobFailed": "",
+      "inviteLinkCopied": ""
+    },
+    "sharing": {
+      "emailNotSent": ""
+    },
+    "labels": {
+      "email": "",
+      "password": "",
+      "system": "",
+      "unknown": "",
+      "total": ""
+    },
+    "placeholders": {
+      "email": "",
+      "password": ""
+    },
+    "dialogs": {
+      "createAccount": "",
+      "createVehicle": "",
+      "editVehicle": ""
+    },
+    "accountCategories": {
+      "general": "",
+      "cash": "",
+      "currentAccount": "",
+      "creditCard": "",
+      "saving": "",
+      "bonus": "",
+      "insurance": "",
+      "investment": "",
+      "loan": "",
+      "mortgage": "",
+      "overdraft": "",
+      "crypto": "",
+      "vehicle": ""
+    },
+    "paymentTypes": {
+      "creditCard": "",
+      "bankTransfer": "",
+      "cash": "",
+      "debitCard": "",
+      "mobilePayment": "",
+      "voucher": "",
+      "webPayment": ""
+    },
+    "vehicleClasses": {
+      "sedan": "",
+      "suv": "",
+      "truck": "",
+      "luxury": "",
+      "ev": "",
+      "motorcycle": "",
+      "other": ""
+    },
+    "depreciationPresets": {
+      "classDefault": "",
+      "slow": "",
+      "average": "",
+      "fast": "",
+      "custom": ""
+    },
+    "aiFeatures": {
+      "categorization": {
+        "name": "",
+        "description": ""
+      },
+      "statementParsing": {
+        "name": "",
+        "description": ""
+      },
+      "investmentTransactionsParsing": {
+        "name": "",
+        "description": ""
+      }
+    },
+    "transactions": {
+      "delete": {
+        "success": "",
+        "error": ""
+      },
+      "submit": {
+        "unexpectedError": ""
+      },
+      "unlink": {
+        "error": ""
+      },
+      "record": {
+        "addedByTooltip": "",
+        "hiddenAccount": ""
+      }
+    },
+    "outOfWallet": "",
+    "dateSelector": {
+      "dialogTitle": "",
+      "dueDate": "",
+      "quickSelect": "",
+      "apply": "",
+      "periodTypes": {
+        "day": "",
+        "month": "",
+        "quarter": "",
+        "halfYear": "",
+        "year": ""
+      },
+      "filterModes": {
+        "is": "",
+        "before": "",
+        "after": "",
+        "between": ""
+      },
+      "currentMonth": "",
+      "placeholders": {
+        "day": "",
+        "month": "",
+        "quarter": "",
+        "halfYear": "",
+        "year": "",
+        "default": ""
+      }
+    },
+    "appUpdate": {
+      "title": "",
+      "description": "",
+      "reload": ""
+    },
+    "resourceLease": {
+      "activeLabel": "",
+      "expiredLabel": "",
+      "defaultResourceLabel": "",
+      "activeTooltip": "",
+      "countingDownTooltip": "",
+      "cappedTooltip": "",
+      "expiredTooltip": "",
+      "status": {
+        "active": "",
+        "countingDown": "",
+        "expired": ""
+      },
+      "duration": {
+        "seconds": "",
+        "minutes": "",
+        "hours": ""
+      }
+    },
+    "logo": {
+      "tabs": {
+        "brand": "",
+        "letters": ""
+      },
+      "searchPlaceholder": "",
+      "searchHint": "",
+      "noResults": "",
+      "noResultsLettersHint": "",
+      "useDomainDirectly": "",
+      "autoLabel": "",
+      "domainHint": "",
+      "searchError": "",
+      "editAriaLabel": "",
+      "dialogTitle": "",
+      "resetToAuto": "",
+      "remove": "",
+      "lettersLabel": "",
+      "lettersPlaceholder": "",
+      "colorLabel": "",
+      "colorSwatchAriaLabel": "",
+      "customColorAriaLabel": "",
+      "applyLetters": "",
+      "lettersSelectedLabel": ""
+    }
+  },
+  "accountGroups": {
+    "create": {
+      "error": ""
+    },
+    "update": {
+      "success": "",
+      "error": ""
+    },
+    "delete": {
+      "success": "",
+      "error": ""
+    },
+    "link": {
+      "success": "",
+      "error": ""
+    },
+    "unlink": {
+      "success": "",
+      "error": ""
+    }
+  },
+  "validation": {
+    "minLength": "",
+    "emailInvalid": "",
+    "passwordsNoMatch": ""
+  },
+  "notifications": {
+    "title": "",
+    "markAllAsRead": "",
+    "empty": "",
+    "containerAriaLabel": "",
+    "closeToast": "",
+    "viewOnGitHub": "",
+    "newVersion": "",
+    "newRelease": "",
+    "tagReminder": {
+      "thresholdMessage": "",
+      "existenceMessage": ""
+    },
+    "share": {
+      "sendFailedHint": ""
+    }
+  },
+  "currencyNames": {
+    "UAH": "",
+    "USD": "",
+    "EUR": "",
+    "GBP": "",
+    "JPY": "",
+    "CHF": "",
+    "CAD": "",
+    "AUD": "",
+    "NZD": "",
+    "CNY": "",
+    "HKD": "",
+    "SGD": "",
+    "SEK": "",
+    "NOK": "",
+    "DKK": "",
+    "PLN": "",
+    "CZK": "",
+    "HUF": "",
+    "RON": "",
+    "BGN": "",
+    "HRK": "",
+    "RSD": "",
+    "TRY": "",
+    "RUB": "",
+    "BYN": "",
+    "KZT": "",
+    "INR": "",
+    "IDR": "",
+    "MYR": "",
+    "PHP": "",
+    "THB": "",
+    "VND": "",
+    "KRW": "",
+    "TWD": "",
+    "BRL": "",
+    "MXN": "",
+    "ARS": "",
+    "CLP": "",
+    "COP": "",
+    "PEN": "",
+    "ZAR": "",
+    "EGP": "",
+    "AED": "",
+    "SAR": "",
+    "ILS": "",
+    "QAR": "",
+    "KWD": "",
+    "BHD": "",
+    "OMR": "",
+    "JOD": "",
+    "MAD": "",
+    "NGN": "",
+    "KES": "",
+    "GHS": "",
+    "XOF": "",
+    "XAF": "",
+    "BTC": "",
+    "ETH": ""
+  },
+  "fileDropzone": {
+    "clickOrDrag": "",
+    "clickOrDragMultiple": "",
+    "dropHere": "",
+    "dropHereMultiple": "",
+    "removeFile": "",
+    "fileTooLarge": "",
+    "fileTooLargeNamed": "",
+    "filesSelected": "",
+    "clearAll": "",
+    "onlyFirstFileTaken": ""
+  },
+  "demo": {
+    "featureNotAvailable": "",
+    "passwordChangeRestricted": "",
+    "investmentsRestricted": {
+      "title": "",
+      "description": ""
+    },
+    "banner": {
+      "message": "",
+      "resets": "",
+      "signUp": "",
+      "timeFormat": {
+        "hoursMinutes": "",
+        "minutes": ""
+      }
+    },
+    "sessionExpiredNotice": ""
+  },
+  "settings": {
+    "currencies": {
+      "setBase": {
+        "overlay": {
+          "title": "",
+          "description": "",
+          "takingLong": "",
+          "failedTitle": "",
+          "unreachableTitle": "",
+          "unreachableDescription": "",
+          "dismiss": "",
+          "preparing": "",
+          "finishing": "",
+          "stepCounter": "",
+          "steps": {
+            "transactions": "",
+            "accounts": "",
+            "loanDetails": "",
+            "balances": "",
+            "investmentTransactions": "",
+            "portfolioTransfers": "",
+            "holdings": "",
+            "portfolioBalances": ""
+          }
+        }
+      }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "",
+      "setByEndpoint": ""
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "",
+      "nameLabel": "",
+      "noteLabel": "",
+      "notePlaceholder": "",
+      "loadingText": "",
+      "savingAction": "",
+      "cancelButton": "",
+      "editAction": "",
+      "deleteAction": "",
+      "transactionsLabel": "",
+      "deleteGroupTitle": "",
+      "deleteGroupDescription": "",
+      "removeTransactionTitle": "",
+      "removeTransactionDescription": "",
+      "removeTransactionDescriptionNormal": "",
+      "removeButtonText": "",
+      "removeAndDeleteButtonText": "",
+      "summary": {
+        "transactions": "",
+        "net": "",
+        "moneyIn": "",
+        "moneyOut": ""
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": ""
+    }
+  }
+}

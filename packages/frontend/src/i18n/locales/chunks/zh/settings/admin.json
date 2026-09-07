@@ -1,0 +1,118 @@
+{
+  "settings": {
+    "admin": {
+      "title": "",
+      "description": "",
+      "priceSync": {
+        "title": "",
+        "description": "",
+        "button": "",
+        "buttonLoading": "",
+        "notifications": {
+          "success": "",
+          "failed": "",
+          "rateLimited": "",
+          "adminRequired": ""
+        }
+      },
+      "priceUpload": {
+        "title": "",
+        "description": "",
+        "button": "",
+        "dialogTitle": "",
+        "selectSecurity": {
+          "searchLabel": "",
+          "searchPlaceholder": "",
+          "searching": "",
+          "failed": "",
+          "noResults": "",
+          "changeButton": ""
+        },
+        "dateRangeInfo": {
+          "loading": "",
+          "title": "",
+          "tooltipText": ""
+        },
+        "fileUpload": {
+          "title": "",
+          "supportedFormats": "",
+          "errors": {
+            "unsupportedFormat": "",
+            "parseFailed": ""
+          }
+        },
+        "fieldMapper": {
+          "title": "",
+          "description": "",
+          "selectField": "",
+          "dateFormatLabel": "",
+          "dateFormatDescription": "",
+          "dateFormats": {
+            "ddMMyyyySlash": "",
+            "MMddyyyySlash": "",
+            "yyyyMMddDash": "",
+            "ddMMyyyyDash": "",
+            "MMddyyyyDash": ""
+          },
+          "mappingComplete": "",
+          "mappingIncomplete": "",
+          "fileInfo": "",
+          "records": "",
+          "changeFileButton": "",
+          "continueButton": ""
+        },
+        "preview": {
+          "title": "",
+          "recordsCount": "",
+          "recordsPeriod": "",
+          "loadingExisting": "",
+          "warnings": {
+            "significantDifferences": "",
+            "differencesDetails": ""
+          },
+          "filterCheckbox": "",
+          "tableHeaders": {
+            "date": "",
+            "newPrice": "",
+            "existingPrice": "",
+            "difference": ""
+          },
+          "noExistingPrice": "",
+          "scrollForMore": "",
+          "noDifferences": "",
+          "backButton": "",
+          "continueButton": ""
+        },
+        "options": {
+          "title": "",
+          "autoFilter": {
+            "title": "",
+            "description": ""
+          },
+          "override": {
+            "title": "",
+            "description": ""
+          },
+          "backButton": "",
+          "uploadButton": "",
+          "uploadingButton": ""
+        },
+        "result": {
+          "title": "",
+          "inserted": "",
+          "duplicates": "",
+          "duplicatesUpdated": "",
+          "duplicatesSkipped": "",
+          "filtered": "",
+          "closeButton": "",
+          "uploadMoreButton": ""
+        },
+        "notifications": {
+          "dateInfoLoadFailed": "",
+          "uploadSuccess": "",
+          "uploadFailed": ""
+        }
+      }
+    }
+  }
+}

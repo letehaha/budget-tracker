@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "api": {
+      "failedToFetch": "",
+      "failedToFetchSelfHost": "",
+      "unexpectedError": "",
+      "sessionExpired": "",
+      "payloadTooLarge": ""
+    },
+    "notFound": {
+      "title": "",
+      "description": "",
+      "attemptedLabel": "",
+      "goBack": "",
+      "goHome": ""
+    }
+  }
+}

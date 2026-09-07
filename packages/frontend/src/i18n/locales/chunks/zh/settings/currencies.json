@@ -1,0 +1,89 @@
+{
+  "settings": {
+    "currencies": {
+      "page": {
+        "title": "",
+        "description": ""
+      },
+      "addNew": {
+        "loading": "",
+        "selectCurrency": "",
+        "addButton": "",
+        "sectionLabel": "",
+        "successfullyAdded": "",
+        "errors": {
+          "addFailed": ""
+        }
+      },
+      "howItWorks": {
+        "trigger": "",
+        "body": ""
+      },
+      "row": {
+        "baseBadge": "",
+        "custom": "",
+        "live": "",
+        "unused": "",
+        "accountsCount": ""
+      },
+      "empty": {
+        "title": "",
+        "description": ""
+      },
+      "exchangeRate": {
+        "disableLiveUpdate": "",
+        "liveUpdateInfo": "",
+        "liveUpdateLabel": "",
+        "ratePlaceholder": "",
+        "saveButton": "",
+        "successfullyUpdated": "",
+        "balancesNotRefreshed": "",
+        "errors": {
+          "unexpectedError": "",
+          "updateFailed": ""
+        }
+      },
+      "delete": {
+        "confirmTitle": "",
+        "description": "",
+        "button": "",
+        "buttonShort": "",
+        "disabledTooltip": "",
+        "successfullyDeleted": "",
+        "errors": {
+          "deleteFailed": ""
+        }
+      },
+      "setBase": {
+        "button": "",
+        "buttonShort": "",
+        "processing": "",
+        "tooltip": "",
+        "dialog": {
+          "title": "",
+          "warningTitle": "",
+          "warningText": "",
+          "descriptionText": "",
+          "roundingTitle": "",
+          "roundingIntro": "",
+          "roundingHow": "",
+          "roundingRule1": "",
+          "roundingRule2": "",
+          "roundingStandard": "",
+          "untouchedWarning": "",
+          "processingTimeInfo": "",
+          "restrictionWarning": "",
+          "confirmation": "",
+          "changeButton": "",
+          "cancelButton": ""
+        },
+        "successMessage": "",
+        "errors": {
+          "changeFailed": "",
+          "lockedHousehold": "",
+          "lockedShares": ""
+        }
+      }
+    }
+  }
+}

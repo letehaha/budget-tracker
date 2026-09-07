@@ -1,0 +1,113 @@
+{
+  "budgets": {
+    "title": "",
+    "description": "",
+    "notFound": "",
+    "notFoundDescription": "",
+    "backToList": "",
+    "newBudget": "",
+    "createBudget": "",
+    "creation": {
+      "success": "",
+      "error": "",
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "typeLabel": "",
+      "typeManual": "",
+      "typeManualDescription": "",
+      "typeCategory": "",
+      "typeCategoryDescription": "",
+      "categoriesLabel": "",
+      "categoriesRequired": "",
+      "fromDateLabel": "",
+      "toDateLabel": "",
+      "autoIncludeLabel": "",
+      "limitLabel": "",
+      "limitPlaceholder": "",
+      "submitButton": ""
+    },
+    "list": {
+      "tabCategory": "",
+      "tabManual": "",
+      "edit": "",
+      "delete": "",
+      "deleteSuccess": "",
+      "deleteError": "",
+      "updateSuccess": "",
+      "updateError": "",
+      "unlinkTransactionsSuccess": "",
+      "deleteDialog": {
+        "title": "",
+        "description": ""
+      },
+      "limitLabel": "",
+      "transactionsCount": "",
+      "categoriesCount": "",
+      "noTransactions": "",
+      "noTimePeriod": "",
+      "autoTracked": "",
+      "status": {
+        "ended": "",
+        "lastDay": "",
+        "oneDayLeft": "",
+        "daysLeft": "",
+        "startsToday": "",
+        "startsTomorrow": "",
+        "startsInDays": ""
+      },
+      "income": "",
+      "expenses": "",
+      "net": "",
+      "used": "",
+      "archive": "",
+      "unarchive": "",
+      "archivedLabel": "",
+      "archiveError": "",
+      "showArchived": "",
+      "hideArchived": "",
+      "emptyState": {
+        "title": "",
+        "description": ""
+      }
+    },
+    "settings": {
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "limitLabel": "",
+      "limitPlaceholder": "",
+      "startDateLabel": "",
+      "endDateLabel": "",
+      "notSet": ""
+    },
+    "addTransactionsDialog": {
+      "title": "",
+      "addSelected": "",
+      "clearSelection": ""
+    },
+    "categoryBudget": {
+      "trackedCategories": "",
+      "categoriesCount": "",
+      "autoTrackedInfo": "",
+      "transactionsTitle": "",
+      "transactionsCount": "",
+      "noTransactions": "",
+      "noTransactionsDescription": "",
+      "transactionsLoadError": "",
+      "categoryBreakdown": "",
+      "edit": "",
+      "editTitle": "",
+      "showMore": "",
+      "showLess": "",
+      "settings": {
+        "categoriesLabel": ""
+      }
+    },
+    "manualBudget": {
+      "edit": "",
+      "editTitle": ""
+    },
+    "share": {
+      "sharedByBadge": ""
+    }
+  }
+}

@@ -1,0 +1,544 @@
+{
+  "common": {
+    "processAlreadyLocked": "",
+    "serviceTemporarilyUnavailable": ""
+  },
+  "accounts": {
+    "groupNotFound": "",
+    "accountNotFound": "",
+    "accountUpdateFailed": "",
+    "accountNoExternalId": "",
+    "accountNoExternalIdMonobank": "",
+    "accountNoExternalIdEnableBanking": "",
+    "accountNotFoundForTransaction": "",
+    "deleteBlockedByLoanPayments": "",
+    "loanBalanceUseUpdateLoan": "",
+    "loanCategoryImmutable": "",
+    "dedicatedFlowCategoryNotAllowed": ""
+  },
+  "balanceAdjustment": {
+    "defaultNote": "",
+    "accountNotFound": "",
+    "vehicleUseOverride": "",
+    "vehicleNegativeValue": ""
+  },
+  "accountGroups": {
+    "groupNotFound": "",
+    "groupUpdateFailed": "",
+    "parentGroupNotExist": "",
+    "parentGroupDoesNotExist": "",
+    "accountNotFound": "",
+    "accountGroupNotFound": ""
+  },
+  "categories": {
+    "notFound": "",
+    "systemCannotBeMoved": "",
+    "parentNotFound": "",
+    "systemParentForbidden": "",
+    "ownParent": "",
+    "underOwnSubcategory": "",
+    "nestingTooDeep": ""
+  },
+  "transactions": {
+    "notFound": "",
+    "missingRequiredFields": "",
+    "destinationAmountRequiredCrossCurrency": "",
+    "refundAndTransferNotAllowed": "",
+    "notOwnTransaction": "",
+    "sharedAccountChangeNotSupported": "",
+    "sharedTransfersNotSupported": "",
+    "sharedRefundsNotSupported": "",
+    "cannotCreateWithParams": "",
+    "idCannotBeChanged": "",
+    "editReadonlyFields": "",
+    "changeTypeNotAllowed": "",
+    "bothRefundFieldsNotAllowed": "",
+    "oppositeTransactionNotFound": "",
+    "transactionIdNotExist": "",
+    "notAuthorizedToEdit": "",
+    "cannotDeleteExternal": "",
+    "unexpectedDeleteIssue": "",
+    "linkSelfNotAllowed": "",
+    "linkSameTypeNotAllowed": "",
+    "linkSameAccountNotAllowed": "",
+    "linkAlreadyTransferNotAllowed": "",
+    "linkUnexpectedError": "",
+    "linkCannotFind": "",
+    "linkPlannedNotAllowed": "",
+    "linkSplitTransactionNotAllowed": "",
+    "invalidTagIds": "",
+    "cannotEditPortfolioLinkedTransaction": "",
+    "refFieldsRequiredForTransferToPortfolio": "",
+    "vehicleAccountReadonly": "",
+    "transferNatureChangeNotAllowed": "",
+    "transferToLoanRequiresLoanDestination": "",
+    "transferToLoanRelinkRequired": "",
+    "loanPaymentOverpay": "",
+    "loanAccountReadonly": "",
+    "loanPaymentMustBeExpense": "",
+    "plannedMustBeStandalone": "",
+    "plannedAmountMustBePositive": "",
+    "plannedAccountNotSupported": "",
+    "plannedOwnerOnly": "",
+    "plannedFlipNotAllowed": "",
+    "plannedCreatorOnly": "",
+    "manualOnConnectedAccount": "",
+    "plannedUnflipOnConnectedAccount": "",
+    "plannedCannotConfirmPayment": "",
+    "plannedCannotBeRefundLinked": "",
+    "splits": {
+      "splitsOnTransfer": "",
+      "splitLimitExceeded": "",
+      "missingCategory": "",
+      "missingAmount": "",
+      "amountNegative": "",
+      "amountTooSmall": "",
+      "noteTooLong": "",
+      "invalidCategory": "",
+      "duplicateCategory": "",
+      "exceedTotal": "",
+      "invalidData": "",
+      "splitNotFound": "",
+      "cannotDeleteWithRefunds": "",
+      "cannotReduceBelowRefunded": ""
+    }
+  },
+  "budgets": {
+    "budgetNotFound": "",
+    "someTransactionIdsInvalid": "",
+    "transactionsAddedSuccessfully": "",
+    "cannotManuallyLinkToCategoryBudget": "",
+    "someCategoryIdsInvalid": "",
+    "notCategoryBudget": ""
+  },
+  "tags": {
+    "tagNotFound": "",
+    "tagNameAlreadyExists": "",
+    "someTransactionIdsInvalid": "",
+    "transactionsAddedSuccessfully": "",
+    "transactionsRemovedSuccessfully": ""
+  },
+  "tagReminders": {
+    "reminderNotFound": "",
+    "reminderAlreadyExists": "",
+    "amountThresholdRequired": "",
+    "maxRemindersReached": "",
+    "notifications": {
+      "thresholdExceeded": {
+        "title": "",
+        "message": ""
+      },
+      "existenceCheck": {
+        "title": "",
+        "message": ""
+      }
+    }
+  },
+  "defaultTags": {
+    "want": {
+      "name": "",
+      "description": ""
+    },
+    "need": {
+      "name": "",
+      "description": ""
+    },
+    "must": {
+      "name": "",
+      "description": ""
+    }
+  },
+  "investments": {
+    "portfolioNotFound": "",
+    "portfolioIdRequired": "",
+    "holdingNotFound": "",
+    "holdingNotFoundAddSecurity": "",
+    "holdingNotFoundForRecalculation": "",
+    "securityAlreadyInPortfolio": "",
+    "securityNotFound": "",
+    "currencyForSecurityNotFound": "",
+    "currencyNotFound": "",
+    "transactionNotFound": "",
+    "userBaseCurrencyNotFound": "",
+    "insufficientSharesToSell": "",
+    "sourceAndDestinationMustDiffer": "",
+    "transferAmountMustBePositive": "",
+    "sourcePortfolioNotFound": "",
+    "destinationPortfolioNotFound": "",
+    "sourceAccountNotFound": "",
+    "destinationAccountNotFound": "",
+    "cannotDeleteHoldingWithActivePosition": "",
+    "transactionAlreadyTransfer": "",
+    "transactionAlreadyLinkedToPortfolio": "",
+    "transactionAlreadyLinkedToVenture": "",
+    "portfolioTransferNotFound": "",
+    "exchangeCurrenciesMustDiffer": ""
+  },
+  "loans": {
+    "loanNotFound": "",
+    "createAccountFailed": "",
+    "deleteBlockedByPayments": "",
+    "linkPaymentsInvalidSelection": "",
+    "linkPaymentsOverpayConfirmation": "",
+    "unlinkPaymentNotFound": "",
+    "unlinkPaymentInvalidSelection": "",
+    "correctionAsOfBeforeStartDate": "",
+    "correctionOverpay": ""
+  },
+  "errors": {
+    "connectionNotFound": "",
+    "connectionNotFoundOrNotYours": "",
+    "providerNoReauthorization": "",
+    "providerNotFoundInRegistry": "",
+    "connectionIdNotFound": "",
+    "accountIdNotFound": "",
+    "providerTypeMismatch": "",
+    "providerAlreadyRegistered": "",
+    "providerNotRegistered": "",
+    "missingRequiredProviders": ""
+  },
+  "validation": {
+    "dateInvalid": ""
+  },
+  "urlGuard": {
+    "invalidUrl": "",
+    "unsupportedProtocol": "",
+    "credentialsInUrlNotAllowed": "",
+    "privateAddressBlocked": "",
+    "hostnameNotResolvable": "",
+    "redirectNotAllowed": "",
+    "hostnameLookupUnavailable": ""
+  },
+  "bankDataProviders": {
+    "reauthorizationStarted": "",
+    "connectionEstablished": "",
+    "failedToFetchBanks": "",
+    "failedToFetchCountries": "",
+    "accountNotLinkedToConnection": "",
+    "cannotLoadBeforeLinkDate": "",
+    "dateRangeExceedsLimit": "",
+    "fromAfterTo": "",
+    "fromMustBeValidDate": "",
+    "toMustBeValidDate": "",
+    "reconciliationOnlyForEnableBanking": "",
+    "transactionLoadingQueued": "",
+    "noValidAccountIds": "",
+    "accountCurrencyNotSupported": "",
+    "periodLoadNotSupported": "",
+    "transactionsLoadedCount": "",
+    "transactionsAllDuplicates": "",
+    "transactionsNoneInPeriod": "",
+    "apiError": "",
+    "currencySelectionRequired": "",
+    "monobank": {
+      "invalidCredentialsFormat": "",
+      "invalidApiToken": "",
+      "rateLimitExceeded": "",
+      "accountNotFound": "",
+      "accountReconnectRequired": "",
+      "webhookNotImplemented": "",
+      "unknownCurrencyCode": "",
+      "geoBlocked": "",
+      "geoBlockedProduction": ""
+    },
+    "enableBanking": {
+      "invalidCredentialsFormat": "",
+      "invalidRsaKey": "",
+      "invalidCredentials": "",
+      "authUrlNotFound": "",
+      "invalidOAuthState": "",
+      "oAuthStateExpired": "",
+      "oAuthAuthorizationFailed": "",
+      "invalidStoredCredentials": "",
+      "bankInfoNotFound": "",
+      "noActiveSession": "",
+      "noActiveSessionGeneric": "",
+      "noBalanceInfo": "",
+      "authenticationFailed": "",
+      "sessionExpiredReconnect": "",
+      "apiBadRequestError": "",
+      "apiGeneralError": "",
+      "redirectUriNotAllowed": ""
+    },
+    "lunchflow": {
+      "invalidCredentialsFormat": "",
+      "invalidApiKey": "",
+      "accountNoExternalId": "",
+      "accountNotFound": ""
+    },
+    "simplefin": {
+      "invalidCredentialsFormat": "",
+      "invalidSetupToken": "",
+      "invalidAccessUrl": "",
+      "claimFailed": "",
+      "accountNotFound": "",
+      "accountNoExternalId": "",
+      "accountAbsentFromResponse": "",
+      "rateLimited": ""
+    },
+    "walutomat": {
+      "invalidCredentialsFormat": "",
+      "invalidApiKey": "",
+      "accountNoExternalId": "",
+      "walletNotFound": ""
+    }
+  },
+  "csvImport": {
+    "headersCannotBeParsed": "",
+    "csvFileEmpty": "",
+    "csvFileNoHeaders": "",
+    "csvFileMalformed": "",
+    "csvFileTooManyRows": "",
+    "csvFileForbiddenHeader": "",
+    "invalidDateFormat": "",
+    "invalidAmount": "",
+    "accountNameEmpty": "",
+    "currencyCodeEmpty": "",
+    "unknownTransactionType": "",
+    "dateColumnNotFound": "",
+    "amountColumnNotFound": "",
+    "invalidDefaultCurrency": "",
+    "payeeColumnNotFound": ""
+  },
+  "importExport": {
+    "batchDeleteBankLinkedAccount": "",
+    "batchDeleteLinkedLoanTransfer": "",
+    "batchDeleteTooLarge": ""
+  },
+  "statementParser": {
+    "invalidFile": "",
+    "textExtractionFailed": "",
+    "failedToExtractText": "",
+    "fileContentRequired": "",
+    "pdfPasswordRequired": "",
+    "pdfPasswordInvalid": "",
+    "pdfParseFailed": ""
+  },
+  "currencies": {
+    "notSupportedForBaseCurrency": "",
+    "listIsEmpty": "",
+    "noBaseCurrency": "",
+    "alreadyBaseCurrency": "",
+    "baseCurrencyLockedByShares": "",
+    "baseCurrencyLockedByHousehold": "",
+    "baseCurrencyChangeInProgress": "",
+    "baseCurrencyChangeSyncInProgress": "",
+    "baseCurrencyChangeDrainCheckFailed": "",
+    "baseCurrencyChangeInProgressOtherUser": "",
+    "cannotFindForRefAmount": "",
+    "cannotCalculateRefAmount": "",
+    "currencyNotConnected": "",
+    "exchangeRateNotAvailable": ""
+  },
+  "userSettings": {
+    "userSettingsNotFound": ""
+  },
+  "users": {
+    "usernameAlreadyTaken": ""
+  },
+  "userCurrencies": {
+    "baseCurrencyExists": "",
+    "currencyCodeNotExist": "",
+    "currencyNotExist": "",
+    "cannotDeleteDefaultCurrency": "",
+    "cannotDeleteCurrencyWithAccounts": "",
+    "cannotDeleteCurrencyWithInvestments": "",
+    "defaultCurrencyNotPresent": ""
+  },
+  "ai": {
+    "apiKeyValidationFailed": "",
+    "noApiKeyForProvider": "",
+    "customEndpointUnreachable": "",
+    "customEndpointAuthFailed": "",
+    "customEndpointModelNotFound": "",
+    "customEndpointModelNotListed": "",
+    "customEndpointMoreModels": "",
+    "customEndpointNotApiResponse": "",
+    "customEndpointValidationFailed": "",
+    "customEndpointMissingFields": "",
+    "customEndpointNameTaken": "",
+    "customEndpointNameInvalidLength": "",
+    "customEndpointNotFound": "",
+    "customEndpointIdRequired": "",
+    "customModelNameInvalidLength": "",
+    "customEndpointLimitReached": "",
+    "customEndpointStoredKeyUnreadable": "",
+    "categorizationAlreadyRunning": "",
+    "categorizationRateLimited": ""
+  },
+  "middleware": {
+    "tooManyRequests": ""
+  },
+  "defaultCategories": {
+    "main": {
+      "food": "",
+      "shopping": "",
+      "housing": "",
+      "transportation": "",
+      "vehicle": "",
+      "life": "",
+      "communication": "",
+      "financial-expenses": "",
+      "investments": "",
+      "income": "",
+      "other": ""
+    },
+    "subcategories": {
+      "food": {
+        "groceries": "",
+        "restaurant": "",
+        "bar-cafe": ""
+      },
+      "shopping": {
+        "clothes-shoes": "",
+        "jewels-accessories": "",
+        "health-beauty": "",
+        "kids": "",
+        "home-garden": "",
+        "pets-animals": "",
+        "electronics-accessories": "",
+        "gifts-joy": "",
+        "stationery-tools": "",
+        "free-time": "",
+        "drugstore-chemist": ""
+      },
+      "housing": {
+        "rent": "",
+        "mortgage": "",
+        "energy-utilities": "",
+        "services": "",
+        "maintenance-repairs": "",
+        "property-insurance": ""
+      },
+      "transportation": {
+        "public-transport": "",
+        "taxi": "",
+        "long-distance": "",
+        "business-trips": ""
+      },
+      "vehicle": {
+        "fuel": "",
+        "parking": "",
+        "vehicle-maintenance": "",
+        "rentals": "",
+        "vehicle-insurance": "",
+        "leasing": ""
+      },
+      "life": {
+        "health-care-doctor": "",
+        "wellness-beauty": "",
+        "active-sport-fitness": "",
+        "culture-sport-events": "",
+        "hobbies": "",
+        "education-development": "",
+        "books-audio-subscriptions": "",
+        "tv-streaming": "",
+        "holiday-trips-hotels": "",
+        "charity-gifts": "",
+        "alcohol-tobacco": "",
+        "lottery-gambling": ""
+      },
+      "communication": {
+        "phone-cell-phone": "",
+        "internet": "",
+        "software-apps-games": "",
+        "postal-services": ""
+      },
+      "financial-expenses": {
+        "taxes": "",
+        "insurances": "",
+        "loan-interests": "",
+        "fines": "",
+        "advisory": "",
+        "charges-fees": "",
+        "child-support": ""
+      },
+      "investments": {
+        "realty": "",
+        "vehicles-chattels": "",
+        "financial-investments": "",
+        "savings": "",
+        "collections": ""
+      },
+      "income": {
+        "wage-invoices": "",
+        "interests-dividends": "",
+        "sale": "",
+        "rental-income": "",
+        "dues-grants": "",
+        "lending-renting": "",
+        "checks-coupons": "",
+        "lottery-gambling": "",
+        "refunds": "",
+        "freelance": "",
+        "gifts": ""
+      }
+    }
+  },
+  "subscriptions": {
+    "transactionsNotFoundOrNotBelongToUser": "",
+    "cannotLinkDifferentTransactionType": "",
+    "summaryCurrencyNotConnected": "",
+    "summaryBaseCurrencyNotSet": "",
+    "payeeNotFoundOrNotBelongToUser": "",
+    "tagsNotFoundOrNotBelongToUser": "",
+    "validation": {
+      "autoRecord": {
+        "requiresAccount": "",
+        "requiresAmount": "",
+        "excludesMatching": "",
+        "requiresAccountField": "",
+        "requiresAmountField": "",
+        "excludesMatchingField": ""
+      }
+    }
+  },
+  "transactionTemplates": {
+    "notFound": "",
+    "nameAlreadyExists": "",
+    "amountRequiresAccount": "",
+    "accountNotFound": "",
+    "accountMustBeSystem": "",
+    "accountArchived": "",
+    "categoryNotFound": "",
+    "payeeNotFound": "",
+    "tagsNotFound": ""
+  },
+  "payees": {
+    "aliasNameRequired": "",
+    "aliasNotFound": "",
+    "aliasUsedByOtherPayee": "",
+    "nameUsedByAliasOfOtherPayee": "",
+    "cannotDeleteCanonicalAlias": "",
+    "defaultCategoryNotOwned": "",
+    "defaultTagsNotOwned": "",
+    "duplicateAlias": "",
+    "duplicateName": "",
+    "ignoredNameCollidesWithPayee": "",
+    "ignoredNameNotFound": "",
+    "mergeSelf": "",
+    "nameRequired": "",
+    "notFound": "",
+    "renameCollision": ""
+  },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "",
+    "colorRequiresInitials": ""
+  },
+  "venture": {
+    "dealNotFound": "",
+    "eventNotFound": ""
+  },
+  "vehicles": {
+    "notFound": ""
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": ""
+  },
+  "automations": {
+    "automationNotFound": "",
+    "reorderStale": "",
+    "ruleLimitReached": "",
+    "staleReference": ""
+  }
+}

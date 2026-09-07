@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "navigation": {
+      "currencies": "",
+      "categories": "",
+      "tags": "",
+      "accountsGroups": "",
+      "importData": "",
+      "ai": "",
+      "aiIntegrations": "",
+      "security": "",
+      "admin": "",
+      "sharedWithMe": "",
+      "household": "",
+      "personalGroup": "",
+      "workspaceGroup": "",
+      "appearance": "",
+      "language": "",
+      "general": "",
+      "payees": "",
+      "subscriptions": ""
+    },
+    "backToSettings": ""
+  }
+}

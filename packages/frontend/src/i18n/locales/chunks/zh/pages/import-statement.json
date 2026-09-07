@@ -1,0 +1,158 @@
+{
+  "pages": {
+    "statementParser": {
+      "pageTitle": "",
+      "pageDescription": "",
+      "stepper": {
+        "steps": {
+          "upload": "",
+          "account": "",
+          "review": "",
+          "results": ""
+        }
+      },
+      "steps": {
+        "accountTitle": "",
+        "accountDescription": ""
+      },
+      "selectCurrency": "",
+      "selectExistingAccount": "",
+      "accountNamePlaceholder": "",
+      "selectAccount": "",
+      "searchAccounts": "",
+      "uploadExtract": {
+        "supportedFormats": "",
+        "analyzeButton": "",
+        "tryAgain": "",
+        "modelLabel": "",
+        "estimatedCostLabel": "",
+        "estimatedTokensLabel": "",
+        "extractButton": "",
+        "progressMessage": "",
+        "foundLabel": "",
+        "transactions": "",
+        "fromLabel": "",
+        "inLabel": "",
+        "continueMessage": "",
+        "tokenWarning": {
+          "medium": {
+            "title": "",
+            "description": ""
+          },
+          "high": {
+            "title": "",
+            "description": ""
+          },
+          "extreme": {
+            "title": "",
+            "description": ""
+          }
+        },
+        "freeApiWarning": "",
+        "addApiKeyLink": "",
+        "status": {
+          "sendingFile": "",
+          "readingDocument": "",
+          "analyzingStructure": "",
+          "extractingData": "",
+          "processingTransactions": "",
+          "finalizing": "",
+          "almostDone": ""
+        },
+        "tokenFormat": "",
+        "pdfPasswordLabel": "",
+        "pdfPasswordPlaceholder": "",
+        "pdfPasswordSubmit": ""
+      },
+      "accountSelect": {
+        "newlyCreated": "",
+        "differentCurrency": "",
+        "linkedToBanks": "",
+        "linkedToBanksTooltip": "",
+        "noAccountsFound": "",
+        "currencyAccounts": ""
+      },
+      "accountSelection": {
+        "transactions": "",
+        "bank": "",
+        "currency": "",
+        "currencyNotDetected": "",
+        "currencyMismatch": "",
+        "yourCurrenciesGroup": "",
+        "allCurrenciesGroup": "",
+        "createNew": "",
+        "back": "",
+        "importTransactions": "",
+        "checkForDuplicates": ""
+      },
+      "createAccountDialog": {
+        "title": "",
+        "description": "",
+        "accountNameLabel": "",
+        "currencyLabel": "",
+        "fromStatement": "",
+        "currencyLocked": "",
+        "currencyWillBeAdded": "",
+        "cancel": "",
+        "creating": "",
+        "createAccount": "",
+        "validation": {
+          "nameRequired": "",
+          "currencyRequired": ""
+        },
+        "success": "",
+        "error": ""
+      },
+      "transactionReview": {
+        "checkingDuplicates": "",
+        "extractedLabel": "",
+        "duplicatesLabel": "",
+        "willImportLabel": "",
+        "alreadyInAccountLabel": "",
+        "timelineTitle": "",
+        "legendNew": "",
+        "legendDuplicate": "",
+        "legendExisting": "",
+        "statusDup": "",
+        "statusImport": "",
+        "statusExists": "",
+        "duplicateInfoSkipped": "",
+        "duplicateInfoOverridden": "",
+        "toggleInfo": "",
+        "toggleWillImport": "",
+        "toggleWillSkip": "",
+        "backButton": "",
+        "continueButton": "",
+        "transactionCount": "",
+        "duplicateCheckFailed": ""
+      },
+      "droppedRowsWarning": "",
+      "importResults": {
+        "readyTitle": "",
+        "readyDescription": "",
+        "accountLabel": "",
+        "toImportLabel": "",
+        "toSkipLabel": "",
+        "backButton": "",
+        "importButton": "",
+        "importingTitle": "",
+        "importingDescription": "",
+        "failedTitle": "",
+        "failedDescription": "",
+        "tryAgainButton": "",
+        "completeTitle": "",
+        "completeWithIssuesTitle": "",
+        "successDescription": "",
+        "partialDescription": "",
+        "importedLabel": "",
+        "skippedLabel": "",
+        "errorsTitle": "",
+        "transactionNumberHeader": "",
+        "errorHeader": "",
+        "batchIdNote": "",
+        "viewTransactionsButton": "",
+        "startNewImportButton": ""
+      }
+    }
+  }
+}

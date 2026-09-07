@@ -1,0 +1,154 @@
+{
+  "payees": {
+    "title": "",
+    "subtitle": "",
+    "newPayeeButton": "",
+    "searchPlaceholder": "",
+    "columns": {
+      "name": "",
+      "transactionCount": "",
+      "netFlow": "",
+      "category": "",
+      "categoryHint": "",
+      "topCategory": "",
+      "defaultCategory": ""
+    },
+    "sort": {
+      "label": "",
+      "transactionCount": "",
+      "netFlow": "",
+      "name": "",
+      "lastSeen": ""
+    },
+    "actions": {
+      "menu": "",
+      "rename": "",
+      "merge": "",
+      "delete": "",
+      "deleteAndIgnore": ""
+    },
+    "emptyState": {
+      "title": "",
+      "description": ""
+    },
+    "form": {
+      "namePlaceholder": "",
+      "categoryPlaceholder": "",
+      "categorizationMode": {
+        "label": "",
+        "enforce": {
+          "label": "",
+          "hint": ""
+        },
+        "hint": {
+          "label": "",
+          "hint": ""
+        },
+        "off": {
+          "label": "",
+          "hint": ""
+        }
+      }
+    },
+    "detail": {
+      "categorizationSection": "",
+      "aliasesHeading": "",
+      "aliasesEmpty": "",
+      "cannotDeleteCanonicalAlias": "",
+      "deleteAliasConfirm": "",
+      "addAlias": "",
+      "addAliasTitle": "",
+      "addAliasDescription": "",
+      "addAliasInputLabel": "",
+      "addAliasPlaceholder": "",
+      "aliasDuplicate": "",
+      "aliasUsedByOtherPayee": "",
+      "deletePayeeTitle": "",
+      "deletePayeeDescription": "",
+      "deleteAndIgnoreTitle": "",
+      "deleteAndIgnoreDescription": "",
+      "mergeTitle": "",
+      "mergeDescription": "",
+      "confirmMerge": "",
+      "topCategoryHint": "",
+      "defaultCategoryPlaceholder": "",
+      "defaultTagsLabel": "",
+      "defaultTagsPlaceholder": "",
+      "defaultTagsHint": "",
+      "applyTagsToExisting": ""
+    },
+    "logo": {
+      "change": "",
+      "dialogTitle": "",
+      "dialogDescription": "",
+      "resetToAuto": "",
+      "updatedToast": "",
+      "resetToast": "",
+      "fieldLabel": "",
+      "domainHint": ""
+    },
+    "transactionsDialog": {
+      "title": "",
+      "empty": "",
+      "unlink": "",
+      "unlinked": "",
+      "unlinkConfirmTitle": "",
+      "unlinkConfirmDescription": "",
+      "unlinkConfirmLabel": ""
+    },
+    "toasts": {
+      "created": "",
+      "updated": "",
+      "deleted": "",
+      "merged": "",
+      "aliasDeleted": "",
+      "aliasAdded": "",
+      "deletedAndIgnored": "",
+      "tagsAppliedToExisting": ""
+    },
+    "errors": {
+      "collision": "",
+      "generic": ""
+    },
+    "tabs": {
+      "manage": "",
+      "settings": ""
+    },
+    "settings": {
+      "title": "",
+      "description": "",
+      "payeeFromDescription": {
+        "label": "",
+        "description": "",
+        "successNotification": "",
+        "errorNotification": ""
+      },
+      "bulkCategorizationMode": {
+        "label": "",
+        "description": "",
+        "applyButton": "",
+        "confirmTitle": "",
+        "confirmDescription": "",
+        "successNotification": "",
+        "errorNotification": ""
+      }
+    },
+    "ignoredNames": {
+      "title": "",
+      "description": "",
+      "addPlaceholder": "",
+      "addButton": "",
+      "addedToast": "",
+      "addError": "",
+      "removeTooltip": "",
+      "removedToast": "",
+      "removeError": "",
+      "empty": "",
+      "normalizedLabel": "",
+      "conflictTitle": "",
+      "conflictDescription": "",
+      "forceConfirm": ""
+    },
+    "loadingMore": ""
+  }
+}

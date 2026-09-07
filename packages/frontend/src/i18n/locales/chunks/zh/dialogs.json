@@ -1,0 +1,661 @@
+{
+  "dialogs": {
+    "linkAccountGroup": {
+      "title": "",
+      "createNewGroup": "",
+      "noGroup": "",
+      "noGroupDescription": "",
+      "current": "",
+      "syncHint": "",
+      "accountsCount": ""
+    },
+    "reassignCategory": {
+      "title": "",
+      "description": "",
+      "newCategoryLabel": "",
+      "newCategoryPlaceholder": "",
+      "cancelButton": "",
+      "reassignButton": "",
+      "reassignButtonLoading": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "syncConfirmation": {
+      "title": "",
+      "description": "",
+      "syncAnyway": "",
+      "cancel": "",
+      "timeUnits": {
+        "someTime": "",
+        "hours": "",
+        "minutes": ""
+      }
+    },
+    "createPortfolio": {
+      "title": "",
+      "description": "",
+      "assetSupportNotice": "",
+      "assetSupportRoadmapLink": "",
+      "assetSupportFeedbackLink": "",
+      "form": {
+        "nameLabel": "",
+        "namePlaceholder": "",
+        "typeLabel": "",
+        "typePlaceholder": "",
+        "portfolioTypes": {
+          "investment": "",
+          "retirement": "",
+          "savings": "",
+          "other": ""
+        },
+        "descriptionLabel": "",
+        "descriptionPlaceholder": "",
+        "submitButton": "",
+        "submitButtonLoading": ""
+      },
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "editPortfolio": {
+      "title": "",
+      "description": ""
+    },
+    "deletePortfolio": {
+      "title": "",
+      "description": "",
+      "cancelButton": "",
+      "deleteButton": "",
+      "deleteButtonLoading": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "manageTransaction": {
+      "addTitle": "",
+      "editTitle": "",
+      "detailsTitle": "",
+      "title": "",
+      "description": "",
+      "linkSection": {
+        "linkButton": "",
+        "title": "",
+        "description": "",
+        "orDivider": "",
+        "linkHint": "",
+        "unlinkButton": "",
+        "cancelLinkingAriaLabel": "",
+        "linkedTransactionLabel": ""
+      },
+      "typeSelector": {
+        "expense": "",
+        "income": "",
+        "transfer": "",
+        "selectExpense": "",
+        "selectIncome": "",
+        "selectTransfer": ""
+      },
+      "recordList": {},
+      "form": {
+        "payeeLabel": "",
+        "destinationGroupLabel": "",
+        "paymentTypeLabel": "",
+        "noteLabel": "",
+        "notePlaceholder": "",
+        "tagsLabel": "",
+        "originalAmountLabel": "",
+        "originalAmountPlaceholder": "",
+        "originalAmountTooltip": "",
+        "originalCurrencyLabel": "",
+        "originalCurrencyTriggerEmpty": "",
+        "originalCurrencyNone": "",
+        "originalAmountSuggestHint": "",
+        "originalAmountSuggestApply": "",
+        "amountLabel": "",
+        "amountPlaceholder": "",
+        "categoryLabel": "",
+        "selectCategoryPlaceholder": "",
+        "targetAmountLabel": "",
+        "targetAmountPlaceholder": "",
+        "plannedLabel": "",
+        "plannedUnavailableNotification": "",
+        "plannedTooltip": "",
+        "plannedConnectedAccountTooltip": "",
+        "plannedConfirmTooltip": "",
+        "plannedAccountsUnlockedHint": "",
+        "plannedDatesUnlockedHint": "",
+        "datetimeLabel": "",
+        "splitInfo": "",
+        "editSplit": "",
+        "splitPillLabel": "",
+        "moreOptionsButton": "",
+        "closeButton": "",
+        "deleteButton": "",
+        "deleteAriaLabel": "",
+        "deleteConfirmTitle": "",
+        "deleteConfirmDescription": "",
+        "createAriaLabel": "",
+        "editAriaLabel": "",
+        "loadingButton": "",
+        "createButton": "",
+        "editButton": "",
+        "fromAccountLabel": "",
+        "toAccountLabel": "",
+        "accountLabel": "",
+        "selectAccountPlaceholder": "",
+        "noAccountExists": "",
+        "addNewAccountButton": "",
+        "createAccountLink": "",
+        "destinationTypeAccount": "",
+        "destinationTypePortfolio": "",
+        "toPortfolioLabel": "",
+        "portfolioCashAlreadyReflectedLabel": "",
+        "portfolioCashAlreadyReflectedHint": "",
+        "selectPortfolioPlaceholder": "",
+        "noPortfoliosExist": "",
+        "destinationTypeLoan": "",
+        "toLoanLabel": "",
+        "selectLoanPlaceholder": "",
+        "noLoansExist": "",
+        "validation": {
+          "required": "",
+          "minValue": "",
+          "futureDate": ""
+        }
+      },
+      "refundRecordsList": {
+        "filtersDialogTitle": "",
+        "fromDateLabel": "",
+        "toDateLabel": "",
+        "amountFromLabel": "",
+        "amountFromPlaceholder": "",
+        "amountToLabel": "",
+        "amountToPlaceholder": "",
+        "resetButton": "",
+        "applyButton": "",
+        "noMoreTransactions": "",
+        "noIncomeTransactions": "",
+        "noExpenseTransactions": "",
+        "noTransactions": "",
+        "resetFiltersButton": "",
+        "recommendedLabel": "",
+        "allTransactionsLabel": "",
+        "searchPlaceholder": "",
+        "filtersLabel": "",
+        "noSearchResults": "",
+        "clearSearchButton": ""
+      },
+      "splitDialog": {
+        "title": "",
+        "description": "",
+        "mainCategoryLabel": "",
+        "selectCategoryPlaceholder": "",
+        "amountPlaceholder": "",
+        "addCategoryButton": "",
+        "removeRowLabel": "",
+        "totalAmountLabel": "",
+        "splitTotalLabel": "",
+        "mainCategoryKeepsLabel": "",
+        "exceedsTransactionTotal": "",
+        "cancelButton": "",
+        "removeSplitsButton": "",
+        "saveSplitsButton": "",
+        "errors": {
+          "amountMustBePositive": "",
+          "duplicateCategory": "",
+          "cannotUseMainCategory": ""
+        }
+      },
+      "markAsRefund": {
+        "linkRefund": "",
+        "selectTransaction": "",
+        "selectRefundingTransaction": "",
+        "selectRefundedByTransactions": "",
+        "refundsLabel": "",
+        "refundedByLabel": "",
+        "refundedByCreationHint": "",
+        "saveButton": "",
+        "confirmButton": "",
+        "linkedRefunds": "",
+        "unlinkRefund": "",
+        "refundsPortion": "",
+        "selectOnlyOne": "",
+        "selectMultipleWithLimit": "",
+        "selectWhichPartToRefund": "",
+        "transactionSplitInfo": "",
+        "amountTooSmallWarning": "",
+        "amountDisabled": "",
+        "amountMayBeSmaller": "",
+        "finalValidationWarning": "",
+        "mainCategoryLabel": "",
+        "linkRemovedOnTypeChange": "",
+        "modeRefunds": "",
+        "helperRefunds": "",
+        "helperRefundedBy": "",
+        "helperRefundedByNoLimit": "",
+        "thisEntry": "",
+        "linkWordRefunds": "",
+        "linkWordRefundedBy": "",
+        "slotEmptyRefunds": "",
+        "slotEmptyRefundedBy": "",
+        "slotSelectedCount": "",
+        "clearSelection": "",
+        "linkedAmountLabel": "",
+        "linkedOfLimit": "",
+        "limitExceeded": "",
+        "summaryEmpty": "",
+        "summaryCountOnly": "",
+        "summarySelected": "",
+        "summaryOfLimit": "",
+        "summaryExceedsBy": "",
+        "summaryExceeds": "",
+        "summaryBelowRefund": ""
+      },
+      "refundInfo": {
+        "trigger": "",
+        "title": "",
+        "description": "",
+        "howItWorks": {
+          "title": "",
+          "expenseRefund": "",
+          "incomeRefund": "",
+          "noOriginal": ""
+        },
+        "benefits": {
+          "title": "",
+          "accuracy": "",
+          "tracking": ""
+        },
+        "notes": {
+          "title": "",
+          "recordKeeping": "",
+          "noBalanceAdjust": "",
+          "canUnlink": ""
+        },
+        "examples": {
+          "title": "",
+          "customerPayment": "",
+          "vendorRefund": "",
+          "noOriginalTx": ""
+        }
+      },
+      "transferRecordsList": {
+        "filtersDialogTitle": "",
+        "fromDateLabel": "",
+        "toDateLabel": "",
+        "amountFromLabel": "",
+        "amountFromPlaceholder": "",
+        "amountToLabel": "",
+        "amountToPlaceholder": "",
+        "resetButton": "",
+        "applyButton": "",
+        "recommendedLabel": "",
+        "allTransactionsLabel": "",
+        "noMoreTransactions": "",
+        "noIncomeTransactions": "",
+        "noExpenseTransactions": "",
+        "noTransactions": "",
+        "resetFiltersButton": ""
+      },
+      "portfolioLinked": {
+        "title": "",
+        "linkedAs": "",
+        "deposit": "",
+        "withdrawal": "",
+        "unlinkButton": "",
+        "unlinkWarning": "",
+        "unlinkWarningNoCash": "",
+        "unlinkDescription": "",
+        "cancelButton": "",
+        "confirmUnlink": ""
+      },
+      "ventureLinked": {
+        "title": "",
+        "description": "",
+        "editHint": "",
+        "openVenture": ""
+      },
+      "vehicleLinked": {
+        "title": "",
+        "description": "",
+        "editHint": "",
+        "openVehicle": ""
+      },
+      "templates": {
+        "trigger": "",
+        "filterPlaceholder": "",
+        "emptyState": "",
+        "noMatches": "",
+        "loadError": "",
+        "saveCurrent": "",
+        "updateApplied": "",
+        "saveAsNew": "",
+        "newTemplate": "",
+        "use": "",
+        "edit": "",
+        "tapHint": "",
+        "toggleDetails": "",
+        "noAmount": "",
+        "keepsAccount": "",
+        "stale": {
+          "categoryDeleted": "",
+          "accountUnavailable": ""
+        },
+        "removeAriaLabel": "",
+        "announceApplied": "",
+        "announceAppliedWithAmount": "",
+        "categoryDeletedHint": "",
+        "alsoSet": "",
+        "tagsCount": "",
+        "applyConfirmTitle": "",
+        "applyConfirmDescription": "",
+        "toasts": {
+          "savedFromForm": "",
+          "saved": "",
+          "deleted": ""
+        },
+        "form": {
+          "titleNew": "",
+          "titleEdit": "",
+          "titleSaveCurrent": "",
+          "nameLabel": "",
+          "namePlaceholder": "",
+          "typeLabel": "",
+          "keepAccount": "",
+          "noAmount": "",
+          "delete": "",
+          "save": "",
+          "deleteConfirmTitle": "",
+          "deleteConfirmDescription": "",
+          "duplicateName": ""
+        },
+        "errors": {
+          "create": "",
+          "update": "",
+          "delete": ""
+        }
+      }
+    },
+    "portfolioTransfer": {
+      "portfolio": {
+        "title": "",
+        "description": ""
+      },
+      "account": {
+        "title": "",
+        "description": ""
+      }
+    },
+    "addSymbols": {
+      "title": "",
+      "searchLabel": "",
+      "searchPlaceholder": "",
+      "searchError": "",
+      "addedIndicator": "",
+      "noResults": "",
+      "emptyState": {
+        "title": "",
+        "description": ""
+      },
+      "noResultsHint": "",
+      "clearSearch": "",
+      "endOfList": "",
+      "assetClass": {
+        "crypto": ""
+      },
+      "filters": {
+        "all": "",
+        "stocks": "",
+        "crypto": ""
+      },
+      "marketCapRank": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      },
+      "cryptoProviderNotConfigured": ""
+    },
+    "deleteInvestmentTransaction": {
+      "title": "",
+      "description": "",
+      "cancelButton": "",
+      "deleteButton": "",
+      "deleteButtonLoading": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "categoryForm": {
+      "title": {
+        "edit": "",
+        "add": ""
+      },
+      "description": {
+        "addSubcategory": "",
+        "edit": "",
+        "add": ""
+      },
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "colorLabel": "",
+      "inheritParentColor": "",
+      "iconLabel": "",
+      "iconPlaceholder": "",
+      "settingsDivider": "",
+      "saveButton": "",
+      "createButton": "",
+      "notifications": {
+        "updated": "",
+        "created": "",
+        "saveFailed": "",
+        "unexpectedError": ""
+      }
+    },
+    "addCurrency": {
+      "title": "",
+      "description": "",
+      "selectPlaceholder": "",
+      "addButton": "",
+      "notifications": {
+        "success": "",
+        "error": ""
+      }
+    },
+    "accountGroups": {
+      "createDialog": {
+        "title": "",
+        "nameLabel": "",
+        "namePlaceholder": "",
+        "createButton": ""
+      }
+    },
+    "directCashTransaction": {
+      "title": "",
+      "description": ""
+    },
+    "pickTransaction": {
+      "title": ""
+    },
+    "exchangeCurrency": {
+      "title": "",
+      "description": ""
+    },
+    "shareAccountDialog": {
+      "title": "",
+      "description": "",
+      "emailLabel": "",
+      "emailPlaceholder": "",
+      "permissionLabel": "",
+      "permissions": {
+        "read": "",
+        "write": "",
+        "manage": ""
+      },
+      "writeScopeLabel": "",
+      "writeScope": {
+        "all": "",
+        "own": ""
+      },
+      "householdOverrideHint": "",
+      "householdLookupFailed": "",
+      "cancel": "",
+      "send": "",
+      "success": "",
+      "error": "",
+      "emailSendFailedWarning": ""
+    },
+    "shareBudgetDialog": {
+      "title": "",
+      "description": "",
+      "emailLabel": "",
+      "emailPlaceholder": "",
+      "permissionLabel": "",
+      "permissions": {
+        "read": "",
+        "write": "",
+        "manage": ""
+      },
+      "cancel": "",
+      "send": "",
+      "success": "",
+      "error": "",
+      "emailSendFailedWarning": ""
+    },
+    "shareInvitationDialog": {
+      "titlePending": "",
+      "titleAccepted": "",
+      "titleDeclined": "",
+      "titleCurrencyMismatch": "",
+      "titleLoading": "",
+      "titleLoadError": "",
+      "titleNotFound": "",
+      "loadErrorBody": "",
+      "retry": "",
+      "pendingMessage": "",
+      "acceptedBody": "",
+      "declinedBody": "",
+      "currencyMismatch": "",
+      "currencyMismatchUnknown": "",
+      "acceptDataRefreshFailed": "",
+      "notFoundBody": "",
+      "unexpectedError": "",
+      "loading": "",
+      "householdResourceLabel": "",
+      "permissionLabel": "",
+      "expiresLabel": "",
+      "permissions": {
+        "read": "",
+        "write": "",
+        "manage": ""
+      },
+      "unknownOwner": "",
+      "unknownResource": "",
+      "accept": "",
+      "decline": "",
+      "close": "",
+      "goToAccount": "",
+      "goToBudget": "",
+      "updateBaseCurrency": "",
+      "acceptSuccess": "",
+      "acceptError": "",
+      "declineSuccess": "",
+      "declineError": "",
+      "backInvite": {
+        "prompt": "",
+        "permissionLabel": "",
+        "writeScopeLabel": "",
+        "permissions": {
+          "read": "",
+          "write": ""
+        },
+        "writeScope": {
+          "all": "",
+          "own": ""
+        },
+        "send": "",
+        "notNow": "",
+        "done": "",
+        "sentTitle": "",
+        "sentBody": "",
+        "success": "",
+        "deliveryFailed": "",
+        "emailNotConfigured": "",
+        "error": ""
+      }
+    },
+    "categoryExclusions": {
+      "title": "",
+      "description": "",
+      "menuItem": "",
+      "nothingExcluded": "",
+      "excludedTag": "",
+      "stopExcluding": "",
+      "badgeTooltip": "",
+      "andMore": "",
+      "clearAll": "",
+      "countExcluded": ""
+    },
+    "subscriptionMarkPaid": {
+      "title": "",
+      "description": "",
+      "chooseDescription": "",
+      "amountLabel": "",
+      "amountPlaceholder": "",
+      "estimateLoading": "",
+      "crossCurrencyEstimate": "",
+      "dateLabel": "",
+      "accountLabel": "",
+      "accountPlaceholder": "",
+      "confirm": "",
+      "confirmMarkOnly": "",
+      "recordModeMarkTitle": "",
+      "recordModeMarkDescription": "",
+      "recordModeTransactionTitle": "",
+      "recordModeTransactionDescription": "",
+      "notifications": {
+        "markedAsPaid": "",
+        "markAsPaidFailed": ""
+      }
+    },
+    "loanPayment": {
+      "title": "",
+      "description": "",
+      "createTitle": "",
+      "editTitle": "",
+      "payingTo": "",
+      "fromAccountLabel": "",
+      "fromAccountPlaceholder": "",
+      "amountLabel": "",
+      "amountPlaceholder": "",
+      "targetAmountLabel": "",
+      "targetAmountPlaceholder": "",
+      "targetAmountTooltip": "",
+      "saveButton": "",
+      "recordButton": "",
+      "overdrawWarning": "",
+      "preAnchorWarning": "",
+      "overpayError": "",
+      "deleteConfirmTitle": "",
+      "deleteConfirmDescription": "",
+      "preAnchorHint": "",
+      "unlinkButton": "",
+      "unlinkConfirmTitle": "",
+      "unlinkConfirmDescription": "",
+      "unlinkSuccess": "",
+      "unlinkError": "",
+      "syncedAccountHint": "",
+      "sourceInfo": {
+        "trigger": "",
+        "title": "",
+        "manualOnly": "",
+        "whySynced": "",
+        "howToLink": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "settings": {
+    "dataManagement": {
+      "title": "",
+      "description": "",
+      "tabs": {
+        "import": "",
+        "export": ""
+      },
+      "textSource": {
+        "title": "",
+        "aiBadge": "",
+        "listDescription": ""
+      },
+      "csv": {
+        "title": "",
+        "description": "",
+        "button": "",
+        "cta": "",
+        "listDescription": ""
+      },
+      "ynab": {
+        "title": "",
+        "listDescription": ""
+      },
+      "budget-bakers-wallet": {
+        "title": "",
+        "listDescription": ""
+      },
+      "ms-money": {
+        "title": "",
+        "listDescription": ""
+      },
+      "importHistory": {
+        "title": "",
+        "listDescription": ""
+      },
+      "import": {
+        "back": "",
+        "groups": {
+          "filesAndText": "",
+          "fromOtherApps": "",
+          "history": ""
+        },
+        "requestMore": {
+          "title": ""
+        }
+      },
+      "export": {
+        "cardTitle": "",
+        "form": {
+          "title": "",
+          "description": "",
+          "confirmLabel": "",
+          "confirmLoading": "",
+          "back": ""
+        },
+        "format": {
+          "label": "",
+          "json": "",
+          "csv": "",
+          "xlsx": ""
+        },
+        "groups": {
+          "label": "",
+          "selectAll": "",
+          "deselectAll": "",
+          "transactions": "",
+          "transactionsDescription": "",
+          "budgets": "",
+          "budgetsDescription": "",
+          "subscriptions": "",
+          "subscriptionsDescription": "",
+          "investments": "",
+          "investmentsDescription": ""
+        },
+        "notifications": {
+          "success": "",
+          "successWithCount": "",
+          "failed": "",
+          "downloadBlocked": "",
+          "tooLarge": ""
+        },
+        "dateRange": {
+          "label": "",
+          "helper": "",
+          "placeholder": "",
+          "clear": ""
+        },
+        "listDescription": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,325 @@
+{
+  "navigation": {
+    "dashboard": "",
+    "accounts": "",
+    "accountsList": "",
+    "investments": "",
+    "loans": "",
+    "allTransactions": "",
+    "transactions": "",
+    "transactionGroups": "",
+    "analytics": "",
+    "optimizations": "",
+    "automations": "",
+    "accountDetails": "",
+    "logout": "",
+    "settings": "",
+    "planned": {
+      "planned": "",
+      "subscriptions": "",
+      "budgets": ""
+    },
+    "venture": ""
+  },
+  "sidebar": {
+    "settings": {
+      "title": "",
+      "sections": {
+        "label": "",
+        "description": "",
+        "alwaysVisibleTooltip": ""
+      },
+      "hideZeroBalances": {
+        "label": "",
+        "description": ""
+      }
+    },
+    "accountsView": {
+      "title": "",
+      "bankAccounts": "",
+      "newAccount": "",
+      "newAccountsGroup": "",
+      "portfolios": "",
+      "newPortfolio": "",
+      "noPortfolios": "",
+      "ventures": "",
+      "cars": "",
+      "loans": "",
+      "collapseNavigation": "",
+      "viaHousehold": "",
+      "sharedBy": "",
+      "needsReauthTooltip": ""
+    }
+  },
+  "header": {
+    "add": "",
+    "importData": "",
+    "language": "",
+    "newTransaction": "",
+    "settings": "",
+    "feedback": "",
+    "support": "",
+    "sync": {
+      "syncing": "",
+      "synchronizing": "",
+      "syncedTime": "",
+      "connectBank": "",
+      "syncingAccounts": "",
+      "stuck": ""
+    },
+    "categorization": {
+      "title": "",
+      "categorizing": "",
+      "completed": "",
+      "completedShort": "",
+      "completedWithSkipped": "",
+      "failed": "",
+      "failedShort": "",
+      "allSkipped": "",
+      "queued": "",
+      "transactions": ""
+    }
+  },
+  "themeSelector": {
+    "light": "",
+    "dark": "",
+    "system": ""
+  },
+  "feedback": {
+    "dialog": {
+      "title": "",
+      "description": "",
+      "typeLabel": "",
+      "typePlaceholder": "",
+      "types": {
+        "bug": "",
+        "featureRequest": "",
+        "other": ""
+      },
+      "messageLabel": "",
+      "messagePlaceholder": "",
+      "messageRequired": "",
+      "submit": "",
+      "thanks": "",
+      "unavailable": "",
+      "or": "",
+      "board": {
+        "title": "",
+        "description": ""
+      }
+    }
+  },
+  "syncStatusTooltip": {
+    "title": "",
+    "syncedSuccessfully": "",
+    "syncCompletedWithErrors": "",
+    "syncStuckTitle": "",
+    "syncStuckDescription": "",
+    "progress": "",
+    "progressPercentage": "",
+    "statuses": {
+      "syncing": "",
+      "queued": "",
+      "synced": "",
+      "failed": "",
+      "idle": ""
+    },
+    "lastSynced": "",
+    "neverSynced": "",
+    "syncNowButton": "",
+    "noBankAccounts": "",
+    "connectButton": "",
+    "retrySyncButton": "",
+    "manageConnectionsButton": "",
+    "needsReauthTitle": "",
+    "needsReauthDescription": "",
+    "reconnectButton": "",
+    "affectedAccounts": "",
+    "timeAgo": {
+      "justNow": "",
+      "secondsAgo": "",
+      "minutesAgo": "",
+      "hoursAgo": "",
+      "daysAgo": "",
+      "weeksAgo": "",
+      "monthsAgo": "",
+      "yearsAgo": ""
+    }
+  },
+  "banners": {
+    "recoveryMethod": {
+      "title": "",
+      "description": "",
+      "actionButton": ""
+    }
+  },
+  "relinkWarning": {
+    "buttonLabel": "",
+    "title": "",
+    "description": "",
+    "step1Full": "",
+    "reconnectButton": "",
+    "connectionValiditySection": "",
+    "connectionLabel": "",
+    "step2Full": "",
+    "unlinkAction": "",
+    "linkAction": ""
+  },
+  "pages": {
+    "integrations": {
+      "providers": {
+        "monobank": {
+          "name": ""
+        },
+        "enableBanking": {
+          "name": ""
+        },
+        "lunchflow": {
+          "name": ""
+        }
+      }
+    }
+  },
+  "dashboard": {
+    "onboarding": {
+      "title": "",
+      "subtitle": "",
+      "createManualAccount": {
+        "title": "",
+        "description": ""
+      },
+      "connectBank": {
+        "title": "",
+        "description": ""
+      },
+      "divider": "",
+      "importFile": {
+        "title": "",
+        "description": ""
+      },
+      "quickStart": {
+        "categories": {
+          "getting-started": {
+            "title": ""
+          },
+          "advanced-transactions": {
+            "title": ""
+          },
+          "organization": {
+            "title": ""
+          },
+          "bank-import": {
+            "title": ""
+          },
+          "analytics": {
+            "title": ""
+          },
+          "ai-settings": {
+            "title": ""
+          },
+          "sharing": {
+            "title": ""
+          }
+        },
+        "tasks": {
+          "create-account": {
+            "title": "",
+            "description": ""
+          },
+          "add-transaction": {
+            "title": "",
+            "description": ""
+          },
+          "create-transfer": {
+            "title": "",
+            "description": ""
+          },
+          "link-refund": {
+            "title": "",
+            "description": ""
+          },
+          "link-transactions": {
+            "title": "",
+            "description": ""
+          },
+          "split-transaction": {
+            "title": "",
+            "description": ""
+          },
+          "mark-transfer-out": {
+            "title": "",
+            "description": ""
+          },
+          "create-category": {
+            "title": "",
+            "description": ""
+          },
+          "create-tag": {
+            "title": "",
+            "description": ""
+          },
+          "create-budget": {
+            "title": "",
+            "description": ""
+          },
+          "create-subscription": {
+            "title": "",
+            "description": ""
+          },
+          "create-account-group": {
+            "title": "",
+            "description": ""
+          },
+          "setup-tag-reminder": {
+            "title": "",
+            "description": ""
+          },
+          "connect-bank": {
+            "title": "",
+            "description": ""
+          },
+          "import-csv": {
+            "title": "",
+            "description": ""
+          },
+          "view-annual-overview": {
+            "title": "",
+            "description": ""
+          },
+          "view-cash-flow": {
+            "title": "",
+            "description": ""
+          },
+          "review-ai-features": {
+            "title": "",
+            "description": ""
+          },
+          "configure-ai": {
+            "title": "",
+            "description": ""
+          },
+          "invite-household-member": {
+            "title": "",
+            "description": ""
+          },
+          "share-account": {
+            "title": "",
+            "description": ""
+          }
+        },
+        "ui": {
+          "title": "",
+          "subtitle": "",
+          "dismissButton": "",
+          "dismissConfirmTitle": "",
+          "dismissConfirmDescription": "",
+          "dismissConfirmButton": "",
+          "triggerTooltip": "",
+          "srDescription": "",
+          "progressText": "",
+          "categoryProgress": ""
+        }
+      }
+    }
+  }
+}

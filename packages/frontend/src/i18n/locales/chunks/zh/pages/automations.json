@@ -1,0 +1,217 @@
+{
+  "automations": {
+    "title": "",
+    "subtitle": "",
+    "newAutomation": "",
+    "new": "",
+    "dragHint": "",
+    "toggleAriaLabel": "",
+    "menuAriaLabel": "",
+    "disabledPill": "",
+    "mcpTip": {
+      "trigger": "",
+      "text": "",
+      "link": ""
+    },
+    "statusFilter": {
+      "all": "",
+      "enabled": "",
+      "disabled": "",
+      "empty": ""
+    },
+    "pausedMissingRef": "",
+    "pausedMissingRefUnnamed": "",
+    "matchStats": "",
+    "matchStatsNever": "",
+    "loadError": "",
+    "reorderDisabledFiltered": "",
+    "density": {
+      "comfortable": "",
+      "compact": ""
+    },
+    "chips": {
+      "when": "",
+      "then": "",
+      "not": "",
+      "day": "",
+      "more": "",
+      "less": "",
+      "noteReplace": "",
+      "noteAppend": "",
+      "notePrepend": "",
+      "note": {
+        "containsAny": "",
+        "notContainsAny": "",
+        "startsWithAny": "",
+        "endsWithAny": "",
+        "equalsAny": "",
+        "isEmpty": ""
+      },
+      "merchant": {
+        "containsAny": "",
+        "notContainsAny": "",
+        "startsWithAny": "",
+        "endsWithAny": "",
+        "equalsAny": "",
+        "isEmpty": ""
+      }
+    },
+    "refType": {
+      "category": "",
+      "tag": "",
+      "account": "",
+      "accountGroup": "",
+      "bankConnection": "",
+      "payee": ""
+    },
+    "emptyState": {
+      "title": "",
+      "description": "",
+      "cta": ""
+    },
+    "delete": {
+      "title": "",
+      "description": "",
+      "confirm": ""
+    },
+    "notifications": {
+      "deleteSuccess": "",
+      "deleteError": "",
+      "toggleError": "",
+      "reorderError": "",
+      "staleReference": "",
+      "openRule": ""
+    },
+    "fields": {
+      "note": "",
+      "merchant": "",
+      "payee": "",
+      "amount": "",
+      "transactionType": "",
+      "account": "",
+      "accountGroup": "",
+      "bankConnection": "",
+      "dayOfMonth": ""
+    },
+    "operators": {
+      "contains_any": "",
+      "not_contains_any": "",
+      "starts_with_any": "",
+      "ends_with_any": "",
+      "equals_any": "",
+      "is_empty": "",
+      "in": "",
+      "not_in": "",
+      "gte": "",
+      "lte": "",
+      "between": "",
+      "equals": ""
+    },
+    "actions": {
+      "set_category": "",
+      "set_payee": "",
+      "add_tags": "",
+      "set_note": "",
+      "noteMode": {
+        "replace": "",
+        "append": "",
+        "prepend": ""
+      }
+    },
+    "editor": {
+      "titleNew": "",
+      "titleEdit": "",
+      "back": "",
+      "enabled": "",
+      "nameLabel": "",
+      "namePlaceholder": "",
+      "conditionsHeader": "",
+      "matchAll": "",
+      "matchAny": "",
+      "joinAnd": "",
+      "joinOr": "",
+      "addCondition": "",
+      "removeCondition": "",
+      "removeKeyword": "",
+      "fieldPlaceholder": "",
+      "operatorPlaceholder": "",
+      "keywordPlaceholder": "",
+      "amountPlaceholder": "",
+      "minPlaceholder": "",
+      "maxPlaceholder": "",
+      "currencyPlaceholder": "",
+      "currency": {
+        "transaction": "",
+        "base": "",
+        "specific": ""
+      },
+      "accountsPlaceholder": "",
+      "accountGroupPlaceholder": "",
+      "bankConnectionPlaceholder": "",
+      "dayFromPlaceholder": "",
+      "dayToPlaceholder": "",
+      "actionsHeader": "",
+      "addAction": "",
+      "removeAction": "",
+      "categoryPlaceholder": "",
+      "payeePlaceholder": "",
+      "tagsPlaceholder": "",
+      "notePlaceholder": "",
+      "saveSuccess": "",
+      "notFound": {
+        "title": "",
+        "description": "",
+        "link": ""
+      },
+      "unsaved": {
+        "title": "",
+        "description": "",
+        "confirm": ""
+      },
+      "preview": {
+        "title": "",
+        "run": "",
+        "hint": "",
+        "summary": "",
+        "empty": "",
+        "stale": "",
+        "error": ""
+      },
+      "errors": {
+        "nameRequired": "",
+        "nameTooLong": "",
+        "conditionsRequired": "",
+        "actionsRequired": "",
+        "keywordsRequired": "",
+        "keywordsMax": "",
+        "keywordTooLong": "",
+        "selectionRequired": "",
+        "selectionMax": "",
+        "missingRef": "",
+        "amountRequired": "",
+        "amountBoundsRequired": "",
+        "amountRange": "",
+        "dayRange": "",
+        "categoryRequired": "",
+        "payeeRequired": "",
+        "tagsRequired": "",
+        "noteRequired": "",
+        "noteTooLong": "",
+        "saveFailed": "",
+        "transactionTypeDuplicate": ""
+      },
+      "noResults": ""
+    },
+    "summary": {
+      "missingRef": "",
+      "currency": {
+        "transaction": "",
+        "base": ""
+      },
+      "transactionTypeValue": {
+        "income": "",
+        "expense": ""
+      }
+    }
+  }
+}

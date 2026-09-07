@@ -1,0 +1,48 @@
+{
+  "accounts": {
+    "title": "",
+    "createAccount": "",
+    "createVehicle": "",
+    "actionsMenu": "",
+    "sections": {
+      "archived": "",
+      "manual": "",
+      "sharedWithMe": "",
+      "vehicles": "",
+      "bankConnections": ""
+    },
+    "empty": {
+      "title": "",
+      "description": "",
+      "connectBank": "",
+      "createManual": ""
+    },
+    "overview": {
+      "totalBalance": "",
+      "assets": "",
+      "liabilities": "",
+      "vehicles": "",
+      "projected": ""
+    },
+    "sharedBy": "",
+    "viaHousehold": "",
+    "connect": "",
+    "connectBank": "",
+    "noBanksConnected": "",
+    "reconnect": "",
+    "manageConnection": "",
+    "accountsCount": "",
+    "inGroupSubtitle": "",
+    "sort": {
+      "auto": "",
+      "name": "",
+      "balance": "",
+      "ariaLabel": ""
+    },
+    "status": {
+      "active": "",
+      "expiringSoon": "",
+      "expired": ""
+    }
+  }
+}

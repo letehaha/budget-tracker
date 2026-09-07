@@ -1,0 +1,139 @@
+{
+  "pages": {
+    "importExport": {
+      "msMoneyImport": {
+        "pageTitle": "",
+        "pageDescription": "",
+        "stepper": {
+          "steps": {
+            "upload": "",
+            "resolve": "",
+            "review": "",
+            "execute": "",
+            "done": ""
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "",
+          "description": "",
+          "maxSize": "",
+          "passwordLabel": "",
+          "passwordPlaceholder": "",
+          "passwordHint": "",
+          "parsing": "",
+          "continue": "",
+          "errors": {
+            "invalidFormatNamed": "",
+            "passwordUnsupportedChars": ""
+          }
+        },
+        "errors": {
+          "uploadUnavailable": ""
+        },
+        "resolve": {
+          "prepareFailed": "",
+          "accounts": {
+            "sectionTitle": "",
+            "currentBalanceLabel": "",
+            "currentBalancePlaceholder": "",
+            "willCreateHint": "",
+            "skippedNote": ""
+          },
+          "categories": {
+            "sectionTitle": ""
+          },
+          "quickActions": {
+            "mapExactMatches": "",
+            "createNewForUnmatched": "",
+            "reset": "",
+            "tooltips": {
+              "mapExactMatchesAccounts": "",
+              "mapExactMatchesCategories": "",
+              "createNewForUnmatched": "",
+              "reset": ""
+            }
+          },
+          "footer": {
+            "back": "",
+            "continue": ""
+          }
+        },
+        "review": {
+          "transactions": "",
+          "transfersDetected": "",
+          "outOfWallet": "",
+          "duplicatesSkipped": "",
+          "willImport": "",
+          "dateRange": "",
+          "warningsTitle": "",
+          "warningsHint": "",
+          "warnings": {
+            "accountTypeUnsupported": "",
+            "orphanRowSkipped": "",
+            "transferCounterpartNotImported": "",
+            "rowLimitReached": "",
+            "accountCurrencyDefaulted": "",
+            "rowMissingDate": "",
+            "accountNameMissing": "",
+            "accountNameDuplicated": "",
+            "rowAmountUnreadable": "",
+            "fileSchemaUnexpected": ""
+          },
+          "includeVoided": {
+            "label": "",
+            "hint": ""
+          },
+          "duplicatesTitle": "",
+          "duplicatesHint": "",
+          "back": "",
+          "importing": "",
+          "importButton": ""
+        },
+        "execute": {
+          "starting": "",
+          "progressCount": "",
+          "failed": "",
+          "partialImportNote": "",
+          "statusQueued": "",
+          "statusRunning": "",
+          "statusCompleted": "",
+          "statusFailed": ""
+        },
+        "done": {
+          "successTitle": "",
+          "successDescription": "",
+          "partialTitle": "",
+          "partialDescription": "",
+          "emptyTitle": "",
+          "emptyDescription": "",
+          "allFailedTitle": "",
+          "allFailedDescription": "",
+          "accountsCreated": "",
+          "accountsLinked": "",
+          "accountsSkipped": "",
+          "categoriesCreated": "",
+          "payeesCreated": "",
+          "transactionsImported": "",
+          "transfersImported": "",
+          "outOfWalletImported": "",
+          "duplicatesSkipped": "",
+          "voidedImported": "",
+          "mergedIntoPlanned": "",
+          "balanceWarningTitle": "",
+          "balanceWarningBody": "",
+          "errorsTitle": "",
+          "errorsOverflow": "",
+          "rowPrefix": "",
+          "viewTransactions": "",
+          "importAnother": ""
+        },
+        "leaseExpired": {
+          "title": "",
+          "description": "",
+          "action": ""
+        },
+        "leaseResourceLabel": ""
+      }
+    }
+  }
+}

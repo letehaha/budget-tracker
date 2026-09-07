@@ -1,0 +1,155 @@
+{
+  "portfolioDetail": {
+    "loading": "",
+    "loadingDetails": "",
+    "loadError": "",
+    "tryAgain": "",
+    "notFoundTitle": "",
+    "notFoundDescription": "",
+    "backToInvestments": "",
+    "subtitle": "",
+    "actions": {
+      "transfer": "",
+      "edit": "",
+      "delete": "",
+      "exchangeCurrency": ""
+    },
+    "balance": {
+      "totalValue": "",
+      "baseCurrencyEquivalent": "",
+      "loadError": "",
+      "metrics": {
+        "costBasis": "",
+        "unrealized": "",
+        "realized": "",
+        "totalReturn": ""
+      }
+    },
+    "cashBalances": {
+      "title": "",
+      "emptyState": "",
+      "tabs": {
+        "balances": "",
+        "cashTransactions": "",
+        "buysSells": ""
+      },
+      "cashTransactions": {
+        "addButton": "",
+        "emptyState": "",
+        "deposit": "",
+        "withdrawal": "",
+        "transferIn": "",
+        "transferOut": "",
+        "exchange": "",
+        "deleteConfirm": "",
+        "linkedTransactionNote": "",
+        "keepLinkedTransaction": "",
+        "deleteLinkedTransaction": "",
+        "adjustmentBadge": "",
+        "noCashBadge": "",
+        "markedAsAdjustment": "",
+        "markedAsContribution": "",
+        "adjustmentError": "",
+        "rowActions": "",
+        "emptyStateDescription": "",
+        "edit": "",
+        "editDialog": {
+          "title": "",
+          "description": "",
+          "save": ""
+        }
+      },
+      "buysSells": {
+        "emptyState": "",
+        "shares": ""
+      }
+    },
+    "holdings": {
+      "title": "",
+      "subtitle": "",
+      "filterPlaceholder": "",
+      "addButton": "",
+      "importButton": "",
+      "importButtonShort": ""
+    },
+    "holdingsTable": {
+      "loadError": "",
+      "empty": "",
+      "noFilterResults": "",
+      "noFilterResultsDescription": "",
+      "clearFilterButton": "",
+      "headers": {
+        "symbol": "",
+        "name": "",
+        "shares": "",
+        "price": "",
+        "avgCostPerShare": "",
+        "totalCost": "",
+        "marketValue": "",
+        "unrealizedGain": "",
+        "realizedGain": ""
+      },
+      "transactions": {
+        "loading": "",
+        "empty": "",
+        "addFirstButton": ""
+      },
+      "closedPositions": "",
+      "deleteHolding": {
+        "ariaLabel": "",
+        "title": "",
+        "description": "",
+        "confirmLabel": "",
+        "success": "",
+        "error": ""
+      },
+      "addTransactionDialog": {
+        "title": "",
+        "description": ""
+      },
+      "tryAgainLater": "",
+      "emptyDescription": "",
+      "addFirstHolding": "",
+      "importTransactions": ""
+    },
+    "transactionsList": {
+      "title": "",
+      "addButton": "",
+      "loadingMore": "",
+      "headers": {
+        "date": "",
+        "type": "",
+        "note": "",
+        "quantity": "",
+        "price": "",
+        "fees": "",
+        "amount": "",
+        "refAmount": "",
+        "refFees": "",
+        "settlementAmount": "",
+        "settlementCurrency": "",
+        "settlementFees": "",
+        "settlementRate": "",
+        "createdAt": ""
+      },
+      "categories": {
+        "buy": "",
+        "sell": "",
+        "dividend": "",
+        "transfer": "",
+        "tax": "",
+        "fee": "",
+        "cancel": "",
+        "other": ""
+      },
+      "headerTooltips": {
+        "amount": "",
+        "refAmount": "",
+        "settlementAmount": ""
+      },
+      "deleteTransaction": {
+        "tooltip": ""
+      }
+    }
+  }
+}

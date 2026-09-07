@@ -1,0 +1,76 @@
+{
+  "pages": {
+    "importExport": {
+      "ynabImport": {
+        "pageTitle": "",
+        "pageDescription": "",
+        "stepper": {
+          "steps": {
+            "upload": "",
+            "preview": "",
+            "results": ""
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "",
+          "description": "",
+          "maxSize": "",
+          "parsing": "",
+          "continueToPreview": "",
+          "errors": {
+            "invalidFormat": ""
+          }
+        },
+        "preview": {
+          "emptyList": "",
+          "accounts": "",
+          "categories": "",
+          "payees": "",
+          "tags": "",
+          "transactions": "",
+          "transfers": "",
+          "dateRange": "",
+          "accountsHelper": "",
+          "skippedNote": "",
+          "warningsTitle": "",
+          "rowPrefix": "",
+          "startOver": "",
+          "continueToImport": ""
+        },
+        "accountRow": {
+          "transactionsCount": "",
+          "startingBalance": "",
+          "currencyPlaceholder": "",
+          "currencyLabel": "",
+          "currencyInvalid": "",
+          "autoDetected": "",
+          "undoSkip": ""
+        },
+        "execute": {
+          "starting": "",
+          "progressCount": "",
+          "statusQueued": "",
+          "statusRunning": "",
+          "statusCompleted": "",
+          "statusFailed": "",
+          "failed": ""
+        },
+        "done": {
+          "successTitle": "",
+          "successDescription": "",
+          "accountsCreated": "",
+          "accountsSkipped": "",
+          "categoriesCreated": "",
+          "payeesCreated": "",
+          "tagsCreated": "",
+          "transactionsImported": "",
+          "transfersImported": "",
+          "splitsDetected": "",
+          "errorsTitle": "",
+          "viewTransactions": "",
+          "importAnother": ""
+        }
+      }
+    }
+  }
+}

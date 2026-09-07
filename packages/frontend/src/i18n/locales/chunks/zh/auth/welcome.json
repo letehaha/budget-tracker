@@ -1,0 +1,47 @@
+{
+  "auth": {
+    "welcome": {
+      "title": "",
+      "description": "",
+      "submitButton": "",
+      "logout": "",
+      "labels": {
+        "baseCurrency": ""
+      },
+      "placeholders": {
+        "loading": ""
+      },
+      "errors": {
+        "unableToLoadCurrencies": "",
+        "unableToSetCurrency": ""
+      }
+    },
+    "oauthCallback": {
+      "completingSignIn": "",
+      "errors": {
+        "accessDenied": {
+          "signIn": "",
+          "signUp": "",
+          "link": ""
+        },
+        "userAlreadyExists": {
+          "signIn": "",
+          "signUp": "",
+          "link": ""
+        },
+        "accountNotLinked": {
+          "signIn": "",
+          "signUp": "",
+          "link": ""
+        },
+        "genericError": {
+          "signIn": "",
+          "signUp": "",
+          "link": ""
+        },
+        "unauthorizedClient": "",
+        "temporarilyUnavailable": ""
+      }
+    }
+  }
+}

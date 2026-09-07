@@ -20,10 +20,10 @@
         "passwordTooLong": "Kata sandi terlalu panjang.",
         "invalidPassword": "Kata sandi tidak valid.",
         "userExists": "Pengguna dengan email tersebut sudah ada.",
+        "signupsDisabled": "Pendaftaran dinonaktifkan oleh administrator instance ini.",
         "genericErrorRetry": "Terjadi kesalahan. Silakan coba lagi.",
         "oauthFailed": "Gagal mendaftar dengan {provider}. Silakan coba lagi.",
-        "oauthNotConfigured": "{provider} sign-in tidak dikonfigurasi di server ini.",
-        "signupsDisabled": "Pendaftaran dinonaktifkan oleh administrator instance ini."
+        "oauthNotConfigured": "{provider} sign-in tidak dikonfigurasi di server ini."
       }
     },
     "shared": {

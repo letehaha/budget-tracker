@@ -1,0 +1,64 @@
+{
+  "settings": {
+    "aiIntegrations": {
+      "title": "",
+      "description": "",
+      "mcpServer": {
+        "title": "",
+        "description": "",
+        "copyTooltip": "",
+        "copiedNotification": ""
+      },
+      "quickConnect": {
+        "title": "",
+        "description": "",
+        "openSettings": "",
+        "claude": {
+          "steps": {
+            "createConnector": "",
+            "selectCustom": "",
+            "enterName": "",
+            "pasteUrl": "",
+            "finish": "",
+            "authorize": ""
+          }
+        },
+        "chatgpt": {
+          "steps": {
+            "addConnector": "",
+            "pasteUrl": "",
+            "clickAdd": "",
+            "authorize": ""
+          }
+        }
+      },
+      "actions": {
+        "addCustomConnector": "",
+        "addConnector": "",
+        "add": ""
+      },
+      "connectedApps": {
+        "title": "",
+        "description": "",
+        "emptyTitle": "",
+        "emptyDescription": "",
+        "connectedAt": "",
+        "lastUsed": "",
+        "scope": "",
+        "revoke": ""
+      },
+      "revokeDialog": {
+        "title": "",
+        "description": "",
+        "confirm": "",
+        "successNotification": "",
+        "errorNotification": ""
+      },
+      "scopes": {
+        "financeRead": "",
+        "profileRead": "",
+        "offlineAccess": ""
+      }
+    }
+  }
+}

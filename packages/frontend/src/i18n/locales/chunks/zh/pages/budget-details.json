@@ -1,0 +1,104 @@
+{
+  "pages": {
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "",
+        "selectAll": "",
+        "selected": "",
+        "unlink": "",
+        "cancel": "",
+        "unlinkSelected": "",
+        "noMatchingTransactions": "",
+        "noTransactionsLinked": "",
+        "filterAdjustmentHint": "",
+        "addTransactionsHint": "",
+        "resetFilters": "",
+        "addTransactions": "",
+        "add": "",
+        "loadingMore": ""
+      }
+    },
+    "budgetDetails": {
+      "notSet": "",
+      "saving": "",
+      "saveChanges": "",
+      "loading": "",
+      "uncategorized": "",
+      "stats": {
+        "income": "",
+        "expenses": "",
+        "netBalance": ""
+      },
+      "utilization": {
+        "title": "",
+        "summary": "",
+        "na": ""
+      },
+      "noTransactionsYet": "",
+      "transactions": "",
+      "transactionsLinked": "",
+      "tabs": {
+        "statistics": "",
+        "transactions": "",
+        "sharing": ""
+      },
+      "statistics": {
+        "tabs": {
+          "categories": "",
+          "timeline": ""
+        },
+        "errorTitle": "",
+        "errorDescription": "",
+        "noDataTitle": "",
+        "noDataDescription": "",
+        "noCategoryData": "",
+        "noTimelineData": "",
+        "total": "",
+        "income": "",
+        "expenses": "",
+        "incomeLabel": "",
+        "expensesLabel": ""
+      },
+      "sharing": {
+        "title": "",
+        "description": "",
+        "inviteAnother": "",
+        "membersHeading": "",
+        "pendingHeading": "",
+        "loadError": "",
+        "permissions": {
+          "read": "",
+          "write": "",
+          "manage": ""
+        },
+        "member": {
+          "you": "",
+          "roleOwner": "",
+          "roleRecipient": "",
+          "ownerHint": "",
+          "updateSuccess": "",
+          "updateError": "",
+          "revoke": "",
+          "revokeConfirm": "",
+          "revokeTitle": "",
+          "revokeDescription": "",
+          "revokeSuccess": "",
+          "revokeError": ""
+        },
+        "pending": {
+          "empty": "",
+          "resend": "",
+          "resendSuccess": "",
+          "resendError": "",
+          "resendDeliveryFailed": "",
+          "cancel": "",
+          "cancelConfirm": "",
+          "cancelTitle": "",
+          "cancelDescription": "",
+          "cancelSuccess": "",
+          "cancelError": ""
+        }
+      }
+    }
+  }
+}

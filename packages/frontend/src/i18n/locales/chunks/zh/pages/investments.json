@@ -1,0 +1,41 @@
+{
+  "investments": {
+    "title": "",
+    "createButton": "",
+    "loadError": "",
+    "tryAgain": "",
+    "menu": {
+      "view": "",
+      "delete": ""
+    },
+    "card": {
+      "hidden": "",
+      "portfolioType": "",
+      "costBasis": ""
+    },
+    "empty": {
+      "title": "",
+      "description": "",
+      "createFirstButton": ""
+    },
+    "trash": {
+      "title": "",
+      "retentionHint": "",
+      "loadError": "",
+      "deletedAgo": "",
+      "restoreButton": "",
+      "restoringButton": "",
+      "purgeButton": "",
+      "purgingButton": "",
+      "confirmPurgeTitle": "",
+      "confirmPurge": "",
+      "tryAgain": "",
+      "notifications": {
+        "restored": "",
+        "restoreError": "",
+        "purged": "",
+        "purgeError": ""
+      }
+    }
+  }
+}
