@@ -29,6 +29,7 @@ const schema = z.object({
       payeeId: recordId().nullable().optional(),
       payeeLocked: z.boolean().optional(),
       isPlanned: z.boolean().optional().default(false),
+      applyAutomations: z.boolean().optional().default(false),
       originalAmount: nonNegativeAmountSchema().optional(),
       originalCurrencyCode: currencyCode().optional(),
     })

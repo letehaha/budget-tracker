@@ -269,6 +269,28 @@ describe('Transaction automations hook', () => {
     expect((await helpers.getAutomationById({ id: rule.id }))?.matchCount).toBe(0);
   });
 
+  it('applies rules to a system-account row when POST /transactions sends applyAutomations', async () => {
+    const category = await helpers.addCustomCategory({ name: 'Rides', color: '#111111', raw: true });
+    const rule = await noteRule({
+      name: 'Uber is transport',
+      keyword: 'uber',
+      actions: [{ type: 'set_category', categoryId: category.id }],
+    });
+
+    const systemAccount = await helpers.createAccount({ raw: true });
+    const [tx] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({ accountId: systemAccount.id, note: 'UBER TRIP via api' }),
+        applyAutomations: true,
+      },
+      raw: true,
+    });
+
+    expect(tx!.categoryId).toBe(category.id);
+    expect(tx!.categorizationMeta?.source).toBe(CATEGORIZATION_SOURCE.userRule);
+    expect((await helpers.getAutomationById({ id: rule.id }))?.matchCount).toBe(1);
+  });
+
   it("never applies another user's rule to the syncing user's row", async () => {
     const second = await helpers.signUpSecondUser();
     const foreignRule = await helpers.asUser({
