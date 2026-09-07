@@ -101,6 +101,23 @@
             @update:model-value="handleShowArchivedToggle"
           />
         </div>
+        <Separator />
+
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex-1">
+            <div class="text-sm font-medium">
+              {{ $t('settings.general.showUpcomingTransactions.label') }}
+            </div>
+            <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+              {{ $t('settings.general.showUpcomingTransactions.description') }}
+            </p>
+          </div>
+          <Switch
+            :model-value="showUpcomingTransactions"
+            :disabled="isPatching"
+            @update:model-value="handleShowUpcomingToggle"
+          />
+        </div>
       </CardContent>
     </Card>
   </div>
@@ -126,7 +143,7 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const queryClient = useQueryClient();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
-const { data: userSettings, mutateAsync, isUpdating } = useUserSettings();
+const { data: userSettings, mutateAsync, isUpdating, patchAsync, isPatching } = useUserSettings();
 const { accountsRecord, txTargetableSourceAccountsActiveFirst } = storeToRefs(useAccountsStore());
 const {
   defaultAccountId,
@@ -139,6 +156,7 @@ const {
 const includeCreditLimitInStats = computed(() => userSettings.value?.includeCreditLimitInStats ?? false);
 const matchTransfersWithManualAccounts = computed(() => userSettings.value?.matchTransfersWithManualAccounts ?? false);
 const savingsCategoryIds = computed(() => userSettings.value?.savingsCategoryIds ?? []);
+const showUpcomingTransactions = computed(() => !userSettings.value?.ui?.transactionsList?.hideUpcoming);
 
 const defaultAccount = computed<AccountModel | null>(() =>
   defaultAccountId.value ? (accountsRecord.value[defaultAccountId.value] ?? null) : null,
@@ -215,4 +233,13 @@ const handleDefaultAccountChange = (account: AccountModel | null) =>
 
 const handleShowArchivedToggle = (value: boolean) =>
   applyDropdownPref({ update: () => setShowArchivedInDropdowns({ value }) });
+
+const handleShowUpcomingToggle = async (value: boolean) => {
+  try {
+    await patchAsync({ ui: { transactionsList: { hideUpcoming: !value } } });
+    addSuccessNotification(t('settings.general.showUpcomingTransactions.successNotification'));
+  } catch {
+    addErrorNotification(t('settings.general.showUpcomingTransactions.errorNotification'));
+  }
+};
 </script>
