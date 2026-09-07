@@ -355,6 +355,14 @@
       "unknownPayee": "Beneficiario desconocido",
       "loadError": "No se pudieron cargar los beneficiarios. Inténtelo de nuevo."
     },
+    "budgetMultiSelect": {
+      "label": "Todos los presupuestos",
+      "selectedMany": "{n} presupuestos seleccionados",
+      "searchPlaceholder": "Buscar presupuestos",
+      "noResults": "No se encontraron presupuestos",
+      "unknownBudget": "Presupuesto desconocido",
+      "loadError": "No se pudieron cargar los presupuestos. Inténtelo de nuevo."
+    },
     "payeeSelect": {
       "placeholder": "Seleccionar un beneficiario",
       "searchPlaceholder": "Buscar beneficiarios…",

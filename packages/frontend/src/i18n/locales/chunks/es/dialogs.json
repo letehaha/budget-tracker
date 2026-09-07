@@ -153,6 +153,8 @@
         "destinationTypeAccount": "Cuenta",
         "destinationTypePortfolio": "Cartera",
         "toPortfolioLabel": "A la cartera",
+        "portfolioCashAlreadyReflectedLabel": "El saldo de la cartera ya incluye este dinero",
+        "portfolioCashAlreadyReflectedHint": "Registra la transferencia en el historial de aportaciones sin añadir efectivo a la cartera. Úselo para transacciones antiguas cuando la cartera se configuró con su saldo actual.",
         "selectPortfolioPlaceholder": "Seleccione una cartera",
         "noPortfoliosExist": "No existe ninguna cartera",
         "destinationTypeLoan": "Préstamo",
@@ -307,6 +309,7 @@
         "withdrawal": "retirada",
         "unlinkButton": "Desvincular de la cartera",
         "unlinkWarning": "Desvincular reducirá el saldo en efectivo de la cartera {portfolio}.",
+        "unlinkWarningNoCash": "Esta transferencia nunca modificó el saldo en efectivo de {portfolio}, así que desvincularla deja el saldo intacto.",
         "unlinkDescription": "Se restaurarán los detalles originales de la transacción.",
         "cancelButton": "Cancelar",
         "confirmUnlink": "Confirmar desvinculación"
@@ -618,6 +621,41 @@
       "notifications": {
         "markedAsPaid": "Pago registrado",
         "markAsPaidFailed": "Error al registrar el pago"
+      }
+    },
+    "loanPayment": {
+      "title": "Pago de préstamo",
+      "description": "Registre o edite un pago de este préstamo.",
+      "createTitle": "Registrar pago",
+      "editTitle": "Editar pago de préstamo",
+      "payingTo": "Pagando a",
+      "fromAccountLabel": "Cuenta de origen",
+      "fromAccountPlaceholder": "Seleccione una cuenta",
+      "amountLabel": "Importe",
+      "amountPlaceholder": "0.00",
+      "targetAmountLabel": "Importe aplicado al préstamo",
+      "targetAmountPlaceholder": "0.00",
+      "targetAmountTooltip": "La cuenta de origen está en {source}, el préstamo está en {loan}. Rellenamos previamente el importe convertido usando el tipo de cambio actual — ajústelo si su banco aplicó una tasa diferente.",
+      "saveButton": "Guardar",
+      "recordButton": "Registrar",
+      "overdrawWarning": "Esto supera el saldo de {account} y dejará la cuenta en descubierto.",
+      "preAnchorWarning": "Este pago tiene fecha anterior al ancla de saldo del préstamo ({date}), así que se guardará como histórico y no reducirá el saldo pendiente.",
+      "overpayError": "El pago supera el saldo restante del préstamo ({max}).",
+      "deleteConfirmTitle": "¿Eliminar este pago?",
+      "deleteConfirmDescription": "Se eliminarán ambos lados de la transferencia y se restaurará el saldo del préstamo. Esto no se puede deshacer.",
+      "preAnchorHint": "Esta fecha es anterior a la instantánea de saldo del préstamo, así que este pago no cambiará el saldo pendiente — ya está incluido en el saldo inicial.",
+      "unlinkButton": "Desvincular",
+      "unlinkConfirmTitle": "¿Desvincular este pago?",
+      "unlinkConfirmDescription": "La transacción se mantendrá como un gasto normal, pero se eliminará de este préstamo. El saldo del préstamo se recalculará.",
+      "unlinkSuccess": "Pago desvinculado",
+      "unlinkError": "No se pudo desvincular el pago. Inténtelo de nuevo.",
+      "syncedAccountHint": "¿Paga desde una cuenta sincronizada? Use Vincular pagos para adjuntar el gasto importado en su lugar.",
+      "sourceInfo": {
+        "trigger": "Más detalles",
+        "title": "¿Por qué solo estas cuentas?",
+        "manualOnly": "Este selector solo lista sus cuentas gestionadas manualmente.",
+        "whySynced": "Las transacciones de cuentas sincronizadas con el banco se importan directamente de su banco. Registrar un pago de préstamo desde una de ellas aquí crearía un duplicado de la transacción que enviará su banco.",
+        "howToLink": "En su lugar, cuando aparezca la transacción bancaria, ábrala y elija Vincular pagos para adjuntarla a este préstamo. Eso mantiene una única fuente de verdad y actualiza el saldo del préstamo correctamente."
       }
     }
   }

@@ -355,6 +355,14 @@
       "unknownPayee": "Невідомий отримувач",
       "loadError": "Не вдалося завантажити отримувачів. Спробуйте ще раз."
     },
+    "budgetMultiSelect": {
+      "label": "Всі бюджети",
+      "selectedMany": "{n} бюджетів вибрано",
+      "searchPlaceholder": "Пошук бюджетів",
+      "noResults": "Бюджетів не знайдено",
+      "unknownBudget": "Невідомий бюджет",
+      "loadError": "Не вдалося завантажити бюджети. Спробуйте ще раз."
+    },
     "payeeSelect": {
       "placeholder": "Виберіть отримувача платежу",
       "searchPlaceholder": "Шукати отримувачів…",

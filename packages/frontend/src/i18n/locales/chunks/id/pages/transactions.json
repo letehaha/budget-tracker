@@ -63,6 +63,7 @@
       "menu": {
         "type": "Jenis",
         "tags": "Tag",
+        "budgets": "Anggaran",
         "amount": "Rentang jumlah",
         "note": "Catatan"
       },

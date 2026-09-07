@@ -355,6 +355,14 @@
       "unknownPayee": "Penerima tidak diketahui",
       "loadError": "Tidak dapat memuat penerima. Silakan coba lagi."
     },
+    "budgetMultiSelect": {
+      "label": "Semua anggaran",
+      "selectedMany": "{n} anggaran dipilih",
+      "searchPlaceholder": "Cari anggaran",
+      "noResults": "Tidak ada anggaran ditemukan",
+      "unknownBudget": "Anggaran tidak diketahui",
+      "loadError": "Tidak dapat memuat anggaran. Silakan coba lagi."
+    },
     "payeeSelect": {
       "placeholder": "Pilih penerima",
       "searchPlaceholder": "Cari penerima…",

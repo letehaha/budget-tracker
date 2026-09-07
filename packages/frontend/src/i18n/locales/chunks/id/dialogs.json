@@ -163,7 +163,9 @@
           "minValue": "Jumlah harus lebih besar dari nol",
           "futureDate": "Tanggal harus hari ini atau sebelumnya."
         },
-        "selectCategoryPlaceholder": "Pilih kategori"
+        "selectCategoryPlaceholder": "Pilih kategori",
+        "portfolioCashAlreadyReflectedLabel": "Saldo portofolio sudah mencakup uang ini",
+        "portfolioCashAlreadyReflectedHint": "Mencatat transfer untuk riwayat kontribusi tanpa menambahkan kas ke portofolio. Gunakan ini untuk transaksi lama saat portofolio disiapkan dengan saldo yang berlaku saat ini."
       },
       "refundRecordsList": {
         "filtersDialogTitle": "Pilih filter",
@@ -307,6 +309,7 @@
         "withdrawal": "penarikan",
         "unlinkButton": "Lepas dari Portofolio",
         "unlinkWarning": "Melepas tautan akan mengurangi saldo kas portofolio {portfolio}.",
+        "unlinkWarningNoCash": "Transfer ini tidak pernah mengubah saldo kas {portfolio}, jadi melepas tautan tidak akan memengaruhi saldo tersebut.",
         "unlinkDescription": "Detail transaksi asli akan dipulihkan.",
         "cancelButton": "Batal",
         "confirmUnlink": "Konfirmasi Lepas Tautan"
@@ -618,6 +621,41 @@
       "notifications": {
         "markedAsPaid": "Pembayaran tercatat",
         "markAsPaidFailed": "Gagal mencatat pembayaran"
+      }
+    },
+    "loanPayment": {
+      "title": "Pembayaran pinjaman",
+      "description": "Catat atau sunting pembayaran untuk pinjaman ini.",
+      "createTitle": "Catat Pembayaran",
+      "editTitle": "Sunting Pembayaran Pinjaman",
+      "payingTo": "Membayar ke",
+      "fromAccountLabel": "Dari akun",
+      "fromAccountPlaceholder": "Pilih akun",
+      "amountLabel": "Jumlah",
+      "amountPlaceholder": "0.00",
+      "targetAmountLabel": "Jumlah yang diterapkan ke pinjaman",
+      "targetAmountPlaceholder": "0.00",
+      "targetAmountTooltip": "Akun sumber dalam {source}, pinjaman dalam {loan}. Kami mengisi jumlah yang telah dikonversi menggunakan kurs saat ini — sesuaikan jika bank Anda menerapkan kurs yang berbeda.",
+      "saveButton": "Simpan",
+      "recordButton": "Catat",
+      "overdrawWarning": "Ini lebih besar dari saldo {account} dan akan membuat akun menjadi minus.",
+      "preAnchorWarning": "Pembayaran ini bertanggal sebelum titik acuan saldo pinjaman ({date}), sehingga akan disimpan sebagai riwayat dan tidak mengurangi saldo terutang.",
+      "overpayError": "Pembayaran melebihi sisa saldo pinjaman ({max}).",
+      "deleteConfirmTitle": "Hapus pembayaran ini?",
+      "deleteConfirmDescription": "Kedua sisi transfer akan dihapus dan saldo pinjaman akan dipulihkan. Tindakan ini tidak dapat dibatalkan.",
+      "preAnchorHint": "Tanggal ini sebelum snapshot saldo pinjaman, sehingga pembayaran ini tidak akan mengubah saldo terutang — sudah termasuk dalam saldo awal.",
+      "unlinkButton": "Lepas tautan",
+      "unlinkConfirmTitle": "Lepas tautan pembayaran ini?",
+      "unlinkConfirmDescription": "Transaksi akan tetap ada sebagai pengeluaran biasa tetapi dihapus dari pinjaman ini. Saldo pinjaman akan dihitung ulang.",
+      "unlinkSuccess": "Tautan pembayaran dilepas",
+      "unlinkError": "Tidak dapat melepas tautan pembayaran. Silakan coba lagi.",
+      "syncedAccountHint": "Membayar dari akun yang tersinkronisasi? Gunakan Tautkan pembayaran untuk melampirkan pengeluaran yang diimpor.",
+      "sourceInfo": {
+        "trigger": "Detail lainnya",
+        "title": "Mengapa hanya akun ini?",
+        "manualOnly": "Pemilih ini hanya menampilkan akun yang Anda kelola secara manual.",
+        "whySynced": "Transaksi pada akun yang tersinkronisasi dengan bank diimpor langsung dari bank Anda. Mencatat pembayaran pinjaman dari akun ini akan membuat duplikat transaksi yang akan dikirim oleh bank Anda.",
+        "howToLink": "Sebagai gantinya, setelah transaksi bank muncul, buka dan pilih Tautkan pembayaran untuk melampirkannya ke pinjaman ini. Ini menjaga satu sumber kebenaran dan memperbarui saldo pinjaman dengan benar."
       }
     }
   }
