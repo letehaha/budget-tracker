@@ -1,5 +1,4 @@
 import {
-  type StatementCostEstimateFailure,
   type StatementDetectDuplicatesResponse,
   type StatementExecuteImportResponse,
   detectStatementDuplicates,
@@ -8,6 +7,7 @@ import {
   extractStatementTransactions,
 } from '@/api/import-export';
 import { loadTransactions } from '@/api/transactions';
+import { fileToBase64 } from '@/common/utils/file-to-base64';
 import { useWizardSteps } from '@/composable/use-wizard-steps';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import type {
@@ -15,7 +15,9 @@ import type {
   ExtractedMetadata,
   ExtractedTransaction,
   StatementCostEstimate,
+  StatementCostEstimateFailure,
   StatementExtractionResult,
+  StatementTextExtractionErrorCode,
 } from '@bt/shared/types';
 import type { TransactionModel } from '@bt/shared/types/db-models';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -25,19 +27,8 @@ import { computed, ref } from 'vue';
 import { useOnboardingStore } from './onboarding';
 
 /**
- * Statement Parser Store
- *
- * Manages the multi-step flow for importing transactions from bank statements:
- * 1. Upload & Estimate - Upload files and get a cost estimate per file
- * 2. Extract - AI extraction, one file at a time
- * 3. Account Selection - Select existing or create new account
- * 4. Review Duplicates - (only for existing accounts) Review and exclude duplicates
- * 5. Import - Execute import and show results
- *
- * Several statements can be selected at once. Each is estimated and extracted
- * independently — one AI call per file, so a file that fails only loses itself —
- * and the results are concatenated into a single list that the rest of the wizard
- * treats as one statement, landing in one account.
+ * Statement import wizard: upload + estimate + extract (per file, one AI call each),
+ * account selection, duplicate review (existing accounts only), import.
  */
 
 /**
@@ -52,43 +43,34 @@ export type StatementParserStepKey = 'upload' | 'account' | 'review' | 'results'
 /** Every step in canonical order. `review` is filtered out for new accounts. */
 const ALL_STEP_KEYS: readonly StatementParserStepKey[] = ['upload', 'account', 'review', 'results'];
 
-/**
- * One selected statement file and everything derived from it. Estimate and
- * extraction outcomes are per-file because each file is a separate AI call: a
- * corrupt page in statement 3 must not discard statements 1, 2 and 4.
- */
+/** One selected file plus its per-file estimate and extraction outcome. */
 export interface StatementFileEntry {
-  /** Stable identity — also how a re-selection of the same file is recognised. */
+  /** `name:size:lastModified` — how a re-selection of the same file is recognised. */
   id: string;
   file: File;
   fileBase64: string;
+  /** Password for an encrypted file, sent with both the estimate and the extraction. */
+  password: string | null;
   costEstimate: StatementCostEstimate | null;
   estimateError: string | null;
+  /** Lets the upload step ask for a password instead of only showing the message. */
+  estimateErrorCode: StatementTextExtractionErrorCode | null;
   extraction: StatementExtractionResult | null;
   extractionError: string | null;
 }
 
-/**
- * Identity used both for de-duping a selection and as an entry's key. Matches
- * the identity `MultiFileDropzone` de-dupes on, so the two stay in step.
- */
-function fileKey(file: File): string {
-  return `${file.name}:${file.size}:${file.lastModified}`;
+export type StatementFileStatus = 'pending' | 'estimated' | 'estimateFailed' | 'extracted' | 'extractionFailed';
+
+export function entryStatus({ entry }: { entry: StatementFileEntry }): StatementFileStatus {
+  if (entry.extraction) return 'extracted';
+  if (entry.extractionError) return 'extractionFailed';
+  if (entry.estimateError) return 'estimateFailed';
+  if (entry.costEstimate) return 'estimated';
+  return 'pending';
 }
 
-function readFileAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      // Strip the data URL prefix (data:application/pdf;base64,...).
-      resolve(result.split(',')[1] || result);
-    };
-    // Without this a failed read never settles, and awaiting it would hang the
-    // whole selection rather than skipping the one unreadable file.
-    reader.onerror = () => reject(reader.error ?? new Error(`Failed to read ${file.name}`));
-    reader.readAsDataURL(file);
-  });
+function fileKey({ file }: { file: File }): string {
+  return `${file.name}:${file.size}:${file.lastModified}`;
 }
 
 export const useStatementParserStore = defineStore('statementParser', () => {
@@ -151,75 +133,46 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   const importResult = ref<StatementExecuteImportResponse | null>(null);
   const importError = ref<string | null>(null);
 
-  /**
-   * Every extracted transaction across every file, concatenated in selection
-   * order. This array defines the wizard's index space: duplicate matches,
-   * manual exclusions and `skipIndices` are all positions in *here*, and it is
-   * exactly what gets POSTed to detect-duplicates and execute — so the indices
-   * the backend hands back line up without translation.
-   */
+  // The wizard's index space: duplicates, exclusions and `skipIndices` are positions
+  // in this array, and it is exactly what is POSTed to detect-duplicates and execute.
   const mergedTransactions = computed<ExtractedTransaction[]>(() =>
     fileEntries.value.flatMap((entry) => entry.extraction?.transactions ?? []),
   );
 
-  /**
-   * Source file name for each merged index, so the review step can attribute a
-   * row to the statement it came from.
-   */
+  /** Source file name for each merged index. */
   const transactionSources = computed<string[]>(() =>
     fileEntries.value.flatMap((entry) => (entry.extraction?.transactions ?? []).map(() => entry.file.name)),
   );
 
-  /** Files that produced transactions. */
-  const extractedEntries = computed(() => fileEntries.value.filter((entry) => entry.extraction !== null));
+  const entriesWithStatus = ({ status }: { status: StatementFileStatus }) =>
+    fileEntries.value.filter((entry) => entryStatus({ entry }) === status);
 
-  /**
-   * Rows the extraction recognised but could not use, summed over the batch —
-   * the warning is about the totals shown alongside it, which are batch-wide too.
-   */
+  const extractedEntries = computed(() => entriesWithStatus({ status: 'extracted' }));
+  const extractionFailures = computed(() => entriesWithStatus({ status: 'extractionFailed' }));
+  const estimateFailures = computed(() => entriesWithStatus({ status: 'estimateFailed' }));
+  const pendingEstimateEntries = computed(() => entriesWithStatus({ status: 'pending' }));
+  // Estimate and extract share the server-side text extraction: a file whose
+  // estimate failed (or never ran) is not sent to the paid extract call.
+  const extractableEntries = computed(() => entriesWithStatus({ status: 'estimated' }));
+
+  /** Rows the extraction recognised but could not use, summed over the batch. */
   const droppedRowCount = computed(() =>
     extractedEntries.value.reduce((sum, entry) => sum + entry.extraction!.droppedRowCount, 0),
   );
 
-  /** Files whose extraction failed — kept visible so a partial import is explicit. */
-  const extractionFailures = computed(() => fileEntries.value.filter((entry) => entry.extractionError !== null));
-
-  /** Files whose cost estimate failed. */
-  const estimateFailures = computed(() => fileEntries.value.filter((entry) => entry.estimateError !== null));
-
-  /** Files still awaiting a cost estimate. A recorded failure needs `clearFailures` first. */
-  const pendingEstimateEntries = computed(() =>
-    fileEntries.value.filter((entry) => !entry.costEstimate && !entry.estimateError),
-  );
-
-  /**
-   * Files extraction should still be attempted on.
-   *
-   * A failed estimate is excluded because the two endpoints share the same
-   * server-side text extraction: if estimate-cost couldn't get text out of the
-   * file, extract can't either, and sending it would spend an AI call to learn
-   * what we already know. `clearFailures` puts such a file back in scope.
-   */
-  const extractableEntries = computed(() =>
-    fileEntries.value.filter((entry) => !entry.extraction && !entry.estimateError),
-  );
-
   /** Distinct non-empty values a metadata getter yields across parsed files. */
-  function distinctMetadata(pick: (metadata: ExtractedMetadata) => string | undefined): string[] {
+  function distinctMetadata({ pick }: { pick: (metadata: ExtractedMetadata) => string | undefined }): string[] {
     const values = extractedEntries.value
       .map((entry) => pick(entry.extraction!.metadata))
       .filter((value): value is string => typeof value === 'string' && value.length > 0);
     return [...new Set(values)];
   }
 
-  const detectedBankNames = computed(() => distinctMetadata((metadata) => metadata.bankName));
-  const detectedCurrencies = computed(() => distinctMetadata((metadata) => metadata.currencyCode));
+  const detectedBankNames = computed(() => distinctMetadata({ pick: (metadata) => metadata.bankName }));
+  const detectedCurrencies = computed(() => distinctMetadata({ pick: (metadata) => metadata.currencyCode }));
 
-  /**
-   * A detected value is only reported when every file that identified one agrees.
-   * Disagreement is surfaced rather than guessed at: the whole selection lands in
-   * a single account, so mixed currencies are the user's call to resolve.
-   */
+  // A detected value is only reported when every file that identified one agrees;
+  // the whole selection lands in one account, so a conflict is the user's to resolve.
   const detectedBankName = computed(() =>
     detectedBankNames.value.length === 1 ? detectedBankNames.value[0] : undefined,
   );
@@ -233,15 +186,8 @@ export const useStatementParserStore = defineStore('statementParser', () => {
    */
   const effectiveCurrency = computed(() => detectedCurrency.value || manualCurrency.value);
 
-  /**
-   * The batch presented as one estimate, so the upload step can render it with the
-   * same components a single-file estimate uses. Model and key source come from the
-   * first estimate — they're resolved from the user's settings server-side, so
-   * they're identical for every file.
-   *
-   * `estimatedCostUsd` stays null if *any* file's price is unknown: a partial sum
-   * would read as the batch total and understate it.
-   */
+  // Model/key fields come from the first estimate (identical for every file).
+  // `estimatedCostUsd` is null if any file's price is unknown: a partial sum would understate.
   const costEstimateTotals = computed(() => {
     const estimates = fileEntries.value
       .map((entry) => entry.costEstimate)
@@ -328,11 +274,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     files: extractedEntries.value.length,
   }));
 
-  /**
-   * Drops everything derived from the merged transaction list. Called whenever
-   * the file selection changes: adding or removing a file re-bases every merged
-   * index, so duplicate matches and exclusions can't be adjusted — only discarded.
-   */
+  // Everything keyed by merged index; any change to the merged list invalidates it all.
   function clearDerivedState() {
     selectedAccount.value = null;
     isNewAccount.value = false;
@@ -348,30 +290,23 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     importError.value = null;
   }
 
-  /**
-   * Replaces the selection with `files`, preserving the estimate and extraction
-   * already paid for on any file that is still selected (identity is name + size
-   * + lastModified) so re-ordering or removing one file doesn't re-run the AI on
-   * the others.
-   *
-   * Returns the names of files that could not be read, for the caller to report —
-   * the store deliberately produces no user-facing strings of its own.
-   */
+  // Entries for files still selected are kept as-is so their paid-for estimate/extraction survives.
+  // Returns names of files that could not be read; the store emits no user-facing strings.
   async function setFiles({ files }: { files: File[] }): Promise<{ unreadable: string[] }> {
     const existing = new Map(fileEntries.value.map((entry) => [entry.id, entry]));
 
-    // An identical selection is a no-op. Without this, re-validating the same
-    // list (which the upload step does on every dropzone emit) would reset the
-    // wizard and throw away duplicate decisions the user had already made.
+    // The upload step re-validates the same list on every dropzone emit; resetting
+    // the wizard for an identical selection would discard the user's duplicate decisions.
     const unchanged =
-      files.length === fileEntries.value.length && files.every((file, i) => fileKey(file) === fileEntries.value[i]!.id);
+      files.length === fileEntries.value.length &&
+      files.every((file, i) => fileKey({ file }) === fileEntries.value[i]!.id);
     if (unchanged) return { unreadable: [] };
 
     const next: StatementFileEntry[] = [];
     const unreadable: string[] = [];
 
     for (const file of files) {
-      const id = fileKey(file);
+      const id = fileKey({ file });
       const kept = existing.get(id);
       if (kept) {
         next.push(kept);
@@ -382,9 +317,11 @@ export const useStatementParserStore = defineStore('statementParser', () => {
         next.push({
           id,
           file,
-          fileBase64: await readFileAsBase64(file),
+          fileBase64: await fileToBase64({ file }),
+          password: null,
           costEstimate: null,
           estimateError: null,
+          estimateErrorCode: null,
           extraction: null,
           extractionError: null,
         });
@@ -395,18 +332,23 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
     fileEntries.value = next;
     clearDerivedState();
-    // Send the wizard back to the start: any completed step downstream was
-    // completed against the previous selection.
     resetSteps();
+    if (mergedTransactions.value.length) markStepCompleted('upload');
 
     return { unreadable };
   }
 
-  /**
-   * Estimates every file in turn. A second call only retries the files that have
-   * no estimate yet, so a partial failure can be re-attempted without paying for
-   * the successful ones again.
-   */
+  /** Sets the password for one file and clears its estimate failure so `estimateCosts` retries it. */
+  function setDocumentPassword({ id, password }: { id: string; password: string | null }) {
+    const entry = fileEntries.value.find((candidate) => candidate.id === id);
+    if (!entry) return;
+
+    entry.password = password;
+    entry.estimateError = null;
+    entry.estimateErrorCode = null;
+  }
+
+  /** Estimates pending files only; already-estimated files are never re-sent. */
   async function estimateCosts() {
     if (isEstimating.value || !fileEntries.value.length) return;
 
@@ -417,16 +359,26 @@ export const useStatementParserStore = defineStore('statementParser', () => {
         estimatingFileId.value = entry.id;
 
         try {
-          const result = await estimateStatementCost({ fileBase64: entry.fileBase64 });
+          const result = await estimateStatementCost({
+            fileBase64: entry.fileBase64,
+            password: entry.password ?? undefined,
+          });
 
           if ('success' in result && (result as StatementCostEstimateFailure).success === false) {
             const failure = result as StatementCostEstimateFailure;
             entry.estimateError = failure.error?.message || failure.suggestion || 'Failed to analyze file';
+            entry.estimateErrorCode = failure.textExtraction.success
+              ? null
+              : (failure.textExtraction.errorCode ?? null);
           } else {
+            // A successful estimate and an estimate error never coexist on an entry.
             entry.costEstimate = result as StatementCostEstimate;
+            entry.estimateError = null;
+            entry.estimateErrorCode = null;
           }
         } catch (error) {
           entry.estimateError = error instanceof Error ? error.message : 'Failed to estimate cost';
+          entry.estimateErrorCode = null;
         }
       }
     } finally {
@@ -435,25 +387,26 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     }
   }
 
-  /**
-   * Extracts transactions from each file in turn — one AI call per file, never
-   * concurrent, so a large selection can't fan out into simultaneous requests.
-   *
-   * A file that fails does not block the rest: whatever parsed is carried
-   * forward and the failures stay visible on the upload step. As with the
-   * estimate, re-running only retries the files that produced nothing.
-   */
+  /** Extracts estimated files one at a time; a failure is recorded on its entry and the rest continue. */
   async function extractAll() {
     if (isExtracting.value || !fileEntries.value.length) return;
 
     isExtracting.value = true;
+
+    let extractedSomething = false;
 
     try {
       for (const entry of extractableEntries.value) {
         extractingFileId.value = entry.id;
 
         try {
-          entry.extraction = await extractStatementTransactions({ fileBase64: entry.fileBase64 });
+          // A successful extraction and an extraction error never coexist on an entry.
+          entry.extraction = await extractStatementTransactions({
+            fileBase64: entry.fileBase64,
+            password: entry.password ?? undefined,
+          });
+          entry.extractionError = null;
+          extractedSomething = true;
 
           trackAnalyticsEvent({
             event: 'ai_feature_used',
@@ -468,22 +421,30 @@ export const useStatementParserStore = defineStore('statementParser', () => {
       isExtracting.value = false;
     }
 
-    // Only a complete wipeout keeps us on the upload step.
+    // A newly extracted file re-bases every later merged index, so duplicates,
+    // exclusions and overrides no longer refer to the rows they were made against.
+    if (extractedSomething) {
+      clearDerivedState();
+      resetSteps();
+    }
+
+    // Unless every file extracted, the upload step stays visible so the partial
+    // batch is explicit; its Continue button advances.
     if (mergedTransactions.value.length) {
       markStepCompleted('upload');
-      goToStep('account');
+      if (extractedEntries.value.length === fileEntries.value.length) goToStep('account');
     }
   }
 
-  /**
-   * Clears recorded failures so the next `estimateCosts` / `extractAll` retries
-   * them. Files that already succeeded keep their result and are skipped, so a
-   * retry never re-spends on work already paid for.
-   */
-  function clearFailures() {
+  /** Clears one phase's recorded failures so the next `estimateCosts` / `extractAll` retries them. */
+  function clearFailures({ phase }: { phase: 'estimate' | 'extract' }) {
     fileEntries.value.forEach((entry) => {
-      entry.estimateError = null;
-      entry.extractionError = null;
+      if (phase === 'estimate') {
+        entry.estimateError = null;
+        entry.estimateErrorCode = null;
+      } else {
+        entry.extractionError = null;
+      }
     });
   }
 
@@ -669,7 +630,6 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     extractableEntries,
     costEstimateTotals,
     detectedBankName,
-    detectedBankNames,
     detectedCurrency,
     detectedCurrencies,
     hasCurrencyConflict,
@@ -686,6 +646,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
     // Actions
     setFiles,
+    setDocumentPassword,
     estimateCosts,
     extractAll,
     clearFailures,

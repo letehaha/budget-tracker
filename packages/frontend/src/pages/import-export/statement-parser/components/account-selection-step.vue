@@ -21,10 +21,8 @@
         </div>
       </div>
 
-      <!-- Every selected statement is imported into the one account chosen below,
-           so name the files rather than leaving the total unattributed. -->
       <p v-if="store.importSummary.files > 1" class="text-muted-foreground text-xs">
-        {{ t('pages.statementParser.accountSelection.filesList', { files: parsedFileNames }) }}
+        {{ $t('pages.statementParser.accountSelection.filesList', { files: parsedFileNames }) }}
       </p>
     </div>
 
@@ -34,7 +32,7 @@
            was detected — but say which, so the choice isn't blind. -->
       <p v-if="store.hasCurrencyConflict">
         {{
-          t('pages.statementParser.accountSelection.currencyConflict', {
+          $t('pages.statementParser.accountSelection.currencyConflict', {
             currencies: store.detectedCurrencies.join(', '),
           })
         }}
@@ -142,12 +140,10 @@ import type { AccountModel } from '@bt/shared/types';
 import { ArrowLeftIcon, PlusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 
 import AccountSelectField from './account-select-field.vue';
 import CreateAccountForImportDialog from './create-account-for-import-dialog.vue';
 
-const { t } = useI18n();
 const store = useStatementParserStore();
 const accountsStore = useAccountsStore();
 const currenciesStore = useCurrenciesStore();

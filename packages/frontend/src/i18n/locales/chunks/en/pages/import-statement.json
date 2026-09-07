@@ -43,7 +43,6 @@
           "extracted": "{count} transaction | {count} transactions",
           "failed": "Failed"
         },
-        "removeButton": "Remove",
         "analyzeButton": "Analyze File | Analyze {count} Files",
         "tryAgain": "Try Again",
         "modelLabel": "Model",

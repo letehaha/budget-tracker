@@ -18,7 +18,7 @@
           <span class="text-muted-foreground">{{ $t('pages.statementParser.transactionReview.extractedLabel') }}</span>
           <span class="font-semibold">{{ store.importSummary.total }}</span>
           <span v-if="showSources" class="text-muted-foreground">
-            {{ t('pages.statementParser.transactionReview.fromFiles', { count: store.importSummary.files }) }}
+            {{ $t('pages.statementParser.transactionReview.fromFiles', { count: store.importSummary.files }) }}
           </span>
         </div>
         <div class="flex items-center gap-2">
@@ -208,9 +208,7 @@ import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useStatementParserStore } from '@/stores/statement-parser';
 import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from '@lucide/vue';
 import { computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n();
 const store = useStatementParserStore();
 
 // Count existing transactions that are not duplicates
@@ -235,7 +233,6 @@ interface TimelineItem {
   isOverridden?: boolean;
 }
 
-/** Attribution only earns its column space once the batch spans several statements. */
 const showSources = computed(() => store.importSummary.files > 1);
 
 const timelineItems = computed((): TimelineItem[] => {
@@ -255,7 +252,6 @@ const timelineItems = computed((): TimelineItem[] => {
     const duplicate = duplicateMap.get(index);
     const isExcluded = store.excludedTransactionIndices.has(index);
     const isOverridden = store.overriddenDuplicateIndices.has(index);
-    // Only worth showing when the batch spans more than one statement.
     const sourceFile = showSources.value ? store.transactionSources[index] : undefined;
 
     if (duplicate) {

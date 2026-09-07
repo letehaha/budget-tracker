@@ -144,8 +144,8 @@
       </div>
 
       <!-- Without this the count above silently under-reports the uploaded file. -->
-      <Callout v-if="droppedRowCount > 0" variant="warning">
-        {{ $t('pages.statementParser.droppedRowsWarning', { count: droppedRowCount }) }}
+      <Callout v-if="store.droppedRowCount > 0" variant="warning">
+        {{ $t('pages.statementParser.droppedRowsWarning', { count: store.droppedRowCount }) }}
       </Callout>
 
       <Callout
@@ -193,8 +193,6 @@ const router = useRouter();
 const hasErrors = computed(() => (store.importResult?.summary.errors.length ?? 0) > 0);
 
 const skippedCount = computed(() => store.importSummary.total - store.importSummary.toImport);
-
-const droppedRowCount = computed(() => store.droppedRowCount);
 
 function handleBack() {
   // Walks to the previous visible step: `review` for existing accounts (where it

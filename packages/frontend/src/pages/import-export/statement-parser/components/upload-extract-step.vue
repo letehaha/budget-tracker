@@ -1,55 +1,74 @@
 <template>
-  <div class="space-y-6">
+  <div class="@container/statement-upload space-y-6">
     <MultiFileDropzone
-      :model-value="selectedFiles"
+      :model-value="dropzoneFiles"
       accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain"
       :max-size="MAX_FILE_SIZE"
       :validator="validateExtension"
       :disabled="isBusy"
       :idle-text="$t('pages.statementParser.uploadExtract.clickOrDragStatements')"
       @update:model-value="handleSelectionChange"
-      @error="(msg) => (fileError = msg)"
+      @error="(msg) => (dropzoneError = msg)"
     >
       <template #hint>{{ $t('pages.statementParser.uploadExtract.supportedFormats') }}</template>
     </MultiFileDropzone>
 
-    <Callout v-if="fileError" variant="destructive">
-      {{ fileError }}
+    <Callout v-if="dropzoneError || fileError" variant="destructive">
+      <p v-if="dropzoneError">{{ dropzoneError }}</p>
+      <p v-if="fileError">{{ fileError }}</p>
     </Callout>
 
-    <!-- Per-file progress. Visible from selection onwards so the state of every
-         file in the batch is legible at a glance, not just the one in flight. -->
     <div v-if="fileRows.length" class="space-y-2">
       <p class="text-muted-foreground text-xs font-medium">
         {{ $t('pages.statementParser.uploadExtract.filesLabel') }}
       </p>
-      <ul class="divide-border/60 overflow-hidden rounded-lg border">
-        <li
-          v-for="row in fileRows"
-          :key="row.id"
-          class="flex items-center justify-between gap-3 px-3 py-2 text-sm not-last:border-b"
-        >
-          <div class="flex min-w-0 items-center gap-2">
-            <Loader2Icon v-if="row.busy" class="text-primary size-4 shrink-0 animate-spin" />
-            <CheckCircleIcon v-else-if="row.state === 'extracted'" class="size-4 shrink-0 text-green-600" />
-            <AlertCircleIcon v-else-if="row.failed" class="text-destructive-text size-4 shrink-0" />
-            <FileTextIcon v-else class="text-muted-foreground size-4 shrink-0" />
-            <span class="truncate">{{ row.name }}</span>
+      <ul class="overflow-hidden rounded-lg border">
+        <li v-for="row in fileRows" :key="row.id" class="px-3 py-2 text-sm not-last:border-b">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-2">
+              <Loader2Icon v-if="row.busy" class="text-primary-text size-4 shrink-0 animate-spin" />
+              <CheckCircleIcon v-else-if="row.state === 'extracted'" class="text-success-text size-4 shrink-0" />
+              <AlertCircleIcon v-else-if="row.failed" class="text-destructive-text size-4 shrink-0" />
+              <FileTextIcon v-else class="text-muted-foreground size-4 shrink-0" />
+              <span class="truncate">{{ row.name }}</span>
+            </div>
+            <span
+              class="shrink-0 text-xs"
+              :class="row.failed ? 'text-destructive-text' : 'text-muted-foreground'"
+              :title="row.error ?? undefined"
+            >
+              {{ row.label }}
+            </span>
           </div>
-          <span
-            class="shrink-0 text-xs"
-            :class="row.failed ? 'text-destructive-text' : 'text-muted-foreground'"
-            :title="row.error ?? undefined"
+
+          <div
+            v-if="row.needsPassword"
+            class="mt-3 flex flex-col gap-3 @sm/statement-upload:flex-row @sm/statement-upload:items-end"
           >
-            {{ row.label }}
-          </span>
+            <div class="flex-1">
+              <InputField
+                v-model="passwords[row.id]"
+                type="password"
+                :label="$t('pages.statementParser.uploadExtract.pdfPasswordLabel')"
+                :placeholder="$t('pages.statementParser.uploadExtract.pdfPasswordPlaceholder')"
+                :disabled="isBusy"
+                @keyup.enter.stop="handlePasswordSubmit({ id: row.id })"
+              />
+            </div>
+            <Button :disabled="!passwords[row.id] || isBusy" @click="handlePasswordSubmit({ id: row.id })">
+              <template v-if="store.isEstimating">
+                <Loader2Icon class="size-4 animate-spin" />
+              </template>
+              {{ $t('pages.statementParser.uploadExtract.pdfPasswordSubmit') }}
+            </Button>
+          </div>
         </li>
       </ul>
     </div>
 
     <!-- Cost Estimate Section -->
     <div v-if="pendingEstimateCount > 0 && !store.isExtracting" class="flex justify-center">
-      <Button @click="handleEstimate" :disabled="store.isEstimating">
+      <Button :disabled="isBusy" @click="store.estimateCosts()">
         <template v-if="store.isEstimating">
           <Loader2Icon class="size-4 animate-spin" />
           {{ $t('pages.statementParser.uploadExtract.analyzingFiles') }}
@@ -57,7 +76,7 @@
         <template v-else>
           <CalculatorIcon class="size-4" />
           {{
-            t(
+            $t(
               'pages.statementParser.uploadExtract.analyzeButton',
               { count: pendingEstimateCount },
               pendingEstimateCount,
@@ -69,7 +88,7 @@
 
     <Callout v-if="store.estimateFailures.length" variant="destructive">
       {{
-        t('pages.statementParser.uploadExtract.estimateFailedSome', {
+        $t('pages.statementParser.uploadExtract.estimateFailedSome', {
           count: store.estimateFailures.length,
           total: store.fileEntries.length,
         })
@@ -79,6 +98,9 @@
           {{ entry.file.name }} — {{ entry.estimateError }}
         </li>
       </ul>
+      <Button v-if="!store.isEstimating" variant="ghost" size="sm" class="mt-2" @click="handleRetryEstimates">
+        {{ $t('pages.statementParser.uploadExtract.tryAgain') }}
+      </Button>
     </Callout>
 
     <div v-if="totals" class="space-y-4">
@@ -100,7 +122,7 @@
             <AiEstimatedCost :estimate="totals" />
           </p>
           <p v-if="totals.fileCount > 1" class="text-muted-foreground mt-0.5 text-xs">
-            {{ t('pages.statementParser.uploadExtract.totalForFiles', { count: totals.fileCount }) }}
+            {{ $t('pages.statementParser.uploadExtract.totalForFiles', { count: totals.fileCount }) }}
           </p>
         </div>
         <div class="bg-muted rounded-lg p-3">
@@ -109,7 +131,7 @@
           </p>
           <p class="font-medium">
             {{
-              t('pages.statementParser.uploadExtract.tokenFormat', {
+              $t('pages.statementParser.uploadExtract.tokenFormat', {
                 inputTokens: (totals.estimatedInputTokens / 1000).toFixed(1),
                 outputTokens: (totals.estimatedOutputTokens / 1000).toFixed(1),
               })
@@ -119,7 +141,7 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <Button class="flex-1" :disabled="store.isExtracting || !pendingExtractionCount" @click="handleExtract">
+        <Button class="flex-1" :disabled="isBusy || !pendingExtractionCount" @click="store.extractAll()">
           <template v-if="store.isExtracting">
             <Loader2Icon class="size-4 animate-spin" />
             {{ extractionStatus }}
@@ -146,7 +168,7 @@
         <p class="text-muted-foreground text-center text-xs">
           <template v-if="extractingPosition">
             {{
-              t('pages.statementParser.uploadExtract.progressFile', {
+              $t('pages.statementParser.uploadExtract.progressFile', {
                 name: extractingPosition.name,
                 current: extractingPosition.current,
                 total: extractingPosition.total,
@@ -160,7 +182,7 @@
 
     <Callout v-if="store.extractionFailures.length" variant="destructive">
       {{
-        t('pages.statementParser.uploadExtract.extractionFailedSome', {
+        $t('pages.statementParser.uploadExtract.extractionFailedSome', {
           count: store.extractionFailures.length,
           total: store.fileEntries.length,
         })
@@ -185,7 +207,7 @@
             {{ $t('pages.statementParser.uploadExtract.transactions') }}</span
           >
           <span v-if="store.importSummary.files > 1" class="ml-1">
-            {{ t('pages.statementParser.uploadExtract.acrossFiles', { count: store.importSummary.files }) }}
+            {{ $t('pages.statementParser.uploadExtract.acrossFiles', { count: store.importSummary.files }) }}
           </span>
           <span v-if="store.detectedBankName" class="ml-2">
             <span class="text-muted-foreground">{{ $t('pages.statementParser.uploadExtract.fromLabel') }}</span>
@@ -198,13 +220,13 @@
         </p>
       </div>
 
-      <Callout v-if="droppedRowCount > 0" variant="warning">
-        {{ $t('pages.statementParser.droppedRowsWarning', { count: droppedRowCount }) }}
+      <Callout v-if="store.droppedRowCount > 0" variant="warning">
+        {{ $t('pages.statementParser.droppedRowsWarning', { count: store.droppedRowCount }) }}
       </Callout>
 
       <Callout v-if="store.hasCurrencyConflict" variant="warning">
         {{
-          t('pages.statementParser.uploadExtract.currencyConflict', {
+          $t('pages.statementParser.uploadExtract.currencyConflict', {
             currencies: store.detectedCurrencies.join(', '),
           })
         }}
@@ -213,6 +235,11 @@
       <p class="text-muted-foreground text-center text-sm">
         {{ $t('pages.statementParser.uploadExtract.continueMessage') }}
       </p>
+
+      <Button class="w-full" @click="store.goToStep('account')">
+        {{ $t('pages.statementParser.uploadExtract.continueButton') }}
+        <ArrowRightIcon class="size-4" />
+      </Button>
     </div>
   </div>
 </template>
@@ -221,10 +248,24 @@
 import AiEstimatedCost from '@/components/common/ai-estimated-cost.vue';
 import ApiKeySourceBadge from '@/components/common/api-key-source-badge.vue';
 import { MultiFileDropzone } from '@/components/common/dropzone';
+import InputField from '@/components/fields/input-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
-import { type StatementFileEntry, useStatementParserStore } from '@/stores/statement-parser';
-import { AlertCircleIcon, CalculatorIcon, CheckCircleIcon, FileTextIcon, Loader2Icon, SparklesIcon } from '@lucide/vue';
+import {
+  type StatementFileEntry,
+  type StatementFileStatus,
+  entryStatus,
+  useStatementParserStore,
+} from '@/stores/statement-parser';
+import {
+  AlertCircleIcon,
+  ArrowRightIcon,
+  CalculatorIcon,
+  CheckCircleIcon,
+  FileTextIcon,
+  Loader2Icon,
+  SparklesIcon,
+} from '@lucide/vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -234,46 +275,40 @@ import CostEstimateWarnings from './cost-estimate-warnings.vue';
 const { t } = useI18n();
 const store = useStatementParserStore();
 
-/**
- * Mirror of the store's selection, kept locally so the dropzone lists exactly
- * what the user picked. It only ever holds files that passed validation — the
- * store is set from the same list, so the two can't drift.
- */
-const selectedFiles = ref<File[]>([]);
+/** Sync rejections from the dropzone (size/extension); `fileError` holds our async content checks. */
+const dropzoneError = ref('');
 const fileError = ref('');
+const passwords = ref<Record<string, string>>({});
 const extractionStatus = ref('');
 /** Progress within the file currently being extracted, 0-100. */
 const fileProgress = ref(0);
+const isIngesting = ref(false);
 
-const isBusy = computed(() => store.isEstimating || store.isExtracting);
+const dropzoneFiles = computed(() => store.fileEntries.map((entry) => entry.file));
+const isBusy = computed(() => isIngesting.value || store.isEstimating || store.isExtracting);
 const totals = computed(() => store.costEstimateTotals);
-const droppedRowCount = computed(() => store.droppedRowCount);
 
 const pendingEstimateCount = computed(() => store.pendingEstimateEntries.length);
 const pendingExtractionCount = computed(() => store.extractableEntries.length);
 
-type FileRowState = 'pending' | 'estimating' | 'estimated' | 'estimateFailed' | 'extracting' | 'extracted' | 'failed';
+type FileRowState = StatementFileStatus | 'estimating' | 'extracting';
 
-/** Flattens each entry's estimate/extraction outcome into one displayable state. */
-function rowState(entry: StatementFileEntry): FileRowState {
-  if (entry.extraction) return 'extracted';
-  if (entry.extractionError) return 'failed';
+function rowState({ entry }: { entry: StatementFileEntry }): FileRowState {
   if (store.extractingFileId === entry.id) return 'extracting';
-  if (entry.estimateError) return 'estimateFailed';
   if (store.estimatingFileId === entry.id) return 'estimating';
-  if (entry.costEstimate) return 'estimated';
-  return 'pending';
+  return entryStatus({ entry });
 }
 
 const fileRows = computed(() =>
   store.fileEntries.map((entry) => {
-    const state = rowState(entry);
+    const state = rowState({ entry });
     return {
       id: entry.id,
       name: entry.file.name,
       state,
       busy: state === 'estimating' || state === 'extracting',
-      failed: state === 'failed' || state === 'estimateFailed',
+      failed: state === 'extractionFailed' || state === 'estimateFailed',
+      needsPassword: entry.estimateErrorCode === 'PASSWORD_REQUIRED' || entry.estimateErrorCode === 'PASSWORD_INVALID',
       error: entry.extractionError ?? entry.estimateError,
       label:
         state === 'extracted'
@@ -282,30 +317,32 @@ const fileRows = computed(() =>
               { count: entry.extraction!.transactions.length },
               entry.extraction!.transactions.length,
             )
-          : t(`pages.statementParser.uploadExtract.fileStatus.${state}`),
+          : t(`pages.statementParser.uploadExtract.fileStatus.${state === 'extractionFailed' ? 'failed' : state}`),
     };
   }),
 );
 
+/** Files that take part in the current extraction run (estimated, or already settled by it). */
+const extractionRunEntries = computed(() =>
+  store.fileEntries.filter((entry) => ['estimated', 'extracted', 'extractionFailed'].includes(entryStatus({ entry }))),
+);
+
 /** Position of the file being extracted, for the "3 of 5" progress caption. */
 const extractingPosition = computed(() => {
-  const index = store.fileEntries.findIndex((entry) => entry.id === store.extractingFileId);
+  const index = extractionRunEntries.value.findIndex((entry) => entry.id === store.extractingFileId);
   if (index === -1) return null;
   return {
-    name: store.fileEntries[index]!.file.name,
+    name: extractionRunEntries.value[index]!.file.name,
     current: index + 1,
-    total: store.fileEntries.length,
+    total: extractionRunEntries.value.length,
   };
 });
 
-/**
- * Overall progress across the batch: files already settled contribute a whole
- * slice each, and the file in flight contributes its own animated fraction of one.
- */
+/** Settled files count as a whole slice each; the in-flight file adds its animated fraction. */
 const extractionProgress = computed(() => {
-  const total = store.fileEntries.length;
+  const total = extractionRunEntries.value.length;
   if (!total) return 0;
-  const settled = store.fileEntries.filter((entry) => entry.extraction || entry.extractionError).length;
+  const settled = extractionRunEntries.value.filter((entry) => entry.extraction || entry.extractionError).length;
   const inFlight = store.isExtracting ? fileProgress.value / 100 : 0;
   return Math.min(100, Math.round(((settled + inFlight) / total) * 100));
 });
@@ -313,8 +350,6 @@ const extractionProgress = computed(() => {
 let progressInterval: ReturnType<typeof setInterval> | null = null;
 let statusTimeouts: ReturnType<typeof setTimeout>[] = [];
 
-// The animation is driven by which file is in flight rather than by handleExtract,
-// so each file in the batch gets its own curve and status schedule.
 watch(
   () => store.extractingFileId,
   (fileId) => {
@@ -371,11 +406,7 @@ function scheduleStatusMessages() {
   );
 }
 
-/**
- * Cheap synchronous gate the dropzone can apply while building its selection.
- * The magic-byte check in `validateStatementFile` is async, so it can't run here
- * and instead runs over the resulting selection in `handleSelectionChange`.
- */
+/** Sync extension gate for the dropzone; the async magic-byte check runs in `handleSelectionChange`. */
 function validateExtension(file: File): string | null {
   const ext = '.' + (file.name.toLowerCase().split('.').pop() || '');
   if (!SUPPORTED_EXTENSIONS.includes(ext)) {
@@ -385,45 +416,49 @@ function validateExtension(file: File): string | null {
 }
 
 async function handleSelectionChange(files: File[]) {
-  const accepted: File[] = [];
-  const rejections: string[] = [];
+  isIngesting.value = true;
+  fileError.value = '';
+  try {
+    const accepted: File[] = [];
+    const rejections: string[] = [];
 
-  for (const file of files) {
-    const validation = await validateStatementFile({ file });
-    if (validation.valid) accepted.push(file);
-    else rejections.push(`${file.name} — ${validation.error!}`);
+    for (const file of files) {
+      const key = `${file.name}:${file.size}:${file.lastModified}`;
+      if (store.fileEntries.some((entry) => entry.id === key)) {
+        accepted.push(file);
+        continue;
+      }
+      const validation = await validateStatementFile({ file });
+      if (validation.valid) accepted.push(file);
+      else rejections.push(`${file.name} — ${validation.error!}`);
+    }
+
+    const { unreadable } = await store.setFiles({ files: accepted });
+    if (unreadable.length) {
+      rejections.push(t('pages.statementParser.uploadExtract.unreadableFiles', { files: unreadable.join(', ') }));
+    }
+
+    if (rejections.length) fileError.value = rejections.join(' · ');
+  } finally {
+    isIngesting.value = false;
   }
-
-  selectedFiles.value = accepted;
-
-  const { unreadable } = await store.setFiles({ files: accepted });
-  if (unreadable.length) {
-    rejections.push(t('pages.statementParser.uploadExtract.unreadableFiles', { files: unreadable.join(', ') }));
-  }
-
-  // Only overwrite on a rejection: the dropzone has already cleared its own
-  // message for this selection, and a removal emits no message at all.
-  if (rejections.length) fileError.value = rejections.join(' · ');
 }
 
-async function handleEstimate() {
+async function handlePasswordSubmit({ id }: { id: string }) {
+  const password = passwords.value[id];
+  if (!password) return;
+
+  store.setDocumentPassword({ id, password });
   await store.estimateCosts();
 }
 
-async function handleExtract() {
-  try {
-    await store.extractAll();
-  } finally {
-    cleanupProgressAnimation();
-  }
+async function handleRetryEstimates() {
+  store.clearFailures({ phase: 'estimate' });
+  await store.estimateCosts();
 }
 
-/**
- * Re-runs extraction after clearing the recorded failures. `extractAll` skips
- * files that already parsed, so this only re-spends on the ones that failed.
- */
 async function handleRetryFailed() {
-  store.clearFailures();
-  await handleExtract();
+  store.clearFailures({ phase: 'extract' });
+  await store.extractAll();
 }
 </script>
