@@ -45,5 +45,6 @@ export const getTransactionPortfolioLink = async ({ userId, transactionId }: Get
     amount: transfer.amount.toJSON(),
     currencyCode: transfer.currencyCode,
     date: transfer.date,
+    affectsCash: transfer.affectsCash,
   };
 };

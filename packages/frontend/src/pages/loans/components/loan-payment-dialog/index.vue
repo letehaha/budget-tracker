@@ -44,8 +44,8 @@ const isOpen = useVModel(props, 'open', emit, { passive: true, defaultValue: fal
       <slot />
     </template>
 
-    <template #title>{{ $t('loans.detail.payment.title') }}</template>
-    <template #description>{{ $t('loans.detail.payment.description') }}</template>
+    <template #title>{{ $t('dialogs.loanPayment.title') }}</template>
+    <template #description>{{ $t('dialogs.loanPayment.description') }}</template>
 
     <LoanPaymentForm
       v-if="i18nReady"

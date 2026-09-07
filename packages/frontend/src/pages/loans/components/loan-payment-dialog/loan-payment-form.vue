@@ -139,7 +139,7 @@ const validationRules = computed(() => {
   // same-currency validates Amount directly (no targetAmount field shown).
   const overpayRule = helpers.withMessage(
     () =>
-      t('loans.detail.payment.overpayError', {
+      t('dialogs.loanPayment.overpayError', {
         max: formatAmountByCurrencyCode(maxLoanPaymentAllowed.value, props.loanAccount.currencyCode),
       }),
     (value: unknown) => {
@@ -273,14 +273,14 @@ const unlinkPayment = () => {
     { id: props.loanAccount.id, transactionId: props.transaction.id },
     {
       onSuccess: () => {
-        addSuccessNotification(t('loans.detail.payment.unlinkSuccess'));
+        addSuccessNotification(t('dialogs.loanPayment.unlinkSuccess'));
         emit('close-modal');
       },
       onError: (error) => {
         if (error instanceof ApiErrorResponseError) {
           addErrorNotification(error.data.message ?? error.message);
         } else {
-          addErrorNotification(t('loans.detail.payment.unlinkError'));
+          addErrorNotification(t('dialogs.loanPayment.unlinkError'));
         }
       },
     },
@@ -294,7 +294,7 @@ const unlinkPayment = () => {
     <div class="mb-4 flex items-center justify-between px-6 py-3">
       <DialogTitle>
         <span class="text-2xl">
-          {{ isEdit ? $t('loans.detail.payment.editTitle') : $t('loans.detail.payment.createTitle') }}
+          {{ isEdit ? $t('dialogs.loanPayment.editTitle') : $t('dialogs.loanPayment.createTitle') }}
         </span>
       </DialogTitle>
       <DialogClose as-child>
@@ -306,7 +306,7 @@ const unlinkPayment = () => {
       <div class="bg-muted/40 mb-4 flex items-center gap-2 rounded-lg px-3 py-2.5">
         <HandCoinsIcon class="text-app-transfer-color size-4 shrink-0" />
         <div class="min-w-0 flex-1">
-          <div class="text-muted-foreground text-xs">{{ $t('loans.detail.payment.payingTo') }}</div>
+          <div class="text-muted-foreground text-xs">{{ $t('dialogs.loanPayment.payingTo') }}</div>
           <div class="truncate text-sm font-medium">{{ loanAccount.name }}</div>
         </div>
         <div class="text-muted-foreground shrink-0 text-xs">{{ loanCurrency }}</div>
@@ -315,25 +315,25 @@ const unlinkPayment = () => {
       <FormRow>
         <AccountSelectField
           v-model="form.account"
-          :label="$t('loans.detail.payment.fromAccountLabel')"
+          :label="$t('dialogs.loanPayment.fromAccountLabel')"
           :accounts="txTargetableSourceAccountsActiveFirst"
-          :placeholder="$t('loans.detail.payment.fromAccountPlaceholder')"
+          :placeholder="$t('dialogs.loanPayment.fromAccountPlaceholder')"
           :disabled="isLoading"
           :error-message="accountErrorMessage"
         />
       </FormRow>
 
       <Callout variant="info" class="mb-2 text-xs">
-        {{ $t('loans.detail.payment.syncedAccountHint') }} <SourceAccountInfoPopover />
+        {{ $t('dialogs.loanPayment.syncedAccountHint') }} <SourceAccountInfoPopover />
       </Callout>
 
       <FormRow>
         <InputField
           v-model="form.amount"
-          :label="$t('loans.detail.payment.amountLabel')"
+          :label="$t('dialogs.loanPayment.amountLabel')"
           type="number"
           only-positive
-          :placeholder="$t('loans.detail.payment.amountPlaceholder')"
+          :placeholder="$t('dialogs.loanPayment.amountPlaceholder')"
           :disabled="isLoading"
           :error-message="amountErrorMessage"
           @blur="onAmountBlur"
@@ -345,16 +345,16 @@ const unlinkPayment = () => {
       </FormRow>
 
       <p v-if="wouldOverdrawSource" class="text-warning-text -mt-1 px-1 text-xs">
-        {{ $t('loans.detail.payment.overdrawWarning', { account: form.account?.name ?? '' }) }}
+        {{ $t('dialogs.loanPayment.overdrawWarning', { account: form.account?.name ?? '' }) }}
       </p>
 
       <FormRow v-if="isCurrenciesDifferent">
         <InputField
           v-model="form.targetAmount"
-          :label="$t('loans.detail.payment.targetAmountLabel')"
+          :label="$t('dialogs.loanPayment.targetAmountLabel')"
           type="number"
           only-positive
-          :placeholder="$t('loans.detail.payment.targetAmountPlaceholder')"
+          :placeholder="$t('dialogs.loanPayment.targetAmountPlaceholder')"
           :disabled="isLoading"
           :error-message="targetAmountErrorMessage"
           @blur="touchField('form.targetAmount')"
@@ -362,7 +362,7 @@ const unlinkPayment = () => {
           <template #label-after>
             <DesktopOnlyTooltip
               :content="
-                $t('loans.detail.payment.targetAmountTooltip', {
+                $t('dialogs.loanPayment.targetAmountTooltip', {
                   source: sourceCurrency ?? '',
                   loan: loanCurrency ?? '',
                 })
@@ -388,7 +388,7 @@ const unlinkPayment = () => {
       </FormRow>
 
       <p v-if="isPreAnchorPayment" class="text-warning-text -mt-1 px-1 text-xs">
-        {{ $t('loans.detail.payment.preAnchorWarning', { date: anchorDateDisplay }) }}
+        {{ $t('dialogs.loanPayment.preAnchorWarning', { date: anchorDateDisplay }) }}
       </p>
 
       <div class="flex items-center justify-between pt-6">
@@ -397,7 +397,7 @@ const unlinkPayment = () => {
             {{ $t('dialogs.manageTransaction.form.deleteButton') }}
           </Button>
           <Button class="min-w-25" variant="destructive" :disabled="isLoading" @click="isUnlinkConfirmOpen = true">
-            {{ $t('loans.detail.payment.unlinkButton') }}
+            {{ $t('dialogs.loanPayment.unlinkButton') }}
           </Button>
         </div>
         <Button class="ml-auto min-w-30" :disabled="isLoading || !categoriesReady" @click="submit">
@@ -405,8 +405,8 @@ const unlinkPayment = () => {
             isLoading
               ? $t('dialogs.manageTransaction.form.loadingButton')
               : isEdit
-                ? $t('loans.detail.payment.saveButton')
-                : $t('loans.detail.payment.recordButton')
+                ? $t('dialogs.loanPayment.saveButton')
+                : $t('dialogs.loanPayment.recordButton')
           }}
         </Button>
       </div>
@@ -419,19 +419,19 @@ const unlinkPayment = () => {
       :confirm-disabled="isLoading"
       @confirm="deletePayment"
     >
-      <template #title>{{ $t('loans.detail.payment.deleteConfirmTitle') }}</template>
-      <template #description>{{ $t('loans.detail.payment.deleteConfirmDescription') }}</template>
+      <template #title>{{ $t('dialogs.loanPayment.deleteConfirmTitle') }}</template>
+      <template #description>{{ $t('dialogs.loanPayment.deleteConfirmDescription') }}</template>
     </ResponsiveAlertDialog>
 
     <ResponsiveAlertDialog
       v-model:open="isUnlinkConfirmOpen"
-      :confirm-label="$t('loans.detail.payment.unlinkButton')"
+      :confirm-label="$t('dialogs.loanPayment.unlinkButton')"
       confirm-variant="destructive"
       :confirm-disabled="isLoading"
       @confirm="unlinkPayment"
     >
-      <template #title>{{ $t('loans.detail.payment.unlinkConfirmTitle') }}</template>
-      <template #description>{{ $t('loans.detail.payment.unlinkConfirmDescription') }}</template>
+      <template #title>{{ $t('dialogs.loanPayment.unlinkConfirmTitle') }}</template>
+      <template #description>{{ $t('dialogs.loanPayment.unlinkConfirmDescription') }}</template>
     </ResponsiveAlertDialog>
   </div>
 </template>

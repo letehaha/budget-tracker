@@ -38,6 +38,8 @@ export interface UI_FORM_STRUCT {
   account: AccountModel | null;
   toAccount?: AccountModel | null;
   toPortfolio?: PortfolioModel | null;
+  /** The portfolio's recorded cash already includes this money, so linking must not add it again. */
+  portfolioCashAlreadyReflected?: boolean;
   category: FormattedCategory | null;
   time: Date;
   paymentType: VerbosePaymentType | null;
