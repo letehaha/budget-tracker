@@ -4,7 +4,7 @@ import { FILTER_OPERATION, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_FILTERS, FiltersStruct, SELECTABLE_TRANSFER_NATURES } from './const';
-import { buildIsPlannedParam, buildTransferNaturesParam } from './transactions-with-filters';
+import { buildIsPlannedParam, buildTransferNaturesParam, parseStoredFilters } from './transactions-with-filters';
 
 vi.mock('@/api/_api', () => ({
   api: { get: vi.fn(() => Promise.resolve([])) },
@@ -112,5 +112,25 @@ describe('loadTransactions isPlanned query param', () => {
     await loadTransactions({ isPlanned: buildIsPlannedParam({ value: FILTER_OPERATION.all }) });
 
     expect(queryOf().isPlanned).toBeUndefined();
+  });
+});
+
+describe('parseStoredFilters', () => {
+  it('revives start/end dates and keeps sorting', () => {
+    const raw = JSON.stringify({
+      filters: { start: new Date('2026-01-01T00:00:00Z'), end: undefined, accountIds: ['a'] },
+      sorting: { sortBy: 'time', order: 'ASC' },
+    });
+    const parsed = parseStoredFilters({ raw });
+    expect(parsed?.filters.start).toBeInstanceOf(Date);
+    expect(parsed?.filters.start?.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+    expect(parsed?.filters.accountIds).toEqual(['a']);
+    expect(parsed?.sorting).toEqual({ sortBy: 'time', order: 'ASC' });
+  });
+
+  it('returns null for missing, malformed, or shapeless input', () => {
+    expect(parseStoredFilters({ raw: null })).toBeNull();
+    expect(parseStoredFilters({ raw: '{not json' })).toBeNull();
+    expect(parseStoredFilters({ raw: '{"foo":1}' })).toBeNull();
   });
 });
