@@ -42,6 +42,7 @@ export function slimPortfolioTransferForMcp(transfer: PortfolioTransfers) {
     currencyCode: transfer.currencyCode,
     description: transfer.description,
     isAdjustment: transfer.isAdjustment,
+    affectsCash: transfer.affectsCash,
     transactionId: transfer.transactionId,
     fromAccountId: transfer.fromAccountId,
     toAccountId: transfer.toAccountId,

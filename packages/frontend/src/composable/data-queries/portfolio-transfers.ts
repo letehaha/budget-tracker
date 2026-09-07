@@ -12,6 +12,7 @@ import {
   unlinkTransactionFromPortfolio,
 } from '@/api/portfolios';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
+import { useOffsetHistoryQuery } from '@/composable/use-offset-history-query';
 import type { QueryClient } from '@tanstack/vue-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRef, unref } from 'vue';
@@ -134,22 +135,10 @@ export const useUnlinkTransactionFromPortfolio = () => {
   });
 };
 
-// Portfolio transfers listing composable - focused on data fetching only
-/** @public */
-export const usePortfolioTransfers = (portfolioId: MaybeRef<string | undefined>, queryOptions = {}) => {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryFn: () => getPortfolioTransfers({ portfolioId: unref(portfolioId)! }),
+export const usePortfolioTransfers = (portfolioId: MaybeRef<string>) =>
+  useOffsetHistoryQuery({
     queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioTransfers, portfolioId],
-    enabled: () => !!unref(portfolioId),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    ...queryOptions,
+    fetchPage: async ({ limit, offset }) => ({
+      items: await getPortfolioTransfers({ portfolioId: unref(portfolioId), limit, offset }),
+    }),
   });
-
-  return {
-    ...query,
-    invalidate: () =>
-      queryClient.invalidateQueries({ queryKey: [...VUE_QUERY_CACHE_KEYS.portfolioTransfers, unref(portfolioId)] }),
-  };
-};

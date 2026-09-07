@@ -79,6 +79,7 @@ export function useSubmitTransaction({ onSuccess }: { onSuccess: () => void }) {
         return linkTransactionToPortfolio({
           transactionId: transaction.id,
           portfolioId: form.toPortfolio.id,
+          affectsCash: !form.portfolioCashAlreadyReflected,
         });
       } else {
         return editTransaction(

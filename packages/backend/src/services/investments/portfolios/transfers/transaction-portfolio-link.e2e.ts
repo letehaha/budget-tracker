@@ -5,6 +5,7 @@ import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import Portfolios from '@models/investments/portfolios.model';
 import * as helpers from '@tests/helpers';
+import { format, subDays } from 'date-fns';
 
 describe('Transaction ↔ Portfolio link (/transactions/:transactionId/*-portfolio)', () => {
   let portfolio: Portfolios;
@@ -567,6 +568,94 @@ describe('Transaction ↔ Portfolio link (/transactions/:transactionId/*-portfol
       });
 
       expect(result.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+  });
+
+  describe('Link with affectsCash=false (portfolio cash already reflects the money)', () => {
+    const SEED_CASH = 1000;
+    const TX_AMOUNT = 500;
+
+    it('records the contribution without moving stored cash, cash history, or reversing on unlink', async () => {
+      await helpers.updatePortfolioBalance({
+        portfolioId: portfolio.id,
+        currencyCode,
+        setAvailableCash: String(SEED_CASH),
+        setTotalCash: String(SEED_CASH),
+      });
+
+      const txDate = subDays(new Date(), 5);
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: TX_AMOUNT,
+          transactionType: TRANSACTION_TYPES.expense,
+          time: txDate.toISOString(),
+        }),
+        raw: true,
+      });
+
+      const transfer = await helpers.linkTransactionToPortfolio({
+        transactionId: expenseTx!.id,
+        payload: { portfolioId: portfolio.id, affectsCash: false },
+        raw: true,
+      });
+
+      expect(transfer).toMatchObject({
+        toPortfolioId: portfolio.id,
+        transactionId: expenseTx!.id,
+        affectsCash: false,
+        amount: expect.toBeNumericEqual(String(TX_AMOUNT)),
+      });
+
+      const [balance] = await helpers.getPortfolioBalance({ portfolioId: portfolio.id, currencyCode, raw: true });
+      expect(balance!.availableCash).toBeNumericEqual(SEED_CASH);
+      expect(balance!.totalCash).toBeNumericEqual(SEED_CASH);
+
+      const from = format(subDays(new Date(), 10), 'yyyy-MM-dd');
+      const to = format(new Date(), 'yyyy-MM-dd');
+      const history = await helpers.getCombinedBalanceHistory({ from, to, raw: true });
+      expect(history.length).toBeGreaterThan(0);
+      expect(history.every((point) => point.portfoliosBalance === SEED_CASH)).toBe(true);
+
+      const { points } = await helpers.getNetWorthHistory({ from, to, granularity: 'weekly', raw: true });
+      expect(points.length).toBeGreaterThan(0);
+      expect(points.every((point) => point.assets.investments === SEED_CASH)).toBe(true);
+
+      const { buckets: driverBuckets } = await helpers.getNetWorthDrivers({
+        from,
+        to,
+        granularity: 'monthly',
+        raw: true,
+      });
+      expect(driverBuckets.every((bucket) => bucket.investments.growth === 0)).toBe(true);
+
+      const { buckets } = await helpers.getInvestmentContributions({ from, to, granularity: 'monthly', raw: true });
+      expect(buckets.reduce((sum, bucket) => sum + bucket.total, 0)).toBe(TX_AMOUNT);
+
+      await helpers.unlinkTransactionFromPortfolio({ transactionId: expenseTx!.id, raw: true });
+
+      const [afterUnlink] = await helpers.getPortfolioBalance({ portfolioId: portfolio.id, currencyCode, raw: true });
+      expect(afterUnlink!.availableCash).toBeNumericEqual(SEED_CASH);
+      expect(afterUnlink!.totalCash).toBeNumericEqual(SEED_CASH);
+    }, 30000);
+
+    it('defaults to affectsCash=true when the flag is omitted', async () => {
+      const [expenseTx] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: TX_AMOUNT,
+          transactionType: TRANSACTION_TYPES.expense,
+        }),
+        raw: true,
+      });
+
+      const transfer = await helpers.linkTransactionToPortfolio({
+        transactionId: expenseTx!.id,
+        payload: { portfolioId: portfolio.id },
+        raw: true,
+      });
+
+      expect(transfer.affectsCash).toBe(true);
     });
   });
 });

@@ -143,10 +143,14 @@ export const getPortfolioBalances = async ({
 
 export const getPortfolioTransfers = async ({
   portfolioId,
+  limit,
+  offset,
 }: {
   portfolioId: string;
+  limit?: number;
+  offset?: number;
 }): Promise<PortfolioTransferModel[]> => {
-  const result = await api.get(`/investments/portfolios/${portfolioId}/transfers`);
+  const result = await api.get(`/investments/portfolios/${portfolioId}/transfers`, { limit, offset });
   return result.data;
 };
 
@@ -203,11 +207,13 @@ export const deletePortfolioTransfer = async ({
 export const linkTransactionToPortfolio = async ({
   transactionId,
   portfolioId,
+  affectsCash,
 }: {
   transactionId: string;
   portfolioId: string;
+  affectsCash?: boolean;
 }): Promise<PortfolioTransferModel> => {
-  const result = await api.post(`/transactions/${transactionId}/link-to-portfolio`, { portfolioId });
+  const result = await api.post(`/transactions/${transactionId}/link-to-portfolio`, { portfolioId, affectsCash });
   return result;
 };
 
@@ -225,6 +231,7 @@ interface TransactionPortfolioLinkResponse {
   amount: string;
   currencyCode: string;
   date: string;
+  affectsCash: boolean;
 }
 
 export const getTransactionPortfolioLink = async ({

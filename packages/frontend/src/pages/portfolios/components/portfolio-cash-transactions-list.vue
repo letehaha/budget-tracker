@@ -42,6 +42,12 @@
               >
                 {{ $t('portfolioDetail.cashBalances.cashTransactions.adjustmentBadge') }}
               </span>
+              <span
+                v-if="!transfer.affectsCash"
+                class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium tracking-wide uppercase"
+              >
+                {{ $t('portfolioDetail.cashBalances.cashTransactions.noCashBadge') }}
+              </span>
             </p>
             <p class="text-muted-foreground text-xs">
               {{ formatDate(transfer.date) }}
@@ -114,6 +120,9 @@
         </div>
       </div>
     </div>
+    <div v-if="transfersQuery.hasNextPage.value" ref="sentinelRef" class="flex justify-center p-3">
+      <Loader2Icon v-if="transfersQuery.isFetchingNextPage.value" class="text-muted-foreground size-4 animate-spin" />
+    </div>
     <EditCashTransactionDialog v-model:open="isEditDialogOpen" :portfolio-id="portfolioId" :transfer="transferToEdit" />
 
     <!-- Delete confirmation dialog -->
@@ -167,12 +176,14 @@ import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-br
 import EditCashTransactionDialog from '@/pages/portfolios/components/edit-cash-transaction-dialog.vue';
 import type { PortfolioModel } from '@bt/shared/types';
 import type { PortfolioTransferModel } from '@bt/shared/types/investments';
+import { useIntersectionObserver } from '@vueuse/core';
 import { format } from 'date-fns';
 import {
   ArrowDownIcon,
   ArrowRightLeftIcon,
   ArrowUpIcon,
   EllipsisVerticalIcon,
+  Loader2Icon,
   PencilIcon,
   RefreshCwIcon,
   Trash2Icon,
@@ -190,12 +201,20 @@ const { formatAmountByCurrencyCode } = useFormatCurrency();
 // Row actions collapse into a dropdown on phones, matching the Cash Balances header.
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
-const { data: transfers, isLoading } = usePortfolioTransfers(portfolioId);
+const transfersQuery = usePortfolioTransfers(portfolioId);
+const isLoading = computed(() => !transfersQuery.isFetched.value);
 const deleteMutation = useDeletePortfolioTransfer();
 
 const rows = computed(() =>
-  (transfers.value ?? []).map((transfer) => ({ transfer, dp: getTransferDisplayProps(transfer) })),
+  transfersQuery.items.value.map((transfer) => ({ transfer, dp: getTransferDisplayProps(transfer) })),
 );
+
+const sentinelRef = ref<HTMLElement | null>(null);
+useIntersectionObserver(sentinelRef, ([entry]) => {
+  if (entry?.isIntersecting && transfersQuery.hasNextPage.value && !transfersQuery.isFetchingNextPage.value) {
+    transfersQuery.fetchNextPage();
+  }
+});
 
 const isEditDialogOpen = ref(false);
 const transferToEdit = ref<PortfolioTransferModel | null>(null);

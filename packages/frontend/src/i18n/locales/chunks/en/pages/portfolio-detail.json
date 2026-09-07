@@ -46,6 +46,7 @@
         "keepLinkedTransaction": "Keep account transaction. Original transaction details will be restored.",
         "deleteLinkedTransaction": "Also delete the linked account transaction",
         "adjustmentBadge": "Adjustment",
+        "noCashBadge": "No cash impact",
         "markedAsAdjustment": "Marked as a balance correction",
         "markedAsContribution": "Marked as a real contribution",
         "adjustmentError": "Failed to update this transfer",

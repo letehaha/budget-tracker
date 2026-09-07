@@ -6,7 +6,7 @@ const DEFAULT_PAGE_LIMIT = 20;
 /**
  * Shared shape for a "history" list backed by limit/offset pagination where
  * only the first page (`offset === 0`) carries a `totalCount` and later pages
- * get `null` — used by AI categorization history and import batch history.
+ * get `null`.
  * Flattens pages into a single reactive list and drives infinite scroll.
  */
 export function useOffsetHistoryQuery<TItem>({
