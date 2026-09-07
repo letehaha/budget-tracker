@@ -42,9 +42,21 @@ describe('isAutomationEligible', () => {
     ).toBe(true);
   });
 
+  it('accepts a manual system row when applyAutomations is set', () => {
+    expect(
+      isAutomationEligible({
+        ...eligible,
+        accountType: ACCOUNT_TYPES.system,
+        externalData: null,
+        applyAutomations: true,
+      }),
+    ).toBe(true);
+  });
+
   it.each([
     ['a manual system row', { accountType: ACCOUNT_TYPES.system, externalData: null }],
     ['a planned row', { isPlanned: true }],
+    ['a planned row even with applyAutomations', { isPlanned: true, applyAutomations: true }],
     ['a transfer leg', { transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer }],
     ['a wallet-out transfer', { transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet }],
     [
