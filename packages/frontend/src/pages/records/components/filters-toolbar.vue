@@ -101,6 +101,14 @@
           />
         </div>
 
+        <div v-else-if="filterKey === 'budgets'" class="w-44">
+          <BudgetMultiSelectField
+            hide-clear-button
+            :budget-ids="filters.budgetIds"
+            @update:budget-ids="emitFilters({ ...filters, budgetIds: $event })"
+          />
+        </div>
+
         <div v-else-if="filterKey === 'amount'" class="w-64">
           <AmountRangeFilter
             compact
@@ -196,6 +204,7 @@ import DateRangeFilter from '@/components/records-filters/filters/date-range-fil
 import NoteIncludesFilter from '@/components/records-filters/filters/note-includes.vue';
 import OperationPills from '@/components/records-filters/filters/operation-pills.vue';
 import AccountMultiSelectField from '@/components/fields/account-multi-select-field.vue';
+import BudgetMultiSelectField from '@/components/fields/budget-multi-select-field.vue';
 import PayeeMultiSelectField from '@/components/fields/payee-multi-select-field.vue';
 import TagFilter from '@/components/records-filters/filters/tag-filter.vue';
 import TransactionTypeFilter from '@/components/records-filters/filters/transaction-type-filter.vue';

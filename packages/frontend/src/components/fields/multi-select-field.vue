@@ -27,9 +27,7 @@
 
         <PopoverContent
           :class="cn('w-(--reka-popover-trigger-width) min-w-72 rounded-md p-0', contentClass)"
-          :side="dropdownSide"
           :side-offset="4"
-          :avoid-collisions="false"
           align="start"
         >
           <div v-if="searchable" class="flex items-center gap-2 p-2 pb-0">
@@ -62,15 +60,14 @@ import { FieldError, FieldLabel } from '@/components/fields';
 import MultiSelectTriggerContent from '@/components/fields/multi-select-trigger-content.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
-import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { cn } from '@/lib/utils';
 import { SearchIcon } from '@lucide/vue';
-import { computed, watch } from 'vue';
+import { watch } from 'vue';
 
 /**
  * Popover shell shared by the multi-select filter fields (categories / payees /
  * accounts). It owns everything that reads identically across them — the trigger
- * chrome, the searchable dropdown header, open/dropdown-side state, and clearing —
+ * chrome, the searchable dropdown header, open state, and clearing —
  * and leaves only the entity-specific list body to the default slot. Each host
  * still owns its own data source and selection logic; this component takes no
  * opinion on how the list renders or how items are picked.
@@ -127,9 +124,4 @@ const searchTerm = defineModel<string>('searchTerm', { default: '' });
 watch(isOpen, (open) => {
   if (!open) searchTerm.value = '';
 });
-
-// The dropdown sits below the trigger on desktop but flips above it on mobile,
-// where a trigger near the bottom of the viewport would push the panel off-screen.
-const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiDesktop);
-const dropdownSide = computed(() => (isMobile.value ? 'top' : 'bottom'));
 </script>
