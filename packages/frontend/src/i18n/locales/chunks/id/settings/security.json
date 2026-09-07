@@ -7,8 +7,8 @@
         "loginMethods": "Metode Masuk",
         "activeSessions": "Sesi Aktif",
         "password": "Kata Sandi",
-        "dangerZone": "Zona Berbahaya",
-        "backup": "Cadangan & Pemulihan"
+        "backup": "Cadangan & Pemulihan",
+        "dangerZone": "Zona Berbahaya"
       },
       "loginMethods": {
         "title": "Metode Masuk",
