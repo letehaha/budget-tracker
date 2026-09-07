@@ -19,6 +19,10 @@
         "cta": "Import CSV file",
         "listDescription": "Map columns and handle duplicates"
       },
+      "ofx": {
+        "title": "OFX or QFX statement",
+        "listDescription": "Import bank and credit card transactions"
+      },
       "ynab": {
         "title": "Import from YNAB",
         "listDescription": "Accounts, transactions, categories, and payees"

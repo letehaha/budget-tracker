@@ -37,6 +37,7 @@ export enum ImportSource {
   statementParser = 'statement-parser',
   budgetBakersWallet = 'budget-bakers-wallet',
   msMoney = 'ms-money',
+  ofx = 'ofx',
 }
 
 /**
@@ -276,6 +277,8 @@ export type TagMappingConfig = Record<string, TagMappingValue>;
  */
 export interface ParsedTransactionRow {
   rowIndex: number;
+  /** Stable provider transaction identifier, when the source supplies one. */
+  originalId?: string;
   /**
    * ISO 8601 instant (e.g. `2026-06-01T15:00:00.000Z`) — the absolute moment the
    * transaction is stored at, already anchored to the importing user's timezone.

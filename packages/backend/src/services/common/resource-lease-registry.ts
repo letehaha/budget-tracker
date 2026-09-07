@@ -1,6 +1,7 @@
 import type { ResourceLease } from '@bt/shared/types';
 import { ResourceLeaseType } from '@bt/shared/types';
 import { msMoneyUploadCache } from '@services/import-export/ms-money-import/upload-cache';
+import { ofxUploadCache } from '@services/import-export/ofx-import/upload-cache';
 
 import type { ResourceLeaseRefresher } from './expiring-upload-cache';
 
@@ -13,6 +14,7 @@ import type { ResourceLeaseRefresher } from './expiring-upload-cache';
  */
 const refreshers: Record<ResourceLeaseType, ResourceLeaseRefresher> = {
   [ResourceLeaseType.msMoneyUpload]: msMoneyUploadCache,
+  [ResourceLeaseType.ofxUpload]: ofxUploadCache,
 };
 
 /**
