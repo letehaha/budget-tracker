@@ -16,6 +16,7 @@ interface LinkTransactionToPortfolioParams {
   userId: number;
   transactionId: string;
   portfolioId: string;
+  affectsCash?: boolean;
 }
 
 const DISALLOWED_TRANSFER_NATURES = [
@@ -28,6 +29,7 @@ const linkTransactionToPortfolioImpl = async ({
   userId,
   transactionId,
   portfolioId,
+  affectsCash = true,
 }: LinkTransactionToPortfolioParams) => {
   const tx = await findOrThrowNotFound({
     query: Transactions.getTransactionById({ id: transactionId, userId }),
@@ -73,6 +75,7 @@ const linkTransactionToPortfolioImpl = async ({
     currencyCode,
     date,
     transactionId,
+    affectsCash,
     metaData: {
       originalTransactionState: {
         transferNature: tx.transferNature,
@@ -98,16 +101,17 @@ const linkTransactionToPortfolioImpl = async ({
     refAmount,
   });
 
-  // Update portfolio balance
-  const delta = isExpense ? amount : negateAmount({ amount });
+  if (affectsCash) {
+    const delta = isExpense ? amount : negateAmount({ amount });
 
-  await updatePortfolioBalance({
-    userId,
-    portfolioId,
-    currencyCode,
-    availableCashDelta: delta,
-    totalCashDelta: delta,
-  });
+    await updatePortfolioBalance({
+      userId,
+      portfolioId,
+      currencyCode,
+      availableCashDelta: delta,
+      totalCashDelta: delta,
+    });
+  }
 
   return transfer.reload({
     include: [

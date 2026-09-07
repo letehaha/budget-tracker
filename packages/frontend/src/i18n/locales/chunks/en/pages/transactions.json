@@ -63,6 +63,7 @@
       "menu": {
         "type": "Type",
         "tags": "Tags",
+        "budgets": "Budgets",
         "amount": "Amount range",
         "note": "Notes"
       },

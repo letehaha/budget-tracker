@@ -46,6 +46,7 @@
         "keepLinkedTransaction": "Pertahankan transaksi akun. Detail transaksi asli akan dipulihkan.",
         "deleteLinkedTransaction": "Juga hapus transaksi akun terkait",
         "adjustmentBadge": "Penyesuaian",
+        "noCashBadge": "Tidak ada dampak kas",
         "markedAsAdjustment": "Ditandai sebagai koreksi saldo",
         "markedAsContribution": "Ditandai sebagai kontribusi nyata",
         "adjustmentError": "Gagal memperbarui transfer ini",

@@ -35,15 +35,12 @@
                 />
               </div>
 
-              <Button
-                v-if="allPaymentsQuery.hasNextPage.value"
-                variant="secondary"
-                class="mt-3 w-full"
-                :disabled="allPaymentsQuery.isFetchingNextPage.value"
-                @click="() => allPaymentsQuery.fetchNextPage()"
-              >
-                {{ $t('loans.detail.payments.loadMore') }}
-              </Button>
+              <div v-if="allPaymentsQuery.hasNextPage.value" ref="sentinelRef" class="flex justify-center p-3">
+                <Loader2Icon
+                  v-if="allPaymentsQuery.isFetchingNextPage.value"
+                  class="text-muted-foreground size-4 animate-spin"
+                />
+              </div>
             </template>
           </ScrollArea>
         </ResponsiveDialog>
@@ -98,7 +95,9 @@ import TransactionRecord from '@/components/transactions-list/transaction-record
 import { captureException } from '@/lib/sentry';
 import { useAccountsStore } from '@/stores';
 import { TRANSACTION_TYPES, type TransactionModel } from '@bt/shared/types';
+import { Loader2Icon } from '@lucide/vue';
 import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
+import { useIntersectionObserver } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -156,6 +155,7 @@ const allPaymentsQuery = useInfiniteQuery({
       offset: pageParam * ALL_PAYMENTS_PAGE_SIZE,
       limit: ALL_PAYMENTS_PAGE_SIZE,
       accountIds: [props.loan.id],
+      transactionType: TRANSACTION_TYPES.income,
     }),
   initialPageParam: 0,
   getNextPageParam: (lastPage, pages) => (lastPage.length < ALL_PAYMENTS_PAGE_SIZE ? undefined : pages.length),
@@ -164,7 +164,14 @@ const allPaymentsQuery = useInfiniteQuery({
   staleTime: 1000 * 60 * 5,
 });
 
-const allPayments = computed(() => filterPayments(allPaymentsQuery.data.value?.pages.flat() ?? []));
+const allPayments = computed(() => allPaymentsQuery.data.value?.pages.flat() ?? []);
+
+const sentinelRef = ref<HTMLElement | null>(null);
+useIntersectionObserver(sentinelRef, ([entry]) => {
+  if (entry?.isIntersecting && allPaymentsQuery.hasNextPage.value && !allPaymentsQuery.isFetchingNextPage.value) {
+    allPaymentsQuery.fetchNextPage();
+  }
+});
 
 // Rows hold the loan-side (income) leg; the dialog also needs the source-side (expense) leg.
 // TransactionRecord usually hands both along with the click — fetch by transferId only as a fallback.

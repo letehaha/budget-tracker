@@ -354,6 +354,7 @@ export const createTransaction = withTransaction(
     payeeLocked: callerPayeeLocked,
     categoryIdIsExplicit = false,
     matchPlanned = false,
+    applyAutomations = false,
     ...payload
   }: CreateTransactionParams): Promise<CreateTxResult> => {
     try {
@@ -657,6 +658,7 @@ export const createTransaction = withTransaction(
           externalData: payload.externalData,
           transferNature,
           isPlanned: Boolean(payload.isPlanned),
+          applyAutomations,
         })
       ) {
         try {

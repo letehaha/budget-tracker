@@ -335,7 +335,7 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { isAnyGroupDissolvingFilterActive } from '@/components/records-filters/filter-registry';
 import FiltersDialog from '@/components/records-filters/filters-dialog.vue';
 import FiltersPanel from '@/components/records-filters/index.vue';
-import { useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
+import { parseStoredFilters, useTransactionsWithFilters } from '@/components/records-filters/transactions-with-filters';
 import { useFiltersFromQuery } from '@/components/records-filters/use-filters-from-query';
 import TransactionsList from '@/components/transactions-list/transactions-list.vue';
 import { ListIcon, Maximize2Icon, Minimize2Icon, Table2Icon } from '@lucide/vue';
@@ -491,18 +491,36 @@ const route = useRoute();
 const router = useRouter();
 const { parseFiltersFromQuery } = useFiltersFromQuery();
 
-// Initialize filters from query parameters (e.g. deep links from the dashboard)
+const STORED_FILTERS_KEY = 'records:filters';
+
+// Initialize filters from query parameters (e.g. deep links from the dashboard),
+// otherwise from the previous visit in this tab.
 onMounted(() => {
   const queryFilters = parseFiltersFromQuery({ query: route.query });
+  const stored = queryFilters ? null : parseStoredFilters({ raw: sessionStorage.getItem(STORED_FILTERS_KEY) });
+  const initialFilters = queryFilters ?? stored?.filters;
+
+  if (initialFilters) {
+    const merged = { ...filters.value, ...initialFilters };
+
+    filters.value = merged;
+    appliedFilters.value = merged;
+  }
+  if (stored?.sorting) sorting.value = stored.sorting;
 
   if (queryFilters) {
-    const initialFilters = { ...filters.value, ...queryFilters };
-
-    filters.value = initialFilters;
-    appliedFilters.value = initialFilters;
-
     // Clear query params from URL (replace to preserve back navigation to dashboard)
     router.replace({ query: {} });
   }
 });
+
+watch(
+  [appliedFilters, sorting],
+  () =>
+    sessionStorage.setItem(
+      STORED_FILTERS_KEY,
+      JSON.stringify({ filters: appliedFilters.value, sorting: sorting.value }),
+    ),
+  { deep: true },
+);
 </script>

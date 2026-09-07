@@ -179,7 +179,7 @@ const tabItems = computed(() => [
     <!-- Initial full-page skeleton (no data yet) -->
     <BudgetCardSkeleton v-if="isInitialLoading" />
 
-    <template v-else-if="budgetsList?.length || isLoadingMore">
+    <template v-else>
       <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
         <PillTabs v-model="activeTab" :items="tabItems" />
 
@@ -255,18 +255,6 @@ const tabItems = computed(() => [
           />
           <BudgetCardSkeleton v-if="isLoadingMore" :count="2" inline />
         </div>
-      </div>
-    </template>
-
-    <template v-else>
-      <div class="flex flex-col items-center justify-center py-12 text-center">
-        <div class="bg-muted mb-4 flex size-16 items-center justify-center rounded-full">
-          <WalletIcon class="text-muted-foreground size-8" />
-        </div>
-        <h3 class="mb-1 font-medium">{{ $t('budgets.list.emptyState.title') }}</h3>
-        <p class="text-muted-foreground max-w-sm text-sm">
-          {{ $t('budgets.list.emptyState.description') }}
-        </p>
       </div>
     </template>
   </div>

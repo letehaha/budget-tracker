@@ -38,11 +38,7 @@
       </Combobox.ComboboxTrigger>
     </Combobox.ComboboxAnchor>
 
-    <Combobox.ComboboxList
-      class="max-h-100 w-(--reka-combobox-trigger-width) lg:max-h-75"
-      :side="dropdownSide"
-      :avoid-collisions="false"
-    >
+    <Combobox.ComboboxList class="max-h-100 w-(--reka-combobox-trigger-width) lg:max-h-75">
       <div class="relative w-full items-center p-2 pb-0">
         <Combobox.ComboboxInput
           class="h-9 w-full rounded-md border pl-9 focus-visible:ring-0"
@@ -78,7 +74,6 @@
 import TagIcon from '@/components/common/icons/tag-icon.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Combobox from '@/components/lib/ui/combobox';
-import { useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { useTagsStore } from '@/stores';
 import { TagModel, type RecordId } from '@bt/shared/types';
 import { isEqual } from 'lodash-es';
@@ -101,9 +96,6 @@ const searchTerm = ref('');
 const isOpen = ref(false);
 
 const { tags } = storeToRefs(useTagsStore());
-
-const isMobile = useWindowBreakpoints(1024);
-const dropdownSide = computed(() => (isMobile.value ? 'top' : 'bottom'));
 
 const tagsCount = computed(() => tags.value.length);
 

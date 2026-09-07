@@ -111,6 +111,14 @@ export default class PortfolioTransfers extends Model {
   @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
   isAdjustment!: boolean;
 
+  /**
+   * False when the portfolio's stored cash already included this money before
+   * the transfer was recorded (backfilled transfer). Contribution reporting
+   * counts it; the cash balance and cash-history replay skip it.
+   */
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
+  affectsCash!: boolean;
+
   @ForeignKey(() => Transactions)
   @Index
   @Column({ type: DataType.UUID, allowNull: true, defaultValue: null, onDelete: 'SET NULL' })

@@ -10,6 +10,7 @@ const schema = z.object({
   }),
   body: z.object({
     portfolioId: recordId(),
+    affectsCash: z.boolean().optional(),
   }),
 });
 
@@ -18,6 +19,7 @@ export default createController(schema, async ({ user, params, body }) => {
     userId: user.id,
     transactionId: params.transactionId,
     portfolioId: body.portfolioId,
+    affectsCash: body.affectsCash,
   });
 
   return { data: serializeTransferResponse({ transfer }) };

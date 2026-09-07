@@ -75,6 +75,8 @@ export async function reverseTransferBalanceChanges({
   transfer: PortfolioTransfers;
   userId: number;
 }): Promise<void> {
+  if (!transfer.affectsCash) return;
+
   const amount = transfer.amount.toDecimalString(10);
   const { currencyCode } = transfer;
 

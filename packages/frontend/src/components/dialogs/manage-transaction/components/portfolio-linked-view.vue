@@ -92,6 +92,12 @@ const handleUnlink = () => {
             {{ formatUIAmount(Number(linkData.amount), { currency: linkData.currencyCode }) }}
             &middot;
             {{ linkData.date }}
+            <span
+              v-if="!linkData.affectsCash"
+              class="bg-muted text-muted-foreground ml-2 rounded-full px-2 py-0.5 text-xs font-medium tracking-wide uppercase"
+            >
+              {{ $t('portfolioDetail.cashBalances.cashTransactions.noCashBadge') }}
+            </span>
           </p>
         </div>
 
@@ -108,9 +114,12 @@ const handleUnlink = () => {
               </AlertDialog.AlertDialogTitle>
               <AlertDialog.AlertDialogDescription>
                 {{
-                  $t('dialogs.manageTransaction.portfolioLinked.unlinkWarning', {
-                    portfolio: linkData.portfolioName,
-                  })
+                  $t(
+                    linkData.affectsCash
+                      ? 'dialogs.manageTransaction.portfolioLinked.unlinkWarning'
+                      : 'dialogs.manageTransaction.portfolioLinked.unlinkWarningNoCash',
+                    { portfolio: linkData.portfolioName },
+                  )
                 }}
                 {{ $t('dialogs.manageTransaction.portfolioLinked.unlinkDescription') }}
               </AlertDialog.AlertDialogDescription>

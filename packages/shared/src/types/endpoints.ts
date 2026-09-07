@@ -118,6 +118,8 @@ export interface CreateTransactionBody {
   /** True when the caller wants future syncs to leave this row's Payee link alone. */
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  /** Run the user's automations on a manual-account row; off by default. For API integrations. */
+  applyAutomations?: boolean;
   originalAmount?: number;
   /** Any ISO 4217 code; it does not have to be connected to the user. */
   originalCurrencyCode?: string;

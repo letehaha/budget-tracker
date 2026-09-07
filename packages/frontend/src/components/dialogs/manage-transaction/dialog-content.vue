@@ -15,6 +15,8 @@ import SelectField from '@/components/fields/select-field.vue';
 import TagSelectField from '@/components/fields/tag-select-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import { Button } from '@/components/lib/ui/button';
+import HintIcon from '@/components/common/hint-icon.vue';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -158,6 +160,7 @@ const form = ref<UI_FORM_STRUCT>({
   account: null,
   toAccount: null,
   toPortfolio: null,
+  portfolioCashAlreadyReflected: false,
   targetAmount: null,
   category: formattedCategories.value[0] ?? null,
   time: new Date(),
@@ -644,6 +647,7 @@ watch(transferDestinationType, (type, prev) => {
   // Auto-pick first loan on switch to 'loan' unless already selected (edit prepop runs first).
   // Clear toAccount on exit so a loan selection doesn't leak into the account picker.
   form.value.toPortfolio = null;
+  form.value.portfolioCashAlreadyReflected = false;
   if (type === 'loan' && prev !== 'loan') {
     if (form.value.toAccount?.accountCategory !== ACCOUNT_CATEGORIES.loan) {
       form.value.toAccount = loanDestinationAccounts.value[0] ?? null;
@@ -659,6 +663,7 @@ watch(
     if (txType !== FORM_TYPES.transfer) {
       transferDestinationType.value = 'account';
       form.value.toPortfolio = null;
+      form.value.portfolioCashAlreadyReflected = false;
     }
     if (transaction.value) {
       // If it's a transaction coming from props it means user currectly edits the form.
@@ -744,7 +749,7 @@ const validationRules = computed(() => {
   // Cross-currency loan payments validate targetAmount; same-currency ones validate Amount directly.
   const loanOverpayRule = helpers.withMessage(
     () =>
-      t('loans.detail.payment.overpayError', {
+      t('dialogs.loanPayment.overpayError', {
         max: formatAmountByCurrencyCode(loanOverpayMax.value, form.value.toAccount?.currencyCode ?? ''),
       }),
     (value: unknown) => {
@@ -1192,7 +1197,7 @@ onUnmounted(() => {
             </form-row>
 
             <p v-if="wouldOverdrawLoanSource" class="text-warning-text -mt-1 px-1 text-xs">
-              {{ $t('loans.detail.payment.overdrawWarning', { account: form.account?.name ?? '' }) }}
+              {{ $t('dialogs.loanPayment.overdrawWarning', { account: form.account?.name ?? '' }) }}
             </p>
 
             <account-field
@@ -1243,6 +1248,19 @@ onUnmounted(() => {
               </template>
 
               <template #destination-bottom>
+                <div
+                  v-if="isTransferTx && form.toPortfolio && !isFormCreation && !linkedTransaction"
+                  class="flex items-center gap-2"
+                >
+                  <label class="flex cursor-pointer items-center gap-3">
+                    <Checkbox v-model="form.portfolioCashAlreadyReflected" :disabled="isFormFieldsDisabled" />
+                    <span class="text-sm leading-none font-medium">
+                      {{ $t('dialogs.manageTransaction.form.portfolioCashAlreadyReflectedLabel') }}
+                    </span>
+                  </label>
+                  <HintIcon :content="$t('dialogs.manageTransaction.form.portfolioCashAlreadyReflectedHint')" />
+                </div>
+
                 <template v-if="isTargetFieldVisible">
                   <form-row>
                     <input-field
@@ -1410,7 +1428,7 @@ onUnmounted(() => {
             </form-row>
 
             <p v-if="isPreAnchorLoanPayment" class="text-muted-foreground -mt-1 px-1 text-xs">
-              {{ $t('loans.detail.payment.preAnchorHint') }}
+              {{ $t('dialogs.loanPayment.preAnchorHint') }}
             </p>
 
             <template v-if="currentTxType !== FORM_TYPES.transfer">

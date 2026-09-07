@@ -71,8 +71,9 @@ const handleSelectTransaction = (transaction: TransactionModel) => {
       <ResponsiveDialog
         v-model:open="isDialogOpen"
         custom-close
-        dialog-content-class="max-h-[80dvh] overflow-y-auto"
-        drawer-content-class="max-h-[85dvh]"
+        no-internal-scroll
+        dialog-content-class="h-[min(85dvh,46rem)]"
+        drawer-content-class="h-[calc(100dvh-1.25rem)] max-h-[calc(100dvh-1.25rem)]"
       >
         <template #trigger>
           <Button class="w-full" :disabled="disabled" variant="outline" size="sm">

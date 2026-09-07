@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HintIcon from '@/components/common/hint-icon.vue';
 import PickTransactionDialog from '@/components/dialogs/pick-transaction-dialog.vue';
 import AccountSelectField from '@/components/fields/account-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
@@ -127,6 +128,7 @@ const transferForm = reactive<{
 
 // Link existing transaction state
 const linkedTransaction = ref<TransactionModel | null>(null);
+const linkedCashAlreadyReflected = ref(false);
 const isPickerOpen = ref(false);
 const isLinkMode = computed(() => !!linkedTransaction.value);
 
@@ -154,12 +156,14 @@ const showTransferCurrency = computed(() => operationType.value === 'withdrawal'
 watch(operationType, () => {
   methodType.value = 'direct';
   linkedTransaction.value = null;
+  linkedCashAlreadyReflected.value = false;
   resetDirectForm();
   resetTransferForm();
 });
 
 watch(methodType, () => {
   linkedTransaction.value = null;
+  linkedCashAlreadyReflected.value = false;
   if (methodType.value === 'direct') {
     resetDirectForm();
   } else {
@@ -344,6 +348,7 @@ const confirmTransfer = async () => {
       await linkToPortfolioMutation.mutateAsync({
         transactionId: linkedTransaction.value.id,
         portfolioId: props.portfolioId,
+        affectsCash: !linkedCashAlreadyReflected.value,
       });
     } else if (operationType.value === 'deposit') {
       // Account to portfolio transfer
@@ -373,6 +378,7 @@ const confirmTransfer = async () => {
 
     resetTransferForm();
     linkedTransaction.value = null;
+    linkedCashAlreadyReflected.value = false;
     accountsStore.refetchAccounts();
     emit('success');
   } catch (error) {
@@ -500,6 +506,16 @@ const accountLabel = computed(() =>
             >
               <X :size="16" />
             </UiButton>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="flex cursor-pointer items-center gap-3">
+              <Checkbox v-model="linkedCashAlreadyReflected" :disabled="isAnyMutationPending || disabled" />
+              <span class="text-sm leading-none font-medium">
+                {{ $t('dialogs.manageTransaction.form.portfolioCashAlreadyReflectedLabel') }}
+              </span>
+            </label>
+            <HintIcon :content="$t('dialogs.manageTransaction.form.portfolioCashAlreadyReflectedHint')" />
           </div>
         </template>
 

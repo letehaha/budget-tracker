@@ -57,7 +57,6 @@ const enableUnlinkingMode = async () => {
   }
 };
 
-// Use useTransactionsWithFilters with staticFilters for budgetIds
 const {
   isResetButtonDisabled,
   isFiltersOutOfSync,
@@ -280,6 +279,7 @@ const toggleSelectAll = () => {
               <div class="relative max-h-[calc(100vh-var(--header-height)-32px)] overflow-auto">
                 <RecordsFilters
                   v-model:filters="filters"
+                  hide-budgets
                   :is-reset-button-disabled="isResetButtonDisabled"
                   :is-filters-out-of-sync="isFiltersOutOfSync"
                   @reset-filters="resetFilters"

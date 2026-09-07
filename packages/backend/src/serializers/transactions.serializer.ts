@@ -119,6 +119,7 @@ interface CreateTransactionRequest {
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  applyAutomations?: boolean;
   originalAmount?: number; // decimal from API
   originalCurrencyCode?: string;
 }
@@ -152,6 +153,7 @@ interface CreateTransactionInternal {
   payeeId?: RecordId | null;
   payeeLocked?: boolean;
   isPlanned?: boolean;
+  applyAutomations?: boolean;
   originalAmount?: Money;
   originalCurrencyCode?: string;
 }
@@ -330,6 +332,7 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     payeeId: req.payeeId,
     payeeLocked: req.payeeLocked,
     isPlanned: req.isPlanned,
+    applyAutomations: req.applyAutomations,
     originalAmount: req.originalAmount !== undefined ? Money.fromDecimal(req.originalAmount) : undefined,
     originalCurrencyCode: req.originalCurrencyCode,
   };

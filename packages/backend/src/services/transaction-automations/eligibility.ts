@@ -1,18 +1,32 @@
 import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { Op, literal } from 'sequelize';
 
+/**
+ * Rows automations are eligible for:
+ * - non-transfer;
+ * - non-planned
+ * - synced from a bank provider, stamped with `importDetails` by an importer;
+ * - created with `applyAutomations` (API integrations);
+ *
+ * Manually-entered rows on system accounts by default are excluded so a rule never
+ * overrides a field the user chose.
+ */
 export const isAutomationEligible = ({
   accountType,
   externalData,
   transferNature,
   isPlanned,
+  applyAutomations = false,
 }: {
   accountType: ACCOUNT_TYPES;
   externalData: Record<string, unknown> | null | undefined;
   transferNature: TRANSACTION_TRANSFER_NATURE;
   isPlanned: boolean;
+  applyAutomations?: boolean;
 }): boolean =>
-  (accountType !== ACCOUNT_TYPES.system || Boolean(externalData && 'importDetails' in externalData)) &&
+  (applyAutomations ||
+    accountType !== ACCOUNT_TYPES.system ||
+    Boolean(externalData && 'importDetails' in externalData)) &&
   transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer &&
   !isPlanned;
 

@@ -199,7 +199,7 @@ export async function linkTransactionToPortfolio<R extends boolean | undefined =
   raw,
 }: {
   transactionId: string;
-  payload: { portfolioId: string };
+  payload: { portfolioId: string; affectsCash?: boolean };
   raw?: R;
 }) {
   return makeRequest<Awaited<ReturnType<typeof _linkTransactionToPortfolio>>, R>({

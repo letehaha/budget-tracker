@@ -22,7 +22,7 @@ import { clampSyncStartToLink } from '../utils/clamp-sync-start-to-link';
 import { encryptCredentials } from '../utils/credential-encryption';
 import { writeBankBalanceWithHistory } from '../utils/write-bank-balance-with-history';
 import { MonobankApiClient } from './api-client';
-import { getJobGroupProgress, queueTransactionSync } from './transaction-sync-queue';
+import { getJobGroupProgress, queueTransactionSync, syncPriorityForAccount } from './transaction-sync-queue';
 import { MonobankCredentials, MonobankMetadata } from './types';
 
 /**
@@ -242,6 +242,9 @@ export class MonobankProvider extends BaseBankDataProvider {
           // Only an anchored (incremental) sync may consume plans: the anchorless
           // default window is a backfill, and old charges must not eat fresh plans.
           matchPlanned: Boolean(latestTransaction),
+          priority: syncPriorityForAccount({
+            latestTransactionTime: latestTransaction ? new Date(latestTransaction.time) : null,
+          }),
         });
       },
     });
@@ -276,6 +279,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     from,
     to,
     matchPlanned = false,
+    priority,
   }: {
     connectionId: string;
     systemAccountId: RecordId;
@@ -283,6 +287,7 @@ export class MonobankProvider extends BaseBankDataProvider {
     from: Date;
     to: Date;
     matchPlanned?: boolean;
+    priority?: number;
   }): Promise<{ jobGroupId: string; totalBatches: number; estimatedMinutes: number }> {
     const account = await this.getSystemAccount(systemAccountId);
     const connection = await this.getConnection(connectionId);
@@ -304,6 +309,7 @@ export class MonobankProvider extends BaseBankDataProvider {
       from,
       to,
       matchPlanned,
+      priority,
     });
 
     return result;

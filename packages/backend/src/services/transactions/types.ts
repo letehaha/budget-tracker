@@ -45,6 +45,11 @@ export type CreateTransactionParams = Omit<
    * Set by incremental bank sync and imports; never by manual creation or historical backfill.
    */
   matchPlanned?: boolean;
+  /**
+   * Run the user's automations on a system-account row. Off by default so a hand-typed
+   * entry is never overridden; API integrations posting bank data opt in per request.
+   */
+  applyAutomations?: boolean;
 };
 
 interface UpdateParams {

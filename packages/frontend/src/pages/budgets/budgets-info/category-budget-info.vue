@@ -21,7 +21,7 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
 import BudgetSharingPanel from '@/pages/budgets/components/budget-sharing-panel.vue';
 import { ROUTES_NAMES } from '@/routes/constants';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { format, parseISO } from 'date-fns';
 import { cloneDeep } from 'lodash-es';
 import {
@@ -32,11 +32,13 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   LayersIcon,
+  Loader2Icon,
   PencilIcon,
   TagIcon,
   Trash2Icon,
   UsersIcon,
 } from '@lucide/vue';
+import { useIntersectionObserver } from '@vueuse/core';
 import { computed, ref, toRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -60,8 +62,6 @@ const budgetData = ref();
 const currentBudgetId = ref<string>(route.params.id as string);
 const isEditDialogOpen = ref(false);
 const isCategoriesExpanded = ref(false);
-const transactionsFrom = ref(0);
-const transactionsLimit = ref(50);
 
 const { data: budgetStats } = useQuery({
   queryFn: () => loadBudgetStats({ budgetId: currentBudgetId.value }),
@@ -82,6 +82,8 @@ const { stats, transactionDateRange, getBudgetTimeStatus, utilizationColor, util
 
 const { isOwner, canManage, isSharedWithCaller, ownerHandle } = useBudgetAccess(toRef(() => budgetItem.value));
 
+const TRANSACTIONS_PAGE_SIZE = 50;
+
 // Load category budget transactions.
 // NOTE: Distinct query-key prefix (`budgetCategoryTransactions`) — not derived from
 // `budgetStats` — so invalidating budget stats elsewhere doesn't accidentally bust
@@ -90,25 +92,31 @@ const {
   data: transactionsData,
   isLoading: isLoadingTransactions,
   isError: isTransactionsError,
-  isFetching: isFetchingTransactions,
-} = useQuery({
-  queryFn: () =>
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
+} = useInfiniteQuery({
+  queryFn: ({ pageParam }) =>
     loadCategoryBudgetTransactions({
       budgetId: currentBudgetId.value,
-      from: 0,
-      limit: transactionsFrom.value + transactionsLimit.value,
+      from: pageParam,
+      limit: TRANSACTIONS_PAGE_SIZE,
     }),
-  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetCategoryTransactions, currentBudgetId, transactionsFrom],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.budgetCategoryTransactions, currentBudgetId],
+  initialPageParam: 0,
+  getNextPageParam: (lastPage, pages) => {
+    const loaded = pages.reduce((count, page) => count + page.transactions.length, 0);
+    return loaded < lastPage.total ? loaded : undefined;
+  },
   staleTime: 30_000,
 });
 
-const transactions = computed(() => transactionsData.value?.transactions || []);
-const totalTransactions = computed(() => transactionsData.value?.total || 0);
-const hasMoreTransactions = computed(() => transactions.value.length < totalTransactions.value);
+const transactions = computed(() => transactionsData.value?.pages.flatMap((page) => page.transactions) ?? []);
 
-const loadMoreTransactions = () => {
-  transactionsFrom.value += transactionsLimit.value;
-};
+const sentinelRef = ref<HTMLElement | null>(null);
+useIntersectionObserver(sentinelRef, ([entry]) => {
+  if (entry?.isIntersecting && hasNextPage.value && !isFetchingNextPage.value) fetchNextPage();
+});
 
 const { mutateAsync, isPending: isBudgetDataUpdating } = useMutation({
   mutationFn: editBudget,
@@ -463,10 +471,8 @@ const totalBreakdownAmount = computed(() => categoryBreakdown.value.reduce((sum,
                 </div>
               </div>
 
-              <div v-if="hasMoreTransactions" class="mt-4 flex justify-center">
-                <Button variant="outline" size="sm" :disabled="isFetchingTransactions" @click="loadMoreTransactions">
-                  {{ $t('budgets.categoryBudget.loadMore') }}
-                </Button>
+              <div v-if="hasNextPage" ref="sentinelRef" class="flex justify-center p-3">
+                <Loader2Icon v-if="isFetchingNextPage" class="text-muted-foreground size-4 animate-spin" />
               </div>
             </template>
             <template v-else>

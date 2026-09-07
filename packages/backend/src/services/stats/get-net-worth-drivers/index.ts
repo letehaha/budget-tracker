@@ -238,6 +238,7 @@ const calculateInvestmentSlice = async ({
     PortfolioTransfers.findAll({
       where: {
         userId,
+        affectsCash: true,
         date: { [Op.lte]: cashFetchMaxDate },
         [Op.or]: [{ fromPortfolioId: { [Op.in]: portfolioIds } }, { toPortfolioId: { [Op.in]: portfolioIds } }],
       },

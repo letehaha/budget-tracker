@@ -66,6 +66,8 @@ export interface PortfolioTransferModel {
    * that crossed the portfolio boundary, so contribution reporting skips it.
    */
   isAdjustment: boolean;
+  /** False when portfolio cash already included this money, so cash balance and cash history skip it. */
+  affectsCash: boolean;
   date: string;
   description: string | null;
   createdAt: Date;

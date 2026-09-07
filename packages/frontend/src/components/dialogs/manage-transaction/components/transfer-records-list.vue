@@ -5,12 +5,16 @@ import ResponsiveDialog from '@/components/common/responsive-dialog.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
+import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import TransactionRecordSkeleton from '@/components/transactions-list/transaction-record-skeleton.vue';
 import TransactionRecord from '@/components/transactions-list/transaction-record.vue';
+import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { useInfiniteQuery, useQuery } from '@tanstack/vue-query';
 import { isDate } from 'date-fns';
 import { isEqual, isNil, omitBy } from 'lodash-es';
-import { CircleAlert, ListFilterIcon, SparklesIcon } from '@lucide/vue';
+import { CircleAlertIcon, ListFilterIcon, SparklesIcon } from '@lucide/vue';
+import { useResizeObserver } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -131,6 +135,7 @@ const {
   fetchNextPage,
   hasNextPage,
   isFetched,
+  isFetchingNextPage,
 } = useInfiniteQuery({
   queryKey: [
     ...VUE_QUERY_CACHE_KEYS.recordsPageTransactionList,
@@ -150,10 +155,12 @@ const {
   staleTime: Infinity,
 });
 
-// Filter out recommendations from the main list to avoid duplicates
+const showRecommendations = computed(() => Boolean(recommendations.value?.length) && !isAnyFiltersApplied.value);
+
+// Recommendations are excluded from the main list only while their own section renders them.
 const filteredTransactions = computed(() => {
   const allTransactions = transactionsPages.value?.pages?.flat() ?? [];
-  if (!recommendations.value?.length) return allTransactions;
+  if (!showRecommendations.value) return allTransactions;
   return allTransactions.filter((tx) => !recommendationIds.value.has(tx.id));
 });
 
@@ -164,6 +171,33 @@ const handleRecordClick = (transaction: TransactionModel) => {
 const hasAnyTransactions = computed(
   () => (recommendations.value?.length ?? 0) > 0 || filteredTransactions.value.length > 0,
 );
+
+const TRANSACTION_ROW_HEIGHT = 52;
+
+const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
+const parentRef = computed<HTMLElement | null>(() => scrollAreaRef.value?.viewportRef?.viewportElement ?? null);
+
+// The recommendations block scrolls with the list, so the virtualizer needs the
+// distance it pushes the rows down to map scroll position onto them.
+const scrollContentRef = ref<HTMLElement | null>(null);
+const listContainerRef = ref<HTMLElement | null>(null);
+const scrollMargin = ref(0);
+useResizeObserver(scrollContentRef, () => {
+  const listEl = listContainerRef.value;
+  const scrollEl = parentRef.value;
+  if (!listEl || !scrollEl) return;
+  scrollMargin.value = listEl.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top + scrollEl.scrollTop;
+});
+
+const { virtualRows, totalSize } = useVirtualizedInfiniteScroll({
+  items: filteredTransactions,
+  hasNextPage,
+  fetchNextPage,
+  isFetchingNextPage,
+  parentRef,
+  scrollMargin,
+  estimateSize: () => TRANSACTION_ROW_HEIGHT,
+});
 </script>
 
 <template>
@@ -228,66 +262,85 @@ const hasAnyTransactions = computed(
       </ResponsiveDialog>
     </div>
 
-    <div class="overflow-y-auto">
-      <!-- Recommendations section -->
-      <template v-if="recommendations?.length && !isAnyFiltersApplied">
-        <div class="mb-3">
-          <div class="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
-            <SparklesIcon class="size-3.5" />
-            <span>{{ t('dialogs.manageTransaction.transferRecordsList.recommendedLabel') }}</span>
+    <ScrollArea ref="scrollAreaRef" class="min-h-0 flex-1" viewport-class="h-full">
+      <div ref="scrollContentRef">
+        <template v-if="showRecommendations">
+          <div class="mb-3">
+            <div class="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
+              <SparklesIcon class="size-3.5" />
+              <span>{{ t('dialogs.manageTransaction.transferRecordsList.recommendedLabel') }}</span>
+            </div>
+            <div class="space-y-1">
+              <template v-for="item in recommendations" :key="item.id">
+                <TransactionRecord :tx="item" @record-click="(payload) => handleRecordClick(payload[0])" />
+              </template>
+            </div>
           </div>
-          <div class="space-y-1">
-            <template v-for="item in recommendations" :key="item.id">
-              <TransactionRecord :tx="item" @record-click="(payload) => handleRecordClick(payload[0])" />
-            </template>
+
+          <template v-if="filteredTransactions.length">
+            <div class="text-muted-foreground mb-2 text-xs font-medium">
+              {{ t('dialogs.manageTransaction.transferRecordsList.allTransactionsLabel') }}
+            </div>
+          </template>
+        </template>
+
+        <div
+          v-if="isFetched && transactionsPages"
+          ref="listContainerRef"
+          :style="{ height: `${totalSize}px`, position: 'relative' }"
+        >
+          <div
+            v-for="virtualRow in virtualRows"
+            :key="String(virtualRow.key)"
+            :style="{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+            }"
+          >
+            <TransactionRecord
+              v-if="filteredTransactions[virtualRow.index]"
+              :tx="filteredTransactions[virtualRow.index]!"
+              @record-click="(payload) => handleRecordClick(payload[0])"
+            />
+            <TransactionRecordSkeleton v-else />
           </div>
         </div>
+        <div v-else class="space-y-2">
+          <TransactionRecordSkeleton v-for="i in 6" :key="i" />
+        </div>
 
-        <!-- Divider between recommendations and all transactions -->
-        <template v-if="filteredTransactions.length">
-          <div class="text-muted-foreground mb-2 text-xs font-medium">
-            {{ t('dialogs.manageTransaction.transferRecordsList.allTransactionsLabel') }}
+        <template v-if="isFetched && !hasNextPage">
+          <p v-if="hasAnyTransactions" class="mt-4 text-center text-sm">
+            {{ t('dialogs.manageTransaction.transferRecordsList.noMoreTransactions') }}
+          </p>
+          <div
+            v-else
+            class="text-muted-foreground flex min-h-[min(20rem,50dvh)] flex-col items-center justify-center gap-4 px-6 text-center text-sm"
+          >
+            <CircleAlertIcon :size="48" />
+            <p>
+              <template v-if="transactionType === TRANSACTION_TYPES.income">
+                {{ t('dialogs.manageTransaction.transferRecordsList.noIncomeTransactions') }}
+              </template>
+              <template v-else-if="transactionType === TRANSACTION_TYPES.expense">
+                {{ t('dialogs.manageTransaction.transferRecordsList.noExpenseTransactions') }}
+              </template>
+              <template v-else>
+                {{ t('dialogs.manageTransaction.transferRecordsList.noTransactions') }}
+              </template>
+            </p>
+
+            <template v-if="isAnyFiltersApplied">
+              <Button class="w-auto" variant="secondary" @click="resetFilters">
+                {{ t('dialogs.manageTransaction.transferRecordsList.resetFiltersButton') }}
+              </Button>
+            </template>
           </div>
         </template>
-      </template>
-
-      <!-- All transactions section -->
-      <template v-if="isFetched && transactionsPages">
-        <template v-for="item in filteredTransactions" :key="item.id">
-          <TransactionRecord :tx="item" @record-click="(payload) => handleRecordClick(payload[0])" />
-        </template>
-      </template>
-    </div>
-
-    <template v-if="hasNextPage">
-      <Button variant="secondary" @click="() => fetchNextPage()">
-        {{ t('dialogs.manageTransaction.transferRecordsList.loadMoreButton') }}
-      </Button>
-    </template>
-    <template v-else-if="!hasNextPage && hasAnyTransactions">
-      <p class="mt-4 text-center text-sm">
-        {{ t('dialogs.manageTransaction.transferRecordsList.noMoreTransactions') }}
-      </p>
-    </template>
-    <template v-else>
-      <p class="mx-auto max-w-[80%] text-center text-sm text-white/80">
-        <CircleAlert :size="48" class="m-auto mb-4" />
-        <template v-if="transactionType === TRANSACTION_TYPES.income">
-          {{ t('dialogs.manageTransaction.transferRecordsList.noIncomeTransactions') }}
-        </template>
-        <template v-else-if="transactionType === TRANSACTION_TYPES.expense">
-          {{ t('dialogs.manageTransaction.transferRecordsList.noExpenseTransactions') }}
-        </template>
-        <template v-else>
-          {{ t('dialogs.manageTransaction.transferRecordsList.noTransactions') }}
-        </template>
-
-        <template v-if="isAnyFiltersApplied">
-          <Button class="mt-4 w-full" variant="secondary" @click="resetFilters">
-            {{ t('dialogs.manageTransaction.transferRecordsList.resetFiltersButton') }}
-          </Button>
-        </template>
-      </p>
-    </template>
+      </div>
+    </ScrollArea>
   </div>
 </template>

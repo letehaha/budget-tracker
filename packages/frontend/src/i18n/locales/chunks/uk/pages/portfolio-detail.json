@@ -46,6 +46,7 @@
         "keepLinkedTransaction": "Залишити транзакцію рахунку. Деталі оригінальної транзакції будуть відновлені.",
         "deleteLinkedTransaction": "Також видалити пов'язану транзакцію рахунку",
         "adjustmentBadge": "Коригування",
+        "noCashBadge": "Без впливу на готівку",
         "markedAsAdjustment": "Позначено як коригування балансу",
         "markedAsContribution": "Позначено як реальний внесок",
         "adjustmentError": "Не вдалося оновити цей переказ",

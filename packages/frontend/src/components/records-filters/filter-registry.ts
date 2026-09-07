@@ -37,6 +37,7 @@ export const EXTRA_FILTER_KEYS = [
   'type',
   'tags',
   'payees',
+  'budgets',
   'amount',
   'transferKinds',
   'refunds',
@@ -73,6 +74,12 @@ export const EXTRA_FILTERS: Record<ExtraFilterKey, ExtraFilterDefinition> = {
     menuLabelKey: 'transactions.filters.payees.label',
     defaultSlice: () => ({ payeeIds: [] }),
     isActive: (filters) => filters.payeeIds.length > 0,
+    dissolvesGroups: true,
+  },
+  budgets: {
+    menuLabelKey: 'transactions.filters.menu.budgets',
+    defaultSlice: () => ({ budgetIds: [] }),
+    isActive: (filters) => filters.budgetIds.length > 0,
     dissolvesGroups: true,
   },
   amount: {

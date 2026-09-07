@@ -24,6 +24,7 @@ const NARROWING_EXAMPLES: Record<FilterKey, Partial<FiltersStruct>> = {
   type: { transactionType: TRANSACTION_TYPES.expense },
   tags: { tagIds: ['tag-1'] },
   payees: { payeeIds: ['payee-1'] },
+  budgets: { budgetIds: ['budget-1'] },
   amount: { amountGte: 10 },
   transferKinds: { transferNatures: [TRANSACTION_TRANSFER_NATURE.common_transfer] },
   refunds: { refundFilter: FILTER_OPERATION.exclude },

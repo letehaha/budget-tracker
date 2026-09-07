@@ -26,6 +26,26 @@ interface TransactionsSorting {
   order: SORT_DIRECTIONS;
 }
 
+const DATE_FILTER_KEYS = new Set<string>(['start', 'end']);
+
+export interface StoredFiltersState {
+  filters: Partial<FiltersStruct>;
+  sorting?: TransactionsSorting;
+}
+
+/** JSON round-trip loses Date instances; `start`/`end` come back as ISO strings and need reviving. */
+export const parseStoredFilters = ({ raw }: { raw: string | null }): StoredFiltersState | null => {
+  if (!raw) return null;
+  try {
+    const stored = JSON.parse(raw, (key, value) =>
+      DATE_FILTER_KEYS.has(key) && typeof value === 'string' ? new Date(value) : value,
+    );
+    return stored?.filters && typeof stored.filters === 'object' ? stored : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Computes the `transferNatures` query param. Returns undefined when the user's
  * selection doesn't narrow anything (all kinds selected, or transfers excluded
@@ -107,8 +127,8 @@ export const useTransactionsWithFilters = ({
           payeeIds: filter.payeeIds.length ? filter.payeeIds : undefined,
           categorizationSource: filter.categorizationSource ?? undefined,
           batchId: filter.batchId ?? undefined,
-          budgetIds: staticFilters.budgetIds ?? undefined,
-          excludedBudgetIds: staticFilters.excludedBudgetIds ?? undefined,
+          budgetIds: filter.budgetIds.length ? filter.budgetIds : undefined,
+          excludedBudgetIds: filter.excludedBudgetIds.length ? filter.excludedBudgetIds : undefined,
           includeSplits: true,
           includeTags: true,
           includeGroups: true,
