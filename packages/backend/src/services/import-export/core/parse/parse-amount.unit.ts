@@ -46,6 +46,14 @@ describe('parseAmount (core tabular-import amount parser)', () => {
     expect(parseAmount('+500')).toBe(50000);
   });
 
+  it('treats Unicode minus and dash variants as a negative sign', () => {
+    expect(parseAmount('\u2212361,00')).toBe(-36100);
+    expect(parseAmount('\u2013361,00')).toBe(-36100);
+    expect(parseAmount('\u2014361,00')).toBe(-36100);
+    expect(parseAmount('\u2010361,00')).toBe(-36100);
+    expect(parseAmount('\u2212 1,234.56')).toBe(-123456);
+  });
+
   it('strips currency symbols and whitespace', () => {
     expect(parseAmount('$1,000.00')).toBe(100000);
     expect(parseAmount('€1.000,50')).toBe(100050);
