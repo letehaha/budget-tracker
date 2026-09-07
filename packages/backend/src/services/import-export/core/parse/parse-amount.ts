@@ -8,7 +8,8 @@
 export function parseAmount(amountStr: string): number | null {
   if (!amountStr) return null;
 
-  let cleanStr = amountStr.trim();
+  // Banks export U+2212 minus, en/em dashes, and other hyphen look-alikes as the sign
+  let cleanStr = amountStr.trim().replace(/^[\u2010-\u2015\u2212\uFE63\uFF0D]/, '-');
 
   // Handle parentheses as negative (accounting format)
   const isNegativeParens = cleanStr.startsWith('(') && cleanStr.endsWith(')');
