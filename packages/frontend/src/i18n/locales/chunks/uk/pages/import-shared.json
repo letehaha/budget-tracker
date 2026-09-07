@@ -1,4 +1,12 @@
 {
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "Завдання імпорту застаріло або не знайдено.",
+        "lostContact": "Втрачено зв'язок із завданням імпорту."
+      }
+    }
+  },
   "importShared": {
     "action": {
       "createNew": "Створити новий",
@@ -83,14 +91,6 @@
       "renameAria": "Перейменувати зіставлення",
       "deleteAria": "Видалити зіставлення",
       "confirmRenameAria": "Зберегти назву"
-    }
-  },
-  "pages": {
-    "importExport": {
-      "progress": {
-        "jobExpired": "Завдання імпорту застаріло або не знайдено.",
-        "lostContact": "Втрачено зв'язок із завданням імпорту."
-      }
     }
   }
 }

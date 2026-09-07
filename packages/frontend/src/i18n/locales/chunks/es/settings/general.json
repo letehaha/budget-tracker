@@ -15,6 +15,12 @@
         "successNotification": "Ajuste de asociación de transferencias actualizado",
         "errorNotification": "Error al actualizar el ajuste de asociación de transferencias"
       },
+      "savingsCategories": {
+        "label": "Contar categorías como ahorro",
+        "description": "El gasto en estas categorías (y sus subcategorías) se excluye de los gastos en el análisis de flujo de caja, por lo que cuenta para el ahorro mensual y la tasa de ahorro.",
+        "successNotification": "Categorías de ahorro actualizadas",
+        "errorNotification": "Error al actualizar las categorías de ahorro"
+      },
       "accountDropdowns": {
         "defaultAccount": {
           "label": "Cuenta predeterminada",
@@ -27,12 +33,6 @@
         },
         "successNotification": "Ajustes del selector de cuentas actualizados",
         "errorNotification": "Error al actualizar los ajustes del selector de cuentas"
-      },
-      "savingsCategories": {
-        "label": "Contar categorías como ahorro",
-        "description": "El gasto en estas categorías (y sus subcategorías) se excluye de los gastos en el análisis de flujo de caja, por lo que cuenta para el ahorro mensual y la tasa de ahorro.",
-        "successNotification": "Categorías de ahorro actualizadas",
-        "errorNotification": "Error al actualizar las categorías de ahorro"
       }
     }
   }

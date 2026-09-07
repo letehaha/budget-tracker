@@ -7,10 +7,10 @@
       "trendsComparison": "Порівняння трендів",
       "investmentCalculator": "Інвестиційний калькулятор",
       "pivotReport": "Зведення",
-      "collapse": "Згорнути",
       "netWorthDrivers": "Драйвери чистого майна",
       "investmentContributions": "Внески",
       "netWorthHistory": "Історія чистого майна",
+      "collapse": "Згорнути",
       "sections": {
         "investments": "Інвестиції"
       }
@@ -87,6 +87,7 @@
       "useAvgNetIncome": "Використати сер. чистий дохід →",
       "timeHorizon": "Горизонт (роки)",
       "annualReturn": "Річна дохідність (%)",
+      "annualReturnPlaceholder": "Оберіть предустановку",
       "annualInflation": "Річна інфляція (%)",
       "totalInvested": "Всього інвестовано",
       "nominalFinalValue": "Номінальна кінцева вартість",
@@ -107,8 +108,7 @@
       "configure": "Налаштувати",
       "hideInputs": "Сховати",
       "portfolioReturnOption": "{name} (ваш ~{rate}%/рік)",
-      "portfolioNoHistoryOption": "{name} — недостатньо історії",
-      "annualReturnPlaceholder": "Оберіть предустановку"
+      "portfolioNoHistoryOption": "{name} — недостатньо історії"
     },
     "portfolioFilter": {
       "all": "Усі портфелі",
