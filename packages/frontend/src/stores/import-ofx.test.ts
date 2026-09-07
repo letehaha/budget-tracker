@@ -140,6 +140,28 @@ describe('useImportOfxStore', () => {
     expect(store.accountMapping['opaque-checking']).toEqual(expect.objectContaining({ currentBalance: null }));
   });
 
+  it('does not treat a create-new account with a blank name as resolved', async () => {
+    const store = await uploadedStore();
+    expect(store.isResolveStepValid).toBe(true);
+
+    store.setAccountName({ sourceAccountKey: 'opaque-card', name: '   ' });
+
+    expect(store.isResolveStepValid).toBe(false);
+  });
+
+  it('keeps stable-ID duplicates in the skip list even when re-included', async () => {
+    const store = await uploadedStore();
+    store.duplicates = [
+      { rowIndex: 3, matchType: 'originalId' } as never,
+      { rowIndex: 7, matchType: 'exact' } as never,
+    ];
+
+    store.toggleDuplicateUnmark({ rowIndex: 3 });
+    store.toggleDuplicateUnmark({ rowIndex: 7 });
+
+    expect(store.skipDuplicateIndices).toEqual([3]);
+  });
+
   it('sends opaque mappings to duplicate detection', async () => {
     const store = await uploadedStore();
     mockDetect.mockResolvedValue({ duplicates: [] });

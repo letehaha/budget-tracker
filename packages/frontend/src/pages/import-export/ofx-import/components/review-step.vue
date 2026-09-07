@@ -37,7 +37,7 @@ async function handleImport() {
     <template v-if="store.isDetectingDuplicates"><div class="bg-muted/40 h-40 animate-pulse rounded-lg" /></template>
     <Callout v-else-if="store.detectError" variant="destructive">{{ store.detectError }}</Callout>
     <template v-else>
-      <div class="grid grid-cols-2 gap-3 @sm/ofx-wizard:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 @sm/csv-wizard:grid-cols-4">
         <StatCard
           :label="$t('pages.importExport.ofxImport.review.transactions')"
           :value="includedTransactions.length"

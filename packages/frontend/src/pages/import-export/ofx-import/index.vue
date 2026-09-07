@@ -1,5 +1,5 @@
 <template>
-  <div class="@container/ofx-wizard flex flex-col gap-0">
+  <div class="@container/csv-wizard flex flex-col gap-0">
     <div class="mb-6">
       <RouterLink
         :to="{ name: ROUTES_NAMES.settingsDataManagementImport }"

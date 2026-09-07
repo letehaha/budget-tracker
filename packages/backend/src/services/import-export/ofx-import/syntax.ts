@@ -1,6 +1,6 @@
 import { parseStrict } from 'ofx-js';
 
-import { OFX_MAX_NESTING_DEPTH, OfxParseError, type OfxFormatVersion } from './types';
+import { OfxParseError, type OfxFormatVersion } from './types';
 
 export type OfxNode = Record<string, unknown>;
 
@@ -12,7 +12,10 @@ function validateMarkupBounds({ body, formatVersion }: { body: string; formatVer
     });
   }
 
-  let depth = 0;
+  // Only OFX 2.x (XML) closes every tag, so tag matching is only meaningful
+  // there. OFX 1.x leaf tags are unclosed by design and cannot be depth-tracked.
+  if (formatVersion !== '2.x') return;
+
   let position = 0;
   const xmlStack: string[] = [];
   while (position < body.length) {
@@ -21,32 +24,17 @@ function validateMarkupBounds({ body, formatVersion }: { body: string; formatVer
     const close = body.indexOf('>', open + 1);
     if (close < 0) throw new OfxParseError({ code: 'malformed-markup', message: 'The OFX markup is incomplete.' });
     const token = body.slice(open + 1, close).trim();
-    if (formatVersion === '2.x' && token.startsWith('/')) {
+    if (token.startsWith('/')) {
       const name = token.slice(1).trim().split(/\s/, 1)[0];
       if (xmlStack.pop() !== name) {
         throw new OfxParseError({ code: 'malformed-markup', message: 'The OFX XML tags do not match.' });
       }
-    } else if (
-      formatVersion === '2.x' &&
-      token &&
-      !token.startsWith('?') &&
-      !token.startsWith('!') &&
-      !token.endsWith('/')
-    ) {
+    } else if (token && !token.startsWith('?') && !token.startsWith('!') && !token.endsWith('/')) {
       xmlStack.push(token.split(/\s/, 1)[0]!);
-      depth = xmlStack.length;
-    } else if (token.startsWith('/')) depth = Math.max(0, depth - 1);
-    else if (token && !token.startsWith('?') && !token.startsWith('!') && !token.endsWith('/')) {
-      const nextOpen = body.indexOf('<', close + 1);
-      const hasTextValue = body.slice(close + 1, nextOpen < 0 ? body.length : nextOpen).trim().length > 0;
-      if (!hasTextValue) depth += 1;
-    }
-    if (depth > OFX_MAX_NESTING_DEPTH) {
-      throw new OfxParseError({ code: 'nesting-too-deep', message: 'The OFX document nesting is too deep.' });
     }
     position = close + 1;
   }
-  if (formatVersion === '2.x' && xmlStack.length > 0) {
+  if (xmlStack.length > 0) {
     throw new OfxParseError({ code: 'malformed-markup', message: 'The OFX XML has unclosed tags.' });
   }
 }

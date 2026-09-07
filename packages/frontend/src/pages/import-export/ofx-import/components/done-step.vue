@@ -67,7 +67,7 @@ function viewTransactions() {
       :title="outcomeCopy.title"
       ><p>{{ outcomeCopy.description }}</p></Callout
     >
-    <div class="grid grid-cols-2 gap-3 @sm/ofx-wizard:grid-cols-3 @lg/ofx-wizard:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 @sm/csv-wizard:grid-cols-3 @lg/csv-wizard:grid-cols-4">
       <StatCard
         :label="$t('pages.importExport.ofxImport.done.accountsCreated')"
         :value="summary.accountsCreated"

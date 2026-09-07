@@ -9,19 +9,19 @@ export function parseOfxHeader({ bytes }: { bytes: Buffer }): { bodyOffset: numb
     throw new OfxParseError({ code: 'empty-file', message: 'The OFX file is empty.' });
   }
 
+  // The UTF-8 BOM must be dropped at the byte level: a Latin-1 decode turns it
+  // into "\u00EF\u00BB\u00BF", which would then corrupt the first header key.
+  const bomLength = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? 3 : 0;
   // Latin-1 maps every byte to the same code point. That makes it safe for this
   // bootstrap pass: we can find the ASCII header without decoding the body with
   // a charset that the header has not told us yet.
-  const prefix = bytes
-    .subarray(0, Math.min(bytes.length, HEADER_LIMIT_BYTES))
-    .toString('latin1')
-    .replace(/^\uFEFF/, '');
+  const prefix = bytes.subarray(bomLength, Math.min(bytes.length, HEADER_LIMIT_BYTES)).toString('latin1');
   const separator = /\r?\n\r?\n/.exec(prefix);
   const processingInstructionStart = prefix.search(/<\?OFX\s/i);
   const processingInstructionEnd =
     processingInstructionStart >= 0 ? prefix.indexOf('?>', processingInstructionStart) : -1;
   const values = new Map<string, string>();
-  let bodyOffset = 0;
+  let bodyOffset = bomLength;
   // Detect the XML processing instruction before the SGML blank-line separator.
   // OFX2 permits blank lines around its declarations, which must not make it
   // enter the OFX1 header branch.
@@ -41,7 +41,7 @@ export function parseOfxHeader({ bytes }: { bytes: Buffer }): { bodyOffset: numb
       if (colon < 1) continue;
       values.set(line.slice(0, colon).trim().toUpperCase(), line.slice(colon + 1).trim());
     }
-    bodyOffset = separator.index + separator[0].length;
+    bodyOffset = bomLength + separator.index + separator[0].length;
   } else {
     throw new OfxParseError({ code: 'invalid-header', message: 'The OFX header is missing or too large.' });
   }

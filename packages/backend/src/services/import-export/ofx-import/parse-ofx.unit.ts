@@ -171,8 +171,16 @@ describe('parseOfx', () => {
     expect(() => parseOfx({ bytes: withHeader({ body }) })).toThrow('correction records');
   });
 
-  it('rejects excessive nesting before syntax parsing', () => {
-    const body = `<OFX>${'<A>'.repeat(65)}${'</A>'.repeat(65)}</OFX>`;
-    expect(() => parseOfx({ bytes: withHeader({ body }) })).toThrow('nesting is too deep');
+  it('accepts a UTF-8 BOM before the OFX 1.x header', () => {
+    const bytes = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), fixture({ name: 'bank-v1.ofx' })]);
+
+    expect(parseOfx({ bytes }).transactions).toHaveLength(2);
+  });
+
+  it('keeps non-ASCII bytes when the header declares CHARSET:NONE', () => {
+    const row = '<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260801<TRNAMT>-1<FITID>x<NAME>Caf\u00e9</STMTTRN>';
+    const bytes = withHeader({ body: bankStatementWithRows({ rows: row }), charset: 'NONE' });
+
+    expect(parseOfx({ bytes }).transactions[0]!.payeeName).toBe('Caf\u00e9');
   });
 });

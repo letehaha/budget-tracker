@@ -68,8 +68,12 @@ export const useImportOfxStore = defineStore('import-ofx', () => {
   const accountMapping = ref<OfxAccountFormMapping>({});
   const duplicates = ref<DuplicateMatch[]>([]);
   const unmarkedDuplicateIndices = ref<Set<number>>(new Set());
+  // FITID matches are enforced by a unique index on the server, so re-including
+  // one can never import it. The UI locks those rows; this keeps the count honest.
   const skipDuplicateIndices = computed(() =>
-    duplicates.value.filter((item) => !unmarkedDuplicateIndices.value.has(item.rowIndex)).map((item) => item.rowIndex),
+    duplicates.value
+      .filter((item) => item.matchType === 'originalId' || !unmarkedDuplicateIndices.value.has(item.rowIndex))
+      .map((item) => item.rowIndex),
   );
 
   const jobProgress = useImportJobProgress<OfxImportProgress>({
@@ -122,7 +126,7 @@ export const useImportOfxStore = defineStore('import-ofx', () => {
     Object.values(accountMapping.value).some((value) => value.action === 'link-existing'),
   );
   const isAccountResolved = (value: OfxAccountFormValue | undefined) =>
-    value?.action === 'create-new' ||
+    (value?.action === 'create-new' && value.name.trim().length > 0) ||
     value?.action === 'skip' ||
     (value?.action === 'link-existing' && !!value.accountId);
   const accountResolvedCount = computed(

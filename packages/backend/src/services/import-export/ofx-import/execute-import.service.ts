@@ -11,7 +11,7 @@ import {
   type TransactionImportDetails,
 } from '@bt/shared/types';
 import { Money } from '@common/types/money';
-import { ValidationError } from '@js/errors';
+import { UnexpectedError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import * as Transactions from '@models/transactions.model';
@@ -22,6 +22,13 @@ import { createAccountsIfNeeded } from '@services/import-export/core/resolve/cre
 import { createPayeesIfNeeded } from '@services/import-export/core/resolve/create-payees-if-needed';
 import { excludeSkippedAccounts } from '@services/import-export/core/resolve/exclude-skipped-accounts';
 import { signedRowContribution } from '@services/import-export/core/signed-row-contribution';
+import {
+  buildSuppressedFailuresEntry,
+  buildSystemicFailureMessage,
+  createImportFailureTally,
+  recordImportFailure,
+  recordImportSuccess,
+} from '@services/import-export/ms-money-import/import-error-collector';
 import { createTransaction } from '@services/transactions';
 import { selectAccountsWithPlannedRows } from '@services/transactions/planned-matching';
 import { UniqueConstraintError } from 'sequelize';
@@ -171,6 +178,7 @@ export async function executeOfxImport({
   const existingKeys = new Set(existingIdRows.map((tx) => `${tx.accountId}:${tx.originalId}`));
 
   let processedCount = 0;
+  let failureTally = createImportFailureTally();
   for (const tx of rows) {
     if (skipSet.has(tx.rowIndex)) {
       summary.duplicatesSkipped += 1;
@@ -223,16 +231,33 @@ export async function executeOfxImport({
         summary.newTransactionIds.push(result[0].id);
       }
       if (tx.sourceTransactionKey) existingKeys.add(`${accountId}:${tx.sourceTransactionKey}`);
+      failureTally = recordImportSuccess({ tally: failureTally });
     } catch (error) {
       if (error instanceof UniqueConstraintError && tx.sourceTransactionKey) {
         summary.duplicatesSkipped += 1;
       } else {
-        logger.error({ message: `[OFX import] Failed row ${tx.rowIndex}`, error: error as Error });
-        summary.errors.push({ rowIndex: tx.rowIndex, error: error instanceof Error ? error.message : 'Unknown error' });
+        const decision = recordImportFailure({ tally: failureTally, rowIndices: [tx.rowIndex] });
+        failureTally = decision.tally;
+        if (decision.shouldLog) {
+          logger.error({ message: `[OFX import] Failed row ${tx.rowIndex}`, error: error as Error });
+        }
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        for (const rowIndex of decision.retainedRowIndices) summary.errors.push({ rowIndex, error: message });
+        if (decision.shouldAbort) {
+          throw new UnexpectedError({ message: buildSystemicFailureMessage({ lastError: error }) });
+        }
       }
     }
     processedCount += 1;
     if (onProgress) await onProgress(processedCount, rowsToWrite.length);
+  }
+
+  const suppressedFailuresEntry = buildSuppressedFailuresEntry({ tally: failureTally });
+  if (suppressedFailuresEntry) summary.errors.push(suppressedFailuresEntry);
+  if (failureTally.unloggedFailures > 0) {
+    logger.error({
+      message: `[OFX import] ${failureTally.unloggedFailures} further row failures were not logged individually`,
+    });
   }
 
   const { accountBalanceChanges, errors } = await reconciler.finalize({

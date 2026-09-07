@@ -12,7 +12,7 @@ function resolveEncoding({ charset, encoding }: { charset: string; encoding: str
   if (normalizedEncoding === 'UTF8' || normalizedCharset === 'UTF8' || normalizedCharset === '65001') return 'utf8';
   if (normalizedCharset === '1252' || normalizedCharset === 'WINDOWS1252') return 'windows-1252';
   if (normalizedCharset === '88591' || normalizedCharset === 'ISO88591') return 'latin1';
-  if (normalizedEncoding === 'USASCII' && ['NONE', 'ASCII', 'USASCII'].includes(normalizedCharset)) return 'ascii';
+  if (normalizedEncoding === 'USASCII' && ['NONE', 'ASCII', 'USASCII'].includes(normalizedCharset)) return 'latin1';
 
   throw new OfxParseError({
     code: 'unsupported-encoding',

@@ -9,7 +9,6 @@ import {
 } from '@bt/shared/types';
 
 export { OFX_MAX_FILE_BYTES, OFX_MAX_ROWS };
-export const OFX_MAX_NESTING_DEPTH = 64;
 
 export type OfxFormatVersion = '1.x' | '2.x';
 export type { OfxParseAccount, OfxParseResult, OfxParseTransaction, OfxParseWarning, OfxStatementType };
