@@ -5,6 +5,7 @@ interface OverviewAccount {
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
+  refCreditLimit: number;
   currencyCode: string;
 }
 

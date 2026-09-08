@@ -1,4 +1,12 @@
 {
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "El trabajo de importación caducó o no se pudo encontrar.",
+        "lostContact": "Se perdió el contacto con el trabajo de importación."
+      }
+    }
+  },
   "importShared": {
     "action": {
       "createNew": "Crear nuevo",
@@ -83,14 +91,6 @@
       "renameAria": "Renombrar mapeo",
       "deleteAria": "Eliminar mapeo",
       "confirmRenameAria": "Guardar nombre"
-    }
-  },
-  "pages": {
-    "importExport": {
-      "progress": {
-        "jobExpired": "El trabajo de importación caducó o no se pudo encontrar.",
-        "lostContact": "Se perdió el contacto con el trabajo de importación."
-      }
     }
   }
 }

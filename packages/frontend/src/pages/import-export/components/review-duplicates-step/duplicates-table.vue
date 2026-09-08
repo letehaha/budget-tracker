@@ -64,7 +64,7 @@
                 unmarkedIndices.has(item.rowIndex) ? 'bg-warning/5' : '',
               )
             "
-            @click="emit('toggle', item.rowIndex)"
+            @click="!isLocked(item) && emit('toggle', item.rowIndex)"
           >
             <td class="border-border border-b px-3 py-2.5">
               <!-- Stop propagation so a direct checkbox click toggles once (via its own
@@ -72,6 +72,7 @@
               <span class="inline-flex" @click.stop>
                 <Checkbox
                   :model-value="unmarkedIndices.has(item.rowIndex)"
+                  :disabled="isLocked(item)"
                   :aria-label="$t('importShared.duplicatesTable.importAnywayAriaLabel', { row: item.rowIndex })"
                   @update:model-value="emit('toggle', item.rowIndex)"
                 />
@@ -131,7 +132,7 @@
                 unmarkedIndices.has(item.rowIndex) ? 'bg-warning/5' : '',
               )
             "
-            @click="emit('toggle', item.rowIndex)"
+            @click="!isLocked(item) && emit('toggle', item.rowIndex)"
           >
             <!-- Header: checkbox + row number on the left, match pill pinned right -->
             <div class="mb-3 flex items-center gap-2">
@@ -140,6 +141,7 @@
               <span class="inline-flex" @click.stop>
                 <Checkbox
                   :model-value="unmarkedIndices.has(item.rowIndex)"
+                  :disabled="isLocked(item)"
                   :aria-label="$t('importShared.duplicatesTable.importAnywayAriaLabel', { row: item.rowIndex })"
                   @update:model-value="emit('toggle', item.rowIndex)"
                 />
@@ -255,6 +257,9 @@ const matchTypeLabel = (type: DuplicateMatch['matchType']): string => {
       return type;
   }
 };
+
+/** A stable-ID match is enforced by a unique index server-side, so "import anyway" cannot apply. */
+const isLocked = (item: DuplicateMatch): boolean => item.matchType === 'originalId';
 
 /** exact + originalId are high-confidence (green pill); fuzzy is a soft match (amber pill). */
 const isStrongMatch = (type: DuplicateMatch['matchType']): boolean => type === 'exact' || type === 'originalId';

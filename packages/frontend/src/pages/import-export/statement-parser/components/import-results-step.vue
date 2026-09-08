@@ -121,6 +121,12 @@
             <span class="text-muted-foreground">({{ store.selectedAccount?.currencyCode }})</span>
           </span>
         </div>
+        <div v-if="store.importSummary.files > 1" class="flex items-baseline justify-between gap-3 px-4 py-2.5">
+          <span class="text-muted-foreground text-sm">
+            {{ $t('pages.statementParser.importResults.statementsLabel') }}
+          </span>
+          <span class="text-right text-sm font-medium tabular-nums">{{ store.importSummary.files }}</span>
+        </div>
         <div class="flex items-baseline justify-between gap-3 px-4 py-2.5">
           <span class="text-muted-foreground text-sm">
             {{ $t('pages.statementParser.importResults.toImportLabel') }}
@@ -138,8 +144,8 @@
       </div>
 
       <!-- Without this the count above silently under-reports the uploaded file. -->
-      <Callout v-if="droppedRowCount > 0" variant="warning">
-        {{ $t('pages.statementParser.droppedRowsWarning', { count: droppedRowCount }) }}
+      <Callout v-if="store.droppedRowCount > 0" variant="warning">
+        {{ $t('pages.statementParser.droppedRowsWarning', { count: store.droppedRowCount }) }}
       </Callout>
 
       <Callout
@@ -187,8 +193,6 @@ const router = useRouter();
 const hasErrors = computed(() => (store.importResult?.summary.errors.length ?? 0) > 0);
 
 const skippedCount = computed(() => store.importSummary.total - store.importSummary.toImport);
-
-const droppedRowCount = computed(() => store.extractionResult?.droppedRowCount ?? 0);
 
 function handleBack() {
   // Walks to the previous visible step: `review` for existing accounts (where it

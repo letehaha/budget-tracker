@@ -6,11 +6,13 @@ const makeAccount = (partial: {
   currentBalance?: number;
   refCurrentBalance?: number;
   creditLimit?: number;
+  refCreditLimit?: number;
   currencyCode?: string;
 }) => ({
   currentBalance: 0,
   refCurrentBalance: 0,
   creditLimit: 0,
+  refCreditLimit: 0,
   currencyCode: 'USD',
   ...partial,
 });
@@ -113,9 +115,13 @@ describe('computeAccountsOverview', () => {
   });
 
   it('threads the credit-limit setting through so a limited account can flip into a liability', () => {
-    // Own balance 200 with a 500 limit -> displayed as -300; refCurrentBalance 400 tracks a 2x FX rate,
-    // so the base-currency figure scales to -300 * 2 = -600, landing in liabilities.
-    const account = makeAccount({ currentBalance: 200, refCurrentBalance: 400, creditLimit: 500, currencyCode: 'EUR' });
+    const account = makeAccount({
+      currentBalance: 200,
+      refCurrentBalance: 400,
+      creditLimit: 500,
+      refCreditLimit: 1000,
+      currencyCode: 'EUR',
+    });
 
     const result = computeAccountsOverview({
       moneyAccounts: [account],

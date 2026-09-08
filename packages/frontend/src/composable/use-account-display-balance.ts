@@ -15,6 +15,7 @@ export const useAccountDisplayBalance = ({ account }: { account: Ref<AccountMode
       currentBalance: account.value.currentBalance,
       refCurrentBalance: account.value.refCurrentBalance,
       creditLimit: account.value.creditLimit,
+      refCreditLimit: account.value.refCreditLimit,
       includeCreditLimit: !!userSettings.value?.includeCreditLimitInStats,
     }),
   );

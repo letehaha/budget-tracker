@@ -7,7 +7,7 @@ import { useAccountAccess } from '@/composable/use-account-access';
 import { useAccountCurrencyCode } from '@/composable/use-account-currency-code';
 import { toLocalCurrencyNumber } from '@/js/helpers';
 import { useCurrenciesStore } from '@/stores';
-import { ACCOUNT_TYPES, AccountModel, isDedicatedFlowAccountCategory } from '@bt/shared/types';
+import { AccountModel, isDedicatedFlowAccountCategory } from '@bt/shared/types';
 import { ChevronDownIcon, ChevronUpIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, ref, toRef } from 'vue';
@@ -26,7 +26,6 @@ const props = defineProps<{
 const { currenciesMap } = storeToRefs(useCurrenciesStore());
 const isOpen = ref(false);
 
-const isSystemAccount = computed(() => props.account.type === ACCOUNT_TYPES.system);
 const currencyCode = useAccountCurrencyCode({ account: toRef(() => props.account) });
 const { isOwner } = useAccountAccess(toRef(() => props.account));
 // Loan and vehicle categories are locked to their dedicated flows on the backend.
@@ -44,7 +43,7 @@ const isCategoryEditable = computed(
         <div class="flex items-center gap-1.5">
           <span>{{ toLocalCurrencyNumber(account.creditLimit, { currency: currencyCode }) }} {{ currencyCode }}</span>
 
-          <CreditLimitEditPopover v-if="isSystemAccount" :account="account" :currency-code="currencyCode" />
+          <CreditLimitEditPopover v-if="isOwner" :account="account" :currency-code="currencyCode" />
         </div>
       </div>
       <Separator />

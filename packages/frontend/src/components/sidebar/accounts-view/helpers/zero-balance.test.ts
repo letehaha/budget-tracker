@@ -9,11 +9,13 @@ const makeAccount = (partial: {
   currentBalance?: number;
   refCurrentBalance?: number;
   creditLimit?: number;
+  refCreditLimit?: number;
 }): AccountModel =>
   ({
     currentBalance: 0,
     refCurrentBalance: 0,
     creditLimit: 0,
+    refCreditLimit: 0,
     currencyCode: 'USD',
     ...partial,
   }) as AccountModel;
@@ -42,7 +44,7 @@ describe('isZeroBalanceAccount', () => {
   it('is not fooled by a credit account sitting at zero balance (its display balance is negative)', () => {
     // Zero own balance with a 500 limit displays as -500 when the credit-limit setting is on —
     // a real balance, so it must not be hidden as "zero".
-    const creditAccount = makeAccount({ currentBalance: 0, creditLimit: 500 });
+    const creditAccount = makeAccount({ currentBalance: 0, creditLimit: 500, refCreditLimit: 500 });
 
     expect(isZeroBalanceAccount({ account: creditAccount, includeCreditLimit: true })).toBe(false);
     // With the setting off the limit is ignored, so the same account reads as zero.

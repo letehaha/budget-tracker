@@ -3,6 +3,7 @@
     "title": "Рахунки",
     "createAccount": "Створити рахунок",
     "createVehicle": "Додати транспорт",
+    "actionsMenu": "Дії з рахунком",
     "sections": {
       "archived": "Архівовані",
       "manual": "Ручні рахунки",
@@ -16,9 +17,6 @@
       "connectBank": "Підключити банківський рахунок",
       "createManual": "Створити ручний рахунок"
     },
-    "sharedBy": "Поділено з {handle}",
-    "viaHousehold": "Через сім'ю {handle}",
-    "actionsMenu": "Дії з рахунком",
     "overview": {
       "totalBalance": "Загальний баланс",
       "assets": "Активи",
@@ -26,6 +24,8 @@
       "vehicles": "Транспорт",
       "projected": "Прогноз {amount} · {count} запланований запис до {date} | Прогноз {amount} · {count} заплановані записи до {date} | Прогноз {amount} · {count} запланованих записів до {date}"
     },
+    "sharedBy": "Поділено з {handle}",
+    "viaHousehold": "Через сім'ю {handle}",
     "connect": "Підключити",
     "connectBank": "Підключити банк",
     "noBanksConnected": "Банки ще не підключено — підключіть один, щоб автоматично синхронізувати баланси.",

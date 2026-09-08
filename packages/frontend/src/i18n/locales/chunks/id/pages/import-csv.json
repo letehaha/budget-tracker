@@ -9,7 +9,6 @@
           "steps": {
             "upload": "Unggah",
             "map": "Petakan Kolom",
-            "resolve": "Selesaikan Nilai",
             "resolveAccounts": "Akun",
             "resolveCategories": "Kategori",
             "review": "Tinjau",
@@ -235,7 +234,6 @@
           "createNewForUnmatched": "Buat baru untuk yang tidak cocok",
           "skipAll": "Lewati semua",
           "reset": "Setel ulang",
-          "menuLabel": "Tindakan cepat",
           "tooltips": {
             "mapExactMatchesAccounts": "Menautkan setiap akun CSV ke akun yang ada dengan nama dan mata uang yang sama. Akun tanpa kecocokan persis tetap tidak berubah.",
             "mapExactMatchesCategories": "Menautkan setiap kategori CSV ke kategori yang ada dengan nama yang sama. Kategori tanpa kecocokan persis tetap tidak berubah.",

@@ -7,7 +7,8 @@
  *                   "possibly dynamic" bucket for manual review.
  *   strip           Remove exact keys (from --keys-file, one per line,
  *                   prefixed fe:/be:) from en AND all other locales.
- *   missing         Report keys present in en but absent in other locales.
+ *   missing         Report keys present in en but absent in the in-house
+ *                   translated locales (TRANSLATED_LOCALES).
  *                   --json includes en values so a translator needs no other input.
  *   prune-extra     Remove keys/files present in non-en locales but absent in en.
  *
@@ -23,6 +24,11 @@ const BE_LOCALES = path.join(ROOT, 'packages/backend/src/i18n/locales');
 const SRC_DIRS = [path.join(ROOT, 'packages/frontend/src'), path.join(ROOT, 'packages/backend/src')];
 const SRC_EXTS = new Set(['.ts', '.tsx', '.js', '.mjs', '.vue']);
 const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
+
+// Locales translated in-house; `missing` ignores every other locale on disk,
+// which is community-translated in Crowdin. `strip` and `prune-extra` stay
+// unfiltered on purpose: a dead key must not survive in any locale.
+const TRANSLATED_LOCALES = new Set(['uk', 'es']);
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -312,7 +318,7 @@ function cmdMissing() {
   const report = { frontend: {}, backend: {} };
 
   for (const locale of feLocales()) {
-    if (locale === 'en' || (onlyLocale && locale !== onlyLocale)) continue;
+    if (!TRANSLATED_LOCALES.has(locale) || (onlyLocale && locale !== onlyLocale)) continue;
     const data = feLocaleData(locale);
     const perFile = {};
     for (const [relPath, { keys: enKeys }] of enFe) {
@@ -327,7 +333,7 @@ function cmdMissing() {
   }
 
   for (const locale of beLocales()) {
-    if (locale === 'en' || (onlyLocale && locale !== onlyLocale)) continue;
+    if (!TRANSLATED_LOCALES.has(locale) || (onlyLocale && locale !== onlyLocale)) continue;
     const data = beLocaleData(locale);
     const missing = {};
     for (const [key, value] of enBe.keys) {

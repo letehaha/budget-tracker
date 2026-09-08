@@ -10,9 +10,12 @@ import type {
   DetectBudgetBakersWalletDuplicatesResponse,
   DetectDuplicatesResponse,
   DetectMsMoneyDuplicatesResponse,
+  DetectOfxDuplicatesResponse,
   ExecuteBudgetBakersWalletResponse,
   ExecuteImportResponse,
   ExecuteMsMoneyResponse,
+  ExecuteOfxRequest,
+  ExecuteOfxResponse,
   ExecuteYnabResponse,
   ExtractUniqueValuesResponse,
   ExtractedMetadata,
@@ -21,6 +24,9 @@ import type {
   MsMoneyAccountMapping,
   MsMoneyImportProgress,
   MsMoneyUploadResponse,
+  OfxAccountMapping,
+  OfxImportProgress,
+  OfxUploadResponse,
   ParseBudgetBakersWalletResponse,
   ParseYnabResponse,
   StatementCostEstimate,
@@ -45,6 +51,12 @@ const FIXTURES_PATH = path.join(__dirname, '../fixtures/csv-import');
 const STATEMENT_FIXTURES_PATH = path.join(__dirname, '../fixtures');
 const YNAB_FIXTURES_PATH = path.join(__dirname, '../fixtures/ynab-import');
 const BUDGET_BAKERS_WALLET_FIXTURES_PATH = path.join(__dirname, '../fixtures/budget-bakers-wallet-import');
+const OFX_FIXTURES_PATH = path.join(__dirname, '../fixtures/ofx-import');
+
+/** Load a committed, sanitized OFX/QFX fixture as raw upload bytes. */
+export function loadOfxFixture({ filename }: { filename: string }): Buffer {
+  return fs.readFileSync(path.join(OFX_FIXTURES_PATH, filename));
+}
 
 /** Load a YNAB Register.csv fixture by filename. */
 export function loadYnabFixture(filename: string): string {
@@ -619,6 +631,108 @@ export function expectCompleted(
   if (progress.status !== 'completed') {
     const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
     throw new Error(`Expected completed import, got status="${progress.status}".${detail}`);
+  }
+}
+
+// ============================================
+// OFX Import
+// ============================================
+
+export interface UploadOfxResult {
+  statusCode: number;
+  response: OfxUploadResponse | null;
+  errorMessage: string | null;
+}
+
+/** POST raw OFX/QFX bytes through the authenticated HTTP endpoint. */
+export async function uploadOfx({
+  file,
+  contentType = 'application/octet-stream',
+}: {
+  file: Buffer;
+  contentType?: string;
+}): Promise<UploadOfxResult> {
+  const base = request(app).post(`${API_PREFIX}/import/ofx/upload`).set('Content-Type', contentType);
+  if (global.APP_AUTH_COOKIES) base.set('Cookie', global.APP_AUTH_COOKIES);
+  const result = await base.send(file);
+  const body = result.body as { response?: OfxUploadResponse & { message?: string } };
+  return {
+    statusCode: result.status,
+    response: result.status === 200 ? (body.response ?? null) : null,
+    errorMessage: result.status === 200 ? null : (body.response?.message ?? null),
+  };
+}
+
+export async function uploadOfxFixture({ filename }: { filename: string }): Promise<OfxUploadResponse> {
+  const result = await uploadOfx({ file: loadOfxFixture({ filename }) });
+  if (!result.response) {
+    throw new Error(`Upload of ${filename} failed with ${result.statusCode}: ${result.errorMessage}`);
+  }
+  return result.response;
+}
+
+export function detectOfxDuplicates<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: { uploadId: string; accountMapping: OfxAccountMapping };
+  raw?: R;
+}): UtilizeReturnType<() => DetectOfxDuplicatesResponse, R> {
+  return makeRequest<DetectOfxDuplicatesResponse, R>({
+    method: 'post',
+    url: '/import/ofx/detect-duplicates',
+    payload,
+    raw,
+  });
+}
+
+export function executeOfx<R extends boolean | undefined = false>({
+  payload,
+  raw,
+}: {
+  payload: Omit<ExecuteOfxRequest, 'skipDuplicateIndices'> & { skipDuplicateIndices?: number[] };
+  raw?: R;
+}): UtilizeReturnType<() => ExecuteOfxResponse, R> {
+  return makeRequest<ExecuteOfxResponse, R>({
+    method: 'post',
+    url: '/import/ofx/execute',
+    payload: { ...payload, skipDuplicateIndices: payload.skipDuplicateIndices ?? [] },
+    raw,
+  });
+}
+
+export function getOfxImportStatus<R extends boolean | undefined = false>({
+  jobId,
+  raw,
+}: {
+  jobId: string;
+  raw?: R;
+}): UtilizeReturnType<() => OfxImportProgress, R> {
+  return makeRequest<OfxImportProgress, R>({ method: 'get', url: `/import/ofx/status/${jobId}`, raw });
+}
+
+export async function waitForOfxImportCompletion({
+  jobId,
+  timeoutMs = 30_000,
+}: {
+  jobId: string;
+  timeoutMs?: number;
+}): Promise<OfxImportProgress> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const progress = await getOfxImportStatus({ jobId, raw: true });
+    if (progress.status === 'completed' || progress.status === 'failed') return progress;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`OFX import job ${jobId} did not finish within ${timeoutMs}ms`);
+}
+
+export function expectOfxCompleted(
+  progress: OfxImportProgress,
+): asserts progress is Extract<OfxImportProgress, { status: 'completed' }> {
+  if (progress.status !== 'completed') {
+    const detail = progress.status === 'failed' ? ` Error: ${progress.error}` : '';
+    throw new Error(`Expected completed OFX import, got status="${progress.status}".${detail}`);
   }
 }
 

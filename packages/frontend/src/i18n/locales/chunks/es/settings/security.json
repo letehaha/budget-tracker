@@ -7,8 +7,8 @@
         "loginMethods": "Métodos de inicio de sesión",
         "activeSessions": "Sesiones activas",
         "password": "Contraseña",
-        "dangerZone": "Zona de peligro",
-        "backup": "Copia de seguridad y restauración"
+        "backup": "Copia de seguridad y restauración",
+        "dangerZone": "Zona de peligro"
       },
       "loginMethods": {
         "title": "Métodos de inicio de sesión",

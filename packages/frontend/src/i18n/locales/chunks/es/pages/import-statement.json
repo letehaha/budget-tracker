@@ -22,6 +22,27 @@
       "searchAccounts": "Buscar cuentas...",
       "uploadExtract": {
         "supportedFormats": "Formatos admitidos: PDF, CSV, TXT (máx. 10 MB)",
+        "clickOrDragStatements": "Haga clic o arrastre aquí los archivos de extracto",
+        "filesLabel": "Archivos",
+        "analyzingFiles": "Analizando archivos...",
+        "totalForFiles": "total para {count} archivos",
+        "estimateFailedSome": "{count} de {total} archivos no se pudieron analizar:",
+        "extractionFailedSome": "{count} de {total} archivos no se pudieron procesar. El resto está listo para importar.",
+        "retryFailed": "Reintentar archivos fallidos",
+        "progressFile": "Procesando {name} ({current} de {total})",
+        "acrossFiles": "en {count} archivos",
+        "currencyConflict": "Los extractos seleccionados indican monedas diferentes ({currencies}). Todos se importarán a una sola cuenta, usando la moneda de esa cuenta.",
+        "unsupportedFileNamed": "{name} no es un archivo PDF, CSV o TXT",
+        "unreadableFiles": "No se pudieron leer: {files}",
+        "fileStatus": {
+          "pending": "Sin analizar",
+          "estimating": "Analizando...",
+          "estimated": "Listo",
+          "estimateFailed": "No se pudo analizar",
+          "extracting": "Procesando...",
+          "extracted": "{count} transacción | {count} transacciones",
+          "failed": "Fallido"
+        },
         "analyzeButton": "Analizar archivo",
         "tryAgain": "Intentar de nuevo",
         "modelLabel": "Modelo",
@@ -34,6 +55,7 @@
         "fromLabel": "de",
         "inLabel": "en",
         "continueMessage": "Continúe para seleccionar una cuenta para estas transacciones.",
+        "continueButton": "Continuar a la cuenta",
         "tokenWarning": {
           "medium": {
             "title": "Archivo grande detectado",
@@ -74,16 +96,19 @@
       },
       "accountSelection": {
         "transactions": "Transacciones:",
+        "files": "Extractos:",
+        "filesList": "De: {files}",
+        "currencyConflict": "Los extractos indican monedas diferentes ({currencies}). Elija la moneda que debe usar la cuenta:",
         "bank": "Banco:",
         "currency": "Moneda:",
         "currencyNotDetected": "No se pudo detectar la moneda del extracto. Seleccione la moneda manualmente:",
         "currencyMismatch": "La moneda del extracto ({statementCurrency}) difiere de la moneda de la cuenta ({accountCurrency}). Las transacciones se importarán usando la moneda de la cuenta.",
+        "yourCurrenciesGroup": "Sus monedas",
+        "allCurrenciesGroup": "Todas las monedas",
         "createNew": "Crear nueva",
         "back": "Atrás",
         "importTransactions": "Importar transacciones",
-        "checkForDuplicates": "Verificar duplicados",
-        "yourCurrenciesGroup": "Sus monedas",
-        "allCurrenciesGroup": "Todas las monedas"
+        "checkForDuplicates": "Verificar duplicados"
       },
       "createAccountDialog": {
         "title": "Crear cuenta para la importación",
@@ -106,6 +131,7 @@
       "transactionReview": {
         "checkingDuplicates": "Verificando duplicados...",
         "extractedLabel": "Extraídas:",
+        "fromFiles": "de {count} extractos",
         "duplicatesLabel": "Posibles duplicados:",
         "willImportLabel": "Se importarán:",
         "alreadyInAccountLabel": "Ya en la cuenta:",
@@ -126,10 +152,12 @@
         "transactionCount": "({count} transacciones)",
         "duplicateCheckFailed": "No pudimos comparar este extracto con sus transacciones existentes, por lo que el recuento de duplicados que aparece abajo no está disponible. Revise la lista antes de importar."
       },
+      "droppedRowsWarning": "{count} línea de la respuesta de la IA no se pudo leer y fue omitida. El número de transacciones importadas que aparece abajo puede ser menor que el de su archivo. | {count} líneas de la respuesta de la IA no se pudieron leer y fueron omitidas. El número de transacciones importadas que aparece abajo puede ser menor que el de su archivo.",
       "importResults": {
         "readyTitle": "Listo para importar",
         "readyDescription": "Revise el resumen a continuación y haga clic en \"Importar transacciones\" para continuar.",
         "accountLabel": "Cuenta:",
+        "statementsLabel": "Extractos:",
         "toImportLabel": "Transacciones a importar:",
         "toSkipLabel": "Transacciones a omitir:",
         "backButton": "Atrás",
@@ -137,6 +165,7 @@
         "importingTitle": "Importando transacciones",
         "importingDescription": "Por favor, espere mientras importamos sus transacciones...",
         "failedTitle": "Error en la importación",
+        "failedDescription": "No se importó nada. Los detalles que aparecen abajo provienen del servidor.",
         "tryAgainButton": "Intentar de nuevo",
         "completeTitle": "¡Importación completada!",
         "completeWithIssuesTitle": "Importación completada con incidencias",
@@ -147,12 +176,10 @@
         "errorsTitle": "Errores de importación",
         "transactionNumberHeader": "Transacción n.º",
         "errorHeader": "Error",
+        "batchIdNote": "ID de lote de importación: {batchId}. Puede usar este ID para encontrar y gestionar todas las transacciones importadas.",
         "viewTransactionsButton": "Ver transacciones",
-        "startNewImportButton": "Iniciar nueva importación",
-        "failedDescription": "No se importó nada. Los detalles que aparecen abajo provienen del servidor.",
-        "batchIdNote": "ID de lote de importación: {batchId}. Puede usar este ID para encontrar y gestionar todas las transacciones importadas."
-      },
-      "droppedRowsWarning": "{count} línea de la respuesta de la IA no se pudo leer y fue omitida. El número de transacciones importadas que aparece abajo puede ser menor que el de su archivo. | {count} líneas de la respuesta de la IA no se pudieron leer y fueron omitidas. El número de transacciones importadas que aparece abajo puede ser menor que el de su archivo."
+        "startNewImportButton": "Iniciar nueva importación"
+      }
     }
   }
 }

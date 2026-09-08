@@ -1,7 +1,9 @@
 import {
   RESOURCE_TYPES,
+  type RecordId,
   SHARE_PERMISSIONS,
   TRANSACTIONS_WRITE_SCOPES,
+  TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   endpointsTypes,
 } from '@bt/shared/types';
@@ -1231,5 +1233,31 @@ describe('GET /stats/cash-flow — savings categories setting', () => {
     expect(period.netFlow).toBe(900);
     // The breakdown rolls to roots, so a leaked child would resurface under the savings parent.
     expect(period.categories!.some((entry) => entry.categoryId === parentCategory.id)).toBe(false);
+  });
+
+  it('counts the cash leg of a loan payment as an expense, and never the loan-side income leg', async () => {
+    const loan = await helpers.createLoan({
+      payload: helpers.buildCreateLoanPayload({ initialBalance: 2_500, originalPrincipal: 2_500 }),
+      raw: true,
+    });
+    const sourceAccount = await helpers.createAccount({ raw: true });
+
+    await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({ accountId: sourceAccount.id, amount: 300 }),
+        time: TX_TIME,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+        destinationAmount: 300,
+        destinationAccountId: loan.id as RecordId,
+      },
+      raw: true,
+    });
+
+    const result = await helpers.getCashFlow({ ...RANGE, raw: true });
+
+    const period = result.periods[0]!;
+    expect(period.expenses).toBe(300);
+    expect(period.income).toBe(0);
+    expect(period.netFlow).toBe(-300);
   });
 });

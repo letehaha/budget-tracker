@@ -21,6 +21,10 @@ const props = withDefaults(
     disabled?: boolean;
     /** Tailwind height class for the dropzone. */
     height?: string;
+    /** Prompt shown at rest. Defaults to the CSV-worded shared string. */
+    idleText?: string;
+    /** Prompt shown while a drag is hovering. */
+    dragText?: string;
   }>(),
   {
     accept: undefined,
@@ -28,6 +32,8 @@ const props = withDefaults(
     validator: undefined,
     disabled: false,
     height: 'min-h-[200px]',
+    idleText: undefined,
+    dragText: undefined,
   },
 );
 
@@ -106,8 +112,8 @@ function clearAll() {
       :disabled="disabled"
       :height="height"
       multiple
-      :idle-text="t('fileDropzone.clickOrDragMultiple')"
-      :drag-text="t('fileDropzone.dropHereMultiple')"
+      :idle-text="idleText ?? t('fileDropzone.clickOrDragMultiple')"
+      :drag-text="dragText ?? t('fileDropzone.dropHereMultiple')"
       @files="addFiles"
     >
       <template v-if="$slots.hint" #hint>

@@ -11,12 +11,14 @@ const makeAccount = (partial: {
   currentBalance?: number;
   refCurrentBalance?: number;
   creditLimit?: number;
+  refCreditLimit?: number;
   currencyCode?: string;
 }): AccountModel =>
   ({
     currentBalance: 0,
     refCurrentBalance: 0,
     creditLimit: 0,
+    refCreditLimit: 0,
     currencyCode: 'USD',
     ...partial,
   }) as AccountModel;
@@ -76,9 +78,13 @@ describe('sumAccountsBaseBalance', () => {
   });
 
   it('threads the credit-limit setting through to the base-currency total when enabled', () => {
-    // Own balance 200 with a 500 limit -> displayed as -300; refCurrentBalance 400 tracks a 2x FX rate,
-    // so the base-currency figure scales to -300 * 2 = -600. (Formula edge cases live in account-balance.test.ts.)
-    const account = makeAccount({ currentBalance: 200, refCurrentBalance: 400, creditLimit: 500, currencyCode: 'EUR' });
+    const account = makeAccount({
+      currentBalance: 200,
+      refCurrentBalance: 400,
+      creditLimit: 500,
+      refCreditLimit: 1000,
+      currencyCode: 'EUR',
+    });
 
     expect(
       sumAccountsBaseBalance({ accounts: [account], baseCurrencyCode: 'USD', includeCreditLimit: true }).total,
