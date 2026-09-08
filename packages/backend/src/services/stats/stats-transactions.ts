@@ -1,3 +1,4 @@
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import { AccessPolicy, PlannedPolicy, findTransactions } from '@models/transactions-query';
 import Transactions from '@models/transactions.model';
@@ -14,7 +15,9 @@ import { CategoryRefundPair, resolveRefundPairs } from './category-allocation';
  *
  * Baked in, not negotiable per call site: transfer legs are out (they move money between the
  * user's own accounts), accounts flagged `excludeFromStats` are out (INNER JOIN), and
- * balance-adjustment rows are out.
+ * balance-adjustment rows are out. The one transfer that stays is the cash leg of a loan
+ * payment: money leaving the user's pocket to service debt is spend to them, even though the
+ * paired income leg on the loan account is only a liability reduction and never counts.
  */
 type StatsRefundsPolicy =
   | 'net' // caller nets refunds itself: rows come back with their refund pairs resolved
@@ -51,6 +54,13 @@ export interface StatsTransactionsResult {
    */
   refundPairs: CategoryRefundPair[];
 }
+
+const moneyMovementWhere: WhereOptions = {
+  [Op.or]: [
+    { transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer },
+    { transferNature: TRANSACTION_TRANSFER_NATURE.transfer_to_loan, transactionType: TRANSACTION_TYPES.expense },
+  ],
+};
 
 /**
  * A `to` day string is stretched to end-of-day only when `from` bounds the other side; an
@@ -93,15 +103,15 @@ export const statsTransactions = async ({
     ...(timeWhere ? [timeWhere] : []),
     ...(refunds === 'exclude-refund-rows' ? [{ refundLinked: false }] : []),
     ...(where ? [where] : []),
+    moneyMovementWhere,
   ];
 
   const rows = await findTransactions({
     access,
     planned,
-    transfers: 'exclude',
     balanceAdjustments: 'exclude',
     completeness: 'all',
-    ...(fragments.length ? { where: { [Op.and]: fragments } } : {}),
+    where: { [Op.and]: fragments },
     include: [{ model: Accounts, where: { excludeFromStats: false }, attributes: [] }, ...include],
     ...(attributes ? { attributes } : {}),
     ...(order ? { order } : {}),

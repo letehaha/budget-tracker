@@ -1,10 +1,10 @@
-import { TRANSACTION_TYPES } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
 import { StatsTransactionsResult, statsTransactions } from '@services/stats/stats-transactions';
 import { Op } from 'sequelize';
 
 /**
- * Real income and expense transactions that make up the "savings intake", matching
- * get-cash-flow's semantics: transfer legs are out (including the balance adjustments
+ * Real income and expense transactions that make up the "savings intake": every transfer
+ * leg is out, loan payments included (including the balance adjustments
  * that carry an income/expense type but move no real money), accounts flagged
  * `excludeFromStats` are left out, and refund pairs come back resolved so both sides
  * of a refund can be netted.
@@ -31,6 +31,11 @@ export const fetchSavingsTransactions = ({
     planned: 'exclude',
     refunds: 'net',
     window: { from, to },
-    where: { transactionType: { [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense] } },
+    // A loan payment moves cash into an equal liability drop, so it is not savings intake even
+    // though spending reports count its cash leg as an expense.
+    where: {
+      transactionType: { [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense] },
+      transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
+    },
     attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
   });

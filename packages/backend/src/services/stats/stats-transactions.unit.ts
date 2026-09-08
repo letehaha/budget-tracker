@@ -63,9 +63,9 @@ describe('statsTransactions window bounds', () => {
     expect(bounds[Op.lte]).toBeUndefined();
   });
 
-  it('states no where at all for an unbounded window', async () => {
+  it('states only the money-movement clause for an unbounded window', async () => {
     await statsTransactions({ access: { creator: 7 }, planned: 'exclude', refunds: 'ignore', window: {} });
 
-    expect(lastWhere()).toBeUndefined();
+    expect(lastWhere()![Op.and]).toHaveLength(1);
   });
 });

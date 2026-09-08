@@ -1497,6 +1497,14 @@ estimatedInterestPaid (paid-off) = per-month accrual over the first min(actualOp
             detail page, or the loans page's own aggregate card – the loans page is a dedicated ledger, not a statistic.
             Toggle lives in the loan actions menu; failed saves roll the switch back.
           </p>
+          <p>
+            <span class="badge b-spec">✅ SPEC</span> The cash leg of a loan payment counts as an
+            <strong>expense</strong> in cash flow, expense structure, pivot and every other spending report, under the
+            category the payment carries. The loan-side income leg never counts: it is a liability reduction, not
+            income. Net-worth drivers and investment contributions keep the whole payment out, since cash down and
+            liability down cancel for net worth. Note the flag above is read on the cash account, so a payment from an
+            excluded cash account stays out of stats regardless of the loan's own setting.
+          </p>
           <h3>Delete</h3>
           <ul>
             <li>
