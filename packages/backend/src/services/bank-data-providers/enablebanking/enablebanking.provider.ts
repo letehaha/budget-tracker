@@ -581,6 +581,28 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // Convert balance from string to system amount (cents as integer)
           const balanceFloat = primaryBalance?.balance_amount ? parseFloat(primaryBalance.balance_amount.amount) : 0;
           const balanceSystemAmount = Money.fromDecimal(balanceFloat).toCents();
+          const creditLimitCurrencyMatches = Boolean(
+            details.currency &&
+            details.credit_limit?.currency &&
+            details.credit_limit.currency.toUpperCase() === details.currency.toUpperCase(),
+          );
+          const creditLimitFloat = parseFloat(details.credit_limit?.amount ?? '');
+          const creditLimitCents =
+            creditLimitCurrencyMatches && Number.isFinite(creditLimitFloat) && creditLimitFloat > 0
+              ? Money.fromDecimal(creditLimitFloat).toCents()
+              : 0;
+          if (details.credit_limit && (!creditLimitCurrencyMatches || !Number.isFinite(creditLimitFloat))) {
+            logger.info(
+              creditLimitCurrencyMatches
+                ? 'Enable Banking credit limit ignored: unparsable amount'
+                : 'Enable Banking credit limit ignored: currency mismatch',
+              {
+                connectionId,
+                identificationHash: details.identification_hash,
+                creditLimit: details.credit_limit,
+              },
+            );
+          }
 
           return {
             externalId: details.identification_hash,
@@ -595,6 +617,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             // requires an explicit user choice instead of failing downstream.
             currency: details.currency?.toUpperCase() || NO_CURRENCY_CODE,
             metadata: {
+              creditLimit: creditLimitCents,
               iban: details.account_id?.iban,
               product: details.product,
               ownerName: details.owner_name,

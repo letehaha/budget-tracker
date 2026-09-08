@@ -14,11 +14,16 @@ import {
   MOCK_BANK_NAME,
   MOCK_IDENTIFICATION_HASH_1,
   MOCK_IDENTIFICATION_HASH_2,
+  MOCK_IDENTIFICATION_HASH_3,
   getAllMockAccountUIDs,
   getMockedAccountDetails,
 } from '@tests/mocks/enablebanking/data';
 import { AED_PER_USD, EUR_PER_USD } from '@tests/mocks/exchange-rates/data';
+import { format } from 'date-fns';
 import { HttpResponse, http } from 'msw';
+
+// getExchangeRate pivots through USD and truncates the rate to 5 decimals.
+const EUR_TO_AED = Math.trunc((AED_PER_USD / EUR_PER_USD) * 100_000) / 100_000;
 
 /**
  * Create a fully-active EnableBanking connection with one linked account.
@@ -1786,8 +1791,6 @@ describe('Enable Banking Data Provider E2E', () => {
 
       const BOOKING_DATE = utcDaysAgo(20);
 
-      // getExchangeRate pivots through USD and truncates the rate to 5 decimals.
-      const EUR_TO_AED = Math.trunc((AED_PER_USD / EUR_PER_USD) * 100_000) / 100_000;
       const CLOSING_BALANCE_EUR = -50;
 
       // One bank day, settled as four rows the ASPSP displays on four earlier
@@ -2725,5 +2728,92 @@ describe('Enable Banking Data Provider E2E', () => {
         ),
       ).toBe(false);
     });
+  });
+
+  describe('Credit limit lifecycle', () => {
+    it('imports the bank limit, lets the owner edit it, and keeps stats in step', async () => {
+      const connectResult = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.ENABLE_BANKING,
+        credentials: helpers.enablebanking.mockCredentials(),
+        raw: true,
+      });
+      const state = await helpers.enablebanking.getConnectionState(connectResult.connectionId);
+      await helpers.makeRequest({
+        method: 'post',
+        url: '/bank-data-providers/enablebanking/oauth-callback',
+        payload: { connectionId: connectResult.connectionId, code: helpers.enablebanking.mockAuthCode, state },
+      });
+
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/details', ({ params }) => {
+          const details = getMockedAccountDetails(params.accountId as string);
+          return HttpResponse.json(
+            details.identification_hash === MOCK_IDENTIFICATION_HASH_1
+              ? { ...details, credit_limit: { amount: '5000.00', currency: 'GBP' } }
+              : details,
+          );
+        }),
+      );
+
+      // Mock account 1 (EUR) reports a GBP limit whose currency does not match
+      // the account, account 2 reports 1500 EUR, account 3 an unparsable amount.
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectResult.connectionId,
+        accountExternalIds: [MOCK_IDENTIFICATION_HASH_1, MOCK_IDENTIFICATION_HASH_2, MOCK_IDENTIFICATION_HASH_3],
+        raw: true,
+      });
+      const mismatchId = syncedAccounts.find((a) => a.externalId === MOCK_IDENTIFICATION_HASH_1)!.id;
+      const creditId = syncedAccounts.find((a) => a.externalId === MOCK_IDENTIFICATION_HASH_2)!.id;
+      const unparsableId = syncedAccounts.find((a) => a.externalId === MOCK_IDENTIFICATION_HASH_3)!.id;
+
+      const mismatch = await helpers.getAccount({ id: mismatchId, raw: true });
+      const credit = await helpers.getAccount({ id: creditId, raw: true });
+      const unparsable = await helpers.getAccount({ id: unparsableId, raw: true });
+      expect(mismatch.creditLimit).toBe(0);
+      expect(mismatch.refCreditLimit).toBe(0);
+      expect(credit.creditLimit).toBe(1500);
+      expect(credit.refCreditLimit).toEqualRefValue(1500 * EUR_TO_AED);
+      expect(unparsable.creditLimit).toBe(0);
+      expect(unparsable.refCreditLimit).toBe(0);
+
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const setIncludeLimit = ({ on }: { on: boolean }) =>
+        helpers.patchUserSettings({ patch: { includeCreditLimitInStats: on }, raw: true });
+      const rawTotal = await helpers.getTotalBalance({ date: today, raw: true });
+
+      await setIncludeLimit({ on: true });
+      expect(await helpers.getTotalBalance({ date: today, raw: true })).toEqualRefValue(rawTotal - 1500 * EUR_TO_AED);
+
+      // Owner raises the imported limit; balances stay untouched.
+      const raised = await helpers.updateAccount({ id: creditId, payload: { creditLimit: 2000 }, raw: true });
+      expect(raised.creditLimit).toBe(2000);
+      expect(raised.refCreditLimit).toEqualRefValue(2000 * EUR_TO_AED);
+      expect(raised.currentBalance).toBe(credit.currentBalance);
+      expect(raised.initialBalance).toBe(credit.initialBalance);
+      expect(raised.refCurrentBalance).toBe(credit.refCurrentBalance);
+
+      // Owner adds a limit the bank never reported.
+      const mismatchWithLimit = await helpers.updateAccount({
+        id: mismatchId,
+        payload: { creditLimit: 500 },
+        raw: true,
+      });
+      expect(mismatchWithLimit.creditLimit).toBe(500);
+      expect(await helpers.getTotalBalance({ date: today, raw: true })).toEqualRefValue(rawTotal - 2500 * EUR_TO_AED);
+
+      // Back to zero drops the account out of the adjustment entirely.
+      const zeroed = await helpers.updateAccount({ id: creditId, payload: { creditLimit: 0 }, raw: true });
+      expect(zeroed.creditLimit).toBe(0);
+      expect(zeroed.refCreditLimit).toBe(0);
+      expect(zeroed.currentBalance).toBe(credit.currentBalance);
+      expect(await helpers.getTotalBalance({ date: today, raw: true })).toEqualRefValue(rawTotal - 500 * EUR_TO_AED);
+
+      // Balance itself stays bank-owned.
+      const res = await helpers.updateAccount({ id: creditId, payload: { currentBalance: 1 } });
+      expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+
+      await setIncludeLimit({ on: false });
+      expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(rawTotal);
+    }, 60_000);
   });
 });

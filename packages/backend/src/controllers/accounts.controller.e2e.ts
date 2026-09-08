@@ -352,7 +352,7 @@ describe('Accounts controller', () => {
       expect(updated.refCreditLimit).toBe(account.refCreditLimit);
     });
 
-    it('updates name but rejects creditLimit and currentBalance changes on non-system account', async () => {
+    it('updates name and creditLimit but rejects currentBalance changes on non-system account', async () => {
       const account = await helpers.createAccount({
         payload: {
           ...helpers.buildAccountPayload(),
@@ -369,12 +369,16 @@ describe('Accounts controller', () => {
 
       expect(updatedAccount.name).toBe('test test');
 
-      const rejectedPayloads = [
-        { creditLimit: 1000 },
-        { creditLimit: 0 },
-        { currentBalance: 0 },
-        { currentBalance: 1000 },
-      ];
+      const withLimit = await helpers.updateAccount({
+        id: account.id,
+        payload: { creditLimit: 1000 },
+        raw: true,
+      });
+      expect(withLimit.creditLimit).toBe(1000);
+      expect(withLimit.currentBalance).toBe(account.currentBalance);
+      expect(withLimit.initialBalance).toBe(account.initialBalance);
+
+      const rejectedPayloads = [{ currentBalance: 0 }, { currentBalance: 1000 }];
 
       for (const payload of rejectedPayloads) {
         const res = await helpers.updateAccount({ id: account.id, payload });
@@ -382,9 +386,9 @@ describe('Accounts controller', () => {
         expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
       }
 
-      const unchanged = await helpers.getAccount({ id: account.id, raw: true });
-      expect(unchanged.creditLimit).toBe(account.creditLimit);
-      expect(unchanged.currentBalance).toBe(account.currentBalance);
+      const reread = await helpers.getAccount({ id: account.id, raw: true });
+      expect(reread.creditLimit).toBe(1000);
+      expect(reread.currentBalance).toBe(account.currentBalance);
     });
 
     it('returns 404 when updating another user account', async () => {

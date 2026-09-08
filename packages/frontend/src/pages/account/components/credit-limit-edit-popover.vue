@@ -93,6 +93,7 @@ watch([isOpen, () => props.account.id], () => {
               <span class="text-muted-foreground text-sm">{{ currencyCode }}</span>
             </template>
           </InputField>
+          <p class="text-muted-foreground text-xs">{{ $t('pages.account.details.creditLimitHint') }}</p>
           <Button
             type="submit"
             :disabled="form.creditLimit === null || form.creditLimit === account.creditLimit || isSaving"
