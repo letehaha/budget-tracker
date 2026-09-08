@@ -691,7 +691,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
       const isExpense = tx.credit_debit_indicator === CreditDebitIndicator.DBIT;
       const amountFloat = parseFloat(tx.transaction_amount.amount);
       const amountSystemAmount = Money.fromDecimal(amountFloat).toCents();
-      const merchantName = tx.debtor?.name || tx.creditor?.name || 'Unknown';
+      const merchantName = (isExpense ? tx.creditor?.name : tx.debtor?.name) || 'Unknown';
 
       // Generate unique hash from transaction data
       // Use stable externalId (identification_hash) for hashing, not session-specific uid
