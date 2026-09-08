@@ -3,9 +3,9 @@ import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
-import { namespace } from '@models/connection';
 import LoanDetails from '@models/loan-details.model';
 import type Transactions from '@models/transactions.model';
+import { lockAccountRow } from '@services/accounts/lock-account-row';
 import { measureSpotRefBalance } from '@services/accounts/measure-spot-ref-balance';
 import { withTransaction } from '@services/common/with-transaction';
 import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
@@ -64,12 +64,7 @@ const recomputeLoanBalanceImpl = async ({
   // delete path reaches this recompute without going through the guard, so the
   // lock here is what keeps a concurrent payment write from reading a
   // pre-delete balance and jointly persisting a stale outstanding.
-  const sequelizeTx = namespace.get('transaction');
-  const account = await Accounts.findOne({
-    where: { id: loanAccountId, ...(userId !== undefined && { userId }) },
-    transaction: sequelizeTx,
-    lock: sequelizeTx?.LOCK.UPDATE,
-  });
+  const account = await lockAccountRow({ accountId: loanAccountId, userId });
   if (!account || account.accountCategory !== ACCOUNT_CATEGORIES.loan) return;
 
   const loanDetails = await LoanDetails.findOne({

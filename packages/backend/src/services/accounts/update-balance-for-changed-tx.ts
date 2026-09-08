@@ -2,9 +2,9 @@ import { ACCOUNT_CATEGORIES, TRANSACTION_TYPES } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
-import { namespace } from '@models/connection';
 
 import { withTransaction } from '../common/with-transaction';
+import { lockAccountRow } from './lock-account-row';
 
 /**
  * Account balance recalculation triggered by Sequelize hooks on `Transactions`.
@@ -62,17 +62,9 @@ async function updateAccountBalanceForChangedTxImpl({
   // against the account regardless of who authored the transaction. A `userId`
   // filter would drop recipient-authored updates and drift `currentBalance`.
   //
-  // SELECT ... FOR NO KEY UPDATE: the balance is read-modify-written in application
-  // code, so concurrent writers on one account must serialize or one delta is lost.
-  // Not FOR UPDATE: the transaction row inserted just before this hook already holds
-  // FOR KEY SHARE on the account through its foreign key, and FOR UPDATE conflicts
-  // with that, so two concurrent inserts would deadlock each other.
-  const sequelizeTx = namespace.get('transaction');
-  const account = await Accounts.findOne({
-    where: { id: accountId },
-    transaction: sequelizeTx,
-    lock: sequelizeTx?.LOCK.NO_KEY_UPDATE,
-  });
+  // `noKey`: the transaction row inserted just before this hook already references
+  // the account, so FOR UPDATE would deadlock two concurrent inserts.
+  const account = await lockAccountRow({ accountId, noKey: true });
 
   if (!account) {
     // Hook runs after the tx row committed. A missing account means the balance

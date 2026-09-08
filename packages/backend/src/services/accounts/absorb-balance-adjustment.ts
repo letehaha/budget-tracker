@@ -7,6 +7,7 @@ import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
+import { lockAccountRow } from '@services/accounts/lock-account-row';
 import { isRevaluedAccount, scheduleBalanceRevalue } from '@services/balances/revalue-balance-history.service';
 
 import { withTransaction } from '../common/with-transaction';
@@ -48,11 +49,7 @@ export const absorbBalanceAdjustment = withTransaction(
     amountDelta: Money;
   }): Promise<Accounts> => {
     const sequelizeTx = namespace.get('transaction');
-    const account = await Accounts.findOne({
-      where: { id: accountId, userId },
-      transaction: sequelizeTx,
-      lock: sequelizeTx?.LOCK.UPDATE,
-    });
+    const account = await lockAccountRow({ accountId, userId });
     if (!account) {
       throw new ValidationError({ message: `Account with ID ${accountId} not found` });
     }
