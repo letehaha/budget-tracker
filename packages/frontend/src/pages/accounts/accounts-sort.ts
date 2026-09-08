@@ -23,13 +23,14 @@ export const accountBaseValue = ({
   account,
   includeCreditLimit,
 }: {
-  account: { currentBalance: number; refCurrentBalance: number; creditLimit: number };
+  account: { currentBalance: number; refCurrentBalance: number; creditLimit: number; refCreditLimit: number };
   includeCreditLimit: boolean;
 }): number =>
   computeAccountDisplayBalances({
     currentBalance: account.currentBalance,
     refCurrentBalance: account.refCurrentBalance,
     creditLimit: account.creditLimit,
+    refCreditLimit: account.refCreditLimit,
     includeCreditLimit,
   }).displayRefBalance;
 

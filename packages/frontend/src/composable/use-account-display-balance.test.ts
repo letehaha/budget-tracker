@@ -59,9 +59,7 @@ describe('useAccountDisplayBalance', () => {
 
       expect(hasCreditLimitAdjustment.value).toBe(true);
       expect(displayBalance.value).toBe(2000); // 5000 - 3000
-      // displayRefBalance = displayBalance * (refCurrentBalance / currentBalance)
-      // = 2000 * (10000 / 5000) = 4000
-      expect(displayRefBalance.value).toBe(4000);
+      expect(displayRefBalance.value).toBe(4000); // 10000 - 6000
     });
 
     it('does not adjust when creditLimit is 0', () => {
@@ -75,14 +73,15 @@ describe('useAccountDisplayBalance', () => {
       expect(displayBalance.value).toBe(5000);
     });
 
-    it('returns 0 for displayRefBalance when currentBalance is 0', () => {
+    it('shows a fully drawn card (zero balances) as minus the limit in both currencies', () => {
       const account = buildAccount({ currentBalance: 0, refCurrentBalance: 0 });
-      const { displayRefBalance } = setup({
+      const { displayBalance, displayRefBalance } = setup({
         account,
         includeCreditLimitInStats: true,
       });
 
-      expect(displayRefBalance.value).toBe(0);
+      expect(displayBalance.value).toBe(-3000);
+      expect(displayRefBalance.value).toBe(-6000);
     });
 
     it('handles creditLimit exceeding currentBalance (negative display)', () => {
@@ -90,6 +89,7 @@ describe('useAccountDisplayBalance', () => {
         currentBalance: 1000,
         creditLimit: 5000,
         refCurrentBalance: 2000,
+        refCreditLimit: 10000,
       });
       const { displayBalance, displayRefBalance } = setup({
         account,
@@ -97,7 +97,6 @@ describe('useAccountDisplayBalance', () => {
       });
 
       expect(displayBalance.value).toBe(-4000); // 1000 - 5000
-      // displayRefBalance = -4000 * (2000 / 1000) = -8000
       expect(displayRefBalance.value).toBe(-8000);
     });
 
@@ -106,6 +105,7 @@ describe('useAccountDisplayBalance', () => {
         currentBalance: 3000,
         creditLimit: 3000,
         refCurrentBalance: 6000,
+        refCreditLimit: 6000,
       });
       const { displayBalance, displayRefBalance } = setup({
         account,
@@ -113,7 +113,6 @@ describe('useAccountDisplayBalance', () => {
       });
 
       expect(displayBalance.value).toBe(0);
-      // displayRefBalance = 0 * (6000 / 3000) = 0
       expect(displayRefBalance.value).toBe(0);
     });
   });

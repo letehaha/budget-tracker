@@ -9,6 +9,7 @@ interface ZeroBalanceAccount {
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
+  refCreditLimit: number;
 }
 
 /**
@@ -27,6 +28,7 @@ export const isZeroBalanceAccount = ({
     currentBalance: account.currentBalance,
     refCurrentBalance: account.refCurrentBalance,
     creditLimit: account.creditLimit,
+    refCreditLimit: account.refCreditLimit,
     includeCreditLimit,
   }).displayBalance === 0;
 

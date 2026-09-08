@@ -3,6 +3,7 @@ interface CreditLimitBalanceInput {
   currentBalance: number;
   refCurrentBalance: number;
   creditLimit: number;
+  refCreditLimit: number;
   /** When true, an account carrying a credit limit shows its balance net of that limit. */
   includeCreditLimit: boolean;
 }
@@ -39,6 +40,7 @@ export const computeAccountDisplayBalances = ({
   currentBalance,
   refCurrentBalance,
   creditLimit,
+  refCreditLimit,
   includeCreditLimit,
 }: CreditLimitBalanceInput): AccountDisplayBalances => {
   const hasCreditLimitAdjustment = includeCreditLimit && creditLimit > 0;
@@ -46,10 +48,9 @@ export const computeAccountDisplayBalances = ({
     return { hasCreditLimitAdjustment, displayBalance: currentBalance, displayRefBalance: refCurrentBalance };
   }
 
-  const displayBalance = currentBalance - creditLimit;
-  // Scale the base-currency balance by the same ratio the own-currency balance is adjusted,
-  // so the reduction survives FX without a separate refCreditLimit rate. Guard the zero case.
-  const displayRefBalance = currentBalance === 0 ? 0 : displayBalance * (refCurrentBalance / currentBalance);
-
-  return { hasCreditLimitAdjustment, displayBalance, displayRefBalance };
+  return {
+    hasCreditLimitAdjustment,
+    displayBalance: currentBalance - creditLimit,
+    displayRefBalance: refCurrentBalance - refCreditLimit,
+  };
 };

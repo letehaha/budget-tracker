@@ -11,6 +11,7 @@ const makeAccount = ({
   refCurrentBalance = 0,
   currentBalance = refCurrentBalance,
   creditLimit = 0,
+  refCreditLimit = creditLimit,
   currencyCode = 'USD',
 }: {
   id: string;
@@ -18,9 +19,18 @@ const makeAccount = ({
   refCurrentBalance?: number;
   currentBalance?: number;
   creditLimit?: number;
+  refCreditLimit?: number;
   currencyCode?: string;
 }): AccountModel =>
-  ({ id, name, currentBalance, refCurrentBalance, creditLimit, currencyCode }) as unknown as AccountModel;
+  ({
+    id,
+    name,
+    currentBalance,
+    refCurrentBalance,
+    creditLimit,
+    refCreditLimit,
+    currencyCode,
+  }) as unknown as AccountModel;
 
 const makeGroup = ({
   id,
@@ -61,6 +71,7 @@ describe('accountBaseValue', () => {
       currentBalance: 1000,
       refCurrentBalance: 1000,
       creditLimit: 400,
+      refCreditLimit: 400,
       includeCreditLimit: true,
     }).displayRefBalance;
     expect(expected).toBe(600);
