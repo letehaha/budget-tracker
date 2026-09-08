@@ -32,10 +32,11 @@ export default {
     // Jest's VM refuses without --experimental-vm-modules. Compiling both files to
     // CommonJS turns that into a `require` Jest can resolve.
     '[/\\\\]node_modules[/\\\\]unpdf[/\\\\]dist[/\\\\].+\\.(c|m)?js$': '<rootDir>/src/tests/transformers/esm-to-cjs.js',
+    '[/\\\\]node_modules[/\\\\]@faker-js[/\\\\]faker[/\\\\].+\\.js$': '<rootDir>/src/tests/transformers/esm-to-cjs.js',
   },
   // Everything in node_modules stays untransformed except the ESM-only packages
   // listed here, which would otherwise fail to parse.
-  transformIgnorePatterns: ['/node_modules/(?!(mdb-reader|ofx-js|unpdf)/)'],
+  transformIgnorePatterns: ['/node_modules/(?!(mdb-reader|ofx-js|unpdf|@faker-js/faker)/)'],
   moduleNameMapper: {
     '^unpdf/pdfjs$': UNPDF_PDFJS_BUNDLE,
     // Mock better-auth ESM modules with our CommonJS compatible versions
