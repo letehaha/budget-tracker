@@ -33,6 +33,12 @@
         },
         "successNotification": "Ajustes del selector de cuentas actualizados",
         "errorNotification": "Error al actualizar los ajustes del selector de cuentas"
+      },
+      "showUpcomingTransactions": {
+        "label": "Mostrar transacciones próximas",
+        "description": "Fija en la parte superior de la lista de transacciones una sección con los pagos programados vencidos y los que vencen en los próximos 3 días.",
+        "successNotification": "Ajuste de transacciones próximas actualizado",
+        "errorNotification": "Error al actualizar el ajuste de transacciones próximas"
       }
     }
   }

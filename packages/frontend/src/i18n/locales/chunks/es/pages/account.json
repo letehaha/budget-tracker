@@ -152,6 +152,7 @@
       },
       "details": {
         "creditLimit": "Límite de crédito:",
+        "creditLimitHint": "Establézcalo solo si el saldo del banco ya incluye la línea de crédito.",
         "editCreditLimit": "Editar límite de crédito",
         "creditLimitUpdateSuccess": "Límite de crédito actualizado",
         "creditLimitUpdateError": "Error al actualizar el límite de crédito",

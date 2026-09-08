@@ -19,6 +19,10 @@
         "cta": "Importar archivo CSV",
         "listDescription": "Asigna columnas y gestiona duplicados"
       },
+      "ofx": {
+        "title": "Extracto OFX o QFX",
+        "listDescription": "Importe transacciones bancarias y de tarjeta de crédito"
+      },
       "ynab": {
         "title": "Importar desde YNAB",
         "listDescription": "Cuentas, transacciones, categorías y beneficiarios"

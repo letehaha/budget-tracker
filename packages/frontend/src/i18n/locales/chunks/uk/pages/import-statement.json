@@ -22,6 +22,27 @@
       "searchAccounts": "Шукати рахунки...",
       "uploadExtract": {
         "supportedFormats": "Підтримувані формати: PDF, CSV, TXT (макс. 10МБ)",
+        "clickOrDragStatements": "Натисніть або перетягніть файли виписок сюди",
+        "filesLabel": "Файли",
+        "analyzingFiles": "Аналіз файлів...",
+        "totalForFiles": "загалом за {count} файлів",
+        "estimateFailedSome": "{count} з {total} файлів не вдалося проаналізувати:",
+        "extractionFailedSome": "{count} з {total} файлів не вдалося розібрати. Решта готова до імпорту.",
+        "retryFailed": "Повторити невдалі файли",
+        "progressFile": "Розбір {name} ({current} з {total})",
+        "acrossFiles": "у {count} файлах",
+        "currencyConflict": "Вибрані виписки містять різні валюти ({currencies}). Усі вони будуть імпортовані на один рахунок з використанням валюти цього рахунку.",
+        "unsupportedFileNamed": "{name} не є файлом PDF, CSV або TXT",
+        "unreadableFiles": "Не вдалося прочитати: {files}",
+        "fileStatus": {
+          "pending": "Не проаналізовано",
+          "estimating": "Аналіз...",
+          "estimated": "Готово",
+          "estimateFailed": "Не вдалося проаналізувати",
+          "extracting": "Розбір...",
+          "extracted": "{count} транзакція | {count} транзакції | {count} транзакцій",
+          "failed": "Помилка"
+        },
         "analyzeButton": "Аналізувати файл",
         "tryAgain": "Спробувати ще раз",
         "modelLabel": "Модель",
@@ -34,6 +55,7 @@
         "fromLabel": "з",
         "inLabel": "в",
         "continueMessage": "Продовжуйте, щоб вибрати рахунок для цих транзакцій.",
+        "continueButton": "Перейти до рахунку",
         "tokenWarning": {
           "medium": {
             "title": "Виявлено великий файл",
@@ -74,6 +96,9 @@
       },
       "accountSelection": {
         "transactions": "Транзакції:",
+        "files": "Виписки:",
+        "filesList": "З: {files}",
+        "currencyConflict": "Виписки містять різні валюти ({currencies}). Виберіть валюту, яку має використовувати рахунок:",
         "bank": "Банк:",
         "currency": "Валюта:",
         "currencyNotDetected": "Не вдалося визначити валюту виписки. Будь ласка, виберіть валюту вручну:",
@@ -106,6 +131,7 @@
       "transactionReview": {
         "checkingDuplicates": "Перевірка дублікатів...",
         "extractedLabel": "Вилучено:",
+        "fromFiles": "з {count} виписок",
         "duplicatesLabel": "Потенційні дублікати:",
         "willImportLabel": "Буде імпортовано:",
         "alreadyInAccountLabel": "Вже на рахунку:",
@@ -131,6 +157,7 @@
         "readyTitle": "Готово до імпорту",
         "readyDescription": "Перегляньте підсумок нижче та натисніть \"Імпортувати транзакції\", щоб продовжити.",
         "accountLabel": "Рахунок:",
+        "statementsLabel": "Виписки:",
         "toImportLabel": "Транзакцій для імпорту:",
         "toSkipLabel": "Транзакцій для пропуску:",
         "backButton": "Назад",

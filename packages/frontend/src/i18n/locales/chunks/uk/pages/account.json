@@ -152,6 +152,7 @@
       },
       "details": {
         "creditLimit": "Кредитний ліміт:",
+        "creditLimitHint": "Встановлюйте це лише якщо баланс у банку вже враховує кредитну лінію.",
         "editCreditLimit": "Редагувати кредитний ліміт",
         "creditLimitUpdateSuccess": "Кредитний ліміт оновлено",
         "creditLimitUpdateError": "Не вдалося оновити кредитний ліміт",

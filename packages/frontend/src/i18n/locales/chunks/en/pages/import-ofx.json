@@ -26,7 +26,6 @@
           "uploadUnavailable": "The uploaded file is no longer available. Upload your OFX or QFX file again."
         },
         "resolve": {
-          "prepareFailed": "Could not prepare the account mapping. Reload the page and try again.",
           "accounts": {
             "sectionTitle": "Accounts",
             "nameLabel": "Account name",
