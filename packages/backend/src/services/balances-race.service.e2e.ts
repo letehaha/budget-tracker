@@ -51,6 +51,9 @@ describe('Balances (accountId, date) race regression', () => {
     const todayRows = history.filter((row) => row.date === todayKey);
     expect(todayRows.length).toBe(1);
     expect(todayRows[0].amount).toBe(initialBalance - txCount * expenseAmount);
+
+    const updated = await helpers.getAccount({ id: account.id, raw: true });
+    expect(updated.currentBalance).toBe(initialBalance - txCount * expenseAmount);
   });
 
   // Catch site #1 — concurrent writers race on creating the startOfMonth seed
