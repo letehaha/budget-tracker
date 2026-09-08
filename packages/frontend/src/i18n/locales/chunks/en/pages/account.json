@@ -152,6 +152,7 @@
       },
       "details": {
         "creditLimit": "Credit Limit:",
+        "creditLimitHint": "Set this only if the bank balance already includes the credit line.",
         "editCreditLimit": "Edit credit limit",
         "creditLimitUpdateSuccess": "Credit limit updated",
         "creditLimitUpdateError": "Failed to update credit limit",

@@ -136,12 +136,10 @@ export const updateAccount = createController(
       message: `Account with id "${id}" doesn't exist.`,
     });
 
-    if (account.type !== ACCOUNT_TYPES.system) {
-      if (creditLimit !== undefined || currentBalance !== undefined) {
-        throw new ValidationError({
-          message: `'creditLimit', 'currentBalance' are only allowed to be changed for "${ACCOUNT_TYPES.system}" account type`,
-        });
-      }
+    if (account.type !== ACCOUNT_TYPES.system && currentBalance !== undefined) {
+      throw new ValidationError({
+        message: `'currentBalance' is only allowed to be changed for "${ACCOUNT_TYPES.system}" account type`,
+      });
     }
 
     // Flipping accountCategory into or out of 'vehicle' breaks the 1:1 Vehicles

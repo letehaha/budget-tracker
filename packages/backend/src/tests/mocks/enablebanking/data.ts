@@ -137,6 +137,7 @@ export const getMockedAccountDetails = (accountId: string) => {
       product: 'Savings Account',
       owner_name: 'John Doe',
       details: 'Personal savings',
+      credit_limit: { amount: '1500.00', currency: 'EUR' },
       account_servicer: {
         name: MOCK_BANK_NAME,
         bic_fi: MOCK_BANK_BIC,
@@ -152,6 +153,7 @@ export const getMockedAccountDetails = (accountId: string) => {
       product: 'Business Account',
       owner_name: 'John Doe',
       details: 'Business expenses',
+      credit_limit: { amount: 'N/A', currency: 'USD' },
       account_servicer: {
         name: MOCK_BANK_NAME,
         bic_fi: MOCK_BANK_BIC,
