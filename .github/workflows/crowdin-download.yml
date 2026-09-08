@@ -26,12 +26,10 @@ jobs:
           upload_sources: false
           upload_translations: false
           download_translations: true
-          # Untranslated strings arrive filled with English source text, which is
-          # Crowdin's default and the reason no `skip_untranslated_strings` key is
-          # set here. Enabling it is a footgun: the frontend serves each locale's
-          # messages as lazily-loaded chunks and never loads the `en` copy
-          # alongside, so vue-i18n's `fallbackLocale` has nothing in memory to
-          # resolve against and an omitted key renders as its raw path on screen.
+          # No `skip_untranslated_strings` key, so untranslated strings arrive filled
+          # with English source text (Crowdin's default). Either way the reader sees
+          # English: the frontend pairs every locale chunk with its English copy, so
+          # vue-i18n's `fallbackLocale` also resolves keys the export omits.
           localization_branch_name: l10n_crowdin
           create_pull_request: true
           pull_request_title: 'chore(i18n): new Crowdin translations'
