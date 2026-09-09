@@ -116,30 +116,83 @@
 
         <!-- List of passkeys -->
         <div v-if="passkeys.length > 0" class="border-t pt-4">
-          <div v-for="passkey in passkeys" :key="passkey.id" class="flex items-center justify-between py-2">
-            <div class="flex items-center gap-3">
-              <FingerprintIcon class="text-muted-foreground size-5" />
-              <div>
-                <p class="text-sm font-medium">
-                  {{ passkey.name || $t('settings.security.loginMethods.passkeys.passkeyName') }}
-                </p>
-                <p class="text-muted-foreground text-xs">
-                  {{ $t('settings.security.loginMethods.passkeys.added', { date: formatDate(passkey.createdAt) }) }}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="ghost-destructive"
-              size="sm"
-              :disabled="!canDisconnect || isDeletingPasskey === passkey.id"
-              @click="handleDeletePasskey(passkey.id)"
+          <div v-for="passkey in passkeys" :key="passkey.id" class="flex items-center justify-between gap-2 py-2">
+            <form
+              v-if="editingPasskeyId === passkey.id"
+              class="flex flex-1 items-center gap-2"
+              @submit.prevent="handleRenamePasskey(passkey.id)"
             >
-              <Loader2Icon v-if="isDeletingPasskey === passkey.id" class="size-4 animate-spin" />
-              <TrashIcon v-else class="size-4" />
-            </Button>
+              <InputField
+                v-model="editingName"
+                class="flex-1"
+                autofocus
+                :placeholder="$t('settings.security.loginMethods.passkeys.renamePlaceholder')"
+                @keydown.esc="editingPasskeyId = null"
+              />
+              <DesktopOnlyTooltip :content="$t('common.actions.save')">
+                <Button type="submit" size="icon-sm" :disabled="!editingName.trim() || isRenamingPasskey">
+                  <Loader2Icon v-if="isRenamingPasskey" class="size-4 animate-spin" />
+                  <CheckIcon v-else class="size-4" />
+                </Button>
+              </DesktopOnlyTooltip>
+              <DesktopOnlyTooltip :content="$t('common.actions.cancel')">
+                <Button type="button" variant="ghost" size="icon-sm" @click="editingPasskeyId = null">
+                  <XIcon class="size-4" />
+                </Button>
+              </DesktopOnlyTooltip>
+            </form>
+            <template v-else>
+              <div class="flex items-center gap-3">
+                <FingerprintIcon class="text-muted-foreground size-5" />
+                <div>
+                  <p class="text-sm font-medium">
+                    {{ passkey.name || $t('settings.security.loginMethods.passkeys.passkeyName') }}
+                  </p>
+                  <p class="text-muted-foreground text-xs">
+                    {{ $t('settings.security.loginMethods.passkeys.added', { date: formatDate(passkey.createdAt) }) }}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <DesktopOnlyTooltip :content="$t('settings.security.loginMethods.passkeys.rename')">
+                  <Button variant="ghost" size="icon-sm" @click="startRenamePasskey(passkey)">
+                    <PencilIcon class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+                <DesktopOnlyTooltip :content="$t('common.actions.delete')">
+                  <Button
+                    variant="ghost-destructive"
+                    size="icon-sm"
+                    :disabled="!canDisconnect || isDeletingPasskey === passkey.id"
+                    @click="passkeyToDelete = passkey"
+                  >
+                    <Loader2Icon v-if="isDeletingPasskey === passkey.id" class="size-4 animate-spin" />
+                    <TrashIcon v-else class="size-4" />
+                  </Button>
+                </DesktopOnlyTooltip>
+              </div>
+            </template>
           </div>
         </div>
       </div>
+
+      <ResponsiveAlertDialog
+        :open="!!passkeyToDelete"
+        :confirm-label="$t('common.actions.delete')"
+        confirm-variant="destructive"
+        :confirm-disabled="!!isDeletingPasskey"
+        @update:open="(open) => !open && (passkeyToDelete = null)"
+        @confirm="handleDeletePasskey"
+      >
+        <template #title>{{ $t('settings.security.loginMethods.passkeys.deleteConfirmTitle') }}</template>
+        <template #description>
+          {{
+            $t('settings.security.loginMethods.passkeys.deleteConfirmDescription', {
+              name: passkeyToDelete?.name || $t('settings.security.loginMethods.passkeys.passkeyName'),
+            })
+          }}
+        </template>
+      </ResponsiveAlertDialog>
 
       <!-- Warning if only one login method -->
       <p v-if="!canDisconnect && hasAnyOAuthAccount" class="text-muted-foreground text-sm">
@@ -152,20 +205,26 @@
 
 <script setup lang="ts">
 import { GithubIcon, GoogleIcon } from '@/components/auth';
+import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import DemoRestricted from '@/components/demo/demo-restricted.vue';
+import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { authClient } from '@/lib/auth-client';
 import { useAuthStore, useUserStore } from '@/stores';
 import { OAUTH_PROVIDER, OAUTH_PROVIDERS_LIST } from '@bt/shared/types';
 import {
   AlertTriangleIcon,
+  CheckIcon,
   FingerprintIcon,
   KeyRoundIcon,
   Loader2Icon,
   LockIcon,
+  PencilIcon,
   PlusIcon,
   TrashIcon,
+  XIcon,
 } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { type Component, computed, onMounted, ref } from 'vue';
@@ -203,6 +262,10 @@ const isConnecting = ref(false);
 const isDisconnecting = ref(false);
 const isAddingPasskey = ref(false);
 const isDeletingPasskey = ref<string | null>(null);
+const passkeyToDelete = ref<Passkey | null>(null);
+const editingPasskeyId = ref<string | null>(null);
+const editingName = ref('');
+const isRenamingPasskey = ref(false);
 
 const accounts = ref<Account[]>([]);
 const passkeys = ref<Passkey[]>([]);
@@ -296,7 +359,7 @@ const handleDisconnectOAuth = async ({ provider }: { provider: OAUTH_PROVIDER })
 const handleAddPasskey = async () => {
   try {
     isAddingPasskey.value = true;
-    await authStore.registerPasskey({ name: `Passkey ${passkeys.value.length + 1}` });
+    await authStore.registerPasskey();
     addSuccessNotification(t('settings.security.loginMethods.notifications.passkeyAddSuccess'));
     await loadPasskeys();
   } catch {
@@ -306,13 +369,36 @@ const handleAddPasskey = async () => {
   }
 };
 
-const handleDeletePasskey = async (passkeyId: string) => {
-  if (!canDisconnect.value) return;
+const startRenamePasskey = (passkey: Passkey) => {
+  editingPasskeyId.value = passkey.id;
+  editingName.value = passkey.name ?? '';
+};
+
+const handleRenamePasskey = async (passkeyId: string) => {
+  const name = editingName.value.trim();
+  if (!name) return;
+
+  try {
+    isRenamingPasskey.value = true;
+    await authClient.passkey.updatePasskey({ id: passkeyId, name });
+    editingPasskeyId.value = null;
+    await loadPasskeys();
+  } catch {
+    addErrorNotification(t('settings.security.loginMethods.notifications.passkeyRenameFailed'));
+  } finally {
+    isRenamingPasskey.value = false;
+  }
+};
+
+const handleDeletePasskey = async () => {
+  const passkeyId = passkeyToDelete.value?.id;
+  if (!passkeyId || !canDisconnect.value) return;
 
   try {
     isDeletingPasskey.value = passkeyId;
     await authClient.passkey.deletePasskey({ id: passkeyId });
     addSuccessNotification(t('settings.security.loginMethods.notifications.passkeyRemoveSuccess'));
+    passkeyToDelete.value = null;
     await loadPasskeys();
   } catch {
     addErrorNotification(t('settings.security.loginMethods.notifications.passkeyRemoveFailed'));

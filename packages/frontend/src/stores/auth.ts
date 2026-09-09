@@ -1,4 +1,5 @@
 import type { DemoEndReason } from '@/common/const/demo';
+import { getDeviceName } from '@/common/utils/device-name';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { OAuthProviderNotConfiguredError, UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
@@ -198,7 +199,7 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const registerPasskey = async ({ name }: { name?: string } = {}) => {
     const result = await authClient.passkey.addPasskey({
-      name: name || 'My Passkey',
+      name: name || getDeviceName(),
     });
 
     if (result.error) {

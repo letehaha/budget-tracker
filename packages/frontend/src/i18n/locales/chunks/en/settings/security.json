@@ -33,7 +33,11 @@
           "passkeyCount": "{count} passkey(s) registered",
           "addButton": "Add Passkey",
           "passkeyName": "Passkey",
-          "added": "Added {date}"
+          "added": "Added {date}",
+          "rename": "Rename",
+          "renamePlaceholder": "Enter passkey name",
+          "deleteConfirmTitle": "Remove passkey?",
+          "deleteConfirmDescription": "\"{name}\" will no longer be able to sign in to your account. This cannot be undone."
         },
         "warningOneMethod": "Add another login method before disconnecting your OAuth account.",
         "notifications": {
@@ -43,7 +47,8 @@
           "passkeyAddSuccess": "Passkey added successfully",
           "passkeyAddFailed": "Failed to add passkey. Make sure your device supports passkeys.",
           "passkeyRemoveSuccess": "Passkey removed",
-          "passkeyRemoveFailed": "Failed to remove passkey"
+          "passkeyRemoveFailed": "Failed to remove passkey",
+          "passkeyRenameFailed": "Failed to rename passkey"
         }
       },
       "activeSessions": {
