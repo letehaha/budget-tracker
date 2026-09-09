@@ -187,6 +187,10 @@ export enum CATEGORY_TYPES {
   internal = 'internal',
 }
 
+/** Pseudo-id accepted alongside real ids in `payeeIds` / `tagIds` list filters:
+ * matches rows where the field is not set. */
+export const BLANK_FILTER_VALUE = 'blank';
+
 export enum FILTER_OPERATION {
   all = 'all',
   exclude = 'exclude',

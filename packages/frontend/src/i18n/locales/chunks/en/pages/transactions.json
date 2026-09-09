@@ -52,7 +52,8 @@
         "tagSingular": "tag",
         "tagPlural": "tags",
         "selected": "selected",
-        "searchPlaceholder": "Search tags..."
+        "searchPlaceholder": "Search tags...",
+        "blankOption": "No tags"
       },
       "payees": {
         "label": "Payees",
