@@ -2,7 +2,7 @@
 name: i18n-before-release
 description: >
   Pre-release i18n actualization: strip unused en keys, then fill missing translations in the
-  in-house translated locales (uk, es) via i18n-editor subagents. Trigger on "/i18n-before-release", "actualize i18n",
+  in-house translated locale (uk) via i18n-editor subagents. Trigger on "/i18n-before-release", "actualize i18n",
   "prepare i18n for release", "fill missing translations", "strip unused translation keys".
 ---
 
@@ -41,8 +41,8 @@ node .claude/skills/i18n-before-release/i18n-audit.mjs prune-extra
 node .claude/skills/i18n-before-release/i18n-audit.mjs missing
 ```
 
-`missing` only ever reports the locales in the script's `TRANSLATED_LOCALES` set (`uk`, `es`).
-Every other locale — `id`, both Chinese variants, anything added later — is community-translated
+`missing` only ever reports the locales in the script's `TRANSLATED_LOCALES` set (`uk`).
+Every other locale — `es`, `id`, both Chinese variants, anything added later — is community-translated
 in Crowdin and is deliberately not our work. Never widen the pass to a locale the script omits,
 and never hand a subagent a locale code it didn't report.
 

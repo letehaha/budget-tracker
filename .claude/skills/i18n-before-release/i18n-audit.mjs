@@ -28,7 +28,7 @@ const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
 // Locales translated in-house; `missing` ignores every other locale on disk,
 // which is community-translated in Crowdin. `strip` and `prune-extra` stay
 // unfiltered on purpose: a dead key must not survive in any locale.
-const TRANSLATED_LOCALES = new Set(['uk', 'es']);
+const TRANSLATED_LOCALES = new Set(['uk']);
 
 const args = process.argv.slice(2);
 const cmd = args[0];

@@ -17,6 +17,13 @@
 #   token come from .env.development.local (the same file docker-dev.sh manages),
 #   or from the environment if already exported.
 #
+# Scope — Ukrainian only:
+#   English is the source language and is pushed by crowdin-upload.yml, not here.
+#   Ukrainian is the only locale translated in this repo; every other language is
+#   community-translated inside Crowdin, so uploading our copy of it would push
+#   stale or English-placeholder text over the community's work. Hence the fixed
+#   `-l uk`.
+#
 # Approval:
 #   Local is the source of truth for this flow, so imported translations are
 #   auto-approved (--auto-approve-imported) — they land green in Crowdin, not as
@@ -32,14 +39,13 @@
 # Caveat — untranslated placeholders:
 #   In-repo locale files carry the English source text for every UNtranslated key,
 #   and --import-eq-suggestions means that text now uploads as an approved
-#   translation instead of being skipped. That is fine at release time when every
-#   locale is fully translated; for a partially-translated locale it would approve
-#   English-as-translation. Preview with --dryrun and scope with -l <code> first.
+#   translation instead of being skipped. That is fine at release time when uk is
+#   fully translated; run the i18n-before-release pass first, and preview with
+#   --dryrun if unsure.
 #
 # Usage:
-#   npm run i18n:crowdin:upload                 # upload + approve all translations
+#   npm run i18n:crowdin:upload                 # upload + approve uk translations
 #   npm run i18n:crowdin:upload -- --dryrun     # list what would upload, change nothing
-#   npm run i18n:crowdin:upload -- -l uk        # single language (two-letter code)
 #   Any extra args are forwarded verbatim to `crowdin upload translations`.
 
 set -euo pipefail
@@ -78,5 +84,5 @@ if [[ -z "${CROWDIN_PROJECT_ID:-}" || -z "${CROWDIN_PERSONAL_TOKEN:-}" ]]; then
 fi
 export CROWDIN_PROJECT_ID CROWDIN_PERSONAL_TOKEN
 
-echo "Uploading local translations to Crowdin (project $CROWDIN_PROJECT_ID)..."
-exec crowdin upload translations --config "$CONFIG" --auto-approve-imported --import-eq-suggestions "$@"
+echo "Uploading local uk translations to Crowdin (project $CROWDIN_PROJECT_ID)..."
+exec crowdin upload translations --config "$CONFIG" -l uk --auto-approve-imported --import-eq-suggestions "$@"
