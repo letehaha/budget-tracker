@@ -52,7 +52,8 @@
         "tagSingular": "тег",
         "tagPlural": "тегів",
         "selected": "обрано",
-        "searchPlaceholder": "Шукати теги..."
+        "searchPlaceholder": "Шукати теги...",
+        "blankOption": "Без тегів"
       },
       "payees": {
         "label": "Отримувачі",
