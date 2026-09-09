@@ -215,13 +215,9 @@ const approvedScopeString = computed(() => {
   return approved.join(' ');
 });
 
-const oauthQuery = computed(() => {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(route.query)) {
-    if (value) params.set(key, String(value));
-  }
-  return params.toString();
-});
+// Must be the raw query string: better-auth signs it verbatim and emits
+// repeated keys (ba_param), which route.query would collapse into one value.
+const oauthQuery = computed(() => window.location.search.slice(1));
 
 onMounted(async () => {
   if (clientId.value) {
