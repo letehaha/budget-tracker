@@ -2730,6 +2730,20 @@ describe('Enable Banking Data Provider E2E', () => {
     });
   });
 
+  describe('Merchant name direction', () => {
+    it('stores the counterparty as merchant, not the account owner', async () => {
+      const expense: FixedTransaction = { amount: '10.00', currency: 'EUR', isExpense: true, entryReference: 'm_exp' };
+      const income: FixedTransaction = { amount: '20.00', currency: 'EUR', isExpense: false, entryReference: 'm_inc' };
+      helpers.enablebanking.setFixedTransactions([expense, income]);
+      const { accountId } = await setupActiveConnection();
+
+      const rows = await Transactions.findAll({ where: { accountId } });
+      const merchants = rows.map((r) => (r.externalData as { merchantName?: string }).merchantName);
+      expect(merchants).toHaveLength(2);
+      expect(merchants).toEqual(['Test Company', 'Test Company']);
+    });
+  });
+
   describe('Credit limit lifecycle', () => {
     it('imports the bank limit, lets the owner edit it, and keeps stats in step', async () => {
       const connectResult = await helpers.bankDataProviders.connectProvider({

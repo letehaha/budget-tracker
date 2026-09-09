@@ -6,6 +6,7 @@ import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { namespace } from '@models/connection';
 import Transactions from '@models/transactions.model';
+import { lockAccountRow } from '@services/accounts/lock-account-row';
 import { restampRefInitialBalance } from '@services/accounts/restamp-ref-initial-balance';
 import { withTransaction } from '@services/common/with-transaction';
 import { QueryTypes } from 'sequelize';
@@ -23,11 +24,7 @@ export const absorbLinkResidualIntoOpeningBalance = withTransaction(
     // Lock before summing: a concurrent sync blocks on this row lock, so summing
     // first would pair a pre-sync ledger sum with a post-sync currentBalance and
     // absorb the concurrent delta into the opening balance.
-    const account = await Accounts.findOne({
-      where: { id: accountId, userId },
-      transaction: sequelizeTx,
-      lock: sequelizeTx?.LOCK.UPDATE,
-    });
+    const account = await lockAccountRow({ accountId, userId });
     if (!account) {
       logger.error(
         {

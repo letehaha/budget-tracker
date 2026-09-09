@@ -1,6 +1,6 @@
 import { Money } from '@common/types/money';
 import Accounts from '@models/accounts.model';
-import { namespace } from '@models/connection';
+import { lockAccountRow } from '@services/accounts/lock-account-row';
 import { getPostAnchorPaymentLegs } from '@services/loans/get-post-anchor-payment-legs';
 
 /**
@@ -18,12 +18,7 @@ export const lockLoanAccountRow = async ({
   loanAccountId: string;
   userId: number;
 }): Promise<Accounts | null> => {
-  const sequelizeTx = namespace.get('transaction');
-  return Accounts.findOne({
-    where: { id: loanAccountId, userId },
-    transaction: sequelizeTx,
-    lock: sequelizeTx?.LOCK.UPDATE,
-  });
+  return lockAccountRow({ accountId: loanAccountId, userId });
 };
 
 /**

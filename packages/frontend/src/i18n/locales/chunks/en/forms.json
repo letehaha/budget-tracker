@@ -353,7 +353,8 @@
       "selectedMany": "{n} payees selected",
       "noResults": "No payees found",
       "unknownPayee": "Unknown payee",
-      "loadError": "Couldn't load payees. Please try again."
+      "loadError": "Couldn't load payees. Please try again.",
+      "blankOption": "No payee"
     },
     "budgetMultiSelect": {
       "label": "All budgets",

@@ -1,10 +1,9 @@
 import { ACCOUNT_CATEGORIES, TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
-import Accounts from '@models/accounts.model';
-import { namespace } from '@models/connection';
 import { findOneTransaction, findTransactions } from '@models/transactions-query';
 import * as Transactions from '@models/transactions.model';
+import { lockAccountRow } from '@services/accounts/lock-account-row';
 import { withTransaction } from '@services/common/with-transaction';
 
 interface UnlinkLoanPaymentParams {
@@ -23,16 +22,10 @@ interface UnlinkLoanPaymentParams {
  * (both legs) is the other supported undo.
  */
 const unlinkLoanPaymentImpl = async ({ userId, accountId, transactionId }: UnlinkLoanPaymentParams) => {
-  const sequelizeTx = namespace.get('transaction');
-
   // Row-lock the loan account so this unlink serialises against concurrent
   // payment writes (same invariant as `linkLoanPayments`). Removing a payment
   // only moves the balance further from zero, so there's no overpay check.
-  const loanAccount = await Accounts.findOne({
-    where: { id: accountId, userId },
-    transaction: sequelizeTx,
-    lock: sequelizeTx?.LOCK.UPDATE,
-  });
+  const loanAccount = await lockAccountRow({ accountId, userId });
   if (!loanAccount || loanAccount.accountCategory !== ACCOUNT_CATEGORIES.loan) {
     throw new NotFoundError({ message: t({ key: 'loans.loanNotFound' }) });
   }

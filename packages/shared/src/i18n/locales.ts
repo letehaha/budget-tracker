@@ -13,6 +13,12 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[keyof typeof SUPPORTED_
 
 export const DEFAULT_LOCALE: SupportedLocale = SUPPORTED_LOCALES.ENGLISH;
 
+// Translated by volunteers on Crowdin rather than maintained in-house.
+export const COMMUNITY_LOCALES: ReadonlySet<SupportedLocale> = new Set([
+  SUPPORTED_LOCALES.SPANISH,
+  SUPPORTED_LOCALES.INDONESIAN,
+]);
+
 export const LOCALE_NAMES: Record<SupportedLocale, { native: string; english: string }> = {
   [SUPPORTED_LOCALES.ENGLISH]: {
     native: 'English',

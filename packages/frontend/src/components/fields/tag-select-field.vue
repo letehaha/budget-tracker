@@ -1,23 +1,20 @@
 <template>
   <div class="w-full">
     <FieldLabel :label="label" only-template>
-      <Popover v-model:open="isOpen">
-        <PopoverTrigger as-child>
-          <button
-            type="button"
-            :disabled="disabled"
+      <Popover :open="isOpen" @update:open="(open: boolean) => (isOpen = open)">
+        <PopoverAnchor as-child>
+          <div
+            ref="wrapperRef"
             :class="
               cn(
-                'border-input bg-input-background ring-offset-background flex min-h-10 w-full items-center gap-2 rounded-md border px-3 py-2 text-sm md:min-h-9',
-                'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
+                'border-input bg-input-background ring-offset-background flex min-h-10 w-full cursor-text items-center gap-2 rounded-md border px-3 py-2 text-sm md:min-h-9',
+                'focus-within:ring-ring focus-within:ring-2 focus-within:ring-offset-2',
                 disabled && 'cursor-not-allowed opacity-50',
               )
             "
+            @click="inputRef?.focus()"
           >
-            <div v-if="selectedTags.length === 0" class="text-muted-foreground flex-1 text-left">
-              {{ placeholder }}
-            </div>
-            <div v-else class="flex flex-1 flex-wrap gap-1">
+            <div class="flex flex-1 flex-wrap items-center gap-1">
               <span
                 v-for="tag in selectedTags"
                 :key="tag.id"
@@ -31,17 +28,34 @@
                   {{ tag.name }}
                 </span>
               </span>
+              <input
+                ref="inputRef"
+                v-model="searchQuery"
+                type="text"
+                :disabled="disabled"
+                :placeholder="selectedTags.length ? '' : placeholder"
+                class="placeholder:text-muted-foreground min-w-16 flex-1 bg-transparent outline-none disabled:cursor-not-allowed"
+                @focus="isOpen = true"
+                @keydown.enter.prevent="filteredTags[0] && toggleTag(filteredTags[0])"
+                @keydown.backspace="!searchQuery && selectedTags.at(-1) && toggleTag(selectedTags.at(-1)!)"
+              />
             </div>
             <ChevronsUpDownIcon class="text-muted-foreground size-4 shrink-0" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent class="w-70 p-4" align="start">
-          <div v-if="availableTags.length === 0" class="text-muted-foreground py-4 text-center text-sm">
+          </div>
+        </PopoverAnchor>
+        <PopoverContent
+          class="w-(--reka-popover-trigger-width) p-4"
+          align="start"
+          @open-auto-focus.prevent
+          @close-auto-focus.prevent
+          @interact-outside="(e) => wrapperRef?.contains(e.target as Node) && e.preventDefault()"
+        >
+          <div v-if="filteredTags.length === 0" class="text-muted-foreground py-4 text-center text-sm">
             {{ $t('fields.tagSelect.noTagsAvailable') }}
           </div>
           <div v-else class="flex flex-wrap gap-2">
             <span
-              v-for="tag in availableTags"
+              v-for="tag in filteredTags"
               :key="tag.id"
               :class="
                 cn(
@@ -75,13 +89,14 @@
 <script setup lang="ts">
 import TagIcon from '@/components/common/icons/tag-icon.vue';
 import { FieldError, FieldLabel } from '@/components/fields';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
+import { Popover, PopoverContent } from '@/components/lib/ui/popover';
 import { cn } from '@/lib/utils';
 import { useTagsStore } from '@/stores';
 import { TagModel } from '@bt/shared/types';
 import { ChevronsUpDownIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
-import { computed, ref } from 'vue';
+import { PopoverAnchor } from 'reka-ui';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = withDefaults(
@@ -109,8 +124,16 @@ const tagsStore = useTagsStore();
 const { tags } = storeToRefs(tagsStore);
 
 const isOpen = ref(false);
+const wrapperRef = ref<HTMLDivElement>();
+const inputRef = ref<HTMLInputElement>();
 
-const availableTags = computed(() => tags.value);
+const searchQuery = ref('');
+watch(isOpen, () => (searchQuery.value = ''));
+
+const filteredTags = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  return query ? tags.value.filter((tag) => tag.name.toLowerCase().includes(query)) : tags.value;
+});
 
 const selectedTagIds = computed(() => new Set(props.modelValue ?? []));
 
@@ -134,5 +157,7 @@ const toggleTag = (tag: TagModel) => {
   }
 
   emit('update:model-value', currentIds);
+  searchQuery.value = '';
+  inputRef.value?.focus();
 };
 </script>

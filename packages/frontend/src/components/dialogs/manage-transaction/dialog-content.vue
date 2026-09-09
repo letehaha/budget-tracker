@@ -25,6 +25,7 @@ import { useFormValidation } from '@/composable/form-validator';
 import { useCurrencyName, useFormatCurrency } from '@/composable/formatters';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { formatUIAmount } from '@/js/helpers';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore, useCategoriesStore, useCurrenciesStore, useTagsStore, useUserStore } from '@/stores';
 import {
   isDedicatedFlowAccountCategory,
@@ -974,7 +975,11 @@ const prepopulateIfReady = () => {
   // latching on that empty list leaves the account permanently unresolved.
   if (!isAccountsFetched.value) return;
   if (!transaction.value) {
-    form.value.account = resolveDefaultAccount({ accounts: txTargetableSourceAccountsActiveFirst.value });
+    const accounts = txTargetableSourceAccountsActiveFirst.value;
+    // On an account page the open account wins over the favorite one.
+    const pageAccount =
+      route.name === ROUTES_NAMES.account ? accounts.find((account) => account.id === route.params.id) : undefined;
+    form.value.account = pageAccount ?? resolveDefaultAccount({ accounts });
     hasPrepopulated.value = true;
     return;
   }

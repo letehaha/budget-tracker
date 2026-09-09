@@ -88,6 +88,7 @@
         <div v-else-if="filterKey === 'tags'" class="w-44">
           <TagFilter
             hide-clear-button
+            allow-blank
             :tag-ids="filters.tagIds"
             @update:tag-ids="emitFilters({ ...filters, tagIds: $event })"
           />
@@ -96,6 +97,7 @@
         <div v-else-if="filterKey === 'payees'" class="w-44">
           <PayeeMultiSelectField
             hide-clear-button
+            allow-blank
             :payee-ids="filters.payeeIds"
             @update:payee-ids="emitFilters({ ...filters, payeeIds: $event })"
           />

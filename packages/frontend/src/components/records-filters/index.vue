@@ -49,9 +49,14 @@
       @update:category-ids="$emit('update:filters', { ...filters, categoryIds: $event })"
     />
 
-    <TagFilter :tag-ids="filters.tagIds" @update:tag-ids="$emit('update:filters', { ...filters, tagIds: $event })" />
+    <TagFilter
+      allow-blank
+      :tag-ids="filters.tagIds"
+      @update:tag-ids="$emit('update:filters', { ...filters, tagIds: $event })"
+    />
 
     <PayeeMultiSelectField
+      allow-blank
       :payee-ids="filters.payeeIds"
       @update:payee-ids="$emit('update:filters', { ...filters, payeeIds: $event })"
     />

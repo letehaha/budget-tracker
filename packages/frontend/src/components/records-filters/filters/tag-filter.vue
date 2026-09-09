@@ -17,11 +17,7 @@
             {{ isAllSelected ? tagsCount : selectedTagIds.length }}
           </span>
           <span class="min-w-0 flex-1 truncate text-left font-medium">
-            {{
-              isAllSelected
-                ? $t('transactions.filters.tags.allTags')
-                : `${selectedTagIds.length === 1 ? $t('transactions.filters.tags.tagSingular') : $t('transactions.filters.tags.tagPlural')} ${$t('transactions.filters.tags.selected')}`
-            }}
+            {{ triggerLabel }}
           </span>
         </div>
 
@@ -50,12 +46,26 @@
         <Combobox.ComboboxEmpty class="text-mauve8 py-2 text-center text-xs font-medium" />
 
         <Combobox.ComboboxGroup>
+          <template v-if="allowBlank && !searchTerm.trim()">
+            <Combobox.ComboboxItem
+              :value="BLANK_FILTER_VALUE"
+              class="hover:bg-accent hover:text-accent-foreground text-muted-foreground flex-start mb-1 flex cursor-pointer items-center justify-between rounded-md px-2 py-1"
+              @select.prevent="toggleTagId(BLANK_FILTER_VALUE)"
+            >
+              <div class="flex items-center gap-2">
+                <CircleDashedIcon class="size-4 shrink-0" />
+                <span class="truncate">{{ $t('transactions.filters.tags.blankOption') }}</span>
+              </div>
+              <CheckIcon v-if="isTagSelected(BLANK_FILTER_VALUE)" />
+            </Combobox.ComboboxItem>
+            <div class="bg-border mb-1 h-px" />
+          </template>
           <Combobox.ComboboxItem
             v-for="tag in displayedTags"
             :key="tag.id"
             :value="tag"
             class="hover:bg-accent hover:text-accent-foreground flex-start flex cursor-pointer items-center justify-between rounded-md px-2 py-1"
-            @select.prevent="pickTag(tag)"
+            @select.prevent="toggleTagId(tag.id)"
           >
             <div class="flex items-center gap-2">
               <div class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: tag.color }" />
@@ -75,17 +85,22 @@ import TagIcon from '@/components/common/icons/tag-icon.vue';
 import Button from '@/components/lib/ui/button/Button.vue';
 import * as Combobox from '@/components/lib/ui/combobox';
 import { useTagsStore } from '@/stores';
-import { TagModel, type RecordId } from '@bt/shared/types';
+import { BLANK_FILTER_VALUE, type RecordId } from '@bt/shared/types';
 import { isEqual } from 'lodash-es';
-import { CheckIcon, ChevronDown, SearchIcon, XIcon } from '@lucide/vue';
+import { CheckIcon, ChevronDown, CircleDashedIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 import { computed, ref, watch } from 'vue';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   tagIds: string[];
   /** Hide the in-trigger clear button — for hosts (like the filter bar chips)
    * that render their own remove control next to the trigger. */
   hideClearButton?: boolean;
+  /** Offer a "Blank" pseudo-option (`BLANK_FILTER_VALUE`) matching untagged transactions. */
+  allowBlank?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -115,6 +130,18 @@ watch(
 
 const isAllSelected = computed(() => selectedTagIds.value.length === 0);
 
+const triggerLabel = computed(() => {
+  if (isAllSelected.value) return t('transactions.filters.tags.allTags');
+  if (selectedTagIds.value.length === 1 && selectedTagIds.value[0] === BLANK_FILTER_VALUE) {
+    return t('transactions.filters.tags.blankOption');
+  }
+  const noun =
+    selectedTagIds.value.length === 1
+      ? t('transactions.filters.tags.tagSingular')
+      : t('transactions.filters.tags.tagPlural');
+  return `${noun} ${t('transactions.filters.tags.selected')}`;
+});
+
 const baseSortedTags = computed(() => {
   return [...tags.value].sort((a, b) => a.name.localeCompare(b.name));
 });
@@ -124,15 +151,15 @@ const sessionOrder = ref<string[]>([]);
 watch(isOpen, (open) => {
   if (open) {
     const selectedIds = new Set(selectedTagIds.value);
-    const selectedFirst = baseSortedTags.value.filter((t) => selectedIds.has(t.id));
-    const others = baseSortedTags.value.filter((t) => !selectedIds.has(t.id));
-    sessionOrder.value = [...selectedFirst, ...others].map((t) => t.id);
+    const selectedFirst = baseSortedTags.value.filter((tag) => selectedIds.has(tag.id));
+    const others = baseSortedTags.value.filter((tag) => !selectedIds.has(tag.id));
+    sessionOrder.value = [...selectedFirst, ...others].map((tag) => tag.id);
   }
 });
 
 const orderedTags = computed(() => {
   if (isOpen.value && sessionOrder.value.length) {
-    const byId = new Map(baseSortedTags.value.map((t) => [t.id, t] as const));
+    const byId = new Map(baseSortedTags.value.map((tag) => [tag.id, tag] as const));
     return sessionOrder.value.map((id) => byId.get(id as RecordId)!).filter(Boolean);
   }
   return baseSortedTags.value;
@@ -141,23 +168,17 @@ const orderedTags = computed(() => {
 const displayedTags = computed(() => {
   const term = searchTerm.value.trim().toLowerCase();
   if (!term) return orderedTags.value;
-  return orderedTags.value.filter((t) => t.name.toLowerCase().includes(term));
+  return orderedTags.value.filter((tag) => tag.name.toLowerCase().includes(term));
 });
 
 const isTagSelected = (tagId: string) => selectedTagIds.value.includes(tagId);
 
-const pickTag = (tag: TagModel) => {
-  const isSelected = isTagSelected(tag.id);
-  toggleTag({ tag, checked: !isSelected });
-};
-
-const toggleTag = ({ tag, checked }: { tag: TagModel; checked: boolean }) => {
-  if (checked) {
-    selectedTagIds.value = [...selectedTagIds.value, tag.id];
-  } else {
-    selectedTagIds.value = selectedTagIds.value.filter((id) => id !== tag.id);
-  }
-
+const toggleTagId = (tagId: string) => {
+  selectedTagIds.value = isTagSelected(tagId)
+    ? selectedTagIds.value.filter((id) => id !== tagId)
+    : tagId === BLANK_FILTER_VALUE
+      ? [BLANK_FILTER_VALUE, ...selectedTagIds.value]
+      : [...selectedTagIds.value, tagId];
   emit('update:tagIds', selectedTagIds.value);
 };
 

@@ -1,5 +1,6 @@
 import {
   AccountOptionValue,
+  BLANK_FILTER_VALUE,
   CATEGORIZATION_SOURCE,
   CategoryOptionValue,
   CurrencyOptionValue,
@@ -19,6 +20,8 @@ import * as helpers from '@tests/helpers';
 import { expectCsvImportCompleted, waitForCsvImportCompletion } from '@tests/helpers/import-export';
 import { VALID_GEMINI_API_KEY, createGeminiMock } from '@tests/mocks/gemini/mock-api';
 import { compareAsc, compareDesc, startOfDay, subDays } from 'date-fns';
+
+const sortedIds = (txs: { id: string }[]) => txs.map((tx) => tx.id).toSorted();
 
 const dates = {
   income: '2024-08-02T00:00:00Z',
@@ -470,6 +473,66 @@ describe('Retrieve transactions with filters', () => {
       const commaGarbage = await helpers.getTransactions({ noteSearch: ',,some,,' });
       expect(commaGarbage.statusCode).toBe(200);
       expect(helpers.extractResponse(commaGarbage!).length).toBe(2);
+    });
+  });
+
+  describe('"blank" pseudo-id in list filters', () => {
+    it('payeeIds: blank alone matches only transactions without a payee', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payee = await helpers.createPayee({ payload: helpers.buildPayeePayload({ name: 'Shop' }), raw: true });
+      const [withPayee] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, payeeId: payee.id }),
+        raw: true,
+      });
+      const [withoutPayee] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+
+      const blankOnly = await helpers.getTransactions({ payeeIds: [BLANK_FILTER_VALUE], raw: true });
+      expect(sortedIds(blankOnly)).toEqual([withoutPayee.id]);
+
+      const blankOrPayee = await helpers.getTransactions({ payeeIds: [BLANK_FILTER_VALUE, payee.id], raw: true });
+      expect(sortedIds(blankOrPayee)).toEqual(sortedIds([withPayee, withoutPayee]));
+    });
+
+    it('tagIds: blank matches untagged rows and ORs with real tag ids', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const tagA = await helpers.createTag({ payload: { name: 'A', color: '#ff0000' }, raw: true });
+      const tagB = await helpers.createTag({ payload: { name: 'B', color: '#00ff00' }, raw: true });
+      const [taggedA] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+      const [taggedB] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+      const [untagged] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+      await helpers.addTransactionsToTag({ tagId: tagA.id, transactionIds: [taggedA.id], raw: true });
+      await helpers.addTransactionsToTag({ tagId: tagB.id, transactionIds: [taggedA.id, taggedB.id], raw: true });
+
+      const blankOnly = await helpers.getTransactions({ tagIds: [BLANK_FILTER_VALUE], raw: true });
+      expect(sortedIds(blankOnly)).toEqual([untagged.id]);
+
+      const blankOrA = await helpers.getTransactions({
+        tagIds: [BLANK_FILTER_VALUE, tagA.id],
+        includeTags: true,
+        raw: true,
+      });
+      expect(sortedIds(blankOrA)).toEqual(sortedIds([taggedA, untagged]));
+      expect(blankOrA.find((tx) => tx.id === taggedA.id)!.tags!.map((t) => t.id)).toEqual([tagA.id]);
+      expect(blankOrA.find((tx) => tx.id === untagged.id)!.tags).toEqual([]);
+    });
+
+    it('rejects unknown pseudo-ids', async () => {
+      for (const filters of [{ payeeIds: ['none'] }, { tagIds: ['none'] }]) {
+        const res = await helpers.getTransactions(filters);
+        expect(res.statusCode).toBe(ERROR_CODES.ValidationError);
+      }
     });
   });
 
