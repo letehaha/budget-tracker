@@ -561,6 +561,25 @@ export interface GetInvestmentContributionsResponse {
   portfolios: InvestmentContributionsPortfolioMeta[];
 }
 
+// Venture Contributions
+// Cash that left the user's accounts into venture deals within the window, read from
+// the bank transactions linked to venture events. Decimal, user base currency, one row
+// per deal ordered largest first; an income leg linked to a deal nets against it.
+export interface GetVentureContributionsPayload extends QueryPayload {
+  // yyyy-mm-dd (required)
+  from: string;
+  // yyyy-mm-dd (required)
+  to: string;
+}
+
+export interface VentureContribution {
+  dealId: string;
+  name: string;
+  amount: number;
+}
+
+export type GetVentureContributionsResponse = VentureContribution[];
+
 // Net Worth History Analytics
 // Mint-style assets/liabilities/net-worth series: every point is an end-of-bucket
 // balance snapshot (a level, not a flow). The liability split is by account category

@@ -41,7 +41,11 @@ export const getSpendingsByCategories = withTransaction(
     // Split distribution + refund netting is shared with the pivot report; this service only
     // differs in how the resulting per-category legs are grouped (see `groupAllocations`).
     const [allocations, { categories, byId }] = await Promise.all([
-      computeCategoryAllocations({ transactions, applyRefunds: true }),
+      computeCategoryAllocations({
+        transactions,
+        applyRefunds: true,
+        refundSide: params.transactionType,
+      }),
       getAccessibleCategoryMap({ userId: params.userId }),
     ]);
 

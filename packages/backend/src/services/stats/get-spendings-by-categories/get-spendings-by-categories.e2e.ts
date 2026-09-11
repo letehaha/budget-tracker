@@ -161,6 +161,51 @@ describe('[Stats] Spendings by categories – groupByType', () => {
     });
   });
 
+  it('nets a refund on both sides instead of reporting it as income', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const refundedCategory = await helpers.addCustomCategory({
+      name: uniqueName('RefundedByType'),
+      color: '#123123',
+      raw: true,
+    });
+    const refundCategory = await helpers.addCustomCategory({
+      name: uniqueName('RefundLandingByType'),
+      color: '#321321',
+      raw: true,
+    });
+
+    const [expenseTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 200,
+        transactionType: TRANSACTION_TYPES.expense,
+        categoryId: refundedCategory.id,
+      }),
+      raw: true,
+    });
+    const [refundTx] = await helpers.createTransaction({
+      payload: helpers.buildTransactionPayload({
+        accountId: account.id,
+        amount: 50,
+        transactionType: TRANSACTION_TYPES.income,
+        categoryId: refundCategory.id,
+      }),
+      raw: true,
+    });
+    await helpers.createSingleRefund({ originalTxId: expenseTx.id, refundTxId: refundTx.id });
+
+    const result = await helpers.getSpendingsByCategories({
+      raw: true,
+      groupByType: true,
+      categoryIds: [refundedCategory.id, refundCategory.id],
+    });
+
+    // The refund reduces the refunded expense; the income row that carried the money back is not
+    // an income source, so its own category reports 0 income.
+    expect(result[refundedCategory.id.toString()]).toMatchObject({ income: 0, expense: 150 });
+    expect(result[refundCategory.id.toString()]).toMatchObject({ income: 0, expense: 0 });
+  });
+
   it('rejects an inverted date range and a malformed / non-real date', async () => {
     const inverted = await helpers.getSpendingsByCategories({
       from: '2026-07-31',

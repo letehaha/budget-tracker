@@ -246,6 +246,22 @@ export async function getInvestmentContributions<R extends boolean | undefined =
   return result;
 }
 
+export async function getVentureContributions<R extends boolean | undefined = undefined>({
+  from,
+  to,
+  raw,
+}: {
+  from: string;
+  to: string;
+  raw?: R;
+}) {
+  return helpers.makeRequest<endpointsTypes.GetVentureContributionsResponse, R>({
+    method: 'get',
+    url: `/stats/venture-contributions?from=${from}&to=${to}`,
+    raw,
+  });
+}
+
 export async function getPivotReport<R extends boolean | undefined = undefined>({
   from,
   to,
