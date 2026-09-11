@@ -55,7 +55,10 @@ function externalIdFromCurrency(currency: string): string {
 }
 
 const detail = ({ item, key }: { item: HistoryItem; key: string }) =>
-  item.operationDetails.find((d) => d.key === key)?.value.trim() || undefined;
+  item.operationDetails
+    .find((d) => d.key === key)
+    ?.value?.trim()
+    .slice(0, 255) || undefined;
 
 /**
  * Build a human-readable description from a Walutomat history item.

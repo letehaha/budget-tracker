@@ -76,7 +76,7 @@ export function getReferenceNumber({
   externalData: Record<string, unknown> | null | undefined;
 }): string | null {
   const referenceNumber = externalData?.referenceNumber;
-  return typeof referenceNumber === 'string' ? referenceNumber.trim() || null : null;
+  return typeof referenceNumber === 'string' ? referenceNumber.trim().slice(0, 255) || null : null;
 }
 
 export function getBookingDate({

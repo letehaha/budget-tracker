@@ -115,6 +115,33 @@ describe('prepareTxCreationParams', () => {
         }),
       ).toThrow('A non-transfer transaction cannot be created without a category');
     });
+
+    it('sends trimmed detail fields and omits blank ones', () => {
+      const filled = prepareTxCreationParams({
+        form: createBaseForm({
+          externalUrl: ' https://a.example/1 ',
+          externalReference: ' A-1 ',
+          latitude: 1,
+          longitude: 2,
+        }),
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+      expect(filled).toMatchObject({
+        externalUrl: 'https://a.example/1',
+        externalReference: 'A-1',
+        location: { latitude: 1, longitude: 2 },
+      });
+
+      const blank = prepareTxCreationParams({
+        form: createBaseForm({ externalUrl: '  ', externalReference: '', latitude: null, longitude: null }),
+        isTransferTx: false,
+        isCurrenciesDifferent: false,
+      });
+      expect(blank.externalUrl).toBeUndefined();
+      expect(blank.externalReference).toBeUndefined();
+      expect(blank.location).toBeUndefined();
+    });
   });
 
   describe('transfer transactions', () => {

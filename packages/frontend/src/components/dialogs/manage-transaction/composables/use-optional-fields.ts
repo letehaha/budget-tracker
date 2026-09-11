@@ -22,10 +22,10 @@ export const useOptionalFields = () => {
     patchAsync({
       ui: {
         transactionForm: {
-          optionalFields: value ? [...new Set([...enabled.value, field])] : enabled.value.filter((f) => f !== field),
+          optionalFields: value ? [...enabled.value, field] : enabled.value.filter((f) => f !== field),
         },
       },
     });
 
-  return { enabled, isEnabled, setEnabled, isUpdating: isPatching };
+  return { isEnabled, setEnabled, isUpdating: isPatching };
 };

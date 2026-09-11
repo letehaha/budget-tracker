@@ -1633,5 +1633,32 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       expect(byNote.get('Invoice flattened')!.externalReference).toBe('1234561');
       expect(byNote.get('No reference')!.externalReference).toBeNull();
     });
+
+    it('backfills externalReference when the booked re-issue is the first payload carrying it', async () => {
+      const card = { currency: 'EUR', isExpense: true, counterpartyIban: null, amount: '42.00' } as const;
+      helpers.enablebanking.setFixedTransactions([
+        { ...card, status: 'PDNG', transactionDate: '2025-02-10', remittanceInformation: ['CARD PENDING'] },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const pendingTx = (await listTransactions({ accountId }))[0]!;
+      expect(pendingTx.externalReference).toBeNull();
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...card,
+          status: 'BOOK',
+          bookingDate: '2025-02-12',
+          remittanceInformation: ['CARD BOOKED'],
+          entryReference: 'booked_ref_042',
+          referenceNumber: 'RF7100042',
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const rows = await listTransactions({ accountId });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.id).toBe(pendingTx.id);
+      expect(rows[0]!.externalReference).toBe('RF7100042');
+    });
   });
 });

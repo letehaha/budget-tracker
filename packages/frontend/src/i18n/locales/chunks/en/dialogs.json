@@ -181,7 +181,9 @@
           "futureDate": "Date must be today or earlier.",
           "latitudeRange": "Latitude must be between -90 and 90",
           "longitudeRange": "Longitude must be between -180 and 180",
-          "locationPair": "Enter both latitude and longitude"
+          "locationPair": "Enter both latitude and longitude",
+          "maxLength": "Must not exceed {max} characters",
+          "httpUrl": "Enter a valid http(s) URL"
         }
       },
       "refundRecordsList": {

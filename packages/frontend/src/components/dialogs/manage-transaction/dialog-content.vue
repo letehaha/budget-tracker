@@ -3,6 +3,7 @@ import { getExchangeRatePair } from '@/api/currencies';
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
+import { isHttpUrl } from '@/common/utils/external-url';
 import { buildMapUrl } from '@/common/utils/map-url';
 import { isMacPlatform } from '@/common/utils/platform';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
@@ -42,13 +43,14 @@ import {
   type TransactionModel,
 } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { between, helpers, minValue, required } from '@vuelidate/validators';
+import { between, helpers, maxLength, minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { endOfDay, format } from 'date-fns';
 import {
   ChevronUpIcon,
   CommandIcon,
   CornerDownLeftIcon,
+  ExternalLinkIcon,
   LocateIcon,
   MapPinIcon,
   SlidersHorizontalIcon,
@@ -805,6 +807,19 @@ const validationRules = computed(() => {
             }
           : {}),
       },
+      note: {
+        maxLength: maxLengthRule(1000),
+      },
+      externalUrl: {
+        maxLength: maxLengthRule(2048),
+        httpUrl: helpers.withMessage(
+          () => t('dialogs.manageTransaction.form.validation.httpUrl'),
+          (value: unknown) => !value || (typeof value === 'string' && isHttpUrl(value.trim())),
+        ),
+      },
+      externalReference: {
+        maxLength: maxLengthRule(255),
+      },
       latitude: {
         pairedWithLongitude: locationPairRule(() => form.value.longitude),
         between: helpers.withMessage(
@@ -822,6 +837,10 @@ const validationRules = computed(() => {
     },
   };
 });
+
+function maxLengthRule(max: number) {
+  return helpers.withMessage(() => t('dialogs.manageTransaction.form.validation.maxLength', { max }), maxLength(max));
+}
 
 // Latitude and longitude only make sense as a pair, so an empty one fails while its partner is filled.
 function locationPairRule(partner: () => number | null | undefined) {
@@ -847,6 +866,9 @@ const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
 const categoryErrorMessage = computed(() => getFieldErrorMessage('form.category'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
 const timeErrorMessage = computed(() => getFieldErrorMessage('form.time'));
+const noteErrorMessage = computed(() => getFieldErrorMessage('form.note'));
+const externalUrlErrorMessage = computed(() => getFieldErrorMessage('form.externalUrl'));
+const externalReferenceErrorMessage = computed(() => getFieldErrorMessage('form.externalReference'));
 const latitudeErrorMessage = computed(() => getFieldErrorMessage('form.latitude'));
 const longitudeErrorMessage = computed(() => getFieldErrorMessage('form.longitude'));
 
@@ -933,6 +955,9 @@ const submit = () => {
   touchField('form.targetAmount');
   touchField('form.time');
   touchField('form.category');
+  touchField('form.note');
+  touchField('form.externalUrl');
+  touchField('form.externalReference');
 
   if (!isFormValid('form')) return;
 
@@ -999,6 +1024,11 @@ const showOriginalAmount = computed(
 );
 const showLocation = computed(() => isOptionalFieldEnabled('location') || !!props.transaction?.location);
 const isLocationFilled = computed(() => form.value.latitude != null || form.value.longitude != null);
+const externalUrlHref = computed(() => {
+  const value = form.value.externalUrl?.trim();
+  return value && isHttpUrl(value) ? value : null;
+});
+
 const locationMapUrl = computed(() => {
   const location = resolveFormLocation(form.value);
   return location ? buildMapUrl(location) : null;
@@ -1157,6 +1187,8 @@ onUnmounted(() => {
         :placeholder="$t('dialogs.manageTransaction.form.notePlaceholder')"
         :disabled="isFormFieldsDisabled"
         :label="$t('dialogs.manageTransaction.form.noteLabel')"
+        :error-message="noteErrorMessage"
+        @focusout="touchField('form.note')"
       />
     </FormRow>
     <FormRow v-if="showExternalUrl">
@@ -1166,7 +1198,23 @@ onUnmounted(() => {
         :placeholder="$t('dialogs.manageTransaction.form.externalUrlPlaceholder')"
         :disabled="isFormFieldsDisabled"
         :label="$t('dialogs.manageTransaction.form.externalUrlLabel')"
-      />
+        :error-message="externalUrlErrorMessage"
+        @blur="touchField('form.externalUrl')"
+      >
+        <template v-if="externalUrlHref" #label-after>
+          <DesktopOnlyTooltip :content="$t('common.transactions.record.externalLinkTooltip')">
+            <a
+              :href="externalUrlHref"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="$t('common.transactions.record.externalLinkTooltip')"
+              class="hover:text-foreground flex size-5 items-center justify-center"
+            >
+              <ExternalLinkIcon class="size-3.5" />
+            </a>
+          </DesktopOnlyTooltip>
+        </template>
+      </InputField>
     </FormRow>
     <FormRow v-if="showExternalReference">
       <InputField
@@ -1174,6 +1222,8 @@ onUnmounted(() => {
         :placeholder="$t('dialogs.manageTransaction.form.externalReferencePlaceholder')"
         :disabled="isFormFieldsDisabled"
         :label="$t('dialogs.manageTransaction.form.externalReferenceLabel')"
+        :error-message="externalReferenceErrorMessage"
+        @blur="touchField('form.externalReference')"
       />
     </FormRow>
     <FormRow v-if="showLocation">
@@ -1224,6 +1274,7 @@ onUnmounted(() => {
             v-model="form.latitude"
             type="number"
             :placeholder="$t('dialogs.manageTransaction.form.location.latitudePlaceholder')"
+            :aria-label="$t('dialogs.manageTransaction.form.location.latitudePlaceholder')"
             :disabled="isFormFieldsDisabled"
             :error-message="latitudeErrorMessage"
             @blur="touchField('form.latitude')"
@@ -1232,6 +1283,7 @@ onUnmounted(() => {
             v-model="form.longitude"
             type="number"
             :placeholder="$t('dialogs.manageTransaction.form.location.longitudePlaceholder')"
+            :aria-label="$t('dialogs.manageTransaction.form.location.longitudePlaceholder')"
             :disabled="isFormFieldsDisabled"
             :error-message="longitudeErrorMessage"
             @blur="touchField('form.longitude')"

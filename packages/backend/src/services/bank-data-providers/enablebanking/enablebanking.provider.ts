@@ -918,10 +918,15 @@ export class EnableBankingProvider extends BaseBankDataProvider {
                 originalId: string;
                 time: Date;
                 note: string;
+                externalReference: string;
                 externalData: typeof tx.metadata;
               }> = {};
               if (existingTx.originalId !== tx.externalId) {
                 updates.originalId = tx.externalId;
+              }
+              if (!existingTx.externalReference) {
+                const referenceNumber = getReferenceNumber({ externalData: tx.metadata });
+                if (referenceNumber) updates.externalReference = referenceNumber;
               }
               // Backfill bookingDate / refresh metadata when the bank populates
               // fields after the initial sync.

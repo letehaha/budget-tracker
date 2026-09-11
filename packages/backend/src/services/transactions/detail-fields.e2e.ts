@@ -7,13 +7,14 @@ import * as helpers from '@tests/helpers';
 // `TransactionApiResponse.id` is a plain string; the update helper takes a branded `RecordId`.
 type Serialized = TransactionApiResponse & { id: RecordId };
 
-const createTx = async (payload: Parameters<typeof helpers.buildTransactionPayload>[0]) => {
-  const result = await helpers.createTransaction({
+const createTx = async (payload: Parameters<typeof helpers.buildTransactionPayload>[0]) =>
+  (await helpers.createTransaction({
     payload: helpers.buildTransactionPayload(payload),
     raw: true,
-  });
-  return result as unknown as Serialized[];
-};
+  })) as unknown as Serialized[];
+
+const updateTx = async (params: Omit<Parameters<typeof helpers.updateTransaction>[0], 'raw'>) =>
+  (await helpers.updateTransaction({ ...params, raw: true })) as unknown as Serialized[];
 
 describe('Transaction detail fields (external url, reference, location)', () => {
   it('stores both on create, copies them to the transfer leg, and defaults to null', async () => {
@@ -55,27 +56,18 @@ describe('Transaction detail fields (external url, reference, location)', () => 
     const account = await helpers.createAccount({ raw: true });
     const [created] = await createTx({ accountId: account.id, externalReference: 'OLD' });
 
-    const [updated] = (await helpers.updateTransaction({
+    const [updated] = await updateTx({
       id: created!.id,
       payload: { externalUrl: 'https://shop.example/orders/43', externalReference: 'ORD-43' },
-      raw: true,
-    })) as unknown as Serialized[];
+    });
     expect(updated!.externalUrl).toBe('https://shop.example/orders/43');
     expect(updated!.externalReference).toBe('ORD-43');
 
-    const [untouched] = (await helpers.updateTransaction({
-      id: created!.id,
-      payload: { externalReference: 'ONLY-REF' },
-      raw: true,
-    })) as unknown as Serialized[];
+    const [untouched] = await updateTx({ id: created!.id, payload: { externalReference: 'ONLY-REF' } });
     expect(untouched!.externalReference).toBe('ONLY-REF');
     expect(untouched!.externalUrl).toBe('https://shop.example/orders/43');
 
-    const [cleared] = (await helpers.updateTransaction({
-      id: created!.id,
-      payload: { externalUrl: null, externalReference: null },
-      raw: true,
-    })) as unknown as Serialized[];
+    const [cleared] = await updateTx({ id: created!.id, payload: { externalUrl: null, externalReference: null } });
     expect(cleared!.externalUrl).toBeNull();
     expect(cleared!.externalReference).toBeNull();
   });
@@ -101,25 +93,16 @@ describe('Transaction detail fields (external url, reference, location)', () => 
     });
     expect(oppositeLeg!.location).toEqual({ latitude: -33.8688, longitude: 151.2093 });
 
-    const [updated] = (await helpers.updateTransaction({
+    const [updated] = await updateTx({
       id: created!.id,
       payload: { location: { latitude: 48.8566, longitude: 2.3522 } },
-      raw: true,
-    })) as unknown as Serialized[];
+    });
     expect(updated!.location).toEqual({ latitude: 48.8566, longitude: 2.3522 });
 
-    const [untouched] = (await helpers.updateTransaction({
-      id: created!.id,
-      payload: { note: 'partial' },
-      raw: true,
-    })) as unknown as Serialized[];
+    const [untouched] = await updateTx({ id: created!.id, payload: { note: 'partial' } });
     expect(untouched!.location).toEqual({ latitude: 48.8566, longitude: 2.3522 });
 
-    const [cleared] = (await helpers.updateTransaction({
-      id: created!.id,
-      payload: { location: null },
-      raw: true,
-    })) as unknown as Serialized[];
+    const [cleared] = await updateTx({ id: created!.id, payload: { location: null } });
     expect(cleared!.location).toBeNull();
   });
 
@@ -139,15 +122,14 @@ describe('Transaction detail fields (external url, reference, location)', () => 
       location: { latitude: 1, longitude: 2 },
     });
 
-    const updatedLegs = (await helpers.updateTransaction({
+    const updatedLegs = await updateTx({
       id: base!.id,
       payload: {
         externalUrl: 'https://b.example/2',
         externalReference: 'B-2',
         location: { latitude: 3, longitude: 4 },
       },
-      raw: true,
-    })) as unknown as Serialized[];
+    });
 
     expect(updatedLegs).toHaveLength(2);
     for (const leg of updatedLegs) {
@@ -156,11 +138,10 @@ describe('Transaction detail fields (external url, reference, location)', () => 
       expect(leg.location).toEqual({ latitude: 3, longitude: 4 });
     }
 
-    const clearedLegs = (await helpers.updateTransaction({
+    const clearedLegs = await updateTx({
       id: base!.id,
       payload: { externalUrl: null, externalReference: null, location: null },
-      raw: true,
-    })) as unknown as Serialized[];
+    });
 
     expect(clearedLegs).toHaveLength(2);
     for (const leg of clearedLegs) {

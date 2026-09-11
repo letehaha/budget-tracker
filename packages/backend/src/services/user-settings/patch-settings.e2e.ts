@@ -91,6 +91,26 @@ describe('Patch user settings', () => {
     expect(fetched.ui?.transactionsTable?.extraFilters).toStrictEqual(['note']);
   });
 
+  it('persists ui.transactionForm.optionalFields, keeps an explicit empty list, rejects unknown fields', async () => {
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: { ui: { transactionForm: { optionalFields: ['externalUrl', 'location'] } } },
+    });
+    expect(patched.ui?.transactionForm?.optionalFields).toStrictEqual(['externalUrl', 'location']);
+
+    const emptied = await helpers.patchUserSettings({
+      raw: true,
+      patch: { ui: { transactionForm: { optionalFields: [] } } },
+    });
+    expect(emptied.ui?.transactionForm?.optionalFields).toStrictEqual([]);
+
+    const rejected = await helpers.patchUserSettings({
+      patch: { ui: { transactionForm: { optionalFields: ['nope'] } } },
+    });
+    expect(rejected.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect((await helpers.getUserSettings({ raw: true })).ui?.transactionForm?.optionalFields).toStrictEqual([]);
+  });
+
   it('rejects a patch that would make settings invalid and keeps stored value intact', async () => {
     await helpers.updateUserSettings({ raw: true, settings: { locale: 'uk' } });
 

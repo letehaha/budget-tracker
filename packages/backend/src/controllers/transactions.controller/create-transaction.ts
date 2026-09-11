@@ -5,7 +5,13 @@ import { deserializeCreateTransaction, serializeTransactionTuple } from '@root/s
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
-import { nonNegativeAmountSchema, positiveAmountSchema, splitSchema, transactionTimeSchema } from './schemas';
+import {
+  nonNegativeAmountSchema,
+  positiveAmountSchema,
+  splitSchema,
+  transactionDetailFieldsSchema,
+  transactionTimeSchema,
+} from './schemas';
 
 const schema = z.object({
   body: z
@@ -13,19 +19,7 @@ const schema = z.object({
       amount: nonNegativeAmountSchema(),
       commissionRate: positiveAmountSchema().optional(),
       note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
-      externalUrl: z
-        .string()
-        .max(2048, 'The URL must not exceed 2048 characters.')
-        .url('Invalid URL')
-        .regex(/^https?:\/\//i, 'Only http(s) URLs are allowed')
-        .nullish(),
-      externalReference: z.string().max(255, 'The reference must not exceed 255 characters.').nullish(),
-      location: z
-        .object({
-          latitude: z.number().min(-90).max(90),
-          longitude: z.number().min(-180).max(180),
-        })
-        .nullish(),
+      ...transactionDetailFieldsSchema,
       time: transactionTimeSchema().optional(),
       transactionType: z.nativeEnum(TRANSACTION_TYPES),
       paymentType: z.nativeEnum(PAYMENT_TYPES),

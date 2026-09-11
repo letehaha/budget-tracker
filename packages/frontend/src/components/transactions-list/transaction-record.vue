@@ -133,16 +133,16 @@
             <RefundIndicator :transaction="transaction" />
             <TagsIndicator :transaction="transaction" />
             <ResponsiveTooltip
-              v-if="transaction.externalUrl"
-              :content="t('common.transactions.record.externalLinkTooltip')"
+              v-if="externalLinkHref"
+              :content="$t('common.transactions.record.externalLinkTooltip')"
               content-class-name="max-w-56"
               :delay-duration="100"
             >
               <a
-                :href="transaction.externalUrl"
+                :href="externalLinkHref"
                 target="_blank"
                 rel="noopener noreferrer"
-                :aria-label="t('common.transactions.record.externalLinkTooltip')"
+                :aria-label="$t('common.transactions.record.externalLinkTooltip')"
                 class="text-muted-foreground hover:text-foreground shrink-0"
                 @click.stop
               >
@@ -151,7 +151,7 @@
             </ResponsiveTooltip>
             <ResponsiveTooltip
               v-if="locationMapUrl"
-              :content="t('common.transactions.record.locationTooltip')"
+              :content="$t('common.transactions.record.locationTooltip')"
               content-class-name="max-w-56"
               :delay-duration="100"
             >
@@ -159,7 +159,7 @@
                 :href="locationMapUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                :aria-label="t('common.transactions.record.locationTooltip')"
+                :aria-label="$t('common.transactions.record.locationTooltip')"
                 class="text-muted-foreground hover:text-foreground shrink-0"
                 @click.stop
               >
@@ -222,6 +222,7 @@ import CategoryCircle from '@/components/common/category-circle.vue';
 import DeletedBadge from '@/components/common/deleted-badge.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
+import { isHttpUrl } from '@/common/utils/external-url';
 import { buildMapUrl } from '@/common/utils/map-url';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
 import type { BulkUnselectableReason } from '@/composable/transaction-selection';
@@ -330,6 +331,9 @@ const isCompactInline = computed(
 );
 
 const category = computed(() => categoriesMap.value[transaction.value.categoryId]);
+const externalLinkHref = computed(() =>
+  transaction.value.externalUrl && isHttpUrl(transaction.value.externalUrl) ? transaction.value.externalUrl : null,
+);
 const locationMapUrl = computed(() => (transaction.value.location ? buildMapUrl(transaction.value.location) : null));
 const accountFrom = computed(() => accountsRecord.value[transaction.value.accountId]);
 

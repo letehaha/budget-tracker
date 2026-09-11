@@ -266,7 +266,6 @@ export interface TransactionLocation {
 }
 
 // Transaction form fields the user can opt into showing, persisted in the user-settings JSONB.
-// The backend Zod enum is built straight off this tuple.
 export const TRANSACTION_OPTIONAL_FIELDS = ['externalUrl', 'externalReference', 'location', 'originalAmount'] as const;
 export type TransactionOptionalField = (typeof TRANSACTION_OPTIONAL_FIELDS)[number];
 

@@ -560,7 +560,7 @@ async function createMonobankTransaction({
   const createResult = await transactionsService.createTransaction({
     originalId: data.id,
     note: data.description,
-    externalReference: data.receiptId?.trim() || data.invoiceId?.trim() || null,
+    externalReference: (data.receiptId?.trim() || data.invoiceId?.trim())?.slice(0, 255) || null,
     amount: Money.fromCents(Math.abs(data.amount)),
     time: new Date(data.time * 1000),
     externalData: {

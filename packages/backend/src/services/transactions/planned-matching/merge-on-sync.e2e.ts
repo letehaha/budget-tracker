@@ -247,6 +247,35 @@ describe('Planned transactions – merge on sync', () => {
       expect(merged.externalReference).toBe('MRGE-1111-2222-3333');
     });
 
+    it('keeps the reference the user put on the plan over the bank receipt id', async () => {
+      const now = new Date();
+      const anchorTime = subDays(startOfDay(now), 10);
+      const { connectionId, accountId } = await anchoredAccount({ anchorTime });
+
+      const [plan] = await helpers.createPlannedTransaction({
+        payload: {
+          accountId,
+          amount: 250,
+          time: addDays(startOfDay(now), 2).toISOString(),
+          note: 'Rent',
+          externalReference: 'PLAN-REF',
+        },
+        raw: true,
+      });
+
+      const incoming = helpers.monobank.buildTransaction({
+        amount: -25000,
+        time: subDays(startOfDay(now), 1),
+        description: 'RENT LANDLORD',
+        receiptId: 'MRGE-4444-5555-6666',
+      });
+      await syncAccount({ connectionId, accountId, transactions: [incoming] });
+
+      const merged = (await listAccountTransactions({ accountId })).find((row) => row.id === plan.id)!;
+      expect(merged.isPlanned).toBe(false);
+      expect(merged.externalReference).toBe('PLAN-REF');
+    });
+
     it('anchors the sync window to the newest real transaction, not to a future-dated plan', async () => {
       const now = new Date();
       const anchorTime = subDays(startOfDay(now), 3);

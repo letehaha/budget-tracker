@@ -102,6 +102,28 @@ describe('buildOptimisticTransaction', () => {
     expect(result.originalAmount).toBe(1500);
     expect(result.originalCurrencyCode).toBe('JPY');
   });
+
+  it('keeps stored detail fields when untouched, clears them on blank, trims otherwise', () => {
+    const transaction = buildTransaction({
+      externalUrl: 'https://a.example/1',
+      externalReference: 'A-1',
+      location: { latitude: 1, longitude: 2 },
+    });
+
+    const untouched = buildOptimisticTransaction({ form: buildForm(), transaction, isRecordExternal: false });
+    expect(untouched.externalUrl).toBe('https://a.example/1');
+    expect(untouched.externalReference).toBe('A-1');
+    expect(untouched.location).toEqual({ latitude: 1, longitude: 2 });
+
+    const edited = buildOptimisticTransaction({
+      form: buildForm({ externalUrl: '  ', externalReference: ' B-2 ', latitude: null, longitude: null }),
+      transaction,
+      isRecordExternal: false,
+    });
+    expect(edited.externalUrl).toBeNull();
+    expect(edited.externalReference).toBe('B-2');
+    expect(edited.location).toBeNull();
+  });
 });
 
 describe('applyOptimisticTransactionUpdate', () => {
