@@ -57,6 +57,10 @@
           "originalAmount": {
             "label": "Original amount",
             "description": "The amount actually charged in another currency, when it differs from the account's currency."
+          },
+          "location": {
+            "label": "Location",
+            "description": "GPS coordinates of where the purchase happened. Fill from your device's location or type them in"
           }
         }
       }

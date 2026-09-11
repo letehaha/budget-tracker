@@ -10,6 +10,7 @@ import {
   resolveOriginalCurrencyPair,
 } from '../helpers';
 import { type FormSplit, UI_FORM_STRUCT } from '../types';
+import { resolveFormLocation } from './resolve-form-location';
 
 /**
  * Converts form splits to API split format
@@ -44,6 +45,7 @@ export const prepareTxCreationParams = ({
     note,
     externalUrl: form.externalUrl?.trim() || undefined,
     externalReference: form.externalReference?.trim() || undefined,
+    location: resolveFormLocation(form) ?? undefined,
     time: time.toUTCString(),
     transactionType: getTxTypeFromFormType(formTxType),
     paymentType: paymentType!.value,

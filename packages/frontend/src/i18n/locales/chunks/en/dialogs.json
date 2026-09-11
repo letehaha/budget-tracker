@@ -110,6 +110,16 @@
         "externalUrlPlaceholder": "Link to the order, booking or receipt page",
         "externalReferenceLabel": "External reference",
         "externalReferencePlaceholder": "Order number, invoice number, booking reference",
+        "location": {
+          "label": "Location",
+          "useCurrent": "Use my location",
+          "clear": "Clear location",
+          "latitudePlaceholder": "Latitude, e.g. 50.4501",
+          "longitudePlaceholder": "Longitude, e.g. 30.5234",
+          "unsupported": "Your browser does not support geolocation",
+          "denied": "Location access was denied. Allow it in your browser settings or enter coordinates manually",
+          "unavailable": "Could not determine your location. Try again or enter coordinates manually"
+        },
         "tagsLabel": "Tags",
         "originalAmountLabel": "Original amount",
         "originalAmountPlaceholder": "Amount in foreign currency",
@@ -168,7 +178,10 @@
         "validation": {
           "required": "This field is required",
           "minValue": "Amount must be 0 or greater",
-          "futureDate": "Date must be today or earlier."
+          "futureDate": "Date must be today or earlier.",
+          "latitudeRange": "Latitude must be between -90 and 90",
+          "longitudeRange": "Longitude must be between -180 and 180",
+          "locationPair": "Enter both latitude and longitude"
         }
       },
       "refundRecordsList": {

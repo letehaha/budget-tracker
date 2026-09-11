@@ -46,6 +46,9 @@ export interface UI_FORM_STRUCT {
   note?: string;
   externalUrl?: string;
   externalReference?: string;
+  /** `undefined` = untouched, `null` = cleared by the user. */
+  latitude?: number | null;
+  longitude?: number | null;
   type: FORM_TYPES;
   targetAmount?: number | null;
   refundedByTxs: RefundedByAnotherTxs;

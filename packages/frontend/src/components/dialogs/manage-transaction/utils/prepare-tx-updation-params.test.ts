@@ -1060,6 +1060,17 @@ describe('prepareTxUpdationParams', () => {
       expect(result.externalReference).toBeNull();
     });
 
+    it('omits location when untouched, sends null when cleared, object when set', () => {
+      const transaction = buildSystemExpenseTransaction();
+
+      expect(update({ transaction })).not.toHaveProperty('location');
+      expect(update({ transaction, latitude: null, longitude: null }).location).toBeNull();
+      expect(update({ transaction, latitude: 50.45, longitude: 30.52 }).location).toEqual({
+        latitude: 50.45,
+        longitude: 30.52,
+      });
+    });
+
     it('trims the values it sends', () => {
       const result = update({
         transaction: buildSystemExpenseTransaction(),

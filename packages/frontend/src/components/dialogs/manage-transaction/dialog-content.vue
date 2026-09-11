@@ -3,11 +3,13 @@ import { getExchangeRatePair } from '@/api/currencies';
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
+import { buildMapUrl } from '@/common/utils/map-url';
 import { isMacPlatform } from '@/common/utils/platform';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
+import FieldLabel from '@/components/fields/components/field-label.vue';
 import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -19,6 +21,7 @@ import HintIcon from '@/components/common/hint-icon.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
@@ -39,10 +42,19 @@ import {
   type TransactionModel,
 } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { helpers, minValue, required } from '@vuelidate/validators';
+import { between, helpers, minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { endOfDay, format } from 'date-fns';
-import { ChevronUpIcon, CommandIcon, CornerDownLeftIcon, SlidersHorizontalIcon, SplitIcon } from '@lucide/vue';
+import {
+  ChevronUpIcon,
+  CommandIcon,
+  CornerDownLeftIcon,
+  LocateIcon,
+  MapPinIcon,
+  SlidersHorizontalIcon,
+  SplitIcon,
+  XIcon,
+} from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -81,6 +93,7 @@ import {
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
 import { useOptionalFields } from './composables/use-optional-fields';
+import { resolveFormLocation } from './utils/resolve-form-location';
 import { useTransactionTemplating } from './composables/use-transaction-templating';
 import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
 
@@ -170,6 +183,8 @@ const form = ref<UI_FORM_STRUCT>({
   note: undefined,
   externalUrl: undefined,
   externalReference: undefined,
+  latitude: undefined,
+  longitude: undefined,
   type: FORM_TYPES.expense,
   refundedByTxs: undefined,
   refundsTx: undefined,
@@ -228,7 +243,7 @@ const transferDestinationType = ref<TransferDestinationType>('account');
 
 const { data: portfolios } = usePortfolios();
 
-const { addInfoNotification } = useNotificationCenter();
+const { addInfoNotification, addErrorNotification } = useNotificationCenter();
 
 const {
   isInitialRefundsDataLoaded,
@@ -790,9 +805,31 @@ const validationRules = computed(() => {
             }
           : {}),
       },
+      latitude: {
+        pairedWithLongitude: locationPairRule(() => form.value.longitude),
+        between: helpers.withMessage(
+          () => t('dialogs.manageTransaction.form.validation.latitudeRange'),
+          between(-90, 90),
+        ),
+      },
+      longitude: {
+        pairedWithLatitude: locationPairRule(() => form.value.latitude),
+        between: helpers.withMessage(
+          () => t('dialogs.manageTransaction.form.validation.longitudeRange'),
+          between(-180, 180),
+        ),
+      },
     },
   };
 });
+
+// Latitude and longitude only make sense as a pair, so an empty one fails while its partner is filled.
+function locationPairRule(partner: () => number | null | undefined) {
+  return helpers.withMessage(
+    () => t('dialogs.manageTransaction.form.validation.locationPair'),
+    (value: unknown) => value != null || partner() == null,
+  );
+}
 
 const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
   { form },
@@ -810,6 +847,8 @@ const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
 const categoryErrorMessage = computed(() => getFieldErrorMessage('form.category'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
 const timeErrorMessage = computed(() => getFieldErrorMessage('form.time'));
+const latitudeErrorMessage = computed(() => getFieldErrorMessage('form.latitude'));
+const longitudeErrorMessage = computed(() => getFieldErrorMessage('form.longitude'));
 
 const onAmountBlur = () => {
   touchField('form.amount');
@@ -958,6 +997,38 @@ const showExternalReference = computed(
 const showOriginalAmount = computed(
   () => isOptionalFieldEnabled('originalAmount') || props.transaction?.originalAmount != null,
 );
+const showLocation = computed(() => isOptionalFieldEnabled('location') || !!props.transaction?.location);
+const isLocationFilled = computed(() => form.value.latitude != null || form.value.longitude != null);
+const locationMapUrl = computed(() => {
+  const location = resolveFormLocation(form.value);
+  return location ? buildMapUrl(location) : null;
+});
+
+const isLocating = ref(false);
+const useCurrentLocation = () => {
+  if (!navigator.geolocation) {
+    addErrorNotification(t('dialogs.manageTransaction.form.location.unsupported'));
+    return;
+  }
+  isLocating.value = true;
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      form.value.latitude = Number(coords.latitude.toFixed(6));
+      form.value.longitude = Number(coords.longitude.toFixed(6));
+      isLocating.value = false;
+    },
+    (error) => {
+      const key = error.code === error.PERMISSION_DENIED ? 'denied' : 'unavailable';
+      addErrorNotification(t(`dialogs.manageTransaction.form.location.${key}`));
+      isLocating.value = false;
+    },
+    { enableHighAccuracy: true, timeout: 10_000 },
+  );
+};
+const clearLocation = () => {
+  form.value.latitude = null;
+  form.value.longitude = null;
+};
 
 // Mirrors the visibility conditions of the fields inside "More options" so the
 // mobile trigger never counts a field the drawer doesn't render. Payment type is
@@ -967,6 +1038,7 @@ const moreOptionsFilledCount = computed(() => {
   if (form.value.note?.trim()) count += 1;
   if (form.value.externalUrl?.trim()) count += 1;
   if (form.value.externalReference?.trim()) count += 1;
+  if (isLocationFilled.value) count += 1;
   if (!isLoanDestination.value && form.value.tagIds?.length) count += 1;
   if (!isTransferTx.value && form.value.originalAmount) count += 1;
   if (
@@ -1103,6 +1175,69 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
         :label="$t('dialogs.manageTransaction.form.externalReferenceLabel')"
       />
+    </FormRow>
+    <FormRow v-if="showLocation">
+      <FieldLabel :label="$t('dialogs.manageTransaction.form.location.label')" only-template>
+        <template v-if="locationMapUrl" #label-after>
+          <DesktopOnlyTooltip :content="$t('common.transactions.record.locationTooltip')">
+            <a
+              :href="locationMapUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="$t('common.transactions.record.locationTooltip')"
+              class="hover:text-foreground flex size-5 items-center justify-center"
+            >
+              <MapPinIcon class="size-3.5" />
+            </a>
+          </DesktopOnlyTooltip>
+        </template>
+        <template #label-right>
+          <div class="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost-primary"
+              size="sm"
+              class="h-6 px-2 text-xs"
+              :disabled="isFormFieldsDisabled || isLocating"
+              @click="useCurrentLocation"
+            >
+              <LocateIcon class="size-3.5" />
+              {{ $t('dialogs.manageTransaction.form.location.useCurrent') }}
+            </Button>
+            <DesktopOnlyTooltip v-if="isLocationFilled" :content="$t('dialogs.manageTransaction.form.location.clear')">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                class="size-6"
+                :disabled="isFormFieldsDisabled"
+                :aria-label="$t('dialogs.manageTransaction.form.location.clear')"
+                @click="clearLocation"
+              >
+                <XIcon class="size-3.5" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </div>
+        </template>
+        <div class="grid grid-cols-2 gap-2">
+          <InputField
+            v-model="form.latitude"
+            type="number"
+            :placeholder="$t('dialogs.manageTransaction.form.location.latitudePlaceholder')"
+            :disabled="isFormFieldsDisabled"
+            :error-message="latitudeErrorMessage"
+            @blur="touchField('form.latitude')"
+          />
+          <InputField
+            v-model="form.longitude"
+            type="number"
+            :placeholder="$t('dialogs.manageTransaction.form.location.longitudePlaceholder')"
+            :disabled="isFormFieldsDisabled"
+            :error-message="longitudeErrorMessage"
+            @blur="touchField('form.longitude')"
+          />
+        </div>
+      </FieldLabel>
     </FormRow>
     <FormRow v-if="!isLoanDestination">
       <TagSelectField

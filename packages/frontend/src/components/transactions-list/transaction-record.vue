@@ -149,6 +149,23 @@
                 <ExternalLinkIcon class="size-3.5" />
               </a>
             </ResponsiveTooltip>
+            <ResponsiveTooltip
+              v-if="locationMapUrl"
+              :content="t('common.transactions.record.locationTooltip')"
+              content-class-name="max-w-56"
+              :delay-duration="100"
+            >
+              <a
+                :href="locationMapUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                :aria-label="t('common.transactions.record.locationTooltip')"
+                class="text-muted-foreground hover:text-foreground shrink-0"
+                @click.stop
+              >
+                <MapPinIcon class="size-3.5" />
+              </a>
+            </ResponsiveTooltip>
           </div>
         </template>
         <span
@@ -205,6 +222,7 @@ import CategoryCircle from '@/components/common/category-circle.vue';
 import DeletedBadge from '@/components/common/deleted-badge.vue';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
+import { buildMapUrl } from '@/common/utils/map-url';
 import { useOppositeTxRecord } from '@/composable/data-queries/opposite-tx-record';
 import type { BulkUnselectableReason } from '@/composable/transaction-selection';
 import { useTransactionPortfolioLink } from '@/composable/data-queries/portfolio-transfers';
@@ -218,7 +236,15 @@ import {
   TransactionModel,
 } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight, BriefcaseIcon, ExternalLinkIcon, InfoIcon, HandCoinsIcon, UsersIcon } from '@lucide/vue';
+import {
+  ArrowRight,
+  BriefcaseIcon,
+  ExternalLinkIcon,
+  InfoIcon,
+  HandCoinsIcon,
+  MapPinIcon,
+  UsersIcon,
+} from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -304,6 +330,7 @@ const isCompactInline = computed(
 );
 
 const category = computed(() => categoriesMap.value[transaction.value.categoryId]);
+const locationMapUrl = computed(() => (transaction.value.location ? buildMapUrl(transaction.value.location) : null));
 const accountFrom = computed(() => accountsRecord.value[transaction.value.accountId]);
 
 // Budget-scoped fetches enrich each tx with `addedBy = { id, username }` describing who
