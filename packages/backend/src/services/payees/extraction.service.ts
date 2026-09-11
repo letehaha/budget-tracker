@@ -4,6 +4,7 @@ import PayeeIgnoredNames from '@models/payee-ignored-names.model';
 import Payees from '@models/payees.model';
 import { findTransactions, updateTransactions } from '@models/transactions-query';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
+import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { Op } from 'sequelize';
 
 import { insertOrAdopt } from '../common/run-in-savepoint';
@@ -174,8 +175,8 @@ export const resolvePayeeForRawMerchant = withTransaction(
       });
     }
 
-    // Step 3: occurrence-based promotion. ≥ 1 prior unmatched + the current
-    // tx = ≥ 2 occurrences → spin up a new Payee and backfill the priors.
+    // Step 3: occurrence-based promotion. Prior unmatched rows + the current tx must reach the
+    // user's `payeePromotionThreshold` → spin up a new Payee and backfill the priors.
     //
     // First check the user's ignored-names blocklist: this is the only path
     // that *creates* a new Payee from a raw string (Steps 1 + 2 only link to
@@ -194,8 +195,9 @@ export const resolvePayeeForRawMerchant = withTransaction(
       return noMatch;
     }
 
+    const { payeePromotionThreshold = 2 } = await getUserSettings({ userId });
     const priorIds = await collectPriorUnmatched({ userId, normalizedQuery });
-    if (priorIds.length >= 1) {
+    if (priorIds.length + 1 >= payeePromotionThreshold) {
       // Concurrent bank-sync workers can promote the same `normalizedName` at
       // once and race on `payees_user_id_normalized_name_uniq`; `insertOrAdopt`
       // keeps the shared transaction usable and lands both racers on one Payee.
@@ -217,13 +219,15 @@ export const resolvePayeeForRawMerchant = withTransaction(
       });
       // A plan must never carry a payee it did not name itself, so the write states it too —
       // a row can turn into a plan between the scan above and this update.
-      await updateTransactions({
-        values: { payeeId: payee.id },
-        planned: 'exclude',
-        access: { creator: userId },
-        balanceAdjustments: 'include',
-        where: { id: { [Op.in]: priorIds } },
-      });
+      if (priorIds.length > 0) {
+        await updateTransactions({
+          values: { payeeId: payee.id },
+          planned: 'exclude',
+          access: { creator: userId },
+          balanceAdjustments: 'include',
+          where: { id: { [Op.in]: priorIds } },
+        });
+      }
       logger.info('[Payee extraction] promoted from occurrences', {
         userId,
         payeeId: payee.id,

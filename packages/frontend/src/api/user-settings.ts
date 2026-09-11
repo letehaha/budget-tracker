@@ -104,6 +104,8 @@ export interface UserSettingsSchema {
   matchTransfersWithManualAccounts?: boolean;
   sidebarSections?: SidebarSectionsConfig;
   payeeExtractionUsesDescription?: boolean;
+  /** Transactions sharing a raw merchant name before a Payee is auto-created. Defaults to 2. */
+  payeePromotionThreshold?: 1 | 2 | 3;
   ui?: UiSettings;
   subscriptions?: SubscriptionsSettings;
   savedPivotViews?: SavedPivotView[];
