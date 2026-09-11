@@ -146,6 +146,8 @@
       },
       "record": {
         "addedByTooltip": "Цю транзакцію додав до бюджету {handle}",
+        "externalLinkTooltip": "Відкрити зовнішнє посилання",
+        "locationTooltip": "Відкрити місце на карті",
         "hiddenAccount": "Прихований рахунок"
       }
     },
