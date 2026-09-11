@@ -1,12 +1,13 @@
 ---
 name: i18n-before-release
 description: >
-  Pre-release i18n actualization: strip unused en keys, then fill missing translations in the
-  in-house translated locale (uk) via i18n-editor subagents. Trigger on "/i18n-before-release", "actualize i18n",
-  "prepare i18n for release", "fill missing translations", "strip unused translation keys".
+  Occasional i18n catch-up: strip unused en keys, then fill any uk translations that slipped through
+  via i18n-editor subagents. Not a required release step – uk is translated alongside en during feature
+  work, so this is a safety net. Trigger on "/i18n-before-release", "actualize i18n",
+  "fill missing translations", "strip unused translation keys".
 ---
 
-Pre-release i18n actualization: strip unused en keys, then fill missing translations in the in-house translated locales. All key detection is done by `.claude/skills/i18n-before-release/i18n-audit.mjs` (run from repo root) — never parse or diff locale JSON files yourself, and never read locale files directly (a hook blocks them; only the i18n-editor subagent may touch them).
+Occasional i18n catch-up (a safety net, not a required release step – `uk` is translated alongside `en` during feature work): strip unused en keys, then fill any missing translations in the in-house translated locales. All key detection is done by `.claude/skills/i18n-before-release/i18n-audit.mjs` (run from repo root) — never parse or diff locale JSON files yourself, and never read locale files directly (a hook blocks them; only the i18n-editor subagent may touch them).
 
 ## Steps
 
