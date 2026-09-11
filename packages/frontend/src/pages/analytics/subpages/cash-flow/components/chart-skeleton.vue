@@ -1,6 +1,6 @@
 <template>
   <div class="border-border bg-card animate-pulse rounded-lg border p-4">
-    <div class="flex h-80 flex-col">
+    <div class="flex flex-col" :class="heightClass">
       <!-- Y-axis labels skeleton -->
       <div class="flex h-full gap-4">
         <div class="flex flex-col justify-between py-4">
@@ -39,9 +39,11 @@
 withDefaults(
   defineProps<{
     showLegend?: boolean;
+    heightClass?: string;
   }>(),
   {
     showLegend: true,
+    heightClass: 'h-80',
   },
 );
 </script>

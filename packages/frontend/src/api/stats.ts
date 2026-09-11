@@ -225,6 +225,15 @@ export const getInvestmentContributions = async ({
   return api.get('/stats/investment-contributions', params);
 };
 
+export const getVentureContributions = async ({
+  from,
+  to,
+}: {
+  from: Date;
+  to: Date;
+}): Promise<endpointsTypes.GetVentureContributionsResponse> =>
+  api.get('/stats/venture-contributions', { from: formatDate(from), to: formatDate(to) });
+
 interface GetPivotReportParams {
   from: Date;
   to: Date;

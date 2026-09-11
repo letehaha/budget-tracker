@@ -1,12 +1,23 @@
 <template>
-  <div class="flex items-center justify-center gap-0.5">
+  <div
+    :class="
+      cn(
+        'flex items-center justify-center gap-0.5',
+        variant === 'solid' && 'border-input bg-input-background h-9 rounded-md border px-0.5',
+      )
+    "
+  >
     <Button size="icon-sm" variant="ghost" @click="selectPrevPeriod">
       <ChevronLeft :size="16" />
     </Button>
 
     <DateSelector v-model="period" :presets="quickPresets" :earliest-date="earliestDate">
       <template #trigger="{ triggerText }">
-        <Button variant="ghost" size="sm" class="hover:bg-accent min-w-55 font-medium">
+        <Button
+          variant="ghost"
+          size="sm"
+          :class="cn('hover:bg-accent min-w-55 font-medium', variant === 'solid' && 'h-8')"
+        >
           <CalendarIcon class="mr-1.5 size-3.5" />
           {{ triggerText }}
         </Button>
@@ -22,6 +33,7 @@
 <script lang="ts" setup>
 import Button from '@/components/lib/ui/button/Button.vue';
 import { DateSelector, type DateSelectorPreset } from '@/components/lib/ui/date-selector';
+import { cn } from '@/lib/utils';
 import { useEarliestTransactionDate } from '@/composable/data-queries/earliest-transaction-date';
 import { type Period, usePeriodNavigation } from '@/composable/use-period-navigation';
 import { endOfMonth, endOfYear, isAfter, startOfMonth, startOfYear, subMonths, subYears } from 'date-fns';
@@ -31,9 +43,13 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-const props = defineProps<{
-  modelValue: Period;
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: Period;
+    variant?: 'ghost' | 'solid';
+  }>(),
+  { variant: 'ghost' },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: Period];

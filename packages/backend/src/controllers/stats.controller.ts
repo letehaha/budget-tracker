@@ -17,6 +17,7 @@ import {
   serializeCumulativeData,
   serializeExpensesAmountForPeriod,
   serializeInvestmentContributions,
+  serializeVentureContributions,
   serializeNetWorthDrivers,
   serializeNetWorthHistory,
   serializePivotReport,
@@ -300,6 +301,16 @@ export const getInvestmentContributions = createController(investmentContributio
 
   // Serialize: convert cents to decimal for API response
   return { data: serializeInvestmentContributions(result) };
+});
+
+const ventureContributionsSchema = z.object({
+  query: withDateOrder(z.object({ ...dateRange({ required: true }) })),
+});
+
+export const getVentureContributions = createController(ventureContributionsSchema, async ({ user, query }) => {
+  const result = await statsService.getVentureContributions({ userId: user.id, from: query.from, to: query.to });
+
+  return { data: serializeVentureContributions(result) };
 });
 
 const pivotReportSchema = z.object({

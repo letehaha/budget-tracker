@@ -60,6 +60,12 @@ router.get(
   statsController.getInvestmentContributions.handler,
 );
 router.get(
+  '/venture-contributions',
+  authenticateSession,
+  validateEndpoint(statsController.getVentureContributions.schema),
+  statsController.getVentureContributions.handler,
+);
+router.get(
   '/pivot',
   authenticateSession,
   validateEndpoint(statsController.getPivotReport.schema),
