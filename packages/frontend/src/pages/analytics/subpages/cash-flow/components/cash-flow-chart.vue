@@ -64,8 +64,10 @@ import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
 import { useChartTooltipPosition } from '@/composable/charts/use-chart-tooltip-position';
 import { useDateLocale } from '@/composable/use-date-locale';
+import type { Period } from '@/composable/use-period-navigation';
 import type { endpointsTypes } from '@bt/shared/types';
 import * as d3 from 'd3';
+import { format as formatISODate, parseISO } from 'date-fns';
 import { useResizeObserver } from '@vueuse/core';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -76,7 +78,35 @@ const props = defineProps<{
   data: endpointsTypes.CashFlowPeriodData[];
   chartType: ChartType;
   showMovingAverage?: boolean;
+  highlightedPeriod?: Period;
 }>();
+
+const emit = defineEmits<{
+  selectPeriod: [value: Period];
+}>();
+
+const highlightedKey = computed(() => {
+  const period = props.highlightedPeriod;
+  return period ? `${formatISODate(period.from, 'yyyy-MM-dd')}|${formatISODate(period.to, 'yyyy-MM-dd')}` : null;
+});
+
+function handleClick(_event: MouseEvent, d: (typeof chartData.value)[0]) {
+  emit('selectPeriod', { from: parseISO(d.periodStart), to: parseISO(d.periodEnd) });
+}
+
+const bindBarInteractions = <T extends d3.BaseType>(
+  selection: d3.Selection<T, (typeof chartData.value)[0], d3.BaseType, unknown>,
+  colors: { text: string },
+) =>
+  selection
+    .on('mouseenter', handleMouseEnter)
+    .on('mousemove', handleMouseMove)
+    .on('mouseleave', handleMouseLeave)
+    .on('click', handleClick)
+    .attr('cursor', 'pointer')
+    .attr('stroke', (d) => (`${d.periodStart}|${d.periodEnd}` === highlightedKey.value ? colors.text : 'none'))
+    .attr('stroke-width', 1.5)
+    .attr('stroke-dasharray', '3 2');
 
 const { t } = useI18n();
 const { format, locale } = useDateLocale();
@@ -356,9 +386,7 @@ const renderStackedBars = (
     .attr('fill', colors.expenses)
     .attr('rx', 4)
     .attr('ry', 4)
-    .on('mouseenter', handleMouseEnter)
-    .on('mousemove', handleMouseMove)
-    .on('mouseleave', handleMouseLeave);
+    .call(bindBarInteractions, colors);
 
   // Income bars (on top)
   g.selectAll('.bar-income')
@@ -373,9 +401,7 @@ const renderStackedBars = (
     .attr('fill', colors.income)
     .attr('rx', 4)
     .attr('ry', 4)
-    .on('mouseenter', handleMouseEnter)
-    .on('mousemove', handleMouseMove)
-    .on('mouseleave', handleMouseLeave);
+    .call(bindBarInteractions, colors);
 };
 
 const renderMirroredBars = (
@@ -401,9 +427,7 @@ const renderMirroredBars = (
     .attr('fill', colors.income)
     .attr('rx', 4)
     .attr('ry', 4)
-    .on('mouseenter', handleMouseEnter)
-    .on('mousemove', handleMouseMove)
-    .on('mouseleave', handleMouseLeave);
+    .call(bindBarInteractions, colors);
 
   // Expenses bars (go DOWN from center)
   g.selectAll('.bar-expenses')
@@ -418,9 +442,7 @@ const renderMirroredBars = (
     .attr('fill', colors.expenses)
     .attr('rx', 4)
     .attr('ry', 4)
-    .on('mouseenter', handleMouseEnter)
-    .on('mousemove', handleMouseMove)
-    .on('mouseleave', handleMouseLeave);
+    .call(bindBarInteractions, colors);
 };
 
 const renderGroupedBars = (
@@ -445,9 +467,7 @@ const renderGroupedBars = (
     .attr('fill', colors.income)
     .attr('rx', 4)
     .attr('ry', 4)
-    .on('mouseenter', handleMouseEnter)
-    .on('mousemove', handleMouseMove)
-    .on('mouseleave', handleMouseLeave);
+    .call(bindBarInteractions, colors);
 
   // Expenses bars (right side)
   g.selectAll('.bar-expenses')
@@ -462,9 +482,7 @@ const renderGroupedBars = (
     .attr('fill', colors.expenses)
     .attr('rx', 4)
     .attr('ry', 4)
-    .on('mouseenter', handleMouseEnter)
-    .on('mousemove', handleMouseMove)
-    .on('mouseleave', handleMouseLeave);
+    .call(bindBarInteractions, colors);
 };
 
 function handleMouseEnter(event: MouseEvent, d: (typeof chartData.value)[0]) {
@@ -493,7 +511,16 @@ function handleMouseLeave() {
 
 useResizeObserver(containerRef, renderChart);
 
-watch([() => props.data, () => props.chartType, () => props.showMovingAverage, locale, currentTheme], renderChart, {
-  deep: true,
-});
+watch(
+  [
+    () => props.data,
+    () => props.chartType,
+    () => props.showMovingAverage,
+    () => props.highlightedPeriod,
+    locale,
+    currentTheme,
+  ],
+  renderChart,
+  { deep: true },
+);
 </script>

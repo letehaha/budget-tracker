@@ -202,10 +202,12 @@ export const resolveRefundPairs = async ({
 export const computeCategoryAllocations = async ({
   transactions,
   applyRefunds,
+  refundSide = TRANSACTION_TYPES.expense,
 }: {
   transactions: AllocatableTransaction[];
-  /** Refunds only offset expenses; an income report's "refund" leg is itself the income. */
   applyRefunds: boolean;
+  /** Which side of each refund pair the negative legs net against, so a refund never shows up as income. */
+  refundSide?: TRANSACTION_TYPES;
 }): Promise<CategoryAllocations> => {
   if (transactions.length === 0) return { base: [], refunds: [] };
 
@@ -243,13 +245,11 @@ export const computeCategoryAllocations = async ({
     }
   }
 
-  // An expense report's refund leg always nets the expense side; a consumer that needs the income
-  // side too reads `resolveRefundPairs` directly.
   const refundLegs: CategoryAllocationLeg[] = refundPairs.map((pair) => ({
-    categoryId: pair.expenseCategoryId,
+    categoryId: refundSide === TRANSACTION_TYPES.income ? pair.incomeCategoryId : pair.expenseCategoryId,
     cents: -pair.cents,
     time: pair.time,
-    transactionType: TRANSACTION_TYPES.expense,
+    transactionType: refundSide,
   }));
 
   return { base, refunds: refundLegs };

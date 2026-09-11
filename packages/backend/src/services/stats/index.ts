@@ -8,6 +8,7 @@ export * from './get-cash-flow';
 export * from './get-net-worth-drivers';
 export * from './get-net-worth-history';
 export * from './get-investment-contributions';
+export * from './get-venture-contributions';
 export * from './get-pivot';
 export * from './get-cumulative-data';
 export * from './get-earliest-transaction-date';

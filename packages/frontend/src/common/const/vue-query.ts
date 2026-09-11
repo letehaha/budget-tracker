@@ -107,6 +107,7 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
   // transactions — both invalidated through the transaction-change prefix. Security
   // prices never enter this report, so it carries no price prefix.
   analyticsInvestmentContributions: [transactionChange, 'analytics-investment-contributions'] as const,
+  analyticsVentureContributions: [transactionChange, 'analytics-venture-contributions'] as const,
   analyticsPivotReport: [transactionChange, 'analytics-pivot-report'] as const,
   analyticsCumulative: [transactionChange, 'analytics-cumulative'] as const,
   analyticsSpendingsByCategories: [transactionChange, 'analytics-spendings-by-categories'] as const,

@@ -38,8 +38,10 @@
       </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div v-if="cashFlowData" class="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div v-if="isLoading" class="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <SummaryCardSkeleton v-for="i in 4" :key="i" title-width="w-20" value-width="w-28" />
+    </div>
+    <div v-else-if="cashFlowData" class="grid grid-cols-2 gap-4 md:grid-cols-4">
       <SummaryCard
         :title="t('analytics.cashFlow.income')"
         :value="cashFlowData.totals.income"
@@ -67,10 +69,7 @@
       />
     </div>
 
-    <!-- Loading state -->
-    <div v-if="isLoading" class="flex h-100 items-center justify-center">
-      <div class="text-muted-foreground">{{ t('common.actions.loading') }}</div>
-    </div>
+    <ChartSkeleton v-if="isLoading" height-class="h-100" />
 
     <!-- Error state -->
     <div v-else-if="error" class="flex h-100 items-center justify-center">
@@ -86,6 +85,8 @@
         :data="cashFlowData.periods"
         :chart-type="selectedChartType"
         :show-moving-average="showMovingAverage"
+        :highlighted-period="compositionPeriod"
+        @select-period="compositionPeriod = $event"
       />
     </div>
 
@@ -96,6 +97,8 @@
         <div class="text-muted-foreground mt-1 text-sm">{{ t('analytics.cashFlow.noDataHint') }}</div>
       </div>
     </div>
+
+    <MoneyFlowSection v-model:period="compositionPeriod" />
   </div>
 </template>
 
@@ -110,7 +113,7 @@ import PopoverContent from '@/components/lib/ui/popover/PopoverContent.vue';
 import PopoverTrigger from '@/components/lib/ui/popover/PopoverTrigger.vue';
 import { useDateLocale } from '@/composable/use-date-locale';
 import type { endpointsTypes } from '@bt/shared/types';
-import { useQuery } from '@tanstack/vue-query';
+import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import { useLocalStorage, useSessionStorage } from '@vueuse/core';
 import { differenceInDays, endOfMonth, startOfMonth, subDays, subMonths } from 'date-fns';
 import { Settings2Icon } from '@lucide/vue';
@@ -119,10 +122,13 @@ import { useI18n } from 'vue-i18n';
 
 import { createPeriodSerializer } from '../../utils';
 import CashFlowChart from './components/cash-flow-chart.vue';
+import ChartSkeleton from './components/chart-skeleton.vue';
 import ChartTypeSwitcher, { type ChartType } from './components/chart-type-switcher.vue';
 import GranularitySelector from './components/granularity-selector.vue';
 import type { Period } from '@/composable/use-period-navigation';
+import MoneyFlowSection from './components/money-flow-section.vue';
 import PeriodSelector from './components/period-selector.vue';
+import SummaryCardSkeleton from './components/summary-card-skeleton.vue';
 import SummaryCard from './components/summary-card.vue';
 
 const { t } = useI18n();
@@ -149,6 +155,14 @@ const selectedPeriod = useSessionStorage<Period>('cash-flow-period', getDefaultP
   serializer: periodSerializer,
 });
 const showMovingAverage = useSessionStorage('cash-flow-show-moving-avg', true);
+
+const getDefaultCompositionPeriod = (): Period => ({
+  from: startOfMonth(new Date()),
+  to: endOfMonth(new Date()),
+});
+const compositionPeriod = useSessionStorage<Period>('cash-flow-composition-period', getDefaultCompositionPeriod(), {
+  serializer: createPeriodSerializer({ getDefaultPeriod: getDefaultCompositionPeriod }),
+});
 
 // Calculate previous period (same duration, immediately before current period)
 const previousPeriod = computed(() => {
@@ -194,6 +208,7 @@ const {
   queryFn: () => getCashFlow(queryParams.value),
   staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
   gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
+  placeholderData: keepPreviousData,
 });
 
 // Fetch previous period data for trend comparison
@@ -202,6 +217,7 @@ const { data: previousCashFlowData } = useQuery({
   queryFn: () => getCashFlow(previousQueryParams.value),
   staleTime: QUERY_CACHE_STALE_TIME.ANALYTICS,
   gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
+  placeholderData: keepPreviousData,
 });
 
 // Calculate trend (% change between current period totals and previous period totals)

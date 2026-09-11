@@ -12,6 +12,7 @@ import type { InvestmentContributionsResultCents } from '@services/stats/get-inv
 import type { NetWorthDriversResultCents } from '@services/stats/get-net-worth-drivers';
 import type { NetWorthHistoryResultCents } from '@services/stats/get-net-worth-history';
 import type { PivotReportResultCents } from '@services/stats/get-pivot';
+import type { VentureContributionCents } from '@services/stats/get-venture-contributions';
 
 // ============================================================================
 // Balance History Serializers
@@ -400,4 +401,10 @@ export function serializeInvestmentContributions(
     })),
     portfolios: result.portfolios,
   };
+}
+
+export function serializeVentureContributions(
+  result: VentureContributionCents[],
+): endpointsTypes.GetVentureContributionsResponse {
+  return result.map((deal) => ({ dealId: deal.dealId, name: deal.name, amount: centsToApiDecimal(deal.amount) }));
 }
