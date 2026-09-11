@@ -10,6 +10,7 @@ import {
   resolveOriginalCurrencyPair,
 } from '../helpers';
 import { FORM_TYPES, type UI_FORM_STRUCT } from '../types';
+import { resolveFormLocation } from './resolve-form-location';
 
 interface BuildOptimisticTransactionParams {
   form: UI_FORM_STRUCT;
@@ -32,10 +33,15 @@ export const buildOptimisticTransaction = ({
 }: BuildOptimisticTransactionParams): TransactionModel => {
   // Unwrap reactive proxy from transaction to get plain nested objects
   const rawTransaction = toRaw(transaction);
+  const location = resolveFormLocation(form);
 
   const updatedTransaction: TransactionModel = {
     ...rawTransaction,
     note: form.note ?? '',
+    externalUrl: form.externalUrl === undefined ? rawTransaction.externalUrl : form.externalUrl.trim() || null,
+    externalReference:
+      form.externalReference === undefined ? rawTransaction.externalReference : form.externalReference.trim() || null,
+    location: location === undefined ? rawTransaction.location : location,
     paymentType: form.paymentType!.value,
     isPlanned: resolveFormIsPlanned({ form }),
     updatedAt: new Date(),

@@ -1,6 +1,6 @@
 import { api } from '@/api/_api';
 import type { SupportedLocale } from '@bt/shared/i18n/locales';
-import type { CategoryMappingPreset, endpointsTypes } from '@bt/shared/types';
+import type { CategoryMappingPreset, TransactionOptionalField, endpointsTypes } from '@bt/shared/types';
 
 export interface DashboardWidgetConfig {
   widgetId: string;
@@ -42,6 +42,13 @@ interface TransactionsListSettings {
   hideUpcoming?: boolean;
 }
 
+interface TransactionFormSettings {
+  /** Optional form fields the user turned on. A field holding a value is shown regardless. */
+  optionalFields?: TransactionOptionalField[];
+  /** Whether the transaction form may load map tiles and address search from OpenStreetMap. */
+  mapPicker?: boolean;
+}
+
 interface InvestmentTransactionsTableSettings {
   /** Ordered list of column ids the user wants visible. */
   visibleColumns: string[];
@@ -52,6 +59,7 @@ interface InvestmentTransactionsTableSettings {
 export interface UiSettings {
   transactionsTable?: TransactionsTableSettings;
   transactionsList?: TransactionsListSettings;
+  transactionForm?: TransactionFormSettings;
   investmentTransactionsTable?: InvestmentTransactionsTableSettings;
 }
 
@@ -96,6 +104,8 @@ export interface UserSettingsSchema {
   matchTransfersWithManualAccounts?: boolean;
   sidebarSections?: SidebarSectionsConfig;
   payeeExtractionUsesDescription?: boolean;
+  /** Transactions sharing a raw merchant name before a Payee is auto-created. Defaults to 2. */
+  payeePromotionThreshold?: 1 | 2 | 3;
   ui?: UiSettings;
   subscriptions?: SubscriptionsSettings;
   savedPivotViews?: SavedPivotView[];

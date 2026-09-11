@@ -69,6 +69,16 @@ export function getEntryReference({ tx }: { tx: StoredRow }): string | null {
   return typeof entryReference === 'string' ? entryReference : String(entryReference);
 }
 
+/** Creditor/invoice reference the ASPSP attached to the payment, or null when it carried none. */
+export function getReferenceNumber({
+  externalData,
+}: {
+  externalData: Record<string, unknown> | null | undefined;
+}): string | null {
+  const referenceNumber = externalData?.referenceNumber;
+  return typeof referenceNumber === 'string' ? referenceNumber.trim().slice(0, 255) || null : null;
+}
+
 export function getBookingDate({
   externalData,
 }: {

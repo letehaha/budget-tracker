@@ -22,6 +22,22 @@
         />
       </div>
 
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="text-sm font-medium">{{ $t('payees.settings.promotionThreshold.label') }}</div>
+          <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+            {{ $t('payees.settings.promotionThreshold.description') }}
+          </p>
+        </div>
+        <SelectField
+          :model-value="promotionThreshold"
+          :values="promotionThresholdOptions"
+          :disabled="isUpdating"
+          class="w-24 shrink-0"
+          @update:model-value="handleThresholdChange"
+        />
+      </div>
+
       <div class="@container/bulk-row flex flex-col gap-3">
         <div>
           <div class="text-sm font-medium">{{ $t('payees.settings.bulkCategorizationMode.label') }}</div>
@@ -96,6 +112,24 @@ const handleToggle = async (value: boolean) => {
     addSuccessNotification(t('payees.settings.payeeFromDescription.successNotification'));
   } catch {
     addErrorNotification(t('payees.settings.payeeFromDescription.errorNotification'));
+  }
+};
+
+const promotionThresholdOptions = [1, 2, 3].map((value) => ({ value, label: String(value) }));
+const promotionThreshold = computed(
+  () => promotionThresholdOptions.find((o) => o.value === (userSettings.value?.payeePromotionThreshold ?? 2)) ?? null,
+);
+
+const handleThresholdChange = async (option: (typeof promotionThresholdOptions)[number] | null) => {
+  if (!option) return;
+  try {
+    await mutateAsync({
+      ...userSettings.value,
+      payeePromotionThreshold: option.value as 1 | 2 | 3,
+    });
+    addSuccessNotification(t('payees.settings.promotionThreshold.successNotification'));
+  } catch {
+    addErrorNotification(t('payees.settings.promotionThreshold.errorNotification'));
   }
 };
 

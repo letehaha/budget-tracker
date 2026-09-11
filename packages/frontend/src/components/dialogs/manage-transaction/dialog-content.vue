@@ -3,11 +3,15 @@ import { getExchangeRatePair } from '@/api/currencies';
 import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
+import { isHttpUrl } from '@/common/utils/external-url';
+import { roundCoordinate } from '@/common/utils/coordinates';
+import { buildMapUrl } from '@/common/utils/map-url';
 import { isMacPlatform } from '@/common/utils/platform';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import { captureException } from '@/lib/sentry';
 import ResponsiveAlertDialog from '@/components/common/responsive-alert-dialog.vue';
 import CategorySelectField from '@/components/fields/category-select-field.vue';
+import FieldLabel from '@/components/fields/components/field-label.vue';
 import PayeeSelectField from '@/components/fields/payee-select-field.vue';
 import DateField from '@/components/fields/date-field.vue';
 import InputField from '@/components/fields/input-field.vue';
@@ -19,6 +23,7 @@ import HintIcon from '@/components/common/hint-icon.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import * as Drawer from '@/components/lib/ui/drawer';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
 import { useExchangeRates } from '@/composable/data-queries/currencies';
 import { useFormValidation } from '@/composable/form-validator';
@@ -39,10 +44,21 @@ import {
   type TransactionModel,
 } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
-import { helpers, minValue, required } from '@vuelidate/validators';
+import { between, helpers, maxLength, minValue, required } from '@vuelidate/validators';
 import { createReusableTemplate, watchOnce } from '@vueuse/core';
 import { endOfDay, format } from 'date-fns';
-import { ChevronUpIcon, CommandIcon, CornerDownLeftIcon, SlidersHorizontalIcon, SplitIcon } from '@lucide/vue';
+import {
+  ChevronUpIcon,
+  CommandIcon,
+  CornerDownLeftIcon,
+  ExternalLinkIcon,
+  LocateIcon,
+  MapIcon,
+  MapPinIcon,
+  SlidersHorizontalIcon,
+  SplitIcon,
+  XIcon,
+} from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { DialogClose, DialogTitle } from 'reka-ui';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
@@ -61,6 +77,7 @@ import VentureLinkedView from './components/venture-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import AmountWithCurrencyField from './components/amount-with-currency-field.vue';
 import LabelPill from './components/label-pill.vue';
+import LocationPickerDialog from './components/location-picker-dialog.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
 import TemplateFormDialog from './components/templates/template-form-dialog.vue';
@@ -80,6 +97,10 @@ import {
   useUnlinkTransactions,
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
+import { useMapPickerSetting } from './composables/use-map-picker-setting';
+import { useOptionalFields } from './composables/use-optional-fields';
+import { useReverseGeocodedLabel } from './composables/use-reverse-geocoded-label';
+import { resolveFormLocation } from './utils/resolve-form-location';
 import { useTransactionTemplating } from './composables/use-transaction-templating';
 import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
 
@@ -167,6 +188,10 @@ const form = ref<UI_FORM_STRUCT>({
   time: new Date(),
   paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === PAYMENT_TYPES.creditCard) ?? null,
   note: undefined,
+  externalUrl: undefined,
+  externalReference: undefined,
+  latitude: undefined,
+  longitude: undefined,
   type: FORM_TYPES.expense,
   refundedByTxs: undefined,
   refundsTx: undefined,
@@ -225,7 +250,7 @@ const transferDestinationType = ref<TransferDestinationType>('account');
 
 const { data: portfolios } = usePortfolios();
 
-const { addInfoNotification } = useNotificationCenter();
+const { addInfoNotification, addErrorNotification } = useNotificationCenter();
 
 const {
   isInitialRefundsDataLoaded,
@@ -787,9 +812,48 @@ const validationRules = computed(() => {
             }
           : {}),
       },
+      note: {
+        maxLength: maxLengthRule(1000),
+      },
+      externalUrl: {
+        maxLength: maxLengthRule(2048),
+        httpUrl: helpers.withMessage(
+          () => t('dialogs.manageTransaction.form.validation.httpUrl'),
+          (value: unknown) => !value || (typeof value === 'string' && isHttpUrl(value.trim())),
+        ),
+      },
+      externalReference: {
+        maxLength: maxLengthRule(255),
+      },
+      latitude: {
+        pairedWithLongitude: locationPairRule(() => form.value.longitude),
+        between: helpers.withMessage(
+          () => t('dialogs.manageTransaction.form.validation.latitudeRange'),
+          between(-90, 90),
+        ),
+      },
+      longitude: {
+        pairedWithLatitude: locationPairRule(() => form.value.latitude),
+        between: helpers.withMessage(
+          () => t('dialogs.manageTransaction.form.validation.longitudeRange'),
+          between(-180, 180),
+        ),
+      },
     },
   };
 });
+
+function maxLengthRule(max: number) {
+  return helpers.withMessage(() => t('dialogs.manageTransaction.form.validation.maxLength', { max }), maxLength(max));
+}
+
+// Latitude and longitude only make sense as a pair, so an empty one fails while its partner is filled.
+function locationPairRule(partner: () => number | null | undefined) {
+  return helpers.withMessage(
+    () => t('dialogs.manageTransaction.form.validation.locationPair'),
+    (value: unknown) => value != null || partner() == null,
+  );
+}
 
 const { isFormValid, getFieldErrorMessage, touchField } = useFormValidation(
   { form },
@@ -807,6 +871,11 @@ const amountErrorMessage = computed(() => getFieldErrorMessage('form.amount'));
 const categoryErrorMessage = computed(() => getFieldErrorMessage('form.category'));
 const targetAmountErrorMessage = computed(() => getFieldErrorMessage('form.targetAmount'));
 const timeErrorMessage = computed(() => getFieldErrorMessage('form.time'));
+const noteErrorMessage = computed(() => getFieldErrorMessage('form.note'));
+const externalUrlErrorMessage = computed(() => getFieldErrorMessage('form.externalUrl'));
+const externalReferenceErrorMessage = computed(() => getFieldErrorMessage('form.externalReference'));
+const latitudeErrorMessage = computed(() => getFieldErrorMessage('form.latitude'));
+const longitudeErrorMessage = computed(() => getFieldErrorMessage('form.longitude'));
 
 const onAmountBlur = () => {
   touchField('form.amount');
@@ -891,6 +960,9 @@ const submit = () => {
   touchField('form.targetAmount');
   touchField('form.time');
   touchField('form.category');
+  touchField('form.note');
+  touchField('form.externalUrl');
+  touchField('form.externalReference');
 
   if (!isFormValid('form')) return;
 
@@ -946,12 +1018,86 @@ const previouslyFocusedElement = ref(document.activeElement);
 
 const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
+const { isEnabled: isOptionalFieldEnabled } = useOptionalFields();
+
+const showExternalUrl = computed(() => isOptionalFieldEnabled('externalUrl') || !!props.transaction?.externalUrl);
+const showExternalReference = computed(
+  () => isOptionalFieldEnabled('externalReference') || !!props.transaction?.externalReference,
+);
+const showOriginalAmount = computed(
+  () => isOptionalFieldEnabled('originalAmount') || props.transaction?.originalAmount != null,
+);
+const showLocation = computed(() => isOptionalFieldEnabled('location') || !!props.transaction?.location);
+const isLocationFilled = computed(() => form.value.latitude != null || form.value.longitude != null);
+const externalUrlHref = computed(() => {
+  const value = form.value.externalUrl?.trim();
+  return value && isHttpUrl(value) ? value : null;
+});
+
+const locationMapUrl = computed(() => {
+  const location = resolveFormLocation(form.value);
+  return location ? buildMapUrl(location) : null;
+});
+
+const isLocating = ref(false);
+const useCurrentLocation = () => {
+  if (!navigator.geolocation) {
+    addErrorNotification(t('dialogs.manageTransaction.form.location.unsupported'));
+    return;
+  }
+  isLocating.value = true;
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      form.value.latitude = roundCoordinate({ value: coords.latitude });
+      form.value.longitude = roundCoordinate({ value: coords.longitude });
+      isLocating.value = false;
+    },
+    (error) => {
+      const key = error.code === error.PERMISSION_DENIED ? 'denied' : 'unavailable';
+      addErrorNotification(t(`dialogs.manageTransaction.form.location.${key}`));
+      isLocating.value = false;
+    },
+    { enableHighAccuracy: true, timeout: 10_000 },
+  );
+};
+const clearLocation = () => {
+  form.value.latitude = null;
+  form.value.longitude = null;
+};
+
+const { enabled: isMapPickerEnabled } = useMapPickerSetting();
+const isLocationPickerOpen = ref(false);
+
+const { label: locationLabel, setKnownLabel: setKnownLocationLabel } = useReverseGeocodedLabel({
+  latitude: computed(() => form.value.latitude),
+  longitude: computed(() => form.value.longitude),
+  enabled: isMapPickerEnabled,
+});
+
+const applyPickedLocation = ({
+  latitude,
+  longitude,
+  label,
+}: {
+  latitude: number;
+  longitude: number;
+  label: string | null;
+}) => {
+  const rounded = { latitude: roundCoordinate({ value: latitude }), longitude: roundCoordinate({ value: longitude }) };
+  form.value.latitude = rounded.latitude;
+  form.value.longitude = rounded.longitude;
+  setKnownLocationLabel({ ...rounded, label });
+};
+
 // Mirrors the visibility conditions of the fields inside "More options" so the
 // mobile trigger never counts a field the drawer doesn't render. Payment type is
 // excluded – it's always preselected, so it carries no "user filled this" signal.
 const moreOptionsFilledCount = computed(() => {
   let count = 0;
   if (form.value.note?.trim()) count += 1;
+  if (form.value.externalUrl?.trim()) count += 1;
+  if (form.value.externalReference?.trim()) count += 1;
+  if (isLocationFilled.value) count += 1;
   if (!isLoanDestination.value && form.value.tagIds?.length) count += 1;
   if (!isTransferTx.value && form.value.originalAmount) count += 1;
   if (
@@ -1070,8 +1216,134 @@ onUnmounted(() => {
         :placeholder="$t('dialogs.manageTransaction.form.notePlaceholder')"
         :disabled="isFormFieldsDisabled"
         :label="$t('dialogs.manageTransaction.form.noteLabel')"
+        :error-message="noteErrorMessage"
+        @focusout="touchField('form.note')"
       />
     </FormRow>
+    <FormRow v-if="showExternalUrl">
+      <InputField
+        v-model="form.externalUrl"
+        type="url"
+        :placeholder="$t('dialogs.manageTransaction.form.externalUrlPlaceholder')"
+        :disabled="isFormFieldsDisabled"
+        :label="$t('dialogs.manageTransaction.form.externalUrlLabel')"
+        :error-message="externalUrlErrorMessage"
+        @blur="touchField('form.externalUrl')"
+      >
+        <template v-if="externalUrlHref" #label-after>
+          <DesktopOnlyTooltip :content="$t('common.transactions.record.externalLinkTooltip')">
+            <a
+              :href="externalUrlHref"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="$t('common.transactions.record.externalLinkTooltip')"
+              class="hover:text-foreground flex size-5 items-center justify-center"
+            >
+              <ExternalLinkIcon class="size-3.5" />
+            </a>
+          </DesktopOnlyTooltip>
+        </template>
+      </InputField>
+    </FormRow>
+    <FormRow v-if="showExternalReference">
+      <InputField
+        v-model="form.externalReference"
+        :placeholder="$t('dialogs.manageTransaction.form.externalReferencePlaceholder')"
+        :disabled="isFormFieldsDisabled"
+        :label="$t('dialogs.manageTransaction.form.externalReferenceLabel')"
+        :error-message="externalReferenceErrorMessage"
+        @blur="touchField('form.externalReference')"
+      />
+    </FormRow>
+    <FormRow v-if="showLocation">
+      <FieldLabel :label="$t('dialogs.manageTransaction.form.location.label')" only-template>
+        <template v-if="locationMapUrl" #label-after>
+          <DesktopOnlyTooltip :content="$t('common.transactions.record.locationTooltip')">
+            <a
+              :href="locationMapUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="$t('common.transactions.record.locationTooltip')"
+              class="hover:text-foreground flex size-5 items-center justify-center"
+            >
+              <MapPinIcon class="size-3.5" />
+            </a>
+          </DesktopOnlyTooltip>
+        </template>
+        <template #label-right>
+          <div class="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost-primary"
+              size="sm"
+              class="h-6 px-2 text-xs"
+              :disabled="isFormFieldsDisabled || isLocating"
+              @click="useCurrentLocation"
+            >
+              <LocateIcon class="size-3.5" />
+              {{ $t('dialogs.manageTransaction.form.location.useCurrent') }}
+            </Button>
+            <DesktopOnlyTooltip v-if="isLocationFilled" :content="$t('dialogs.manageTransaction.form.location.clear')">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                class="size-6"
+                :disabled="isFormFieldsDisabled"
+                :aria-label="$t('dialogs.manageTransaction.form.location.clear')"
+                @click="clearLocation"
+              >
+                <XIcon class="size-3.5" />
+              </Button>
+            </DesktopOnlyTooltip>
+          </div>
+        </template>
+        <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
+          <InputField
+            v-model="form.latitude"
+            type="number"
+            :placeholder="$t('dialogs.manageTransaction.form.location.latitudePlaceholder')"
+            :aria-label="$t('dialogs.manageTransaction.form.location.latitudePlaceholder')"
+            :disabled="isFormFieldsDisabled"
+            :error-message="latitudeErrorMessage"
+            @blur="touchField('form.latitude')"
+          />
+          <InputField
+            v-model="form.longitude"
+            type="number"
+            :placeholder="$t('dialogs.manageTransaction.form.location.longitudePlaceholder')"
+            :aria-label="$t('dialogs.manageTransaction.form.location.longitudePlaceholder')"
+            :disabled="isFormFieldsDisabled"
+            :error-message="longitudeErrorMessage"
+            @blur="touchField('form.longitude')"
+          />
+          <DesktopOnlyTooltip :content="$t('dialogs.manageTransaction.form.location.pickOnMap')">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              class="size-10 shrink-0 md:size-9"
+              :disabled="isFormFieldsDisabled"
+              :aria-label="$t('dialogs.manageTransaction.form.location.pickOnMap')"
+              @click="isLocationPickerOpen = true"
+            >
+              <MapIcon class="size-4" />
+            </Button>
+          </DesktopOnlyTooltip>
+        </div>
+        <div v-if="locationLabel" class="text-muted-foreground mt-1.5 flex items-center gap-1 text-xs">
+          <MapPinIcon class="size-3 shrink-0" />
+          <span class="truncate">{{ locationLabel }}</span>
+        </div>
+      </FieldLabel>
+    </FormRow>
+    <LocationPickerDialog
+      v-if="showLocation"
+      v-model:open="isLocationPickerOpen"
+      :latitude="form.latitude"
+      :longitude="form.longitude"
+      @select="applyPickedLocation"
+    />
     <FormRow v-if="!isLoanDestination">
       <TagSelectField
         v-model="form.tagIds"
@@ -1079,7 +1351,7 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
       />
     </FormRow>
-    <FormRow v-if="!isTransferTx">
+    <FormRow v-if="!isTransferTx && showOriginalAmount">
       <AmountWithCurrencyField
         v-model:amount="form.originalAmount"
         v-model:currency="form.originalCurrency"

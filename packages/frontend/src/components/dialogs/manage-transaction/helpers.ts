@@ -208,6 +208,10 @@ export const prepopulateForm = ({
       time: new Date(transaction.time),
       paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === transaction.paymentType),
       note: transaction.note ?? undefined,
+      externalUrl: transaction.externalUrl ?? undefined,
+      externalReference: transaction.externalReference ?? undefined,
+      latitude: transaction.location?.latitude,
+      longitude: transaction.location?.longitude,
       refundedByTxs: undefined,
       refundsTx: undefined,
       // Extract tag IDs from transaction tags if present

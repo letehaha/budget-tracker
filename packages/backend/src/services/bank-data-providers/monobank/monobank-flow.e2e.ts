@@ -438,6 +438,28 @@ describe('Monobank Data Provider E2E', () => {
       expect(transactions.length).toBe(MOCK_AMOUNT * accountIds.length);
     });
 
+    it('stores the fiscal receipt id as externalReference', async () => {
+      const { account } = await helpers.monobank.mockTransactions({
+        transactions: [
+          { amount: -1000, description: 'WITH RECEIPT', receiptId: 'AAAA-BBBB-CCCC-DDDD' },
+          { amount: -2000, description: 'WITH INVOICE', invoiceId: '2103.в.27' },
+          { amount: -3000, description: 'WITH NEITHER' },
+        ],
+      });
+
+      let rows = await helpers.getTransactions({ accountIds: [account.id], raw: true });
+      for (let attempt = 0; attempt < 10 && rows.length < 3; attempt += 1) {
+        await helpers.sleep(300);
+        rows = await helpers.getTransactions({ accountIds: [account.id], raw: true });
+      }
+      expect(rows).toHaveLength(3);
+
+      const byNote = (note: string) => rows.find((row) => row.note === note)!;
+      expect(byNote('WITH RECEIPT').externalReference).toBe('AAAA-BBBB-CCCC-DDDD');
+      expect(byNote('WITH INVOICE').externalReference).toBe('2103.в.27');
+      expect(byNote('WITH NEITHER').externalReference).toBeNull();
+    }, 30000);
+
     it('should return 404 for non-existent connection', async () => {
       const result = await helpers.bankDataProviders.connectSelectedAccounts({
         connectionId: generateRandomRecordId(),

@@ -1,4 +1,5 @@
 import { ACCOUNT_TYPES, PAYMENT_TYPES, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/shared/types';
+import type { TransactionLocation } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import * as Transactions from '@models/transactions.model';
 
@@ -57,6 +58,9 @@ interface UpdateParams {
   userId: number;
   amount?: Money;
   note?: string | null;
+  externalUrl?: string | null;
+  externalReference?: string | null;
+  location?: TransactionLocation | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;
