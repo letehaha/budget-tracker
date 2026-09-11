@@ -461,6 +461,9 @@ export const createTransaction = withTransaction(
             cashbackAmount: payload.cashbackAmount,
             accountType,
             rawMerchantName,
+            externalUrl: payload.externalUrl,
+            externalReference: payload.externalReference,
+            location: payload.location,
           },
         });
 

@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import type { ReferenceNumber } from '@services/bank-data-providers/enablebanking/types/common';
 import type { TransactionStatus } from '@services/bank-data-providers/enablebanking/types/enums';
 
 /**
@@ -275,6 +276,8 @@ export interface FixedTransaction {
    * a day's balance ladder.
    */
   balanceAfter?: string | null;
+  /** Structured creditor reference. A bare string mirrors ASPSPs that flatten the field. */
+  referenceNumber?: ReferenceNumber | string;
 }
 
 let mockTransactionConfig: MockTransactionConfig = {
@@ -335,6 +338,10 @@ export const getMockedTransactions = (accountId: string, count: number = 10) => 
         creditor: { name: ft.isExpense ? 'Test Company' : 'John Doe' },
         status: ft.status || 'BOOK',
       };
+
+      if (ft.referenceNumber !== undefined) {
+        tx.reference_number = ft.referenceNumber;
+      }
 
       if (ft.balanceAfter !== null) {
         tx.balance_after_transaction = { amount: ft.balanceAfter ?? '1000.00', currency: ft.currency };

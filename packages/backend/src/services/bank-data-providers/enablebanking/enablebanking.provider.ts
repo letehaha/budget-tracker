@@ -71,6 +71,7 @@ import {
   getEntryReference,
   getRawTransaction,
   getRawTransactionStatus,
+  getReferenceNumber,
   hasSettledStatus,
   isBookedCanonical,
   isNonLedgerStatus,
@@ -721,6 +722,8 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           oritinalAmount: parseFloat(tx.transaction_amount.amount),
           isExpense, // Store transaction type indicator
           entryReference: tx.entry_reference,
+          referenceNumber:
+            typeof tx.reference_number === 'string' ? tx.reference_number : tx.reference_number?.identification,
           originalTransactionId: tx.transaction_id, // Store if available
 
           // Store complete raw payload for future reference and debugging
@@ -992,6 +995,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             const createResult = await createTransaction({
               originalId: tx.externalId,
               note: tx.description,
+              externalReference: getReferenceNumber({ externalData: tx.metadata }),
               amount: Money.fromCents(Math.abs(tx.amount)), // Ensure positive value
               time: tx.date,
               externalData: {

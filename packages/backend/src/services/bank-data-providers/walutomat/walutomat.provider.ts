@@ -54,6 +54,9 @@ function externalIdFromCurrency(currency: string): string {
   return `${WALLET_EXTERNAL_ID_PREFIX}${currency.toLowerCase()}`;
 }
 
+const detail = ({ item, key }: { item: HistoryItem; key: string }) =>
+  item.operationDetails.find((d) => d.key === key)?.value.trim() || undefined;
+
 /**
  * Build a human-readable description from a Walutomat history item.
  */
@@ -387,6 +390,8 @@ export class WalutomatProvider extends BaseBankDataProvider {
           const createResult = await createTransaction({
             originalId: item.transactionId,
             note: buildTransactionDescription(item),
+            externalReference:
+              detail({ item, key: 'partnerOrderId' }) ?? detail({ item, key: 'providerOperationId' }) ?? null,
             amount: Money.fromDecimal(Math.abs(operationAmount)),
             time: new Date(item.ts),
             externalData: {

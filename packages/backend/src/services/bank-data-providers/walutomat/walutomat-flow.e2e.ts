@@ -290,6 +290,51 @@ describe('Walutomat Data Provider E2E', () => {
       expect(externalData).toHaveProperty('historyItemId');
     });
 
+    it('stores partnerOrderId / providerOperationId as externalReference', async () => {
+      const mockedHistory = getMockedWalutomatHistory({
+        amount: 3,
+        currency: 'EUR',
+        overrides: [
+          {
+            operationType: 'TRANSFER',
+            operationDetailedType: 'WT_PAY',
+            operationDetails: [{ key: 'partnerOrderId', value: 'PO-2024-0001' }],
+          },
+          {
+            operationType: 'PAYIN',
+            operationDetailedType: 'PAYIN_CARD',
+            operationDetails: [{ key: 'providerOperationId', value: 'p24-987654' }],
+          },
+          {
+            operationDetails: [{ key: 'title', value: 'No external reference' }],
+          },
+        ],
+      });
+
+      const { connectionId } = await helpers.walutomat.pair();
+
+      global.mswMockServer.use(getWalutomatHistoryMock({ response: mockedHistory }), getWalutomatBalancesMock());
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: ['wallet-eur'],
+        raw: true,
+      });
+
+      const transactions = await Transactions.findAll({
+        where: { accountId: syncedAccounts[0]!.id },
+      });
+
+      expect(transactions.length).toBe(3);
+
+      const byOriginalId = (index: number) =>
+        transactions.find((tx) => tx.originalId === mockedHistory[index]!.transactionId)!;
+
+      expect(byOriginalId(0).externalReference).toBe('PO-2024-0001');
+      expect(byOriginalId(1).externalReference).toBe('p24-987654');
+      expect(byOriginalId(2).externalReference).toBeNull();
+    });
+
     it('should handle empty history gracefully', async () => {
       const { connectionId } = await helpers.walutomat.pair();
 

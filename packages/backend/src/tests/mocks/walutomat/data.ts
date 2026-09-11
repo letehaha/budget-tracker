@@ -26,9 +26,12 @@ export const getMockedWalutomatBalances = (): WalletBalance[] => [
 export const getMockedWalutomatHistory = ({
   amount = 5,
   currency = 'EUR',
+  overrides = [],
 }: {
   amount?: number;
   currency?: string;
+  /** Per-index patch applied on top of the generated item. */
+  overrides?: Partial<HistoryItem>[];
 } = {}): HistoryItem[] => {
   const now = new Date();
 
@@ -56,6 +59,7 @@ export const getMockedWalutomatHistory = ({
           value: isExpense ? `Transfer to ${faker.person.fullName()}` : `Deposit from ${faker.company.name()}`,
         },
       ],
+      ...overrides[index],
     };
   });
 };
