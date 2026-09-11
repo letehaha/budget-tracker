@@ -1021,4 +1021,54 @@ describe('prepareTxUpdationParams', () => {
       expect(result).not.toHaveProperty('originalCurrencyCode');
     });
   });
+
+  describe('external fields', () => {
+    const update = ({ transaction, ...overrides }: { transaction: TransactionModel } & Partial<UI_FORM_STRUCT>) =>
+      prepareTxUpdationParams({
+        form: {
+          ...buildBaseFormMock(transaction),
+          type: FORM_TYPES.expense,
+          account: getUahAccount() as AccountModel,
+          amount: transaction.amount,
+          toAccount: null,
+          targetAmount: null,
+          ...overrides,
+        },
+        transaction,
+        linkedTransaction: null,
+        isTransferTx: false,
+        isRecordExternal: false,
+        isCurrenciesDifferent: false,
+        isOriginalRefundsOverriden: false,
+      });
+
+    it('omits both fields when the form leaves them undefined', () => {
+      const result = update({ transaction: buildSystemExpenseTransaction() });
+
+      expect(result).not.toHaveProperty('externalUrl');
+      expect(result).not.toHaveProperty('externalReference');
+    });
+
+    it('sends null when a field holds only whitespace', () => {
+      const result = update({
+        transaction: buildSystemExpenseTransaction(),
+        externalUrl: '',
+        externalReference: '   ',
+      });
+
+      expect(result.externalUrl).toBeNull();
+      expect(result.externalReference).toBeNull();
+    });
+
+    it('trims the values it sends', () => {
+      const result = update({
+        transaction: buildSystemExpenseTransaction(),
+        externalUrl: ' https://x.example/1 ',
+        externalReference: ' REF-1 ',
+      });
+
+      expect(result.externalUrl).toBe('https://x.example/1');
+      expect(result.externalReference).toBe('REF-1');
+    });
+  });
 });

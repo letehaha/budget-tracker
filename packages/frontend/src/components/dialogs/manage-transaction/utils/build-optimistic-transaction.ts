@@ -36,6 +36,9 @@ export const buildOptimisticTransaction = ({
   const updatedTransaction: TransactionModel = {
     ...rawTransaction,
     note: form.note ?? '',
+    externalUrl: form.externalUrl === undefined ? rawTransaction.externalUrl : form.externalUrl.trim() || null,
+    externalReference:
+      form.externalReference === undefined ? rawTransaction.externalReference : form.externalReference.trim() || null,
     paymentType: form.paymentType!.value,
     isPlanned: resolveFormIsPlanned({ form }),
     updatedAt: new Date(),

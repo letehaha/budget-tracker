@@ -42,6 +42,8 @@ export const prepareTxCreationParams = ({
   const creationParams: Parameters<typeof createTransaction>[0] = {
     amount: amount!,
     note,
+    externalUrl: form.externalUrl?.trim() || undefined,
+    externalReference: form.externalReference?.trim() || undefined,
     time: time.toUTCString(),
     transactionType: getTxTypeFromFormType(formTxType),
     paymentType: paymentType!.value,

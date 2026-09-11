@@ -80,6 +80,7 @@ import {
   useUnlinkTransactions,
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
+import { useOptionalFields } from './composables/use-optional-fields';
 import { useTransactionTemplating } from './composables/use-transaction-templating';
 import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
 
@@ -167,6 +168,8 @@ const form = ref<UI_FORM_STRUCT>({
   time: new Date(),
   paymentType: VERBOSE_PAYMENT_TYPES.find((item) => item.value === PAYMENT_TYPES.creditCard) ?? null,
   note: undefined,
+  externalUrl: undefined,
+  externalReference: undefined,
   type: FORM_TYPES.expense,
   refundedByTxs: undefined,
   refundsTx: undefined,
@@ -946,12 +949,24 @@ const previouslyFocusedElement = ref(document.activeElement);
 
 const [DefineMoreOptions, ReuseMoreOptions] = createReusableTemplate();
 
+const { isEnabled: isOptionalFieldEnabled } = useOptionalFields();
+
+const showExternalUrl = computed(() => isOptionalFieldEnabled('externalUrl') || !!props.transaction?.externalUrl);
+const showExternalReference = computed(
+  () => isOptionalFieldEnabled('externalReference') || !!props.transaction?.externalReference,
+);
+const showOriginalAmount = computed(
+  () => isOptionalFieldEnabled('originalAmount') || props.transaction?.originalAmount != null,
+);
+
 // Mirrors the visibility conditions of the fields inside "More options" so the
 // mobile trigger never counts a field the drawer doesn't render. Payment type is
 // excluded – it's always preselected, so it carries no "user filled this" signal.
 const moreOptionsFilledCount = computed(() => {
   let count = 0;
   if (form.value.note?.trim()) count += 1;
+  if (form.value.externalUrl?.trim()) count += 1;
+  if (form.value.externalReference?.trim()) count += 1;
   if (!isLoanDestination.value && form.value.tagIds?.length) count += 1;
   if (!isTransferTx.value && form.value.originalAmount) count += 1;
   if (
@@ -1072,6 +1087,23 @@ onUnmounted(() => {
         :label="$t('dialogs.manageTransaction.form.noteLabel')"
       />
     </FormRow>
+    <FormRow v-if="showExternalUrl">
+      <InputField
+        v-model="form.externalUrl"
+        type="url"
+        :placeholder="$t('dialogs.manageTransaction.form.externalUrlPlaceholder')"
+        :disabled="isFormFieldsDisabled"
+        :label="$t('dialogs.manageTransaction.form.externalUrlLabel')"
+      />
+    </FormRow>
+    <FormRow v-if="showExternalReference">
+      <InputField
+        v-model="form.externalReference"
+        :placeholder="$t('dialogs.manageTransaction.form.externalReferencePlaceholder')"
+        :disabled="isFormFieldsDisabled"
+        :label="$t('dialogs.manageTransaction.form.externalReferenceLabel')"
+      />
+    </FormRow>
     <FormRow v-if="!isLoanDestination">
       <TagSelectField
         v-model="form.tagIds"
@@ -1079,7 +1111,7 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
       />
     </FormRow>
-    <FormRow v-if="!isTransferTx">
+    <FormRow v-if="!isTransferTx && showOriginalAmount">
       <AmountWithCurrencyField
         v-model:amount="form.originalAmount"
         v-model:currency="form.originalCurrency"

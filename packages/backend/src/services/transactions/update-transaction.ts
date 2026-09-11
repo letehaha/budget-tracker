@@ -184,6 +184,9 @@ const makeBasicBaseTxUpdation = async (
     amount: newData.amount !== undefined ? newData.amount : prevData.amount,
     refAmount: newData.amount !== undefined ? newData.amount : prevData.refAmount,
     note: newData.note,
+    externalUrl: newData.externalUrl,
+    externalReference: newData.externalReference,
+    location: newData.location,
     time: newData.time ?? prevData.time,
     // The where-clause filter on Transactions.update needs the *creator's* userId
     // (the row's actual `userId`), not the caller. They differ when a recipient
@@ -369,7 +372,19 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
   const [newData, prevData] = params;
   let [, , baseTransaction] = params;
 
-  const { userId, amount, destinationAmount, note, time, paymentType, destinationAccountId, categoryId } = newData;
+  const {
+    userId,
+    amount,
+    destinationAmount,
+    note,
+    externalUrl,
+    externalReference,
+    location,
+    time,
+    paymentType,
+    destinationAccountId,
+    categoryId,
+  } = newData;
 
   // Orphaned transfer leg: flagged as a transfer but `transferId` was cleared, so it has
   // no pair to update. Querying `findAll({ transferId: null })` would match every other
@@ -413,6 +428,9 @@ const updateTransferTransaction = async (params: HelperFunctionsArgs) => {
     transactionType: TRANSACTION_TYPES.income,
     accountId: destinationAccountId,
     note,
+    externalUrl,
+    externalReference,
+    location,
     time,
     paymentType,
     categoryId,

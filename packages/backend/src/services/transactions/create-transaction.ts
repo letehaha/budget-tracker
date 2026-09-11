@@ -308,6 +308,9 @@ export const createOppositeTransaction = async (params: CreateOppositeTransactio
     amount: destinationAmount,
     refAmount: oppositeRefAmount,
     note: baseTransaction.note,
+    externalUrl: baseTransaction.externalUrl,
+    externalReference: baseTransaction.externalReference,
+    location: baseTransaction.location,
     time: new Date(baseTransaction.time),
     transactionType:
       transactionType === TRANSACTION_TYPES.income ? TRANSACTION_TYPES.expense : TRANSACTION_TYPES.income,

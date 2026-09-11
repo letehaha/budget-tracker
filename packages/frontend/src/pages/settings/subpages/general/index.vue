@@ -118,6 +118,41 @@
             @update:model-value="handleShowUpcomingToggle"
           />
         </div>
+
+        <Separator />
+
+        <div class="flex flex-col gap-3">
+          <div>
+            <div class="text-sm font-medium">
+              {{ $t('settings.general.transactionFields.label') }}
+            </div>
+            <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+              {{ $t('settings.general.transactionFields.description') }}
+            </p>
+          </div>
+
+          <div class="divide-y rounded-md border">
+            <div
+              v-for="field in TRANSACTION_OPTIONAL_FIELDS"
+              :key="field"
+              class="flex items-center justify-between gap-4 px-4 py-3"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="text-sm font-medium">
+                  {{ $t(`settings.general.transactionFields.fields.${field}.label`) }}
+                </div>
+                <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                  {{ $t(`settings.general.transactionFields.fields.${field}.description`) }}
+                </p>
+              </div>
+              <Switch
+                :model-value="isOptionalFieldEnabled(field)"
+                :disabled="isOptionalFieldsUpdating || !userSettings"
+                @update:model-value="(value) => handleOptionalFieldToggle({ field, value })"
+              />
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   </div>
@@ -125,6 +160,7 @@
 
 <script setup lang="ts">
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { useOptionalFields } from '@/components/dialogs/manage-transaction/composables/use-optional-fields';
 import AccountSelectField from '@/components/fields/account-select-field.vue';
 import CategoryMultiSelectField from '@/components/fields/category-multi-select-field.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
@@ -134,7 +170,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { filterDropdownAccounts, useAccountDropdownPrefs } from '@/composable/use-account-dropdown-prefs';
 import { useAccountsStore } from '@/stores';
-import { AccountModel } from '@bt/shared/types';
+import { AccountModel, TRANSACTION_OPTIONAL_FIELDS, TransactionOptionalField } from '@bt/shared/types';
 import { useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
@@ -152,6 +188,12 @@ const {
   setShowArchivedInDropdowns,
   isUpdating: isDropdownPrefsUpdating,
 } = useAccountDropdownPrefs();
+
+const {
+  isEnabled: isOptionalFieldEnabled,
+  setEnabled: setOptionalField,
+  isUpdating: isOptionalFieldsUpdating,
+} = useOptionalFields();
 
 const includeCreditLimitInStats = computed(() => userSettings.value?.includeCreditLimitInStats ?? false);
 const matchTransfersWithManualAccounts = computed(() => userSettings.value?.matchTransfersWithManualAccounts ?? false);
@@ -240,6 +282,15 @@ const handleShowUpcomingToggle = async (value: boolean) => {
     addSuccessNotification(t('settings.general.showUpcomingTransactions.successNotification'));
   } catch {
     addErrorNotification(t('settings.general.showUpcomingTransactions.errorNotification'));
+  }
+};
+
+const handleOptionalFieldToggle = async ({ field, value }: { field: TransactionOptionalField; value: boolean }) => {
+  try {
+    await setOptionalField({ field, value });
+    addSuccessNotification(t('settings.general.transactionFields.successNotification'));
+  } catch {
+    addErrorNotification(t('settings.general.transactionFields.errorNotification'));
   }
 };
 </script>

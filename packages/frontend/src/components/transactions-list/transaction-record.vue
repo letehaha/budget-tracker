@@ -132,6 +132,23 @@
             <SplitIndicator :transaction="transaction" />
             <RefundIndicator :transaction="transaction" />
             <TagsIndicator :transaction="transaction" />
+            <ResponsiveTooltip
+              v-if="transaction.externalUrl"
+              :content="t('common.transactions.record.externalLinkTooltip')"
+              content-class-name="max-w-56"
+              :delay-duration="100"
+            >
+              <a
+                :href="transaction.externalUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                :aria-label="t('common.transactions.record.externalLinkTooltip')"
+                class="text-muted-foreground hover:text-foreground shrink-0"
+                @click.stop
+              >
+                <ExternalLinkIcon class="size-3.5" />
+              </a>
+            </ResponsiveTooltip>
           </div>
         </template>
         <span
@@ -201,7 +218,7 @@ import {
   TransactionModel,
 } from '@bt/shared/types';
 import { format } from 'date-fns';
-import { ArrowRight, BriefcaseIcon, InfoIcon, HandCoinsIcon, UsersIcon } from '@lucide/vue';
+import { ArrowRight, BriefcaseIcon, ExternalLinkIcon, InfoIcon, HandCoinsIcon, UsersIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';

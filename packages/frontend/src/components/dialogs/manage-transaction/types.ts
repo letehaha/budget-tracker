@@ -44,6 +44,8 @@ export interface UI_FORM_STRUCT {
   time: Date;
   paymentType: VerbosePaymentType | null;
   note?: string;
+  externalUrl?: string;
+  externalReference?: string;
   type: FORM_TYPES;
   targetAmount?: number | null;
   refundedByTxs: RefundedByAnotherTxs;

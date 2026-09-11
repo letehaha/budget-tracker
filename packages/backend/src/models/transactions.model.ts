@@ -12,6 +12,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionCreatorSnapshot,
+  TransactionLocation,
   TransactionModel,
 } from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
@@ -93,6 +94,9 @@ export interface TransactionsAttributes {
   /** Amount in user's base currency */
   refAmount: Money;
   note: string;
+  externalUrl: string | null;
+  externalReference: string | null;
+  location: TransactionLocation | null;
   time: Date;
   userId: number;
   transactionType: TRANSACTION_TYPES;
@@ -151,6 +155,15 @@ export default class Transactions extends Model {
   @Length({ max: 2000 })
   @Column({ allowNull: true, type: DataType.STRING })
   note!: string;
+
+  @Column({ allowNull: true, type: DataType.STRING(2048) })
+  externalUrl!: string | null;
+
+  @Column({ allowNull: true, type: DataType.STRING(255) })
+  externalReference!: string | null;
+
+  @Column({ allowNull: true, type: DataType.JSONB })
+  location!: TransactionLocation | null;
 
   @Column({
     defaultValue: Date.now(),
@@ -1291,6 +1304,9 @@ type CreateTxOptionalParams = Partial<
   Pick<
     TransactionsAttributes,
     | 'note'
+    | 'externalUrl'
+    | 'externalReference'
+    | 'location'
     | 'time'
     | 'categoryId'
     | 'refCurrencyCode'
@@ -1326,6 +1342,9 @@ export interface UpdateTransactionByIdParams {
   amount?: Money;
   refAmount?: Money;
   note?: string | null;
+  externalUrl?: string | null;
+  externalReference?: string | null;
+  location?: TransactionLocation | null;
   time?: Date;
   transactionType?: TRANSACTION_TYPES;
   paymentType?: PAYMENT_TYPES;

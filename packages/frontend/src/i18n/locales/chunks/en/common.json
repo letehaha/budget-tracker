@@ -146,6 +146,7 @@
       },
       "record": {
         "addedByTooltip": "This transaction was attached to the budget by {handle}",
+        "externalLinkTooltip": "Open external link",
         "hiddenAccount": "Hidden account"
       }
     },

@@ -7,6 +7,7 @@ import {
   MAX_CATEGORY_MAPPING_PRESETS,
   NOTIFICATION_TYPES,
   RecordId,
+  TRANSACTION_OPTIONAL_FIELDS,
   endpointsTypes,
   isCustomModelId,
 } from '@bt/shared/types';
@@ -181,11 +182,18 @@ const ZodTransactionsListSettingsSchema = z.object({
   hideUpcoming: z.boolean().optional(),
 });
 
+// Transaction-form-only preferences.
+const ZodTransactionFormSettingsSchema = z.object({
+  /** Optional form fields the user turned on. A field holding a value is shown regardless. */
+  optionalFields: z.array(z.enum(TRANSACTION_OPTIONAL_FIELDS)).optional(),
+});
+
 // UI-state preferences (table layouts, view modes). Functional settings keep
 // their own top-level keys; this namespace is only for presentation state.
 const ZodUiSettingsSchema = z.object({
   transactionsTable: ZodTransactionsTableSettingsSchema.optional(),
   transactionsList: ZodTransactionsListSettingsSchema.optional(),
+  transactionForm: ZodTransactionFormSettingsSchema.optional(),
   investmentTransactionsTable: ZodInvestmentTransactionsTableSettingsSchema.optional(),
 });
 
@@ -346,6 +354,11 @@ export const ZodSettingsPatchSchema = z.object({
       transactionsList: z
         .object({
           hideUpcoming: z.boolean().optional(),
+        })
+        .optional(),
+      transactionForm: z
+        .object({
+          optionalFields: z.array(z.enum(TRANSACTION_OPTIONAL_FIELDS)).optional(),
         })
         .optional(),
       investmentTransactionsTable: z
