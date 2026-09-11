@@ -186,6 +186,8 @@ const ZodTransactionsListSettingsSchema = z.object({
 const ZodTransactionFormSettingsSchema = z.object({
   /** Optional form fields the user turned on. A field holding a value is shown regardless. */
   optionalFields: z.array(z.enum(TRANSACTION_OPTIONAL_FIELDS)).optional(),
+  /** Whether the transaction form may load map tiles and address search from OpenStreetMap. */
+  mapPicker: z.boolean().optional(),
 });
 
 // UI-state preferences (table layouts, view modes). Functional settings keep
@@ -359,6 +361,7 @@ export const ZodSettingsPatchSchema = z.object({
       transactionForm: z
         .object({
           optionalFields: z.array(z.enum(TRANSACTION_OPTIONAL_FIELDS)).optional(),
+          mapPicker: z.boolean().optional(),
         })
         .optional(),
       investmentTransactionsTable: z

@@ -4,6 +4,7 @@ import { loadTransactionById } from '@/api/transactions';
 import { OUT_OF_WALLET_ACCOUNT_MOCK, VERBOSE_PAYMENT_TYPES, VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { getMaxLoanPayment, isLoanOverpayment, isLoanPaymentPreAnchor } from '@/common/utils/loan-payment';
 import { isHttpUrl } from '@/common/utils/external-url';
+import { roundCoordinate } from '@/common/utils/coordinates';
 import { buildMapUrl } from '@/common/utils/map-url';
 import { isMacPlatform } from '@/common/utils/platform';
 import { findFormattedCategoryById } from '@/stores/categories/helpers';
@@ -52,6 +53,7 @@ import {
   CornerDownLeftIcon,
   ExternalLinkIcon,
   LocateIcon,
+  MapIcon,
   MapPinIcon,
   SlidersHorizontalIcon,
   SplitIcon,
@@ -75,6 +77,7 @@ import VentureLinkedView from './components/venture-linked-view.vue';
 import MarkAsRefundField from './components/mark-as-refund/mark-as-refund-field.vue';
 import AmountWithCurrencyField from './components/amount-with-currency-field.vue';
 import LabelPill from './components/label-pill.vue';
+import LocationPickerDialog from './components/location-picker-dialog.vue';
 import SplitDialog from './components/split-dialog.vue';
 import TypeSelector from './components/type-selector.vue';
 import TemplateFormDialog from './components/templates/template-form-dialog.vue';
@@ -94,7 +97,9 @@ import {
   useUnlinkTransactions,
 } from './composables';
 import type { TransferDestinationType } from './composables/transfer-form';
+import { useMapPickerSetting } from './composables/use-map-picker-setting';
 import { useOptionalFields } from './composables/use-optional-fields';
+import { useReverseGeocodedLabel } from './composables/use-reverse-geocoded-label';
 import { resolveFormLocation } from './utils/resolve-form-location';
 import { useTransactionTemplating } from './composables/use-transaction-templating';
 import { usePayeeTagAutoApply } from '@/composable/use-payee-tag-auto-apply';
@@ -1043,8 +1048,8 @@ const useCurrentLocation = () => {
   isLocating.value = true;
   navigator.geolocation.getCurrentPosition(
     ({ coords }) => {
-      form.value.latitude = Number(coords.latitude.toFixed(6));
-      form.value.longitude = Number(coords.longitude.toFixed(6));
+      form.value.latitude = roundCoordinate({ value: coords.latitude });
+      form.value.longitude = roundCoordinate({ value: coords.longitude });
       isLocating.value = false;
     },
     (error) => {
@@ -1058,6 +1063,30 @@ const useCurrentLocation = () => {
 const clearLocation = () => {
   form.value.latitude = null;
   form.value.longitude = null;
+};
+
+const { enabled: isMapPickerEnabled } = useMapPickerSetting();
+const isLocationPickerOpen = ref(false);
+
+const { label: locationLabel, setKnownLabel: setKnownLocationLabel } = useReverseGeocodedLabel({
+  latitude: computed(() => form.value.latitude),
+  longitude: computed(() => form.value.longitude),
+  enabled: isMapPickerEnabled,
+});
+
+const applyPickedLocation = ({
+  latitude,
+  longitude,
+  label,
+}: {
+  latitude: number;
+  longitude: number;
+  label: string | null;
+}) => {
+  const rounded = { latitude: roundCoordinate({ value: latitude }), longitude: roundCoordinate({ value: longitude }) };
+  form.value.latitude = rounded.latitude;
+  form.value.longitude = rounded.longitude;
+  setKnownLocationLabel({ ...rounded, label });
 };
 
 // Mirrors the visibility conditions of the fields inside "More options" so the
@@ -1269,7 +1298,7 @@ onUnmounted(() => {
             </DesktopOnlyTooltip>
           </div>
         </template>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
           <InputField
             v-model="form.latitude"
             type="number"
@@ -1288,9 +1317,33 @@ onUnmounted(() => {
             :error-message="longitudeErrorMessage"
             @blur="touchField('form.longitude')"
           />
+          <DesktopOnlyTooltip :content="$t('dialogs.manageTransaction.form.location.pickOnMap')">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              class="size-10 shrink-0 md:size-9"
+              :disabled="isFormFieldsDisabled"
+              :aria-label="$t('dialogs.manageTransaction.form.location.pickOnMap')"
+              @click="isLocationPickerOpen = true"
+            >
+              <MapIcon class="size-4" />
+            </Button>
+          </DesktopOnlyTooltip>
+        </div>
+        <div v-if="locationLabel" class="text-muted-foreground mt-1.5 flex items-center gap-1 text-xs">
+          <MapPinIcon class="size-3 shrink-0" />
+          <span class="truncate">{{ locationLabel }}</span>
         </div>
       </FieldLabel>
     </FormRow>
+    <LocationPickerDialog
+      v-if="showLocation"
+      v-model:open="isLocationPickerOpen"
+      :latitude="form.latitude"
+      :longitude="form.longitude"
+      @select="applyPickedLocation"
+    />
     <FormRow v-if="!isLoanDestination">
       <TagSelectField
         v-model="form.tagIds"

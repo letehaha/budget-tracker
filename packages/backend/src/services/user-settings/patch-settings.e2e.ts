@@ -111,6 +111,20 @@ describe('Patch user settings', () => {
     expect((await helpers.getUserSettings({ raw: true })).ui?.transactionForm?.optionalFields).toStrictEqual([]);
   });
 
+  it('persists ui.transactionForm.mapPicker and rejects a non-boolean', async () => {
+    const patched = await helpers.patchUserSettings({
+      raw: true,
+      patch: { ui: { transactionForm: { mapPicker: true } } },
+    });
+    expect(patched.ui?.transactionForm?.mapPicker).toBe(true);
+
+    const rejected = await helpers.patchUserSettings({
+      patch: { ui: { transactionForm: { mapPicker: 'yes' } } },
+    });
+    expect(rejected.statusCode).toBe(ERROR_CODES.ValidationError);
+    expect((await helpers.getUserSettings({ raw: true })).ui?.transactionForm?.mapPicker).toBe(true);
+  });
+
   it('rejects a patch that would make settings invalid and keeps stored value intact', async () => {
     await helpers.updateUserSettings({ raw: true, settings: { locale: 'uk' } });
 

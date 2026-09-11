@@ -45,6 +45,8 @@ interface TransactionsListSettings {
 interface TransactionFormSettings {
   /** Optional form fields the user turned on. A field holding a value is shown regardless. */
   optionalFields?: TransactionOptionalField[];
+  /** Whether the transaction form may load map tiles and address search from OpenStreetMap. */
+  mapPicker?: boolean;
 }
 
 interface InvestmentTransactionsTableSettings {

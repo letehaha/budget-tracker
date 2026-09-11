@@ -151,6 +151,22 @@
                 @update:model-value="(value) => handleOptionalFieldToggle({ field, value })"
               />
             </div>
+
+            <div class="flex items-center justify-between gap-4 px-4 py-3">
+              <div class="min-w-0 flex-1">
+                <div class="text-sm font-medium">
+                  {{ $t('settings.general.transactionFields.mapPicker.label') }}
+                </div>
+                <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                  {{ $t('settings.general.transactionFields.mapPicker.description') }}
+                </p>
+              </div>
+              <Switch
+                :model-value="isMapPickerEnabled"
+                :disabled="isMapPickerUpdating || !userSettings"
+                @update:model-value="handleMapPickerToggle"
+              />
+            </div>
           </div>
         </div>
       </CardContent>
@@ -160,6 +176,7 @@
 
 <script setup lang="ts">
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { useMapPickerSetting } from '@/components/dialogs/manage-transaction/composables/use-map-picker-setting';
 import { useOptionalFields } from '@/components/dialogs/manage-transaction/composables/use-optional-fields';
 import AccountSelectField from '@/components/fields/account-select-field.vue';
 import CategoryMultiSelectField from '@/components/fields/category-multi-select-field.vue';
@@ -194,6 +211,12 @@ const {
   setEnabled: setOptionalField,
   isUpdating: isOptionalFieldsUpdating,
 } = useOptionalFields();
+
+const {
+  enabled: isMapPickerEnabled,
+  setEnabled: setMapPicker,
+  isUpdating: isMapPickerUpdating,
+} = useMapPickerSetting();
 
 const includeCreditLimitInStats = computed(() => userSettings.value?.includeCreditLimitInStats ?? false);
 const matchTransfersWithManualAccounts = computed(() => userSettings.value?.matchTransfersWithManualAccounts ?? false);
@@ -288,6 +311,15 @@ const handleShowUpcomingToggle = async (value: boolean) => {
 const handleOptionalFieldToggle = async ({ field, value }: { field: TransactionOptionalField; value: boolean }) => {
   try {
     await setOptionalField({ field, value });
+    addSuccessNotification(t('settings.general.transactionFields.successNotification'));
+  } catch {
+    addErrorNotification(t('settings.general.transactionFields.errorNotification'));
+  }
+};
+
+const handleMapPickerToggle = async (value: boolean) => {
+  try {
+    await setMapPicker({ value });
     addSuccessNotification(t('settings.general.transactionFields.successNotification'));
   } catch {
     addErrorNotification(t('settings.general.transactionFields.errorNotification'));

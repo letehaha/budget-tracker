@@ -118,7 +118,23 @@
           "longitudePlaceholder": "Longitude, e.g. 30.5234",
           "unsupported": "Your browser does not support geolocation",
           "denied": "Location access was denied. Allow it in your browser settings or enter coordinates manually",
-          "unavailable": "Could not determine your location. Try again or enter coordinates manually"
+          "unavailable": "Could not determine your location. Try again or enter coordinates manually",
+          "pickOnMap": "Pick on map",
+          "picker": {
+            "title": "Pick a location",
+            "searchPlaceholder": "Search address or place",
+            "noResults": "No places found",
+            "searchFailed": "Search is unavailable right now. Try again in a moment",
+            "confirm": "Use this location",
+            "loadFailed": "Could not load the map. Check your connection and try again",
+            "retry": "Try again",
+            "consent": {
+              "title": "Map tiles come from OpenStreetMap",
+              "description": "Opening the map and searching addresses sends requests to openstreetmap.org, which sees your IP address. You can turn this off later in Settings.",
+              "enable": "Enable map",
+              "failed": "Could not save the setting. Try again"
+            }
+          }
         },
         "tagsLabel": "Tags",
         "originalAmountLabel": "Original amount",
