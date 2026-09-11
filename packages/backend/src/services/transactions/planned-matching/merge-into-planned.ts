@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, type TransactionLocation } from '@bt/shared/types';
 import { Money } from '@common/types/money';
 import Transactions from '@models/transactions.model';
 import { calculateRefAmount } from '@services/calculate-ref-amount.service';
@@ -13,6 +13,9 @@ export interface IncomingTransactionData {
   cashbackAmount?: Money;
   accountType: ACCOUNT_TYPES;
   rawMerchantName?: string | null;
+  externalUrl?: string | null;
+  externalReference?: string | null;
+  location?: TransactionLocation | null;
 }
 
 const joinNotes = ({
@@ -85,6 +88,9 @@ export const mergeIntoPlanned = async ({
     originalId: incoming.originalId ?? null,
     accountType: incoming.accountType,
     note: joinNotes({ plannedNote: planned.note, bankNote: incoming.note }),
+    externalUrl: planned.externalUrl ?? incoming.externalUrl ?? null,
+    externalReference: planned.externalReference ?? incoming.externalReference ?? null,
+    location: planned.location ?? incoming.location ?? null,
     externalData: {
       ...incoming.externalData,
       plannedMerge: { mergedAt: new Date().toISOString() },

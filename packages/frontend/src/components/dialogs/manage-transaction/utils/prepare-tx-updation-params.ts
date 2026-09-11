@@ -20,6 +20,7 @@ import {
   resolveOriginalCurrencyPair,
 } from '../helpers';
 import { type FormSplit, UI_FORM_STRUCT } from '../types';
+import { resolveFormLocation } from './resolve-form-location';
 
 /**
  * Converts form splits to API split format for updates.
@@ -73,6 +74,13 @@ export const prepareTxUpdationParams = ({
   isOriginalRefundsOverriden: boolean;
 }) => {
   const { amount, note, time, type: formTxType, paymentType, account, category } = form;
+  // Untouched field stays out of the payload; an emptied one is sent as `null` to clear it.
+  const externalFields: Pick<Parameters<typeof editTransaction>[0], 'externalUrl' | 'externalReference' | 'location'> =
+    {};
+  if (form.externalUrl !== undefined) externalFields.externalUrl = form.externalUrl.trim() || null;
+  if (form.externalReference !== undefined) externalFields.externalReference = form.externalReference.trim() || null;
+  const location = resolveFormLocation(form);
+  if (location !== undefined) externalFields.location = location;
 
   const accountId = account?.id ?? undefined;
 
@@ -139,6 +147,7 @@ export const prepareTxUpdationParams = ({
     editionParams = {
       ...editionParams,
       note,
+      ...externalFields,
       paymentType: paymentType!.value,
       transferNature: TRANSACTION_TRANSFER_NATURE.not_transfer,
     };
@@ -147,6 +156,7 @@ export const prepareTxUpdationParams = ({
       ...editionParams,
       amount: Number(amount),
       note,
+      ...externalFields,
       time: time.toISOString(),
       transactionType: getTxTypeFromFormType(formTxType),
       paymentType: paymentType!.value,

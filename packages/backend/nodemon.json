@@ -1,5 +1,5 @@
 {
-  "watch": ["src"],
+  "watch": ["src", "../shared/src"],
   "ext": "ts,js,json",
   "ignore": ["src/i18n/locales/*.missing.json"],
   "exec": "ts-node ./src/app.ts --transpile-only"

@@ -2,6 +2,7 @@ import {
   AccountModel,
   CategoryModel,
   EntityLogoPayload,
+  TransactionLocation,
   TransactionModel,
   TransactionTemplateModel,
 } from './db-models';
@@ -95,6 +96,9 @@ export interface SplitInput {
 export interface CreateTransactionBody {
   amount: TransactionModel['amount'];
   note?: TransactionModel['note'];
+  externalUrl?: string;
+  externalReference?: string;
+  location?: TransactionLocation;
   time: string;
   transactionType: TransactionModel['transactionType'];
   paymentType: TransactionModel['paymentType'];
@@ -130,6 +134,10 @@ export interface UpdateTransactionBody {
   destinationAmount?: TransactionModel['amount'];
   destinationTransactionId?: TransactionModel['id'];
   note?: TransactionModel['note'];
+  /** `null` clears the field. */
+  externalUrl?: string | null;
+  externalReference?: string | null;
+  location?: TransactionLocation | null;
   time?: string;
   transactionType?: TransactionModel['transactionType'];
   paymentType?: TransactionModel['paymentType'];

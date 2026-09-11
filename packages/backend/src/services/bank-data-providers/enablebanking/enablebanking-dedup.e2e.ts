@@ -12,6 +12,8 @@ import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 import { FixedTransaction, MOCK_IDENTIFICATION_HASH_1 } from '@tests/mocks/enablebanking/data';
 
+import { ReferenceNumberScheme } from './types';
+
 /**
  * E2E tests for the Enable Banking transaction dedup improvements.
  *
@@ -1587,6 +1589,76 @@ describe('Enable Banking dedup improvements (E2E)', () => {
       for (const tx of txsAfter) {
         expect(tx.originalId).not.toBeNull();
       }
+    });
+  });
+
+  // ==========================================================================
+  // #9 — structured reference number
+  // ==========================================================================
+  describe('#9 reference_number', () => {
+    it('stores reference_number as externalReference', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        {
+          amount: '120.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-09-01',
+          entryReference: 'reference_structured',
+          remittanceInformation: ['Invoice structured'],
+          referenceNumber: { identification: 'RF18539007547034', scheme_name: ReferenceNumberScheme.SCOR },
+        },
+        {
+          amount: '35.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-09-02',
+          entryReference: 'reference_flattened',
+          remittanceInformation: ['Invoice flattened'],
+          referenceNumber: '  1234561  ',
+        },
+        {
+          amount: '18.00',
+          currency: 'EUR',
+          isExpense: true,
+          bookingDate: '2024-09-03',
+          entryReference: 'reference_absent',
+          remittanceInformation: ['No reference'],
+        },
+      ]);
+      const { accountId } = await setupConnectionWithAccount();
+
+      const byNote = new Map((await listTransactions({ accountId })).map((tx) => [tx.note, tx]));
+
+      expect(byNote.get('Invoice structured')!.externalReference).toBe('RF18539007547034');
+      expect(byNote.get('Invoice flattened')!.externalReference).toBe('1234561');
+      expect(byNote.get('No reference')!.externalReference).toBeNull();
+    });
+
+    it('backfills externalReference when the booked re-issue is the first payload carrying it', async () => {
+      const card = { currency: 'EUR', isExpense: true, counterpartyIban: null, amount: '42.00' } as const;
+      helpers.enablebanking.setFixedTransactions([
+        { ...card, status: 'PDNG', transactionDate: '2025-02-10', remittanceInformation: ['CARD PENDING'] },
+      ]);
+      const { connectionId, accountId } = await setupConnectionWithAccount();
+      const pendingTx = (await listTransactions({ accountId }))[0]!;
+      expect(pendingTx.externalReference).toBeNull();
+
+      helpers.enablebanking.setFixedTransactions([
+        {
+          ...card,
+          status: 'BOOK',
+          bookingDate: '2025-02-12',
+          remittanceInformation: ['CARD BOOKED'],
+          entryReference: 'booked_ref_042',
+          referenceNumber: 'RF7100042',
+        },
+      ]);
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const rows = await listTransactions({ accountId });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.id).toBe(pendingTx.id);
+      expect(rows[0]!.externalReference).toBe('RF7100042');
     });
   });
 });

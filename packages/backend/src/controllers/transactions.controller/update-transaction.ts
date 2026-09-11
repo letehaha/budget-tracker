@@ -7,13 +7,20 @@ import { serializeTransactionTuple } from '@root/serializers';
 import * as transactionsService from '@services/transactions';
 import { z } from 'zod';
 
-import { nonNegativeAmountSchema, positiveAmountSchema, splitSchema, transactionTimeSchema } from './schemas';
+import {
+  nonNegativeAmountSchema,
+  positiveAmountSchema,
+  splitSchema,
+  transactionDetailFieldsSchema,
+  transactionTimeSchema,
+} from './schemas';
 
 const bodyZodSchema = z
   .object({
     amount: nonNegativeAmountSchema().optional(),
     destinationAmount: positiveAmountSchema().optional(),
     note: z.string().max(1000, 'The string must not exceed 1000 characters.').nullish(),
+    ...transactionDetailFieldsSchema,
     time: transactionTimeSchema().optional(),
     transactionType: z.nativeEnum(TRANSACTION_TYPES).optional(),
     paymentType: z.nativeEnum(PAYMENT_TYPES).optional(),
@@ -128,6 +135,9 @@ export default createController(schema, async ({ user, params, body }) => {
     amount,
     destinationAmount,
     note,
+    externalUrl,
+    externalReference,
+    location,
     time,
     transactionType,
     paymentType,
@@ -164,6 +174,9 @@ export default createController(schema, async ({ user, params, body }) => {
       destinationAmount: destinationAmountAsMoney,
       destinationTransactionId,
       note,
+      externalUrl,
+      externalReference,
+      location,
       time: time ? new Date(time) : undefined,
       userId,
       transactionType,

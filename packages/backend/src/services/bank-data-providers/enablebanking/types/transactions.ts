@@ -89,8 +89,8 @@ export interface EnableBankingTransaction {
    */
   remittance_information?: string[];
 
-  /** Structured reference number */
-  reference_number?: ReferenceNumber;
+  /** Structured reference number. Some ASPSPs flatten it to a bare string. */
+  reference_number?: ReferenceNumber | string;
 
   /** Funds on the account after execution of the transaction */
   balance_after_transaction?: AmountType;

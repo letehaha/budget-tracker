@@ -28,3 +28,19 @@ export const splitSchema = z.object({
   amount: positiveAmountSchema(),
   note: z.string().max(100, 'Split note must not exceed 100 characters').nullish(),
 });
+
+export const transactionDetailFieldsSchema = {
+  externalUrl: z
+    .string()
+    .max(2048, 'The URL must not exceed 2048 characters.')
+    .url('Invalid URL')
+    .regex(/^https?:\/\//i, 'Only http(s) URLs are allowed')
+    .nullish(),
+  externalReference: z.string().max(255, 'The reference must not exceed 255 characters.').nullish(),
+  location: z
+    .object({
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+    })
+    .nullish(),
+};
