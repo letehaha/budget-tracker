@@ -132,41 +132,43 @@
           </div>
 
           <div class="divide-y rounded-md border">
-            <div
-              v-for="field in TRANSACTION_OPTIONAL_FIELDS"
-              :key="field"
-              class="flex items-center justify-between gap-4 px-4 py-3"
-            >
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-medium">
-                  {{ $t(`settings.general.transactionFields.fields.${field}.label`) }}
+            <template v-for="field in TRANSACTION_OPTIONAL_FIELDS" :key="field">
+              <div class="flex items-center justify-between gap-4 px-4 py-3">
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium">
+                    {{ $t(`settings.general.transactionFields.fields.${field}.label`) }}
+                  </div>
+                  <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    {{ $t(`settings.general.transactionFields.fields.${field}.description`) }}
+                  </p>
                 </div>
-                <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-                  {{ $t(`settings.general.transactionFields.fields.${field}.description`) }}
-                </p>
+                <Switch
+                  :model-value="isOptionalFieldEnabled(field)"
+                  :disabled="isOptionalFieldsUpdating || !userSettings"
+                  @update:model-value="(value) => handleOptionalFieldToggle({ field, value })"
+                />
               </div>
-              <Switch
-                :model-value="isOptionalFieldEnabled(field)"
-                :disabled="isOptionalFieldsUpdating || !userSettings"
-                @update:model-value="(value) => handleOptionalFieldToggle({ field, value })"
-              />
-            </div>
 
-            <div class="flex items-center justify-between gap-4 px-4 py-3">
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-medium">
-                  {{ $t('settings.general.transactionFields.mapPicker.label') }}
+              <div
+                v-if="field === 'location'"
+                class="flex items-center justify-between gap-4 py-3 pr-4 pl-8"
+                :class="{ 'opacity-60': !isOptionalFieldEnabled('location') }"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium">
+                    {{ $t('settings.general.transactionFields.mapPicker.label') }}
+                  </div>
+                  <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    {{ $t('settings.general.transactionFields.mapPicker.description') }}
+                  </p>
                 </div>
-                <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-                  {{ $t('settings.general.transactionFields.mapPicker.description') }}
-                </p>
+                <Switch
+                  :model-value="isMapPickerEnabled"
+                  :disabled="isMapPickerUpdating || !userSettings || !isOptionalFieldEnabled('location')"
+                  @update:model-value="handleMapPickerToggle"
+                />
               </div>
-              <Switch
-                :model-value="isMapPickerEnabled"
-                :disabled="isMapPickerUpdating || !userSettings"
-                @update:model-value="handleMapPickerToggle"
-              />
-            </div>
+            </template>
           </div>
         </div>
       </CardContent>
