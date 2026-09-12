@@ -1,4 +1,5 @@
-import { TRANSACTION_TYPES } from './enums';
+import type { TransactionModel } from './db-models';
+import { CATEGORIZATION_SOURCE, TRANSACTION_TYPES } from './enums';
 import { RecordId } from './record-id';
 
 export const AUTOMATION_TEXT_OPERATORS = [
@@ -78,21 +79,26 @@ export interface TransactionAutomationModel {
   updatedAt: string;
 }
 
-export interface AutomationPreviewMatch {
-  id: RecordId;
-  time: string;
-  note: string | null;
-  accountId: RecordId;
-  categoryId: RecordId;
-  amount: number;
-  currencyCode: string;
-  transactionType: TRANSACTION_TYPES;
-}
-
 export interface AutomationPreviewResult {
   matchedCount: number;
+  /** Matches left out of `matchedCount` because every action already holds on them. */
+  settledCount: number;
   scannedCount: number;
-  matches: AutomationPreviewMatch[];
+  matches: TransactionModel[];
+}
+
+/** Category stamps a rule never overwrites: the user picked the category, directly or through a subscription. */
+export const AUTOMATION_PROTECTED_CATEGORY_SOURCES: readonly CATEGORIZATION_SOURCE[] = [
+  CATEGORIZATION_SOURCE.manual,
+  CATEGORIZATION_SOURCE.subscriptionRule,
+];
+
+export interface AutomationApplyResult {
+  appliedCount: number;
+  /** Submitted ids that no longer matched at apply time, or whose every action was skipped. */
+  skippedIds: RecordId[];
+  /** Shared `categorizationMeta.categorizedAt` stamp of every row this run categorized. */
+  categorizedAt: string;
 }
 
 export const AUTOMATION_LIMITS = {
@@ -104,4 +110,12 @@ export const AUTOMATION_LIMITS = {
   maxActions: 4,
   maxNoteLength: 200,
   maxNameLength: 120,
+  /** Rows the review dialog can list and one apply call can write. */
+  maxApplyIds: 500,
+  /** Newest rows the retroactive scan evaluates; the inline preview keeps its own smaller cap. */
+  applyScanLimit: 5000,
+  /** Newest rows the inline preview of unsaved conditions evaluates. */
+  previewScanLimit: 1000,
+  /** Matches the inline preview lists when the caller states no `limit`. */
+  previewMatchLimit: 5,
 } as const;

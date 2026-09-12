@@ -5,12 +5,8 @@ import { computed, ref, triggerRef, watch } from 'vue';
 
 import { useShiftMultiSelect } from './shift-multi-select';
 
-/**
- * Why a row is locked out of bulk selection. Consumers compute it per row
- * (mirroring `isTransactionSelectable` + their `isExtraSelectable` predicate)
- * and rows render it as an explainer tooltip in place of the checkbox.
- */
-export type BulkUnselectableReason = 'split' | 'sharedAccount';
+/** Why a row is locked out of bulk selection; rows render it as an explainer tooltip in place of the checkbox. */
+export type BulkUnselectableReason = 'split' | 'sharedAccount' | 'protectedCategory';
 
 /**
  * Per-row bulk-selection eligibility shared by the transactions list and table.
@@ -28,8 +24,7 @@ export function useBulkSelectability() {
     return !share || share.isOwner;
   };
 
-  // Mirrors isTransactionSelectable (split rule) + isBulkSelectable, but says why —
-  // rows surface it as a tooltip in place of the checkbox.
+  // Covers the split and shared-account rules only; `protectedCategory` is supplied by callers.
   const getUnselectableReason = (tx: TransactionModel): BulkUnselectableReason | null => {
     if (tx.splits && tx.splits.length > 0) return 'split';
     if (!isBulkSelectable(tx)) return 'sharedAccount';

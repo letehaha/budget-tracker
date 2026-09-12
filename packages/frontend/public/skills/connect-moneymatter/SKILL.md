@@ -149,9 +149,9 @@ multi-currency data.
   does not appear in `search_transactions`.
 - Transaction automations are rules evaluated top to bottom by `position` on
   new transactions on bank-connected accounts or imported rows — never on
-  transfers, planned ones, or transactions on manual (non-bank) accounts, and
-  never retroactively on existing transactions. The first rule that applies an
-  action wins. Test conditions with `preview_transaction_automation` before
+  transfers, planned ones, or transactions on manual (non-bank) accounts. Existing
+  transactions change only when the user runs "Apply to past transactions" for a
+  saved rule in the app. The first rule that applies an action wins. Test conditions with `preview_transaction_automation` before
   saving a rule, and pass the full current id set to
   `reorder_transaction_automations`.
 - Portfolio queries are gated by `portfolioId`. Call `get_portfolios` first

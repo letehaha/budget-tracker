@@ -21,7 +21,7 @@
           <ResponsiveTooltip
             v-else-if="unselectableReason"
             :delay-duration="100"
-            :content="$t(`transactions.bulkEdit.unselectableReasons.${unselectableReason}`)"
+            :content="$t(`common.transactions.record.unselectableReasons.${unselectableReason}`)"
             content-class-name="max-w-56"
           >
             <InfoIcon class="text-muted-foreground size-3.5 cursor-help" />

@@ -142,7 +142,19 @@ export const reorderAutomationsBodySchema = z.object({
   ids: uniqueRecordIds({ max: AUTOMATION_LIMITS.maxRules }),
 });
 
-export const previewAutomationBodySchema = z.object({ conditions: conditionsSchema });
+export const previewAutomationBodySchema = z
+  .object({
+    conditions: conditionsSchema.optional(),
+    automationId: recordId().optional(),
+    limit: z.number().int().min(1).max(AUTOMATION_LIMITS.maxApplyIds).optional(),
+  })
+  .refine(({ conditions, automationId }) => Boolean(conditions) !== Boolean(automationId), {
+    message: 'Provide exactly one of conditions or automationId',
+  });
+
+export const applyAutomationBodySchema = z.object({
+  transactionIds: uniqueRecordIds({ min: 1, max: AUTOMATION_LIMITS.maxApplyIds }),
+});
 
 /**
  * Drift guard: the schema must infer exactly the shared contract. `transactionType` is

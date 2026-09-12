@@ -69,11 +69,13 @@ describe('isAutomationEligible', () => {
 });
 
 describe('buildEligibilityWhere', () => {
-  it('carries the trigger axis of its predicate twin', () => {
+  it('carries the trigger axis of its predicate twin and drops split parents', () => {
     const bankAccountIds = [generateRandomRecordId(), generateRandomRecordId()];
-    const [accountClause, importClause] = buildEligibilityWhere({ bankAccountIds })[Op.or];
+    const [eligibility, noSplits] = buildEligibilityWhere({ bankAccountIds })[Op.and];
+    const [accountClause, importClause] = eligibility?.[Op.or] ?? [];
 
     expect(accountClause).toEqual({ accountId: { [Op.in]: bankAccountIds } });
     expect((importClause as ReturnType<typeof literal>).val).toContain(`"externalData"->'importDetails' IS NOT NULL`);
+    expect((noSplits as ReturnType<typeof literal>).val).toContain('NOT EXISTS (SELECT 1 FROM "TransactionSplits"');
   });
 });

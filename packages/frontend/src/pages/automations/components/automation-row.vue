@@ -9,7 +9,7 @@ import { isApiErrorWithCode } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { ROUTES_NAMES } from '@/routes';
 import { API_ERROR_CODES, type TransactionAutomationModel } from '@bt/shared/types';
-import { ArrowRightIcon, GripVerticalIcon, MoreVerticalIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
+import { ArrowRightIcon, GripVerticalIcon, HistoryIcon, MoreVerticalIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -24,8 +24,9 @@ const props = defineProps<{
   position?: number;
   density: AutomationDensity;
   reorderable: boolean;
+  selectable?: boolean;
 }>();
-const emit = defineEmits<{ delete: [] }>();
+const emit = defineEmits<{ delete: []; apply: []; select: [] }>();
 
 const { t } = useI18n();
 const router = useRouter();
@@ -98,9 +99,12 @@ const toggleEnabled = (isEnabled: boolean) => {
   );
 };
 
-const handleMenuAction = ({ close, action }: { close: () => void; action: 'edit' | 'delete' }) => {
+const activate = () => (props.selectable ? emit('select') : openEditor());
+
+const handleMenuAction = ({ close, action }: { close: () => void; action: 'edit' | 'apply' | 'delete' }) => {
   close();
   if (action === 'edit') openEditor();
+  else if (action === 'apply') emit('apply');
   else emit('delete');
 };
 </script>
@@ -111,9 +115,9 @@ const handleMenuAction = ({ close, action }: { close: () => void; action: 'edit'
     :class="density === 'compact' ? 'py-1.5' : 'py-3'"
     role="button"
     tabindex="0"
-    @click="openEditor"
-    @keydown.enter.self="openEditor"
-    @keydown.space.self.prevent="openEditor"
+    @click="activate"
+    @keydown.enter.self="activate"
+    @keydown.space.self.prevent="activate"
   >
     <div class="-ml-3 flex w-8 shrink-0 flex-col self-stretch" :class="density === 'compact' ? '-my-1.5' : '-my-3'">
       <span
@@ -123,6 +127,7 @@ const handleMenuAction = ({ close, action }: { close: () => void; action: 'edit'
         {{ position ?? '·' }}
       </span>
       <DesktopOnlyTooltip
+        v-if="!selectable"
         :content="reorderable ? $t('automations.dragHint') : $t('automations.reorderDisabledFiltered')"
       >
         <span
@@ -157,6 +162,7 @@ const handleMenuAction = ({ close, action }: { close: () => void; action: 'edit'
         </div>
 
         <Switch
+          v-if="!selectable"
           class="mt-0.5 shrink-0"
           :model-value="rule.isEnabled"
           :aria-label="$t('automations.toggleAriaLabel')"
@@ -164,7 +170,7 @@ const handleMenuAction = ({ close, action }: { close: () => void; action: 'edit'
           @update:model-value="toggleEnabled"
         />
 
-        <div @click.stop>
+        <div v-if="!selectable" @click.stop>
           <DesktopOnlyTooltip :content="$t('automations.menuAriaLabel')">
             <span class="inline-flex">
               <ResponsiveMenu v-model:open="isMenuOpen">
@@ -183,6 +189,15 @@ const handleMenuAction = ({ close, action }: { close: () => void; action: 'edit'
                   >
                     <PencilIcon class="size-4" />
                     {{ $t('common.actions.edit') }}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="w-full justify-start gap-2"
+                    @click="handleMenuAction({ close, action: 'apply' })"
+                  >
+                    <HistoryIcon class="size-4" />
+                    {{ $t('automations.applyToHistory.trigger') }}
                   </Button>
                   <Button
                     variant="ghost"
