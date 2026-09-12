@@ -184,14 +184,16 @@ For each selected account:
     - Link to connection
     - Balance, currency, metadata
        ↓
-Trigger transaction sync for each account
+Enqueue the initial transaction sync on the `account-sync` queue
        ↓
-Return created accounts
+Return created accounts (sync still running in the background)
 ```
 
 **Key file:** `connection/connect-selected-accounts.ts`
 
 This is where accounts are actually created with proper `refInitialBalance` and `refCurrentBalance` calculations.
+
+The response returns as soon as account creation commits — a first backfill can run for minutes. Clients poll `GET /sync/status` for per-account progress.
 
 ---
 
@@ -316,16 +318,22 @@ POST /sync/trigger (or scheduled trigger)
        ↓
 syncAllUserAccounts()
        ↓
-Fetch all user's bank-connected accounts
+Fetch all user's bank-connected accounts, grouped by connection
        ↓
-Set all to QUEUED
+enqueueAccountSync() per connection: accounts set to QUEUED, jobs added
        ↓
-Schedule via Bottleneck (max 5 concurrent)
-       ↓
-Each account syncs independently
+`account-sync` BullMQ worker (concurrency 5) picks jobs up
        ↓
 Frontend polls GET /sync/status for progress
 ```
+
+One job per account, except batch-capable providers (SimpleFIN), which get one
+job per connection so a single windowed fetch covers every account. Monobank's
+job fans out into its own rate-limited queue. Job ids are deterministic
+(`account-sync-<accountId>` / `account-sync-<connectionId>`), so re-triggering a
+sync that is still queued or running is a no-op.
+
+**Key file:** `sync/account-sync-queue.ts`
 
 ---
 

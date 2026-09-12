@@ -581,7 +581,7 @@ const accountsStatValue = computed(() => {
   });
 });
 
-const { accountStatuses } = useSyncStatus();
+const { accountStatuses, watchSync } = useSyncStatus();
 
 const connectionAccountIds = computed(() => new Set((connectionDetails.value?.accounts ?? []).map((a) => a.id)));
 
@@ -631,6 +631,7 @@ const { mutate: syncAccountsMutation, isPending: isSyncingAccounts } = useMutati
     currencyOverrides: Record<string, string>;
   }) => syncSelectedAccounts(connectionId.value, externalIds, currencyOverrides),
   onSuccess: () => {
+    void watchSync();
     addSuccessNotification(t('pages.integrations.notifications.connectAccountsSuccess'));
     queryClient.invalidateQueries({
       predicate: (query) => {

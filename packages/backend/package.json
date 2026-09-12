@@ -42,7 +42,6 @@
     "bcryptjs": "3.0.2",
     "better-auth": "^1.6.30",
     "big.js": "^7.0.1",
-    "bottleneck": "^2.19.5",
     "bullmq": "^5.63.0",
     "cls-hooked": "^4.2.2",
     "cors": "2.8.5",

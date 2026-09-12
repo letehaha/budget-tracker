@@ -21,7 +21,7 @@ import { withTransaction } from '@root/services/common/with-transaction';
 import { addUserCurrencies } from '@services/currencies/add-user-currency';
 
 import { bankProviderRegistry } from '../registry';
-import { syncTransactionsForAccount } from './sync-transactions-for-account';
+import { enqueueAccountSync } from '../sync/account-sync-queue';
 
 const PROVIDER_TO_ANALYTICS_TYPE: Record<BANK_PROVIDER_TYPE, BankProvider> = {
   [BANK_PROVIDER_TYPE.MONOBANK]: 'monobank',
@@ -256,9 +256,12 @@ const createAccountsForConnection = withTransaction(
 );
 
 /**
- * Connect selected external accounts and trigger initial transaction sync.
- * Account creation is transactional; sync happens after commit so failures
- * don't roll back account creation.
+ * Connect selected external accounts and queue their initial transaction sync.
+ * Account creation is transactional and the response returns as soon as it
+ * commits. The sync itself runs on the `account-sync` BullMQ queue: a first
+ * backfill can run for minutes and reverse proxies cut the request off with a
+ * 504 after ~60s. Clients follow per-account sync status (QUEUED → SYNCING →
+ * COMPLETED/FAILED) instead.
  */
 export const connectSelectedAccounts = async ({
   connectionId,
@@ -271,7 +274,6 @@ export const connectSelectedAccounts = async ({
   accountExternalIds: string[];
   currencyOverrides?: Record<string, string>;
 }): Promise<Accounts[]> => {
-  // Step 1: Create accounts in a transaction
   const createdAccounts = await createAccountsForConnection({
     connectionId,
     userId,
@@ -279,12 +281,7 @@ export const connectSelectedAccounts = async ({
     currencyOverrides,
   });
 
-  // Step 2: Trigger initial sync AFTER the transaction commits.
-  // Sync errors do NOT roll back account creation — the accounts persist with
-  // their per-account sync status set to FAILED by the provider — but they DO
-  // propagate so the client can show a toast and the user knows to retry.
   const connection = await BankDataProviderConnections.findByPk(connectionId);
-  const provider = connection ? bankProviderRegistry.get(connection.providerType as BANK_PROVIDER_TYPE) : null;
 
   // Logging post-commit keeps rolled-back link attempts from emitting phantom
   // account ids, and covers re-linked accounts, which keep their prior balance.
@@ -302,50 +299,19 @@ export const connectSelectedAccounts = async ({
     });
   }
 
-  const syncErrors: Error[] = [];
-
-  if (provider && typeof provider.syncConnectionAccounts === 'function') {
-    // Batch-capable provider (e.g. SimpleFIN): one windowed fetch per connection
-    // covering every selected account, instead of a per-account fan-out.
-    try {
-      await provider.syncConnectionAccounts({
-        connectionId,
-        userId,
-        systemAccountIds: createdAccounts.map((account) => account.id),
-      });
-    } catch (error) {
-      logger.error({
-        message: `[connectSelectedAccounts] Initial batched sync failed for connection ${connectionId}`,
-        error: error as Error,
-      });
-      syncErrors.push(error as Error);
-    }
-  } else {
-    // Continue the loop even when one account fails so the others still get a
-    // shot at syncing — collect errors and report aggregated failure at the end.
-    for (const account of createdAccounts) {
-      try {
-        await syncTransactionsForAccount({
-          connectionId,
-          userId,
-          accountId: account.id,
-        });
-      } catch (error) {
-        logger.error({
-          message: `[connectSelectedAccounts] Initial transaction sync failed for account ${account.id}`,
-          error: error as Error,
-        });
-        syncErrors.push(error as Error);
-      }
-    }
+  if (!connection) {
+    throw new NotFoundError({
+      message: t({ key: 'errors.connectionNotFound' }),
+      code: API_ERROR_CODES.notFound,
+    });
   }
 
-  if (syncErrors.length > 0) {
-    // Throwing AFTER account creation + status updates lets the API caller
-    // surface the failure (toast/notification) while the persisted accounts
-    // and their FAILED sync status remain in place for a retry.
-    throw syncErrors[0];
-  }
+  await enqueueAccountSync({
+    userId,
+    connectionId: connection.id,
+    providerType: connection.providerType,
+    accountIds: createdAccounts.map((account) => account.id),
+  });
 
   return createdAccounts;
 };
