@@ -1,5 +1,6 @@
 import { logger } from '@js/utils/logger';
 import { shutdownPostHog } from '@js/utils/posthog';
+import { accountSyncWorker } from '@services/bank-data-providers/sync/account-sync-queue';
 
 import { balanceRevalueSweepCron } from './crons/balance-revalue-sweep';
 import { cryptoPricesSyncCron } from './crons/crypto-prices-sync';
@@ -61,6 +62,7 @@ export async function shutdownBackgroundJobs() {
   purgeDeletedPortfoliosCron.stopCron();
   balanceRevalueSweepCron.stopCron();
   loadCurrencyRatesJob.stop();
+  await accountSyncWorker.close();
   // Flush remaining PostHog events before exit
   await shutdownPostHog();
 }

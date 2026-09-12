@@ -6,6 +6,7 @@ import * as getConnectionDetailsService from '@services/bank-data-providers/conn
 import * as listUserConnectionsService from '@services/bank-data-providers/connection/list-user-connections';
 import * as reconcileDuplicatesService from '@services/bank-data-providers/connection/reconcile-duplicates-for-account';
 import { listSupportedProviders } from '@services/bank-data-providers/list-supported-providers.service';
+import type * as getUserAccountsSyncStatusService from '@services/bank-data-providers/sync/get-user-sync-status';
 
 import { MakeRequestReturn, UtilizeReturnType, makeRequest } from './common';
 
@@ -79,18 +80,49 @@ export function listExternalAccounts<R extends boolean | undefined = false>({
   });
 }
 
-export function connectSelectedAccounts<R extends boolean | undefined = false>({
+export type SyncStatusResponse = Awaited<ReturnType<typeof getUserAccountsSyncStatusService.getUserAccountsSyncStatus>>;
+
+export function getAccountsSyncStatus<R extends boolean | undefined = false>({ raw }: { raw?: R } = {}) {
+  return makeRequest<SyncStatusResponse, R>({
+    method: 'get',
+    url: '/bank-data-providers/sync/status',
+    raw,
+  });
+}
+
+/**
+ * Polls /sync/status until no account is queued or syncing. The connect
+ * endpoint returns before the initial sync finishes, so tests that inspect
+ * synced transactions right after connecting need this.
+ */
+export async function waitForAccountsSyncToSettle({
+  timeoutMs = 30000,
+  pollIntervalMs = 200,
+}: { timeoutMs?: number; pollIntervalMs?: number } = {}): Promise<void> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeoutMs) {
+    const { summary } = await getAccountsSyncStatus({ raw: true });
+    if (summary.queued + summary.syncing === 0) return;
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+  throw new Error(`Account sync did not settle within ${timeoutMs}ms`);
+}
+
+export async function connectSelectedAccounts<R extends boolean | undefined = false>({
   connectionId,
   accountExternalIds,
   currencyOverrides,
   raw,
+  waitForSync = true,
 }: {
   connectionId: string;
   accountExternalIds: string[];
   currencyOverrides?: Record<string, string>;
   raw?: R;
+  /** Pass false to assert on the in-progress sync state right after connecting. */
+  waitForSync?: boolean;
 }) {
-  return makeRequest<
+  const result = await makeRequest<
     {
       syncedAccounts: {
         id: RecordId;
@@ -111,6 +143,10 @@ export function connectSelectedAccounts<R extends boolean | undefined = false>({
     },
     raw,
   });
+
+  if (waitForSync) await waitForAccountsSyncToSettle();
+
+  return result;
 }
 
 export function syncTransactionsForAccount<R extends boolean | undefined = false>({
@@ -324,4 +360,6 @@ export default {
   reconcileDuplicates,
   getSyncJobProgress,
   waitForSyncJobsToComplete,
+  waitForAccountsSyncToSettle,
+  getAccountsSyncStatus,
 };

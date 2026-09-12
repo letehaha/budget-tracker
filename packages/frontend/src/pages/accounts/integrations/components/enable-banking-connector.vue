@@ -235,6 +235,7 @@ import InputField from '@/components/fields/input-field.vue';
 import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { TriangleAlertIcon } from '@lucide/vue';
@@ -256,6 +257,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { watchSync } = useSyncStatus();
 const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
@@ -420,6 +422,8 @@ const handleSyncAccounts = async () => {
     isLoading.value = true;
 
     await syncSelectedAccounts(connectionId.value, selectedAccountIds.value, currencyOverrides.value);
+    // Follow the server-side initial sync in the header without re-triggering it.
+    void watchSync();
 
     // Refresh accounts store
     await accountsStore.refetchAccounts();

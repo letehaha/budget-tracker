@@ -46,7 +46,7 @@ import type { YnabParseAccount } from '@bt/shared/types';
 import AccountPickRow from './account-pick-row.vue';
 import EmptyList from './empty-list.vue';
 import type { CurrencyOption } from './preview-step.vue';
-import VirtualList from './virtual-list.vue';
+import VirtualList from '@/components/common/virtual-list.vue';
 
 defineProps<{
   accounts: YnabParseAccount[];

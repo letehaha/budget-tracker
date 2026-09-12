@@ -150,6 +150,7 @@ import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Tooltip from '@/components/lib/ui/tooltip';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { BuildingIcon, ExternalLinkIcon, InfoIcon } from '@lucide/vue';
@@ -172,6 +173,7 @@ const emit = defineEmits<{
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { watchSync } = useSyncStatus();
 const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
@@ -221,6 +223,8 @@ const handleImportAccounts = async () => {
 
     const allAccountIds = availableAccounts.value.map((a) => a.externalId);
     await syncSelectedAccounts(connectionId.value, allAccountIds);
+    // Follow the server-side initial sync in the header without re-triggering it.
+    void watchSync();
 
     await accountsStore.refetchAccounts();
 

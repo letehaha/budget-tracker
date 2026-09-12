@@ -6,6 +6,6 @@ import { z } from 'zod';
 const schema = z.object({ body: previewAutomationBodySchema });
 
 export default createController(schema, async ({ user, body }) => {
-  const data = await previewAutomation({ userId: user.id, conditions: body.conditions });
+  const data = await previewAutomation({ userId: user.id, ...body });
   return { data };
 });

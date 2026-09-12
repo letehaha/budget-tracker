@@ -127,6 +127,7 @@ import TextareaField from '@/components/fields/textarea-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Checkbox, type CheckedState } from '@/components/lib/ui/checkbox';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
@@ -145,6 +146,7 @@ const emit = defineEmits<{
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { watchSync } = useSyncStatus();
 const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
@@ -223,6 +225,8 @@ const handleImport = async () => {
     isLoading.value = true;
 
     await syncSelectedAccounts(connectionId.value, [...selectedIds.value]);
+    // Follow the server-side initial sync in the header without re-triggering it.
+    void watchSync();
 
     await accountsStore.refetchAccounts();
 

@@ -1,4 +1,5 @@
 import {
+  applyAutomationToHistory,
   createTransactionAutomation,
   deleteTransactionAutomation,
   loadTransactionAutomations,
@@ -6,7 +7,7 @@ import {
   reorderTransactionAutomations,
   updateTransactionAutomation,
 } from '@/api/transaction-automations';
-import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS } from '@/common/const';
+import { QUERY_CACHE_STALE_TIME, VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import type { TransactionAutomationModel } from '@bt/shared/types';
 import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { type MaybeRefOrGetter, computed, toValue } from 'vue';
@@ -114,3 +115,19 @@ export const useReorderAutomations = () => {
 };
 
 export const usePreviewAutomation = () => useMutation({ mutationFn: previewTransactionAutomation });
+
+export const useApplyAutomationToHistory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: applyAutomationToHistory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
+      // set_payee/set_category writes move every payee stat the dropdowns order by.
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesList });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesLookup });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeesByAccount });
+      queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.payeeById });
+    },
+  });
+};

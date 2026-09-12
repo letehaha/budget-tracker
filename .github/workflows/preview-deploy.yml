@@ -371,6 +371,8 @@ jobs:
           name: shard-status-${{ matrix.shardIndex }}
           path: shard-status/
           retention-days: 7
+          # Re-runs must replace the failed attempt's artifact, or the report job reads stale statuses.
+          overwrite: true
 
       - name: Upload test report
         if: always()
@@ -379,6 +381,8 @@ jobs:
           name: playwright-report-pr-${{ env.PR_NUMBER }}-shard-${{ matrix.shardIndex }}
           path: packages/frontend/playwright-report/
           retention-days: 7
+          # Re-runs must replace the failed attempt's artifact, or the report job reads stale statuses.
+          overwrite: true
 
       - name: Fail if real test failures
         if: steps.playwright.outcome == 'failure' && steps.teardown-check.outputs.teardown_detected != 'true'

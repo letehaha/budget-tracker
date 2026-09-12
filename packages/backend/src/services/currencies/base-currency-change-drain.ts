@@ -7,6 +7,7 @@ import {
   refreshMonobankBundleDiscovery,
   removePendingJobsForUser,
 } from '@services/bank-data-providers/monobank/transaction-sync-queue';
+import { countUnfinishedAccountSyncJobsForUser } from '@services/bank-data-providers/sync/account-sync-queue';
 import {
   SyncStatus,
   getMultipleAccountsSyncStatus,
@@ -63,8 +64,8 @@ async function hasAccountMidSync({ userId }: { userId: number }): Promise<boolea
  *
  * Bulk-removes the user's not-yet-started monobank batches up front so the drain
  * doesn't wait one-per-60s for the rate limiter to release them, then polls every
- * few seconds for: monobank batches (active + waiting + delayed), active import
- * jobs, and any bank account the direct-provider syncs left QUEUED/SYNCING. On
+ * few seconds for: monobank batches and account-sync jobs (active + waiting +
+ * delayed), active import jobs, and any bank account left QUEUED/SYNCING. On
  * timeout it throws — nothing has been mutated and the worker's `finally` releases
  * the lock, so the user simply retries.
  */
@@ -98,8 +99,9 @@ export async function drainUserWriters({ userId }: { userId: number }): Promise<
   const deadline = Date.now() + TIMEOUT_MS;
 
   while (Date.now() < deadline) {
-    const [monobankPending, activeImports, midSync] = await Promise.all([
+    const [monobankPending, accountSyncPending, activeImports, midSync] = await Promise.all([
       countUnfinishedMonobankJobsForUser({ userId }),
+      countUnfinishedAccountSyncJobsForUser({ userId }),
       countActiveImportJobsForUser({ userId }),
       hasAccountMidSync({ userId }),
     ]);
@@ -119,7 +121,7 @@ export async function drainUserWriters({ userId }: { userId: number }): Promise<
       orphanedAccountIds.clear();
     }
 
-    if (monobankPending === 0 && activeImports === 0 && !midSync) {
+    if (monobankPending === 0 && accountSyncPending === 0 && activeImports === 0 && !midSync) {
       // Fixed grace so in-flight HTTP writes / cron iterations that already passed
       // their lock check commit before the recalc snapshots rows.
       await sleep(GRACE_MS);
