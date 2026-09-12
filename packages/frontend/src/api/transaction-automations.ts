@@ -1,6 +1,7 @@
 import { api } from '@/api/_api';
 import type {
   AutomationAction,
+  AutomationApplyResult,
   AutomationConditions,
   AutomationPreviewResult,
   RecordId,
@@ -41,6 +42,18 @@ export const reorderTransactionAutomations = async ({
 
 export const previewTransactionAutomation = async ({
   conditions,
+  automationId,
+  limit,
 }: {
-  conditions: AutomationConditions;
-}): Promise<AutomationPreviewResult> => api.post('/automations/preview', { conditions });
+  conditions?: AutomationConditions;
+  automationId?: RecordId;
+  limit?: number;
+}): Promise<AutomationPreviewResult> => api.post('/automations/preview', { conditions, automationId, limit });
+
+export const applyAutomationToHistory = async ({
+  id,
+  transactionIds,
+}: {
+  id: RecordId;
+  transactionIds: RecordId[];
+}): Promise<AutomationApplyResult> => api.post(`/automations/${id}/apply`, { transactionIds });

@@ -1,4 +1,8 @@
-import { type AutomationNoteMode, CATEGORIZATION_SOURCE } from '@bt/shared/types';
+import {
+  AUTOMATION_PROTECTED_CATEGORY_SOURCES,
+  type AutomationNoteMode,
+  CATEGORIZATION_SOURCE,
+} from '@bt/shared/types';
 import TransactionAutomations from '@models/transaction-automations.model';
 import TransactionTags from '@models/transaction-tags.model';
 import * as Transactions from '@models/transactions.model';
@@ -30,18 +34,22 @@ export const applyActions = async ({
   rule,
   userId,
   skipSetCategory,
+  categorizedAt = new Date().toISOString(),
 }: {
   transaction: Transactions.default;
   rule: TransactionAutomations;
   userId: number;
   skipSetCategory: boolean;
+  /** Shared stamp so every row of one bulk run carries the same `categorizedAt`. */
+  categorizedAt?: string;
 }): Promise<boolean> => {
   let applied = false;
 
   for (const action of rule.actions) {
     switch (action.type) {
       case 'set_category': {
-        if (skipSetCategory || transaction.categorizationMeta?.source === CATEGORIZATION_SOURCE.subscriptionRule) {
+        const source = transaction.categorizationMeta?.source;
+        if (skipSetCategory || (source && AUTOMATION_PROTECTED_CATEGORY_SOURCES.includes(source))) {
           continue;
         }
 
@@ -52,7 +60,7 @@ export const applyActions = async ({
           categorizationMeta: {
             source: CATEGORIZATION_SOURCE.userRule,
             ruleId: rule.id,
-            categorizedAt: new Date().toISOString(),
+            categorizedAt,
           },
         });
         break;

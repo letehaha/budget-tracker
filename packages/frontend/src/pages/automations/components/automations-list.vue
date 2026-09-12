@@ -17,7 +17,7 @@ const props = defineProps<{
   density: AutomationDensity;
   reorderable: boolean;
 }>();
-const emit = defineEmits<{ delete: [rule: TransactionAutomationModel] }>();
+const emit = defineEmits<{ delete: [rule: TransactionAutomationModel]; apply: [rule: TransactionAutomationModel] }>();
 
 const { t } = useI18n();
 const { addErrorNotification } = useNotificationCenter();
@@ -65,6 +65,7 @@ const draggableRules = computed({
       :density="density"
       :reorderable="reorderable"
       @delete="emit('delete', rule)"
+      @apply="emit('apply', rule)"
     />
   </VueDraggable>
 </template>
