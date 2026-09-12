@@ -14,7 +14,7 @@ export function registerPreviewTransactionAutomation(server: McpServer) {
     'preview_transaction_automation',
     {
       description:
-        'Dry-run a set of automation conditions against up to the last 1000 eligible existing transactions and return { matchedCount, scannedCount, matches } where matches is capped at 5 sample transactions. Nothing is modified. Use it to sanity-check conditions before create_transaction_automation or update_transaction_automation. Note that a live automation only fires for newly synced or imported bank transactions that are not transfers and not planned, so it never changes the existing transactions listed here.',
+        'Dry-run a set of automation conditions against up to the last 1000 eligible existing transactions and return { matchedCount, scannedCount, matches } where matches is capped at 5 sample transactions. Nothing is modified. Use it to sanity-check conditions before create_transaction_automation or update_transaction_automation. Note that a live automation fires on its own only for newly synced or imported bank transactions that are not transfers and not planned; existing transactions change only when the user runs "Apply to past transactions" for a saved rule in the app.',
       inputSchema,
     },
     async (args, extra) => {

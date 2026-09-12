@@ -17,6 +17,7 @@ import { useLocalStorage } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import ApplyToHistoryDialog from './components/apply-to-history-dialog.vue';
 import type { AutomationDensity } from './components/automation-chips';
 import AutomationsList from './components/automations-list.vue';
 
@@ -55,6 +56,14 @@ const filteredList = computed(() =>
 
 const onTipsOpen = (open: boolean) => {
   if (open) trackAnalyticsEvent({ event: 'automations_mcp_tip_opened' });
+};
+
+const isApplyOpen = ref(false);
+const ruleToApply = ref<TransactionAutomationModel | null>(null);
+
+const openApply = ({ rule }: { rule: TransactionAutomationModel }) => {
+  ruleToApply.value = rule;
+  isApplyOpen.value = true;
 };
 
 const isDeleteOpen = ref(false);
@@ -165,8 +174,11 @@ const handleDelete = () => {
         :density="density"
         :reorderable="statusFilter === 'all'"
         @delete="(rule) => confirmDelete({ rule })"
+        @apply="(rule) => openApply({ rule })"
       />
     </Card>
+
+    <ApplyToHistoryDialog v-if="isApplyOpen" v-model:open="isApplyOpen" :rule="ruleToApply" />
 
     <ResponsiveAlertDialog
       v-model:open="isDeleteOpen"

@@ -34,10 +34,18 @@ export const isAutomationEligible = ({
  * SQL twin of the account-type half of `isAutomationEligible` for the preview scan (the
  * transfer/planned halves are `findTransactions` policy). Keyed on the account row, not
  * `Transactions.accountType`: unlinking rewrites that column to `system` and relinking leaves it.
+ * Split parents are dropped too: their category is derived from their split rows.
  */
 export const buildEligibilityWhere = ({ bankAccountIds }: { bankAccountIds: string[] }) => ({
-  [Op.or]: [
-    { accountId: { [Op.in]: bankAccountIds } },
-    literal(`"Transactions"."externalData"->'importDetails' IS NOT NULL`),
+  [Op.and]: [
+    {
+      [Op.or]: [
+        { accountId: { [Op.in]: bankAccountIds } },
+        literal(`"Transactions"."externalData"->'importDetails' IS NOT NULL`),
+      ],
+    },
+    literal(
+      `NOT EXISTS (SELECT 1 FROM "TransactionSplits" WHERE "TransactionSplits"."transactionId" = "Transactions"."id")`,
+    ),
   ],
 });

@@ -537,6 +537,7 @@
   },
   "automations": {
     "automationNotFound": "Automation not found.",
+    "previewRequiresConditions": "Provide either conditions or a saved automation to preview.",
     "reorderStale": "The automation list has changed. Refresh and try again.",
     "ruleLimitReached": "You have reached the maximum number of automations.",
     "staleReference": "This automation references an item that no longer exists."

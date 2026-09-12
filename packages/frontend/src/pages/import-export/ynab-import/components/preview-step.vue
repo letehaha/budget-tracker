@@ -222,7 +222,7 @@ import { useI18n } from 'vue-i18n';
 
 import AccountsTab from './accounts-tab.vue';
 import EmptyList from './empty-list.vue';
-import VirtualList from './virtual-list.vue';
+import VirtualList from '@/components/common/virtual-list.vue';
 
 const LIST_HEIGHT_CLASS = 'h-[420px]';
 

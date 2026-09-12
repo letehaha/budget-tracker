@@ -1,5 +1,6 @@
 import type {
   AutomationAction,
+  AutomationApplyResult,
   AutomationConditions,
   AutomationPreviewResult,
   RecordId,
@@ -93,12 +94,29 @@ export async function previewAutomation<R extends boolean | undefined = undefine
   payload,
   raw,
 }: {
-  payload: { conditions: AutomationConditions };
+  payload: { conditions?: AutomationConditions; automationId?: RecordId; limit?: number };
   raw?: R;
 }) {
   return makeRequest<AutomationPreviewResult, R>({
     method: 'post',
     url: '/automations/preview',
+    payload,
+    raw,
+  });
+}
+
+export async function applyAutomationToHistory<R extends boolean | undefined = undefined>({
+  id,
+  payload,
+  raw,
+}: {
+  id: RecordId;
+  payload: { transactionIds: RecordId[] };
+  raw?: R;
+}) {
+  return makeRequest<AutomationApplyResult, R>({
+    method: 'post',
+    url: `/automations/${id}/apply`,
     payload,
     raw,
   });
