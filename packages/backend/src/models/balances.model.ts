@@ -534,9 +534,9 @@ export default class Balances extends Model {
    *
    * Race-safe via the `balances_account_id_date_unique` index on (accountId, date)
    * paired with `INSERT ... ON CONFLICT DO UPDATE` – concurrent writers (auto-sync
-   * vs. user-clicked refresh, multi-batch BullMQ workers, Bottleneck-parallel
-   * sync-manager fan-out, the per-tx `@AfterCreate` hook firing alongside the
-   * end-of-sync write) serialize on the unique index and the last writer's
+   * vs. user-clicked refresh, multi-batch BullMQ workers, concurrent syncs
+   * across a connection's accounts, the per-tx `@AfterCreate` hook firing
+   * alongside the end-of-sync write) serialize on the unique index and the last writer's
    * `refBalance` wins. The raw query is used instead of `Model.upsert` to
    * guarantee `id` and `createdAt` are NOT overwritten when the conflict path
    * fires.

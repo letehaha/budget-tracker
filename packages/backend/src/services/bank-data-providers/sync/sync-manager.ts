@@ -1,120 +1,71 @@
-import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
+import type { RecordId } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 import { isBaseCurrencyChangeLocked } from '@services/currencies/base-currency-lock';
-import Bottleneck from 'bottleneck';
 
-import { syncTransactionsForAccount } from '../connection/sync-transactions-for-account';
-import { bankProviderRegistry } from '../registry';
+import { enqueueAccountSync } from './account-sync-queue';
 import { type AccountWithConnection, getUserBankAccounts } from './get-user-sync-status';
-import { SyncStatus, setAccountSyncStatus, shouldTriggerAutoSync, updateLastAutoSync } from './sync-status-tracker';
+import { shouldTriggerAutoSync, updateLastAutoSync } from './sync-status-tracker';
 
 // Re-export for backwards compatibility
 export { getUserAccountsSyncStatus } from './get-user-sync-status';
 
 interface SyncResult {
   totalAccounts: number;
-  syncedAccounts: number;
-  failedAccounts: number;
-  skippedAccounts: number;
-  accountResults: Array<{
-    accountId: string;
-    accountName: string;
-    status: 'success' | 'failed' | 'skipped';
-    error?: string;
-  }>;
-}
-
-// Limit concurrent syncs to 5 to prevent event loop blocking
-const syncLimiter = new Bottleneck({
-  maxConcurrent: process.env.NODE_ENV === 'test' ? Infinity : 5,
-});
-
-/**
- * Sync a single account
- * Status tracking is handled by individual providers (Monobank, Enable Banking, etc.)
- */
-async function syncSingleAccount(account: AccountWithConnection, userId: number): Promise<void> {
-  await syncTransactionsForAccount({
-    connectionId: account.bankDataProviderConnectionId as string,
-    userId,
-    accountId: account.id,
-  });
-  // Provider handles status updates (SYNCING -> COMPLETED/FAILED)
+  queuedAccounts: number;
 }
 
 /**
- * Sync all bank-connected accounts for a user
- * Uses p-limit to prevent event loop blocking (max 5 concurrent syncs)
- * Monobank syncs are already queued by BullMQ, so they return immediately
- * Enable Banking syncs are long-running and benefit from the concurrency limit
+ * Queue a transaction sync for every bank-connected account of a user.
+ * Returns as soon as the jobs are queued — the frontend polls /sync/status,
+ * which the providers update as each account moves SYNCING → COMPLETED/FAILED.
  */
 export async function syncAllUserAccounts(userId: number): Promise<SyncResult> {
   const accounts = await getUserBankAccounts(userId);
 
   if (accounts.length === 0) {
-    return {
-      totalAccounts: 0,
-      syncedAccounts: 0,
-      failedAccounts: 0,
-      skippedAccounts: 0,
-      accountResults: [],
-    };
+    return { totalAccounts: 0, queuedAccounts: 0 };
   }
-
-  // Set all accounts to QUEUED immediately, before Bottleneck scheduling
-  // This ensures frontend knows all accounts are pending, even those waiting
-  // in Bottleneck's internal queue (which only executes 5 at a time)
-  await Promise.all(
-    accounts.map((account) => setAccountSyncStatus({ accountId: account.id, status: SyncStatus.QUEUED, userId })),
-  );
 
   // Group by connection so batch-capable providers (e.g. SimpleFIN) sync the
   // whole connection in one windowed pass instead of a per-account fan-out —
   // important for providers with a tight daily request budget.
-  const accountsByConnection = new Map<string, AccountWithConnection[]>();
+  const accountsByConnection = new Map<RecordId, AccountWithConnection[]>();
   for (const account of accounts) {
-    const connectionId = account.bankDataProviderConnectionId as string;
+    const connectionId = account.bankDataProviderConnectionId;
     const group = accountsByConnection.get(connectionId);
     if (group) group.push(account);
     else accountsByConnection.set(connectionId, [account]);
   }
 
-  // Trigger all syncs with concurrency control (fire and forget)
-  // Providers will update status to SYNCING when they actually start
-  for (const [connectionId, connectionAccounts] of accountsByConnection) {
-    const providerType = connectionAccounts[0]!.bankDataProviderConnection.providerType as BANK_PROVIDER_TYPE;
-    const provider = bankProviderRegistry.get(providerType);
+  const connections = [...accountsByConnection];
+  const outcomes = await Promise.allSettled(
+    connections.map(([connectionId, connectionAccounts]) =>
+      enqueueAccountSync({
+        userId,
+        connectionId,
+        providerType: connectionAccounts[0]!.bankDataProviderConnection.providerType,
+        accountIds: connectionAccounts.map((account) => account.id),
+      }),
+    ),
+  );
 
-    if (typeof provider.syncConnectionAccounts === 'function') {
-      const systemAccountIds = connectionAccounts.map((account) => account.id);
-      syncLimiter
-        .schedule(() => provider.syncConnectionAccounts!({ connectionId, userId, systemAccountIds }))
-        .catch((err: Error) => {
-          logger.error({ message: 'Unhandled batched sync error', error: err }, { connectionId });
-        });
-    } else {
-      connectionAccounts.forEach((account) => {
-        syncLimiter
-          .schedule(() => syncSingleAccount(account, userId))
-          .catch((err: Error) => {
-            logger.error({ message: 'Unhandled sync error', error: err }, { accountId: account.id });
-          });
-      });
+  let queuedAccounts = 0;
+  let firstError: unknown;
+  outcomes.forEach((outcome, index) => {
+    if (outcome.status === 'fulfilled') {
+      queuedAccounts += connections[index]![1].length;
+      return;
     }
-  }
+    logger.error({
+      message: `[Sync Manager] Failed to queue sync for connection ${connections[index]![0]}`,
+      error: outcome.reason as Error,
+    });
+    firstError ??= outcome.reason;
+  });
 
-  // Return immediately - frontend will poll /sync/status for updates
-  return {
-    totalAccounts: accounts.length,
-    syncedAccounts: 0,
-    failedAccounts: 0,
-    skippedAccounts: 0,
-    accountResults: accounts.map((acc) => ({
-      accountId: acc.id,
-      accountName: acc.name,
-      status: 'skipped', // Status will be updated by providers
-    })),
-  };
+  if (firstError) throw firstError;
+
+  return { totalAccounts: accounts.length, queuedAccounts };
 }
 
 /**
@@ -135,11 +86,10 @@ export async function checkAndTriggerAutoSync(userId: number): Promise<SyncResul
     return null;
   }
 
-  // Update last sync timestamp before starting
-  await updateLastAutoSync(userId);
-
-  // Trigger sync
   const result = await syncAllUserAccounts(userId);
+
+  // Only after a successful enqueue, so a failed attempt is retried by the next tick.
+  await updateLastAutoSync(userId);
 
   return result;
 }

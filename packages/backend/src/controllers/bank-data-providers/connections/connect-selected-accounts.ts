@@ -31,7 +31,7 @@ export default createController(
           balance: acc.currentBalance,
           currency: acc.currencyCode,
         })),
-        message: `Successfully synced ${createdAccounts.length} account(s)`,
+        message: `Connected ${createdAccounts.length} account(s); initial sync started`,
       },
     };
   },

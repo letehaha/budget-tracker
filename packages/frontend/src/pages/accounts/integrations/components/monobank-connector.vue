@@ -113,6 +113,7 @@ import ExternalLink from '@/components/external-link.vue';
 import InputField from '@/components/fields/input-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useSyncStatus } from '@/composable/use-sync-status';
 import { useAccountsStore, useOnboardingStore, useUserStore } from '@/stores';
 import { BANK_PROVIDER_TYPE } from '@bt/shared/types';
 import { ExternalLinkIcon } from '@lucide/vue';
@@ -136,6 +137,7 @@ const emit = defineEmits<{
 
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 const accountsStore = useAccountsStore();
+const { watchSync } = useSyncStatus();
 const { isDemo } = storeToRefs(useUserStore());
 
 const currentStep = ref(1);
@@ -189,6 +191,8 @@ const handleSyncAccounts = async () => {
     isLoading.value = true;
 
     await syncSelectedAccounts(connectionId.value, selectedAccountIds.value);
+    // Follow the server-side initial sync in the header without re-triggering it.
+    void watchSync();
 
     // Refresh accounts store
     await accountsStore.refetchAccounts();

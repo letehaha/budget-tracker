@@ -13,6 +13,7 @@ import { categorizationQueue, categorizationWorker } from '@services/ai-categori
 import { flushAllPendingCategorizationBuffers } from '@services/ai-categorization/event-listeners';
 import { backupRestoreQueue, backupRestoreWorker } from '@services/backup/restore/restore-queue';
 import { closeAllMonobankQueueBundles } from '@services/bank-data-providers/monobank/transaction-sync-queue';
+import { accountSyncQueue, accountSyncWorker } from '@services/bank-data-providers/sync/account-sync-queue';
 import { logoResolutionQueue, logoResolutionWorker } from '@services/brand-logos';
 import { baseCurrencyChangeQueue, baseCurrencyChangeWorker } from '@services/currencies/base-currency-change-queue';
 import {
@@ -463,6 +464,8 @@ afterAll(async () => {
     // Close ALL BullMQ workers and queues first to ensure no pending operations
     // This prevents "The client is closed" errors when workers try to access Redis
     await closeAllMonobankQueueBundles();
+    await accountSyncWorker.close();
+    await accountSyncQueue.close();
     await categorizationWorker.close();
     await categorizationQueue.close();
     await ynabImportWorker.close();

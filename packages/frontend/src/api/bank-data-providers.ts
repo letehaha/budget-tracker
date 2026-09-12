@@ -321,30 +321,14 @@ export interface SyncStatusResponse {
 
 interface SyncResult {
   totalAccounts: number;
-  syncedAccounts: number;
-  failedAccounts: number;
-  skippedAccounts: number;
-  accountResults: Array<{
-    accountId: string;
-    accountName: string;
-    status: 'success' | 'failed' | 'skipped';
-    error?: string;
-  }>;
+  queuedAccounts: number;
 }
 
 interface CheckSyncResponse {
   syncTriggered: boolean;
   message?: string;
   totalAccounts?: number;
-  syncedAccounts?: number;
-  failedAccounts?: number;
-  skippedAccounts?: number;
-  accountResults?: Array<{
-    accountId: string;
-    accountName: string;
-    status: 'success' | 'failed' | 'skipped';
-    error?: string;
-  }>;
+  queuedAccounts?: number;
 }
 
 /**
