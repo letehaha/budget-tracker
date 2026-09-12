@@ -237,7 +237,7 @@ const routes: RouteRecordRaw[] = [
         path: '/transactions/optimizations',
         name: ROUTES_NAMES.optimizations,
         component: () => import('@/pages/optimizations/index.vue'),
-        meta: { i18nChunks: ['pages/optimizations', 'pages/transactions'] as I18nChunkName[] },
+        meta: { i18nChunks: ['pages/optimizations', 'pages/automations', 'pages/transactions'] as I18nChunkName[] },
       },
       {
         path: '/transactions/optimizations/transfers',

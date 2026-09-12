@@ -13,11 +13,11 @@
   >
     <!-- Selection checkbox -->
     <label v-if="showCheckbox" class="-my-1 -ml-2 flex items-center justify-center self-stretch px-3" @click.stop>
-      <Checkbox v-if="isSelectable" v-model="checkedModel" />
+      <Checkbox v-if="isSelectable" v-model="checkedModel" :aria-label="$t('common.transactions.record.selectRow')" />
       <ResponsiveTooltip
         v-else-if="unselectableReason"
         :delay-duration="100"
-        :content="$t(`transactions.bulkEdit.unselectableReasons.${unselectableReason}`)"
+        :content="$t(`common.transactions.record.unselectableReasons.${unselectableReason}`)"
         content-class-name="max-w-56"
       >
         <InfoIcon class="text-muted-foreground size-3.5 cursor-help" />
@@ -133,7 +133,7 @@
             <RefundIndicator :transaction="transaction" />
             <TagsIndicator :transaction="transaction" />
             <ResponsiveTooltip
-              v-if="externalLinkHref"
+              v-if="externalLinkHref && !compact"
               :content="$t('common.transactions.record.externalLinkTooltip')"
               content-class-name="max-w-56"
               :delay-duration="100"
@@ -150,7 +150,7 @@
               </a>
             </ResponsiveTooltip>
             <ResponsiveTooltip
-              v-if="locationMapUrl"
+              v-if="locationMapUrl && !compact"
               :content="$t('common.transactions.record.locationTooltip')"
               content-class-name="max-w-56"
               :delay-duration="100"

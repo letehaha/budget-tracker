@@ -1,13 +1,16 @@
 import {
   AccountOptionValue,
   type AutomationConditions,
+  CATEGORIZATION_SOURCE,
   CategoryOptionValue,
   CurrencyOptionValue,
+  type RecordId,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   TransactionTypeOptionValue,
   asDecimal,
 } from '@bt/shared/types';
+import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import type { LunchFlowApiTransaction } from '@services/bank-data-providers/lunchflow/types';
 import * as helpers from '@tests/helpers';
@@ -235,7 +238,7 @@ describe('POST /automations/preview', () => {
     });
 
     expect(inUsd.matchedCount).toBe(3);
-    expect(inEur).toEqual({ matchedCount: 0, scannedCount: 3, matches: [] });
+    expect(inEur).toEqual({ matchedCount: 0, settledCount: 0, scannedCount: 3, matches: [] });
 
     const targetDay = dates[1]!.getUTCDate();
     const byDay = await preview({
@@ -271,7 +274,7 @@ describe('POST /automations/preview', () => {
       items: [{ field: 'note', operator: 'contains_any', value: ['uber'] }],
     });
 
-    expect(result).toEqual({ matchedCount: 0, scannedCount: 0, matches: [] });
+    expect(result).toEqual({ matchedCount: 0, settledCount: 0, scannedCount: 0, matches: [] });
 
     const response = await helpers.previewAutomation({ payload: { conditions: { match: 'all', items: [] } } });
 
@@ -335,5 +338,97 @@ describe('POST /automations/preview', () => {
       'Imported two',
       'Imported one',
     ]);
+  });
+
+  it('hides a saved rule match that already carries its result and lists it again once the rule changes', async () => {
+    const category = await helpers.addCustomCategory({ name: 'Rides', color: '#111111', raw: true });
+    const other = await helpers.addCustomCategory({ name: 'Taxi', color: '#222222', raw: true });
+    const rule = await helpers.createAutomation({
+      payload: {
+        name: 'Uber is transport',
+        conditions: { match: 'all', items: [{ field: 'note', operator: 'contains_any', value: ['uber'] }] },
+        actions: [{ type: 'set_category', categoryId: category.id as RecordId }],
+      },
+      raw: true,
+    });
+
+    await syncBankRows({
+      transactions: [
+        bankRow({ amount: -10, date: daysAgo(1), description: 'Uber ride' }),
+        bankRow({ amount: -20, date: daysAgo(2), description: 'Grocery' }),
+      ],
+    });
+
+    expect(await helpers.previewAutomation({ payload: { automationId: rule.id }, raw: true })).toMatchObject({
+      matchedCount: 0,
+      settledCount: 1,
+      scannedCount: 2,
+      matches: [],
+    });
+
+    await helpers.updateAutomation({
+      id: rule.id,
+      payload: { actions: [{ type: 'set_category', categoryId: other.id as RecordId }] },
+      raw: true,
+    });
+
+    const result = await helpers.previewAutomation({ payload: { automationId: rule.id }, raw: true });
+
+    expect(result).toMatchObject({ matchedCount: 1, scannedCount: 2 });
+    expect(result.matches[0]).toMatchObject({
+      note: 'Uber ride',
+      categoryId: category.id,
+      categorizationMeta: { source: CATEGORIZATION_SOURCE.userRule, ruleId: rule.id },
+    });
+  });
+
+  it('404s a saved-rule preview pointing at another user rule', async () => {
+    const second = await helpers.signUpSecondUser();
+    const foreign = await helpers.asUser({
+      cookies: second.cookies,
+      fn: () => helpers.createAutomation({ payload: helpers.buildAutomationPayload(), raw: true }),
+    });
+
+    expect((await helpers.previewAutomation({ payload: { automationId: foreign.id } })).statusCode).toBe(404);
+  });
+
+  it('caps the listed matches at `limit` while still counting every match', async () => {
+    await syncBankRows({
+      transactions: Array.from({ length: 3 }, (_, index) =>
+        bankRow({ amount: -10 - index, date: daysAgo(index + 1), description: `Uber ride ${index + 1}` }),
+      ),
+    });
+
+    const rule = await helpers.createAutomation({ payload: helpers.buildAutomationPayload(), raw: true });
+
+    const result = await helpers.previewAutomation({ payload: { automationId: rule.id, limit: 1 }, raw: true });
+
+    expect(result.matchedCount).toBe(3);
+    expect(result.matches).toHaveLength(1);
+  });
+
+  it('422s a saved rule whose category was deleted', async () => {
+    const category = await helpers.addCustomCategory({ name: 'Doomed', color: '#333333', raw: true });
+    const rule = await helpers.createAutomation({
+      payload: helpers.buildAutomationPayload({
+        actions: [{ type: 'set_category', categoryId: category.id as RecordId }],
+      }),
+      raw: true,
+    });
+    await helpers.deleteCustomCategory({ categoryId: category.id });
+
+    expect((await helpers.previewAutomation({ payload: { automationId: rule.id } })).statusCode).toBe(422);
+  });
+
+  it('rejects a body carrying neither or both of conditions and automationId', async () => {
+    const conditions: AutomationConditions = {
+      match: 'all',
+      items: [{ field: 'note', operator: 'contains_any', value: ['uber'] }],
+    };
+
+    expect((await helpers.previewAutomation({ payload: {} })).statusCode).toBe(422);
+    expect(
+      (await helpers.previewAutomation({ payload: { conditions, automationId: generateRandomRecordId() } })).statusCode,
+    ).toBe(422);
   });
 });

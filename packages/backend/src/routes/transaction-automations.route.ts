@@ -1,3 +1,4 @@
+import applyAutomationToHistory from '@controllers/transaction-automations/apply-to-history';
 import createAutomation from '@controllers/transaction-automations/create-automation';
 import deleteAutomation from '@controllers/transaction-automations/delete-automation';
 import listAutomations from '@controllers/transaction-automations/list-automations';
@@ -34,6 +35,14 @@ router.post(
   checkBaseCurrencyLock,
   validateEndpoint(previewAutomation.schema),
   previewAutomation.handler,
+);
+
+router.post(
+  '/:id/apply',
+  authenticateSession,
+  checkBaseCurrencyLock,
+  validateEndpoint(applyAutomationToHistory.schema),
+  applyAutomationToHistory.handler,
 );
 
 router.patch(

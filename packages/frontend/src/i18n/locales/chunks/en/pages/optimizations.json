@@ -11,6 +11,10 @@
       "aiCategorization": {
         "title": "AI categorization",
         "description": "Let AI sort uncategorized transactions and review past runs."
+      },
+      "applyRules": {
+        "title": "Apply a rule to past transactions",
+        "description": "Pick one of your automations and run it over transactions you already have."
       }
     },
     "aiCategorization": {

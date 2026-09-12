@@ -1,30 +1,37 @@
 import {
   ACCOUNT_TYPES,
+  AUTOMATION_LIMITS,
+  type AutomationAction,
   type AutomationConditions,
-  type AutomationPreviewMatch,
   type AutomationPreviewResult,
   type RecordId,
   TRANSACTION_TRANSFER_NATURE,
 } from '@bt/shared/types';
+import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
+import { t } from '@i18n/index';
+import { ValidationError } from '@js/errors';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroups from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
+import TransactionAutomations from '@models/transaction-automations.model';
+import TransactionTags from '@models/transaction-tags.model';
 import { findTransactions } from '@models/transactions-query';
+import type Transactions from '@models/transactions.model';
+import { type TransactionApiResponse, serializeTransactions } from '@root/serializers';
 import { Op, WhereOptions } from 'sequelize';
 
+import { buildNote } from './apply-actions';
 import { type AutomationResolvers, buildAutomationContext, resolveGroupAncestry } from './build-context';
 import { buildEligibilityWhere } from './eligibility';
 import { evaluateConditions } from './evaluate-conditions';
+import { validateAutomationRefs } from './references';
 
 // ponytail: account/type items are pushed to SQL under match:'all'; everything else is an
-// in-memory scan of the last 1 000 eligible rows. Add a date-range prefilter if large histories complain.
-
-const SCAN_LIMIT = 1000;
-const MATCHES_RETURNED = 5;
+// in-memory scan of the newest eligible rows up to `scanLimit`. Add a date-range prefilter if large histories complain.
 
 /**
  * Under `all` every item must hold, so narrowing on one of them can only drop rows that
- * would fail it anyway — a second item of the same field overwriting the key stays correct.
+ * would fail it anyway. A second item of the same field overwriting the key stays correct.
  * `payee not_in` is left in memory: SQL `NOT IN` drops NULL payees, which the evaluator matches.
  */
 const sqlPrefilter = ({ conditions }: { conditions: AutomationConditions }): WhereOptions => {
@@ -40,50 +47,46 @@ const sqlPrefilter = ({ conditions }: { conditions: AutomationConditions }): Whe
   return where;
 };
 
-export const previewAutomation = async ({
+/**
+ * Evaluates `conditions` against the newest eligible rows. Passing `transactionIds` narrows
+ * the scan to those rows, which is also the write-time re-check the apply flow relies on.
+ */
+export const scanAutomationMatches = async ({
   userId,
   conditions,
+  transactionIds,
+  scanLimit,
 }: {
   userId: number;
   conditions: AutomationConditions;
-}): Promise<AutomationPreviewResult> => {
+  transactionIds?: RecordId[];
+  scanLimit?: number;
+}): Promise<{ rows: Transactions[]; scannedCount: number }> => {
   const accounts = await Accounts.findAll({
     where: { userId },
     attributes: ['id', 'type', 'bankDataProviderConnectionId'],
   });
   const bankAccountIds = accounts.filter((account) => account.type !== ACCOUNT_TYPES.system).map(({ id }) => id);
-  const rows = await findTransactions({
+  const scanned = await findTransactions({
     planned: 'exclude',
     access: { creator: userId },
     balanceAdjustments: 'exclude',
     transfers: { natures: [TRANSACTION_TRANSFER_NATURE.not_transfer] },
-    completeness: { cap: { limit: SCAN_LIMIT, onTruncated: 'log', context: { userId } } },
+    completeness: scanLimit ? { cap: { limit: scanLimit, onTruncated: 'log', context: { userId } } } : 'all',
     order: [
       ['time', 'DESC'],
       ['id', 'DESC'],
     ],
-    attributes: [
-      'id',
-      'time',
-      'note',
-      'externalData',
-      'payeeId',
-      'amount',
-      'refAmount',
-      'currencyCode',
-      'transactionType',
-      'accountId',
-      'categoryId',
-    ],
     where: {
       ...buildEligibilityWhere({ bankAccountIds }),
       ...sqlPrefilter({ conditions }),
+      ...(transactionIds ? { id: { [Op.in]: transactionIds } } : {}),
     },
   });
 
-  if (!rows.length) return { matchedCount: 0, scannedCount: 0, matches: [] };
+  if (!scanned.length) return { rows: [], scannedCount: 0 };
 
-  const accountIds = [...new Set(rows.map((row) => row.accountId))];
+  const accountIds = [...new Set(scanned.map((row) => row.accountId))];
 
   const [groups, memberships] = await Promise.all([
     AccountGroups.findAll({ where: { userId }, attributes: ['id', 'parentGroupId'] }),
@@ -105,29 +108,107 @@ export const previewAutomation = async ({
     bankConnectionId: async (accountId) => connectionByAccount.get(accountId) ?? null,
   };
 
-  const matches: AutomationPreviewMatch[] = [];
-  let matchedCount = 0;
+  const rows: Transactions[] = [];
 
-  for (const row of rows) {
+  for (const row of scanned) {
     const ctx = buildAutomationContext({ transaction: row, userId, resolvers });
     const { matched } = await evaluateConditions({ ctx, conditions });
+    if (matched) rows.push(row);
+  }
 
-    if (!matched) continue;
-    matchedCount += 1;
+  return { rows, scannedCount: scanned.length };
+};
 
-    if (matches.length < MATCHES_RETURNED) {
-      matches.push({
-        id: row.id,
-        time: row.time.toISOString(),
-        note: row.note,
-        accountId: row.accountId,
-        categoryId: row.categoryId,
-        amount: row.amount.toNumber(),
-        currencyCode: row.currencyCode,
-        transactionType: row.transactionType,
-      });
+const isSettled = ({
+  row,
+  action,
+  tagIds,
+}: {
+  row: Transactions;
+  action: AutomationAction;
+  tagIds: Set<RecordId>;
+}): boolean => {
+  const note = row.note ?? '';
+  switch (action.type) {
+    case 'set_category':
+      return row.categoryId === action.categoryId;
+    case 'add_tags':
+      return action.tagIds.every((tagId) => tagIds.has(tagId));
+    case 'set_payee':
+      return row.payeeId === action.payeeId;
+    case 'set_note':
+      if (action.mode === 'replace')
+        return buildNote({ current: note, mode: action.mode, value: action.value }) === note;
+      return action.mode === 'append' ? note.endsWith(action.value.trim()) : note.startsWith(action.value.trim());
+    default:
+      return action satisfies never;
+  }
+};
+
+/** Drops rows every action would leave unchanged, so the review lists only work left to do. */
+const excludeSettledRows = async ({
+  rows,
+  actions,
+}: {
+  rows: Transactions[];
+  actions: AutomationAction[];
+}): Promise<Transactions[]> => {
+  const tagIdsByRow = new Map<RecordId, Set<RecordId>>();
+
+  if (actions.some((action) => action.type === 'add_tags') && rows.length) {
+    const links = await TransactionTags.findAll({ where: { transactionId: rows.map((row) => row.id) } });
+    for (const link of links) {
+      tagIdsByRow.set(link.transactionId, (tagIdsByRow.get(link.transactionId) ?? new Set()).add(link.tagId));
     }
   }
 
-  return { matchedCount, scannedCount: rows.length, matches };
+  const noTags = new Set<RecordId>();
+  return rows.filter(
+    (row) => !actions.every((action) => isSettled({ row, action, tagIds: tagIdsByRow.get(row.id) ?? noTags })),
+  );
+};
+
+/**
+ * Dry-runs either an unsaved condition set or a saved rule. The saved-rule path backs the
+ * review dialog, so it scans deeper and returns as many matches as the dialog can list.
+ */
+export const previewAutomation = async ({
+  userId,
+  conditions,
+  automationId,
+  limit,
+}: {
+  userId: number;
+  conditions?: AutomationConditions;
+  automationId?: RecordId;
+  limit?: number;
+}): Promise<Omit<AutomationPreviewResult, 'matches'> & { matches: TransactionApiResponse[] }> => {
+  const rule = automationId
+    ? await findOrThrowNotFound({
+        query: TransactionAutomations.findOne({ where: { id: automationId, userId } }),
+        message: t({ key: 'automations.automationNotFound' }),
+      })
+    : null;
+
+  if (rule) await validateAutomationRefs({ userId, conditions: rule.conditions, actions: rule.actions });
+
+  const scannedConditions = rule ? rule.conditions : conditions;
+
+  if (!scannedConditions) {
+    throw new ValidationError({ message: t({ key: 'automations.previewRequiresConditions' }) });
+  }
+
+  const scan = await scanAutomationMatches({
+    userId,
+    conditions: scannedConditions,
+    scanLimit: rule ? AUTOMATION_LIMITS.applyScanLimit : AUTOMATION_LIMITS.previewScanLimit,
+  });
+  const rows = rule ? await excludeSettledRows({ rows: scan.rows, actions: rule.actions }) : scan.rows;
+
+  return {
+    matchedCount: rows.length,
+    settledCount: scan.rows.length - rows.length,
+    scannedCount: scan.scannedCount,
+    matches: serializeTransactions(rows.slice(0, limit ?? AUTOMATION_LIMITS.previewMatchLimit)),
+  };
 };

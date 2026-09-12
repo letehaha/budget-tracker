@@ -23,12 +23,21 @@ import {
   type AutomationRefType,
   type RecordId,
 } from '@bt/shared/types';
-import { ArrowLeftIcon, ArrowRightIcon, Loader2Icon, PlayIcon, WandSparklesIcon, ZapIcon } from '@lucide/vue';
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  HistoryIcon,
+  Loader2Icon,
+  PlayIcon,
+  WandSparklesIcon,
+  ZapIcon,
+} from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
 import ActionsBuilder from './components/actions-builder.vue';
+import ApplyToHistoryDialog from './components/apply-to-history-dialog.vue';
 import AutomationChipTrack from './components/automation-chip-track.vue';
 import { buildAutomationChips } from './components/automation-chips';
 import { provideAutomationRefs } from './components/automation-refs';
@@ -202,6 +211,8 @@ onBeforeRouteLeave((to) => {
   return false;
 });
 
+const isApplyOpen = ref(false);
+
 const confirmLeave = () => {
   const path = pendingPath.value;
   pendingPath.value = null;
@@ -212,7 +223,7 @@ const confirmLeave = () => {
 
 <template>
   <div class="flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6">
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="@container/editor-head flex items-center gap-3">
       <DesktopOnlyTooltip :content="$t('automations.editor.back')">
         <router-link :to="{ name: ROUTES_NAMES.automations }">
           <Button as="span" variant="ghost" size="icon-sm" :aria-label="$t('automations.editor.back')">
@@ -220,9 +231,28 @@ const confirmLeave = () => {
           </Button>
         </router-link>
       </DesktopOnlyTooltip>
-      <h1 class="text-2xl font-bold tracking-tight">
+      <h1 class="min-w-0 truncate text-2xl font-bold tracking-tight">
         {{ isCreate ? $t('automations.editor.titleNew') : $t('automations.editor.titleEdit') }}
       </h1>
+
+      <DesktopOnlyTooltip
+        v-if="!isCreate && automation"
+        :disabled="!isDirty"
+        :content="$t('automations.applyToHistory.saveFirst')"
+      >
+        <span class="ml-auto inline-flex shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            :disabled="isDirty"
+            :aria-label="$t('automations.applyToHistory.trigger')"
+            @click="isApplyOpen = true"
+          >
+            <HistoryIcon class="size-4" />
+            <span class="hidden @md/editor-head:inline">{{ $t('automations.applyToHistory.trigger') }}</span>
+          </Button>
+        </span>
+      </DesktopOnlyTooltip>
     </div>
 
     <Card v-if="!isCreate && !isFetched" class="flex flex-col gap-3 p-4">
@@ -330,6 +360,8 @@ const confirmLeave = () => {
         </Button>
       </div>
     </template>
+
+    <ApplyToHistoryDialog v-if="isApplyOpen" v-model:open="isApplyOpen" :rule="automation" />
 
     <ResponsiveAlertDialog
       v-model:open="isLeaveDialogOpen"

@@ -1,4 +1,4 @@
-import type { AutomationAction, AutomationConditions } from '@bt/shared/types';
+import type { AutomationAction, AutomationActionType, AutomationConditions } from '@bt/shared/types';
 
 import { trackEvent } from '../index';
 
@@ -54,6 +54,35 @@ export function trackAutomationApplied({
       rule_id: String(ruleId),
       action_types: [...new Set(actions.map((action) => action.type))],
       match_count: matchCount,
+    },
+  });
+}
+
+/**
+ * One event per retroactive apply run, not per row. `applied_count` trails `requested_count`
+ * whenever a submitted row stopped matching or had every action skipped.
+ */
+export function trackAutomationAppliedToHistory({
+  userId,
+  ruleId,
+  requestedCount,
+  appliedCount,
+  actionTypes,
+}: {
+  userId: string | number;
+  ruleId: string | number;
+  requestedCount: number;
+  appliedCount: number;
+  actionTypes: AutomationActionType[];
+}): void {
+  trackEvent({
+    userId,
+    event: 'automation_applied_to_history',
+    properties: {
+      rule_id: String(ruleId),
+      requested_count: requestedCount,
+      applied_count: appliedCount,
+      action_types: actionTypes,
     },
   });
 }

@@ -148,7 +148,13 @@
         "addedByTooltip": "This transaction was attached to the budget by {handle}",
         "externalLinkTooltip": "Open external link",
         "locationTooltip": "Open location on the map",
-        "hiddenAccount": "Hidden account"
+        "hiddenAccount": "Hidden account",
+        "selectRow": "Select transaction",
+        "unselectableReasons": {
+          "split": "Can't be selected: split transactions don't support bulk editing. Edit it individually instead.",
+          "sharedAccount": "Can't be selected: this transaction is on an account shared with you, and only its owner can edit it.",
+          "protectedCategory": "The category was set by you or a subscription, so this rule would change nothing."
+        }
       }
     },
     "outOfWallet": "Out of Wallet",

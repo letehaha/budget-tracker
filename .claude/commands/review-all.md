@@ -1,8 +1,14 @@
-Run a comprehensive review of the current branch changes by spawning multiple reviewers in parallel.
+Run a comprehensive review of the current branch changes by spawning multiple reviewers in parallel, then fix what's relevant to the current feature.
 
 ## Steps
 
+### 0. Activate ponytail ultra
+
+Before anything else, invoke the `ponytail:ponytail` skill via the `Skill` tool with args `ultra`. It stays active for the whole command, including the fix phase.
+
 ### 1. Gather context
+
+**Scope:** default to the **whole PR** (committed + uncommitted work vs `<base>`, as described below). If the user says to review only the uncommitted diff (e.g. "uncommitted", "working tree", "unstaged"), restrict the file list and diff to `git status --short` + `git diff HEAD` and skip the committed-changes step.
 
 **Base branch:** default to `dev` (the integration branch), never `main`. If the user specified a different base branch in their invocation, use that instead. Everywhere below, `<base>` refers to this resolved branch.
 
@@ -63,3 +69,24 @@ Once all reviewers have returned, compile into a single organized report:
 - **Frontend Rules Compliance** — from frontend-checker, or "N/A — no frontend changes"
 
 For each section, list actionable items grouped by file. If a section has no issues, mark it as clean. At the end, add a **Summary** with total issue count per category. Note that since reviewers ran independently, some findings may overlap across sections — call out duplicates in the summary.
+
+### 4. Triage: strip findings unrelated to the current feature
+
+Determine what the current feature is from the branch name, commit messages, and the diff. Then split every finding into:
+
+- **In scope** — caused or touched by this branch's changes.
+- **Out of scope, critical** — pre-existing bugs, security issues, data-loss risks, or broken behavior that this branch did not introduce. Keep only genuinely critical items here; drop non-critical out-of-scope findings entirely.
+- **Out of scope, non-critical** — drop silently.
+
+### 5. Fix in-scope findings
+
+Fix every in-scope finding, deduplicated across sections. Use subagents (`opus`) for non-trivial code changes; pass them the `strip-code-comments` rules. After fixes, run the `linter` agent, and the `test-runner` agent for any affected backend e2e or frontend unit tests. Never commit.
+
+If a finding is disputable (reviewer is wrong, or the fix would be a scope change), skip it and say why in the final report instead of fixing it.
+
+### 6. Final report
+
+Two sections, in this order:
+
+1. **Fixed** — what was changed, grouped by file, plus anything skipped with a one-line reason. Include lint/test results.
+2. **Critical, out of scope** — the out-of-scope critical findings from step 4, as a separate summary for the user to decide on. Do not fix these. If none, say so.

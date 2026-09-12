@@ -114,11 +114,7 @@
       "tagModeLabel": "Tag action",
       "tagModeAdd": "Add to existing tags",
       "tagModeReplace": "Replace all tags",
-      "tagModeRemove": "Remove these tags",
-      "unselectableReasons": {
-        "split": "Can't be selected: split transactions don't support bulk editing. Edit it individually instead.",
-        "sharedAccount": "Can't be selected: this transaction is on an account shared with you, and only its owner can edit it."
-      }
+      "tagModeRemove": "Remove these tags"
     },
     "transactionGroups": {
       "bulkActions": {

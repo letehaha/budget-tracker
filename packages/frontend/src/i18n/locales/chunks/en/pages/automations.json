@@ -212,6 +212,42 @@
         "income": "income",
         "expense": "expense"
       }
+    },
+    "applyToHistory": {
+      "trigger": "Apply to past transactions",
+      "saveFirst": "Save your changes first",
+      "pickTitle": "Apply a rule to past transactions",
+      "pickHint": "Pick a rule. You'll review the matching transactions before anything changes.",
+      "title": "Apply \"{name}\" to past transactions",
+      "noRules": "You don't have any automations yet.",
+      "summary": "{count} past transaction matches this rule | {count} past transactions match this rule",
+      "moreMatches": "Only the {shown} most recent matches are listed. Apply these, then run it again.",
+      "scanCapped": "Only your {limit} most recent transactions were checked.",
+      "emptyState": {
+        "settledTitle": "All caught up",
+        "settledDescription": "The only matching past transaction already has this rule's result. | All {count} matching past transactions already have this rule's result.",
+        "noneTitle": "No matches yet",
+        "noneDescription": "No past transaction on your synced or imported accounts matches these conditions."
+      },
+      "selectAll": "Select all",
+      "selectedCount": "{count} selected",
+      "badge": {
+        "manual": "Categorized by you",
+        "ai": "By AI",
+        "subscriptionKept": "Subscription category kept"
+      },
+      "irreversible": "This can't be undone. Review the list carefully.",
+      "applyAction": "Apply to {count} transactions",
+      "confirm": {
+        "title": "Apply this rule?",
+        "action": "Apply",
+        "description": "{count} transactions will be updated right away.",
+        "payeeNote": "The payee on those transactions will be treated as set by you, so automatic payee detection won't change it later."
+      },
+      "success": "Applied to {applied} transactions",
+      "successWithSkipped": "Applied to {applied} transactions, {skipped} skipped",
+      "nothingApplied": "Nothing was applied. {skipped} transactions were skipped.",
+      "applyError": "Couldn't apply the rule to past transactions."
     }
   }
 }
