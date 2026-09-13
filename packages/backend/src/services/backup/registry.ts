@@ -6,6 +6,7 @@ import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import BrandLogos from '@models/brand-logos.model';
 import BudgetCategories from '@models/budget-categories.model';
+import BudgetTags from '@models/budget-tags.model';
 import BudgetTransactions from '@models/budget-transactions.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
@@ -423,6 +424,13 @@ export const BACKUP_TABLES: readonly BackupTableDef[] = [
   {
     fileName: 'budget-categories',
     model: BudgetCategories,
+    tier: 5,
+    scope: { strategy: 'viaParent', fk: 'budgetId', parent: 'budgets' },
+    restoreMode: 'insert',
+  },
+  {
+    fileName: 'budget-tags',
+    model: BudgetTags,
     tier: 5,
     scope: { strategy: 'viaParent', fk: 'budgetId', parent: 'budgets' },
     restoreMode: 'insert',
