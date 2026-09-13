@@ -136,8 +136,8 @@ export class LunchFlowProvider extends BaseBankDataProvider {
 
     connection.setEncryptedCredentials({ apiKey: newCredentials.apiKey });
 
-    // Reset auth failure tracking and reactivate
-    const metadata = (connection.metadata as LunchFlowMetadata) || {};
+    // New object reference: mutating metadata in place leaves the JSONB column clean and the reset is never saved.
+    const metadata: LunchFlowMetadata = { ...(connection.metadata as LunchFlowMetadata) };
     metadata.consecutiveAuthFailures = 0;
     metadata.deactivationReason = null;
     connection.metadata = metadata as any;
@@ -301,34 +301,29 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         // Filter out pending transactions (those with null IDs)
         const postedTransactions = transactionsResponse.transactions.filter((tx) => tx.id !== null);
 
-        // LunchFlow has no server-side date filtering, so the window gates ROW
-        // CREATION only. Dedup and the unlink→relink originalId restoration
-        // below must see the whole feed: pre-window rows still match existing
-        // rows by originalSource. A future-dated planned row must not anchor
-        // the cutoff, or every genuinely new row is skipped until that date.
-        const latestTransaction = await findOneTransaction({
-          planned: 'exclude',
-          access: 'unscoped-internal',
-          balanceAdjustments: 'include',
-          where: { accountId: account.id, time: { [Op.lte]: new Date() } },
-          order: [['time', 'DESC']],
-        });
-
-        const createFromDate = latestTransaction
-          ? clampSyncStartToLink({ account, from: new Date(latestTransaction.time) })
-          : null;
-
         // Sort by date ascending
         postedTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         const defaultCategoryId = await getUserDefaultCategory({ id: connection.userId });
         const createdTransactionIds: string[] = [];
         let mergedIntoPlannedCount = 0;
+        let skippedPreLinkCount = 0;
         const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
 
-        // One probe per run instead of one per row. Anchorless runs are backfills
-        // and must not consume plans.
-        const matchPlanned = Boolean(latestTransaction) && (await accountHasPlannedRows({ accountId: account.id }));
+        // An account with nothing stored yet is a backfill: it imports the whole feed and
+        // must not consume plans. Otherwise only rows since the link date are created, never
+        // since the newest stored row: LunchFlow sends the whole feed every sync, and a row
+        // the bank reveals later under an earlier date would be dropped for good.
+        const anyStoredTransaction = await findOneTransaction({
+          planned: 'exclude',
+          access: 'unscoped-internal',
+          balanceAdjustments: 'include',
+          where: { accountId: account.id, time: { [Op.lte]: new Date() } },
+        });
+        const createFromDate = anyStoredTransaction
+          ? clampSyncStartToLink({ account, from: new Date(0) })
+          : new Date(0);
+        const matchPlanned = Boolean(anyStoredTransaction) && (await accountHasPlannedRows({ accountId: account.id }));
 
         for (const tx of postedTransactions) {
           await checkpoint();
@@ -367,9 +362,9 @@ export class LunchFlowProvider extends BaseBankDataProvider {
             continue;
           }
 
-          // Unmatched pre-window rows are pre-link/pre-existing history: the
-          // link residual absorb owns it, so never mint rows for it.
-          if (createFromDate && new Date(tx.date) < createFromDate) {
+          // Never create rows before the link date: that history is already absorbed into the opening balance.
+          if (new Date(tx.date) < createFromDate) {
+            skippedPreLinkCount += 1;
             continue;
           }
 
@@ -407,9 +402,9 @@ export class LunchFlowProvider extends BaseBankDataProvider {
           }
         }
 
-        if (createdTransactionIds.length > 0 || mergedIntoPlannedCount > 0) {
+        if (createdTransactionIds.length > 0 || mergedIntoPlannedCount > 0 || skippedPreLinkCount > 0) {
           logger.info(
-            `[LunchFlow] Sync: ${createdTransactionIds.length} transactions created, ${mergedIntoPlannedCount} planned confirmed for account ${account.id}`,
+            `[LunchFlow] Sync: ${createdTransactionIds.length} transactions created, ${mergedIntoPlannedCount} planned confirmed, ${skippedPreLinkCount} pre-link rows skipped for account ${account.id}`,
           );
           await notifyPlannedConfirmations({
             userId: connection.userId,

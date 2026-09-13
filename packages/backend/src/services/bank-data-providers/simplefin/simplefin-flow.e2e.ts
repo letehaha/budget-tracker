@@ -1,7 +1,8 @@
-import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE, DEACTIVATION_REASON, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE, DEACTIVATION_REASON, TRANSACTION_TYPES, asDecimal } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import Transactions from '@models/transactions.model';
 import { redisClient } from '@root/redis-client';
@@ -26,8 +27,11 @@ import {
   getSimplefinAccountsErrorMock,
   getSimplefinAccountsMock,
 } from '@tests/mocks/simplefin/mock-api';
-import { subDays } from 'date-fns';
+import { addDays, subDays, subHours } from 'date-fns';
 import { Op } from 'sequelize';
+
+import { SyncStatus } from '../sync/sync-status-tracker';
+import type { SimplefinTransaction } from './types';
 
 /**
  * E2E tests for the SimpleFIN Bridge data provider.
@@ -62,6 +66,51 @@ const connectAndImport = async (
   );
   const accountId = await importFirstAccount(connectionId);
   return { connectionId, accountId };
+};
+
+const toEpochSeconds = ({ date }: { date: Date }): number => Math.floor(date.getTime() / 1000);
+
+/** A bank-side copy of a spend the user already tracked manually. */
+const buildBankTransaction = ({ postedAt, amount }: { postedAt: Date; amount: number }): SimplefinTransaction => ({
+  id: `bank-copy-${toEpochSeconds({ date: postedAt })}`,
+  posted: toEpochSeconds({ date: postedAt }),
+  amount: amount.toFixed(2),
+  description: 'Bank copy of a manually tracked spend',
+  payee: 'Coffee Shop',
+  memo: '',
+  pending: false,
+});
+
+/** A manual account holding one manual expense, ready to be linked to a connection. */
+const createTrackedAccount = async ({ manualSpentAt }: { manualSpentAt: Date }): Promise<string> => {
+  await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
+
+  const account = await helpers.createAccount({
+    payload: helpers.buildAccountPayload({
+      name: 'Manually tracked checking',
+      currencyCode: 'USD',
+      initialBalance: 1000,
+    }),
+    raw: true,
+  });
+
+  await helpers.createTransaction({
+    payload: helpers.buildTransactionPayload({
+      accountId: account.id,
+      amount: 40,
+      transactionType: TRANSACTION_TYPES.expense,
+      time: manualSpentAt.toISOString(),
+    }),
+    raw: true,
+  });
+
+  return account.id;
+};
+
+const waitForCompletedSync = async ({ accountId }: { accountId: string }): Promise<void> => {
+  await helpers.bankDataProviders.waitForAccountsSyncToSettle();
+  const { accounts } = await helpers.bankDataProviders.getAccountsSyncStatus({ raw: true });
+  expect(accounts.find((account) => account.accountId === accountId)?.status).toBe(SyncStatus.COMPLETED);
 };
 
 describe('SimpleFIN Data Provider E2E', () => {
@@ -660,14 +709,14 @@ describe('SimpleFIN Data Provider E2E', () => {
   });
 
   describe('Structured errors (errlist)', () => {
-    it('treats a con.auth errlist entry on a 200 response as an auth failure', async () => {
+    it('treats a gen.auth errlist entry on a 200 response as an auth failure', async () => {
       const connectionId = await connectSimplefin();
       const accountId = await importFirstAccount(connectionId);
 
       global.mswMockServer.use(
         getSimplefinAccountsMock({
           response: getMockedSimplefinAccountSet({
-            errlist: [{ code: 'con.auth', msg: 'Connection credentials rejected' }],
+            errlist: [{ code: 'gen.auth', msg: 'Access URL rejected' }],
           }),
         }),
       );
@@ -759,6 +808,226 @@ describe('SimpleFIN Data Provider E2E', () => {
       expect(reactivated.connection.isActive).toBe(true);
       expect(reactivated.connection.deactivationReason).toBeNull();
     });
+
+    it('rejects the refresh and leaves the connection inactive when the bridge returns gen.auth on a 200', async () => {
+      const connectionId = await connectSimplefin();
+      const accountId = await importFirstAccount(connectionId);
+
+      global.mswMockServer.use(getSimplefinAccountsErrorMock({ status: 403 }));
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId });
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId });
+
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({
+          response: getMockedSimplefinAccountSet({ errlist: [{ code: 'gen.auth', msg: 'Access URL rejected' }] }),
+        }),
+      );
+
+      const result = await helpers.bankDataProviders.updateConnectionDetails({
+        connectionId,
+        credentials: { setupToken: VALID_SIMPLEFIN_SETUP_TOKEN },
+      });
+      expect(result.statusCode).toBe(ERROR_CODES.Forbidden);
+
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+      expect(connection.isActive).toBe(false);
+      expect(connection.deactivationReason).toBe(DEACTIVATION_REASON.AUTH_FAILURE);
+    });
+  });
+
+  describe('con.auth scope handling', () => {
+    const CON_AUTH_ERRLIST = [{ code: 'con.auth', msg: 'Connection credentials rejected', conn_id: 'CONN-BANK-B' }];
+
+    it('persists the transactions of healthy accounts returned alongside a con.auth entry', async () => {
+      const connectionId = await connectSimplefin();
+      const accountId = await importFirstAccount(connectionId);
+
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({
+          response: getMockedSimplefinAccountSet({
+            account1Transactions: getMockedSimplefinTransactions(3),
+            errlist: CON_AUTH_ERRLIST,
+          }),
+        }),
+      );
+
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect(await Transactions.count({ where: { accountId } })).toBe(3);
+    });
+
+    it('accepts a fresh setup token and reactivates the connection while con.auth is reported', async () => {
+      const connectionId = await connectSimplefin();
+      const accountId = await importFirstAccount(connectionId);
+
+      global.mswMockServer.use(getSimplefinAccountsErrorMock({ status: 403 }));
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId });
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId });
+
+      const deactivated = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+      expect(deactivated.connection.isActive).toBe(false);
+
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({ response: getMockedSimplefinAccountSet({ errlist: CON_AUTH_ERRLIST }) }),
+      );
+
+      const updateResult = await helpers.bankDataProviders.updateConnectionDetails({
+        connectionId,
+        credentials: { setupToken: VALID_SIMPLEFIN_SETUP_TOKEN },
+      });
+      expect(updateResult.statusCode).toBe(200);
+
+      const reactivated = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+      expect(reactivated.connection.isActive).toBe(true);
+      expect(reactivated.connection.deactivationReason).toBeNull();
+    });
+
+    it('creates a connection when the bridge reports con.auth for one institution', async () => {
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({ response: getMockedSimplefinAccountSet({ errlist: CON_AUTH_ERRLIST }) }),
+      );
+
+      const result = await helpers.bankDataProviders.connectProvider({
+        providerType: BANK_PROVIDER_TYPE.SIMPLEFIN,
+        credentials: { setupToken: VALID_SIMPLEFIN_SETUP_TOKEN },
+      });
+
+      expect(result.statusCode).toBe(200);
+      expect(result.body.response.connectionId).toBeDefined();
+    });
+  });
+
+  describe('Future-dated anchor', () => {
+    const HISTORY_DAYS_AGO = [10, 11, 12];
+
+    /** Import three historical rows, then push a balance adjustment 400 days into the future. */
+    const connectImportAndPoisonAnchor = async () => {
+      const connectionId = await connectSimplefin();
+
+      const history = getMockedSimplefinTransactionsOnDaysAgo(HISTORY_DAYS_AGO);
+      global.mswMockServer.use(
+        getSimplefinAccountsMock({ response: getMockedSimplefinAccountSet({ account1Transactions: history }) }),
+      );
+      const accountId = await importFirstAccount(connectionId);
+
+      const account = await helpers.getAccount({ id: accountId, raw: true });
+      const adjustment = await helpers.balanceAdjustment({
+        id: accountId,
+        payload: {
+          targetBalance: asDecimal(Number(account.currentBalance) + 10),
+          time: addDays(new Date(), 400).toISOString(),
+        },
+        raw: true,
+      });
+      expect(adjustment.transaction).not.toBeNull();
+
+      return { connectionId, accountId, history };
+    };
+
+    it('never requests a window whose start-date is after its end-date', async () => {
+      const { connectionId, accountId, history } = await connectImportAndPoisonAnchor();
+
+      const recorder = createSimplefinAccountsRecorder({ account1Transactions: history, windowed: true });
+      global.mswMockServer.use(recorder.handler);
+
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      const windows = recorder.requests
+        .filter((url) => url.searchParams.has('start-date'))
+        .map((url) => ({
+          start: Number(url.searchParams.get('start-date')),
+          end: Number(url.searchParams.get('end-date')),
+        }));
+      expect(windows.length).toBeGreaterThan(0);
+      expect(windows.filter(({ start, end }) => start > end)).toEqual([]);
+    });
+
+    it('still imports transactions posted since the latest real transaction', async () => {
+      const { connectionId, accountId, history } = await connectImportAndPoisonAnchor();
+      expect(await Transactions.count({ where: { accountId, originalId: { [Op.ne]: null } } })).toBe(
+        HISTORY_DAYS_AGO.length,
+      );
+
+      const freshTransaction = getMockedSimplefinTransactionsOnDaysAgo([2])[0]!;
+      const recorder = createSimplefinAccountsRecorder({
+        account1Transactions: [...history, freshTransaction],
+        windowed: true,
+      });
+      global.mswMockServer.use(recorder.handler);
+
+      await helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      expect(await Transactions.count({ where: { accountId, originalId: freshTransaction.id } })).toBe(1);
+      expect(await Transactions.count({ where: { accountId, originalId: { [Op.ne]: null } } })).toBe(
+        HISTORY_DAYS_AGO.length + 1,
+      );
+    });
+  });
+
+  describe('Forward-only link window', () => {
+    it('does not import the bank copy of a pre-link manual transaction when linking', async () => {
+      const manualSpentAt = subHours(new Date(), 3);
+      const bankCopy = buildBankTransaction({ postedAt: subHours(new Date(), 2), amount: -40 });
+
+      const accountId = await createTrackedAccount({ manualSpentAt });
+      const connectionId = await connectSimplefin();
+
+      const recorder = createSimplefinAccountsRecorder({ account1Transactions: [bankCopy], windowed: true });
+      global.mswMockServer.use(recorder.handler);
+
+      const linkTriggeredAt = toEpochSeconds({ date: new Date() });
+      await helpers.linkAccountToBankConnection({
+        id: accountId,
+        connectionId,
+        externalAccountId: SIMPLEFIN_ACCOUNT_1,
+        raw: true,
+      });
+      await waitForCompletedSync({ accountId });
+
+      const stored = await Transactions.findAll({ where: { accountId } });
+      expect(stored.filter((tx) => tx.originalId !== null).length).toBe(0);
+      expect(stored.length).toBe(1);
+
+      const windowedRequests = recorder.requests.filter((url) => url.searchParams.has('start-date'));
+      expect(windowedRequests.length).toBeGreaterThan(0);
+      const earliestStart = Math.min(...windowedRequests.map((url) => Number(url.searchParams.get('start-date'))));
+      expect(earliestStart).toBeGreaterThanOrEqual(linkTriggeredAt);
+    });
+
+    it('keeps a freshly linked account out of the shared window of a connection-level sync', async () => {
+      const manualSpentAt = subDays(new Date(), 30);
+      // Settled before the manual row, so only the connection-level window
+      // widened by the anchorless savings account reaches it.
+      const bankCopy = buildBankTransaction({ postedAt: subDays(new Date(), 60), amount: -40 });
+
+      const connectionId = await connectSimplefin();
+
+      const recorder = createSimplefinAccountsRecorder({ account1Transactions: [bankCopy], windowed: true });
+      global.mswMockServer.use(recorder.handler);
+
+      // Savings has no transactions, so it stays anchorless and drags the shared
+      // window back to the initial-backfill horizon.
+      await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_2],
+        raw: true,
+      });
+
+      const accountId = await createTrackedAccount({ manualSpentAt });
+      await helpers.linkAccountToBankConnection({
+        id: accountId,
+        connectionId,
+        externalAccountId: SIMPLEFIN_ACCOUNT_1,
+        raw: true,
+      });
+
+      await helpers.makeRequest({ method: 'post', url: '/bank-data-providers/sync/trigger' });
+      await waitForCompletedSync({ accountId });
+
+      const stored = await Transactions.findAll({ where: { accountId } });
+      expect(stored.filter((tx) => tx.originalId !== null).length).toBe(0);
+      expect(stored.length).toBe(1);
+    });
   });
 
   describe('Amount mapping', () => {
@@ -784,6 +1053,68 @@ describe('SimpleFIN Data Provider E2E', () => {
       const expense = stored.find((tx) => tx.originalId === 'sf-expense')!;
       expect(income.transactionType).toBe(TRANSACTION_TYPES.income);
       expect(expense.transactionType).toBe(TRANSACTION_TYPES.expense);
+    });
+  });
+
+  /**
+   * An external account already linked to a live connection cannot be attached to
+   * a second live connection of the same provider, so the shared bridge feed is
+   * never pulled into two separate account rows.
+   */
+  describe('Duplicate external account across two live connections', () => {
+    it('rejects importing the same external id on another connection', async () => {
+      const connectionA = await connectSimplefin();
+      await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionA,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
+        raw: true,
+      });
+
+      const connectionB = await connectSimplefin();
+      const response = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionB,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      const { message } = helpers.extractResponse(response);
+      expect(message).toContain('Test Checking');
+      expect(message).toContain('"SimpleFIN"');
+
+      const rows = await Accounts.findAll({
+        where: { externalId: SIMPLEFIN_ACCOUNT_1 },
+        attributes: ['id', 'externalId', 'bankDataProviderConnectionId'],
+      });
+      expect(rows.length).toBe(1);
+    });
+
+    it('rejects linking a system account to an external id owned by another connection', async () => {
+      const connectionA = await connectSimplefin();
+      await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionA,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
+        raw: true,
+      });
+
+      await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
+      const systemAccount = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Manually tracked checking', currencyCode: 'USD' }),
+        raw: true,
+      });
+
+      const connectionB = await connectSimplefin();
+      const response = await helpers.linkAccountToBankConnection({
+        id: systemAccount.id,
+        connectionId: connectionB,
+        externalAccountId: SIMPLEFIN_ACCOUNT_1,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      expect(helpers.extractResponse(response).message).toContain('"SimpleFIN"');
+
+      const reloaded = (await Accounts.findByPk(systemAccount.id))!;
+      expect(reloaded.externalId).toBe(null);
+      expect(reloaded.bankDataProviderConnectionId).toBe(null);
     });
   });
 });

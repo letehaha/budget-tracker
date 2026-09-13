@@ -18,13 +18,13 @@ vi.mock('@/api/bank-data-providers', () => ({
 
 // Captures the SSE handler the composable registers, so a test can push a status
 // snapshot through it without a real connection.
-const sse = vi.hoisted(() => ({ handler: null as ((data: unknown) => void) | null }));
+const sse = vi.hoisted(() => ({ handler: null as ((data: unknown) => void) | null, disconnect: vi.fn() }));
 
 vi.mock('./use-sse', () => ({
   SSE_EVENT_TYPES: { SYNC_STATUS_CHANGED: 'sync_status_changed' },
   useSSE: () => ({
     connect: vi.fn(),
-    disconnect: vi.fn(),
+    disconnect: sse.disconnect,
     on: vi.fn((_event: string, handler: (data: unknown) => void) => {
       sse.handler = handler;
       return () => {};
@@ -175,5 +175,11 @@ describe('useSyncStatus cache invalidation on sync completion', () => {
     completeSync();
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactionChange'] });
+  });
+
+  it('leaves the app-wide SSE stream open so other features keep receiving events', () => {
+    completeSync();
+
+    expect(sse.disconnect).not.toHaveBeenCalled();
   });
 });

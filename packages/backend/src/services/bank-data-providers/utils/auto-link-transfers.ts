@@ -28,7 +28,7 @@ function oppositeType({ type }: { type: TRANSACTION_TYPES }): TRANSACTION_TYPES 
  * upgrade and the booked copy lands as a duplicate. Monobank authorization holds are excluded
  * too, their amount still changes on settlement.
  */
-function isLinkableRow({ tx }: { tx: Transactions }): boolean {
+export function isLinkableRow({ tx }: { tx: Transactions }): boolean {
   return hasSettledStatus({ tx }) && tx.externalData?.hold !== true;
 }
 

@@ -156,7 +156,9 @@ const showHelp = ref(false);
 
 // Step 1 data
 const setupToken = ref('');
-const connectionId = ref<string | null>(null);
+// The setup token is single-use, so a retry with the same token must re-list the
+// accounts of the connection it already claimed instead of claiming again.
+const claimed = ref<{ token: string; connectionId: string } | null>(null);
 // Inline connect error: kept in the form (not a toast) so it survives long
 // enough to read. Cleared as soon as the user edits the token to try again.
 const connectError = ref<string | null>(null);
@@ -181,18 +183,21 @@ const isMissingCurrencySelection = computed(
 );
 
 const handleConnectProvider = async () => {
-  if (!setupToken.value || isLoading.value || isDemo.value) return;
+  const token = setupToken.value.trim();
+  if (!token || isLoading.value || isDemo.value) return;
 
   try {
     isLoading.value = true;
     connectError.value = null;
 
-    const response = await connectProvider(BANK_PROVIDER_TYPE.SIMPLEFIN, { setupToken: setupToken.value });
+    if (claimed.value?.token !== token) {
+      const response = await connectProvider(BANK_PROVIDER_TYPE.SIMPLEFIN, { setupToken: token });
+      claimed.value = { token, connectionId: response.connectionId };
+    }
 
-    connectionId.value = response.connectionId;
-
-    const accounts = await getAvailableAccounts(response.connectionId);
-    availableAccounts.value = accounts;
+    availableAccounts.value = await getAvailableAccounts(claimed.value.connectionId);
+    selectedAccountIds.value = [];
+    currencyOverrides.value = {};
 
     currentStep.value = 2;
   } catch (error) {
@@ -203,12 +208,12 @@ const handleConnectProvider = async () => {
 };
 
 const handleImportAccounts = () => {
-  if (!connectionId.value || selectedAccountIds.value.length === 0 || isDemo.value) {
+  if (!claimed.value || selectedAccountIds.value.length === 0 || isDemo.value) {
     return;
   }
   if (isMissingCurrencySelection.value) return;
 
-  const id = connectionId.value;
+  const id = claimed.value.connectionId;
   const accountIds = selectedAccountIds.value;
 
   // Kick off create + initial sync on the server, but don't block the dialog on

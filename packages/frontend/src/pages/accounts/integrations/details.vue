@@ -558,7 +558,7 @@ const {
   isLoading: isLoadingAvailableAccounts,
   error: availableAccountsError,
 } = useQuery({
-  queryKey: [...VUE_QUERY_CACHE_KEYS.bankAvailableExternalAccounts, connectionId.value],
+  queryKey: [...VUE_QUERY_CACHE_KEYS.bankAvailableExternalAccounts, connectionId],
   queryFn: () => getAvailableAccounts(connectionId.value),
   enabled: computed(() => isFetchAccountsDialogOpen.value || !!connectionDetails.value?.isActive),
   retry: false,

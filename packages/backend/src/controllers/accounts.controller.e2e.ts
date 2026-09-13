@@ -1,5 +1,5 @@
 import type { RecordId } from '@bt/shared/types';
-import { ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
+import { ACCOUNT_CATEGORIES, ACCOUNT_TYPES, API_ERROR_CODES } from '@bt/shared/types';
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
@@ -433,7 +433,67 @@ describe('Accounts controller', () => {
       // initialBalance was 1000, currentBalance went from -1000 to 0 (+1000 delta)
       expect(updated.initialBalance).toBe(2000);
     });
+
+    describe('dedicated-flow categories', () => {
+      const createGeneralAccount = () =>
+        helpers.createAccount({
+          payload: helpers.buildAccountPayload({ name: 'Checking' }),
+          raw: true,
+        });
+
+      it('rejects moving a general account into the loan category', async () => {
+        const account = await createGeneralAccount();
+
+        const response = await helpers.updateAccount<helpers.ErrorResponse>({
+          id: account.id,
+          payload: { accountCategory: ACCOUNT_CATEGORIES.loan },
+        });
+
+        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(response).code).toBe(API_ERROR_CODES.validationError);
+
+        const reloaded = await helpers.getAccount({ id: account.id, raw: true });
+        expect(reloaded.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
+
+        const loans = await helpers.getLoans({ raw: true });
+        expect(loans.length).toBe(0);
+      });
+
+      it('rejects moving a general account into the vehicle category', async () => {
+        const account = await createGeneralAccount();
+
+        const response = await helpers.updateAccount<helpers.ErrorResponse>({
+          id: account.id,
+          payload: { accountCategory: ACCOUNT_CATEGORIES.vehicle },
+        });
+
+        expect(response.statusCode).toBe(ERROR_CODES.ValidationError);
+        expect(helpers.extractResponse(response).code).toBe(API_ERROR_CODES.validationError);
+
+        const reloaded = await helpers.getAccount({ id: account.id, raw: true });
+        expect(reloaded.accountCategory).toBe(ACCOUNT_CATEGORIES.general);
+      });
+
+      it('keeps the account editable after the rejected flip', async () => {
+        const account = await createGeneralAccount();
+
+        await helpers.updateAccount({
+          id: account.id,
+          payload: { accountCategory: ACCOUNT_CATEGORIES.loan },
+        });
+
+        const toSaving = await helpers.updateAccount({
+          id: account.id,
+          payload: { accountCategory: ACCOUNT_CATEGORIES.saving },
+        });
+        expect(toSaving.statusCode).toBe(200);
+
+        const reloaded = await helpers.getAccount({ id: account.id, raw: true });
+        expect(reloaded.accountCategory).toBe(ACCOUNT_CATEGORIES.saving);
+      });
+    });
   });
+
   describe('delete account', () => {
     it('returns 404 when deleting a non-existent account', async () => {
       const res = await helpers.deleteAccount({ id: generateRandomRecordId(), raw: false });

@@ -102,10 +102,10 @@ export async function setAccountSyncStatus({
     error: error ?? null,
   };
 
-  // Preserve the original startedAt across QUEUED → SYNCING → COMPLETED/FAILED
-  // transitions so isStaleStatus measures from the true start of the activity.
+  // startedAt is inherited only from a still-active run, so COMPLETED/FAILED keeps
+  // that run's start and a terminal record never ages a freshly queued one.
   const existing = await getAccountSyncStatus(accountId);
-  if (existing?.startedAt && status !== SyncStatus.SYNCING) {
+  if (existing?.startedAt && isActiveSync(existing.status) && status !== SyncStatus.SYNCING) {
     statusData.startedAt = existing.startedAt;
   }
 

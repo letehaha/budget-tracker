@@ -5,6 +5,7 @@ import { t } from '@i18n/index';
 import { NotFoundError, ValidationError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import { withAccountSyncLock } from '@root/services/bank-data-providers/connection/sync-transactions-for-account';
 import { bankProviderRegistry } from '@root/services/bank-data-providers/registry';
 import { z } from 'zod';
 
@@ -97,19 +98,24 @@ export default createController(
     // historical loads implement loadTransactionsForPeriod — Monobank via a
     // job queue, SimpleFIN inline. Providers without it reject the request.
     const provider = bankProviderRegistry.get(connection.providerType);
+    const loadTransactionsForPeriod = provider.loadTransactionsForPeriod?.bind(provider);
 
-    if (typeof provider.loadTransactionsForPeriod !== 'function') {
+    if (!loadTransactionsForPeriod) {
       throw new ValidationError({
         message: t({ key: 'bankDataProviders.periodLoadNotSupported' }),
       });
     }
 
-    const result = await provider.loadTransactionsForPeriod({
-      connectionId,
-      systemAccountId: accountId,
-      userId: user.id,
-      from: fromDate,
-      to: toDate,
+    const result = await withAccountSyncLock({
+      accountIds: [accountId],
+      fn: () =>
+        loadTransactionsForPeriod({
+          connectionId,
+          systemAccountId: accountId,
+          userId: user.id,
+          from: fromDate,
+          to: toDate,
+        }),
     });
 
     // `jobGroupId === null` is the explicit marker for an inline provider
