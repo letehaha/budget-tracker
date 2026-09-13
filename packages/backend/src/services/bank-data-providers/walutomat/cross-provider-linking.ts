@@ -1,11 +1,14 @@
-import { ACCOUNT_TYPES, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ACCOUNT_TYPES, type RecordId, TRANSACTION_TYPES } from '@bt/shared/types';
+import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import { findTransactions } from '@models/transactions-query';
+import Transactions from '@models/transactions.model';
 import { linkTransactions } from '@services/transactions/transactions-linking/link-transactions';
-import { addDays, subDays } from 'date-fns';
+import { addDays, isWithinInterval, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
+import { isLinkableRow } from '../utils/auto-link-transfers';
 import { TRANSFER_DATE_WINDOW_DAYS, normalizeIban } from '../utils/transfer-matching';
 
 /**
@@ -31,6 +34,56 @@ function extractCounterpartyIban({
 }
 
 /**
+ * Another Walutomat leg fitting the counterpart equally well. Without this check two same-amount
+ * payouts to one IBAN would both claim the single synced income and an arbitrary one would win.
+ */
+function hasRivalLeg({
+  walutomatTxs,
+  tx,
+  counterpart,
+  consumed,
+  ibanToAccountIds,
+}: {
+  walutomatTxs: Transactions[];
+  tx: Transactions;
+  counterpart: Transactions;
+  consumed: Set<RecordId>;
+  ibanToAccountIds: Map<string, RecordId[]>;
+}): boolean {
+  const counterpartTime = new Date(counterpart.time);
+
+  return walutomatTxs.some((leg) => {
+    if (leg.id === tx.id) return false;
+    if (consumed.has(leg.id)) return false;
+    if (leg.transactionType === counterpart.transactionType) return false;
+    if (leg.currencyCode !== counterpart.currencyCode) return false;
+    if (leg.amount.toCents() !== counterpart.amount.toCents()) return false;
+
+    const legTime = new Date(leg.time);
+    if (
+      !isWithinInterval(counterpartTime, {
+        start: subDays(legTime, TRANSFER_DATE_WINDOW_DAYS),
+        end: addDays(legTime, TRANSFER_DATE_WINDOW_DAYS),
+      })
+    ) {
+      return false;
+    }
+
+    const externalData = leg.externalData as {
+      operationType: string;
+      operationDetails: Array<{ key: string; value: string }>;
+    };
+    const iban = extractCounterpartyIban({
+      operationType: externalData.operationType,
+      operationDetails: externalData.operationDetails ?? [],
+    });
+    if (!iban) return false;
+
+    return (ibanToAccountIds.get(normalizeIban({ iban })) ?? []).includes(counterpart.accountId);
+  });
+}
+
+/**
  * Auto-link Walutomat PAYIN/PAYOUT transactions to their counterparts in other
  * bank accounts by matching IBAN + exact amount + currency + date window.
  *
@@ -47,7 +100,8 @@ function extractCounterpartyIban({
  * - Neither transaction is already linked as a transfer
  * - Neither transaction is planned
  *
- * Only links when exactly 1 unambiguous match is found.
+ * Only links when the pair is unambiguous from both sides, and a transaction already linked
+ * earlier in the same run is not offered again.
  */
 export async function linkCrossProviderTransfers({ userId }: { userId: number }): Promise<void> {
   // Step 1: Find unlinked Walutomat PAYIN/PAYOUT transactions
@@ -59,6 +113,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
     completeness: 'all',
     where: {
       accountType: ACCOUNT_TYPES.walutomat,
+      refundLinked: false,
       [Op.or]: [
         Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'PAYIN'),
         Sequelize.where(Sequelize.literal(`"externalData"->>'operationType'`), 'PAYOUT'),
@@ -77,7 +132,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
     },
   });
 
-  const ibanToAccountIds = new Map<string, string[]>();
+  const ibanToAccountIds = new Map<string, RecordId[]>();
   for (const account of accountsWithIban) {
     const externalData = account.externalData as Record<string, unknown> | null;
     const iban = externalData?.iban as string | undefined;
@@ -94,10 +149,13 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
 
   if (ibanToAccountIds.size === 0) return;
 
-  // Step 3: Match each Walutomat transaction
-  const pairsToLink: [string, string][] = [];
+  // Step 3: Match and link each Walutomat transaction
+  const consumed = new Set<RecordId>();
+  let linkedCount = 0;
 
   for (const tx of walutomatTxs) {
+    if (consumed.has(tx.id)) continue;
+
     const externalData = tx.externalData as {
       operationType: string;
       operationDetails: Array<{ key: string; value: string }>;
@@ -126,7 +184,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
     const dateTo = addDays(txDate, TRANSFER_DATE_WINDOW_DAYS);
 
     // Search for matching transactions in the identified accounts
-    const candidates = await findTransactions({
+    const rows = await findTransactions({
       planned: 'exclude',
       access: { creator: userId },
       balanceAdjustments: 'include',
@@ -135,6 +193,7 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
       where: {
         accountId: { [Op.in]: matchingAccountIds },
         transactionType: expectedOppositeType,
+        refundLinked: false,
         currencyCode: tx.currencyCode,
         // amount is stored as cents in DB, tx.amount is a Money object
         amount: tx.amount.toCents(),
@@ -142,31 +201,29 @@ export async function linkCrossProviderTransfers({ userId }: { userId: number })
       },
     });
 
+    const candidates = rows.filter((row) => !consumed.has(row.id) && isLinkableRow({ tx: row }));
+
     // Only auto-link if exactly 1 unambiguous match
     if (candidates.length !== 1) continue;
 
     const match = candidates[0]!;
 
+    if (hasRivalLeg({ walutomatTxs, tx, counterpart: match, consumed, ibanToAccountIds })) continue;
+
     // Determine base (expense) and opposite (income)
     const [baseTxId, oppositeTxId] =
       tx.transactionType === TRANSACTION_TYPES.expense ? [tx.id, match.id] : [match.id, tx.id];
 
-    pairsToLink.push([baseTxId, oppositeTxId]);
-  }
-
-  if (pairsToLink.length === 0) return;
-
-  // One rejected pair (planned or split-bearing leg) must not abort the rest of the batch.
-  let linkedCount = 0;
-  for (const pair of pairsToLink) {
     try {
-      await linkTransactions({ userId, ids: [pair] });
+      await linkTransactions({ userId, ids: [[baseTxId, oppositeTxId]] });
+      consumed.add(tx.id);
+      consumed.add(match.id);
       linkedCount += 1;
     } catch (err) {
+      // A rejected pair (planned or split-bearing leg) must not abort the batch; anything else is a broken run.
+      if (!(err instanceof ValidationError)) throw err;
       logger.warn(
-        `[Walutomat] Failed to auto-link cross-provider pair ${pair[0]} <-> ${pair[1]}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `[Walutomat] Failed to auto-link cross-provider pair ${baseTxId} <-> ${oppositeTxId}: ${err.message}`,
       );
     }
   }
