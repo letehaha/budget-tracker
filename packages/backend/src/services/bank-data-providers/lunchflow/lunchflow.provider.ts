@@ -301,10 +301,6 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         // Filter out pending transactions (those with null IDs)
         const postedTransactions = transactionsResponse.transactions.filter((tx) => tx.id !== null);
 
-        // Never anchor on the newest stored row: LunchFlow sends the whole feed every sync,
-        // and a row the bank reveals later under an earlier date would be dropped for good.
-        const createFromDate = clampSyncStartToLink({ account, from: new Date(0) });
-
         // Sort by date ascending
         postedTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -314,13 +310,19 @@ export class LunchFlowProvider extends BaseBankDataProvider {
         let skippedPreLinkCount = 0;
         const checkpoint = this.createBaseCurrencyLockCheckpoint({ userId });
 
-        // An account with nothing stored yet is a backfill and must not consume plans.
+        // An account with nothing stored yet is a backfill: it imports the whole feed and
+        // must not consume plans. Otherwise only rows since the link date are created, never
+        // since the newest stored row: LunchFlow sends the whole feed every sync, and a row
+        // the bank reveals later under an earlier date would be dropped for good.
         const anyStoredTransaction = await findOneTransaction({
           planned: 'exclude',
           access: 'unscoped-internal',
           balanceAdjustments: 'include',
           where: { accountId: account.id, time: { [Op.lte]: new Date() } },
         });
+        const createFromDate = anyStoredTransaction
+          ? clampSyncStartToLink({ account, from: new Date(0) })
+          : new Date(0);
         const matchPlanned = Boolean(anyStoredTransaction) && (await accountHasPlannedRows({ accountId: account.id }));
 
         for (const tx of postedTransactions) {

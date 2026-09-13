@@ -325,7 +325,8 @@ export class SimplefinProvider extends BaseBankDataProvider {
 
         return {
           // Clamped to the link date: the bank's copy of a pre-link manual row carries no id dedup can match.
-          from: clampSyncStartToLink({ account, from: anchor ?? subDays(to, INITIAL_BACKFILL_DAYS) }),
+          // An account with no rows backfills instead.
+          from: anchor ? clampSyncStartToLink({ account, from: anchor }) : subDays(to, INITIAL_BACKFILL_DAYS),
           to,
           // Only an anchored (incremental) sync may consume plans: the anchorless
           // backfill window would let old charges eat fresh plans.
@@ -385,7 +386,7 @@ export class SimplefinProvider extends BaseBankDataProvider {
           account,
           // Anchorless accounts are on their backfill pull, which must not consume plans.
           matchPlanned: anchor !== null,
-          createFromDate: clampSyncStartToLink({ account, from: anchor ?? subDays(to, INITIAL_BACKFILL_DAYS) }),
+          createFromDate: anchor ? clampSyncStartToLink({ account, from: anchor }) : subDays(to, INITIAL_BACKFILL_DAYS),
         };
       }),
     );
