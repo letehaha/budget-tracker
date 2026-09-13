@@ -1,9 +1,10 @@
 import { BANK_PROVIDER_TYPE, type RecordId } from '@bt/shared/types';
+import { LockedError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import { SentryTraceData, withQueueProcessSpan, withQueuePublishSpan } from '@js/utils/sentry';
 import { Job, Queue, Worker } from 'bullmq';
 
-import { syncTransactionsForAccount } from '../connection/sync-transactions-for-account';
+import { syncTransactionsForAccount, withAccountSyncLock } from '../connection/sync-transactions-for-account';
 import { bankProviderRegistry } from '../registry';
 import { SyncStatus, setAccountSyncStatus } from './sync-status-tracker';
 
@@ -52,10 +53,18 @@ accountSyncQueue.on('error', (err) => {
   }
 });
 
-const markAccountsFailed = ({ accountIds, error, userId }: { accountIds: RecordId[]; error: Error; userId: number }) =>
+const markAccountsFailed = ({
+  accountIds,
+  message,
+  userId,
+}: {
+  accountIds: RecordId[];
+  message: string;
+  userId: number;
+}) =>
   Promise.all(
     accountIds.map((accountId) =>
-      setAccountSyncStatus({ accountId, status: SyncStatus.FAILED, error: error.message, userId }),
+      setAccountSyncStatus({ accountId, status: SyncStatus.FAILED, error: message, userId }),
     ),
   );
 
@@ -65,31 +74,42 @@ async function processAccountSync({
   providerType,
   accountIds,
 }: AccountSyncJobData): Promise<void> {
+  const [accountId, ...restAccountIds] = accountIds;
+  if (!accountId) return;
+
   try {
     const provider = bankProviderRegistry.get(providerType);
+    const syncConnectionAccounts = provider.syncConnectionAccounts?.bind(provider);
 
-    if (typeof provider.syncConnectionAccounts === 'function') {
+    if (syncConnectionAccounts) {
       // Batch-capable provider (e.g. SimpleFIN): one windowed fetch per connection
       // covering every account, instead of a per-account fan-out.
-      await provider.syncConnectionAccounts({ connectionId, userId, systemAccountIds: accountIds });
+      await withAccountSyncLock({
+        accountIds: [accountId, ...restAccountIds],
+        fn: () => syncConnectionAccounts({ connectionId, userId, systemAccountIds: accountIds }),
+      });
       return;
     }
 
-    const [accountId] = accountIds;
-    await syncTransactionsForAccount({ connectionId, userId, accountId: accountId! });
+    await syncTransactionsForAccount({ connectionId, userId, accountId });
   } catch (error) {
+    // LockedError is not a job failure to retry, but the accounts must not stay SYNCING forever.
+    const message =
+      error instanceof LockedError ? 'A sync for this account is already running.' : (error as Error).message;
+
     logger.error({
       message: `[Account Sync Worker] Transaction sync failed for accounts ${accountIds.join(', ')}`,
       error: error as Error,
     });
     try {
-      await markAccountsFailed({ accountIds, error: error as Error, userId });
+      await markAccountsFailed({ accountIds, message, userId });
     } catch (statusError) {
       logger.error({
         message: '[Account Sync Worker] Failed to record FAILED sync status',
         error: statusError as Error,
       });
     }
+    if (error instanceof LockedError) return;
     throw error;
   }
 }
@@ -112,7 +132,7 @@ accountSyncWorker.on('failed', async (job, err) => {
   // Catch-all for jobs that never reached the processor's own handler — a
   // stalled job leaves its accounts SYNCING forever otherwise.
   try {
-    await markAccountsFailed({ accountIds: job.data.accountIds, error: err, userId: job.data.userId });
+    await markAccountsFailed({ accountIds: job.data.accountIds, message: err.message, userId: job.data.userId });
   } catch (statusError) {
     logger.error({ message: '[Account Sync Worker] Failed to record FAILED sync status', error: statusError as Error });
   }
@@ -191,7 +211,7 @@ export async function enqueueAccountSync({
     try {
       await addSyncJob({ userId, connectionId, providerType, accountIds: job.accountIds, jobId: job.jobId });
     } catch (error) {
-      await markAccountsFailed({ accountIds: job.accountIds, error: error as Error, userId });
+      await markAccountsFailed({ accountIds: job.accountIds, message: (error as Error).message, userId });
       throw error;
     }
   }
