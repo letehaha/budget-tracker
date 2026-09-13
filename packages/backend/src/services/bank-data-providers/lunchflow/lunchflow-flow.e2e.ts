@@ -3,6 +3,7 @@ import {
   BANK_PROVIDER_TYPE,
   PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
+  DEACTIVATION_REASON,
   TRANSACTION_TYPES,
   asDecimal,
 } from '@bt/shared/types';
@@ -11,6 +12,7 @@ import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import Transactions from '@models/transactions.model';
+import type { LunchFlowApiTransactionsResponse } from '@services/bank-data-providers/lunchflow/types';
 import * as helpers from '@tests/helpers';
 import { buildTransactionPayload } from '@tests/helpers/transactions';
 import {
@@ -20,6 +22,7 @@ import {
 } from '@tests/mocks/lunchflow/data';
 import {
   INVALID_LUNCHFLOW_API_KEY,
+  LUNCHFLOW_BASE_URL,
   VALID_LUNCHFLOW_API_KEY,
   VALID_LUNCHFLOW_API_KEY_2,
   getLunchFlowAccountsMock,
@@ -1456,7 +1459,7 @@ describe('LunchFlow Data Provider E2E', () => {
   });
 
   describe('Provider outage vs. invalid credentials', () => {
-    const LUNCHFLOW_ACCOUNTS_URL = 'https://lunchflow.app/api/v1/accounts';
+    const LUNCHFLOW_ACCOUNTS_URL = `${LUNCHFLOW_BASE_URL}/accounts`;
 
     it('connect: should not treat a provider 5xx as invalid credentials', async () => {
       global.mswMockServer.use(
@@ -1535,6 +1538,151 @@ describe('LunchFlow Data Provider E2E', () => {
       });
 
       expect(result.status).toEqual(ERROR_CODES.ValidationError);
+    });
+  });
+
+  /**
+   * A LunchFlow row that appears in the feed only after a newer row was already
+   * imported (a pending card purchase that settles under its original booking date)
+   * is created, not skipped.
+   */
+  describe('Late-settling transactions', () => {
+    it('creates a newly revealed transaction dated before the newest stored one', async () => {
+      const now = new Date();
+
+      const deposit = {
+        id: 'tx-deposit',
+        accountId: 1001,
+        amount: asDecimal(1000),
+        currency: 'USD',
+        date: subDays(now, 1).toISOString(),
+        merchant: 'Employer',
+        isPending: false,
+      };
+      const lateSettledCard = {
+        id: 'tx-card-late',
+        accountId: 1001,
+        amount: asDecimal(-80),
+        currency: 'USD',
+        date: subDays(now, 2).toISOString(),
+        merchant: 'Cafe',
+        isPending: false,
+      };
+
+      const feedWithDepositOnly: LunchFlowApiTransactionsResponse = {
+        transactions: [deposit],
+        total: 1,
+      };
+      const feedWithSettledCard: LunchFlowApiTransactionsResponse = {
+        transactions: [deposit, lateSettledCard],
+        total: 2,
+      };
+
+      const { connectionId } = await helpers.lunchflow.pair();
+
+      const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+        connectionId,
+        raw: true,
+      });
+      const externalId = externalAccounts[0]!.externalId;
+
+      global.mswMockServer.use(
+        getLunchFlowTransactionsMock({ response: feedWithDepositOnly, accountId: externalId }),
+        getLunchFlowBalanceMock({ accountId: externalId }),
+      );
+
+      const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId,
+        accountExternalIds: [externalId],
+        raw: true,
+      });
+      const accountId = syncedAccounts[0]!.id;
+
+      const afterFirstSync = await Transactions.findAll({ where: { accountId } });
+      expect(afterFirstSync.length).toBe(1);
+      expect(afterFirstSync[0]!.originalId).toBe('tx-deposit');
+
+      global.mswMockServer.use(
+        getLunchFlowTransactionsMock({ response: feedWithSettledCard, accountId: externalId }),
+        getLunchFlowBalanceMock({ accountId: externalId }),
+      );
+
+      await helpers.bankDataProviders.syncTransactionsForAccount({
+        connectionId,
+        accountId,
+        raw: true,
+      });
+
+      const afterSecondSync = await Transactions.findAll({ where: { accountId } });
+
+      expect(afterSecondSync.map((tx) => tx.originalId).sort()).toEqual(['tx-card-late', 'tx-deposit']);
+    });
+  });
+
+  /**
+   * Submitting a fresh LunchFlow API key clears the connection's auth-failure state,
+   * so the connection keeps its full grace window instead of dying on the next 403.
+   */
+  describe('refreshCredentials clears auth-failure state', () => {
+    const forbiddenAccountsMock = () =>
+      http.get(
+        `${LUNCHFLOW_BASE_URL}/accounts`,
+        () => new HttpResponse(null, { status: 403, statusText: 'Forbidden' }),
+      );
+
+    const workingAccountsMock = () => getLunchFlowAccountsMock({ response: getMockedLunchFlowAccounts() });
+
+    const deactivateViaAuthFailures = async ({ connectionId }: { connectionId: string }) => {
+      global.mswMockServer.use(forbiddenAccountsMock());
+      await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+      await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+    };
+
+    it('clears deactivationReason when a fresh API key reactivates the connection', async () => {
+      const { connectionId } = await helpers.lunchflow.pair();
+
+      await deactivateViaAuthFailures({ connectionId });
+
+      const { connection: deactivated } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+      expect(deactivated.isActive).toBe(false);
+      expect(deactivated.deactivationReason).toBe(DEACTIVATION_REASON.AUTH_FAILURE);
+
+      global.mswMockServer.use(workingAccountsMock());
+      await helpers.bankDataProviders.updateConnectionDetails({
+        connectionId,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY_2 },
+        raw: true,
+      });
+
+      const { connection: reactivated } = await helpers.bankDataProviders.getConnectionDetails({
+        connectionId,
+        raw: true,
+      });
+      expect(reactivated.isActive).toBe(true);
+      expect(reactivated.deactivationReason).toBeNull();
+    });
+
+    it('keeps the connection active when a single 403 follows a credential refresh', async () => {
+      const { connectionId } = await helpers.lunchflow.pair();
+
+      await deactivateViaAuthFailures({ connectionId });
+
+      global.mswMockServer.use(workingAccountsMock());
+      await helpers.bankDataProviders.updateConnectionDetails({
+        connectionId,
+        credentials: { apiKey: VALID_LUNCHFLOW_API_KEY_2 },
+        raw: true,
+      });
+
+      global.mswMockServer.use(forbiddenAccountsMock());
+      await helpers.bankDataProviders.listExternalAccounts({ connectionId });
+
+      const { connection } = await helpers.bankDataProviders.getConnectionDetails({ connectionId, raw: true });
+      expect(connection.isActive).toBe(true);
+      expect(connection.deactivationReason).toBeNull();
     });
   });
 });
