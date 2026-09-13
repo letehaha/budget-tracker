@@ -2,6 +2,7 @@ import { ACCOUNT_TYPES, BANK_PROVIDER_TYPE, DEACTIVATION_REASON, TRANSACTION_TYP
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import { ERROR_CODES } from '@js/errors';
+import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import Transactions from '@models/transactions.model';
 import { redisClient } from '@root/redis-client';
@@ -1052,6 +1053,68 @@ describe('SimpleFIN Data Provider E2E', () => {
       const expense = stored.find((tx) => tx.originalId === 'sf-expense')!;
       expect(income.transactionType).toBe(TRANSACTION_TYPES.income);
       expect(expense.transactionType).toBe(TRANSACTION_TYPES.expense);
+    });
+  });
+
+  /**
+   * An external account already linked to a live connection cannot be attached to
+   * a second live connection of the same provider, so the shared bridge feed is
+   * never pulled into two separate account rows.
+   */
+  describe('Duplicate external account across two live connections', () => {
+    it('rejects importing the same external id on another connection', async () => {
+      const connectionA = await connectSimplefin();
+      await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionA,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
+        raw: true,
+      });
+
+      const connectionB = await connectSimplefin();
+      const response = await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionB,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      const { message } = helpers.extractResponse(response);
+      expect(message).toContain('Test Checking');
+      expect(message).toContain('"SimpleFIN"');
+
+      const rows = await Accounts.findAll({
+        where: { externalId: SIMPLEFIN_ACCOUNT_1 },
+        attributes: ['id', 'externalId', 'bankDataProviderConnectionId'],
+      });
+      expect(rows.length).toBe(1);
+    });
+
+    it('rejects linking a system account to an external id owned by another connection', async () => {
+      const connectionA = await connectSimplefin();
+      await helpers.bankDataProviders.connectSelectedAccounts({
+        connectionId: connectionA,
+        accountExternalIds: [SIMPLEFIN_ACCOUNT_1],
+        raw: true,
+      });
+
+      await helpers.addUserCurrencies({ currencyCodes: ['USD'], raw: true });
+      const systemAccount = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Manually tracked checking', currencyCode: 'USD' }),
+        raw: true,
+      });
+
+      const connectionB = await connectSimplefin();
+      const response = await helpers.linkAccountToBankConnection({
+        id: systemAccount.id,
+        connectionId: connectionB,
+        externalAccountId: SIMPLEFIN_ACCOUNT_1,
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.BadRequest);
+      expect(helpers.extractResponse(response).message).toContain('"SimpleFIN"');
+
+      const reloaded = (await Accounts.findByPk(systemAccount.id))!;
+      expect(reloaded.externalId).toBe(null);
+      expect(reloaded.bankDataProviderConnectionId).toBe(null);
     });
   });
 });

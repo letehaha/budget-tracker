@@ -22,6 +22,7 @@ import { addUserCurrencies } from '@services/currencies/add-user-currency';
 
 import { bankProviderRegistry } from '../registry';
 import { enqueueAccountSync } from '../sync/account-sync-queue';
+import type { AccountWithConnection } from '../sync/get-user-sync-status';
 
 const PROVIDER_TO_ANALYTICS_TYPE: Record<BANK_PROVIDER_TYPE, BankProvider> = {
   [BANK_PROVIDER_TYPE.MONOBANK]: 'monobank',
@@ -37,6 +38,44 @@ const PROVIDER_TO_ACCOUNT_TYPE: Record<BANK_PROVIDER_TYPE, ACCOUNT_TYPES> = {
   [BANK_PROVIDER_TYPE.LUNCHFLOW]: ACCOUNT_TYPES.lunchflow,
   [BANK_PROVIDER_TYPE.WALUTOMAT]: ACCOUNT_TYPES.walutomat,
   [BANK_PROVIDER_TYPE.SIMPLEFIN]: ACCOUNT_TYPES.simplefin,
+};
+
+/**
+ * Rejects an external account already imported on another connection of the same provider:
+ * both rows would pull the same feed and transaction dedup is per account.
+ */
+export const assertExternalAccountNotLinkedElsewhere = async ({
+  userId,
+  providerType,
+  externalId,
+}: {
+  userId: number;
+  providerType: BANK_PROVIDER_TYPE;
+  externalId: string;
+}): Promise<void> => {
+  const alreadyLinked = (await Accounts.findOne({
+    where: { userId, externalId },
+    include: [
+      {
+        model: BankDataProviderConnections,
+        as: 'bankDataProviderConnection',
+        where: { providerType },
+        required: true,
+      },
+    ],
+  })) as AccountWithConnection | null;
+
+  if (!alreadyLinked) return;
+
+  throw new BadRequestError({
+    message: t({
+      key: 'bankDataProviders.accountAlreadyConnectedToAnotherConnection',
+      variables: {
+        account: alreadyLinked.name,
+        connection: alreadyLinked.bankDataProviderConnection.providerName,
+      },
+    }),
+  });
 };
 
 /**
@@ -137,6 +176,12 @@ const createAccountsForConnection = withTransaction(
         });
         createdAccounts.push(existingAccount);
       } else {
+        await assertExternalAccountNotLinkedElsewhere({
+          userId,
+          providerType: connection.providerType,
+          externalId: providerAccount.externalId,
+        });
+
         // ISO "XXX" means the provider could not determine the currency. The
         // user must pick one explicitly (recorded as currencyFallback so the
         // UI can explain the substitution). Currency is immutable afterwards —
