@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "subscriptions": {
+      "title": "Pagamenti programmati",
+      "defaultAutoRecord": {
+        "label": "Registrazione automatica predefinita per i nuovi pagamenti pianificati",
+        "help": "Se abilitato, la registrazione automatica per il modulo di creazione rimane attiva per impostazione predefinita. Puoi modificare l'impostazione per ogni singola transazione.",
+        "successNotification": "Impostazioni salvate",
+        "errorNotification": "Errore nel salvataggio delle impostazioni"
+      }
+    }
+  }
+}

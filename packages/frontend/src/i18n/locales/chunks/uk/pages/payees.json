@@ -124,10 +124,10 @@
         "errorNotification": "Не вдалося оновити налаштування"
       },
       "promotionThreshold": {
-        "label": "Створювати отримувача після N повторень",
-        "description": "Скільки транзакцій мають містити однакову назву купця, перш ніж отримувача буде створено автоматично. Встановіть 1, щоб створювати отримувачів із першої транзакції.",
-        "successNotification": "Поріг створення отримувачів оновлено",
-        "errorNotification": "Не вдалося оновити поріг створення отримувачів"
+        "label": "Create a payee after N occurrences",
+        "description": "How many transactions must share the same merchant name before a payee is created automatically. Set to 1 to create payees from the first transaction.",
+        "successNotification": "Payee creation threshold updated",
+        "errorNotification": "Failed to update payee creation threshold"
       },
       "bulkCategorizationMode": {
         "label": "Застосувати режим категоризації до всіх отримувачів",

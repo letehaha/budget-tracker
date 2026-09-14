@@ -1,7 +1,7 @@
 {
   "accounts": {
     "title": "Accounts",
-    "createAccount": "Create account",
+    "createAccount": "创建账户",
     "createVehicle": "Add vehicle",
     "actionsMenu": "Account actions",
     "sections": {
@@ -27,9 +27,9 @@
     "sharedBy": "Shared by {handle}",
     "viaHousehold": "Shared via {handle}'s household",
     "connect": "Connect",
-    "connectBank": "Connect bank",
+    "connectBank": "连接银行",
     "noBanksConnected": "No banks connected yet — connect one to sync balances automatically.",
-    "reconnect": "Reconnect",
+    "reconnect": "重新连接",
     "manageConnection": "Manage connection",
     "accountsCount": "{count} account | {count} accounts",
     "inGroupSubtitle": "in {name}",

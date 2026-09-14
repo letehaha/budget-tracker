@@ -17,7 +17,7 @@
       "typeInstallment": "Installment",
       "completed": "Completed",
       "paused": "Paused",
-      "cancel": "Cancel",
+      "cancel": "取消",
       "pauseSubscription": "Pause",
       "resumeSubscription": "Resume",
       "deleteSubscription": "Delete",

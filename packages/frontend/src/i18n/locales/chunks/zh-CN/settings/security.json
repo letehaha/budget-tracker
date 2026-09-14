@@ -31,9 +31,13 @@
           "title": "Passkeys",
           "noPasskeys": "No passkeys registered",
           "passkeyCount": "{count} passkey(s) registered",
-          "addButton": "Add Passkey",
+          "addButton": "添加通行密钥",
           "passkeyName": "Passkey",
-          "added": "Added {date}"
+          "added": "Added {date}",
+          "rename": "Rename",
+          "renamePlaceholder": "Enter passkey name",
+          "deleteConfirmTitle": "Remove passkey?",
+          "deleteConfirmDescription": "\"{name}\" will no longer be able to sign in to your account. This cannot be undone."
         },
         "warningOneMethod": "Add another login method before disconnecting your OAuth account.",
         "notifications": {
@@ -43,7 +47,8 @@
           "passkeyAddSuccess": "Passkey added successfully",
           "passkeyAddFailed": "Failed to add passkey. Make sure your device supports passkeys.",
           "passkeyRemoveSuccess": "Passkey removed",
-          "passkeyRemoveFailed": "Failed to remove passkey"
+          "passkeyRemoveFailed": "Failed to remove passkey",
+          "passkeyRenameFailed": "Failed to rename passkey"
         }
       },
       "activeSessions": {
@@ -59,10 +64,10 @@
           "unknownBrowser": "Unknown Browser"
         },
         "timeAgo": {
-          "justNow": "Just now",
-          "minutesAgo": "{count} minute ago | {count} minutes ago",
-          "hoursAgo": "{count} hour ago | {count} hours ago",
-          "daysAgo": "{count} day ago | {count} days ago"
+          "justNow": "刚刚",
+          "minutesAgo": "{count} 分钟前 | {count} 分钟前",
+          "hoursAgo": "{count} 小时前 | {count} 小时前",
+          "daysAgo": "{count} 天前 | {count} 天前"
         },
         "notifications": {
           "loadFailed": "Failed to load sessions",
@@ -168,7 +173,7 @@
           "confirmFull": "Please type {email} to confirm",
           "placeholder": "Enter your email",
           "acceptButton": "Delete my account",
-          "acceptButtonLoading": "Deleting..."
+          "acceptButtonLoading": "正在删除……"
         },
         "notifications": {
           "success": "Your account has been deleted successfully",

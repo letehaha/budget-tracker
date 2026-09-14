@@ -3,6 +3,10 @@
     "language": {
       "title": "Idioma",
       "description": "Idioma de visualización de la interfaz de la aplicación.",
+      "community": {
+        "title": "Community translations",
+        "hint": "Translated by volunteers on Crowdin. Anything not translated yet is shown in English."
+      },
       "contribute": {
         "title": "¿Traducciones faltantes o incorrectas?",
         "description": "Todos los idiomas excepto el inglés son traducidos por la comunidad en Crowdin. Puede solicitar un nuevo idioma, sugerir correcciones o traducir cadenas usted mismo — no se requieren conocimientos de programación.",

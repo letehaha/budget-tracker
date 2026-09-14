@@ -11,6 +11,10 @@
       "aiCategorization": {
         "title": "Categorización IA",
         "description": "Deje que la IA clasifique las transacciones sin categorizar y revise ejecuciones anteriores."
+      },
+      "applyRules": {
+        "title": "Apply a rule to past transactions",
+        "description": "Pick one of your automations and run it over transactions you already have."
       }
     },
     "aiCategorization": {

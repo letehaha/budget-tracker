@@ -52,7 +52,8 @@
         "tagSingular": "etiqueta",
         "tagPlural": "etiquetas",
         "selected": "seleccionadas",
-        "searchPlaceholder": "Buscar etiquetas…"
+        "searchPlaceholder": "Buscar etiquetas…",
+        "blankOption": "No tags"
       },
       "payees": {
         "label": "Beneficiarios",
@@ -113,11 +114,7 @@
       "tagModeLabel": "Acción de etiqueta",
       "tagModeAdd": "Añadir a etiquetas existentes",
       "tagModeReplace": "Reemplazar todas las etiquetas",
-      "tagModeRemove": "Eliminar estas etiquetas",
-      "unselectableReasons": {
-        "split": "No se puede seleccionar: las transacciones divididas no admiten edición masiva. Edítela individualmente.",
-        "sharedAccount": "No se puede seleccionar: esta transacción pertenece a una cuenta compartida contigo, y solo su propietario puede editarla."
-      }
+      "tagModeRemove": "Eliminar estas etiquetas"
     },
     "transactionGroups": {
       "bulkActions": {

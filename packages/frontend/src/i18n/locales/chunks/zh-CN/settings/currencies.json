@@ -6,7 +6,7 @@
         "description": "Manage the currencies you track and the exchange rates used across your accounts."
       },
       "addNew": {
-        "loading": "Loading...",
+        "loading": "加载中……",
         "selectCurrency": "Select currency",
         "addButton": "Add",
         "sectionLabel": "Add a currency",
@@ -16,7 +16,7 @@
         }
       },
       "howItWorks": {
-        "trigger": "How it works?",
+        "trigger": "它是如何运作的？",
         "body": "Your base currency is the one every balance is converted into for totals and reports. Each added currency updates automatically from live market rates, or you can set a custom rate to override it."
       },
       "row": {
@@ -75,7 +75,7 @@
           "restrictionWarning": "You won't be able to create new accounts, transactions, and anything related to \"amounts\" while the process is in progress.",
           "confirmation": "Are you sure you want to proceed?",
           "changeButton": "Change Base Currency",
-          "cancelButton": "Cancel"
+          "cancelButton": "取消"
         },
         "successMessage": "Base currency changed successfully.",
         "errors": {

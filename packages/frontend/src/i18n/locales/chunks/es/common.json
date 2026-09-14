@@ -146,7 +146,14 @@
       },
       "record": {
         "addedByTooltip": "{handle} adjuntó esta transacción al presupuesto",
-        "hiddenAccount": "Cuenta oculta"
+        "externalLinkTooltip": "Open external link",
+        "locationTooltip": "Open location on the map",
+        "hiddenAccount": "Cuenta oculta",
+        "selectRow": "Seleccionar transacción",
+        "unselectableReasons": {
+          "split": "No se puede seleccionar: las transacciones divididas no admiten edición masiva. Edítela individualmente.",
+          "sharedAccount": "No se puede seleccionar: esta transacción pertenece a una cuenta compartida contigo, y solo su propietario puede editarla."
+        }
       }
     },
     "outOfWallet": "Fuera de cartera",

@@ -215,6 +215,7 @@
     "failedToFetchBanks": "Gagal mengambil data bank. Periksa kredensial dan kode negara Anda.",
     "failedToFetchCountries": "Gagal mengambil data negara. Periksa kredensial Anda.",
     "accountNotLinkedToConnection": "Akun tidak ditemukan atau tidak terhubung ke koneksi ini",
+    "accountAlreadyConnectedToAnotherConnection": "Account \"{{account}}\" is already connected through \"{{connection}}\". Disconnect it there first.",
     "cannotLoadBeforeLinkDate": "Tidak dapat memuat transaksi sebelum tanggal tautan akun ({{linkedAt}}). Akun ini ditautkan menggunakan strategi \"forward-only\" untuk mencegah duplikasi data.",
     "dateRangeExceedsLimit": "Rentang tanggal tidak boleh melebihi 1 tahun.",
     "fromAfterTo": "Tanggal \"from\" harus sebelum tanggal \"to\"",
@@ -537,6 +538,7 @@
   },
   "automations": {
     "automationNotFound": "Otomatisasi tidak ditemukan.",
+    "previewRequiresConditions": "Provide either conditions or a saved automation to preview.",
     "reorderStale": "Daftar otomatisasi telah berubah. Muat ulang dan coba lagi.",
     "ruleLimitReached": "Anda telah mencapai jumlah maksimum otomatisasi.",
     "staleReference": "Otomatisasi ini merujuk pada item yang sudah tidak ada."

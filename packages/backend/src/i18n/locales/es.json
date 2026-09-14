@@ -215,6 +215,7 @@
     "failedToFetchBanks": "No se pudieron obtener los bancos. Por favor, verifique sus credenciales y el código de país.",
     "failedToFetchCountries": "No se pudieron obtener los países. Por favor, verifique sus credenciales.",
     "accountNotLinkedToConnection": "Cuenta no encontrada o no vinculada a esta conexión",
+    "accountAlreadyConnectedToAnotherConnection": "Account \"{{account}}\" is already connected through \"{{connection}}\". Disconnect it there first.",
     "cannotLoadBeforeLinkDate": "No se pueden cargar transacciones anteriores a la fecha de vinculación de la cuenta ({{linkedAt}}). Esta cuenta fue vinculada con la estrategia \"solo hacia adelante\" para evitar la duplicación de datos.",
     "dateRangeExceedsLimit": "El rango de fechas no puede superar 1 año.",
     "fromAfterTo": "La fecha \"from\" debe ser anterior a la fecha \"to\"",
@@ -537,6 +538,7 @@
   },
   "automations": {
     "automationNotFound": "Automatización no encontrada.",
+    "previewRequiresConditions": "Provide either conditions or a saved automation to preview.",
     "reorderStale": "La lista de automatizaciones ha cambiado. Actualícela e inténtelo de nuevo.",
     "ruleLimitReached": "Ha alcanzado el número máximo de automatizaciones.",
     "staleReference": "Esta automatización hace referencia a un elemento que ya no existe."

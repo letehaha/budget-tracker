@@ -1,35 +1,35 @@
 {
   "auth": {
     "login": {
-      "title": "Log in to account",
-      "divider": "Or continue with email",
-      "submitButton": "Log in",
-      "noAccount": "Don't have an account?",
-      "signupsDisabledTooltip": "New signups are disabled by the administrator of this instance",
+      "title": "登录帐号",
+      "divider": "或使用邮箱继续",
+      "submitButton": "登录",
+      "noAccount": "没有帐号？",
+      "signupsDisabledTooltip": "此实例的管理员禁止新用户注册",
       "errors": {
-        "incorrectEmailOrPassword": "Incorrect email or password.",
-        "incorrectPassword": "Incorrect password.",
-        "userNotFound": "User not found.",
-        "emailNotVerified": "Please verify your email before signing in.",
-        "sessionExpired": "Your session has expired. Please sign in again.",
-        "noPasswordSet": "No password set for this account. Try signing in with Google.",
-        "passwordInvalid": "Password is invalid.",
-        "genericError": "An error occurred.",
-        "genericErrorRetry": "An error occurred. Please try again.",
-        "oauthFailed": "Failed to sign in with {provider}. Please try again.",
-        "oauthNotConfigured": "{provider} sign-in is not configured on this server.",
-        "passkeyFailed": "Failed to sign in with passkey. Please try again."
+        "incorrectEmailOrPassword": "邮箱或密码错误。",
+        "incorrectPassword": "密码错误。",
+        "userNotFound": "未找到用户。",
+        "emailNotVerified": "请在登录前验证您的电子邮件。",
+        "sessionExpired": "您的会话已过期。请重新登录。",
+        "noPasswordSet": "此帐号没有设置密码。请尝试使用 Google登录。",
+        "passwordInvalid": "密码无效。",
+        "genericError": "发生错误。",
+        "genericErrorRetry": "发生错误。请重试。",
+        "oauthFailed": "无法使用 {provider} 登录。请重试。",
+        "oauthNotConfigured": "本实例没有设置 {provider} 登录。",
+        "passkeyFailed": "无法使用通行密钥登录。请重试。"
       }
     },
     "shared": {
-      "divider": "Or continue with",
+      "divider": "或使用",
       "passkeyButton": {
-        "signIn": "Sign in with Passkey",
-        "register": "Add Passkey"
+        "signIn": "使用通行密钥登录",
+        "register": "添加通行密钥"
       },
       "oauthButton": {
-        "signIn": "Sign in with {provider}",
-        "signUp": "Sign up with {provider}"
+        "signIn": "使用 {provider} 登录",
+        "signUp": "使用 {provider} 注册"
       }
     }
   }

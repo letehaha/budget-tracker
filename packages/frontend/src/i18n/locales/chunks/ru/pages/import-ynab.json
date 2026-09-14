@@ -1,0 +1,76 @@
+{
+  "pages": {
+    "importExport": {
+      "ynabImport": {
+        "pageTitle": "Импорт из YNAB",
+        "pageDescription": "Загрузите экспорт YNAB Register.csv, чтобы перенести в MoneyMatter счета, транзакции, категории, получателей и теги.",
+        "stepper": {
+          "steps": {
+            "upload": "Загрузка",
+            "preview": "Проверка",
+            "results": "Готово"
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "Перетащите сюда Register.csv",
+          "description": "YNAB → Budget → Export budget → распакуйте архив → используйте файл Register.csv.",
+          "maxSize": "До 10 МБ.",
+          "parsing": "Обработка…",
+          "continueToPreview": "Продолжить",
+          "errors": {
+            "invalidFormat": "Загрузите файл .csv."
+          }
+        },
+        "preview": {
+          "emptyList": "Здесь нечего импортировать.",
+          "accounts": "Счета",
+          "categories": "Категории",
+          "payees": "Получатели",
+          "tags": "Теги",
+          "transactions": "Транзакции",
+          "transfers": "Переводы",
+          "dateRange": "Период: {from} → {to}",
+          "accountsHelper": "Для каждого счёта YNAB подтвердите валюту.",
+          "skippedNote": "{count} счёт(а/ов) будет пропущено. Их транзакции и переводы на них или с них не будут импортированы.",
+          "warningsTitle": "Предупреждения",
+          "rowPrefix": "Строка {rowIndex}:",
+          "startOver": "Начать заново",
+          "continueToImport": "Начать импорт"
+        },
+        "accountRow": {
+          "transactionsCount": "{count} транзакций",
+          "startingBalance": "Начальный баланс",
+          "currencyPlaceholder": "USD",
+          "currencyLabel": "Валюта",
+          "currencyInvalid": "Введите трёхбуквенный код валюты (например, USD)",
+          "autoDetected": "определено автоматически: {code}",
+          "undoSkip": "Включить в импорт"
+        },
+        "execute": {
+          "starting": "Запуск импорта…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "В очереди",
+          "statusRunning": "Импорт…",
+          "statusCompleted": "Готово",
+          "statusFailed": "Ошибка",
+          "failed": "Не удалось завершить импорт."
+        },
+        "done": {
+          "successTitle": "Импорт завершён",
+          "successDescription": "Данные YNAB теперь находятся в MoneyMatter.",
+          "accountsCreated": "Создано счетов",
+          "accountsSkipped": "Пропущено счетов",
+          "categoriesCreated": "Создано категорий",
+          "payeesCreated": "Создано получателей",
+          "tagsCreated": "Создано тегов",
+          "transactionsImported": "Импортировано транзакций",
+          "transfersImported": "Импортировано переводов",
+          "splitsDetected": "Обнаружено групп разбиений",
+          "errorsTitle": "Не удалось импортировать строк: {count}",
+          "viewTransactions": "Просмотреть транзакции",
+          "importAnother": "Импортировать другой файл"
+        }
+      }
+    }
+  }
+}

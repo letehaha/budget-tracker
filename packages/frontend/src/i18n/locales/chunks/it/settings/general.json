@@ -1,0 +1,73 @@
+{
+  "settings": {
+    "general": {
+      "title": "General",
+      "description": "Controlla come i tuoi dati finanziari vengono calcolati e visualizzati nell'app.",
+      "creditLimit": {
+        "label": "Includi i limiti di credito nel saldo",
+        "description": "Se abilitata, i limiti di credito vengono sottratti dai saldi dei conti nelle statistiche e dal grafico delle tendenze dei saldi. Questo mostra la tua situazione finanziaria reale invece di credito disponibile.",
+        "successNotification": "Impostazioni aggiornate con successo",
+        "errorNotification": "Impossibile aggiornare le impostazioni"
+      },
+      "manualTransferMatching": {
+        "label": "Match transfers with manual accounts",
+        "description": "Allow automatically detected transfers to link a synced bank transaction with one you created manually.",
+        "successNotification": "Transfer matching setting updated",
+        "errorNotification": "Failed to update transfer matching setting"
+      },
+      "savingsCategories": {
+        "label": "Count categories as savings",
+        "description": "Spending in these categories (and their subcategories) is excluded from expenses in cash-flow analytics, so it counts toward monthly savings and the savings rate.",
+        "successNotification": "Savings categories updated",
+        "errorNotification": "Failed to update savings categories"
+      },
+      "accountDropdowns": {
+        "defaultAccount": {
+          "label": "Default account",
+          "description": "Pre-selected when you create a transaction.",
+          "placeholder": "No default — first account"
+        },
+        "showArchived": {
+          "label": "Show archived accounts",
+          "description": "When off, archived accounts are hidden from account pickers."
+        },
+        "successNotification": "Account dropdown settings updated",
+        "errorNotification": "Failed to update account dropdown settings"
+      },
+      "showUpcomingTransactions": {
+        "label": "Show upcoming transactions",
+        "description": "Pin a section with overdue scheduled payments and ones due within the next 3 days at the top of the transactions list.",
+        "successNotification": "Upcoming transactions setting updated",
+        "errorNotification": "Failed to update upcoming transactions setting"
+      },
+      "transactionFields": {
+        "label": "Optional transaction fields",
+        "description": "Extra fields shown in the transaction form. A field that already has a value is always shown.",
+        "successNotification": "Transaction fields updated",
+        "errorNotification": "Unexpected error happened. Setting not saved",
+        "fields": {
+          "externalUrl": {
+            "label": "External URL",
+            "description": "Link the transaction to an order page, booking confirmation or receipt."
+          },
+          "externalReference": {
+            "label": "External reference",
+            "description": "Keep an order number, invoice number or booking reference with the transaction."
+          },
+          "originalAmount": {
+            "label": "Original amount",
+            "description": "The amount actually charged in another currency, when it differs from the account's currency."
+          },
+          "location": {
+            "label": "Location",
+            "description": "GPS coordinates of where the purchase happened. Fill from your device's location or type them in"
+          }
+        },
+        "mapPicker": {
+          "label": "Map picker",
+          "description": "Pick transaction locations on a map and search addresses. Map tiles and search come from OpenStreetMap, which receives your IP address when the map opens."
+        }
+      }
+    }
+  }
+}

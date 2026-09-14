@@ -1,19 +1,19 @@
 {
   "common": {
-    "loading": "Loading...",
+    "loading": "加载中……",
     "new": "New",
     "actions": {
-      "loading": "Loading...",
+      "loading": "加载中……",
       "signUp": "Sign up",
       "save": "Save",
-      "cancel": "Cancel",
+      "cancel": "取消",
       "back": "Back",
-      "accept": "Accept",
+      "accept": "接受",
       "delete": "Delete",
-      "edit": "Edit",
+      "edit": "编辑",
       "addSubcategory": "Add subcategory",
-      "settings": "Settings",
-      "confirm": "Confirm",
+      "settings": "设置",
+      "confirm": "确认",
       "viewTransactions": "View transactions",
       "viewAnalytics": "View analytics",
       "saving": "Saving...",
@@ -24,7 +24,7 @@
       "scan": "Scan",
       "link": "Link",
       "clear": "Clear",
-      "apply": "Apply",
+      "apply": "应用",
       "retry": "Try again",
       "copyInviteLink": "Copy invite link",
       "moveTo": "Move to…"
@@ -64,7 +64,7 @@
       "emailNotSent": "Email sending not configured — share the invite link manually"
     },
     "labels": {
-      "email": "Email",
+      "email": "电邮",
       "password": "Password",
       "system": "system",
       "unknown": "Unknown",
@@ -75,7 +75,7 @@
       "password": "Your password"
     },
     "dialogs": {
-      "createAccount": "Create account",
+      "createAccount": "创建账户",
       "createVehicle": "Add vehicle",
       "editVehicle": "Edit vehicle"
     },
@@ -87,8 +87,8 @@
       "saving": "Saving account",
       "bonus": "Bonus",
       "insurance": "Insurance",
-      "investment": "Investment",
-      "loan": "Loan",
+      "investment": "投资",
+      "loan": "贷款",
       "mortgage": "Mortgage",
       "overdraft": "Overdraft",
       "crypto": "Crypto",
@@ -146,7 +146,14 @@
       },
       "record": {
         "addedByTooltip": "This transaction was attached to the budget by {handle}",
-        "hiddenAccount": "Hidden account"
+        "externalLinkTooltip": "Open external link",
+        "locationTooltip": "Open location on the map",
+        "hiddenAccount": "Hidden account",
+        "selectRow": "选择交易",
+        "unselectableReasons": {
+          "split": "Can't be selected: split transactions don't support bulk editing. Edit it individually instead.",
+          "sharedAccount": "Can't be selected: this transaction is on an account shared with you, and only its owner can edit it."
+        }
       }
     },
     "outOfWallet": "Out of Wallet",
@@ -154,7 +161,7 @@
       "dialogTitle": "Date range",
       "dueDate": "Due date",
       "quickSelect": "Quick select",
-      "apply": "Apply",
+      "apply": "应用",
       "periodTypes": {
         "day": "Day",
         "month": "Month",
@@ -198,8 +205,8 @@
       },
       "duration": {
         "seconds": "{count} second | {count} seconds",
-        "minutes": "{count} minute | {count} minutes",
-        "hours": "{count} hour | {count} hours"
+        "minutes": "{count} 分钟 | {count} 分钟",
+        "hours": "{count} 小时 | {count} 小时"
       }
     },
     "logo": {
@@ -221,10 +228,10 @@
       "remove": "Remove logo",
       "lettersLabel": "Letters (1–2)",
       "lettersPlaceholder": "AB",
-      "colorLabel": "Color",
+      "colorLabel": "颜色",
       "colorSwatchAriaLabel": "Use color {color}",
       "customColorAriaLabel": "Pick a custom color",
-      "applyLetters": "Apply",
+      "applyLetters": "应用",
       "lettersSelectedLabel": "Letters “{letters}”"
     }
   },
@@ -401,10 +408,10 @@
       "nameLabel": "Name",
       "noteLabel": "Note (optional)",
       "notePlaceholder": "Optional note...",
-      "loadingText": "Loading...",
+      "loadingText": "加载中……",
       "savingAction": "Save",
-      "cancelButton": "Cancel",
-      "editAction": "Edit",
+      "cancelButton": "取消",
+      "editAction": "编辑",
       "deleteAction": "Delete Group",
       "transactionsLabel": "Transactions",
       "deleteGroupTitle": "Delete group",
@@ -412,7 +419,7 @@
       "removeTransactionTitle": "Remove transaction from group",
       "removeTransactionDescription": "This will leave fewer than 2 transactions in the group, so the group will be deleted. Continue?",
       "removeTransactionDescriptionNormal": "Are you sure you want to remove this transaction from the group?",
-      "removeButtonText": "Remove",
+      "removeButtonText": "删除",
       "removeAndDeleteButtonText": "Remove & Delete Group",
       "summary": {
         "transactions": "Transactions",

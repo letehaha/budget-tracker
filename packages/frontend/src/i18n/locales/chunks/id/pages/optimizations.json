@@ -11,6 +11,10 @@
       "aiCategorization": {
         "title": "Kategorisasi AI",
         "description": "Biarkan AI mengurutkan transaksi yang belum dikategorikan dan tinjau proses sebelumnya."
+      },
+      "applyRules": {
+        "title": "Apply a rule to past transactions",
+        "description": "Pick one of your automations and run it over transactions you already have."
       }
     },
     "aiCategorization": {

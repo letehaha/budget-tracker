@@ -13,8 +13,8 @@
         "description": "Дозвольте AI розсортувати некатегоризовані транзакції та переглянути минулі запуски."
       },
       "applyRules": {
-        "title": "Застосувати правило до минулих транзакцій",
-        "description": "Оберіть одну зі своїх автоматизацій і запустіть її на вже наявних транзакціях."
+        "title": "Apply a rule to past transactions",
+        "description": "Pick one of your automations and run it over transactions you already have."
       }
     },
     "aiCategorization": {

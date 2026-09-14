@@ -353,7 +353,8 @@
       "selectedMany": "{n} penerima dipilih",
       "noResults": "Tidak ada penerima ditemukan",
       "unknownPayee": "Penerima tidak diketahui",
-      "loadError": "Tidak dapat memuat penerima. Silakan coba lagi."
+      "loadError": "Tidak dapat memuat penerima. Silakan coba lagi.",
+      "blankOption": "No payee"
     },
     "budgetMultiSelect": {
       "label": "Semua anggaran",

@@ -214,35 +214,35 @@
       }
     },
     "applyToHistory": {
-      "trigger": "Застосувати до минулих транзакцій",
-      "saveFirst": "Спершу збережіть зміни",
-      "pickTitle": "Застосувати правило до минулих транзакцій",
-      "pickHint": "Оберіть правило. Ви переглянете відповідні транзакції, перш ніж щось зміниться.",
-      "title": "Застосувати «{name}» до минулих транзакцій",
-      "noRules": "У вас ще немає автоматизацій.",
-      "summary": "{count} минула транзакція відповідає цьому правилу | {count} минулі транзакції відповідають цьому правилу | {count} минулих транзакцій відповідають цьому правилу",
-      "moreMatches": "Показано лише {shown} найновіших збігів. Застосуйте їх, а потім запустіть ще раз.",
-      "scanCapped": "Перевірено лише останні {limit} ваших транзакцій.",
+      "trigger": "Apply to past transactions",
+      "saveFirst": "Save your changes first",
+      "pickTitle": "Apply a rule to past transactions",
+      "pickHint": "Pick a rule. You'll review the matching transactions before anything changes.",
+      "title": "Apply \"{name}\" to past transactions",
+      "noRules": "You don't have any automations yet.",
+      "summary": "{count} past transaction matches this rule | {count} past transactions match this rule",
+      "moreMatches": "Only the {shown} most recent matches are listed. Apply these, then run it again.",
+      "scanCapped": "Only your {limit} most recent transactions were checked.",
       "emptyState": {
-        "settledTitle": "Усе актуально",
-        "settledDescription": "Це правило більше нічого не змінить у єдиній відповідній минулій транзакції. | Це правило більше нічого не змінить у {count} відповідних минулих транзакціях. | Це правило більше нічого не змінить у {count} відповідних минулих транзакціях.",
-        "noneTitle": "Поки що немає збігів",
-        "noneDescription": "Жодна минула транзакція на ваших синхронізованих або імпортованих рахунках не відповідає цим умовам."
+        "settledTitle": "All caught up",
+        "settledDescription": "This rule has nothing left to change on the only matching past transaction. | This rule has nothing left to change on the {count} matching past transactions.",
+        "noneTitle": "No matches yet",
+        "noneDescription": "No past transaction on your synced or imported accounts matches these conditions."
       },
       "selectAll": "Вибрати всі",
       "selectedCount": "Вибрано: {count}",
-      "irreversible": "Це не можна скасувати. Уважно перегляньте список.",
-      "applyAction": "Застосувати до {count} транзакцій",
+      "irreversible": "This can't be undone. Review the list carefully.",
+      "applyAction": "Apply to {count} transactions",
       "confirm": {
-        "title": "Застосувати це правило?",
+        "title": "Apply this rule?",
         "action": "Застосувати",
-        "description": "{count} транзакцій буде оновлено одразу.",
-        "payeeNote": "Отримувача на цих транзакціях буде вважатися встановленим вами, тому автоматичне визначення отримувача більше не змінюватиме його."
+        "description": "{count} transactions will be updated right away.",
+        "payeeNote": "The payee on those transactions will be treated as set by you, so automatic payee detection won't change it later."
       },
-      "success": "Застосовано до {applied} транзакцій",
-      "successWithSkipped": "Застосовано до {applied} транзакцій, {skipped} пропущено",
-      "nothingApplied": "Нічого не було застосовано. Пропущено транзакцій: {skipped}.",
-      "applyError": "Не вдалося застосувати правило до минулих транзакцій."
+      "success": "Applied to {applied} transactions",
+      "successWithSkipped": "Applied to {applied} transactions, {skipped} skipped",
+      "nothingApplied": "Nothing was applied. {skipped} transactions were skipped.",
+      "applyError": "Couldn't apply the rule to past transactions."
     }
   }
 }

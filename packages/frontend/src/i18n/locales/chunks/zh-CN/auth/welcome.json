@@ -1,46 +1,46 @@
 {
   "auth": {
     "welcome": {
-      "title": "Select Base Currency",
-      "description": "Your base currency should ideally be the one you use most often. All transactions in other currencies will be calculated based on this one.",
-      "submitButton": "Confirm Currency",
-      "logout": "Logout",
+      "title": "选择基础货币",
+      "description": "您的基础货币应该是您日常使用的货币。其他货币的所有交易都将依据此货币统计。",
+      "submitButton": "确认货币",
+      "logout": "登出",
       "labels": {
-        "baseCurrency": "Base Currency"
+        "baseCurrency": "基础货币"
       },
       "placeholders": {
-        "loading": "Loading..."
+        "loading": "加载中……"
       },
       "errors": {
-        "unableToLoadCurrencies": "Unable to load currencies list. Try later",
-        "unableToSetCurrency": "Unexpected error. Cannot set base currency. Please try later or contact support."
+        "unableToLoadCurrencies": "无法加载货币列表。请稍后再试",
+        "unableToSetCurrency": "意外错误。无法设置基础货币。请稍后再试或联系客服。"
       }
     },
     "oauthCallback": {
-      "completingSignIn": "Completing sign in...",
+      "completingSignIn": "正在完成登录……",
       "errors": {
         "accessDenied": {
-          "signIn": "Sign in was cancelled or access was denied",
-          "signUp": "Sign up was cancelled or access was denied",
-          "link": "Linking was cancelled or access was denied"
+          "signIn": "登录被取消或被拒绝访问",
+          "signUp": "注册被取消或被拒绝访问",
+          "link": "绑定被取消或被拒绝访问"
         },
         "userAlreadyExists": {
-          "signIn": "An account with this email already exists",
-          "signUp": "An account with this email already exists",
-          "link": "This account is already linked to another user"
+          "signIn": "使用此电子邮件的帐号已存在",
+          "signUp": "使用此电子邮件的帐号已存在",
+          "link": "此帐号已绑定到另一个用户"
         },
         "accountNotLinked": {
-          "signIn": "No account found with this email. Please sign up first.",
-          "signUp": "Failed to create account. Please try again.",
-          "link": "Failed to link account. Please try again."
+          "signIn": "未找到此电子邮件的帐号。请先注册。",
+          "signUp": "创建帐号失败，请重试。",
+          "link": "绑定帐号失败，请重试。"
         },
         "genericError": {
-          "signIn": "Failed to sign in. Please try again.",
-          "signUp": "Failed to sign up. Please try again.",
-          "link": "Failed to link account. Please try again."
+          "signIn": "登录失败。请重试。",
+          "signUp": "登录失败。请重试。",
+          "link": "绑定帐号失败，请重试。"
         },
-        "unauthorizedClient": "This application is not authorized to use this authentication method",
-        "temporarilyUnavailable": "The authentication service is temporarily unavailable. Please try again later."
+        "unauthorizedClient": "此应用无权使用此身份验证方式",
+        "temporarilyUnavailable": "验证服务暂时不可用。请稍后再试。"
       }
     }
   }

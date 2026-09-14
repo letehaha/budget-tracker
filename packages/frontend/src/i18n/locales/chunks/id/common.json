@@ -146,7 +146,14 @@
       },
       "record": {
         "addedByTooltip": "Transaksi ini dilampirkan ke anggaran oleh {handle}",
-        "hiddenAccount": "Akun tersembunyi"
+        "externalLinkTooltip": "Open external link",
+        "locationTooltip": "Open location on the map",
+        "hiddenAccount": "Akun tersembunyi",
+        "selectRow": "Pilih transaksi",
+        "unselectableReasons": {
+          "split": "Tidak dapat dipilih: transaksi split tidak mendukung pengeditan massal. Edit secara individual.",
+          "sharedAccount": "Tidak dapat dipilih: transaksi ini berada di akun yang dibagikan dengan Anda, dan hanya pemiliknya yang dapat mengeditnya."
+        }
       }
     },
     "outOfWallet": "Di Luar Dompet",

@@ -16,10 +16,10 @@
         "balanceTypes": {
           "total": "Total",
           "accounts": "Accounts",
-          "portfolios": "Portfolios",
-          "ventures": "Ventures",
+          "portfolios": "投资组合",
+          "ventures": "风险投资",
           "vehicles": "Vehicles",
-          "loans": "Loans"
+          "loans": "贷款"
         },
         "tooltip": {
           "accounts": "Accounts:",
@@ -33,7 +33,7 @@
         "vsPreviousPeriod": "vs previous period",
         "spikePanel": {
           "accounts": "Accounts",
-          "portfolios": "Portfolios",
+          "portfolios": "投资组合",
           "priceDrivenChange": "Price-driven change — transaction details coming soon",
           "noSignificantTransactions": "No significant transactions for this date.",
           "seeAllTransactions": "See all transactions"
@@ -48,14 +48,14 @@
           "maxMarkers": "Max markers",
           "maxMarkersTooltip": "Maximum number of spike markers shown on the chart. When there are more spikes than this limit, only the most significant ones are displayed.",
           "resetDefaults": "Reset defaults",
-          "accept": "Accept",
+          "accept": "接受",
           "validation": {
             "outOfRange": "Value is out of allowed range",
             "integer": "Must be a whole number"
           }
         },
         "settings": {
-          "title": "Settings",
+          "title": "设置",
           "spikeMarkers": "Spike markers",
           "fitToLatestData": "Fit to latest data",
           "fitToLatestDataTooltip": "When on, the chart only spans up to your latest data point. When off, the x-axis covers the full selected period, leaving empty space for any future dates.",
@@ -68,8 +68,8 @@
         "componentsSettings": {
           "description": "Choose which components count toward the Total balance line.",
           "vehicles": "Vehicles",
-          "ventures": "Ventures",
-          "loans": "Loans",
+          "ventures": "风险投资",
+          "loans": "贷款",
           "loansTooltip": "When on, your outstanding loan balances are subtracted from the total (true net worth). When off, loans are ignored so the total shows assets only.",
           "allIncluded": "All components",
           "excluding": "Excluding {items}"
@@ -103,7 +103,7 @@
         "incomeSummary": "{count} active · {amount}/month income",
         "percentOfIncome": "{percent}% of avg income",
         "settings": {
-          "title": "Settings",
+          "title": "设置",
           "show": "Show",
           "incomeWindow": "Income window",
           "incomeWindowTooltip": "We average your incoming transactions over this period to compute the % of income spent on recurring payments.",
@@ -117,7 +117,7 @@
       },
       "categoryTracker": {
         "title": "Categories Watchlist",
-        "addCategory": "Add category",
+        "addCategory": "添加分类",
         "selectCategories": "Select Categories"
       },
       "cashFlow": {
@@ -142,15 +142,15 @@
         "viewHistory": "View history",
         "loadFailed": "Couldn't load net worth data.",
         "components": {
-          "ventures": "Ventures",
+          "ventures": "风险投资",
           "vehicles": "Vehicles",
-          "loans": "Loans"
+          "loans": "贷款"
         },
         "settings": {
           "title": "Include in net worth",
-          "loans": "Loans",
+          "loans": "贷款",
           "vehicles": "Vehicles",
-          "ventures": "Ventures"
+          "ventures": "风险投资"
         },
         "trendTooltip": {
           "change": "Change",
@@ -165,7 +165,7 @@
         "noAccounts": "No accounts with credit limits"
       },
       "plannedOverview": {
-        "title": "Planned",
+        "title": "已规划",
         "projectedTotal": "Projected balance",
         "pendingCount": "{count} planned entry | {count} planned entries",
         "through": "Through {date}",

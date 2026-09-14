@@ -1,0 +1,155 @@
+{
+  "portfolioDetail": {
+    "loading": "Загрузка...",
+    "loadingDetails": "Загрузка сведений о портфеле...",
+    "loadError": "Не удалось загрузить сведения о портфеле.",
+    "tryAgain": "Попробовать снова",
+    "notFoundTitle": "Портфель не найден",
+    "notFoundDescription": "Не удалось найти этот портфель. Возможно, он удалён или у вас нет к нему доступа.",
+    "backToInvestments": "Назад к инвестициям",
+    "subtitle": "Обзор портфеля",
+    "actions": {
+      "transfer": "Перевод",
+      "edit": "Изменить",
+      "delete": "Удалить",
+      "exchangeCurrency": "Обменять валюту"
+    },
+    "balance": {
+      "totalValue": "Общая стоимость",
+      "baseCurrencyEquivalent": "≈ {value} в {code}",
+      "loadError": "Не удалось загрузить сводку портфеля.",
+      "metrics": {
+        "costBasis": "Себестоимость",
+        "unrealized": "Нереализованный результат",
+        "realized": "Реализованный результат",
+        "totalReturn": "Общая доходность"
+      }
+    },
+    "cashBalances": {
+      "title": "Денежные балансы",
+      "emptyState": "Денежных остатков нет",
+      "tabs": {
+        "balances": "Балансы",
+        "cashTransactions": "Транзакции",
+        "buysSells": "Покупки и продажи"
+      },
+      "cashTransactions": {
+        "addButton": "Добавить денежную транзакцию",
+        "emptyState": "Денежных транзакций пока нет",
+        "deposit": "Пополнение",
+        "withdrawal": "Вывод",
+        "transferIn": "Входящий перевод",
+        "transferOut": "Исходящий перевод",
+        "exchange": "Обмен валюты",
+        "deleteConfirm": "Удалить эту денежную транзакцию?",
+        "linkedTransactionNote": "У этого перевода есть связанная транзакция счёта. Что с ней сделать?",
+        "keepLinkedTransaction": "Сохранить транзакцию счёта. Исходные данные будут восстановлены.",
+        "deleteLinkedTransaction": "Также удалить связанную транзакцию счёта",
+        "adjustmentBadge": "Корректировка",
+        "noCashBadge": "Без влияния на деньги",
+        "markedAsAdjustment": "Отмечено как корректировка баланса",
+        "markedAsContribution": "Отмечено как реальный взнос",
+        "adjustmentError": "Не удалось обновить перевод",
+        "rowActions": "Действия с транзакцией",
+        "emptyStateDescription": "Пополнения, выводы и переводы этого портфеля появятся здесь.",
+        "edit": "Изменить",
+        "editDialog": {
+          "title": "Изменить денежную транзакцию",
+          "description": "Измените способ учёта этой транзакции в отчётах.",
+          "save": "Сохранить изменения"
+        }
+      },
+      "buysSells": {
+        "emptyState": "Нет транзакций покупки/продажи",
+        "shares": "ед."
+      }
+    },
+    "holdings": {
+      "title": "Позиции",
+      "subtitle": "Тикеров: {count}",
+      "filterPlaceholder": "Фильтр по тикеру или названию...",
+      "addButton": "Добавить тикер",
+      "importButton": "Импортировать транзакции",
+      "importButtonShort": "Импорт"
+    },
+    "holdingsTable": {
+      "loadError": "Не удалось загрузить позиции",
+      "empty": "Позиций пока нет",
+      "noFilterResults": "Подходящие позиции не найдены",
+      "noFilterResultsDescription": "Поиск не дал результатов. Попробуйте другой тикер или название.",
+      "clearFilterButton": "Очистить поиск",
+      "headers": {
+        "symbol": "Тикер",
+        "name": "Название",
+        "shares": "Количество",
+        "price": "Цена",
+        "avgCostPerShare": "Ср. цена/ед.",
+        "totalCost": "Общая себестоимость",
+        "marketValue": "Рыночная стоимость",
+        "unrealizedGain": "Нереализованный результат",
+        "realizedGain": "Реализованный результат"
+      },
+      "transactions": {
+        "loading": "Загрузка транзакций…",
+        "empty": "Транзакции не найдены.",
+        "addFirstButton": "Добавить первую транзакцию"
+      },
+      "closedPositions": "Закрытые позиции ({count})",
+      "deleteHolding": {
+        "ariaLabel": "Удалить позицию",
+        "title": "Удалить позицию",
+        "description": "Позиция {symbol} и все её транзакции будут безвозвратно удалены. Это действие нельзя отменить.",
+        "confirmLabel": "Удалить позицию",
+        "success": "Позиция удалена.",
+        "error": "Не удалось удалить позицию."
+      },
+      "addTransactionDialog": {
+        "title": "Добавить транзакцию",
+        "description": "Добавьте новую транзакцию в портфель."
+      },
+      "tryAgainLater": "Попробуйте позже",
+      "emptyDescription": "Добавьте первую транзакцию, чтобы начать отслеживать инвестиции",
+      "addFirstHolding": "Добавить первую позицию",
+      "importTransactions": "Или импортировать из файла"
+    },
+    "transactionsList": {
+      "title": "Транзакции",
+      "addButton": "Добавить транзакцию",
+      "loadingMore": "Загрузка дополнительных транзакций…",
+      "headers": {
+        "date": "Дата",
+        "type": "Тип",
+        "note": "Примечание",
+        "quantity": "Количество",
+        "price": "Цена",
+        "fees": "Комиссии",
+        "amount": "Сумма",
+        "refAmount": "Сумма в базовой валюте",
+        "refFees": "Комиссии в базовой валюте",
+        "settlementAmount": "Денежная сумма",
+        "settlementCurrency": "Валюта расчёта",
+        "settlementFees": "Комиссии расчёта",
+        "settlementRate": "Курс FX",
+        "createdAt": "Добавлено"
+      },
+      "categories": {
+        "buy": "Покупка",
+        "sell": "Продажа",
+        "dividend": "Дивиденд",
+        "transfer": "Перевод",
+        "tax": "Налог",
+        "fee": "Комиссия",
+        "cancel": "Отмена",
+        "other": "Другое"
+      },
+      "headerTooltips": {
+        "amount": "Общая сумма транзакции в торговой валюте ценной бумаги.",
+        "refAmount": "Общая сумма транзакции, конвертированная в базовую валюту.",
+        "settlementAmount": "Фактически уплаченная или полученная денежная сумма в валюте расчёта."
+      },
+      "deleteTransaction": {
+        "tooltip": "Удалить транзакцию"
+      }
+    }
+  }
+}

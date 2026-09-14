@@ -1,0 +1,248 @@
+{
+  "automations": {
+    "title": "Автоматизации",
+    "subtitle": "Запускаются для новых транзакций из банковской синхронизации и импорта файлов. Срабатывает первое подходящее правило — перетащите правило, чтобы изменить порядок.",
+    "newAutomation": "Новая автоматизация",
+    "new": "Новая",
+    "dragHint": "Перетащите, чтобы изменить порядок",
+    "toggleAriaLabel": "Включить автоматизацию",
+    "menuAriaLabel": "Действия автоматизации",
+    "disabledPill": "Отключена",
+    "mcpTip": {
+      "trigger": "Советы",
+      "text": "Автоматизациями можно управлять с помощью AI через подключение MCP — попросите его переупорядочить правила или проверить дубликаты и конфликты.",
+      "link": "Настроить подключение MCP"
+    },
+    "statusFilter": {
+      "all": "Показать все",
+      "enabled": "Только активные",
+      "disabled": "Только отключённые",
+      "empty": "Нет автоматизаций, соответствующих фильтру."
+    },
+    "pausedMissingRef": "Приостановлено — {refType} «{label}» удалён",
+    "pausedMissingRefUnnamed": "Приостановлено: объект типа {refType}, на который ссылалось правило, был удалён",
+    "matchStats": "{count} совпадение · последнее {date} | {count} совпадения · последнее {date} | {count} совпадений · последнее {date}",
+    "matchStatsNever": "Никогда не срабатывало",
+    "loadError": "Не удалось загрузить автоматизации. Проверьте подключение и попробуйте снова.",
+    "reorderDisabledFiltered": "Очистите фильтр статуса, чтобы менять порядок",
+    "density": {
+      "comfortable": "Подробно",
+      "compact": "Компактно"
+    },
+    "chips": {
+      "when": "Когда",
+      "then": "Тогда",
+      "not": "не",
+      "day": "день",
+      "more": "+ ещё {count}",
+      "less": "Показать меньше",
+      "noteReplace": "задать примечание",
+      "noteAppend": "добавить в конец",
+      "notePrepend": "добавить в начало",
+      "note": {
+        "containsAny": "примечание содержит",
+        "notContainsAny": "примечание не содержит",
+        "startsWithAny": "примечание начинается",
+        "endsWithAny": "примечание заканчивается",
+        "equalsAny": "примечание равно",
+        "isEmpty": "примечание пусто"
+      },
+      "merchant": {
+        "containsAny": "продавец содержит",
+        "notContainsAny": "продавец не содержит",
+        "startsWithAny": "продавец начинается",
+        "endsWithAny": "продавец заканчивается",
+        "equalsAny": "продавец равен",
+        "isEmpty": "продавец пуст"
+      }
+    },
+    "refType": {
+      "category": "категория",
+      "tag": "тег",
+      "account": "счёт",
+      "accountGroup": "группа счетов",
+      "bankConnection": "банковское подключение",
+      "payee": "получатель"
+    },
+    "emptyState": {
+      "title": "Автоматизаций пока нет",
+      "description": "Автоматизации назначают категории, теги и примечания транзакциям сразу после банковской синхронизации или импорта файла.",
+      "cta": "Создать первую автоматизацию"
+    },
+    "delete": {
+      "title": "Удалить автоматизацию?",
+      "description": "«{name}» перестанет запускаться для новых транзакций. Уже обработанные транзакции сохранят категории, теги и примечания.",
+      "confirm": "Удалить"
+    },
+    "notifications": {
+      "deleteSuccess": "Автоматизация удалена.",
+      "deleteError": "Не удалось удалить автоматизацию. Попробуйте снова.",
+      "toggleError": "Не удалось изменить состояние автоматизации. Попробуйте снова.",
+      "reorderError": "Не удалось сохранить новый порядок. Попробуйте снова.",
+      "staleReference": "Автоматизация ссылается на удалённый объект. Откройте её и выберите замену.",
+      "openRule": "Открыть правило"
+    },
+    "fields": {
+      "note": "Примечание",
+      "merchant": "Продавец",
+      "payee": "Получатель",
+      "amount": "Сумма",
+      "transactionType": "Тип транзакции",
+      "account": "Счёт",
+      "accountGroup": "Группа счетов",
+      "bankConnection": "Банковское подключение",
+      "dayOfMonth": "День месяца"
+    },
+    "operators": {
+      "contains_any": "содержит одно из",
+      "not_contains_any": "не содержит",
+      "starts_with_any": "начинается с",
+      "ends_with_any": "заканчивается на",
+      "equals_any": "равно одному из",
+      "is_empty": "пусто",
+      "in": "одно из",
+      "not_in": "не входит в",
+      "gte": "не меньше",
+      "lte": "не больше",
+      "between": "между",
+      "equals": "равно"
+    },
+    "actions": {
+      "set_category": "Установить категорию",
+      "set_payee": "Установить получателя",
+      "add_tags": "Добавить теги",
+      "set_note": "Установить примечание",
+      "noteMode": {
+        "replace": "Заменить",
+        "append": "Добавить в конец",
+        "prepend": "Добавить в начало"
+      }
+    },
+    "editor": {
+      "titleNew": "Новая автоматизация",
+      "titleEdit": "Изменить автоматизацию",
+      "back": "Назад к автоматизациям",
+      "enabled": "Включена",
+      "nameLabel": "Название",
+      "namePlaceholder": "например, Продукты из Biedronka",
+      "conditionsHeader": "Совпадение: {match} условий",
+      "matchAll": "всех",
+      "matchAny": "любого",
+      "joinAnd": "И",
+      "joinOr": "ИЛИ",
+      "addCondition": "Добавить условие",
+      "removeCondition": "Удалить условие",
+      "removeKeyword": "Удалить ключевое слово",
+      "fieldPlaceholder": "Выберите поле",
+      "operatorPlaceholder": "Выберите условие",
+      "keywordPlaceholder": "Введите ключевое слово и нажмите Enter",
+      "amountPlaceholder": "Введите сумму",
+      "minPlaceholder": "Минимальная сумма",
+      "maxPlaceholder": "Максимальная сумма",
+      "currencyPlaceholder": "Выберите валюту",
+      "currency": {
+        "transaction": "Валюта транзакции",
+        "base": "Базовая валюта ({code})",
+        "specific": "в {code}"
+      },
+      "accountsPlaceholder": "Выберите счета",
+      "accountGroupPlaceholder": "Выберите группу счетов",
+      "bankConnectionPlaceholder": "Выберите банковское подключение",
+      "dayFromPlaceholder": "От дня",
+      "dayToPlaceholder": "До дня",
+      "actionsHeader": "Затем выполнить",
+      "addAction": "Добавить действие",
+      "removeAction": "Удалить действие",
+      "categoryPlaceholder": "Выберите категорию",
+      "payeePlaceholder": "Выберите получателя",
+      "tagsPlaceholder": "Выберите теги",
+      "notePlaceholder": "Введите текст примечания",
+      "saveSuccess": "Автоматизация сохранена.",
+      "notFound": {
+        "title": "Автоматизация не найдена",
+        "description": "Эта автоматизация больше не существует или была удалена.",
+        "link": "Назад к автоматизациям"
+      },
+      "unsaved": {
+        "title": "Отменить несохранённые изменения?",
+        "description": "В автоматизации есть несохранённые изменения. При выходе они будут потеряны.",
+        "confirm": "Отменить изменения"
+      },
+      "preview": {
+        "title": "Предпросмотр",
+        "run": "Показать совпадения",
+        "hint": "Завершите правило, чтобы увидеть, какие транзакции ему соответствуют.",
+        "summary": "Правило применимо к {matched} из последних {scanned} транзакций",
+        "empty": "Совпадений нет",
+        "stale": "После этого предпросмотра условия изменились.",
+        "error": "Не удалось выполнить предпросмотр. Попробуйте снова."
+      },
+      "errors": {
+        "nameRequired": "Введите название автоматизации.",
+        "nameTooLong": "Название должно содержать не более {max} символов.",
+        "conditionsRequired": "Добавьте хотя бы одно условие.",
+        "actionsRequired": "Добавьте хотя бы одно действие.",
+        "keywordsRequired": "Добавьте хотя бы одно ключевое слово.",
+        "keywordsMax": "Используйте не более {max} ключевых слов.",
+        "keywordTooLong": "Каждое ключевое слово должно содержать не более {max} символов.",
+        "selectionRequired": "Выберите хотя бы один вариант.",
+        "selectionMax": "Выберите не более {max} вариантов.",
+        "missingRef": "удалён — выберите другой объект или удалите строку",
+        "amountRequired": "Введите сумму.",
+        "amountBoundsRequired": "Введите минимальную и максимальную сумму.",
+        "amountRange": "Минимальная сумма не должна превышать максимальную.",
+        "dayRange": "Введите диапазон дней от 1 до 31, при этом первый день не должен быть позже последнего.",
+        "categoryRequired": "Выберите категорию.",
+        "payeeRequired": "Выберите получателя.",
+        "tagsRequired": "Выберите хотя бы один тег.",
+        "noteRequired": "Введите текст примечания.",
+        "noteTooLong": "Примечание должно содержать не более {max} символов.",
+        "saveFailed": "Не удалось сохранить автоматизацию. Попробуйте снова.",
+        "transactionTypeDuplicate": "Допускается только одно условие типа транзакции"
+      },
+      "noResults": "Ничего не найдено"
+    },
+    "summary": {
+      "missingRef": "(удалено)",
+      "currency": {
+        "transaction": "(валюта транзакции)",
+        "base": "(базовая валюта)"
+      },
+      "transactionTypeValue": {
+        "income": "доход",
+        "expense": "расход"
+      }
+    },
+    "applyToHistory": {
+      "trigger": "Apply to past transactions",
+      "saveFirst": "Save your changes first",
+      "pickTitle": "Apply a rule to past transactions",
+      "pickHint": "Pick a rule. You'll review the matching transactions before anything changes.",
+      "title": "Apply \"{name}\" to past transactions",
+      "noRules": "You don't have any automations yet.",
+      "summary": "{count} past transaction matches this rule | {count} past transactions match this rule",
+      "moreMatches": "Only the {shown} most recent matches are listed. Apply these, then run it again.",
+      "scanCapped": "Only your {limit} most recent transactions were checked.",
+      "emptyState": {
+        "settledTitle": "All caught up",
+        "settledDescription": "This rule has nothing left to change on the only matching past transaction. | This rule has nothing left to change on the {count} matching past transactions.",
+        "noneTitle": "No matches yet",
+        "noneDescription": "No past transaction on your synced or imported accounts matches these conditions."
+      },
+      "selectAll": "Выбрать все",
+      "selectedCount": "Выбрано: {count}",
+      "irreversible": "This can't be undone. Review the list carefully.",
+      "applyAction": "Apply to {count} transactions",
+      "confirm": {
+        "title": "Apply this rule?",
+        "action": "Применить",
+        "description": "{count} transactions will be updated right away.",
+        "payeeNote": "The payee on those transactions will be treated as set by you, so automatic payee detection won't change it later."
+      },
+      "success": "Applied to {applied} transactions",
+      "successWithSkipped": "Applied to {applied} transactions, {skipped} skipped",
+      "nothingApplied": "Nothing was applied. {skipped} transactions were skipped.",
+      "applyError": "Couldn't apply the rule to past transactions."
+    }
+  }
+}

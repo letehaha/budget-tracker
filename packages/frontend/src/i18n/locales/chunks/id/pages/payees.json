@@ -123,6 +123,12 @@
         "successNotification": "Preferensi diperbarui",
         "errorNotification": "Gagal memperbarui preferensi"
       },
+      "promotionThreshold": {
+        "label": "Create a payee after N occurrences",
+        "description": "How many transactions must share the same merchant name before a payee is created automatically. Set to 1 to create payees from the first transaction.",
+        "successNotification": "Payee creation threshold updated",
+        "errorNotification": "Failed to update payee creation threshold"
+      },
       "bulkCategorizationMode": {
         "label": "Terapkan mode kategorisasi ke semua penerima",
         "description": "Pilih bagaimana kategorisasi harus berperilaku untuk setiap penerima yang ada. Ini menggantikan pengaturan individu setiap penerima.",

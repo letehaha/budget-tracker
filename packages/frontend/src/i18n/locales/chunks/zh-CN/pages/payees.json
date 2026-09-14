@@ -33,7 +33,7 @@
     },
     "form": {
       "namePlaceholder": "Enter payee name",
-      "categoryPlaceholder": "Select a category",
+      "categoryPlaceholder": "选择分类",
       "categorizationMode": {
         "label": "AI categorization",
         "enforce": {
@@ -71,7 +71,7 @@
       "mergeDescription": "Pick the target payee. All transactions and aliases move to the target; this payee is deleted.",
       "confirmMerge": "Merge",
       "topCategoryHint": "The category most frequently used in transactions linked to this payee. Used as a fallback when no default category is set.",
-      "defaultCategoryPlaceholder": "Select a category",
+      "defaultCategoryPlaceholder": "选择分类",
       "defaultTagsLabel": "Auto-apply tags",
       "defaultTagsPlaceholder": "Select tags to auto-apply",
       "defaultTagsHint": "These tags are automatically added to new transactions linked to this payee (bank syncs and imports).",
@@ -112,7 +112,7 @@
     },
     "tabs": {
       "manage": "Manage",
-      "settings": "Settings"
+      "settings": "设置"
     },
     "settings": {
       "title": "Payee detection settings",
@@ -122,6 +122,12 @@
         "description": "When your bank doesn't provide a dedicated merchant field, fall back to the transaction description (note) to auto-detect Payees. Useful for bank connections that have merchant fields empty or absent. May produce noisier Payee names (e.g. installment-payment prefixes) which you can rename or merge afterwards.",
         "successNotification": "Preference updated",
         "errorNotification": "Failed to update preference"
+      },
+      "promotionThreshold": {
+        "label": "Create a payee after N occurrences",
+        "description": "How many transactions must share the same merchant name before a payee is created automatically. Set to 1 to create payees from the first transaction.",
+        "successNotification": "Payee creation threshold updated",
+        "errorNotification": "Failed to update payee creation threshold"
       },
       "bulkCategorizationMode": {
         "label": "Apply categorization mode to all payees",

@@ -1,0 +1,471 @@
+{
+  "pages": {
+    "integrations": {
+      "addDialog": {
+        "titleSelect": "Добавить интеграцию",
+        "titleConnect": "Подключить {provider}",
+        "selectProviderHint": "Где находится ваш банк? Выберите регион, чтобы увидеть доступные варианты.",
+        "betaBadge": "Бета"
+      },
+      "providers": {
+        "monobank": {
+          "name": "Monobank",
+          "description": "Украинский цифровой банк"
+        },
+        "enableBanking": {
+          "name": "Enable Banking",
+          "description": "Доступ к более чем 6000 европейских банков через открытый банкинг PSD2"
+        },
+        "lunchflow": {
+          "name": "Lunch Flow",
+          "description": "Синхронизация транзакций из более чем 20 000 банков по всему миру через LunchFlow"
+        },
+        "simplefin": {
+          "name": "SimpleFIN",
+          "description": "Синхронизация транзакций из банков США и Канады через SimpleFIN Bridge"
+        },
+        "walutomat": {
+          "name": "Walutomat",
+          "description": "Польская платформа обмена валют с поддержкой 23 валют"
+        }
+      },
+      "monobank": {
+        "apiTokenLabel": "API-токен",
+        "connectionNameLabel": "Название подключения (необязательно)",
+        "tokenPlaceholder": "Введите API-токен Monobank",
+        "accountNamePlaceholder": "например, Личный счёт",
+        "help": {
+          "trigger": "Где получить API-токен?",
+          "title": "Получение API-токена Monobank",
+          "step1": "Перейдите на {link} и следуйте инструкциям для создания персонального токена.",
+          "step2": "Надёжно сохраните токен и вставьте его в поле.",
+          "note": "API-токен предоставляет доступ только для чтения."
+        },
+        "backButton": "Назад",
+        "connectingButton": "Подключение...",
+        "connectButton": "Подключить",
+        "loadingAccounts": "Загрузка счетов...",
+        "selectAccountsHint": "Выберите счета, которые хотите синхронизировать с MoneyMatter",
+        "syncingButton": "Синхронизация...",
+        "syncButton": "Синхронизировать {count} счёт(а/ов)",
+        "syncSuccess": "Успешно синхронизировано счетов: {count}",
+        "errors": {
+          "connectFailed": "Не удалось подключить провайдера",
+          "syncFailed": "Не удалось синхронизировать счета"
+        }
+      },
+      "enableBankingConnector": {
+        "beta": {
+          "title": "Бета-функция — для технических пользователей",
+          "description": "Для настройки этой интеграции требуются технические знания. Вам понадобится зарегистрировать собственное приложение Enable Banking и предоставить API-учётные данные. Процесс настройки и API могут измениться в будущих обновлениях."
+        },
+        "credentials": {
+          "appIdLabel": "ID приложения",
+          "appIdHint": "Получите в портале Enable Banking после загрузки сертификата",
+          "privateKeyLabel": "Закрытый ключ",
+          "privateKeyHint": "Ваш закрытый RSA-ключ в формате PEM (хранится в зашифрованном виде)",
+          "bicLabel": "BIC:"
+        },
+        "steps": {
+          "loadingCountries": "Загрузка стран...",
+          "selectCountryHint": "Выберите страну вашего банка",
+          "countryLabel": "Страна",
+          "loadingBanks": "Загрузка банков...",
+          "selectBankHint": "Выберите банк в {country}",
+          "bankLabel": "Банк",
+          "connectingToBank": "Подключение к {bank}...",
+          "authDescription": "Нажмите кнопку ниже, чтобы авторизовать доступ к вашему счёту в {bank}.",
+          "authWarning": "Вы будете перенаправлены на сайт {bank}, где нужно войти и подтвердить подключение.",
+          "authorizeButton": "Авторизовать через {bank}",
+          "loadingAccounts": "Загрузка счетов...",
+          "selectAccountsHint": "Выберите счета, которые хотите синхронизировать с MoneyMatter"
+        },
+        "buttons": {
+          "back": "Назад",
+          "loading": "Загрузка...",
+          "next": "Далее",
+          "syncing": "Синхронизация...",
+          "sync": "Синхронизировать {count} счёт | Синхронизировать {count} счёта | Синхронизировать {count} счетов"
+        },
+        "errors": {
+          "loadCountriesFailed": "Не удалось загрузить страны. Проверьте учётные данные.",
+          "loadAccountsFailed": "Не удалось загрузить счета",
+          "syncFailed": "Не удалось синхронизировать счета"
+        },
+        "syncSuccess": "Успешно синхронизировано счетов: {count}"
+      },
+      "instructionsDialog": {
+        "title": "Как получить учётные данные Enable Banking",
+        "overview": {
+          "title": "Обзор",
+          "text": "Enable Banking требует зарегистрировать приложение и создать учётные данные безопасности для доступа к банковским данным. Выполните следующие шаги, чтобы получить ID приложения и закрытый ключ."
+        },
+        "step1": {
+          "title": "Регистрация и создание приложения",
+          "intro": "Перейдите на {link} и создайте аккаунт, если у вас его ещё нет.",
+          "createApp": "Затем создайте приложение:",
+          "steps": {
+            "login": "Войдите в портал Enable Banking",
+            "navigate": "Перейдите на {link}",
+            "lookForm": "Найдите форму «Create Application»",
+            "selectEnv": "Выберите среду {strong}",
+            "selectEnvStrong": "«Production»",
+            "generateKey": "Установите флажок {strong}. После создания приложения файл ключа .pem будет автоматически сохранён на ваш компьютер. {warning} — приложение придётся создать заново",
+            "generateKeyStrong": "«Generate private RSA key in the browser»",
+            "generateKeyWarning": "Если файл по какой-либо причине не сохранился",
+            "fillForm": "Заполните форму следующими значениями:",
+            "appName": "Название приложения:",
+            "redirectUrls": "Разрешённые URL перенаправления:",
+            "appDescription": "Описание приложения:",
+            "emailProtection": "Email для вопросов защиты данных:",
+            "privacyUrl": "URL политики конфиденциальности:",
+            "termsUrl": "URL условий использования:",
+            "clickRegister": "Нажмите «Register»",
+            "downloadKey": "Будет предложено скачать файл. Это ваш RSA-ключ — обязательно сохраните его, поскольку он является частью учётных данных"
+          }
+        },
+        "step2": {
+          "title": "Свяжите банковские счета",
+          "intro": "Перед использованием приложения с MoneyMatter сначала свяжите банковские счета через портал Enable Banking. Найдите кнопку «Link accounts» в карточке созданного приложения и выполните все необходимые шаги.",
+          "breakdown": "Подробнее:",
+          "steps": {
+            "clickLink": "Нажмите «Link accounts» и дождитесь завершения загрузки",
+            "newFields": "В том же месте появятся новые поля: «Country», «ASPSP», «Usage type»",
+            "country": "Страна:",
+            "countryValue": "Страна вашего банка",
+            "aspsp": "ASPSP:",
+            "aspspValue": "Название вашего банка",
+            "usageType": "Тип использования:",
+            "usageTypeValue": "Private",
+            "clickSave": "Нажмите «Save»",
+            "redirect": "Вы будете перенаправлены на страницу авторизации банка. Войдите и выберите все счета, которые хотите подключить",
+            "finishAuth": "После завершения авторизации вы будете перенаправлены обратно в Enable Banking",
+            "waitAccounts": "Дождитесь, пока выбранные счета появятся в карточке приложения в поле «Linked accounts»"
+          },
+          "warningNotLinked": "Иногда некоторые выбранные счета могут не связаться. Это проблема на стороне банка, которую вы не можете устранить самостоятельно. Можно только подождать несколько часов или дней. Если проблема не исчезнет, обратитесь в Enable Banking.",
+          "infoAddMore": "Если в будущем захотите подключить дополнительные счета, процесс связывания придётся повторить. {strong}: при добавлении НОВЫХ счетов всё равно нужно выбрать и СТАРЫЕ — то есть выбрать ВСЕ счета, которые должны оставаться подключёнными.",
+          "infoAddMoreStrong": "Имейте в виду"
+        },
+        "step3": {
+          "title": "Получите учётные данные",
+          "intro": "В портале Enable Banking:",
+          "appId": "{strong} Скопируйте {code} из сведений о приложении",
+          "appIdStrong": "ID приложения:",
+          "appIdCode": "app_id",
+          "appIdExample": "Пример:",
+          "privateKey": "{strong} Откройте сохранённый файл {code} в текстовом редакторе (TextEdit в macOS или Блокнот в Windows) и скопируйте всё содержимое, включая строки BEGIN и END",
+          "privateKeyStrong": "Закрытый ключ:",
+          "privateKeyCode": "private.pem"
+        },
+        "securityNote": {
+          "title": "Примечание о безопасности",
+          "text": "Ваш закрытый ключ хранится в нашей базе данных в зашифрованном виде и используется только для аутентификации в Enable Banking от вашего имени. Токен предоставляет доступ только для чтения. Никогда не передавайте закрытый ключ другим людям."
+        },
+        "gotItButton": "Понятно"
+      },
+      "enableBanking": {
+        "instructions": {},
+        "placeholders": {
+          "appId": "Введите app_id приложения Enable Banking",
+          "privateKey": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+          "searchCountries": "Поиск стран...",
+          "searchBanks": "Поиск банков..."
+        },
+        "errors": {
+          "noAuthUrl": "Сервер не вернул URL авторизации",
+          "failedToLoadBanks": "Не удалось загрузить банки",
+          "failedToConnectProvider": "Не удалось подключить провайдера"
+        },
+        "help": {
+          "trigger": "Где получить учётные данные Enable Banking?"
+        }
+      },
+      "lunchflow": {
+        "apiKeyLabel": "API-ключ",
+        "apiKeyPlaceholder": "Введите API-ключ LunchFlow",
+        "help": {
+          "trigger": "Где найти API-ключ?",
+          "title": "Получение API-ключа Lunch Flow",
+          "step1": "Откройте {link}.",
+          "step2": "Перейдите в Settings → API Destinations.",
+          "step3": "Скопируйте API-ключ и вставьте его в поле."
+        },
+        "backButton": "Назад",
+        "connectingButton": "Подключение...",
+        "connectButton": "Подключить",
+        "loadingAccounts": "Загрузка счетов...",
+        "accountsPreviewHint": "Найдено счетов: {count}. Все счета будут импортированы.",
+        "importingButton": "Импорт...",
+        "importButton": "Импортировать счетов: {count}",
+        "importSuccess": "Успешно импортировано счетов: {count}",
+        "skipButton": "Пропустить",
+        "skipTooltip": "Пропустите импорт, чтобы позже подключить только нужные счета или повторно связать существующие счета в их настройках.",
+        "errors": {
+          "connectFailed": "Не удалось подключиться к LunchFlow",
+          "importFailed": "Не удалось импортировать счета"
+        }
+      },
+      "common": {
+        "selectAll": "Выбрать все",
+        "availableLabel": "Доступно",
+        "clearAll": "Очистить всё",
+        "noCurrencyBadge": "Без валюты",
+        "currencyPicker": {
+          "placeholder": "Выберите валюту",
+          "missingCount": "Для {count} выбранного счёта ещё нужно выбрать валюту — после импорта её нельзя будет изменить. | Для {count} выбранных счетов ещё нужно выбрать валюту — после импорта её нельзя будет изменить. | Для {count} выбранных счетов ещё нужно выбрать валюту — после импорта её нельзя будет изменить."
+        }
+      },
+      "help": {
+        "openSite": "Открыть {site}"
+      },
+      "simplefin": {
+        "setupTokenLabel": "Токен настройки",
+        "setupTokenPlaceholder": "Вставьте токен настройки SimpleFIN",
+        "help": {
+          "trigger": "Где получить токен настройки?",
+          "title": "Получение токена настройки SimpleFIN",
+          "step1": "Создайте аккаунт SimpleFIN Bridge на {link} и подключите свой банк.",
+          "step2": "Создайте новый токен настройки на панели Bridge.",
+          "step3": "Вставьте токен в поле."
+        },
+        "connectButton": "Подключить",
+        "connectingButton": "Подключение…",
+        "backButton": "Назад",
+        "loadingAccounts": "Загрузка счетов…",
+        "backfillNote": "Сейчас мы загрузим транзакции за последние 6 месяцев. Более старую историю можно в любое время загрузить со страницы счёта с помощью выбора диапазона дат.",
+        "importButton": "Выберите счета | Импортировать 1 счёт | Импортировать {count} счёта | Импортировать {count} счетов",
+        "importingButton": "Импорт…",
+        "errors": {
+          "connectFailed": "Не удалось подключиться к SimpleFIN. Проверьте токен настройки и попробуйте снова.",
+          "importFailed": "Не удалось импортировать счета. Попробуйте снова."
+        }
+      },
+      "walutomat": {
+        "help": {
+          "trigger": "Как настроить доступ к API Walutomat?"
+        },
+        "apiKeyLabel": "API-ключ",
+        "apiKeyPlaceholder": "Введите API-ключ Walutomat",
+        "apiKeyHint": "Находится в панели Walutomat: Settings → API",
+        "privateKeyLabel": "Закрытый ключ (PEM)",
+        "privateKeyPlaceholder": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+        "privateKeyHint": "Вставьте содержимое файла private.key (RSA 4096-bit в формате PEM)",
+        "backButton": "Назад",
+        "connectButton": "Подключить",
+        "connectingButton": "Подключение...",
+        "loadingWallets": "Загрузка кошельков...",
+        "selectWalletsHint": "Выберите валютные кошельки для синхронизации (доступно: {count})",
+        "selectAll": "Выбрать все",
+        "importButton": "Импортировать кошельков: {count}",
+        "importingButton": "Импорт...",
+        "importSuccess": "Успешно импортировано кошельков Walutomat: {count}",
+        "errors": {
+          "connectFailed": "Не удалось подключиться к Walutomat. Проверьте учётные данные.",
+          "importFailed": "Не удалось импортировать кошельки."
+        },
+        "instructions": {
+          "title": "Настройка API Walutomat",
+          "overviewTitle": "Обзор",
+          "overviewText": "Для подключения Walutomat нужны API-ключ и закрытый RSA-ключ. API-ключ идентифицирует аккаунт, а закрытый ключ подписывает каждый запрос для обеспечения безопасности.",
+          "step1Title": "Создайте пару RSA-ключей",
+          "step1Intro": "Откройте терминал и выполните команды:",
+          "step1FilesCreated": "Будут созданы два файла: {privateKey} (храните в секрете!) и {publicKey} (загрузите в Walutomat).",
+          "step2Title": "Загрузите открытый ключ в Walutomat",
+          "step2Login": "1. Войдите в",
+          "step2GoToSettings": "2. Перейдите в {settings} → {api}",
+          "step2Upload": "3. Загрузите файл {publicKey}",
+          "step2ApiKeyGenerated": "4. Walutomat создаст для вас API-ключ",
+          "step3Title": "Введите учётные данные здесь",
+          "step3Intro": "Нужны два значения:",
+          "step3ApiKeyDesc": "{apiKey} — скопируйте со страницы настроек API Walutomat",
+          "step3PrivateKeyDesc": "{privateKey} — откройте {filename} в текстовом редакторе и скопируйте всё содержимое, включая строки BEGIN/END",
+          "securityNoteTitle": "Примечание о безопасности",
+          "securityNoteText": "Ваш закрытый ключ шифруется перед сохранением и используется только для подписи API-запросов. Он не раскрывается и не передаётся никому, кроме Walutomat.",
+          "closeButton": "Понятно"
+        }
+      },
+      "notifications": {
+        "disconnectSuccess": "Интеграция успешно отключена",
+        "disconnectFailed": "Не удалось отключить интеграцию",
+        "connectAccountsSuccess": "Счета успешно подключены",
+        "connectAccountsFailed": "Не удалось подключить счета",
+        "updateNameSuccess": "Название подключения успешно обновлено",
+        "updateNameFailed": "Не удалось обновить название подключения",
+        "connectionEstablished": "Банковское подключение успешно установлено!"
+      },
+      "details": {
+        "error": {
+          "notFoundTitle": "Интеграция не найдена",
+          "notFoundDescription": "Возможно, интеграция была удалена или ссылка неверна. Проверьте список интеграций.",
+          "unexpectedTitle": "Что-то пошло не так",
+          "unexpectedDescription": "Не удалось загрузить это подключение. Попробуйте позже.",
+          "backButton": "Назад к интеграциям"
+        },
+        "connectionDetails": {
+          "statusActive": "Активно",
+          "statusInactive": "Неактивно",
+          "autoSync": "Автосинхронизация"
+        },
+        "connectionValidity": {
+          "statusExpired": "Истекло",
+          "statusActive": "Активно",
+          "daysCount": "{count} день | {count} дня | {count} дней",
+          "notAvailable": "Н/Д",
+          "reconnectButton": "Переподключить"
+        },
+        "connectedAccounts": {
+          "title": "Подключённые счета",
+          "empty": "Подключённых счетов пока нет.",
+          "connectButton": "Подключить счета",
+          "currencyFallback": "Банк не сообщил валюту этого счёта — при подключении была назначена {currency}, изменить её нельзя.",
+          "columnAccount": "Счёт",
+          "columnExternalId": "Внешний ID",
+          "columnBalance": "Баланс",
+          "currencyFallbackChip": "Валюта: {currency}",
+          "syncNow": "Синхронизировать",
+          "connectRemainingWithCount": "Подключить оставшиеся счета ({count})",
+          "needsAttention": "{count} требует внимания | {count} требуют внимания | {count} требуют внимания",
+          "totalLabel": "Всего {amount}",
+          "syncStarted": "Синхронизация запущена",
+          "syncFailed": "Не удалось запустить синхронизацию"
+        },
+        "actions": {
+          "renameButton": "Переименовать подключение",
+          "disconnectButton": "Отключить интеграцию",
+          "manage": "Управление"
+        },
+        "fetchAccountsDialog": {
+          "title": "Подключить оставшиеся счета",
+          "description": "Выберите доступные счета {providerName}, которые ещё не подключены.",
+          "missingAccountsQuestion": "Не видите нужные счета?",
+          "missingAccountsHint": "Если некоторые счета не отображаются, попробуйте переподключить банк в разделе {section}, нажав {button}.",
+          "missingAccountsSectionName": "Срок действия подключения",
+          "missingAccountsButtonName": "Переподключить",
+          "missingAccountsPersist": "Если проблема сохраняется, сообщите о ней для дальнейшего исследования.",
+          "sessionExpired": "Срок действия сеанса истёк. Переподключите банк, чтобы продолжить.",
+          "loadFailed": "Не удалось загрузить доступные счета. Попробуйте снова.",
+          "noAdditionalAccounts": "Нет дополнительных счетов для подключения.",
+          "connectSelectedButton": "Подключить выбранные счета ({count})",
+          "selectAccountsButton": "Выбрать счета",
+          "alreadyConnected": "Уже подключён",
+          "creditLimitMeta": "Лимит {amount}"
+        },
+        "meta": {
+          "connectedSince": "Подключено {date}"
+        },
+        "summary": {
+          "totalBalance": "Общий баланс",
+          "accounts": "Счета",
+          "accountsCount": "нет счетов | {count} счёт | {count} счёта | {count} счетов",
+          "lastSync": "Последняя синхронизация",
+          "consent": "Согласие",
+          "every": "Каждые {hours} ч",
+          "autoSyncOff": "Выкл.",
+          "connectedOf": "{connected} из {total}",
+          "connectedSub": "подключено",
+          "accountsFailed": "Ошибка у {count} счёта | Ошибка у {count} счетов | Ошибка у {count} счетов"
+        },
+        "consentStrip": {
+          "expiring": "Согласие истекает через {days} день · {date} | Согласие истекает через {days} дня · {date} | Согласие истекает через {days} дней · {date}",
+          "expired": "Срок действия согласия истёк. Переподключитесь, чтобы возобновить синхронизацию."
+        },
+        "relativeTime": {
+          "never": "никогда"
+        },
+        "errors": {
+          "reauthorizationFailed": "Не удалось начать повторную авторизацию"
+        }
+      },
+      "dialogs": {
+        "disconnect": {
+          "title": "Отключить интеграцию",
+          "description": "Вы уверены, что хотите отключить эту интеграцию? Это действие нельзя отменить.",
+          "removeAccounts": "Также удалить связанные счета",
+          "removeAccountsHint": "Все счета, связанные с этой интеграцией, будут безвозвратно удалены",
+          "disconnecting": "Отключение...",
+          "disconnect": "Отключить"
+        },
+        "editName": {
+          "title": "Изменить название подключения",
+          "description": "Задайте подключению собственное название, чтобы его было легче различать.",
+          "label": "Название подключения",
+          "saving": "Сохранение...",
+          "save": "Сохранить"
+        },
+        "reconnect": {
+          "title": "Переподключить интеграцию",
+          "description": "После запуска переподключения {warning}. Чтобы снова активировать подключение, необходимо завершить весь процесс.",
+          "warning": "текущее подключение сразу станет недействительным",
+          "preparing": "Подготовка...",
+          "continue": "Продолжить"
+        }
+      },
+      "authFailure": {
+        "description": "Это подключение необходимо переподключить, прежде чем оно снова сможет синхронизироваться.",
+        "updateButton": "Обновить учётные данные"
+      },
+      "updateCredentials": {
+        "title": "Обновить учётные данные",
+        "apiKeyLabel": "API-ключ",
+        "apiKeyPlaceholder": "Введите API-ключ",
+        "updatingButton": "Обновление...",
+        "updateButton": "Обновить",
+        "success": "Учётные данные успешно обновлены",
+        "failed": "Не удалось обновить учётные данные"
+      },
+      "labels": {
+        "free": "Бесплатно",
+        "paid": "Платно",
+        "easySetup": "Простая настройка",
+        "mediumSetup": "Средняя сложность настройки",
+        "veryDifficultSetup": "Очень сложная настройка"
+      },
+      "regions": {
+        "ukraine": "Украина",
+        "eu": "ЕС",
+        "uk": "Великобритания",
+        "usa": "США",
+        "poland": "Польша",
+        "canada": "Канада",
+        "australia": "Австралия",
+        "newZealand": "Новая Зеландия"
+      },
+      "filters": {
+        "all": "Все",
+        "usCanada": "США и Канада",
+        "euUk": "ЕС и Великобритания"
+      },
+      "tooltips": {
+        "monobank": "Требуется вручную скопировать API-токен из мобильного приложения Monobank",
+        "enableBanking": "Поскольку полноценная интеграция стоит несколько тысяч долларов в месяц, подключение возможно только через собственный разработческий аккаунт Enable Banking и настройку «тестового» приложения с реальными банковскими подключениями, сертификатами и ключами. Требуются умеренные технические знания",
+        "lunchflow": "Подключите банки на стороне LunchFlow, затем создайте и вставьте API-ключ LunchFlow",
+        "simplefin": "SimpleFIN Bridge — платный сервис. Создайте аккаунт Bridge, свяжите банк и вставьте токен настройки — разработческая настройка не требуется.",
+        "walutomat": "Требуется создать пару RSA-ключей и загрузить открытый ключ в панель Walutomat"
+      }
+    },
+    "connectionName": {
+      "placeholder": "например, Личный счет"
+    },
+    "bankCallback": {
+      "processing": {
+        "title": "Завершение авторизации...",
+        "description": "Пожалуйста, подождите, пока мы проверяем подключение к банку"
+      },
+      "error": {
+        "title": "Сбой авторизации",
+        "backToIntegrations": "К интеграциям"
+      },
+      "success": {
+        "title": "Успешное подключение!",
+        "description": "Ваш банковский счет был успешно подключен.",
+        "viewAccounts": "Посмотреть счета"
+      },
+      "errors": {
+        "authorizationDenied": "В авторизации отказано или возникла ошибка",
+        "missingParameters": "Отсутствуют обязательные параметры (code или state)",
+        "connectionIdNotFound": "ID подключения не найден. Пожалуйста, начните процесс подключения заново.",
+        "failedToComplete": "Не удалось завершить авторизацию"
+      }
+    }
+  }
+}

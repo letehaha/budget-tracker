@@ -353,7 +353,8 @@
       "selectedMany": "{n} beneficiarios seleccionados",
       "noResults": "No se encontraron beneficiarios",
       "unknownPayee": "Beneficiario desconocido",
-      "loadError": "No se pudieron cargar los beneficiarios. Inténtelo de nuevo."
+      "loadError": "No se pudieron cargar los beneficiarios. Inténtelo de nuevo.",
+      "blankOption": "No payee"
     },
     "budgetMultiSelect": {
       "label": "Todos los presupuestos",

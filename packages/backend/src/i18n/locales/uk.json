@@ -215,7 +215,7 @@
     "failedToFetchBanks": "Не вдалося отримати список банків. Перевірте ваші облікові дані та код країни.",
     "failedToFetchCountries": "Не вдалося отримати список країн. Перевірте ваші облікові дані.",
     "accountNotLinkedToConnection": "Рахунок не знайдено або не прив'язаний до цього з'єднання",
-    "accountAlreadyConnectedToAnotherConnection": "Рахунок \"{{account}}\" вже підключено через \"{{connection}}\". Спочатку відключіть його там.",
+    "accountAlreadyConnectedToAnotherConnection": "Account \"{{account}}\" is already connected through \"{{connection}}\". Disconnect it there first.",
     "cannotLoadBeforeLinkDate": "Не можна завантажити транзакції до дати прив'язки рахунку ({{linkedAt}}). Цей рахунок був прив'язаний за стратегією \"лише вперед\" для запобігання дублювання даних.",
     "dateRangeExceedsLimit": "Діапазон дат не може перевищувати 1 рік.",
     "fromAfterTo": "Дата \"from\" повинна бути раніше дати \"to\"",
@@ -538,7 +538,7 @@
   },
   "automations": {
     "automationNotFound": "Автоматизацію не знайдено.",
-    "previewRequiresConditions": "Вкажіть умови або збережену автоматизацію для попереднього перегляду.",
+    "previewRequiresConditions": "Provide either conditions or a saved automation to preview.",
     "reorderStale": "Список автоматизацій змінився. Оновіть сторінку та спробуйте ще раз.",
     "ruleLimitReached": "Ви досягли максимальної кількості автоматизацій.",
     "staleReference": "Ця автоматизація посилається на елемент, якого більше не існує."

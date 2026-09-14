@@ -1,10 +1,10 @@
 {
   "transactions": {
     "filters": {
-      "filtersLabel": "Filters",
-      "selectFilters": "Select filters",
+      "filtersLabel": "搜索条件",
+      "selectFilters": "搜索条件",
       "reset": "Reset",
-      "apply": "Apply",
+      "apply": "应用",
       "dateRange": {
         "placeholder": "Date or range",
         "presets": {
@@ -21,21 +21,21 @@
         "allTypes": "All types"
       },
       "amountRange": {
-        "from": "Amount from (gte)",
-        "to": "To (lte)",
-        "placeholderFrom": ">= than",
-        "placeholderTo": "<= than",
+        "from": "金额大于",
+        "to": "金额小于",
+        "placeholderFrom": "金额>=",
+        "placeholderTo": "金额<=",
         "compactFrom": "Min amount",
         "compactTo": "Max amount"
       },
       "refundsFilter": {
-        "label": "Refunds"
+        "label": "退款"
       },
       "transferFilter": {
         "label": "Transfers"
       },
       "plannedFilter": {
-        "label": "Planned"
+        "label": "已规划"
       },
       "filterOperation": {
         "all": "All",
@@ -52,7 +52,8 @@
         "tagSingular": "tag",
         "tagPlural": "tags",
         "selected": "selected",
-        "searchPlaceholder": "Search tags..."
+        "searchPlaceholder": "Search tags...",
+        "blankOption": "No tags"
       },
       "payees": {
         "label": "Payees",
@@ -72,13 +73,13 @@
         "disabledTooltip": "Transfers are excluded by the filter above, so transfer kinds have no effect.",
         "commonTransfer": "Between accounts",
         "outOfWallet": "Out of wallet",
-        "toPortfolio": "To portfolio",
+        "toPortfolio": "到投资组合",
         "toVenture": "To venture",
         "selectedCount": "{n} selected"
       }
     },
     "list": {
-      "noMoreData": "No more transactions",
+      "noMoreData": "无更多交易",
       "loadingMore": "Loading more...",
       "detailsTitle": "Transaction details",
       "detailsDescription": "View and edit transaction"
@@ -86,7 +87,7 @@
     "bulkEdit": {
       "selectAll": "Select all",
       "cancelSelection": "Cancel selection",
-      "editButton": "Edit",
+      "editButton": "编辑",
       "selectedCount": "{count} selected",
       "dialogTitle": "Edit {count} transactions",
       "dialogDescription": "Changes will be applied to all selected transactions. Only filled fields will be updated.",
@@ -106,22 +107,18 @@
       "confirmPayeeLabel": "Payee",
       "confirmTagsLabel": "Tags",
       "confirmNoteLabel": "Note",
-      "cancelButton": "Cancel",
-      "confirmApplyButton": "Apply",
+      "cancelButton": "取消",
+      "confirmApplyButton": "应用",
       "successMessage": "Successfully updated {count} transactions",
       "unexpectedError": "An unexpected error occurred",
       "tagModeLabel": "Tag action",
       "tagModeAdd": "Add to existing tags",
       "tagModeReplace": "Replace all tags",
-      "tagModeRemove": "Remove these tags",
-      "unselectableReasons": {
-        "split": "Can't be selected: split transactions don't support bulk editing. Edit it individually instead.",
-        "sharedAccount": "Can't be selected: this transaction is on an account shared with you, and only its owner can edit it."
-      }
+      "tagModeRemove": "Remove these tags"
     },
     "transactionGroups": {
       "bulkActions": {
-        "createNewGroup": "Create new group",
+        "createNewGroup": "创建新分组",
         "addToExistingGroup": "Add to existing group",
         "groupButton": "Group"
       },
@@ -132,7 +129,7 @@
         "noSearchResultsMessage": "No groups match your search.",
         "addingText": "Adding...",
         "buttonLabel": "Add to Group",
-        "cancelButton": "Cancel",
+        "cancelButton": "取消",
         "transactionCountLabel": "transactions"
       },
       "createGroupDialog": {
@@ -142,9 +139,9 @@
         "groupNamePlaceholder": "e.g. May salary transfer",
         "noteLabel": "Note (optional)",
         "notePlaceholder": "Optional description...",
-        "creatingText": "Creating...",
+        "creatingText": "创建中……",
         "buttonLabel": "Create Group",
-        "cancelButton": "Cancel"
+        "cancelButton": "取消"
       },
       "groupsPage": {
         "title": "Transaction Groups",
@@ -163,7 +160,7 @@
       }
     },
     "planned": {
-      "label": "Planned",
+      "label": "已规划",
       "confirmedLabel": "Confirmed",
       "plannedTooltip": "Planned transaction",
       "expiredTooltip": "Expected {days} days ago, no matching bank transaction",
@@ -236,7 +233,7 @@
       "deletePlanTitle": "Delete planned transaction?",
       "deletePlanDescription": "This action cannot be undone.",
       "plansLoadFailed": "Couldn't load planned transactions",
-      "confirmAction": "Confirm",
+      "confirmAction": "确认",
       "confirmTooltip": "The money moved — record it and update the balance",
       "confirmPlanSuccess": "Plan recorded — balance updated",
       "confirmPlanError": "Failed to record the plan"

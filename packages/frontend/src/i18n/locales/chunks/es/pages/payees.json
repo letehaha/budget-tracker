@@ -123,6 +123,12 @@
         "successNotification": "Preferencia actualizada",
         "errorNotification": "Error al actualizar la preferencia"
       },
+      "promotionThreshold": {
+        "label": "Create a payee after N occurrences",
+        "description": "How many transactions must share the same merchant name before a payee is created automatically. Set to 1 to create payees from the first transaction.",
+        "successNotification": "Payee creation threshold updated",
+        "errorNotification": "Failed to update payee creation threshold"
+      },
       "bulkCategorizationMode": {
         "label": "Aplicar modo de categorización a todos los beneficiarios",
         "description": "Elija cómo debe comportarse la categorización para cada beneficiario existente. Esto anula la configuración individual de cada beneficiario.",
