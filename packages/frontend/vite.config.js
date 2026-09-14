@@ -80,6 +80,11 @@ export default async ({ mode }) => {
   const appVersion = resolveAppVersion();
 
   return defineConfig({
+    // Every .env file lives at the repo root, not in this package. Without this
+    // Vite would look for them beside vite.config.js and silently expose no
+    // VITE_* vars on import.meta.env — the loadEnv call above only populates
+    // process.env for this config file.
+    envDir: path.resolve(__dirname, '../../'),
     define: {
       __APP_VERSION__: JSON.stringify(appVersion),
     },

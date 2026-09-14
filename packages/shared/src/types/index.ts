@@ -26,6 +26,7 @@ export * from './ai';
 export * from './money';
 export * from './transfer-nature';
 export * from './transaction-automations';
+export * from './billing';
 export * from './testing';
 export * from './type-testing';
 export { endpointsTypes };

@@ -1,7 +1,7 @@
 ---
 import LegalLayout from '@/layouts/legal-layout.astro';
 
-const lastUpdated = 'December 21, 2025';
+const lastUpdated = 'September 15, 2026';
 ---
 
 <LegalLayout
@@ -40,6 +40,11 @@ const lastUpdated = 'December 21, 2025';
           <strong class="text-foreground">Usage Data:</strong> Basic analytics to improve the application
           experience.
         </p>
+        <p>
+          <strong class="text-foreground">Billing Data:</strong> If you subscribe, Stripe collects your payment
+          details and billing address directly; we never receive your card number. We store the Stripe customer and
+          subscription identifiers and the status, plan and renewal date of your subscription.
+        </p>
       </div>
     </section>
 
@@ -73,8 +78,22 @@ const lastUpdated = 'December 21, 2025';
       <div class="text-muted-foreground mt-2 space-y-3">
         <p>We may use third-party services for:</p>
         <ul class="mt-2 list-inside list-disc space-y-1">
+          <li>
+            Payments and subscriptions: Stripe, acting as merchant of record under Stripe Managed Payments. Stripe
+            processes your payment, collects applicable taxes and issues receipts under its own
+            <a
+              href="https://stripe.com/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary hover:underline"
+            >
+              privacy policy</a
+            >
+          </li>
           <li>Bank data aggregation (Enable Banking, Monobank API)</li>
           <li>AI-powered transaction categorization (optional)</li>
+          <li>Transactional email (Resend), for sign-in, verification and account notices</li>
+          <li>Error monitoring (Sentry) and product analytics (PostHog), used only to run and improve the Service</li>
         </ul>
         <p class="mt-3">
           These services have their own privacy policies. Bank connections are made using your own credentials, and

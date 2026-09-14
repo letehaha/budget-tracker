@@ -1,5 +1,6 @@
 import { aiMapCategoriesController } from '@controllers/import-export/ai-map-categories.controller';
 import { authenticateSession } from '@middlewares/better-auth';
+import { blockDemoUsers } from '@middlewares/block-demo-users';
 import { validateEndpoint } from '@middlewares/validations';
 import { Router } from 'express';
 
@@ -12,6 +13,7 @@ const router = Router({});
 router.post(
   '/ai-map-categories',
   authenticateSession,
+  blockDemoUsers,
   validateEndpoint(aiMapCategoriesController.schema),
   aiMapCategoriesController.handler,
 );

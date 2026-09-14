@@ -7,9 +7,9 @@ export type DemoStartLocation = 'hero' | 'hero_screenshot';
 type LandingAnalyticsEvent =
   | {
       event: 'landing_cta_clicked';
-      properties: { location: 'header' | 'hero' | 'cta_section' | 'self_host'; action: string };
+      properties: { location: 'header' | 'hero' | 'cta_section' | 'self_host' | 'pricing'; action: string };
     }
-  | { event: 'landing_roadmap_clicked'; properties: { location: 'hero' } }
+  | { event: 'landing_roadmap_clicked'; properties: { location: 'hero' | 'pricing' } }
   | {
       event: 'landing_github_clicked';
       properties: { location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' };

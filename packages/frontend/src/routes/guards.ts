@@ -1,17 +1,34 @@
 import { getOAuthAuthorizeUrl } from '@/api/mcp';
-import { useAuthStore, useCurrenciesStore } from '@/stores';
+import { useAuthStore, useCurrenciesStore, useUserStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { NavigationGuard } from 'vue-router';
 
-export const authPageGuard: NavigationGuard = async (to, from, next): Promise<void> => {
+import { ROUTES_NAMES } from './constants';
+
+export const billingPageGuard: NavigationGuard = async (to, from, next): Promise<void> => {
   const authStore = useAuthStore();
 
-  // Wait for session to be checked on app startup
+  // canSeeBilling reads the user's role, so the session (which loads the user) must settle first.
   if (!authStore.isSessionChecked) {
     await authStore.validateSession();
   }
 
-  // With better-auth, we use session cookies instead of localStorage tokens
+  const { canSeeBilling } = storeToRefs(useUserStore());
+
+  if (!canSeeBilling.value) {
+    next({ name: ROUTES_NAMES.settings });
+  } else {
+    next();
+  }
+};
+
+export const authPageGuard: NavigationGuard = async (to, from, next): Promise<void> => {
+  const authStore = useAuthStore();
+
+  if (!authStore.isSessionChecked) {
+    await authStore.validateSession();
+  }
+
   if (authStore.isLoggedIn) {
     // If arriving from an OAuth authorize flow (e.g. Claude.ai MCP), skip the
     // login page and redirect straight to better-auth's authorize endpoint so
@@ -43,12 +60,10 @@ export const baseCurrencyExists: NavigationGuard = (to, from, next): void => {
 export const redirectRouteGuard: NavigationGuard = async (to, from, next): Promise<void> => {
   const authStore = useAuthStore();
 
-  // Wait for session to be checked on app startup
   if (!authStore.isSessionChecked) {
     await authStore.validateSession();
   }
 
-  // With better-auth, session validation is done via cookies
   if (authStore.isLoggedIn) {
     next();
   } else {

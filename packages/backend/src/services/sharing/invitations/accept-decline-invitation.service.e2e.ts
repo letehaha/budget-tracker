@@ -1,6 +1,7 @@
 import {
   API_ERROR_CODES,
   RESOURCE_TYPES,
+  SEATS_BY_PLAN,
   SHARE_INVITATION_STATUSES,
   SHARE_PERMISSIONS,
   SHARING_LIMITS,
@@ -204,23 +205,26 @@ describe('Share invitations: accept', () => {
     });
 
     it('serializes concurrent accepts so only one wins the last slot (advisory lock)', async () => {
-      // Cap is 2. Pre-fill with 1 share so exactly 1 slot remains. Then race two
-      // recipients into that slot via Promise.all. Without the advisory lock both
-      // count() queries would read 1 and both inserts would succeed — exceeding the cap.
+      // Pre-fill the owner's seat cap to all but one slot, then race two recipients into
+      // it via Promise.all. Without the advisory lock both count() queries would read the
+      // same number and both inserts would succeed — exceeding the cap.
       const account = await helpers.createAccount({ raw: true });
-      expect(SHARING_LIMITS.maxRecipientsPerResource).toBe(2);
 
-      const filler = await helpers.provisionSecondUserWithBaseCurrency();
-      const fillerApp = await helpers.findAppUserByEmail({ email: filler.email });
-      await ResourceShares.create({
-        ownerUserId: account.userId,
-        sharedWithUserId: fillerApp.id,
-        resourceType: RESOURCE_TYPES.account,
-        resourceId: String(account.id),
-        permission: SHARE_PERMISSIONS.read,
-        policy: null,
-        acceptedAt: new Date(),
-      });
+      for (let i = 0; i < SEATS_BY_PLAN.plus - 1; i++) {
+        const filler = await helpers.provisionSecondUserWithBaseCurrency();
+        const fillerApp = await helpers.findAppUserByEmail({
+          email: filler.email,
+        });
+        await ResourceShares.create({
+          ownerUserId: account.userId,
+          sharedWithUserId: fillerApp.id,
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: String(account.id),
+          permission: SHARE_PERMISSIONS.read,
+          policy: null,
+          acceptedAt: new Date(),
+        });
+      }
 
       const [racerA, racerB] = await Promise.all([
         helpers.provisionSecondUserWithBaseCurrency(),
@@ -283,18 +287,17 @@ describe('Share invitations: accept', () => {
           acceptedAt: { [Op.not]: null },
         },
       });
-      expect(acceptedCount).toBe(SHARING_LIMITS.maxRecipientsPerResource);
+      expect(acceptedCount).toBe(SEATS_BY_PLAN.plus);
     });
 
     it('returns 409 when the recipient cap is full (race-safe: enforced at accept-time too)', async () => {
-      // Cap is 2. Pre-fill it with 2 accepted shares directly (so the slot is taken),
-      // then have a 3rd recipient try to accept a real pending invitation. The send-time
-      // cap check would also catch this, but we need the accept-time guard to handle the
-      // case where multiple pending invites were sent before any were accepted.
+      // Fill the owner's seat cap with accepted shares, then have one more recipient try
+      // to accept a real pending invitation. The send-time cap check would also catch
+      // this, but the accept-time guard must handle several invites sent before any
+      // were accepted.
       const account = await helpers.createAccount({ raw: true });
-      expect(SHARING_LIMITS.maxRecipientsPerResource).toBe(2);
 
-      for (let i = 0; i < SHARING_LIMITS.maxRecipientsPerResource; i++) {
+      for (let i = 0; i < SEATS_BY_PLAN.plus; i++) {
         const filler = await helpers.provisionSecondUserWithBaseCurrency();
         const fillerApp = await helpers.findAppUserByEmail({ email: filler.email });
         await ResourceShares.create({

@@ -1,5 +1,8 @@
-import { handleGitHubWebhook } from '@controllers/webhooks.controller';
+import { handleBillingWebhook, handleGitHubWebhook } from '@controllers/webhooks.controller';
+import { cloudOnly } from '@middlewares/cloud-only';
 import { verifyGitHubWebhook } from '@middlewares/github-webhook';
+import { stripeWebhookRateLimit } from '@middlewares/rate-limit';
+import { verifyStripeWebhook } from '@middlewares/stripe-webhook';
 import { Router } from 'express';
 
 const router = Router({});
@@ -16,5 +19,7 @@ const router = Router({});
  * 5. Events: Select "Releases" only
  */
 router.post('/github', verifyGitHubWebhook, handleGitHubWebhook);
+
+router.post('/billing', cloudOnly, stripeWebhookRateLimit, verifyStripeWebhook, handleBillingWebhook);
 
 export default router;

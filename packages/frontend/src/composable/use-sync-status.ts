@@ -7,6 +7,7 @@ import { invalidatePersistedQuery } from '@/lib/query-client';
 import { captureException } from '@/lib/sentry';
 import { useAuthStore } from '@/stores/auth';
 import { useUserStore } from '@/stores/user';
+import { FEATURES } from '@bt/shared/types';
 import type { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
@@ -59,12 +60,15 @@ export function useSyncStatus() {
   const queryClient = useQueryClient();
   const { connect, on, isConnected } = useSSE();
   const { isLoggedIn } = storeToRefs(useAuthStore());
-  const { isDemo } = storeToRefs(useUserStore());
+  const userStore = useUserStore();
+  const { isDemo } = storeToRefs(userStore);
 
-  // Every bank-sync endpoint is behind `blockDemoUsers`, so a demo session can only
-  // ever collect 403s here. Gate the whole composable instead of letting the query
-  // and the header's auto-check fire and fail.
-  const syncEnabled = computed(() => isLoggedIn.value && !isDemo.value);
+  // Every bank-sync endpoint is behind `blockDemoUsers` and the bank_providers
+  // entitlement, so an ungated session can only collect 403s and 402s here. Gate the
+  // whole composable instead of letting the query and the header's auto-check fire and fail.
+  const syncEnabled = computed(
+    () => isLoggedIn.value && !isDemo.value && userStore.hasFeature(FEATURES.bank_providers),
+  );
 
   // Provider names show up in the always-visible header popover regardless of
   // which page the user is on, but live in the integrations route chunk –

@@ -1,17 +1,49 @@
-import type { RecordId } from '@bt/shared/types';
+import { type RecordId, TRIAL_DAYS } from '@bt/shared/types';
 import { getTranslatedCategories } from '@common/const/default-categories';
 import { getTranslatedDefaultTags } from '@common/const/default-tags';
 import { requestContext } from '@common/request-context';
+import { isSelfHost } from '@config/is-self-host';
 import { i18nextReady } from '@i18n/index';
+import { ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import * as categoriesService from '@services/categories.service';
 import * as tagsService from '@services/tags';
 import * as userService from '@services/user.service';
+import { forgetSignup, recordSignup } from '@services/user/signups-open.service';
 import { randomBytes } from 'crypto';
 import { UniqueConstraintError } from 'sequelize';
 
 import { parseFullName } from './parse-full-name';
 import { slugifyUsername } from './slugify-username';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The trial runs from the first time this email was ever seen, so deleting an account
+ * and signing up again resumes the original window instead of granting a new one.
+ * `ledgerCreated` says whether this call claimed the ledger slot, so the caller can
+ * release it if the user row never materializes.
+ */
+const startTrial = async ({
+  email,
+  authUserId,
+}: {
+  email?: string | null;
+  authUserId: string;
+}): Promise<{ trialEndsAt: Date | null; ledgerCreated: boolean }> => {
+  if (isSelfHost()) return { trialEndsAt: null, ledgerCreated: false };
+
+  if (!email) {
+    // Without an email there is no ledger key, so such a signup would take no cap slot
+    // and could restart a trial on every re-registration.
+    throw new ValidationError({
+      message: `Signup requires an email address; the auth provider supplied none (authUserId="${authUserId}").`,
+    });
+  }
+
+  const { firstSeenAt, created } = await recordSignup({ email });
+  return { trialEndsAt: new Date(firstSeenAt.getTime() + TRIAL_DAYS * DAY_MS), ledgerCreated: created };
+};
 
 /**
  * Creates the app user row linked to a better-auth user.
@@ -26,6 +58,10 @@ import { slugifyUsername } from './slugify-username';
  * to the same value are entirely possible (e.g. "John" and "john" both →
  * "john"). On collision we retry once with a short random hex suffix.
  *
+ * The signup ledger is claimed before the user row is written and released again if
+ * writing it fails. `email` is optional only for self-host, which keeps no ledger; on
+ * cloud a missing email rejects the signup.
+ *
  * `fullName` is the actual human-readable name from the auth provider
  * (OAuth `user.name`). Pass `undefined` when the only available value is
  * an email prefix or a synthetic fallback — those shouldn't pollute the
@@ -38,34 +74,61 @@ export async function createAppUserWithUniqueUsername({
   username,
   fullName,
   authUserId,
+  email,
 }: {
   username: string;
   fullName?: string | null;
   authUserId: string;
+  email?: string | null;
 }) {
   const slug = slugifyUsername(username);
   const { firstName, middleName, lastName } = parseFullName(fullName);
 
-  const baseInput = { firstName, middleName, lastName, authUserId };
+  const { trialEndsAt, ledgerCreated } = await startTrial({ email, authUserId });
+  const baseInput = {
+    firstName,
+    middleName,
+    lastName,
+    authUserId,
+    trialEndsAt,
+  };
+
+  const create = async () => {
+    try {
+      return await userService.createUser({ username: slug, ...baseInput });
+    } catch (error) {
+      const isUsernameConflict =
+        error instanceof UniqueConstraintError && error.errors?.some((e) => e.path === 'username');
+
+      if (!isUsernameConflict) throw error;
+
+      const uniqueUsername = `${slug}-${randomBytes(4).toString('hex')}`;
+
+      // Surface collision retries so a sudden spike (or a slug pointing at a
+      // popular human name) is visible in logs / log-based metrics. Without
+      // this, the first-attempt failure is swallowed entirely.
+      logger.info(
+        `Username collision on signup: requested="${slug}", retrying with="${uniqueUsername}", authUserId="${authUserId}"`,
+      );
+
+      return userService.createUser({ username: uniqueUsername, ...baseInput });
+    }
+  };
 
   try {
-    return await userService.createUser({ username: slug, ...baseInput });
+    return await create();
   } catch (error) {
-    const isUsernameConflict =
-      error instanceof UniqueConstraintError && error.errors?.some((e) => e.path === 'username');
-
-    if (!isUsernameConflict) throw error;
-
-    const uniqueUsername = `${slug}-${randomBytes(4).toString('hex')}`;
-
-    // Surface collision retries so a sudden spike (or a slug pointing at a
-    // popular human name) is visible in logs / log-based metrics. Without
-    // this, the first-attempt failure is swallowed entirely.
-    logger.info(
-      `Username collision on signup: requested="${slug}", retrying with="${uniqueUsername}", authUserId="${authUserId}"`,
-    );
-
-    return userService.createUser({ username: uniqueUsername, ...baseInput });
+    // Only a row this call inserted may go: an earlier signup's slot must survive.
+    // A failed release leaves a claimed slot behind, which is far less harmful than
+    // masking the signup failure the caller compensates for.
+    if (ledgerCreated && email) {
+      try {
+        await forgetSignup({ email });
+      } catch (releaseError) {
+        logger.error({ message: 'Failed to release the signup ledger slot', error: releaseError as Error });
+      }
+    }
+    throw error;
   }
 }
 

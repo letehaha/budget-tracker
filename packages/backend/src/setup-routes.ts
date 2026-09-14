@@ -10,8 +10,10 @@ import { auth, authPool } from './config/auth';
 import { SUPPORTED_LOCALES } from './i18n';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
+import adminRoutes from './routes/admin.route';
 import bankDataProvidersRoutes from './routes/bank-data-providers.route';
 import betterAuthExtensionsRoutes from './routes/better-auth-extensions.route';
+import billingRoutes from './routes/billing.route';
 import brandLogosRoutes from './routes/brand-logos.route';
 import budgetsRoutes from './routes/budgets.route';
 import categoriesRoutes from './routes/categories.route';
@@ -206,6 +208,8 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/sse`, sseRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
   app.use(`${API_PREFIX}/github`, githubRoutes);
+  app.use(`${API_PREFIX}/billing`, billingRoutes);
+  app.use(`${API_PREFIX}/admin`, adminRoutes);
 
   // "development" is required here: Playwright frontend e2e tests run against
   // the dev backend on CI and rely on /tests/verify-email and other test-only endpoints.

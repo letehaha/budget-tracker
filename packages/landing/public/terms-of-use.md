@@ -1,6 +1,6 @@
 # Terms of Service
 
-Last updated: April 28, 2026
+Last updated: September 15, 2026
 
 ## 1. Acceptance of Terms
 
@@ -39,28 +39,48 @@ You are responsible for the accuracy of the data you enter and for maintaining b
 
 MoneyMatter is open source software licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). You may self-host, study, and modify the software in accordance with this license. If you run a modified version of MoneyMatter as a network service, you must publish your modifications under the same license. The source code is available on [GitHub](https://github.com/letehaha/budget-tracker).
 
-## 7. Disclaimer of Warranties
+## 7. Plans, Trial and Billing
+
+Self-hosting MoneyMatter is free under the open source license above. Using our hosted service (moneymatter.app) requires a paid plan after a free trial.
+
+**Trial.** New accounts get a 40-day trial with no payment method required. One trial per person; deleting and re-creating an account does not restart it. Backup export, backup restore and data export are not available during the trial. When the trial ends without a subscription, your account becomes read-only: you can still sign in, view your data, export it and delete your account, but you cannot add or change data until you subscribe.
+
+**Plans and prices.** Current plans, what each includes and their prices are listed on the pricing section of our website. Prices are shown without tax; the tax that applies in your country is added at checkout. We may change prices with at least 30 days' notice; a change applies from your next renewal after the notice.
+
+**Merchant of record.** Purchases are processed by Stripe under Stripe Managed Payments. Stripe is the seller of record for your subscription: it collects payment and applicable taxes, issues receipts, and handles refunds, chargebacks and payment support. Your purchase is also subject to the terms Stripe shows you at checkout. We never see or store your card details.
+
+**Renewal and cancellation.** Subscriptions renew automatically, monthly or yearly, until cancelled. You can cancel at any time from Settings → Plan & billing. After cancelling you keep access until the end of the period you have paid for, then your account becomes read-only. Switching plans is done from the same page; the charge or credit for a switch is shown before you confirm it.
+
+**Refunds.** Refund requests are handled by Stripe as merchant of record, under its refund policy, using the link in your receipt. A refunded payment ends the subscription it paid for.
+
+**Failed payments.** If a renewal payment fails, Stripe retries it and emails you to update your payment method. If every retry fails, the subscription is cancelled and your account becomes read-only. Your data is not deleted.
+
+**Early Adopter plan.** Accounts that were active before paid plans launched may be granted the Early Adopter plan free of charge. It includes the features that existed in the Essential and Plus plans on the launch date, for the lifetime of the Service, together with bug fixes and improvements to those features. Features added after the launch date, and features that cost us money per user to run, belong to the paid plans; Early Adopter accounts get 50% off any paid plan for as long as they keep it. The grant is personal to the account, cannot be transferred or exchanged for money, and may be withdrawn for violation of these Terms.
+
+**Changes to features.** We may add, change or remove features of a plan. If we remove a feature you are paying for, you may cancel and request a refund for the unused part of the current period through Stripe.
+
+## 8. Disclaimer of Warranties
 
 THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, ERROR-FREE, OR SECURE.
 
 MoneyMatter is not a financial advisor. The Service is for informational and tracking purposes only. You should consult a qualified financial professional for financial advice.
 
-## 8. Limitation of Liability
+## 9. Limitation of Liability
 
 TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF DATA OR FINANCIAL LOSSES, ARISING FROM YOUR USE OF THE SERVICE.
 
-## 9. Service Modifications
+## 10. Service Modifications
 
 We reserve the right to modify, suspend, or discontinue the Service at any time without notice. We are not liable for any modification, suspension, or discontinuation of the Service.
 
-## 10. Termination
+## 11. Termination
 
-We may terminate or suspend your account at any time for violation of these terms. You may delete your account at any time through the application settings. Upon termination, your right to use the Service will immediately cease.
+We may terminate or suspend your account at any time for violation of these terms. Non-payment does not delete your account; it becomes read-only as described in section 7. You may delete your account at any time through the application settings. Upon termination, your right to use the Service will immediately cease.
 
-## 11. Changes to Terms
+## 12. Changes to Terms
 
 We may update these Terms of Service from time to time. Continued use of the Service after changes constitutes acceptance of the new terms. We will notify users of significant changes.
 
-## 12. Contact
+## 13. Contact
 
 For questions about these Terms, please open an issue on our [GitHub repository](https://github.com/letehaha/budget-tracker/issues).
