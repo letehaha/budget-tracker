@@ -33,6 +33,7 @@ export const createUser = withTransaction(
     avatar,
     totalBalance,
     authUserId,
+    trialEndsAt,
   }: {
     username: string;
     email?: string;
@@ -42,6 +43,7 @@ export const createUser = withTransaction(
     avatar?: string;
     totalBalance?: number;
     authUserId?: string;
+    trialEndsAt?: Date | null;
   }) => {
     const user = await Users.createUser({
       username,
@@ -52,6 +54,7 @@ export const createUser = withTransaction(
       avatar,
       totalBalance,
       authUserId,
+      trialEndsAt,
     });
 
     return user;

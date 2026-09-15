@@ -356,7 +356,9 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       await helpers.asUser({
         cookies: target.cookies,
         fn: async () => {
-          const restore = await helpers.restoreBackup({ fileContent: base64 });
+          // Restoring another account's archive is a self-host/cross-instance move; the
+          // cloud preflight rejects it on the manifest owner (see "Archive ownership").
+          const restore = await helpers.withSelfHost(() => helpers.restoreBackup({ fileContent: base64 }));
           expect(restore.statusCode).toBe(200);
           const status = await helpers.waitForRestore({ jobId: restore.jobId! });
           expect(status.status).toBe('completed');
@@ -428,7 +430,8 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
         fn: async () => {
           // Core regression: this completed only after keep-if-free remap. Before the
           // fix the worker threw the UsersCurrencies_pkey collision and the job failed.
-          const restore = await helpers.restoreBackup({ fileContent: base64 });
+          // Self-host because the cloud preflight rejects another account's manifest.
+          const restore = await helpers.withSelfHost(() => helpers.restoreBackup({ fileContent: base64 }));
           expect(restore.statusCode).toBe(200);
           const status = await helpers.waitForRestore({ jobId: restore.jobId! });
           expect(status.status).toBe('completed');
@@ -1010,6 +1013,39 @@ describe('Data backup restore (POST /user/backup/restore)', () => {
       const withAck = await helpers.restoreBackup({ fileContent: base64, acknowledgeSharing: true });
       expect(withAck.statusCode).toBe(200);
       const status = await helpers.waitForRestore({ jobId: withAck.jobId! });
+      expect(status.status).toBe('completed');
+    });
+  });
+
+  describe('Archive ownership', () => {
+    /** Repack the current user's export with a manifest attributed to somebody else. */
+    async function foreignArchive(): Promise<string> {
+      const { buffer } = await exportArchive();
+      const { files, manifest } = helpers.parseBackupArchive({ buffer });
+      manifest.user = {
+        username: 'someone-else',
+        email: 'someone-else@test.local',
+      };
+      writeArchiveJson({ files, path: 'manifest.json', value: manifest });
+      return helpers.repackBackup({ files });
+    }
+
+    it('rejects an archive exported by a different account on cloud (422)', async () => {
+      await seedBasicData();
+      const base64 = await foreignArchive();
+
+      const restore = await helpers.restoreBackup({ fileContent: base64 });
+      expect(restore.statusCode).toBe(422);
+      expect(restore.message).toMatch(/different account/i);
+    });
+
+    it('accepts the same archive on a self-hosted instance', async () => {
+      await seedBasicData();
+      const base64 = await foreignArchive();
+
+      const restore = await helpers.withSelfHost(() => helpers.restoreBackup({ fileContent: base64 }));
+      expect(restore.statusCode).toBe(200);
+      const status = await helpers.waitForRestore({ jobId: restore.jobId! });
       expect(status.status).toBe('completed');
     });
   });

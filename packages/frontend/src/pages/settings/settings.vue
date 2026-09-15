@@ -72,6 +72,7 @@ import {
   CalendarClockIcon,
   ChevronRightIcon,
   CircleDollarSignIcon,
+  CreditCardIcon,
   HomeIcon,
   KeyRoundIcon,
   LanguagesIcon,
@@ -109,7 +110,7 @@ interface TabGroup {
 
 const route = useRoute();
 const router = useRouter();
-const { user } = storeToRefs(useUserStore());
+const { user, canSeeBilling } = storeToRefs(useUserStore());
 const { t } = useI18n();
 
 const containerRef = ref<HTMLElement | null>(null);
@@ -160,6 +161,16 @@ const personalTabs = computed<Tab[]>(() => [
     to: { name: ROUTES_NAMES.settingsSecurity },
     icon: KeyRoundIcon,
   },
+  ...(canSeeBilling.value
+    ? [
+        {
+          name: 'plan-billing',
+          label: t('settings.navigation.planBilling'),
+          to: { name: ROUTES_NAMES.settingsPlanBilling },
+          icon: CreditCardIcon,
+        },
+      ]
+    : []),
 ]);
 
 const workspaceTabs = computed<Tab[]>(() => {

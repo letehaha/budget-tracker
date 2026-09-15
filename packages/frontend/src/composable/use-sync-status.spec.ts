@@ -1,3 +1,4 @@
+import { FEATURES } from '@bt/shared/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref, toValue } from 'vue';
 
@@ -6,7 +7,7 @@ const checkSync = vi.fn();
 const triggerSyncRequest = vi.fn();
 
 const auth = vi.hoisted(() => ({ isLoggedIn: { value: true } }));
-const user = vi.hoisted(() => ({ isDemo: { value: false } }));
+const user = vi.hoisted(() => ({ isDemo: { value: false }, hasFeature: vi.fn(() => true) }));
 // Holds the options `useQuery` was called with so a test can read back `enabled`.
 const query = vi.hoisted(() => ({ options: null as { enabled?: unknown } | null }));
 
@@ -86,6 +87,7 @@ describe('useSyncStatus demo gating', () => {
     vi.clearAllMocks();
     auth.isLoggedIn.value = true;
     user.isDemo.value = false;
+    user.hasFeature.mockReturnValue(true);
     query.options = null;
   });
 
@@ -104,8 +106,27 @@ describe('useSyncStatus demo gating', () => {
     expect(toValue(query.options?.enabled)).toBe(true);
   });
 
+  it('keeps the status query disabled when the plan lacks bank providers', () => {
+    user.hasFeature.mockReturnValue(false);
+
+    useSyncStatus();
+
+    expect(toValue(query.options?.enabled)).toBe(false);
+    expect(user.hasFeature).toHaveBeenCalledWith(FEATURES.bank_providers);
+    expect(getSyncStatus).not.toHaveBeenCalled();
+  });
+
   it('does not call the check endpoint for a demo user', async () => {
     user.isDemo.value = true;
+
+    const result = await useSyncStatus().checkAndAutoSync();
+
+    expect(result).toBeNull();
+    expect(checkSync).not.toHaveBeenCalled();
+  });
+
+  it('does not call the check endpoint when the plan lacks bank providers', async () => {
+    user.hasFeature.mockReturnValue(false);
 
     const result = await useSyncStatus().checkAndAutoSync();
 

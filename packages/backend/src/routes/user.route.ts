@@ -1,3 +1,4 @@
+import { FEATURES } from '@bt/shared/types';
 import { categorizationCandidatesController } from '@controllers/ai-categorization/candidates.controller';
 import { categorizationStatusController } from '@controllers/ai-categorization/categorization-status.controller';
 import { categorizationHistoryController } from '@controllers/ai-categorization/history.controller';
@@ -57,6 +58,7 @@ import {
 import { authenticateSession } from '@middlewares/better-auth';
 import { blockDemoUsers } from '@middlewares/block-demo-users';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
+import { requireFeature } from '@middlewares/entitlements';
 import {
   aiCustomEndpointTestRateLimit,
   aiCustomModelProbeRateLimit,
@@ -88,6 +90,7 @@ router.post(
 router.post(
   '/data-export',
   authenticateSession,
+  requireFeature(FEATURES.data_export),
   dataExportRateLimit,
   validateEndpoint(exportDataController.schema),
   exportDataController.handler,
@@ -95,6 +98,7 @@ router.post(
 router.post(
   '/backup',
   authenticateSession,
+  requireFeature(FEATURES.backup_export),
   backupRateLimit,
   validateEndpoint(exportBackupController.schema),
   exportBackupController.handler,
@@ -102,6 +106,7 @@ router.post(
 router.post(
   '/backup/restore',
   authenticateSession,
+  requireFeature(FEATURES.backup_restore),
   // Guard the most destructive write like every other mutating route: 423 while a
   // base-currency migration (or an in-flight restore, which takes the same lock) runs.
   checkBaseCurrencyLock,

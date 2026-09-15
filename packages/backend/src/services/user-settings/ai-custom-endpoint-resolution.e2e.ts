@@ -457,7 +457,7 @@ describe('AI custom endpoint resolution', () => {
   });
 
   describe('Feature status matches what the run dials', () => {
-    it('reports the fallback endpoint until the server holds a key for the configured model', async () => {
+    it('keeps reporting the fallback endpoint even once the server holds a key for the configured model', async () => {
       const userId = await getTestUserId();
       const endpoint = await createFirstEndpoint();
 
@@ -494,15 +494,16 @@ describe('AI custom endpoint resolution', () => {
         { feature: AI_FEATURE.categorization, modelId: KEYLESS_CATALOG_MODEL_ID },
       ]);
 
+      // The server key only serves the feature default, so a keyless premium pick keeps
+      // dialling the user's endpoint.
       process.env.ANTHROPIC_API_KEY = 'server-side-anthropic-key';
 
       const withServerKey = await helpers.getAiFeatureConfig({ feature: AI_FEATURE.categorization, raw: true });
 
-      expect(withServerKey.modelId).toBe(KEYLESS_CATALOG_MODEL_ID);
-      expect(withServerKey.customEndpointId).toBeUndefined();
-      expect(withServerKey.endpointName).toBeUndefined();
-      expect(withServerKey.usingUserKey).toBe(false);
-      expect(withServerKey.modelName).not.toBe(CUSTOM_ENDPOINT_MODEL);
+      expect(withServerKey.modelId).toBe(FIRST_CUSTOM_MODEL_ID);
+      expect(withServerKey.customEndpointId).toBe(endpoint.id);
+      expect(withServerKey.endpointName).toBe(FIRST_ENDPOINT_NAME);
+      expect(withServerKey.usingUserKey).toBe(true);
     });
 
     it('keeps naming the endpoint when it is flagged invalid', async () => {

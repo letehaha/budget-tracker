@@ -43,6 +43,8 @@ export const useInvalidatingMutation = <TData, TVariables>({
       // The API client already logs the user out and announces an expired session on 401,
       // so a second toast here would blame this operation for it.
       if (isApiErrorWithCode(error, API_ERROR_CODES.unauthorized)) return;
+      // The API client already toasted the 402 with a "See plans" action.
+      if (isApiErrorWithCode(error, API_ERROR_CODES.planRequired)) return;
       if (silentErrorCodes?.some((code) => isApiErrorWithCode(error, code))) return;
       addErrorNotification(extractApiErrorMessage(error) || t(errorKey));
     },

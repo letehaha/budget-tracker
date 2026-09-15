@@ -1,6 +1,7 @@
-import { AIKeyProvider, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
+import { AIKeyProvider, AI_FEATURE, AI_PROVIDER, FEATURES } from '@bt/shared/types';
 import { logger } from '@js/utils/logger';
 
+import { hasFeature } from '../entitlements/has-feature';
 import { decryptStoredApiKey, getStoredAiSettings } from '../user-settings/ai-api-key';
 import { markCustomEndpointInvalid, readEndpointCredentials } from '../user-settings/ai-custom-endpoint';
 import { getFeatureConfig } from '../user-settings/ai-feature-settings';
@@ -47,6 +48,7 @@ export async function resolveAIConfiguration({
   const aiSettings = await getStoredAiSettings({ userId });
   const endpoints = aiSettings?.customEndpoints ?? [];
   const storedKeyProviders = (aiSettings?.apiKeys ?? []).map((key) => key.provider);
+  const operatorAiAllowed = await hasFeature({ userId, feature: FEATURES.operator_ai });
 
   if (config && !getProviderFromModelId({ modelId: config.modelId })) {
     logger.warn('Unknown model ID in user feature config', { userId, feature, modelId: config.modelId });
@@ -64,6 +66,7 @@ export async function resolveAIConfiguration({
       config,
       keyProviders: new Set(storedKeyProviders.filter((provider) => !unreadableKeyProviders.has(provider))),
       endpoints,
+      serverKeysAllowed: operatorAiAllowed,
       excludedEndpointIds,
     });
 
@@ -132,6 +135,8 @@ export async function resolveAIConfiguration({
       case 'unserved':
         if (step.reason === 'invalid-default') {
           logger.error('Invalid default model ID configuration', { feature });
+        } else if (!operatorAiAllowed) {
+          logger.info('AI feature not served: user lacks the operator_ai entitlement', { userId, feature });
         } else {
           logger.info('No API key available for AI feature', { userId, feature });
         }

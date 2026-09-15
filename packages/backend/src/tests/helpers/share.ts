@@ -47,6 +47,10 @@ export async function signUpSecondUser({
       name,
     },
   });
+  // Match the suite's default user: legacy entitlements, not a fresh trial. A trial
+  // would strip backup/export features from every second-user test that isn't about plans.
+  await Users.update({ trialEndsAt: null }, { where: { authUserId: signupRes.body.user.id } });
+
   return { cookies: extractCookies(signupRes), email: userEmail };
 }
 

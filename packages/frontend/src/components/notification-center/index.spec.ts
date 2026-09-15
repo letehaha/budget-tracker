@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { type ToastT, toast } from 'vue-sonner';
 
-import { NotificationType, useNotificationCenter } from './index';
+import { NotificationType, dismissPersistentNotifications, useNotificationCenter } from './index';
 import { pulseToast } from './toast-pulse';
 import { releaseToastTimers } from './toast-timers';
 
@@ -205,6 +205,39 @@ describe('notification center sonner ids', () => {
   });
 });
 
+describe('notification center explicit-id dedup', () => {
+  const raisePlanRequired = () =>
+    addNotification({
+      id: 'plan-required-error',
+      text: 'Upgrade to continue',
+      type: NotificationType.error,
+      action: { label: 'See plans', onClick: () => {} },
+      persistent: true,
+    });
+
+  test('folds a plain raise into the live toast an explicit id holds the same text under', () => {
+    const id = raisePlanRequired();
+    const element = mountToast({ id: String(id) });
+
+    addErrorNotification('Upgrade to continue');
+
+    expect(mockedToast.error).toHaveBeenCalledTimes(1);
+    expect(mockedPulseToast).toHaveBeenCalledExactlyOnceWith({ element });
+    expect(lastRaisedOptions({ raiseToast: mockedToast.error })?.action).toMatchObject({ label: 'See plans' });
+    expect(addNotification({ text: 'Upgrade to continue', type: NotificationType.error })).toBe(id);
+  });
+
+  test('mints a second toast for a different text', () => {
+    raisePlanRequired();
+    mountToast({ id: 'plan-required-error' });
+
+    addErrorNotification('Import failed');
+
+    expect(mockedToast.error).toHaveBeenCalledTimes(2);
+    expect(mockedPulseToast).not.toHaveBeenCalled();
+  });
+});
+
 describe('notification center removal', () => {
   test('dismisses the sonner toast currently raised under the id', () => {
     const id = addNotification({ text: 'Uploading' });
@@ -301,5 +334,20 @@ describe('notification center re-raise pulse', () => {
     addErrorNotification('Import failed');
 
     expect(mockedPulseToast).not.toHaveBeenCalled();
+  });
+});
+
+describe('notification center persistent dismissal', () => {
+  test('dismisses only the persistent toasts and releases their ids', () => {
+    addNotification({ text: 'Upgrade to continue', type: NotificationType.error, persistent: true });
+    const persistentSonnerId = lastSonnerId({ raiseToast: mockedToast.error });
+    addSuccessNotification('Transaction created');
+
+    dismissPersistentNotifications();
+
+    expect(mockedToast.dismiss).toHaveBeenCalledExactlyOnceWith(persistentSonnerId);
+
+    addNotification({ text: 'Upgrade to continue', type: NotificationType.error, persistent: true });
+    expect(lastSonnerId({ raiseToast: mockedToast.error })).not.toBe(persistentSonnerId);
   });
 });

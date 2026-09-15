@@ -63,6 +63,7 @@ describe('resolveFeatureModelDisplay', () => {
       feature: FEATURE,
       config,
       aiSettings: buildAiSettings({ endpoints: [ENDPOINT] }),
+      serverKeysAllowed: true,
     });
 
     expect(display).toEqual({
@@ -83,6 +84,7 @@ describe('resolveFeatureModelDisplay', () => {
       feature: FEATURE,
       config,
       aiSettings: buildAiSettings({ keyProviders: [AI_PROVIDER.google] }),
+      serverKeysAllowed: true,
     });
 
     expect(display.modelId).toBe(DEFAULT_MODEL_ID);
@@ -97,6 +99,7 @@ describe('resolveFeatureModelDisplay', () => {
       feature: FEATURE,
       config,
       aiSettings: buildAiSettings({ endpoints: [ENDPOINT] }),
+      serverKeysAllowed: true,
     });
 
     expect(display).toEqual({
@@ -112,7 +115,12 @@ describe('resolveFeatureModelDisplay', () => {
     process.env.ANTHROPIC_API_KEY = 'server-key';
     const config: AIFeatureConfig = { feature: FEATURE, modelId: 'anthropic/claude-haiku-4-5' };
 
-    const display = resolveFeatureModelDisplay({ feature: FEATURE, config, aiSettings: buildAiSettings() });
+    const display = resolveFeatureModelDisplay({
+      feature: FEATURE,
+      config,
+      aiSettings: buildAiSettings(),
+      serverKeysAllowed: true,
+    });
 
     expect(display.modelId).toBe('anthropic/claude-haiku-4-5');
     expect(display.usingUserKey).toBe(false);
@@ -128,6 +136,7 @@ describe('resolveFeatureModelDisplay', () => {
       feature: FEATURE,
       config: null,
       aiSettings: buildAiSettings({ endpoints: [flagged] }),
+      serverKeysAllowed: true,
     });
 
     expect(display).toMatchObject({
@@ -142,14 +151,19 @@ describe('resolveFeatureModelDisplay', () => {
   it('keeps naming the user pick when nothing anywhere can answer', () => {
     const config: AIFeatureConfig = { feature: FEATURE, modelId: 'anthropic/claude-haiku-4-5' };
 
-    const display = resolveFeatureModelDisplay({ feature: FEATURE, config, aiSettings: null });
+    const display = resolveFeatureModelDisplay({ feature: FEATURE, config, aiSettings: null, serverKeysAllowed: true });
 
     expect(display.modelId).toBe('anthropic/claude-haiku-4-5');
     expect(display.usingUserKey).toBe(false);
   });
 
   it('falls back to the feature default when there is no config and no credentials', () => {
-    const display = resolveFeatureModelDisplay({ feature: FEATURE, config: null, aiSettings: null });
+    const display = resolveFeatureModelDisplay({
+      feature: FEATURE,
+      config: null,
+      aiSettings: null,
+      serverKeysAllowed: true,
+    });
 
     expect(display.modelId).toBe(DEFAULT_MODEL_ID);
     expect(display.usingUserKey).toBe(false);

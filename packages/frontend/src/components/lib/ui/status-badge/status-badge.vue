@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
 
-type Variant = 'success' | 'destructive' | 'warning';
+import type { Variant } from './status-badge';
 
 defineProps<{ variant: Variant }>();
 
@@ -9,6 +9,7 @@ const VARIANT_CLASSES: Record<Variant, { pill: string; dot: string }> = {
   success: { pill: 'border-success-text/25 bg-success-text/10 text-success-text', dot: 'bg-success-text' },
   destructive: { pill: 'border-destructive/25 bg-destructive/10 text-destructive-text', dot: 'bg-destructive' },
   warning: { pill: 'border-warning-text/25 bg-warning-text/10 text-warning-text', dot: 'bg-warning-text' },
+  info: { pill: 'border-primary/25 bg-primary/10 text-primary-text', dot: 'bg-primary' },
 };
 </script>
 

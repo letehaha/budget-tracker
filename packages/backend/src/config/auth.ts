@@ -321,6 +321,7 @@ export const auth = betterAuth({
               username: usernameSource,
               fullName: trimmedName || null,
               authUserId: user.id,
+              email: user.email,
             });
             logger.info(`Successfully created app user profile with id: ${appUser.id}`);
           } catch (error) {

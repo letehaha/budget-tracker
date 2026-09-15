@@ -6,6 +6,7 @@ import { i18nextReady } from '@i18n/index';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, jest } from '@jest/globals';
 import Categories from '@models/categories.model';
 import { connection } from '@models/index';
+import UsersModel from '@models/users.model';
 import { serverInstance } from '@root/app';
 import { loadCurrencyRatesJob } from '@root/crons/exchange-rates';
 import { REDIS_KEY_PREFIX, redisClient, redisReady } from '@root/redis-client';
@@ -29,7 +30,7 @@ import {
   subscriptionReminderEmailWorker,
 } from '@services/subscriptions/reminder-email-queue';
 import { createAppUserWithUniqueUsername, seedUserDefaults } from '@services/user/create-user-with-defaults.service';
-import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
+import { STRIPE_TEST_WEBHOOK_SECRET, extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
 import { startOfDay } from 'date-fns';
 
 import { resetSessionCounter } from './mocks/enablebanking/mock-api';
@@ -144,6 +145,12 @@ if (missingEnvVars.length > 0) {
  * fail loud.
  */
 process.env.LOGO_DEV_SECRET_KEY = process.env.LOGO_DEV_SECRET_KEY || 'test';
+
+/** Price-id map the billing fixtures and webhook mapping are written against. */
+process.env.STRIPE_ENV = 'test';
+process.env.STRIPE_WEBHOOK_SECRET ??= STRIPE_TEST_WEBHOOK_SECRET;
+/** Matches the config default, so the Stripe client's "returns buyers to localhost" guard passes. */
+process.env.AUTH_ORIGIN ??= 'https://localhost:8100';
 
 /**
  * On CI, retry a failed test in-process before failing the run. A single flaky
@@ -374,8 +381,13 @@ beforeEach(async () => {
     const seedAppUser = await createAppUserWithUniqueUsername({
       username: 'test1',
       authUserId: 'test-user-id',
+      email: testEmail,
     });
     await seedUserDefaults({ userId: seedAppUser.id, locale: 'en' });
+
+    // The suite's default user sits on the legacy (pre-trial) entitlement path, which
+    // grants every plus feature. A trial would strip backup/export from most suites.
+    await UsersModel.update({ trialEndsAt: null }, { where: { id: seedAppUser.id } });
 
     // Stash a default category UUID for helpers that build transaction payloads.
     // Pre-UUID-migration this was hardcoded to `categoryId: 1`; now we resolve

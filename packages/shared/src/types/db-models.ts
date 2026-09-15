@@ -1,3 +1,4 @@
+import type { Entitlements } from './billing';
 import {
   ACCOUNT_CATEGORIES,
   ACCOUNT_STATUSES,
@@ -53,6 +54,8 @@ export interface UserModel {
   isAdmin?: boolean;
   /** Feeds the demo-account expiry countdown. */
   createdAt: Date;
+  /** Present on `GET /user` only. */
+  entitlements?: Entitlements;
 }
 
 export interface CategoryModel {

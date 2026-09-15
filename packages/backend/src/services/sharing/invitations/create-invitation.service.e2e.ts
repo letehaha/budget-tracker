@@ -1,6 +1,8 @@
 import {
   NOTIFICATION_TYPES,
+  PLANS,
   RESOURCE_TYPES,
+  SEATS_BY_PLAN,
   SHARE_INVITATION_STATUSES,
   SHARE_PERMISSIONS,
   SHARING_LIMITS,
@@ -136,7 +138,10 @@ describe('Share invitations: create + list', () => {
         where: { type: NOTIFICATION_TYPES.shareInvitationReceived, userId: recipientApp.id },
       });
       expect(notifs).toHaveLength(1);
-      const payload = notifs[0]!.payload as { token?: string; invitationId?: string };
+      const payload = notifs[0]!.payload as {
+        token?: string;
+        invitationId?: string;
+      };
       expect(payload.token).toBe(sendRes.body.response.token);
       expect(payload.invitationId).toBe(sendRes.body.response.id);
     });
@@ -268,9 +273,9 @@ describe('Share invitations: create + list', () => {
       const account = await helpers.createAccount({ raw: true });
       const newRecipient = await helpers.provisionSecondUserWithBaseCurrency();
 
-      // Cap is 2 — pre-create that many accepted shares directly to fill the cap.
-      expect(SHARING_LIMITS.maxRecipientsPerResource).toBe(2);
-      for (let i = 0; i < SHARING_LIMITS.maxRecipientsPerResource; i++) {
+      // The default test user is on the plus seat cap; pre-create that many accepted
+      // shares directly to fill it.
+      for (let i = 0; i < SEATS_BY_PLAN.plus; i++) {
         const filler = await helpers.provisionSecondUserWithBaseCurrency();
         const fillerApp = await helpers.findAppUserByEmail({ email: filler.email });
         await ResourceShares.create({
@@ -292,7 +297,93 @@ describe('Share invitations: create + list', () => {
       });
 
       expect(res.statusCode).toBe(409);
-      expect((res.body.response as unknown as ErrorResponse).message).toMatch(/maximum/i);
+      expect((res.body.response as unknown as ErrorResponse).message).toMatch(/Your plan allows/i);
+    });
+
+    it('caps the owner at the seats their plan grants', async () => {
+      const originalAdminUsers = process.env.ADMIN_USERS;
+      process.env.ADMIN_USERS = 'test1';
+
+      try {
+        const { id: ownerId } = await helpers.getUserInfo({ raw: true });
+        const granted = await helpers.adminUpdateUserPlan({
+          userId: ownerId,
+          payload: { plan: PLANS.essential },
+          raw: true,
+        });
+        expect(granted.entitlements.seats).toBe(SEATS_BY_PLAN.essential);
+
+        const account = await helpers.createAccount({ raw: true });
+        for (let i = 0; i < SEATS_BY_PLAN.essential; i++) {
+          const filler = await helpers.provisionSecondUserWithBaseCurrency();
+          const fillerApp = await helpers.findAppUserByEmail({ email: filler.email });
+          await ResourceShares.create({
+            ownerUserId: account.userId,
+            sharedWithUserId: fillerApp.id,
+            resourceType: RESOURCE_TYPES.account,
+            resourceId: String(account.id),
+            permission: SHARE_PERMISSIONS.read,
+            policy: null,
+            acceptedAt: new Date(),
+          });
+        }
+
+        const overflow = await helpers.provisionSecondUserWithBaseCurrency();
+        const res = await helpers.createShareInvitation({
+          inviteeEmail: overflow.email,
+          resourceType: RESOURCE_TYPES.account,
+          resourceId: account.id,
+          permission: SHARE_PERMISSIONS.read,
+        });
+
+        expect(res.statusCode).toBe(409);
+        expect((res.body.response as unknown as ErrorResponse).message).toBe(
+          `Your plan allows ${SEATS_BY_PLAN.essential} recipient(s); upgrade to add more.`,
+        );
+      } finally {
+        if (originalAdminUsers === undefined) delete process.env.ADMIN_USERS;
+        else process.env.ADMIN_USERS = originalAdminUsers;
+      }
+    });
+
+    it('caps household members at the seats the owner plan grants', async () => {
+      const originalAdminUsers = process.env.ADMIN_USERS;
+      process.env.ADMIN_USERS = 'test1';
+
+      try {
+        const { id: ownerId } = await helpers.getUserInfo({ raw: true });
+        await helpers.adminUpdateUserPlan({ userId: ownerId, payload: { plan: PLANS.essential }, raw: true });
+
+        for (let i = 0; i < SEATS_BY_PLAN.essential; i++) {
+          const filler = await helpers.provisionSecondUserWithBaseCurrency();
+          const fillerApp = await helpers.findAppUserByEmail({ email: filler.email });
+          await ResourceShares.create({
+            ownerUserId: ownerId,
+            sharedWithUserId: fillerApp.id,
+            resourceType: RESOURCE_TYPES.household,
+            resourceId: String(ownerId),
+            permission: SHARE_PERMISSIONS.write,
+            policy: null,
+            acceptedAt: new Date(),
+          });
+        }
+
+        const overflow = await helpers.provisionSecondUserWithBaseCurrency();
+        const res = await helpers.createShareInvitation({
+          inviteeEmail: overflow.email,
+          resourceType: RESOURCE_TYPES.household,
+          resourceId: ownerId,
+          permission: SHARE_PERMISSIONS.write,
+        });
+
+        expect(res.statusCode).toBe(409);
+        expect((res.body.response as unknown as ErrorResponse).message).toBe(
+          `Your plan allows ${SEATS_BY_PLAN.essential} household member(s); upgrade to add more.`,
+        );
+      } finally {
+        if (originalAdminUsers === undefined) delete process.env.ADMIN_USERS;
+        else process.env.ADMIN_USERS = originalAdminUsers;
+      }
     });
 
     it('rejects a new invitation when the per-resource pending cap is reached (test env: 3)', async () => {

@@ -646,8 +646,8 @@ export type TransactionsWriteScope = (typeof TRANSACTIONS_WRITE_SCOPES)[keyof ty
 /**
  * Hardcoded sharing-related limits. Bumping these is a code-only change.
  *
- * `maxRecipientsPerResource` is the free-tier cap; lifts to 50 once a paid
- * tier exists. Counts only accepted shares (recipients), not pending invitations.
+ * Accepted-recipient caps live in `SEATS_BY_PLAN` (billing.ts) and are read
+ * through `getEntitlementsByUserId().seats`.
  *
  * `maxPendingInvitationsPerResource` caps how many concurrent pending invitations a
  * single owner can have for one resource. The smaller test value keeps the relevant
@@ -658,11 +658,6 @@ export type TransactionsWriteScope = (typeof TRANSACTIONS_WRITE_SCOPES)[keyof ty
  * `services/sharing/limits.ts` so the test override is centralized.
  */
 export const SHARING_LIMITS = {
-  maxRecipientsPerResource: 2,
-  // Household membership cap (free tier). One household = one grantor and up to
-  // this many recipients with access to every account the grantor owns. Lifts
-  // alongside `maxRecipientsPerResource` in the paid tier.
-  maxHouseholdMembers: 2,
   maxPendingInvitationsPerResource: 10,
   maxPendingInvitationsPerResourceTest: 3,
   invitationExpirationDays: 7,

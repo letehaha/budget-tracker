@@ -1,6 +1,7 @@
 import { AIFeatureConfig, AIKeyProvider, AI_FEATURE, AI_PROVIDER } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
+import { getDefaultModelForFeature } from './models-config';
 import { pickResolutionStep, type LadderEndpoint } from './resolution-ladder';
 
 const SERVER_KEY_ENV_VARS = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY'] as const;
@@ -13,16 +14,19 @@ const SECOND_ENDPOINT: LadderEndpoint = { id: 'ep-2', name: 'Studio vLLM', defau
 
 const CUSTOM_CONFIG: AIFeatureConfig = { feature: FEATURE, modelId: 'custom/llama3.2', customEndpointId: ENDPOINT.id };
 const ANTHROPIC_CONFIG: AIFeatureConfig = { feature: FEATURE, modelId: 'anthropic/claude-haiku-4-5' };
+const DEFAULT_CONFIG: AIFeatureConfig = { feature: FEATURE, modelId: getDefaultModelForFeature({ feature: FEATURE }) };
 
 function pick({
   config = null,
   keyProviders = [],
   endpoints = [],
+  serverKeysAllowed = true,
   excludedEndpointIds,
 }: {
   config?: AIFeatureConfig | null;
   keyProviders?: AIKeyProvider[];
   endpoints?: LadderEndpoint[];
+  serverKeysAllowed?: boolean;
   excludedEndpointIds?: ReadonlySet<string>;
 } = {}) {
   return pickResolutionStep({
@@ -30,6 +34,7 @@ function pick({
     config,
     keyProviders: new Set(keyProviders),
     endpoints,
+    serverKeysAllowed,
     excludedEndpointIds,
   });
 }
@@ -92,12 +97,34 @@ describe('pickResolutionStep', () => {
       });
     });
 
-    it('runs on the server key when the user has none for that provider', () => {
+    it('runs the feature default on the server key when the user picked it explicitly', () => {
+      process.env.GEMINI_API_KEY = 'server-key';
+
+      const step = pick({ config: DEFAULT_CONFIG });
+
+      expect(step).toEqual({
+        kind: 'configured-catalog',
+        provider: AI_PROVIDER.google,
+        modelId: DEFAULT_CONFIG.modelId,
+        usingUserKey: false,
+      });
+    });
+
+    it('drops a configured non-default model to the feature default when only the server key could pay', () => {
       process.env.ANTHROPIC_API_KEY = 'server-key';
+      process.env.GEMINI_API_KEY = 'server-key';
 
       const step = pick({ config: ANTHROPIC_CONFIG });
 
-      expect(step).toMatchObject({ kind: 'configured-catalog', usingUserKey: false });
+      expect(step).toMatchObject({ kind: 'default-catalog', provider: AI_PROVIDER.google, usingUserKey: false });
+    });
+
+    it('falls through to the user endpoint when server keys are not allowed', () => {
+      process.env.ANTHROPIC_API_KEY = 'server-key';
+
+      const step = pick({ config: ANTHROPIC_CONFIG, endpoints: [ENDPOINT], serverKeysAllowed: false });
+
+      expect(step).toMatchObject({ kind: 'fallback-endpoint', endpoint: ENDPOINT });
     });
 
     it('falls through to the endpoint fallback when no key backs the configured provider', () => {
@@ -145,6 +172,12 @@ describe('pickResolutionStep', () => {
 
     it('reports unserved when nothing anywhere can answer', () => {
       expect(pick({})).toEqual({ kind: 'unserved', reason: 'no-credentials' });
+    });
+
+    it('reports unserved when the server key exists but the plan does not include it', () => {
+      process.env.GEMINI_API_KEY = 'server-key';
+
+      expect(pick({ serverKeysAllowed: false })).toEqual({ kind: 'unserved', reason: 'no-credentials' });
     });
   });
 

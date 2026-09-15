@@ -7,7 +7,10 @@ import { useLogout } from '@/composable/actions/logout';
 import { useAllCurrencies, useBaseCurrency, useSetBaseCurrency } from '@/composable/data-queries/currencies';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { ROUTES_NAMES } from '@/routes/constants';
+import { useUserStore } from '@/stores';
 import { CurrencyModel } from '@bt/shared/types';
+import { ExternalLinkIcon } from '@lucide/vue';
+import { storeToRefs } from 'pinia';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
@@ -20,6 +23,9 @@ const router = useRouter();
 const logoutHandler = useLogout();
 const { t } = useI18n();
 const { formatCurrencyLabel } = useCurrencyName();
+// Plan & billing sits behind the base-currency guard, so the only reachable plan page is the landing one.
+const PRICING_URL = 'https://moneymatter.app/#pricing';
+const { canSeeBilling, trialDaysLeft } = storeToRefs(useUserStore());
 
 const selectedCurrency = ref<CurrencyModel | null>(null);
 const formError = ref<string | null>(null);
@@ -114,6 +120,22 @@ const submitBaseCurrency = () => {
             {{ $t('auth.welcome.submitButton') }}
           </Button>
         </form-wrapper>
+
+        <p v-if="canSeeBilling && trialDaysLeft !== null" class="text-muted-foreground mt-6 text-center text-sm">
+          <i18n-t keypath="auth.welcome.trialStarted" :plural="trialDaysLeft" tag="span">
+            <template #link>
+              <a
+                :href="PRICING_URL"
+                target="_blank"
+                rel="noopener"
+                class="text-primary-text inline-flex items-center gap-1 font-semibold underline underline-offset-2"
+              >
+                {{ $t('billing.seePlans') }}
+                <ExternalLinkIcon class="size-3.5" />
+              </a>
+            </template>
+          </i18n-t>
+        </p>
       </div>
     </div>
   </div>
