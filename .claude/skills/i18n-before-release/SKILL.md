@@ -1,13 +1,13 @@
 ---
 name: i18n-before-release
 description: >
-  Occasional i18n catch-up: strip unused en keys, then fill any uk translations that slipped through
-  via i18n-editor subagents. Not a required release step – uk is translated alongside en during feature
-  work, so this is a safety net. Trigger on "/i18n-before-release", "actualize i18n",
+  Occasional i18n catch-up: strip unused en keys, then fill any translations that slipped through
+  via i18n-editor subagents. Not a required release step – every locale is translated alongside en
+  during feature work, so this is a safety net. Trigger on "/i18n-before-release", "actualize i18n",
   "fill missing translations", "strip unused translation keys".
 ---
 
-Occasional i18n catch-up (a safety net, not a required release step – `uk` is translated alongside `en` during feature work): strip unused en keys, then fill any missing translations in the in-house translated locales. All key detection is done by `.claude/skills/i18n-before-release/i18n-audit.mjs` (run from repo root) — never parse or diff locale JSON files yourself, and never read locale files directly (a hook blocks them; only the i18n-editor subagent may touch them).
+Occasional i18n catch-up (a safety net, not a required release step – every in-house locale is translated alongside `en` during feature work): strip unused en keys, then fill any missing translations in the in-house translated locales. All key detection is done by `.claude/skills/i18n-before-release/i18n-audit.mjs` (run from repo root) — never parse or diff locale JSON files yourself, and never read locale files directly (a hook blocks them; only the i18n-editor subagent may touch them).
 
 ## Steps
 
@@ -42,9 +42,9 @@ node .claude/skills/i18n-before-release/i18n-audit.mjs prune-extra
 node .claude/skills/i18n-before-release/i18n-audit.mjs missing
 ```
 
-`missing` only ever reports the locales in the script's `TRANSLATED_LOCALES` set (`uk`).
-Every other locale — `es`, `id`, both Chinese variants, anything added later — is community-translated
-in Crowdin and is deliberately not our work. Never widen the pass to a locale the script omits,
+`missing` only ever reports the locales in the script's `TRANSLATED_LOCALES` set (`uk`, `es`, `id`).
+Leftover `zh-CN`/`zh-TW` chunk files (from a discontinued Crowdin integration, not wired into
+`SUPPORTED_LOCALES`) are deliberately excluded. Never widen the pass to a locale the script omits,
 and never hand a subagent a locale code it didn't report.
 
 If nothing is missing, skip to step 5.
@@ -67,4 +67,4 @@ Must print "All locales are complete". If keys remain, re-spawn the affected loc
 
 ### 6. Wrap up
 
-Report: keys stripped, keys pruned, keys translated per locale. Remind the user to review `git diff`, commit themselves (never commit for them), and run `npm run i18n:crowdin:upload` to sync translations to Crowdin.
+Report: keys stripped, keys pruned, keys translated per locale. Remind the user to review `git diff` and commit themselves (never commit for them).

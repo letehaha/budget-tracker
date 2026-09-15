@@ -9,7 +9,7 @@ import { ShareUserSnapshot, snapshotShareUser } from '../share-user-snapshot';
 
 type ShareMemberRole = 'owner' | 'recipient';
 
-export interface ShareMemberSnapshot {
+interface ShareMemberSnapshot {
   /**
    * `id` falls back to the membership id (owner userId / recipient userId) when the
    * underlying user row is missing; `username` falls back to "Unknown user".

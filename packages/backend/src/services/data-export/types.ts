@@ -221,7 +221,7 @@ export type ExportTable =
  * literal union means a typo in a writer's filename surfaces as a compile
  * error rather than a manifest-validation mismatch at runtime.
  */
-export type ExportArchiveFilename = `${ExportFileName}.csv` | 'data-export.json' | 'data-export.xlsx' | 'manifest.json';
+type ExportArchiveFilename = `${ExportFileName}.csv` | 'data-export.json' | 'data-export.xlsx' | 'manifest.json';
 
 export interface BuiltFile {
   filename: ExportArchiveFilename;

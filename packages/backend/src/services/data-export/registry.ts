@@ -24,7 +24,7 @@ import type { ExportDateRange, ExportFileName, ExportGroup, ExportTable } from '
  * - `array`: joined with '; ' at the CSV/XLSX boundary; JSON keeps the array
  * - `date`: YYYY-MM-DD or ISO datetime string, passed through as-is
  */
-export type ColumnKind = 'text' | 'money' | 'number' | 'boolean' | 'array' | 'date';
+type ColumnKind = 'text' | 'money' | 'number' | 'boolean' | 'array' | 'date';
 
 /**
  * Row payload for a given file name. `Extract` selects the matching arm of

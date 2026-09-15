@@ -8,7 +8,7 @@
     <CardContent class="mt-6 space-y-6">
       <div class="flex flex-wrap gap-2">
         <Button
-          v-for="locale in maintainedLocales"
+          v-for="locale in availableLocales"
           :key="locale.value"
           :variant="currentLocale === locale.value ? 'default' : 'outline'"
           size="sm"
@@ -18,26 +18,6 @@
           <img :src="locale.flagSrc" :alt="locale.native" class="h-4 w-5.5 rounded-sm object-cover" />
           <span>{{ locale.native }}</span>
         </Button>
-      </div>
-
-      <div v-if="communityLocales.length" class="space-y-2.5">
-        <h3 class="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
-          {{ $t('settings.language.community.title') }}
-        </h3>
-        <div class="flex flex-wrap gap-2">
-          <Button
-            v-for="locale in communityLocales"
-            :key="locale.value"
-            :variant="currentLocale === locale.value ? 'default' : 'outline'"
-            size="sm"
-            :disabled="isUpdating"
-            @click="handleLocaleChange(locale.value)"
-          >
-            <img :src="locale.flagSrc" :alt="locale.native" class="h-4 w-5.5 rounded-sm object-cover" />
-            <span>{{ locale.native }}</span>
-          </Button>
-        </div>
-        <p class="text-muted-foreground max-w-prose text-[13px]">{{ $t('settings.language.community.hint') }}</p>
       </div>
 
       <div class="bg-muted/40 @container grid grid-cols-[auto_1fr] items-start gap-x-3 gap-y-1 rounded-lg border p-4">
@@ -66,21 +46,6 @@
             </a>
           </template>
         </i18n-t>
-
-        <div class="col-span-2 mt-2 @min-[400px]:col-span-1 @min-[400px]:col-start-2">
-          <Button
-            as="a"
-            :href="EXTERNAL_URLS.crowdinProject"
-            target="_blank"
-            rel="noopener noreferrer"
-            variant="outline"
-            size="sm"
-            @click="handleContributeClick"
-          >
-            {{ $t('settings.language.contribute.action') }}
-            <ExternalLinkIcon class="size-4" />
-          </Button>
-        </div>
       </div>
     </CardContent>
   </Card>
@@ -93,8 +58,8 @@ import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { getCurrentLocale, setLocale } from '@/i18n';
 import { trackAnalyticsEvent } from '@/lib/posthog';
 import { EXTERNAL_URLS } from '@bt/shared/const/external-urls';
-import { COMMUNITY_LOCALES, LOCALE_NAMES, SUPPORTED_LOCALES, type SupportedLocale } from '@bt/shared/i18n/locales';
-import { ExternalLinkIcon, LanguagesIcon } from '@lucide/vue';
+import { LOCALE_NAMES, SUPPORTED_LOCALES, type SupportedLocale } from '@bt/shared/i18n/locales';
+import { LanguagesIcon } from '@lucide/vue';
 import { ref } from 'vue';
 
 const { data: userSettings, mutateAsync, isUpdating } = useUserSettings();
@@ -113,16 +78,6 @@ const availableLocales = Object.values(SUPPORTED_LOCALES).map((value) => ({
   native: LOCALE_NAMES[value].native,
   flagSrc: FLAG_SRCS[value],
 }));
-const maintainedLocales = availableLocales.filter((locale) => !COMMUNITY_LOCALES.has(locale.value));
-const communityLocales = availableLocales.filter((locale) => COMMUNITY_LOCALES.has(locale.value));
-
-const handleContributeClick = () => {
-  trackAnalyticsEvent({
-    event: 'crowdin_contribute_clicked',
-    properties: { current_locale: currentLocale.value },
-  });
-};
-
 const handleRequestBoardClick = () => {
   trackAnalyticsEvent({
     event: 'language_request_board_clicked',

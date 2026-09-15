@@ -5,10 +5,9 @@
       "description": "Bahasa tampilan untuk antarmuka aplikasi.",
       "contribute": {
         "title": "Terjemahan hilang atau salah?",
-        "description": "Setiap bahasa selain bahasa Inggris diterjemahkan oleh komunitas di Crowdin. Anda dapat meminta bahasa baru, menyarankan koreksi, atau menerjemahkan string sendiri – tidak perlu keahlian coding.",
-        "requestNote": "Tidak ingin menggunakan Crowdin? Minta bahasa di {boardLink} kami.",
-        "requestNoteLink": "papan fitur",
-        "action": "Berkontribusi di Crowdin"
+        "description": "Beri tahu kami tentang terjemahan yang hilang atau salah, dan kami akan memperbaikinya.",
+        "requestNote": "Ingin bahasa baru ditambahkan? Ajukan permintaan di {boardLink} kami.",
+        "requestNoteLink": "papan fitur"
       }
     }
   }

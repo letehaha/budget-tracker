@@ -39,7 +39,7 @@ interface AllocatableTransaction {
 }
 
 /** One signed contribution to a category, stamped with the date it should be attributed to. */
-export interface CategoryAllocationLeg {
+interface CategoryAllocationLeg {
   /** Exact category id, or null for the uncategorized residual. */
   categoryId: string | null;
   /** Base legs are positive; refund legs are negative. Integer cents (base/reference currency). */

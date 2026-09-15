@@ -3,16 +3,11 @@
     "language": {
       "title": "Language",
       "description": "Display language for the app interface.",
-      "community": {
-        "title": "Community translations",
-        "hint": "Translated by volunteers on Crowdin. Anything not translated yet is shown in English."
-      },
       "contribute": {
         "title": "Missing or wrong translations?",
-        "description": "Community languages are translated on Crowdin. You can request a new language, suggest corrections, or translate strings yourself – no coding required.",
-        "requestNote": "Prefer not to use Crowdin? Request a language on our {boardLink}.",
-        "requestNoteLink": "feature board",
-        "action": "Contribute on Crowdin"
+        "description": "Let us know about missing or incorrect translations and we'll take care of it.",
+        "requestNote": "Want a new language added? Request it on our {boardLink}.",
+        "requestNoteLink": "feature board"
       }
     }
   }

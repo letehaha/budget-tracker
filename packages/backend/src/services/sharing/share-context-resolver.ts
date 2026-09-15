@@ -29,7 +29,7 @@ export const SHARE_SOURCE_PRIORITY = {
   /** Less specific — household membership grant. */
   household: 50,
 } as const;
-export type ShareSourcePriority = (typeof SHARE_SOURCE_PRIORITY)[keyof typeof SHARE_SOURCE_PRIORITY];
+type ShareSourcePriority = (typeof SHARE_SOURCE_PRIORITY)[keyof typeof SHARE_SOURCE_PRIORITY];
 
 /**
  * Public share-context shape attached to every shareable resource the API returns.
@@ -53,7 +53,7 @@ type RecipientShareContext = ShareContext & { isOwner: false };
  * returns the recipient context fragment when the row belongs to this source (or
  * `null` when the row was selected by a different source's WHERE).
  */
-export interface ResolvedShareSource<TRow> {
+interface ResolvedShareSource<TRow> {
   where: WhereOptions;
   contextFor: (row: TRow) => Omit<RecipientShareContext, 'isOwner' | 'owner'> | null;
 }
