@@ -1,8 +1,8 @@
 # MoneyMatter
 
-> Free, open-source budget tracking and personal finance app. Self-host for full data ownership or use the cloud version. Supports AI integration via MCP (Model Context Protocol) for querying your finances with Claude, ChatGPT, or any MCP-compatible client.
+> Open-source budget tracking and personal finance app. Self-host it for free with full data ownership, or use the cloud version from $5/month (40-day free trial, no card required). Supports AI integration via MCP (Model Context Protocol) for querying your finances with Claude, ChatGPT, or any MCP-compatible client.
 
-MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is free, AGPL-3.0-licensed, and designed for people who want control over their financial data. The app runs as a web application with a Node.js/Express backend and Vue.js frontend, deployable via Docker.
+MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is AGPL-3.0-licensed, free to self-host, and designed for people who want control over their financial data. The app runs as a web application with a Node.js/Express backend and Vue.js frontend, deployable via Docker.
 
 ## Key Features
 
@@ -21,7 +21,7 @@ MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is fre
 
 ## AI Integration (MCP)
 
-MoneyMatter exposes a remote MCP server that gives AI assistants read-only, OAuth-secured access to your financial data. This lets you ask natural-language questions like:
+MoneyMatter exposes a remote MCP server that gives AI assistants scoped, OAuth-secured access to your financial data (you choose read-only or read/write at authorization). This lets you ask natural-language questions like:
 
 - "Compare my dining out this month to my 3-month average"
 - "Which subscriptions have increased in the past 6 months?"
@@ -31,7 +31,7 @@ Works with Claude, ChatGPT, OpenClaw, and any MCP-compatible client. Access can 
 
 ## Deployment Options
 
-- **Cloud**: Sign up at https://moneymatter.app — no setup required, data never sold
+- **Cloud**: Sign up at https://moneymatter.app — no setup required, 40-day free trial with no card, then from $5/month or $30/year, data never sold
 - **Self-hosted**: Deploy with Docker on your own server for maximum privacy. Source code and setup guide at https://github.com/letehaha/budget-tracker
 
 ## Links
