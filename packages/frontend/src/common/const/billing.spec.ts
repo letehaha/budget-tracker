@@ -1,4 +1,5 @@
-import { DISPLAY_PRICES, MAX_YEARLY_SAVINGS_PERCENT, yearlySavings } from '@/common/const/billing';
+import { DISPLAY_PRICES, MAX_YEARLY_SAVINGS_PERCENT, analyticsPlan, yearlySavings } from '@/common/const/billing';
+import type { Entitlements } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
 describe('yearlySavings', () => {
@@ -23,5 +24,41 @@ describe('MAX_YEARLY_SAVINGS_PERCENT', () => {
 
     expect(MAX_YEARLY_SAVINGS_PERCENT).toBe(Math.max(...percents));
     expect(MAX_YEARLY_SAVINGS_PERCENT).toBeLessThan(100);
+  });
+});
+
+describe('analyticsPlan', () => {
+  const base: Entitlements = {
+    features: [],
+    readOnly: false,
+    seats: 2,
+    plan: null,
+    trialEndsAt: null,
+    subscriptions: [],
+  };
+  const inDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
+  const sub = (status: 'active' | 'canceled', endsAt: string) => ({
+    externalSubscriptionId: 'sub_1',
+    tier: 'plus' as const,
+    status,
+    billingCycle: 'month' as const,
+    currentPeriodEndsAt: endsAt,
+    scheduledChange: null,
+  });
+
+  it('labels every entitlement branch', () => {
+    expect(analyticsPlan({ entitlements: { ...base, readOnly: true } })).toBe('read_only');
+    expect(analyticsPlan({ entitlements: { ...base, plan: 'early_adopter' } })).toBe('early_adopter');
+    expect(analyticsPlan({ entitlements: { ...base, subscriptions: [sub('active', inDays(10))] } })).toBe('plus');
+    expect(analyticsPlan({ entitlements: { ...base, trialEndsAt: inDays(5) } })).toBe('trial');
+    expect(analyticsPlan({ entitlements: base })).toBe('legacy');
+  });
+
+  it('ignores lapsed subscriptions and expired trials', () => {
+    expect(
+      analyticsPlan({
+        entitlements: { ...base, subscriptions: [sub('canceled', inDays(-1))], trialEndsAt: inDays(-1) },
+      }),
+    ).toBe('legacy');
   });
 });

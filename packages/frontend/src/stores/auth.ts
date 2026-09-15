@@ -1,3 +1,4 @@
+import { analyticsPlan } from '@/common/const/billing';
 import type { DemoEndReason } from '@/common/const/demo';
 import { getDeviceName } from '@/common/utils/device-name';
 import { dismissPersistentNotifications } from '@/components/notification-center';
@@ -49,6 +50,7 @@ function identifyUserForTracking(user: UserModel) {
     properties: {
       is_demo: isDemo,
       user_role: user.role,
+      plan: isDemo ? 'demo' : user.entitlements && analyticsPlan({ entitlements: user.entitlements }),
       ...demoOriginProperties,
     },
   });
