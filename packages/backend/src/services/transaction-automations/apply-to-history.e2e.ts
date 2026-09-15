@@ -78,6 +78,29 @@ const txByNote = async (note: string) =>
   (await helpers.getTransactions({ includeTags: true, raw: true })).find((tx) => tx.note === note);
 
 describe('POST /automations/:id/apply', () => {
+  it('applies to a system-account row created via POST /transactions with applyAutomations', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const [tx] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({ accountId: account.id, note: 'uber later' }),
+        applyAutomations: true,
+      },
+      raw: true,
+    });
+    const category = await helpers.addCustomCategory({ name: 'Rides', color: '#111111', raw: true });
+    const rule = await uberRule({ actions: [{ type: 'set_category', categoryId: category.id as RecordId }] });
+
+    const result = await helpers.applyAutomationToHistory({
+      id: rule.id,
+      payload: { transactionIds: [tx!.id as RecordId] },
+      raw: true,
+    });
+
+    expect(result.appliedCount).toBe(1);
+    expect(result.skippedIds).toEqual([]);
+    expect((await txByNote('uber later'))?.categoryId).toBe(category.id);
+  });
+
   it('categorizes every submitted match under one shared stamp and leaves matchCount alone', async () => {
     const idOf = await importRows({ descriptions: ['uber one', 'uber two', 'grocery run'] });
     const category = await helpers.addCustomCategory({ name: 'Rides', color: '#111111', raw: true });

@@ -360,6 +360,8 @@ export const createTransaction = withTransaction(
     applyAutomations = false,
     ...payload
   }: CreateTransactionParams): Promise<CreateTxResult> => {
+    if (applyAutomations) payload.externalData = { ...payload.externalData, applyAutomations: true };
+
     try {
       // Captured before the coercion below, which would hide a non-positive amount from
       // the planned-row invariants.
@@ -664,7 +666,6 @@ export const createTransaction = withTransaction(
           externalData: payload.externalData,
           transferNature,
           isPlanned: Boolean(payload.isPlanned),
-          applyAutomations,
         })
       ) {
         try {
