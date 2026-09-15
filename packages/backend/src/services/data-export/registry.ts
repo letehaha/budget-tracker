@@ -201,6 +201,7 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
       { header: 'LimitAmount', field: 'limitAmount', kind: 'money' },
       { header: 'Currency', field: 'currency', kind: 'text' },
       { header: 'Categories', field: 'categories', kind: 'array' },
+      { header: 'Tags', field: 'tags', kind: 'array' },
       { header: 'SpentAmount', field: 'spentAmount', kind: 'money' },
     ],
   }),
