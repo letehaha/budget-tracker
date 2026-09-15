@@ -1,0 +1,242 @@
+{
+  "transactions": {
+    "filters": {
+      "filtersLabel": "Фильтры",
+      "selectFilters": "Выберите фильтры",
+      "reset": "Сбросить",
+      "apply": "Применить",
+      "dateRange": {
+        "placeholder": "Дата или диапазон",
+        "presets": {
+          "thisMonth": "Этот месяц",
+          "last3Months": "Последние 3 месяца",
+          "last6Months": "Последние 6 месяцев",
+          "last12Months": "Последние 12 месяцев"
+        }
+      },
+      "transactionType": {
+        "label": "Тип транзакции:",
+        "income": "Доход",
+        "expense": "Расход",
+        "allTypes": "Все типы"
+      },
+      "amountRange": {
+        "from": "Сумма от (≥)",
+        "to": "До (≤)",
+        "placeholderFrom": "≥",
+        "placeholderTo": "≤",
+        "compactFrom": "Мин. сумма",
+        "compactTo": "Макс. сумма"
+      },
+      "refundsFilter": {
+        "label": "Возвраты"
+      },
+      "transferFilter": {
+        "label": "Переводы"
+      },
+      "plannedFilter": {
+        "label": "Запланированные"
+      },
+      "filterOperation": {
+        "all": "Все",
+        "exclude": "Исключить",
+        "only": "Только"
+      },
+      "noteIncludes": {
+        "label": "Примечание содержит (через запятую):",
+        "placeholder": "Amazon,nike",
+        "compactPlaceholder": "Поиск в примечаниях"
+      },
+      "tags": {
+        "allTags": "Все теги",
+        "tagSingular": "тег",
+        "tagPlural": "теги",
+        "selected": "выбрано",
+        "searchPlaceholder": "Поиск тегов...",
+        "blankOption": "Без тегов"
+      },
+      "payees": {
+        "label": "Получатели",
+        "selectedOne": "Выбран 1 получатель",
+        "selectedMany": "Выбрано получателей: {n}"
+      },
+      "removeFilter": "Удалить фильтр",
+      "menu": {
+        "type": "Тип",
+        "tags": "Теги",
+        "budgets": "Бюджеты",
+        "amount": "Диапазон суммы",
+        "note": "Примечания"
+      },
+      "transferNature": {
+        "label": "Виды переводов",
+        "disabledTooltip": "Переводы исключены фильтром выше, поэтому виды переводов не влияют на результат.",
+        "commonTransfer": "Между счетами",
+        "outOfWallet": "Вне кошелька",
+        "toPortfolio": "В портфель",
+        "toVenture": "В венчурную инвестицию",
+        "selectedCount": "Выбрано: {n}"
+      }
+    },
+    "list": {
+      "noMoreData": "Больше транзакций нет",
+      "loadingMore": "Загрузка...",
+      "detailsTitle": "Сведения о транзакции",
+      "detailsDescription": "Просмотр и изменение транзакции"
+    },
+    "bulkEdit": {
+      "selectAll": "Выбрать все",
+      "cancelSelection": "Отменить выбор",
+      "editButton": "Изменить",
+      "selectedCount": "Выбрано: {count}",
+      "dialogTitle": "Изменить транзакции: {count}",
+      "dialogDescription": "Изменения будут применены ко всем выбранным транзакциям. Обновятся только заполненные поля.",
+      "categoryLabel": "Категория",
+      "categoryPlaceholder": "Выберите категорию...",
+      "payeeLabel": "Получатель",
+      "payeePlaceholder": "Выберите получателя...",
+      "tagsLabel": "Теги",
+      "tagsPlaceholder": "Выберите теги...",
+      "noteLabel": "Примечание",
+      "notePlaceholder": "Введите примечание...",
+      "applyButton": "Применить изменения",
+      "applyingButton": "Применение...",
+      "confirmTitle": "Подтвердить изменения",
+      "confirmDescription": "Будет обновлено транзакций: {count}:",
+      "confirmCategoryLabel": "Категория",
+      "confirmPayeeLabel": "Получатель",
+      "confirmTagsLabel": "Теги",
+      "confirmNoteLabel": "Примечание",
+      "cancelButton": "Отмена",
+      "confirmApplyButton": "Применить",
+      "successMessage": "Успешно обновлено транзакций: {count}",
+      "unexpectedError": "Произошла непредвиденная ошибка",
+      "tagModeLabel": "Действие с тегами",
+      "tagModeAdd": "Добавить к существующим тегам",
+      "tagModeReplace": "Заменить все теги",
+      "tagModeRemove": "Удалить эти теги"
+    },
+    "transactionGroups": {
+      "bulkActions": {
+        "createNewGroup": "Создать новую группу",
+        "addToExistingGroup": "Добавить в существующую группу",
+        "groupButton": "Группировать"
+      },
+      "addToGroupDialog": {
+        "title": "Добавить в существующую группу",
+        "searchPlaceholder": "Поиск групп...",
+        "noGroupsMessage": "Групп пока нет. Сначала создайте группу.",
+        "noSearchResultsMessage": "Нет групп, соответствующих поиску.",
+        "addingText": "Добавление...",
+        "buttonLabel": "Добавить в группу",
+        "cancelButton": "Отмена",
+        "transactionCountLabel": "транзакций"
+      },
+      "createGroupDialog": {
+        "title": "Создать группу транзакций",
+        "descriptionPrefix": "Группа",
+        "groupNameLabel": "Название",
+        "groupNamePlaceholder": "например, Перевод зарплаты за май",
+        "noteLabel": "Примечание (необязательно)",
+        "notePlaceholder": "Необязательное описание...",
+        "creatingText": "Создание...",
+        "buttonLabel": "Создать группу",
+        "cancelButton": "Отмена"
+      },
+      "groupsPage": {
+        "title": "Группы транзакций",
+        "searchPlaceholder": "Поиск групп...",
+        "noGroupsMessage": "Групп транзакций пока нет.",
+        "emptyStateHint": "Выберите транзакции на странице «Транзакции» и нажмите «Создать группу».",
+        "transactionCountLabel": "транзакций",
+        "deleteError": "Не удалось удалить группу. Попробуйте снова."
+      },
+      "errors": {
+        "nameRequired": "Требуется название группы",
+        "minTransactions": "Выберите не менее {min} транзакций",
+        "alreadyInGroup": "Некоторые выбранные транзакции уже принадлежат группе",
+        "createFailed": "Не удалось создать группу",
+        "addFailed": "Не удалось добавить транзакции в группу"
+      }
+    },
+    "planned": {
+      "label": "Запланировано",
+      "confirmedLabel": "Подтверждено",
+      "plannedTooltip": "Запланированная транзакция",
+      "expiredTooltip": "Ожидалась {days} дней назад, соответствующая банковская транзакция не найдена",
+      "mergedTooltip": "Подтверждено из запланированной записи от {date}"
+    },
+    "table": {
+      "columns": {
+        "date": "Дата",
+        "account": "Счёт",
+        "category": "Категория",
+        "payee": "Получатель",
+        "amount": "Сумма",
+        "refAmount": "Сумма в базовой валюте",
+        "originalAmount": "Исходная сумма",
+        "note": "Примечание",
+        "tags": "Теги",
+        "categorizationSource": "Категоризировано",
+        "group": "Группа",
+        "refund": "Возврат",
+        "split": "Разбиение"
+      },
+      "outOfWallet": "Вне кошелька",
+      "hint": "Нажмите строку для просмотра. Выберите строки для массового редактирования.",
+      "emptyTitle": "Нет транзакций, соответствующих фильтрам",
+      "emptyDescription": "Измените или сбросьте фильтры.",
+      "columnConfig": {
+        "title": "Настройки таблицы",
+        "columns": "Столбцы",
+        "visibleCount": "Видимых: {count}",
+        "resetDefaults": "Сбросить по умолчанию"
+      },
+      "categorizationSourceValues": {
+        "manual": "Вручную",
+        "ai": "AI",
+        "mcc_rule": "Правило MCC",
+        "user_rule": "Пользовательское правило",
+        "subscription_rule": "Правило регулярного платежа",
+        "payee_rule": "Правило получателя"
+      },
+      "viewToggle": {
+        "list": "Список",
+        "table": "Таблица"
+      },
+      "fullscreen": {
+        "enter": "Режим фокуса",
+        "exit": "Выйти из режима фокуса"
+      }
+    },
+    "bulkDelete": {
+      "button": "Удалить",
+      "externalTooltip": "Выбор содержит транзакции из банковской синхронизации — их нельзя удалить.",
+      "confirmButton": "Удалить",
+      "confirmTitle": "Удалить транзакции: {count}?",
+      "confirmDescription": "Это действие нельзя отменить. У переводов будут удалены обе стороны.",
+      "successMessage": "Удалено транзакций: {count}",
+      "unexpectedError": "Не удалось удалить транзакции. Попробуйте снова."
+    }
+  },
+  "records": {
+    "upcomingSection": {
+      "title": "Предстоящие",
+      "overdueBadge": "Просрочено",
+      "scheduledBadge": "Запланировано",
+      "payAction": "Отметить оплаченным",
+      "hideToggle": "Скрыть предстоящие платежи",
+      "expectedBadge": "Ожидается",
+      "unconfirmedBadge": "Не подтверждено",
+      "morePlans": "+ ещё {count} запланировано",
+      "morePlansAtLeast": "+ ещё не менее {count} запланировано",
+      "deletePlanTitle": "Удалить запланированную транзакцию?",
+      "deletePlanDescription": "Это действие нельзя отменить.",
+      "plansLoadFailed": "Не удалось загрузить запланированные транзакции",
+      "confirmAction": "Подтвердить",
+      "confirmTooltip": "Деньги перемещены — записать операцию и обновить баланс",
+      "confirmPlanSuccess": "План записан — баланс обновлён",
+      "confirmPlanError": "Не удалось записать план"
+    }
+  }
+}

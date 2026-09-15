@@ -1,0 +1,64 @@
+{
+  "settings": {
+    "aiIntegrations": {
+      "title": "AI-интеграции",
+      "description": "Подключайте AI-ассистентов, например Claude или ChatGPT, чтобы анализировать финансовые данные прямо из чата.",
+      "mcpServer": {
+        "title": "MCP-сервер",
+        "description": "Используйте этот URL для подключения AI-ассистентов к вашему аккаунту MoneyMatter. Данные предоставляются только для чтения.",
+        "copyTooltip": "Скопировать URL",
+        "copiedNotification": "URL MCP-сервера скопирован в буфер обмена"
+      },
+      "quickConnect": {
+        "title": "Быстрое подключение",
+        "description": "Выберите AI-ассистента ниже. Нажмите кнопку, чтобы открыть его настройки, затем следуйте инструкциям.",
+        "openSettings": "Открыть настройки",
+        "claude": {
+          "steps": {
+            "createConnector": "Нажмите значок {icon} рядом с «Connectors», чтобы создать новое подключение",
+            "selectCustom": "Выберите {action}",
+            "enterName": "В поле «Name» введите {value}",
+            "pasteUrl": "В поле «Remote MCP server URL» вставьте {value}",
+            "finish": "Оставьте расширенные настройки пустыми и нажмите {action}",
+            "authorize": "Вы будете перенаправлены в MoneyMatter для авторизации доступа"
+          }
+        },
+        "chatgpt": {
+          "steps": {
+            "addConnector": "Нажмите {action}",
+            "pasteUrl": "В поле «URL» вставьте {value}",
+            "clickAdd": "Нажмите {action}",
+            "authorize": "Вы будете перенаправлены в MoneyMatter для авторизации доступа"
+          }
+        }
+      },
+      "actions": {
+        "addCustomConnector": "Add custom connector",
+        "addConnector": "Add connector",
+        "add": "Add"
+      },
+      "connectedApps": {
+        "title": "Подключённые приложения",
+        "description": "Приложения, имеющие доступ к вашим финансовым данным. Доступ можно отозвать в любое время.",
+        "emptyTitle": "Подключённых приложений пока нет.",
+        "emptyDescription": "Используйте кнопки выше, чтобы подключить AI-ассистента.",
+        "connectedAt": "Подключено: {date}",
+        "lastUsed": "Последнее использование: {time}",
+        "scope": "Доступ: {scopes}",
+        "revoke": "Отозвать"
+      },
+      "revokeDialog": {
+        "title": "Отозвать доступ?",
+        "description": "Приложение будет немедленно отключено, а все его токены станут недействительными. Позже его можно подключить снова.",
+        "confirm": "Отозвать доступ",
+        "successNotification": "Доступ приложения успешно отозван",
+        "errorNotification": "Не удалось отозвать доступ приложения"
+      },
+      "scopes": {
+        "financeRead": "Чтение финансовых данных",
+        "profileRead": "Чтение профиля",
+        "offlineAccess": "Фоновый доступ"
+      }
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "Задача импорта истекла или не найдена.",
+        "lostContact": "Связь с задачей импорта потеряна."
+      }
+    }
+  },
+  "importShared": {
+    "action": {
+      "createNew": "Создать",
+      "linkExisting": "Связать с существующим",
+      "skip": "Пропустить"
+    },
+    "selectAction": "Выберите действие",
+    "resolvedCounterWord": "сопоставлено",
+    "quickActionsMenuLabel": "Массовые действия",
+    "quickActions": {
+      "menu": "Действия"
+    },
+    "columns": {
+      "sourceName": "Исходное название",
+      "currency": "Валюта",
+      "action": "Действие",
+      "target": "Цель"
+    },
+    "account": {
+      "selectTarget": "Выберите счёт",
+      "noMatchingCurrency": "Нет счёта в валюте {currency}",
+      "willCreate": "Будет создан {name} ({currency})",
+      "empty": "Нет счетов для сопоставления",
+      "willSkip": "Не будет импортирован"
+    },
+    "category": {
+      "selectTarget": "Выберите категорию",
+      "willCreate": "Будет создана {name}",
+      "empty": "Нет категорий для сопоставления"
+    },
+    "recalculateBalance": {
+      "label": "Обновить балансы счетов по импортированным транзакциям",
+      "hint": "Транзакции, которые старше последней существующей транзакции счёта, считаются дозагрузкой истории и не изменяют текущий баланс.",
+      "loadFailedHint": "Не удалось загрузить сохранённую настройку — по умолчанию она отключена."
+    },
+    "balanceChanges": {
+      "title": "Изменения балансов счетов",
+      "columns": {
+        "account": "Счёт",
+        "before": "До",
+        "after": "После",
+        "delta": "Изменение",
+        "newRows": "Новые строки",
+        "backfillRows": "Строки истории"
+      },
+      "newAccount": "Новый счёт"
+    },
+    "duplicatesTable": {
+      "columnHeaders": {
+        "row": "Строка",
+        "match": "Совпадение",
+        "csvTransaction": "Транзакция CSV",
+        "existingTransaction": "Существующая транзакция",
+        "csvShort": "CSV",
+        "existingShort": "Существующая"
+      },
+      "matchTypeLabels": {
+        "exact": "Точное",
+        "idMatch": "Совпадение ID",
+        "fuzzy": "Приблизительное"
+      },
+      "fieldLabels": {
+        "amount": "Сумма",
+        "date": "Дата",
+        "note": "Примечание",
+        "category": "Категория"
+      },
+      "importAnywayAriaLabel": "Всё равно импортировать строку {row}"
+    },
+    "aiMapping": {
+      "action": "Сопоставить с AI",
+      "tooltipCategories": "Позвольте AI связать каждую исходную категорию с наиболее подходящей существующей категорией. Уже сопоставленные строки останутся без изменений.",
+      "failed": "Не удалось выполнить AI-сопоставление. Попробуйте снова.",
+      "inProgress": "Выполняется AI-сопоставление…"
+    },
+    "categoryPreset": {
+      "menuTrigger": "Применить сопоставление",
+      "currentLayout": "Структура этого файла",
+      "savedTemplates": "Сохранённые шаблоны",
+      "lastUsed": "Последнее использованное сопоставление",
+      "namePlaceholder": "Название сопоставления",
+      "renameAria": "Переименовать сопоставление",
+      "deleteAria": "Удалить сопоставление",
+      "confirmRenameAria": "Сохранить название"
+    }
+  }
+}

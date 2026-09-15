@@ -1,4 +1,5 @@
 import { captureException } from '@/lib/sentry';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES as LOCALES, type SupportedLocale } from '@bt/shared/i18n/locales';
 import { compile } from '@intlify/core-base';
 import { type I18n, type MessageCompiler, type MessageFunction, createI18n } from 'vue-i18n';
 import type { RouteLocationNormalized } from 'vue-router';
@@ -7,12 +8,7 @@ import type { RouteLocationNormalized } from 'vue-router';
 import enCommon from './locales/chunks/en/common.json';
 import type { ChunkRegistry, I18nChunkName, LoadedChunksMap } from './types';
 
-// Supported locales
-const SUPPORTED_LOCALES = ['en', 'uk', 'es', 'id'] as const;
-const DEFAULT_LOCALE: SupportedLocale = 'en';
-
-// Type for supported locales
-type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+const SUPPORTED_LOCALES = Object.values(LOCALES);
 
 // Track which chunks have been loaded per locale
 const loadedChunks: LoadedChunksMap = new Map([['en', new Set<I18nChunkName>(['common'])]]);

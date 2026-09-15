@@ -1,9 +1,9 @@
+import { SUPPORTED_LOCALES as LOCALES } from '@bt/shared/i18n/locales';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
 import path from 'path';
 
-// Supported locales
-export const SUPPORTED_LOCALES = ['en', 'uk', 'es', 'id'];
+export const SUPPORTED_LOCALES: string[] = Object.values(LOCALES);
 const DEFAULT_LOCALE = 'en';
 
 // Initialize i18next - store the promise to allow awaiting initialization

@@ -1,0 +1,113 @@
+{
+  "budgets": {
+    "title": "Бюджеты",
+    "description": "Отслеживайте расходы и контролируйте финансовые события",
+    "notFound": "Бюджет не найден",
+    "notFoundDescription": "Не удалось найти этот бюджет. Возможно, он был удалён или у вас нет к нему доступа.",
+    "backToList": "Назад к бюджетам",
+    "newBudget": "Новый бюджет",
+    "createBudget": "Создать бюджет",
+    "creation": {
+      "success": "Бюджет создан",
+      "error": "Непредвиденная ошибка!",
+      "nameLabel": "Название бюджета",
+      "namePlaceholder": "Введите название",
+      "typeLabel": "Тип бюджета",
+      "typeManual": "Ручной",
+      "typeManualDescription": "Добавляйте транзакции в этот бюджет вручную",
+      "typeCategory": "По категориям",
+      "typeCategoryDescription": "Автоматически отслеживайте расходы по категориям",
+      "categoriesLabel": "Отслеживаемые категории",
+      "categoriesRequired": "Выберите хотя бы одну категорию",
+      "fromDateLabel": "Дата от",
+      "toDateLabel": "Дата до",
+      "autoIncludeLabel": "Автоматически включать транзакции",
+      "limitLabel": "Лимит бюджета",
+      "limitPlaceholder": "Введите лимит",
+      "submitButton": "Добавить бюджет"
+    },
+    "list": {
+      "tabCategory": "Бюджеты по категориям",
+      "tabManual": "Ручные бюджеты",
+      "edit": "Изменить",
+      "delete": "Удалить",
+      "deleteSuccess": "Бюджет успешно удалён!",
+      "deleteError": "Непредвиденная ошибка!",
+      "updateSuccess": "Бюджет успешно обновлён!",
+      "updateError": "Не удалось обновить бюджет",
+      "unlinkTransactionsSuccess": "Транзакции успешно отвязаны!",
+      "deleteDialog": {
+        "title": "Удалить этот бюджет?",
+        "description": "После нажатия «Принять» все связанные транзакции будут отвязаны от бюджета, но останутся в системе."
+      },
+      "limitLabel": "Лимит: {amount}",
+      "transactionsCount": "{count} транзакций",
+      "categoriesCount": "{count} категорий",
+      "noTransactions": "Транзакций пока нет",
+      "noTimePeriod": "Период не задан",
+      "autoTracked": "Отслеживается автоматически",
+      "status": {
+        "ended": "Завершён",
+        "lastDay": "Последний день",
+        "oneDayLeft": "Остался 1 день",
+        "daysLeft": "Осталось {count} дней",
+        "startsToday": "Начинается сегодня",
+        "startsTomorrow": "Начинается завтра",
+        "startsInDays": "Начнётся через {count} дней"
+      },
+      "income": "Доходы",
+      "expenses": "Расходы",
+      "net": "Итог",
+      "used": "Использовано",
+      "archive": "Архивировать",
+      "unarchive": "Восстановить из архива",
+      "archivedLabel": "Архивный",
+      "archiveError": "Не удалось обновить статус архива",
+      "showArchived": "Показать архивные",
+      "hideArchived": "Скрыть архивные",
+      "emptyState": {
+        "title": "Бюджетов пока нет",
+        "description": "Создайте бюджет, чтобы отслеживать расходы или контролировать отдельные финансовые события."
+      }
+    },
+    "settings": {
+      "nameLabel": "Название бюджета",
+      "namePlaceholder": "Введите название бюджета",
+      "limitLabel": "Лимит бюджета",
+      "limitPlaceholder": "Введите сумму лимита (необязательно)",
+      "startDateLabel": "Дата начала",
+      "endDateLabel": "Дата окончания",
+      "notSet": "Не задано"
+    },
+    "addTransactionsDialog": {
+      "title": "Добавить транзакции в бюджет",
+      "addSelected": "Добавить выбранные",
+      "clearSelection": "Очистить выбор"
+    },
+    "categoryBudget": {
+      "trackedCategories": "Отслеживаемые категории",
+      "categoriesCount": "Отслеживается категорий: {count}",
+      "autoTrackedInfo": "Транзакции автоматически отслеживаются по категориям",
+      "transactionsTitle": "Транзакции",
+      "transactionsCount": "Транзакций: {count}",
+      "noTransactions": "Транзакций пока нет",
+      "noTransactionsDescription": "Транзакции, соответствующие отслеживаемым категориям, появятся здесь автоматически.",
+      "transactionsLoadError": "Не удалось загрузить транзакции",
+      "categoryBreakdown": "Разбивка по категориям",
+      "edit": "Изменить",
+      "editTitle": "Изменить бюджет",
+      "showMore": "Показать больше",
+      "showLess": "Показать меньше",
+      "settings": {
+        "categoriesLabel": "Отслеживаемые категории"
+      }
+    },
+    "manualBudget": {
+      "edit": "Изменить",
+      "editTitle": "Изменить бюджет"
+    },
+    "share": {
+      "sharedByBadge": "Предоставлено пользователем {handle}"
+    }
+  }
+}

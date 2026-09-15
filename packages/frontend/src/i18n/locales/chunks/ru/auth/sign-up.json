@@ -1,0 +1,41 @@
+{
+  "auth": {
+    "signup": {
+      "title": "Создать аккаунт",
+      "divider": "Или продолжить с электронной почтой",
+      "submitButton": "Зарегистрироваться",
+      "alreadyHaveAccount": "Уже есть аккаунт?",
+      "signInLink": "Войти",
+      "labels": {
+        "displayName": "Отображаемое имя",
+        "verifyPassword": "Подтверждение пароля"
+      },
+      "placeholders": {
+        "displayName": "например, Иван Иванов",
+        "verifyPassword": "Повторите пароль"
+      },
+      "errors": {
+        "invalidEmail": "Введите корректный адрес электронной почты.",
+        "passwordTooShort": "Пароль слишком короткий.",
+        "passwordTooLong": "Пароль слишком длинный.",
+        "invalidPassword": "Некорректный пароль.",
+        "userExists": "Пользователь с такой электронной почтой уже существует.",
+        "signupsDisabled": "Регистрация отключена администратором этого экземпляра.",
+        "genericErrorRetry": "Произошла ошибка. Попробуйте снова.",
+        "oauthFailed": "Не удалось зарегистрироваться через {provider}. Попробуйте снова.",
+        "oauthNotConfigured": "Вход через {provider} не настроен на этом сервере."
+      }
+    },
+    "shared": {
+      "divider": "Или продолжить с помощью",
+      "passkeyButton": {
+        "signIn": "Войти с ключом доступа",
+        "register": "Добавить ключ доступа"
+      },
+      "oauthButton": {
+        "signIn": "Войти через {provider}",
+        "signUp": "Зарегистрироваться через {provider}"
+      }
+    }
+  }
+}
