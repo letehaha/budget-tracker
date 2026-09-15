@@ -18,7 +18,8 @@
       "language": "Language",
       "general": "General",
       "payees": "Payees",
-      "subscriptions": "Scheduled payments"
+      "subscriptions": "Scheduled payments",
+      "planBilling": "Plan & billing"
     },
     "backToSettings": "Back to Settings"
   }

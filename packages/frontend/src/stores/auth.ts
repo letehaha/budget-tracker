@@ -1,5 +1,6 @@
 import type { DemoEndReason } from '@/common/const/demo';
 import { getDeviceName } from '@/common/utils/device-name';
+import { dismissPersistentNotifications } from '@/components/notification-center';
 import { isMobileSheetOpen } from '@/composable/global-state/mobile-sheet';
 import { OAuthProviderNotConfiguredError, UnexpectedError } from '@/js/errors';
 import { authClient, getSession, signIn, signOut, signUp } from '@/lib/auth-client';
@@ -286,6 +287,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearSentryUser();
 
     isMobileSheetOpen.value = false;
+    dismissPersistentNotifications();
     // Set logged out state before resetting stores
     isLoggedIn.value = false;
     // Cancel in-flight queries, drop the in-memory cache, and wipe the on-device

@@ -1,4 +1,4 @@
-import { API_HTTP } from '@/api/_api';
+import { API_HTTP, notifyPlanRequired } from '@/api/_api';
 import { config } from '@/common/config';
 import { ApiBaseError } from '@/common/types';
 import { ApiErrorResponseError } from '@/js/errors';
@@ -37,11 +37,14 @@ export async function fetchZipDownload({
   body,
   feature,
   defaultFilename,
+  silent,
 }: {
   path: string;
   body?: unknown;
   feature: string;
   defaultFilename: string;
+  /** Suppresses the shared 402 toast so the caller can render the plan prompt itself. */
+  silent?: boolean;
 }): Promise<ZipDownloadResult> {
   const url = `${API_HTTP}${API_VER}${path}`;
   const response = await fetch(url, {
@@ -85,6 +88,8 @@ export async function fetchZipDownload({
       statusText: response.statusText,
       details: inner.details,
     };
+    // Raw fetch skips the shared caller, so the 402 toast is raised here instead.
+    if (errorPayload.code === API_ERROR_CODES.planRequired && !silent) notifyPlanRequired({ message });
     throw new ApiErrorResponseError(message, errorPayload);
   }
 

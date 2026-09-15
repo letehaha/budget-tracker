@@ -7,6 +7,8 @@ import AccountGroupsModel from './accounts-groups/account-groups.model';
 import AccountsModel from './accounts.model';
 import BalancesModel from './balances.model';
 import BankDataProviderConnectionsModel from './bank-data-provider-connections.model';
+import BillingSubscriptionsModel from './billing-subscriptions.model';
+import BillingWebhookEventsModel from './billing-webhook-events.model';
 import BrandLogosModel from './brand-logos.model';
 import BudgetCategoriesModel from './budget-categories.model';
 import BudgetTransactionsModel from './budget-transactions.model';
@@ -33,6 +35,7 @@ import PayeesModel from './payees.model';
 import RefundTransactionsModel from './refund-transactions.model';
 import ResourceSharesModel from './resource-shares.model';
 import ShareInvitationsModel from './share-invitations.model';
+import SignupLedgerModel from './signup-ledger.model';
 import SubscriptionCandidatesModel from './subscription-candidates.model';
 import SubscriptionPeriodNotificationsModel from './subscription-period-notifications.model';
 import SubscriptionPeriodsModel from './subscription-periods.model';
@@ -107,6 +110,9 @@ const models = [
   TransactionGroupsModel,
   TransactionGroupItemsModel,
   TransactionTemplatesModel,
+  BillingSubscriptionsModel,
+  BillingWebhookEventsModel,
+  SignupLedgerModel,
   TransactionTemplateTagsModel,
   HoldingsModel,
   InvestmentTransactionModel,

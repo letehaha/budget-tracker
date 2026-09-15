@@ -38,10 +38,37 @@ const TOAST_BY_TYPE = {
  * key, and the id sonner sees is minted fresh for every raise that is not replacing a live toast.
  */
 const activeSonnerIds = new Map<NotificationID, NotificationID>();
+/** Lets a plain raise find the live toast an explicit id is holding the same text under. */
+const explicitIdByTextKey = new Map<string, NotificationID>();
 let sonnerIdCounter = 0;
 
+/** Persistent toasts outlive every timer, so logout needs a handle on the ones still on screen. */
+const persistentBaseIds = new Set<NotificationID>();
+
 const releaseActiveId = ({ baseId, sonnerId }: { baseId: NotificationID; sonnerId: NotificationID }) => {
-  if (activeSonnerIds.get(baseId) === sonnerId) activeSonnerIds.delete(baseId);
+  if (activeSonnerIds.get(baseId) !== sonnerId) return;
+
+  activeSonnerIds.delete(baseId);
+  persistentBaseIds.delete(baseId);
+  explicitIdByTextKey.forEach((heldBy, textKey) => {
+    if (heldBy === baseId) explicitIdByTextKey.delete(textKey);
+  });
+};
+
+const dismissNotification = ({ id }: { id?: NotificationID }) => {
+  // Any falsy id reaches sonner's dismiss-everything branch and clears the whole stack.
+  if (!id) return;
+
+  const sonnerId = activeSonnerIds.get(id) ?? id;
+
+  releaseActiveId({ baseId: id, sonnerId });
+  unregisterToast({ id: sonnerId });
+  toast.dismiss(sonnerId);
+};
+
+export const dismissPersistentNotifications = () => {
+  persistentBaseIds.forEach((id) => dismissNotification({ id }));
+  persistentBaseIds.clear();
 };
 
 export const useNotificationCenter = (): {
@@ -52,19 +79,11 @@ export const useNotificationCenter = (): {
   addErrorNotification: (message: string) => void;
   addInfoNotification: (message: string) => void;
 } => {
-  const removeNotification = (id?: NotificationID) => {
-    // Any falsy id reaches sonner's dismiss-everything branch and clears the whole stack.
-    if (!id) return;
-
-    const sonnerId = activeSonnerIds.get(id) ?? id;
-
-    releaseActiveId({ baseId: id, sonnerId });
-    unregisterToast({ id: sonnerId });
-    toast.dismiss(sonnerId);
-  };
+  const removeNotification = (id?: NotificationID) => dismissNotification({ id });
 
   // Deriving the id from type + text + description keeps identical notifications down to a single
-  // visible toast, since a raise under a live toast's id replaces it in place.
+  // visible toast, since a raise under a live toast's id replaces it in place. A plain raise of text
+  // a live explicit-id toast already shows folds into that toast, keeping its action.
   // Sonner's countdown only pauses and resumes, so it gets Infinity and `toast-timers` owns dismissal.
   const addNotification = ({
     id,
@@ -75,7 +94,29 @@ export const useNotificationCenter = (): {
     persistent,
     action,
   }: Notification): NotificationID => {
-    const baseId = id || `${type}:${text}:${description ?? ''}`;
+    const textKey = `${type}:${text}:${description ?? ''}`;
+    const heldByExplicitId = id ? undefined : explicitIdByTextKey.get(textKey);
+
+    const heldSonnerId = heldByExplicitId === undefined ? undefined : activeSonnerIds.get(heldByExplicitId);
+
+    if (heldByExplicitId !== undefined && heldSonnerId !== undefined) {
+      const liveToastEl = findLiveToast({ id: String(heldByExplicitId) });
+      if (liveToastEl) pulseToast({ element: liveToastEl });
+
+      // A fold is a repeat the user must get a full read of, and the held toast may be
+      // milliseconds from expiring, so its countdown restarts like any other re-raise.
+      if (!persistentBaseIds.has(heldByExplicitId)) {
+        registerToast({
+          id: heldSonnerId,
+          durationMs: visibilityTime ?? DEFAULT_VISIBILITY_TIME,
+          onExpire: () => releaseActiveId({ baseId: heldByExplicitId, sonnerId: heldSonnerId }),
+        });
+      }
+
+      return heldByExplicitId;
+    }
+
+    const baseId = id || textKey;
     const activeId = activeSonnerIds.get(baseId);
     const sonnerId = activeId ?? `${baseId}#${sonnerIdCounter++}`;
 
@@ -84,6 +125,7 @@ export const useNotificationCenter = (): {
     const replacedToastEl = activeId === undefined ? null : findLiveToast({ id: String(baseId) });
 
     activeSonnerIds.set(baseId, sonnerId);
+    if (id) explicitIdByTextKey.set(textKey, baseId);
 
     TOAST_BY_TYPE[type](text, {
       id: sonnerId,
@@ -99,13 +141,17 @@ export const useNotificationCenter = (): {
 
     if (replacedToastEl) pulseToast({ element: replacedToastEl });
 
-    if (persistent) unregisterToast({ id: sonnerId });
-    else
+    if (persistent) {
+      persistentBaseIds.add(baseId);
+      unregisterToast({ id: sonnerId });
+    } else {
+      persistentBaseIds.delete(baseId);
       registerToast({
         id: sonnerId,
         durationMs: visibilityTime ?? DEFAULT_VISIBILITY_TIME,
         onExpire: () => releaseActiveId({ baseId, sonnerId }),
       });
+    }
 
     return baseId;
   };

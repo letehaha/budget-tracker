@@ -3,6 +3,10 @@
 // (replacing them). Do not remove it.
 import 'express';
 
+import type { Entitlements } from '@bt/shared/types';
+import type { AppUser } from '@middlewares/better-auth';
+import type Stripe from 'stripe';
+
 declare module 'express' {
   interface Request {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,7 +19,9 @@ declare module 'express' {
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: number; username: string; authUserId: string; role: string } | null;
+      user?: AppUser | null;
+      entitlements?: Entitlements;
+      stripeEvent?: Stripe.Event;
     }
   }
 }

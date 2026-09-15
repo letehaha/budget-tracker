@@ -2,23 +2,28 @@ import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types';
 import { getCurrentSessionId } from '@common/lib/cls/session-id';
 import { auth } from '@config/auth';
 import { CacheClient } from '@js/utils/cache';
-import { setSentryUser } from '@js/utils/sentry';
+import { logger } from '@js/utils/logger';
+import { captureException, setSentryUser } from '@js/utils/sentry';
+import { enforceReadOnly } from '@middlewares/entitlements';
 import Users from '@models/users.model';
+import { APIError } from 'better-auth';
 import { fromNodeHeaders } from 'better-auth/node';
 import { NextFunction, Request, Response } from 'express';
 
-type AppUser = Pick<Users, 'username' | 'id' | 'authUserId' | 'role'>;
+export type AppUser = Pick<Users, 'username' | 'id' | 'authUserId' | 'role' | 'plan' | 'trialEndsAt'>;
 
-const CACHE_KEY_PREFIX = 'auth_user:';
+/** Versioned: entries written with an older `AppUser` shape must not be read after deploy. */
+export const APP_USER_CACHE_KEY_PREFIX = 'auth_user:v2:';
 
 const appUserCache = new CacheClient<AppUser>({
   ttl: 60, // 60 seconds
   logPrefix: 'AuthUserCache',
 });
 
-/** Remove a user from the cache (e.g., after profile update). */
-export function invalidateAppUserCache({ authUserId }: { authUserId: string }): void {
-  appUserCache.delete(`${CACHE_KEY_PREFIX}${authUserId}`);
+/** Remove a user from the cache (e.g., after profile update). Await it: a response that
+ *  races the delete can be re-read from the stale entry. */
+export function invalidateAppUserCache({ authUserId }: { authUserId: string }): Promise<void> {
+  return appUserCache.delete(`${APP_USER_CACHE_KEY_PREFIX}${authUserId}`);
 }
 
 /**
@@ -44,7 +49,7 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
     }
 
     const authUserId = session.user.id;
-    const cacheKey = `${CACHE_KEY_PREFIX}${authUserId}`;
+    const cacheKey = `${APP_USER_CACHE_KEY_PREFIX}${authUserId}`;
 
     // Check Redis cache first
     let user = await appUserCache.read(cacheKey);
@@ -53,7 +58,7 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
       // Cache miss — look up the app user by authUserId
       user = (await Users.findOne({
         where: { authUserId },
-        attributes: ['username', 'id', 'authUserId', 'role'],
+        attributes: ['username', 'id', 'authUserId', 'role', 'plan', 'trialEndsAt'],
         raw: true,
       })) as AppUser | null;
 
@@ -82,15 +87,25 @@ export const authenticateSession = async (req: Request, res: Response, next: Nex
       email: session.user.email,
       sessionId: getCurrentSessionId(),
     });
+  } catch (error) {
+    // `getSession` throws APIError for a rejected credential (malformed or undecryptable
+    // cookie, vanished session); everything else is infrastructure (auth store, cache, DB),
+    // where a 401 would make the client drop a still-valid session.
+    if (error instanceof APIError) {
+      return res.status(401).json({
+        status: API_RESPONSE_STATUS.error,
+        response: {
+          message: 'Unauthorized',
+          code: API_ERROR_CODES.unauthorized,
+        },
+      });
+    }
 
-    next();
-  } catch {
-    return res.status(401).json({
-      status: API_RESPONSE_STATUS.error,
-      response: {
-        message: 'Authentication failed',
-        code: API_ERROR_CODES.unauthorized,
-      },
-    });
+    logger.error({ message: 'Session authentication failed', error: error as Error });
+    captureException({ error });
+
+    return next(error);
   }
+
+  return enforceReadOnly(req, res, next);
 };

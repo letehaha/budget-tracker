@@ -2,12 +2,13 @@ import {
   NOTIFICATION_TYPES,
   RESOURCE_TYPES,
   SHARE_PERMISSIONS,
+  SUBSCRIPTION_STATUSES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
 } from '@bt/shared/types';
 import { API_RESPONSE_STATUS } from '@bt/shared/types/api';
 import { authPool } from '@config/auth';
-import { describe, expect, it } from '@jest/globals';
+import { afterEach, describe, expect, it } from '@jest/globals';
 import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
 import Categories from '@models/categories.model';
@@ -20,6 +21,7 @@ import UserSettings from '@models/user-settings.model';
 import UsersCurrencies from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import * as helpers from '@tests/helpers';
+import { HttpResponse, http } from 'msw';
 
 describe('User deletion (DELETE /user/delete)', () => {
   it('should delete user and all related data via CASCADE', async () => {
@@ -481,5 +483,168 @@ describe('User deletion: family-sharing cleanup', () => {
     expect(primaryLegAfter!.transferId).toBeNull();
     // Note suffix preserves a paper trail of where the funds went (counterpart account name).
     expect(primaryLegAfter!.note).toContain('Secondary B');
+  });
+
+  describe('billing', () => {
+    afterEach(() => {
+      delete process.env.STRIPE_SECRET_KEY;
+    });
+
+    const stripeRetrieveMock = ({ status }: { status: string }) =>
+      http.get('https://api.stripe.com/v1/subscriptions/:id', () =>
+        HttpResponse.json({ id: 'sub_01test', object: 'subscription', status }),
+      );
+
+    const arrangeActiveSubscription = async () => {
+      const { id } = await helpers.getUserInfo({ raw: true });
+      await helpers.sendBillingWebhook({
+        payload: helpers.buildStripeSubscriptionEvent({ userId: id }),
+      });
+      process.env.STRIPE_SECRET_KEY = 'sk_test_key';
+      return id;
+    };
+
+    it('cancels the live Stripe subscription before destroying the account', async () => {
+      const userId = await arrangeActiveSubscription();
+      let cancelCalls = 0;
+      global.mswMockServer.use(
+        stripeRetrieveMock({ status: 'active' }),
+        http.delete('https://api.stripe.com/v1/subscriptions/:id', () => {
+          cancelCalls += 1;
+          return HttpResponse.json({ id: 'sub_01test', object: 'subscription', status: 'canceled' });
+        }),
+      );
+
+      const res = await helpers.deleteUserAccount();
+      expect(res.statusCode).toBe(200);
+      expect(cancelCalls).toBe(1);
+      expect(await Users.findByPk(userId)).toBeNull();
+    });
+
+    it('keeps the account and its data when Stripe refuses to cancel', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const [transaction] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+      const userId = await arrangeActiveSubscription();
+      global.mswMockServer.use(
+        stripeRetrieveMock({ status: 'active' }),
+        http.delete('https://api.stripe.com/v1/subscriptions/:id', () =>
+          HttpResponse.json({ error: { type: 'api_error' } }, { status: 500 }),
+        ),
+      );
+
+      const res = await helpers.deleteUserAccount();
+      expect(res.statusCode).not.toBe(200);
+      expect(await Users.findByPk(userId)).not.toBeNull();
+      expect((await helpers.getUserInfo({ raw: true })).id).toBe(userId);
+      expect(await Accounts.findByPk(account.id)).not.toBeNull();
+      expect(await Transactions.findByPk(transaction!.id)).not.toBeNull();
+    });
+
+    it('deletes without calling Stripe when the only subscription is already canceled', async () => {
+      const { id: userId } = await helpers.getUserInfo({ raw: true });
+      await helpers.sendBillingWebhook({
+        payload: helpers.buildStripeSubscriptionEvent({ userId, status: SUBSCRIPTION_STATUSES.canceled }),
+      });
+      delete process.env.STRIPE_SECRET_KEY;
+
+      let cancelCalls = 0;
+      global.mswMockServer.use(
+        http.delete('https://api.stripe.com/v1/subscriptions/:id', () => {
+          cancelCalls += 1;
+          return HttpResponse.json({ id: 'sub_01test', object: 'subscription', status: 'canceled' });
+        }),
+      );
+
+      const res = await helpers.deleteUserAccount();
+      expect(res.statusCode).toBe(200);
+      expect(cancelCalls).toBe(0);
+      expect(await Users.findByPk(userId)).toBeNull();
+    });
+
+    it('cancels a paused subscription as well', async () => {
+      const { id: userId } = await helpers.getUserInfo({ raw: true });
+      await helpers.sendBillingWebhook({
+        payload: helpers.buildStripeSubscriptionEvent({ userId, status: SUBSCRIPTION_STATUSES.paused }),
+      });
+      process.env.STRIPE_SECRET_KEY = 'sk_test_key';
+
+      let cancelCalls = 0;
+      global.mswMockServer.use(
+        stripeRetrieveMock({ status: 'paused' }),
+        http.delete('https://api.stripe.com/v1/subscriptions/:id', () => {
+          cancelCalls += 1;
+          return HttpResponse.json({ id: 'sub_01test', object: 'subscription', status: 'canceled' });
+        }),
+      );
+
+      const res = await helpers.deleteUserAccount();
+      expect(res.statusCode).toBe(200);
+      expect(cancelCalls).toBe(1);
+      expect(await Users.findByPk(userId)).toBeNull();
+    });
+
+    it('deletes without cancelling a subscription Stripe has stopped charging', async () => {
+      const { id: userId } = await helpers.getUserInfo({ raw: true });
+      await helpers.sendBillingWebhook({
+        payload: helpers.buildStripeSubscriptionEvent({ userId, status: 'unpaid' }),
+      });
+      process.env.STRIPE_SECRET_KEY = 'sk_test_key';
+
+      let cancelCalls = 0;
+      global.mswMockServer.use(
+        stripeRetrieveMock({ status: 'unpaid' }),
+        http.delete('https://api.stripe.com/v1/subscriptions/:id', () => {
+          cancelCalls += 1;
+          return HttpResponse.json({ id: 'sub_01test', object: 'subscription', status: 'canceled' });
+        }),
+      );
+
+      const res = await helpers.deleteUserAccount();
+      expect(res.statusCode).toBe(200);
+      expect(cancelCalls).toBe(0);
+      expect(await Users.findByPk(userId)).toBeNull();
+    });
+
+    it('deletes without cancelling when Stripe already reports the subscription canceled', async () => {
+      const userId = await arrangeActiveSubscription();
+      let cancelCalls = 0;
+      global.mswMockServer.use(
+        stripeRetrieveMock({ status: 'canceled' }),
+        http.delete('https://api.stripe.com/v1/subscriptions/:id', () => {
+          cancelCalls += 1;
+          return HttpResponse.json({ id: 'sub_01test', object: 'subscription', status: 'canceled' });
+        }),
+      );
+
+      const res = await helpers.deleteUserAccount();
+      expect(res.statusCode).toBe(200);
+      expect(cancelCalls).toBe(0);
+      expect(await Users.findByPk(userId)).toBeNull();
+    });
+
+    it('deletes when Stripe no longer knows the subscription', async () => {
+      const userId = await arrangeActiveSubscription();
+      global.mswMockServer.use(
+        http.get('https://api.stripe.com/v1/subscriptions/:id', () =>
+          HttpResponse.json(
+            {
+              error: {
+                type: 'invalid_request_error',
+                code: 'resource_missing',
+                message: 'No such subscription: sub_01test',
+              },
+            },
+            { status: 404 },
+          ),
+        ),
+      );
+
+      const res = await helpers.deleteUserAccount();
+      expect(res.statusCode).toBe(200);
+      expect(await Users.findByPk(userId)).toBeNull();
+    });
   });
 });

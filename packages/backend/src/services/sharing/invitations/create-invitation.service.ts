@@ -14,18 +14,17 @@ import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import Accounts from '@models/accounts.model';
 import Budgets from '@models/budget.model';
-import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@services/common/with-transaction';
-import { Op } from 'sequelize';
 
 import { findUserByEmail } from '../find-user-by-email.service';
 import { getMaxPendingInvitationsPerResource } from '../limits';
 import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
 import { FALLBACK_OWNER_DISPLAY_NAME } from '../share-user-snapshot';
 import { formatHouseholdLabel, toPositiveInt } from '../sharing-utils';
+import { assertSeatAvailable } from './assert-seat-available';
 import { generateInvitationToken } from './generate-invitation-token';
 import { sendInvitationEmail } from './share-invitation-email';
 
@@ -181,27 +180,8 @@ const createInvitationImpl = async (params: CreateInvitationParams): Promise<Cre
   // "unregistered" emails is moved to the accept endpoint to avoid user enumeration.
   const resource = await resolveOwnedResource({ ownerUserId, resourceType, resourceId: resourceIdStr });
 
-  // Recipient cap counts accepted shares only — not pending, and not affected by
-  // unresolved invitations. Owner-side check, no leak. Household has its own cap because
-  // a household grant carries broader reach (every account the owner has) than a single
-  // per-resource share.
-  const acceptedShareCount = await ResourceShares.count({
-    where: {
-      resourceType,
-      resourceId: resourceIdStr,
-      acceptedAt: { [Op.not]: null },
-    },
-  });
-  const acceptedCap =
-    resourceType === RESOURCE_TYPES.household
-      ? SHARING_LIMITS.maxHouseholdMembers
-      : SHARING_LIMITS.maxRecipientsPerResource;
-  if (acceptedShareCount >= acceptedCap) {
-    const target = resourceType === RESOURCE_TYPES.household ? 'household member(s)' : 'recipient(s)';
-    throw new ConflictError({
-      message: `This resource has reached the maximum of ${acceptedCap} ${target}.`,
-    });
-  }
+  // Owner-side check, no enumeration leak: it reveals only the owner's own seat usage.
+  await assertSeatAvailable({ ownerUserId, resourceType, resourceId: resourceIdStr, voice: 'owner' });
 
   // Cap on the number of pending invitations per (owner, resource). Test env uses a
   // smaller cap (see SHARING_LIMITS) so the boundary stays cheap to exercise. Dev/prod

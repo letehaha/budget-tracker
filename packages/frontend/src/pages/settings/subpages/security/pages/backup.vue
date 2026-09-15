@@ -1,5 +1,7 @@
 <template>
   <div class="flex max-w-2xl flex-col gap-4">
+    <PlanRestricted :feature="FEATURES.backup_export" />
+
     <div class="divide-border divide-y overflow-hidden rounded-lg border">
       <!-- Download backup -->
       <div class="flex items-center gap-4 px-4 py-3.5">
@@ -65,7 +67,11 @@
             {{ $t('settings.security.backup.download.description') }}
           </span>
         </div>
-        <Button class="shrink-0" :disabled="isDownloading" @click="handleDownload">
+        <Button
+          class="shrink-0"
+          :disabled="isDownloading || isFeatureGated(FEATURES.backup_export)"
+          @click="handleDownload"
+        >
           <LoaderCircleIcon v-if="isDownloading" class="size-4 animate-spin" />
           {{
             isDownloading
@@ -86,7 +92,12 @@
             {{ $t('settings.security.backup.restore.description') }}
           </span>
         </div>
-        <Button variant="outline" class="shrink-0" :disabled="isReading" @click="openFilePicker">
+        <Button
+          variant="outline"
+          class="shrink-0"
+          :disabled="isReading || isFeatureGated(FEATURES.backup_restore)"
+          @click="openFilePicker"
+        >
           <LoaderCircleIcon v-if="isReading" class="size-4 animate-spin" />
           {{
             isReading ? $t('settings.security.backup.restore.reading') : $t('settings.security.backup.restore.button')
@@ -106,6 +117,7 @@
 </template>
 
 <script setup lang="ts">
+import PlanRestricted from '@/components/billing/plan-restricted.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/lib/ui/popover';
 import { useNotificationCenter } from '@/components/notification-center';
@@ -113,6 +125,8 @@ import { fileToBase64 } from '@/common/utils/file-to-base64';
 import { BackupDownloadFailedError, useBackupDownload } from '@/composable/data-queries/backup';
 import { ApiErrorResponseError } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
+import { useUserStore } from '@/stores';
+import { FEATURES } from '@bt/shared/types';
 import { AlertTriangleIcon, DownloadIcon, KeyRoundIcon, LandmarkIcon, LoaderCircleIcon, UploadIcon } from '@lucide/vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -125,6 +139,7 @@ defineOptions({
 
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { isFeatureGated } = useUserStore();
 
 // A ~40MB zip base64-encodes to ~53MB, which still fits the backend's 64MB JSON body.
 const MAX_BACKUP_FILE_MB = 40;

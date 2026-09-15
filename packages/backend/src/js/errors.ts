@@ -13,6 +13,7 @@ export enum ERROR_CODES {
   UnexpectedError = 500,
   BadGateway = 502,
   ServiceUnavailable = 503,
+  PaymentRequired = 402,
 }
 
 export class CustomError extends Error {

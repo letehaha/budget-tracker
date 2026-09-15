@@ -6,6 +6,7 @@ import { useRestoreJobStatus } from '@/composable/use-restore-job-status';
 import { getCurrentLocale, i18n } from '@/i18n';
 import * as errors from '@/js/errors';
 import { router } from '@/routes';
+import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore } from '@/stores';
 import type { BaseCurrencyChangeStatus } from '@bt/shared/types';
 import { API_ERROR_CODES, API_RESPONSE_STATUS } from '@bt/shared/types/api';
@@ -64,6 +65,33 @@ const CLOUD_HOSTNAME = 'moneymatter.app';
 const isCloudDeployment = (): boolean => {
   const hostname = window.location.hostname;
   return hostname === CLOUD_HOSTNAME || hostname.endsWith(`.${CLOUD_HOSTNAME}`);
+};
+
+/** Translated text with a literal fallback, for the window before the i18n chunk is loaded. */
+const t = (key: string, fallback: string): string => {
+  const translated = i18n.global.t(key);
+  return translated === key ? fallback : translated;
+};
+
+const PLAN_REQUIRED_NOTIFICATION_ID = 'plan-required-error';
+
+/** Persistent toast for a 402: the user cannot retry the action without picking a plan. */
+export const notifyPlanRequired = ({ message }: { message: string }) => {
+  const { addNotification, removeNotification } = useNotificationCenter();
+
+  addNotification({
+    id: PLAN_REQUIRED_NOTIFICATION_ID,
+    text: message,
+    type: NotificationType.error,
+    persistent: true,
+    action: {
+      label: t('billing.seePlans', 'See plans'),
+      onClick: () => {
+        removeNotification(PLAN_REQUIRED_NOTIFICATION_ID);
+        router.push({ name: ROUTES_NAMES.settingsPlanBilling });
+      },
+    },
+  });
 };
 
 /**
@@ -222,13 +250,6 @@ class ApiCaller {
 
     const isSilent = opts.options?.silent ?? false;
 
-    // Helper to get translated text with fallback (in case i18n isn't loaded yet)
-    const t = (key: string, fallback: string) => {
-      const translated = i18n.global.t(key);
-      // If translation returns the key itself, use fallback
-      return translated === key ? fallback : translated;
-    };
-
     try {
       result = await fetch(url, config);
     } catch (e) {
@@ -337,6 +358,10 @@ class ApiCaller {
         throw new errors.AuthError(response, url);
       }
 
+      if (response.code === API_ERROR_CODES.planRequired && !isSilent) {
+        notifyPlanRequired({ message: response.message });
+      }
+
       if (response.code === API_ERROR_CODES.baseCurrencyChangeInProgress) {
         // The base-currency write-lock is held server-side and rejected this mutation —
         // by a real base-currency change OR by a data restore, which grabs the same lock.
@@ -363,7 +388,7 @@ class ApiCaller {
         }
       }
 
-      if (response.code === API_ERROR_CODES.unexpected) {
+      if (response.code === API_ERROR_CODES.unexpected && !isSilent) {
         addNotification({
           id: 'unexpected-error',
           text: t('errors.api.unexpectedError', 'An unexpected error occurred'),

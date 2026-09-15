@@ -1,4 +1,12 @@
 import { logger } from '@js/utils/logger';
+import { captureException } from '@js/utils/sentry';
+import { handleBillingRefund, isRefundEvent } from '@services/billing/handle-refund.service';
+import { handleBillingWebhook as handleBillingWebhookService } from '@services/billing/handle-webhook.service';
+import {
+  isIncompleteSubscriptionEvent,
+  isSubscriptionEvent,
+  parseStripeWebhook,
+} from '@services/billing/stripe/parse-webhook';
 import { createReleaseNotifications } from '@services/notifications/release-notifications';
 import { Request, Response } from 'express';
 
@@ -100,4 +108,39 @@ export async function handleGitHubWebhook(req: Request, res: Response): Promise<
 
   // For release events, delegate to release handler
   await handleGitHubRelease(req, res);
+}
+
+/**
+ * Stripe billing webhook. A 500 makes Stripe retry, so a mapping or configuration
+ * problem fixed afterwards still lands instead of being silently acknowledged.
+ */
+export async function handleBillingWebhook(req: Request, res: Response): Promise<void> {
+  try {
+    const stripeEvent = req.stripeEvent!;
+    if (isRefundEvent(stripeEvent)) {
+      const outcome = await handleBillingRefund({ event: stripeEvent });
+      logger.info(`Billing webhook ${stripeEvent.type} ${stripeEvent.id}: ${outcome}`);
+      res.status(200).json({ outcome });
+      return;
+    }
+    if (!isSubscriptionEvent(stripeEvent) || isIncompleteSubscriptionEvent(stripeEvent)) {
+      res.status(200).json({ outcome: 'ignored' });
+      return;
+    }
+
+    const event = parseStripeWebhook({ event: stripeEvent });
+    const outcome = await handleBillingWebhookService({ event });
+    logger.info(`Billing webhook ${event.eventType} ${event.eventId}: ${outcome}`);
+    res.status(200).json({ outcome });
+  } catch (error) {
+    logger.error({
+      message: 'Billing webhook failed',
+      error: error as Error,
+    });
+    captureException({
+      error,
+      context: { stage: 'handleBillingWebhook', eventId: req.stripeEvent?.id },
+    });
+    res.status(500).json({ outcome: 'failed' });
+  }
 }

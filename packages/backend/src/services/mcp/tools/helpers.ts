@@ -18,18 +18,24 @@ export function getUserId({ extra }: { extra: { authInfo?: { extra?: { userId?: 
 /**
  * Assert the caller's access token was granted a specific scope.
  * Write and delete MCP tools call this after getUserId to enforce scope gating.
- * Demo users are rejected here regardless of granted scopes: read tools never call
- * this helper, so demo accounts keep read access but cannot mutate anything via MCP.
+ * Demo and read-only users are rejected here regardless of granted scopes: read tools
+ * never call this helper, so those accounts keep read access but cannot mutate via MCP.
  */
 export function requireScope({
   extra,
   scope,
 }: {
-  extra: { authInfo?: { scopes?: string[]; extra?: { role?: string } } };
+  extra: { authInfo?: { scopes?: string[]; extra?: { role?: string; readOnly?: boolean } } };
   scope: string;
 }): void {
   if (extra?.authInfo?.extra?.role === USER_ROLES.demo) {
     throw new Error('This action is not available in demo mode. Sign up for a free account to unlock all features.');
+  }
+
+  // Missing entitlement info is treated as read-only: a write must never pass on an
+  // auth payload that failed to carry it.
+  if (extra?.authInfo?.extra?.readOnly !== false) {
+    throw new Error('Your plan no longer includes editing. Subscribe to keep editing your data.');
   }
 
   const scopes = extra?.authInfo?.scopes ?? [];

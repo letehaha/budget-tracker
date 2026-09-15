@@ -15,6 +15,8 @@
     </CardHeader>
 
     <CardContent class="mt-6 flex flex-col gap-8" :aria-busy="isPending">
+      <PlanRestricted :feature="FEATURES.data_export" />
+
       <section>
         <Label class="mb-2 block text-sm font-medium">
           {{ $t('settings.dataManagement.export.format.label') }}
@@ -137,7 +139,7 @@
             {{ $t('common.actions.cancel') }}
           </Button>
         </RouterLink>
-        <Button :disabled="noneSelected || isPending" @click="handleConfirm">
+        <Button :disabled="noneSelected || isPending || isFeatureGated(FEATURES.data_export)" @click="handleConfirm">
           {{
             isPending
               ? $t('settings.dataManagement.export.form.confirmLoading')
@@ -150,6 +152,7 @@
 </template>
 
 <script setup lang="ts">
+import PlanRestricted from '@/components/billing/plan-restricted.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Checkbox } from '@/components/lib/ui/checkbox';
@@ -163,10 +166,12 @@ import { ApiErrorResponseError } from '@/js/errors';
 import { cn } from '@/lib/utils';
 import { captureException } from '@/lib/sentry';
 import { ROUTES_NAMES } from '@/routes';
+import { useUserStore } from '@/stores';
 import {
   ALL_EXPORT_GROUPS,
   API_ERROR_CODES,
   EXPORT_FORMATS,
+  FEATURES,
   type ExportDateRange,
   type ExportFormat,
   type ExportGroup,
@@ -192,6 +197,7 @@ defineOptions({
 const router = useRouter();
 const { t } = useI18n();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
+const { isFeatureGated } = useUserStore();
 
 const format = ref<ExportFormat>('json');
 const selectedGroups = ref<Set<ExportGroup>>(new Set(ALL_EXPORT_GROUPS));

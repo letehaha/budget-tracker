@@ -122,7 +122,10 @@ after an image already exists only changes the runtime value — rebuild
 `IS_SELF_HOST` is written straight into `docker-compose.yml`, on both the
 backend and the frontend. There is nothing to put in `.env` — anything you set
 there is ignored. It marks the stack as yours rather than the hosted service,
-which turns on two things:
+which turns on four things:
+
+- **No plans, no trial, no billing.** Every feature is on for every user, no
+  trial clock starts at signup, and the billing routes answer 404.
 
 - **A custom AI endpoint can point at a server on your own network.** On the
   hosted service the app refuses private addresses (`localhost`, `192.168.x.x`,
@@ -132,6 +135,26 @@ which turns on two things:
 - **Restoring a backup fills in price history.** After a restore, your stocks
   and crypto get their past prices fetched again, so charts and past valuations
   look right instead of starting from the restore date.
+- **A backup from another account restores fine.** The hosted service refuses
+  archives exported by a different user; on your own stack you may be moving
+  data between instances, so that check is off.
+
+## Hosted service only
+
+Read by the billing code, which never runs on a self-hosted stack – the billing
+routes answer 404 and no entitlement depends on them. Listed so a variable you
+see in the codebase is not mistaken for something your instance needs.
+
+All three are read by the backend only – the frontend container has no Stripe
+variable of its own. `AUTH_ORIGIN` must also be set, because it is the origin
+Stripe-hosted checkout and the billing portal return the buyer to.
+
+| Variable                | Purpose                                                               |
+| ----------------------- | --------------------------------------------------------------------- |
+| `STRIPE_ENV`            | `test` or `live`; picks which set of Stripe price ids the app accepts |
+| `STRIPE_SECRET_KEY`     | Stripe API key used to mint checkout and billing-portal sessions      |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret Stripe webhooks are verified against                   |
+| `AUTH_ORIGIN`           | Frontend origin Stripe returns to after checkout or the portal        |
 
 ---
 
