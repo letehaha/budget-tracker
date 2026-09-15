@@ -40,7 +40,7 @@ export interface NetWorthDriversPortfolioSliceCents {
 }
 
 /** Per-bucket result, all money in base-currency cents. */
-export interface NetWorthDriversBucketCents {
+interface NetWorthDriversBucketCents {
   periodStart: string;
   periodEnd: string;
   savings: {

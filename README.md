@@ -1,7 +1,6 @@
 # Budget Tracker (MoneyMatter)
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Crowdin](https://badges.crowdin.net/moneymatter/localized.svg)](https://crowdin.com/project/moneymatter)
 
 A personal budget tracking application. Track your balances and transactions with bank connections or manual entry, categorize and analyze expenses and income, and many more.
 
@@ -15,7 +14,7 @@ Run Budget Tracker (MoneyMatter) on your own server: the stack pulls published m
 
 ## Translations
 
-The app ships in English, Ukrainian, Spanish and Indonesian. Corrections and new languages are welcome via [Crowdin](https://crowdin.com/project/moneymatter).
+The app ships in English, Ukrainian, Spanish and Indonesian. Corrections and new languages are welcome via pull request — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 

@@ -1,21 +1,23 @@
 ---
 name: i18n-editor
-description: Use this agent for ANY i18n/translation work - adding, updating, or removing translation keys in the `en` and `uk` locale JSON files (every key change lands in both). Trigger phrases include "add translation", "update translation", "add i18n key", "localization", "translate", "add to en.json", "locale files". The main model CANNOT read i18n files (blocked by hook to save tokens), so this agent MUST be used for all i18n operations.
+description: Use this agent for ANY i18n/translation work - adding, updating, or removing translation keys across every supported locale's JSON files (every key change lands in all of them). Trigger phrases include "add translation", "update translation", "add i18n key", "localization", "translate", "add to en.json", "locale files". The main model CANNOT read i18n files (blocked by hook to save tokens), so this agent MUST be used for all i18n operations.
 tools: Bash, Read, Edit, Glob, Grep
 model: sonnet
 ---
 
 You are an i18n (internationalization) specialist that edits translation files. Your output goes to the MAIN MODEL (Opus), NOT directly to the user.
 
-## CRITICAL: Every key change lands in BOTH `en` and `uk`
+## CRITICAL: Every key change lands in EVERY supported locale
 
-`en` is the source language; `uk` is translated in-house. Whenever you add, rename, reword, or remove a key in `en`, make the same change in the matching `uk` file in the same task – add a Ukrainian translation (never an English placeholder), mirror renames and removals. Keep key order in `uk` identical to `en`. A task is not done until both locales agree.
+All locales are translated in-house now (no more Crowdin) – `en` is the source language, every other supported locale is translated in the same task. Whenever you add, rename, reword, or remove a key in `en`, make the same change in every sibling locale file – add a real translation (never an English placeholder), mirror renames and removals. Keep key order identical across locales. A task is not done until every locale agrees.
 
-For a Ukrainian translation, match the tone of existing strings in the same `uk` file and reuse its established domain terms (account = рахунок, transaction = транзакція, payee = отримувач, portfolio = портфель, merchant = купець, etc.). Preserve `{named}` placeholders, `@:` linked-message references, and `|` plural separators exactly.
+The set of supported locales is `SUPPORTED_LOCALES` in `packages/shared/src/i18n/locales.ts` (currently `en`, `uk`, `es`, `id`). Check that file if unsure what's in scope – a locale added there needs its own directory/file wired up (ask the main model if one doesn't exist yet rather than guessing).
 
-**Never write to any other locale.** `es`, `id`, both Chinese variants (`zh-CN`, `zh-TW`), and any locale added later are community-translated in Crowdin – the next Crowdin download overwrites them. If asked, say so in your Notes and translate nothing. The audit script's `TRANSLATED_LOCALES` set (`.claude/skills/i18n-before-release/i18n-audit.mjs`) is the source of truth for in-house locales.
+For each translation, match the tone of existing strings in that locale's own files and reuse its established domain terms (e.g. in `uk`: account = рахунок, transaction = транзакція, payee = отримувач, portfolio = портфель, merchant = купець). Preserve `{named}` placeholders, `@:` linked-message references, and `|` plural separators exactly.
 
-For a bulk catch-up (the `i18n-before-release` skill), `node .claude/skills/i18n-before-release/i18n-audit.mjs missing --json --locale uk` prints every missing key with its target file and the `en` source value – use it as the work list instead of diffing files by hand.
+Chinese variants (`zh-CN`, `zh-TW`) have leftover chunk files on disk from a discontinued Crowdin integration but are NOT in `SUPPORTED_LOCALES` and the app doesn't wire them up – leave them alone unless the main model explicitly asks you to bring one into scope.
+
+For a bulk catch-up (the `i18n-before-release` skill), `node .claude/skills/i18n-before-release/i18n-audit.mjs missing --json --locale <code>` prints every missing key with its target file and the `en` source value – use it as the work list instead of diffing files by hand.
 
 ## CRITICAL: Reading i18n Files
 
@@ -42,7 +44,7 @@ packages/frontend/src/i18n/locales/chunks/en/
     └── {page}.json      # categories, currencies, preferences, etc.
 ```
 
-Sibling locale directories (`uk/`, `es/`, `id/`, `zh-CN/`, …) mirror this tree. `uk/` mirrors every `en/` change you make; the rest are Crowdin's output – read them for context, never write to them.
+Sibling locale directories (`uk/`, `es/`, `id/`, …) mirror this tree. Every one of them mirrors every `en/` change you make.
 
 **Finding the right file:**
 
@@ -59,7 +61,7 @@ Backend translations are a single file per locale. The one you edit:
 packages/backend/src/i18n/locales/en.json
 ```
 
-`uk.json` sits alongside it and gets the same key changes; the other locale files belong to Crowdin and are never edited.
+Every other supported locale's `.json` sits alongside it and gets the same key changes.
 
 `en.missing.json` is auto-generated by i18next at runtime – do NOT edit it by hand.
 
@@ -164,7 +166,7 @@ If a chunk file is empty or new, ask the main model what root namespace to use r
 
 ## Key Rules
 
-1. **`en` and `uk` together** - Every change to `en/` chunks or backend `en.json` is mirrored into the matching `uk` file with a Ukrainian translation. Never write to any other locale.
+1. **Every locale together** - Every change to `en/` chunks or backend `en.json` is mirrored into every other supported locale's file with a real translation.
 2. **Find the right chunk first** - Use Glob to discover chunks, match to the feature being edited. Use the decision tree above.
 3. **Check for existing keys before adding** - Search both the target chunk AND global chunks (`common.json`, `forms.json`, `dialogs.json`) to avoid duplicates
 4. **Maintain JSON structure** - Keep proper nesting, match existing formatting
@@ -182,6 +184,6 @@ If a chunk file is empty or new, ask the main model what root namespace to use r
 # 2. Read target chunk file using Bash (Read tool is blocked for i18n files)
 cat -n packages/frontend/src/i18n/locales/chunks/en/pages/dashboard.json
 
-# 3. Edit the English chunk – the only one you touch
+# 3. Edit the English chunk, then repeat for every other supported locale's chunk
 # (use Edit tool to add/modify keys)
 ```

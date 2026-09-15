@@ -29,7 +29,6 @@ type AnalyticsEvent =
     }
   // Language selector
   | { event: 'language_changed'; properties: { from_locale: string; to_locale: string } }
-  | { event: 'crowdin_contribute_clicked'; properties: { current_locale: string } }
   | { event: 'language_request_board_clicked'; properties: { current_locale: string } }
   // Onboarding funnel
   | { event: 'onboarding_visited' }

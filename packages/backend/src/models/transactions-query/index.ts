@@ -26,7 +26,7 @@ import {
   transfersWhere,
 } from './where-builders';
 
-export type { AccessPolicy, CompletenessPolicy, PlannedPolicy } from './policies';
+export type { AccessPolicy, PlannedPolicy } from './policies';
 
 type TxAttributes = Attributes<Transactions>;
 
