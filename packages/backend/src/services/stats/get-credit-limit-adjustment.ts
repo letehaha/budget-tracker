@@ -1,3 +1,4 @@
+import type { Cents, RecordId } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import { getAccessibleAccountIdsForUser } from '@services/sharing/auth/get-accessible-account-ids.service';
 import { Op } from 'sequelize';
@@ -5,21 +6,18 @@ import { Op } from 'sequelize';
 import { AccountScope } from './get-balance-history';
 
 /**
- * Calculates the total credit limit in base currency (cents) for the accounts named by
+ * Base-currency credit limit (cents) per account, for the accounts named by
  * `accountScope` that have a credit limit and are not excluded from stats.
- *
- * Used to adjust balance calculations when the user enables the
- * "include credit limit in stats" setting. `accountScope` must match the scope of the
- * balance read being adjusted — a limit subtracted from a balance that never included
- * that account is a wrong number, not an error.
+ * `accountScope` must match the scope of the balance read being adjusted: a limit
+ * subtracted from a balance that never included that account is a wrong number.
  */
-export const getCreditLimitAdjustment = async ({
+export const getCreditLimitCentsByAccount = async ({
   userId,
   accountScope,
 }: {
   userId: number;
   accountScope: AccountScope;
-}): Promise<number> => {
+}): Promise<Map<RecordId, Cents>> => {
   const scopeWhere =
     accountScope === 'accessible' ? { id: { [Op.in]: await getAccessibleAccountIdsForUser({ userId }) } } : { userId };
 
@@ -29,8 +27,20 @@ export const getCreditLimitAdjustment = async ({
       excludeFromStats: false,
       creditLimit: { [Op.gt]: 0 },
     },
-    attributes: ['refCreditLimit'],
+    attributes: ['id', 'refCreditLimit'],
   });
 
-  return accounts.reduce((sum, account) => sum + account.refCreditLimit.toCents(), 0);
+  return new Map(accounts.map((account) => [account.id, account.refCreditLimit.toCents()]));
+};
+
+/** Sum of `getCreditLimitCentsByAccount`, for reads that adjust one aggregate balance. */
+export const getCreditLimitAdjustment = async ({
+  userId,
+  accountScope,
+}: {
+  userId: number;
+  accountScope: AccountScope;
+}): Promise<number> => {
+  const limits = await getCreditLimitCentsByAccount({ userId, accountScope });
+  return [...limits.values()].reduce((sum, cents) => sum + cents, 0);
 };

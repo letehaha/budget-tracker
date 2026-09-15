@@ -292,3 +292,44 @@ describe('[Stats] Loans in net worth', () => {
     expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(-190_000);
   }, 60_000);
 });
+
+describe('[Stats] getNetWorthHistory with credit limit setting', () => {
+  it('nets each card balance against its own limit before classifying it, matching the combined history total', async () => {
+    const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+    const toDate = format(new Date(), 'yyyy-MM-dd');
+
+    await helpers.createAccount({
+      payload: helpers.buildAccountPayload({
+        accountCategory: ACCOUNT_CATEGORIES.creditCard,
+        initialBalance: 1000,
+        creditLimit: 3000,
+      }),
+      raw: true,
+    });
+
+    const rawHistory = await helpers.getNetWorthHistory({
+      from: fromDate,
+      to: toDate,
+      granularity: 'weekly',
+      raw: true,
+    });
+    const rawLast = rawHistory.points[rawHistory.points.length - 1]!;
+    expect(rawLast.assets.cash).toBe(1000);
+    expect(rawLast.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(0);
+    expect(rawLast.netWorth).toBe(1000);
+
+    await helpers.updateUserSettings({
+      raw: true,
+      settings: { locale: 'en', includeCreditLimitInStats: true },
+    });
+
+    const adjusted = await helpers.getNetWorthHistory({ from: fromDate, to: toDate, granularity: 'weekly', raw: true });
+    const adjustedLast = adjusted.points[adjusted.points.length - 1]!;
+    expect(adjustedLast.assets.cash).toBe(0);
+    expect(adjustedLast.liabilities[ACCOUNT_CATEGORIES.creditCard]).toBe(-2000);
+    expect(adjustedLast.netWorth).toBe(-2000);
+
+    const combined = await helpers.getCombinedBalanceHistory({ from: fromDate, to: toDate, raw: true });
+    expect(combined[combined.length - 1]!.totalBalance).toBe(adjustedLast.netWorth);
+  }, 60_000);
+});

@@ -271,9 +271,15 @@ export const getNetWorthHistory = createController(netWorthHistorySchema, async 
   const { id: userId } = user;
   const { from, to, granularity } = query;
 
-  // `includeCreditLimitInStats` is deliberately not read here: net worth reflects
-  // actual balances, and available credit is not debt.
-  const result = await statsService.getNetWorthHistory({ userId, from, to, granularity });
+  const settings = await getUserSettings({ userId });
+
+  const result = await statsService.getNetWorthHistory({
+    userId,
+    from,
+    to,
+    granularity,
+    includeCreditLimit: settings.includeCreditLimitInStats,
+  });
 
   // Serialize: convert cents to decimal for API response
   return { data: serializeNetWorthHistory(result) };
