@@ -6,7 +6,8 @@ import { Op, literal } from 'sequelize';
  * - non-transfer;
  * - non-planned
  * - synced from a bank provider, stamped with `importDetails` by an importer;
- * - created with `applyAutomations` (API integrations);
+ * - created with `applyAutomations` (API integrations), stamped under `externalData` so
+ *   the history scan can find the row later;
  *
  * Manually-entered rows on system accounts by default are excluded so a rule never
  * overrides a field the user chose.
@@ -16,17 +17,14 @@ export const isAutomationEligible = ({
   externalData,
   transferNature,
   isPlanned,
-  applyAutomations = false,
 }: {
   accountType: ACCOUNT_TYPES;
   externalData: Record<string, unknown> | null | undefined;
   transferNature: TRANSACTION_TRANSFER_NATURE;
   isPlanned: boolean;
-  applyAutomations?: boolean;
 }): boolean =>
-  (applyAutomations ||
-    accountType !== ACCOUNT_TYPES.system ||
-    Boolean(externalData && 'importDetails' in externalData)) &&
+  (accountType !== ACCOUNT_TYPES.system ||
+    Boolean(externalData && ('importDetails' in externalData || 'applyAutomations' in externalData))) &&
   transferNature === TRANSACTION_TRANSFER_NATURE.not_transfer &&
   !isPlanned;
 
@@ -42,6 +40,7 @@ export const buildEligibilityWhere = ({ bankAccountIds }: { bankAccountIds: stri
       [Op.or]: [
         { accountId: { [Op.in]: bankAccountIds } },
         literal(`"Transactions"."externalData"->'importDetails' IS NOT NULL`),
+        literal(`"Transactions"."externalData"->'applyAutomations' IS NOT NULL`),
       ],
     },
     literal(

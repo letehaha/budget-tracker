@@ -121,6 +121,8 @@ export interface TransactionsAttributes {
     receiptId?: string;
     /** Set on transactions created by the balance-adjustment flow. */
     balanceAdjustment?: boolean;
+    /** Set when the row was created with `applyAutomations`; keeps it automation-eligible. */
+    applyAutomations?: boolean;
   } & Record<string, unknown>;
   commissionRate: Money;
   refCommissionRate: Money;
