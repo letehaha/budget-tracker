@@ -1,6 +1,7 @@
 <template>
   <div ref="headerRef">
     <DemoBanner />
+    <TrialBanner />
     <div
       ref="headerBarRef"
       class="shadow-header border-border @container/header-bar flex items-center justify-between border-b px-4 py-2 sm:px-6"
@@ -139,6 +140,7 @@
 
 <script setup lang="ts">
 import AccountsRelinkWarning from '@/components/accounts-relink-warning.vue';
+import TrialBanner from '@/components/billing/trial-banner.vue';
 import FeedbackIcon from '@/components/common/icons/feedback-icon.vue';
 import FeedbackDialog from '@/components/dialogs/feedback-dialog.vue';
 import DemoBanner from '@/components/demo/demo-banner.vue';

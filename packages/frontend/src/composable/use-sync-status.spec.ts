@@ -1,3 +1,4 @@
+import { FEATURES } from '@bt/shared/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref, toValue } from 'vue';
 
@@ -6,7 +7,7 @@ const checkSync = vi.fn();
 const triggerSyncRequest = vi.fn();
 
 const auth = vi.hoisted(() => ({ isLoggedIn: { value: true } }));
-const user = vi.hoisted(() => ({ isDemo: { value: false } }));
+const user = vi.hoisted(() => ({ isDemo: { value: false }, hasFeature: vi.fn(() => true) }));
 // Holds the options `useQuery` was called with so a test can read back `enabled`.
 const query = vi.hoisted(() => ({ options: null as { enabled?: unknown } | null }));
 
@@ -18,13 +19,13 @@ vi.mock('@/api/bank-data-providers', () => ({
 
 // Captures the SSE handler the composable registers, so a test can push a status
 // snapshot through it without a real connection.
-const sse = vi.hoisted(() => ({ handler: null as ((data: unknown) => void) | null }));
+const sse = vi.hoisted(() => ({ handler: null as ((data: unknown) => void) | null, disconnect: vi.fn() }));
 
 vi.mock('./use-sse', () => ({
   SSE_EVENT_TYPES: { SYNC_STATUS_CHANGED: 'sync_status_changed' },
   useSSE: () => ({
     connect: vi.fn(),
-    disconnect: vi.fn(),
+    disconnect: sse.disconnect,
     on: vi.fn((_event: string, handler: (data: unknown) => void) => {
       sse.handler = handler;
       return () => {};
@@ -86,6 +87,7 @@ describe('useSyncStatus demo gating', () => {
     vi.clearAllMocks();
     auth.isLoggedIn.value = true;
     user.isDemo.value = false;
+    user.hasFeature.mockReturnValue(true);
     query.options = null;
   });
 
@@ -104,8 +106,27 @@ describe('useSyncStatus demo gating', () => {
     expect(toValue(query.options?.enabled)).toBe(true);
   });
 
+  it('keeps the status query disabled when the plan lacks bank providers', () => {
+    user.hasFeature.mockReturnValue(false);
+
+    useSyncStatus();
+
+    expect(toValue(query.options?.enabled)).toBe(false);
+    expect(user.hasFeature).toHaveBeenCalledWith(FEATURES.bank_providers);
+    expect(getSyncStatus).not.toHaveBeenCalled();
+  });
+
   it('does not call the check endpoint for a demo user', async () => {
     user.isDemo.value = true;
+
+    const result = await useSyncStatus().checkAndAutoSync();
+
+    expect(result).toBeNull();
+    expect(checkSync).not.toHaveBeenCalled();
+  });
+
+  it('does not call the check endpoint when the plan lacks bank providers', async () => {
+    user.hasFeature.mockReturnValue(false);
 
     const result = await useSyncStatus().checkAndAutoSync();
 
@@ -175,5 +196,11 @@ describe('useSyncStatus cache invalidation on sync completion', () => {
     completeSync();
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['transactionChange'] });
+  });
+
+  it('leaves the app-wide SSE stream open so other features keep receiving events', () => {
+    completeSync();
+
+    expect(sse.disconnect).not.toHaveBeenCalled();
   });
 });

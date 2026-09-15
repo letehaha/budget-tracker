@@ -19,7 +19,7 @@ const props = defineProps<{
 }>();
 
 const { addNotification } = useNotificationCenter();
-const { accountStatuses, subscribeToSSE } = useSyncStatus();
+const { accountStatuses, watchSync } = useSyncStatus();
 
 // Check if there's an active sync for this specific account
 const isAccountSyncing = computed(() => {
@@ -67,8 +67,7 @@ const handlePeriodUpdate = async (period: Period) => {
 
     isLoading.value = true;
 
-    // Subscribe to SSE for updates
-    subscribeToSSE();
+    await watchSync();
 
     const result = await apiLoadTransactions(
       props.account.bankDataProviderConnectionId,

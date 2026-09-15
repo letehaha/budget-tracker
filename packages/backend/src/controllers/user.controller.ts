@@ -3,10 +3,11 @@ import { currencyCode } from '@common/lib/zod/custom-types';
 import { authPool } from '@config/auth';
 import { createController } from '@controllers/helpers/controller-factory';
 import { t } from '@i18n/index';
-import { ConflictError, ValidationError } from '@js/errors';
+import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
 import { isAdminUsername } from '@middlewares/admin-only';
 import { invalidateAppUserCache } from '@middlewares/better-auth';
 import { ExchangeRatePair } from '@models/user-exchange-rates.model';
+import { resolveEntitlements } from '@services/entitlements/resolve-entitlements.service';
 import * as userExchangeRates from '@services/user-exchange-rate';
 import * as userService from '@services/user.service';
 import { deleteUser as deleteUserService } from '@services/user/delete-user.service';
@@ -19,17 +20,25 @@ import { z } from 'zod';
 
 export const getUser = createController(z.object({}), async ({ user }) => {
   const userData = await userService.getUser(user.id);
+  if (!userData) throw new NotFoundError({ message: 'User not found.' });
 
   // Fetch email from better-auth's ba_user table
   let email: string | null = null;
-  if (userData?.authUserId) {
+  if (userData.authUserId) {
     const result = await authPool.query('SELECT email FROM ba_user WHERE id = $1', [userData.authUserId]);
     if (result.rows.length > 0) {
       email = result.rows[0].email;
     }
   }
 
-  return { data: { ...userData, email, isAdmin: isAdminUsername({ username: user.username }) } };
+  return {
+    data: {
+      ...userData,
+      email,
+      entitlements: await resolveEntitlements({ user: userData }),
+      isAdmin: isAdminUsername({ username: user.username }),
+    },
+  };
 });
 
 export const updateUser = createController(
@@ -71,7 +80,7 @@ export const updateUser = createController(
       });
 
       // Invalidate cached user so the next request picks up the new username/role
-      invalidateAppUserCache({ authUserId: user.authUserId });
+      await invalidateAppUserCache({ authUserId: user.authUserId });
 
       return { data: userData };
     } catch (error) {

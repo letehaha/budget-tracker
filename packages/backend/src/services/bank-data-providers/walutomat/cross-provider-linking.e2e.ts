@@ -72,15 +72,19 @@ function buildPayoutHistoryItem({
   currency,
   destinationIban,
   ts,
+  historyItemId = 90001,
+  transactionId = 'payout-tx-001',
 }: {
   amount: string;
   currency: string;
   destinationIban: string;
   ts: string;
+  historyItemId?: number;
+  transactionId?: string;
 }): HistoryItem {
   return {
-    historyItemId: 90001,
-    transactionId: 'payout-tx-001',
+    historyItemId,
+    transactionId,
     ts,
     operationAmount: `-${amount}`,
     balanceAfter: '0.00',
@@ -340,5 +344,174 @@ describe('Walutomat Cross-Provider PAYIN/PAYOUT Linking', () => {
     txs.forEach((tx) => {
       expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
     });
+  });
+
+  it('links nothing when two PAYOUTs match the same single bank income', async () => {
+    const amount = 1000;
+    const bankAccount = await createAccountWithIban({ currencyCode: 'EUR', iban: MOCK_EXTERNAL_IBAN });
+
+    const bankTx = await createBankTransaction({
+      accountId: bankAccount.id,
+      amount,
+      transactionType: TRANSACTION_TYPES.income,
+      time: new Date('2026-02-27T10:00:00Z'),
+    });
+
+    const payouts = [
+      buildPayoutHistoryItem({
+        amount: amount.toFixed(2),
+        currency: 'EUR',
+        destinationIban: MOCK_EXTERNAL_IBAN,
+        ts: new Date('2026-02-25T10:00:00Z').toISOString(),
+      }),
+      buildPayoutHistoryItem({
+        historyItemId: 90002,
+        transactionId: 'payout-tx-002',
+        amount: amount.toFixed(2),
+        currency: 'EUR',
+        destinationIban: MOCK_EXTERNAL_IBAN,
+        ts: new Date('2026-02-27T10:00:00Z').toISOString(),
+      }),
+    ];
+
+    const { connectionId } = await helpers.walutomat.pair();
+    global.mswMockServer.use(getWalutomatHistoryMock({ response: payouts }), getWalutomatBalancesMock());
+
+    await helpers.bankDataProviders.connectSelectedAccounts({
+      connectionId,
+      accountExternalIds: ['wallet-eur'],
+      raw: true,
+    });
+
+    const walutomatTxs = await Transactions.findAll({
+      where: { originalId: ['payout-tx-001', 'payout-tx-002'] },
+    });
+    const updatedBankTx = await Transactions.findByPk(bankTx.id);
+
+    expect(walutomatTxs).toHaveLength(2);
+    expect(updatedBankTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    expect(updatedBankTx!.transferId).toBeNull();
+    walutomatTxs.forEach((tx) => {
+      expect(tx.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+      expect(tx.transferId).toBeNull();
+    });
+  });
+
+  it('still links the unambiguous PAYOUT when the rival leg is outside the date window', async () => {
+    const amount = 1000;
+    const bankAccount = await createAccountWithIban({ currencyCode: 'EUR', iban: MOCK_EXTERNAL_IBAN });
+
+    const bankTx = await createBankTransaction({
+      accountId: bankAccount.id,
+      amount,
+      transactionType: TRANSACTION_TYPES.income,
+      time: new Date('2026-02-27T10:00:00Z'),
+    });
+
+    const payouts = [
+      buildPayoutHistoryItem({
+        amount: amount.toFixed(2),
+        currency: 'EUR',
+        destinationIban: MOCK_EXTERNAL_IBAN,
+        ts: new Date('2026-02-27T10:00:00Z').toISOString(),
+      }),
+      buildPayoutHistoryItem({
+        historyItemId: 90002,
+        transactionId: 'payout-tx-002',
+        amount: amount.toFixed(2),
+        currency: 'EUR',
+        destinationIban: MOCK_EXTERNAL_IBAN,
+        ts: new Date('2026-01-10T10:00:00Z').toISOString(),
+      }),
+    ];
+
+    const { connectionId } = await helpers.walutomat.pair();
+    global.mswMockServer.use(getWalutomatHistoryMock({ response: payouts }), getWalutomatBalancesMock());
+
+    await helpers.bankDataProviders.connectSelectedAccounts({
+      connectionId,
+      accountExternalIds: ['wallet-eur'],
+      raw: true,
+    });
+
+    const updatedBankTx = await Transactions.findByPk(bankTx.id);
+    const linkedPayout = await Transactions.findOne({ where: { originalId: 'payout-tx-001' } });
+    const farPayout = await Transactions.findOne({ where: { originalId: 'payout-tx-002' } });
+
+    expect(updatedBankTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.common_transfer);
+    expect(updatedBankTx!.transferId).toBeTruthy();
+    expect(linkedPayout!.transferId).toBe(updatedBankTx!.transferId);
+    expect(farPayout!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    expect(farPayout!.transferId).toBeNull();
+  });
+
+  it('should NOT link a pending counterpart', async () => {
+    const bankAccount = await createAccountWithIban({ currencyCode: 'EUR', iban: MOCK_EXTERNAL_IBAN });
+
+    const bankTx = await createBankTransaction({
+      accountId: bankAccount.id,
+      amount: 1000,
+      transactionType: TRANSACTION_TYPES.income,
+      time: new Date('2026-02-28T10:00:00Z'),
+    });
+    await Transactions.update({ externalData: { rawTransaction: { status: 'PDNG' } } }, { where: { id: bankTx.id } });
+
+    const payoutItem = buildPayoutHistoryItem({
+      amount: '1000.00',
+      currency: 'EUR',
+      destinationIban: MOCK_EXTERNAL_IBAN,
+      ts: new Date('2026-02-27T12:00:00Z').toISOString(),
+    });
+
+    const { connectionId } = await helpers.walutomat.pair();
+    global.mswMockServer.use(getWalutomatHistoryMock({ response: [payoutItem] }), getWalutomatBalancesMock());
+
+    await helpers.bankDataProviders.connectSelectedAccounts({
+      connectionId,
+      accountExternalIds: ['wallet-eur'],
+      raw: true,
+    });
+
+    const updatedBankTx = await Transactions.findByPk(bankTx.id);
+    const walutomatTx = await Transactions.findOne({ where: { originalId: 'payout-tx-001' } });
+
+    expect(updatedBankTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    expect(updatedBankTx!.transferId).toBeNull();
+    expect(walutomatTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+  });
+
+  it('should NOT link a refund-linked counterpart', async () => {
+    const bankAccount = await createAccountWithIban({ currencyCode: 'EUR', iban: MOCK_EXTERNAL_IBAN });
+
+    const bankTx = await createBankTransaction({
+      accountId: bankAccount.id,
+      amount: 1000,
+      transactionType: TRANSACTION_TYPES.income,
+      time: new Date('2026-02-28T10:00:00Z'),
+    });
+    await Transactions.update({ refundLinked: true }, { where: { id: bankTx.id } });
+
+    const payoutItem = buildPayoutHistoryItem({
+      amount: '1000.00',
+      currency: 'EUR',
+      destinationIban: MOCK_EXTERNAL_IBAN,
+      ts: new Date('2026-02-27T12:00:00Z').toISOString(),
+    });
+
+    const { connectionId } = await helpers.walutomat.pair();
+    global.mswMockServer.use(getWalutomatHistoryMock({ response: [payoutItem] }), getWalutomatBalancesMock());
+
+    await helpers.bankDataProviders.connectSelectedAccounts({
+      connectionId,
+      accountExternalIds: ['wallet-eur'],
+      raw: true,
+    });
+
+    const updatedBankTx = await Transactions.findByPk(bankTx.id);
+    const walutomatTx = await Transactions.findOne({ where: { originalId: 'payout-tx-001' } });
+
+    expect(updatedBankTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
+    expect(updatedBankTx!.transferId).toBeNull();
+    expect(walutomatTx!.transferNature).toBe(TRANSACTION_TRANSFER_NATURE.not_transfer);
   });
 });

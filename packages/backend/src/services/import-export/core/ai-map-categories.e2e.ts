@@ -1,8 +1,11 @@
-import { AI_FEATURE, getModelNameFromModelId } from '@bt/shared/types';
+import { AI_FEATURE, API_ERROR_CODES, getModelNameFromModelId } from '@bt/shared/types';
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import Users from '@models/users.model';
 import { getDefaultModelForFeature } from '@services/ai/models-config';
 import * as helpers from '@tests/helpers';
 import { useSelfHostWithoutServerAiKeys } from '@tests/helpers/ai-test-env';
+import type { ErrorResponse } from '@tests/helpers/common';
+import { clearMockSession, registerMockSession } from '@tests/mocks/better-auth';
 import {
   GEMINI_API_URL,
   VALID_GEMINI_API_KEY,
@@ -159,4 +162,28 @@ describe('POST /import/ai-map-categories', () => {
       expect(response.statusCode).toBe(422);
     });
   });
+});
+
+describe('POST /import/ai-map-categories in demo mode', () => {
+  it('refuses a demo session before any AI call', async () => {
+    const demo = await helpers.makeAuthRequest({ method: 'post', url: '/demo' });
+    expect(demo.statusCode).toBe(200);
+
+    const cookies = helpers.extractCookies(demo);
+    const sessionToken = cookies.match(/bt_auth\.session_token=([^;]+)/)?.[1];
+    const demoUser = await Users.findByPk(demo.body.response.user.id);
+    registerMockSession(sessionToken!, { id: demoUser!.authUserId, email: `demo-${demoUser!.id}@demo.local` });
+
+    try {
+      const res = await helpers.asUser({
+        cookies,
+        fn: () => helpers.aiMapImportCategories({ payload: { sourceCategories: ['Groceries'] } }),
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect((res.body.response as unknown as ErrorResponse).code).toBe(API_ERROR_CODES.forbidden);
+    } finally {
+      clearMockSession(sessionToken!);
+    }
+  }, 120_000);
 });

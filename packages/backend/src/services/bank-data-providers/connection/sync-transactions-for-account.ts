@@ -4,10 +4,33 @@ import { NotFoundError } from '@js/errors';
 import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { withTransaction } from '@root/services/common/with-transaction';
+import { withLock } from '@services/common/lock';
 
 import { bankProviderRegistry } from '../registry';
 
-export const syncTransactionsForAccount = withTransaction(
+// Must outlive the 20 minute stale-sync threshold, or the lock expires while the account still reports SYNCING.
+const SYNC_LOCK_TTL_SECONDS = 60 * 30;
+
+/**
+ * Throws LockedError when another sync holds any of the accounts.
+ * Provider dedup is read-then-insert, so overlapping syncs import every row twice.
+ */
+export function withAccountSyncLock<R>({
+  accountIds,
+  fn,
+}: {
+  accountIds: [string, ...string[]];
+  fn: () => Promise<R>;
+}): Promise<R> {
+  const locked = accountIds.reduce<() => Promise<R>>(
+    (next, accountId) => withLock(`bank-sync:account:${accountId}`, next, { ttl: SYNC_LOCK_TTL_SECONDS }),
+    fn,
+  );
+
+  return locked();
+}
+
+const runAccountSync = withTransaction(
   async ({ connectionId, userId, accountId }: { connectionId: string; userId: number; accountId: string }) => {
     // Re-loads connection + account by id to re-check ownership on every call,
     // keeping this safe as a standalone entry point. The resulting N+1 in the
@@ -46,3 +69,6 @@ export const syncTransactionsForAccount = withTransaction(
     return provider.syncTransactions({ connectionId, systemAccountId: accountId, userId });
   },
 );
+
+export const syncTransactionsForAccount = (params: { connectionId: string; userId: number; accountId: string }) =>
+  withAccountSyncLock({ accountIds: [params.accountId], fn: () => runAccountSync(params) });

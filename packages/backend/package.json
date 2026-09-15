@@ -71,6 +71,7 @@
     "sequelize": "6.37.8",
     "sequelize-cli": "6.6.2",
     "sequelize-typescript": "2.1.6",
+    "stripe": "^22.6.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "unpdf": "^1.6.0",

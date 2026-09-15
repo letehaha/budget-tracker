@@ -272,6 +272,17 @@ export const updateAccount = withTransaction(
       message: t({ key: 'accounts.accountNotFound' }),
     });
 
+    // loan and vehicle require a sidecar row that only the /loans and /vehicles endpoints create.
+    if (
+      payload.accountCategory !== undefined &&
+      payload.accountCategory !== accountData.accountCategory &&
+      isDedicatedFlowAccountCategory(payload.accountCategory)
+    ) {
+      throw new ValidationError({
+        message: t({ key: 'accounts.dedicatedFlowCategoryNotAllowed' }),
+      });
+    }
+
     // Vehicle value changes only via balance adjustment, which re-anchors depreciation
     if (accountData.accountCategory === ACCOUNT_CATEGORIES.vehicle && payload.currentBalance !== undefined) {
       throw new ValidationError({

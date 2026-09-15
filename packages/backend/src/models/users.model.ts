@@ -1,5 +1,5 @@
 import type { RecordId } from '@bt/shared/types';
-import { UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
+import { Plan, UserModel, USER_ROLES, UserRole } from '@bt/shared/types';
 import { Table, Column, Model, BelongsToMany, Length, DataType } from 'sequelize-typescript';
 
 import Currencies from './currencies.model';
@@ -79,6 +79,14 @@ export default class Users extends Model {
     defaultValue: DataType.NOW,
   })
   declare createdAt: Date;
+
+  /** Lifetime plan grant. Subscriptions live in BillingSubscriptions. */
+  @Column({ allowNull: true, type: DataType.STRING(20) })
+  plan!: Plan | null;
+
+  /** Cloud only. Null means the user predates trials and resolves as Plus until the grandfather script runs. */
+  @Column({ allowNull: true, type: DataType.DATE })
+  trialEndsAt!: Date | null;
 }
 
 export const getUserDefaultCategory = async ({ id }: { id: number }) => {
@@ -100,6 +108,7 @@ export const createUser = async ({
   totalBalance = DETAULT_TOTAL_BALANCE,
   authUserId,
   role = USER_ROLES.common,
+  trialEndsAt = null,
 }: {
   username: string;
   email?: string;
@@ -110,6 +119,7 @@ export const createUser = async ({
   totalBalance?: number;
   authUserId?: string;
   role?: UserRole;
+  trialEndsAt?: Date | null;
 }): Promise<UserModel> => {
   const user = await Users.create({
     username,
@@ -121,6 +131,7 @@ export const createUser = async ({
     totalBalance,
     authUserId,
     role,
+    trialEndsAt,
   });
 
   return user;

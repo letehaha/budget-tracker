@@ -90,27 +90,29 @@
         </div>
       </div>
 
-      <Separator />
+      <template v-if="isSupportButtonAvailable">
+        <Separator />
 
-      <!-- Header -->
-      <div>
-        <h3 class="mb-2 text-lg font-medium">{{ $t('settings.appearance.header.title') }}</h3>
-        <p class="mb-4 text-sm leading-relaxed">
-          {{ $t('settings.appearance.header.description') }}
-        </p>
+        <!-- Header -->
+        <div>
+          <h3 class="mb-2 text-lg font-medium">{{ $t('settings.appearance.header.title') }}</h3>
+          <p class="mb-4 text-sm leading-relaxed">
+            {{ $t('settings.appearance.header.description') }}
+          </p>
 
-        <div class="flex items-center justify-between gap-4">
-          <span class="flex items-center gap-2 text-sm">
-            <HeartIcon class="text-heart size-4 shrink-0 fill-current" />
-            {{ $t('settings.appearance.header.supportButton') }}
-          </span>
-          <Switch
-            :model-value="isSupportButtonVisible"
-            :disabled="isSupportButtonUpdating"
-            @update:model-value="(v) => setSupportButtonVisible(!!v)"
-          />
+          <div class="flex items-center justify-between gap-4">
+            <span class="flex items-center gap-2 text-sm">
+              <HeartIcon class="text-heart size-4 shrink-0 fill-current" />
+              {{ $t('settings.appearance.header.supportButton') }}
+            </span>
+            <Switch
+              :model-value="isSupportButtonVisible"
+              :disabled="isSupportButtonUpdating"
+              @update:model-value="(v) => setSupportButtonVisible(!!v)"
+            />
+          </div>
         </div>
-      </div>
+      </template>
     </CardContent>
   </Card>
 </template>
@@ -129,7 +131,12 @@ import { CoinsIcon, HeartIcon, InfoIcon, LayersIcon, MonitorIcon, MoonStarIcon, 
 import { type Component } from 'vue';
 
 const { sidebarSections, toggleSection, isUpdating } = useSidebarSections();
-const { isSupportButtonVisible, setSupportButtonVisible, isUpdating: isSupportButtonUpdating } = useSupportButton();
+const {
+  isSupportButtonAvailable,
+  isSupportButtonVisible,
+  setSupportButtonVisible,
+  isUpdating: isSupportButtonUpdating,
+} = useSupportButton();
 const { data: userSettings, patch, isPatching } = useUserSettings();
 
 interface ThemeOption {

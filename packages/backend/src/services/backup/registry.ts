@@ -4,6 +4,8 @@ import AccountGroup from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
+import BillingSubscriptions from '@models/billing-subscriptions.model';
+import BillingWebhookEvents from '@models/billing-webhook-events.model';
 import BrandLogos from '@models/brand-logos.model';
 import BudgetCategories from '@models/budget-categories.model';
 import BudgetTransactions from '@models/budget-transactions.model';
@@ -29,6 +31,7 @@ import Payees from '@models/payees.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import ResourceShares from '@models/resource-shares.model';
 import ShareInvitations from '@models/share-invitations.model';
+import SignupLedger from '@models/signup-ledger.model';
 import SubscriptionCandidates from '@models/subscription-candidates.model';
 import SubscriptionPeriodNotifications from '@models/subscription-period-notifications.model';
 import SubscriptionPeriods from '@models/subscription-periods.model';
@@ -538,6 +541,13 @@ export const BACKUP_EXCLUDED: readonly BackupExcludedDef[] = [
     reason:
       'Global derived price history, refetched from the market-data provider. Never trusted from an uploaded backup — writing it from an archive would let a crafted backup poison prices for securities other users hold.',
   },
+  {
+    model: BillingSubscriptions,
+    reason:
+      'Mirror of Stripe, keyed to a Stripe customer — Stripe re-sends it by webhook, restoring it would bind another account.',
+  },
+  { model: BillingWebhookEvents, reason: 'Webhook dedupe markers for a Stripe account, meaningless outside it.' },
+  { model: SignupLedger, reason: 'Global signup/trial ledger keyed by email hash, not per-user data.' },
 ];
 
 /**

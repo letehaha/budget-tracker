@@ -49,23 +49,27 @@ function describeEndpointModel({
 
 /**
  * Display-only projection of the same `pickResolutionStep` walk the runtime uses, so the
- * screen cannot name a model the run would not pick. Credential failures stay invisible
- * here: an undecryptable stored key surfaces only when the request is made.
+ * screen cannot name a model the run would not pick — `serverKeysAllowed` therefore has to
+ * be the caller's real `operator_ai` entitlement. Credential failures stay invisible here:
+ * an undecryptable stored key surfaces only when the request is made.
  */
 export function resolveFeatureModelDisplay({
   feature,
   config,
   aiSettings,
+  serverKeysAllowed,
 }: {
   feature: AI_FEATURE;
   config: AIFeatureConfig | null;
   aiSettings: StoredAiSettings | null;
+  serverKeysAllowed: boolean;
 }): FeatureModelDisplay {
   const step = pickResolutionStep({
     feature,
     config,
     keyProviders: new Set((aiSettings?.apiKeys ?? []).map((key) => key.provider)),
     endpoints: aiSettings?.customEndpoints ?? [],
+    serverKeysAllowed,
   });
 
   switch (step.kind) {

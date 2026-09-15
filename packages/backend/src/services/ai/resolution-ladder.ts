@@ -54,6 +54,9 @@ type ResolutionStep<E extends LadderEndpoint> =
  * the user's first dialable endpoint, then the feature default on the server key. Pure over
  * its inputs plus the server-key env vars.
  *
+ * The server key only ever runs the feature default: a pricier catalog pick needs the user's
+ * own key, otherwise it degrades to the default instead of billing the operator.
+ *
  * Pass `excludedEndpointIds` to re-run the walk with an endpoint ruled out.
  */
 export function pickResolutionStep<E extends LadderEndpoint>({
@@ -61,6 +64,7 @@ export function pickResolutionStep<E extends LadderEndpoint>({
   config,
   keyProviders,
   endpoints,
+  serverKeysAllowed,
   excludedEndpointIds,
 }: {
   feature: AI_FEATURE;
@@ -69,9 +73,13 @@ export function pickResolutionStep<E extends LadderEndpoint>({
   keyProviders: ReadonlySet<AIKeyProvider>;
   /** In saved order: the first dialable one wins. */
   endpoints: readonly E[];
+  /** When false the walk behaves as if no server key existed, so the user's own
+   * credentials or an `unserved` step answer instead. */
+  serverKeysAllowed: boolean;
   excludedEndpointIds?: ReadonlySet<string>;
 }): ResolutionStep<E> {
   const excluded = excludedEndpointIds ?? new Set<string>();
+  const defaultModelId = getDefaultModelForFeature({ feature });
 
   if (config) {
     const provider = getProviderFromModelId({ modelId: config.modelId });
@@ -88,15 +96,14 @@ export function pickResolutionStep<E extends LadderEndpoint>({
       if (keyProviders.has(provider)) {
         return { kind: 'configured-catalog', provider, modelId: config.modelId, usingUserKey: true };
       }
-      if (getServerApiKey({ provider })) {
+      if (serverKeysAllowed && config.modelId === defaultModelId && getServerApiKey({ provider })) {
         return { kind: 'configured-catalog', provider, modelId: config.modelId, usingUserKey: false };
       }
-      // No key anywhere for the configured provider: fall through to the defaults.
+      // No key of the user's own for this model: fall through to the defaults.
     }
     // A null provider means the ID is in no catalog; nothing can serve it, fall through.
   }
 
-  const defaultModelId = getDefaultModelForFeature({ feature });
   const defaultProvider = getProviderFromModelId({ modelId: defaultModelId });
 
   if (!defaultProvider || defaultProvider === AI_PROVIDER.custom) {
@@ -119,7 +126,7 @@ export function pickResolutionStep<E extends LadderEndpoint>({
     return { kind: 'all-endpoints-down', endpoint: endpoints[0]! };
   }
 
-  if (getServerApiKey({ provider: defaultProvider })) {
+  if (serverKeysAllowed && getServerApiKey({ provider: defaultProvider })) {
     return { kind: 'default-catalog', provider: defaultProvider, modelId: defaultModelId, usingUserKey: false };
   }
 

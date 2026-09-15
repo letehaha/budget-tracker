@@ -16,6 +16,7 @@ import { namespace } from '@models/connection';
 import { absorbLinkResidualIntoOpeningBalance } from '@services/accounts/absorb-link-residual';
 import { assertNotDerivedBalanceAccount } from '@services/accounts/derived-balance-guard';
 import { bankProviderRegistry } from '@services/bank-data-providers';
+import { assertExternalAccountNotLinkedElsewhere } from '@services/bank-data-providers/connection/connect-selected-accounts';
 import { syncTransactionsForAccount } from '@services/bank-data-providers/connection/sync-transactions-for-account';
 import { SyncStatus, setAccountSyncStatus } from '@services/bank-data-providers/sync/sync-status-tracker';
 import { writeBankBalanceWithHistory } from '@services/bank-data-providers/utils/write-bank-balance-with-history';
@@ -110,6 +111,12 @@ export const linkAccountToBankConnection = withTransaction(
         message: `Currency mismatch: System account uses ${account.currencyCode}, but external account uses ${externalAccount.currency}. Only accounts with matching currencies can be linked.`,
       });
     }
+
+    await assertExternalAccountNotLinkedElsewhere({
+      userId,
+      providerType: bankConnection.providerType,
+      externalId: externalAccountId,
+    });
 
     const systemBalance = account.currentBalance.toCents();
     const externalBalance = externalAccount.balance;

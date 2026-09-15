@@ -111,27 +111,13 @@ export class SimplefinApiClient {
   }
 
   /**
-   * Verify the Access URL works. Returns false for auth failures whether
-   * surfaced as 401/403 or as a `*.auth` entry inside an HTTP 200 `errlist`
-   * (the bridge does both — protocol v2 explicitly says to inspect errlist);
-   * network/5xx errors propagate so callers can distinguish "invalid
-   * credentials" from "provider is down".
+   * Returns false only for a gen.auth errlist entry, the one code meaning our Access URL is rejected.
+   * con.auth is scoped to one institution and leaves the credentials valid.
+   * Other failures propagate so 5xx and network errors stay distinguishable from bad credentials.
    */
   async testConnection(): Promise<boolean> {
-    try {
-      const accountSet = await this.getAccounts({ balancesOnly: true });
-      const hasAuthError = (accountSet.errlist ?? []).some((entry) => entry.code.endsWith('.auth'));
-      if (hasAuthError) return false;
-      return true;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        if (status === 401 || status === 403) {
-          return false;
-        }
-      }
-      throw error;
-    }
+    const accountSet = await this.getAccounts({ balancesOnly: true });
+    return !(accountSet.errlist ?? []).some((entry) => entry.code === 'gen.auth');
   }
 
   /**

@@ -38,7 +38,7 @@ const props = defineProps<{
 
 const queryClient = useQueryClient();
 const { addNotification } = useNotificationCenter();
-const { accountStatuses, subscribeToSSE } = useSyncStatus();
+const { accountStatuses, watchSync } = useSyncStatus();
 
 // Check if there's an active sync for this specific account
 const isAccountSyncing = computed(() => {
@@ -53,8 +53,7 @@ const { mutate: syncMutate, isPending: isSyncing } = useMutation({
       throw new Error(t('pages.account.syncTransactions.notLinked'));
     }
 
-    // Subscribe to SSE for updates
-    subscribeToSSE();
+    await watchSync();
 
     return syncTransactions(props.account.bankDataProviderConnectionId, props.account.id);
   },

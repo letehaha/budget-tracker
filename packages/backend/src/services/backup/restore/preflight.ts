@@ -1,5 +1,8 @@
 import { API_ERROR_CODES } from '@bt/shared/types';
-import { ConflictError } from '@js/errors';
+import { isSelfHost } from '@config/is-self-host';
+import { ConflictError, ValidationError } from '@js/errors';
+import Users from '@models/users.model';
+import { getEmailForUser } from '@services/sharing/find-user-by-email.service';
 import { getOwnedSharedResourceSummary } from '@services/user/wipe-user-data.service';
 
 import { loadValidatedArchive } from './load-validated-archive';
@@ -22,7 +25,8 @@ export async function preflightRestore({
   fileContent: string;
   acknowledgeSharing?: boolean;
 }): Promise<void> {
-  await loadValidatedArchive({ fileContent });
+  const { archive } = await loadValidatedArchive({ fileContent });
+  if (!isSelfHost()) await assertArchiveOwner({ userId, manifestUser: archive.manifest.user });
 
   if (!acknowledgeSharing) {
     const summary = await getOwnedSharedResourceSummary({ userId });
@@ -34,5 +38,26 @@ export async function preflightRestore({
         details: { sharedResources: summary },
       });
     }
+  }
+}
+
+async function assertArchiveOwner({
+  userId,
+  manifestUser,
+}: {
+  userId: number;
+  manifestUser: { username: string; email: string | null };
+}): Promise<void> {
+  const [user, email] = await Promise.all([
+    Users.findByPk(userId, { attributes: ['username'] }),
+    getEmailForUser({ userId }),
+  ]);
+
+  const sameEmail = Boolean(manifestUser.email && email && manifestUser.email.toLowerCase() === email.toLowerCase());
+  const sameUsername = Boolean(user && manifestUser.username === user.username);
+  if (!sameEmail && !sameUsername) {
+    throw new ValidationError({
+      message: 'This backup was exported by a different account and cannot be restored here.',
+    });
   }
 }

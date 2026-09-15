@@ -3,7 +3,6 @@ import {
   RESOURCE_TYPES,
   ResourceShareModel,
   SHARE_INVITATION_STATUSES,
-  SHARING_LIMITS,
   ShareInvitationModel,
 } from '@bt/shared/types';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
@@ -20,6 +19,7 @@ import { Op, QueryTypes } from 'sequelize';
 import { resolveResourceName } from '../auth/can-user-access-resource.service';
 import { getEmailForUser } from '../find-user-by-email.service';
 import { LIFECYCLE_NOTIFIERS } from '../share-notifications';
+import { assertSeatAvailable } from './assert-seat-available';
 
 interface AcceptInvitationResult {
   invitation: ShareInvitationModel;
@@ -148,7 +148,7 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
   // check — the recipient already has a slot, accepting again is idempotent.
   if (!existingShare) {
     // Serialize accept on (resourceType, resourceId) so concurrent recipients can't both
-    // pass the count check below. The unique constraint only blocks same-recipient
+    // pass the seat check below. The unique constraint only blocks same-recipient
     // duplicates; without this lock two different recipients could both insert and exceed
     // the cap. Transaction-scoped (`pg_advisory_xact_lock`) — released automatically on
     // commit/rollback. CLS picks up the surrounding transaction from `withTransaction`.
@@ -160,23 +160,12 @@ const acceptImpl = async ({ token, userId }: { token: string; userId: number }):
       type: QueryTypes.SELECT,
     });
 
-    const acceptedCount = await ResourceShares.count({
-      where: {
-        resourceType: invitation.resourceType,
-        resourceId: invitation.resourceId,
-        acceptedAt: { [Op.not]: null },
-      },
+    await assertSeatAvailable({
+      ownerUserId: invitation.ownerUserId,
+      resourceType: invitation.resourceType,
+      resourceId: invitation.resourceId,
+      voice: 'recipient',
     });
-    const acceptedCap =
-      invitation.resourceType === RESOURCE_TYPES.household
-        ? SHARING_LIMITS.maxHouseholdMembers
-        : SHARING_LIMITS.maxRecipientsPerResource;
-    if (acceptedCount >= acceptedCap) {
-      const target = invitation.resourceType === RESOURCE_TYPES.household ? 'household member(s)' : 'recipient(s)';
-      throw new ConflictError({
-        message: `This resource is full — the owner has reached the maximum of ${acceptedCap} active ${target}.`,
-      });
-    }
   }
 
   const acceptedAt = new Date();

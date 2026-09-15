@@ -1,10 +1,12 @@
-import { CategoryModel } from '@bt/shared/types';
+import { CategoryModel, TRIAL_DAYS } from '@bt/shared/types';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { connection } from '@models/index';
+import SignupLedger from '@models/signup-ledger.model';
 import Tags from '@models/tags.model';
 import Users from '@models/users.model';
 import * as userService from '@services/user.service';
-import { extractCookies, makeAuthRequest, makeRequest } from '@tests/helpers';
+import { hashEmail } from '@services/user/signups-open.service';
+import { asUser, extractCookies, makeAuthRequest, makeRequest, withSelfHost } from '@tests/helpers';
 
 /**
  * Signup-flow integration tests.
@@ -302,6 +304,7 @@ describe('Signup flow', () => {
   describe('Stage-1: app-user creation failure (rollback)', () => {
     afterEach(() => {
       jest.restoreAllMocks();
+      delete process.env.SYSTEM_MAX_SIGNUPS_ALLOWED;
     });
 
     it('should rollback ba_user when app-user creation fails so signup can be retried', async () => {
@@ -324,6 +327,11 @@ describe('Signup flow', () => {
 
       const email = 'rollback-target@test.local';
 
+      // Suite setup holds one ledger row, so a cap of 2 leaves exactly one free slot:
+      // it must survive a failed signup.
+      process.env.SYSTEM_MAX_SIGNUPS_ALLOWED = '2';
+      const ledgerBefore = await SignupLedger.count();
+
       const res = await makeAuthRequest({
         method: 'post',
         url: '/auth/sign-up/email',
@@ -344,6 +352,11 @@ describe('Signup flow', () => {
 
       const appUsers = await Users.findAll({ where: { email }, raw: true });
       expect(appUsers).toHaveLength(0);
+
+      expect(await SignupLedger.count()).toEqual(ledgerBefore);
+      expect(await makeRequest({ method: 'get', url: '/auth/signups-open', raw: true })).toEqual({
+        signupsOpen: true,
+      });
     });
   });
 
@@ -647,7 +660,141 @@ describe('Signup cap (SYSTEM_MAX_SIGNUPS_ALLOWED)', () => {
     const res = await trySignup();
     expect(res.statusCode).toBe(200);
 
-    const status = await makeRequest({ method: 'get', url: '/auth/signups-open', raw: true });
+    const status = await makeRequest({
+      method: 'get',
+      url: '/auth/signups-open',
+      raw: true,
+    });
     expect(status).toEqual({ signupsOpen: false });
+  });
+
+  it('self-host counts live users, so raising the cap reopens signups', async () => {
+    await withSelfHost(async () => {
+      // One `ba_user` exists: the seeded test account.
+      process.env.SYSTEM_MAX_SIGNUPS_ALLOWED = '1';
+      const closed = await makeRequest({ method: 'get', url: '/auth/signups-open', raw: true });
+      expect(closed).toEqual({ signupsOpen: false });
+
+      process.env.SYSTEM_MAX_SIGNUPS_ALLOWED = '2';
+      const open = await makeRequest({ method: 'get', url: '/auth/signups-open', raw: true });
+      expect(open).toEqual({ signupsOpen: true });
+
+      const res = await trySignup();
+      expect(res.statusCode).toBe(200);
+    });
+  });
+
+  it('counts the ledger, so deleting the account does not reopen the slot', async () => {
+    process.env.SYSTEM_MAX_SIGNUPS_ALLOWED = '2';
+
+    const res = await trySignup();
+    expect(res.statusCode).toBe(200);
+
+    const deletion = await asUser({
+      cookies: extractCookies(res),
+      fn: () => makeRequest({ method: 'delete', url: '/user/delete' }),
+    });
+    expect(deletion.statusCode).toBe(200);
+
+    const status = await makeRequest({
+      method: 'get',
+      url: '/auth/signups-open',
+      raw: true,
+    });
+    expect(status).toEqual({ signupsOpen: false });
+  });
+});
+
+describe('Trial on signup', () => {
+  const signUp = ({ email }: { email: string }) =>
+    makeAuthRequest({
+      method: 'post',
+      url: '/auth/sign-up/email',
+      payload: { email, password: 'testpassword123', name: 'Trial User' },
+    });
+
+  const readTrialEndsAt = ({ cookies }: { cookies: string }) =>
+    asUser({
+      cookies,
+      fn: async () => (await makeRequest({ method: 'get', url: '/user', raw: true })).entitlements.trialEndsAt,
+    });
+
+  it('gives a cloud signup a trial that ends in TRIAL_DAYS days', async () => {
+    const res = await signUp({ email: `trial-cloud-${Date.now()}@test.local` });
+    expect(res.statusCode).toEqual(200);
+
+    const trialEndsAt = await readTrialEndsAt({ cookies: extractCookies(res) });
+    expect(trialEndsAt).toBeTruthy();
+
+    const daysLeft = (new Date(trialEndsAt!).getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+    expect(daysLeft).toBeGreaterThan(TRIAL_DAYS - 1);
+    expect(daysLeft).toBeLessThanOrEqual(TRIAL_DAYS);
+  });
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const BACKDATED_DAYS = 30;
+
+  /** Ages the ledger anchor so a resumed trial is measurably shorter than a fresh one. */
+  const backdateFirstSeen = ({ email }: { email: string }) =>
+    SignupLedger.update(
+      { firstSeenAt: new Date(Date.now() - BACKDATED_DAYS * DAY_MS) },
+      { where: { emailHash: hashEmail({ email }) } },
+    );
+
+  const expectDaysLeft = ({ trialEndsAt, days }: { trialEndsAt: string | null; days: number }) => {
+    expect(trialEndsAt).toBeTruthy();
+    const daysLeft = (new Date(trialEndsAt!).getTime() - Date.now()) / DAY_MS;
+    expect(daysLeft).toBeGreaterThan(days - 1 / 24);
+    expect(daysLeft).toBeLessThan(days + 1 / 24);
+  };
+
+  it('resumes the original trial window when the same email signs up again', async () => {
+    const email = `trial-resume-${Date.now()}@test.local`;
+
+    const first = await signUp({ email });
+    expect(first.statusCode).toEqual(200);
+    const firstCookies = extractCookies(first);
+    expectDaysLeft({ trialEndsAt: await readTrialEndsAt({ cookies: firstCookies }), days: TRIAL_DAYS });
+
+    const deletion = await asUser({
+      cookies: firstCookies,
+      fn: () => makeRequest({ method: 'delete', url: '/user/delete' }),
+    });
+    expect(deletion.statusCode).toBe(200);
+
+    await backdateFirstSeen({ email });
+
+    const second = await signUp({ email });
+    expect(second.statusCode).toEqual(200);
+    expectDaysLeft({
+      trialEndsAt: await readTrialEndsAt({ cookies: extractCookies(second) }),
+      days: TRIAL_DAYS - BACKDATED_DAYS,
+    });
+  });
+
+  it('treats a gmail dot/plus variant as the same email for the trial window', async () => {
+    const stamp = Date.now();
+    const email = `trial.alias.${stamp}@gmail.com`;
+    const alias = `trialalias${stamp}+dup@gmail.com`;
+
+    const first = await signUp({ email });
+    expect(first.statusCode).toEqual(200);
+    expectDaysLeft({ trialEndsAt: await readTrialEndsAt({ cookies: extractCookies(first) }), days: TRIAL_DAYS });
+
+    await backdateFirstSeen({ email });
+
+    const second = await signUp({ email: alias });
+    expect(second.statusCode).toEqual(200);
+    expectDaysLeft({
+      trialEndsAt: await readTrialEndsAt({ cookies: extractCookies(second) }),
+      days: TRIAL_DAYS - BACKDATED_DAYS,
+    });
+  });
+
+  it('gives a self-hosted signup no trial at all', async () => {
+    const res = await withSelfHost(() => signUp({ email: `trial-selfhost-${Date.now()}@test.local` }));
+    expect(res.statusCode).toEqual(200);
+
+    expect(await readTrialEndsAt({ cookies: extractCookies(res) })).toBeNull();
   });
 });

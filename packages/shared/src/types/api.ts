@@ -23,6 +23,7 @@ export enum API_ERROR_CODES {
   badGateway = 'BAD_GATEWAY',
   payloadTooLarge = 'PAYLOAD_TOO_LARGE',
   serviceUnavailable = 'SERVICE_UNAVAILABLE',
+  planRequired = 'PLAN_REQUIRED',
 
   // auth
   unauthorized = 'UNAUTHENTICATED',

@@ -81,8 +81,9 @@ export function initWebMcp(): void {
           name: 'MoneyMatter',
           tagline: 'Your finances. Your server. Your rules.',
           description:
-            'Free, open-source personal finance app with budget tracking. Bank sync, AI-assisted categorization, budgets, investment tracking, and full export. Self-host it or use the hosted cloud. Data is never sold or shared.',
-          pricing: 'Free',
+            'Open-source personal finance app with budget tracking. Bank sync, AI-assisted categorization, budgets, investment tracking, and full export. Self-host it or use the hosted cloud. Data is never sold or shared.',
+          pricing:
+            'Cloud: Essential $5/mo or $30/yr, Plus $8/mo or $55/yr, 40-day free trial without a card. Self-hosting is free.',
           cloudSignUpUrl: 'https://moneymatter.app/sign-up',
           sourceCodeUrl: GITHUB_URL,
           license: 'CC-BY-NC-SA-4.0',

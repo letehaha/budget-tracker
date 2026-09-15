@@ -40,6 +40,11 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   'POST /api/v1/notifications/read-all',
   'POST /api/v1/notifications/:id/read',
 
+  // Billing and admin plan grants: Stripe sessions and plan flags, no monetary data.
+  'PATCH /api/v1/admin/users/:id/plan',
+  'POST /api/v1/billing/checkout',
+  'POST /api/v1/billing/portal',
+
   // Lease extension writes no financial data, and refusing it mid-wizard would
   // drop the user's upload for nothing.
   'POST /api/v1/resource-leases/refresh',

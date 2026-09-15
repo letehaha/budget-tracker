@@ -7,6 +7,7 @@ import { invalidatePersistedQuery } from '@/lib/query-client';
 import { captureException } from '@/lib/sentry';
 import { useAuthStore } from '@/stores/auth';
 import { useUserStore } from '@/stores/user';
+import { FEATURES } from '@bt/shared/types';
 import type { AccountModel } from '@bt/shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { storeToRefs } from 'pinia';
@@ -51,22 +52,23 @@ const justCompleted = ref(false);
 const syncStuck = ref(false);
 let stuckTimer: ReturnType<typeof setTimeout> | null = null;
 
-// SSE subscription state – one shared subscription regardless of how many
-// consumers mount.
-let sseUnsubscribe: (() => void) | null = null;
+// One shared SSE subscription regardless of how many consumers mount.
 let isSSESubscribed = false;
 
 export function useSyncStatus() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const { connect, disconnect, on, isConnected } = useSSE();
+  const { connect, on, isConnected } = useSSE();
   const { isLoggedIn } = storeToRefs(useAuthStore());
-  const { isDemo } = storeToRefs(useUserStore());
+  const userStore = useUserStore();
+  const { isDemo } = storeToRefs(userStore);
 
-  // Every bank-sync endpoint is behind `blockDemoUsers`, so a demo session can only
-  // ever collect 403s here. Gate the whole composable instead of letting the query
-  // and the header's auto-check fire and fail.
-  const syncEnabled = computed(() => isLoggedIn.value && !isDemo.value);
+  // Every bank-sync endpoint is behind `blockDemoUsers` and the bank_providers
+  // entitlement, so an ungated session can only collect 403s and 402s here. Gate the
+  // whole composable instead of letting the query and the header's auto-check fire and fail.
+  const syncEnabled = computed(
+    () => isLoggedIn.value && !isDemo.value && userStore.hasFeature(FEATURES.bank_providers),
+  );
 
   // Provider names show up in the always-visible header popover regardless of
   // which page the user is on, but live in the integrations route chunk –
@@ -215,7 +217,7 @@ export function useSyncStatus() {
   const subscribeToSSE = () => {
     if (isSSESubscribed) return;
 
-    sseUnsubscribe = on(SSE_EVENT_TYPES.SYNC_STATUS_CHANGED, (data) => {
+    on(SSE_EVENT_TYPES.SYNC_STATUS_CHANGED, (data) => {
       const snapshot = data as unknown as SyncStatusResponse;
       // Compare against the cached (not watchdog-masked) state so completion is
       // detected even after the watchdog has already silenced the spinner.
@@ -245,28 +247,10 @@ export function useSyncStatus() {
         setTimeout(() => {
           justCompleted.value = false;
         }, SUCCESS_MESSAGE_TTL_MS);
-
-        // Disconnect SSE when sync is complete (per user requirement).
-        // TODO: Handle SSE reconnection for cron-triggered syncs. Currently SSE
-        // disconnects when idle and only reconnects on manual trigger. Cron syncs
-        // won't push updates until user manually triggers or refreshes the page.
-        // Options: (1) Keep SSE always connected, (2) Use WebSocket, (3) Polling fallback
-        disconnect();
       }
     });
 
     isSSESubscribed = true;
-  };
-
-  /**
-   * Unsubscribe from SSE sync status events
-   */
-  const unsubscribeFromSSE = () => {
-    if (sseUnsubscribe) {
-      sseUnsubscribe();
-      sseUnsubscribe = null;
-    }
-    isSSESubscribed = false;
   };
 
   // Attach the shared SSE subscription and open the connection. Idempotent –
@@ -393,6 +377,5 @@ export function useSyncStatus() {
     watchSync,
     checkAndAutoSync,
     subscribeToSSE,
-    unsubscribeFromSSE,
   };
 }

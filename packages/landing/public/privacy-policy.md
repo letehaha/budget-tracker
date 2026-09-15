@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: December 21, 2025
+Last updated: September 15, 2026
 
 ## 1. Introduction
 
@@ -12,6 +12,7 @@ MoneyMatter ("we", "our", or "us") is committed to protecting your privacy. This
 - **Financial Data:** Transaction records, account balances, categories, and budgets that you enter or sync from connected banks.
 - **Bank Connection Credentials:** If you use bank integrations, we store encrypted API credentials to maintain your connections.
 - **Usage Data:** Basic analytics to improve the application experience.
+- **Billing Data:** If you subscribe, Stripe collects your payment details and billing address directly; we never receive your card number. We store the Stripe customer and subscription identifiers and the status, plan and renewal date of your subscription.
 
 ## 3. How We Use Your Information
 
@@ -31,8 +32,11 @@ If you self-host MoneyMatter, your data remains entirely on your own infrastruct
 
 We may use third-party services for:
 
+- Payments and subscriptions: Stripe, acting as merchant of record under Stripe Managed Payments. Stripe processes your payment, collects applicable taxes and issues receipts under its own [privacy policy](https://stripe.com/privacy)
 - Bank data aggregation (Enable Banking, Monobank API)
 - AI-powered transaction categorization (optional)
+- Transactional email (Resend), for sign-in, verification and account notices
+- Error monitoring (Sentry) and product analytics (PostHog), used only to run and improve the Service
 
 These services have their own privacy policies. Bank connections are made using your own credentials, and we act only as an intermediary.
 

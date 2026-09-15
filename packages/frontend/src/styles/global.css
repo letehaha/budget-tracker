@@ -485,6 +485,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Diagonal pinstripe fill marking a card as not-yet-available */
+@utility bg-hatched {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 10px,
+    color-mix(in srgb, var(--muted-foreground) 6%, transparent) 10px 11px
+  );
+}
+
 /* Hide scrollbar while keeping scroll functionality */
 @utility no-scrollbar {
   -ms-overflow-style: none;

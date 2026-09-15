@@ -139,6 +139,17 @@ export const demoStartRateLimit = createRateLimit({
 });
 
 /**
+ * Stripe webhook rate limit (per IP, 120 deliveries per minute). Stripe retries and
+ * backfills arrive in bursts, so the budget only has to stop a flood of forged bodies
+ * reaching signature verification. Fail-open: a Redis outage must not drop real events.
+ */
+export const stripeWebhookRateLimit = createRateLimit({
+  windowSeconds: 60,
+  maxAttempts: 120,
+  keyGenerator: (req: Request) => `stripe-webhook:ip:${req.ip}`,
+});
+
+/**
  * CSV import rate limit (per user, 30 attempts per 5 minutes). Bounds the cost of repeated
  * 10MB CSV submissions across the whole import flow, not just one step.
  */
@@ -152,14 +163,22 @@ export const csvImportRateLimit = createRateLimit({
 });
 
 /**
- * Per-user limit shared by the export/backup/restore endpoints. The prefix keeps each
- * endpoint's budget independent.
+ * Per-user limit for the heavy endpoints. The prefix keeps each endpoint's budget
+ * independent; the window and attempts default to 5 per 15 minutes.
  */
-const perUserNonDevRateLimit = ({ prefix }: { prefix: string }) =>
+const perUserNonDevRateLimit = ({
+  prefix,
+  windowSeconds = 15 * 60,
+  maxAttempts = 5,
+}: {
+  prefix: string;
+  windowSeconds?: number;
+  maxAttempts?: number;
+}) =>
   nonDev(
     createRateLimit({
-      windowSeconds: 15 * 60,
-      maxAttempts: 5,
+      windowSeconds,
+      maxAttempts,
       keyGenerator: (req: Request) => {
         const user = req.user as Users;
         return `${prefix}:user:${user.id}`;
@@ -186,6 +205,12 @@ export const backupRateLimit = perUserNonDevRateLimit({ prefix: 'backup' });
  * from draining a shared budget.
  */
 export const backupRestoreRateLimit = perUserNonDevRateLimit({ prefix: 'backup-restore' });
+
+/**
+ * Billing rate limit. Every checkout/portal call mints a Stripe session, so this bounds
+ * how fast a hijacked session or a stuck frontend can hammer Stripe on a user's behalf.
+ */
+export const billingRateLimit = perUserNonDevRateLimit({ prefix: 'billing', windowSeconds: 60, maxAttempts: 10 });
 
 /**
  * Microsoft Money upload rate limit. The upload buffers a file of up to 50MB and

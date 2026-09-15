@@ -7,6 +7,7 @@ import ComparisonSection from '@/components/comparison-section.astro';
 import FeaturesSection from '@/components/features-section.astro';
 import McpSection from '@/components/mcp-section.astro';
 import SelfHostSection from '@/components/self-host-section.astro';
+import PricingSection from '@/components/pricing-section.astro';
 import CtaSection from '@/components/cta-section.astro';
 import LandingFooter from '@/components/landing-footer.astro';
 
@@ -16,8 +17,8 @@ import DemoPortal from '@/components/demo-portal.vue';
 ---
 
 <BaseLayout
-  title="Free Open-Source Budget Tracker & Personal Finance App | MoneyMatter"
-  description="Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host with Docker or use our cloud. Your data stays yours."
+  title="Open-Source Budget Tracker & Personal Finance App | MoneyMatter"
+  description="Open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host with Docker or use our cloud. Your data stays yours."
   canonicalUrl="https://moneymatter.app/"
 >
   <!-- Structured Data (JSON-LD) -->
@@ -29,23 +30,22 @@ import DemoPortal from '@/components/demo-portal.vue';
         "@id": "https://moneymatter.app/#website",
         "url": "https://moneymatter.app/",
         "name": "MoneyMatter",
-        "description": "Free, open-source budget tracking app for personal finance management.",
+        "description": "Open-source budget tracking app for personal finance management.",
         "inLanguage": "en"
       },
       {
         "@type": "SoftwareApplication",
         "@id": "https://moneymatter.app/#app",
         "name": "MoneyMatter",
-        "description": "Free, open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host with Docker or use our cloud. Your data stays yours.",
+        "description": "Open-source budget tracking app. Connect your banks, track expenses, set budgets, and monitor investments. Self-host with Docker or use our cloud. Your data stays yours.",
         "url": "https://moneymatter.app/",
         "applicationCategory": "FinanceApplication",
         "operatingSystem": "Web",
         "browserRequirements": "Requires JavaScript. Works best in modern browsers.",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
+        "offers": [
+          { "@type": "Offer", "name": "Essential", "price": "30", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Plus", "price": "55", "priceCurrency": "USD" }
+        ],
         "featureList": [
           "Bank account synchronization",
           "AI-powered transaction categorization",
@@ -63,7 +63,6 @@ import DemoPortal from '@/components/demo-portal.vue';
           "name": "letehaha",
           "url": "https://github.com/letehaha"
         },
-        "isAccessibleForFree": true,
         "license": "https://www.gnu.org/licenses/agpl-3.0.html"
       }
     ]
@@ -83,6 +82,7 @@ import DemoPortal from '@/components/demo-portal.vue';
     <FeaturesSection />
     <McpSection />
     <SelfHostSection />
+    <PricingSection />
     <CtaSection />
     <LandingFooter />
   </div>
@@ -103,12 +103,12 @@ import DemoPortal from '@/components/demo-portal.vue';
       if (event === 'landing_cta_clicked' && location) {
         trackAnalyticsEvent({
           event: 'landing_cta_clicked',
-          properties: { location: location as 'header' | 'hero' | 'cta_section' | 'self_host', action: 'sign_up' },
+          properties: { location: location as 'header' | 'hero' | 'cta_section' | 'self_host' | 'pricing', action: 'sign_up' },
         });
       } else if (event === 'landing_roadmap_clicked' && location) {
         trackAnalyticsEvent({
           event: 'landing_roadmap_clicked',
-          properties: { location: location as 'hero' },
+          properties: { location: location as 'hero' | 'pricing' },
         });
       } else if (event === 'landing_github_clicked' && location) {
         trackAnalyticsEvent({

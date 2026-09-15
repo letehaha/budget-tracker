@@ -1,10 +1,44 @@
+import { TERMINAL_SUBSCRIPTION_STATUSES, isTerminalStripeStatus } from '@bt/shared/types';
 import { authPool } from '@config/auth';
+import { ConflictError } from '@js/errors';
 import { logger } from '@js/utils/logger';
+import { captureException } from '@js/utils/sentry';
+import BillingSubscriptions from '@models/billing-subscriptions.model';
 import * as Users from '@models/users.model';
+import { getStripeClient } from '@services/billing/stripe/client';
+import { Op } from 'sequelize';
+import Stripe from 'stripe';
 
 import { runUserDestroyLifecycle } from './user-destroy-lifecycle';
 
 export const deleteUser = async ({ userId }: { userId: number }) => {
+  // Cancelling first, and letting a failure abort: a customer whose card is still
+  // chargeable must not end up with no account to cancel from. Paused counts too — it
+  // can be resumed from Stripe's side.
+  const liveSubscriptions = await BillingSubscriptions.findAll({
+    where: { userId, status: { [Op.notIn]: TERMINAL_SUBSCRIPTION_STATUSES } },
+    attributes: ['externalSubscriptionId'],
+  });
+  for (const { externalSubscriptionId } of liveSubscriptions) {
+    try {
+      const stripe = getStripeClient();
+      // The mirror can lag Stripe (a cancel on link.com emits no webhook we act on), and
+      // cancelling an already-terminal subscription is rejected as an invalid request.
+      const remote = await stripe.subscriptions.retrieve(externalSubscriptionId);
+      if (isTerminalStripeStatus(remote)) continue;
+      await stripe.subscriptions.cancel(externalSubscriptionId);
+    } catch (error) {
+      if (error instanceof Stripe.errors.StripeInvalidRequestError && error.code === 'resource_missing') {
+        logger.info(`Stripe no longer knows subscription ${externalSubscriptionId}; treating it as canceled`);
+        continue;
+      }
+      captureException({ error, context: { userId, externalSubscriptionId } });
+      throw new ConflictError({
+        message: 'Could not cancel your subscription. Try again, or cancel it from the billing portal first.',
+      });
+    }
+  }
+
   // Captured inside the in-tx destroy step so the post-tx hook can hit the better-auth
   // pool with the right id. Kept here (not inside the orchestrator) because better-auth
   // is delete-user-specific — wipe-user-data preserves the auth row.
@@ -30,6 +64,7 @@ export const deleteUser = async ({ userId }: { userId: number }) => {
         logger.info(`Deleted better-auth user ${capturedAuthUserId} for app user ${userId}`);
       } catch (authError) {
         logger.error({ message: 'Failed to delete better-auth user', error: authError as Error });
+        captureException({ error: authError, context: { userId, authUserId: capturedAuthUserId } });
       }
     },
   });
