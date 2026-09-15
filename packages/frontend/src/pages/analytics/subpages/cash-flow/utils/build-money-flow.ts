@@ -22,7 +22,7 @@ export interface MoneyFlow {
   income: number;
   expenses: number;
   net: number;
-  /** Outflow of the Savings node: net savings, or the invested amount when it is larger. */
+  /** Outflow of the Savings node: net savings, or the invested + saved-to-category amount when larger. */
   savings: number;
   /** Shortfall covered from outside the period's income (overspend or investing from reserves). */
   deficit: number;
@@ -31,6 +31,17 @@ export interface MoneyFlow {
   expenseNodes: MoneyFlowNode[];
   savingsNodes: MoneyFlowNode[];
 }
+
+/** Category ids from the root down to `id` itself. */
+const ancestorChain = ({ id, categoriesById }: { id: string; categoriesById: Record<string, CategoryModel> }) => {
+  const chain: string[] = [];
+  let current: CategoryModel | undefined = categoriesById[id];
+  while (current && chain.length < 32) {
+    chain.unshift(current.id);
+    current = current.parentId ? categoriesById[current.parentId] : undefined;
+  }
+  return chain;
+};
 
 const resolveAncestorAtLevel = ({
   id,
@@ -41,12 +52,7 @@ const resolveAncestorAtLevel = ({
   level: number;
   categoriesById: Record<string, CategoryModel>;
 }): string => {
-  const chain: string[] = [];
-  let current: CategoryModel | undefined = categoriesById[id];
-  while (current && chain.length < 32) {
-    chain.unshift(current.id);
-    current = current.parentId ? categoriesById[current.parentId] : undefined;
-  }
+  const chain = ancestorChain({ id, categoriesById });
   if (chain.length === 0) return id;
   return chain[Math.min(level, chain.length) - 1]!;
 };
@@ -119,9 +125,7 @@ const investedByDestination = ({
       value: totals.get(p.portfolioId) ?? 0,
     })),
     ...(ventures ?? []).map((v) => ({ id: v.dealId, name: v.name, value: v.amount })),
-  ]
-    .filter((n) => n.value > 0)
-    .sort((a, b) => b.value - a.value);
+  ].filter((n) => n.value > 0);
 };
 
 export const buildMoneyFlow = ({
@@ -132,6 +136,7 @@ export const buildMoneyFlow = ({
   sourceLevel,
   expenseLevel,
   topN,
+  savingsCategoryIds,
 }: {
   data: endpointsTypes.GetSpendingsByCategoriesByTypeReturnType;
   categories: CategoryModel[];
@@ -140,27 +145,52 @@ export const buildMoneyFlow = ({
   sourceLevel: number;
   expenseLevel: number;
   topN: number;
+  /** Categories whose spend is a savings destination rather than an expense (subcategories inherit). */
+  savingsCategoryIds?: string[];
 }): MoneyFlow => {
   const categoriesById = Object.fromEntries(categories.map((c) => [c.id, c]));
+  const savingsIds = new Set(savingsCategoryIds);
 
-  const sources = rollUp({ data, pick: (e) => e.income, level: sourceLevel, topN, categoriesById });
-  const expenseNodes = rollUp({ data, pick: (e) => e.expense, level: expenseLevel, topN, categoriesById });
+  // A savings category is neither income nor spend: its legs net into one savings destination,
+  // grouped under the topmost selected ancestor because the picker selects whole subtrees.
+  const spend: endpointsTypes.GetSpendingsByCategoriesByTypeReturnType = {};
+  const savedByCategory = new Map<string, number>();
+  for (const [id, entry] of Object.entries(data)) {
+    const target = ancestorChain({ id, categoriesById }).find((ancestorId) => savingsIds.has(ancestorId));
+    if (!target) {
+      spend[id as RecordId] = entry;
+      continue;
+    }
+    const saved = entry.expense - entry.income;
+    if (saved > 0) savedByCategory.set(target, (savedByCategory.get(target) ?? 0) + saved);
+  }
+
+  const sources = rollUp({ data: spend, pick: (e) => e.income, level: sourceLevel, topN, categoriesById });
+  const expenseNodes = rollUp({ data: spend, pick: (e) => e.expense, level: expenseLevel, topN, categoriesById });
 
   const income = sources.reduce((sum, n) => sum + n.value, 0);
   const expenses = expenseNodes.reduce((sum, n) => sum + n.value, 0);
   const net = income - expenses;
 
-  const invested = investedByDestination({ contributions, ventures });
-  const investedTotal = invested.reduce((sum, n) => sum + n.value, 0);
-  const savings = Math.max(net, investedTotal, 0);
+  const destinations = [
+    ...investedByDestination({ contributions, ventures }),
+    ...[...savedByCategory.entries()].map(([id, value]) => ({
+      id,
+      name: categoriesById[id]?.name ?? id,
+      color: categoriesById[id]?.color,
+      value,
+    })),
+  ].sort((a, b) => b.value - a.value);
+  const destinationsTotal = destinations.reduce((sum, n) => sum + n.value, 0);
+  const savings = Math.max(net, destinationsTotal, 0);
   const deficit = Math.max(0, expenses + savings - income);
   if (deficit > 0) {
     sources.push({ id: DEFICIT_NODE_ID, name: '', value: deficit, share: 0 });
     for (const node of sources) node.share = node.value / (income + deficit);
   }
 
-  const savingsNodes: MoneyFlowNode[] = invested.map((n) => ({ ...n, share: n.value / savings }));
-  const cash = savings - investedTotal;
+  const savingsNodes: MoneyFlowNode[] = destinations.map((n) => ({ ...n, share: n.value / savings }));
+  const cash = savings - destinationsTotal;
   if (cash > 0) {
     savingsNodes.push({ id: CASH_NODE_ID, name: '', value: cash, share: cash / savings });
   }
