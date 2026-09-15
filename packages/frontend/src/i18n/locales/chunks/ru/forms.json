@@ -1,0 +1,376 @@
+{
+  "forms": {
+    "investmentTransaction": {
+      "typeLabel": "Тип транзакции",
+      "types": {
+        "buy": "Покупка",
+        "sell": "Продажа",
+        "dividend": "Дивиденд",
+        "fee": "Комиссия",
+        "tax": "Налог"
+      },
+      "securityLabel": "Ценная бумага",
+      "securityPlaceholder": "Выберите ценную бумагу",
+      "quantityLabel": "Количество",
+      "quantityPlaceholder": "0.00",
+      "priceLabel": "Цена за единицу",
+      "pricePlaceholder": "0.00",
+      "priceHelp": "Используйте 0 для вознаграждений за стейкинг, аирдропов или корректировок баланса.",
+      "feesLabel": "Комиссии (необязательно)",
+      "feesPlaceholder": "0.00",
+      "dateLabel": "Дата транзакции",
+      "noteLabel": "Примечание",
+      "notePlaceholder": "Необязательно. Добавьте примечание к этой транзакции",
+      "cancelButton": "Отмена",
+      "submitButton": "Создать транзакцию",
+      "submitButtonLoading": "Создание...",
+      "notifications": {
+        "success": "Транзакция успешно создана.",
+        "error": "Не удалось создать транзакцию."
+      },
+      "settlement": {
+        "toggleLabel": "Указать фактическую денежную сумму",
+        "toggleHint": "Используйте, если расчёт по сделке прошёл в другой валюте либо известна только итоговая сумма и нужно автоматически рассчитать комиссию",
+        "currencyLabel": "Валюта расчёта",
+        "currencyPlaceholder": "Выберите валюту",
+        "totalPaidLabel": "Всего уплачено",
+        "totalReceivedLabel": "Всего получено",
+        "totalPlaceholder": "например, 1700",
+        "feeLabel": "Комиссия (в валюте расчёта)",
+        "feePlaceholder": "0",
+        "sameCurrencyFeeHint": "Комиссия записывается как разница между итоговой суммой и количеством × ценой.",
+        "crossCurrencyFeeHint": "Явно указанная брокером комиссия. Разница обменного курса учитывается в курсе конвертации сделки.",
+        "modeFee": "Я знаю комиссию",
+        "modeAuto": "Автоматически",
+        "modeRate": "Я знаю курс",
+        "rateLabel": "Обменный курс",
+        "ratePlaceholder": "например, 3.66",
+        "rateHint": "Количество единиц валюты расчёта за 1 единицу валюты ценной бумаги. Комиссия записывается как разница между итоговой суммой и количеством × ценой × курсом.",
+        "autoHint": "Комиссия рассчитывается автоматически по рыночному обменному курсу на дату транзакции.",
+        "previewRate": "≈ будет записан обменный курс {rate}",
+        "previewFee": "≈ будет записана комиссия {fee} {currency} (курс {rate})",
+        "previewUnavailable": "Рыночный курс на эту дату не найден — укажите комиссию или обменный курс вручную.",
+        "previewFetchFailed": "Не удалось загрузить рыночные курсы. Проверьте подключение или укажите курс вручную.",
+        "previewPlaceholder": "Предварительный расчёт появится здесь по мере заполнения формы."
+      }
+    },
+    "portfolioSettings": {
+      "nameLabel": "Название портфеля",
+      "namePlaceholder": "Мой инвестиционный портфель",
+      "nameRequired": "Название обязательно",
+      "typeLabel": "Тип портфеля",
+      "typePlaceholder": "Выберите тип портфеля",
+      "descriptionLabel": "Описание (необязательно)",
+      "descriptionPlaceholder": "Краткое описание этого портфеля...",
+      "displayCurrencyLabel": "Валюта отображения",
+      "displayCurrencyPlaceholder": "Выберите валюту отображения",
+      "displayCurrencyBaseOption": "Базовая валюта ({code})",
+      "displayCurrencyDescription": "Стоимость портфеля и статистика конвертируются в эту валюту по текущему обменному курсу.",
+      "cancelButton": "Отмена",
+      "submitButton": "Сохранить изменения",
+      "submitButtonLoading": "Сохранение...",
+      "notifications": {
+        "success": "Портфель успешно обновлён.",
+        "error": "Не удалось обновить портфель. Попробуйте снова."
+      }
+    },
+    "portfolioTransfer": {
+      "transferTypeLabel": "Тип перевода",
+      "transferTypes": {
+        "portfolioToPortfolio": "В другой портфель",
+        "portfolioToAccount": "На счёт",
+        "accountToPortfolio": "В портфель"
+      },
+      "comingSoonNotice": "💡 Переводы со счёта в портфель появятся в одном из будущих обновлений!",
+      "fromPortfolioLabel": "Из портфеля",
+      "fromPortfolioPlaceholder": "Выберите исходный портфель",
+      "fromAccountLabel": "Со счёта",
+      "fromAccountPlaceholder": "Выберите исходный счёт",
+      "toPortfolioLabel": "В портфель",
+      "toPortfolioPlaceholder": "Выберите целевой портфель",
+      "toAccountLabel": "На счёт",
+      "toAccountPlaceholder": "Выберите целевой счёт",
+      "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Выберите валюту",
+      "amountLabel": "Сумма",
+      "amountLabelWithCurrency": "Сумма ({currency})",
+      "amountPlaceholder": "0.00",
+      "dateLabel": "Дата",
+      "descriptionLabel": "Описание (необязательно)",
+      "descriptionPlaceholder": "Добавьте примечание к этому переводу...",
+      "cancelButton": "Отмена",
+      "submitButton": "Перевести",
+      "submitButtonLoading": "Обработка...",
+      "confirmDialog": {
+        "title": "Подтвердить перевод",
+        "description": "Будет создана операция {action} на сумму {amount} из {from} в {to}",
+        "actionTransfer": "перевода",
+        "actionWithdrawal": "вывода",
+        "actionDeposit": "пополнения",
+        "cancelButton": "Отмена",
+        "confirmButton": "Подтвердить перевод"
+      },
+      "validation": {
+        "required": "Это поле обязательно",
+        "minValue": "Сумма должна быть больше 0"
+      },
+      "notifications": {
+        "comingSoon": "Переводы со счёта в портфель появятся в одном из будущих обновлений!",
+        "success": "Перевод успешно выполнен.",
+        "error": "Не удалось выполнить перевод. Попробуйте снова."
+      },
+      "linkExistingTransaction": "Связать существующую транзакцию",
+      "linkedTransactionLabel": "Транзакция",
+      "noPortfoliosAvailable": "Нет других доступных портфелей"
+    },
+    "createAccount": {
+      "nameLabel": "Название счёта",
+      "namePlaceholder": "Название счёта",
+      "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Выберите валюту",
+      "addCurrencyButton": "Добавить новую валюту +",
+      "initialBalanceLabel": "Начальный баланс",
+      "initialBalancePlaceholder": "Начальный баланс",
+      "accountCategoryLabel": "Категория счёта",
+      "accountCategoryPlaceholder": "Выберите категорию счёта",
+      "creditLimitLabel": "Кредитный лимит",
+      "creditLimitPlaceholder": "Кредитный лимит",
+      "submitButton": "Создать",
+      "submitButtonLoading": "Создание...",
+      "notifications": {
+        "success": "Успешно создано.",
+        "error": "Непредвиденная ошибка."
+      }
+    },
+    "directCashTransaction": {
+      "methodTypes": {
+        "direct": "Напрямую",
+        "transfer": "Перевод"
+      },
+      "operationTypes": {
+        "deposit": "Пополнение",
+        "withdrawal": "Вывод"
+      },
+      "fromAccountLabel": "Со счёта",
+      "toAccountLabel": "На счёт",
+      "accountPlaceholder": "Выберите счёт",
+      "orSeparator": "или",
+      "linkExistingTransaction": "Связать существующую транзакцию",
+      "linkedTransactionLabel": "Связанная транзакция",
+      "amountLabel": "Сумма",
+      "amountPlaceholder": "Введите сумму",
+      "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Выберите валюту",
+      "dateLabel": "Дата",
+      "descriptionLabel": "Описание",
+      "adjustmentLabel": "Это корректировка баланса",
+      "adjustmentHint": "Денежный баланс всё равно изменится, но эта операция не будет учитываться как внесённые средства в отчёте «Инвестиционные взносы».",
+      "descriptionPlaceholder": "Необязательное описание",
+      "cancelButton": "Отмена",
+      "submitButton": "Отправить",
+      "submitButtonLoading": "Отправка...",
+      "confirmDialog": {
+        "title": "Подтвердить перевод",
+        "description": "Будет создана операция {action} на сумму {amount} из {from} в {to}",
+        "cancelButton": "Отмена",
+        "confirmButton": "Подтвердить",
+        "actionDeposit": "пополнения",
+        "actionWithdrawal": "вывода"
+      },
+      "validation": {
+        "required": "Это поле обязательно",
+        "minValue": "Сумма должна быть больше 0"
+      },
+      "notifications": {
+        "success": "Денежная транзакция успешно создана",
+        "error": "Не удалось создать денежную транзакцию"
+      }
+    },
+    "validators": {
+      "invalidCurrencyDecimal": "Введите корректную сумму (не более 2 знаков после запятой)",
+      "mustBePositive": "Сумма должна быть положительной"
+    },
+    "exchangeCurrency": {
+      "fromCurrencyLabel": "Исходная валюта",
+      "toCurrencyLabel": "Целевая валюта",
+      "currencyPlaceholder": "Выберите валюту",
+      "fromAmountLabel": "Исходная сумма",
+      "toAmountLabel": "Получаемая сумма",
+      "amountPlaceholder": "0.00",
+      "maxButton": "Макс.: {amount}",
+      "dateLabel": "Дата обмена",
+      "descriptionLabel": "Описание (необязательно)",
+      "descriptionPlaceholder": "Добавьте примечание к этому обмену...",
+      "cancelButton": "Отмена",
+      "submitButton": "Обменять",
+      "submitButtonLoading": "Обработка...",
+      "validation": {
+        "required": "Это поле обязательно",
+        "minValue": "Сумма должна быть больше 0",
+        "sameCurrency": "Исходная и целевая валюты должны различаться"
+      },
+      "notifications": {
+        "success": "Валюта успешно обменена",
+        "error": "Не удалось обменять валюту"
+      }
+    },
+    "createVehicle": {
+      "nameLabel": "Название транспортного средства",
+      "namePlaceholder": "например, моя Camry",
+      "currencyLabel": "Валюта",
+      "makeLabel": "Марка",
+      "modelLabel": "Модель",
+      "trimLabel": "Комплектация (необязательно)",
+      "yearLabel": "Год",
+      "vehicleClassLabel": "Класс транспортного средства",
+      "purchasePriceLabel": "Цена покупки",
+      "purchaseDateLabel": "Дата покупки",
+      "depreciationPresetLabel": "Схема амортизации",
+      "customAnnualRatePctLabel": "Пользовательская годовая ставка амортизации (%)",
+      "salvageFloorPctLabel": "Минимальная остаточная стоимость (% от цены покупки)",
+      "currentMileageLabel": "Текущий пробег (необязательно)",
+      "currentMileagePlaceholder": "например, 45000",
+      "submitButton": "Добавить транспортное средство",
+      "submitButtonLoading": "Добавление...",
+      "notifications": {
+        "success": "Транспортное средство добавлено",
+        "error": "Не удалось добавить транспортное средство"
+      }
+    },
+    "editVehicle": {
+      "submitButton": "Сохранить изменения",
+      "submitButtonLoading": "Сохранение...",
+      "notifications": {
+        "success": "Транспортное средство обновлено",
+        "error": "Не удалось обновить транспортное средство"
+      }
+    },
+    "loan": {
+      "nameLabel": "Название кредита",
+      "namePlaceholder": "например, основная ипотека",
+      "loanTypeLabel": "Тип кредита",
+      "loanTypePlaceholder": "Выберите тип кредита",
+      "currencyLabel": "Валюта",
+      "currencyPlaceholder": "Выберите валюту",
+      "originalPrincipalLabel": "Первоначальная сумма кредита",
+      "originalPrincipalPlaceholder": "например, 320000",
+      "initialBalanceLabel": "Текущий остаток задолженности",
+      "initialBalancePlaceholder": "Сколько вы должны сейчас",
+      "interestRateLabel": "Процентная ставка (APR %)",
+      "interestRatePlaceholder": "например, 6.25",
+      "minPaymentEstimateTooltip": "Рассчитывается по сумме кредита, годовой процентной ставке и сроку с использованием стандартной формулы амортизации.",
+      "minPaymentApplyEstimateAriaLabel": "Использовать рассчитанный минимальный платёж",
+      "termMonthsLabel": "Срок (месяцев)",
+      "termPresetsAriaLabel": "Готовые сроки",
+      "termPresetsHeader": "Типичные сроки",
+      "termMonthsSuffix": "мес.",
+      "termPresetYears": "{count} год | {count} года | {count} лет",
+      "termMonthsPlaceholder": "например, 360 для кредита на 30 лет",
+      "startDateLabel": "Дата начала",
+      "startDatePlaceholder": "ДД/ММ/ГГГГ",
+      "startDateTooltip": "Дата выдачи кредита — когда вы впервые его получили. Она носит информационный характер и не изменяет текущий остаток задолженности или прогноз погашения.",
+      "plannedPaymentLabel": "Плановый ежемесячный платёж",
+      "plannedPaymentPlaceholder": "Сколько вы фактически платите",
+      "minPaymentLabel": "Минимальный ежемесячный платёж",
+      "minPaymentPlaceholder": "Необязательно, от кредитора",
+      "paymentDayLabel": "День платежа в месяце",
+      "paymentDayPlaceholder": "1–31",
+      "lenderNameLabel": "Кредитор",
+      "lenderNamePlaceholder": "например, Chase, Wells Fargo",
+      "accountNumberLabel": "Номер счёта / кредита",
+      "accountNumberPlaceholder": "Необязательно",
+      "currentBalanceLabel": "Текущий остаток задолженности",
+      "balanceAsOfLabel": "Баланс на дату",
+      "balanceAsOfPlaceholder": "ДД/ММ/ГГГГ",
+      "saveButton": "Сохранить изменения",
+      "submitButton": "Создать кредит",
+      "submitButtonLoading": "Создание…",
+      "cancelButton": "Отмена",
+      "notifications": {
+        "success": "Кредит создан.",
+        "error": "Не удалось создать кредит. Попробуйте снова.",
+        "updateSuccess": "Кредит обновлён",
+        "updateError": "Не удалось обновить кредит"
+      },
+      "errors": {
+        "required": "Это поле обязательно.",
+        "mustBePositive": "Значение должно быть больше 0.",
+        "mustBeNonNegative": "Значение должно быть не меньше 0.",
+        "interestRateRange": "Процентная ставка должна быть от 0 до 99.9999.",
+        "termRange": "Срок должен составлять от 1 до 1200 месяцев.",
+        "paymentDayRange": "День месяца должен быть от 1 до 31.",
+        "asOfInFuture": "Дата не может быть в будущем"
+      },
+      "balanceExceedsPrincipalWarning": "Остаток задолженности выше первоначальной суммы кредита — перепроверьте значения."
+    }
+  },
+  "fields": {
+    "categorySelect": {
+      "noCategoriesFound": "Категории не найдены",
+      "selectCategoryLabel": "Выбрать категорию",
+      "searchCategoryLabel": "Поиск категории",
+      "clearSearchLabel": "Очистить поиск",
+      "clearSelectionLabel": "Очистить выбор",
+      "searchPlaceholder": "Поиск...",
+      "sharedOwnerNotice": "Показаны категории пользователя {owner}",
+      "sharedOwnerNoticeTooltip": "Транзакции на общем счёте всегда используют категории владельца. Всё, что вы сохраните здесь, будет отнесено к набору категорий {owner}, чтобы итоговые суммы были одинаковыми для обоих пользователей.",
+      "sharedOwnerCategoriesLoadError": "Не удалось загрузить категории общего счёта. Попробуйте снова."
+    },
+    "select": {
+      "selectOption": "Выберите вариант",
+      "searchPlaceholder": "Поиск..."
+    },
+    "comboboxAccounts": {
+      "allAccounts": "Все счета",
+      "account": "счёт",
+      "accountsSelected": "счетов выбрано",
+      "selectedOne": "Выбран 1 счёт",
+      "selectedMany": "Выбрано {n} счетов",
+      "searchPlaceholder": "Поиск счетов...",
+      "noResults": "Ничего не найдено."
+    },
+    "comboboxCategories": {
+      "searchPlaceholder": "Поиск категорий...",
+      "unselectedPlaceholder": "Все категории",
+      "selectedOne": "Выбрана 1 категория",
+      "selectedMany": "Выбрано {n} категорий"
+    },
+    "accountMultiSelect": {
+      "ungrouped": "Без группы"
+    },
+    "tagSelect": {
+      "placeholder": "Выберите теги...",
+      "noTagsAvailable": "Нет доступных тегов"
+    },
+    "categoryMultiSelect": {
+      "placeholder": "Выберите категории...",
+      "searchPlaceholder": "Поиск категорий...",
+      "noCategoriesFound": "Категории не найдены"
+    },
+    "payeeMultiSelect": {
+      "label": "Все получатели",
+      "searchPlaceholder": "Поиск получателей",
+      "selectedMany": "Выбрано получателей: {n}",
+      "noResults": "Получатели не найдены",
+      "unknownPayee": "Неизвестный получатель",
+      "loadError": "Не удалось загрузить получателей. Попробуйте снова.",
+      "blankOption": "Без получателя"
+    },
+    "budgetMultiSelect": {
+      "label": "Все бюджеты",
+      "selectedMany": "Выбрано бюджетов: {n}",
+      "searchPlaceholder": "Поиск бюджетов",
+      "noResults": "Бюджеты не найдены",
+      "unknownBudget": "Неизвестный бюджет",
+      "loadError": "Не удалось загрузить бюджеты. Попробуйте снова."
+    },
+    "payeeSelect": {
+      "placeholder": "Выберите получателя",
+      "searchPlaceholder": "Поиск получателей…",
+      "empty": "Получателей пока нет",
+      "createAffordance": "Создать получателя «{name}»",
+      "createNew": "Создать нового получателя",
+      "sharedOwnerPayeesLoadError": "Не удалось загрузить получателей общего счёта. Попробуйте снова."
+    }
+  }
+}

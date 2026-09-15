@@ -1,0 +1,435 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "new": "Новый",
+    "actions": {
+      "loading": "Загрузка...",
+      "signUp": "Зарегистрироваться",
+      "save": "Сохранить",
+      "cancel": "Отмена",
+      "back": "Назад",
+      "accept": "Принять",
+      "delete": "Удалить",
+      "edit": "Изменить",
+      "addSubcategory": "Добавить подкатегорию",
+      "settings": "Настройки",
+      "confirm": "Подтвердить",
+      "viewTransactions": "Просмотреть транзакции",
+      "viewAnalytics": "Просмотреть аналитику",
+      "saving": "Сохранение...",
+      "saveChanges": "Сохранить изменения",
+      "done": "Готово",
+      "failed": "Ошибка",
+      "viewAll": "Показать всё",
+      "scan": "Сканировать",
+      "link": "Связать",
+      "clear": "Очистить",
+      "apply": "Применить",
+      "retry": "Попробовать снова",
+      "copyInviteLink": "Скопировать ссылку-приглашение",
+      "moveTo": "Переместить в…"
+    },
+    "ui": {
+      "close": "Закрыть",
+      "actions": "Действия",
+      "chooseAction": "Выберите действие",
+      "other": "Другое",
+      "refund": "Возврат",
+      "split": "Разбить",
+      "deletedBadge": "Удалено"
+    },
+    "components": {
+      "statusIndicator": {
+        "autoMatched": "Сопоставлено автоматически",
+        "suggested": "Предложено",
+        "willCreate": "Будет создано",
+        "needsAttention": "Требует внимания",
+        "invalid": "Некорректно",
+        "optional": "Необязательно",
+        "skipped": "Пропущено"
+      },
+      "selectField": {
+        "clearSelection": "Очистить выбор"
+      }
+    },
+    "errors": {
+      "copyToClipboardFailed": "Не удалось скопировать в буфер обмена"
+    },
+    "notifications": {
+      "subscriptionCurrencyNotConnected": "В сводке подписок невозможно конвертировать {currencies} в базовую валюту. Подключите валюту в разделе «Настройки → Валюты».",
+      "backgroundJobFailed": "Во время вашего отсутствия произошла ошибка фоновой задачи: {error}",
+      "inviteLinkCopied": "Ссылка-приглашение скопирована в буфер обмена"
+    },
+    "sharing": {
+      "emailNotSent": "Отправка электронной почты не настроена — поделитесь ссылкой-приглашением вручную"
+    },
+    "labels": {
+      "email": "Электронная почта",
+      "password": "Пароль",
+      "system": "системный",
+      "unknown": "Неизвестно",
+      "total": "Итого"
+    },
+    "placeholders": {
+      "email": "your{'@'}email.com",
+      "password": "Ваш пароль"
+    },
+    "dialogs": {
+      "createAccount": "Создать счёт",
+      "createVehicle": "Добавить транспортное средство",
+      "editVehicle": "Изменить транспортное средство"
+    },
+    "accountCategories": {
+      "general": "Общий",
+      "cash": "Наличные",
+      "currentAccount": "Текущий счёт",
+      "creditCard": "Кредитная карта",
+      "saving": "Сберегательный счёт",
+      "bonus": "Бонусный",
+      "insurance": "Страхование",
+      "investment": "Инвестиционный",
+      "loan": "Кредит",
+      "mortgage": "Ипотека",
+      "overdraft": "Овердрафт",
+      "crypto": "Криптовалюта",
+      "vehicle": "Транспортное средство"
+    },
+    "paymentTypes": {
+      "creditCard": "Кредитная карта",
+      "bankTransfer": "Банковский перевод",
+      "cash": "Наличные",
+      "debitCard": "Дебетовая карта",
+      "mobilePayment": "Мобильный платёж",
+      "voucher": "Ваучер",
+      "webPayment": "Онлайн-платёж"
+    },
+    "vehicleClasses": {
+      "sedan": "Седан",
+      "suv": "Внедорожник",
+      "truck": "Грузовой автомобиль",
+      "luxury": "Премиум",
+      "ev": "Электромобиль",
+      "motorcycle": "Мотоцикл",
+      "other": "Другое"
+    },
+    "depreciationPresets": {
+      "classDefault": "По умолчанию для класса",
+      "slow": "Медленная",
+      "average": "Средняя",
+      "fast": "Быстрая",
+      "custom": "Пользовательская ставка"
+    },
+    "aiFeatures": {
+      "categorization": {
+        "name": "Категоризация транзакций",
+        "description": "Автоматическая категоризация транзакций по их описанию и продавцу"
+      },
+      "statementParsing": {
+        "name": "Распознавание выписок",
+        "description": "Извлечение транзакций из банковских выписок (PDF, CSV, TXT) с помощью AI"
+      },
+      "investmentTransactionsParsing": {
+        "name": "Импорт инвестиционных транзакций",
+        "description": "Извлечение AI транзакций покупки и продажи из экспортов бирж, брокерских выписок или вставленного текста."
+      }
+    },
+    "transactions": {
+      "delete": {
+        "success": "Успешно удалено",
+        "error": "Не удалось удалить транзакцию!"
+      },
+      "submit": {
+        "unexpectedError": "Непредвиденная ошибка!"
+      },
+      "unlink": {
+        "error": "Не удалось отвязать транзакции!"
+      },
+      "record": {
+        "addedByTooltip": "Эта транзакция была прикреплена к бюджету пользователем {handle}",
+        "externalLinkTooltip": "Открыть внешнюю ссылку",
+        "locationTooltip": "Открыть местоположение на карте",
+        "hiddenAccount": "Скрытый счёт",
+        "selectRow": "Выберите транзакцию",
+        "unselectableReasons": {
+          "split": "Can't be selected: split transactions don't support bulk editing. Edit it individually instead.",
+          "sharedAccount": "Can't be selected: this transaction is on an account shared with you, and only its owner can edit it."
+        }
+      }
+    },
+    "outOfWallet": "Вне кошелька",
+    "dateSelector": {
+      "dialogTitle": "Диапазон дат",
+      "dueDate": "Срок",
+      "quickSelect": "Быстрый выбор",
+      "apply": "Применить",
+      "periodTypes": {
+        "day": "День",
+        "month": "Месяц",
+        "quarter": "Квартал",
+        "halfYear": "Полугодие",
+        "year": "Год"
+      },
+      "filterModes": {
+        "is": "равно",
+        "before": "до",
+        "after": "после",
+        "between": "между"
+      },
+      "currentMonth": "Текущий месяц",
+      "placeholders": {
+        "day": "Например: 2025-03-15, 03/15/2025",
+        "month": "Например: Jan 2025, 03/2025",
+        "quarter": "Например: Q1, Q4 2025",
+        "halfYear": "Например: H1, H2 2025",
+        "year": "Например: 2025, 2024",
+        "default": "Например: 2025, Q4, Jan 2025"
+      }
+    },
+    "appUpdate": {
+      "title": "Доступно обновление",
+      "description": "Новая версия готова. Перезагрузите приложение, чтобы получить последние улучшения.",
+      "reload": "Перезагрузить"
+    },
+    "resourceLease": {
+      "activeLabel": "Сеанс активен",
+      "expiredLabel": "Сеанс истёк",
+      "defaultResourceLabel": "Этот ресурс",
+      "activeTooltip": "{resource} сохраняется на сервере; допускается около {duration} бездействия. Продолжайте работу, чтобы ресурс оставался доступным.",
+      "countingDownTooltip": "{resource} будет освобождён через {time} из-за бездействия. Взаимодействуйте со страницей, чтобы сохранить его.",
+      "cappedTooltip": "{resource} будет освобождён через {time}. Достигнута максимальная длительность сеанса, продлить его больше нельзя.",
+      "expiredTooltip": "{resource} был освобождён на сервере. Начните заново, чтобы продолжить.",
+      "status": {
+        "active": "{resource} остаётся доступным.",
+        "countingDown": "{resource} скоро будет освобождён.",
+        "expired": "{resource} был освобождён."
+      },
+      "duration": {
+        "seconds": "{count} секунда | {count} секунды | {count} секунд",
+        "minutes": "{count} минута | {count} минуты | {count} минут",
+        "hours": "{count} час | {count} часа | {count} часов"
+      }
+    },
+    "logo": {
+      "tabs": {
+        "brand": "Бренд",
+        "letters": "Буквы"
+      },
+      "searchPlaceholder": "Название бренда или домен",
+      "searchHint": "Введите название бренда или домен, например amazon.com",
+      "noResults": "Подходящие бренды не найдены.",
+      "noResultsLettersHint": "Использовать буквы",
+      "useDomainDirectly": "Использовать {domain}",
+      "autoLabel": "Автоматически (из названия)",
+      "domainHint": "Чтобы найти точный бренд, введите домен сайта компании (например, amazon.com) — так будет выбран правильный логотип.",
+      "searchError": "Не удалось загрузить логотипы — попробуйте снова",
+      "editAriaLabel": "Изменить логотип",
+      "dialogTitle": "Изменить логотип",
+      "resetToAuto": "Вернуть автоматический выбор",
+      "remove": "Удалить логотип",
+      "lettersLabel": "Буквы (1–2)",
+      "lettersPlaceholder": "АБ",
+      "colorLabel": "Цвет",
+      "colorSwatchAriaLabel": "Использовать цвет {color}",
+      "customColorAriaLabel": "Выбрать свой цвет",
+      "applyLetters": "Применить",
+      "lettersSelectedLabel": "Буквы «{letters}»"
+    }
+  },
+  "accountGroups": {
+    "create": {
+      "error": "Не удалось создать группу"
+    },
+    "update": {
+      "success": "Группа обновлена",
+      "error": "Не удалось обновить группу"
+    },
+    "delete": {
+      "success": "Группа удалена",
+      "error": "Не удалось удалить группу"
+    },
+    "link": {
+      "success": "Счёт добавлен в группу",
+      "error": "Не удалось добавить счёт в группу"
+    },
+    "unlink": {
+      "success": "Счёт удалён из группы",
+      "error": "Не удалось удалить счёт из группы"
+    }
+  },
+  "validation": {
+    "minLength": "Минимальная длина — {length}.",
+    "emailInvalid": "Введите корректный адрес электронной почты.",
+    "passwordsNoMatch": "Пароли не совпадают"
+  },
+  "notifications": {
+    "title": "Уведомления",
+    "markAllAsRead": "Отметить все как прочитанные",
+    "empty": "Уведомлений пока нет",
+    "containerAriaLabel": "Уведомления",
+    "closeToast": "Закрыть уведомление",
+    "viewOnGitHub": "Посмотреть на GitHub",
+    "newVersion": "Новая версия {version}",
+    "newRelease": "Новый выпуск",
+    "tagReminder": {
+      "thresholdMessage": "потрачено {amount} (порог: {threshold})",
+      "existenceMessage": "{count} транзакция | {count} транзакции | {count} транзакций"
+    },
+    "share": {
+      "sendFailedHint": "Откройте панель общего доступа, чтобы отправить повторно."
+    }
+  },
+  "currencyNames": {
+    "UAH": "Украинская гривна",
+    "USD": "Доллар США",
+    "EUR": "Евро",
+    "GBP": "Британский фунт стерлингов",
+    "JPY": "Японская иена",
+    "CHF": "Швейцарский франк",
+    "CAD": "Канадский доллар",
+    "AUD": "Австралийский доллар",
+    "NZD": "Новозеландский доллар",
+    "CNY": "Китайский юань",
+    "HKD": "Гонконгский доллар",
+    "SGD": "Сингапурский доллар",
+    "SEK": "Шведская крона",
+    "NOK": "Норвежская крона",
+    "DKK": "Датская крона",
+    "PLN": "Польский злотый",
+    "CZK": "Чешская крона",
+    "HUF": "Венгерский форинт",
+    "RON": "Румынский лей",
+    "BGN": "Болгарский лев",
+    "HRK": "Хорватская куна",
+    "RSD": "Сербский динар",
+    "TRY": "Турецкая лира",
+    "RUB": "Российский рубль",
+    "BYN": "Белорусский рубль",
+    "KZT": "Казахстанский тенге",
+    "INR": "Индийская рупия",
+    "IDR": "Индонезийская рупия",
+    "MYR": "Малайзийский ринггит",
+    "PHP": "Филиппинское песо",
+    "THB": "Тайский бат",
+    "VND": "Вьетнамский донг",
+    "KRW": "Южнокорейская вона",
+    "TWD": "Новый тайваньский доллар",
+    "BRL": "Бразильский реал",
+    "MXN": "Мексиканское песо",
+    "ARS": "Аргентинское песо",
+    "CLP": "Чилийское песо",
+    "COP": "Колумбийское песо",
+    "PEN": "Перуанский соль",
+    "ZAR": "Южноафриканский рэнд",
+    "EGP": "Египетский фунт",
+    "AED": "Дирхам ОАЭ",
+    "SAR": "Саудовский риял",
+    "ILS": "Новый израильский шекель",
+    "QAR": "Катарский риял",
+    "KWD": "Кувейтский динар",
+    "BHD": "Бахрейнский динар",
+    "OMR": "Оманский риал",
+    "JOD": "Иорданский динар",
+    "MAD": "Марокканский дирхам",
+    "NGN": "Нигерийская найра",
+    "KES": "Кенийский шиллинг",
+    "GHS": "Ганский седи",
+    "XOF": "Франк КФА BCEAO",
+    "XAF": "Франк КФА BEAC",
+    "BTC": "Биткоин",
+    "ETH": "Эфириум"
+  },
+  "fileDropzone": {
+    "clickOrDrag": "Нажмите или перетащите файл сюда",
+    "clickOrDragMultiple": "Нажмите или перетащите CSV-файлы сюда",
+    "dropHere": "Перетащите файл сюда для загрузки",
+    "dropHereMultiple": "Перетащите файлы сюда",
+    "removeFile": "Удалить файл",
+    "fileTooLarge": "Файл слишком большой. Максимальный размер — {max}.",
+    "fileTooLargeNamed": "{name} больше допустимого размера {max}",
+    "filesSelected": "Выбран {count} файл | Выбрано {count} файла | Выбрано {count} файлов",
+    "clearAll": "Очистить всё",
+    "onlyFirstFileTaken": "Было добавлено несколько файлов — использован только первый."
+  },
+  "demo": {
+    "featureNotAvailable": "Эта функция недоступна в демо-режиме",
+    "passwordChangeRestricted": "Изменение пароля недоступно в демо-режиме",
+    "investmentsRestricted": {
+      "title": "Инвестиции недоступны в демо-режиме",
+      "description": "Функция инвестиций недоступна в демо-режиме. Зарегистрируйте полноценный аккаунт, чтобы отслеживать инвестиции."
+    },
+    "banner": {
+      "message": "Вы просматриваете демо с примерными данными{time}. {signUpLink}, чтобы создать собственный аккаунт.",
+      "resets": "сброс через {time}",
+      "signUp": "Зарегистрируйтесь",
+      "timeFormat": {
+        "hoursMinutes": "{hours} ч {minutes} мин",
+        "minutes": "{minutes} мин"
+      }
+    },
+    "sessionExpiredNotice": "Демо-сеанс завершён. Создайте бесплатный аккаунт, чтобы продолжить, или войдите ниже, если аккаунт уже есть."
+  },
+  "settings": {
+    "currencies": {
+      "setBase": {
+        "overlay": {
+          "title": "Изменение базовой валюты",
+          "description": "Мы пересчитываем все суммы в новую базовую валюту. Это может занять несколько минут — не закрывайте эту вкладку.",
+          "takingLong": "Это занимает больше времени, чем обычно. Ваши данные в безопасности — обработка продолжается.",
+          "failedTitle": "Не удалось изменить базовую валюту",
+          "unreachableTitle": "Не удалось проверить статус изменения",
+          "unreachableDescription": "Сервер не отвечает. Можно закрыть это окно — если изменение всё ещё выполняется, приложение снова заблокируется при следующем действии.",
+          "dismiss": "Закрыть",
+          "preparing": "Подготовка…",
+          "finishing": "Завершение…",
+          "stepCounter": "Шаг {current} из {total}",
+          "steps": {
+            "transactions": "Обновление транзакций",
+            "accounts": "Обновление счетов",
+            "loanDetails": "Обновление кредитов",
+            "balances": "Перестроение истории балансов",
+            "investmentTransactions": "Обновление инвестиционных транзакций",
+            "portfolioTransfers": "Обновление переводов в портфели",
+            "holdings": "Обновление позиций",
+            "portfolioBalances": "Перестроение балансов портфелей"
+          }
+        }
+      }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(ваш API-ключ)",
+      "setByEndpoint": "Задаётся вашим эндпоинтом"
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "Изменить группу",
+      "nameLabel": "Название",
+      "noteLabel": "Примечание (необязательно)",
+      "notePlaceholder": "Необязательное примечание...",
+      "loadingText": "Загрузка...",
+      "savingAction": "Сохранить",
+      "cancelButton": "Отмена",
+      "editAction": "Изменить",
+      "deleteAction": "Удалить группу",
+      "transactionsLabel": "Транзакции",
+      "deleteGroupTitle": "Удалить группу",
+      "deleteGroupDescription": "Вы уверены, что хотите удалить «{groupName}»? Транзакции удалены не будут.",
+      "removeTransactionTitle": "Удалить транзакцию из группы",
+      "removeTransactionDescription": "После удаления в группе останется меньше двух транзакций, поэтому группа будет удалена. Продолжить?",
+      "removeTransactionDescriptionNormal": "Вы уверены, что хотите удалить эту транзакцию из группы?",
+      "removeButtonText": "Удалить",
+      "removeAndDeleteButtonText": "Удалить и удалить группу",
+      "summary": {
+        "transactions": "Транзакции",
+        "net": "Итог",
+        "moneyIn": "Поступления",
+        "moneyOut": "Расходы"
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": "транзакций"
+    }
+  }
+}

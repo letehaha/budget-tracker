@@ -1,0 +1,139 @@
+{
+  "pages": {
+    "importExport": {
+      "msMoneyImport": {
+        "pageTitle": "Импорт из Microsoft Money",
+        "pageDescription": "Перенесите счета, категории и транзакции из файла Microsoft Money .mny.",
+        "stepper": {
+          "steps": {
+            "upload": "Загрузка",
+            "resolve": "Сопоставление данных",
+            "review": "Проверка",
+            "execute": "Импорт",
+            "done": "Готово"
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "Загрузите файл Money",
+          "description": "Выберите файл .mny, сохранённый Microsoft Money на вашем компьютере.",
+          "maxSize": "Файл .mny до 50 МБ",
+          "passwordLabel": "Пароль файла (необязательно)",
+          "passwordPlaceholder": "Введите пароль файла",
+          "passwordHint": "Оставьте пустым, если вы не устанавливали пароль в Microsoft Money.",
+          "parsing": "Чтение файла…",
+          "continue": "Продолжить",
+          "errors": {
+            "invalidFormatNamed": "«{name}» не является файлом .mny.",
+            "passwordUnsupportedChars": "Пароль содержит символы, которые нельзя передать. Используйте пароль без эмодзи и нелатинских букв."
+          }
+        },
+        "errors": {
+          "uploadUnavailable": "Загруженный файл больше недоступен. Загрузите файл Money снова."
+        },
+        "resolve": {
+          "prepareFailed": "Не удалось подготовить сопоставление счетов и категорий. Перезагрузите страницу и попробуйте снова.",
+          "accounts": {
+            "sectionTitle": "Счета",
+            "currentBalanceLabel": "Текущий баланс",
+            "currentBalancePlaceholder": "Оставьте пустым, чтобы использовать импортированную сумму",
+            "willCreateHint": "Будет создан в валюте {currency}.",
+            "skippedNote": "{count} счёт(а/ов) будет пропущено. Их транзакции, а также переводы на них и с них не будут импортированы."
+          },
+          "categories": {
+            "sectionTitle": "Категории"
+          },
+          "quickActions": {
+            "mapExactMatches": "Сопоставить точные совпадения",
+            "createNewForUnmatched": "Создать для несовпавших",
+            "reset": "Сбросить",
+            "tooltips": {
+              "mapExactMatchesAccounts": "Связать каждый счёт, название которого точно совпадает с уже существующим.",
+              "mapExactMatchesCategories": "Связать каждую категорию, название которой точно совпадает с уже существующей.",
+              "createNewForUnmatched": "Для каждой строки без решения установить «Создать».",
+              "reset": "Очистить все варианты и выполнить сопоставление заново."
+            }
+          },
+          "footer": {
+            "back": "Назад",
+            "continue": "Продолжить"
+          }
+        },
+        "review": {
+          "transactions": "Транзакции",
+          "transfersDetected": "Переводы",
+          "outOfWallet": "Вне кошелька",
+          "duplicatesSkipped": "Пропущено дубликатов",
+          "willImport": "Будет импортировано",
+          "dateRange": "Период: {from} — {to}",
+          "warningsTitle": "Некоторые данные были исключены",
+          "warningsHint": "Эти строки не входят в импорт.",
+          "warnings": {
+            "accountTypeUnsupported": "Пропущено счетов: {count}",
+            "orphanRowSkipped": "Пропущено транзакций: {count}",
+            "transferCounterpartNotImported": "Частей перевода импортировано как «вне кошелька»: {count}",
+            "rowLimitReached": "Транзакций сверх лимита отброшено: {count}",
+            "accountCurrencyDefaulted": "У {count} счёта(ов) в файле не было валюты, поэтому предполагается USD — проверьте валюту на шаге счетов перед продолжением",
+            "rowMissingDate": "Пропущено транзакций без распознаваемой даты: {count}",
+            "accountNameMissing": "Счетов без названия: {count}",
+            "accountNameDuplicated": "Счетов с одинаковым названием: {count}",
+            "rowAmountUnreadable": "Пропущено транзакций без распознаваемой суммы: {count}",
+            "fileSchemaUnexpected": "Обнаружено проблем со структурой файла: {count}"
+          },
+          "includeVoided": {
+            "label": "Импортировать аннулированные транзакции: {count}",
+            "hint": "Microsoft Money хранит аннулированные записи в реестре, но не применяет их к балансу. Они импортируются с нулевой суммой и тегом «Void», сохраняя дату, получателя, категорию, примечание и номер чека."
+          },
+          "duplicatesTitle": "Возможных дубликатов: {count}",
+          "duplicatesHint": "Эти транзакции похожи на уже существующие. Снимите отметку, чтобы всё равно импортировать одну из них.",
+          "back": "Назад",
+          "importing": "Запуск импорта…",
+          "importButton": "Импортировать транзакций: {count}"
+        },
+        "execute": {
+          "starting": "Запуск импорта…",
+          "progressCount": "{processed} из {total}",
+          "failed": "Импорт завершился ошибкой.",
+          "partialImportNote": "Некоторые транзакции уже могли быть импортированы.",
+          "statusQueued": "В очереди",
+          "statusRunning": "Импорт",
+          "statusCompleted": "Завершено",
+          "statusFailed": "Ошибка"
+        },
+        "done": {
+          "successTitle": "Импорт завершён",
+          "successDescription": "Данные из файла Money добавлены в ваш аккаунт.",
+          "partialTitle": "Импорт завершён с проблемами: {count}",
+          "partialDescription": "Большинство строк импортировано. Ниже показано, что не удалось.",
+          "emptyTitle": "Нет новых данных для импорта",
+          "emptyDescription": "Все строки были пропущены или уже существуют, поэтому новые транзакции не созданы.",
+          "allFailedTitle": "Ничего не импортировано",
+          "allFailedDescription": "Не удалось создать ни одной транзакции. См. ошибки ниже.",
+          "accountsCreated": "Создано счетов",
+          "accountsLinked": "Связано счетов",
+          "accountsSkipped": "Пропущено счетов",
+          "categoriesCreated": "Создано категорий",
+          "payeesCreated": "Создано получателей",
+          "transactionsImported": "Импортировано транзакций",
+          "transfersImported": "Импортировано переводов",
+          "outOfWalletImported": "Переводы вне кошелька",
+          "duplicatesSkipped": "Пропущено дубликатов",
+          "voidedImported": "Импортировано аннулированных",
+          "mergedIntoPlanned": "Объединено с запланированными",
+          "balanceWarningTitle": "Некоторые балансы могут быть неточными",
+          "balanceWarningBody": "Не удалось установить итоговый баланс на всех счетах. Проверьте их и при необходимости скорректируйте.",
+          "errorsTitle": "Не удалось импортировать строк: {count}",
+          "errorsOverflow": "…и ещё {count}",
+          "rowPrefix": "Строка {rowIndex}:",
+          "viewTransactions": "Просмотреть транзакции",
+          "importAnother": "Импортировать другой файл"
+        },
+        "leaseExpired": {
+          "title": "Загруженный файл больше недоступен",
+          "description": "Обработанная копия файла Money была освобождена после периода бездействия. Настройки сопоставления не сохранились, поэтому импорт нужно начать с загрузки заново.",
+          "action": "Начать заново"
+        },
+        "leaseResourceLabel": "Загруженный файл"
+      }
+    }
+  }
+}

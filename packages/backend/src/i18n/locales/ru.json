@@ -1,0 +1,546 @@
+{
+  "common": {
+    "processAlreadyLocked": "Процесс синхронизации для \"{{lockKey}}\" уже заблокирован.",
+    "serviceTemporarilyUnavailable": "Сервис временно недоступен. Попробуйте снова."
+  },
+  "accounts": {
+    "groupNotFound": "Группа или счёт не найдены",
+    "accountNotFound": "Счёт не найден!",
+    "accountUpdateFailed": "Не удалось обновить счёт",
+    "accountNoExternalId": "У счёта нет внешнего ID",
+    "accountNoExternalIdMonobank": "У счёта нет внешнего ID Monobank",
+    "accountNoExternalIdEnableBanking": "У счёта нет внешнего ID Enable Banking",
+    "accountNotFoundForTransaction": "Счёт для этой транзакции не найден",
+    "deleteBlockedByLoanPayments": "У этого счёта есть платежи по кредиту. Удалите или переназначьте их перед удалением счёта.",
+    "loanBalanceUseUpdateLoan": "Изменяйте остаток задолженности по кредиту на странице кредита, а не в настройках счёта.",
+    "loanCategoryImmutable": "Категорию кредитного счёта нельзя изменить.",
+    "dedicatedFlowCategoryNotAllowed": "Кредитные счета и счета транспортных средств должны создаваться через специальные эндпоинты, а не через общий эндпоинт счетов."
+  },
+  "balanceAdjustment": {
+    "defaultNote": "Корректировка баланса",
+    "accountNotFound": "Счёт с id \"{{accountId}}\" не найден.",
+    "vehicleUseOverride": "Стоимость транспортного средства можно изменить только на странице транспортного средства.",
+    "vehicleNegativeValue": "Стоимость транспортного средства не может быть отрицательной."
+  },
+  "accountGroups": {
+    "groupNotFound": "Группа не найдена",
+    "groupUpdateFailed": "Не удалось обновить группу",
+    "parentGroupNotExist": "Родитель с таким id не существует.",
+    "parentGroupDoesNotExist": "Родительская группа не существует.",
+    "accountNotFound": "Счёт с таким id не найден.",
+    "accountGroupNotFound": "Группа счетов с таким id не найдена."
+  },
+  "categories": {
+    "notFound": "Категория с указанным id не существует.",
+    "systemCannotBeMoved": "Системные категории нельзя перемещать.",
+    "parentNotFound": "Категория с таким parentId не существует.",
+    "systemParentForbidden": "Системные категории нельзя использовать как родительские.",
+    "ownParent": "Категория не может быть родительской для самой себя.",
+    "underOwnSubcategory": "Категорию нельзя переместить в её собственную подкатегорию.",
+    "nestingTooDeep": "Категории нельзя вкладывать глубже чем на {{max}} уровней."
+  },
+  "transactions": {
+    "notFound": "Транзакция не найдена",
+    "missingRequiredFields": "Отсутствует одно из обязательных полей: destinationAmount, destinationAccountId.",
+    "destinationAmountRequiredCrossCurrency": "Поле destinationAmount обязательно при изменении суммы межвалютного перевода.",
+    "refundAndTransferNotAllowed": "Нельзя создать транзакцию, которая одновременно является возвратом и переводом",
+    "notOwnTransaction": "На этом общем счёте вы можете редактировать или удалять только созданные вами транзакции.",
+    "sharedAccountChangeNotSupported": "Перемещать транзакцию на другой счёт может только владелец счёта.",
+    "sharedTransfersNotSupported": "Переводы на общем счёте пока не поддерживаются.",
+    "sharedRefundsNotSupported": "Связывание возвратов на общем счёте пока не поддерживается.",
+    "cannotCreateWithParams": "Не удалось создать транзакцию с указанными параметрами",
+    "idCannotBeChanged": "id нельзя изменить",
+    "editReadonlyFields": "Попытка изменить доступные только для чтения поля внешнего счёта",
+    "changeTypeNotAllowed": "Нельзя изменять \"transactionType\" для несистемного счёта",
+    "bothRefundFieldsNotAllowed": "Нельзя одновременно использовать \"refundedByTxIds\" и \"refundsTxId\". Выберите одно из этих полей.",
+    "oppositeTransactionNotFound": "Не удалось найти противоположную транзакцию для обновления",
+    "transactionIdNotExist": "Транзакция с указанным `id` не существует!",
+    "notAuthorizedToEdit": "У вас нет прав на редактирование этой транзакции.",
+    "cannotDeleteExternal": "Внешние транзакции нельзя удалять вручную",
+    "unexpectedDeleteIssue": "Возникла непредвиденная ошибка при удалении транзакции",
+    "linkSelfNotAllowed": "Нельзя связать транзакцию саму с собой.",
+    "linkSameTypeNotAllowed": "Нельзя связать транзакцию с другой транзакцией с тем же \"transactionType\".",
+    "linkSameAccountNotAllowed": "Нельзя связывать транзакции в пределах одного счёта. Связывание разрешено только между разными счетами",
+    "linkAlreadyTransferNotAllowed": "Нельзя связать транзакцию, которая уже является переводом.",
+    "linkUnexpectedError": "Непредвиденная ошибка. Не удалось связать указанные транзакции.",
+    "linkCannotFind": "Не удалось найти основную или противоположную транзакцию",
+    "linkPlannedNotAllowed": "Запланированную транзакцию нельзя связать как перевод.",
+    "linkSplitTransactionNotAllowed": "Транзакцию с разбиениями нельзя связать как перевод.",
+    "invalidTagIds": "Один или несколько ID тегов недействительны или не принадлежат этому пользователю",
+    "cannotEditPortfolioLinkedTransaction": "Нельзя редактировать транзакцию, связанную с портфелем. Сначала отвяжите её.",
+    "refFieldsRequiredForTransferToPortfolio": "Для транзакций перевода в портфель необходимо указать валюту и сумму в валюте учёта.",
+    "vehicleAccountReadonly": "Этот счёт отслеживает транспортное средство. Его стоимость можно изменить только на странице транспортного средства.",
+    "transferNatureChangeNotAllowed": "Нельзя изменить вид существующего перевода. Сначала отвяжите перевод, затем снова отметьте транзакцию.",
+    "transferToLoanRequiresLoanDestination": "Для платежа по кредиту счёт назначения должен быть кредитным счётом.",
+    "transferToLoanRelinkRequired": "Счёт назначения этого перевода является кредитным. Сначала отвяжите перевод, затем отметьте расход как платёж по кредиту.",
+    "loanPaymentOverpay": "Платёж превышает оставшуюся сумму кредита.",
+    "loanAccountReadonly": "Кредитные счета можно изменять только путём регистрации платежа. Используйте страницу кредита, чтобы добавить платёж.",
+    "loanPaymentMustBeExpense": "Платёж по кредиту должен быть расходом — доходную транзакцию нельзя перевести на кредит.",
+    "plannedMustBeStandalone": "Запланированная транзакция должна быть обычным доходом или расходом — переводы, возвраты и импортированные записи не поддерживаются.",
+    "plannedAmountMustBePositive": "Сумма запланированной транзакции должна быть больше нуля.",
+    "plannedAccountNotSupported": "Запланированные транзакции недоступны для кредитных счетов и счетов транспортных средств.",
+    "plannedOwnerOnly": "Только владелец счёта может создавать запланированные транзакции.",
+    "plannedFlipNotAllowed": "Эту транзакцию нельзя преобразовать в запланированную.",
+    "plannedCreatorOnly": "Только создатель запланированной транзакции может редактировать или удалять её.",
+    "manualOnConnectedAccount": "На счёт, подключённый к банку, можно добавлять только запланированные транзакции. Реальные транзакции поступают из банка.",
+    "plannedUnflipOnConnectedAccount": "Эта запланированная транзакция находится на счёте, подключённом к банку, поэтому банк подтвердит её автоматически. Удалите её, если она больше не ожидается.",
+    "plannedCannotConfirmPayment": "Запланированная транзакция не может подтвердить платёж. Дождитесь её подтверждения, затем свяжите её.",
+    "plannedCannotBeRefundLinked": "Запланированная транзакция не может участвовать в связи возврата.",
+    "splits": {
+      "splitsOnTransfer": "Нельзя добавлять разбиения к транзакциям-переводам",
+      "splitLimitExceeded": "Для одной транзакции разрешено не более {{max}} разбиений",
+      "missingCategory": "Для каждого разбиения требуется категория",
+      "missingAmount": "Для каждого разбиения требуется сумма",
+      "amountNegative": "Сумма разбиения не может быть отрицательной",
+      "amountTooSmall": "Сумма разбиения должна быть не меньше {{min}} (системный минимум)",
+      "noteTooLong": "Примечание разбиения не может превышать {{max}} символов",
+      "invalidCategory": "Категория с id {{categoryId}} не найдена или не принадлежит пользователю",
+      "duplicateCategory": "Для каждого разбиения должна использоваться отдельная категория",
+      "exceedTotal": "Общая сумма разбиений ({{total}}) превышает сумму транзакции ({{transactionAmount}})",
+      "invalidData": "Некорректные данные разбиения",
+      "splitNotFound": "Разбиение не найдено",
+      "cannotDeleteWithRefunds": "Нельзя удалить разбиение, на которое ссылаются возвраты",
+      "cannotReduceBelowRefunded": "Для этого разбиения есть возвраты на общую сумму {{refundsText}}. Нельзя уменьшить его ниже суммы возвратов. Чтобы уменьшить сумму ещё больше, сначала отвяжите возвраты."
+    }
+  },
+  "budgets": {
+    "budgetNotFound": "Бюджет не найден",
+    "someTransactionIdsInvalid": "Некоторые ID транзакций недействительны",
+    "transactionsAddedSuccessfully": "Транзакции успешно добавлены",
+    "cannotManuallyLinkToCategoryBudget": "Нельзя вручную связывать транзакции с бюджетами по категориям. Транзакции отслеживаются автоматически по категории.",
+    "someCategoryIdsInvalid": "Некоторые ID категорий недействительны или не существуют",
+    "notCategoryBudget": "Этот эндпоинт доступен только для бюджетов по категориям"
+  },
+  "tags": {
+    "tagNotFound": "Тег не найден",
+    "tagNameAlreadyExists": "Тег с таким названием уже существует",
+    "someTransactionIdsInvalid": "Некоторые ID транзакций недействительны",
+    "transactionsAddedSuccessfully": "Транзакции успешно добавлены к тегу",
+    "transactionsRemovedSuccessfully": "Транзакции успешно удалены из тега"
+  },
+  "tagReminders": {
+    "reminderNotFound": "Напоминание по тегу не найдено",
+    "reminderAlreadyExists": "Для этого тега уже существует идентичное напоминание",
+    "amountThresholdRequired": "Для напоминаний по порогу суммы необходимо указать порог",
+    "maxRemindersReached": "Достигнуто максимальное количество напоминаний (50)",
+    "notifications": {
+      "thresholdExceeded": {
+        "title": "Предупреждение о расходах по тегу",
+        "message": "Ваши расходы по тегу \"{{tagName}}\" ({{actualAmount}}) превысили установленный порог {{thresholdAmount}}"
+      },
+      "existenceCheck": {
+        "title": "Сводка активности по тегу",
+        "message": "У вас {{count}} транзакций с тегом \"{{tagName}}\""
+      }
+    }
+  },
+  "defaultTags": {
+    "want": {
+      "name": "Хочу",
+      "description": "Необязательные покупки и дискреционные расходы"
+    },
+    "need": {
+      "name": "Нужно",
+      "description": "Важные, но не срочные расходы"
+    },
+    "must": {
+      "name": "Необходимо",
+      "description": "Обязательные расходы, которых нельзя избежать"
+    }
+  },
+  "investments": {
+    "portfolioNotFound": "Портфель не найден",
+    "portfolioIdRequired": "Требуется ID портфеля.",
+    "holdingNotFound": "Позиция не найдена",
+    "holdingNotFoundAddSecurity": "Позиция не найдена. Сначала добавьте ценную бумагу в портфель.",
+    "holdingNotFoundForRecalculation": "Позиция для перерасчёта не найдена.",
+    "securityAlreadyInPortfolio": "Эта ценная бумага уже есть в портфеле.",
+    "securityNotFound": "Ценная бумага не найдена.",
+    "currencyForSecurityNotFound": "Валюта для ценной бумаги не найдена.",
+    "currencyNotFound": "Валюта не найдена",
+    "transactionNotFound": "Инвестиционная транзакция не найдена",
+    "userBaseCurrencyNotFound": "Базовая валюта пользователя не найдена",
+    "insufficientSharesToSell": "Недостаточно бумаг для продажи. После этого обновления у вас останется {{adjustedQuantity}} бумаг, но вы пытаетесь продать {{sellQuantity}}.",
+    "sourceAndDestinationMustDiffer": "Исходный и целевой портфели должны различаться",
+    "transferAmountMustBePositive": "Сумма перевода должна быть больше нуля",
+    "sourcePortfolioNotFound": "Исходный портфель не найден",
+    "destinationPortfolioNotFound": "Целевой портфель не найден",
+    "sourceAccountNotFound": "Исходный счёт не найден",
+    "destinationAccountNotFound": "Целевой счёт не найден",
+    "cannotDeleteHoldingWithActivePosition": "Нельзя удалить позицию с активным остатком. Сначала продайте или переведите все бумаги.",
+    "transactionAlreadyTransfer": "Транзакция уже отмечена как перевод и не может быть связана с портфелем.",
+    "transactionAlreadyLinkedToPortfolio": "Транзакция уже связана с переводом в портфель.",
+    "transactionAlreadyLinkedToVenture": "Транзакция уже связана с венчурной сделкой",
+    "portfolioTransferNotFound": "Перевод в портфель не найден",
+    "exchangeCurrenciesMustDiffer": "Валюты обмена должны различаться"
+  },
+  "loans": {
+    "loanNotFound": "Кредит не найден.",
+    "createAccountFailed": "Не удалось создать кредитный счёт",
+    "deleteBlockedByPayments": "Для этого кредита зарегистрированы платежи. Удалите платежи перед удалением кредита.",
+    "linkPaymentsInvalidSelection": "Некоторые выбранные транзакции нельзя связать с этим кредитом.",
+    "linkPaymentsOverpayConfirmation": "Эти платежи превышают оставшуюся задолженность. После подтверждения кредит будет погашен полностью; переплата не будет возвращена.",
+    "unlinkPaymentNotFound": "Платёж по кредиту не найден.",
+    "unlinkPaymentInvalidSelection": "Эта транзакция не является платежом по данному кредиту.",
+    "correctionAsOfBeforeStartDate": "currentBalanceAsOf не может быть раньше даты начала кредита",
+    "correctionOverpay": "Скорректированный баланс приведёт к переплате по кредиту на {{overpayAmount}}: платежи на общую сумму {{paymentsTotal}} датированы датой {{asOfDate}} или позже"
+  },
+  "errors": {
+    "connectionNotFound": "Подключение не найдено",
+    "connectionNotFoundOrNotYours": "Подключение не найдено или не принадлежит вам",
+    "providerNoReauthorization": "Провайдер {{providerType}} не поддерживает повторную авторизацию",
+    "providerNotFoundInRegistry": "Провайдер {{providerType}} не найден в реестре",
+    "connectionIdNotFound": "Подключение к провайдеру банковских данных {{connectionId}} не найдено",
+    "accountIdNotFound": "Счёт {{accountId}} не найден",
+    "providerTypeMismatch": "Подключение {{connectionId}} относится к провайдеру {{actualType}}, а не {{expectedType}}",
+    "providerAlreadyRegistered": "Провайдер {{providerType}} уже зарегистрирован. Нельзя регистрировать дубликаты провайдеров.",
+    "providerNotRegistered": "Провайдер {{providerType}} не зарегистрирован. Доступные провайдеры: {{available}}",
+    "missingRequiredProviders": "Отсутствуют обязательные провайдеры банковских данных: {{missing}}. Убедитесь, что эти провайдеры зарегистрированы при запуске приложения."
+  },
+  "validation": {
+    "dateInvalid": "\"date\" содержит некорректную дату."
+  },
+  "urlGuard": {
+    "invalidUrl": "Некорректный URL.",
+    "unsupportedProtocol": "Разрешены только URL с http:// и https://.",
+    "credentialsInUrlNotAllowed": "URL не должен содержать имя пользователя или пароль. Используйте отдельное поле API-ключа.",
+    "privateAddressBlocked": "{{host}} указывает на частный или зарезервированный сетевой адрес, что не разрешено.",
+    "hostnameNotResolvable": "Не удалось разрешить {{host}}. Проверьте адрес на опечатки.",
+    "redirectNotAllowed": "Эндпоинт ответил перенаправлением. Укажите конечный URL.",
+    "hostnameLookupUnavailable": "Сейчас не удалось проверить {{host}}. Попробуйте ещё раз через некоторое время."
+  },
+  "bankDataProviders": {
+    "reauthorizationStarted": "Повторная авторизация начата. Завершите процесс OAuth.",
+    "connectionEstablished": "Подключение успешно установлено",
+    "failedToFetchBanks": "Не удалось получить список банков. Проверьте учётные данные и код страны.",
+    "failedToFetchCountries": "Не удалось получить список стран. Проверьте учётные данные.",
+    "accountNotLinkedToConnection": "Счёт не найден или не привязан к этому подключению",
+    "accountAlreadyConnectedToAnotherConnection": "Account \"{{account}}\" is already connected through \"{{connection}}\". Disconnect it there first.",
+    "cannotLoadBeforeLinkDate": "Нельзя загружать транзакции до даты привязки счёта ({{linkedAt}}). Счёт был привязан со стратегией \"forward-only\", чтобы предотвратить дублирование данных.",
+    "dateRangeExceedsLimit": "Диапазон дат не может превышать 1 год.",
+    "fromAfterTo": "Дата \"from\" должна быть раньше даты \"to\"",
+    "fromMustBeValidDate": "\"from\" должно быть корректной строкой даты",
+    "toMustBeValidDate": "\"to\" должно быть корректной строкой даты",
+    "reconciliationOnlyForEnableBanking": "Сверка доступна только для подключений Enable Banking",
+    "transactionLoadingQueued": "Загрузка транзакций поставлена в очередь. Ориентировочное время: {{minutes}} мин.",
+    "noValidAccountIds": "Ни один из выбранных ID счетов не является действительным",
+    "accountCurrencyNotSupported": "Валюта счёта \"{{currency}}\" не поддерживается системой.",
+    "periodLoadNotSupported": "Загрузка транзакций за произвольный период не поддерживается этим провайдером.",
+    "transactionsLoadedCount": "Загружено транзакций: {{count}}.",
+    "transactionsAllDuplicates": "За этот период найдено транзакций: {{count}} — все они уже были импортированы.",
+    "transactionsNoneInPeriod": "Провайдер не вернул транзакций за этот период.",
+    "apiError": "Ошибка API {{provider}}: {{message}}",
+    "currencySelectionRequired": "Банк не сообщил валюту счёта \"{{account}}\" — выберите валюту перед подключением.",
+    "monobank": {
+      "invalidCredentialsFormat": "Некорректный формат учётных данных Monobank",
+      "invalidApiToken": "Некорректный API-токен Monobank",
+      "rateLimitExceeded": "Превышен лимит запросов API Monobank. Попробуйте снова через минуту.",
+      "accountNotFound": "Счёт {{accountExternalId}} не найден в Monobank",
+      "accountReconnectRequired": "Этот счёт больше недоступен в Monobank. Переподключите Monobank, чтобы возобновить синхронизацию.",
+      "webhookNotImplemented": "handleWebhook для Monobank пока не реализован",
+      "unknownCurrencyCode": "Неизвестный код валюты: {{numericCode}}",
+      "geoBlocked": "Monobank блокирует запросы с IP-адреса этого сервера. Отключите VPN или используйте украинский IP-адрес.",
+      "geoBlockedProduction": "Синхронизация Monobank временно недоступна. Мы уже уведомлены и работаем над проблемой. Если это срочно, обратитесь в поддержку."
+    },
+    "enableBanking": {
+      "invalidCredentialsFormat": "Некорректный формат учётных данных Enable Banking",
+      "invalidRsaKey": "Некорректный формат закрытого RSA-ключа",
+      "invalidCredentials": "Некорректные учётные данные Enable Banking",
+      "authUrlNotFound": "URL авторизации для этого подключения не найден",
+      "invalidOAuthState": "Некорректный параметр состояния OAuth",
+      "oAuthStateExpired": "Состояние OAuth истекло или недействительно",
+      "oAuthAuthorizationFailed": "Ошибка авторизации OAuth: {{error}}",
+      "invalidStoredCredentials": "Сохранённые учётные данные некорректны",
+      "bankInfoNotFound": "Информация о банке не найдена в метаданных подключения",
+      "noActiveSession": "Нет активной сессии. Сначала завершите процесс OAuth.",
+      "noActiveSessionGeneric": "Нет активной сессии",
+      "noBalanceInfo": "Информация о балансе недоступна",
+      "authenticationFailed": "Ошибка аутентификации Enable Banking: {{message}}",
+      "sessionExpiredReconnect": "Срок действия банковской сессии истёк. Переподключите банковский счёт, чтобы продолжить синхронизацию.",
+      "apiBadRequestError": "Ошибка API Enable Banking: {{message}}",
+      "apiGeneralError": "Ошибка API Enable Banking: {{message}}",
+      "redirectUriNotAllowed": "В приложении Enable Banking отсутствует обязательный URL перенаправления. Войдите в панель Enable Banking, отредактируйте приложение и добавьте этот URL в список разрешённых URL перенаправления: {{redirectUrl}}"
+    },
+    "lunchflow": {
+      "invalidCredentialsFormat": "Некорректный формат учётных данных LunchFlow. Укажите действительный API-ключ.",
+      "invalidApiKey": "Некорректный API-ключ LunchFlow. Проверьте учётные данные.",
+      "accountNoExternalId": "У счёта нет внешнего ID для синхронизации LunchFlow.",
+      "accountNotFound": "Счёт LunchFlow не найден."
+    },
+    "simplefin": {
+      "invalidCredentialsFormat": "Некорректный формат учётных данных SimpleFIN.",
+      "invalidSetupToken": "Некорректный или уже использованный токен настройки SimpleFIN. Создайте новый в SimpleFIN Bridge и попробуйте снова.",
+      "invalidAccessUrl": "Некорректный или неавторизованный URL доступа SimpleFIN.",
+      "claimFailed": "Не удалось получить URL доступа SimpleFIN из токена настройки.",
+      "accountNotFound": "Счёт SimpleFIN не найден.",
+      "accountNoExternalId": "Этот счёт не связан со счётом SimpleFIN.",
+      "accountAbsentFromResponse": "SimpleFIN не вернул данные для этого счёта при последней синхронизации. Возможно, счёт отключён в банке — попробуйте синхронизировать снова или переподключитесь, если проблема сохраняется.",
+      "rateLimited": "SimpleFIN сейчас получает слишком много запросов. Подождите немного и попробуйте снова."
+    },
+    "walutomat": {
+      "invalidCredentialsFormat": "Некорректный формат учётных данных Walutomat. Требуются API-ключ и закрытый ключ.",
+      "invalidApiKey": "Некорректный API-ключ или закрытый ключ Walutomat.",
+      "accountNoExternalId": "У счёта Walutomat нет внешнего ID.",
+      "walletNotFound": "Кошелёк Walutomat для валюты {{currency}} не найден"
+    }
+  },
+  "csvImport": {
+    "headersCannotBeParsed": "Не удалось разобрать заголовки",
+    "csvFileEmpty": "CSV-файл пуст",
+    "csvFileNoHeaders": "В CSV-файле отсутствуют заголовки",
+    "csvFileMalformed": "Не удалось разобрать CSV-файл. Проверьте незакрытые кавычки или неожиданный разделитель либо попробуйте экспортировать файл заново.",
+    "csvFileTooManyRows": "CSV-файл превышает максимально допустимое количество строк: {{max}}.",
+    "csvFileForbiddenHeader": "CSV-файл содержит недопустимое имя заголовка.",
+    "invalidDateFormat": "Некорректный формат даты: \"{{dateStr}}\". Ожидается формат ISO (YYYY-MM-DD).",
+    "invalidAmount": "Некорректная сумма: \"{{amountStr}}\". Ожидается числовое значение.",
+    "accountNameEmpty": "Название счёта пусто",
+    "currencyCodeEmpty": "Код валюты пуст",
+    "unknownTransactionType": "Неизвестное значение типа транзакции: \"{{typeValue}}\"",
+    "dateColumnNotFound": "Столбец даты \"{{columnName}}\" не найден в CSV",
+    "amountColumnNotFound": "Столбец суммы \"{{columnName}}\" не найден в CSV",
+    "invalidDefaultCurrency": "Некорректный код валюты по умолчанию: \"{{defaultCurrency}}\"",
+    "payeeColumnNotFound": "Столбец получателя \"{{column}}\" не найден в заголовках CSV"
+  },
+  "importExport": {
+    "batchDeleteBankLinkedAccount": "Этот импорт больше нельзя отменить, поскольку его счёт теперь подключён к банку. Удаление этих транзакций может нарушить синхронизированный баланс.",
+    "batchDeleteLinkedLoanTransfer": "Этот импорт связан с платежом по кредиту и не может быть отменён отдельно. Включите «также удалить связанные транзакции перевода», чтобы удалить его.",
+    "batchDeleteTooLarge": "В этом импорте слишком много транзакций для отмены одним запросом. Обратитесь в поддержку, если вам нужна помощь с его удалением."
+  },
+  "statementParser": {
+    "invalidFile": "Некорректный файл",
+    "textExtractionFailed": "Не удалось извлечь текст. Возможно, PDF является отсканированным документом. Извлечение текста из изображений пока не реализовано.",
+    "failedToExtractText": "Не удалось извлечь текст из файла.",
+    "fileContentRequired": "Требуется содержимое файла",
+    "pdfPasswordRequired": "Этот PDF защищён паролем. Введите пароль документа, чтобы продолжить.",
+    "pdfPasswordInvalid": "Введён неверный пароль. Проверьте его и попробуйте снова.",
+    "pdfParseFailed": "Не удалось прочитать этот PDF. Возможно, файл повреждён или использует неподдерживаемый формат."
+  },
+  "currencies": {
+    "notSupportedForBaseCurrency": "Изменение базовой валюты на {{currency}} не поддерживается. Поддерживаются только следующие валюты: {{supportedCurrencies}}.",
+    "listIsEmpty": "Список валют пуст",
+    "noBaseCurrency": "У пользователя не задана базовая валюта",
+    "alreadyBaseCurrency": "Выбранная валюта уже является базовой",
+    "baseCurrencyLockedByShares": "Нельзя изменить базовую валюту при наличии активных общих ресурсов. Сначала отзовите доступ или покиньте их.",
+    "baseCurrencyLockedByHousehold": "Нельзя изменить базовую валюту, пока вы состоите в активном семейном пространстве. Сначала отзовите доступ или покиньте его.",
+    "baseCurrencyChangeInProgress": "Изменение базовой валюты уже выполняется. Дождитесь завершения.",
+    "baseCurrencyChangeSyncInProgress": "Синхронизация с банком ещё завершается. Попробуйте изменить базовую валюту снова через несколько минут.",
+    "baseCurrencyChangeDrainCheckFailed": "Не удалось проверить, что банковские синхронизации не выполняются. Попробуйте снова.",
+    "baseCurrencyChangeInProgressOtherUser": "Другой участник сейчас меняет свою базовую валюту. Попробуйте снова после завершения его миграции.",
+    "cannotFindForRefAmount": "Не удалось найти валюту для расчёта суммы в валюте учёта!",
+    "cannotCalculateRefAmount": "Не удалось рассчитать сумму в валюте учёта",
+    "currencyNotConnected": "Запрошенная валюта не подключена",
+    "exchangeRateNotAvailable": "Обменный курс {{baseCode}}/{{quoteCode}} на {{date}} недоступен"
+  },
+  "userSettings": {
+    "userSettingsNotFound": "Настройки пользователя не найдены"
+  },
+  "users": {
+    "usernameAlreadyTaken": "Имя пользователя \"{{username}}\" уже занято"
+  },
+  "userCurrencies": {
+    "baseCurrencyExists": "Базовая валюта уже существует!",
+    "currencyCodeNotExist": "Валюта с указанным кодом не существует.",
+    "currencyNotExist": "Валюта с кодом \"{{currencyCode}}\" не существует.",
+    "cannotDeleteDefaultCurrency": "Нельзя удалить валюту по умолчанию. Сначала снимите с неё статус валюты по умолчанию.",
+    "cannotDeleteCurrencyWithAccounts": "Нельзя удалить валюту, связанную со счетами. Сначала удалите счета. Названия счетов: \"{{accountNames}}\".",
+    "cannotDeleteCurrencyWithInvestments": "Нельзя удалить валюту \"{{currencyCode}}\", пока она используется инвестиционными позициями. Сначала удалите эти позиции.",
+    "defaultCurrencyNotPresent": "Нельзя удалить валюту. Валюта по умолчанию отсутствует в системе"
+  },
+  "ai": {
+    "apiKeyValidationFailed": "Не удалось проверить API-ключ",
+    "noApiKeyForProvider": "Для провайдера {{provider}} не настроен API-ключ",
+    "customEndpointUnreachable": "Не удалось подключиться к эндпоинту. Проверьте базовый URL и убедитесь, что сервер запущен и доступен из интернета.",
+    "customEndpointAuthFailed": "Эндпоинт отклонил API-ключ. Проверьте правильность ключа и наличие необходимых разрешений.",
+    "customEndpointModelNotFound": "Эндпоинт не предоставляет модель с именем \"{{model}}\".",
+    "customEndpointModelNotListed": "Эндпоинт не предоставляет \"{{model}}\". Доступные модели: {{available}}.",
+    "customEndpointMoreModels": "и ещё {{count}}",
+    "customEndpointNotApiResponse": "Сервер по этому URL ответил HTTP {{status}} вместо OpenAI-совместимого ответа. Проверьте, что сервер запущен и базовый URL указан правильно — обычно он заканчивается на /v1.",
+    "customEndpointValidationFailed": "Эндпоинт не вернул пригодный ответ. Проверьте базовый URL, название модели и API-ключ.",
+    "customEndpointMissingFields": "Необходимо указать базовый URL и название модели.",
+    "customEndpointNameTaken": "Эндпоинт с таким названием уже существует.",
+    "customEndpointNameInvalidLength": "Название эндпоинта должно содержать от 1 до 50 символов.",
+    "customEndpointNotFound": "Пользовательский эндпоинт не найден.",
+    "customEndpointIdRequired": "Выберите пользовательский эндпоинт, который предоставляет эту модель.",
+    "customModelNameInvalidLength": "Название модели должно содержать от 1 до 200 символов.",
+    "customEndpointLimitReached": "Можно сохранить не более {{max}} пользовательских эндпоинтов. Удалите один перед добавлением нового.",
+    "customEndpointStoredKeyUnreadable": "Сохранённый API-ключ этого эндпоинта больше нельзя прочитать. Введите его снова.",
+    "categorizationAlreadyRunning": "AI-категоризация уже выполняется. Дождитесь её завершения перед запуском нового процесса.",
+    "categorizationRateLimited": "Вы слишком часто запускали AI-категоризацию за последнее время. Попробуйте позже."
+  },
+  "middleware": {
+    "tooManyRequests": "Слишком много запросов. Попробуйте позже."
+  },
+  "defaultCategories": {
+    "main": {
+      "food": "Еда и напитки",
+      "shopping": "Покупки",
+      "housing": "Жильё",
+      "transportation": "Транспорт",
+      "vehicle": "Автомобиль",
+      "life": "Жизнь и развлечения",
+      "communication": "Связь и компьютер",
+      "financial-expenses": "Финансовые расходы",
+      "investments": "Инвестиции",
+      "income": "Доходы",
+      "other": "Другое"
+    },
+    "subcategories": {
+      "food": {
+        "groceries": "Продукты",
+        "restaurant": "Рестораны и фастфуд",
+        "bar-cafe": "Бары и кафе"
+      },
+      "shopping": {
+        "clothes-shoes": "Одежда и обувь",
+        "jewels-accessories": "Украшения и аксессуары",
+        "health-beauty": "Здоровье и красота",
+        "kids": "Дети",
+        "home-garden": "Дом и сад",
+        "pets-animals": "Домашние животные",
+        "electronics-accessories": "Электроника и аксессуары",
+        "gifts-joy": "Подарки и радость",
+        "stationery-tools": "Канцелярия и инструменты",
+        "free-time": "Досуг",
+        "drugstore-chemist": "Аптека и бытовая химия"
+      },
+      "housing": {
+        "rent": "Аренда",
+        "mortgage": "Ипотека",
+        "energy-utilities": "Энергия и коммунальные услуги",
+        "services": "Услуги",
+        "maintenance-repairs": "Обслуживание и ремонт",
+        "property-insurance": "Страхование имущества"
+      },
+      "transportation": {
+        "public-transport": "Общественный транспорт",
+        "taxi": "Такси",
+        "long-distance": "Междугородние поездки",
+        "business-trips": "Командировки"
+      },
+      "vehicle": {
+        "fuel": "Топливо",
+        "parking": "Парковка",
+        "vehicle-maintenance": "Обслуживание автомобиля",
+        "rentals": "Аренда транспорта",
+        "vehicle-insurance": "Страхование автомобиля",
+        "leasing": "Лизинг"
+      },
+      "life": {
+        "health-care-doctor": "Здравоохранение и врачи",
+        "wellness-beauty": "Уход за собой и красота",
+        "active-sport-fitness": "Спорт и фитнес",
+        "culture-sport-events": "Культура и спортивные мероприятия",
+        "hobbies": "Хобби",
+        "education-development": "Образование и развитие",
+        "books-audio-subscriptions": "Книги, аудио и подписки",
+        "tv-streaming": "ТВ и стриминг",
+        "holiday-trips-hotels": "Отпуск, поездки и отели",
+        "charity-gifts": "Благотворительность и подарки",
+        "alcohol-tobacco": "Алкоголь и табак",
+        "lottery-gambling": "Лотереи и азартные игры"
+      },
+      "communication": {
+        "phone-cell-phone": "Телефон и мобильная связь",
+        "internet": "Интернет",
+        "software-apps-games": "ПО, приложения и игры",
+        "postal-services": "Почтовые услуги"
+      },
+      "financial-expenses": {
+        "taxes": "Налоги",
+        "insurances": "Страхование",
+        "loan-interests": "Кредиты и проценты",
+        "fines": "Штрафы",
+        "advisory": "Консультации",
+        "charges-fees": "Сборы и комиссии",
+        "child-support": "Алименты"
+      },
+      "investments": {
+        "realty": "Недвижимость",
+        "vehicles-chattels": "Транспорт и движимое имущество",
+        "financial-investments": "Финансовые инвестиции",
+        "savings": "Сбережения",
+        "collections": "Коллекции"
+      },
+      "income": {
+        "wage-invoices": "Зарплата и счета",
+        "interests-dividends": "Проценты и дивиденды",
+        "sale": "Продажа",
+        "rental-income": "Доход от аренды",
+        "dues-grants": "Выплаты и гранты",
+        "lending-renting": "Займы и сдача в аренду",
+        "checks-coupons": "Чеки и купоны",
+        "lottery-gambling": "Лотереи и азартные игры",
+        "refunds": "Возвраты (налоги, покупки)",
+        "freelance": "Фриланс",
+        "gifts": "Подарки"
+      }
+    }
+  },
+  "subscriptions": {
+    "transactionsNotFoundOrNotBelongToUser": "Одна или несколько транзакций не найдены или не принадлежат пользователю.",
+    "cannotLinkDifferentTransactionType": "Нельзя связывать транзакции с типом, отличным от типа регулярного платежа",
+    "summaryCurrencyNotConnected": "Невозможно рассчитать сводку подписок: валюта {{currencyCodes}} не подключена к вашему аккаунту. Подключите её в Настройки → Валюты.",
+    "summaryBaseCurrencyNotSet": "Базовая валюта не задана. Установите валюту по умолчанию в настройках, чтобы просматривать сводку подписок.",
+    "payeeNotFoundOrNotBelongToUser": "Получатель не найден или не принадлежит пользователю.",
+    "tagsNotFoundOrNotBelongToUser": "Один или несколько тегов не найдены или не принадлежат пользователю.",
+    "validation": {
+      "autoRecord": {
+        "requiresAccount": "Для автоматической записи требуется счёт, на который будет добавлена проведённая транзакция.",
+        "requiresAmount": "Для автоматической записи требуются expectedAmount и expectedCurrencyCode, чтобы у проведённой транзакции была сумма.",
+        "excludesMatching": "Автоматическая запись и правила сопоставления нельзя использовать одновременно — оба механизма закроют один и тот же период.",
+        "requiresAccountField": "Для автоматической записи требуется счёт, на который будет проведена транзакция.",
+        "requiresAmountField": "Для автоматической записи требуются expectedAmount и expectedCurrencyCode.",
+        "excludesMatchingField": "Автоматическая запись и правила сопоставления взаимно исключают друг друга."
+      }
+    }
+  },
+  "transactionTemplates": {
+    "notFound": "Шаблон транзакции не найден.",
+    "nameAlreadyExists": "Шаблон транзакции с таким названием уже существует.",
+    "amountRequiresAccount": "Сумму можно сохранить только вместе со счётом.",
+    "accountNotFound": "Счёт не найден или не принадлежит пользователю.",
+    "accountMustBeSystem": "В шаблоне транзакции можно использовать только счета с ручным управлением.",
+    "accountArchived": "Архивные счета нельзя использовать в шаблоне.",
+    "categoryNotFound": "Категория не найдена или не принадлежит пользователю.",
+    "payeeNotFound": "Получатель не найден или не принадлежит пользователю.",
+    "tagsNotFound": "Один или несколько тегов не найдены или не принадлежат пользователю."
+  },
+  "payees": {
+    "aliasNameRequired": "Требуется название псевдонима",
+    "aliasNotFound": "Псевдоним не найден",
+    "aliasUsedByOtherPayee": "Этот псевдоним уже используется получателем \"{{name}}\"",
+    "nameUsedByAliasOfOtherPayee": "Это имя уже используется как псевдоним получателя \"{{name}}\"",
+    "cannotDeleteCanonicalAlias": "Нельзя удалить псевдоним, совпадающий с основным именем получателя. Если хотите изменить основное имя, переименуйте получателя.",
+    "defaultCategoryNotOwned": "Выбранная категория по умолчанию не принадлежит вашему аккаунту",
+    "defaultTagsNotOwned": "Один или несколько тегов не принадлежат пользователю",
+    "duplicateAlias": "Этот псевдоним уже привязан к данному получателю",
+    "duplicateName": "Получатель с таким именем уже существует",
+    "ignoredNameCollidesWithPayee": "Существующий получатель совпадает с этим именем. Сначала удалите получателя либо передайте `force: true`, чтобы удалить его в рамках этой операции.",
+    "ignoredNameNotFound": "Игнорируемое имя не найдено.",
+    "mergeSelf": "Нельзя объединить получателя с самим собой",
+    "nameRequired": "Требуется имя получателя",
+    "notFound": "Получатель не найден",
+    "renameCollision": "Другой получатель уже использует это имя — вместо переименования объедините их"
+  },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "Нельзя одновременно установить логотип бренда и пользовательские буквы.",
+    "colorRequiresInitials": "Для цвета монограммы необходимо указать буквы монограммы."
+  },
+  "venture": {
+    "dealNotFound": "Венчурная сделка не найдена",
+    "eventNotFound": "Событие венчурной сделки не найдено"
+  },
+  "vehicles": {
+    "notFound": "Транспортное средство не найдено"
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": "Для выбранного диапазона дат и детализации получается слишком много точек данных. Выберите более крупный интервал или более короткий диапазон."
+  },
+  "automations": {
+    "automationNotFound": "Автоматизация не найдена.",
+    "previewRequiresConditions": "Provide either conditions or a saved automation to preview.",
+    "reorderStale": "Список автоматизаций изменился. Обновите страницу и попробуйте снова.",
+    "ruleLimitReached": "Достигнуто максимальное количество автоматизаций.",
+    "staleReference": "Эта автоматизация ссылается на объект, которого больше не существует."
+  }
+}

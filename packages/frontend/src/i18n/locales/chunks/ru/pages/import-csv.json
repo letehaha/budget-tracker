@@ -1,0 +1,332 @@
+{
+  "pages": {
+    "importExport": {
+      "csvImport": {
+        "pageTitle": "Импорт транзакций из CSV",
+        "pageDescription": "Загрузите CSV-файл, экспортированный из банка, или файл истории транзакций, чтобы импортировать транзакции в свой счёт.",
+        "stepper": {
+          "stepOf": "Шаг {current} из {total}",
+          "steps": {
+            "upload": "Загрузка",
+            "map": "Сопоставление столбцов",
+            "resolveAccounts": "Счета",
+            "resolveCategories": "Категории",
+            "review": "Проверка",
+            "results": "Готово"
+          }
+        },
+        "steps": {
+          "uploadTitle": "Загрузка CSV-файла",
+          "uploadDescription": "Выберите CSV-файл, чтобы начать",
+          "mappingTitle": "Сопоставление столбцов",
+          "mappingDescription": "Сопоставьте столбцы CSV с полями транзакции",
+          "reviewTitle": "Проверка дубликатов",
+          "reviewDescription": "Проверьте наличие дублирующихся транзакций",
+          "completeTitle": "Импорт завершён",
+          "completeDescription": "Просмотрите результаты импорта"
+        },
+        "fileUpload": {
+          "stepTitle": "Загрузка CSV-файла",
+          "description": "Загрузите один или несколько CSV-файлов для импорта транзакций. Во всех файлах должны быть одинаковые столбцы.",
+          "dragDrop": "Перетащите CSV-файл сюда",
+          "orBrowse": "или нажмите, чтобы выбрать файл",
+          "maxSize": "Максимальный размер файла: 50 МБ",
+          "removeFile": "Удалить файл",
+          "parsing": "Обработка...",
+          "continueToMapping": "Перейти к сопоставлению",
+          "errors": {
+            "invalidFormat": "Недопустимый формат файла. Загрузите CSV-файл.",
+            "invalidFormatNamed": "{name} не является CSV-файлом",
+            "fileTooLarge": "Размер файла ({size}) превышает максимально допустимый (50 МБ)",
+            "parseFailed": "Не удалось обработать файл. Проверьте формат и попробуйте снова.",
+            "merge": {
+              "emptySelection": "Выберите хотя бы один CSV-файл",
+              "fileReadFailed": "Не удалось прочитать «{file}»",
+              "fileEmpty": "«{file}» пуст",
+              "fileNoDataRows": "В «{file}» нет строк с данными",
+              "headerMismatch": "Столбцы в «{file}» не совпадают со столбцами первого файла. Во всех файлах должны быть одинаковые столбцы в одинаковом порядке.",
+              "forbiddenHeader": "В «{file}» используется зарезервированное имя столбца",
+              "tooManyRows": "В выбранных файлах суммарно больше {max} строк. Удалите часть файлов или строк и попробуйте снова.",
+              "parseError": "Не удалось обработать «{file}». Убедитесь, что это корректный CSV-файл."
+            }
+          }
+        },
+        "columnMapping": {
+          "stepTitle": "Сопоставление столбцов",
+          "description": "Сопоставьте столбцы CSV с обязательными полями",
+          "file": "Файл",
+          "filesCount": "{count} файл | {count} файла | {count} файлов",
+          "totalRows": "Всего строк",
+          "delimiter": "Разделитель",
+          "extracting": "Извлечение...",
+          "detecting": "Поиск дубликатов…",
+          "nextExtract": "Далее: извлечь значения",
+          "continueToDuplicates": "Перейти к проверке дубликатов"
+        },
+        "execute": {
+          "starting": "Запуск импорта…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "В очереди",
+          "statusRunning": "Импорт…",
+          "statusCompleted": "Завершено",
+          "statusFailed": "Ошибка",
+          "failed": "Импорт завершился ошибкой.",
+          "partialImportNote": "Некоторые строки могли быть импортированы до возникновения ошибки. Повторный импорт может создать дубликаты."
+        },
+        "review": {
+          "stepTitle": "Проверка импорта",
+          "description": "Проверьте данные перед импортом",
+          "totalRows": "Всего строк",
+          "validRows": "Корректные строки",
+          "invalidRows": "Некорректные строки",
+          "duplicates": "Дубликаты",
+          "invalidRowsTitle": "Некорректные строки",
+          "rowNumber": "Строка №",
+          "errors": "Ошибки",
+          "rawData": "Исходные данные",
+          "duplicatesTitle": "Найдено потенциальных дубликатов: {count}",
+          "duplicatesHint": "Снимите отметку со строк, которые всё равно хотите импортировать",
+          "skip": "Пропустить",
+          "match": "Совпадение",
+          "csvTransaction": "Транзакция из CSV",
+          "existingTransaction": "Существующая транзакция",
+          "importSummary": "Сводка импорта",
+          "willBeImported": "транзакций будет импортировано.",
+          "invalidWillBeSkipped": "некорректных строк будет пропущено.",
+          "duplicatesWillBeSkipped": "дубликатов будет пропущено.",
+          "backToMapping": "Назад к сопоставлению",
+          "importing": "Импорт...",
+          "importButton": "Импортировать {count} транзакций",
+          "unpriceableTitle": "Для {count} строк(и) невозможно рассчитать стоимость — курс обмена не найден",
+          "unpriceableDescription": "В этих строках используется валюта, для которой нет сохранённого курса обмена, поэтому её нельзя конвертировать в вашу базовую валюту. Необходимо пропустить эти строки или отменить импорт.",
+          "unpriceableWillBeSkipped": "строк без курса будет пропущено",
+          "currency": "Валюта",
+          "skipAndImport": "Пропустить и импортировать",
+          "cancelImport": "Отменить импорт",
+          "noInvalidRows": "Некорректных строк нет",
+          "noDuplicates": "Дубликатов нет",
+          "expand": "Показать все данные",
+          "collapse": "Скрыть все данные"
+        },
+        "results": {
+          "completeTitle": "Импорт завершён!",
+          "completeWithIssuesTitle": "Импорт завершён с проблемами",
+          "successDescription": "Все транзакции успешно импортированы.",
+          "partialDescription": "Некоторые транзакции не удалось импортировать.",
+          "imported": "Импортировано",
+          "skippedDuplicates": "Пропущено (дубликаты)",
+          "accountsCreated": "Создано счетов",
+          "accountsSkipped": "Пропущено счетов",
+          "categoriesCreated": "Создано категорий",
+          "tagsCreated": "Создано тегов",
+          "payeesCreated": "Создано получателей",
+          "importErrors": "Ошибки импорта",
+          "rowNumber": "Строка №",
+          "error": "Ошибка",
+          "batchIdLabel": "ID пакета",
+          "batchIdDescription": "Используйте этот ID, чтобы найти все транзакции из данного импорта.",
+          "viewTransactions": "Просмотреть транзакции",
+          "startNewImport": "Начать новый импорт",
+          "skippedUnpriceable": "Пропущено (без курса)",
+          "importFailed": "Не удалось импортировать транзакции. Попробуйте снова.",
+          "successCallout": "Успешно импортировано транзакций: {count}",
+          "failed": "Не удалось",
+          "noErrors": "Ошибок нет",
+          "balanceWarningTitle": "Балансы счетов могут быть не синхронизированы",
+          "balanceWarningBody": "Транзакции были импортированы, но после этого не удалось обновить балансы некоторых счетов. Проверьте эти счета и при необходимости скорректируйте их балансы вручную."
+        }
+      },
+      "columnMapping": {
+        "stepTitle": "Сопоставление столбцов",
+        "description": "Сопоставьте столбцы CSV с обязательными полями",
+        "file": "Файл",
+        "totalRows": "Всего строк",
+        "delimiter": "Разделитель",
+        "detecting": "Поиск дубликатов…"
+      },
+      "common": {
+        "selectOption": "Выберите вариант...",
+        "selectColumn": "Выберите столбец...",
+        "noneOptional": "Нет (необязательно)",
+        "selectAction": "Выберите действие..."
+      },
+      "transactionTypeMapping": {
+        "columnLabel": "Столбец типа транзакции",
+        "incomeValuesLabel": "Значения доходов",
+        "expenseValuesLabel": "Значения расходов",
+        "commaSeparatedHint": "Значения, разделённые запятыми",
+        "uncoveredValues": "Эти значения в столбце типа ещё не отнесены к доходам или расходам: {values}. Добавьте каждое из них в соответствующий список выше, чтобы продолжить.",
+        "selectColumn": "Выберите столбец...",
+        "incomeValuesPlaceholder": "например: Credit, Deposit, Income",
+        "expenseValuesPlaceholder": "например: Debit, Withdrawal, Expense",
+        "methodOptions": {
+          "amountSign": "По знаку суммы (отрицательная = расход, положительная = доход)",
+          "dataSourceColumn": "Из столбца (указать значения)"
+        },
+        "amountSignInfo": "ℹ️ Типы транзакций будут определяться автоматически: отрицательные суммы = расходы, положительные суммы = доходы"
+      },
+      "currencyMapping": {
+        "selectCurrency": "Выберите валюту...",
+        "methodOptions": {
+          "dataSourceColumn": "Сопоставить со столбцом CSV",
+          "existingCurrency": "Использовать одну валюту для всех транзакций"
+        }
+      },
+      "categoryMapping": {
+        "selectCategory": "Выберите категорию..."
+      },
+      "accountMapping": {
+        "selectAccount": "Выберите счёт..."
+      },
+      "accountAssignment": {
+        "title": "Назначение счетов",
+        "howToAssign": "Как вы хотите назначать счета?",
+        "description": "Выберите, как назначать счета импортируемым транзакциям",
+        "accountColumn": "Столбец счёта",
+        "columnDescription": "Выберите столбец CSV, содержащий названия счетов",
+        "accountLabel": "Счёт",
+        "singleAccountDescription": "Все импортированные транзакции будут назначены этому счёту",
+        "mapOnNextStep": "На следующем шаге вы сопоставите каждый счёт из CSV с существующими счетами",
+        "options": {
+          "mapToExisting": "Сопоставить каждый счёт из CSV с существующими счетами (на следующем шаге)",
+          "assignToSingle": "Назначить все транзакции одному существующему счёту"
+        }
+      },
+      "accountMappingTable": {
+        "title": "Сопоставление счетов",
+        "description": "Сопоставьте названия счетов из CSV с существующими счетами или создайте новые. Будут показаны только счета с совпадающей валютой.",
+        "csvAccountName": "Название счёта в CSV",
+        "currency": "Валюта",
+        "action": "Действие",
+        "targetAccount": "Целевой счёт",
+        "actions": {
+          "createNew": "Создать новый счёт",
+          "mapToExisting": "Сопоставить с существующим счётом"
+        },
+        "noMatchingCurrency": "Нет доступных счетов с валютой {currency}",
+        "willBeCreated": "Будет создан новый счёт «{name}» в валюте {currency}",
+        "defaultCurrency": "по умолчанию",
+        "mappedTo": "сопоставлено со счётом «{name}»",
+        "selectAccount": "Выберите счёт..."
+      },
+      "categoryMappingTable": {
+        "csvCategoryName": "Название категории в CSV"
+      },
+      "categoryAssignment": {
+        "options": {
+          "mapToExisting": "Сопоставить каждую категорию из CSV с существующими категориями (на следующем шаге)",
+          "createNew": "Создать новые категории из значений CSV",
+          "assignToSingle": "Назначить все транзакции одной существующей категории"
+        }
+      },
+      "tagMappingTable": {
+        "csvTagName": "Значение тега в CSV"
+      },
+      "resolveValues": {
+        "selectAction": "Выберите действие",
+        "actions": {
+          "createNew": "Создать",
+          "linkExisting": "Связать с существующим",
+          "skip": "Пропустить"
+        },
+        "quickActions": {
+          "mapExactMatches": "Сопоставить точные совпадения",
+          "createNewForUnmatched": "Создать для несовпавших",
+          "skipAll": "Пропустить все",
+          "reset": "Сбросить",
+          "tooltips": {
+            "mapExactMatchesAccounts": "Связывает каждый счёт из CSV с существующим счётом с тем же названием и валютой. Счета без точного совпадения остаются без изменений.",
+            "mapExactMatchesCategories": "Связывает каждую категорию из CSV с существующей категорией с тем же названием. Категории без точного совпадения остаются без изменений.",
+            "mapExactMatchesTags": "Связывает каждый тег из CSV с существующим тегом с тем же названием. Теги без точного совпадения остаются без изменений.",
+            "createNewForUnmatched": "Для каждой строки, не связанной с существующей записью, устанавливает действие «Создать». Уже связанные строки остаются без изменений.",
+            "skipAll": "Пропускает все теги — ни один не будет импортирован или создан.",
+            "reset": "Очищает все выбранные значения и повторно запускает автоматическое сопоставление."
+          }
+        },
+        "accounts": {
+          "sectionTitle": "Сопоставление счетов",
+          "resolvedCount": "Сопоставлено: {resolved} из {total}",
+          "csvName": "Счёт из CSV",
+          "currency": "Валюта",
+          "action": "Действие",
+          "target": "Целевой счёт",
+          "selectTarget": "Выберите счёт",
+          "noMatchingCurrency": "Нет счетов с валютой {currency}",
+          "willCreate": "Будет создан счёт «{name}» ({currency})",
+          "empty": "В CSV не найдено счетов",
+          "currentBalanceLabel": "Текущий баланс",
+          "currentBalancePlaceholder": "0.00",
+          "currentBalanceHint": "Баланс, который сейчас находится на этом счёте — при импорте баланс счёта будет установлен точно в это значение. Оставьте поле пустым, чтобы использовать сумму импортированных транзакций.",
+          "skippedNote": "{count} счет(а/ов) будет пропущено. Их транзакции не будут импортированы."
+        },
+        "categories": {
+          "sectionTitle": "Сопоставление категорий",
+          "csvName": "Категория из CSV"
+        },
+        "tags": {
+          "sectionTitle": "Сопоставление тегов",
+          "resolvedCount": "Сопоставлено: {resolved} из {total}",
+          "csvName": "Тег из CSV",
+          "action": "Действие",
+          "target": "Целевой тег",
+          "selectTarget": "Выберите тег",
+          "willCreate": "Будет создан тег «{name}»",
+          "willSkip": "Будет пропущено",
+          "noExistingTags": "Нет существующих тегов для связывания",
+          "loadFailed": "Не удалось загрузить теги",
+          "empty": "В CSV не найдено тегов"
+        },
+        "detectError": "Не удалось продолжить. Попробуйте снова.",
+        "extractFailed": "Не удалось загрузить значения для сопоставления. Вернитесь назад и попробуйте снова.",
+        "retry": "Попробовать снова",
+        "footer": {
+          "back": "Назад",
+          "next": "Далее"
+        }
+      },
+      "mapColumns": {
+        "columnsTitle": "Столбцы",
+        "assignmentsTitle": "Назначения",
+        "fieldHeader": "Поле",
+        "csvColumnHeader": "Столбец CSV",
+        "exampleHeader": "Пример данных",
+        "howToAssignHeader": "Как назначать",
+        "usingHeader": "Использовать",
+        "optionalSuffix": "(необязательно)",
+        "choosePlaceholder": "Выберите…",
+        "alreadyMatchedSuffix": "(уже сопоставлено)",
+        "amountSignNote": "Определяется по знаку суммы",
+        "back": "Назад",
+        "next": "Далее",
+        "missingHint": "Ещё требуется: {fields}",
+        "fields": {
+          "date": "Дата",
+          "amount": "Сумма",
+          "description": "Описание",
+          "category": "Категория",
+          "account": "Счёт",
+          "currency": "Валюта",
+          "transactionType": "Тип транзакции",
+          "payee": "Получатель"
+        },
+        "dateFormat": {
+          "label": "Формат даты",
+          "placeholder": "Выберите формат даты",
+          "dayFirstOption": "Сначала день — {example}",
+          "monthFirstOption": "Сначала месяц — {example}",
+          "suggestedBadge": "Рекомендуется",
+          "isoDetected": "Обнаружен формат даты ISO — в этом столбце год указан первым, поэтому выбирать порядок дня и месяца не требуется.",
+          "previewLabel": "Предпросмотр",
+          "previewUnrecognized": "не распознано",
+          "mismatchWarning": "{count} строка не соответствует этому формату и будет помечена как некорректная. | {count} строки не соответствуют этому формату и будут помечены как некорректные. | {count} строк не соответствуют этому формату и будут помечены как некорректные."
+        }
+      },
+      "importResults": {
+        "errorColumns": {
+          "row": "Строка",
+          "error": "Ошибка"
+        }
+      }
+    }
+  }
+}
