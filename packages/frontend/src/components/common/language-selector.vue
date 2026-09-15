@@ -74,6 +74,7 @@ const FLAG_SRCS: Record<SupportedLocale, string> = {
   [SUPPORTED_LOCALES.UKRAINIAN]: '/img/flags/ua.svg',
   [SUPPORTED_LOCALES.SPANISH]: '/img/flags/es.png',
   [SUPPORTED_LOCALES.INDONESIAN]: '/img/flags/id.svg',
+  [SUPPORTED_LOCALES.PORTUGUESE_BR]: '/img/flags/br.svg',
 };
 
 const currentFlagSrc = computed(() => FLAG_SRCS[currentLocale.value]);
@@ -99,6 +100,11 @@ const availableLocales = [
     value: SUPPORTED_LOCALES.INDONESIAN,
     native: LOCALE_NAMES[SUPPORTED_LOCALES.INDONESIAN].native,
     flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.INDONESIAN],
+  },
+  {
+    value: SUPPORTED_LOCALES.PORTUGUESE_BR,
+    native: LOCALE_NAMES[SUPPORTED_LOCALES.PORTUGUESE_BR].native,
+    flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.PORTUGUESE_BR],
   },
 ];
 

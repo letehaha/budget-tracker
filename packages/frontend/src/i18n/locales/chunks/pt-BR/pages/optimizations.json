@@ -1,0 +1,136 @@
+{
+  "optimizations": {
+    "title": "Otimizações",
+    "landingDescription": "Ferramentas para ajudar você a organizar e limpar seus dados financeiros.",
+    "backToOptimizations": "Voltar para otimizações",
+    "cards": {
+      "transfers": {
+        "title": "Correspondência de transferências",
+        "description": "Encontre pares de despesa e receita que podem ser transferências entre suas contas e vincule-os automaticamente."
+      },
+      "aiCategorization": {
+        "title": "Categorização por IA",
+        "description": "Deixe a IA classificar transações não categorizadas e revisar execuções anteriores."
+      },
+      "applyRules": {
+        "title": "Aplicar uma regra a transações passadas",
+        "description": "Escolha uma das suas automações e execute-a sobre transações que você já tem."
+      }
+    },
+    "aiCategorization": {
+      "title": "Categorização por IA",
+      "description": "Execute a IA sobre transações que ainda estão na sua categoria padrão e deixe que ela escolha uma melhor. Você sempre pode alterar uma categoria depois.",
+      "tabs": {
+        "categorize": "Categorizar",
+        "history": "Histórico"
+      },
+      "count": {
+        "capNote": "Uma execução cobre as {limit} mais recentes. Execute novamente para processar o restante.",
+        "allDoneTitle": "Tudo está categorizado",
+        "allDoneDescription": "Nenhuma transação está na sua categoria padrão no momento."
+      },
+      "bar": {
+        "uncategorizedCount": "{count} não categorizadas",
+        "capChip": "{limit} por execução"
+      },
+      "table": {
+        "selectionHint": "Selecione linhas para categorizar apenas essas.",
+        "loadError": "Não foi possível carregar as transações aguardando categorização."
+      },
+      "history": {
+        "emptyTitle": "Nenhuma execução de categorização por IA ainda",
+        "emptyDescription": "Depois que você executar a categorização por IA, cada execução aparecerá aqui para que você possa revisar o que foi alterado.",
+        "loadError": "Não foi possível carregar o histórico de execuções.",
+        "runLoadError": "Não foi possível carregar as transações desta execução.",
+        "backToRuns": "Voltar para todas as execuções",
+        "runEmptyTitle": "Nada restou desta execução",
+        "runEmptyDescription": "Toda transação que esta execução categorizou já foi recategorizada ou excluída.",
+        "transactionCount": "{count} transação | {count} transações",
+        "trigger": {
+          "manual": "Manual",
+          "import": "Importação de dados",
+          "sync": "Sincronização bancária",
+          "unknown": "Desconhecido"
+        },
+        "triggerTooltip": {
+          "manual": "Você iniciou esta execução manualmente",
+          "import": "Iniciada automaticamente após uma importação de dados",
+          "sync": "Iniciada automaticamente após uma sincronização bancária",
+          "unknown": "A origem desta execução não foi registrada"
+        }
+      },
+      "setup": {
+        "title": "Configuração da execução",
+        "model": "Modelo",
+        "notConfigured": "Não configurado",
+        "endpoint": "Endpoint",
+        "limits": "Limites",
+        "limitsSharedKey": "3 execuções por hora",
+        "limitsOwnCredentials": "Ilimitado — usa sua própria chave",
+        "changeModel": "Alterar nas configurações de IA",
+        "errorChip": "Problema na configuração da IA",
+        "loadError": "Não foi possível carregar sua configuração de IA."
+      },
+      "run": {
+        "button": "Categorizar com IA (todas)",
+        "categorizeSelected": "Categorizar {count} selecionadas",
+        "inProgress": "Categorizando…",
+        "progressLabel": "Progresso da categorização por IA",
+        "processed": "{processed} de {total} transações processadas"
+      },
+      "confirm": {
+        "title": "Categorizar todas as transações não categorizadas?",
+        "description": "A IA vai analisar {count} transação que ainda está na sua categoria padrão e escolher uma categoria para ela. Você pode alterá-la depois. | A IA vai analisar {count} transações que ainda estão na sua categoria padrão e escolher uma categoria para cada uma. Você pode alterar qualquer uma delas depois.",
+        "action": "Categorizar todas"
+      },
+      "notifications": {
+        "started": "Categorizando {count} transação com IA | Categorizando {count} transações com IA",
+        "nothingToCategorize": "Tudo já está categorizado — nada restou para a IA fazer",
+        "alreadyRunning": "A categorização por IA já está em execução",
+        "rateLimited": "Você atingiu o limite de categorização manual. Tente novamente em {time}.",
+        "failed": "Não foi possível iniciar a categorização por IA"
+      }
+    },
+    "transferSuggestions": {
+      "description": "Encontre transações que devem ser vinculadas como transferências entre suas contas",
+      "suggestionsFor": "Sugestões para",
+      "selectExpense": "Selecione uma transação para ver sugestões",
+      "potentialTransfersFound": "possíveis transferências encontradas",
+      "empty": {
+        "title": "Nenhuma sugestão de transferência encontrada",
+        "description": "Tente ajustar o período"
+      },
+      "initial": {
+        "title": "Encontrar sugestões de transferência",
+        "description": "Analise suas transações para encontrar pares de receita e despesa que devem ser vinculados como transferências entre contas"
+      },
+      "scanning": "Analisando transações...",
+      "confirmLink": {
+        "title": "Vincular como transferência?",
+        "description": "Ambas as transações serão vinculadas como uma transferência entre contas. Isso corrige suas estatísticas e análises ao excluí-las dos totais de receita e despesa."
+      },
+      "presets": {
+        "last3Months": "Últimos 3 meses",
+        "last6Months": "Últimos 6 meses",
+        "lastYear": "Último ano",
+        "thisYear": "Este ano",
+        "previousYear": "Ano anterior"
+      },
+      "includeOutOfWallet": "Incluir transferências fora da carteira",
+      "skip": {
+        "action": "Ignorar",
+        "title": "Ignorar esta sugestão?",
+        "description": "Este par será ocultado dos resultados de análises futuras. As próprias transações não serão alteradas.",
+        "dontShowAgain": "Não mostrar esta confirmação novamente"
+      },
+      "notifications": {
+        "loadError": "Falha ao carregar mais sugestões",
+        "scanError": "Falha ao analisar sugestões de transferência",
+        "linkSuccess": "Transações vinculadas como transferência",
+        "linkError": "Falha ao vincular transações",
+        "skipSuccess": "Sugestão descartada",
+        "skipError": "Falha ao ignorar sugestão"
+      }
+    }
+  }
+}

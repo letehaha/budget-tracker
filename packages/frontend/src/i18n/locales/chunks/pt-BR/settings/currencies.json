@@ -1,0 +1,89 @@
+{
+  "settings": {
+    "currencies": {
+      "page": {
+        "title": "Moedas",
+        "description": "Gerencie as moedas que você acompanha e as taxas de câmbio usadas em suas contas."
+      },
+      "addNew": {
+        "loading": "Carregando...",
+        "selectCurrency": "Selecione a moeda",
+        "addButton": "Adicionar",
+        "sectionLabel": "Adicionar uma moeda",
+        "successfullyAdded": "Moeda adicionada",
+        "errors": {
+          "addFailed": "Erro inesperado. A moeda não foi adicionada."
+        }
+      },
+      "howItWorks": {
+        "trigger": "Como funciona?",
+        "body": "Sua moeda base é aquela para a qual todos os saldos são convertidos em totais e relatórios. Cada moeda adicionada é atualizada automaticamente com taxas de mercado em tempo real, ou você pode definir uma taxa personalizada para substituí-la."
+      },
+      "row": {
+        "baseBadge": "Base",
+        "custom": "Personalizada",
+        "live": "Ao vivo",
+        "unused": "Não utilizada",
+        "accountsCount": "{count} conta | {count} contas"
+      },
+      "empty": {
+        "title": "Ainda não há outras moedas",
+        "description": "Adicione uma moeda acima para acompanhar saldos e taxas de câmbio além da sua moeda base."
+      },
+      "exchangeRate": {
+        "disableLiveUpdate": "Desative a atualização ao vivo para poder definir uma taxa de câmbio personalizada.",
+        "liveUpdateInfo": "Quando ativada, a taxa personalizada é ignorada.",
+        "liveUpdateLabel": "Atualização ao vivo",
+        "ratePlaceholder": "0,00",
+        "saveButton": "Salvar",
+        "successfullyUpdated": "Atualizado com sucesso.",
+        "balancesNotRefreshed": "{count} saldo(s) de conta ainda não puderam ser atualizados com a nova taxa — eles serão atualizados automaticamente assim que uma taxa estiver disponível.",
+        "errors": {
+          "unexpectedError": "Erro inesperado",
+          "updateFailed": "Erro inesperado. A moeda não foi atualizada."
+        }
+      },
+      "delete": {
+        "confirmTitle": "Excluir moeda?",
+        "description": "A moeda só pode ser excluída/desconectada se não houver contas e/ou transações associadas a ela.",
+        "button": "Excluir moeda",
+        "buttonShort": "Excluir",
+        "disabledTooltip": "Você não pode excluir esta moeda porque ela ainda está conectada a uma ou mais contas.",
+        "successfullyDeleted": "Excluída com sucesso.",
+        "errors": {
+          "deleteFailed": "Erro inesperado. A moeda não foi excluída."
+        }
+      },
+      "setBase": {
+        "button": "Definir como moeda base",
+        "buttonShort": "Definir como base",
+        "processing": "Processando...",
+        "tooltip": "Marcar como moeda base. Todas as estatísticas e informações do dashboard serão exibidas nesta moeda.\n\nAs transações serão recalculadas pela taxa de câmbio na data em que foram registradas.",
+        "dialog": {
+          "title": "Alterar moeda base?",
+          "warningTitle": "Aviso:",
+          "warningText": "Alterar a moeda base deve ser uma decisão bem pensada. Idealmente, essa ação deve ser realizada apenas uma vez, embora não haja restrições reais.",
+          "descriptionText": "Toda vez que você altera a moeda base, todas as transações são recalculadas usando taxas de câmbio históricas. Devido à aritmética de ponto flutuante e a variações normais entre as taxas de moeda base e cotação, recálculos repetidos podem introduzir pequenas discrepâncias nos valores de referência ao longo do tempo. Os valores de referência são usados para exibir estatísticas e definir os limites do seu orçamento.",
+          "roundingTitle": "Como exatamente o arredondamento é calculado?",
+          "roundingIntro": "As conversões de moeda usam o Arredondamento Bancário (padrão IEEE 754), também conhecido como \"arredondar para o par mais próximo\". Isso minimiza erros de arredondamento acumulados em muitos cálculos.",
+          "roundingHow": "Como funciona:",
+          "roundingRule1": "Quando um valor está exatamente na metade (ex.: 0,5), ele é arredondado para o número par mais próximo",
+          "roundingRule2": "Exemplo: 0,5 → 0, 1,5 → 2, 2,5 → 2, 3,5 → 4",
+          "roundingStandard": "Este método é recomendado pelos padrões contábeis IFRS/GAAP e usado por grandes sistemas financeiros para evitar viés sistemático nas conversões de moeda.",
+          "untouchedWarning": "O valor original das transações sempre permanecerá inalterado!",
+          "processingTimeInfo": "Isso pode levar um tempo se sua moeda não for muito comum.",
+          "restrictionWarning": "Você não poderá criar novas contas, transações e qualquer coisa relacionada a \"valores\" enquanto o processo estiver em andamento.",
+          "confirmation": "Tem certeza de que deseja continuar?",
+          "changeButton": "Alterar moeda base",
+          "cancelButton": "Cancelar"
+        },
+        "successMessage": "Moeda base alterada com sucesso.",
+        "errors": {
+          "changeFailed": "Erro inesperado. Falha ao alterar a moeda base.",
+          "lockedHousehold": "Você está em {count} família ativa. Saia dela em Configurações → Família primeiro. | Você está em {count} famílias ativas. Saia delas em Configurações → Família primeiro.",
+          "lockedShares": "Você tem {count} compartilhamento de conta ativo. Revogue-o na própria conta primeiro. | Você tem {count} compartilhamentos de conta ativos. Revogue-os em cada conta primeiro."
+        }
+      }
+    }
+  }
+}

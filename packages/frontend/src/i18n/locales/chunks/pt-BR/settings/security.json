@@ -1,0 +1,272 @@
+{
+  "settings": {
+    "security": {
+      "title": "Configurações de segurança",
+      "description": "Gerencie seus métodos de login, sessões ativas e senha",
+      "tabs": {
+        "loginMethods": "Métodos de login",
+        "activeSessions": "Sessões ativas",
+        "password": "Senha",
+        "backup": "Backup e restauração",
+        "dangerZone": "Zona de risco"
+      },
+      "loginMethods": {
+        "title": "Métodos de login",
+        "description": "Gerencie como você entra na sua conta",
+        "oauth": {
+          "connectedAs": "Conectado como {email}",
+          "accountName": "Conta {provider}",
+          "notConnected": "Não conectado",
+          "disconnect": "Desconectar",
+          "connect": "Conectar"
+        },
+        "password": {
+          "title": "Senha",
+          "passwordSet": "Senha definida",
+          "noPassword": "Nenhuma senha definida",
+          "manageInTab": "Gerencie na aba Senha",
+          "setupInTab": "Configure na aba Senha"
+        },
+        "passkeys": {
+          "title": "Passkeys",
+          "noPasskeys": "Nenhuma passkey registrada",
+          "passkeyCount": "{count} passkey(s) registrada(s)",
+          "addButton": "Adicionar passkey",
+          "passkeyName": "Passkey",
+          "added": "Adicionada em {date}",
+          "rename": "Renomear",
+          "renamePlaceholder": "Digite o nome da passkey",
+          "deleteConfirmTitle": "Remover passkey?",
+          "deleteConfirmDescription": "\"{name}\" não poderá mais ser usada para entrar na sua conta. Isso não pode ser desfeito."
+        },
+        "warningOneMethod": "Adicione outro método de login antes de desconectar sua conta OAuth.",
+        "notifications": {
+          "oauthConnectFailed": "Falha ao conectar a conta {provider}",
+          "oauthDisconnectSuccess": "Conta {provider} desconectada",
+          "oauthDisconnectFailed": "Falha ao desconectar a conta {provider}",
+          "passkeyAddSuccess": "Passkey adicionada com sucesso",
+          "passkeyAddFailed": "Falha ao adicionar a passkey. Verifique se seu dispositivo é compatível com passkeys.",
+          "passkeyRemoveSuccess": "Passkey removida",
+          "passkeyRemoveFailed": "Falha ao remover a passkey",
+          "passkeyRenameFailed": "Falha ao renomear a passkey"
+        }
+      },
+      "activeSessions": {
+        "title": "Sessões ativas",
+        "description": "Gerencie os dispositivos em que você está conectado no momento",
+        "currentBadge": "Atual",
+        "unknownLocation": "Localização desconhecida",
+        "lastActive": "Última atividade: {date}",
+        "noSessions": "Nenhuma sessão ativa encontrada",
+        "revokeAllButton": "Sair de todas as outras sessões",
+        "deviceTypes": {
+          "unknownDevice": "Dispositivo desconhecido",
+          "unknownBrowser": "Navegador desconhecido"
+        },
+        "timeAgo": {
+          "justNow": "Agora mesmo",
+          "minutesAgo": "há {count} minuto | há {count} minutos",
+          "hoursAgo": "há {count} hora | há {count} horas",
+          "daysAgo": "há {count} dia | há {count} dias"
+        },
+        "notifications": {
+          "loadFailed": "Falha ao carregar as sessões",
+          "revokeSuccess": "Sessão revogada",
+          "revokeFailed": "Falha ao revogar a sessão",
+          "revokeAllSuccess": "Todas as outras sessões foram encerradas",
+          "revokeAllFailed": "Falha ao revogar as sessões"
+        }
+      },
+      "passwordSection": {
+        "title": "Senha",
+        "descriptionChange": "Altere sua senha",
+        "descriptionSet": "Configure uma senha para sua conta",
+        "labels": {
+          "currentPassword": "Senha atual",
+          "newPassword": "Nova senha",
+          "password": "Senha",
+          "confirmPassword": "Confirmar senha"
+        },
+        "placeholders": {
+          "currentPassword": "Digite a senha atual",
+          "newPassword": "Digite a nova senha",
+          "confirmPassword": "Confirme a nova senha"
+        },
+        "buttons": {
+          "change": "Alterar senha",
+          "set": "Definir senha"
+        },
+        "strength": {
+          "veryWeak": "Muito fraca",
+          "weak": "Fraca",
+          "fair": "Razoável",
+          "strong": "Forte",
+          "veryStrong": "Muito forte"
+        },
+        "requirements": {
+          "title": "Requisitos da senha",
+          "minLength": "Mínimo de 8 caracteres",
+          "mixedCase": "Recomenda-se combinar letras maiúsculas e minúsculas",
+          "specialChars": "Inclua números e caracteres especiais para mais segurança"
+        },
+        "validation": {
+          "minLength": "A senha deve ter pelo menos 8 caracteres",
+          "passwordsNoMatch": "As senhas não coincidem"
+        },
+        "notifications": {
+          "changeSuccess": "Senha alterada com sucesso",
+          "changeFailed": "Falha ao alterar a senha",
+          "setSuccess": "Senha definida com sucesso",
+          "setFailed": "Falha ao definir a senha",
+          "unexpectedError": "Ocorreu um erro inesperado",
+          "updateFailed": "Falha ao atualizar a senha"
+        }
+      },
+      "dangerZone": "Zona de risco",
+      "wipeData": {
+        "title": "Apagar todos os dados",
+        "warningFull": "{strong} Esta ação remove tudo do seu workspace. Seu login é mantido para você começar de novo.",
+        "warningStrong": "Aviso:",
+        "button": "Apagar dados",
+        "dialog": {
+          "title": "Apagar todos os seus dados?",
+          "description": "Isso excluirá permanentemente tudo no seu workspace, incluindo:",
+          "list": {
+            "accounts": "Contas e saldos",
+            "transactions": "Transações, reembolsos e transferências",
+            "budgets": "Orçamentos, tags e categorias",
+            "portfolios": "Investimentos, portfólios e ativos",
+            "settings": "Configurações de usuário, chaves de IA e estado de onboarding",
+            "baseCurrency": "Moeda base e taxas de câmbio"
+          },
+          "kept": "Seu login e perfil permanecem. Você recomeçará pelo fluxo de onboarding.",
+          "typeConfirm": "Para confirmar, digite {phrase} abaixo:",
+          "confirmLabel": "Apagar dados",
+          "confirmLoading": "Apagando…"
+        },
+        "sharingDialog": {
+          "title": "Você está compartilhando dados com outros usuários",
+          "warning": "Outras pessoas perderão o acesso imediatamente",
+          "description": "Apagar seus dados revoga o acesso aos seguintes recursos compartilhados:",
+          "householdsCount": "E {count} membro da família perderá o acesso. | E {count} membros da família perderão o acesso.",
+          "confirmLabel": "Apagar mesmo assim"
+        },
+        "notifications": {
+          "success": "Todos os dados foram apagados. Começando do zero.",
+          "failed": "Não foi possível apagar os dados. Tente novamente."
+        }
+      },
+      "deleteAccount": {
+        "title": "Excluir sua conta",
+        "warningFull": "Depois de excluir sua conta, não há como voltar atrás. {strong} Tenha certeza.",
+        "warningStrong": "Todos os seus dados serão apagados permanentemente.",
+        "button": "Excluir minha conta",
+        "dialog": {
+          "title": "Você tem certeza absoluta?",
+          "description": "Esta ação não pode ser desfeita. Isso excluirá permanentemente sua conta e removerá todos os seus dados, incluindo:",
+          "dataList": {
+            "accounts": "Todas as contas e transações",
+            "categories": "Todas as categorias e orçamentos",
+            "portfolios": "Todos os portfólios de investimento",
+            "settings": "Todas as configurações e preferências"
+          },
+          "confirmFull": "Digite {email} para confirmar",
+          "placeholder": "Digite seu e-mail",
+          "acceptButton": "Excluir minha conta",
+          "acceptButtonLoading": "Excluindo..."
+        },
+        "notifications": {
+          "success": "Sua conta foi excluída com sucesso",
+          "failed": "Ocorreu um erro ao tentar excluir sua conta"
+        }
+      },
+      "backup": {
+        "download": {
+          "title": "Baixar backup",
+          "description": "Salve uma cópia completa e restaurável de todos os seus dados como um arquivo zip.",
+          "button": "Baixar",
+          "loading": "Preparando...",
+          "success": "Backup baixado",
+          "failed": "Não foi possível criar o backup. Tente novamente.",
+          "downloadBlocked": "O backup foi criado, mas seu navegador bloqueou o download. Verifique as configurações de download e tente novamente.",
+          "limitations": {
+            "trigger": "Tem limitações",
+            "title": "O que um backup deixa de fora",
+            "intro": "Seu backup inclui todos os seus dados. Por segurança, alguns itens criptografados não podem ser incluídos e precisam ser configurados novamente após a restauração:",
+            "items": {
+              "bankConnectionsTerm": "Conexões bancárias",
+              "bankConnections": "{term} — os tokens de acesso são criptografados e vinculados a este servidor, então você reconectará cada banco após restaurar.",
+              "aiKeysTerm": "Chaves de API de IA",
+              "aiKeys": "{term} — armazenadas de forma criptografada, então você as digitará novamente após restaurar."
+            },
+            "included": "Tudo o mais — contas, transações, categorias, orçamentos, investimentos, empréstimos, tags, beneficiários e assinaturas — está incluído."
+          }
+        },
+        "restore": {
+          "title": "Restaurar a partir de backup",
+          "description": "Substitua todos os dados atuais pelo conteúdo de um zip de backup.",
+          "button": "Selecionar arquivo de backup",
+          "reading": "Lendo arquivo...",
+          "failedGeneric": "Falha ao restaurar o backup",
+          "invalidFileType": "Escolha um arquivo de backup .zip.",
+          "fileTooLarge": "Esse backup é grande demais para restaurar (máx. {max}).",
+          "readFailed": "Não foi possível ler esse arquivo. Tente novamente.",
+          "confirm": {
+            "title": "Restaurar a partir de backup?",
+            "warning": "Isso substitui TODOS os seus dados atuais",
+            "description": "Tudo que está atualmente na sua conta será excluído permanentemente e substituído pelo conteúdo deste backup. Isso não pode ser desfeito.",
+            "selectedFile": "Arquivo selecionado: {name}",
+            "confirmLabel": "Restaurar",
+            "reconnectTitle": "Depois de restaurar, configure isto novamente",
+            "reconnectBankConnections": "Reconecte suas conexões bancárias",
+            "reconnectAiKeys": "Digite novamente suas chaves de API de IA (se usar alguma)"
+          },
+          "acknowledge": {
+            "title": "Recursos compartilhados perderão o acesso",
+            "description": "Você possui recursos que outras pessoas têm acesso no momento. Restaurar removerá esse acesso.",
+            "householdsCount": "{count} família compartilhada | {count} famílias compartilhadas",
+            "checkbox": "Entendo que esses recursos compartilhados perderão o acesso.",
+            "confirmLabel": "Restaurar mesmo assim"
+          },
+          "progress": {
+            "title": "Restaurando seus dados",
+            "description": "Isso pode levar um tempo. Mantenha esta janela aberta.",
+            "inserted": "{count} registros restaurados",
+            "phases": {
+              "validating": "Validando backup...",
+              "preparingSecurities": "Preparando ativos...",
+              "wiping": "Limpando dados atuais...",
+              "restoring": "Restaurando registros...",
+              "finalizing": "Finalizando..."
+            }
+          },
+          "summary": {
+            "title": "Restauração concluída",
+            "description": "Seus dados foram restaurados a partir do backup.",
+            "recordsHeading": "Registros restaurados",
+            "warningsHeading": "Avisos",
+            "noRecords": "Nenhum registro foi restaurado.",
+            "doneButton": "Concluído"
+          },
+          "failed": {
+            "title": "Falha na restauração",
+            "genericError": "Algo deu errado ao restaurar seu backup.",
+            "unconfirmed": "Não foi possível confirmar o status da restauração. Recarregue a página e verifique seus dados.",
+            "closeButton": "Fechar"
+          },
+          "overlay": {
+            "title": "Restaurando seus dados",
+            "description": "Mantenha esta aba aberta. Estamos substituindo seus dados pelo backup — isso pode levar um momento.",
+            "preparing": "Preparando…",
+            "finishing": "Finalizando",
+            "takingLong": "Isso está demorando mais que o normal. Seus dados ainda estão sendo restaurados — mantenha esta aba aberta.",
+            "unreachableTitle": "Não foi possível alcançar o servidor",
+            "unreachableDescription": "Perdemos contato enquanto a restauração estava em andamento. Ela pode ainda estar terminando. Você pode dispensar isto e recarregar a página para verificar.",
+            "failedTitle": "Falha na restauração",
+            "dismiss": "Dispensar"
+          }
+        }
+      }
+    }
+  }
+}

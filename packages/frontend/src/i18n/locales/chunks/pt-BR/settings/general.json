@@ -1,0 +1,73 @@
+{
+  "settings": {
+    "general": {
+      "title": "Geral",
+      "description": "Controle como seus dados financeiros são calculados e exibidos no app.",
+      "creditLimit": {
+        "label": "Incluir limites de crédito no saldo",
+        "description": "Quando ativado, os limites de crédito são subtraídos dos saldos das contas nas estatísticas e no gráfico de tendência de saldo. Isso mostra sua posição financeira real em vez do crédito disponível.",
+        "successNotification": "Configuração atualizada com sucesso",
+        "errorNotification": "Falha ao atualizar a configuração"
+      },
+      "manualTransferMatching": {
+        "label": "Combinar transferências com contas manuais",
+        "description": "Permite que transferências detectadas automaticamente vinculem uma transação bancária sincronizada a uma que você criou manualmente.",
+        "successNotification": "Configuração de combinação de transferências atualizada",
+        "errorNotification": "Falha ao atualizar a configuração de combinação de transferências"
+      },
+      "savingsCategories": {
+        "label": "Contar categorias como poupança",
+        "description": "Gastos nessas categorias (e suas subcategorias) são excluídos das despesas nas análises de fluxo de caixa, contando assim para a poupança mensal e a taxa de poupança.",
+        "successNotification": "Categorias de poupança atualizadas",
+        "errorNotification": "Falha ao atualizar as categorias de poupança"
+      },
+      "accountDropdowns": {
+        "defaultAccount": {
+          "label": "Conta padrão",
+          "description": "Pré-selecionada ao criar uma transação.",
+          "placeholder": "Sem padrão — primeira conta"
+        },
+        "showArchived": {
+          "label": "Mostrar contas arquivadas",
+          "description": "Quando desativado, contas arquivadas ficam ocultas nos seletores de conta."
+        },
+        "successNotification": "Configurações do seletor de conta atualizadas",
+        "errorNotification": "Falha ao atualizar as configurações do seletor de conta"
+      },
+      "showUpcomingTransactions": {
+        "label": "Mostrar próximas transações",
+        "description": "Fixa no topo da lista de transações uma seção com pagamentos agendados atrasados e os que vencem nos próximos 3 dias.",
+        "successNotification": "Configuração de próximas transações atualizada",
+        "errorNotification": "Falha ao atualizar a configuração de próximas transações"
+      },
+      "transactionFields": {
+        "label": "Campos opcionais da transação",
+        "description": "Campos extras exibidos no formulário de transação. Um campo que já tem um valor é sempre exibido.",
+        "successNotification": "Campos da transação atualizados",
+        "errorNotification": "Ocorreu um erro inesperado. A configuração não foi salva",
+        "fields": {
+          "externalUrl": {
+            "label": "URL externa",
+            "description": "Vincule a transação a uma página de pedido, confirmação de reserva ou recibo."
+          },
+          "externalReference": {
+            "label": "Referência externa",
+            "description": "Mantenha um número de pedido, número de nota fiscal ou referência de reserva junto com a transação."
+          },
+          "originalAmount": {
+            "label": "Valor original",
+            "description": "O valor efetivamente cobrado em outra moeda, quando difere da moeda da conta."
+          },
+          "location": {
+            "label": "Localização",
+            "description": "Coordenadas GPS de onde a compra ocorreu. Preencha com a localização do seu dispositivo ou digite manualmente"
+          }
+        },
+        "mapPicker": {
+          "label": "Seletor de mapa",
+          "description": "Escolha localizações de transações em um mapa e pesquise endereços. Os tiles do mapa e a pesquisa vêm do OpenStreetMap, que recebe seu endereço IP quando o mapa é aberto."
+        }
+      }
+    }
+  }
+}

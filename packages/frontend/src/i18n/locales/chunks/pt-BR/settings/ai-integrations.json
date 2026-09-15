@@ -1,0 +1,64 @@
+{
+  "settings": {
+    "aiIntegrations": {
+      "title": "Integrações de IA",
+      "description": "Conecte assistentes de IA como Claude ou ChatGPT para analisar seus dados financeiros diretamente pelo chat.",
+      "mcpServer": {
+        "title": "Servidor MCP",
+        "description": "Use esta URL para conectar assistentes de IA à sua conta MoneyMatter. Seus dados são compartilhados apenas para leitura.",
+        "copyTooltip": "Copiar URL",
+        "copiedNotification": "URL do servidor MCP copiada para a área de transferência"
+      },
+      "quickConnect": {
+        "title": "Conexão rápida",
+        "description": "Escolha um assistente de IA abaixo. Clique no botão para abrir suas configurações e siga os passos.",
+        "openSettings": "Abrir configurações",
+        "claude": {
+          "steps": {
+            "createConnector": "Clique no ícone {icon} ao lado de \"Connectors\" para criar um novo conector",
+            "selectCustom": "Selecione {action}",
+            "enterName": "Em \"Name\" digite {value}",
+            "pasteUrl": "Em \"Remote MCP server URL\" cole {value}",
+            "finish": "Deixe as configurações avançadas em branco e clique em {action}",
+            "authorize": "Você será redirecionado ao MoneyMatter para autorizar o acesso"
+          }
+        },
+        "chatgpt": {
+          "steps": {
+            "addConnector": "Clique em {action}",
+            "pasteUrl": "Em \"URL\" cole {value}",
+            "clickAdd": "Clique em {action}",
+            "authorize": "Você será redirecionado ao MoneyMatter para autorizar o acesso"
+          }
+        }
+      },
+      "actions": {
+        "addCustomConnector": "Adicionar conector personalizado",
+        "addConnector": "Adicionar conector",
+        "add": "Adicionar"
+      },
+      "connectedApps": {
+        "title": "Apps conectados",
+        "description": "Apps que têm acesso aos seus dados financeiros. Você pode revogar o acesso a qualquer momento.",
+        "emptyTitle": "Nenhum app conectado ainda.",
+        "emptyDescription": "Use os botões acima para conectar um assistente de IA.",
+        "connectedAt": "Conectado em: {date}",
+        "lastUsed": "Último uso: {time}",
+        "scope": "Escopo: {scopes}",
+        "revoke": "Revogar"
+      },
+      "revokeDialog": {
+        "title": "Revogar acesso?",
+        "description": "Isso desconectará o app imediatamente e invalidará todos os seus tokens. Você pode reconectar depois.",
+        "confirm": "Revogar acesso",
+        "successNotification": "Acesso do app revogado com sucesso",
+        "errorNotification": "Falha ao revogar o acesso do app"
+      },
+      "scopes": {
+        "financeRead": "Ler dados financeiros",
+        "profileRead": "Ler perfil",
+        "offlineAccess": "Acesso offline"
+      }
+    }
+  }
+}

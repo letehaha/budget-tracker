@@ -1,0 +1,104 @@
+{
+  "pages": {
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "Modo de seleção — escolha as transações para desvincular",
+        "selectAll": "Selecionar tudo",
+        "selected": "{count} selecionadas",
+        "unlink": "Desvincular",
+        "cancel": "Cancelar",
+        "unlinkSelected": "Desvincular selecionadas",
+        "noMatchingTransactions": "Nenhuma transação correspondente",
+        "noTransactionsLinked": "Nenhuma transação vinculada",
+        "filterAdjustmentHint": "Tente ajustar seus filtros para ver mais transações.",
+        "addTransactionsHint": "Adicione transações a este orçamento para começar a acompanhar seus gastos.",
+        "resetFilters": "Redefinir filtros",
+        "addTransactions": "Adicionar transações",
+        "add": "Adicionar",
+        "loadingMore": "Carregando mais..."
+      }
+    },
+    "budgetDetails": {
+      "notSet": "Não definido",
+      "saving": "Salvando...",
+      "saveChanges": "Salvar alterações",
+      "loading": "Carregando...",
+      "uncategorized": "Sem categoria",
+      "stats": {
+        "income": "Receita",
+        "expenses": "Despesas",
+        "netBalance": "Saldo líquido"
+      },
+      "utilization": {
+        "title": "Utilização do orçamento",
+        "summary": "{spent} de {limit} do limite",
+        "na": "N/D"
+      },
+      "noTransactionsYet": "Nenhuma transação ainda",
+      "transactions": "Transações",
+      "transactionsLinked": "{count} transação vinculada a este orçamento | {count} transações vinculadas a este orçamento",
+      "tabs": {
+        "statistics": "Estatísticas",
+        "transactions": "Transações",
+        "sharing": "Compartilhamento"
+      },
+      "statistics": {
+        "tabs": {
+          "categories": "Categorias",
+          "timeline": "Linha do tempo"
+        },
+        "errorTitle": "Falha ao carregar estatísticas",
+        "errorDescription": "Algo deu errado ao carregar os dados. Tente novamente mais tarde.",
+        "noDataTitle": "Nenhum dado de gastos",
+        "noDataDescription": "Ainda não há dados de gastos disponíveis para este orçamento.",
+        "noCategoryData": "Nenhum dado de gastos por categoria.",
+        "noTimelineData": "Nenhum dado de linha do tempo.",
+        "total": "Total",
+        "income": "Receita",
+        "expenses": "Despesas",
+        "incomeLabel": "Receita:",
+        "expensesLabel": "Despesas:"
+      },
+      "sharing": {
+        "title": "Compartilhamento",
+        "description": "Gerencie quem pode ver este orçamento e contribuir com ele.",
+        "inviteAnother": "Convidar alguém",
+        "membersHeading": "Membros",
+        "pendingHeading": "Convites pendentes",
+        "loadError": "Não foi possível carregar os membros.",
+        "permissions": {
+          "read": "Somente visualização",
+          "write": "Anexar próprias transações",
+          "manage": "Gerenciar"
+        },
+        "member": {
+          "you": "você",
+          "roleOwner": "Proprietário",
+          "roleRecipient": "Membro",
+          "ownerHint": "Controle total deste orçamento",
+          "updateSuccess": "Permissão atualizada.",
+          "updateError": "Não foi possível atualizar a permissão.",
+          "revoke": "Revogar acesso",
+          "revokeConfirm": "Revogar",
+          "revokeTitle": "Revogar acesso?",
+          "revokeDescription": "{user} perderá o acesso a {budget}.",
+          "revokeSuccess": "Acesso revogado.",
+          "revokeError": "Não foi possível revogar o acesso."
+        },
+        "pending": {
+          "empty": "Nenhum convite pendente.",
+          "resend": "Reenviar",
+          "resendSuccess": "Convite reenviado.",
+          "resendError": "Não foi possível reenviar o convite.",
+          "resendDeliveryFailed": "Reenviado, mas o e-mail não pôde ser entregue.",
+          "cancel": "Cancelar",
+          "cancelConfirm": "Cancelar convite",
+          "cancelTitle": "Cancelar convite?",
+          "cancelDescription": "O convite para {email} será cancelado.",
+          "cancelSuccess": "Convite cancelado.",
+          "cancelError": "Não foi possível cancelar o convite."
+        }
+      }
+    }
+  }
+}

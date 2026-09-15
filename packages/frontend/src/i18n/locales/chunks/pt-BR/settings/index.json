@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "navigation": {
+      "currencies": "Moedas",
+      "categories": "Categorias",
+      "tags": "Tags",
+      "accountsGroups": "Grupos de contas",
+      "importData": "Importar/Exportar",
+      "ai": "IA",
+      "aiIntegrations": "Integrações de IA",
+      "security": "Segurança",
+      "admin": "Administração",
+      "sharedWithMe": "Compartilhado comigo",
+      "household": "Família",
+      "personalGroup": "Pessoal",
+      "workspaceGroup": "Workspace",
+      "appearance": "Aparência",
+      "language": "Idioma",
+      "general": "Geral",
+      "payees": "Beneficiários",
+      "subscriptions": "Pagamentos agendados"
+    },
+    "backToSettings": "Voltar para Configurações"
+  }
+}

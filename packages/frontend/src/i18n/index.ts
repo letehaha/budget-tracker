@@ -8,7 +8,7 @@ import enCommon from './locales/chunks/en/common.json';
 import type { ChunkRegistry, I18nChunkName, LoadedChunksMap } from './types';
 
 // Supported locales
-const SUPPORTED_LOCALES = ['en', 'uk', 'es', 'id'] as const;
+const SUPPORTED_LOCALES = ['en', 'uk', 'es', 'id', 'pt-BR'] as const;
 const DEFAULT_LOCALE: SupportedLocale = 'en';
 
 // Type for supported locales
@@ -256,11 +256,15 @@ export async function setLocale(locale: string): Promise<void> {
  */
 export function initializeLocale(): string {
   const storedLocale = localStorage.getItem('preferred-locale');
-  const browserLocale = navigator.language.split('-')[0];
+  // A supported locale can carry a region (`pt-BR`), so check the full tag before
+  // falling back to its bare language part (`pt`, which alone isn't supported).
+  const browserLocale = navigator.language;
+  const browserLanguage = browserLocale.split('-')[0];
 
   const locale =
     (storedLocale && SUPPORTED_LOCALES.includes(storedLocale as SupportedLocale) ? storedLocale : null) ||
     (SUPPORTED_LOCALES.includes(browserLocale as SupportedLocale) ? browserLocale : null) ||
+    (SUPPORTED_LOCALES.includes(browserLanguage as SupportedLocale) ? browserLanguage : null) ||
     DEFAULT_LOCALE;
 
   return locale;

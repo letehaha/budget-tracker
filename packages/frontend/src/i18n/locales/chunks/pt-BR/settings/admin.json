@@ -1,0 +1,118 @@
+{
+  "settings": {
+    "admin": {
+      "title": "Painel de administração",
+      "description": "Ferramentas administrativas e gerenciamento do sistema",
+      "priceSync": {
+        "title": "Sincronização de preços de ativos",
+        "description": "Acione manualmente a sincronização de preços para todos os ativos com posições",
+        "button": "Acionar sincronização de preços",
+        "buttonLoading": "Sincronizando...",
+        "notifications": {
+          "success": "Sincronização de preços de ativos concluída com sucesso",
+          "failed": "Falha ao acionar a sincronização de preços",
+          "rateLimited": "Não permitido. Tente novamente em {time}.",
+          "adminRequired": "Privilégios de administrador são necessários para esta ação"
+        }
+      },
+      "priceUpload": {
+        "title": "Upload manual de preços de ativos",
+        "description": "Envie dados históricos de preços de ativos por arquivos CSV ou JSON",
+        "button": "Enviar preços de ativos",
+        "dialogTitle": "Enviar preços de ativos",
+        "selectSecurity": {
+          "searchLabel": "Buscar símbolo ou nome",
+          "searchPlaceholder": "AAPL",
+          "searching": "Buscando…",
+          "failed": "Falha ao buscar ativos.",
+          "noResults": "Nenhum resultado.",
+          "changeButton": "Alterar"
+        },
+        "dateRangeInfo": {
+          "loading": "Carregando informações do período de datas...",
+          "title": "Período de datas com taxas de câmbio disponíveis ({currency}):",
+          "tooltipText": "Você só pode enviar preços de ativos para datas com taxas de câmbio disponíveis. Caso contrário, não será possível converter o preço do ativo para outras moedas. Se precisar de dados mais antigos, envie as taxas de câmbio primeiro. Caso contrário, dependendo da opção escolhida nas próximas etapas, os registros serão filtrados (omitidos) automaticamente ou a solicitação de envio falhará."
+        },
+        "fileUpload": {
+          "title": "Enviar arquivo",
+          "supportedFormats": "Arquivos CSV ou JSON são suportados",
+          "errors": {
+            "unsupportedFormat": "Formato de arquivo não suportado. Envie um arquivo CSV ou JSON.",
+            "parseFailed": "Falha ao processar o arquivo {fileType}: {error}"
+          }
+        },
+        "fieldMapper": {
+          "title": "Mapear campos",
+          "description": "Associe os campos do seu arquivo aos campos obrigatórios abaixo.",
+          "selectField": "Selecione o campo...",
+          "dateFormatLabel": "Formato de data",
+          "dateFormatDescription": "Selecione o formato de data usado no seu arquivo",
+          "dateFormats": {
+            "ddMMyyyySlash": "DD/MM/AAAA (ex.: 31/12/2024)",
+            "MMddyyyySlash": "MM/DD/AAAA (ex.: 12/31/2024)",
+            "yyyyMMddDash": "AAAA-MM-DD (ex.: 2024-12-31)",
+            "ddMMyyyyDash": "DD-MM-AAAA (ex.: 31-12-2024)",
+            "MMddyyyyDash": "MM-DD-AAAA (ex.: 12-31-2024)"
+          },
+          "mappingComplete": "Todos os campos obrigatórios foram mapeados",
+          "mappingIncomplete": "Mapeie todos os campos obrigatórios para continuar",
+          "fileInfo": "Arquivo:",
+          "records": "{count} registros",
+          "changeFileButton": "Alterar arquivo",
+          "continueButton": "Continuar para a prévia"
+        },
+        "preview": {
+          "title": "Prévia dos dados",
+          "recordsCount": "{count} registro será enviado | {count} registros serão enviados",
+          "recordsPeriod": "para o período entre {oldest} e {newest}",
+          "loadingExisting": "Carregando preços existentes para comparação...",
+          "warnings": {
+            "significantDifferences": "Diferenças significativas de preço detectadas",
+            "differencesDetails": "{count} registro tem uma diferença de preço maior que 4% em relação aos dados existentes. Revise com cuidado. | {count} registros têm uma diferença de preço maior que 4% em relação aos dados existentes. Revise com cuidado."
+          },
+          "filterCheckbox": "Mostrar apenas registros com diferenças significativas (>4%)",
+          "tableHeaders": {
+            "date": "Data",
+            "newPrice": "Novo preço",
+            "existingPrice": "Preço existente",
+            "difference": "Diferença (%)"
+          },
+          "noExistingPrice": "N/D",
+          "scrollForMore": "Role para ver mais...",
+          "noDifferences": "Nenhum registro com diferenças significativas encontrado.",
+          "backButton": "Voltar ao mapeamento",
+          "continueButton": "Continuar para opções"
+        },
+        "options": {
+          "title": "Opções de envio",
+          "autoFilter": {
+            "title": "Filtrar automaticamente datas fora do período disponível",
+            "description": "Remove automaticamente datas fora do período de taxas de câmbio disponível"
+          },
+          "override": {
+            "title": "Substituir registros existentes",
+            "description": "Atualiza registros de preço existentes em vez de ignorar duplicados"
+          },
+          "backButton": "Voltar",
+          "uploadButton": "Enviar preços",
+          "uploadingButton": "Enviando..."
+        },
+        "result": {
+          "title": "Envio concluído!",
+          "inserted": "✓ {count} novo registro inserido | ✓ {count} novos registros inseridos",
+          "duplicates": "• {count} duplicado {action}",
+          "duplicatesUpdated": "atualizado",
+          "duplicatesSkipped": "ignorado",
+          "filtered": "• {count} data filtrada (fora do período) | • {count} datas filtradas (fora do período)",
+          "closeButton": "Fechar",
+          "uploadMoreButton": "Enviar mais"
+        },
+        "notifications": {
+          "dateInfoLoadFailed": "Falha ao carregar informações de data: {error}",
+          "uploadSuccess": "{count} registro de preço enviado com sucesso | {count} registros de preço enviados com sucesso",
+          "uploadFailed": "Falha no envio: {error}"
+        }
+      }
+    }
+  }
+}

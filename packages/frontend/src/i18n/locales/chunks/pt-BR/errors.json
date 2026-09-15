@@ -1,0 +1,18 @@
+{
+  "errors": {
+    "api": {
+      "failedToFetch": "Falha ao buscar dados do servidor.",
+      "failedToFetchSelfHost": "Não é possível acessar o servidor. O backend pode ainda estar iniciando (~30s após o início), ou sua variável de ambiente ALLOWED_ORIGINS não inclui esta URL.",
+      "unexpectedError": "Erro inesperado.",
+      "sessionExpired": "Sua sessão expirou. Faça login novamente",
+      "payloadTooLarge": "A requisição é muito grande. Tente importar menos itens de cada vez"
+    },
+    "notFound": {
+      "title": "Esta página não existe",
+      "description": "Não conseguimos encontrar o que você procurava. O link pode estar quebrado, ou a página pode ter sido movida.",
+      "attemptedLabel": "Você tentou visitar: ",
+      "goBack": "Voltar",
+      "goHome": "Levar-me para o início"
+    }
+  }
+}

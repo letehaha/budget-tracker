@@ -1,0 +1,98 @@
+{
+  "settings": {
+    "tags": {
+      "title": "Tags",
+      "addButton": "Adicionar tag",
+      "empty": "Ainda não há tags. Crie sua primeira tag para organizar suas transações.",
+      "tabs": {
+        "details": "Detalhes",
+        "reminders": "Lembretes"
+      },
+      "form": {
+        "createTitle": "Criar tag",
+        "editTitle": "Editar tag",
+        "name": "Nome",
+        "namePlaceholder": "Nome da tag",
+        "color": "Cor",
+        "icon": "Ícone",
+        "iconPlaceholder": "Selecione o ícone",
+        "iconSearchPlaceholder": "Buscar ícones...",
+        "clearIcon": "Limpar ícone",
+        "description": "Descrição",
+        "descriptionPlaceholder": "Descrição opcional",
+        "saveButton": "Salvar",
+        "previewPlaceholder": "Nome da tag"
+      },
+      "delete": {
+        "title": "Excluir tag?",
+        "description": "Isso excluirá permanentemente \"{name}\" e a removerá de todas as transações. Esta ação não pode ser desfeita.",
+        "deleteButton": "Excluir",
+        "cancelButton": "Cancelar"
+      },
+      "notifications": {
+        "createSuccess": "Tag criada",
+        "createFailed": "Falha ao criar a tag",
+        "updateSuccess": "Tag atualizada",
+        "updateFailed": "Falha ao atualizar a tag",
+        "deleteSuccess": "Tag excluída",
+        "deleteFailed": "Falha ao excluir a tag"
+      },
+      "reminders": {
+        "addButton": "Adicionar lembrete",
+        "empty": "Ainda não há lembretes. Crie um lembrete para ser notificado sobre a atividade desta tag.",
+        "enabled": "Ativado",
+        "disabled": "Desativado",
+        "form": {
+          "createTitle": "Criar lembrete",
+          "editTitle": "Editar lembrete",
+          "type": "Tipo de lembrete",
+          "typePlaceholder": "Selecione o tipo",
+          "amountThreshold": "Limite de valor",
+          "amountThresholdPlaceholder": "Digite o valor limite",
+          "amountThresholdHint": "Seja notificado quando os gastos nesta tag ultrapassarem este valor",
+          "frequency": "Frequência",
+          "frequencyPlaceholder": "Selecione a frequência",
+          "dayOfMonth": "Dia do mês",
+          "dayOfMonthPlaceholder": "Selecione o dia",
+          "dayOfMonthHint": "Para meses com menos dias, o último dia será usado",
+          "isEnabled": "Ativado",
+          "saveButton": "Salvar"
+        },
+        "types": {
+          "amountThreshold": "Limite de valor",
+          "amountThresholdDescription": "Notificar quando os gastos ultrapassarem um determinado valor",
+          "existenceCheck": "Verificação de atividade",
+          "existenceCheckDescription": "Notificar quando houver transações com esta tag"
+        },
+        "frequencies": {
+          "immediate": "Imediato",
+          "immediateDescription": "Aciona quando transações são marcadas com a tag (intervalo de 24h)",
+          "daily": "Diário",
+          "dailyDescription": "Verificar todos os dias",
+          "weekly": "Semanal",
+          "weeklyDescription": "Verificar toda segunda-feira",
+          "monthly": "Mensal",
+          "monthlyDescription": "Verificar em um dia específico de cada mês",
+          "quarterly": "Trimestral",
+          "quarterlyDescription": "Verificar a cada 3 meses (jan, abr, jul, out)",
+          "yearly": "Anual",
+          "yearlyDescription": "Verificar uma vez por ano em janeiro"
+        },
+        "delete": {
+          "title": "Excluir lembrete?",
+          "description": "Isso excluirá permanentemente este lembrete. Esta ação não pode ser desfeita.",
+          "deleteButton": "Excluir",
+          "cancelButton": "Cancelar"
+        },
+        "notifications": {
+          "createSuccess": "Lembrete criado",
+          "createFailed": "Falha ao criar o lembrete",
+          "updateSuccess": "Lembrete atualizado",
+          "updateFailed": "Falha ao atualizar o lembrete",
+          "deleteSuccess": "Lembrete excluído",
+          "deleteFailed": "Falha ao excluir o lembrete"
+        }
+      }
+    }
+  }
+}

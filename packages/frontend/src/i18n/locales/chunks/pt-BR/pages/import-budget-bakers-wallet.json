@@ -1,0 +1,134 @@
+{
+  "pages": {
+    "importExport": {
+      "budgetBakersWalletImport": {
+        "pageTitle": "Importar do Wallet (BudgetBakers)",
+        "pageDescription": "Importe suas transações exportadas do aplicativo Wallet, da BudgetBakers.",
+        "fileUpload": {
+          "stepTitle": "Envie seu arquivo CSV do Wallet",
+          "description": "Envie um ou mais arquivos CSV exportados do Wallet para importar transações. Todos os arquivos devem ter as mesmas colunas.",
+          "maxSize": "Tamanho máximo do arquivo: 10 MB",
+          "parsing": "Processando…",
+          "errors": {
+            "invalidFormatNamed": "\"{name}\" não é um arquivo CSV.",
+            "parseFailed": "Falha ao processar o arquivo. Verifique o formato e tente novamente.",
+            "merge": {
+              "emptySelection": "Selecione pelo menos um arquivo CSV",
+              "fileReadFailed": "Não foi possível ler \"{file}\"",
+              "fileEmpty": "\"{file}\" está vazio",
+              "fileNoDataRows": "\"{file}\" não tem linhas de dados",
+              "headerMismatch": "As colunas em \"{file}\" não correspondem ao primeiro arquivo. Todos os arquivos devem ter as mesmas colunas na mesma ordem.",
+              "forbiddenHeader": "\"{file}\" usa um nome de coluna reservado",
+              "tooManyRows": "Os arquivos selecionados somam mais de {max} linhas. Remova alguns arquivos ou linhas e tente novamente.",
+              "parseError": "Não foi possível processar \"{file}\". Verifique se é um CSV válido."
+            }
+          },
+          "continue": "Continuar"
+        },
+        "preview": {
+          "accountsHelper": "Configure como cada conta detectada será tratada durante a importação.",
+          "accounts": "Contas",
+          "transactions": "Transações",
+          "rowPrefix": "Linha {rowIndex}: "
+        },
+        "accountRow": {
+          "transactionsCount": "{count} transações | {count} transação | {count} transações",
+          "modeLabel": "Ação",
+          "modePlaceholder": "Selecione a ação",
+          "modeCreateNew": "Criar nova conta",
+          "modeLinkExisting": "Vincular a conta existente",
+          "currentBalanceLabel": "Saldo atual (opcional)",
+          "currentBalancePlaceholder": "ex.: 1234,56",
+          "currentBalanceHint": "Deixe em branco para começar pela soma das transações importadas.",
+          "linkTargetLabel": "Conta existente",
+          "linkTargetPlaceholder": "Selecione a conta",
+          "keepBalanceNote": "O saldo atual da conta existente será preservado. O histórico será preenchido retroativamente."
+        },
+        "execute": {
+          "starting": "Iniciando importação…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "Na fila",
+          "statusRunning": "Importando…",
+          "statusCompleted": "Concluída",
+          "statusFailed": "Falhou",
+          "failed": "A importação falhou.",
+          "partialImportNote": "Algumas linhas já podem ter sido importadas antes desta falha. Reimportar pode criar duplicatas."
+        },
+        "done": {
+          "successTitle": "Importação concluída",
+          "successDescription": "Seus dados do Wallet foram importados com sucesso.",
+          "partialTitle": "Importado com {count} erro(s)",
+          "partialDescription": "Algumas linhas foram importadas com sucesso, mas outras tiveram erros.",
+          "allFailedTitle": "Falha na importação",
+          "allFailedDescription": "Nenhuma linha foi importada. Revise os erros abaixo e tente novamente.",
+          "accountsCreated": "Contas criadas",
+          "accountsLinked": "Contas vinculadas",
+          "accountsSkipped": "Contas ignoradas",
+          "categoriesCreated": "Categorias criadas",
+          "tagsCreated": "Tags criadas",
+          "transactionsImported": "Transações importadas",
+          "transfersImported": "Transferências importadas",
+          "outOfWalletImported": "Fora da carteira importadas",
+          "mergedIntoPlanned": "Mescladas com planejadas",
+          "duplicatesSkipped": "Duplicatas ignoradas",
+          "errorsTitle": "{count} linha(s) falharam | {count} linha falhou | {count} linhas falharam",
+          "errorsOverflow": "+{count} mais",
+          "balanceWarningTitle": "Alguns saldos de conta podem estar incorretos",
+          "balanceWarningBody": "Não conseguimos redefinir o saldo de uma ou mais contas existentes após a importação. Revise as contas afetadas.",
+          "viewTransactions": "Ver transações",
+          "importAnother": "Importar outro arquivo"
+        },
+        "stepper": {
+          "steps": {
+            "upload": "Envio",
+            "resolve": "Resolver",
+            "review": "Revisão",
+            "results": "Concluído"
+          }
+        },
+        "resolve": {
+          "resolvedCounterWord": "resolvidas",
+          "accounts": {
+            "sectionTitle": "Contas",
+            "currentBalanceLabel": "Saldo atual (opcional)",
+            "currentBalancePlaceholder": "Deixe em branco para usar o total importado",
+            "willCreateHint": "Vai criar uma nova conta em {currency}",
+            "skippedNote": "{count} conta(s) serão ignoradas. As transações dessas contas — e quaisquer transferências de ou para elas — não serão importadas."
+          },
+          "categories": {
+            "sectionTitle": "Categorias"
+          },
+          "quickActions": {
+            "mapExactMatches": "Mapear correspondências exatas",
+            "createNewForUnmatched": "Criar novo para não correspondidos",
+            "reset": "Redefinir",
+            "tooltips": {
+              "mapExactMatchesAccounts": "Vincula cada conta cujo nome corresponda exatamente a uma conta existente",
+              "mapExactMatchesCategories": "Vincula cada categoria cujo nome corresponda exatamente a uma categoria existente",
+              "createNewForUnmatched": "Define todas as linhas ainda não resolvidas para criar um novo registro",
+              "reset": "Limpa todas as escolhas e faz a correspondência automática por nome novamente"
+            }
+          },
+          "footer": {
+            "back": "Voltar",
+            "continue": "Continuar"
+          }
+        },
+        "review": {
+          "transactions": "Transações",
+          "transfersDetected": "Transferências detectadas",
+          "outOfWallet": "Fora da carteira",
+          "duplicatesSkipped": "Duplicatas ignoradas",
+          "willImport": "Serão importadas",
+          "warningsTitle": "{count} aviso(s)",
+          "rowPrefix": "Linha {rowIndex}:",
+          "duplicatesTitle": "{count} possível(is) duplicata(s)",
+          "duplicatesHint": "As linhas marcadas serão importadas mesmo assim; duplicatas desmarcadas são ignoradas.",
+          "back": "Voltar",
+          "importButton": "Importar {count} transações",
+          "importing": "Importando…"
+        }
+      }
+    }
+  }
+}

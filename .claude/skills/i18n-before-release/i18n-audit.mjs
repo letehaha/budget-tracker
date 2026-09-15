@@ -29,7 +29,7 @@ const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
 // (e.g. leftover zh-CN/zh-TW chunks from a discontinued Crowdin integration,
 // not wired into SUPPORTED_LOCALES). `strip` and `prune-extra` stay unfiltered
 // on purpose: a dead key must not survive in any locale.
-const TRANSLATED_LOCALES = new Set(['uk', 'es', 'id']);
+const TRANSLATED_LOCALES = new Set(['uk', 'es', 'id', 'pt-BR']);
 
 const args = process.argv.slice(2);
 const cmd = args[0];

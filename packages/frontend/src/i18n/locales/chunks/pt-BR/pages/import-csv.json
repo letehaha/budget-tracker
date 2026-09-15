@@ -1,0 +1,332 @@
+{
+  "pages": {
+    "importExport": {
+      "csvImport": {
+        "pageTitle": "Importar transações de CSV",
+        "pageDescription": "Envie o arquivo CSV exportado do seu banco ou histórico de transações para importar transações para sua conta.",
+        "stepper": {
+          "stepOf": "Passo {current} de {total}",
+          "steps": {
+            "upload": "Enviar",
+            "map": "Mapear colunas",
+            "resolveAccounts": "Contas",
+            "resolveCategories": "Categorias",
+            "review": "Revisar",
+            "results": "Concluído"
+          }
+        },
+        "steps": {
+          "uploadTitle": "Enviar arquivo CSV",
+          "uploadDescription": "Selecione seu arquivo CSV para começar",
+          "mappingTitle": "Mapear colunas",
+          "mappingDescription": "Relacione as colunas do CSV aos campos da transação",
+          "reviewTitle": "Revisar duplicidades",
+          "reviewDescription": "Verifique transações duplicadas",
+          "completeTitle": "Importação concluída",
+          "completeDescription": "Revise o resultado da importação"
+        },
+        "fileUpload": {
+          "stepTitle": "Enviar arquivo CSV",
+          "description": "Envie um ou mais arquivos CSV para importar transações. Todos os arquivos devem ter as mesmas colunas.",
+          "dragDrop": "Arraste e solte seu arquivo CSV aqui",
+          "orBrowse": "ou clique para procurar",
+          "maxSize": "Tamanho máximo do arquivo: 50MB",
+          "removeFile": "Remover arquivo",
+          "parsing": "Processando...",
+          "continueToMapping": "Continuar para o mapeamento",
+          "errors": {
+            "invalidFormat": "Formato de arquivo inválido. Envie um arquivo CSV.",
+            "invalidFormatNamed": "{name} não é um arquivo CSV",
+            "fileTooLarge": "O tamanho do arquivo ({size}) excede o máximo permitido (50MB)",
+            "parseFailed": "Falha ao processar o arquivo. Verifique o formato e tente novamente.",
+            "merge": {
+              "emptySelection": "Selecione pelo menos um arquivo CSV",
+              "fileReadFailed": "Não foi possível ler \"{file}\"",
+              "fileEmpty": "\"{file}\" está vazio",
+              "fileNoDataRows": "\"{file}\" não possui linhas de dados",
+              "headerMismatch": "As colunas de \"{file}\" não correspondem às do primeiro arquivo. Todos os arquivos devem ter as mesmas colunas na mesma ordem.",
+              "forbiddenHeader": "\"{file}\" usa um nome de coluna reservado",
+              "tooManyRows": "Os arquivos selecionados somam mais de {max} linhas. Remova alguns arquivos ou linhas e tente novamente.",
+              "parseError": "Não foi possível processar \"{file}\". Verifique se é um CSV válido."
+            }
+          }
+        },
+        "columnMapping": {
+          "stepTitle": "Mapear colunas",
+          "description": "Relacione as colunas do seu CSV aos campos obrigatórios",
+          "file": "Arquivo",
+          "filesCount": "{count} arquivo | {count} arquivos",
+          "totalRows": "Total de linhas",
+          "delimiter": "Delimitador",
+          "extracting": "Extraindo...",
+          "detecting": "Detectando duplicidades…",
+          "nextExtract": "Próximo: extrair valores",
+          "continueToDuplicates": "Continuar para verificação de duplicidades"
+        },
+        "execute": {
+          "starting": "Iniciando importação…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "Na fila",
+          "statusRunning": "Importando…",
+          "statusCompleted": "Concluído",
+          "statusFailed": "Falhou",
+          "failed": "A importação falhou.",
+          "partialImportNote": "Algumas linhas podem já ter sido importadas antes desta falha. Reimportar pode criar duplicidades."
+        },
+        "review": {
+          "stepTitle": "Revisar importação",
+          "description": "Revise os dados antes de importar",
+          "totalRows": "Total de linhas",
+          "validRows": "Linhas válidas",
+          "invalidRows": "Linhas inválidas",
+          "duplicates": "Duplicidades",
+          "invalidRowsTitle": "Linhas inválidas",
+          "rowNumber": "Linha nº",
+          "errors": "Erros",
+          "rawData": "Dados brutos",
+          "duplicatesTitle": "{count} possíveis duplicidades encontradas",
+          "duplicatesHint": "Desmarque as linhas que deseja importar mesmo assim",
+          "skip": "Ignorar",
+          "match": "Corresponder",
+          "csvTransaction": "Transação do CSV",
+          "existingTransaction": "Transação existente",
+          "importSummary": "Resumo da importação",
+          "willBeImported": "transações serão importadas.",
+          "invalidWillBeSkipped": "linhas inválidas serão ignoradas.",
+          "duplicatesWillBeSkipped": "duplicidades serão ignoradas.",
+          "backToMapping": "Voltar ao mapeamento",
+          "importing": "Importando...",
+          "importButton": "Importar {count} transações",
+          "unpriceableTitle": "{count} linha(s) não podem ser precificadas — nenhuma taxa de câmbio encontrada",
+          "unpriceableDescription": "Essas linhas usam uma moeda sem taxa de câmbio armazenada e não podem ser convertidas para sua moeda base. Você deve ignorá-las ou cancelar a importação.",
+          "unpriceableWillBeSkipped": "não precificáveis serão ignoradas",
+          "currency": "Moeda",
+          "skipAndImport": "Ignorar e importar",
+          "cancelImport": "Cancelar importação",
+          "noInvalidRows": "Nenhuma linha inválida",
+          "noDuplicates": "Nenhuma duplicidade",
+          "expand": "Mostrar dados completos",
+          "collapse": "Ocultar dados completos"
+        },
+        "results": {
+          "completeTitle": "Importação concluída!",
+          "completeWithIssuesTitle": "Importação concluída com problemas",
+          "successDescription": "Todas as transações foram importadas com sucesso.",
+          "partialDescription": "Algumas transações não puderam ser importadas.",
+          "imported": "Importadas",
+          "skippedDuplicates": "Ignoradas (duplicidades)",
+          "accountsCreated": "Contas criadas",
+          "accountsSkipped": "Contas ignoradas",
+          "categoriesCreated": "Categorias criadas",
+          "tagsCreated": "Tags criadas",
+          "payeesCreated": "Beneficiários criados",
+          "importErrors": "Erros de importação",
+          "rowNumber": "Linha nº",
+          "error": "Erro",
+          "batchIdLabel": "ID do lote",
+          "batchIdDescription": "Use este ID para encontrar todas as transações desta importação.",
+          "viewTransactions": "Ver transações",
+          "startNewImport": "Iniciar nova importação",
+          "skippedUnpriceable": "Ignoradas (sem preço)",
+          "importFailed": "Falha ao importar transações. Tente novamente.",
+          "successCallout": "{count} transações importadas com sucesso",
+          "failed": "Falhou",
+          "noErrors": "Nenhum erro",
+          "balanceWarningTitle": "Os saldos das contas podem estar dessincronizados",
+          "balanceWarningBody": "As transações foram importadas, mas alguns saldos de contas não puderam ser atualizados depois. Revise essas contas e ajuste os saldos manualmente, se necessário."
+        }
+      },
+      "columnMapping": {
+        "stepTitle": "Mapear colunas",
+        "description": "Relacione as colunas do seu CSV aos campos obrigatórios",
+        "file": "Arquivo",
+        "totalRows": "Total de linhas",
+        "delimiter": "Delimitador",
+        "detecting": "Detectando duplicidades…"
+      },
+      "common": {
+        "selectOption": "Selecione uma opção...",
+        "selectColumn": "Selecione uma coluna...",
+        "noneOptional": "Nenhum (opcional)",
+        "selectAction": "Selecione uma ação..."
+      },
+      "transactionTypeMapping": {
+        "columnLabel": "Coluna de tipo de transação",
+        "incomeValuesLabel": "Valores de receita",
+        "expenseValuesLabel": "Valores de despesa",
+        "commaSeparatedHint": "Valores separados por vírgula",
+        "uncoveredValues": "Esses valores na coluna de tipo ainda não foram atribuídos a Receita ou Despesa: {values}. Adicione cada um a uma lista acima para continuar.",
+        "selectColumn": "Selecione uma coluna...",
+        "incomeValuesPlaceholder": "ex.: Crédito, Depósito, Receita",
+        "expenseValuesPlaceholder": "ex.: Débito, Saque, Despesa",
+        "methodOptions": {
+          "amountSign": "Pelo sinal do valor (negativo = despesa, positivo = receita)",
+          "dataSourceColumn": "Pela coluna (especifique os valores)"
+        },
+        "amountSignInfo": "ℹ️ Os tipos de transação serão determinados automaticamente: valores negativos = despesas, valores positivos = receitas"
+      },
+      "currencyMapping": {
+        "selectCurrency": "Selecione a moeda...",
+        "methodOptions": {
+          "dataSourceColumn": "Mapear a partir da coluna do CSV",
+          "existingCurrency": "Usar a mesma moeda para todas as transações"
+        }
+      },
+      "categoryMapping": {
+        "selectCategory": "Selecione a categoria..."
+      },
+      "accountMapping": {
+        "selectAccount": "Selecione a conta..."
+      },
+      "accountAssignment": {
+        "title": "Atribuição de conta",
+        "howToAssign": "Como você deseja atribuir as contas?",
+        "description": "Escolha como as contas devem ser atribuídas às transações importadas",
+        "accountColumn": "Coluna de conta",
+        "columnDescription": "Selecione a coluna do CSV que contém os nomes das contas",
+        "accountLabel": "Conta",
+        "singleAccountDescription": "Todas as transações importadas serão atribuídas a esta conta",
+        "mapOnNextStep": "Você vai mapear cada conta do CSV para suas contas existentes no próximo passo",
+        "options": {
+          "mapToExisting": "Mapear cada conta do CSV para contas existentes (no próximo passo)",
+          "assignToSingle": "Atribuir todas a uma única conta existente"
+        }
+      },
+      "accountMappingTable": {
+        "title": "Mapeamento de contas",
+        "description": "Mapeie os nomes de conta do CSV para suas contas existentes ou crie novas. Apenas contas com a mesma moeda serão exibidas.",
+        "csvAccountName": "Nome da conta no CSV",
+        "currency": "Moeda",
+        "action": "Ação",
+        "targetAccount": "Conta de destino",
+        "actions": {
+          "createNew": "Criar nova conta",
+          "mapToExisting": "Mapear para conta existente"
+        },
+        "noMatchingCurrency": "Nenhuma conta disponível com a mesma moeda ({currency})",
+        "willBeCreated": "Uma nova conta \"{name}\" será criada com a moeda {currency}",
+        "defaultCurrency": "padrão",
+        "mappedTo": "mapeada para \"{name}\"",
+        "selectAccount": "Selecione a conta..."
+      },
+      "categoryMappingTable": {
+        "csvCategoryName": "Nome da categoria no CSV"
+      },
+      "categoryAssignment": {
+        "options": {
+          "mapToExisting": "Mapear cada categoria do CSV para categorias existentes (no próximo passo)",
+          "createNew": "Criar novas categorias a partir dos valores do CSV",
+          "assignToSingle": "Atribuir todas a uma única categoria existente"
+        }
+      },
+      "tagMappingTable": {
+        "csvTagName": "Valor de tag no CSV"
+      },
+      "resolveValues": {
+        "selectAction": "Selecione a ação",
+        "actions": {
+          "createNew": "Criar novo",
+          "linkExisting": "Vincular a existente",
+          "skip": "Ignorar"
+        },
+        "quickActions": {
+          "mapExactMatches": "Mapear correspondências exatas",
+          "createNewForUnmatched": "Criar novo para não correspondidos",
+          "skipAll": "Ignorar todos",
+          "reset": "Redefinir",
+          "tooltips": {
+            "mapExactMatchesAccounts": "Vincula cada conta do CSV a uma conta existente com o mesmo nome e moeda. Contas sem correspondência exata permanecem inalteradas.",
+            "mapExactMatchesCategories": "Vincula cada categoria do CSV a uma categoria existente com o mesmo nome. Categorias sem correspondência exata permanecem inalteradas.",
+            "mapExactMatchesTags": "Vincula cada tag do CSV a uma tag existente com o mesmo nome. Tags sem correspondência exata permanecem inalteradas.",
+            "createNewForUnmatched": "Define \"Criar novo\" para toda linha que não esteja vinculada a um item existente. Linhas já vinculadas permanecem inalteradas.",
+            "skipAll": "Ignora todas as tags — nenhuma é importada ou criada.",
+            "reset": "Limpa todas as escolhas e refaz a correspondência automática."
+          }
+        },
+        "accounts": {
+          "sectionTitle": "Mapeamento de contas",
+          "resolvedCount": "{resolved} de {total} resolvidos",
+          "csvName": "Conta do CSV",
+          "currency": "Moeda",
+          "action": "Ação",
+          "target": "Conta de destino",
+          "selectTarget": "Selecione uma conta",
+          "noMatchingCurrency": "Nenhuma conta corresponde à moeda {currency}",
+          "willCreate": "Será criada \"{name}\" ({currency})",
+          "empty": "Nenhuma conta encontrada no CSV",
+          "currentBalanceLabel": "Saldo atual",
+          "currentBalancePlaceholder": "0,00",
+          "currentBalanceHint": "O saldo que esta conta possui agora — a importação vai definir a conta exatamente para esse valor. Deixe em branco para usar a soma das transações importadas.",
+          "skippedNote": "{count} conta(s) serão ignoradas. As transações delas não serão importadas."
+        },
+        "categories": {
+          "sectionTitle": "Mapeamento de categorias",
+          "csvName": "Categoria do CSV"
+        },
+        "tags": {
+          "sectionTitle": "Mapeamento de tags",
+          "resolvedCount": "{resolved} de {total} resolvidos",
+          "csvName": "Tag do CSV",
+          "action": "Ação",
+          "target": "Tag de destino",
+          "selectTarget": "Selecione uma tag",
+          "willCreate": "Será criada \"{name}\"",
+          "willSkip": "Será ignorada",
+          "noExistingTags": "Nenhuma tag existente para vincular",
+          "loadFailed": "Falha ao carregar tags",
+          "empty": "Nenhuma tag encontrada no CSV"
+        },
+        "detectError": "Falha ao prosseguir. Tente novamente.",
+        "extractFailed": "Não foi possível carregar os valores a resolver. Volte e tente novamente.",
+        "retry": "Tentar novamente",
+        "footer": {
+          "back": "Voltar",
+          "next": "Próximo"
+        }
+      },
+      "mapColumns": {
+        "columnsTitle": "Colunas",
+        "assignmentsTitle": "Atribuições",
+        "fieldHeader": "Campo",
+        "csvColumnHeader": "Coluna do CSV",
+        "exampleHeader": "Exemplo de dados",
+        "howToAssignHeader": "Como atribuir",
+        "usingHeader": "Usando",
+        "optionalSuffix": "(opcional)",
+        "choosePlaceholder": "Escolher…",
+        "alreadyMatchedSuffix": "(já correspondido)",
+        "amountSignNote": "Determinado pelo sinal do valor",
+        "back": "Voltar",
+        "next": "Próximo",
+        "missingHint": "Ainda necessário: {fields}",
+        "fields": {
+          "date": "Data",
+          "amount": "Valor",
+          "description": "Descrição",
+          "category": "Categoria",
+          "account": "Conta",
+          "currency": "Moeda",
+          "transactionType": "Tipo de transação",
+          "payee": "Beneficiário"
+        },
+        "dateFormat": {
+          "label": "Formato de data",
+          "placeholder": "Selecione o formato de data",
+          "dayFirstOption": "Dia primeiro — {example}",
+          "monthFirstOption": "Mês primeiro — {example}",
+          "suggestedBadge": "Sugerido",
+          "isoDetected": "Formato de data ISO detectado — as datas nesta coluna começam pelo ano, então não é necessário escolher dia/mês.",
+          "previewLabel": "Pré-visualização",
+          "previewUnrecognized": "não reconhecido",
+          "mismatchWarning": "{count} linha não corresponde a este formato e será marcada como inválida. | {count} linhas não correspondem a este formato e serão marcadas como inválidas."
+        }
+      },
+      "importResults": {
+        "errorColumns": {
+          "row": "Linha",
+          "error": "Erro"
+        }
+      }
+    }
+  }
+}

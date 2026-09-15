@@ -1,0 +1,41 @@
+{
+  "investments": {
+    "title": "Investimentos",
+    "createButton": "Criar portfólio",
+    "loadError": "Falha ao carregar os portfólios",
+    "tryAgain": "Tentar novamente",
+    "menu": {
+      "view": "Ver",
+      "delete": "Excluir"
+    },
+    "card": {
+      "hidden": "Oculto",
+      "portfolioType": "Portfólio {type}",
+      "costBasis": "Custo base"
+    },
+    "empty": {
+      "title": "Nenhum portfólio ainda",
+      "description": "Crie seu primeiro portfólio de investimentos para começar a acompanhar seus ativos, transações e desempenho.",
+      "createFirstButton": "Criar seu primeiro portfólio"
+    },
+    "trash": {
+      "title": "Lixeira",
+      "retentionHint": "Os itens aqui são excluídos permanentemente após {days} dias",
+      "loadError": "Não foi possível carregar os portfólios na lixeira.",
+      "deletedAgo": "Excluído {time}",
+      "restoreButton": "Restaurar",
+      "restoringButton": "Restaurando…",
+      "purgeButton": "Excluir agora",
+      "purgingButton": "Excluindo…",
+      "confirmPurgeTitle": "Excluir portfólio permanentemente?",
+      "confirmPurge": "Excluir \"{name}\" permanentemente? Isso não pode ser desfeito.",
+      "tryAgain": "Tentar novamente",
+      "notifications": {
+        "restored": "Portfólio restaurado",
+        "restoreError": "Falha ao restaurar o portfólio",
+        "purged": "Portfólio excluído permanentemente",
+        "purgeError": "Falha ao excluir o portfólio"
+      }
+    }
+  }
+}

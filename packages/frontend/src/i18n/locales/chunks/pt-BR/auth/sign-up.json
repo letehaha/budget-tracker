@@ -1,0 +1,41 @@
+{
+  "auth": {
+    "signup": {
+      "title": "Criar uma conta",
+      "divider": "Ou continue com e-mail",
+      "submitButton": "Cadastrar",
+      "alreadyHaveAccount": "Já tem uma conta?",
+      "signInLink": "Entrar",
+      "labels": {
+        "displayName": "Nome de exibição",
+        "verifyPassword": "Confirmar senha"
+      },
+      "placeholders": {
+        "displayName": "ex. João Silva",
+        "verifyPassword": "Confirmar senha"
+      },
+      "errors": {
+        "invalidEmail": "Informe um endereço de e-mail válido.",
+        "passwordTooShort": "A senha é muito curta.",
+        "passwordTooLong": "A senha é muito longa.",
+        "invalidPassword": "Senha inválida.",
+        "userExists": "Já existe um usuário com esse e-mail.",
+        "signupsDisabled": "Novos cadastros estão desativados pelo administrador desta instância.",
+        "genericErrorRetry": "Ocorreu um erro. Tente novamente.",
+        "oauthFailed": "Falha ao cadastrar com {provider}. Tente novamente.",
+        "oauthNotConfigured": "O login com {provider} não está configurado neste servidor."
+      }
+    },
+    "shared": {
+      "divider": "Ou continue com",
+      "passkeyButton": {
+        "signIn": "Entrar com Passkey",
+        "register": "Adicionar Passkey"
+      },
+      "oauthButton": {
+        "signIn": "Entrar com {provider}",
+        "signUp": "Cadastrar com {provider}"
+      }
+    }
+  }
+}

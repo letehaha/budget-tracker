@@ -1,0 +1,248 @@
+{
+  "automations": {
+    "title": "Automações",
+    "subtitle": "Executam em novas transações de sincronização bancária e importações de arquivo. A primeira regra correspondente vence — arraste uma regra para reordenar.",
+    "newAutomation": "Nova automação",
+    "new": "Nova",
+    "dragHint": "Arraste para reordenar",
+    "toggleAriaLabel": "Ativar automação",
+    "menuAriaLabel": "Ações da automação",
+    "disabledPill": "Desativada",
+    "mcpTip": {
+      "trigger": "Dicas",
+      "text": "Você pode gerenciar automações com IA através de uma conexão MCP — peça para ela reorganizar suas regras ou verificar duplicidades e conflitos.",
+      "link": "Configurar conexão MCP"
+    },
+    "statusFilter": {
+      "all": "Mostrar todas",
+      "enabled": "Somente ativas",
+      "disabled": "Somente desativadas",
+      "empty": "Nenhuma automação corresponde a este filtro."
+    },
+    "pausedMissingRef": "Pausada — {refType} \"{label}\" foi excluído(a)",
+    "pausedMissingRefUnnamed": "Pausada: um(a) {refType} referenciado por esta regra foi excluído(a)",
+    "matchStats": "{count} correspondência · última em {date} | {count} correspondências · última em {date}",
+    "matchStatsNever": "Nunca correspondeu",
+    "loadError": "Não foi possível carregar as automações. Verifique sua conexão e tente novamente.",
+    "reorderDisabledFiltered": "Limpe o filtro de status para reordenar",
+    "density": {
+      "comfortable": "Detalhado",
+      "compact": "Compacto"
+    },
+    "chips": {
+      "when": "Quando",
+      "then": "Então",
+      "not": "não",
+      "day": "dia",
+      "more": "+{count} mais",
+      "less": "Mostrar menos",
+      "noteReplace": "definir nota",
+      "noteAppend": "adicionar",
+      "notePrepend": "inserir no início",
+      "note": {
+        "containsAny": "nota contém",
+        "notContainsAny": "nota não contém",
+        "startsWithAny": "nota começa com",
+        "endsWithAny": "nota termina com",
+        "equalsAny": "nota é",
+        "isEmpty": "nota vazia"
+      },
+      "merchant": {
+        "containsAny": "comerciante contém",
+        "notContainsAny": "comerciante não contém",
+        "startsWithAny": "comerciante começa com",
+        "endsWithAny": "comerciante termina com",
+        "equalsAny": "comerciante é",
+        "isEmpty": "comerciante vazio"
+      }
+    },
+    "refType": {
+      "category": "categoria",
+      "tag": "tag",
+      "account": "conta",
+      "accountGroup": "grupo de contas",
+      "bankConnection": "conexão bancária",
+      "payee": "beneficiário"
+    },
+    "emptyState": {
+      "title": "Nenhuma automação ainda",
+      "description": "Automações categorizam, marcam com tags e anotam transações assim que chegam de uma sincronização bancária ou importação de arquivo.",
+      "cta": "Crie sua primeira automação"
+    },
+    "delete": {
+      "title": "Excluir automação?",
+      "description": "\"{name}\" vai parar de ser executada em novas transações. Transações que ela já categorizou mantêm a categoria, as tags e a nota.",
+      "confirm": "Excluir"
+    },
+    "notifications": {
+      "deleteSuccess": "Automação excluída.",
+      "deleteError": "Não foi possível excluir a automação. Tente novamente.",
+      "toggleError": "Não foi possível alterar o status da automação. Tente novamente.",
+      "reorderError": "Não foi possível salvar a nova ordem. Tente novamente.",
+      "staleReference": "Esta automação aponta para algo que foi excluído. Abra-a e escolha um substituto.",
+      "openRule": "Abrir regra"
+    },
+    "fields": {
+      "note": "Nota",
+      "merchant": "Comerciante",
+      "payee": "Beneficiário",
+      "amount": "Valor",
+      "transactionType": "Tipo de transação",
+      "account": "Conta",
+      "accountGroup": "Grupo de contas",
+      "bankConnection": "Conexão bancária",
+      "dayOfMonth": "Dia do mês"
+    },
+    "operators": {
+      "contains_any": "contém qualquer um de",
+      "not_contains_any": "não contém",
+      "starts_with_any": "começa com",
+      "ends_with_any": "termina com",
+      "equals_any": "é igual a qualquer um de",
+      "is_empty": "está vazio",
+      "in": "é um de",
+      "not_in": "não é nenhum de",
+      "gte": "é no mínimo",
+      "lte": "é no máximo",
+      "between": "está entre",
+      "equals": "é igual a"
+    },
+    "actions": {
+      "set_category": "Definir categoria",
+      "set_payee": "Definir beneficiário",
+      "add_tags": "Adicionar tags",
+      "set_note": "Definir nota",
+      "noteMode": {
+        "replace": "Substituir",
+        "append": "Adicionar ao final",
+        "prepend": "Inserir no início"
+      }
+    },
+    "editor": {
+      "titleNew": "Nova automação",
+      "titleEdit": "Editar automação",
+      "back": "Voltar para automações",
+      "enabled": "Ativada",
+      "nameLabel": "Nome",
+      "namePlaceholder": "ex.: Compras no Pão de Açúcar",
+      "conditionsHeader": "Corresponder a {match} destas condições",
+      "matchAll": "todas",
+      "matchAny": "qualquer uma",
+      "joinAnd": "E",
+      "joinOr": "OU",
+      "addCondition": "Adicionar condição",
+      "removeCondition": "Remover condição",
+      "removeKeyword": "Remover palavra-chave",
+      "fieldPlaceholder": "Selecione um campo",
+      "operatorPlaceholder": "Selecione uma condição",
+      "keywordPlaceholder": "Digite uma palavra-chave e pressione Enter",
+      "amountPlaceholder": "Digite um valor",
+      "minPlaceholder": "Valor mínimo",
+      "maxPlaceholder": "Valor máximo",
+      "currencyPlaceholder": "Selecione uma moeda",
+      "currency": {
+        "transaction": "Moeda da transação",
+        "base": "Moeda base ({code})",
+        "specific": "em {code}"
+      },
+      "accountsPlaceholder": "Selecione contas",
+      "accountGroupPlaceholder": "Selecione um grupo de contas",
+      "bankConnectionPlaceholder": "Selecione uma conexão bancária",
+      "dayFromPlaceholder": "A partir do dia",
+      "dayToPlaceholder": "Até o dia",
+      "actionsHeader": "Então faça isto",
+      "addAction": "Adicionar ação",
+      "removeAction": "Remover ação",
+      "categoryPlaceholder": "Selecione uma categoria",
+      "payeePlaceholder": "Selecione um beneficiário",
+      "tagsPlaceholder": "Selecione tags",
+      "notePlaceholder": "Digite o texto da nota",
+      "saveSuccess": "Automação salva.",
+      "notFound": {
+        "title": "Automação não encontrada",
+        "description": "Esta automação não existe mais ou foi excluída.",
+        "link": "Voltar para automações"
+      },
+      "unsaved": {
+        "title": "Descartar alterações não salvas?",
+        "description": "Esta automação tem alterações que não foram salvas. Sair agora vai descartá-las.",
+        "confirm": "Descartar alterações"
+      },
+      "preview": {
+        "title": "Pré-visualização",
+        "run": "Pré-visualizar correspondências",
+        "hint": "Finalize a regra para pré-visualizar quais transações ela corresponderia.",
+        "summary": "{matched} das últimas {scanned} transações a que esta regra poderia se aplicar",
+        "empty": "Nenhuma correspondência",
+        "stale": "As condições mudaram desde que esta pré-visualização foi executada.",
+        "error": "Não foi possível executar a pré-visualização. Tente novamente."
+      },
+      "errors": {
+        "nameRequired": "Digite um nome para esta automação.",
+        "nameTooLong": "O nome deve ter {max} caracteres ou menos.",
+        "conditionsRequired": "Adicione pelo menos uma condição.",
+        "actionsRequired": "Adicione pelo menos uma ação.",
+        "keywordsRequired": "Adicione pelo menos uma palavra-chave.",
+        "keywordsMax": "Use no máximo {max} palavras-chave.",
+        "keywordTooLong": "Cada palavra-chave deve ter {max} caracteres ou menos.",
+        "selectionRequired": "Selecione pelo menos uma opção.",
+        "selectionMax": "Selecione no máximo {max} opções.",
+        "missingRef": "foi excluído(a) — escolha outro ou remova esta linha",
+        "amountRequired": "Digite um valor.",
+        "amountBoundsRequired": "Digite um valor mínimo e um máximo.",
+        "amountRange": "O valor mínimo não pode ser maior que o máximo.",
+        "dayRange": "Digite um intervalo de dias entre 1 e 31, com o primeiro dia não posterior ao último.",
+        "categoryRequired": "Selecione uma categoria.",
+        "payeeRequired": "Selecione um beneficiário.",
+        "tagsRequired": "Selecione pelo menos uma tag.",
+        "noteRequired": "Digite o texto da nota.",
+        "noteTooLong": "A nota deve ter {max} caracteres ou menos.",
+        "saveFailed": "Não foi possível salvar a automação. Tente novamente.",
+        "transactionTypeDuplicate": "Somente uma condição de tipo de transação é permitida"
+      },
+      "noResults": "Nenhum resultado"
+    },
+    "summary": {
+      "missingRef": "(excluído)",
+      "currency": {
+        "transaction": "(moeda da transação)",
+        "base": "(moeda base)"
+      },
+      "transactionTypeValue": {
+        "income": "receita",
+        "expense": "despesa"
+      }
+    },
+    "applyToHistory": {
+      "trigger": "Aplicar a transações passadas",
+      "saveFirst": "Salve suas alterações primeiro",
+      "pickTitle": "Aplicar uma regra a transações passadas",
+      "pickHint": "Escolha uma regra. Você vai revisar as transações correspondentes antes de qualquer alteração.",
+      "title": "Aplicar \"{name}\" a transações passadas",
+      "noRules": "Você ainda não tem automações.",
+      "summary": "{count} transação passada corresponde a esta regra | {count} transações passadas correspondem a esta regra",
+      "moreMatches": "Apenas as {shown} correspondências mais recentes estão listadas. Aplique estas e execute novamente.",
+      "scanCapped": "Apenas suas {limit} transações mais recentes foram verificadas.",
+      "emptyState": {
+        "settledTitle": "Tudo em dia",
+        "settledDescription": "Esta regra não tem mais nada a alterar na única transação passada correspondente. | Esta regra não tem mais nada a alterar nas {count} transações passadas correspondentes.",
+        "noneTitle": "Nenhuma correspondência ainda",
+        "noneDescription": "Nenhuma transação passada em suas contas sincronizadas ou importadas corresponde a estas condições."
+      },
+      "selectAll": "Selecionar tudo",
+      "selectedCount": "{count} selecionada(s)",
+      "irreversible": "Isso não pode ser desfeito. Revise a lista com cuidado.",
+      "applyAction": "Aplicar a {count} transações",
+      "confirm": {
+        "title": "Aplicar esta regra?",
+        "action": "Aplicar",
+        "description": "{count} transações serão atualizadas imediatamente.",
+        "payeeNote": "O beneficiário dessas transações será tratado como definido por você, então a detecção automática de beneficiário não vai alterá-lo depois."
+      },
+      "success": "Aplicado a {applied} transações",
+      "successWithSkipped": "Aplicado a {applied} transações, {skipped} ignoradas",
+      "nothingApplied": "Nada foi aplicado. {skipped} transações foram ignoradas.",
+      "applyError": "Não foi possível aplicar a regra às transações passadas."
+    }
+  }
+}

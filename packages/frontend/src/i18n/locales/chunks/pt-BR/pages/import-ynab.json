@@ -1,0 +1,76 @@
+{
+  "pages": {
+    "importExport": {
+      "ynabImport": {
+        "pageTitle": "Importar do YNAB",
+        "pageDescription": "Envie seu Register.csv exportado do YNAB para trazer contas, transações, categorias, beneficiários e tags para o MoneyMatter.",
+        "stepper": {
+          "steps": {
+            "upload": "Envio",
+            "preview": "Revisão",
+            "results": "Concluído"
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "Solte seu Register.csv aqui",
+          "description": "YNAB → Budget → Export budget → descompacte → use o arquivo Register.csv.",
+          "maxSize": "Até 10 MB.",
+          "parsing": "Processando…",
+          "continueToPreview": "Continuar",
+          "errors": {
+            "invalidFormat": "Envie um arquivo .csv."
+          }
+        },
+        "preview": {
+          "emptyList": "Nada para importar aqui.",
+          "accounts": "Contas",
+          "categories": "Categorias",
+          "payees": "Beneficiários",
+          "tags": "Tags",
+          "transactions": "Transações",
+          "transfers": "Transferências",
+          "dateRange": "Período: {from} → {to}",
+          "accountsHelper": "Para cada conta do YNAB, confirme a moeda.",
+          "skippedNote": "{count} conta(s) serão ignoradas. As transações dessas contas — e quaisquer transferências de ou para elas — não serão importadas.",
+          "warningsTitle": "Avisos",
+          "rowPrefix": "Linha {rowIndex}:",
+          "startOver": "Recomeçar",
+          "continueToImport": "Iniciar importação"
+        },
+        "accountRow": {
+          "transactionsCount": "{count} transações",
+          "startingBalance": "Saldo inicial",
+          "currencyPlaceholder": "USD",
+          "currencyLabel": "Moeda",
+          "currencyInvalid": "Digite um código de moeda de 3 letras (ex.: USD)",
+          "autoDetected": "detectado automaticamente: {code}",
+          "undoSkip": "Incluir na importação"
+        },
+        "execute": {
+          "starting": "Iniciando a importação…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "Na fila",
+          "statusRunning": "Importando…",
+          "statusCompleted": "Concluído",
+          "statusFailed": "Falhou",
+          "failed": "A importação não pôde ser concluída."
+        },
+        "done": {
+          "successTitle": "Importação concluída",
+          "successDescription": "Seus dados do YNAB já estão no MoneyMatter.",
+          "accountsCreated": "Contas criadas",
+          "accountsSkipped": "Contas ignoradas",
+          "categoriesCreated": "Categorias criadas",
+          "payeesCreated": "Beneficiários criados",
+          "tagsCreated": "Tags criadas",
+          "transactionsImported": "Transações importadas",
+          "transfersImported": "Transferências importadas",
+          "splitsDetected": "Grupos de divisão detectados",
+          "errorsTitle": "{count} linhas falharam ao importar",
+          "viewTransactions": "Ver transações",
+          "importAnother": "Importar outro arquivo"
+        }
+      }
+    }
+  }
+}

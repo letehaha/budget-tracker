@@ -1,0 +1,258 @@
+{
+  "dashboard": {
+    "editMode": {
+      "customize": "Personalizar",
+      "addWidgets": "Adicionar widgets",
+      "emptyState": "Clique em Personalizar para adicionar widgets"
+    },
+    "widgets": {
+      "common": {
+        "includePlanned": "Incluir transações planejadas",
+        "includePlannedTooltip": "Considera transações planejadas pendentes nos números deste widget.",
+        "includePlannedSaveError": "Não foi possível salvar a configuração de transações planejadas. Tente novamente."
+      },
+      "balanceTrend": {
+        "title": "Tendência de saldo",
+        "balanceTypes": {
+          "total": "Total",
+          "accounts": "Contas",
+          "portfolios": "Portfólios",
+          "ventures": "Ventures",
+          "vehicles": "Veículos",
+          "loans": "Empréstimos"
+        },
+        "tooltip": {
+          "accounts": "Contas:",
+          "portfolios": "Portfólios:",
+          "total": "Total:",
+          "ventures": "Ventures:",
+          "vehicles": "Veículos:",
+          "loans": "Empréstimos:"
+        },
+        "today": "Hoje",
+        "vsPreviousPeriod": "vs período anterior",
+        "spikePanel": {
+          "accounts": "Contas",
+          "portfolios": "Portfólios",
+          "priceDrivenChange": "Variação por preço — detalhes de transação em breve",
+          "noSignificantTransactions": "Nenhuma transação relevante nesta data.",
+          "seeAllTransactions": "Ver todas as transações"
+        },
+        "spikeSettings": {
+          "showMarkers": "Mostrar marcadores de pico",
+          "showMarkersTooltip": "Ativa marcadores coloridos no gráfico que destacam mudanças relevantes de saldo.",
+          "percentThreshold": "Variação mín. %",
+          "percentThresholdTooltip": "Percentual mínimo de variação do saldo entre dois dias consecutivos para marcar como pico. Esse limite ou o absoluto precisa ser excedido. Valores baixos mostram mais marcadores.",
+          "absoluteThreshold": "Variação mín. $",
+          "absoluteThresholdTooltip": "Variação absoluta mínima de saldo (na sua moeda base) para ser considerada um pico. Esse limite ou o percentual precisa ser excedido.",
+          "maxMarkers": "Máx. de marcadores",
+          "maxMarkersTooltip": "Número máximo de marcadores de pico exibidos no gráfico. Quando há mais picos do que esse limite, só os mais relevantes são exibidos.",
+          "resetDefaults": "Restaurar padrões",
+          "accept": "Aceitar",
+          "validation": {
+            "outOfRange": "O valor está fora do intervalo permitido",
+            "integer": "Deve ser um número inteiro"
+          }
+        },
+        "settings": {
+          "title": "Configurações",
+          "spikeMarkers": "Marcadores de pico",
+          "fitToLatestData": "Ajustar aos dados mais recentes",
+          "fitToLatestDataTooltip": "Quando ativado, o gráfico vai apenas até seu ponto de dados mais recente. Quando desativado, o eixo X cobre todo o período selecionado, deixando espaço vazio para datas futuras.",
+          "fitToLatestDataLockedTooltip": "Desative as transações planejadas para alterar isso — a projeção delas sempre estende o gráfico até o fim do período.",
+          "on": "Ativado",
+          "off": "Desativado",
+          "includeInTotal": "Incluir no total",
+          "includePlannedTooltip": "Mostra uma projeção tracejada das transações planejadas pendentes sobre a tendência."
+        },
+        "componentsSettings": {
+          "description": "Escolha quais componentes contam para a linha de Saldo total.",
+          "vehicles": "Veículos",
+          "ventures": "Ventures",
+          "loans": "Empréstimos",
+          "loansTooltip": "Quando ativado, os saldos de empréstimos em aberto são subtraídos do total (patrimônio líquido real). Quando desativado, os empréstimos são ignorados e o total mostra só os ativos.",
+          "allIncluded": "Todos os componentes",
+          "excluding": "Excluindo {items}"
+        },
+        "projection": {
+          "summary": "{amount} projetado · {count} lançamento planejado até {date} | {amount} projetado · {count} lançamentos planejados até {date}"
+        }
+      },
+      "expensesStructure": {
+        "title": "Estrutura de despesas",
+        "today": "Hoje",
+        "vsPreviousPeriod": "vs período anterior",
+        "viewButton": "Ver"
+      },
+      "latestTransactions": {
+        "title": "Últimas transações",
+        "showAll": "Ver todas"
+      },
+      "subscriptions": {
+        "title": "Assinaturas e contas",
+        "titleSubscriptions": "Assinaturas",
+        "titleBills": "Contas",
+        "titleAll": "Pagamentos recorrentes",
+        "titleInstallments": "Parcelamentos",
+        "configTypeAll": "Todos",
+        "configTypeSubscriptions": "Assinaturas",
+        "configTypeBills": "Contas",
+        "configTypeInstallments": "Parcelamentos",
+        "activeSummary": "{count} ativa(s)",
+        "perYear": " por ano",
+        "incomeSummary": "{count} ativa(s) · {amount}/mês de receita",
+        "percentOfIncome": "{percent}% da receita média",
+        "settings": {
+          "title": "Configurações",
+          "show": "Mostrar",
+          "incomeWindow": "Janela de receita",
+          "incomeWindowTooltip": "Calculamos a média das suas transações de receita nesse período para calcular o % da receita gasto com pagamentos recorrentes.",
+          "lookbackOption": {
+            "1": "Último mês",
+            "3": "Últimos 3 meses",
+            "6": "Últimos 6 meses",
+            "12": "Últimos 12 meses"
+          }
+        }
+      },
+      "categoryTracker": {
+        "title": "Categorias monitoradas",
+        "addCategory": "Adicionar categoria",
+        "selectCategories": "Selecionar categorias"
+      },
+      "cashFlow": {
+        "title": "Fluxo de caixa",
+        "description": "Mostra sua economia líquida: receitas menos despesas no período selecionado, com a tendência de períodos anteriores",
+        "vsPrevious": "vs anterior",
+        "income": "Receita",
+        "expenses": "Despesas",
+        "saved": "Economizado",
+        "previousPeriodsTrend": "Tendência de períodos anteriores",
+        "viewDetails": "Ver detalhes"
+      },
+      "netWorth": {
+        "title": "Patrimônio líquido",
+        "description": "Como seu patrimônio líquido mudou no período selecionado. Considera toda variação de saldo: contas, investimentos, empréstimos e valores de ativos.",
+        "vsPrevious": "vs anterior",
+        "start": "Início",
+        "end": "Fim",
+        "growth": "Crescimento",
+        "previousPeriodsTrend": "Tendência de períodos anteriores",
+        "excludedTooltip": "Excluído do patrimônio líquido: {components}",
+        "viewHistory": "Ver histórico",
+        "loadFailed": "Não foi possível carregar os dados de patrimônio líquido.",
+        "components": {
+          "ventures": "Ventures",
+          "vehicles": "Veículos",
+          "loans": "Empréstimos"
+        },
+        "settings": {
+          "title": "Incluir no patrimônio líquido",
+          "loans": "Empréstimos",
+          "vehicles": "Veículos",
+          "ventures": "Ventures"
+        },
+        "trendTooltip": {
+          "change": "Variação",
+          "netWorth": "Patrimônio líquido",
+          "noData": "Sem dados para este período"
+        }
+      },
+      "creditUtilization": {
+        "title": "Utilização de crédito",
+        "description": "Mostra quanto do seu limite de crédito está sendo usado em todas as contas",
+        "utilized": "utilizado",
+        "noAccounts": "Nenhuma conta com limite de crédito"
+      },
+      "plannedOverview": {
+        "title": "Planejado",
+        "projectedTotal": "Saldo projetado",
+        "pendingCount": "{count} lançamento planejado | {count} lançamentos planejados",
+        "through": "Até {date}",
+        "loadFailed": "Não foi possível carregar as transações planejadas"
+      },
+      "emptyState": "Não há dados no intervalo de tempo selecionado.",
+      "registry": {
+        "balanceTrend": {
+          "name": "Tendência de saldo",
+          "description": "Acompanhe seu saldo ao longo do tempo"
+        },
+        "categoryTracker": {
+          "name": "Categorias monitoradas",
+          "description": "Acompanhe gastos e receitas das categorias selecionadas"
+        },
+        "spendingCategories": {
+          "name": "Gastos por categoria",
+          "description": "Veja para onde vai o seu dinheiro"
+        },
+        "latestRecords": {
+          "name": "Registros recentes",
+          "description": "Suas transações mais recentes"
+        },
+        "subscriptions": {
+          "name": "Assinaturas e contas",
+          "description": "Visão geral dos pagamentos recorrentes"
+        },
+        "cashFlow": {
+          "name": "Fluxo de caixa",
+          "description": "Receitas vs despesas com taxa de economia"
+        },
+        "netWorth": {
+          "name": "Patrimônio líquido",
+          "description": "Como seu patrimônio líquido total muda ao longo do tempo, incluindo investimentos, empréstimos e ativos."
+        },
+        "creditUtilization": {
+          "name": "Utilização de crédito",
+          "description": "Uso do limite de crédito em suas contas"
+        },
+        "plannedOverview": {
+          "name": "Visão geral do planejado",
+          "description": "Transações planejadas pendentes e seu saldo projetado"
+        }
+      }
+    },
+    "periodSelector": {
+      "presets": {
+        "currentMonth": "Mês atual",
+        "last3Months": "Últimos 3 meses",
+        "last6Months": "Últimos 6 meses",
+        "lastYear": "Últimos 12 meses",
+        "thisYear": "Este ano",
+        "previousYear": "Ano anterior"
+      }
+    }
+  },
+  "widgets": {
+    "subscriptionsOverview": {
+      "upcoming": {
+        "collapsed": "{count} pagamentos futuros",
+        "collapsedAction": "Abrir"
+      },
+      "empty": "Tudo em dia — nada vence nos próximos 3 dias.",
+      "overdueBadge": "Atrasado",
+      "payAction": "Marcar como pago"
+    },
+    "latestRecords": {
+      "config": {
+        "includeScheduled": {
+          "label": "Incluir pagamentos agendados",
+          "on": "Ativado",
+          "off": "Desativado"
+        }
+      },
+      "settings": {
+        "excludeTitle": "Excluir transações",
+        "excludeTransfersDescription": "Ocultar transferências entre suas próprias contas",
+        "excludeOutOfWalletDescription": "Ocultar transferências de e para contas que você não acompanha",
+        "balanceAdjustmentsTitle": "Ajustes de saldo",
+        "excludeBalanceAdjustmentsDescription": "Ocultar transações de ajuste de saldo",
+        "plannedTitle": "Transações planejadas",
+        "excludePlannedDescription": "Ocultar transações planejadas pendentes da lista",
+        "nothingExcluded": "Nada excluído"
+      },
+      "overdueBadge": "Atrasado",
+      "scheduledBadge": "Agendado",
+      "payAction": "Marcar como pago"
+    }
+  }
+}

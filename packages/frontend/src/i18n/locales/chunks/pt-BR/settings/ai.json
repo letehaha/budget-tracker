@@ -1,0 +1,272 @@
+{
+  "settings": {
+    "ai": {
+      "title": "Configurações de IA",
+      "description": "Configure recursos com IA, como categorização automática de transações",
+      "tabs": {
+        "features": "Recursos de IA",
+        "apiKeys": "Chaves de API",
+        "invalidKeysTooltip": "Uma ou mais chaves de API são inválidas",
+        "customEndpoints": "Endpoints personalizados",
+        "invalidEndpointsTooltip": "Um ou mais endpoints personalizados pararam de funcionar"
+      },
+      "apiKeyManager": {
+        "title": "Chaves de API",
+        "description": "Adicione suas próprias chaves de API para usar provedores específicos",
+        "badges": {
+          "default": "Padrão"
+        },
+        "buttons": {
+          "setDefault": "Definir como padrão"
+        },
+        "invalidKeyHelp": "Adicione uma nova chave abaixo para substituir esta, ou remova-a se não precisar mais.",
+        "deleteDialog": {
+          "title": "Remover chave de API?",
+          "description": "Tem certeza de que deseja remover a chave de API {provider}?",
+          "descriptionMultiple": "Recursos de IA que usam {provider} passarão a usar outro provedor disponível.",
+          "cancel": "Cancelar",
+          "remove": "Remover"
+        },
+        "allConfigured": "Todos os provedores estão configurados",
+        "form": {
+          "titleAdd": "Adicionar chave de API",
+          "titleAddAnother": "Adicionar outro provedor",
+          "providerLabel": "Provedor",
+          "apiKeyLabel": "Chave de API",
+          "buttonSaving": "Validando...",
+          "buttonSave": "Salvar chave"
+        },
+        "providers": {
+          "anthropic": {
+            "label": "Anthropic (Claude)",
+            "placeholder": "sk-ant-...",
+            "description": "Obtenha sua chave de API em"
+          },
+          "openai": {
+            "label": "OpenAI (GPT)",
+            "placeholder": "sk-...",
+            "description": "Obtenha sua chave de API em"
+          },
+          "google": {
+            "label": "Google (Gemini)",
+            "placeholder": "AIza...",
+            "description": "Obtenha sua chave de API em"
+          },
+          "groq": {
+            "label": "Groq (Llama, GPT-OSS)",
+            "placeholder": "gsk_...",
+            "description": "Obtenha sua chave de API em"
+          }
+        },
+        "notifications": {
+          "saveSuccess": "Chave de API salva e validada com sucesso",
+          "saveFailed": "A chave de API não está funcionando. Verifique se a chave está correta, tem créditos suficientes e as permissões necessárias.",
+          "setDefaultSuccess": "{provider} definido como padrão",
+          "setDefaultFailed": "Falha ao definir o provedor padrão",
+          "removeSuccess": "Chave de API {provider} removida",
+          "removeFailed": "Falha ao remover a chave de API"
+        }
+      },
+      "credentialStatus": {
+        "validated": "Validada {timeAgo}",
+        "failed": "Falhou {timeAgo}",
+        "invalidBadge": "Inválida"
+      },
+      "features": {
+        "title": "Recursos de IA",
+        "description": "Configure qual modelo usar para cada recurso com IA",
+        "loading": "Carregando recursos..."
+      },
+      "categorization": {
+        "modelHint": {
+          "trigger": "Qual modelo devo escolher?",
+          "text": "Para categorização de transações, modelos de baixo custo como Gemma 4, Gemini 3.5 Flash Lite ou Claude Haiku 4.5 são recomendados. A categorização é uma tarefa simples que não exige modelos de raciocínio caros. Usar modelos mais baratos permite processar mais transações a um custo menor."
+        },
+        "howItWorks": {
+          "title": "Como funciona",
+          "points": {
+            "autoSync": "Quando você sincroniza transações do seu banco, transações sem categoria são automaticamente enviadas para a IA categorizar.",
+            "analysis": "A IA analisa as descrições das transações e os nomes dos comerciantes para sugerir categorias adequadas a partir da sua lista de categorias existente.",
+            "override": "Você sempre pode substituir manualmente as categorias sugeridas pela IA."
+          }
+        },
+        "loading": "Carregando modelos..."
+      },
+      "statementParsing": {
+        "modelHint": {
+          "trigger": "Qual modelo devo escolher?",
+          "text": "Para a leitura de extratos, modelos intermediários como Gemini 3.6 Flash, Claude Sonnet 5 ou GPT-5.6 Terra são recomendados. A leitura de extratos exige entender estruturas de documentos complexas e extrair dados com precisão, o que se beneficia de modelos mais capazes. No entanto, modelos mais baratos como Gemini 3.5 Flash Lite ou Claude Haiku 4.5 também podem funcionar bem para extratos mais simples."
+        },
+        "howItWorks": {
+          "title": "Como funciona",
+          "points": {
+            "upload": "Envie um extrato bancário (PDF, CSV ou TXT) e a IA extrairá todas as transações automaticamente.",
+            "analysis": "A IA analisa a estrutura do documento para identificar datas, descrições, valores e tipos de transação.",
+            "review": "Você pode revisar e corrigir os dados extraídos antes de importá-los para sua conta.",
+            "cost": "O custo é estimado antes do processamento, mas reflete apenas um valor aproximado."
+          }
+        },
+        "loading": "Carregando modelos..."
+      },
+      "modelSelector": {
+        "badges": {
+          "yourKey": "Sua chave",
+          "yourKeyTooltip": "Este recurso usa sua chave de API pessoal. Você tem controle total sobre uso e custos, sem limites de taxa do nosso servidor.",
+          "server": "Servidor",
+          "serverTooltip": "Este recurso usa a chave de API compartilhada do nosso servidor. É gratuito, mas pode ter limites de taxa em períodos de alta demanda. Adicione sua própria chave de API para acesso ilimitado."
+        },
+        "modelLabel": "Modelo",
+        "resetButton": "Restaurar padrão",
+        "noApiKey": "(Sem chave de API)",
+        "modelInfo": {
+          "context": "Contexto:",
+          "capabilities": "Capacidades:",
+          "estimatedCost": "Custo estimado:",
+          "per100Transactions": "por 100 transações"
+        },
+        "rateLimitWarning": "Usando IA fornecida pelo servidor com limite de taxa do plano gratuito. A disponibilidade do recurso depende da demanda de outros usuários. Para acesso confiável, adicione sua própria chave de API na aba Chaves de API.",
+        "groupLabels": {
+          "recommended": "⭐ Recomendado",
+          "openai": "OpenAI",
+          "anthropic": "Anthropic",
+          "google": "Google",
+          "groq": "Groq"
+        },
+        "costLabels": {
+          "free": "Gratuito",
+          "low": "Custo baixo",
+          "medium": "Custo médio",
+          "high": "Custo alto"
+        },
+        "capabilities": {
+          "textGeneration": "Texto",
+          "structuredOutput": "Estruturado",
+          "functionCalling": "Funções",
+          "vision": "Visão",
+          "fastInference": "Rápido",
+          "agents": "Agentes"
+        },
+        "notifications": {
+          "updateSuccess": "Modelo atualizado com sucesso",
+          "updateFailed": "Falha ao atualizar o modelo",
+          "resetSuccess": "Restaurado para o modelo padrão",
+          "resetFailed": "Falha ao restaurar o modelo"
+        },
+        "addKeyHint": "Adicione sua própria chave de API para escolher entre todos os modelos disponíveis.",
+        "addKeyHintLink": "Adicionar chave de API →",
+        "customModel": {
+          "nameLabel": "Nome do modelo",
+          "applyButton": "Aplicar",
+          "hint": "Enviado como está para {baseUrl}.",
+          "endpointOption": "{endpoint} — {model}",
+          "unknownEndpoint": "Endpoint personalizado",
+          "missingModelName": "Este endpoint não tem um nome de modelo configurado — informe um primeiro",
+          "endpointsLoadError": "Não foi possível carregar seus endpoints, então o nome do modelo não pode ser editado no momento."
+        }
+      },
+      "customEndpoint": {
+        "title": "Endpoints personalizados",
+        "description": "Conecte seus próprios servidores compatíveis com OpenAI e use seus modelos em qualquer recurso de IA.",
+        "loading": "Carregando endpoints…",
+        "addButton": "Adicionar endpoint",
+        "empty": {
+          "title": "Ainda não há endpoints personalizados",
+          "description": "Conecte um servidor compatível com OpenAI — um Ollama local, LM Studio ou um gateway hospedado — para usar seus modelos em qualquer recurso de IA."
+        },
+        "loadError": {
+          "title": "Não foi possível carregar seus endpoints",
+          "description": "Seus endpoints salvos ainda estão lá — só não conseguimos buscá-los agora. Verifique sua conexão e tente novamente.",
+          "retry": "Tentar novamente"
+        },
+        "status": {
+          "model": "Modelo: {model}"
+        },
+        "actions": {
+          "menuAriaLabel": "Ações do endpoint",
+          "reconnect": "Reconectar"
+        },
+        "form": {
+          "titleAdd": "Adicionar endpoint",
+          "titleEdit": "Editar endpoint",
+          "nameLabel": "Nome",
+          "namePlaceholder": "Ollama Doméstico",
+          "baseUrlLabel": "URL base",
+          "baseUrlPlaceholder": "http://localhost:11434/v1",
+          "modelLabel": "Nome do modelo",
+          "modelPlaceholder": "llama3.2",
+          "apiKeyLabel": "Chave de API (opcional)",
+          "apiKeyPlaceholder": "Digite a chave de API",
+          "apiKeySavedHint": "Uma chave está salva. Deixe em branco para mantê-la.",
+          "apiKeyOptionalHint": "Deixe em branco se seu endpoint não exigir autenticação.",
+          "removeApiKeyButton": "Remover chave salva",
+          "saveButton": "Salvar",
+          "testButton": "Testar conexão",
+          "removeButton": "Remover"
+        },
+        "compatibilityHint": "O endpoint precisa ser compatível com OpenAI. Funciona com Ollama, vLLM, OpenRouter, LM Studio e qualquer proxy /v1.",
+        "test": {
+          "success": "Conexão bem-sucedida.",
+          "failed": "Não foi possível alcançar o endpoint."
+        },
+        "notifications": {
+          "saveSuccess": "Endpoint personalizado salvo",
+          "saveFailed": "Falha ao salvar o endpoint personalizado",
+          "removeSuccess": "Endpoint personalizado removido",
+          "removeFailed": "Falha ao remover o endpoint personalizado",
+          "removeKeySuccess": "Chave salva removida",
+          "removeKeyFailed": "Falha ao remover a chave salva",
+          "removeKeyInvalid": "Chave de API removida, mas o endpoint falhou na validação sem ela: {reason}",
+          "editedEndpointGone": "Este endpoint foi removido, então o editor foi fechado."
+        },
+        "removeDialog": {
+          "title": "Remover endpoint personalizado?",
+          "descriptionNamed": "\"{name}\" será removido. Qualquer recurso que o use passará a usar outro modelo disponível. Esta ação não pode ser desfeita.",
+          "confirm": "Remover"
+        },
+        "removeKeyDialog": {
+          "title": "Remover chave salva?",
+          "description": "O endpoint é testado novamente sem uma chave. Se ele exigir autenticação, a alteração será rejeitada.",
+          "confirm": "Remover chave"
+        },
+        "setupHelp": {
+          "trigger": "Onde encontro isso?",
+          "rule": "A URL base é tudo até, mas sem incluir, {path}. Para quase todos os provedores isso significa que ela termina em {suffix}.",
+          "ruleCheck": "Verificação rápida: abrir {url} deve retornar uma lista JSON de modelos.",
+          "apiKeyEmpty": "Deixe vazio.",
+          "lmStudio": {
+            "startServer": "Inicie o servidor local primeiro (aba Developer → Start Server).",
+            "baseUrl": "O endereço mostrado pelo LM Studio, mais {suffix}. Por exemplo, {example}.",
+            "model": "O identificador de API do modelo. É mostrado na aba Developer, ou listado em {url}."
+          },
+          "ollama": {
+            "model": "A tag exata de {command}, por exemplo {example}."
+          },
+          "openRouter": {
+            "model": "O id completo do modelo na página de modelos deles, por exemplo {example}.",
+            "apiKeyRequired": "Obrigatório."
+          },
+          "other": {
+            "tabLabel": "Outro",
+            "title": "{name} ou qualquer outro servidor compatível com OpenAI",
+            "baseUrl": "O endereço do servidor, mais {suffix}.",
+            "model": "O que quer que {request} retorne como {field}.",
+            "apiKey": "Apenas se o servidor tiver sido configurado para exigir uma."
+          },
+          "localNetworkOnly": "Um servidor rodando no seu próprio computador ({ip} ou {hostname}) só funciona quando este app roda na sua própria máquina ou na sua própria rede. A versão hospedada não consegue alcançá-lo, pois endereços privados são bloqueados lá.",
+          "dockerHost": "Se você roda este app no Docker na mesma máquina do servidor do modelo, use {dockerHost} em vez de {ip}."
+        }
+      },
+      "customInstructions": {
+        "title": "Instruções personalizadas",
+        "description": "Forneça contexto para ajudar a IA a categorizar suas transações. Essas instruções são incluídas ao categorizar transações durante a sincronização bancária e a importação manual.",
+        "placeholder": "ex.: Transações do 'Starbucks' devem ser 'Café'. Minha renda como freelancer vem da 'Acme Corp'.",
+        "requiresOwnCredentials": "Adicione sua própria chave de API ou um endpoint personalizado para usar instruções personalizadas.",
+        "credentialsCheckFailed": "Não conseguimos verificar se você tem suas próprias credenciais de IA. Tente novamente para desbloquear as instruções personalizadas.",
+        "retryCredentialsCheck": "Tentar novamente",
+        "save": "Salvar",
+        "saved": "Salvo!",
+        "saveFailed": "Falha ao salvar as instruções personalizadas. Tente novamente."
+      }
+    }
+  }
+}

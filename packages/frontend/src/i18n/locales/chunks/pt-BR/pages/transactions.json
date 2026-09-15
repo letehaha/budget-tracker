@@ -1,0 +1,242 @@
+{
+  "transactions": {
+    "filters": {
+      "filtersLabel": "Filtros",
+      "selectFilters": "Selecionar filtros",
+      "reset": "Redefinir",
+      "apply": "Aplicar",
+      "dateRange": {
+        "placeholder": "Data ou período",
+        "presets": {
+          "thisMonth": "Este mês",
+          "last3Months": "Últimos 3 meses",
+          "last6Months": "Últimos 6 meses",
+          "last12Months": "Últimos 12 meses"
+        }
+      },
+      "transactionType": {
+        "label": "Tipo de transação:",
+        "income": "Receita",
+        "expense": "Despesa",
+        "allTypes": "Todos os tipos"
+      },
+      "amountRange": {
+        "from": "Valor a partir de (gte)",
+        "to": "Até (lte)",
+        "placeholderFrom": ">= que",
+        "placeholderTo": "<= que",
+        "compactFrom": "Valor mínimo",
+        "compactTo": "Valor máximo"
+      },
+      "refundsFilter": {
+        "label": "Reembolsos"
+      },
+      "transferFilter": {
+        "label": "Transferências"
+      },
+      "plannedFilter": {
+        "label": "Planejadas"
+      },
+      "filterOperation": {
+        "all": "Todas",
+        "exclude": "Excluir",
+        "only": "Somente"
+      },
+      "noteIncludes": {
+        "label": "A nota contém (separado por vírgula):",
+        "placeholder": "Amazon,nike",
+        "compactPlaceholder": "Buscar nas notas"
+      },
+      "tags": {
+        "allTags": "Todas as tags",
+        "tagSingular": "tag",
+        "tagPlural": "tags",
+        "selected": "selecionadas",
+        "searchPlaceholder": "Buscar tags...",
+        "blankOption": "Sem tags"
+      },
+      "payees": {
+        "label": "Beneficiários",
+        "selectedOne": "1 beneficiário selecionado",
+        "selectedMany": "{n} beneficiários selecionados"
+      },
+      "removeFilter": "Remover filtro",
+      "menu": {
+        "type": "Tipo",
+        "tags": "Tags",
+        "budgets": "Orçamentos",
+        "amount": "Intervalo de valor",
+        "note": "Notas"
+      },
+      "transferNature": {
+        "label": "Tipos de transferência",
+        "disabledTooltip": "Transferências estão excluídas pelo filtro acima, então os tipos de transferência não têm efeito.",
+        "commonTransfer": "Entre contas",
+        "outOfWallet": "Fora da carteira",
+        "toPortfolio": "Para o portfólio",
+        "toVenture": "Para o venture",
+        "selectedCount": "{n} selecionados"
+      }
+    },
+    "list": {
+      "noMoreData": "Não há mais transações",
+      "loadingMore": "Carregando mais...",
+      "detailsTitle": "Detalhes da transação",
+      "detailsDescription": "Ver e editar transação"
+    },
+    "bulkEdit": {
+      "selectAll": "Selecionar tudo",
+      "cancelSelection": "Cancelar seleção",
+      "editButton": "Editar",
+      "selectedCount": "{count} selecionadas",
+      "dialogTitle": "Editar {count} transações",
+      "dialogDescription": "As alterações serão aplicadas a todas as transações selecionadas. Somente os campos preenchidos serão atualizados.",
+      "categoryLabel": "Categoria",
+      "categoryPlaceholder": "Selecione a categoria...",
+      "payeeLabel": "Beneficiário",
+      "payeePlaceholder": "Selecione o beneficiário...",
+      "tagsLabel": "Tags",
+      "tagsPlaceholder": "Selecione as tags...",
+      "noteLabel": "Nota",
+      "notePlaceholder": "Digite a nota...",
+      "applyButton": "Aplicar alterações",
+      "applyingButton": "Aplicando...",
+      "confirmTitle": "Confirmar alterações",
+      "confirmDescription": "Você está prestes a atualizar {count} transações:",
+      "confirmCategoryLabel": "Categoria",
+      "confirmPayeeLabel": "Beneficiário",
+      "confirmTagsLabel": "Tags",
+      "confirmNoteLabel": "Nota",
+      "cancelButton": "Cancelar",
+      "confirmApplyButton": "Aplicar",
+      "successMessage": "{count} transações atualizadas com sucesso",
+      "unexpectedError": "Ocorreu um erro inesperado",
+      "tagModeLabel": "Ação de tag",
+      "tagModeAdd": "Adicionar às tags existentes",
+      "tagModeReplace": "Substituir todas as tags",
+      "tagModeRemove": "Remover estas tags"
+    },
+    "transactionGroups": {
+      "bulkActions": {
+        "createNewGroup": "Criar novo grupo",
+        "addToExistingGroup": "Adicionar a grupo existente",
+        "groupButton": "Agrupar"
+      },
+      "addToGroupDialog": {
+        "title": "Adicionar a grupo existente",
+        "searchPlaceholder": "Buscar grupos...",
+        "noGroupsMessage": "Nenhum grupo ainda. Crie um primeiro.",
+        "noSearchResultsMessage": "Nenhum grupo corresponde à sua busca.",
+        "addingText": "Adicionando...",
+        "buttonLabel": "Adicionar ao grupo",
+        "cancelButton": "Cancelar",
+        "transactionCountLabel": "transações"
+      },
+      "createGroupDialog": {
+        "title": "Criar grupo de transações",
+        "descriptionPrefix": "Grupo",
+        "groupNameLabel": "Nome",
+        "groupNamePlaceholder": "ex.: Transferência do salário de maio",
+        "noteLabel": "Nota (opcional)",
+        "notePlaceholder": "Descrição opcional...",
+        "creatingText": "Criando...",
+        "buttonLabel": "Criar grupo",
+        "cancelButton": "Cancelar"
+      },
+      "groupsPage": {
+        "title": "Grupos de transações",
+        "searchPlaceholder": "Buscar grupos...",
+        "noGroupsMessage": "Nenhum grupo de transações ainda.",
+        "emptyStateHint": "Selecione transações na página Transações e clique em \"Criar grupo\" para começar.",
+        "transactionCountLabel": "transações",
+        "deleteError": "Falha ao excluir o grupo. Tente novamente."
+      },
+      "errors": {
+        "nameRequired": "O nome do grupo é obrigatório",
+        "minTransactions": "Selecione pelo menos {min} transações",
+        "alreadyInGroup": "Algumas transações selecionadas já pertencem a um grupo",
+        "createFailed": "Falha ao criar o grupo",
+        "addFailed": "Falha ao adicionar transações ao grupo"
+      }
+    },
+    "planned": {
+      "label": "Planejada",
+      "confirmedLabel": "Confirmada",
+      "plannedTooltip": "Transação planejada",
+      "expiredTooltip": "Esperada há {days} dias, sem transação bancária correspondente",
+      "mergedTooltip": "Confirmada a partir do lançamento planejado de {date}"
+    },
+    "table": {
+      "columns": {
+        "date": "Data",
+        "account": "Conta",
+        "category": "Categoria",
+        "payee": "Beneficiário",
+        "amount": "Valor",
+        "refAmount": "Valor base",
+        "originalAmount": "Valor original",
+        "note": "Nota",
+        "tags": "Tags",
+        "categorizationSource": "Categorizado por",
+        "group": "Grupo",
+        "refund": "Reembolso",
+        "split": "Divisão"
+      },
+      "outOfWallet": "Fora da carteira",
+      "hint": "Clique em uma linha para ver os detalhes. Selecione linhas para editar em lote.",
+      "emptyTitle": "Nenhuma transação corresponde a estes filtros",
+      "emptyDescription": "Tente ajustar ou redefinir os filtros.",
+      "columnConfig": {
+        "title": "Configurações da tabela",
+        "columns": "Colunas",
+        "visibleCount": "{count} visíveis",
+        "resetDefaults": "Restaurar padrões"
+      },
+      "categorizationSourceValues": {
+        "manual": "Manual",
+        "ai": "IA",
+        "mcc_rule": "Regra de MCC",
+        "user_rule": "Regra do usuário",
+        "subscription_rule": "Regra de assinatura",
+        "payee_rule": "Regra de beneficiário"
+      },
+      "viewToggle": {
+        "list": "Visualização em lista",
+        "table": "Visualização em tabela"
+      },
+      "fullscreen": {
+        "enter": "Modo foco",
+        "exit": "Sair do modo foco"
+      }
+    },
+    "bulkDelete": {
+      "button": "Excluir",
+      "externalTooltip": "A seleção contém transações sincronizadas com o banco, que não podem ser excluídas.",
+      "confirmButton": "Excluir",
+      "confirmTitle": "Excluir {count} transações?",
+      "confirmDescription": "Esta ação não pode ser desfeita. Transferências terão os dois lados removidos.",
+      "successMessage": "{count} transações excluídas",
+      "unexpectedError": "Falha ao excluir transações. Tente novamente."
+    }
+  },
+  "records": {
+    "upcomingSection": {
+      "title": "Próximas",
+      "overdueBadge": "Atrasado",
+      "scheduledBadge": "Agendado",
+      "payAction": "Marcar como pago",
+      "hideToggle": "Ocultar pagamentos futuros",
+      "expectedBadge": "Esperado",
+      "unconfirmedBadge": "Não confirmado",
+      "morePlans": "+{count} planejadas a mais",
+      "morePlansAtLeast": "+{count}+ planejadas a mais",
+      "deletePlanTitle": "Excluir transação planejada?",
+      "deletePlanDescription": "Esta ação não pode ser desfeita.",
+      "plansLoadFailed": "Não foi possível carregar as transações planejadas",
+      "confirmAction": "Confirmar",
+      "confirmTooltip": "O dinheiro foi movimentado — registre e atualize o saldo",
+      "confirmPlanSuccess": "Plano registrado — saldo atualizado",
+      "confirmPlanError": "Falha ao registrar o plano"
+    }
+  }
+}

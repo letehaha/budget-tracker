@@ -1,0 +1,52 @@
+{
+  "settings": {
+    "accountGroups": {
+      "page": {
+        "title": "Grupos de contas",
+        "description": "Organize contas em grupos. Conexões bancárias criam e gerenciam seus próprios grupos automaticamente.",
+        "addButton": "Adicionar grupo"
+      },
+      "empty": {
+        "title": "Nenhum grupo de contas ainda",
+        "description": "Agrupe contas por banco, moeda ou finalidade para manter sua lista de contas organizada."
+      },
+      "loadError": {
+        "title": "Não foi possível carregar seus grupos",
+        "description": "Algo deu errado ao buscar seus grupos de contas. Verifique sua conexão e tente novamente.",
+        "retry": "Tentar novamente"
+      },
+      "row": {
+        "bankBadge": "Criado por conexão bancária",
+        "bankBadgeShort": "Conexão",
+        "bankBadgeTooltip": "Este grupo foi criado quando você conectou o banco, mas não representa a conexão em si — você pode renomeá-lo, mover contas ou excluí-lo livremente. As contas continuarão sincronizadas de qualquer forma.",
+        "accountsCount": "{count} conta | {count} contas",
+        "noAccounts": "Nenhuma conta",
+        "accountsElsewhere": "{count} conta sincronizada em outros grupos | {count} contas sincronizadas em outros grupos",
+        "inParent": "em {name}",
+        "manageConnection": "Gerenciar conexão"
+      },
+      "update": {
+        "label": "Nome do grupo",
+        "placeholder": "Digite o nome do grupo",
+        "saveButton": "Salvar",
+        "emptyNameError": "O nome do grupo não pode estar vazio"
+      },
+      "accounts": {
+        "heading": "Contas neste grupo",
+        "empty": "Ainda não há contas neste grupo. Adicione contas a um grupo pela página da conta.",
+        "emptyBankLinked": "As contas desta conexão estão organizadas em outros grupos — movê-las não afeta a sincronização.",
+        "unlinkTooltip": "Remover do grupo",
+        "removeConfirmTitle": "Remover \"{name}\" deste grupo?",
+        "removeConfirmDescription": "A conta não é excluída — ela apenas deixa este grupo.",
+        "removeConfirmAction": "Remover"
+      },
+      "delete": {
+        "button": "Excluir grupo",
+        "confirmTitle": "Excluir \"{name}\"?",
+        "accountsKept": "As contas são mantidas — elas simplesmente ficam sem grupo.",
+        "syncContinues": "A sincronização bancária continua — a conexão é independente deste grupo.",
+        "ungroupedHeading": "Ficará sem grupo"
+      }
+    }
+  }
+}

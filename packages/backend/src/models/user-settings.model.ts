@@ -263,9 +263,7 @@ const ZodSavedPivotViewSchema = z.object({
 });
 
 export const ZodSettingsSchema = z.object({
-  locale: z
-    .enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN, SUPPORTED_LOCALES.SPANISH])
-    .default(SUPPORTED_LOCALES.ENGLISH),
+  locale: z.enum(Object.values(SUPPORTED_LOCALES)).default(SUPPORTED_LOCALES.ENGLISH),
   ai: ZodAiSettingsSchema.optional(),
   notifications: ZodNotificationPreferencesSchema.optional(),
   onboarding: ZodOnboardingStateSchema.optional(),
@@ -311,7 +309,7 @@ export type StoredAiSettings = NonNullable<SettingsSchema['ai']>;
  * with empty ones. Arrays stay non-partial because the merge replaces them wholesale.
  */
 export const ZodSettingsPatchSchema = z.object({
-  locale: z.enum([SUPPORTED_LOCALES.ENGLISH, SUPPORTED_LOCALES.UKRAINIAN, SUPPORTED_LOCALES.SPANISH]).optional(),
+  locale: z.enum(Object.values(SUPPORTED_LOCALES)).optional(),
   ai: z
     .object({
       apiKeys: z.array(ZodAiApiKeySchema).optional(),

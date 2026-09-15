@@ -1,0 +1,546 @@
+{
+  "common": {
+    "processAlreadyLocked": "O processo de sincronização para \"{{lockKey}}\" já está bloqueado.",
+    "serviceTemporarilyUnavailable": "Serviço temporariamente indisponível. Tente novamente."
+  },
+  "accounts": {
+    "groupNotFound": "Grupo ou conta não encontrado",
+    "accountNotFound": "Conta não encontrada!",
+    "accountUpdateFailed": "A atualização da conta não foi bem-sucedida",
+    "accountNoExternalId": "A conta não possui ID externo",
+    "accountNoExternalIdMonobank": "A conta não possui ID externo do Monobank",
+    "accountNoExternalIdEnableBanking": "A conta não possui ID externo do Enable Banking",
+    "accountNotFoundForTransaction": "Conta não encontrada para esta transação",
+    "deleteBlockedByLoanPayments": "Esta conta tem pagamentos de empréstimo. Exclua ou reatribua-os antes de excluir a conta.",
+    "loanBalanceUseUpdateLoan": "Altere o saldo devedor de um empréstimo pela sua página de empréstimo, não pelas configurações da conta.",
+    "loanCategoryImmutable": "A categoria de uma conta de empréstimo não pode ser alterada.",
+    "dedicatedFlowCategoryNotAllowed": "Contas de empréstimo e de veículo devem ser criadas por seus endpoints dedicados, não pelo endpoint genérico de contas."
+  },
+  "balanceAdjustment": {
+    "defaultNote": "Ajuste de saldo",
+    "accountNotFound": "Conta com id \"{{accountId}}\" não encontrada.",
+    "vehicleUseOverride": "O valor de um veículo só pode ser alterado a partir da sua página de veículo.",
+    "vehicleNegativeValue": "O valor de um veículo não pode ser negativo."
+  },
+  "accountGroups": {
+    "groupNotFound": "Grupo não encontrado",
+    "groupUpdateFailed": "A atualização do grupo não foi bem-sucedida",
+    "parentGroupNotExist": "Não existe um grupo pai com esse id.",
+    "parentGroupDoesNotExist": "O grupo pai não existe.",
+    "accountNotFound": "Não existe uma conta com esse id.",
+    "accountGroupNotFound": "Não existe um grupo de contas com esse id."
+  },
+  "categories": {
+    "notFound": "Não existe uma categoria com o id fornecido.",
+    "systemCannotBeMoved": "Categorias do sistema não podem ser movidas.",
+    "parentNotFound": "Não existe uma categoria com esse parentId.",
+    "systemParentForbidden": "Categorias do sistema não podem ser usadas como categoria pai.",
+    "ownParent": "Uma categoria não pode ser sua própria categoria pai.",
+    "underOwnSubcategory": "Uma categoria não pode ser movida para dentro de sua própria subcategoria.",
+    "nestingTooDeep": "Categorias não podem ser aninhadas além de {{max}} níveis."
+  },
+  "transactions": {
+    "notFound": "Transação não encontrada",
+    "missingRequiredFields": "Um dos campos obrigatórios está ausente: destinationAmount, destinationAccountId.",
+    "destinationAmountRequiredCrossCurrency": "destinationAmount é obrigatório ao alterar o valor de uma transferência entre moedas diferentes.",
+    "refundAndTransferNotAllowed": "Não é permitido criar uma transação que seja um reembolso e uma transferência ao mesmo tempo",
+    "notOwnTransaction": "Você só pode editar ou excluir transações que você criou nesta conta compartilhada.",
+    "sharedAccountChangeNotSupported": "Mover uma transação para outra conta só é permitido para o dono da conta.",
+    "sharedTransfersNotSupported": "Transferências em uma conta compartilhada ainda não são suportadas.",
+    "sharedRefundsNotSupported": "Vinculação de reembolso em uma conta compartilhada ainda não é suportada.",
+    "cannotCreateWithParams": "Não é possível criar a transação com os parâmetros fornecidos",
+    "idCannotBeChanged": "o id não pode ser alterado",
+    "editReadonlyFields": "Tentativa de editar campos somente leitura da conta externa",
+    "changeTypeNotAllowed": "Não é permitido alterar o \"transactionType\" de uma conta que não seja do sistema",
+    "bothRefundFieldsNotAllowed": "Você não pode usar \"refundedByTxIds\" e \"refundsTxId\" ao mesmo tempo. Escolha um ou outro.",
+    "oppositeTransactionNotFound": "Não foi possível encontrar a transação oposta para realizar a atualização",
+    "transactionIdNotExist": "A transação com o `id` fornecido não existe!",
+    "notAuthorizedToEdit": "Você não está autorizado a editar esta transação.",
+    "cannotDeleteExternal": "Não é permitido excluir transações externas manualmente",
+    "unexpectedDeleteIssue": "Problema inesperado ao tentar excluir a transação",
+    "linkSelfNotAllowed": "Tentativa de vincular a transação a ela mesma.",
+    "linkSameTypeNotAllowed": "Tentativa de vincular com uma transação que tem o mesmo \"transactionType\".",
+    "linkSameAccountNotAllowed": "Tentativa de vincular com uma transação da mesma conta. Só é permitido vincular entre contas diferentes",
+    "linkAlreadyTransferNotAllowed": "Tentativa de vincular uma transação que já é uma transferência.",
+    "linkUnexpectedError": "Erro inesperado. Não foi possível vincular as transações solicitadas.",
+    "linkCannotFind": "Não foi possível encontrar a transação base ou a oposta",
+    "linkPlannedNotAllowed": "Uma transação planejada não pode ser vinculada como uma transferência.",
+    "linkSplitTransactionNotAllowed": "Uma transação com divisões não pode ser vinculada como uma transferência.",
+    "invalidTagIds": "Um ou mais IDs de tag são inválidos ou não pertencem a este usuário",
+    "cannotEditPortfolioLinkedTransaction": "Não é possível editar uma transação vinculada a um portfólio. Desvincule-a primeiro.",
+    "refFieldsRequiredForTransferToPortfolio": "A moeda de referência e o valor de referência devem ser definidos para transações de transferência para portfólio.",
+    "vehicleAccountReadonly": "Esta conta acompanha um veículo. Seu valor só pode ser alterado a partir da página do veículo.",
+    "transferNatureChangeNotAllowed": "Não é possível alterar o tipo de uma transferência existente. Desvincule a transferência primeiro e depois marque a transação novamente.",
+    "transferToLoanRequiresLoanDestination": "Um pagamento de empréstimo exige que o destino seja uma conta de empréstimo.",
+    "transferToLoanRelinkRequired": "O destino desta transferência é uma conta de empréstimo. Desvincule a transferência primeiro e depois marque a despesa como pagamento de empréstimo.",
+    "loanPaymentOverpay": "O pagamento excede o saldo restante do empréstimo.",
+    "loanAccountReadonly": "Contas de empréstimo só podem ser alteradas registrando um pagamento. Use a página do empréstimo para registrar um.",
+    "loanPaymentMustBeExpense": "Um pagamento de empréstimo deve ser uma despesa — transações de receita não podem ser transferidas para um empréstimo.",
+    "plannedMustBeStandalone": "Uma transação planejada deve ser uma receita ou despesa simples — transferências, reembolsos e registros importados não são suportados.",
+    "plannedAmountMustBePositive": "Uma transação planejada deve ter um valor maior que zero.",
+    "plannedAccountNotSupported": "Transações planejadas não estão disponíveis em contas de empréstimo e de veículo.",
+    "plannedOwnerOnly": "Somente o dono da conta pode criar transações planejadas.",
+    "plannedFlipNotAllowed": "Esta transação não pode ser transformada em uma transação planejada.",
+    "plannedCreatorOnly": "Somente o criador de uma transação planejada pode editá-la ou excluí-la.",
+    "manualOnConnectedAccount": "Somente transações planejadas podem ser adicionadas a uma conta conectada ao banco. Transações reais chegam do seu banco.",
+    "plannedUnflipOnConnectedAccount": "Este planejamento está em uma conta conectada ao banco, então seu banco o confirma automaticamente. Exclua-o se não for mais esperado.",
+    "plannedCannotConfirmPayment": "Uma transação planejada não pode confirmar um pagamento. Aguarde até que seja confirmada e depois vincule-a.",
+    "plannedCannotBeRefundLinked": "Uma transação planejada não pode fazer parte de um vínculo de reembolso.",
+    "splits": {
+      "splitsOnTransfer": "Não é possível adicionar divisões a transações de transferência",
+      "splitLimitExceeded": "Máximo de {{max}} divisões permitidas por transação",
+      "missingCategory": "A categoria é obrigatória para cada divisão",
+      "missingAmount": "O valor é obrigatório para cada divisão",
+      "amountNegative": "O valor da divisão não pode ser negativo",
+      "amountTooSmall": "O valor da divisão deve ser de pelo menos {{min}} (mínimo do sistema)",
+      "noteTooLong": "A observação da divisão não pode exceder {{max}} caracteres",
+      "invalidCategory": "Categoria com id {{categoryId}} não encontrada ou não pertence ao usuário",
+      "duplicateCategory": "Cada divisão deve usar uma categoria diferente",
+      "exceedTotal": "O valor total das divisões ({{total}}) excede o valor da transação ({{transactionAmount}})",
+      "invalidData": "Dados de divisão inválidos",
+      "splitNotFound": "Divisão não encontrada",
+      "cannotDeleteWithRefunds": "Não é possível excluir uma divisão que tem reembolsos vinculados a ela",
+      "cannotReduceBelowRefunded": "Esta divisão tem reembolsos totalizando {{refundsText}}. Você não pode reduzi-la abaixo do valor reembolsado. Para reduzir ainda mais, desvincule os reembolsos primeiro."
+    }
+  },
+  "budgets": {
+    "budgetNotFound": "Orçamento não encontrado",
+    "someTransactionIdsInvalid": "Alguns IDs de transação são inválidos",
+    "transactionsAddedSuccessfully": "Transações adicionadas com sucesso",
+    "cannotManuallyLinkToCategoryBudget": "Não é possível vincular transações manualmente a orçamentos baseados em categoria. Transações são rastreadas automaticamente por categoria.",
+    "someCategoryIdsInvalid": "Alguns IDs de categoria são inválidos ou não existem",
+    "notCategoryBudget": "Este endpoint só está disponível para orçamentos baseados em categoria"
+  },
+  "tags": {
+    "tagNotFound": "Tag não encontrada",
+    "tagNameAlreadyExists": "Já existe uma tag com esse nome",
+    "someTransactionIdsInvalid": "Alguns IDs de transação são inválidos",
+    "transactionsAddedSuccessfully": "Transações adicionadas à tag com sucesso",
+    "transactionsRemovedSuccessfully": "Transações removidas da tag com sucesso"
+  },
+  "tagReminders": {
+    "reminderNotFound": "Lembrete de tag não encontrado",
+    "reminderAlreadyExists": "Já existe um lembrete idêntico para esta tag",
+    "amountThresholdRequired": "O limite de valor é obrigatório para lembretes de limite de valor",
+    "maxRemindersReached": "Número máximo de lembretes (50) atingido",
+    "notifications": {
+      "thresholdExceeded": {
+        "title": "Alerta de gasto em tag",
+        "message": "Seu gasto em \"{{tagName}}\" ({{actualAmount}}) ultrapassou seu limite de {{thresholdAmount}}"
+      },
+      "existenceCheck": {
+        "title": "Resumo de atividade da tag",
+        "message": "Você tem {{count}} transação(ões) marcada(s) com \"{{tagName}}\""
+      }
+    }
+  },
+  "defaultTags": {
+    "want": {
+      "name": "Desejo",
+      "description": "Compras dispensáveis e gastos discricionários"
+    },
+    "need": {
+      "name": "Necessidade",
+      "description": "Despesas importantes, mas não urgentes"
+    },
+    "must": {
+      "name": "Essencial",
+      "description": "Despesas essenciais que não podem ser evitadas"
+    }
+  },
+  "investments": {
+    "portfolioNotFound": "Portfólio não encontrado",
+    "portfolioIdRequired": "O ID do portfólio é obrigatório.",
+    "holdingNotFound": "Ativo não encontrado",
+    "holdingNotFoundAddSecurity": "Ativo não encontrado. Adicione o ativo ao portfólio primeiro.",
+    "holdingNotFoundForRecalculation": "Ativo não encontrado para o recálculo.",
+    "securityAlreadyInPortfolio": "Este ativo já está no portfólio.",
+    "securityNotFound": "Ativo não encontrado.",
+    "currencyForSecurityNotFound": "Moeda do ativo não encontrada.",
+    "currencyNotFound": "Moeda não encontrada",
+    "transactionNotFound": "Transação de investimento não encontrada",
+    "userBaseCurrencyNotFound": "Moeda base do usuário não encontrada",
+    "insufficientSharesToSell": "Cotas insuficientes para venda. Após esta atualização, você teria {{adjustedQuantity}} cotas, mas está tentando vender {{sellQuantity}} cotas.",
+    "sourceAndDestinationMustDiffer": "Os portfólios de origem e destino devem ser diferentes",
+    "transferAmountMustBePositive": "O valor da transferência deve ser maior que zero",
+    "sourcePortfolioNotFound": "Portfólio de origem não encontrado",
+    "destinationPortfolioNotFound": "Portfólio de destino não encontrado",
+    "sourceAccountNotFound": "Conta de origem não encontrada",
+    "destinationAccountNotFound": "Conta de destino não encontrada",
+    "cannotDeleteHoldingWithActivePosition": "Não é possível excluir um ativo com posição ativa. Venda ou transfira todas as cotas primeiro.",
+    "transactionAlreadyTransfer": "A transação já está marcada como transferência e não pode ser vinculada a um portfólio.",
+    "transactionAlreadyLinkedToPortfolio": "A transação já está vinculada a uma transferência de portfólio.",
+    "transactionAlreadyLinkedToVenture": "A transação já está vinculada a um negócio de venture",
+    "portfolioTransferNotFound": "Transferência de portfólio não encontrada",
+    "exchangeCurrenciesMustDiffer": "As moedas de câmbio devem ser diferentes"
+  },
+  "loans": {
+    "loanNotFound": "Empréstimo não encontrado.",
+    "createAccountFailed": "Falha ao criar a conta de empréstimo",
+    "deleteBlockedByPayments": "Este empréstimo tem pagamentos registrados. Exclua os pagamentos antes de excluir o empréstimo.",
+    "linkPaymentsInvalidSelection": "Algumas transações selecionadas não podem ser vinculadas a este empréstimo.",
+    "linkPaymentsOverpayConfirmation": "Esses pagamentos excedem o saldo restante. Ao confirmar, o empréstimo será quitado; o excedente não será creditado de volta.",
+    "unlinkPaymentNotFound": "Pagamento de empréstimo não encontrado.",
+    "unlinkPaymentInvalidSelection": "Esta transação não é um pagamento deste empréstimo.",
+    "correctionAsOfBeforeStartDate": "currentBalanceAsOf não pode ser anterior à data de início do empréstimo",
+    "correctionOverpay": "O saldo corrigido pagaria o empréstimo a mais em {{overpayAmount}}: pagamentos totalizando {{paymentsTotal}} têm data em/após {{asOfDate}}"
+  },
+  "errors": {
+    "connectionNotFound": "Conexão não encontrada",
+    "connectionNotFoundOrNotYours": "Conexão não encontrada ou não pertence a você",
+    "providerNoReauthorization": "O provedor {{providerType}} não suporta reautorização",
+    "providerNotFoundInRegistry": "Provedor {{providerType}} não encontrado no registro",
+    "connectionIdNotFound": "Conexão do provedor de dados bancários {{connectionId}} não encontrada",
+    "accountIdNotFound": "Conta {{accountId}} não encontrada",
+    "providerTypeMismatch": "A conexão {{connectionId}} é do provedor {{actualType}}, não {{expectedType}}",
+    "providerAlreadyRegistered": "O provedor {{providerType}} já está registrado. Não é possível registrar provedores duplicados.",
+    "providerNotRegistered": "O provedor {{providerType}} não está registrado. Provedores disponíveis: {{available}}",
+    "missingRequiredProviders": "Provedores de dados bancários obrigatórios ausentes: {{missing}}. Certifique-se de que esses provedores estejam registrados na inicialização do app."
+  },
+  "validation": {
+    "dateInvalid": "\"date\" é uma data inválida."
+  },
+  "urlGuard": {
+    "invalidUrl": "Esta não é uma URL válida.",
+    "unsupportedProtocol": "Somente URLs http:// e https:// são permitidas.",
+    "credentialsInUrlNotAllowed": "A URL não deve conter nome de usuário ou senha. Use o campo de chave de API.",
+    "privateAddressBlocked": "{{host}} aponta para um endereço de rede privado ou reservado, o que não é permitido.",
+    "hostnameNotResolvable": "Não foi possível resolver {{host}}. Verifique se há erros de digitação no endereço.",
+    "redirectNotAllowed": "O endpoint respondeu com um redirecionamento. Informe a URL final.",
+    "hostnameLookupUnavailable": "Não conseguimos verificar {{host}} agora. Tente novamente em instantes."
+  },
+  "bankDataProviders": {
+    "reauthorizationStarted": "Reautorização iniciada. Conclua o fluxo OAuth.",
+    "connectionEstablished": "Conexão estabelecida com sucesso",
+    "failedToFetchBanks": "Falha ao buscar os bancos. Verifique suas credenciais e o código do país.",
+    "failedToFetchCountries": "Falha ao buscar os países. Verifique suas credenciais.",
+    "accountNotLinkedToConnection": "Conta não encontrada ou não vinculada a esta conexão",
+    "accountAlreadyConnectedToAnotherConnection": "A conta \"{{account}}\" já está conectada através de \"{{connection}}\". Desconecte-a lá primeiro.",
+    "cannotLoadBeforeLinkDate": "Não é possível carregar transações anteriores à data de vinculação da conta ({{linkedAt}}). Esta conta foi vinculada usando a estratégia \"somente futuro\" para evitar duplicação de dados.",
+    "dateRangeExceedsLimit": "O período não pode exceder 1 ano.",
+    "fromAfterTo": "a data \"from\" deve ser anterior à data \"to\"",
+    "fromMustBeValidDate": "\"from\" deve ser uma data válida",
+    "toMustBeValidDate": "\"to\" deve ser uma data válida",
+    "reconciliationOnlyForEnableBanking": "A reconciliação está disponível somente para conexões Enable Banking",
+    "transactionLoadingQueued": "Carregamento de transações enfileirado. Tempo estimado: {{minutes}} minuto(s)",
+    "noValidAccountIds": "Nenhum dos IDs de conta selecionados é válido",
+    "accountCurrencyNotSupported": "A moeda da conta \"{{currency}}\" não é suportada por este sistema.",
+    "periodLoadNotSupported": "O carregamento de transações para um período personalizado não é suportado por este provedor.",
+    "transactionsLoadedCount": "{{count}} transações carregadas.",
+    "transactionsAllDuplicates": "Foram encontradas {{count}} transações para este período — todas já haviam sido importadas.",
+    "transactionsNoneInPeriod": "O provedor não retornou transações para este período.",
+    "apiError": "Erro da API {{provider}}: {{message}}",
+    "currencySelectionRequired": "A conta \"{{account}}\" não teve nenhuma moeda informada pelo banco — escolha uma moeda para ela antes de conectar.",
+    "monobank": {
+      "invalidCredentialsFormat": "Formato de credenciais inválido para o Monobank",
+      "invalidApiToken": "Token de API do Monobank inválido",
+      "rateLimitExceeded": "Limite de requisições da API do Monobank excedido. Tente novamente em um minuto.",
+      "accountNotFound": "Conta {{accountExternalId}} não encontrada no Monobank",
+      "accountReconnectRequired": "Esta conta não está mais disponível no Monobank. Reconecte sua conexão Monobank para retomar a sincronização.",
+      "webhookNotImplemented": "handleWebhook ainda não implementado para o Monobank",
+      "unknownCurrencyCode": "Código de moeda desconhecido: {{numericCode}}",
+      "geoBlocked": "O Monobank está bloqueando requisições vindas do IP deste servidor. Desative a VPN ou use um endereço IP ucraniano.",
+      "geoBlockedProduction": "A sincronização com o Monobank está temporariamente indisponível. Já fomos notificados e estamos trabalhando nisso. Entre em contato com o suporte se for urgente."
+    },
+    "enableBanking": {
+      "invalidCredentialsFormat": "Formato de credenciais inválido para o Enable Banking",
+      "invalidRsaKey": "Formato de chave privada RSA inválido",
+      "invalidCredentials": "Credenciais do Enable Banking inválidas",
+      "authUrlNotFound": "URL de autorização não encontrada para esta conexão",
+      "invalidOAuthState": "Parâmetro de estado OAuth inválido",
+      "oAuthStateExpired": "Estado OAuth expirado ou inválido",
+      "oAuthAuthorizationFailed": "Falha na autorização OAuth: {{error}}",
+      "invalidStoredCredentials": "Credenciais armazenadas inválidas",
+      "bankInfoNotFound": "Informações do banco não encontradas nos metadados da conexão",
+      "noActiveSession": "Nenhuma sessão ativa. Conclua o fluxo OAuth primeiro.",
+      "noActiveSessionGeneric": "Nenhuma sessão ativa",
+      "noBalanceInfo": "Nenhuma informação de saldo disponível",
+      "authenticationFailed": "Falha na autenticação do Enable Banking: {{message}}",
+      "sessionExpiredReconnect": "A sessão bancária expirou. Reconecte sua conta bancária para continuar sincronizando.",
+      "apiBadRequestError": "Erro da API do Enable Banking: {{message}}",
+      "apiGeneralError": "Erro da API do Enable Banking: {{message}}",
+      "redirectUriNotAllowed": "Sua aplicação Enable Banking está sem a URL de redirecionamento necessária. Acesse o painel do Enable Banking, edite sua aplicação e adicione esta URL às URLs de redirecionamento permitidas: {{redirectUrl}}"
+    },
+    "lunchflow": {
+      "invalidCredentialsFormat": "Formato de credenciais do LunchFlow inválido. Informe uma chave de API válida.",
+      "invalidApiKey": "Chave de API do LunchFlow inválida. Verifique suas credenciais.",
+      "accountNoExternalId": "A conta não tem um ID externo para a sincronização com o LunchFlow.",
+      "accountNotFound": "Conta do LunchFlow não encontrada."
+    },
+    "simplefin": {
+      "invalidCredentialsFormat": "Formato de credenciais do SimpleFIN inválido.",
+      "invalidSetupToken": "Token de configuração do SimpleFIN inválido ou já utilizado. Gere um novo no SimpleFIN Bridge e tente novamente.",
+      "invalidAccessUrl": "URL de acesso do SimpleFIN inválida ou não autorizada.",
+      "claimFailed": "Não foi possível obter uma URL de acesso do SimpleFIN a partir do token de configuração.",
+      "accountNotFound": "Conta do SimpleFIN não encontrada.",
+      "accountNoExternalId": "Esta conta não está vinculada a uma conta do SimpleFIN.",
+      "accountAbsentFromResponse": "O SimpleFIN não retornou dados para esta conta na última sincronização. A conta pode ter sido desativada no banco – tente sincronizar novamente, ou reconecte se o problema persistir.",
+      "rateLimited": "O SimpleFIN está recebendo muitas requisições no momento. Aguarde um pouco e tente novamente."
+    },
+    "walutomat": {
+      "invalidCredentialsFormat": "Formato de credenciais do Walutomat inválido. A chave de API e a chave privada são obrigatórias.",
+      "invalidApiKey": "Chave de API ou chave privada do Walutomat inválida.",
+      "accountNoExternalId": "A conta do Walutomat não tem um ID externo.",
+      "walletNotFound": "Carteira do Walutomat não encontrada para a moeda: {{currency}}"
+    }
+  },
+  "csvImport": {
+    "headersCannotBeParsed": "Não foi possível processar os cabeçalhos",
+    "csvFileEmpty": "O arquivo CSV está vazio",
+    "csvFileNoHeaders": "O arquivo CSV não tem cabeçalhos",
+    "csvFileMalformed": "Não foi possível processar o arquivo CSV. Verifique se há aspas não fechadas ou um delimitador inesperado, ou tente exportar o arquivo novamente.",
+    "csvFileTooManyRows": "O arquivo CSV excede o número máximo permitido de {{max}} linhas.",
+    "csvFileForbiddenHeader": "O arquivo CSV contém um nome de cabeçalho que não é permitido.",
+    "invalidDateFormat": "Formato de data inválido: \"{{dateStr}}\". Formato ISO esperado (AAAA-MM-DD).",
+    "invalidAmount": "Valor inválido: \"{{amountStr}}\". Valor numérico esperado.",
+    "accountNameEmpty": "O nome da conta está vazio",
+    "currencyCodeEmpty": "O código da moeda está vazio",
+    "unknownTransactionType": "Valor de tipo de transação desconhecido: \"{{typeValue}}\"",
+    "dateColumnNotFound": "Coluna de data \"{{columnName}}\" não encontrada no CSV",
+    "amountColumnNotFound": "Coluna de valor \"{{columnName}}\" não encontrada no CSV",
+    "invalidDefaultCurrency": "Código de moeda padrão inválido: \"{{defaultCurrency}}\"",
+    "payeeColumnNotFound": "Coluna de beneficiário \"{{column}}\" não encontrada nos cabeçalhos do CSV"
+  },
+  "importExport": {
+    "batchDeleteBankLinkedAccount": "Esta importação não pode mais ser desfeita porque a conta agora está conectada a um banco. Excluir essas transações pode desequilibrar o saldo sincronizado.",
+    "batchDeleteLinkedLoanTransfer": "Esta importação está vinculada a um pagamento de empréstimo e não pode ser desfeita sozinha. Ative \"também excluir transações de transferência vinculadas\" para removê-la.",
+    "batchDeleteTooLarge": "Esta importação tem transações demais para desfazer em uma única requisição agora. Entre em contato com o suporte se precisar de ajuda para removê-la."
+  },
+  "statementParser": {
+    "invalidFile": "Arquivo inválido",
+    "textExtractionFailed": "Falha na extração de texto. O PDF pode ser um documento digitalizado. A extração baseada em imagem ainda não foi implementada.",
+    "failedToExtractText": "Falha ao extrair texto do arquivo.",
+    "fileContentRequired": "O conteúdo do arquivo é obrigatório",
+    "pdfPasswordRequired": "Este PDF é protegido por senha. Digite a senha do documento para continuar.",
+    "pdfPasswordInvalid": "A senha que você digitou está incorreta. Verifique-a e tente novamente.",
+    "pdfParseFailed": "Não foi possível ler este PDF. O arquivo pode estar corrompido ou usar um formato não suportado."
+  },
+  "currencies": {
+    "notSupportedForBaseCurrency": "Alterar a moeda base para {{currency}} não é suportado. Apenas estas moedas são suportadas: {{supportedCurrencies}}.",
+    "listIsEmpty": "A lista de moedas está vazia",
+    "noBaseCurrency": "O usuário não tem uma moeda base definida",
+    "alreadyBaseCurrency": "A moeda selecionada já é a moeda base",
+    "baseCurrencyLockedByShares": "Não é possível alterar a moeda base enquanto você tiver recursos compartilhados ativos. Revogue-os ou saia deles primeiro.",
+    "baseCurrencyLockedByHousehold": "Não é possível alterar a moeda base enquanto você fizer parte de uma família ativa. Revogue ou saia da sua participação na família primeiro.",
+    "baseCurrencyChangeInProgress": "A alteração da moeda base está em andamento. Aguarde até que seja concluída.",
+    "baseCurrencyChangeSyncInProgress": "Uma sincronização bancária ainda está sendo concluída. Tente alterar sua moeda base novamente em alguns minutos.",
+    "baseCurrencyChangeDrainCheckFailed": "Não foi possível verificar se as sincronizações bancárias estão inativas. Tente novamente.",
+    "baseCurrencyChangeInProgressOtherUser": "O outro participante está atualmente alterando a moeda base dele. Tente novamente assim que a migração dele terminar.",
+    "cannotFindForRefAmount": "Não foi possível encontrar a moeda para calcular o valor de referência!",
+    "cannotCalculateRefAmount": "Não foi possível calcular o valor de referência",
+    "currencyNotConnected": "A moeda solicitada não está conectada",
+    "exchangeRateNotAvailable": "Taxa de câmbio não disponível para {{baseCode}}/{{quoteCode}} em {{date}}"
+  },
+  "userSettings": {
+    "userSettingsNotFound": "Configurações do usuário não encontradas"
+  },
+  "users": {
+    "usernameAlreadyTaken": "O nome de usuário \"{{username}}\" já está em uso"
+  },
+  "userCurrencies": {
+    "baseCurrencyExists": "A moeda base já existe!",
+    "currencyCodeNotExist": "Não existe uma moeda com o código informado.",
+    "currencyNotExist": "Não existe uma moeda com o código \"{{currencyCode}}\".",
+    "cannotDeleteDefaultCurrency": "Não é permitido excluir a moeda padrão. Desmarque-a como padrão primeiro.",
+    "cannotDeleteCurrencyWithAccounts": "Não é permitido excluir uma moeda associada a alguma conta. Exclua as contas primeiro. Nomes das contas: \"{{accountNames}}\".",
+    "cannotDeleteCurrencyWithInvestments": "Não é permitido excluir a moeda \"{{currencyCode}}\" enquanto ela for usada por ativos de investimento. Exclua esses ativos primeiro.",
+    "defaultCurrencyNotPresent": "Não é possível excluir a moeda. A moeda padrão não está presente no sistema"
+  },
+  "ai": {
+    "apiKeyValidationFailed": "Falha na validação da chave de API",
+    "noApiKeyForProvider": "Nenhuma chave de API configurada para o provedor: {{provider}}",
+    "customEndpointUnreachable": "Não foi possível alcançar o endpoint. Verifique a URL base e certifique-se de que o servidor está em execução e acessível pela internet.",
+    "customEndpointAuthFailed": "O endpoint rejeitou a chave de API. Verifique se a chave está correta e tem as permissões necessárias.",
+    "customEndpointModelNotFound": "O endpoint não oferece um modelo chamado \"{{model}}\".",
+    "customEndpointModelNotListed": "O endpoint não oferece \"{{model}}\". Modelos oferecidos: {{available}}.",
+    "customEndpointMoreModels": "e mais {{count}}",
+    "customEndpointNotApiResponse": "O servidor nessa URL respondeu com HTTP {{status}} em vez de uma resposta compatível com OpenAI. Verifique se o servidor está em execução e se a URL base está correta — geralmente termina em /v1.",
+    "customEndpointValidationFailed": "O endpoint não retornou uma resposta utilizável. Verifique a URL base, o nome do modelo e a chave de API.",
+    "customEndpointMissingFields": "Uma URL base e um nome de modelo são obrigatórios.",
+    "customEndpointNameTaken": "Você já tem um endpoint com esse nome.",
+    "customEndpointNameInvalidLength": "O nome do endpoint deve ter entre 1 e 50 caracteres.",
+    "customEndpointNotFound": "Endpoint personalizado não encontrado.",
+    "customEndpointIdRequired": "Selecione qual endpoint personalizado atende este modelo.",
+    "customModelNameInvalidLength": "O nome do modelo deve ter entre 1 e 200 caracteres.",
+    "customEndpointLimitReached": "Você pode armazenar até {{max}} endpoints personalizados. Remova um antes de adicionar outro.",
+    "customEndpointStoredKeyUnreadable": "A chave de API salva para este endpoint não pode mais ser lida. Digite-a novamente.",
+    "categorizationAlreadyRunning": "A categorização por IA já está em execução. Aguarde até que termine antes de iniciar outra.",
+    "categorizationRateLimited": "Você iniciou a categorização por IA muitas vezes recentemente. Tente novamente mais tarde."
+  },
+  "middleware": {
+    "tooManyRequests": "Muitas requisições. Tente novamente mais tarde."
+  },
+  "defaultCategories": {
+    "main": {
+      "food": "Alimentação",
+      "shopping": "Compras",
+      "housing": "Moradia",
+      "transportation": "Transporte",
+      "vehicle": "Veículo",
+      "life": "Vida e entretenimento",
+      "communication": "Comunicação, PC",
+      "financial-expenses": "Despesas financeiras",
+      "investments": "Investimentos",
+      "income": "Receita",
+      "other": "Outros"
+    },
+    "subcategories": {
+      "food": {
+        "groceries": "Mercado",
+        "restaurant": "Restaurante, fast-food",
+        "bar-cafe": "Bar, café"
+      },
+      "shopping": {
+        "clothes-shoes": "Roupas e calçados",
+        "jewels-accessories": "Joias, acessórios",
+        "health-beauty": "Saúde e beleza",
+        "kids": "Crianças",
+        "home-garden": "Casa, jardim",
+        "pets-animals": "Pets, animais",
+        "electronics-accessories": "Eletrônicos, acessórios",
+        "gifts-joy": "Presentes, diversão",
+        "stationery-tools": "Papelaria, ferramentas",
+        "free-time": "Tempo livre",
+        "drugstore-chemist": "Farmácia"
+      },
+      "housing": {
+        "rent": "Aluguel",
+        "mortgage": "Financiamento imobiliário",
+        "energy-utilities": "Energia, utilidades",
+        "services": "Serviços",
+        "maintenance-repairs": "Manutenção, reparos",
+        "property-insurance": "Seguro residencial"
+      },
+      "transportation": {
+        "public-transport": "Transporte público",
+        "taxi": "Táxi",
+        "long-distance": "Longa distância",
+        "business-trips": "Viagens de negócios"
+      },
+      "vehicle": {
+        "fuel": "Combustível",
+        "parking": "Estacionamento",
+        "vehicle-maintenance": "Manutenção do veículo",
+        "rentals": "Aluguel de veículos",
+        "vehicle-insurance": "Seguro do veículo",
+        "leasing": "Leasing"
+      },
+      "life": {
+        "health-care-doctor": "Saúde, médico",
+        "wellness-beauty": "Bem-estar, beleza",
+        "active-sport-fitness": "Esporte, fitness",
+        "culture-sport-events": "Cultura, eventos esportivos",
+        "hobbies": "Hobbies",
+        "education-development": "Educação, desenvolvimento",
+        "books-audio-subscriptions": "Livros, áudio, assinaturas",
+        "tv-streaming": "TV, streaming",
+        "holiday-trips-hotels": "Férias, viagens, hotéis",
+        "charity-gifts": "Caridade, presentes",
+        "alcohol-tobacco": "Álcool, tabaco",
+        "lottery-gambling": "Loteria, apostas"
+      },
+      "communication": {
+        "phone-cell-phone": "Telefone, celular",
+        "internet": "Internet",
+        "software-apps-games": "Software, apps, jogos",
+        "postal-services": "Serviços postais"
+      },
+      "financial-expenses": {
+        "taxes": "Impostos",
+        "insurances": "Seguros",
+        "loan-interests": "Empréstimo, juros",
+        "fines": "Multas",
+        "advisory": "Consultoria",
+        "charges-fees": "Tarifas, taxas",
+        "child-support": "Pensão alimentícia"
+      },
+      "investments": {
+        "realty": "Imóveis",
+        "vehicles-chattels": "Veículos, bens móveis",
+        "financial-investments": "Investimentos financeiros",
+        "savings": "Poupança",
+        "collections": "Coleções"
+      },
+      "income": {
+        "wage-invoices": "Salário, faturas",
+        "interests-dividends": "Juros, dividendos",
+        "sale": "Venda",
+        "rental-income": "Renda de aluguel",
+        "dues-grants": "Contribuições e subsídios",
+        "lending-renting": "Empréstimo, aluguel",
+        "checks-coupons": "Cheques, cupons",
+        "lottery-gambling": "Loteria, apostas",
+        "refunds": "Reembolsos (impostos, compras)",
+        "freelance": "Freelance",
+        "gifts": "Presentes"
+      }
+    }
+  },
+  "subscriptions": {
+    "transactionsNotFoundOrNotBelongToUser": "Uma ou mais transações não foram encontradas ou não pertencem ao usuário.",
+    "cannotLinkDifferentTransactionType": "Não é possível vincular transações com um tipo diferente do pagamento recorrente",
+    "summaryCurrencyNotConnected": "Não foi possível calcular o resumo de assinaturas: a moeda {{currencyCodes}} não está conectada à sua conta. Conecte-a em Configurações → Moedas.",
+    "summaryBaseCurrencyNotSet": "A moeda base não está definida. Defina uma moeda padrão nas suas configurações para ver o resumo de assinaturas.",
+    "payeeNotFoundOrNotBelongToUser": "Beneficiário não encontrado ou não pertence ao usuário.",
+    "tagsNotFoundOrNotBelongToUser": "Uma ou mais tags não foram encontradas ou não pertencem ao usuário.",
+    "validation": {
+      "autoRecord": {
+        "requiresAccount": "O registro automático exige uma conta para que a transação registrada tenha onde ser lançada.",
+        "requiresAmount": "O registro automático exige expectedAmount e expectedCurrencyCode para que a transação registrada tenha um valor.",
+        "excludesMatching": "O registro automático e as regras de correspondência não podem ser usados juntos — ambos tentariam resolver o mesmo período.",
+        "requiresAccountField": "O registro automático exige uma conta para lançar a transação.",
+        "requiresAmountField": "O registro automático exige expectedAmount e expectedCurrencyCode.",
+        "excludesMatchingField": "O registro automático e as regras de correspondência são mutuamente exclusivos."
+      }
+    }
+  },
+  "transactionTemplates": {
+    "notFound": "Modelo de transação não encontrado.",
+    "nameAlreadyExists": "Já existe um modelo de transação com esse nome.",
+    "amountRequiresAccount": "Um valor só pode ser salvo junto com uma conta.",
+    "accountNotFound": "Conta não encontrada ou não pertence ao usuário.",
+    "accountMustBeSystem": "Somente contas gerenciadas manualmente podem ser usadas em um modelo de transação.",
+    "accountArchived": "Contas arquivadas não podem ser usadas em um modelo.",
+    "categoryNotFound": "Categoria não encontrada ou não pertence ao usuário.",
+    "payeeNotFound": "Beneficiário não encontrado ou não pertence ao usuário.",
+    "tagsNotFound": "Uma ou mais tags não foram encontradas ou não pertencem ao usuário."
+  },
+  "payees": {
+    "aliasNameRequired": "O nome do alias é obrigatório",
+    "aliasNotFound": "Alias não encontrado",
+    "aliasUsedByOtherPayee": "Este alias já é usado por \"{{name}}\"",
+    "nameUsedByAliasOfOtherPayee": "Este nome já é usado como alias de \"{{name}}\"",
+    "cannotDeleteCanonicalAlias": "Não é possível excluir o alias correspondente ao nome canônico do beneficiário. Em vez disso, renomeie o beneficiário se quiser alterar o nome principal.",
+    "defaultCategoryNotOwned": "A categoria padrão selecionada não pertence à sua conta",
+    "defaultTagsNotOwned": "Uma ou mais tags não pertencem ao usuário",
+    "duplicateAlias": "Este alias já está associado a este beneficiário",
+    "duplicateName": "Já existe um beneficiário com esse nome",
+    "ignoredNameCollidesWithPayee": "Um beneficiário existente corresponde a este nome. Exclua o beneficiário primeiro, ou passe `force: true` para excluí-lo como parte desta operação.",
+    "ignoredNameNotFound": "Nome ignorado não encontrado.",
+    "mergeSelf": "Não é possível mesclar um beneficiário com ele mesmo",
+    "nameRequired": "O nome do beneficiário é obrigatório",
+    "notFound": "Beneficiário não encontrado",
+    "renameCollision": "Outro beneficiário já usa esse nome – mescle-os em vez disso"
+  },
+  "brandLogos": {
+    "domainAndInitialsExclusive": "Um logotipo de marca e letras personalizadas não podem ser definidos ao mesmo tempo.",
+    "colorRequiresInitials": "Uma cor de monograma exige letras de monograma."
+  },
+  "venture": {
+    "dealNotFound": "Negócio de venture não encontrado",
+    "eventNotFound": "Evento de venture não encontrado"
+  },
+  "vehicles": {
+    "notFound": "Veículo não encontrado"
+  },
+  "stats": {
+    "netWorthHistoryTooManyPoints": "Este período e granularidade geram pontos de dados demais. Escolha uma granularidade mais ampla ou um período mais curto."
+  },
+  "automations": {
+    "automationNotFound": "Automação não encontrada.",
+    "previewRequiresConditions": "Forneça condições ou uma automação salva para pré-visualizar.",
+    "reorderStale": "A lista de automações foi alterada. Atualize e tente novamente.",
+    "ruleLimitReached": "Você atingiu o número máximo de automações.",
+    "staleReference": "Esta automação faz referência a um item que não existe mais."
+  }
+}

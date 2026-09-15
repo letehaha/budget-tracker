@@ -14,7 +14,7 @@ Run Budget Tracker (MoneyMatter) on your own server: the stack pulls published m
 
 ## Translations
 
-The app ships in English, Ukrainian, Spanish and Indonesian. Corrections and new languages are welcome via pull request — see [CONTRIBUTING.md](./CONTRIBUTING.md).
+The app ships in English, Ukrainian, Spanish, Indonesian and Portuguese (Brazil). Corrections and new languages are welcome via pull request — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 

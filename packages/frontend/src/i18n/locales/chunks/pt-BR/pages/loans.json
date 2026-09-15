@@ -1,0 +1,222 @@
+{
+  "loans": {
+    "title": "Empréstimos",
+    "loadError": "Falha ao carregar os empréstimos.",
+    "tryAgain": "Tentar novamente",
+    "addButton": {
+      "label": "Adicionar empréstimo"
+    },
+    "actions": {
+      "more": "Mais",
+      "moreAriaLabel": "Mais ações",
+      "excludeFromStats": "Excluir das estatísticas",
+      "linkPayments": "Vincular pagamentos anteriores"
+    },
+    "linkPayments": {
+      "title": "Vincular pagamentos anteriores",
+      "description": "Selecione as transações que você já pagou para este empréstimo para registrá-las como pagamentos.",
+      "emptyTitle": "Nenhuma transação correspondente",
+      "emptyDescription": "Nenhuma transação corresponde a estes filtros. Tente ampliar o intervalo de datas ou limpar os filtros.",
+      "selectedCount": "{count} selecionada(s)",
+      "clearSelection": "Limpar",
+      "linkSelected": "Vincular {count}",
+      "success": "{count} pagamento vinculado ao empréstimo. | {count} pagamentos vinculados ao empréstimo.",
+      "preAnchorWarning": "{count} pagamento selecionado tem data anterior à âncora de saldo do empréstimo ({date}) — ele é vinculado apenas como histórico e não reduz o saldo em aberto. | {count} pagamentos selecionados têm data anterior à âncora de saldo do empréstimo ({date}) — eles são vinculados apenas como histórico e não reduzem o saldo em aberto.",
+      "error": "Não foi possível vincular os pagamentos selecionados. Tente novamente.",
+      "overpayTitle": "Os pagamentos excedem o saldo",
+      "overpayDescription": "Os pagamentos selecionados somam {amount} a mais que o saldo restante do empréstimo. Vincular mesmo assim?",
+      "overpayConfirmButton": "Vincular mesmo assim"
+    },
+    "dialog": {
+      "createTitle": "Adicionar empréstimo",
+      "createDescription": "Acompanhe um financiamento imobiliário, financiamento de veículo, empréstimo estudantil ou qualquer outro passivo. Você pode editar tudo depois.",
+      "editTitle": "Editar empréstimo",
+      "editDescription": "Atualize os termos do empréstimo. Alterações na taxa, prazo ou pagamento planejado são registradas na linha do tempo de eventos."
+    },
+    "settings": {
+      "title": "Configurações",
+      "editTitle": "Editar detalhes do empréstimo",
+      "editDescription": "Atualize o nome, saldo, taxa, prazo, campos de pagamento ou informações do credor.",
+      "editButton": "Editar",
+      "excludeFromStatsTitle": "Excluir das estatísticas",
+      "excludeFromStatsDescription": "Oculta este empréstimo do patrimônio líquido, gráficos e relatórios sem arquivá-lo.",
+      "archiveTitle": "Arquivar empréstimo",
+      "archiveDescription": "Oculta o empréstimo da barra lateral e das listas de contas. Você pode restaurá-lo a qualquer momento.",
+      "archiveButton": "Arquivar",
+      "archivedTitle": "Este empréstimo está arquivado",
+      "archivedDescription": "Está oculto da barra lateral e dos seletores de conta, e listado em Arquivados na página de empréstimos. Restaure-o para retomar o acompanhamento.",
+      "unarchiveButton": "Restaurar",
+      "archiveConfirmTitle": "Arquivar este empréstimo?",
+      "archiveConfirmDescription": "{name} vai para a seção Arquivados nesta página e ficará oculto da barra lateral e dos seletores de conta.",
+      "archiveAlsoExclude": "Também excluir das estatísticas",
+      "deleteTitle": "Excluir empréstimo",
+      "deleteDescription": "Remove permanentemente o empréstimo e seu histórico. Isso não pode ser desfeito.",
+      "deleteButton": "Excluir",
+      "deleteConfirmTitle": "Excluir este empréstimo permanentemente?",
+      "deleteConfirmDescription": "{name} e todos os seus eventos serão removidos permanentemente. Isso não pode ser desfeito.",
+      "toggleSuccess": "Configuração atualizada",
+      "toggleError": "Não foi possível atualizar a configuração",
+      "archiveSuccess": "Empréstimo arquivado",
+      "archiveError": "Não foi possível arquivar o empréstimo",
+      "unarchiveSuccess": "Empréstimo restaurado",
+      "deleteSuccess": "Empréstimo excluído",
+      "deleteError": "Não foi possível excluir o empréstimo",
+      "deleteBlockedByPayments": "Este empréstimo tem pagamentos registrados. Exclua-os primeiro para poder excluir o empréstimo."
+    },
+    "empty": {
+      "title": "Nenhum empréstimo ainda",
+      "description": "Acompanhe financiamentos imobiliários, de veículos, estudantis e outros passivos aqui.",
+      "createFirstButton": "Adicionar seu primeiro empréstimo"
+    },
+    "paidOff": {
+      "sectionTitle": "Quitados",
+      "repaid": "Quitado",
+      "opened": "Aberto",
+      "closed": "Encerrado",
+      "interestPaid": "Juros pagos (est.)"
+    },
+    "archivedList": {
+      "sectionTitle": "Arquivados",
+      "badge": "Arquivado",
+      "outstanding": "Em aberto"
+    },
+    "aggregate": {
+      "avgApr": "Taxa média",
+      "monthlyObligation": "Compromisso mensal",
+      "interestProjected": "Juros projetados",
+      "totalOutstanding": "Total em aberto",
+      "principalRepaid": "{percent}% de {amount} do principal pago",
+      "debtFree": "Livre de dívidas"
+    },
+    "list": {
+      "columns": {
+        "loan": "Empréstimo",
+        "progress": "Progresso",
+        "balance": "Saldo",
+        "apr": "Taxa",
+        "monthly": "Mensal",
+        "payoff": "Quitação",
+        "interestLeft": "Juros restantes"
+      },
+      "paidPercent": "{value}% pago",
+      "monthsLeft": "{count} mês(es) restante(s)",
+      "ofPrincipal": "de {amount}"
+    },
+    "types": {
+      "mortgage": "Financiamento imobiliário",
+      "auto": "Veículo",
+      "student": "Estudantil",
+      "personal": "Pessoal",
+      "heloc": "Linha de crédito imobiliária",
+      "business": "Empresarial",
+      "medical": "Médico",
+      "other": "Outro"
+    },
+    "warnings": {
+      "no_planned_payment": "Nenhum pagamento planejado definido – projeção de quitação indisponível.",
+      "payment_below_interest": "O pagamento planejado não cobre os juros mensais – o empréstimo cresceria."
+    },
+    "detail": {
+      "backToList": "Voltar para empréstimos",
+      "loadError": "Falha ao carregar este empréstimo.",
+      "paidOffBadge": "Quitado",
+      "summary": {
+        "outstanding": "Saldo atual",
+        "principalOnlyTooltip": "O saldo reflete apenas pagamentos de principal. Os juros não são acumulados automaticamente – o extrato do seu credor é a fonte de verdade.",
+        "apr": "Taxa",
+        "originalPrincipal": "Principal original",
+        "term": "Prazo",
+        "termMonths": "{count} mês | {count} meses",
+        "startDate": "Data de início",
+        "paymentDay": "Dia de pagamento",
+        "dayOfMonth": "Dia {day} de cada mês",
+        "accountNumber": "Número da conta",
+        "balanceAnchor": "Saldo em",
+        "balanceAnchorTooltip": "O saldo em aberto é fixado nesta data. Pagamentos com data anterior são mantidos para histórico, mas não alteram o progresso de quitação.",
+        "actualDuration": "Duração real"
+      },
+      "paidOff": {
+        "bannerTitle": "{name} — quitado integralmente",
+        "bannerSubline": "{type} · Aberto em {opened} · Encerrado em {closed}",
+        "took": "Levou",
+        "monthsEarly": "{count} mês(es) antes",
+        "duration": {
+          "full": "{years} anos {months} meses",
+          "years": "{years} anos",
+          "months": "{months} meses"
+        },
+        "cost": {
+          "title": "Quanto custou este empréstimo",
+          "totalLabel": "Custo total",
+          "principal": "Principal",
+          "interest": "Juros (est.)",
+          "estimateFootnote": "Os juros são uma estimativa baseada na tabela de amortização — os pagamentos são registrados como principal, então não há divisão exata de juros armazenada.",
+          "effectiveCost": "Custo efetivo: {cents}¢ de juros por cada $1 tomado emprestado"
+        },
+        "chart": {
+          "title": "Trajetória do saldo",
+          "titleHint": "O saldo real registrado do seu empréstimo ao longo do tempo, comparado com a tabela de amortização original.",
+          "noData": "Histórico insuficiente para traçar a trajetória do saldo deste empréstimo."
+        }
+      },
+      "projection": {
+        "title": "Projeção",
+        "paidLabel": "Pago",
+        "paidOfOriginal": "{paid} de {original} pago",
+        "payoffDate": "Data de quitação",
+        "monthsRemaining": "Meses restantes",
+        "totalInterestRemaining": "Total de juros restantes",
+        "nextMonthInterest": "Juros do próximo mês",
+        "nextMonthPrincipal": "Principal do próximo mês",
+        "plannedPayment": "Pagamento planejado"
+      },
+      "events": {
+        "title": "Linha do tempo",
+        "empty": "Nenhum histórico ainda – mudanças de taxa, correções de saldo e notas vão aparecer aqui.",
+        "rateChange": "Taxa alterada de {from}% para {to}%",
+        "termChange": "Prazo alterado de {from} para {to} meses",
+        "plannedPaymentChange": "Pagamento planejado alterado de {from} para {to}",
+        "paidOff": "Empréstimo quitado",
+        "balanceCorrection": "Saldo em aberto corrigido de {from} para {to}"
+      },
+      "payments": {
+        "title": "Pagamentos recentes",
+        "empty": "Nenhum pagamento registrado para este empréstimo ainda.",
+        "loadError": "Falha ao carregar os pagamentos recentes.",
+        "seeAll": "Ver todos",
+        "allTitle": "Todos os pagamentos"
+      },
+      "recordPayment": "Registrar pagamento",
+      "payoffChart": {
+        "title": "Projeção de quitação",
+        "titleHint": "Projeta quando seu empréstimo será totalmente quitado com o pagamento mínimo, o planejado e um pagamento mensal personalizado, com a data de quitação e o total de juros de cada cenário. Digite qualquer valor no campo de pagamento personalizado para simular os números e ver instantaneamente como isso muda a data de quitação e o total de juros.",
+        "customPaymentLabel": "Pagamento personalizado",
+        "applyAsPlanned": "Aplicar como pagamento planejado",
+        "applyConfirmTitle": "Aplicar como pagamento planejado?",
+        "applyConfirmDescription": "Isso define o pagamento mensal planejado do empréstimo para {amount}.",
+        "applySuccess": "Pagamento planejado atualizado.",
+        "applyError": "Não foi possível atualizar o pagamento planejado. Tente novamente.",
+        "belowInterest": "Este pagamento não cobre os juros mensais, então o saldo nunca diminui.",
+        "paidOff": "Este empréstimo está quitado — não há mais nada a projetar.",
+        "enterPaymentPrompt": "Digite um valor de pagamento acima para projetar a quitação.",
+        "paidOffShort": "Quitado",
+        "neverPaysOff": "Nunca",
+        "interestVsPlanned": "Juros vs planejado",
+        "payoffVsPlanned": "Quitação vs planejado",
+        "sameAsPlanned": "Igual ao planejado",
+        "earlierBy": "{time} antes",
+        "laterBy": "{time} depois",
+        "monthsLabel": "{n} mês(es)",
+        "yearsLabel": "{n} ano(s)",
+        "yearsMonthsLabel": "{y} ano(s) {m} mês(es)",
+        "legend": {
+          "minimum": "Pagamento mínimo",
+          "planned": "Pagamento planejado",
+          "custom": "Pagamento personalizado",
+          "actual": "Saldo real",
+          "schedule": "Tabela original"
+        }
+      }
+    }
+  }
+}

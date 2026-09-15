@@ -1,0 +1,155 @@
+{
+  "portfolioDetail": {
+    "loading": "Carregando...",
+    "loadingDetails": "Carregando detalhes do portfólio...",
+    "loadError": "Falha ao carregar os detalhes do portfólio.",
+    "tryAgain": "Tentar novamente",
+    "notFoundTitle": "Portfólio não encontrado",
+    "notFoundDescription": "Não conseguimos encontrar esse portfólio. Ele pode ter sido excluído ou você pode não ter acesso a ele.",
+    "backToInvestments": "Voltar para investimentos",
+    "subtitle": "Visão geral do portfólio",
+    "actions": {
+      "transfer": "Transferir",
+      "edit": "Editar",
+      "delete": "Excluir",
+      "exchangeCurrency": "Trocar moeda"
+    },
+    "balance": {
+      "totalValue": "Valor total",
+      "baseCurrencyEquivalent": "≈ {value} em {code}",
+      "loadError": "Falha ao carregar o resumo do portfólio.",
+      "metrics": {
+        "costBasis": "Custo base",
+        "unrealized": "Não realizado",
+        "realized": "Realizado",
+        "totalReturn": "Retorno total"
+      }
+    },
+    "cashBalances": {
+      "title": "Saldos em caixa",
+      "emptyState": "Nenhum saldo em caixa",
+      "tabs": {
+        "balances": "Saldos",
+        "cashTransactions": "Transações",
+        "buysSells": "Compras e vendas"
+      },
+      "cashTransactions": {
+        "addButton": "Adicionar transação em caixa",
+        "emptyState": "Nenhuma transação em caixa ainda",
+        "deposit": "Depósito",
+        "withdrawal": "Saque",
+        "transferIn": "Transferência de entrada",
+        "transferOut": "Transferência de saída",
+        "exchange": "Câmbio de moeda",
+        "deleteConfirm": "Excluir esta transação em caixa?",
+        "linkedTransactionNote": "Essa transferência tem uma transação de conta vinculada. O que você gostaria de fazer com ela?",
+        "keepLinkedTransaction": "Manter a transação da conta. Os detalhes originais da transação serão restaurados.",
+        "deleteLinkedTransaction": "Também excluir a transação de conta vinculada",
+        "adjustmentBadge": "Ajuste",
+        "noCashBadge": "Sem impacto no caixa",
+        "markedAsAdjustment": "Marcada como correção de saldo",
+        "markedAsContribution": "Marcada como aporte real",
+        "adjustmentError": "Falha ao atualizar esta transferência",
+        "rowActions": "Ações da transação",
+        "emptyStateDescription": "Depósitos, saques e transferências deste portfólio aparecerão aqui.",
+        "edit": "Editar",
+        "editDialog": {
+          "title": "Editar transação em caixa",
+          "description": "Altere como essa transação é tratada nos relatórios.",
+          "save": "Salvar alterações"
+        }
+      },
+      "buysSells": {
+        "emptyState": "Nenhuma transação de compra/venda",
+        "shares": "cotas"
+      }
+    },
+    "holdings": {
+      "title": "Ativos",
+      "subtitle": "{count} símbolos",
+      "filterPlaceholder": "Filtrar por símbolo ou nome...",
+      "addButton": "Adicionar símbolo",
+      "importButton": "Importar transações",
+      "importButtonShort": "Importar"
+    },
+    "holdingsTable": {
+      "loadError": "Não foi possível carregar os ativos",
+      "empty": "Nenhum ativo ainda",
+      "noFilterResults": "Nenhum ativo correspondente",
+      "noFilterResultsDescription": "Nenhum ativo corresponde à sua busca. Tente outro símbolo ou nome.",
+      "clearFilterButton": "Limpar busca",
+      "headers": {
+        "symbol": "Símbolo",
+        "name": "Nome",
+        "shares": "Cotas",
+        "price": "Preço",
+        "avgCostPerShare": "CM/Cota",
+        "totalCost": "Custo total",
+        "marketValue": "Valor de mercado",
+        "unrealizedGain": "Ganho não realizado",
+        "realizedGain": "Ganho realizado"
+      },
+      "transactions": {
+        "loading": "Carregando transações…",
+        "empty": "Nenhuma transação encontrada.",
+        "addFirstButton": "Adicionar primeira transação"
+      },
+      "closedPositions": "Posições encerradas ({count})",
+      "deleteHolding": {
+        "ariaLabel": "Excluir ativo",
+        "title": "Excluir ativo",
+        "description": "Isso excluirá permanentemente o ativo {symbol} e todas as suas transações. Essa ação não pode ser desfeita.",
+        "confirmLabel": "Excluir ativo",
+        "success": "Ativo excluído.",
+        "error": "Falha ao excluir o ativo."
+      },
+      "addTransactionDialog": {
+        "title": "Adicionar transação",
+        "description": "Adicione uma nova transação ao seu portfólio."
+      },
+      "tryAgainLater": "Tente novamente mais tarde",
+      "emptyDescription": "Adicione sua primeira transação para começar a acompanhar seus investimentos",
+      "addFirstHolding": "Adicionar primeiro ativo",
+      "importTransactions": "Ou importe de um arquivo"
+    },
+    "transactionsList": {
+      "title": "Transações",
+      "addButton": "Adicionar transação",
+      "loadingMore": "Carregando mais transações…",
+      "headers": {
+        "date": "Data",
+        "type": "Tipo",
+        "note": "Nota",
+        "quantity": "Quantidade",
+        "price": "Preço",
+        "fees": "Taxas",
+        "amount": "Valor",
+        "refAmount": "Valor base",
+        "refFees": "Taxas base",
+        "settlementAmount": "Caixa",
+        "settlementCurrency": "Moeda do caixa",
+        "settlementFees": "Taxas do caixa",
+        "settlementRate": "Taxa de câmbio",
+        "createdAt": "Adicionada em"
+      },
+      "categories": {
+        "buy": "Compra",
+        "sell": "Venda",
+        "dividend": "Dividendo",
+        "transfer": "Transferência",
+        "tax": "Imposto",
+        "fee": "Taxa",
+        "cancel": "Cancelamento",
+        "other": "Outro"
+      },
+      "headerTooltips": {
+        "amount": "Total da transação na moeda de negociação do ativo.",
+        "refAmount": "Total da transação convertido para sua moeda base.",
+        "settlementAmount": "Valor em caixa efetivamente pago ou recebido na sua conta, na moeda de liquidação."
+      },
+      "deleteTransaction": {
+        "tooltip": "Excluir transação"
+      }
+    }
+  }
+}

@@ -69,6 +69,7 @@ const FLAG_SRCS: Record<SupportedLocale, string> = {
   [SUPPORTED_LOCALES.UKRAINIAN]: '/img/flags/ua.svg',
   [SUPPORTED_LOCALES.SPANISH]: '/img/flags/es.png',
   [SUPPORTED_LOCALES.INDONESIAN]: '/img/flags/id.svg',
+  [SUPPORTED_LOCALES.PORTUGUESE_BR]: '/img/flags/br.svg',
 };
 
 const currentLocale = ref<SupportedLocale>(getCurrentLocale() as SupportedLocale);

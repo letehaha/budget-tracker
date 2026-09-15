@@ -16,9 +16,13 @@ export async function detectLanguage(req: Request, _res: Response, next: NextFun
   try {
     const supportedLocales = SUPPORTED_LOCALES;
 
-    // Extract locale from query param or Accept-Language header
+    // Extract locale from query param or Accept-Language header. The frontend sends
+    // its full locale tag verbatim (e.g. `pt-BR`) as the header's entire value, not a
+    // weighted Accept-Language list, so try it whole before falling back to its bare
+    // language part — a region-less supported locale (`uk`) still needs that split.
     const queryLang = req.query.lang as string | undefined;
-    const headerLang = req.headers['accept-language']?.split(',')[0]?.split('-')[0];
+    const headerLangFull = req.headers['accept-language']?.split(',')[0];
+    const headerLang = supportedLocales.includes(headerLangFull ?? '') ? headerLangFull : headerLangFull?.split('-')[0];
 
     // Determine final locale with priority
     const detectedLocale = queryLang || headerLang || 'en';

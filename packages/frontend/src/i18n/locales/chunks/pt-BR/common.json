@@ -1,0 +1,435 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "new": "Novo",
+    "actions": {
+      "loading": "Carregando...",
+      "signUp": "Cadastre-se",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "back": "Voltar",
+      "accept": "Aceitar",
+      "delete": "Excluir",
+      "edit": "Editar",
+      "addSubcategory": "Adicionar subcategoria",
+      "settings": "Configurações",
+      "confirm": "Confirmar",
+      "viewTransactions": "Ver transações",
+      "viewAnalytics": "Ver análises",
+      "saving": "Salvando...",
+      "saveChanges": "Salvar alterações",
+      "done": "Concluído",
+      "failed": "Falhou",
+      "viewAll": "Ver tudo",
+      "scan": "Escanear",
+      "link": "Vincular",
+      "clear": "Limpar",
+      "apply": "Aplicar",
+      "retry": "Tentar novamente",
+      "copyInviteLink": "Copiar link de convite",
+      "moveTo": "Mover para…"
+    },
+    "ui": {
+      "close": "Fechar",
+      "actions": "Ações",
+      "chooseAction": "Escolha uma ação",
+      "other": "Outro",
+      "refund": "Reembolso",
+      "split": "Dividir",
+      "deletedBadge": "Excluído"
+    },
+    "components": {
+      "statusIndicator": {
+        "autoMatched": "Correspondido automaticamente",
+        "suggested": "Sugerido",
+        "willCreate": "Será criado",
+        "needsAttention": "Precisa de atenção",
+        "invalid": "Inválido",
+        "optional": "Opcional",
+        "skipped": "Ignorado"
+      },
+      "selectField": {
+        "clearSelection": "Limpar seleção"
+      }
+    },
+    "errors": {
+      "copyToClipboardFailed": "Falha ao copiar para a área de transferência"
+    },
+    "notifications": {
+      "subscriptionCurrencyNotConnected": "O resumo de assinaturas não consegue converter {currencies} para sua moeda base. Conecte a moeda em Configurações → Moedas.",
+      "backgroundJobFailed": "Uma tarefa em segundo plano falhou enquanto você estava ausente: {error}",
+      "inviteLinkCopied": "Link de convite copiado para a área de transferência"
+    },
+    "sharing": {
+      "emailNotSent": "Envio de e-mail não configurado — compartilhe o link de convite manualmente"
+    },
+    "labels": {
+      "email": "E-mail",
+      "password": "Senha",
+      "system": "sistema",
+      "unknown": "Desconhecido",
+      "total": "Total"
+    },
+    "placeholders": {
+      "email": "seu{'@'}email.com",
+      "password": "Sua senha"
+    },
+    "dialogs": {
+      "createAccount": "Criar conta",
+      "createVehicle": "Adicionar veículo",
+      "editVehicle": "Editar veículo"
+    },
+    "accountCategories": {
+      "general": "Geral",
+      "cash": "Dinheiro",
+      "currentAccount": "Conta corrente",
+      "creditCard": "Cartão de crédito",
+      "saving": "Conta poupança",
+      "bonus": "Bônus",
+      "insurance": "Seguro",
+      "investment": "Investimento",
+      "loan": "Empréstimo",
+      "mortgage": "Financiamento imobiliário",
+      "overdraft": "Cheque especial",
+      "crypto": "Cripto",
+      "vehicle": "Veículo"
+    },
+    "paymentTypes": {
+      "creditCard": "Cartão de Crédito",
+      "bankTransfer": "Transferência Bancária",
+      "cash": "Dinheiro",
+      "debitCard": "Cartão de Débito",
+      "mobilePayment": "Pagamento por Celular",
+      "voucher": "Vale",
+      "webPayment": "Pagamento Online"
+    },
+    "vehicleClasses": {
+      "sedan": "Sedã",
+      "suv": "SUV",
+      "truck": "Caminhonete",
+      "luxury": "Luxo",
+      "ev": "Veículo elétrico",
+      "motorcycle": "Motocicleta",
+      "other": "Outro"
+    },
+    "depreciationPresets": {
+      "classDefault": "Padrão da classe",
+      "slow": "Lenta",
+      "average": "Média",
+      "fast": "Rápida",
+      "custom": "Taxa personalizada"
+    },
+    "aiFeatures": {
+      "categorization": {
+        "name": "Categorização de Transações",
+        "description": "Categorize transações automaticamente com base na descrição e no comerciante"
+      },
+      "statementParsing": {
+        "name": "Leitor de Extratos",
+        "description": "Extraia transações de extratos bancários (PDF, CSV, TXT) usando IA"
+      },
+      "investmentTransactionsParsing": {
+        "name": "Importação de transações de investimento",
+        "description": "Transações de compra/venda extraídas por IA de exportações de corretoras, extratos ou texto colado."
+      }
+    },
+    "transactions": {
+      "delete": {
+        "success": "Removido com sucesso",
+        "error": "Falha ao excluir a transação!"
+      },
+      "submit": {
+        "unexpectedError": "Erro inesperado!"
+      },
+      "unlink": {
+        "error": "Falha ao desvincular as transações!"
+      },
+      "record": {
+        "addedByTooltip": "Esta transação foi anexada ao orçamento por {handle}",
+        "externalLinkTooltip": "Abrir link externo",
+        "locationTooltip": "Abrir localização no mapa",
+        "hiddenAccount": "Conta oculta",
+        "selectRow": "Selecionar transação",
+        "unselectableReasons": {
+          "split": "Não pode ser selecionada: transações divididas não suportam edição em massa. Edite-a individualmente.",
+          "sharedAccount": "Não pode ser selecionada: esta transação está em uma conta compartilhada com você, e apenas o proprietário pode editá-la."
+        }
+      }
+    },
+    "outOfWallet": "Fora da carteira",
+    "dateSelector": {
+      "dialogTitle": "Intervalo de datas",
+      "dueDate": "Data de vencimento",
+      "quickSelect": "Seleção rápida",
+      "apply": "Aplicar",
+      "periodTypes": {
+        "day": "Dia",
+        "month": "Mês",
+        "quarter": "Trimestre",
+        "halfYear": "Semestre",
+        "year": "Ano"
+      },
+      "filterModes": {
+        "is": "é",
+        "before": "antes de",
+        "after": "depois de",
+        "between": "entre"
+      },
+      "currentMonth": "Mês atual",
+      "placeholders": {
+        "day": "Ex.: 2025-03-15, 15/03/2025",
+        "month": "Ex.: Jan 2025, 03/2025",
+        "quarter": "Ex.: T1, T4 2025",
+        "halfYear": "Ex.: S1, S2 2025",
+        "year": "Ex.: 2025, 2024",
+        "default": "Ex.: 2025, T4, Jan 2025"
+      }
+    },
+    "appUpdate": {
+      "title": "Atualização disponível",
+      "description": "Uma nova versão está pronta. Recarregue para obter as últimas melhorias.",
+      "reload": "Recarregar"
+    },
+    "resourceLease": {
+      "activeLabel": "Sessão ativa",
+      "expiredLabel": "Sessão expirada",
+      "defaultResourceLabel": "Este recurso",
+      "activeTooltip": "{resource} está sendo mantido no servidor, e cerca de {duration} de inatividade é permitido. Continue trabalhando para mantê-lo disponível.",
+      "countingDownTooltip": "{resource} será liberado em {time} porque você está inativo. Interaja com a página para mantê-lo.",
+      "cappedTooltip": "{resource} será liberado em {time}. O tempo máximo de sessão foi atingido, então isso não pode mais ser estendido.",
+      "expiredTooltip": "{resource} foi liberado do servidor. Comece novamente para continuar.",
+      "status": {
+        "active": "{resource} está sendo mantido disponível.",
+        "countingDown": "{resource} será liberado em breve.",
+        "expired": "{resource} foi liberado."
+      },
+      "duration": {
+        "seconds": "{count} segundo | {count} segundos",
+        "minutes": "{count} minuto | {count} minutos",
+        "hours": "{count} hora | {count} horas"
+      }
+    },
+    "logo": {
+      "tabs": {
+        "brand": "Marca",
+        "letters": "Letras"
+      },
+      "searchPlaceholder": "Nome da marca ou domínio",
+      "searchHint": "Digite o nome de uma marca, ou um domínio como amazon.com",
+      "noResults": "Nenhuma marca correspondente encontrada.",
+      "noResultsLettersHint": "Use letras em vez disso",
+      "useDomainDirectly": "Usar {domain}",
+      "autoLabel": "Automático (a partir do nome)",
+      "domainHint": "Para encontrar a marca exata, digite o domínio do site da empresa (ex.: amazon.com) – isso sempre encontra o logo correto.",
+      "searchError": "Não foi possível carregar os logos – tente novamente",
+      "editAriaLabel": "Editar logo",
+      "dialogTitle": "Alterar logo",
+      "resetToAuto": "Redefinir para automático",
+      "remove": "Remover logo",
+      "lettersLabel": "Letras (1–2)",
+      "lettersPlaceholder": "AB",
+      "colorLabel": "Cor",
+      "colorSwatchAriaLabel": "Usar a cor {color}",
+      "customColorAriaLabel": "Escolher uma cor personalizada",
+      "applyLetters": "Aplicar",
+      "lettersSelectedLabel": "Letras “{letters}”"
+    }
+  },
+  "accountGroups": {
+    "create": {
+      "error": "Falha ao criar o grupo"
+    },
+    "update": {
+      "success": "Grupo atualizado",
+      "error": "Falha ao atualizar o grupo"
+    },
+    "delete": {
+      "success": "O grupo foi excluído",
+      "error": "Falha ao excluir o grupo"
+    },
+    "link": {
+      "success": "A conta foi adicionada ao grupo",
+      "error": "Falha ao adicionar a conta ao grupo"
+    },
+    "unlink": {
+      "success": "A conta foi removida do grupo",
+      "error": "Falha ao remover a conta do grupo"
+    }
+  },
+  "validation": {
+    "minLength": "O comprimento mínimo é {length}.",
+    "emailInvalid": "Digite um endereço de e-mail válido.",
+    "passwordsNoMatch": "As senhas não coincidem"
+  },
+  "notifications": {
+    "title": "Notificações",
+    "markAllAsRead": "Marcar todas como lidas",
+    "empty": "Nenhuma notificação ainda",
+    "containerAriaLabel": "Notificações",
+    "closeToast": "Fechar notificação",
+    "viewOnGitHub": "Ver no GitHub",
+    "newVersion": "Nova versão {version}",
+    "newRelease": "Novo lançamento",
+    "tagReminder": {
+      "thresholdMessage": "gastou {amount} (limite: {threshold})",
+      "existenceMessage": "{count} transação | {count} transações"
+    },
+    "share": {
+      "sendFailedHint": "Abra o painel de compartilhamento para reenviar."
+    }
+  },
+  "currencyNames": {
+    "UAH": "Hryvnia Ucraniana",
+    "USD": "Dólar Americano",
+    "EUR": "Euro",
+    "GBP": "Libra Esterlina Britânica",
+    "JPY": "Iene Japonês",
+    "CHF": "Franco Suíço",
+    "CAD": "Dólar Canadense",
+    "AUD": "Dólar Australiano",
+    "NZD": "Dólar Neozelandês",
+    "CNY": "Yuan Chinês",
+    "HKD": "Dólar de Hong Kong",
+    "SGD": "Dólar de Singapura",
+    "SEK": "Coroa Sueca",
+    "NOK": "Coroa Norueguesa",
+    "DKK": "Coroa Dinamarquesa",
+    "PLN": "Zloty Polonês",
+    "CZK": "Coroa Tcheca",
+    "HUF": "Florim Húngaro",
+    "RON": "Leu Romeno",
+    "BGN": "Lev Búlgaro",
+    "HRK": "Kuna Croata",
+    "RSD": "Dinar Sérvio",
+    "TRY": "Lira Turca",
+    "RUB": "Rublo Russo",
+    "BYN": "Rublo Bielorrusso",
+    "KZT": "Tenge Cazaque",
+    "INR": "Rupia Indiana",
+    "IDR": "Rupia Indonésia",
+    "MYR": "Ringgit Malaio",
+    "PHP": "Peso Filipino",
+    "THB": "Baht Tailandês",
+    "VND": "Dong Vietnamita",
+    "KRW": "Won Sul-Coreano",
+    "TWD": "Novo Dólar Taiwanês",
+    "BRL": "Real Brasileiro",
+    "MXN": "Peso Mexicano",
+    "ARS": "Peso Argentino",
+    "CLP": "Peso Chileno",
+    "COP": "Peso Colombiano",
+    "PEN": "Sol Peruano",
+    "ZAR": "Rand Sul-Africano",
+    "EGP": "Libra Egípcia",
+    "AED": "Dirham dos Emirados Árabes",
+    "SAR": "Rial Saudita",
+    "ILS": "Novo Shekel Israelense",
+    "QAR": "Rial Catariano",
+    "KWD": "Dinar Kuwaitiano",
+    "BHD": "Dinar Bareinita",
+    "OMR": "Rial Omanense",
+    "JOD": "Dinar Jordaniano",
+    "MAD": "Dirham Marroquino",
+    "NGN": "Naira Nigeriana",
+    "KES": "Xelim Queniano",
+    "GHS": "Cedi Ganense",
+    "XOF": "Franco CFA BCEAO",
+    "XAF": "Franco CFA BEAC",
+    "BTC": "Bitcoin",
+    "ETH": "Ethereum"
+  },
+  "fileDropzone": {
+    "clickOrDrag": "Clique ou arraste um arquivo aqui",
+    "clickOrDragMultiple": "Clique ou arraste arquivos CSV aqui",
+    "dropHere": "Solte o arquivo para enviar",
+    "dropHereMultiple": "Solte os arquivos aqui",
+    "removeFile": "Remover arquivo",
+    "fileTooLarge": "O arquivo é muito grande. O tamanho máximo é {max}.",
+    "fileTooLargeNamed": "{name} é maior que {max}",
+    "filesSelected": "{count} arquivo selecionado | {count} arquivos selecionados",
+    "clearAll": "Limpar tudo",
+    "onlyFirstFileTaken": "Vários arquivos foram soltos – apenas o primeiro foi usado."
+  },
+  "demo": {
+    "featureNotAvailable": "Este recurso não está disponível no modo demo",
+    "passwordChangeRestricted": "Alterações de senha não estão disponíveis no modo demo",
+    "investmentsRestricted": {
+      "title": "Investimentos Indisponíveis na Demo",
+      "description": "O recurso de investimentos não está disponível no modo demo. Cadastre-se para uma conta completa para acessar o rastreamento de investimentos."
+    },
+    "banner": {
+      "message": "Você está explorando uma demo com dados de exemplo{time}. {signUpLink} para criar sua própria conta.",
+      "resets": "reinicia em {time}",
+      "signUp": "Cadastre-se",
+      "timeFormat": {
+        "hoursMinutes": "{hours}h {minutes}min",
+        "minutes": "{minutes}min"
+      }
+    },
+    "sessionExpiredNotice": "Sua sessão demo terminou. Crie uma conta gratuita para continuar, ou entre abaixo se já tiver uma."
+  },
+  "settings": {
+    "currencies": {
+      "setBase": {
+        "overlay": {
+          "title": "Alterando sua moeda base",
+          "description": "Estamos recalculando todos os valores para sua nova moeda base. Isso pode levar alguns minutos — mantenha esta aba aberta.",
+          "takingLong": "Isso está demorando mais que o normal. Seus dados estão seguros — ainda estamos trabalhando nisso.",
+          "failedTitle": "Falha ao alterar a moeda base",
+          "unreachableTitle": "Não é possível verificar o status da alteração",
+          "unreachableDescription": "O servidor não está respondendo. Você pode dispensar esta tela – se a alteração ainda estiver em andamento, o app será bloqueado novamente na sua próxima ação.",
+          "dismiss": "Dispensar",
+          "preparing": "Preparando tudo…",
+          "finishing": "Finalizando…",
+          "stepCounter": "Etapa {current} de {total}",
+          "steps": {
+            "transactions": "Atualizando transações",
+            "accounts": "Atualizando contas",
+            "loanDetails": "Atualizando empréstimos",
+            "balances": "Reconstruindo histórico de saldos",
+            "investmentTransactions": "Atualizando transações de investimento",
+            "portfolioTransfers": "Atualizando transferências de portfólio",
+            "holdings": "Atualizando ativos",
+            "portfolioBalances": "Reconstruindo saldos do portfólio"
+          }
+        }
+      }
+    }
+  },
+  "ai": {
+    "estimatedCost": {
+      "yourApiKey": "(sua chave de API)",
+      "setByEndpoint": "Definido pelo seu endpoint"
+    }
+  },
+  "transactionGroups": {
+    "groupDialog": {
+      "editTitle": "Editar Grupo",
+      "nameLabel": "Nome",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "Nota opcional...",
+      "loadingText": "Carregando...",
+      "savingAction": "Salvar",
+      "cancelButton": "Cancelar",
+      "editAction": "Editar",
+      "deleteAction": "Excluir Grupo",
+      "transactionsLabel": "Transações",
+      "deleteGroupTitle": "Excluir grupo",
+      "deleteGroupDescription": "Tem certeza de que deseja excluir \"{groupName}\"? As transações não serão excluídas.",
+      "removeTransactionTitle": "Remover transação do grupo",
+      "removeTransactionDescription": "Isso deixará menos de 2 transações no grupo, então o grupo será excluído. Continuar?",
+      "removeTransactionDescriptionNormal": "Tem certeza de que deseja remover esta transação do grupo?",
+      "removeButtonText": "Remover",
+      "removeAndDeleteButtonText": "Remover e Excluir Grupo",
+      "summary": {
+        "transactions": "Transações",
+        "net": "Líquido",
+        "moneyIn": "Entradas",
+        "moneyOut": "Saídas"
+      }
+    },
+    "transactionGroupRecord": {
+      "transactionCountLabel": "transações"
+    }
+  }
+}

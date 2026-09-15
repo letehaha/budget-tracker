@@ -1,0 +1,98 @@
+{
+  "settings": {
+    "dataManagement": {
+      "title": "Importar dados",
+      "description": "Importe seus dados financeiros de várias fontes",
+      "tabs": {
+        "import": "Importar",
+        "export": "Exportar"
+      },
+      "textSource": {
+        "title": "Importar de qualquer fonte de texto",
+        "aiBadge": "Com IA",
+        "listDescription": "Extratos bancários, e-mails ou qualquer fonte de texto"
+      },
+      "csv": {
+        "title": "Importar CSV",
+        "description": "Importe transações de um arquivo CSV. Você pode mapear colunas, tratar duplicatas e criar novas contas ou categorias conforme necessário.",
+        "button": "Importar arquivo CSV",
+        "cta": "Importar arquivo CSV",
+        "listDescription": "Mapeie colunas e trate duplicatas"
+      },
+      "ofx": {
+        "title": "Extrato OFX ou QFX",
+        "listDescription": "Importe transações de conta bancária e cartão de crédito"
+      },
+      "ynab": {
+        "title": "Importar do YNAB",
+        "listDescription": "Contas, transações, categorias e beneficiários"
+      },
+      "budget-bakers-wallet": {
+        "title": "Wallet (BudgetBakers)",
+        "listDescription": "Multimoeda com pareamento automático de transferências"
+      },
+      "ms-money": {
+        "title": "Microsoft Money",
+        "listDescription": "Importe um arquivo .mny do Microsoft Money"
+      },
+      "importHistory": {
+        "title": "Histórico de importações",
+        "listDescription": "Veja importações anteriores e o que elas criaram"
+      },
+      "import": {
+        "back": "Voltar para Importar",
+        "groups": {
+          "filesAndText": "Arquivos e texto",
+          "fromOtherApps": "De outros apps",
+          "history": "Histórico"
+        },
+        "requestMore": {
+          "title": "Quer mais opções? Solicite aqui"
+        }
+      },
+      "export": {
+        "cardTitle": "Exporte seus dados",
+        "form": {
+          "title": "Exporte seus dados",
+          "description": "Escolha um formato e as partes dos seus dados que deseja. O download começa assim que você confirmar.",
+          "confirmLabel": "Baixar",
+          "confirmLoading": "Preparando…",
+          "back": "Voltar para Exportar"
+        },
+        "format": {
+          "label": "Formato",
+          "json": "JSON",
+          "csv": "CSV",
+          "xlsx": "Excel"
+        },
+        "groups": {
+          "label": "O que incluir",
+          "selectAll": "Selecionar tudo",
+          "deselectAll": "Desmarcar tudo",
+          "transactions": "Transações e contas",
+          "transactionsDescription": "Transações, contas, histórico de saldos, categorias, tags, veículos",
+          "budgets": "Orçamentos",
+          "budgetsDescription": "Orçamentos personalizados com categorias vinculadas e totais de gastos",
+          "subscriptions": "Assinaturas e lembretes",
+          "subscriptionsDescription": "Assinaturas recorrentes e lembretes de contas",
+          "investments": "Investimentos",
+          "investmentsDescription": "Portfólios, ativos, transações de investimento, transferências"
+        },
+        "notifications": {
+          "success": "Exportação pronta – o download deve começar em instantes.",
+          "successWithCount": "Exportação pronta – {count} linhas exportadas.",
+          "failed": "Não foi possível exportar seus dados. Tente novamente.",
+          "downloadBlocked": "Exportação pronta, mas seu navegador bloqueou o download. Verifique a barra de endereço para um aviso de download.",
+          "tooLarge": "Seus dados são grandes demais para uma única exportação. Entre em contato com o suporte."
+        },
+        "dateRange": {
+          "label": "Período (opcional)",
+          "helper": "Apenas as tabelas de eventos (transações, histórico de saldo, atividade de investimento) são filtradas. Contas, categorias e outras tabelas de referência permanecem completas.",
+          "placeholder": "Todo o período",
+          "clear": "Limpar período"
+        },
+        "listDescription": "Baixe um zip para planilhas, impostos ou migração"
+      }
+    }
+  }
+}

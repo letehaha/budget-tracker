@@ -1,0 +1,76 @@
+{
+  "pages": {
+    "household": {
+      "title": "Família",
+      "description": "Convide pessoas de confiança para compartilhar o acesso a todas as contas que você possui. Os membros veem suas contas e (com acesso de escrita) podem registrar transações nelas.",
+      "myHousehold": {
+        "title": "Minha família",
+        "description": "As pessoas aqui têm acesso a todas as contas que você possui. Compartilhamentos por conta sempre têm prioridade sobre o acesso da família."
+      },
+      "youOwner": "Você — proprietário",
+      "noMembers": "Ainda ninguém entrou na sua família.",
+      "loadMembersError": "Não foi possível carregar os membros da família. Tente atualizar.",
+      "permissions": {
+        "read": "Leitura",
+        "write": "Escrita",
+        "manage": "Gerenciar"
+      },
+      "writeScope": {
+        "all": "Pode editar qualquer transação",
+        "own": "Pode editar apenas as próprias transações"
+      },
+      "invite": {
+        "emailLabel": "E-mail",
+        "emailPlaceholder": "pessoa{'@'}exemplo.com",
+        "permissionLabel": "Permissão",
+        "writeScopeLabel": "Escopo de escrita",
+        "submit": "Enviar convite para a família",
+        "sent": "Convite enviado.",
+        "error": "Não foi possível enviar o convite.",
+        "emailDeliveryFailed": "Convite criado, mas o e-mail não pôde ser entregue. Você pode reenviá-lo no painel de convites."
+      },
+      "revoke": {
+        "action": "Remover",
+        "title": "Remover membro da família?",
+        "description": "{handle} perderá o acesso a todas as contas da sua família. Compartilhamentos por conta (se houver) não são afetados.",
+        "confirm": "Remover",
+        "success": "Membro removido.",
+        "error": "Não foi possível remover este membro."
+      },
+      "permissionChange": {
+        "setRead": "Tornar somente leitura",
+        "setWrite": "Permitir escrita",
+        "success": "Permissão atualizada.",
+        "error": "Não foi possível atualizar a permissão."
+      },
+      "imIn": {
+        "title": "Famílias das quais participo",
+        "description": "Famílias de outras pessoas das quais você participa. Sair remove seu acesso a todas as contas compartilhadas dessa forma.",
+        "empty": "Você ainda não participa da família de ninguém.",
+        "unnamedHousehold": "Família de {'@'}{handle}",
+        "loadError": "Não foi possível carregar as famílias das quais você participa. Tente novamente mais tarde."
+      },
+      "leave": {
+        "action": "Sair",
+        "title": "Sair desta família?",
+        "description": "Você perderá o acesso a todas as contas que {owner} compartilha por meio da família. Compartilhamentos por conta (se houver) não são afetados.",
+        "confirm": "Sair",
+        "success": "Você saiu da família.",
+        "error": "Não foi possível sair da família."
+      },
+      "pending": {
+        "badge": "Pendente",
+        "resend": "Reenviar",
+        "cancel": "Cancelar",
+        "cancelTitle": "Cancelar convite?",
+        "cancelDescription": "Cancelar o convite pendente enviado para {email}? Essa pessoa não poderá mais aceitá-lo.",
+        "cancelConfirm": "Cancelar convite",
+        "cancelSuccess": "Convite cancelado.",
+        "cancelError": "Falha ao cancelar o convite.",
+        "resendSuccess": "Convite reenviado.",
+        "resendError": "Falha ao reenviar o convite.",
+        "resendDeliveryFailed": "Convite atualizado, mas o e-mail não pôde ser enviado. Tente novamente mais tarde."
+      }
+    }
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "pages": {
+    "importExport": {
+      "ofxImport": {
+        "pageTitle": "Importar um arquivo OFX ou QFX",
+        "pageDescription": "Importe transações de banco e cartão de crédito de um arquivo OFX ou QFX.",
+        "stepper": {
+          "steps": {
+            "upload": "Envio",
+            "resolve": "Mapear contas",
+            "review": "Revisão",
+            "results": "Concluído"
+          }
+        },
+        "fileUpload": {
+          "stepTitle": "Envie seu arquivo OFX ou QFX",
+          "description": "Selecione um arquivo de extrato que você baixou do seu banco ou operadora de cartão de crédito.",
+          "maxSize": "Arquivo .ofx ou .qfx, até 10 MB",
+          "parsing": "Lendo arquivo…",
+          "continue": "Continuar",
+          "errors": {
+            "invalidFormatNamed": "\"{name}\" não é um arquivo OFX ou QFX."
+          }
+        },
+        "errors": {
+          "uploadUnavailable": "O arquivo enviado não está mais disponível. Envie seu arquivo OFX ou QFX novamente."
+        },
+        "resolve": {
+          "accounts": {
+            "sectionTitle": "Contas",
+            "nameLabel": "Nome da conta",
+            "namePlaceholder": "Digite um nome para a conta",
+            "currentBalanceLabel": "Saldo atual",
+            "currentBalancePlaceholder": "Deixe em branco para usar a soma das transações importadas",
+            "ledgerBalanceHint": "Saldo do extrato: {balance} em {date}",
+            "transactionCount": "{count} transação | {count} transações",
+            "skippedNote": "{count} conta será ignorada. Suas transações não serão importadas. | {count} contas serão ignoradas. As transações delas não serão importadas.",
+            "statementType": {
+              "bank": "Conta bancária",
+              "credit-card": "Cartão de crédito"
+            }
+          },
+          "quickActions": {
+            "mapExactMatches": "Mapear correspondências exatas",
+            "createNewForUnmatched": "Criar novo para não correspondidos",
+            "reset": "Redefinir",
+            "tooltips": {
+              "mapExactMatches": "Vincula cada conta a uma conta existente que tenha o mesmo nome e moeda.",
+              "createNewForUnmatched": "Define cada conta que não está vinculada a uma conta existente para criar uma nova conta.",
+              "reset": "Limpa todas as escolhas e faz a correspondência novamente."
+            }
+          },
+          "footer": {
+            "back": "Voltar",
+            "continue": "Continuar"
+          }
+        },
+        "review": {
+          "transactions": "Transações",
+          "accountsSkipped": "Contas ignoradas",
+          "duplicatesSkipped": "Duplicatas ignoradas",
+          "willImport": "Serão importadas",
+          "dateRange": "Período: {from} — {to}",
+          "warningsTitle": "Verifique estes detalhes do arquivo",
+          "warningsHint": "A importação pode continuar, mas algumas transações precisam de tratamento especial.",
+          "warnings": {
+            "dateUserFallback": "{count} transação usou o fuso horário padrão do arquivo | {count} transações usaram o fuso horário padrão do arquivo",
+            "fitidMissing": "{count} transação não tinha ID de transação bancária | {count} transações não tinham ID de transação bancária",
+            "fitidDuplicate": "{count} ID de transação bancária duplicado foi encontrado no arquivo | {count} IDs de transação bancária duplicados foram encontrados no arquivo"
+          },
+          "duplicatesTitle": "{count} possível duplicata | {count} possíveis duplicatas",
+          "duplicatesHint": "Essas transações parecem transações que você já tem. Desmarque uma seleção para importar essa transação.",
+          "back": "Voltar",
+          "importing": "Iniciando importação…",
+          "importButton": "Importar {count} transação | Importar {count} transações"
+        },
+        "execute": {
+          "starting": "Iniciando a importação…",
+          "progressCount": "{processed} de {total}",
+          "failed": "A importação falhou.",
+          "partialImportNote": "Algumas transações podem já ter sido importadas.",
+          "statusQueued": "Na fila",
+          "statusRunning": "Importando",
+          "statusCompleted": "Concluída",
+          "statusFailed": "Falhou"
+        },
+        "done": {
+          "successTitle": "Importação concluída",
+          "successDescription": "Suas transações OFX ou QFX já estão na sua conta.",
+          "partialTitle": "Importado com {count} problema | Importado com {count} problemas",
+          "partialDescription": "A maioria das transações foi importada. A lista abaixo mostra o que não foi importado.",
+          "emptyTitle": "Nada de novo para importar",
+          "emptyDescription": "Cada transação foi ignorada ou já estava no seu registro.",
+          "failedTitle": "Nada foi importado",
+          "failedDescription": "Nenhuma transação pôde ser criada. Revise os erros abaixo.",
+          "accountsCreated": "Contas criadas",
+          "accountsLinked": "Contas vinculadas",
+          "accountsSkipped": "Contas ignoradas",
+          "payeesCreated": "Beneficiários criados",
+          "transactionsImported": "Transações importadas",
+          "duplicatesSkipped": "Duplicatas ignoradas",
+          "mergedIntoPlanned": "Mescladas com planejadas",
+          "balanceWarningTitle": "Alguns saldos podem estar incorretos",
+          "balanceWarningBody": "Não foi possível definir o saldo final em cada conta. Revise essas contas e ajuste os saldos, se necessário.",
+          "errorsTitle": "{count} transação não pôde ser importada | {count} transações não puderam ser importadas",
+          "errorsOverflow": "…e mais {count}",
+          "rowPrefix": "Linha {rowIndex}:",
+          "viewTransactions": "Ver transações",
+          "importAnother": "Importar outro arquivo"
+        },
+        "leaseExpired": {
+          "title": "Seu arquivo enviado não está mais disponível",
+          "description": "A cópia processada do seu arquivo OFX ou QFX foi liberada após um período de inatividade. Suas escolhas de mapeamento não puderam ser mantidas. Inicie a importação novamente.",
+          "action": "Recomeçar"
+        },
+        "leaseResourceLabel": "Seu arquivo enviado"
+      }
+    }
+  }
+}

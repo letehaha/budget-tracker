@@ -1,0 +1,96 @@
+{
+  "pages": {
+    "importExport": {
+      "progress": {
+        "jobExpired": "O job de importação expirou ou não pôde ser encontrado.",
+        "lostContact": "Perdemos contato com o job de importação."
+      }
+    }
+  },
+  "importShared": {
+    "action": {
+      "createNew": "Criar novo",
+      "linkExisting": "Vincular a existente",
+      "skip": "Ignorar"
+    },
+    "selectAction": "Selecionar ação",
+    "resolvedCounterWord": "resolvidas",
+    "quickActionsMenuLabel": "Ações em massa",
+    "quickActions": {
+      "menu": "Ações"
+    },
+    "columns": {
+      "sourceName": "Nome de origem",
+      "currency": "Moeda",
+      "action": "Ação",
+      "target": "Destino"
+    },
+    "account": {
+      "selectTarget": "Selecionar conta",
+      "noMatchingCurrency": "Nenhuma conta com a moeda {currency}",
+      "willCreate": "Será criada {name} ({currency})",
+      "empty": "Nenhuma conta para mapear",
+      "willSkip": "Não será importada"
+    },
+    "category": {
+      "selectTarget": "Selecionar categoria",
+      "willCreate": "Será criada {name}",
+      "empty": "Nenhuma categoria para mapear"
+    },
+    "recalculateBalance": {
+      "label": "Atualizar saldos das contas com base nas transações importadas",
+      "hint": "Transações anteriores à última transação existente de uma conta são tratadas como preenchimento retroativo e não alteram o saldo atual dela.",
+      "loadFailedHint": "Não foi possível carregar sua preferência salva — usando desativado como padrão."
+    },
+    "balanceChanges": {
+      "title": "Alterações de saldo das contas",
+      "columns": {
+        "account": "Conta",
+        "before": "Antes",
+        "after": "Depois",
+        "delta": "Variação",
+        "newRows": "Novas linhas",
+        "backfillRows": "Linhas de preenchimento retroativo"
+      },
+      "newAccount": "Nova conta"
+    },
+    "duplicatesTable": {
+      "columnHeaders": {
+        "row": "Linha",
+        "match": "Correspondência",
+        "csvTransaction": "Transação do CSV",
+        "existingTransaction": "Transação existente",
+        "csvShort": "CSV",
+        "existingShort": "Existente"
+      },
+      "matchTypeLabels": {
+        "exact": "Exata",
+        "idMatch": "Correspondência por ID",
+        "fuzzy": "Aproximada"
+      },
+      "fieldLabels": {
+        "amount": "Valor",
+        "date": "Data",
+        "note": "Nota",
+        "category": "Categoria"
+      },
+      "importAnywayAriaLabel": "Importar linha {row} mesmo assim"
+    },
+    "aiMapping": {
+      "action": "Correspondência por IA",
+      "tooltipCategories": "Deixe a IA vincular cada categoria de origem à categoria existente mais próxima. Linhas que você já vinculou a uma categoria são mantidas como estão.",
+      "failed": "A correspondência por IA falhou. Tente novamente.",
+      "inProgress": "Correspondência por IA em andamento…"
+    },
+    "categoryPreset": {
+      "menuTrigger": "Aplicar mapeamento",
+      "currentLayout": "Layout deste arquivo",
+      "savedTemplates": "Modelos salvos",
+      "lastUsed": "Último mapeamento usado",
+      "namePlaceholder": "Nomeie este mapeamento",
+      "renameAria": "Renomear mapeamento",
+      "deleteAria": "Excluir mapeamento",
+      "confirmRenameAria": "Salvar nome"
+    }
+  }
+}

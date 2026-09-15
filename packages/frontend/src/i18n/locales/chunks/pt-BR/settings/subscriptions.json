@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "subscriptions": {
+      "title": "Pagamentos agendados",
+      "defaultAutoRecord": {
+        "label": "Registro automático padrão em novos pagamentos agendados",
+        "help": "Quando ativado, a opção de registro automático no formulário de criação de assinatura já vem ligada por padrão. Você sempre pode alterar isso individualmente por assinatura.",
+        "successNotification": "Configuração salva",
+        "errorNotification": "Falha ao salvar a configuração"
+      }
+    }
+  }
+}

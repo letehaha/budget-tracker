@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "language": {
+      "title": "Idioma",
+      "description": "Idioma de exibição da interface do app.",
+      "contribute": {
+        "title": "Traduções ausentes ou incorretas?",
+        "description": "Avise-nos sobre traduções ausentes ou incorretas e nós cuidamos disso.",
+        "requestNote": "Quer que um novo idioma seja adicionado? Solicite no nosso {boardLink}.",
+        "requestNoteLink": "quadro de sugestões"
+      }
+    }
+  }
+}

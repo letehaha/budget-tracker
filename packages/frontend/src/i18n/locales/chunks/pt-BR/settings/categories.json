@@ -1,0 +1,53 @@
+{
+  "settings": {
+    "categories": {
+      "title": "Categorias",
+      "description": "Organize suas transações em categorias e subcategorias. Arraste uma categoria para movê-la para outro pai ou para o nível superior.",
+      "addButton": "Adicionar categoria",
+      "organizeButton": "Organizar",
+      "empty": "Ainda não há categorias. Crie sua primeira categoria para começar.",
+      "categoriesCount": "{n} categoria | {n} categorias",
+      "organizeHint": "Arraste para um novo pai, ou solte aqui para o nível superior.",
+      "dropToTopLevel": "Solte aqui para tornar “{name}” uma categoria de nível superior",
+      "movesQueued": "{n} movimentação pendente | {n} movimentações pendentes",
+      "unqueueMove": "Remover esta movimentação",
+      "topLevel": "Nível superior",
+      "saveChanges": "Salvar alterações",
+      "parentField": {
+        "label": "Categoria pai",
+        "placeholder": "Selecione uma categoria pai",
+        "hiddenHint": "Categorias que não podem ser usadas como pai ficam ocultas na lista."
+      },
+      "moveDialog": {
+        "title": "Mover “{name}”",
+        "description": "Escolha uma nova categoria pai.",
+        "moveButton": "Mover"
+      },
+      "delete": {
+        "title": "Excluir categoria?",
+        "description": "Isso excluirá permanentemente \"{name}\". Esta ação não pode ser desfeita.",
+        "deleteButton": "Excluir",
+        "cancelButton": "Cancelar"
+      },
+      "errors": {
+        "cannotLoad": "Não foi possível carregar as categorias"
+      },
+      "notifications": {
+        "deleteSuccess": "Categoria excluída",
+        "deleteFailed": "Falha ao excluir a categoria",
+        "checkFailed": "Falha ao verificar a categoria",
+        "moveFailed": "Falha ao mover a categoria.",
+        "saveSuccess": "Alterações salvas.",
+        "staleMovesRemoved": "{n} movimentação pendente removida por não ser mais aplicável | {n} movimentações pendentes removidas por não serem mais aplicáveis"
+      },
+      "dropErrors": {
+        "currentParent": "Já está dentro desta categoria",
+        "insideItself": "Uma categoria não pode ser movida para dentro de sua própria subcategoria",
+        "internalTarget": "Categorias do sistema não podem conter outras categorias",
+        "tooDeep": "Categorias só podem ser aninhadas até {max} níveis de profundidade",
+        "childrenTooDeep": "Suas subcategorias ficariam mais profundas que {max} níveis",
+        "alreadyTopLevel": "Já é uma categoria de nível superior"
+      }
+    }
+  }
+}

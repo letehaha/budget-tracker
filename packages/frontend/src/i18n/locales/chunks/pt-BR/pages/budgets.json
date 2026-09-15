@@ -1,0 +1,113 @@
+{
+  "budgets": {
+    "title": "Orçamentos",
+    "description": "Acompanhe os gastos e monitore eventos financeiros",
+    "notFound": "Orçamento não encontrado",
+    "notFoundDescription": "Não conseguimos encontrar esse orçamento. Ele pode ter sido excluído ou você pode não ter acesso a ele.",
+    "backToList": "Voltar para orçamentos",
+    "newBudget": "Novo orçamento",
+    "createBudget": "Criar orçamento",
+    "creation": {
+      "success": "Orçamento criado",
+      "error": "Erro inesperado!",
+      "nameLabel": "Nome do orçamento",
+      "namePlaceholder": "Digite o nome",
+      "typeLabel": "Tipo de orçamento",
+      "typeManual": "Manual",
+      "typeManualDescription": "Adicione transações a este orçamento manualmente",
+      "typeCategory": "Por categoria",
+      "typeCategoryDescription": "Acompanhe gastos automaticamente por categorias",
+      "categoriesLabel": "Categorias a acompanhar",
+      "categoriesRequired": "Selecione pelo menos uma categoria",
+      "fromDateLabel": "Data inicial",
+      "toDateLabel": "Data final",
+      "autoIncludeLabel": "Incluir transações automaticamente",
+      "limitLabel": "Limite do orçamento",
+      "limitPlaceholder": "Digite o limite",
+      "submitButton": "Adicionar orçamento"
+    },
+    "list": {
+      "tabCategory": "Orçamentos por categoria",
+      "tabManual": "Orçamentos manuais",
+      "edit": "Editar",
+      "delete": "Excluir",
+      "deleteSuccess": "Orçamento excluído com sucesso!",
+      "deleteError": "Erro inesperado!",
+      "updateSuccess": "Orçamento atualizado com sucesso!",
+      "updateError": "Falha ao atualizar o orçamento",
+      "unlinkTransactionsSuccess": "Transações desvinculadas com sucesso!",
+      "deleteDialog": {
+        "title": "Deseja excluir este orçamento?",
+        "description": "Ao clicar em \"Aceitar\", todas as transações associadas serão desvinculadas do orçamento, mas permanecerão no sistema."
+      },
+      "limitLabel": "Limite: {amount}",
+      "transactionsCount": "{count} transações",
+      "categoriesCount": "{count} categorias",
+      "noTransactions": "Nenhuma transação ainda",
+      "noTimePeriod": "Sem período definido",
+      "autoTracked": "Automático",
+      "status": {
+        "ended": "Encerrado",
+        "lastDay": "Último dia",
+        "oneDayLeft": "1 dia restante",
+        "daysLeft": "{count} dias restantes",
+        "startsToday": "Começa hoje",
+        "startsTomorrow": "Começa amanhã",
+        "startsInDays": "Começa em {count} dias"
+      },
+      "income": "Receita",
+      "expenses": "Despesas",
+      "net": "Líquido",
+      "used": "Usado",
+      "archive": "Arquivar",
+      "unarchive": "Desarquivar",
+      "archivedLabel": "Arquivado",
+      "archiveError": "Falha ao atualizar o status de arquivamento",
+      "showArchived": "Mostrar arquivados",
+      "hideArchived": "Ocultar arquivados",
+      "emptyState": {
+        "title": "Nenhum orçamento ainda",
+        "description": "Crie um orçamento para começar a acompanhar seus gastos ou monitorar eventos específicos."
+      }
+    },
+    "settings": {
+      "nameLabel": "Nome do orçamento",
+      "namePlaceholder": "Digite o nome do orçamento",
+      "limitLabel": "Limite do orçamento",
+      "limitPlaceholder": "Digite o valor do limite (opcional)",
+      "startDateLabel": "Data de início",
+      "endDateLabel": "Data de término",
+      "notSet": "Não definido"
+    },
+    "addTransactionsDialog": {
+      "title": "Adicionar transações ao orçamento",
+      "addSelected": "Adicionar selecionadas",
+      "clearSelection": "Limpar seleção"
+    },
+    "categoryBudget": {
+      "trackedCategories": "Categorias acompanhadas",
+      "categoriesCount": "{count} categorias acompanhadas",
+      "autoTrackedInfo": "As transações são acompanhadas automaticamente com base nas categorias",
+      "transactionsTitle": "Transações",
+      "transactionsCount": "{count} transações",
+      "noTransactions": "Nenhuma transação ainda",
+      "noTransactionsDescription": "As transações que correspondem às suas categorias acompanhadas aparecerão aqui automaticamente.",
+      "transactionsLoadError": "Falha ao carregar transações",
+      "categoryBreakdown": "Distribuição por categoria",
+      "edit": "Editar",
+      "editTitle": "Editar orçamento",
+      "showMore": "Mostrar mais",
+      "showLess": "Mostrar menos",
+      "settings": {
+        "categoriesLabel": "Categorias acompanhadas"
+      }
+    },
+    "manualBudget": {
+      "edit": "Editar",
+      "editTitle": "Editar orçamento"
+    },
+    "share": {
+      "sharedByBadge": "Compartilhado por {handle}"
+    }
+  }
+}

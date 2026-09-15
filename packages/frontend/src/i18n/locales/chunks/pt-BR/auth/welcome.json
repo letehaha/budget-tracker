@@ -1,0 +1,47 @@
+{
+  "auth": {
+    "welcome": {
+      "title": "Selecione a moeda base",
+      "description": "Sua moeda base idealmente deve ser a que você usa com mais frequência. Todas as transações em outras moedas serão calculadas com base nela.",
+      "submitButton": "Confirmar moeda",
+      "logout": "Sair",
+      "labels": {
+        "baseCurrency": "Moeda base"
+      },
+      "placeholders": {
+        "loading": "Carregando..."
+      },
+      "errors": {
+        "unableToLoadCurrencies": "Não foi possível carregar a lista de moedas. Tente novamente mais tarde",
+        "unableToSetCurrency": "Erro inesperado. Não foi possível definir a moeda base. Tente novamente mais tarde ou entre em contato com o suporte."
+      }
+    },
+    "oauthCallback": {
+      "completingSignIn": "Concluindo o login...",
+      "errors": {
+        "accessDenied": {
+          "signIn": "O login foi cancelado ou o acesso foi negado",
+          "signUp": "O cadastro foi cancelado ou o acesso foi negado",
+          "link": "A vinculação foi cancelada ou o acesso foi negado"
+        },
+        "userAlreadyExists": {
+          "signIn": "Já existe uma conta com esse e-mail",
+          "signUp": "Já existe uma conta com esse e-mail",
+          "link": "Esta conta já está vinculada a outro usuário"
+        },
+        "accountNotLinked": {
+          "signIn": "Nenhuma conta encontrada com esse e-mail. Cadastre-se primeiro.",
+          "signUp": "Falha ao criar a conta. Tente novamente.",
+          "link": "Falha ao vincular a conta. Tente novamente."
+        },
+        "genericError": {
+          "signIn": "Falha ao entrar. Tente novamente.",
+          "signUp": "Falha ao cadastrar. Tente novamente.",
+          "link": "Falha ao vincular a conta. Tente novamente."
+        },
+        "unauthorizedClient": "Este aplicativo não está autorizado a usar este método de autenticação",
+        "temporarilyUnavailable": "O serviço de autenticação está temporariamente indisponível. Tente novamente mais tarde."
+      }
+    }
+  }
+}
