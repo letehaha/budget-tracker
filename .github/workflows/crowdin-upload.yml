@@ -1,7 +1,8 @@
 name: Crowdin Upload Sources
 
-# Pushes English source strings to Crowdin. Translations only travel the other
-# direction, in crowdin-download.yml
+# Pushes English source strings and the in-repo Ukrainian translations to
+# Crowdin. Every other locale only travels the other direction, in
+# crowdin-download.yml
 
 on:
   push:
@@ -10,7 +11,9 @@ on:
     branches: [main, dev]
     paths:
       - 'packages/frontend/src/i18n/locales/chunks/en/**'
+      - 'packages/frontend/src/i18n/locales/chunks/uk/**'
       - 'packages/backend/src/i18n/locales/en.json'
+      - 'packages/backend/src/i18n/locales/uk.json'
       - 'crowdin.yml'
   workflow_dispatch:
 
@@ -23,13 +26,15 @@ jobs:
       - uses: crowdin/github-action@v2
         with:
           upload_sources: true
-          # Keeps the sync one-way. Enabling this would push in-repo translations
-          # back to Crowdin on every source change, overwriting newer work done in
-          # the Crowdin editor. It would also corrupt Crowdin's coverage stats and
-          # translation memory: in-repo locale files carry English source text for
-          # every untranslated key, which would upload as if English were the
-          # approved Ukrainian/Spanish/Indonesian translation.
-          upload_translations: false
+          # Ukrainian is maintained in the repo, never downloaded from Crowdin.
+          # Uploading it keeps Crowdin's copy in sync so contributor suggestions
+          # are made against the real text. Uploading any other locale would
+          # overwrite newer work done in the Crowdin editor.
+          upload_translations: true
+          upload_language: uk
+          # Marks the repo text as the approved translation, so a contributor's
+          # suggestion shows up as an unapproved alternative instead of replacing it.
+          auto_approve_imported: true
           download_translations: false
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}

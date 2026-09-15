@@ -26,6 +26,8 @@ jobs:
           upload_sources: false
           upload_translations: false
           download_translations: true
+          # Ukrainian is maintained in the repo; see crowdin-upload.yml
+          download_translations_args: '--exclude-language uk'
           # No `skip_untranslated_strings` key, so untranslated strings arrive filled
           # with English source text (Crowdin's default). Either way the reader sees
           # English: the frontend pairs every locale chunk with its English copy, so
