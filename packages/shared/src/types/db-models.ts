@@ -40,7 +40,6 @@ import { RecordId } from './record-id';
 export interface UserModel {
   id: number;
   username: string;
-  email: string;
   firstName: string;
   lastName: string;
   middleName: string;
@@ -57,6 +56,9 @@ export interface UserModel {
   /** Present on `GET /user` only. */
   entitlements?: Entitlements;
 }
+
+/** `GET /user` payload. Email comes from better-auth's ba_user, not the Users table. */
+export type UserInfoResponse = UserModel & { email: string | null };
 
 export interface CategoryModel {
   color: string;

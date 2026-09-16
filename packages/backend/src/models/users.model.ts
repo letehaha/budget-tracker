@@ -33,13 +33,6 @@ export default class Users extends Model {
   })
   username!: string;
 
-  @Column({
-    unique: true,
-    allowNull: true,
-    type: DataType.STRING,
-  })
-  email!: string;
-
   @Column({ allowNull: true, type: DataType.STRING })
   firstName!: string;
 
@@ -100,7 +93,6 @@ export const getUserDefaultCategory = async ({ id }: { id: number }) => {
 
 export const createUser = async ({
   username,
-  email,
   firstName,
   lastName,
   middleName,
@@ -111,7 +103,6 @@ export const createUser = async ({
   trialEndsAt = null,
 }: {
   username: string;
-  email?: string;
   firstName?: string;
   lastName?: string;
   middleName?: string;
@@ -123,7 +114,6 @@ export const createUser = async ({
 }): Promise<UserModel> => {
   const user = await Users.create({
     username,
-    email,
     firstName,
     lastName,
     middleName,
@@ -154,7 +144,6 @@ export const getUserByAuthUserId = async ({
 export const updateUserById = async ({
   id,
   username,
-  email,
   firstName,
   lastName,
   middleName,
@@ -164,7 +153,6 @@ export const updateUserById = async ({
 }: {
   id: number;
   username?: string;
-  email?: string;
   firstName?: string;
   lastName?: string;
   middleName?: string;
@@ -176,7 +164,6 @@ export const updateUserById = async ({
   const updateFields: Record<string, unknown> = {};
 
   if (username) updateFields.username = username;
-  if (email) updateFields.email = email;
   if (firstName) updateFields.firstName = firstName;
   if (lastName) updateFields.lastName = lastName;
   if (middleName) updateFields.middleName = middleName;

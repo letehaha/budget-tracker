@@ -24,7 +24,7 @@ if (!USER_RESTORE_DEF?.fields) {
 const USER_RESTORE_FIELDS = USER_RESTORE_DEF.fields;
 
 /** UPDATE the target Users row with the tier-1 restorable fields only. Identity
- *  (id/username/email/authUserId/role) is never touched. Category UUIDs may be
+ *  (id/username/authUserId/role) is never touched. Category UUIDs may be
  *  reminted on restore, so `defaultCategoryId` is remapped to the category's
  *  final id; a value that isn't one of this restore's categories (forged or
  *  foreign) is nulled with a warning. */

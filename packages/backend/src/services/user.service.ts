@@ -26,7 +26,6 @@ export const getUser = async (id: number) => {
 export const createUser = withTransaction(
   async ({
     username,
-    email,
     firstName,
     lastName,
     middleName,
@@ -36,7 +35,6 @@ export const createUser = withTransaction(
     trialEndsAt,
   }: {
     username: string;
-    email?: string;
     firstName?: string;
     lastName?: string;
     middleName?: string;
@@ -47,7 +45,6 @@ export const createUser = withTransaction(
   }) => {
     const user = await Users.createUser({
       username,
-      email,
       firstName,
       lastName,
       middleName,
@@ -65,7 +62,6 @@ export const updateUser = withTransaction(
   async ({
     id,
     username,
-    email,
     firstName,
     lastName,
     middleName,
@@ -75,7 +71,6 @@ export const updateUser = withTransaction(
   }: {
     id: number;
     username?: string;
-    email?: string;
     firstName?: string;
     lastName?: string;
     middleName?: string;
@@ -86,7 +81,6 @@ export const updateUser = withTransaction(
     const user = await Users.updateUserById({
       id,
       username,
-      email,
       firstName,
       lastName,
       middleName,

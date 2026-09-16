@@ -1,6 +1,6 @@
-import { USER_ROLES, UserModel, UserRole, type RecordId } from '@bt/shared/types';
+import { USER_ROLES, UserInfoResponse, UserRole, type RecordId } from '@bt/shared/types';
 
-export const USER: UserModel = {
+export const USER: UserInfoResponse = {
   id: 1,
   username: 'letehaha1',
   email: '',

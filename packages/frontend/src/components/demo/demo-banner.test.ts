@@ -2,7 +2,7 @@ import { DEMO_SESSION_EXPIRED_REASON } from '@/common/const';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useAuthStore, useUserStore } from '@/stores';
 import { DEMO_EXPIRY_HOURS } from '@bt/shared/const/demo';
-import { UserModel, type RecordId } from '@bt/shared/types';
+import { UserInfoResponse, type RecordId } from '@bt/shared/types';
 import { createTestingPinia } from '@pinia/testing';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { flushPromises, mount } from '@vue/test-utils';
@@ -54,7 +54,7 @@ const i18n = createI18n({
   },
 });
 
-const demoUser: UserModel = {
+const demoUser: UserInfoResponse = {
   id: 1,
   username: 'demo',
   email: 'demo@demo.local',
@@ -69,12 +69,12 @@ const demoUser: UserModel = {
 };
 
 // Past the fixed demo window, so `isExpired` flips as soon as the store holds this user.
-const expiredDemoUser: UserModel = {
+const expiredDemoUser: UserInfoResponse = {
   ...demoUser,
   createdAt: subHours(new Date(), DEMO_EXPIRY_HOURS + 1),
 };
 
-const regularUser: UserModel = {
+const regularUser: UserInfoResponse = {
   id: 1,
   username: 'regular',
   email: 'user@example.com',
@@ -95,7 +95,7 @@ describe('DemoBanner component', () => {
     vi.restoreAllMocks();
   });
 
-  const mountComponent = (userData: UserModel | null = null) => {
+  const mountComponent = (userData: UserInfoResponse | null = null) => {
     const pinia = createTestingPinia({
       createSpy: vi.fn,
       stubActions: false,
