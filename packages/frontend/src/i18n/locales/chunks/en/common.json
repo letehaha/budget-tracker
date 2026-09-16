@@ -233,6 +233,18 @@
       "customColorAriaLabel": "Pick a custom color",
       "applyLetters": "Apply",
       "lettersSelectedLabel": "Letters “{letters}”"
+    },
+    "importBatchDeleteOverlay": {
+      "title": "Deleting imported transactions",
+      "description": "A large import batch is being removed. Balances are recalculated when it finishes, so the app is locked until then.",
+      "deleting": "Deleting transactions",
+      "preparing": "Getting ready",
+      "finishing": "Finishing up",
+      "takingLong": "This is taking longer than usual — large batches can take several minutes. Keep this page open.",
+      "unreachableTitle": "Can't reach the server",
+      "unreachableDescription": "The delete may still be running. Dismiss to keep using the app, and reload later to see the result.",
+      "failedTitle": "Delete failed",
+      "dismiss": "Dismiss"
     }
   },
   "accountGroups": {

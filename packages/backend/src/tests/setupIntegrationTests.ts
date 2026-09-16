@@ -22,6 +22,7 @@ import {
   budgetBakersWalletImportWorker,
 } from '@services/import-export/budget-bakers-wallet-import';
 import { csvImportQueue, csvImportWorker } from '@services/import-export/csv-import/csv-import-queue';
+import { importBatchDeleteQueue, importBatchDeleteWorker } from '@services/import-export/delete-batch-queue';
 import { msMoneyImportQueue, msMoneyImportWorker } from '@services/import-export/ms-money-import';
 import { ofxImportQueue, ofxImportWorker } from '@services/import-export/ofx-import';
 import { ynabImportQueue, ynabImportWorker } from '@services/import-export/ynab-import';
@@ -492,6 +493,8 @@ afterAll(async () => {
     await csvImportQueue.close();
     await backupRestoreWorker.close();
     await backupRestoreQueue.close();
+    await importBatchDeleteWorker.close();
+    await importBatchDeleteQueue.close();
     await logoResolutionWorker.close();
     await logoResolutionQueue.close();
     await subscriptionReminderEmailWorker.close();

@@ -3,17 +3,18 @@ import type {
   AiMapImportCategoriesResponse,
   ColumnMappingConfig,
   CsvImportProgress,
-  DeleteImportBatchResponse,
+  DeleteImportBatchResult,
   DetectDuplicatesRequest,
   DetectDuplicatesResponse,
   ExecuteImportRequest,
   ExecuteImportResponse,
   ExtractUniqueValuesResponse,
+  ImportBatchDeleteActiveStatus,
   ImportBatchesHistoryResponse,
   StatementCostEstimate,
   StatementCostEstimateFailure,
-  StatementExtractRequest,
   StatementExtractionResult,
+  StatementExtractRequest,
 } from '@bt/shared/types';
 
 interface ParseCsvRequest {
@@ -82,8 +83,16 @@ export const deleteImportBatch = async ({
 }: {
   batchId: string;
   deleteLinkedTransfers?: boolean;
-}): Promise<DeleteImportBatchResponse> => {
+}): Promise<DeleteImportBatchResult> => {
   return api.delete(`/import/batch/${batchId}`, { data: { deleteLinkedTransfers } });
+};
+
+/**
+ * User-scoped status of the background batch delete (no job id). Polled to drive
+ * the blocking overlay. Never 404s — returns `idle` when nothing runs.
+ */
+export const getActiveImportBatchDeleteStatus = async (): Promise<ImportBatchDeleteActiveStatus> => {
+  return api.get('/import/batch-delete/status');
 };
 
 // Statement Parser API (supports PDF, CSV, TXT)
