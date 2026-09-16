@@ -1,125 +1,98 @@
 <template>
-  <div class="bg-primary/10 ring-primary/15 mx-auto flex size-12 items-center justify-center rounded-full ring-1">
-    <slot name="icon" />
-  </div>
-
-  <!-- The ids are the accessibility contract read by blocking-job-overlay.vue's
-       aria-labelledby / aria-describedby, so they stay fixed here. -->
-  <h2 id="blocking-job-overlay-title" class="mt-5 text-lg font-semibold">
-    <slot name="title" />
-  </h2>
-
-  <p id="blocking-job-overlay-description" class="text-muted-foreground mt-2 text-sm">
-    <slot name="description" />
-  </p>
-
-  <!-- Progress: a determinate bar (solid = done, shimmering slice = in progress) plus
-       the current step label and an optional trailing counter (see `#trailing`). -->
-  <div class="mt-6">
-    <div
-      class="bg-primary/25 relative h-2 w-full overflow-hidden rounded-full"
-      role="progressbar"
-      :aria-valuemin="0"
-      :aria-valuemax="totalSteps"
-      :aria-valuenow="currentStepNumber ?? undefined"
-      :aria-valuetext="counterText ?? undefined"
+  <ol class="mt-6 grid gap-2.5 text-left text-sm">
+    <li
+      v-for="(row, index) in rows"
+      :key="index"
+      class="flex items-center gap-2.5 transition-colors duration-500"
+      :class="ROW_CLASS[row.status]"
+      :aria-current="row.status === 'now' ? 'step' : undefined"
     >
-      <div
-        class="bg-primary absolute inset-y-0 left-0 transition-[width] duration-700 ease-out"
-        :style="{ width: `${donePercent}%` }"
-      />
-      <div v-if="showSweep" class="bjp-sweep pointer-events-none absolute inset-0" aria-hidden="true" />
-    </div>
-
-    <div class="mt-3 flex items-center justify-between gap-3 text-sm">
-      <span class="text-foreground flex min-w-0 items-center gap-2 font-medium">
-        <CircleCheckIcon v-if="isFinishing" class="text-success-text size-4 shrink-0" aria-hidden="true" />
-        <span v-else class="bg-primary size-1.5 shrink-0 animate-pulse rounded-full" aria-hidden="true" />
-        <span class="truncate">{{ $t(currentLabelKey) }}</span>
+      <span class="relative flex size-4.5 shrink-0 items-center justify-center">
+        <svg
+          class="absolute inset-0 size-full transition-colors duration-500"
+          :class="RING_CLASS[row.status]"
+          viewBox="0 0 18 18"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle
+            cx="9"
+            cy="9"
+            r="7.25"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            class="transition-[stroke-dasharray] duration-500"
+            :stroke-dasharray="row.status === 'now' ? RING_ARC : RING_FULL"
+          />
+        </svg>
+        <Transition name="mark" mode="out-in">
+          <CheckIcon v-if="row.status === 'done'" class="text-success-text size-3" aria-hidden="true" />
+          <span v-else-if="row.status === 'now'" class="bg-primary size-2 rounded-full" aria-hidden="true" />
+        </Transition>
       </span>
-
-      <slot name="trailing" />
-    </div>
-  </div>
+      <span class="min-w-0 flex-1 truncate">{{ $t(row.labelKey) }}</span>
+      <slot v-if="row.status === 'now'" name="trailing" />
+    </li>
+  </ol>
 </template>
 
 <script setup lang="ts">
-import { CircleCheckIcon } from '@lucide/vue';
+import { CheckIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
-/** The three states the bar renders: queued/no-step yet, a step in flight, and the
- *  brief completed window before the consumer wipes caches and reloads. */
-type ProgressState = 'preparing' | 'running' | 'finishing';
+import { type ChecklistRowStatus, checklistRows } from './blocking-job-progress.helpers';
 
 const props = defineProps<{
-  /** Job steps in backend execution order; its length is the "X of N" total. */
+  /** Job steps in backend execution order. */
   orderedStepKeys: string[];
-  /** Step key → i18n label key, for the running step's label. */
+  /** Step key → i18n label key. */
   stepLabelKeys: Record<string, string>;
-  state: ProgressState;
-  /** The running step's key; used to place the fill and number the step. */
+  state: 'preparing' | 'running' | 'finishing';
   currentStepKey?: string | null;
-  /** i18n keys for the two non-running labels. */
   preparingLabelKey: string;
   finishingLabelKey: string;
-  /** Human "X of N" string; sets the progressbar's aria-valuetext when present. */
-  counterText?: string | null;
 }>();
 
-const totalSteps = computed(() => props.orderedStepKeys.length);
+const ROW_CLASS: Record<ChecklistRowStatus, string> = {
+  done: 'text-foreground',
+  now: 'text-foreground font-semibold',
+  pending: 'text-muted-foreground',
+};
 
-const currentIndex = computed(() =>
-  props.state === 'running' && props.currentStepKey ? props.orderedStepKeys.indexOf(props.currentStepKey) : -1,
-);
+// Done rows keep animate-spin: dropping it would snap the closing arc back to 0°,
+// and a full circle rotating looks still.
+const RING_CLASS: Record<ChecklistRowStatus, string> = {
+  done: 'text-success-text animate-spin motion-reduce:animate-none',
+  now: 'text-primary-text animate-spin motion-reduce:animate-none',
+  pending: 'text-border',
+};
 
-const isFinishing = computed(() => props.state === 'finishing');
+const RING_CIRCUMFERENCE = 2 * Math.PI * 7.25;
+const RING_FULL = `${RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`;
+const RING_ARC = `${RING_CIRCUMFERENCE * 0.75} ${RING_CIRCUMFERENCE}`;
 
-// The completed frame drops the sweep and just shows the full fill.
-const showSweep = computed(() => props.state !== 'finishing');
-
-// Steps before the current one are done, so the fill is index/total. `finishing`
-// fills fully; `preparing` (and an unresolved step) leaves the track empty with only
-// the sweep, reading as indeterminate work.
-const donePercent = computed(() => {
-  if (props.state === 'finishing') return 100;
-  if (currentIndex.value >= 0) return (currentIndex.value / totalSteps.value) * 100;
-  return 0;
-});
-
-const currentStepNumber = computed(() => (currentIndex.value >= 0 ? currentIndex.value + 1 : null));
-
-const currentLabelKey = computed(() => {
-  if (props.state === 'finishing') return props.finishingLabelKey;
-  if (currentIndex.value >= 0 && props.currentStepKey) {
-    return props.stepLabelKeys[props.currentStepKey] ?? props.preparingLabelKey;
-  }
-  return props.preparingLabelKey;
-});
+const rows = computed(() => checklistRows(props));
 </script>
 
 <style scoped>
-/* A soft white highlight travelling left→right across the whole bar — signals the
-   job is actively progressing, on top of the determinate done/remaining fill. */
-.bjp-sweep {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-primary-foreground) 24%, transparent),
-    transparent
-  );
-  transform: translateX(-100%);
-  animation: bjp-sweep 1.4s linear infinite;
+.mark-enter-active,
+.mark-leave-active {
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
 }
 
-@keyframes bjp-sweep {
-  to {
-    transform: translateX(100%);
-  }
+.mark-enter-from,
+.mark-leave-to {
+  opacity: 0;
+  transform: scale(0.4);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bjp-sweep {
-    animation: none;
+  .mark-enter-active,
+  .mark-leave-active {
+    transition: none;
   }
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <Collapsible :open="expanded">
     <component
       :is="isBase ? 'div' : 'button'"
       :type="isBase ? undefined : 'button'"
@@ -69,14 +69,17 @@
               </template>
             </div>
 
-            <div class="text-muted-foreground mt-0.5 text-xs tabular-nums">{{ code }}</div>
+            <div class="text-muted-foreground mt-0.5 text-xs tabular-nums">
+              {{ code }}
+            </div>
           </div>
         </div>
 
         <div class="pl-12 @[30rem]/currencies:pl-0 @[30rem]/currencies:text-right">
           <template v-if="isBase">
             <div class="text-sm font-semibold tabular-nums">
-              1 <span class="text-muted-foreground text-xs font-normal">{{ code }} / {{ code }}</span>
+              1
+              <span class="text-muted-foreground text-xs font-normal">{{ code }} / {{ code }}</span>
             </div>
           </template>
           <template v-else>
@@ -103,39 +106,42 @@
       <span v-else class="size-3.5" aria-hidden="true" />
     </component>
 
-    <div v-if="!isBase && expanded" class="border-border/60 bg-muted/20 border-t px-4 py-4">
-      <ExchangeRateForm
-        :currency="currency"
-        :is-form-disabled="isFormDisabled"
-        @submit="handleSubmit"
-        @trigger-disabled="isFormDisabled = $event"
-      />
-
-      <div class="bg-border/60 my-4 h-px w-full" />
-
-      <div class="flex items-center justify-between gap-3">
-        <SetBaseCurrency
+    <CollapsibleContent v-if="!isBase" scroll-into-view>
+      <div class="border-border/60 bg-muted/20 border-t px-4 py-4">
+        <ExchangeRateForm
           :currency="currency"
           :is-form-disabled="isFormDisabled"
           @submit="handleSubmit"
           @trigger-disabled="isFormDisabled = $event"
         />
-        <DeleteCurrency
-          :currency="currency"
-          :is-form-disabled="isFormDisabled"
-          :is-deletion-disabled="accountsCount > 0"
-          @submit="handleSubmit"
-          @trigger-disabled="isFormDisabled = $event"
-        />
+
+        <div class="bg-border/60 my-4 h-px w-full" />
+
+        <div class="flex items-center justify-between gap-3">
+          <SetBaseCurrency
+            :currency="currency"
+            :is-form-disabled="isFormDisabled"
+            @submit="handleSubmit"
+            @trigger-disabled="isFormDisabled = $event"
+          />
+          <DeleteCurrency
+            :currency="currency"
+            :is-form-disabled="isFormDisabled"
+            :is-deletion-disabled="accountsCount > 0"
+            @submit="handleSubmit"
+            @trigger-disabled="isFormDisabled = $event"
+          />
+        </div>
       </div>
-    </div>
-  </div>
+    </CollapsibleContent>
+  </Collapsible>
 </template>
 
 <script setup lang="ts">
 import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { useCurrencyName } from '@/composable';
 import { getCurrencyIcon } from '@/js/helpers/currencyImage';
+import { Collapsible, CollapsibleContent } from '@/components/lib/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useCurrenciesStore } from '@/stores';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -171,7 +177,10 @@ const isBase = computed(() => props.currency.isDefaultCurrency);
 const code = computed(() => props.currency.currency?.code ?? '');
 const baseCode = computed(() => baseCurrency.value?.currency?.code ?? '');
 const currencyName = computed(() =>
-  getCurrencyName({ code: code.value, fallbackName: props.currency.currency?.currency }),
+  getCurrencyName({
+    code: code.value,
+    fallbackName: props.currency.currency?.currency,
+  }),
 );
 
 const flagUrl = computed(() => (code.value ? getCurrencyIcon(code.value) : ''));
@@ -190,6 +199,8 @@ const onTriggerClick = () => {
 const handleSubmit = async () => {
   emit('submit');
   await currenciesStore.loadCurrencies({ force: true });
-  queryClient.invalidateQueries({ queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates });
+  queryClient.invalidateQueries({
+    queryKey: VUE_QUERY_CACHE_KEYS.exchangeRates,
+  });
 };
 </script>
