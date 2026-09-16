@@ -1,12 +1,12 @@
 import type { RecordId } from '@bt/shared/types';
 import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
-import { removeUndefinedKeys } from '@js/helpers';
 import { expandCategoryIdsWithDescendants, getRootCategoryId } from '@services/categories/category-hierarchy';
 import {
   AccessibleCategoryInfo,
   getAccessibleCategoryMap,
 } from '@services/categories/get-accessible-category-map.service';
 import { withTransaction } from '@services/common/with-transaction';
+import { type StatsScopeFilters, buildStatsScopeWhere } from '@services/stats/stats-scope-filters';
 import { statsTransactions } from '@services/stats/stats-transactions';
 import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { format } from 'date-fns';
@@ -15,12 +15,11 @@ import { Op } from 'sequelize';
 import { computeCategoryAllocations } from './category-allocation';
 import { findBucketIndex, generatePeriodBuckets } from './utils';
 
-interface GetCashFlowParams {
+interface GetCashFlowParams extends StatsScopeFilters {
   userId: number;
   from: string;
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
-  accountId?: string;
   categoryIds?: RecordId[];
   /**
    * Categories the caller has hidden. Expanded to descendants here, because the list is a snapshot
@@ -105,6 +104,11 @@ export const getCashFlow = withTransaction(
     to,
     granularity,
     accountId,
+    accountIds,
+    payeeIds,
+    excludedPayeeIds,
+    tagIds,
+    excludedTagIds,
     categoryIds,
     excludedCategoryIds,
     excludePlanned,
@@ -153,13 +157,17 @@ export const getCashFlow = withTransaction(
       planned: excludePlanned ? 'exclude' : { visibleTo: userId },
       refunds: 'net',
       window: { from, to },
-      where: removeUndefinedKeys({
-        accountId,
-        transactionType: {
-          [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense],
-        },
-        ...(categoryWhere ? { categoryId: categoryWhere } : {}),
-      }),
+      where: {
+        [Op.and]: [
+          {
+            transactionType: {
+              [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense],
+            },
+            ...(categoryWhere ? { categoryId: categoryWhere } : {}),
+          },
+          ...buildStatsScopeWhere({ accountId, accountIds, payeeIds, excludedPayeeIds, tagIds, excludedTagIds }),
+        ],
+      },
       attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
     });
 

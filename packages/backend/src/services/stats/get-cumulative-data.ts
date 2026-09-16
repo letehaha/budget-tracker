@@ -1,5 +1,7 @@
 import { TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
-import { removeUndefinedKeys } from '@js/helpers';
+import { expandCategoryIdsWithDescendants } from '@services/categories/category-hierarchy';
+import { getAccessibleCategoryMap } from '@services/categories/get-accessible-category-map.service';
+import { type StatsScopeFilters, buildStatsScopeWhere } from '@services/stats/stats-scope-filters';
 import { statsTransactions } from '@services/stats/stats-transactions';
 import {
   addMonths,
@@ -16,12 +18,20 @@ import {
 } from 'date-fns';
 import { Op } from 'sequelize';
 
-interface GetCumulativeDataParams {
+interface GetCumulativeDataParams extends StatsScopeFilters {
   userId: number;
   from: string;
   to: string;
   metric: endpointsTypes.CumulativeMetric;
-  accountId?: string;
+  categoryIds?: string[];
+  /** Expanded to descendants before the query, so hiding a parent hides its children. */
+  excludedCategoryIds?: string[];
+}
+
+/** Both category id lists are already expanded to descendants. */
+interface PeriodDataParams extends Omit<GetCumulativeDataParams, 'categoryIds' | 'excludedCategoryIds'> {
+  includeCategoryIds?: string[];
+  excludeCategoryIds?: string[];
 }
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -37,6 +47,13 @@ export const getCumulativeData = async ({
   to,
   metric,
   accountId,
+  accountIds,
+  payeeIds,
+  excludedPayeeIds,
+  tagIds,
+  excludedTagIds,
+  categoryIds,
+  excludedCategoryIds,
 }: GetCumulativeDataParams): Promise<endpointsTypes.GetCumulativeResponse> => {
   // Use parseISO for consistent date parsing (treats dates as local time, not UTC)
   const fromDate = parseISO(from);
@@ -52,21 +69,34 @@ export const getCumulativeData = async ({
   const prevFrom = format(prevFromDate, 'yyyy-MM-dd');
   const prevTo = format(prevToDate, 'yyyy-MM-dd');
 
-  const currentPeriodData = await getPeriodData({
-    userId,
-    from,
-    to,
-    metric,
-    accountId,
-  });
+  let includeCategoryIds: string[] | undefined;
+  let excludeCategoryIds: string[] | undefined;
 
-  const previousPeriodData = await getPeriodData({
-    userId,
-    from: prevFrom,
-    to: prevTo,
-    metric,
+  if (categoryIds?.length || excludedCategoryIds?.length) {
+    const { categories, byId } = await getAccessibleCategoryMap({ userId });
+
+    if (categoryIds?.length) {
+      includeCategoryIds = expandCategoryIdsWithDescendants({ categoryIds, categories, byId });
+    }
+    if (excludedCategoryIds?.length) {
+      excludeCategoryIds = expandCategoryIdsWithDescendants({ categoryIds: excludedCategoryIds, categories, byId });
+    }
+  }
+
+  const scope = {
     accountId,
-  });
+    accountIds,
+    payeeIds,
+    excludedPayeeIds,
+    tagIds,
+    excludedTagIds,
+    includeCategoryIds,
+    excludeCategoryIds,
+  };
+
+  const currentPeriodData = await getPeriodData({ userId, from, to, metric, ...scope });
+
+  const previousPeriodData = await getPeriodData({ userId, from: prevFrom, to: prevTo, metric, ...scope });
 
   // Calculate period-over-period percent change
   let percentChange = 0;
@@ -93,7 +123,14 @@ async function getPeriodData({
   to,
   metric,
   accountId,
-}: GetCumulativeDataParams): Promise<endpointsTypes.CumulativePeriodData> {
+  accountIds,
+  payeeIds,
+  excludedPayeeIds,
+  tagIds,
+  excludedTagIds,
+  includeCategoryIds,
+  excludeCategoryIds,
+}: PeriodDataParams): Promise<endpointsTypes.CumulativePeriodData> {
   // Use parseISO for consistent date parsing (treats dates as local time, not UTC)
   const fromDate = parseISO(from);
   const toDate = parseISO(to);
@@ -110,10 +147,17 @@ async function getPeriodData({
     planned: 'exclude',
     refunds: 'net',
     window: { from, to: effectiveTo },
-    where: removeUndefinedKeys({
-      accountId,
-      transactionType: { [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense] },
-    }),
+    // ponytail: query-level category filter ignores split legs; route through computeCategoryAllocations if totals must match cash-flow exactly
+    where: {
+      [Op.and]: [
+        { transactionType: { [Op.in]: [TRANSACTION_TYPES.income, TRANSACTION_TYPES.expense] } },
+        ...(includeCategoryIds?.length ? [{ categoryId: { [Op.in]: includeCategoryIds } }] : []),
+        ...(excludeCategoryIds?.length
+          ? [{ [Op.or]: [{ categoryId: null }, { categoryId: { [Op.notIn]: excludeCategoryIds } }] }]
+          : []),
+        ...buildStatsScopeWhere({ accountId, accountIds, payeeIds, excludedPayeeIds, tagIds, excludedTagIds }),
+      ],
+    },
     attributes: ['id', 'time', 'refAmount', 'transactionType', 'categoryId', 'refundLinked'],
   });
 

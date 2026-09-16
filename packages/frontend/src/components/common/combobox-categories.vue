@@ -10,6 +10,10 @@
     content-class="min-w-75"
     @clear="clearSelection"
   >
+    <template v-if="isExcluding" #leading>
+      <CircleOffIcon class="text-muted-foreground size-4 shrink-0" />
+    </template>
+
     <ScrollArea class="max-h-85 lg:max-h-60" viewport-class="max-h-85 lg:max-h-60">
       <div class="p-1.25" :class="{ 'select-none': isShiftPressed }">
         <p v-if="displayedItems.length === 0" class="text-muted-foreground py-2 text-center text-xs font-medium">
@@ -57,7 +61,7 @@ import MultiSelectField from '@/components/fields/multi-select-field.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useCategoriesStore } from '@/stores';
-import { CheckIcon, MinusIcon } from '@lucide/vue';
+import { CheckIcon, CircleOffIcon, MinusIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -82,6 +86,8 @@ const props = defineProps<{
    * states display. Defaults to the tri-state roll-up the Records filters and Trends
    * comparison use. */
   independentCheckState?: boolean;
+  /** Display only: `exclude` swaps the label and leading icon, selection behaviour is identical. */
+  mode?: 'include' | 'exclude';
 }>();
 
 const emit = defineEmits<{
@@ -197,11 +203,17 @@ const handleToggle = ({ item, index }: { item: FlatCategory; index: number }) =>
 
 const selectedCategoryCount = computed(() => props.categoryIds.length);
 
-const selectedLabel = computed(() =>
-  selectedCategoryCount.value === 1
-    ? t('fields.comboboxCategories.selectedOne')
-    : t('fields.comboboxCategories.selectedMany', { n: selectedCategoryCount.value }),
-);
+const isExcluding = computed(() => props.mode === 'exclude' && selectedCategoryCount.value > 0);
+
+const selectedLabel = computed(() => {
+  const n = selectedCategoryCount.value;
+
+  if (props.mode === 'exclude') {
+    return n === 1 ? t('fields.comboboxCategories.excludingOne') : t('fields.comboboxCategories.excludingMany', { n });
+  }
+
+  return n === 1 ? t('fields.comboboxCategories.selectedOne') : t('fields.comboboxCategories.selectedMany', { n });
+});
 
 const isAllSelected = computed(() => props.categoryIds.length === 0);
 

@@ -104,6 +104,21 @@
       "cumulativeProgress": {
         "title": "Cumulative Progress"
       },
+      "filters": {
+        "button": "Filters",
+        "title": "Filters",
+        "categories": "Categories",
+        "include": "Include",
+        "exclude": "Exclude",
+        "accounts": "Accounts",
+        "payees": "Payees",
+        "tags": "Tags",
+        "reset": "Reset"
+      },
+      "legend": {
+        "hide": "Hide from chart",
+        "show": "Show in chart"
+      },
       "vsPreviousPeriod": "vs previous period",
       "loadError": "Failed to load data",
       "noData": "No data available",
