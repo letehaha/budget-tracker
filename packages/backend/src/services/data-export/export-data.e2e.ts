@@ -438,10 +438,7 @@ describe('Data export (POST /user/data-export)', () => {
       expect(json.user.username).toEqual(expect.any(String));
       expect(json.user.username.length).toBeGreaterThan(0);
       expect(json.user.baseCurrency).toBe(global.BASE_CURRENCY_CODE);
-      // Either a populated email or explicit null – never an absent key, so a
-      // future consumer can rely on the field always being present.
-      expect('email' in json.user).toBe(true);
-      expect(json.user.email === null || typeof json.user.email === 'string').toBe(true);
+      expect(json.user.email).toBe('test1@test.local');
     });
 
     it('writes a UTF-8 BOM at the start of every CSV file and manifest SHA-256/sizeBytes matching each archived file', async () => {

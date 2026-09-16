@@ -5,7 +5,7 @@ import {
   type AccountWithRelinkStatus,
   type RecordId,
   SHARE_PERMISSIONS,
-  type UserModel,
+  type UserInfoResponse,
 } from '@bt/shared/types';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { ACCOUNTS } from '@tests/mocks/accounts';
@@ -51,7 +51,7 @@ describe('useAccountsStore – accountsRecord mirrors the live accounts list', (
     setActivePinia(pinia);
 
     // The accounts query is gated on `isUserExists`; seed a signed-in user.
-    useUserStore().user = {} as UserModel;
+    useUserStore().user = {} as UserInfoResponse;
 
     const Wrapper = defineComponent({
       setup() {

@@ -350,7 +350,7 @@ describe('Signup flow', () => {
       })) as [Array<{ id: string }>, unknown];
       expect(orphans).toHaveLength(0);
 
-      const appUsers = await Users.findAll({ where: { email }, raw: true });
+      const appUsers = await Users.findAll({ where: { username: 'rollback-target' }, raw: true });
       expect(appUsers).toHaveLength(0);
 
       expect(await SignupLedger.count()).toEqual(ledgerBefore);

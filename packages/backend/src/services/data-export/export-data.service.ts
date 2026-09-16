@@ -1,7 +1,6 @@
-import { authPool } from '@config/auth';
-import { captureException } from '@js/utils/sentry';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
+import { getEmailForUser } from '@services/sharing/find-user-by-email.service';
 import JSZip from 'jszip';
 
 import { buildExportTables } from './build-export-tables.service';
@@ -45,33 +44,11 @@ async function fetchUserHeader({ userId }: { userId: number }): Promise<{
   // export failure – masking it with `null` would emit an inconsistent
   // export. The legitimate "user has no base currency yet" case still
   // returns null from the model and surfaces as an empty string below.
-  const [user, baseCurrencyRecord] = await Promise.all([
-    Users.findOne({ where: { id: userId } }),
+  const [user, baseCurrencyRecord, email] = await Promise.all([
+    Users.findOne({ where: { id: userId }, attributes: ['username'] }),
     getBaseCurrency({ userId }),
+    getEmailForUser({ userId }),
   ]);
-
-  let email: string | null = user?.email ?? null;
-  if (!email && user?.authUserId) {
-    try {
-      const result = await authPool.query('SELECT email FROM ba_user WHERE id = $1', [user.authUserId]);
-      if (result.rows.length > 0) email = result.rows[0].email;
-    } catch (err) {
-      // Email is informational only – a transient auth-pool failure should
-      // not block the export. The export carries an explicit `email: null`
-      // so the consumer can tell apart "absent" from "user with no email".
-      // Route through Sentry (not logger.warn) so a chronic auth-pool flake
-      // surfaces in the issue tracker; a warn channel alone makes a steady
-      // background failure invisible.
-      captureException({
-        error: err instanceof Error ? err : new Error(String(err)),
-        context: {
-          feature: 'data-export',
-          stage: 'fetchUserHeader-email-fallback',
-          userId,
-        },
-      });
-    }
-  }
 
   return {
     username: user?.username ?? '',

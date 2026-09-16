@@ -62,9 +62,10 @@ const buildPartitionResolver = ({
 };
 
 /**
- * Split one per-account balance series at a snapshot date by balance sign:
- * accounts currently owing (negative) sum into `owedCents`, accounts holding the
- * user's own funds (positive) into `surplusCents`. Used for every account class
+ * Split one per-account balance series at a snapshot date by balance sign, after
+ * netting each balance against the account's credit limit (absent when the
+ * setting is off): accounts currently owing (negative) sum into `owedCents`,
+ * accounts holding the user's own funds (positive) into `surplusCents`. Used for every account class
  * that can sit on either side of zero — cards, overdrafts and plain deposit
  * accounts alike — so an overdrawn account counts as debt, not a negative asset.
  * A missing snapshot key on a present account is a key-derivation bug — the series
