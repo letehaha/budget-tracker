@@ -28,6 +28,8 @@ const MIN_OCCURRENCES = 3;
 const AMOUNT_CV_THRESHOLD = 0.2;
 const INTERVAL_CV_THRESHOLD = 0.5;
 const MAX_SAMPLE_TRANSACTIONS = 10;
+// Matches the SubscriptionCandidates.suggestedName column width.
+const MAX_SUGGESTED_NAME_LENGTH = 200;
 
 interface DetectCandidatesParams {
   userId: number;
@@ -214,7 +216,7 @@ export async function runDetection({ userId }: { userId: number }): Promise<Subs
     const amounts = txs.map((tx) => Math.abs(tx.amount));
     const averageAmount = Math.round(amounts.reduce((s, a) => s + a, 0) / amounts.length);
     const frequency = mapIntervalToFrequency({ medianDays: medianIntervalDays });
-    const suggestedName = findMostCommonNote({ notes: group.rawNotes });
+    const suggestedName = findMostCommonNote({ notes: group.rawNotes }).slice(0, MAX_SUGGESTED_NAME_LENGTH);
 
     // Sort by time descending for sample IDs and lastOccurrenceAt
     const sortedByTime = txs.toSorted((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
