@@ -28,6 +28,15 @@ jobs:
       && contains(github.event.pull_request.labels.*.name, 'preview')
 
     steps:
+      # A `synchronize` webhook can arrive after the PR was merged and torn down;
+      # deploying then leaves a preview nothing will ever remove.
+      - name: Stop if the PR is no longer open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state -q .state)
+          [ "$state" = "OPEN" ] || { echo "PR #$PR_NUMBER is $state, not deploying"; exit 1; }
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
