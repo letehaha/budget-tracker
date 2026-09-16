@@ -101,7 +101,7 @@ export function setupRoutes(app: Express) {
         body = Buffer.from(JSON.stringify(parsed));
       } catch {
         // Not valid JSON – proxy the original bytes and let better-auth error
-        logger.warn('[register-patch] Failed to parse request body as JSON');
+        logger.info('[register-patch] Failed to parse request body as JSON');
         body = Buffer.concat(chunks);
       }
 

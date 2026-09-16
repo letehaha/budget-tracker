@@ -75,10 +75,26 @@ describe('fetchRemoteVersion', () => {
     expect(captureExceptionMock).not.toHaveBeenCalled();
   });
 
-  it('returns null + captures exception on a non-404 non-2xx response', async () => {
+  it('returns null + breadcrumb (no exception) on a 5xx — proxy mid-deploy', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(makeResponse({ ok: false, status: 502, statusText: 'Bad Gateway' })),
+      vi.fn().mockResolvedValue(makeResponse({ ok: false, status: 504, statusText: 'Gateway Timeout' })),
+    );
+    const { fetchRemoteVersion } = await importModule();
+
+    const result = await fetchRemoteVersion();
+
+    expect(result).toBeNull();
+    expect(addBreadcrumbMock).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'version-check', level: 'info' }),
+    );
+    expect(captureExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it('returns null + captures exception on a non-404 4xx response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(makeResponse({ ok: false, status: 403, statusText: 'Forbidden' })),
     );
     const { fetchRemoteVersion } = await importModule();
 
@@ -87,7 +103,7 @@ describe('fetchRemoteVersion', () => {
     expect(result).toBeNull();
     expect(captureExceptionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        context: expect.objectContaining({ status: 502, statusText: 'Bad Gateway' }),
+        context: expect.objectContaining({ status: 403, statusText: 'Forbidden' }),
       }),
     );
   });
