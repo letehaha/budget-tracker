@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div class="@container/cash-flow space-y-6">
     <!-- Header Row: Period Selector + Options -->
     <div class="flex gap-4 max-md:flex-col md:justify-between">
       <!-- Period selector - centered on mobile, left on desktop -->
@@ -38,10 +38,17 @@
       </div>
     </div>
 
-    <div v-if="isLoading" class="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <SummaryRows
+      v-if="isLoading || cashFlowData"
+      :items="summaryRows"
+      :loading="isLoading"
+      :skeleton-count="4"
+      class="@md/cash-flow:hidden"
+    />
+    <div v-if="isLoading" class="hidden grid-cols-2 gap-4 md:grid-cols-4 @md/cash-flow:grid">
       <SummaryCardSkeleton v-for="i in 4" :key="i" title-width="w-20" value-width="w-28" />
     </div>
-    <div v-else-if="cashFlowData" class="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div v-else-if="cashFlowData" class="hidden grid-cols-2 gap-4 md:grid-cols-4 @md/cash-flow:grid">
       <SummaryCard
         :title="t('analytics.cashFlow.income')"
         :value="cashFlowData.totals.income"
@@ -119,6 +126,8 @@ import { differenceInDays, endOfMonth, startOfMonth, subDays, subMonths } from '
 import { Settings2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useFormatCurrency } from '@/composable';
+import { useChartColors } from '@/composable/charts/chart-colors';
 
 import { createPeriodSerializer } from '../../utils';
 import CashFlowChart from './components/cash-flow-chart.vue';
@@ -130,8 +139,11 @@ import MoneyFlowSection from './components/money-flow-section.vue';
 import PeriodSelector from './components/period-selector.vue';
 import SummaryCardSkeleton from './components/summary-card-skeleton.vue';
 import SummaryCard from './components/summary-card.vue';
+import SummaryRows, { type SummaryRowItem } from '../../components/summary-rows.vue';
 
 const { t } = useI18n();
+const { formatBaseCurrency } = useFormatCurrency();
+const colors = useChartColors();
 const { format } = useDateLocale();
 
 // Constants
@@ -256,5 +268,41 @@ const trends = computed(() => {
         ? Math.round(currentTotals.savingsRate - previousTotals.savingsRate)
         : undefined,
   };
+});
+
+const summaryRows = computed<SummaryRowItem[]>(() => {
+  if (!cashFlowData.value) return [];
+  const { totals } = cashFlowData.value;
+  const label = comparisonPeriodLabel.value;
+  return [
+    {
+      label: t('analytics.cashFlow.income'),
+      value: formatBaseCurrency(totals.income),
+      change: trends.value.income,
+      comparisonPeriodLabel: label,
+      color: colors.value.appIncome,
+    },
+    {
+      label: t('analytics.cashFlow.expenses'),
+      value: formatBaseCurrency(totals.expenses),
+      change: trends.value.expenses,
+      comparisonPeriodLabel: label,
+      color: colors.value.appExpense,
+    },
+    {
+      label: t('analytics.cashFlow.netSavings'),
+      value: formatBaseCurrency(totals.netFlow),
+      change: trends.value.netFlow,
+      comparisonPeriodLabel: label,
+      color: colors.value.appSavings,
+    },
+    {
+      label: t('analytics.cashFlow.savingsRate'),
+      value: `${Math.round(totals.savingsRate)}%`,
+      change: trends.value.savingsRate,
+      comparisonPeriodLabel: label,
+      color: colors.value.appSavings,
+    },
+  ];
 });
 </script>

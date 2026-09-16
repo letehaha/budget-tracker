@@ -36,8 +36,9 @@
       </div>
 
       <template v-if="isLoading">
+        <SummaryRows :items="summaryRows" class="@md/investment-contributions:hidden" />
         <div
-          class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-2 @xl/investment-contributions:grid-cols-3"
+          class="hidden grid-cols-2 gap-4 @md/investment-contributions:grid @xl/investment-contributions:grid-cols-3"
         >
           <div v-for="n in 3" :key="`card-skeleton-${n}`" class="border-border bg-card rounded-lg border p-4">
             <div class="bg-muted mb-2 h-4 w-24 animate-pulse rounded" />
@@ -55,8 +56,9 @@
       </div>
 
       <template v-else>
+        <SummaryRows :items="summaryRows" class="@md/investment-contributions:hidden" />
         <div
-          class="grid grid-cols-1 gap-4 @sm/investment-contributions:grid-cols-2 @xl/investment-contributions:grid-cols-3"
+          class="hidden grid-cols-2 gap-4 @md/investment-contributions:grid @xl/investment-contributions:grid-cols-3"
         >
           <SummaryCard
             :title="$t('investmentContributions.cards.totalContributed')"
@@ -110,10 +112,13 @@ import { useLocalStorage, useSessionStorage } from '@vueuse/core';
 import { differenceInDays, endOfMonth, startOfMonth, subDays, subMonths } from 'date-fns';
 import { ChartColumnIcon, PiggyBankIcon, TriangleAlertIcon } from '@lucide/vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useFormatCurrency } from '@/composable';
 
 import { createPeriodSerializer } from '../../utils';
 import PeriodSelector from '../cash-flow/components/period-selector.vue';
 import SummaryCard from '../cash-flow/components/summary-card.vue';
+import SummaryRows, { type SummaryRowItem } from '../../components/summary-rows.vue';
 import GranularitySelector from '../../components/granularity-selector.vue';
 import NoPortfoliosPlaceholder from '../../components/no-portfolios-placeholder.vue';
 import PortfolioFilter from '../../components/portfolio-filter.vue';
@@ -124,6 +129,9 @@ import {
   computeVsPreviousPeriodPct,
   sharePctOfSavings,
 } from './composables/contributions-derivations';
+
+const { t } = useI18n();
+const { formatBaseCurrency } = useFormatCurrency();
 
 const DEFAULT_PERIOD_MONTHS = 12;
 
@@ -229,4 +237,21 @@ const { isPortfoliosLoading, showNoPortfoliosPlaceholder, goToInvestments } = us
 // Cover both fetches so nothing flashes between them: the portfolios list decides
 // whether the report renders at all, the contributions query fills it in.
 const isLoading = computed(() => isPortfoliosLoading.value || query.isLoading.value);
+
+const summaryRows = computed<SummaryRowItem[]>(() => [
+  {
+    label: t('investmentContributions.cards.totalContributed'),
+    value: formatBaseCurrency(model.value.rangeTotal),
+    change: vsPreviousPeriodPct.value,
+    comparisonPeriodLabel: t('analytics.cashFlow.vsPreviousPeriod'),
+  },
+  {
+    label: t('investmentContributions.cards.shareOfSavings'),
+    value: shareOfSavings.value === null ? '—' : `${shareOfSavings.value}%`,
+  },
+  {
+    label: t('investmentContributions.cards.averagePerPeriod'),
+    value: formatBaseCurrency(model.value.averagePerPeriod),
+  },
+]);
 </script>

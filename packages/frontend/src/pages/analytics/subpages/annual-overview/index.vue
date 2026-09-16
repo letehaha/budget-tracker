@@ -14,26 +14,9 @@
     <!-- Content (with skeleton fallback) -->
     <template v-else>
       <!-- Summary rows (narrow) -->
-      <div class="border-border bg-card rounded-lg border px-4 py-1 @md/trends:hidden">
-        <template v-if="isLoadingCumulative">
-          <div v-for="i in 2" :key="i" class="flex animate-pulse items-center justify-between py-2.5">
-            <div class="bg-muted h-3 w-16 rounded" />
-            <div class="bg-muted h-6 w-28 rounded" />
-          </div>
-        </template>
-        <template v-else-if="cumulativeData">
-          <div class="flex items-baseline justify-between gap-3 py-2.5">
-            <span
-              class="text-muted-foreground flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
-            >
-              <span class="size-2 rounded-xs" :style="{ background: metricColor }" />
-              {{ metricLabel }}
-            </span>
-            <span class="text-base leading-tight font-extrabold tabular-nums">
-              {{ formatBaseCurrency(cumulativeData.currentPeriod.total) }}
-            </span>
-          </div>
-          <div class="flex items-center gap-2">
+      <SummaryRows :items="summaryRows" :loading="isLoadingCumulative" class="@md/trends:hidden">
+        <template #divider>
+          <div v-if="cumulativeData" class="flex items-center gap-2">
             <span class="bg-border h-px min-w-0 flex-1" />
             <span
               :class="
@@ -49,19 +32,8 @@
             </span>
             <span class="bg-border h-px min-w-0 flex-1" />
           </div>
-          <div class="flex items-baseline justify-between gap-3 py-2.5">
-            <span
-              class="text-muted-foreground flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
-            >
-              <span class="bg-muted-foreground size-2 rounded-xs" />
-              {{ t('analytics.trends.chart.comparisonPeriod') }}
-            </span>
-            <span class="text-muted-foreground text-base leading-tight font-semibold tabular-nums">
-              {{ formatBaseCurrency(cumulativeData.previousPeriod.total) }}
-            </span>
-          </div>
         </template>
-      </div>
+      </SummaryRows>
 
       <!-- Summary Cards (wide) -->
       <div class="hidden grid-cols-3 gap-4 @md/trends:grid">
@@ -191,6 +163,7 @@ import CumulativeChart from './components/cumulative-chart.vue';
 import MetricToggle, { type MetricType } from './components/metric-toggle.vue';
 import MonthlyComparisonChart from './components/monthly-comparison-chart.vue';
 import TrendsFiltersButton from './components/trends-filters-button.vue';
+import SummaryRows, { type SummaryRowItem } from '../../components/summary-rows.vue';
 import {
   type TrendsFilters,
   emptyTrendsFilters,
@@ -274,14 +247,27 @@ const {
   gcTime: QUERY_CACHE_STALE_TIME.ANALYTICS * 2,
 });
 
-const metricColor = computed(
-  () =>
-    ({
-      expenses: colors.value.appExpense,
-      income: colors.value.appIncome,
-      savings: colors.value.appSavings,
-    })[selectedMetric.value],
-);
+const summaryRows = computed<SummaryRowItem[]>(() => {
+  if (!cumulativeData.value) return [];
+  const metricColor = {
+    expenses: colors.value.appExpense,
+    income: colors.value.appIncome,
+    savings: colors.value.appSavings,
+  }[selectedMetric.value];
+  return [
+    {
+      label: metricLabel.value,
+      value: formatBaseCurrency(cumulativeData.value.currentPeriod.total),
+      color: metricColor,
+    },
+    {
+      label: t('analytics.trends.chart.comparisonPeriod'),
+      value: formatBaseCurrency(cumulativeData.value.previousPeriod.total),
+      color: colors.value.text,
+      valueClass: 'text-muted-foreground font-semibold',
+    },
+  ];
+});
 
 const changeIcon = computed(() => {
   const change = cumulativeData.value?.percentChange ?? 0;
