@@ -69,10 +69,12 @@ export async function cleanupExpiredDemoUsers(): Promise<number> {
 
     logger.info(`Found ${expiredUsers.length} expired demo users to clean up`);
 
-    // Clean up expired users in parallel
-    const results = await Promise.allSettled(expiredUsers.map((user) => cleanupDemoUser({ userId: user.id })));
-
-    const failedCount = results.filter((r) => r.status === 'rejected').length;
+    // One at a time: each delete cascades thousands of rows, and running them
+    // concurrently starves live requests on the same database.
+    let failedCount = 0;
+    for (const user of expiredUsers) {
+      await cleanupDemoUser({ userId: user.id }).catch(() => failedCount++);
+    }
     if (failedCount > 0) {
       logger.error(`Failed to cleanup ${failedCount} expired demo users`);
     }

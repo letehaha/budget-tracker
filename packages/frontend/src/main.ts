@@ -10,6 +10,7 @@ import { queryClient } from '@/lib/query-client';
 import { initSentry } from '@/lib/sentry';
 import { router } from '@/routes';
 import { store } from '@/stores/setup';
+import type { SupportedLocale } from '@bt/shared/i18n/locales';
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { createHead } from '@unhead/vue/client';
 import { createApp } from 'vue';
@@ -31,7 +32,7 @@ const initI18n = async () => {
   if (initialLocale !== 'en') {
     // For non-English locales, load the common chunk
     await loadChunks({ locale: initialLocale, chunks: ['common'] });
-    i18n.global.locale.value = initialLocale as 'en' | 'uk' | 'es' | 'id';
+    i18n.global.locale.value = initialLocale as SupportedLocale;
   }
 };
 

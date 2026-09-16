@@ -1,0 +1,134 @@
+{
+  "pages": {
+    "importExport": {
+      "budgetBakersWalletImport": {
+        "pageTitle": "Импорт из Wallet (BudgetBakers)",
+        "pageDescription": "Импортируйте транзакции, экспортированные из приложения Wallet от BudgetBakers.",
+        "fileUpload": {
+          "stepTitle": "Загрузите CSV-файл Wallet",
+          "description": "Загрузите один или несколько CSV-файлов экспорта Wallet. Во всех файлах должны быть одинаковые столбцы.",
+          "maxSize": "Максимальный размер файла: 10 МБ",
+          "parsing": "Обработка…",
+          "errors": {
+            "invalidFormatNamed": "«{name}» не является CSV-файлом.",
+            "parseFailed": "Не удалось обработать файл. Проверьте формат и попробуйте снова.",
+            "merge": {
+              "emptySelection": "Выберите хотя бы один CSV-файл",
+              "fileReadFailed": "Не удалось прочитать «{file}»",
+              "fileEmpty": "«{file}» пуст",
+              "fileNoDataRows": "В «{file}» нет строк с данными",
+              "headerMismatch": "Столбцы в «{file}» не совпадают с первым файлом. Во всех файлах должны быть одинаковые столбцы в одинаковом порядке.",
+              "forbiddenHeader": "В «{file}» используется зарезервированное имя столбца",
+              "tooManyRows": "В выбранных файлах суммарно больше {max} строк. Удалите часть файлов или строк и попробуйте снова.",
+              "parseError": "Не удалось обработать «{file}». Убедитесь, что это корректный CSV."
+            }
+          },
+          "continue": "Продолжить"
+        },
+        "preview": {
+          "accountsHelper": "Настройте, как обрабатывать каждый обнаруженный счёт при импорте.",
+          "accounts": "Счета",
+          "transactions": "Транзакции",
+          "rowPrefix": "Строка {rowIndex}: "
+        },
+        "accountRow": {
+          "transactionsCount": "{count} транзакция | {count} транзакции | {count} транзакций",
+          "modeLabel": "Действие",
+          "modePlaceholder": "Выберите действие",
+          "modeCreateNew": "Создать новый счёт",
+          "modeLinkExisting": "Связать с существующим счётом",
+          "currentBalanceLabel": "Текущий баланс (необязательно)",
+          "currentBalancePlaceholder": "например, 1234.56",
+          "currentBalanceHint": "Оставьте пустым, чтобы начать с суммы импортированных транзакций.",
+          "linkTargetLabel": "Существующий счёт",
+          "linkTargetPlaceholder": "Выберите счёт",
+          "keepBalanceNote": "Текущий баланс существующего счёта будет сохранён. История будет дозагружена."
+        },
+        "execute": {
+          "starting": "Запуск импорта…",
+          "progressCount": "{processed} / {total}",
+          "statusQueued": "В очереди",
+          "statusRunning": "Импорт…",
+          "statusCompleted": "Завершено",
+          "statusFailed": "Ошибка",
+          "failed": "Импорт завершился ошибкой.",
+          "partialImportNote": "Некоторые строки могли быть импортированы до ошибки. Повторный импорт может создать дубликаты."
+        },
+        "done": {
+          "successTitle": "Импорт завершён",
+          "successDescription": "Данные Wallet успешно импортированы.",
+          "partialTitle": "Импорт завершён с ошибками: {count}",
+          "partialDescription": "Некоторые строки импортированы успешно, в других возникли ошибки.",
+          "allFailedTitle": "Ошибка импорта",
+          "allFailedDescription": "Ни одна строка не импортирована. Проверьте ошибки ниже и попробуйте снова.",
+          "accountsCreated": "Создано счетов",
+          "accountsLinked": "Связано счетов",
+          "accountsSkipped": "Пропущено счетов",
+          "categoriesCreated": "Создано категорий",
+          "tagsCreated": "Создано тегов",
+          "transactionsImported": "Импортировано транзакций",
+          "transfersImported": "Импортировано переводов",
+          "outOfWalletImported": "Импортировано вне кошелька",
+          "mergedIntoPlanned": "Объединено с запланированными",
+          "duplicatesSkipped": "Пропущено дубликатов",
+          "errorsTitle": "Не удалось импортировать {count} строку | Не удалось импортировать {count} строки | Не удалось импортировать {count} строк",
+          "errorsOverflow": "+ ещё {count}",
+          "balanceWarningTitle": "Некоторые балансы счетов могут быть неверными",
+          "balanceWarningBody": "После импорта не удалось восстановить баланс одного или нескольких существующих счетов. Проверьте их.",
+          "viewTransactions": "Просмотреть транзакции",
+          "importAnother": "Импортировать другой файл"
+        },
+        "stepper": {
+          "steps": {
+            "upload": "Загрузка",
+            "resolve": "Сопоставление",
+            "review": "Проверка",
+            "results": "Готово"
+          }
+        },
+        "resolve": {
+          "resolvedCounterWord": "сопоставлено",
+          "accounts": {
+            "sectionTitle": "Счета",
+            "currentBalanceLabel": "Текущий баланс (необязательно)",
+            "currentBalancePlaceholder": "Оставьте пустым, чтобы использовать импортированный итог",
+            "willCreateHint": "Будет создан новый счёт в {currency}",
+            "skippedNote": "{count} счёт(а/ов) будет пропущено. Их транзакции и переводы на них или с них не будут импортированы."
+          },
+          "categories": {
+            "sectionTitle": "Категории"
+          },
+          "quickActions": {
+            "mapExactMatches": "Сопоставить точные совпадения",
+            "createNewForUnmatched": "Создать для несовпавших",
+            "reset": "Сбросить",
+            "tooltips": {
+              "mapExactMatchesAccounts": "Связать каждый счёт, название которого точно совпадает с существующим",
+              "mapExactMatchesCategories": "Связать каждую категорию, название которой точно совпадает с существующей",
+              "createNewForUnmatched": "Для всех ещё не сопоставленных строк создать новые записи",
+              "reset": "Очистить все варианты и снова выполнить автоматическое сопоставление по названию"
+            }
+          },
+          "footer": {
+            "back": "Назад",
+            "continue": "Продолжить"
+          }
+        },
+        "review": {
+          "transactions": "Транзакции",
+          "transfersDetected": "Обнаружено переводов",
+          "outOfWallet": "Вне кошелька",
+          "duplicatesSkipped": "Пропущено дубликатов",
+          "willImport": "Будет импортировано",
+          "warningsTitle": "Предупреждений: {count}",
+          "rowPrefix": "Строка {rowIndex}:",
+          "duplicatesTitle": "Возможных дубликатов: {count}",
+          "duplicatesHint": "Отмеченные строки будут импортированы в любом случае; неотмеченные дубликаты будут пропущены.",
+          "back": "Назад",
+          "importButton": "Импортировать транзакций: {count}",
+          "importing": "Импорт…"
+        }
+      }
+    }
+  }
+}

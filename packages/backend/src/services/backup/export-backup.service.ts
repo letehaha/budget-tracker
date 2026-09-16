@@ -1,4 +1,5 @@
 import Users from '@models/users.model';
+import { getEmailForUser } from '@services/sharing/find-user-by-email.service';
 import JSZip from 'jszip';
 
 import { dumpBackupFiles, toBuffer } from './dump-tables.service';
@@ -31,18 +32,16 @@ function buildFilename({ username, exportedAt }: { username: string; exportedAt:
 export async function exportUserBackup({ userId }: { userId: number }): Promise<BackupExportResult> {
   const exportedAt = new Date();
 
-  const [files, user] = await Promise.all([
+  const [files, user, email] = await Promise.all([
     dumpBackupFiles({ userId }),
-    Users.findOne({ where: { id: userId }, attributes: ['username', 'email'], raw: true }) as unknown as Promise<{
-      username: string;
-      email: string | null;
-    } | null>,
+    Users.findOne({ where: { id: userId }, attributes: ['username'], raw: true }),
+    getEmailForUser({ userId }),
   ]);
 
   const manifest = await buildBackupManifest({
     files,
     exportedAt,
-    user: { username: user?.username ?? '', email: user?.email ?? null },
+    user: { username: user?.username ?? '', email },
   });
   const manifestBuffer = toBuffer({ value: manifest });
 

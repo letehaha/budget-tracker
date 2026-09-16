@@ -1,12 +1,13 @@
 # MoneyMatter
 
-> Free, open-source budget tracking and personal finance app. Self-host for full data ownership or use the cloud version. Supports AI integration via MCP (Model Context Protocol) for querying your finances with Claude, ChatGPT, or any MCP-compatible client.
+> Open-source budget tracking and personal finance app. Self-host it for free with full data ownership, or use the cloud version from $5/month (40-day free trial, no card required). Supports AI integration via MCP (Model Context Protocol) for querying your finances with Claude, ChatGPT, or any MCP-compatible client.
 
 ## About
 
 MoneyMatter is a privacy-first alternative to apps like Mint, YNAB, and other commercial budget trackers. Unlike those services, MoneyMatter is:
 
-- **Free forever** — no subscription fees, no premium tiers
+- **Free to self-host** — the full app under AGPL-3.0, no feature gating
+- **Affordable cloud** — Essential $5/month or $30/year, Plus $8/month or $55/year, 40-day free trial with no card required
 - **Open source** — AGPL-3.0-licensed, fully auditable code
 - **Self-hostable** — run on your own server with Docker, or use the hosted cloud version
 - **Privacy-first** — your data is never sold, shared, or used for advertising
@@ -15,7 +16,7 @@ The app is built with a Node.js/Express backend, Vue.js frontend, PostgreSQL dat
 
 Website: https://moneymatter.app
 Source code: https://github.com/letehaha/budget-tracker
-License: MIT
+License: AGPL-3.0
 
 ## Features
 
@@ -65,7 +66,7 @@ MoneyMatter works as a PWA, meaning you can install it on your phone's home scre
 
 ## AI Integration via MCP (Model Context Protocol)
 
-MoneyMatter exposes a remote MCP server that provides AI assistants with read-only, OAuth-secured access to your financial data. This is one of MoneyMatter's most distinctive features — you can have a natural-language conversation with an AI about your finances.
+MoneyMatter exposes a remote MCP server that provides AI assistants with scoped, OAuth-secured access to your financial data. This is one of MoneyMatter's most distinctive features — you can have a natural-language conversation with an AI about your finances.
 
 ### What you can do
 
@@ -87,7 +88,7 @@ Use AI agent frameworks (OpenClaw, Claude, ChatGPT) to automate financial analys
 
 ### Security and privacy
 
-- **Read-only access** — AI can query your data but cannot modify it
+- **Scoped access** — you choose at authorization whether the AI can only read your data or also create, update, or delete records
 - **OAuth secured** — standard OAuth 2.0 authentication flow
 - **Revoke anytime** — disconnect AI access instantly from your account settings
 - **No data sharing** — your financial data stays between you and your chosen AI client
@@ -103,7 +104,7 @@ Use AI agent frameworks (OpenClaw, Claude, ChatGPT) to automate financial analys
 
 ### Cloud (Hosted)
 
-Sign up at https://moneymatter.app — no setup required. The hosted version is free, your data is never sold, and you can export everything or switch to self-hosting at any time.
+Sign up at https://moneymatter.app — no setup required. Every cloud feature is free for 40 days with no card required. After the trial, Essential costs $5/month or $30/year and Plus (bank sync, AI on our key, 5 household seats) costs $8/month or $55/year. Your data is never sold, and you can export everything or switch to self-hosting at any time.
 
 ### Self-Hosted (Docker)
 
@@ -120,7 +121,7 @@ Setup guide and Docker configuration: https://github.com/letehaha/budget-tracker
 
 | Feature | Mint & others | YNAB | MoneyMatter |
 |---|---|---|---|
-| Price | Free (you're the product) | $99/year | Free forever |
+| Price | Free (you're the product) | $99/year | Self-host free; cloud from $30/year |
 | Open Source | No | No | Yes (AGPL-3.0) |
 | Self-Hostable | No | No | Yes |
 | Data Privacy | Sells data | Stored on their servers | You own it 100% |

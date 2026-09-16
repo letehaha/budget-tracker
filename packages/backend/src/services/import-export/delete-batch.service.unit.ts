@@ -15,7 +15,6 @@ const bulkDeleteMock =
   jest.fn<
     (params: { userId: number; transactionIds: string[] }) => Promise<{ deletedCount: number; deletedIds: string[] }>
   >();
-const captureExceptionMock = jest.fn<(...args: unknown[]) => void>();
 
 jest.mock('@models/transactions.model', () => ({
   __esModule: true,
@@ -38,11 +37,6 @@ jest.mock('@services/transactions/bulk-delete', () => ({
   bulkDelete: (params: { userId: number; transactionIds: string[] }) => bulkDeleteMock(params),
 }));
 
-jest.mock('@js/utils/sentry', () => ({
-  __esModule: true,
-  captureException: (...args: unknown[]) => captureExceptionMock(...args),
-}));
-
 // The real wrapper needs a DB connection this unit test has none of. Running the body
 // straight through is what a committed run looks like to the caller.
 jest.mock('@services/common/with-transaction', () => ({
@@ -53,7 +47,7 @@ jest.mock('@services/common/with-transaction', () => ({
 /* eslint-disable import/first */
 import { TRANSACTION_TRANSFER_NATURE } from '@bt/shared/types';
 
-import { deleteImportBatch } from './delete-batch.service';
+import { ImportBatchTooLargeError, deleteImportBatch } from './delete-batch.service';
 /* eslint-enable import/first */
 
 const USER_ID = 1;
@@ -71,13 +65,14 @@ describe('deleteImportBatch', () => {
     accountsFindAllMock.mockResolvedValue([{ id: 'acc-1', type: 'system' }]);
   });
 
-  it('rejects and captures a Sentry exception when the batch exceeds the delete cap', async () => {
+  it('throws ImportBatchTooLargeError above the sync cap without deleting anything', async () => {
     mockRows(1001);
 
-    await expect(deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID })).rejects.toThrow();
+    await expect(deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID })).rejects.toBeInstanceOf(
+      ImportBatchTooLargeError,
+    );
 
     expect(bulkDeleteMock).not.toHaveBeenCalled();
-    expect(captureExceptionMock).toHaveBeenCalledTimes(1);
   });
 
   it('deletes an at-cap batch in a single bulkDelete call', async () => {
@@ -89,7 +84,15 @@ describe('deleteImportBatch', () => {
     expect(bulkDeleteMock.mock.calls[0]![0].transactionIds).toHaveLength(1000);
     expect(result.deletedCount).toBe(1000);
     expect(result.deletedIds).toHaveLength(1000);
-    expect(captureExceptionMock).not.toHaveBeenCalled();
+  });
+
+  it('deletes above the cap when maxRows is lifted (the background worker path)', async () => {
+    mockRows(1001);
+
+    const result = await deleteImportBatch({ userId: USER_ID, batchId: BATCH_ID, maxRows: Infinity });
+
+    expect(bulkDeleteMock.mock.calls[0]![0].transactionIds).toHaveLength(1001);
+    expect(result.deletedCount).toBe(1001);
   });
 
   it('reports every batch row as deleted even when bulkDelete skips a cascade-deleted intra-batch twin', async () => {

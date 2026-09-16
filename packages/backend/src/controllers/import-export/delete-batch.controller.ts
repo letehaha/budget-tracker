@@ -1,7 +1,8 @@
-import type { DeleteImportBatchResponse } from '@bt/shared/types';
+import type { DeleteImportBatchResult } from '@bt/shared/types';
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { deleteImportBatch } from '@services/import-export/delete-batch.service';
+import { queueImportBatchDelete } from '@services/import-export/delete-batch-queue';
+import { ImportBatchTooLargeError, deleteImportBatch } from '@services/import-export/delete-batch.service';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -15,12 +16,24 @@ const schema = z.object({
     .optional(),
 });
 
+/**
+ * Small batches delete inline and return the deleted ids. A batch above the sync
+ * cap is handed to the background worker instead and answered 202 with its job id;
+ * the client tracks it via GET /import/batch-delete/status.
+ */
 export const deleteBatchController = createController(schema, async ({ user, params, body }) => {
-  const data: DeleteImportBatchResponse = await deleteImportBatch({
+  const request = {
     userId: user.id,
     batchId: params.batchId,
-    deleteLinkedTransfers: body?.deleteLinkedTransfers,
-  });
+    deleteLinkedTransfers: body?.deleteLinkedTransfers ?? false,
+  };
 
-  return { data };
+  try {
+    const data: DeleteImportBatchResult = await deleteImportBatch(request);
+    return { data };
+  } catch (error) {
+    if (!(error instanceof ImportBatchTooLargeError)) throw error;
+    const data: DeleteImportBatchResult = { jobId: await queueImportBatchDelete(request) };
+    return { data, statusCode: 202 };
+  }
 });

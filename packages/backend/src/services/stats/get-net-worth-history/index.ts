@@ -8,6 +8,7 @@ import { withTransaction } from '@services/common/with-transaction';
 import { calculateVehiclesBalanceHistory } from '@services/stats/calculate-vehicles-balance-history';
 import { calculateVentureBalanceHistory } from '@services/stats/calculate-venture-balance-history';
 import { getAggregatedBalanceHistory, getPerAccountBalanceHistory } from '@services/stats/get-balance-history';
+import { getCreditLimitCentsByAccount } from '@services/stats/get-credit-limit-adjustment';
 import { generatePeriodBuckets } from '@services/stats/utils';
 import { format } from 'date-fns';
 
@@ -61,9 +62,10 @@ const buildPartitionResolver = ({
 };
 
 /**
- * Split one per-account balance series at a snapshot date by balance sign:
- * accounts currently owing (negative) sum into `owedCents`, accounts holding the
- * user's own funds (positive) into `surplusCents`. Used for every account class
+ * Split one per-account balance series at a snapshot date by balance sign, after
+ * netting each balance against the account's credit limit (absent when the
+ * setting is off): accounts currently owing (negative) sum into `owedCents`,
+ * accounts holding the user's own funds (positive) into `surplusCents`. Used for every account class
  * that can sit on either side of zero — cards, overdrafts and plain deposit
  * accounts alike — so an overdrawn account counts as debt, not a negative asset.
  * A missing snapshot key on a present account is a key-derivation bug — the series
@@ -74,19 +76,21 @@ const splitSeriesBySign = ({
   snapshotDate,
   partition,
   userId,
+  creditLimitCentsByAccount,
 }: {
   series: Record<string, Record<string, number>>;
   snapshotDate: string;
   partition: string;
   userId: number;
+  creditLimitCentsByAccount: Map<string, Cents>;
 }): { owedCents: Cents; surplusCents: Cents } => {
   const dateKey = toAccountsDateKey(snapshotDate);
   let owed = 0;
   let surplus = 0;
 
-  for (const [accountId, centsByDate] of Object.entries(series)) {
-    const cents = centsByDate[dateKey];
-    if (cents === undefined) {
+  for (const [accountId, rawCentsByDate] of Object.entries(series)) {
+    const rawCents = rawCentsByDate[dateKey];
+    if (rawCents === undefined) {
       logger.error('Net-worth history: per-account series missing a snapshot day', {
         userId,
         partition,
@@ -98,6 +102,7 @@ const splitSeriesBySign = ({
         message: `Net-worth history: ${partition} account series is missing a snapshot day.`,
       });
     }
+    const cents = rawCents - (creditLimitCentsByAccount.get(accountId) ?? 0);
     if (cents < 0) owed += cents;
     else surplus += cents;
   }
@@ -167,19 +172,22 @@ const buildDegraded = ({
  * always liabilities at their whole signed value. All amounts are base-currency
  * cents; the serializer converts to decimals.
  *
- * The `includeCreditLimitInStats` setting is deliberately ignored: net worth
- * reflects actual balances, and available credit is not debt.
+ * `includeCreditLimit` means a stored balance on an account with a limit embeds
+ * that limit. Subtract it per account before the sign split, or undrawn credit
+ * counts as cash.
  */
 export const getNetWorthHistory = async ({
   userId,
   from,
   to,
   granularity,
+  includeCreditLimit = false,
 }: {
   userId: number;
   from: string;
   to: string;
   granularity: endpointsTypes.NetWorthHistoryGranularity;
+  includeCreditLimit?: boolean;
 }): Promise<NetWorthHistoryResultCents> => {
   // Weekly buckets follow ISO weeks (Monday start) — the shared spec every stats
   // report uses, so week edges line up across the analytics pages.
@@ -225,6 +233,7 @@ export const getNetWorthHistory = async ({
     vehicleValuesByDate,
     portfolioValuation,
     ventureValuesByDate,
+    creditLimitCentsByAccount,
   ] = await withTransaction(async () => {
     // Shared by every sub-calculator that converts to base currency — fetch once.
     const userBaseCurrencyPromise = UsersCurrencies.findOne({
@@ -287,6 +296,7 @@ export const getNetWorthHistory = async ({
       calculateVehiclesBalanceHistory({ userId, maxDate, uniqueDates: snapshotDates, userBaseCurrencyPromise }),
       calculatePortfolioValueByDate({ userId, snapshotDates, denseDates, userBaseCurrencyPromise }),
       calculateVentureBalanceHistory({ userId, minDate, maxDate, uniqueDates: snapshotDates, userBaseCurrencyPromise }),
+      includeCreditLimit ? getCreditLimitCentsByAccount({ userId, accountScope: 'owned' }) : new Map<string, Cents>(),
     ]);
   })();
 
@@ -304,18 +314,21 @@ export const getNetWorthHistory = async ({
         snapshotDate: dateStr,
         partition: 'asset-accounts',
         userId,
+        creditLimitCentsByAccount,
       }),
       creditCard: splitSeriesBySign({
         series: creditCardSeries,
         snapshotDate: dateStr,
         partition: ACCOUNT_CATEGORIES.creditCard,
         userId,
+        creditLimitCentsByAccount,
       }),
       overdraft: splitSeriesBySign({
         series: overdraftSeries,
         snapshotDate: dateStr,
         partition: ACCOUNT_CATEGORIES.overdraft,
         userId,
+        creditLimitCentsByAccount,
       }),
       loanCents: resolveLoan(dateStr),
       portfolioCents: asCents(

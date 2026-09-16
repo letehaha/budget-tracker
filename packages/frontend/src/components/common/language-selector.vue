@@ -74,33 +74,17 @@ const FLAG_SRCS: Record<SupportedLocale, string> = {
   [SUPPORTED_LOCALES.UKRAINIAN]: '/img/flags/ua.svg',
   [SUPPORTED_LOCALES.SPANISH]: '/img/flags/es.png',
   [SUPPORTED_LOCALES.INDONESIAN]: '/img/flags/id.svg',
+  [SUPPORTED_LOCALES.RUSSIAN]: '/img/flags/ru.svg',
 };
 
 const currentFlagSrc = computed(() => FLAG_SRCS[currentLocale.value]);
 const currentLocaleNative = computed(() => LOCALE_NAMES[currentLocale.value].native);
 
-const availableLocales = [
-  {
-    value: SUPPORTED_LOCALES.ENGLISH,
-    native: LOCALE_NAMES[SUPPORTED_LOCALES.ENGLISH].native,
-    flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.ENGLISH],
-  },
-  {
-    value: SUPPORTED_LOCALES.UKRAINIAN,
-    native: LOCALE_NAMES[SUPPORTED_LOCALES.UKRAINIAN].native,
-    flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.UKRAINIAN],
-  },
-  {
-    value: SUPPORTED_LOCALES.SPANISH,
-    native: LOCALE_NAMES[SUPPORTED_LOCALES.SPANISH].native,
-    flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.SPANISH],
-  },
-  {
-    value: SUPPORTED_LOCALES.INDONESIAN,
-    native: LOCALE_NAMES[SUPPORTED_LOCALES.INDONESIAN].native,
-    flagSrc: FLAG_SRCS[SUPPORTED_LOCALES.INDONESIAN],
-  },
-];
+const availableLocales = Object.values(SUPPORTED_LOCALES).map((value) => ({
+  value,
+  native: LOCALE_NAMES[value].native,
+  flagSrc: FLAG_SRCS[value],
+}));
 
 async function handleLocaleChange(locale: SupportedLocale) {
   const previousLocale = currentLocale.value;

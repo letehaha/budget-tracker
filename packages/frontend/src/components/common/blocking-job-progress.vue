@@ -1,15 +1,6 @@
 <template>
-  <!-- Hero: a slow ring spinning around a job badge signals live work. Frozen mid-spin
-       the ring reads as a broken circle, so drop it entirely under reduced motion —
-       the badge alone stays clean. The badge icon is job-specific (see `#icon`). -->
-  <div class="relative mx-auto flex size-16 items-center justify-center">
-    <Loader2Icon
-      class="text-primary-text/30 animation-duration-[2.5s] absolute size-16 animate-spin motion-reduce:hidden"
-      aria-hidden="true"
-    />
-    <div class="bg-primary/10 ring-primary/15 flex size-11 items-center justify-center rounded-full ring-1">
-      <slot name="icon" />
-    </div>
+  <div class="bg-primary/10 ring-primary/15 mx-auto flex size-12 items-center justify-center rounded-full ring-1">
+    <slot name="icon" />
   </div>
 
   <!-- The ids are the accessibility contract read by blocking-job-overlay.vue's
@@ -53,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { CircleCheckIcon, Loader2Icon } from '@lucide/vue';
+import { CircleCheckIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 /** The three states the bar renders: queued/no-step yet, a step in flight, and the

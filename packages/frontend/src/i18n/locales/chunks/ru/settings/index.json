@@ -1,0 +1,25 @@
+{
+  "settings": {
+    "navigation": {
+      "currencies": "Валюты",
+      "categories": "Категории",
+      "tags": "Теги",
+      "accountsGroups": "Группы счетов",
+      "importData": "Импорт/Экспорт",
+      "ai": "AI",
+      "aiIntegrations": "AI-интеграции",
+      "security": "Безопасность",
+      "admin": "Администрирование",
+      "sharedWithMe": "Предоставленные мне",
+      "household": "Семейное пространство",
+      "personalGroup": "Личное",
+      "workspaceGroup": "Рабочая область",
+      "appearance": "Внешний вид",
+      "language": "Язык",
+      "general": "Общие",
+      "payees": "Получатели",
+      "subscriptions": "Запланированные платежи"
+    },
+    "backToSettings": "Назад к настройкам"
+  }
+}

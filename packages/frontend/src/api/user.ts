@@ -1,9 +1,9 @@
 import { api } from '@/api/_api';
-import { UserModel } from '@bt/shared/types/db-models';
+import { UserInfoResponse } from '@bt/shared/types/db-models';
 
 export type { WipeDataSharedResources } from '@bt/shared/types';
 
-export const loadUserData = async (): Promise<UserModel> => {
+export const loadUserData = async (): Promise<UserInfoResponse> => {
   const result = await api.get('/user');
 
   return result;

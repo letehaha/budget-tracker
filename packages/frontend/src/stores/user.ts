@@ -1,12 +1,18 @@
 import { loadUserData } from '@/api';
 import { isBillingEnabled, liveSubscription } from '@/common/const/billing';
-import { SUBSCRIPTION_STATUSES, USER_ROLES, UserModel, isTerminalSubscription, type Feature } from '@bt/shared/types';
+import {
+  SUBSCRIPTION_STATUSES,
+  USER_ROLES,
+  UserInfoResponse,
+  isTerminalSubscription,
+  type Feature,
+} from '@bt/shared/types';
 import { differenceInCalendarDays } from 'date-fns';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
 export const useUserStore = defineStore('user', () => {
-  const user = ref<UserModel | null>(null);
+  const user = ref<UserInfoResponse | null>(null);
   const isUserExists = computed(() => Boolean(user.value));
   const isDemo = computed(() => user.value?.role === USER_ROLES.demo);
   const role = computed(() => user.value?.role ?? null);

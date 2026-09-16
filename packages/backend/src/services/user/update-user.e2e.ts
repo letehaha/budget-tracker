@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import Users from '@models/users.model';
 import { makeRequest } from '@tests/helpers/common';
+import { getUserInfo } from '@tests/helpers/user';
 
 /**
  * Integration tests for PUT /user/update — focused on the username field.
@@ -13,6 +14,14 @@ import { makeRequest } from '@tests/helpers/common';
  *
  * The default test user is seeded as username='test1' (see setupIntegrationTests).
  */
+describe('GET /user', () => {
+  it('serves the better-auth email alongside the Users row', async () => {
+    const user = await getUserInfo({ raw: true });
+    expect(user.username).toBe('test1');
+    expect(user.email).toBe('test1@test.local');
+  });
+});
+
 describe('PUT /user/update — username', () => {
   it('accepts the current name, a new slug, padded input, and leaves username alone when omitted', async () => {
     const noOp = await makeRequest({

@@ -14,10 +14,10 @@ describe('ZodSettingsSchema – locale field', () => {
     expect(result.success).toBe(true);
   });
 
-  it('accepts Spanish locale', () => {
-    const result = ZodSettingsSchema.safeParse({ locale: SUPPORTED_LOCALES.SPANISH });
+  it.each(Object.values(SUPPORTED_LOCALES))('accepts every supported locale (%s)', (locale) => {
+    const result = ZodSettingsSchema.safeParse({ locale });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.locale).toBe('es');
+    if (result.success) expect(result.data.locale).toBe(locale);
   });
 
   it('rejects an unsupported locale', () => {
@@ -43,10 +43,10 @@ describe('ZodSettingsPatchSchema – locale field', () => {
     expect(result.success).toBe(true);
   });
 
-  it('accepts Spanish locale', () => {
-    const result = ZodSettingsPatchSchema.safeParse({ locale: SUPPORTED_LOCALES.SPANISH });
+  it.each(Object.values(SUPPORTED_LOCALES))('accepts every supported locale (%s)', (locale) => {
+    const result = ZodSettingsPatchSchema.safeParse({ locale });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.locale).toBe('es');
+    if (result.success) expect(result.data.locale).toBe(locale);
   });
 
   it('rejects an unsupported locale', () => {

@@ -83,6 +83,7 @@ describe('Data backup export (POST /user/backup)', () => {
 
       expect(archive.files.has('manifest.json')).toBe(true);
       expect(archive.manifest.formatVersion).toBe(BACKUP_FORMAT_VERSION);
+      expect(archive.manifest.user).toEqual({ username: 'test1', email: 'test1@test.local' });
       // Manifest lists a checksum for every data + reference file.
       expect(archive.manifest.files['data/transactions.json']).toBeDefined();
       expect(archive.manifest.files['reference/securities.json']).toBeDefined();

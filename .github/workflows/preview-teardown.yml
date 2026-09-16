@@ -7,6 +7,12 @@ on:
 permissions:
   pull-requests: write
 
+# Same group as preview-deploy.yml: queuing a teardown cancels an in-flight
+# deploy, which would otherwise bring the stack back up right after `down`.
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 env:
   PR_NUMBER: ${{ github.event.pull_request.number }}
 

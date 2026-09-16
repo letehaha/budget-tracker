@@ -78,11 +78,40 @@ export interface ImportBatchesHistoryResponse {
   totalCount: number | null;
 }
 
-/** Response of DELETE /import/batch/:batchId. */
+/** Synchronous response of DELETE /import/batch/:batchId. */
 export interface DeleteImportBatchResponse {
   deletedCount: number;
   deletedIds: string[];
 }
+
+/** 202 response of DELETE /import/batch/:batchId when the batch is too large to
+ *  delete synchronously: the delete runs as a background job that holds the
+ *  app-wide write-lock until it finishes. */
+export interface DeleteImportBatchQueuedResponse {
+  jobId: string;
+}
+
+export type DeleteImportBatchResult = DeleteImportBatchResponse | DeleteImportBatchQueuedResponse;
+
+/** Response of GET /import/batch-delete/status. Never 404s: "no job" is `idle`. */
+export type ImportBatchDeleteActiveStatus =
+  | { state: 'idle' }
+  | { state: 'queued'; jobId: string }
+  | { state: 'running'; jobId: string }
+  | { state: 'completed'; jobId: string; deletedCount: number }
+  | { state: 'failed'; jobId: string; error: string };
+
+/** SSE payload of the batch-delete worker, in the shared import-queue shape. */
+interface ImportBatchDeleteProgressBase {
+  jobId: string;
+  processedCount: number;
+  totalCount: number;
+}
+
+export type ImportBatchDeleteProgress =
+  | (ImportBatchDeleteProgressBase & { status: 'queued' | 'running' })
+  | (ImportBatchDeleteProgressBase & { status: 'completed'; summary: { deletedCount: number } })
+  | (ImportBatchDeleteProgressBase & { status: 'failed'; error: string });
 
 export enum CategoryOptionValue {
   mapDataSourceColumn = 'map-data-source-column',

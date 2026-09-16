@@ -1,0 +1,185 @@
+{
+  "pages": {
+    "statementParser": {
+      "pageTitle": "Распознавание выписки",
+      "pageDescription": "Загрузите банковскую выписку (PDF, CSV или TXT), чтобы извлечь транзакции с помощью AI. Требуется API-ключ AI, настроенный в параметрах.",
+      "stepper": {
+        "steps": {
+          "upload": "Загрузка",
+          "account": "Счёт",
+          "review": "Проверка",
+          "results": "Импорт"
+        }
+      },
+      "steps": {
+        "accountTitle": "Выберите счёт",
+        "accountDescription": "Выберите или создайте счёт для транзакций"
+      },
+      "selectCurrency": "Выберите валюту",
+      "selectExistingAccount": "Выберите существующий счёт",
+      "accountNamePlaceholder": "например, Основной банковский счёт",
+      "selectAccount": "Выберите счёт",
+      "searchAccounts": "Поиск счетов...",
+      "uploadExtract": {
+        "supportedFormats": "Поддерживаемые форматы: PDF, CSV, TXT (до 10 МБ)",
+        "clickOrDragStatements": "Нажмите или перетащите сюда файлы выписок",
+        "filesLabel": "Файлы",
+        "analyzingFiles": "Анализ файлов...",
+        "totalForFiles": "всего для {count} файлов",
+        "estimateFailedSome": "Не удалось проанализировать {count} из {total} файлов:",
+        "extractionFailedSome": "Не удалось обработать {count} из {total} файлов. Остальные готовы к импорту.",
+        "retryFailed": "Повторить для файлов с ошибкой",
+        "progressFile": "Обработка {name} ({current} из {total})",
+        "acrossFiles": "по {count} файлам",
+        "currencyConflict": "В выбранных выписках указаны разные валюты ({currencies}). Все они будут импортированы в один счёт в валюте этого счёта.",
+        "unsupportedFileNamed": "{name} не является файлом PDF, CSV или TXT",
+        "unreadableFiles": "Не удалось прочитать: {files}",
+        "fileStatus": {
+          "pending": "Не проанализирован",
+          "estimating": "Анализ...",
+          "estimated": "Готово",
+          "estimateFailed": "Не удалось проанализировать",
+          "extracting": "Обработка...",
+          "extracted": "{count} транзакция | {count} транзакции | {count} транзакций",
+          "failed": "Ошибка"
+        },
+        "analyzeButton": "Проанализировать файл | Проанализировать {count} файла | Проанализировать {count} файлов",
+        "tryAgain": "Попробовать снова",
+        "modelLabel": "Модель",
+        "estimatedCostLabel": "Ориентировочная стоимость",
+        "estimatedTokensLabel": "Ориентировочное количество токенов",
+        "extractButton": "Извлечь транзакции",
+        "progressMessage": "Это может занять 30–60 секунд в зависимости от размера документа",
+        "foundLabel": "Найдено:",
+        "transactions": "транзакций",
+        "fromLabel": "из",
+        "inLabel": "в",
+        "continueMessage": "Перейдите к выбору счёта для этих транзакций.",
+        "continueButton": "Перейти к счёту",
+        "tokenWarning": {
+          "medium": {
+            "title": "Обнаружен большой файл",
+            "description": "Обработка может занять 1–2 минуты."
+          },
+          "high": {
+            "title": "Обнаружен очень большой файл",
+            "description": "Из-за размера файла обработка может занять несколько минут."
+          },
+          "extreme": {
+            "title": "Очень большой файл",
+            "description": "Обработка может занять более 5 минут. Для ускорения разделите файл на меньшие части."
+          }
+        },
+        "freeApiWarning": "Вы используете бесплатный доступ к AI с дневными лимитами. Для быстрого и непрерывного сервиса добавьте собственный API-ключ.",
+        "addApiKeyLink": "Добавить API-ключ в настройках →",
+        "status": {
+          "sendingFile": "Отправка файла в AI...",
+          "readingDocument": "AI читает документ...",
+          "analyzingStructure": "Анализ структуры выписки...",
+          "extractingData": "Извлечение данных транзакций...",
+          "processingTransactions": "Обработка транзакций...",
+          "finalizing": "Завершение извлечения...",
+          "almostDone": "Почти готово..."
+        },
+        "tokenFormat": "{inputTokens}K входных, ~{outputTokens}K выходных",
+        "pdfPasswordLabel": "Пароль PDF",
+        "pdfPasswordPlaceholder": "Введите пароль документа",
+        "pdfPasswordSubmit": "Разблокировать и проанализировать"
+      },
+      "accountSelect": {
+        "newlyCreated": "(только что создан)",
+        "differentCurrency": "Другая валюта",
+        "linkedToBanks": "Связан с банками",
+        "linkedToBanksTooltip": "Пока импорт выписок доступен только для системных счетов.",
+        "noAccountsFound": "Счета не найдены",
+        "currencyAccounts": "Счета в {currency}"
+      },
+      "accountSelection": {
+        "transactions": "Транзакции:",
+        "files": "Выписки:",
+        "filesList": "Из: {files}",
+        "currencyConflict": "В выписках указаны разные валюты ({currencies}). Выберите валюту счёта:",
+        "bank": "Банк:",
+        "currency": "Валюта:",
+        "currencyNotDetected": "Не удалось определить валюту выписки. Выберите валюту вручную:",
+        "currencyMismatch": "Валюта выписки ({statementCurrency}) отличается от валюты счёта ({accountCurrency}). Транзакции будут импортированы в валюте счёта.",
+        "yourCurrenciesGroup": "Ваши валюты",
+        "allCurrenciesGroup": "Все валюты",
+        "createNew": "Создать новый",
+        "back": "Назад",
+        "importTransactions": "Импортировать транзакции",
+        "checkForDuplicates": "Проверить дубликаты"
+      },
+      "createAccountDialog": {
+        "title": "Создать счёт для импорта",
+        "description": "Создайте новый счёт для импорта транзакций из выписки.",
+        "accountNameLabel": "Название счёта",
+        "currencyLabel": "Валюта",
+        "fromStatement": "(из выписки)",
+        "currencyLocked": "Валюта зафиксирована в соответствии с выпиской ({currency}).",
+        "currencyWillBeAdded": "Примечание: {currency} будет добавлена в список ваших валют.",
+        "cancel": "Отмена",
+        "creating": "Создание...",
+        "createAccount": "Создать счёт",
+        "validation": {
+          "nameRequired": "Название счёта обязательно",
+          "currencyRequired": "Выберите валюту"
+        },
+        "success": "Счёт успешно создан",
+        "error": "Не удалось создать счёт"
+      },
+      "transactionReview": {
+        "checkingDuplicates": "Проверка дубликатов...",
+        "extractedLabel": "Извлечено:",
+        "fromFiles": "из {count} выписок",
+        "duplicatesLabel": "Возможные дубликаты:",
+        "willImportLabel": "Будет импортировано:",
+        "alreadyInAccountLabel": "Уже на счёте:",
+        "timelineTitle": "Хронология транзакций",
+        "legendNew": "Новая",
+        "legendDuplicate": "Дубликат",
+        "legendExisting": "Существующая",
+        "statusDup": "Дубл.",
+        "statusImport": "Импорт",
+        "statusExists": "Есть",
+        "duplicateInfoSkipped": "{count} транзакций будет пропущено как дубликаты.",
+        "duplicateInfoOverridden": "{count} дубликатов переопределены и будут импортированы.",
+        "toggleInfo": "Нажмите на строку, чтобы переключить:",
+        "toggleWillImport": "будет импортировано,",
+        "toggleWillSkip": "будет пропущено.",
+        "backButton": "Назад",
+        "continueButton": "Перейти к импорту",
+        "transactionCount": "({count} транзакций)",
+        "duplicateCheckFailed": "Не удалось проверить выписку на совпадения с существующими транзакциями, поэтому число дубликатов недоступно. Просмотрите список перед импортом."
+      },
+      "droppedRowsWarning": "{count} строку из ответа AI не удалось прочитать, она пропущена. Итоговое число импортированных транзакций может быть меньше, чем в файле. | {count} строки из ответа AI не удалось прочитать, они пропущены. Итоговое число импортированных транзакций может быть меньше, чем в файле. | {count} строк из ответа AI не удалось прочитать, они пропущены. Итоговое число импортированных транзакций может быть меньше, чем в файле.",
+      "importResults": {
+        "readyTitle": "Готово к импорту",
+        "readyDescription": "Проверьте сводку ниже и нажмите «Импортировать транзакции».",
+        "accountLabel": "Счёт:",
+        "statementsLabel": "Выписки:",
+        "toImportLabel": "Транзакций для импорта:",
+        "toSkipLabel": "Транзакций для пропуска:",
+        "backButton": "Назад",
+        "importButton": "Импортировать транзакций: {count}",
+        "importingTitle": "Импорт транзакций",
+        "importingDescription": "Подождите, пока транзакции импортируются...",
+        "failedTitle": "Ошибка импорта",
+        "failedDescription": "Ничего не импортировано. Сведения ниже получены от сервера.",
+        "tryAgainButton": "Попробовать снова",
+        "completeTitle": "Импорт завершён!",
+        "completeWithIssuesTitle": "Импорт завершён с проблемами",
+        "successDescription": "Транзакции успешно импортированы.",
+        "partialDescription": "Некоторые транзакции не удалось импортировать.",
+        "importedLabel": "Импортировано:",
+        "skippedLabel": "Пропущено:",
+        "errorsTitle": "Ошибки импорта",
+        "transactionNumberHeader": "Транзакция №",
+        "errorHeader": "Ошибка",
+        "batchIdNote": "ID пакета импорта: {batchId}. Используйте его для поиска и управления всеми импортированными транзакциями.",
+        "viewTransactionsButton": "Просмотреть транзакции",
+        "startNewImportButton": "Начать новый импорт"
+      }
+    }
+  }
+}

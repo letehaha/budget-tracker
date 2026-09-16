@@ -134,6 +134,58 @@ describe('buildMoneyFlow', () => {
     ]);
   });
 
+  it('moves savings-category spend from expenses into a savings destination', () => {
+    const flow = buildMoneyFlow({
+      data: asResponse({
+        ...data,
+        emergency: entry({ expense: 200, income: 50 }),
+        deposits: entry({ expense: 100 }),
+      }),
+      categories: [
+        ...categories,
+        category({ id: 'savings', name: 'Savings' }),
+        category({ id: 'emergency', parentId: 'savings', name: 'Emergency fund' }),
+        category({ id: 'deposits', parentId: 'savings', name: 'Deposits' }),
+      ],
+      contributions: contributions({ amounts: { a: 100 } }),
+      sourceLevel: 1,
+      expenseLevel: 1,
+      topN: 10,
+      // The settings picker stores the parent together with its subtree.
+      savingsCategoryIds: ['savings', 'emergency', 'deposits'],
+    });
+
+    expect(flow).toMatchObject({ income: 1300, expenses: 800, net: 500, savings: 500, deficit: 0 });
+    expect(flow.expenseNodes.map((n) => n.id)).toEqual(['housing', 'food']);
+    expect(flow.savingsNodes.map((n) => [n.id, n.name, n.value])).toEqual([
+      ['savings', 'Savings', 250],
+      ['a', 'Portfolio a', 100],
+      [CASH_NODE_ID, '', 150],
+    ]);
+  });
+
+  it('keeps a savings subcategory out of its expense parent and funds it from a deficit', () => {
+    const flow = buildMoneyFlow({
+      data: asResponse({ ...data, deposit: entry({ expense: 900 }) }),
+      categories: [...categories, category({ id: 'deposit', parentId: 'housing', name: 'Deposit' })],
+      sourceLevel: 1,
+      expenseLevel: 1,
+      topN: 10,
+      savingsCategoryIds: ['deposit'],
+    });
+
+    expect(flow).toMatchObject({ income: 1300, expenses: 800, savings: 900, deficit: 400 });
+    expect(flow.expenseNodes.map((n) => [n.id, n.value])).toEqual([
+      ['housing', 500],
+      ['food', 300],
+    ]);
+    expect(flow.sources.map((n) => [n.id, n.value])).toEqual([
+      ['income', 1300],
+      [DEFICIT_NODE_ID, 400],
+    ]);
+    expect(flow.savingsNodes).toEqual([{ id: 'deposit', name: 'Deposit', color: '#deposit', value: 900, share: 1 }]);
+  });
+
   it('rolls both sides up to the requested level', () => {
     const flow = buildMoneyFlow({ data, categories, sourceLevel: 1, expenseLevel: 1, topN: 10 });
 

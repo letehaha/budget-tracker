@@ -1,6 +1,7 @@
 import { deleteImportBatch } from '@/api/import-export';
 import { VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useImportBatchDeleteJobStatus } from '@/composable/use-import-batch-delete-job-status';
 import { i18n } from '@/i18n';
 import { ApiErrorResponseError } from '@/js/errors';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
@@ -13,6 +14,14 @@ export function useDeleteImportBatch({ onSuccess }: { onSuccess?: () => void } =
     mutationFn: async ({ batchId, deleteLinkedTransfers }: { batchId: string; deleteLinkedTransfers?: boolean }) =>
       deleteImportBatch({ batchId, deleteLinkedTransfers }),
     onSuccess: (result) => {
+      if ('jobId' in result) {
+        // Too large to delete inline: the server runs it as a job holding the app-wide
+        // write-lock. The watchdog blocks the UI and reloads once it lands.
+        useImportBatchDeleteJobStatus().start({ initialStatus: { state: 'queued', jobId: result.jobId } });
+        onSuccess?.();
+        return;
+      }
+
       // Deletions move account balances, so refresh everything tx-derived
       // (this also covers the batch-history list itself).
       queryClient.invalidateQueries({

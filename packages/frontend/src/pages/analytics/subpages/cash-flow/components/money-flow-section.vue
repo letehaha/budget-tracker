@@ -79,11 +79,14 @@
       <ChartSkeleton v-else :show-legend="false" height-class="h-100" />
     </div>
 
-    <div v-else-if="error || contributionsError || venturesError" class="flex h-100 items-center justify-center">
+    <div
+      v-else-if="error || contributionsError || venturesError || settingsError"
+      class="flex h-100 items-center justify-center"
+    >
       <div class="text-destructive-text">{{ $t('analytics.cashFlow.composition.loadError') }}</div>
     </div>
 
-    <template v-else-if="flow && flow.income + flow.expenses > 0">
+    <template v-else-if="flow && flow.income + flow.expenses + flow.savings > 0">
       <div :class="cn('border-border border-y', isCompact ? 'divide-border divide-y' : 'flex flex-wrap')">
         <div
           v-for="item in summary"
@@ -136,6 +139,7 @@ import PopoverTrigger from '@/components/lib/ui/popover/PopoverTrigger.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/lib/ui/select';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
+import { useUserSettings } from '@/composable/data-queries/user-settings';
 import { useChartColors } from '@/composable/charts/chart-colors';
 import { useAnimatedNumber } from '@/composable/use-animated-number';
 import type { Period } from '@/composable/use-period-navigation';
@@ -162,6 +166,7 @@ const { t } = useI18n();
 const { categories } = storeToRefs(useCategoriesStore());
 const { formatBaseCurrency } = useFormatCurrency();
 const colors = useChartColors();
+const { data: userSettings, isPending: settingsPending, error: settingsError } = useUserSettings();
 
 // Below this card width the sankey's two label columns leave no room for ribbons; the list layout takes over.
 const COMPACT_WIDTH = 560;
@@ -222,7 +227,9 @@ const {
   placeholderData: keepPreviousData,
 });
 
-const isLoading = computed(() => spendingsLoading.value || contributionsPending.value || venturesPending.value);
+const isLoading = computed(
+  () => spendingsLoading.value || contributionsPending.value || venturesPending.value || settingsPending.value,
+);
 
 const flow = computed(() =>
   spendings.value
@@ -234,6 +241,7 @@ const flow = computed(() =>
         sourceLevel: sourceLevel.value,
         expenseLevel: expenseLevel.value,
         topN: Number(topN.value),
+        savingsCategoryIds: userSettings.value?.savingsCategoryIds,
       })
     : undefined,
 );

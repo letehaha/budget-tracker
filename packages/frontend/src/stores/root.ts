@@ -1,4 +1,5 @@
 import { useBaseCurrencyChangeStatus } from '@/composable/use-base-currency-change-status';
+import { useImportBatchDeleteJobStatus } from '@/composable/use-import-batch-delete-job-status';
 import { useRestoreJobStatus } from '@/composable/use-restore-job-status';
 import { useAuthStore } from '@/stores/auth';
 import { useCategoriesStore } from '@/stores/categories/categories';
@@ -37,6 +38,7 @@ export const useRootStore = defineStore('root', () => {
         // Same for a data restore: block if one is running, or wipe caches + reload
         // once if one completed while this device was away (its cache is pre-restore).
         useRestoreJobStatus().checkOnBoot(),
+        useImportBatchDeleteJobStatus().checkOnBoot(),
       ]);
 
       isAppInitialized.value = true;

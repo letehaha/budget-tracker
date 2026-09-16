@@ -1,0 +1,98 @@
+{
+  "settings": {
+    "tags": {
+      "title": "Теги",
+      "addButton": "Добавить тег",
+      "empty": "Тегов пока нет. Создайте первый тег, чтобы организовать транзакции.",
+      "tabs": {
+        "details": "Сведения",
+        "reminders": "Напоминания"
+      },
+      "form": {
+        "createTitle": "Создать тег",
+        "editTitle": "Изменить тег",
+        "name": "Название",
+        "namePlaceholder": "Название тега",
+        "color": "Цвет",
+        "icon": "Значок",
+        "iconPlaceholder": "Выберите значок",
+        "iconSearchPlaceholder": "Поиск значков...",
+        "clearIcon": "Убрать значок",
+        "description": "Описание",
+        "descriptionPlaceholder": "Необязательное описание",
+        "saveButton": "Сохранить",
+        "previewPlaceholder": "Название тега"
+      },
+      "delete": {
+        "title": "Удалить тег?",
+        "description": "Тег «{name}» будет безвозвратно удалён из всех транзакций. Это действие нельзя отменить.",
+        "deleteButton": "Удалить",
+        "cancelButton": "Отмена"
+      },
+      "notifications": {
+        "createSuccess": "Тег создан",
+        "createFailed": "Не удалось создать тег",
+        "updateSuccess": "Тег обновлён",
+        "updateFailed": "Не удалось обновить тег",
+        "deleteSuccess": "Тег удалён",
+        "deleteFailed": "Не удалось удалить тег"
+      },
+      "reminders": {
+        "addButton": "Добавить напоминание",
+        "empty": "Напоминаний пока нет. Создайте напоминание, чтобы получать уведомления об активности этого тега.",
+        "enabled": "Включено",
+        "disabled": "Отключено",
+        "form": {
+          "createTitle": "Создать напоминание",
+          "editTitle": "Изменить напоминание",
+          "type": "Тип напоминания",
+          "typePlaceholder": "Выберите тип",
+          "amountThreshold": "Порог суммы",
+          "amountThresholdPlaceholder": "Введите пороговую сумму",
+          "amountThresholdHint": "Получать уведомление, когда расходы по этому тегу превысят указанную сумму",
+          "frequency": "Периодичность",
+          "frequencyPlaceholder": "Выберите периодичность",
+          "dayOfMonth": "День месяца",
+          "dayOfMonthPlaceholder": "Выберите день",
+          "dayOfMonthHint": "В коротких месяцах будет использоваться последний день месяца",
+          "isEnabled": "Включено",
+          "saveButton": "Сохранить"
+        },
+        "types": {
+          "amountThreshold": "Порог суммы",
+          "amountThresholdDescription": "Уведомлять, когда расходы превышают заданную сумму",
+          "existenceCheck": "Проверка активности",
+          "existenceCheckDescription": "Уведомлять, когда есть транзакции с этим тегом"
+        },
+        "frequencies": {
+          "immediate": "Сразу",
+          "immediateDescription": "Срабатывает при добавлении тега к транзакции (пауза 24 часа)",
+          "daily": "Ежедневно",
+          "dailyDescription": "Проверять каждый день",
+          "weekly": "Еженедельно",
+          "weeklyDescription": "Проверять каждый понедельник",
+          "monthly": "Ежемесячно",
+          "monthlyDescription": "Проверять в указанный день каждого месяца",
+          "quarterly": "Ежеквартально",
+          "quarterlyDescription": "Проверять каждые 3 месяца (янв., апр., июл., окт.)",
+          "yearly": "Ежегодно",
+          "yearlyDescription": "Проверять один раз в год в январе"
+        },
+        "delete": {
+          "title": "Удалить напоминание?",
+          "description": "Напоминание будет удалено безвозвратно. Это действие нельзя отменить.",
+          "deleteButton": "Удалить",
+          "cancelButton": "Отмена"
+        },
+        "notifications": {
+          "createSuccess": "Напоминание создано",
+          "createFailed": "Не удалось создать напоминание",
+          "updateSuccess": "Напоминание обновлено",
+          "updateFailed": "Не удалось обновить напоминание",
+          "deleteSuccess": "Напоминание удалено",
+          "deleteFailed": "Не удалось удалить напоминание"
+        }
+      }
+    }
+  }
+}

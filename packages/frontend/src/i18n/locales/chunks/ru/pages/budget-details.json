@@ -1,0 +1,104 @@
+{
+  "pages": {
+    "budgets": {
+      "transactionsList": {
+        "selectionModeWarning": "Режим выбора — выберите транзакции для отвязки",
+        "selectAll": "Выбрать все",
+        "selected": "Выбрано: {count}",
+        "unlink": "Отвязать",
+        "cancel": "Отмена",
+        "unlinkSelected": "Отвязать выбранные",
+        "noMatchingTransactions": "Подходящие транзакции не найдены",
+        "noTransactionsLinked": "Связанных транзакций нет",
+        "filterAdjustmentHint": "Попробуйте изменить фильтры, чтобы увидеть больше транзакций.",
+        "addTransactionsHint": "Добавьте транзакции в этот бюджет, чтобы начать отслеживать расходы.",
+        "resetFilters": "Сбросить фильтры",
+        "addTransactions": "Добавить транзакции",
+        "add": "Добавить",
+        "loadingMore": "Загрузка..."
+      }
+    },
+    "budgetDetails": {
+      "notSet": "Не задано",
+      "saving": "Сохранение...",
+      "saveChanges": "Сохранить изменения",
+      "loading": "Загрузка...",
+      "uncategorized": "Без категории",
+      "stats": {
+        "income": "Доходы",
+        "expenses": "Расходы",
+        "netBalance": "Чистый баланс"
+      },
+      "utilization": {
+        "title": "Использование бюджета",
+        "summary": "{spent} из лимита {limit}",
+        "na": "Н/Д"
+      },
+      "noTransactionsYet": "Транзакций пока нет",
+      "transactions": "Транзакции",
+      "transactionsLinked": "С этим бюджетом связана {count} транзакция | С этим бюджетом связаны {count} транзакции | С этим бюджетом связано {count} транзакций",
+      "tabs": {
+        "statistics": "Статистика",
+        "transactions": "Транзакции",
+        "sharing": "Общий доступ"
+      },
+      "statistics": {
+        "tabs": {
+          "categories": "Категории",
+          "timeline": "Хронология"
+        },
+        "errorTitle": "Не удалось загрузить статистику",
+        "errorDescription": "При загрузке данных произошла ошибка. Попробуйте позже.",
+        "noDataTitle": "Нет данных о расходах",
+        "noDataDescription": "Для этого бюджета пока нет данных о расходах.",
+        "noCategoryData": "Нет данных о расходах по категориям.",
+        "noTimelineData": "Нет данных для хронологии.",
+        "total": "Итого",
+        "income": "Доходы",
+        "expenses": "Расходы",
+        "incomeLabel": "Доходы:",
+        "expensesLabel": "Расходы:"
+      },
+      "sharing": {
+        "title": "Общий доступ",
+        "description": "Управляйте тем, кто может видеть этот бюджет и добавлять в него данные.",
+        "inviteAnother": "Пригласить пользователя",
+        "membersHeading": "Участники",
+        "pendingHeading": "Ожидающие приглашения",
+        "loadError": "Не удалось загрузить участников.",
+        "permissions": {
+          "read": "Только просмотр",
+          "write": "Добавление собственных транзакций",
+          "manage": "Управление"
+        },
+        "member": {
+          "you": "вы",
+          "roleOwner": "Владелец",
+          "roleRecipient": "Участник",
+          "ownerHint": "Полный контроль над этим бюджетом",
+          "updateSuccess": "Разрешение обновлено.",
+          "updateError": "Не удалось обновить разрешение.",
+          "revoke": "Отозвать доступ",
+          "revokeConfirm": "Отозвать",
+          "revokeTitle": "Отозвать доступ?",
+          "revokeDescription": "{user} потеряет доступ к {budget}.",
+          "revokeSuccess": "Доступ отозван.",
+          "revokeError": "Не удалось отозвать доступ."
+        },
+        "pending": {
+          "empty": "Нет ожидающих приглашений.",
+          "resend": "Отправить повторно",
+          "resendSuccess": "Приглашение отправлено повторно.",
+          "resendError": "Не удалось повторно отправить приглашение.",
+          "resendDeliveryFailed": "Приглашение отправлено повторно, но письмо не удалось доставить.",
+          "cancel": "Отмена",
+          "cancelConfirm": "Отменить приглашение",
+          "cancelTitle": "Отменить приглашение?",
+          "cancelDescription": "Приглашение для {email} будет отменено.",
+          "cancelSuccess": "Приглашение отменено.",
+          "cancelError": "Не удалось отменить приглашение."
+        }
+      }
+    }
+  }
+}

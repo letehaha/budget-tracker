@@ -1,11 +1,13 @@
 import { config } from '@/common/config';
 import {
   BILLING_TIERS,
+  isEntitledSubscription,
   isTerminalSubscription,
   type BillingCycle,
   type BillingSubscriptionSummary,
   type BillingTier,
   type Entitlements,
+  type Plan,
 } from '@bt/shared/types';
 import { isFuture } from 'date-fns';
 
@@ -23,6 +25,18 @@ export const liveSubscription = ({
 }): BillingSubscriptionSummary | null =>
   entitlements?.subscriptions.find((s) => !isTerminalSubscription(s) && isFuture(new Date(s.currentPeriodEndsAt))) ??
   null;
+
+export type AnalyticsPlan = Plan | 'trial' | 'read_only' | 'legacy';
+
+/** One label per user for the PostHog `plan` person property. Mirrors the backend entitlement order. */
+export const analyticsPlan = ({ entitlements }: { entitlements: Entitlements }): AnalyticsPlan => {
+  if (entitlements.readOnly) return 'read_only';
+  if (entitlements.plan) return entitlements.plan;
+  const paid = entitlements.subscriptions.find((s) => isEntitledSubscription(s));
+  if (paid) return paid.tier;
+  if (entitlements.trialEndsAt && isFuture(new Date(entitlements.trialEndsAt))) return 'trial';
+  return 'legacy';
+};
 
 /**
  * Headline USD amounts, tax excluded. Stripe has no client-side price preview, so
