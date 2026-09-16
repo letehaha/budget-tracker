@@ -11,7 +11,11 @@ import {
 } from '@bt/shared/types';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
-import { expectCsvImportCompleted, waitForCsvImportCompletion } from '@tests/helpers/import-export';
+import {
+  expectCsvImportCompleted,
+  waitForCsvImportCompletion,
+  waitForImportBatchDelete,
+} from '@tests/helpers/import-export';
 import { asUser, signUpSecondUser, withoutSession } from '@tests/helpers/share';
 import { getMockedLunchFlowTransactions } from '@tests/mocks/lunchflow/data';
 import {
@@ -29,6 +33,8 @@ async function runCsvImport({
   currencyCode,
   recalculateBalance = false,
   incomeAccountId,
+  extraRows = [],
+  timeoutMs,
 }: {
   accountId: string;
   currencyCode: string;
@@ -39,6 +45,9 @@ async function runCsvImport({
   /** Adds a third income row on this account, giving the batch a row linkable
    *  to one of the expenses as a transfer pair. */
   incomeAccountId?: string;
+  /** Extra CSV lines appended after the fixed rows, for oversized batches. */
+  extraRows?: string[];
+  timeoutMs?: number;
 }) {
   const { jobId } = await helpers.executeImport({
     payload: {
@@ -47,6 +56,7 @@ async function runCsvImport({
         `2024-01-15,10.00,Coffee,,A,${currencyCode},expense`,
         `2024-01-16,20.00,Lunch,,A,${currencyCode},expense`,
         ...(incomeAccountId ? [`2024-01-17,20.00,Moved in,,B,${currencyCode},income`] : []),
+        ...extraRows,
       ].join('\n'),
       delimiter: ',',
       columnMapping: {
@@ -74,7 +84,7 @@ async function runCsvImport({
     },
     raw: true,
   });
-  const progress = await waitForCsvImportCompletion({ jobId });
+  const progress = await waitForCsvImportCompletion({ jobId, timeoutMs });
   expectCsvImportCompleted(progress);
   return progress.summary;
 }
@@ -270,4 +280,68 @@ describe('DELETE /import/batch/:batchId', () => {
     const remaining = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
     expect(remaining).toHaveLength(0);
   });
+});
+
+describe('background delete for batches above the sync cap', () => {
+  const OVERSIZED_BATCH_ROWS = 1001;
+  const IMPORT_TIMEOUT_MS = 120_000;
+
+  it('reports idle when no delete job exists', async () => {
+    const status = await helpers.getImportBatchDeleteStatus({ raw: true });
+
+    expect(status).toEqual({ state: 'idle' });
+  });
+
+  it('returns 401 for an unauthenticated status request', async () => {
+    const response = await withoutSession(() => helpers.getImportBatchDeleteStatus());
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  it(
+    'answers 202 with a job id, deletes every row in the background and restores the balance',
+    async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const balanceBeforeImport = account.currentBalance;
+
+      const summary = await runCsvImport({
+        accountId: account.id,
+        currencyCode: account.currencyCode,
+        recalculateBalance: true,
+        extraRows: Array.from(
+          { length: OVERSIZED_BATCH_ROWS - 2 },
+          (_, i) => `2024-02-01,${(1 + i * 0.01).toFixed(2)},Row ${i},,A,${account.currencyCode},expense`,
+        ),
+        timeoutMs: IMPORT_TIMEOUT_MS,
+      });
+      expect(summary.newTransactionIds).toHaveLength(OVERSIZED_BATCH_ROWS);
+
+      const response = await helpers.deleteImportBatch({ batchId: summary.batchId });
+      expect(response.statusCode).toBe(202);
+      const { jobId } = response.body.response as unknown as { jobId: string };
+      expect(jobId).toEqual(expect.any(String));
+
+      const inflight = await helpers.getImportBatchDeleteStatus({ raw: true });
+      expect(inflight.state).not.toBe('idle');
+
+      // Whether the worker already holds the lock (route guard) or not yet (enqueue
+      // guard), a second delete is refused while the first is in flight.
+      const second = await helpers.deleteImportBatch({ batchId: summary.batchId });
+      expect(second.statusCode).toBe(423);
+
+      const status = await waitForImportBatchDelete({ timeoutMs: IMPORT_TIMEOUT_MS });
+      expect(status).toEqual({ state: 'completed', jobId, deletedCount: OVERSIZED_BATCH_ROWS });
+
+      // The lock is released with the job, so writes flow again.
+      const afterDelete = await helpers.createAccount();
+      expect(afterDelete.statusCode).toBe(200);
+
+      const remaining = await helpers.getTransactions({ batchId: summary.batchId, raw: true });
+      expect(remaining).toHaveLength(0);
+
+      const accountAfterDelete = (await helpers.getAccounts()).find((a) => a.id === account.id)!;
+      expect(accountAfterDelete.currentBalance).toBe(balanceBeforeImport);
+    },
+    IMPORT_TIMEOUT_MS * 3,
+  );
 });

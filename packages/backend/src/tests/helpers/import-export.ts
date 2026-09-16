@@ -17,9 +17,10 @@ import type {
   ExecuteOfxRequest,
   ExecuteOfxResponse,
   ExecuteYnabResponse,
-  ExtractUniqueValuesResponse,
   ExtractedMetadata,
   ExtractedTransaction,
+  ExtractUniqueValuesResponse,
+  ImportBatchDeleteActiveStatus,
   ImportBatchesHistoryResponse,
   MsMoneyAccountMapping,
   MsMoneyImportProgress,
@@ -946,6 +947,29 @@ export function getBatchesHistory<R extends boolean | undefined = false>({
 // ============================================
 // Delete Import Batch Endpoint
 // ============================================
+
+export function getImportBatchDeleteStatus<R extends boolean | undefined = false>({
+  raw,
+}: { raw?: R } = {}): UtilizeReturnType<() => ImportBatchDeleteActiveStatus, R> {
+  return makeRequest<ImportBatchDeleteActiveStatus, R>({
+    method: 'get',
+    url: '/import/batch-delete/status',
+    raw,
+  });
+}
+
+/** Poll GET /import/batch-delete/status every 100 ms until the job settles. */
+export async function waitForImportBatchDelete({
+  timeoutMs = 60_000,
+}: { timeoutMs?: number } = {}): Promise<ImportBatchDeleteActiveStatus> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const status = await getImportBatchDeleteStatus({ raw: true });
+    if (status.state === 'completed' || status.state === 'failed') return status;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Import batch delete did not finish within ${timeoutMs}ms`);
+}
 
 export function deleteImportBatch<R extends boolean | undefined = false>({
   batchId,

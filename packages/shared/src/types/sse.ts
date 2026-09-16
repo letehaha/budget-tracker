@@ -1,7 +1,7 @@
 import type { BackupRestoreSseProgress } from './backup';
 import type { BudgetBakersWalletImportProgress } from './budget-bakers-wallet-import';
 import type { BaseCurrencyChangeStatus } from './currencies';
-import type { CsvImportProgress } from './import-export';
+import type { CsvImportProgress, ImportBatchDeleteProgress } from './import-export';
 import type { MsMoneyImportProgress } from './ms-money-import';
 import type { OfxImportProgress } from './ofx-import';
 /**
@@ -24,6 +24,7 @@ export const SSE_EVENT_TYPES = {
   CSV_IMPORT_PROGRESS: 'csv_import_progress',
   BASE_CURRENCY_CHANGE_STATUS: 'base_currency_change_status',
   BACKUP_RESTORE_PROGRESS: 'backup_restore_progress',
+  IMPORT_BATCH_DELETE_PROGRESS: 'import_batch_delete_progress',
 } as const;
 
 export type SSEEventType = (typeof SSE_EVENT_TYPES)[keyof typeof SSE_EVENT_TYPES];
@@ -126,7 +127,8 @@ export type SSEEventPayload =
   | OfxImportProgress
   | CsvImportProgress
   | BaseCurrencyChangeStatus
-  | BackupRestoreSseProgress;
+  | BackupRestoreSseProgress
+  | ImportBatchDeleteProgress;
 
 /**
  * Maps each SSE event name to the payload its listeners receive. Lets a typed
@@ -145,4 +147,5 @@ export interface SSEEventPayloadMap {
   [SSE_EVENT_TYPES.CSV_IMPORT_PROGRESS]: CsvImportProgress;
   [SSE_EVENT_TYPES.BASE_CURRENCY_CHANGE_STATUS]: BaseCurrencyChangeStatus;
   [SSE_EVENT_TYPES.BACKUP_RESTORE_PROGRESS]: BackupRestoreSseProgress;
+  [SSE_EVENT_TYPES.IMPORT_BATCH_DELETE_PROGRESS]: ImportBatchDeleteProgress;
 }

@@ -128,8 +128,11 @@
         }}
       </template>
 
-      <Callout variant="destructive" :title="$t('pages.importExport.importHistory.deleteLinkedTransfersWarningTitle')">
-        <label class="flex cursor-pointer items-start gap-2">
+      <Callout variant="warning" :title="$t('pages.importExport.importHistory.deleteLinkedTransfersWarningTitle')">
+        <p class="text-muted-foreground text-xs">
+          {{ $t('pages.importExport.importHistory.deleteLinkedTransfersDescription') }}
+        </p>
+        <label class="text-foreground mt-3 flex cursor-pointer items-start gap-2">
           <Checkbox
             class="mt-0.5"
             :model-value="deleteLinkedTransfers"
@@ -137,7 +140,6 @@
           />
           <span>{{ $t('pages.importExport.importHistory.deleteLinkedTransfersCheckbox') }}</span>
         </label>
-        <p class="mt-2 text-xs">{{ $t('pages.importExport.importHistory.deleteLinkedTransfersDescription') }}</p>
       </Callout>
     </ResponsiveAlertDialog>
 

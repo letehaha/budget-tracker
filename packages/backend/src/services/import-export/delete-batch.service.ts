@@ -1,4 +1,9 @@
-import { ACCOUNT_TYPES, TRANSACTION_TRANSFER_NATURE, isTwoLegTransfer } from '@bt/shared/types';
+import {
+  ACCOUNT_TYPES,
+  type DeleteImportBatchResponse,
+  TRANSACTION_TRANSFER_NATURE,
+  isTwoLegTransfer,
+} from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import { captureException } from '@js/utils/sentry';
@@ -17,18 +22,24 @@ interface DeleteImportBatchParams {
    *  `false` unlinks the batch's own leg to `transfer_out_wallet` instead, leaving the
    *  external transaction untouched. */
   deleteLinkedTransfers?: boolean;
-}
-
-interface DeleteImportBatchResult {
-  deletedCount: number;
-  deletedIds: string[];
+  /** Rows above this count throw `ImportBatchTooLargeError` instead of deleting.
+   *  The background worker passes `Infinity`. */
+  maxRows?: number;
 }
 
 // Import batches can reach MAX_CSV_ROWS (50k) rows; bulkDelete's one-transaction,
-// per-row loop would time out at that scale.
-// TODO: batches over this cap need an async BullMQ job with SSE progress instead of
-// being refused outright. The Sentry capture below is the signal to prioritize it.
-const MAX_BATCH_DELETE_TRANSACTIONS = 1000;
+// per-row loop would exceed the HTTP timeout at that scale, so larger batches run
+// as a background job (see delete-batch-queue.ts).
+const MAX_SYNC_BATCH_DELETE_TRANSACTIONS = 1000;
+
+export class ImportBatchTooLargeError extends Error {
+  readonly rowCount: number;
+
+  constructor({ rowCount }: { rowCount: number }) {
+    super(`Import batch has ${rowCount} rows, above the synchronous cap`);
+    this.rowCount = rowCount;
+  }
+}
 
 /**
  * Resolves every row stamped with this batch's `importDetails.batchId`, scoped to the
@@ -43,7 +54,8 @@ const deleteImportBatchImpl = async ({
   userId,
   batchId,
   deleteLinkedTransfers = false,
-}: DeleteImportBatchParams): Promise<DeleteImportBatchResult> => {
+  maxRows = MAX_SYNC_BATCH_DELETE_TRANSACTIONS,
+}: DeleteImportBatchParams): Promise<DeleteImportBatchResponse> => {
   const rows = (await Transactions.findWithFilters({
     planned: 'exclude',
     access: { creator: userId },
@@ -63,14 +75,8 @@ const deleteImportBatchImpl = async ({
     return { deletedCount: 0, deletedIds: [] };
   }
 
-  if (rows.length > MAX_BATCH_DELETE_TRANSACTIONS) {
-    captureException({
-      error: new Error('Import batch delete request exceeded the synchronous cap'),
-      context: { userId, batchId, rowCount: rows.length, cap: MAX_BATCH_DELETE_TRANSACTIONS },
-    });
-    throw new ValidationError({
-      message: t({ key: 'importExport.batchDeleteTooLarge' }),
-    });
+  if (rows.length > maxRows) {
+    throw new ImportBatchTooLargeError({ rowCount: rows.length });
   }
 
   // `accountType` on the row is a creation-time snapshot, never updated when the account
