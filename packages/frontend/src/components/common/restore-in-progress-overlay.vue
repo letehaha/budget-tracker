@@ -12,6 +12,11 @@
     :dismiss-label="$t('settings.security.backup.restore.overlay.dismiss')"
     @dismiss="stop"
   >
+    <template #icon>
+      <DatabaseBackupIcon class="text-primary-text size-5" aria-hidden="true" />
+    </template>
+    <template #title>{{ $t('settings.security.backup.restore.overlay.title') }}</template>
+    <template #description>{{ $t('settings.security.backup.restore.overlay.description') }}</template>
     <template #progress>
       <BlockingJobProgress
         :ordered-step-keys="PHASE_ORDER"
@@ -21,14 +26,13 @@
         preparing-label-key="settings.security.backup.restore.overlay.preparing"
         finishing-label-key="settings.security.backup.restore.overlay.finishing"
       >
-        <template #icon>
-          <DatabaseBackupIcon class="text-primary-text size-5" aria-hidden="true" />
-        </template>
-        <template #title>{{ $t('settings.security.backup.restore.overlay.title') }}</template>
-        <template #description>{{ $t('settings.security.backup.restore.overlay.description') }}</template>
         <template #trailing>
           <span v-if="insertedRows != null" class="text-muted-foreground shrink-0 text-xs tabular-nums">
-            {{ $t('settings.security.backup.restore.progress.inserted', { count: insertedRows }) }}
+            {{
+              $t('settings.security.backup.restore.progress.inserted', {
+                count: insertedRows,
+              })
+            }}
           </span>
         </template>
       </BlockingJobProgress>
@@ -101,20 +105,14 @@ const insertedRows = computed(() => {
   return current?.state === 'running' ? (current.insertedRows ?? null) : null;
 });
 
-/**
- * Where the restore is now, mapped to the bar:
- *  - `running`  → 0-based index of the phase in flight
- *  - `finishing`→ the brief `completed` window before the reload (bar full)
- *  - `preparing`→ queued, or running with no phase yet (indeterminate bar)
- */
+// Running with an unknown phase counts as preparing.
 const progress = computed<
-  { kind: 'running'; index: number; phase: BackupRestorePhase } | { kind: 'finishing' } | { kind: 'preparing' }
+  { kind: 'running'; phase: BackupRestorePhase } | { kind: 'finishing' } | { kind: 'preparing' }
 >(() => {
   const current = status.value;
   if (current?.state === 'completed') return { kind: 'finishing' };
-  if (current?.state === 'running' && current.phase) {
-    const index = PHASE_ORDER.indexOf(current.phase);
-    if (index >= 0) return { kind: 'running', index, phase: current.phase };
+  if (current?.state === 'running' && current.phase && PHASE_ORDER.includes(current.phase)) {
+    return { kind: 'running', phase: current.phase };
   }
   return { kind: 'preparing' };
 });
