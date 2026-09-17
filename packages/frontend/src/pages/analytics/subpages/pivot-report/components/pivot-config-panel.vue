@@ -1,45 +1,20 @@
 <template>
   <div class="border-border bg-card space-y-3 rounded-lg border p-4">
-    <!-- Row 1: shape controls + utility cluster.
-         Outer stays a single non-wrapping row so the utility cluster is always
-         pinned top-right; the shape-controls group shrinks (min-w-0) and wraps
-         its own items onto extra lines when the row runs out of width. -->
-    <div class="flex items-start gap-x-6">
-      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2">
-        <PivotDimensionControl
-          :label="$t('pivotReport.controls.rows')"
-          :items="rowDimensionItems"
-          :model-value="rowDimension"
-          @update:model-value="(value) => (rowDimension = value as endpointsTypes.PivotRowDimension)"
-        />
-        <PivotDimensionControl
-          :label="$t('pivotReport.controls.columns')"
-          :items="granularityItems"
-          :model-value="granularity"
-          @update:model-value="(value) => (granularity = value as endpointsTypes.PivotGranularity)"
-        />
-        <PivotDimensionControl
-          :label="$t('pivotReport.controls.measure')"
-          :items="measureItems"
-          :model-value="measure"
-          @update:model-value="(value) => (measure = value as endpointsTypes.PivotMeasure)"
-        />
-      </div>
-
-      <!-- Utility cluster folded behind one button so it stays pinned top-right
-           and never competes with the shape controls for row width. -->
+    <Teleport defer :to="`#${ANALYTICS_HEADER_ACTIONS_ID}`">
       <Popover v-model:open="isSettingsOpen">
         <PopoverTrigger as-child>
           <Button variant="secondary" size="sm" class="shrink-0 gap-1.5">
             <Settings2Icon class="size-4" />
-            <span class="hidden @sm/pivot-report:inline">{{ $t('pivotReport.controls.settings') }}</span>
+            <span class="hidden @sm:inline">{{ $t('pivotReport.controls.settings') }}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" class="w-72 p-0">
           <!-- Saved views -->
           <div class="p-1">
             <div class="flex items-center justify-between gap-2 px-2 pt-1.5 pb-1">
-              <p class="text-muted-foreground text-xs font-medium">{{ $t('pivotReport.savedViews.trigger') }}</p>
+              <p class="text-muted-foreground text-xs font-medium">
+                {{ $t('pivotReport.savedViews.trigger') }}
+              </p>
               <span v-if="!activeViewId" class="text-muted-foreground text-xs">
                 {{ $t('pivotReport.savedViews.customView') }}
               </span>
@@ -85,7 +60,9 @@
 
           <!-- Display options -->
           <div class="border-border space-y-3 border-t p-3">
-            <p class="text-muted-foreground text-xs font-medium">{{ $t('pivotReport.display.title') }}</p>
+            <p class="text-muted-foreground text-xs font-medium">
+              {{ $t('pivotReport.display.title') }}
+            </p>
             <label class="flex cursor-pointer items-center justify-between gap-3 text-sm">
               <span>{{ $t('pivotReport.toggles.heatmap') }}</span>
               <Switch v-model="heatmap" />
@@ -97,52 +74,113 @@
           </div>
         </PopoverContent>
       </Popover>
-    </div>
+    </Teleport>
 
-    <!-- Row 2: filter pills -->
-    <div class="flex flex-wrap items-center gap-2">
-      <DateSelector v-model="period" :presets="periodPresets" :earliest-date="earliestDate">
-        <template #trigger="{ triggerText }">
-          <FilterPill :label="$t('pivotReport.filters.period')" :value="triggerText" :icon="CalendarIcon" />
-        </template>
-      </DateSelector>
-
-      <div class="w-fit max-w-full">
+    <DefineFilters v-slot="{ pill }">
+      <div :class="pill ? 'min-w-0' : 'w-full'">
         <ComboboxCategories
           v-model:category-ids="categoryIds"
           independent-check-state
-          :trigger-class="filterPillClass({ active: categoryIds.length > 0 })"
+          :placeholder="pill ? $t('pivotReport.filters.categories') : undefined"
+          :trigger-class="pill ? filterPillClass({ active: categoryIds.length > 0 }) : undefined"
         />
       </div>
-
-      <div class="w-fit max-w-full">
+      <div :class="pill ? 'min-w-0' : 'w-full'">
         <PayeeMultiSelectField
           :payee-ids="payeeIds"
-          :trigger-class="filterPillClass({ active: payeeIds.length > 0 })"
+          :placeholder="pill ? $t('pivotReport.filters.payees') : undefined"
+          :trigger-class="pill ? filterPillClass({ active: payeeIds.length > 0 }) : undefined"
           @update:payee-ids="payeeIds = $event"
         />
       </div>
-
-      <div class="w-fit max-w-full">
+      <div :class="pill ? 'min-w-0' : 'w-full'">
         <AccountMultiSelectField
           :model-value="accountIds"
           exclude-dedicated-flow
-          :trigger-class="filterPillClass({ active: accountIds.length > 0 })"
+          :placeholder="pill ? $t('pivotReport.filters.accounts') : undefined"
+          :trigger-class="pill ? filterPillClass({ active: accountIds.length > 0 }) : undefined"
           @update:model-value="accountIds = $event"
         />
       </div>
+    </DefineFilters>
 
-      <DesktopOnlyTooltip v-if="canReset" :content="$t('pivotReport.filters.resetTooltip')">
-        <Button
-          type="button"
-          variant="ghost"
-          class="text-muted-foreground hover:text-foreground flex h-8 min-h-8 w-auto items-center gap-1.5 rounded-md px-3 py-1 text-sm font-normal"
-          @click="emit('reset')"
-        >
-          <RotateCcwIcon class="size-3.5 shrink-0 opacity-70" />
-          {{ $t('pivotReport.filters.reset') }}
-        </Button>
-      </DesktopOnlyTooltip>
+    <div class="flex items-center justify-between gap-3">
+      <!-- Report shape: one joined strip; from @6xl each control renders its own segmented tabs. -->
+      <div
+        class="border-border divide-border bg-background grid min-w-0 flex-1 grid-cols-3 divide-x overflow-hidden rounded-md border @xl/pivot-report:w-fit @xl/pivot-report:flex-none @xl/pivot-report:grid-cols-[repeat(3,auto)] @6xl/pivot-report:flex @6xl/pivot-report:w-auto @6xl/pivot-report:flex-1 @6xl/pivot-report:flex-wrap @6xl/pivot-report:gap-x-5 @6xl/pivot-report:gap-y-2 @6xl/pivot-report:divide-x-0 @6xl/pivot-report:overflow-visible @6xl/pivot-report:rounded-none @6xl/pivot-report:border-0 @6xl/pivot-report:bg-transparent [&>:first-child_button]:rounded-l-md [&>:last-child_button]:rounded-r-md"
+      >
+        <PivotDimensionControl
+          :label="$t('pivotReport.controls.rows')"
+          :items="rowDimensionItems"
+          :model-value="rowDimension"
+          @update:model-value="(value) => (rowDimension = value as endpointsTypes.PivotRowDimension)"
+        />
+        <PivotDimensionControl
+          :label="$t('pivotReport.controls.columns')"
+          :items="granularityItems"
+          :model-value="granularity"
+          @update:model-value="(value) => (granularity = value as endpointsTypes.PivotGranularity)"
+        />
+        <PivotDimensionControl
+          :label="$t('pivotReport.controls.measure')"
+          :items="measureItems"
+          :model-value="measure"
+          @update:model-value="(value) => (measure = value as endpointsTypes.PivotMeasure)"
+        />
+      </div>
+
+      <!-- Resets shape, period and filters, so it sits at card level rather than in the filter row. -->
+      <div v-if="canReset" class="hidden shrink-0 @2xl/pivot-report:block">
+        <DesktopOnlyTooltip :content="$t('pivotReport.filters.resetTooltip')">
+          <Button type="button" variant="ghost" size="sm" class="h-8 gap-1.5 font-normal" @click="emit('reset')">
+            <RotateCcwIcon class="size-3.5 shrink-0" />
+            {{ $t('pivotReport.filters.reset') }}
+          </Button>
+        </DesktopOnlyTooltip>
+      </div>
+    </div>
+
+    <!-- Data scope: the row never wraps. Filters truncate inline from @2xl and fold behind one button below it. -->
+    <div class="flex items-center gap-2">
+      <DateSelector v-model="period" :presets="periodPresets" :earliest-date="earliestDate">
+        <template #trigger="{ triggerText }">
+          <FilterPill
+            :label="$t('pivotReport.filters.period')"
+            :value="triggerText"
+            :icon="CalendarIcon"
+            class="flex-1 @2xl/pivot-report:flex-none"
+          />
+        </template>
+      </DateSelector>
+
+      <div class="hidden min-w-0 items-center gap-2 @2xl/pivot-report:flex">
+        <ReuseFilters :pill="true" />
+      </div>
+
+      <FiltersButton
+        :label="$t('pivotReport.filters.button')"
+        :active-count="activeFilterCount"
+        class="@2xl/pivot-report:hidden"
+      >
+        <div class="flex flex-col gap-3">
+          <ReuseFilters />
+        </div>
+      </FiltersButton>
+
+      <div v-if="canReset" class="shrink-0 @2xl/pivot-report:hidden">
+        <DesktopOnlyTooltip :content="$t('pivotReport.filters.resetTooltip')">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            class="size-9"
+            :aria-label="$t('pivotReport.filters.reset')"
+            @click="emit('reset')"
+          >
+            <RotateCcwIcon class="size-4" />
+          </Button>
+        </DesktopOnlyTooltip>
+      </div>
     </div>
 
     <!-- Save-view dialog -->
@@ -186,7 +224,10 @@ import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useEarliestTransactionDate } from '@/composable/data-queries/earliest-transaction-date';
 import type { Period } from '@/composable/use-period-navigation';
 import { cn } from '@/lib/utils';
+import FiltersButton from '@/pages/analytics/components/filters-button.vue';
+import { ANALYTICS_HEADER_ACTIONS_ID } from '@/pages/analytics/utils';
 import { endpointsTypes } from '@bt/shared/types';
+import { createReusableTemplate } from '@vueuse/core';
 import { endOfMonth, endOfYear, startOfMonth, startOfYear, subMonths, subYears } from 'date-fns';
 import { CalendarIcon, CheckIcon, PlusIcon, RotateCcwIcon, Settings2Icon, Trash2Icon } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -277,6 +318,12 @@ const periodPresets = computed<DateSelectorPreset[]>(() => [
     getValue: () => ({ from: earliestDate.value ?? new Date(2000, 0, 1), to: new Date() }),
   },
 ]);
+
+const [DefineFilters, ReuseFilters] = createReusableTemplate<{ pill?: boolean }>();
+
+const activeFilterCount = computed(
+  () => [categoryIds.value, payeeIds.value, accountIds.value].filter((ids) => ids.length > 0).length,
+);
 
 const isSettingsOpen = ref(false);
 const isSaveDialogOpen = ref(false);

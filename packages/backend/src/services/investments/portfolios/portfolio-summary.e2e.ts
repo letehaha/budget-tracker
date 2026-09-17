@@ -24,11 +24,21 @@ const BUY_DATE_RATE_DATE = new Date(`${BUY_DATE}T00:00:00.000Z`);
 const BUY_DATE_USD_TO_BASE = 8;
 const TODAY_USD_TO_BASE = AED_PER_USD;
 
-const seedHoldingWithHistoricalBuy = async ({ currencyCode, symbol }: { currencyCode: string; symbol: string }) => {
-  const portfolio = await helpers.createPortfolio({
-    payload: helpers.buildPortfolioPayload({ name: `FX Gains Portfolio ${symbol}` }),
-    raw: true,
-  });
+const seedHoldingWithHistoricalBuy = async ({
+  currencyCode,
+  symbol,
+  portfolio: existingPortfolio,
+}: {
+  currencyCode: string;
+  symbol: string;
+  portfolio?: Portfolios;
+}) => {
+  const portfolio =
+    existingPortfolio ??
+    (await helpers.createPortfolio({
+      payload: helpers.buildPortfolioPayload({ name: `FX Gains Portfolio ${symbol}` }),
+      raw: true,
+    }));
 
   const security = await Securities.create({
     symbol,
@@ -427,6 +437,33 @@ describe('Portfolio Summary (GET /investments/portfolios/:id/summary)', () => {
       expect(parseFloat(summary.totalCostBasis)).toBeCloseTo(1000 * TODAY_USD_TO_BASE, 1);
       expect(parseFloat(summary.unrealizedGainValue)).toBeCloseTo(200 * TODAY_USD_TO_BASE, 1);
       expect(Math.sign(parseFloat(summary.unrealizedGainValue))).toBe(Math.sign(200));
+    });
+
+    it('aggregates several holdings across repeated and distinct foreign currencies', async () => {
+      await helpers.addUserCurrencyByCode({ code: 'EUR', raw: true });
+
+      const portfolio = await helpers.createPortfolio({
+        payload: helpers.buildPortfolioPayload({ name: 'Multi-currency Portfolio' }),
+        raw: true,
+      });
+      await seedHoldingWithHistoricalBuy({ portfolio, currencyCode: 'USD', symbol: 'FXU1' });
+      await seedHoldingWithHistoricalBuy({ portfolio, currencyCode: 'USD', symbol: 'FXU2' });
+      await seedHoldingWithHistoricalBuy({ portfolio, currencyCode: 'EUR', symbol: 'FXE1' });
+
+      await helpers.sleep(DEDUP_CACHE_MS);
+
+      const summary = await helpers.getPortfolioSummary({
+        portfolioId: portfolio.id,
+        raw: true,
+      });
+
+      // Each holding: cost 1000, market 1200 in its own currency.
+      const eurToBase = AED_PER_USD / EUR_PER_USD;
+      const nativeUnitsInBase = 2 * TODAY_USD_TO_BASE + eurToBase;
+
+      expect(parseFloat(summary.totalCurrentValue)).toBeCloseTo(1200 * nativeUnitsInBase, 1);
+      expect(parseFloat(summary.totalCostBasis)).toBeCloseTo(1000 * nativeUnitsInBase, 1);
+      expect(parseFloat(summary.unrealizedGainValue)).toBeCloseTo(200 * nativeUnitsInBase, 1);
     });
 
     it('reports the same values natively when the holding currency is the base currency', async () => {

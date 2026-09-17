@@ -259,7 +259,7 @@ class ApiCaller {
       if (e instanceof DOMException && e.name === 'AbortError') {
         throw e;
       }
-      if (e instanceof TypeError && e.toString().includes('Failed to fetch')) {
+      if (e instanceof TypeError && errors.FETCH_NETWORK_FAILURE_MESSAGES.some((msg) => e.message.includes(msg))) {
         // Self-hosters and local devs are the system operators – give them the
         // actionable hint (backend not running, CORS misconfigured). Cloud users
         // can't act on either and should see a generic message.

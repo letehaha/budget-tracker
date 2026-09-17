@@ -1,8 +1,18 @@
 import { api } from '@/api/_api';
-import { type RecordId, type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
+import { type TRANSACTION_TYPES, endpointsTypes } from '@bt/shared/types';
 import { format } from 'date-fns';
 
 const formatDate = (date: Date) => format(date, 'yyyy-MM-dd');
+
+const commaJoinedIds = (lists: Record<string, string[] | undefined>): Record<string, string> => {
+  const params: Record<string, string> = {};
+
+  for (const [key, ids] of Object.entries(lists)) {
+    if (ids?.length) params[key] = ids.join(',');
+  }
+
+  return params;
+};
 
 interface Params {
   accountId?: endpointsTypes.GetBalanceHistoryPayload['accountId'];
@@ -41,18 +51,33 @@ export const getSpendingsByCategories = async ({
   type,
   categoryIds,
   excludedCategoryIds,
+  accountIds,
+  payeeIds,
+  excludedPayeeIds,
+  tagIds,
+  excludedTagIds,
   excludePlanned,
   ...rest
 }: Params & {
   type?: TRANSACTION_TYPES;
   categoryIds?: string[];
   excludedCategoryIds?: string[];
+  accountIds?: string[];
+  payeeIds?: string[];
+  excludedPayeeIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
   excludePlanned?: boolean;
 } = {}): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
   const params: endpointsTypes.GetBalanceHistoryPayload & {
     type?: string;
     categoryIds?: string;
     excludedCategoryIds?: string;
+    accountIds?: string;
+    payeeIds?: string;
+    excludedPayeeIds?: string;
+    tagIds?: string;
+    excludedTagIds?: string;
     excludePlanned?: string;
   } = {
     ...rest,
@@ -61,9 +86,20 @@ export const getSpendingsByCategories = async ({
   if (from) params.from = formatDate(from);
   if (to) params.to = formatDate(to);
   if (type) params.type = type;
-  if (categoryIds && categoryIds.length > 0) params.categoryIds = categoryIds.join(',');
-  if (excludedCategoryIds && excludedCategoryIds.length > 0) params.excludedCategoryIds = excludedCategoryIds.join(',');
   if (excludePlanned) params.excludePlanned = 'true';
+
+  Object.assign(
+    params,
+    commaJoinedIds({
+      categoryIds,
+      excludedCategoryIds,
+      accountIds,
+      payeeIds,
+      excludedPayeeIds,
+      tagIds,
+      excludedTagIds,
+    }),
+  );
 
   return api.get('/stats/spendings-by-categories', params);
 };
@@ -124,6 +160,11 @@ interface GetCashFlowParams {
   accountId?: string;
   categoryIds?: string[];
   excludedCategoryIds?: string[];
+  accountIds?: string[];
+  payeeIds?: string[];
+  excludedPayeeIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
   excludePlanned?: boolean;
 }
 
@@ -134,6 +175,11 @@ export const getCashFlow = async ({
   accountId,
   categoryIds,
   excludedCategoryIds,
+  accountIds,
+  payeeIds,
+  excludedPayeeIds,
+  tagIds,
+  excludedTagIds,
   excludePlanned,
 }: GetCashFlowParams): Promise<endpointsTypes.GetCashFlowResponse> => {
   const params: Record<string, string | number | boolean> = {
@@ -143,13 +189,20 @@ export const getCashFlow = async ({
   };
 
   if (accountId !== undefined) params.accountId = accountId;
-  if (categoryIds !== undefined && categoryIds.length > 0) {
-    params.categoryIds = categoryIds.join(',');
-  }
-  if (excludedCategoryIds !== undefined && excludedCategoryIds.length > 0) {
-    params.excludedCategoryIds = excludedCategoryIds.join(',');
-  }
   if (excludePlanned) params.excludePlanned = true;
+
+  Object.assign(
+    params,
+    commaJoinedIds({
+      categoryIds,
+      excludedCategoryIds,
+      accountIds,
+      payeeIds,
+      excludedPayeeIds,
+      tagIds,
+      excludedTagIds,
+    }),
+  );
 
   return api.get('/stats/cash-flow', params);
 };
@@ -275,6 +328,13 @@ interface GetCumulativeDataParams {
   to: Date;
   metric: endpointsTypes.CumulativeMetric;
   accountId?: string;
+  categoryIds?: string[];
+  excludedCategoryIds?: string[];
+  accountIds?: string[];
+  payeeIds?: string[];
+  excludedPayeeIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
 }
 
 export const getCumulativeData = async ({
@@ -282,6 +342,13 @@ export const getCumulativeData = async ({
   to,
   metric,
   accountId,
+  categoryIds,
+  excludedCategoryIds,
+  accountIds,
+  payeeIds,
+  excludedPayeeIds,
+  tagIds,
+  excludedTagIds,
 }: GetCumulativeDataParams): Promise<endpointsTypes.GetCumulativeResponse> => {
   const params: Record<string, string | number | boolean> = {
     from: formatDate(from),
@@ -290,6 +357,19 @@ export const getCumulativeData = async ({
   };
 
   if (accountId !== undefined) params.accountId = accountId;
+
+  Object.assign(
+    params,
+    commaJoinedIds({
+      categoryIds,
+      excludedCategoryIds,
+      accountIds,
+      payeeIds,
+      excludedPayeeIds,
+      tagIds,
+      excludedTagIds,
+    }),
+  );
 
   return api.get('/stats/cumulative', params);
 };

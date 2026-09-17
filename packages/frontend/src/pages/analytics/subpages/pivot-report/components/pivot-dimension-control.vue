@@ -1,7 +1,7 @@
 <template>
-  <div class="flex items-center gap-2">
-    <span class="text-muted-foreground text-xs font-medium">{{ label }}</span>
-    <!-- Wide: segmented pill tabs. Narrow: a compact Select with the same items. -->
+  <div class="min-w-0 @6xl/pivot-report:flex @6xl/pivot-report:items-center @6xl/pivot-report:gap-2">
+    <!-- Wide: label + segmented pill tabs. Narrower: one cell of the host's joined strip, label inside the trigger. -->
+    <span class="text-muted-foreground hidden text-xs font-medium @6xl/pivot-report:inline">{{ label }}</span>
     <div class="hidden @6xl/pivot-report:block">
       <PillTabs
         :model-value="modelValue"
@@ -15,8 +15,15 @@
         :model-value="modelValue"
         @update:model-value="(value) => emit('update:modelValue', value as string)"
       >
-        <Select.SelectTrigger class="h-8 min-h-8 w-auto min-w-28 gap-1 py-0 md:h-8">
-          <Select.SelectValue />
+        <Select.SelectTrigger
+          class="hover:bg-accent h-auto min-h-11 gap-1.5 rounded-none border-0 bg-transparent px-2.5 py-1 focus:ring-offset-0 focus:ring-inset md:h-auto @xl/pivot-report:min-h-8 @xl/pivot-report:px-3 @xl/pivot-report:py-0"
+        >
+          <span
+            class="flex min-w-0 flex-col @xl/pivot-report:flex-row @xl/pivot-report:items-center @xl/pivot-report:gap-2"
+          >
+            <span class="text-muted-foreground text-[11px] leading-tight @xl/pivot-report:text-xs">{{ label }}</span>
+            <span class="truncate font-medium"><Select.SelectValue /></span>
+          </span>
         </Select.SelectTrigger>
         <Select.SelectContent>
           <Select.SelectItem v-for="item in items" :key="item.value" :value="item.value">

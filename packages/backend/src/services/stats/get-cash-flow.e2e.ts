@@ -1261,3 +1261,162 @@ describe('GET /stats/cash-flow — savings categories setting', () => {
     expect(period.netFlow).toBe(-300);
   });
 });
+
+describe('GET /stats/cash-flow – page-level scope filters', () => {
+  const expenseAt = async ({
+    accountId,
+    amount,
+    payeeId,
+  }: {
+    accountId: RecordId;
+    amount: number;
+    payeeId?: RecordId;
+  }) => {
+    const [tx] = await helpers.createTransaction({
+      payload: {
+        ...helpers.buildTransactionPayload({
+          accountId,
+          amount,
+          transactionType: TRANSACTION_TYPES.expense,
+          ...(payeeId ? { payeeId } : {}),
+        }),
+        time: TX_TIME,
+      },
+      raw: true,
+    });
+    return tx;
+  };
+
+  it('accountIds narrows to the selected accounts and wins over accountId', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+
+    await expenseAt({ accountId: accountA.id, amount: 50 });
+    await expenseAt({ accountId: accountB.id, amount: 70 });
+
+    const both = await helpers.getCashFlow({ ...RANGE, raw: true });
+    expect(both.periods[0]!.expenses).toBe(120);
+
+    const onlyA = await helpers.getCashFlow({
+      ...RANGE,
+      accountIds: [accountA.id],
+      raw: true,
+    });
+    expect(onlyA.periods[0]!.expenses).toBe(50);
+
+    const conflicting = await helpers.getCashFlow({
+      ...RANGE,
+      accountId: accountB.id,
+      accountIds: [accountA.id],
+      raw: true,
+    });
+    expect(conflicting.periods[0]!.expenses).toBe(50);
+  });
+
+  it('payeeIds keeps only transactions linked to the selected payees', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const payeeA = await helpers.createPayee({
+      payload: { name: uniqueName('Acme') },
+      raw: true,
+    });
+    const payeeB = await helpers.createPayee({
+      payload: { name: uniqueName('Globex') },
+      raw: true,
+    });
+
+    await expenseAt({ accountId: account.id, amount: 40, payeeId: payeeA.id });
+    await expenseAt({ accountId: account.id, amount: 25, payeeId: payeeB.id });
+    await expenseAt({ accountId: account.id, amount: 10 });
+
+    const result = await helpers.getCashFlow({
+      ...RANGE,
+      payeeIds: [payeeA.id],
+      raw: true,
+    });
+    expect(result.periods[0]!.expenses).toBe(40);
+  });
+
+  it('tagIds counts a transaction carrying two selected tags exactly once', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const tagA = await helpers.createTag({
+      payload: { name: uniqueName('TagA'), color: '#ff0000' },
+      raw: true,
+    });
+    const tagB = await helpers.createTag({
+      payload: { name: uniqueName('TagB'), color: '#00ff00' },
+      raw: true,
+    });
+
+    const doubleTagged = await expenseAt({ accountId: account.id, amount: 50 });
+    await helpers.addTransactionsToTag({
+      tagId: tagA.id,
+      transactionIds: [doubleTagged.id],
+    });
+    await helpers.addTransactionsToTag({
+      tagId: tagB.id,
+      transactionIds: [doubleTagged.id],
+    });
+
+    const singleTagged = await expenseAt({ accountId: account.id, amount: 30 });
+    await helpers.addTransactionsToTag({
+      tagId: tagA.id,
+      transactionIds: [singleTagged.id],
+    });
+
+    await expenseAt({ accountId: account.id, amount: 20 });
+
+    const result = await helpers.getCashFlow({
+      ...RANGE,
+      tagIds: [tagA.id, tagB.id],
+      raw: true,
+    });
+    expect(result.periods[0]!.expenses).toBe(80);
+  });
+
+  it('excludedPayeeIds drops the excluded payee while a payee-less transaction stays', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const payee = await helpers.createPayee({ payload: { name: uniqueName('Acme') }, raw: true });
+
+    await expenseAt({ accountId: account.id, amount: 40, payeeId: payee.id });
+    await expenseAt({ accountId: account.id, amount: 15 });
+
+    const result = await helpers.getCashFlow({ ...RANGE, excludedPayeeIds: [payee.id], raw: true });
+    expect(result.periods[0]!.expenses).toBe(15);
+  });
+
+  it('excludedTagIds drops a transaction carrying an excluded tag and keeps an untagged one', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const excludedTag = await helpers.createTag({
+      payload: { name: uniqueName('Hidden'), color: '#ff0000' },
+      raw: true,
+    });
+    const otherTag = await helpers.createTag({ payload: { name: uniqueName('Other'), color: '#00ff00' }, raw: true });
+
+    const tagged = await expenseAt({ accountId: account.id, amount: 70 });
+    await helpers.addTransactionsToTag({ tagId: excludedTag.id, transactionIds: [tagged.id] });
+    await helpers.addTransactionsToTag({ tagId: otherTag.id, transactionIds: [tagged.id] });
+
+    await expenseAt({ accountId: account.id, amount: 25 });
+
+    const result = await helpers.getCashFlow({ ...RANGE, excludedTagIds: [excludedTag.id], raw: true });
+    expect(result.periods[0]!.expenses).toBe(25);
+  });
+
+  it('empty state: a tag with no transactions reports zero for the period', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const unusedTag = await helpers.createTag({
+      payload: { name: uniqueName('Unused'), color: '#123456' },
+      raw: true,
+    });
+
+    await expenseAt({ accountId: account.id, amount: 90 });
+
+    const result = await helpers.getCashFlow({
+      ...RANGE,
+      tagIds: [unusedTag.id],
+      raw: true,
+    });
+    expect(result.periods[0]!.expenses).toBe(0);
+    expect(result.totals.expenses).toBe(0);
+  });
+});

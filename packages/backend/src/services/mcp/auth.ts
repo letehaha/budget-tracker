@@ -129,7 +129,9 @@ export async function verifyMcpToken({ authorizationHeader }: { authorizationHea
   try {
     return await verifyAccessToken({ token });
   } catch (error) {
-    logger.warn(`MCP token verification failed: ${(error as Error).message}`);
+    // Unauthorized is routine client churn and stays out of Sentry; anything else
+    // (auth DB, Redis, entitlements) is a real failure and is captured.
+    logger.error(error as Error);
     throw error;
   }
 }

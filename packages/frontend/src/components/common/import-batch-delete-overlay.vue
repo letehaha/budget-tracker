@@ -11,6 +11,11 @@
     :dismiss-label="$t('common.importBatchDeleteOverlay.dismiss')"
     @dismiss="stop"
   >
+    <template #icon>
+      <Trash2Icon class="text-primary-text size-5" aria-hidden="true" />
+    </template>
+    <template #title>{{ $t('common.importBatchDeleteOverlay.title') }}</template>
+    <template #description>{{ $t('common.importBatchDeleteOverlay.description') }}</template>
     <template #progress>
       <BlockingJobProgress
         :ordered-step-keys="STEP_ORDER"
@@ -19,13 +24,7 @@
         :current-step-key="progressState === 'running' ? 'deleting' : null"
         preparing-label-key="common.importBatchDeleteOverlay.preparing"
         finishing-label-key="common.importBatchDeleteOverlay.finishing"
-      >
-        <template #icon>
-          <Trash2Icon class="text-primary-text size-5" aria-hidden="true" />
-        </template>
-        <template #title>{{ $t('common.importBatchDeleteOverlay.title') }}</template>
-        <template #description>{{ $t('common.importBatchDeleteOverlay.description') }}</template>
-      </BlockingJobProgress>
+      />
     </template>
   </BlockingJobOverlay>
 </template>
@@ -39,8 +38,9 @@ import { computed } from 'vue';
 
 const { status, isBlocking, isTakingLong, liveFailure, statusUnreachable, stop } = useImportBatchDeleteJobStatus();
 
-// The job reports no per-row progress, so the bar has one indeterminate step.
-const STEP_LABEL_KEYS = { deleting: 'common.importBatchDeleteOverlay.deleting' };
+const STEP_LABEL_KEYS = {
+  deleting: 'common.importBatchDeleteOverlay.deleting',
+};
 const STEP_ORDER = Object.keys(STEP_LABEL_KEYS);
 
 // Keep the card up through the brief `completed` window: the watchdog is wiping caches

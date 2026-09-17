@@ -26,19 +26,19 @@ export const fetchRemoteVersion = async (): Promise<string | null> => {
     return null;
   }
   if (!response.ok) {
-    // A 404 means the endpoint just isn't served here — a self-host without it,
-    // a CDN edge miss, or a mid-deploy container swap. Version-check can't run,
-    // but that's not an app fault, so leave a trail instead of erroring.
-    if (response.status === 404) {
+    // A 404 means the endpoint just isn't served here (self-host without it, CDN
+    // edge miss) and a 5xx is the proxy mid-deploy. Neither is an app fault, so
+    // leave a trail instead of erroring.
+    if (response.status === 404 || response.status >= 500) {
       addBreadcrumb({
         category: 'version-check',
-        message: `${VERSION_ENDPOINT} not found (404)`,
+        message: `${VERSION_ENDPOINT} returned ${response.status}`,
         level: 'info',
       });
       return null;
     }
-    // Other non-2xx (5xx, proxy errors) are genuine misconfig — surface them so
-    // we notice instead of silently treating every user as up-to-date.
+    // Remaining non-2xx (auth walls, 4xx from a misrouted proxy) are genuine
+    // misconfig — surface them so we notice instead of treating every user as up-to-date.
     captureException({
       error: new Error(`version-check: ${VERSION_ENDPOINT} returned ${response.status}`),
       context: { status: response.status, statusText: response.statusText },

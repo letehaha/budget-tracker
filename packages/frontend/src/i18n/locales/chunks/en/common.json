@@ -408,7 +408,6 @@
           "dismiss": "Dismiss",
           "preparing": "Getting things ready…",
           "finishing": "Finishing up…",
-          "stepCounter": "Step {current} of {total}",
           "steps": {
             "transactions": "Updating transactions",
             "accounts": "Updating accounts",

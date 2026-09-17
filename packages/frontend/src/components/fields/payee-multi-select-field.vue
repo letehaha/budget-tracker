@@ -3,7 +3,7 @@
     v-model:open="isOpen"
     v-model:search-term="searchTerm"
     :active="selectedCount > 0"
-    :label="$t('fields.payeeMultiSelect.label')"
+    :label="placeholder ?? $t('fields.payeeMultiSelect.label')"
     :selected-label="selectedLabel"
     :search-placeholder="$t('fields.payeeMultiSelect.searchPlaceholder')"
     :hide-clear-button="hideClearButton"
@@ -87,6 +87,8 @@ const DEBOUNCE_MS = 200;
 
 const props = defineProps<{
   payeeIds: string[];
+  /** Overrides the default trigger text shown while nothing is selected. */
+  placeholder?: string;
   /** Hide the in-trigger clear button — for hosts (like the filter bar chips)
    * that render their own remove control next to the trigger. */
   hideClearButton?: boolean;

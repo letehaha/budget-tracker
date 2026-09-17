@@ -1,47 +1,47 @@
 <template>
-  <div class="space-y-6">
-    <!-- Header Row: Period Selector + Options -->
-    <div class="flex gap-4 max-md:flex-col md:justify-between">
-      <!-- Period selector - centered on mobile, left on desktop -->
-      <div class="flex justify-center lg:justify-start">
-        <PeriodSelector v-model="selectedPeriod" />
-      </div>
+  <div class="@container/cash-flow space-y-6">
+    <ReportControls v-model:period="selectedPeriod">
+      <GranularitySelector
+        v-model="selectedGranularity"
+        :granularities="CASH_FLOW_GRANULARITIES"
+        label-key-prefix="analytics.cashFlow.granularity"
+      />
+      <ChartTypeSwitcher v-model="selectedChartType" />
 
-      <!-- Controls row - wraps nicely on mobile -->
-      <div class="flex flex-wrap items-center justify-center gap-2 max-sm:justify-between sm:gap-3 lg:justify-start">
-        <GranularitySelector v-model="selectedGranularity" />
-        <ChartTypeSwitcher v-model="selectedChartType" />
-
-        <!-- Settings dropdown -->
-        <Popover>
-          <PopoverTrigger as-child>
-            <UiButton variant="secondary" size="icon" :title="t('common.actions.settings')">
-              <Settings2Icon class="size-4" />
-            </UiButton>
-          </PopoverTrigger>
-          <PopoverContent align="end" class="w-auto max-w-70">
-            <div class="space-y-3">
-              <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                  <Checkbox id="show-trend-line" v-model="showMovingAverage" />
-                  <Label for="show-trend-line" class="cursor-pointer text-sm font-normal">
-                    {{ t('analytics.cashFlow.showTrendLine') }}
-                  </Label>
-                </div>
-                <p class="text-muted-foreground pl-6 text-xs">
-                  {{ t('analytics.cashFlow.showTrendLineHint') }}
-                </p>
-              </div>
+      <!-- Settings dropdown -->
+      <Popover>
+        <PopoverTrigger as-child>
+          <UiButton variant="secondary" size="icon" :title="t('common.actions.settings')">
+            <Settings2Icon class="size-4" />
+          </UiButton>
+        </PopoverTrigger>
+        <PopoverContent align="end" class="w-auto max-w-70">
+          <div class="space-y-3">
+            <div class="space-y-1">
+              <Label class="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                <Checkbox v-model="showMovingAverage" />
+                {{ t('analytics.cashFlow.showTrendLine') }}
+              </Label>
+              <p class="text-muted-foreground pl-6 text-xs">
+                {{ t('analytics.cashFlow.showTrendLineHint') }}
+              </p>
             </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-    </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </ReportControls>
 
-    <div v-if="isLoading" class="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <SummaryRows
+      v-if="isLoading || cashFlowData"
+      :items="summaryRows"
+      :loading="isLoading"
+      :skeleton-count="4"
+      class="@md/cash-flow:hidden"
+    />
+    <div v-if="isLoading" class="hidden grid-cols-2 gap-4 md:grid-cols-4 @md/cash-flow:grid">
       <SummaryCardSkeleton v-for="i in 4" :key="i" title-width="w-20" value-width="w-28" />
     </div>
-    <div v-else-if="cashFlowData" class="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div v-else-if="cashFlowData" class="hidden grid-cols-2 gap-4 md:grid-cols-4 @md/cash-flow:grid">
       <SummaryCard
         :title="t('analytics.cashFlow.income')"
         :value="cashFlowData.totals.income"
@@ -119,19 +119,24 @@ import { differenceInDays, endOfMonth, startOfMonth, subDays, subMonths } from '
 import { Settings2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useFormatCurrency } from '@/composable';
+import { useChartColors } from '@/composable/charts/chart-colors';
 
 import { createPeriodSerializer } from '../../utils';
 import CashFlowChart from './components/cash-flow-chart.vue';
 import ChartSkeleton from './components/chart-skeleton.vue';
 import ChartTypeSwitcher, { type ChartType } from './components/chart-type-switcher.vue';
-import GranularitySelector from './components/granularity-selector.vue';
+import GranularitySelector from '../../components/granularity-selector.vue';
+import ReportControls from '../../components/report-controls.vue';
 import type { Period } from '@/composable/use-period-navigation';
 import MoneyFlowSection from './components/money-flow-section.vue';
-import PeriodSelector from './components/period-selector.vue';
 import SummaryCardSkeleton from './components/summary-card-skeleton.vue';
 import SummaryCard from './components/summary-card.vue';
+import SummaryRows, { type SummaryRowItem } from '../../components/summary-rows.vue';
 
 const { t } = useI18n();
+const { formatBaseCurrency } = useFormatCurrency();
+const colors = useChartColors();
 const { format } = useDateLocale();
 
 // Constants
@@ -148,6 +153,11 @@ const periodSerializer = createPeriodSerializer({ getDefaultPeriod });
 // State with persistence using VueUse
 // localStorage - persists across sessions
 const selectedChartType = useLocalStorage<ChartType>('cash-flow-chart-type', 'mirrored');
+const CASH_FLOW_GRANULARITIES = [
+  'monthly',
+  'biweekly',
+  'weekly',
+] as const satisfies endpointsTypes.CashFlowGranularity[];
 const selectedGranularity = useLocalStorage<endpointsTypes.CashFlowGranularity>('cash-flow-granularity', 'monthly');
 
 // sessionStorage - clears when tab closes
@@ -256,5 +266,41 @@ const trends = computed(() => {
         ? Math.round(currentTotals.savingsRate - previousTotals.savingsRate)
         : undefined,
   };
+});
+
+const summaryRows = computed<SummaryRowItem[]>(() => {
+  if (!cashFlowData.value) return [];
+  const { totals } = cashFlowData.value;
+  const label = comparisonPeriodLabel.value;
+  return [
+    {
+      label: t('analytics.cashFlow.income'),
+      value: formatBaseCurrency(totals.income),
+      change: trends.value.income,
+      comparisonPeriodLabel: label,
+      color: colors.value.appIncome,
+    },
+    {
+      label: t('analytics.cashFlow.expenses'),
+      value: formatBaseCurrency(totals.expenses),
+      change: trends.value.expenses,
+      comparisonPeriodLabel: label,
+      color: colors.value.appExpense,
+    },
+    {
+      label: t('analytics.cashFlow.netSavings'),
+      value: formatBaseCurrency(totals.netFlow),
+      change: trends.value.netFlow,
+      comparisonPeriodLabel: label,
+      color: colors.value.appSavings,
+    },
+    {
+      label: t('analytics.cashFlow.savingsRate'),
+      value: `${Math.round(totals.savingsRate)}%`,
+      change: trends.value.savingsRate,
+      comparisonPeriodLabel: label,
+      color: colors.value.appSavings,
+    },
+  ];
 });
 </script>
