@@ -82,6 +82,9 @@ const plans = [
                 <>
                   <span class="text-3xl font-bold">${plan.yearly}</span>
                   <span class="text-muted-foreground">/year</span>
+                  <span class="bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 align-middle text-xs font-semibold">
+                    Save ${plan.monthly! * 12 - plan.yearly!}/yr
+                  </span>
                   <span class="text-muted-foreground block text-sm">or ${plan.monthly}/month</span>
                 </>
               )}

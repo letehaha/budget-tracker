@@ -9,6 +9,7 @@ import McpSection from '@/components/mcp-section.astro';
 import SelfHostSection from '@/components/self-host-section.astro';
 import PricingSection from '@/components/pricing-section.astro';
 import FaqSection from '@/components/faq-section.astro';
+import CommunitySection from '@/components/community-section.astro';
 import CtaSection from '@/components/cta-section.astro';
 import LandingFooter from '@/components/landing-footer.astro';
 
@@ -16,6 +17,9 @@ import TryDemoButton from '@/components/try-demo-button.vue';
 import GitHubActivity from '@/components/github-activity.vue';
 import DemoPortal from '@/components/demo-portal.vue';
 import { FAQ_ITEMS } from '@/lib/faq';
+import { getGitHubStarsLabel } from '@/lib/github-stars';
+
+const starsLabel = await getGitHubStarsLabel();
 ---
 
 <BaseLayout
@@ -85,7 +89,7 @@ import { FAQ_ITEMS } from '@/lib/faq';
 
     <HeroSection>
       <TryDemoButton slot="try-demo" client:load />
-      <GitHubActivity slot="github-activity" client:visible />
+      <GitHubActivity slot="github-activity" starsLabel={starsLabel} client:visible />
       <DemoPortal slot="demo-portal" client:visible />
     </HeroSection>
 
@@ -95,6 +99,7 @@ import { FAQ_ITEMS } from '@/lib/faq';
     <SelfHostSection />
     <PricingSection />
     <FaqSection />
+    <CommunitySection />
     <CtaSection />
     <LandingFooter />
   </div>
@@ -120,12 +125,12 @@ import { FAQ_ITEMS } from '@/lib/faq';
       } else if (event === 'landing_roadmap_clicked' && location) {
         trackAnalyticsEvent({
           event: 'landing_roadmap_clicked',
-          properties: { location: location as 'hero' | 'pricing' },
+          properties: { location: location as 'hero' | 'pricing' | 'community' },
         });
       } else if (event === 'landing_github_clicked' && location) {
         trackAnalyticsEvent({
           event: 'landing_github_clicked',
-          properties: { location: location as 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' },
+          properties: { location: location as 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' | 'community' },
         });
       }
     });
