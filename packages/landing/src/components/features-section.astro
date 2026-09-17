@@ -1,3 +1,62 @@
+---
+import Screenshot from '@/components/screenshot.astro';
+
+const SHOWCASES = [
+  {
+    title: 'Full Net Worth',
+    text: 'Everything you own and owe in one picture.',
+    bullets: [
+      'Cash, investments, vehicles, venture deals, and loans on one chart',
+      'Filter by asset type and pick any period',
+      'See what changed, and by how much',
+    ],
+    iconClass: 'from-emerald-500/10 to-emerald-600/10 text-emerald-500',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+    image: { name: 'net-worth', width: 1503, height: 975, mobile: { width: 1084, height: 1899 } },
+    alt: 'Net worth history chart stacked by cash, investments, vehicles, and ventures',
+  },
+  {
+    title: 'Investments',
+    text: 'Track portfolios next to your everyday accounts.',
+    bullets: [
+      'Stocks, ETFs, and crypto with automatic prices',
+      'Cost basis, realized and unrealized return per holding',
+      'Separate portfolios for each strategy',
+    ],
+    iconClass: 'from-violet-500/10 to-violet-600/10 text-violet-500',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M9 5v4"/><rect width="4" height="6" x="7" y="9" rx="1"/><path d="M9 15v2"/><path d="M17 3v2"/><rect width="4" height="8" x="15" y="5" rx="1"/><path d="M17 13v3"/><path d="M3 3v16a2 2 0 0 0 2 2h16"/></svg>`,
+    image: { name: 'investments', width: 1515, height: 1340 },
+    alt: 'Investment portfolio with total value, total return, and gains per holding',
+  },
+  {
+    title: 'Reports & Insights',
+    text: 'Answers to "where did the money go?" without a spreadsheet.',
+    bullets: [
+      'Cash flow: income against expenses, month by month',
+      'Money flow: from each income source to each category',
+      'Pivot tables: slice by category, payee, account, or period',
+    ],
+    iconClass: 'from-sky-500/10 to-sky-600/10 text-sky-500',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z"/><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/></svg>`,
+    image: { name: 'money-flow', width: 1503, height: 1280 },
+    alt: 'Money flow diagram from income through expenses and savings to categories',
+  },
+  {
+    title: 'Switch in One Click',
+    text: 'Bring your history with you, whatever you used before.',
+    bullets: [
+      'Direct importers for YNAB, Wallet by BudgetBakers, and Microsoft Money',
+      'CSV with column mapping and duplicate handling, plus OFX and QFX',
+      'Paste a bank statement or an email, and AI turns it into transactions',
+    ],
+    iconClass: 'from-cyan-500/10 to-cyan-600/10 text-cyan-500',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 12v6"/><path d="m15 15-3-3-3 3"/></svg>`,
+    image: { name: 'import-sources', width: 1344, height: 1082 },
+    alt: 'Import options: any text source, CSV, OFX, YNAB, Wallet, and Microsoft Money',
+  },
+];
+---
+
 <section id="features" class="relative z-10 py-16 sm:py-24">
   <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <!-- Section header -->
@@ -6,8 +65,42 @@
       <p class="text-muted-foreground mt-4 text-lg">Banks, budgets, investments, and reports in one place.</p>
     </div>
 
+    <!-- Feature showcases -->
+    <div class="mt-16 space-y-16 sm:space-y-24">
+      {
+        SHOWCASES.map((item, index) => (
+          <div class="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
+            <div class="text-center lg:text-left">
+              <div
+                class:list={[
+                  'mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-linear-to-br lg:mx-0',
+                  item.iconClass,
+                ]}
+                set:html={item.icon}
+              />
+              <h3 class="text-2xl font-bold tracking-tight">{item.title}</h3>
+              <p class="text-muted-foreground mt-3 text-lg">{item.text}</p>
+              <ul class="mx-auto mt-6 w-fit space-y-3 text-left lg:mx-0">
+                {item.bullets.map((bullet) => (
+                  <li class="text-muted-foreground flex gap-3 text-sm">
+                    <span class="text-primary">✓</span>
+                    {bullet}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div class:list={[index % 2 === 0 && 'lg:order-first']}>
+              <div class="border-border/50 bg-background overflow-hidden rounded-2xl border p-3 sm:p-4">
+                <Screenshot {...item.image} alt={item.alt} />
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
     <!-- Features grid -->
-    <div class="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="mt-16 sm:mt-24 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
       <!-- Bank Connections -->
       <div
         class="group border-border/50 bg-card hover:border-primary/50 relative overflow-hidden rounded-2xl border p-6 transition-all hover:shadow-lg"
@@ -39,22 +132,6 @@
         <p class="text-muted-foreground text-sm">
           Auto-categorization that learns your patterns. Use our AI or bring your own endpoint. Any OpenAI-compatible
           API works, including a local model.
-        </p>
-      </div>
-
-      <!-- Switch in One Click -->
-      <div
-        class="group border-border/50 bg-card hover:border-primary/50 relative overflow-hidden rounded-2xl border p-6 transition-all hover:shadow-lg"
-      >
-        <div
-          class="mb-4 flex size-12 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-500"
-        >
-          <!-- FileUp -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 12v6"/><path d="m15 15-3-3-3 3"/></svg>
-        </div>
-        <h3 class="mb-2 text-lg font-semibold">Switch in One Click</h3>
-        <p class="text-muted-foreground text-sm">
-          Direct importers for YNAB, Wallet by BudgetBakers, and Microsoft Money, plus multi-file CSV import.
         </p>
       </div>
 
@@ -95,45 +172,6 @@
         </h3>
         <p class="text-muted-foreground text-sm">
           Plan recurring charges and income. See upcoming payments before they hit your balance.
-        </p>
-      </div>
-
-      <!-- Full Net Worth -->
-      <div
-        class="group border-border/50 bg-card hover:border-primary/50 relative overflow-hidden rounded-2xl border p-6 transition-all hover:shadow-lg"
-      >
-        <div
-          class="mb-4 flex size-12 items-center justify-center rounded-xl bg-linear-to-br from-emerald-500/10 to-emerald-600/10 text-emerald-500"
-        >
-          <!-- TrendingUp -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-        </div>
-        <h3 class="mb-2 text-lg font-semibold">Full Net Worth</h3>
-        <p class="text-muted-foreground text-sm">
-          Stocks, crypto, venture deals, vehicles, and loans. Everything you own and owe in one picture.
-        </p>
-      </div>
-
-      <!-- Reports & Insights -->
-      <div
-        class="group border-border/50 bg-card hover:border-primary/50 relative overflow-hidden rounded-2xl border p-6 transition-all hover:shadow-lg"
-      >
-        <div
-          class="mb-4 flex size-12 items-center justify-center rounded-xl bg-linear-to-br from-sky-500/10 to-sky-600/10 text-sky-500"
-        >
-          <!-- ChartPie -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z"/><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/></svg>
-        </div>
-        <h3 class="mb-2 text-lg font-semibold">
-          Reports & Insights
-          <span
-            class="ml-1 rounded bg-purple-500/20 px-1.5 py-0.5 align-middle text-xs font-medium text-purple-400"
-          >
-            New
-          </span>
-        </h3>
-        <p class="text-muted-foreground text-sm">
-          Net worth over time, cash-flow view, and pivot tables you can slice by category, account, or period.
         </p>
       </div>
 

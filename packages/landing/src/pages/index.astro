@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/base-layout.astro';
 import BackgroundOrbs from '@/components/background-orbs.astro';
 import LandingHeader from '@/components/landing-header.astro';
 import HeroSection from '@/components/hero-section.astro';
+import HowItWorksSection from '@/components/how-it-works-section.astro';
 import ComparisonSection from '@/components/comparison-section.astro';
 import FeaturesSection from '@/components/features-section.astro';
 import McpSection from '@/components/mcp-section.astro';
@@ -93,6 +94,7 @@ const starsLabel = await getGitHubStarsLabel();
       <DemoPortal slot="demo-portal" client:visible />
     </HeroSection>
 
+    <HowItWorksSection />
     <ComparisonSection />
     <FeaturesSection />
     <McpSection />
