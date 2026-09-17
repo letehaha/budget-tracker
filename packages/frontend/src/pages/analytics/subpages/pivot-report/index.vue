@@ -1,10 +1,5 @@
 <template>
   <div class="@container/pivot-report space-y-5">
-    <div>
-      <h1 class="text-lg font-semibold">{{ $t('pivotReport.title') }}</h1>
-      <p class="text-muted-foreground text-sm">{{ $t('pivotReport.subtitle') }}</p>
-    </div>
-
     <PivotConfigPanel
       v-model:row-dimension="persisted.rowDimension"
       v-model:granularity="persisted.granularity"

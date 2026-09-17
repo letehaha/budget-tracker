@@ -89,10 +89,22 @@
 
     <!-- Content Area (wide: always visible, compact: only on child routes) -->
     <div v-if="isOnChildRoute || !isCompactLayout" class="min-w-0 flex-1">
-      <!-- Back button (compact layout only) -->
-      <BackLink v-if="isCompactLayout" :to="{ name: ROUTES_NAMES.analytics }">
-        {{ $t('analytics.backToAnalytics') }}
-      </BackLink>
+      <div v-if="activeTab" class="mb-4">
+        <div class="flex items-center gap-1.5">
+          <router-link
+            v-if="isCompactLayout"
+            :to="{ name: ROUTES_NAMES.analytics }"
+            :aria-label="$t('analytics.backToAnalytics')"
+            class="text-muted-foreground hover:text-foreground -ml-1 flex size-5 shrink-0 items-center justify-center rounded-md"
+          >
+            <ChevronLeftIcon class="size-5" />
+          </router-link>
+          <h1 :class="cn('font-semibold', isCompactLayout ? 'text-base' : 'text-lg')">{{ activeTab.label }}</h1>
+        </div>
+        <p :class="cn('text-muted-foreground', isCompactLayout ? 'mt-0.5 text-xs leading-snug' : 'text-sm')">
+          {{ activeTab.description }}
+        </p>
+      </div>
 
       <router-view />
     </div>
@@ -100,7 +112,6 @@
 </template>
 
 <script setup lang="ts">
-import BackLink from '@/components/common/back-link.vue';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useAfterMountTransition } from '@/composable/use-after-mount-transition';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
@@ -111,6 +122,7 @@ import {
   CalculatorIcon,
   ChartAreaIcon,
   ChartLineIcon,
+  ChevronLeftIcon,
   ChevronRightIcon,
   DollarSignIcon,
   PanelLeftCloseIcon,
@@ -121,12 +133,13 @@ import {
 } from '@lucide/vue';
 import { type Component, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { RouteLocationRaw, useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 interface Tab {
   name: string;
   label: string;
-  to: RouteLocationRaw;
+  description: string;
+  to: { name: string };
   icon: Component;
 }
 
@@ -155,6 +168,10 @@ const isTransitionReady = useAfterMountTransition();
 
 const isOnChildRoute = computed(() => route.name !== ROUTES_NAMES.analytics);
 
+const activeTab = computed(() =>
+  sections.value.flatMap((section) => section.tabs).find((tab) => tab.to.name === route.name),
+);
+
 // On wide layout, redirect to cash-flow if on root analytics
 watch(
   [isCompactLayout, () => route.name],
@@ -173,24 +190,28 @@ const sections = computed<NavSection[]>(() => [
       {
         name: 'trends-comparison',
         label: t('analytics.navigation.trendsComparison'),
+        description: t('analytics.trends.subtitle'),
         to: { name: ROUTES_NAMES.analyticsTrendsComparison },
         icon: TrendingUpIcon,
       },
       {
         name: 'cash-flow',
         label: t('analytics.navigation.cashFlow'),
+        description: t('analytics.cashFlow.subtitle'),
         to: { name: ROUTES_NAMES.analyticsCashFlow },
         icon: DollarSignIcon,
       },
       {
         name: 'net-worth-history',
         label: t('analytics.navigation.netWorthHistory'),
+        description: t('netWorthHistory.subtitle'),
         to: { name: ROUTES_NAMES.analyticsNetWorthHistory },
         icon: ChartLineIcon,
       },
       {
         name: 'pivot-report',
         label: t('analytics.navigation.pivotReport'),
+        description: t('pivotReport.subtitle'),
         to: { name: ROUTES_NAMES.analyticsPivotReport },
         icon: TableIcon,
       },
@@ -203,18 +224,21 @@ const sections = computed<NavSection[]>(() => [
       {
         name: 'net-worth-drivers',
         label: t('analytics.navigation.netWorthDrivers'),
+        description: t('netWorthDrivers.subtitle'),
         to: { name: ROUTES_NAMES.analyticsNetWorthDrivers },
         icon: ChartAreaIcon,
       },
       {
         name: 'investment-contributions',
         label: t('analytics.navigation.investmentContributions'),
+        description: t('investmentContributions.subtitle'),
         to: { name: ROUTES_NAMES.analyticsInvestmentContributions },
         icon: PiggyBankIcon,
       },
       {
         name: 'investment-calculator',
         label: t('analytics.navigation.investmentCalculator'),
+        description: t('analytics.investmentCalculator.subtitle'),
         to: { name: ROUTES_NAMES.analyticsInvestmentCalculator },
         icon: CalculatorIcon,
       },

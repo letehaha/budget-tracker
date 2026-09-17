@@ -3,7 +3,13 @@
     <div class="flex flex-wrap items-center gap-4">
       <PeriodSelector v-model="selectedPeriod" class="max-xs:mx-auto" />
       <MetricToggle v-model="selectedMetric" />
-      <TrendsFiltersButton v-model:filters="filters" class="ml-auto" />
+      <FiltersButton
+        :label="t('analytics.trends.filters.button')"
+        :active-count="countActiveFilters({ filters })"
+        class="ml-auto"
+      >
+        <TrendsFiltersPanel :filters="filters" @update:filters="filters = $event" />
+      </FiltersButton>
     </div>
 
     <!-- Error state -->
@@ -162,10 +168,12 @@ import CategoryBreakdown from './components/category-breakdown.vue';
 import CumulativeChart from './components/cumulative-chart.vue';
 import MetricToggle, { type MetricType } from './components/metric-toggle.vue';
 import MonthlyComparisonChart from './components/monthly-comparison-chart.vue';
-import TrendsFiltersButton from './components/trends-filters-button.vue';
+import TrendsFiltersPanel from './components/trends-filters-panel.vue';
+import FiltersButton from '../../components/filters-button.vue';
 import SummaryRows, { type SummaryRowItem } from '../../components/summary-rows.vue';
 import {
   type TrendsFilters,
+  countActiveFilters,
   emptyTrendsFilters,
   hideCategory,
   parseTrendsFilters,

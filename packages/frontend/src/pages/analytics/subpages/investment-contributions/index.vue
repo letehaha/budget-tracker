@@ -1,12 +1,5 @@
 <template>
   <div class="@container/investment-contributions space-y-5">
-    <div>
-      <h1 class="text-lg font-semibold">{{ $t('investmentContributions.title') }}</h1>
-      <p v-if="!showNoPortfoliosPlaceholder" class="text-muted-foreground text-sm">
-        {{ $t('investmentContributions.subtitle') }}
-      </p>
-    </div>
-
     <!-- Contributions are money moved into portfolios, so with no portfolios the
          report has nothing to measure and collapses to a placeholder that points
          at where to start. -->
@@ -20,20 +13,17 @@
     />
 
     <template v-else>
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <PeriodSelector v-model="selectedPeriod" />
-        <div class="flex flex-wrap items-center gap-2">
-          <PortfolioFilter
-            v-model="selectedPortfolioIds"
-            scope-hint-key="investmentContributions.portfolioFilter.scopeHint"
-          />
-          <GranularitySelector
-            v-model="selectedGranularity"
-            :granularities="endpointsTypes.INVESTMENT_CONTRIBUTIONS_GRANULARITIES"
-            label-key-prefix="investmentContributions.granularity"
-          />
-        </div>
-      </div>
+      <ReportControls v-model:period="selectedPeriod">
+        <PortfolioFilter
+          v-model="selectedPortfolioIds"
+          scope-hint-key="investmentContributions.portfolioFilter.scopeHint"
+        />
+        <GranularitySelector
+          v-model="selectedGranularity"
+          :granularities="endpointsTypes.INVESTMENT_CONTRIBUTIONS_GRANULARITIES"
+          label-key-prefix="investmentContributions.granularity"
+        />
+      </ReportControls>
 
       <template v-if="isLoading">
         <SummaryRows :items="summaryRows" class="@md/investment-contributions:hidden" />
@@ -116,7 +106,7 @@ import { useI18n } from 'vue-i18n';
 import { useFormatCurrency } from '@/composable';
 
 import { createPeriodSerializer } from '../../utils';
-import PeriodSelector from '../cash-flow/components/period-selector.vue';
+import ReportControls from '../../components/report-controls.vue';
 import SummaryCard from '../cash-flow/components/summary-card.vue';
 import SummaryRows, { type SummaryRowItem } from '../../components/summary-rows.vue';
 import GranularitySelector from '../../components/granularity-selector.vue';

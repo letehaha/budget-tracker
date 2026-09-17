@@ -1,36 +1,28 @@
 <template>
   <div class="@container/net-worth-history space-y-5">
-    <div>
-      <h1 class="text-lg font-semibold">{{ $t('netWorthHistory.title') }}</h1>
-      <p class="text-muted-foreground text-sm">{{ $t('netWorthHistory.subtitle') }}</p>
-    </div>
-
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <PeriodSelector v-model="selectedPeriod" />
-      <div class="flex flex-wrap items-center gap-2">
-        <KindFilter
-          v-model="storedAssetKinds"
-          :kinds="availableAssetKinds"
-          :label-keys="NET_WORTH_ASSET_KIND_LABEL_KEYS"
-          :colors="NET_WORTH_ASSET_KIND_COLORS"
-          i18n-prefix="netWorthHistory.assetFilter"
-        />
-        <KindFilter
-          v-model="storedLiabilityKinds"
-          :kinds="availableLiabilityKinds"
-          :label-keys="ACCOUNT_CATEGORIES_TRANSLATION_KEYS"
-          i18n-prefix="netWorthHistory.kindFilter"
-        />
-        <GranularitySelector
-          :model-value="effectiveGranularity"
-          :granularities="endpointsTypes.NET_WORTH_HISTORY_GRANULARITIES"
-          :disabled-values="disabledGranularityValues"
-          label-key-prefix="netWorthHistory.granularity"
-          @update:model-value="granularityOverride = $event"
-        />
-        <SettingsPopover v-model:zoom-liabilities-scale="zoomLiabilitiesScale" />
-      </div>
-    </div>
+    <ReportControls v-model:period="selectedPeriod">
+      <KindFilter
+        v-model="storedAssetKinds"
+        :kinds="availableAssetKinds"
+        :label-keys="NET_WORTH_ASSET_KIND_LABEL_KEYS"
+        :colors="NET_WORTH_ASSET_KIND_COLORS"
+        i18n-prefix="netWorthHistory.assetFilter"
+      />
+      <KindFilter
+        v-model="storedLiabilityKinds"
+        :kinds="availableLiabilityKinds"
+        :label-keys="ACCOUNT_CATEGORIES_TRANSLATION_KEYS"
+        i18n-prefix="netWorthHistory.kindFilter"
+      />
+      <GranularitySelector
+        :model-value="effectiveGranularity"
+        :granularities="endpointsTypes.NET_WORTH_HISTORY_GRANULARITIES"
+        :disabled-values="disabledGranularityValues"
+        label-key-prefix="netWorthHistory.granularity"
+        @update:model-value="granularityOverride = $event"
+      />
+      <SettingsPopover v-model:zoom-liabilities-scale="zoomLiabilitiesScale" />
+    </ReportControls>
 
     <template v-if="query.isLoading.value">
       <div class="grid grid-cols-1 gap-4 @sm/net-worth-history:grid-cols-2 @xl/net-worth-history:grid-cols-3">
@@ -147,7 +139,7 @@ import { useI18n } from 'vue-i18n';
 
 import { createPeriodSerializer } from '../../utils';
 import GranularitySelector from '../../components/granularity-selector.vue';
-import PeriodSelector from '../cash-flow/components/period-selector.vue';
+import ReportControls from '../../components/report-controls.vue';
 import SummaryCard from '../cash-flow/components/summary-card.vue';
 import SummaryRows, { type SummaryRowItem } from '../../components/summary-rows.vue';
 import KindFilter from './components/kind-filter.vue';
