@@ -89,21 +89,24 @@
 
     <!-- Content Area (wide: always visible, compact: only on child routes) -->
     <div v-if="isOnChildRoute || !isCompactLayout" class="min-w-0 flex-1">
-      <div v-if="activeTab" class="mb-4">
-        <div class="flex items-center gap-1.5">
-          <router-link
-            v-if="isCompactLayout"
-            :to="{ name: ROUTES_NAMES.analytics }"
-            :aria-label="$t('analytics.backToAnalytics')"
-            class="text-muted-foreground hover:text-foreground -ml-1 flex size-5 shrink-0 items-center justify-center rounded-md"
-          >
-            <ChevronLeftIcon class="size-5" />
-          </router-link>
-          <h1 :class="cn('font-semibold', isCompactLayout ? 'text-base' : 'text-lg')">{{ activeTab.label }}</h1>
+      <div v-if="activeTab" class="@container mb-4 flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <router-link
+              v-if="isCompactLayout"
+              :to="{ name: ROUTES_NAMES.analytics }"
+              :aria-label="$t('analytics.backToAnalytics')"
+              class="text-muted-foreground hover:text-foreground -ml-1 flex size-5 shrink-0 items-center justify-center rounded-md"
+            >
+              <ChevronLeftIcon class="size-5" />
+            </router-link>
+            <h1 :class="cn('font-semibold', isCompactLayout ? 'text-base' : 'text-lg')">{{ activeTab.label }}</h1>
+          </div>
+          <p :class="cn('text-muted-foreground', isCompactLayout ? 'mt-0.5 text-xs leading-snug' : 'text-sm')">
+            {{ activeTab.description }}
+          </p>
         </div>
-        <p :class="cn('text-muted-foreground', isCompactLayout ? 'mt-0.5 text-xs leading-snug' : 'text-sm')">
-          {{ activeTab.description }}
-        </p>
+        <div :id="ANALYTICS_HEADER_ACTIONS_ID" class="shrink-0" />
       </div>
 
       <router-view />
@@ -134,6 +137,8 @@ import {
 import { type Component, computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
+
+import { ANALYTICS_HEADER_ACTIONS_ID } from './utils';
 
 interface Tab {
   name: string;

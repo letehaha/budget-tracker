@@ -202,6 +202,9 @@
     "filters": {
       "period": "Період",
       "allCategories": "Усі",
+      "button": "Фільтри",
+      "categories": "Категорії",
+      "payees": "Отримувачі",
       "accounts": "Рахунки",
       "reset": "Скинути",
       "resetTooltip": "Скинути на замовчення"

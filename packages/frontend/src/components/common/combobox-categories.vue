@@ -3,7 +3,7 @@
     v-model:open="isOpen"
     v-model:search-term="searchTerm"
     :active="!isAllSelected"
-    :label="$t('fields.comboboxCategories.unselectedPlaceholder')"
+    :label="placeholder ?? $t('fields.comboboxCategories.unselectedPlaceholder')"
     :selected-label="selectedLabel"
     :search-placeholder="$t('fields.comboboxCategories.searchPlaceholder')"
     :trigger-class="triggerClass"
@@ -77,6 +77,8 @@ import {
 
 const props = defineProps<{
   categoryIds: string[];
+  /** Overrides the default "All categories" trigger text shown while nothing is selected. */
+  placeholder?: string;
   /** Extra classes merged onto the trigger so a host can reshape it (e.g. the
    * Pivot Report renders it as a compact rounded filter pill). */
   triggerClass?: string;
