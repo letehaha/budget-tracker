@@ -1,36 +1,28 @@
 <template>
   <div class="@container/net-worth-history space-y-5">
-    <div>
-      <h1 class="text-lg font-semibold">{{ $t('netWorthHistory.title') }}</h1>
-      <p class="text-muted-foreground text-sm">{{ $t('netWorthHistory.subtitle') }}</p>
-    </div>
-
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <PeriodSelector v-model="selectedPeriod" />
-      <div class="flex flex-wrap items-center gap-2">
-        <KindFilter
-          v-model="storedAssetKinds"
-          :kinds="availableAssetKinds"
-          :label-keys="NET_WORTH_ASSET_KIND_LABEL_KEYS"
-          :colors="NET_WORTH_ASSET_KIND_COLORS"
-          i18n-prefix="netWorthHistory.assetFilter"
-        />
-        <KindFilter
-          v-model="storedLiabilityKinds"
-          :kinds="availableLiabilityKinds"
-          :label-keys="ACCOUNT_CATEGORIES_TRANSLATION_KEYS"
-          i18n-prefix="netWorthHistory.kindFilter"
-        />
-        <GranularitySelector
-          :model-value="effectiveGranularity"
-          :granularities="endpointsTypes.NET_WORTH_HISTORY_GRANULARITIES"
-          :disabled-values="disabledGranularityValues"
-          label-key-prefix="netWorthHistory.granularity"
-          @update:model-value="granularityOverride = $event"
-        />
-        <SettingsPopover v-model:zoom-liabilities-scale="zoomLiabilitiesScale" />
-      </div>
-    </div>
+    <ReportControls v-model:period="selectedPeriod">
+      <KindFilter
+        v-model="storedAssetKinds"
+        :kinds="availableAssetKinds"
+        :label-keys="NET_WORTH_ASSET_KIND_LABEL_KEYS"
+        :colors="NET_WORTH_ASSET_KIND_COLORS"
+        i18n-prefix="netWorthHistory.assetFilter"
+      />
+      <KindFilter
+        v-model="storedLiabilityKinds"
+        :kinds="availableLiabilityKinds"
+        :label-keys="ACCOUNT_CATEGORIES_TRANSLATION_KEYS"
+        i18n-prefix="netWorthHistory.kindFilter"
+      />
+      <GranularitySelector
+        :model-value="effectiveGranularity"
+        :granularities="endpointsTypes.NET_WORTH_HISTORY_GRANULARITIES"
+        :disabled-values="disabledGranularityValues"
+        label-key-prefix="netWorthHistory.granularity"
+        @update:model-value="granularityOverride = $event"
+      />
+      <SettingsPopover v-model:zoom-liabilities-scale="zoomLiabilitiesScale" />
+    </ReportControls>
 
     <template v-if="query.isLoading.value">
       <div class="grid grid-cols-1 gap-4 @sm/net-worth-history:grid-cols-2 @xl/net-worth-history:grid-cols-3">
@@ -68,10 +60,19 @@
         </ul>
       </Callout>
 
-      <div
-        v-if="hasData"
-        class="grid grid-cols-1 gap-4 @sm/net-worth-history:grid-cols-2 @xl/net-worth-history:grid-cols-3"
-      >
+      <SummaryRows v-if="hasData" :items="summaryRows" class="@md/net-worth-history:hidden">
+        <i18n-t v-if="averageOwed > 0" keypath="netWorthHistory.cards.averageLiabilities" tag="p" class="text-sm">
+          <template #amount>
+            <span class="text-app-expense-color font-semibold">{{ formatBaseCurrency(averageOwed) }}</span>
+          </template>
+        </i18n-t>
+        <p v-else class="text-app-income-color flex items-center gap-1.5 text-sm font-medium">
+          <CircleCheckIcon class="size-4 shrink-0" />
+          {{ $t('netWorthHistory.cards.noLiabilities') }}
+        </p>
+      </SummaryRows>
+
+      <div v-if="hasData" class="hidden grid-cols-2 gap-4 @md/net-worth-history:grid @xl/net-worth-history:grid-cols-3">
         <SummaryCard :title="$t('netWorthHistory.cards.currentNetWorth')" :value="currentNetWorth" />
 
         <div class="border-border bg-card rounded-lg border p-4">
@@ -134,11 +135,13 @@ import { useLocalStorage, useSessionStorage } from '@vueuse/core';
 import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
 import { ChartLineIcon, CircleCheckIcon, TriangleAlertIcon } from '@lucide/vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import { createPeriodSerializer } from '../../utils';
 import GranularitySelector from '../../components/granularity-selector.vue';
-import PeriodSelector from '../cash-flow/components/period-selector.vue';
+import ReportControls from '../../components/report-controls.vue';
 import SummaryCard from '../cash-flow/components/summary-card.vue';
+import SummaryRows, { type SummaryRowItem } from '../../components/summary-rows.vue';
 import KindFilter from './components/kind-filter.vue';
 import NetWorthChart from './components/net-worth-chart.vue';
 import SettingsPopover from './components/net-worth-history-settings-popover.vue';
@@ -247,6 +250,7 @@ const displayPoints = computed(() =>
 // balances, so row presence can't distinguish "no data" — only nonzero values can.
 const hasData = computed(() => points.value.some((point) => point.assetsTotal !== 0 || point.liabilitiesTotal !== 0));
 
+const { t } = useI18n();
 const { formatBaseCurrency } = useFormatCurrency();
 
 const currentNetWorth = computed(() => displayPoints.value[displayPoints.value.length - 1]?.netWorth ?? 0);
@@ -272,6 +276,23 @@ const formattedAnnualizedGrowth = computed(() => {
   if (pct === null) return '';
   return `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
 });
+
+const summaryRows = computed<SummaryRowItem[]>(() => [
+  { label: t('netWorthHistory.cards.currentNetWorth'), value: formatBaseCurrency(currentNetWorth.value) },
+  {
+    label: t('netWorthHistory.cards.periodChange'),
+    value: formattedPeriodChange.value,
+    valueClass: periodChange.value.amount >= 0 ? 'text-app-income-color' : 'text-app-expense-color',
+    hint: [
+      periodChange.value.pct === null ? '' : `(${formattedPeriodChangePct.value})`,
+      formattedAnnualizedGrowth.value
+        ? t('netWorthHistory.cards.annualized', { pct: formattedAnnualizedGrowth.value })
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  },
+]);
 
 const averageOwed = computed(() => averageOwedLiabilities({ points: displayPoints.value }));
 

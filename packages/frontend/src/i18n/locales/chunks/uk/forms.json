@@ -333,7 +333,9 @@
       "searchPlaceholder": "Шукати категорії...",
       "unselectedPlaceholder": "Всі категорії",
       "selectedOne": "1 категорія вибрана",
-      "selectedMany": "{n} категорій вибрано"
+      "selectedMany": "{n} категорій вибрано",
+      "excludingOne": "Виключено 1 категорію",
+      "excludingMany": "Виключено {n} категорій"
     },
     "accountMultiSelect": {
       "ungrouped": "Без групи"

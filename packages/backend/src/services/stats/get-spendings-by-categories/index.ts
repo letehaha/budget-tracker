@@ -9,9 +9,26 @@ import {
   getAccessibleCategoryMap,
 } from '@services/categories/get-accessible-category-map.service';
 import { withTransaction } from '@services/common/with-transaction';
+import type { StatsScopeFilters } from '@services/stats/stats-scope-filters';
 
 import { CategoryAllocations, computeCategoryAllocations } from '../category-allocation';
 import { getExpensesHistory } from '../get-expenses-history';
+
+interface GetSpendingsByCategoriesParams extends StatsScopeFilters {
+  userId: number;
+  from?: string;
+  to?: string;
+  categoryIds?: string[];
+  transactionType?: TRANSACTION_TYPES;
+  /**
+   * Categories the caller has hidden. Expanded to descendants here, because the list is a
+   * snapshot saved in the widget config: a subcategory added after that save is still part of
+   * its hidden parent.
+   */
+  excludedCategoryIds?: string[];
+  /** Drops pending planned rows, leaving only money that actually moved. */
+  excludePlanned?: boolean;
+}
 
 /**
  * Wrapped in a transaction so the expenses read and the allocation/category-map
@@ -20,22 +37,7 @@ import { getExpensesHistory } from '../get-expenses-history';
  * mid-request.
  */
 export const getSpendingsByCategories = withTransaction(
-  async (params: {
-    userId: number;
-    accountId?: string;
-    from?: string;
-    to?: string;
-    categoryIds?: string[];
-    transactionType?: TRANSACTION_TYPES;
-    /**
-     * Categories the caller has hidden. Expanded to descendants here, because the list is a
-     * snapshot saved in the widget config: a subcategory added after that save is still part of
-     * its hidden parent.
-     */
-    excludedCategoryIds?: string[];
-    /** Drops pending planned rows, leaving only money that actually moved. */
-    excludePlanned?: boolean;
-  }): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
+  async (params: GetSpendingsByCategoriesParams): Promise<endpointsTypes.GetSpendingsByCategoriesReturnType> => {
     const transactions = await getExpensesHistory(params);
 
     // Split distribution + refund netting is shared with the pivot report; this service only
@@ -74,15 +76,9 @@ export const getSpendingsByCategories = withTransaction(
  * Runs the two type-scoped computations concurrently and merges by category, so the
  * refund/split adjustment logic stays shared and untouched.
  */
-export async function getSpendingsByCategoriesByType(params: {
-  userId: number;
-  accountId?: string;
-  from?: string;
-  to?: string;
-  categoryIds?: string[];
-  excludedCategoryIds?: string[];
-  excludePlanned?: boolean;
-}): Promise<endpointsTypes.GetSpendingsByCategoriesByTypeReturnType> {
+export async function getSpendingsByCategoriesByType(
+  params: Omit<GetSpendingsByCategoriesParams, 'transactionType'>,
+): Promise<endpointsTypes.GetSpendingsByCategoriesByTypeReturnType> {
   const [expenseByCategory, incomeByCategory] = await Promise.all([
     getSpendingsByCategories({ ...params, transactionType: TRANSACTION_TYPES.expense }),
     getSpendingsByCategories({ ...params, transactionType: TRANSACTION_TYPES.income }),

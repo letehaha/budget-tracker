@@ -20,9 +20,9 @@ const pillClass = computed(() => filterPillClass({ active: props.active }));
 
 <template>
   <Button type="button" variant="outline" :class="pillClass">
-    <component :is="icon" v-if="icon" class="size-3.5 shrink-0 opacity-70" />
-    <span class="text-muted-foreground shrink-0 text-xs">{{ label }}</span>
+    <component :is="icon" v-if="icon" class="hidden size-3.5 shrink-0 opacity-70 @md/pivot-report:block" />
+    <span class="text-muted-foreground hidden shrink-0 text-xs @md/pivot-report:inline">{{ label }}</span>
     <span class="text-foreground min-w-0 truncate font-medium">{{ value }}</span>
-    <ChevronDownIcon class="size-3.5 shrink-0 opacity-50" />
+    <ChevronDownIcon class="hidden size-3.5 shrink-0 opacity-50 @md/pivot-report:block" />
   </Button>
 </template>
