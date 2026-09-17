@@ -39,7 +39,7 @@
         "trialEnded": "Trial ended",
         "trialEndedMeta": "Your {days}-day trial is over. Pick a plan to keep adding to it.",
         "trialEndsOn": "Ends {date}",
-        "trialExcluded": "Backup and export unlock on a paid plan",
+        "trialExcluded": "Backup restore isn't available during the trial",
         "subscriptionEnded": "Subscription ended",
         "endedMeta": "Your data is safe. Pick a plan to keep adding to it.",
         "renewsOn": "Renews on {date}",

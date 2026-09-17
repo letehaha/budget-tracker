@@ -3,17 +3,24 @@ import BaseLayout from '@/layouts/base-layout.astro';
 import BackgroundOrbs from '@/components/background-orbs.astro';
 import LandingHeader from '@/components/landing-header.astro';
 import HeroSection from '@/components/hero-section.astro';
+import HowItWorksSection from '@/components/how-it-works-section.astro';
 import ComparisonSection from '@/components/comparison-section.astro';
 import FeaturesSection from '@/components/features-section.astro';
 import McpSection from '@/components/mcp-section.astro';
 import SelfHostSection from '@/components/self-host-section.astro';
 import PricingSection from '@/components/pricing-section.astro';
+import FaqSection from '@/components/faq-section.astro';
+import CommunitySection from '@/components/community-section.astro';
 import CtaSection from '@/components/cta-section.astro';
 import LandingFooter from '@/components/landing-footer.astro';
 
 import TryDemoButton from '@/components/try-demo-button.vue';
 import GitHubActivity from '@/components/github-activity.vue';
 import DemoPortal from '@/components/demo-portal.vue';
+import { FAQ_ITEMS } from '@/lib/faq';
+import { getGitHubStarsLabel } from '@/lib/github-stars';
+
+const starsLabel = await getGitHubStarsLabel();
 ---
 
 <BaseLayout
@@ -64,6 +71,15 @@ import DemoPortal from '@/components/demo-portal.vue';
           "url": "https://github.com/letehaha"
         },
         "license": "https://www.gnu.org/licenses/agpl-3.0.html"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://moneymatter.app/#faq",
+        "mainEntity": FAQ_ITEMS.map((item) => ({
+          "@type": "Question",
+          "name": item.question,
+          "acceptedAnswer": { "@type": "Answer", "text": item.answer }
+        }))
       }
     ]
   })} />
@@ -74,15 +90,18 @@ import DemoPortal from '@/components/demo-portal.vue';
 
     <HeroSection>
       <TryDemoButton slot="try-demo" client:load />
-      <GitHubActivity slot="github-activity" client:visible />
+      <GitHubActivity slot="github-activity" starsLabel={starsLabel} client:visible />
       <DemoPortal slot="demo-portal" client:visible />
     </HeroSection>
 
+    <HowItWorksSection />
     <ComparisonSection />
     <FeaturesSection />
     <McpSection />
     <SelfHostSection />
     <PricingSection />
+    <FaqSection />
+    <CommunitySection />
     <CtaSection />
     <LandingFooter />
   </div>
@@ -108,12 +127,12 @@ import DemoPortal from '@/components/demo-portal.vue';
       } else if (event === 'landing_roadmap_clicked' && location) {
         trackAnalyticsEvent({
           event: 'landing_roadmap_clicked',
-          properties: { location: location as 'hero' | 'pricing' },
+          properties: { location: location as 'hero' | 'pricing' | 'community' },
         });
       } else if (event === 'landing_github_clicked' && location) {
         trackAnalyticsEvent({
           event: 'landing_github_clicked',
-          properties: { location: location as 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' },
+          properties: { location: location as 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' | 'community' },
         });
       }
     });

@@ -49,7 +49,7 @@ describe('Entitlements resolution (GET /user)', () => {
     expect(entitlements.features).toEqual([FEATURES.data_export]);
   });
 
-  it('grants trial features minus backup/export while the trial is running', async () => {
+  it('grants trial features minus backup restore while the trial is running', async () => {
     const trialEndsAt = new Date(Date.now() + 10 * DAY);
     await helpers.setUserBilling({ trialEndsAt });
 
@@ -59,9 +59,9 @@ describe('Entitlements resolution (GET /user)', () => {
     expect(entitlements.trialEndsAt).toEqual(trialEndsAt.toISOString());
     expect(entitlements.features).toContain(FEATURES.bank_providers);
     expect(entitlements.features).toContain(FEATURES.operator_ai);
-    expect(entitlements.features).not.toContain(FEATURES.backup_export);
+    expect(entitlements.features).toContain(FEATURES.backup_export);
+    expect(entitlements.features).toContain(FEATURES.data_export);
     expect(entitlements.features).not.toContain(FEATURES.backup_restore);
-    expect(entitlements.features).not.toContain(FEATURES.data_export);
   });
 
   it('drops an expired trial with no subscription to read-only', async () => {
@@ -200,7 +200,7 @@ describe('Entitlements resolution (GET /user)', () => {
     expect(portal.statusCode).not.toBe(402);
   });
 
-  it('grants trial features to a demo user', async () => {
+  it('grants plus features minus backup and export to a demo user', async () => {
     const demo = await helpers.makeAuthRequest({ method: 'post', url: '/demo' });
     expect(demo.statusCode).toBe(200);
 
@@ -217,6 +217,8 @@ describe('Entitlements resolution (GET /user)', () => {
       expect(entitlements.features).toContain(FEATURES.bank_providers);
       expect(entitlements.features).toContain(FEATURES.operator_ai);
       expect(entitlements.features).not.toContain(FEATURES.backup_export);
+      expect(entitlements.features).not.toContain(FEATURES.backup_restore);
+      expect(entitlements.features).not.toContain(FEATURES.data_export);
     } finally {
       clearMockSession(sessionToken!);
     }
@@ -270,19 +272,17 @@ describe('Entitlements resolution (GET /user)', () => {
   });
 
   describe('gated routes', () => {
-    it('rejects POST /user/backup for a trial user and allows it for a legacy user', async () => {
-      const legacy = await helpers.exportBackup();
-      expect(legacy.statusCode).toBe(200);
-
+    it('allows POST /user/backup for a trial user but rejects POST /user/backup/restore', async () => {
       await helpers.setUserBilling({
         trialEndsAt: new Date(Date.now() + 10 * DAY),
       });
 
-      const onTrial = await helpers.exportBackup();
-      expect(onTrial.statusCode).toBe(402);
-      expect(onTrial.errorBody).toMatchObject({
-        response: { code: API_ERROR_CODES.planRequired },
-      });
+      const exported = await helpers.exportBackup();
+      expect(exported.statusCode).toBe(200);
+
+      const restored = await helpers.restoreBackup({ fileContent: 'irrelevant' });
+      expect(restored.statusCode).toBe(402);
+      expect(restored.code).toBe(API_ERROR_CODES.planRequired);
     });
 
     it('rejects bank-provider writes for a granted essential plan but not for plus', async () => {

@@ -19,7 +19,25 @@
     </div>
 
     <!-- Tagline -->
-    <p class="text-muted-foreground text-xs">Built by one developer, in the open</p>
+    <p class="text-muted-foreground flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs">
+      <span>Built by one developer, in the open</span>
+      <template v-if="starsLabel">
+        <span class="text-muted-foreground/50">|</span>
+        <a
+          href="https://github.com/letehaha/budget-tracker"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-foreground inline-flex items-center gap-1 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="#e3b341" class="size-3">
+            <path
+              d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"
+            />
+          </svg>
+          {{ starsLabel }} stars on GitHub
+        </a>
+      </template>
+    </p>
   </div>
 
   <!-- Loading state -->
@@ -32,6 +50,8 @@
 </template>
 
 <script setup lang="ts">
+defineProps<{ starsLabel?: string | null }>();
+
 import { fetchGitHubActivity } from '@/lib/github-api';
 import type { GitHubActivityData } from '@/lib/github-api';
 import { onMounted, ref } from 'vue';

@@ -1,5 +1,37 @@
 ---
 const currentYear = new Date().getFullYear();
+
+const GITHUB_URL = 'https://github.com/letehaha/budget-tracker';
+
+const columns = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Features', href: '/#features' },
+      { label: 'Pricing', href: '/#pricing' },
+      { label: 'FAQ', href: '/#faq' },
+      { label: 'Sign In', href: '/sign-in' },
+      { label: 'Sign Up', href: '/sign-up' },
+    ],
+  },
+  {
+    title: 'Resources',
+    links: [
+      { label: 'GitHub', href: GITHUB_URL, track: 'landing_github_clicked' },
+      { label: 'Self-Host Guide', href: `${GITHUB_URL}/tree/main/self-hosting` },
+      { label: 'Roadmap', href: 'https://moneymatter.featurebase.app/dashboard/roadmap' },
+      { label: 'Changelog', href: `${GITHUB_URL}/releases` },
+      { label: 'Support', href: 'mailto:support@moneymatter.app' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { label: 'Privacy Policy', href: '/privacy-policy' },
+      { label: 'Terms of Use', href: '/terms-of-use' },
+    ],
+  },
+];
 ---
 
 <footer class="border-border/40 relative overflow-hidden border-t py-12">
@@ -9,8 +41,8 @@ const currentYear = new Date().getFullYear();
   </div>
 
   <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="flex flex-col flex-wrap items-center justify-between gap-6 sm:flex-row">
-      <div class="flex w-full items-center justify-between gap-6 max-sm:flex-col">
+    <div class="flex flex-col gap-10 md:flex-row md:justify-between">
+      <div class="max-w-xs">
         <!-- Logo -->
         <div class="flex items-center gap-2">
           <div
@@ -21,40 +53,39 @@ const currentYear = new Date().getFullYear();
           </div>
           <span class="font-semibold">MoneyMatter</span>
         </div>
-
-        <!-- Links -->
-        <div class="text-muted-foreground flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
-          <a
-            href="https://github.com/letehaha/budget-tracker"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="hover:text-foreground transition-colors"
-            data-track="landing_github_clicked"
-            data-track-location="footer"
-          >
-            GitHub
-          </a>
-          <a href="/sign-in" class="hover:text-foreground transition-colors">
-            Sign In
-          </a>
-          <a href="/sign-up" class="hover:text-foreground transition-colors">
-            Sign Up
-          </a>
-          <a href="/privacy-policy" class="hover:text-foreground transition-colors">
-            Privacy Policy
-          </a>
-          <a href="/terms-of-use" class="hover:text-foreground transition-colors">
-            Terms of Use
-          </a>
-        </div>
+        <p class="text-muted-foreground mt-4 text-sm">Your finances. Your server. Your rules.</p>
       </div>
 
-      <!-- Copyright -->
-      <p class="text-muted-foreground mx-auto text-center text-sm">
-        &copy; {currentYear} MoneyMatter.
-        <span class="block min-[440px]:inline">Open source under AGPL-3.0.</span>
-      </p>
+      <!-- Links -->
+      <div class="grid grid-cols-2 gap-x-12 gap-y-8 sm:grid-cols-3 md:gap-x-20">
+        {
+          columns.map((column) => (
+            <div>
+              <p class="text-sm font-semibold">{column.title}</p>
+              <ul class="text-muted-foreground mt-4 space-y-3 text-sm">
+                {column.links.map((link) => (
+                  <li>
+                    <a
+                      href={link.href}
+                      class="hover:text-foreground transition-colors"
+                      {...(link.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                      {...('track' in link ? { 'data-track': link.track, 'data-track-location': 'footer' } : {})}
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
     </div>
+
+    <!-- Copyright -->
+    <p class="text-muted-foreground border-border/40 mt-10 border-t pt-8 text-sm">
+      &copy; {currentYear} MoneyMatter. Open source under AGPL-3.0.
+    </p>
   </div>
 </footer>
 
