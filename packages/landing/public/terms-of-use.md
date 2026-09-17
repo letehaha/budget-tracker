@@ -1,6 +1,6 @@
 # Terms of Service
 
-Last updated: September 15, 2026
+Last updated: September 17, 2026
 
 ## 1. Acceptance of Terms
 
@@ -43,7 +43,7 @@ MoneyMatter is open source software licensed under the GNU Affero General Public
 
 Self-hosting MoneyMatter is free under the open source license above. Using our hosted service (moneymatter.app) requires a paid plan after a free trial.
 
-**Trial.** New accounts get a 40-day trial with no payment method required. One trial per person; deleting and re-creating an account does not restart it. Backup export, backup restore and data export are not available during the trial. When the trial ends without a subscription, your account becomes read-only: you can still sign in, view your data, export it and delete your account, but you cannot add or change data until you subscribe.
+**Trial.** New accounts get a 40-day trial with no payment method required. One trial per person; deleting and re-creating an account does not restart it. Backup restore is not available during the trial; backup export and data export are. When the trial ends without a subscription, your account becomes read-only: you can still sign in, view your data, export it and delete your account, but you cannot add or change data until you subscribe.
 
 **Plans and prices.** Current plans, what each includes and their prices are listed on the pricing section of our website. Prices are shown without tax; the tax that applies in your country is added at checkout. We may change prices with at least 30 days' notice; a change applies from your next renewal after the notice.
 
@@ -51,7 +51,7 @@ Self-hosting MoneyMatter is free under the open source license above. Using our 
 
 **Renewal and cancellation.** Subscriptions renew automatically, monthly or yearly, until cancelled. You can cancel at any time from Settings → Plan & billing. After cancelling you keep access until the end of the period you have paid for, then your account becomes read-only. Switching plans is done from the same page; the charge or credit for a switch is shown before you confirm it.
 
-**Refunds.** Refund requests are handled by Stripe as merchant of record, under its refund policy, using the link in your receipt. A refunded payment ends the subscription it paid for.
+**Refunds.** If you ask within 14 days of your first payment, we refund it in full, no questions asked: email <support@moneymatter.app>. Other refund requests are handled by Stripe as merchant of record, under its refund policy, using the link in your receipt. A refunded payment ends the subscription it paid for.
 
 **Failed payments.** If a renewal payment fails, Stripe retries it and emails you to update your payment method. If every retry fails, the subscription is cancelled and your account becomes read-only. Your data is not deleted.
 

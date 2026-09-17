@@ -1,4 +1,5 @@
 import type { BackupRestoreProgress, BackupRestoreSummary, BackupRestoreWarning } from '@bt/shared/types';
+import { trackBackupRestored } from '@js/utils/posthog';
 import UserSettings, { ZodSettingsSchema } from '@models/user-settings.model';
 import Users from '@models/users.model';
 import { runUserDestroyLifecycle } from '@services/user/user-destroy-lifecycle';
@@ -192,6 +193,13 @@ export async function restoreUserBackup({
   // fire-and-forget `syncHistoricalPrices` opens its own fresh transaction rather
   // than joining a committed one.
   triggerPostRestorePriceSync({ securityIds: securities.resolvedSecurityIds });
+
+  trackBackupRestored({
+    userId,
+    sourceUsername: archive.manifest.user?.username,
+    sourceEmail: archive.manifest.user?.email,
+    backupExportedAt: archive.manifest.exportedAt,
+  });
 
   return { insertedByTable, warnings };
 }

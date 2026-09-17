@@ -8,12 +8,14 @@ import FeaturesSection from '@/components/features-section.astro';
 import McpSection from '@/components/mcp-section.astro';
 import SelfHostSection from '@/components/self-host-section.astro';
 import PricingSection from '@/components/pricing-section.astro';
+import FaqSection from '@/components/faq-section.astro';
 import CtaSection from '@/components/cta-section.astro';
 import LandingFooter from '@/components/landing-footer.astro';
 
 import TryDemoButton from '@/components/try-demo-button.vue';
 import GitHubActivity from '@/components/github-activity.vue';
 import DemoPortal from '@/components/demo-portal.vue';
+import { FAQ_ITEMS } from '@/lib/faq';
 ---
 
 <BaseLayout
@@ -64,6 +66,15 @@ import DemoPortal from '@/components/demo-portal.vue';
           "url": "https://github.com/letehaha"
         },
         "license": "https://www.gnu.org/licenses/agpl-3.0.html"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://moneymatter.app/#faq",
+        "mainEntity": FAQ_ITEMS.map((item) => ({
+          "@type": "Question",
+          "name": item.question,
+          "acceptedAnswer": { "@type": "Answer", "text": item.answer }
+        }))
       }
     ]
   })} />
@@ -83,6 +94,7 @@ import DemoPortal from '@/components/demo-portal.vue';
     <McpSection />
     <SelfHostSection />
     <PricingSection />
+    <FaqSection />
     <CtaSection />
     <LandingFooter />
   </div>

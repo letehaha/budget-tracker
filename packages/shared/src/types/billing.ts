@@ -74,11 +74,8 @@ export const SEATS_BY_PLAN: Record<Plan, number> = {
   early_adopter: 5,
 };
 
-export const TRIAL_EXCLUDED_FEATURES: readonly Feature[] = [
-  FEATURES.backup_export,
-  FEATURES.backup_restore,
-  FEATURES.data_export,
-];
+/** Restore stays paid: restoring into a fresh trial account would renew the trial indefinitely. */
+export const TRIAL_EXCLUDED_FEATURES: readonly Feature[] = [FEATURES.backup_restore];
 
 export const TRIAL_DAYS = 40;
 

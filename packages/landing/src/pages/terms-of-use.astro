@@ -1,7 +1,7 @@
 ---
 import LegalLayout from '@/layouts/legal-layout.astro';
 
-const lastUpdated = 'September 15, 2026';
+const lastUpdated = 'September 17, 2026';
 ---
 
 <LegalLayout
@@ -98,8 +98,8 @@ const lastUpdated = 'September 15, 2026';
         </p>
         <p>
           <strong class="text-foreground">Trial.</strong> New accounts get a 40-day trial with no payment method
-          required. One trial per person; deleting and re-creating an account does not restart it. Backup export,
-          backup restore and data export are not available during the trial. When the trial ends without a
+          required. One trial per person; deleting and re-creating an account does not restart it. Backup restore
+          is not available during the trial; backup export and data export are. When the trial ends without a
           subscription, your account becomes read-only: you can still sign in, view your data, export it and delete
           your account, but you cannot add or change data until you subscribe.
         </p>
@@ -123,9 +123,11 @@ const lastUpdated = 'September 15, 2026';
           you confirm it.
         </p>
         <p>
-          <strong class="text-foreground">Refunds.</strong> Refund requests are handled by Stripe as merchant of
-          record, under its refund policy, using the link in your receipt. A refunded payment ends the subscription
-          it paid for.
+          <strong class="text-foreground">Refunds.</strong> If you ask within 14 days of your first payment, we refund
+          it in full, no questions asked: email{' '}
+          <a href="mailto:support@moneymatter.app" class="text-primary hover:underline">support@moneymatter.app</a>.
+          Other refund requests are handled by Stripe as merchant of record, under its refund policy, using the link
+          in your receipt. A refunded payment ends the subscription it paid for.
         </p>
         <p>
           <strong class="text-foreground">Failed payments.</strong> If a renewal payment fails, Stripe retries it and
