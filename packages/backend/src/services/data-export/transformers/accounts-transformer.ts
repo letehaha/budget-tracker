@@ -1,3 +1,4 @@
+import { RecordId } from '@bt/shared/types';
 import AccountGrouping from '@models/accounts-groups/account-grouping.model';
 import AccountGroups from '@models/accounts-groups/account-groups.model';
 import Accounts from '@models/accounts.model';
@@ -5,6 +6,7 @@ import BankDataProviderConnections from '@models/bank-data-provider-connections.
 import { Op } from 'sequelize';
 
 import type { AccountRow } from '../types';
+import { buildAccountIdsClause } from './utils';
 
 /**
  * Resolve nested account-group paths into a single string like
@@ -30,8 +32,20 @@ function buildGroupPath({
   return segments.join(' / ');
 }
 
-export async function transformAccounts({ userId }: { userId: number }): Promise<AccountRow[]> {
-  const accounts = await Accounts.findAll({ where: { userId }, order: [['name', 'ASC']] });
+export async function transformAccounts({
+  userId,
+  accountIds: accountIdsFilter,
+}: {
+  userId: number;
+  accountIds?: RecordId[];
+}): Promise<AccountRow[]> {
+  const accounts = await Accounts.findAll({
+    where: {
+      userId,
+      ...buildAccountIdsClause({ field: 'id', accountIds: accountIdsFilter }),
+    },
+    order: [['name', 'ASC']],
+  });
   if (accounts.length === 0) return [];
   const accountIds = accounts.map((a) => String(a.id));
 

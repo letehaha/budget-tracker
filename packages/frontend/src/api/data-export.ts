@@ -5,6 +5,7 @@ export interface ExportDataPayload {
   format: ExportFormat;
   groups: ExportGroup[];
   dateRange?: ExportDateRange;
+  accountIds?: string[];
 }
 
 interface ExportDataResult {
@@ -16,10 +17,20 @@ interface ExportDataResult {
 const DEFAULT_FILENAME = 'moneymatter-export.zip';
 
 /** Trigger a data export and return the resulting zip as a Blob plus its row count. */
-export async function exportData({ format, groups, dateRange }: ExportDataPayload): Promise<ExportDataResult> {
+export async function exportData({
+  format,
+  groups,
+  dateRange,
+  accountIds,
+}: ExportDataPayload): Promise<ExportDataResult> {
   const { blob, filename, response } = await fetchZipDownload({
     path: '/user/data-export',
-    body: { format, groups, ...(dateRange ? { dateRange } : {}) },
+    body: {
+      format,
+      groups,
+      ...(dateRange ? { dateRange } : {}),
+      ...(accountIds?.length ? { accountIds } : {}),
+    },
     feature: 'data-export',
     defaultFilename: DEFAULT_FILENAME,
   });
