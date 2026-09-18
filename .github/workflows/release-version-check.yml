@@ -1,0 +1,31 @@
+name: Check release version
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: startsWith(github.event.pull_request.title, 'Release v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare PR title version with frontend package.json
+        env:
+          # Passed via env, never inlined into the script: the PR title is user input.
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          [[ "$TITLE" =~ ^Release\ v([0-9]+\.[0-9]+\.[0-9]+)$ ]] || { echo "::error::Title must be 'Release vX.Y.Z', got '$TITLE'"; exit 1; }
+          TITLE_VERSION="${BASH_REMATCH[1]}"
+          PKG_VERSION=$(node -p "require('./packages/frontend/package.json').version")
+
+          if [[ "$TITLE_VERSION" != "$PKG_VERSION" ]]; then
+            echo "::error::PR title says $TITLE_VERSION but packages/frontend/package.json is $PKG_VERSION"
+            exit 1
+          fi
+          echo "Version $PKG_VERSION matches"
