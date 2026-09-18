@@ -71,6 +71,10 @@ RUN chmod +x /docker-entrypoint.sh
 # Set working directory to backend
 WORKDIR /app/packages/backend
 
+# A named volume inherits the ownership of the image directory it is mounted
+# over; without this the mountpoint is created root-owned and uploads fail.
+RUN mkdir -p data/attachments && chown -R nodejs:nodejs data
+
 # Switch to non-root user
 USER nodejs
 

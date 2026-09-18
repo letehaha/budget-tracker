@@ -255,9 +255,9 @@ OOMs, add 2 GB of swap (see [troubleshooting.md](troubleshooting.md)).
 
 ## 5. Backups
 
-The two stateful volumes are `db_data` (Postgres) and `redis_data` (Redis).
-Redis is queue-only – its data is regenerated on the fly, so back up Postgres
-only.
+The stateful volumes are `db_data` (Postgres), `attachments_data` (files
+attached to transactions) and `redis_data` (Redis). Redis is queue-only – its
+data is regenerated on the fly, so back up Postgres and the attachments.
 
 The single-quoted `$POSTGRES_USER` / `$POSTGRES_DB` below expand **inside the
 db container** (compose sets them there from your `.env`), so the commands work
@@ -268,6 +268,13 @@ from any host shell without exporting anything.
 docker compose exec -T db \
   sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
   | gzip > "backup-$(date +%F).sql.gz"
+```
+
+```bash
+# Attachments (skip if ATTACHMENTS_PATH points at a host directory you
+# already back up, or if you store them in S3)
+docker run --rm -v budget-tracker-prod_attachments_data:/data:ro -v "$PWD":/backup \
+  alpine tar czf "/backup/attachments-$(date +%F).tar.gz" -C /data .
 ```
 
 Restore:
