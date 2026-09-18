@@ -406,7 +406,9 @@
           "save": "Save template",
           "deleteConfirmTitle": "Delete ‘{name}’?",
           "deleteConfirmDescription": "This template will be removed. Transactions you already created from it are not affected.",
-          "duplicateName": "You already have a template called “{name}”."
+          "duplicateName": "You already have a template called “{name}”.",
+          "originalCurrencyLabel": "Original amount currency",
+          "originalCurrencyPlaceholder": "Select a currency"
         },
         "errors": {
           "create": "Couldn't save the template. Please try again.",

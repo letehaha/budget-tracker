@@ -4,6 +4,7 @@ import {
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
   type AccountModel,
+  type CurrencyModel,
   PAYMENT_TYPES,
   type RecordId,
   TRANSACTION_TYPES,
@@ -87,7 +88,16 @@ describe('formToTemplate', () => {
       tagIds: ['tag-a'],
       paymentType: PAYMENT_TYPES.cash,
       note: 'Latte',
+      originalCurrencyCode: null,
     });
+  });
+
+  it('carries the original currency code without its amount', () => {
+    const result = formToTemplate({
+      form: createForm({ originalAmount: 12, originalCurrency: { code: 'GEL' } as CurrencyModel }),
+    });
+
+    expect(result.originalCurrencyCode).toBe('GEL');
   });
 
   it('maps an income form to the income transaction type', () => {

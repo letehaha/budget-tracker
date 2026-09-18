@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SelectField from '@/components/fields/select-field.vue';
 import { useCurrencyName } from '@/composable';
+import { useLinkedCurrencyGroup } from '@/composable/use-linked-currency-group';
 import { useCurrenciesStore } from '@/stores';
 import type { CurrencyModel } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { formatCurrencyLabel } = useCurrencyName();
+const linkedCurrencyGroup = useLinkedCurrencyGroup();
 const { systemCurrenciesVerbose } = storeToRefs(useCurrenciesStore());
 
 // Currencies the user already uses first, then the rest.
@@ -35,6 +37,7 @@ const labelOf = (item: CurrencyModel) => formatCurrencyLabel({ code: item.code, 
   <SelectField
     :model-value="selected"
     :values="options"
+    :pinned-group="linkedCurrencyGroup"
     :label-key="labelOf"
     value-key="code"
     with-search

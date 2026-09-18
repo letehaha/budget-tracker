@@ -4,6 +4,7 @@ import {
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
   type AccountModel,
+  type CurrencyModel,
   PAYMENT_TYPES,
   type RecordId,
   type ResourceShareInfo,
@@ -84,6 +85,7 @@ const createSources = (overrides: Partial<TemplateFormSources> = {}): TemplateFo
   sourceAccounts: [createAccount(), createAccount({ id: OTHER_ACCOUNT_ID, name: 'Savings' })],
   categoriesMap: { [CATEGORY_ID]: createCategory() },
   knownTagIds: new Set<string>(),
+  currencies: [],
   ...overrides,
 });
 
@@ -110,6 +112,28 @@ describe('templateToForm', () => {
     expect(form.targetAmount).toBeNull();
     expect(form.splits).toEqual([]);
     expect(form.originalAmount).toBeNull();
+    expect(form.originalCurrency).toBeNull();
+  });
+
+  it('preselects the original currency and leaves its amount empty', () => {
+    const gel = { code: 'GEL' } as CurrencyModel;
+    const { form } = templateToForm({
+      template: createTemplate({ originalCurrencyCode: 'GEL' }),
+      current: createCurrentForm(),
+      sources: createSources({ currencies: [gel] }),
+    });
+
+    expect(form.originalCurrency).toBe(gel);
+    expect(form.originalAmount).toBeNull();
+  });
+
+  it('leaves the original currency empty when its code is not in the currency list', () => {
+    const { form } = templateToForm({
+      template: createTemplate({ originalCurrencyCode: 'GEL' }),
+      current: createCurrentForm(),
+      sources: createSources({ currencies: [{ code: 'USD' } as CurrencyModel] }),
+    });
+
     expect(form.originalCurrency).toBeNull();
   });
 

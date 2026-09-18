@@ -87,6 +87,7 @@ const createList = (overrides: Partial<TemplateListProps> = {}) => {
       sourceAccounts: [createAccount()],
       categoriesMap: {} as Record<string, FormattedCategory>,
       knownTagIds: new Set<string>(),
+      currencies: [],
     },
     ...overrides,
   };
@@ -116,6 +117,7 @@ describe('amountLabelOf', () => {
         sourceAccounts: [],
         categoriesMap: {} as Record<string, FormattedCategory>,
         knownTagIds: new Set<string>(),
+        currencies: [],
       },
     });
 

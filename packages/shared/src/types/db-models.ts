@@ -957,6 +957,8 @@ export interface TransactionTemplateModel {
   payeeId: RecordId | null;
   paymentType: PAYMENT_TYPES | null;
   note: string | null;
+  /** ISO 4217 code preselected in the form's "original amount" field; the amount itself is typed each time. */
+  originalCurrencyCode: string | null;
   tagIds: RecordId[];
   createdAt: Date;
   updatedAt: Date;

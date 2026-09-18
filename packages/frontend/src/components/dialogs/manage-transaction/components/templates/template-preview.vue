@@ -157,6 +157,13 @@ const paymentTypeLabel = computed(() => {
           <dd class="truncate">{{ paymentTypeLabel }}</dd>
         </template>
 
+        <template v-if="template.originalCurrencyCode">
+          <dt class="text-muted-foreground">
+            {{ $t('dialogs.manageTransaction.templates.form.originalCurrencyLabel') }}
+          </dt>
+          <dd class="truncate">{{ template.originalCurrencyCode }}</dd>
+        </template>
+
         <template v-if="template.note">
           <dt class="text-muted-foreground">{{ $t('dialogs.manageTransaction.form.noteLabel') }}</dt>
           <dd class="whitespace-pre-line">{{ template.note }}</dd>

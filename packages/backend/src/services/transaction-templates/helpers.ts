@@ -49,6 +49,7 @@ export const serializeTemplate = ({
   payeeId: template.payeeId,
   paymentType: template.paymentType,
   note: template.note,
+  originalCurrencyCode: template.originalCurrencyCode,
   tagIds,
   createdAt: template.createdAt,
   updatedAt: template.updatedAt,
