@@ -20,6 +20,7 @@ export const createTransactionTemplate = withTransaction(
     payeeId = null,
     paymentType = null,
     note = null,
+    originalCurrencyCode = null,
     tagIds = [],
   }: CreateTransactionTemplateParams): Promise<TransactionTemplateModel> => {
     const storedAmount = amount === null ? null : Money.fromDecimal(amount);
@@ -37,6 +38,7 @@ export const createTransactionTemplate = withTransaction(
         payeeId,
         paymentType,
         note,
+        originalCurrencyCode,
       }),
     );
 

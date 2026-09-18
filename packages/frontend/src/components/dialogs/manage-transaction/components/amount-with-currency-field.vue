@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { FieldLabel, InputField } from '@/components/fields';
+import { buildSelectSections } from '@/components/fields/utils/select-sections';
 import { Button } from '@/components/lib/ui/button';
 import * as Select from '@/components/lib/ui/select';
+import { useLinkedCurrencyGroup } from '@/composable/use-linked-currency-group';
 import { formatUIAmount } from '@/js/helpers';
 import { cn } from '@/lib/utils';
 import { type CurrencyModel } from '@bt/shared/types';
@@ -51,6 +53,15 @@ const debouncedFilteredValues = ref<CurrencyModel[]>(props.currencies);
 const hasOpened = ref(false);
 const renderedValues = computed(() => (hasOpened.value ? debouncedFilteredValues.value : []));
 
+const linkedCurrencyGroup = useLinkedCurrencyGroup();
+const isFiltered = ref(false);
+const sections = computed(() =>
+  buildSelectSections({
+    items: renderedValues.value,
+    pinnedGroup: isFiltered.value ? undefined : linkedCurrencyGroup.value,
+  }),
+);
+
 function onOpenChange(open: boolean) {
   if (open) hasOpened.value = true;
 }
@@ -80,6 +91,7 @@ watch(
   searchQuery,
   debounce((query: string) => {
     const lowerCaseQuery = query.toLowerCase();
+    isFiltered.value = Boolean(query);
     debouncedFilteredValues.value = props.currencies.filter(
       (item) =>
         props.optionLabel(item).toLowerCase().includes(lowerCaseQuery) ||
@@ -173,9 +185,17 @@ watch(
             {{ $t('dialogs.manageTransaction.form.originalCurrencyNone') }}
           </Select.SelectItem>
 
-          <Select.SelectItem v-for="item in renderedValues" :key="item.code" :value="item.code">
-            {{ optionLabel(item) }}
-          </Select.SelectItem>
+          <template v-for="(section, index) in sections" :key="section.label ?? ''">
+            <Select.SelectSeparator v-if="index > 0" />
+            <component :is="section.label ? Select.SelectGroup : 'div'" :class="section.label ? 'p-0' : 'contents'">
+              <Select.SelectLabel v-if="section.label" class="text-muted-foreground text-xs">
+                {{ section.label }}
+              </Select.SelectLabel>
+              <Select.SelectItem v-for="item in section.items" :key="item.code" :value="item.code">
+                {{ optionLabel(item) }}
+              </Select.SelectItem>
+            </component>
+          </template>
         </Select.SelectContent>
       </Select.Select>
     </div>

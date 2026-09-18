@@ -32,6 +32,7 @@ export const updateTransactionTemplate = withTransaction(
       payeeId: template.payeeId,
       paymentType: template.paymentType,
       note: template.note,
+      originalCurrencyCode: template.originalCurrencyCode,
       ...(fields.name !== undefined && { name: fields.name }),
       ...(fields.transactionType !== undefined && { transactionType: fields.transactionType }),
       ...(fields.amount !== undefined && { amount: fields.amount === null ? null : Money.fromDecimal(fields.amount) }),
@@ -40,6 +41,7 @@ export const updateTransactionTemplate = withTransaction(
       ...(fields.payeeId !== undefined && { payeeId: fields.payeeId }),
       ...(fields.paymentType !== undefined && { paymentType: fields.paymentType }),
       ...(fields.note !== undefined && { note: fields.note }),
+      ...(fields.originalCurrencyCode !== undefined && { originalCurrencyCode: fields.originalCurrencyCode }),
     };
 
     await assertTemplateConsistent({

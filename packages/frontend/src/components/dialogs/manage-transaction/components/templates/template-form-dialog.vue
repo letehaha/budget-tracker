@@ -15,6 +15,7 @@ import TransactionTypeToggle from '@/components/fields/transaction-type-toggle.v
 import { Button } from '@/components/lib/ui/button';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { useNotificationCenter } from '@/components/notification-center';
+import { useCurrencyName } from '@/composable';
 import { usePayeeLookup } from '@/composable/data-queries/payees';
 import {
   useCreateTransactionTemplate,
@@ -22,6 +23,7 @@ import {
   useUpdateTransactionTemplate,
 } from '@/composable/data-queries/transaction-templates';
 import { useFormValidation } from '@/composable/form-validator';
+import { useLinkedCurrencyGroup } from '@/composable/use-linked-currency-group';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
 import { isApiErrorWithCode } from '@/js/errors';
 import { useCategoriesStore } from '@/stores';
@@ -29,6 +31,7 @@ import { findFormattedCategoryById } from '@/stores/categories/helpers';
 import {
   API_ERROR_CODES,
   type AccountModel,
+  type CurrencyModel,
   type RecordId,
   TRANSACTION_TYPES,
   type TransactionTemplateModel,
@@ -67,6 +70,10 @@ const { t } = useI18n();
 const { addSuccessNotification } = useNotificationCenter();
 const { formattedCategories } = storeToRefs(useCategoriesStore());
 const { nameById: payeeNameById } = usePayeeLookup();
+const { formatCurrencyLabel } = useCurrencyName();
+const linkedCurrencyGroup = useLinkedCurrencyGroup();
+const currencyLabel = (item: CurrencyModel): string =>
+  formatCurrencyLabel({ code: item.code, fallbackName: item.currency });
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
 const createMutation = useCreateTransactionTemplate();
@@ -99,6 +106,7 @@ const emptyTemplateForm = () => ({
   tagIds: [] as string[],
   paymentType: null as VerbosePaymentType | null,
   note: '',
+  originalCurrency: null as CurrencyModel | null,
 });
 
 const form = ref(emptyTemplateForm());
@@ -143,6 +151,8 @@ const seedFrom = ({ source }: { source: Omit<CreateTransactionTemplateBody, 'nam
   form.value.tagIds = [...(source.tagIds ?? [])];
   form.value.paymentType = VERBOSE_PAYMENT_TYPES.find((item) => item.value === source.paymentType) ?? null;
   form.value.note = source.note ?? '';
+  form.value.originalCurrency =
+    props.sources.currencies.find((item) => item.code === source.originalCurrencyCode) ?? null;
 };
 
 const seedName = () => {
@@ -225,6 +235,7 @@ const buildPayload = (): CreateTransactionTemplateBody => {
     payeeId: (form.value.payeeId as RecordId | null) ?? null,
     paymentType: form.value.paymentType?.value ?? null,
     note: note || null,
+    originalCurrencyCode: form.value.originalCurrency?.code ?? null,
     tagIds: form.value.tagIds as RecordId[],
   };
 };
@@ -358,6 +369,18 @@ const confirmDelete = async () => {
         :values="VERBOSE_PAYMENT_TYPES"
         :label-key="(item) => $t(item.label)"
         clearable
+      />
+
+      <SelectField
+        v-model="form.originalCurrency"
+        :values="sources.currencies"
+        :pinned-group="linkedCurrencyGroup"
+        :label-key="currencyLabel"
+        value-key="code"
+        with-search
+        clearable
+        :label="$t('dialogs.manageTransaction.templates.form.originalCurrencyLabel')"
+        :placeholder="$t('dialogs.manageTransaction.templates.form.originalCurrencyPlaceholder')"
       />
 
       <TextareaField

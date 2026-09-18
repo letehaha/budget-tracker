@@ -38,6 +38,15 @@ export const useCurrenciesStore = defineStore('currencies', () => {
     ),
   );
 
+  // Every currency picker reads `systemCurrencies`, so the user's own currencies lead it.
+  // ponytail: linked-first, not usage-ranked; rank by transaction counts if the linked set grows long.
+  const orderLinkedFirst = () => {
+    const linkedCodes = new Set(currencies.value.map((item) => item.currencyCode));
+    systemCurrencies.value = [...systemCurrencies.value].sort(
+      (a, b) => Number(linkedCodes.has(b.code)) - Number(linkedCodes.has(a.code)),
+    );
+  };
+
   // Both fetches run through the vue-query cache (staleTime Infinity) so they dedupe on
   // init and can be persisted/invalidated by key. `force` drops the cached entries first,
   // so post-mutation reloads pull fresh data instead of returning the cache.
@@ -67,6 +76,7 @@ export const useCurrenciesStore = defineStore('currencies', () => {
 
     currencies.value = userCurrencies;
     systemCurrencies.value = systemOnes;
+    orderLinkedFirst();
   };
 
   const getCurrency = (currencyCode: string) =>
@@ -88,6 +98,7 @@ export const useCurrenciesStore = defineStore('currencies', () => {
 
       if (!currencies.value.find((item) => item.id === result.id)) {
         currencies.value.push(result);
+        orderLinkedFirst();
       }
     }
   };

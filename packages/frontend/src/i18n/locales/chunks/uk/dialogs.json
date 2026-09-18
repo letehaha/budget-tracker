@@ -406,7 +406,9 @@
           "save": "Зберегти шаблон",
           "deleteConfirmTitle": "Видалити «{name}»?",
           "deleteConfirmDescription": "Цей шаблон буде видалено. Транзакції, які ви вже створили з нього, залишаться без змін.",
-          "duplicateName": "У вас уже є шаблон із назвою «{name}»."
+          "duplicateName": "У вас уже є шаблон із назвою «{name}».",
+          "originalCurrencyLabel": "Валюта оригінальної суми",
+          "originalCurrencyPlaceholder": "Виберіть валюту"
         },
         "errors": {
           "create": "Не вдалося зберегти шаблон. Спробуйте ще раз.",

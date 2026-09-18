@@ -33,5 +33,6 @@ export const formToTemplate = ({
     tagIds: (form.tagIds ?? []) as RecordId[],
     paymentType: form.paymentType?.value ?? null,
     note: note || null,
+    originalCurrencyCode: form.originalCurrency?.code ?? null,
   };
 };

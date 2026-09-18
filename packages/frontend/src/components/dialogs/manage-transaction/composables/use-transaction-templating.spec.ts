@@ -1,6 +1,6 @@
 import { VERBOSE_PAYMENT_TYPES } from '@/common/const';
 import type { FormattedCategory } from '@/common/types';
-import { useTagsStore } from '@/stores';
+import { useCurrenciesStore, useTagsStore } from '@/stores';
 import {
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
@@ -43,6 +43,7 @@ vi.mock('@/stores', async () => {
   const { ref: vueRef } = await import('vue');
   return {
     useTagsStore: defineStore('tags', () => ({ tags: vueRef([]), isFetched: vueRef(false) })),
+    useCurrenciesStore: defineStore('currencies', () => ({ systemCurrencies: vueRef([{ code: 'USD' }]) })),
   };
 });
 
@@ -273,6 +274,14 @@ describe('useTransactionTemplating', () => {
     markTagsFetched();
 
     expect(templating.listProps.value.disabled).toBe(false);
+  });
+
+  it('disables the trigger while the currency list is still empty', () => {
+    const { templating } = setup();
+    markTagsFetched();
+    useCurrenciesStore().systemCurrencies = [];
+
+    expect(templating.listProps.value.disabled).toBe(true);
   });
 
   it('disables the trigger while the category list is still empty', () => {

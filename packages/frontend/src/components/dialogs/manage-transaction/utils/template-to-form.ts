@@ -4,6 +4,7 @@ import {
   ACCOUNT_STATUSES,
   ACCOUNT_TYPES,
   type AccountModel,
+  type CurrencyModel,
   TRANSACTION_TYPES,
   type TransactionTemplateModel,
 } from '@bt/shared/types';
@@ -18,6 +19,7 @@ export interface TemplateFormSources {
   sourceAccounts: AccountModel[];
   categoriesMap: Record<string, FormattedCategory>;
   knownTagIds: ReadonlySet<string>;
+  currencies: CurrencyModel[];
 }
 
 /**
@@ -90,7 +92,7 @@ export const templateToForm = ({
       refundsTx: undefined,
       refundedByTxs: undefined,
       originalAmount: null,
-      originalCurrency: null,
+      originalCurrency: sources.currencies.find((item) => item.code === template.originalCurrencyCode) ?? null,
     },
     missing: resolveMissingRefs({ template, sources }),
   };

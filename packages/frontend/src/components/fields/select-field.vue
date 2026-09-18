@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n';
 
 import FieldError from './components/field-error.vue';
 import FieldLabel from './components/field-label.vue';
+import { type SelectPinnedGroup, buildSelectSections } from './utils/select-sections';
 
 const { t } = useI18n();
 
@@ -36,6 +37,8 @@ const props = withDefaults(
     clearable?: boolean;
     /** When true, appends a destructive asterisk to the label and sets aria-required on the trigger. */
     required?: boolean;
+    /** Lists the matching options first under their own label; a search shows one flat list. */
+    pinnedGroup?: SelectPinnedGroup<T>;
   }>(),
   {
     placeholder: undefined,
@@ -49,6 +52,7 @@ const props = withDefaults(
     label: undefined,
     clearable: false,
     required: false,
+    pinnedGroup: undefined,
   },
 );
 
@@ -73,6 +77,14 @@ function onOpenChange(open: boolean) {
 }
 
 const renderedValues = computed(() => (hasOpened.value ? debouncedFilteredValues.value : []));
+
+const isFiltered = ref(false);
+const sections = computed(() =>
+  buildSelectSections({
+    items: renderedValues.value as T[],
+    pinnedGroup: isFiltered.value ? undefined : props.pinnedGroup,
+  }),
+);
 
 const getLabelFromValue = (value: T): string => {
   const { labelKey } = props;
@@ -115,6 +127,7 @@ watch(
   searchQuery,
   debounce((query: string) => {
     const lowerCaseQuery = query.toLowerCase();
+    isFiltered.value = Boolean(query);
     // Matches the visible label plus any extra searchKeys fields, so labels with
     // computed parts (translations, suffixes) stay searchable alongside raw fields.
     debouncedFilteredValues.value = props.values.filter((item) => {
@@ -202,16 +215,24 @@ watch(
             </div>
           </template>
 
-          <Select.SelectItem
-            v-for="item in renderedValues"
-            :key="getKeyFromItem(item as T)"
-            :value="getKeyFromItem(item as T)"
-            :disabled="optionDisabled ? optionDisabled(item as T) : undefined"
-          >
-            <slot name="item" :item="item" :label="getLabelFromValue(item as T)">
-              {{ getLabelFromValue(item as T) }}
-            </slot>
-          </Select.SelectItem>
+          <template v-for="(section, index) in sections" :key="section.label ?? ''">
+            <Select.SelectSeparator v-if="index > 0" />
+            <component :is="section.label ? Select.SelectGroup : 'div'" :class="section.label ? 'p-0' : 'contents'">
+              <Select.SelectLabel v-if="section.label" class="text-muted-foreground text-xs">
+                {{ section.label }}
+              </Select.SelectLabel>
+              <Select.SelectItem
+                v-for="item in section.items"
+                :key="getKeyFromItem(item)"
+                :value="getKeyFromItem(item)"
+                :disabled="optionDisabled ? optionDisabled(item) : undefined"
+              >
+                <slot name="item" :item="item" :label="getLabelFromValue(item)">
+                  {{ getLabelFromValue(item) }}
+                </slot>
+              </Select.SelectItem>
+            </component>
+          </template>
 
           <template v-if="$slots['select-bottom-content']" #footer>
             <div class="border-border bg-popover border-t p-1">

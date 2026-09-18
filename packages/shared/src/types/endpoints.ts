@@ -819,6 +819,7 @@ export interface CreateTransactionTemplateBody {
   payeeId?: TransactionTemplateModel['payeeId'];
   paymentType?: TransactionTemplateModel['paymentType'];
   note?: TransactionTemplateModel['note'];
+  originalCurrencyCode?: TransactionTemplateModel['originalCurrencyCode'];
   /** Full replacement of the template's tag set. */
   tagIds?: TransactionTemplateModel['tagIds'];
 }
