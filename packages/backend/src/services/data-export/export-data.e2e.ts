@@ -1,6 +1,7 @@
 import {
   API_ERROR_CODES,
   BANK_PROVIDER_TYPE,
+  PAYMENT_TYPES,
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   VEHICLE_CLASS,
@@ -298,6 +299,14 @@ describe('Data export (POST /user/data-export)', () => {
         dateRange: { from: '2024-01-01T00:00:00Z' },
       });
       expect(malformedDate.statusCode).toBe(422);
+    });
+
+    it('rejects an empty accountIds array and a non-id accountIds entry with 422', async () => {
+      const emptyAccountIds = await helpers.exportData({ format: 'json', accountIds: [] });
+      expect(emptyAccountIds.statusCode).toBe(422);
+
+      const malformedAccountId = await helpers.exportData({ format: 'json', accountIds: ['not-an-id'] });
+      expect(malformedAccountId.statusCode).toBe(422);
     });
   });
 
@@ -764,6 +773,8 @@ describe('Data export (POST /user/data-export)', () => {
         category: `Foreign category ${Date.now()}`,
         tag: `foreign-tag-${Date.now()}`,
         note: `Foreign note ${Date.now()}`,
+        payee: `Foreign payee ${Date.now()}`,
+        payeeAlias: `FOREIGN PAYEE ALIAS ${Date.now()}`,
       };
 
       const secondUser = await helpers.signUpSecondUser();
@@ -781,6 +792,15 @@ describe('Data export (POST /user/data-export)', () => {
             raw: true,
           });
           await helpers.createTag({ payload: { name: foreignNeedle.tag, color: '#FF00FF' }, raw: true });
+          const foreignPayee = await helpers.createPayee({
+            payload: helpers.buildPayeePayload({ name: foreignNeedle.payee }),
+            raw: true,
+          });
+          await helpers.createPayeeAlias({
+            payeeId: foreignPayee.id,
+            rawName: foreignNeedle.payeeAlias,
+            raw: true,
+          });
           await helpers.createTransaction({
             payload: helpers.buildTransactionPayload({
               accountId: foreignAccount.id,
@@ -818,6 +838,8 @@ describe('Data export (POST /user/data-export)', () => {
       expect(stringified).not.toContain(foreignNeedle.category);
       expect(stringified).not.toContain(foreignNeedle.tag);
       expect(stringified).not.toContain(foreignNeedle.note);
+      expect(stringified).not.toContain(foreignNeedle.payee);
+      expect(stringified).not.toContain(foreignNeedle.payeeAlias);
     });
   });
 
@@ -948,6 +970,338 @@ describe('Data export (POST /user/data-export)', () => {
       const data = archive.json as { transactions: Array<Record<string, unknown>> };
       const notes = data.transactions.map((t) => t.note);
       expect(notes).toEqual(expect.arrayContaining(['Lower boundary', 'Upper boundary']));
+    });
+  });
+
+  describe('Transaction detail columns', () => {
+    it('exports payee, payment type, external links, and location when the transaction carries them', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({ name: 'Detail Payee' }),
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 10,
+          transactionType: TRANSACTION_TYPES.expense,
+          paymentType: PAYMENT_TYPES.cash,
+          payeeId: payee.id,
+          note: 'Detailed row',
+          externalUrl: 'https://example.com/receipt/1',
+          externalReference: 'REF-001',
+          location: { latitude: 50.45, longitude: 30.523 },
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.exportData({ format: 'csv' });
+      expect(response.statusCode).toBe(200);
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const rows = helpers.parseExportCsv({ buffer: archive.files.get('transactions.csv')! });
+
+      const row = rows.find((r) => r.Note === 'Detailed row');
+      expect(row).toBeDefined();
+      expect(row!.Payee).toBe(payee.name);
+      expect(row!.PaymentType).toBe(PAYMENT_TYPES.cash);
+      expect(row!.ExternalUrl).toBe('https://example.com/receipt/1');
+      expect(row!.ExternalReference).toBe('REF-001');
+      expect(row!.Location).toBe('50.45,30.523');
+    });
+
+    it('emits empty cells for payee, external links, and location when the transaction has none', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: account.id,
+          amount: 5,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'Bare row',
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.exportData({ format: 'json' });
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const data = archive.json as { transactions: Array<Record<string, unknown>> };
+
+      const row = data.transactions.find((t) => t.note === 'Bare row');
+      expect(row).toBeDefined();
+      expect(row?.payee).toBe('');
+      expect(row?.externalUrl).toBe('');
+      expect(row?.externalReference).toBe('');
+      expect(row?.location).toBe('');
+    });
+  });
+
+  describe('Payees file', () => {
+    it('exports payees with their default category, aliases, and default tags', async () => {
+      const category = await helpers.addCustomCategory({ name: 'PayeeCat', color: '#AABBCC', raw: true });
+      const tagAlpha = await helpers.createTag({ payload: { name: 'payee-alpha', color: '#111111' }, raw: true });
+      const tagBeta = await helpers.createTag({ payload: { name: 'payee-beta', color: '#222222' }, raw: true });
+      const payee = await helpers.createPayee({
+        payload: helpers.buildPayeePayload({
+          name: 'Exported Payee',
+          defaultCategoryId: category.id,
+          defaultTagIds: [tagAlpha.id, tagBeta.id],
+        }),
+        raw: true,
+      });
+      await helpers.createPayeeAlias({ payeeId: payee.id, rawName: 'EXPORTED PAYEE LLC', raw: true });
+      await helpers.createPayeeAlias({ payeeId: payee.id, rawName: 'EXPORTED PAYEE INC', raw: true });
+
+      const response = await helpers.exportData({ format: 'csv' });
+      expect(response.statusCode).toBe(200);
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const csv = archive.files.get('payees.csv');
+      expect(csv).toBeDefined();
+      const rows = helpers.parseExportCsv({ buffer: csv! });
+
+      const row = rows.find((r) => r.Name === payee.name);
+      expect(row).toBeDefined();
+      expect(row!.DefaultCategory).toBe('PayeeCat');
+      expect(row!.Aliases!.split('; ').toSorted()).toEqual(['EXPORTED PAYEE INC', 'EXPORTED PAYEE LLC']);
+      expect(row!.DefaultTags!.split('; ').toSorted()).toEqual(['payee-alpha', 'payee-beta']);
+
+      const jsonResponse = await helpers.exportData({ format: 'json' });
+      const jsonArchive = helpers.parseExportArchive({ buffer: jsonResponse.body });
+      const jsonPayee = (jsonArchive.json as { payees: Array<Record<string, unknown>> }).payees.find(
+        (p) => p.name === payee.name,
+      );
+      expect(jsonPayee).toBeDefined();
+      expect((jsonPayee!.aliases as string[]).toSorted()).toEqual(['EXPORTED PAYEE INC', 'EXPORTED PAYEE LLC']);
+      expect((jsonPayee!.defaultTags as string[]).toSorted()).toEqual(['payee-alpha', 'payee-beta']);
+    });
+
+    it('emits the payees file with zero rows for a user without payees', async () => {
+      const response = await helpers.exportData({ format: 'csv' });
+      expect(response.statusCode).toBe(200);
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const csv = archive.files.get('payees.csv');
+      expect(csv).toBeDefined();
+      expect(helpers.parseExportCsv({ buffer: csv! })).toHaveLength(0);
+    });
+  });
+
+  describe('Account filter', () => {
+    it('limits transactions, balance history and the accounts file to the requested accounts', async () => {
+      const accountA = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Filter account A' }),
+        raw: true,
+      });
+      const accountB = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Filter account B' }),
+        raw: true,
+      });
+
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountA.id,
+          amount: 11,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'Account A row',
+        }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: accountB.id,
+          amount: 22,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'Account B row',
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.exportData({ format: 'json', accountIds: [accountA.id] });
+      expect(response.statusCode).toBe(200);
+
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const data = archive.json as {
+        transactions: Array<Record<string, unknown>>;
+        accounts: Array<Record<string, unknown>>;
+        balances_history: Array<Record<string, unknown>>;
+      };
+
+      const notes = data.transactions.map((t) => t.note);
+      expect(notes).toContain('Account A row');
+      expect(notes).not.toContain('Account B row');
+
+      expect(data.balances_history.length).toBeGreaterThan(0);
+      expect([...new Set(data.balances_history.map((b) => b.account))]).toEqual([accountA.name]);
+
+      const accountNames = data.accounts.map((a) => a.name);
+      expect(accountNames).toContain(accountA.name);
+      expect(accountNames).not.toContain(accountB.name);
+      expect(archive.manifest.accountIds).toEqual([accountA.id]);
+
+      const unfiltered = await helpers.exportData({ format: 'json' });
+      expect(unfiltered.statusCode).toBe(200);
+      const unfilteredArchive = helpers.parseExportArchive({ buffer: unfiltered.body });
+      const unfilteredAccounts = (
+        unfilteredArchive.json as {
+          accounts: Array<Record<string, unknown>>;
+        }
+      ).accounts.map((a) => a.name);
+      expect(unfilteredAccounts).toEqual(expect.arrayContaining([accountA.name, accountB.name]));
+      expect(unfilteredArchive.manifest).not.toHaveProperty('accountIds');
+    });
+
+    it('ignores an account id that belongs to another user', async () => {
+      const foreignNeedle = {
+        account: `Foreign filtered account ${Date.now()}`,
+        note: `Foreign filtered note ${Date.now()}`,
+      };
+      let foreignAccountId = '';
+
+      const secondUser = await helpers.signUpSecondUser();
+      await helpers.asUser({
+        cookies: secondUser.cookies,
+        fn: async () => {
+          await helpers.setBaseCurrencyForActiveUser({ currencyCode: global.BASE_CURRENCY.code });
+          const foreignAccount = await helpers.createAccount({
+            payload: helpers.buildAccountPayload({ name: foreignNeedle.account }),
+            raw: true,
+          });
+          foreignAccountId = foreignAccount.id;
+          await helpers.createTransaction({
+            payload: helpers.buildTransactionPayload({
+              accountId: foreignAccount.id,
+              amount: 999,
+              transactionType: TRANSACTION_TYPES.expense,
+              note: foreignNeedle.note,
+            }),
+            raw: true,
+          });
+        },
+      });
+
+      const myAccount = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Own filtered account' }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({
+          accountId: myAccount.id,
+          amount: 5,
+          transactionType: TRANSACTION_TYPES.expense,
+          note: 'Own filtered row',
+        }),
+        raw: true,
+      });
+
+      const response = await helpers.exportData({ format: 'json', accountIds: [myAccount.id, foreignAccountId] });
+      expect(response.statusCode).toBe(200);
+
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const data = archive.json as {
+        transactions: Array<Record<string, unknown>>;
+        accounts: Array<Record<string, unknown>>;
+        balances_history: Array<Record<string, unknown>>;
+      };
+
+      expect(data.transactions.map((t) => t.note)).toContain('Own filtered row');
+      expect(data.accounts.map((a) => a.name)).toContain(myAccount.name);
+
+      const filteredFiles = JSON.stringify({
+        transactions: data.transactions,
+        accounts: data.accounts,
+        balances_history: data.balances_history,
+      });
+      expect(filteredFiles).not.toContain(foreignNeedle.account);
+      expect(filteredFiles).not.toContain(foreignNeedle.note);
+    });
+
+    it('applies the account filter and the date range together', async () => {
+      const accountA = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Combo account A' }),
+        raw: true,
+      });
+      const accountB = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Combo account B' }),
+        raw: true,
+      });
+
+      for (const [account, label] of [
+        [accountA, 'A'],
+        [accountB, 'B'],
+      ] as const) {
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 10,
+            transactionType: TRANSACTION_TYPES.expense,
+            note: `${label} inside`,
+            time: '2024-06-15T12:00:00.000Z',
+          }),
+          raw: true,
+        });
+        await helpers.createTransaction({
+          payload: helpers.buildTransactionPayload({
+            accountId: account.id,
+            amount: 20,
+            transactionType: TRANSACTION_TYPES.expense,
+            note: `${label} outside`,
+            time: '2025-06-15T12:00:00.000Z',
+          }),
+          raw: true,
+        });
+      }
+
+      const response = await helpers.exportData({
+        format: 'json',
+        accountIds: [accountA.id],
+        dateRange: { from: '2024-01-01', to: '2024-12-31' },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const archive = helpers.parseExportArchive({ buffer: response.body });
+      const data = archive.json as { transactions: Array<Record<string, unknown>> };
+      expect(data.transactions.map((t) => t.note)).toEqual(['A inside']);
+    });
+
+    it('still names the counterpart account in LinkedTransfer when the other leg is filtered out', async () => {
+      const source = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Straddle source' }),
+        raw: true,
+      });
+      const dest = await helpers.createAccount({
+        payload: helpers.buildAccountPayload({ name: 'Straddle dest' }),
+        raw: true,
+      });
+      await helpers.createTransaction({
+        payload: {
+          ...helpers.buildTransactionPayload({
+            accountId: source.id,
+            amount: 7500,
+            transactionType: TRANSACTION_TYPES.expense,
+            transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+          }),
+          destinationAmount: 7500,
+          destinationAccountId: dest.id,
+        } as unknown as ReturnType<typeof helpers.buildTransactionPayload>,
+        raw: true,
+      });
+
+      const unfiltered = await helpers.exportData({ format: 'csv' });
+      const unfilteredRows = helpers.parseExportCsv({
+        buffer: helpers.parseExportArchive({ buffer: unfiltered.body }).files.get('transactions.csv')!,
+      });
+      const unfilteredOutLeg = unfilteredRows.find((r) => r.Account === source.name && r.Type === 'transfer_out');
+      expect(unfilteredOutLeg).toBeDefined();
+
+      const filtered = await helpers.exportData({ format: 'csv', accountIds: [source.id] });
+      expect(filtered.statusCode).toBe(200);
+      const filteredRows = helpers.parseExportCsv({
+        buffer: helpers.parseExportArchive({ buffer: filtered.body }).files.get('transactions.csv')!,
+      });
+
+      const transferRows = filteredRows.filter((r) => r.Type === 'transfer_out' || r.Type === 'transfer_in');
+      expect(transferRows).toHaveLength(1);
+      expect(transferRows[0]!.Account).toBe(source.name);
+      expect(transferRows[0]!.LinkedTransfer).toContain(dest.name);
+      expect(transferRows[0]!.LinkedTransfer).toBe(unfilteredOutLeg!.LinkedTransfer);
     });
   });
 

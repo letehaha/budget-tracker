@@ -1,3 +1,4 @@
+import { type RecordId } from '@bt/shared/types';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
 import { getEmailForUser } from '@services/sharing/find-user-by-email.service';
@@ -73,11 +74,13 @@ export async function exportUserData({
   format,
   groups,
   dateRange,
+  accountIds,
 }: {
   userId: number;
   format: ExportFormat;
   groups: ExportGroup[];
   dateRange?: ExportDateRange;
+  accountIds?: RecordId[];
 }): Promise<ExportDataResult> {
   const exportedAt = new Date();
   const enabledFiles = resolveEnabledFiles({ groups });
@@ -91,7 +94,7 @@ export async function exportUserData({
   // currency + optional auth-pool email round-trip).
   const wantsUserHeader = format === 'json';
   const [tables, userHeader] = await Promise.all([
-    buildExportTables({ userId, enabledFiles, dateRange: effectiveRange }),
+    buildExportTables({ userId, enabledFiles, dateRange: effectiveRange, accountIds }),
     wantsUserHeader ? fetchUserHeader({ userId }) : Promise.resolve(null),
   ]);
 
@@ -105,7 +108,14 @@ export async function exportUserData({
 
   const dataFiles = await WRITERS[format].write({ tables, exportedAt, user: userHeader ?? undefined });
 
-  const manifest = buildManifest({ files: dataFiles, format, groups, exportedAt, dateRange: effectiveRange });
+  const manifest = buildManifest({
+    files: dataFiles,
+    format,
+    groups,
+    exportedAt,
+    dateRange: effectiveRange,
+    accountIds,
+  });
   const manifestBuffer = serializeManifest({ manifest });
 
   // STORE compression: the inputs are textual CSV/JSON that compress at the
