@@ -44,7 +44,12 @@ services:
       redis: { condition: service_healthy }
       currency-rates-api: { condition: service_healthy }
     env_file: .env
-    volumes: ['attachments_data:/app/packages/backend/data/attachments']
+    # Transaction attachments. Defaults to a Docker-managed volume; set
+    # ATTACHMENTS_PATH in .env to a host directory (absolute, or starting with
+    # ./) to keep them on a NAS/shared mount instead. The backend runs as user
+    # id 1001 and must be able to write to that directory – see ATTACHMENTS_PATH
+    # in docs/environment-reference.md for how to grant that.
+    volumes: ['${ATTACHMENTS_PATH:-attachments_data}:/app/packages/backend/data/attachments']
     environment:
       # Hardcoded, not read from .env: every stack started from this file is by
       # definition self-hosted, and `environment:` outranks `env_file:` so a
@@ -57,10 +62,10 @@ services:
       # stack has no use for them, so they default to disabled. Set
       # SYSTEM_DEMO_DISABLED=false in .env to allow them.
       SYSTEM_DEMO_DISABLED: ${SYSTEM_DEMO_DISABLED:-true}
-      # Where transaction attachments are written. Must stay inside the
-      # `attachments_data` volume mounted above, otherwise the files are lost on
-      # container recreate. Set ATTACHMENTS_S3_BUCKET in .env to use S3/R2 instead.
-      ATTACHMENTS_DIR: ${ATTACHMENTS_DIR:-/app/packages/backend/data/attachments}
+      # Hardcoded to the mount target above: a different in-container path would
+      # sit outside the volume and lose the files on container recreate. Move
+      # the storage with ATTACHMENTS_PATH, or set ATTACHMENTS_S3_BUCKET for S3/R2.
+      ATTACHMENTS_DIR: /app/packages/backend/data/attachments
     healthcheck:
       # BusyBox wget ships in the node:alpine image. `--spider` returns non-zero
       # on any non-2xx status, so this flips healthy only once /health answers.
