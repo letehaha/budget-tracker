@@ -73,6 +73,22 @@
       </section>
 
       <section>
+        <Label class="mb-2 block text-sm font-medium">
+          {{ $t('settings.dataManagement.export.accounts.label') }}
+        </Label>
+        <p class="text-muted-foreground mb-2 text-xs">
+          {{ $t('settings.dataManagement.export.accounts.helper') }}
+        </p>
+        <AccountMultiSelectField
+          include-archived
+          :model-value="selectedAccountIds"
+          :placeholder="$t('settings.dataManagement.export.accounts.placeholder')"
+          :disabled="isPending"
+          @update:model-value="(value) => (selectedAccountIds = value)"
+        />
+      </section>
+
+      <section>
         <div class="mb-3 flex items-center justify-between">
           <Label class="text-sm font-medium">
             {{ $t('settings.dataManagement.export.groups.label') }}
@@ -153,6 +169,7 @@
 
 <script setup lang="ts">
 import PlanRestricted from '@/components/billing/plan-restricted.vue';
+import AccountMultiSelectField from '@/components/fields/account-multi-select-field.vue';
 import { Button } from '@/components/lib/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
 import { Checkbox } from '@/components/lib/ui/checkbox';
@@ -202,6 +219,7 @@ const { isFeatureGated } = useUserStore();
 const format = ref<ExportFormat>('json');
 const selectedGroups = ref<Set<ExportGroup>>(new Set(ALL_EXPORT_GROUPS));
 const selectedPeriod = ref<Period | null>(null);
+const selectedAccountIds = ref<string[]>([]);
 
 const GROUP_ICONS: Record<ExportGroup, typeof ArrowRightLeftIcon> = {
   transactions: ArrowRightLeftIcon,
@@ -266,6 +284,7 @@ const handleConfirm = () => {
       format: format.value,
       groups: [...selectedGroups.value],
       dateRange: dateRangePayload.value,
+      accountIds: selectedAccountIds.value,
     },
     {
       onSuccess: ({ totalRows }) => {

@@ -13,6 +13,7 @@ import { NotificationType, useNotificationCenter } from '@/components/notificati
 import { useCreateInvestmentTransaction } from '@/composable/data-queries/investment-transactions';
 import { useFormValidation } from '@/composable/form-validator';
 import { useCurrencyName } from '@/composable/formatters';
+import { useLinkedCurrencyGroup } from '@/composable/use-linked-currency-group';
 import { useCurrenciesStore } from '@/stores/currencies';
 import { INVESTMENT_TRANSACTION_CATEGORY, type CurrencyModel } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
@@ -75,6 +76,7 @@ const settlementMode = ref<SettlementMode>('fee');
 
 const currenciesStore = useCurrenciesStore();
 const { formatCurrencyLabel } = useCurrencyName();
+const linkedCurrencyGroup = useLinkedCurrencyGroup();
 
 const securityCurrencyCode = computed(() => form.security?.currencyCode ?? null);
 
@@ -373,6 +375,7 @@ const onSubmit = async () => {
               v-model="form.settlementCurrency"
               :label="$t('forms.investmentTransaction.settlement.currencyLabel')"
               :values="currenciesStore.systemCurrencies"
+              :pinned-group="linkedCurrencyGroup"
               value-key="code"
               :label-key="
                 (item: CurrencyModel) => formatCurrencyLabel({ code: item.code, fallbackName: item.currency })

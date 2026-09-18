@@ -265,7 +265,8 @@
             "failedTitle": "Restore failed",
             "dismiss": "Dismiss"
           }
-        }
+        },
+        "attachmentsNotIncluded": "Transaction attachments (receipts, invoices and other files) are not included in backups and are not restored."
       }
     }
   }

@@ -13,6 +13,7 @@ export type DemoEndReason = 'signup_clicked' | 'logout' | 'expired';
  */
 export type DemoBlockedFeature =
   | 'add_passkey'
+  | 'attach_file'
   | 'bank_connect_enablebanking'
   | 'bank_connect_enablebanking_import_accounts'
   | 'bank_connect_lunchflow'

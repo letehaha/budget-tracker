@@ -31,6 +31,7 @@ const NARROWING_EXAMPLES: Record<FilterKey, Partial<FiltersStruct>> = {
   transfers: { transferFilter: FILTER_OPERATION.only },
   planned: { plannedFilter: FILTER_OPERATION.only },
   note: { noteIncludes: 'coffee' },
+  attachments: { attachmentFilter: FILTER_OPERATION.only },
 };
 
 const REGISTRY_ENTRIES = Object.entries(FILTER_REGISTRY) as [FilterKey, (typeof FILTER_REGISTRY)[FilterKey]][];

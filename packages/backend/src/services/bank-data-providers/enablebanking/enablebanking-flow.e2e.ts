@@ -2592,6 +2592,45 @@ describe('Enable Banking Data Provider E2E', () => {
       );
     });
 
+    it('promotes a top-level 400 consent-status refusal to ForbiddenError + deactivates with auth_failure marker', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(
+            JSON.stringify({
+              code: 400,
+              error: 'WRONG_SESSION_STATUS',
+              message: 'The consent status does not allow the requested access.',
+              detail: null,
+            }),
+            { status: 400 },
+          );
+        }),
+      );
+
+      const syncResult = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      expect(syncResult.status).toEqual(ERROR_CODES.Forbidden);
+
+      const connection = await BankDataProviderConnections.findByPk(connectionId);
+      const metadata = connection!.metadata as { deactivationReason?: string };
+      expect(connection!.isActive).toBe(false);
+      expect(metadata.deactivationReason).toBe(DEACTIVATION_REASON.AUTH_FAILURE);
+
+      const status = await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+      });
+      expect(status.body.response.connectionsNeedingReauth).toEqual(
+        expect.arrayContaining([expect.objectContaining({ connectionId })]),
+      );
+    });
+
     it('promotes wrapped-400 with auth keyword in wrapper message only (no nested error_data)', async () => {
       const { connectionId, accountId } = await setupActiveConnection();
 

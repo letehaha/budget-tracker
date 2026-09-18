@@ -25,6 +25,7 @@ const DEMO_EXCLUDED_FEATURES: readonly Feature[] = [
   FEATURES.backup_export,
   FEATURES.backup_restore,
   FEATURES.data_export,
+  FEATURES.attachments,
 ];
 const DEMO_FEATURES = PLAN_FEATURES.plus.filter((f) => !DEMO_EXCLUDED_FEATURES.includes(f));
 

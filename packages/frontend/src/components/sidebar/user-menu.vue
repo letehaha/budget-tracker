@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { config } from '@/common/config';
 import UiButton from '@/components/lib/ui/button/Button.vue';
 import * as Popover from '@/components/lib/ui/popover';
 import { useLogout } from '@/composable/actions/logout';
 import { ROUTES_NAMES } from '@/routes/constants';
 import { useUserStore } from '@/stores';
-import { ChevronUpIcon, LogOutIcon, UserIcon } from '@lucide/vue';
+import { ChevronUpIcon, ExternalLinkIcon, LogOutIcon, UserIcon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -13,6 +14,10 @@ const { t } = useI18n();
 const { user } = storeToRefs(useUserStore());
 const logoutHandler = useLogout();
 const isOpen = ref(false);
+const appRelease = __APP_RELEASE__;
+const commitHash = __APP_VERSION__;
+// Builds without git (no CI hash, no .git) fall back to a `dev-<timestamp>` id that isn't a commit.
+const isRealCommit = /^[0-9a-f]{40}$/.test(commitHash);
 </script>
 
 <template>
@@ -54,4 +59,22 @@ const isOpen = ref(false);
       </UiButton>
     </Popover.PopoverContent>
   </Popover.Popover>
+
+  <div v-if="config.isSelfHost" class="flex items-center justify-between gap-2 px-3 text-xs">
+    <i18n-t keypath="navigation.appVersion" tag="span" class="text-muted-foreground truncate">
+      <template #version>
+        <span class="text-foreground font-medium">{{ appRelease }}</span>
+      </template>
+    </i18n-t>
+    <a
+      v-if="isRealCommit"
+      :href="`https://github.com/letehaha/budget-tracker/commit/${commitHash}`"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="bg-muted hover:bg-accent text-foreground flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 font-mono transition-colors"
+    >
+      {{ commitHash.slice(0, 7) }}
+      <ExternalLinkIcon class="size-3" />
+    </a>
+  </div>
 </template>

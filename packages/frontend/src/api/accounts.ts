@@ -27,6 +27,10 @@ export const editAccount = async ({
   return api.put(`/accounts/${id}`, data);
 };
 
+export const getAccountTransactionCount = async ({ id }: { id: string }): Promise<{ transactionCount: number }> => {
+  return api.get(`/accounts/${id}/transaction-count`);
+};
+
 export interface DeleteAccountPayload {
   id: string;
   removePortfolioTransfers?: boolean;

@@ -13,8 +13,10 @@ import type {
   ImportBatchesHistoryResponse,
   StatementCostEstimate,
   StatementCostEstimateFailure,
+  StatementExecuteImportQueuedResponse,
   StatementExtractionResult,
   StatementExtractRequest,
+  StatementImportProgress,
 } from '@bt/shared/types';
 
 interface ParseCsvRequest {
@@ -145,21 +147,12 @@ interface StatementExecuteImportRequest {
   skipIndices: number[];
 }
 
-export interface StatementExecuteImportResponse {
-  summary: {
-    imported: number;
-    skipped: number;
-    errors: Array<{
-      transactionIndex: number;
-      error: string;
-    }>;
-  };
-  newTransactionIds: string[];
-  batchId: string;
-}
-
 export const executeStatementImport = async (
   payload: StatementExecuteImportRequest,
-): Promise<StatementExecuteImportResponse> => {
+): Promise<StatementExecuteImportQueuedResponse> => {
   return api.post('/import/text-source/execute', payload);
+};
+
+export const getStatementImportStatus = async ({ jobId }: { jobId: string }): Promise<StatementImportProgress> => {
+  return api.get(`/import/text-source/execute/status/${jobId}`);
 };

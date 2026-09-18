@@ -18,6 +18,7 @@ const sources: TemplateFormSources = {
   sourceAccounts: [{ id: ACCOUNT_ID, name: 'Checking', type: ACCOUNT_TYPES.system } as AccountModel],
   categoriesMap: { [CATEGORY_ID]: { id: CATEGORY_ID, name: 'Groceries' } as FormattedCategory },
   knownTagIds: new Set<string>(),
+  currencies: [],
 };
 
 const createTemplate = (overrides: Partial<TransactionTemplateModel> = {}): TransactionTemplateModel =>

@@ -1,3 +1,4 @@
+import { type RecordId } from '@bt/shared/types';
 import { createHash } from 'node:crypto';
 
 import {
@@ -29,12 +30,14 @@ export function buildManifest({
   groups,
   exportedAt,
   dateRange,
+  accountIds,
 }: {
   files: BuiltFile[];
   format: ExportFormat;
   groups: ExportGroup[];
   exportedAt: Date;
   dateRange?: ExportDateRange;
+  accountIds?: RecordId[];
 }): ExportManifest {
   const fileEntries: ManifestFileEntry[] = files.map((file) => ({
     filename: file.filename,
@@ -50,6 +53,7 @@ export function buildManifest({
     groups,
     files: fileEntries,
     ...(dateRange ? { dateRange } : {}),
+    ...(accountIds ? { accountIds } : {}),
   };
 }
 

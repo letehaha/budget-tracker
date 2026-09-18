@@ -37,6 +37,9 @@
       "plannedFilter": {
         "label": "Planned"
       },
+      "attachments": {
+        "label": "Attachments"
+      },
       "filterOperation": {
         "all": "All",
         "exclude": "Exclude",

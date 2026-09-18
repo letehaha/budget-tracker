@@ -25,6 +25,10 @@ import { csvImportQueue, csvImportWorker } from '@services/import-export/csv-imp
 import { importBatchDeleteQueue, importBatchDeleteWorker } from '@services/import-export/delete-batch-queue';
 import { msMoneyImportQueue, msMoneyImportWorker } from '@services/import-export/ms-money-import';
 import { ofxImportQueue, ofxImportWorker } from '@services/import-export/ofx-import';
+import {
+  statementImportQueue,
+  statementImportWorker,
+} from '@services/import-export/statement-parser/statement-import-queue';
 import { ynabImportQueue, ynabImportWorker } from '@services/import-export/ynab-import';
 import {
   subscriptionReminderEmailQueue,
@@ -491,6 +495,8 @@ afterAll(async () => {
     await ofxImportQueue.close();
     await csvImportWorker.close();
     await csvImportQueue.close();
+    await statementImportWorker.close();
+    await statementImportQueue.close();
     await backupRestoreWorker.close();
     await backupRestoreQueue.close();
     await importBatchDeleteWorker.close();

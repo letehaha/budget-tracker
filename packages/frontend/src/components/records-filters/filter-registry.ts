@@ -44,6 +44,7 @@ export const EXTRA_FILTER_KEYS = [
   'transfers',
   'planned',
   'note',
+  'attachments',
 ] as const;
 
 export type ExtraFilterKey = (typeof EXTRA_FILTER_KEYS)[number];
@@ -116,6 +117,12 @@ export const EXTRA_FILTERS: Record<ExtraFilterKey, ExtraFilterDefinition> = {
     menuLabelKey: 'transactions.filters.menu.note',
     defaultSlice: () => ({ noteIncludes: DEFAULT_FILTERS.noteIncludes }),
     isActive: (filters) => filters.noteIncludes.trim().length > 0,
+    dissolvesGroups: true,
+  },
+  attachments: {
+    menuLabelKey: 'transactions.filters.attachments.label',
+    defaultSlice: () => ({ attachmentFilter: DEFAULT_FILTERS.attachmentFilter }),
+    isActive: (filters) => filters.attachmentFilter !== FILTER_OPERATION.all,
     dissolvesGroups: true,
   },
 };

@@ -93,6 +93,8 @@ Group changes into these categories (skip empty ones):
 - **Only bump minor or major when the user explicitly asks for it** in their request (e.g., "minor bump", "make it a minor release", "major release"). Do NOT decide this on your own.
 - **Exception — strong candidate for a bigger bump**: if the release is a clear, strong candidate for more than a patch (e.g., a major new user-facing feature or a breaking change), still generate the notes with the patch version by default, but add a short note to the user suggesting it might warrant a minor/major bump and letting them decide. Do not apply the bigger bump unless they confirm.
 
+**Bump the app version.** Set `"version"` in `packages/frontend/package.json` to the new version without the `v` prefix (e.g. `"0.10.7"`). The UI shows this value, and it has to be committed before the `Release vX.Y.Z` PR merges: the image for the merge commit is built from it. Edit the file only; the user commits it.
+
 ### Step 5: Generate Release Text
 
 Follow the **exact format** observed from recent releases. The format is:
@@ -204,6 +206,8 @@ Examples from past releases:
 ### Step 8: Present to User
 
 Output the release text as a markdown code block so the user can copy it directly. Also state the suggested release title separately.
+
+Remind the user that the `packages/frontend/package.json` version bump from Step 4 must be committed to the `Release vX.Y.Z` PR before it merges.
 
 **Do NOT create the release.** Only prepare the text and let the user decide when to publish.
 

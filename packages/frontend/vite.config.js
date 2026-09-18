@@ -78,6 +78,9 @@ export default async ({ mode }) => {
   }
 
   const appVersion = resolveAppVersion();
+  // Bumped in the "Release vX.Y.Z" PR. A git tag can't be used: the release is
+  // published after the image for its merge commit is already building.
+  const { version: appRelease } = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'));
 
   return defineConfig({
     // Every .env file lives at the repo root, not in this package. Without this
@@ -87,6 +90,7 @@ export default async ({ mode }) => {
     envDir: path.resolve(__dirname, '../../'),
     define: {
       __APP_VERSION__: JSON.stringify(appVersion),
+      __APP_RELEASE__: JSON.stringify(appRelease),
     },
     plugins: [vue(), tailwind(), svgLoader(), versionJsonPlugin({ version: appVersion }), sentryPlugin].filter(Boolean),
     build: {

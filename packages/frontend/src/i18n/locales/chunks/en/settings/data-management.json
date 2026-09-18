@@ -91,6 +91,11 @@
           "placeholder": "All time",
           "clear": "Clear date range"
         },
+        "accounts": {
+          "label": "Accounts",
+          "helper": "Export only the selected accounts with their transactions and balance history. Leave empty to export all accounts.",
+          "placeholder": "All accounts"
+        },
         "listDescription": "Download a zip for spreadsheets, taxes, or migrating"
       }
     }

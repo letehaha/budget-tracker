@@ -2,6 +2,7 @@ import { RecordId, TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES } from '@bt/sh
 import { logger } from '@js/utils';
 import Accounts from '@models/accounts.model';
 import Categories from '@models/categories.model';
+import Payees from '@models/payees.model';
 import RefundTransactions from '@models/refund-transactions.model';
 import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
@@ -13,7 +14,7 @@ import Transactions from '@models/transactions.model';
 import { Op } from 'sequelize';
 
 import type { ExportDateRange, TransactionRow } from '../types';
-import { buildDateRangeClause, resolveRelationName } from './utils';
+import { buildAccountIdsClause, buildDateRangeClause, resolveRelationName } from './utils';
 
 interface CategoryView {
   id: string;
@@ -50,15 +51,20 @@ function describeTransaction({ tx, accountName }: { tx: Transactions; accountNam
 export async function transformTransactions({
   userId,
   dateRange,
+  accountIds: accountIdsFilter,
 }: {
   userId: number;
   dateRange?: ExportDateRange;
+  accountIds?: RecordId[];
 }): Promise<TransactionRow[]> {
   // An export is the user's own copy of their data: everything they can see in the app
   // ships, plans included (the row carries an `isPlanned` column so they stay readable
   // as plans), balance adjustments included.
   const transactions = await findTransactions({
-    where: buildDateRangeClause({ field: 'time', dateRange }),
+    where: {
+      ...buildDateRangeClause({ field: 'time', dateRange }),
+      ...buildAccountIdsClause({ field: 'accountId', accountIds: accountIdsFilter }),
+    },
     planned: 'include',
     access: { creator: userId },
     balanceAdjustments: 'include',
@@ -70,8 +76,9 @@ export async function transformTransactions({
   const txIds = transactions.map((t) => t.id);
   const accountIds = [...new Set(transactions.map((t) => t.accountId).filter((id): id is RecordId => Boolean(id)))];
   const categoryIds = [...new Set(transactions.map((t) => t.categoryId).filter((id): id is RecordId => Boolean(id)))];
+  const payeeIds = [...new Set(transactions.map((t) => t.payeeId).filter((id): id is RecordId => Boolean(id)))];
 
-  const [accounts, categories, splits, tagLinks, allTags, refundLinks, subLinks] = await Promise.all([
+  const [accounts, categories, payees, splits, tagLinks, allTags, refundLinks, subLinks] = await Promise.all([
     // Scope the account lookup to the current user so a stray cross-user
     // accountId (legacy data, future cross-account share, malformed row)
     // cannot leak another user's account name into the export's Account
@@ -80,6 +87,9 @@ export async function transformTransactions({
       ? Accounts.findAll({ where: { userId, id: { [Op.in]: accountIds } }, attributes: ['id', 'name'] })
       : Promise.resolve([] as Accounts[]),
     Categories.findAll({ where: { userId }, attributes: ['id', 'name', 'parentId'] }),
+    payeeIds.length
+      ? Payees.findAll({ where: { userId, id: { [Op.in]: payeeIds } }, attributes: ['id', 'name'] })
+      : Promise.resolve([] as Payees[]),
     TransactionSplits.findAll({ where: { transactionId: { [Op.in]: txIds } } }),
     TransactionTags.findAll({ where: { transactionId: { [Op.in]: txIds } } }),
     Tags.findAll({ where: { userId }, attributes: ['id', 'name'] }),
@@ -88,6 +98,7 @@ export async function transformTransactions({
   ]);
 
   const accountNameById = new Map(accounts.map((a) => [String(a.id), a.name]));
+  const payeeNameById = new Map(payees.map((p) => [String(p.id), p.name]));
   const tagNameById = new Map(allTags.map((t) => [t.id, t.name]));
 
   const categoryViewById = new Map<string, CategoryView>();
@@ -162,6 +173,58 @@ export async function transformTransactions({
   }
 
   const txById = new Map(transactions.map((t) => [t.id, t]));
+
+  // An account filter fetches only one side of a transfer or refund pair, so the
+  // counterparts are pulled in for the LinkedTransfer/RefundOf lookups alone –
+  // adding them to `transactions` would export rows the filter excluded.
+  if (accountIdsFilter) {
+    const lonelyTransferIds = [...txsByTransferId.entries()]
+      .filter(([, legs]) => legs.length < 2)
+      .map(([transferId]) => transferId);
+    const missingOriginalIds: RecordId[] = [];
+    for (const tx of transactions) {
+      const originalId = refundOriginalByRefundId.get(String(tx.id));
+      if (originalId && !txById.has(originalId)) missingOriginalIds.push(originalId);
+    }
+
+    if (lonelyTransferIds.length || missingOriginalIds.length) {
+      const counterparts = await findTransactions({
+        where: {
+          [Op.or]: [
+            ...(lonelyTransferIds.length ? [{ transferId: { [Op.in]: lonelyTransferIds } }] : []),
+            ...(missingOriginalIds.length ? [{ id: { [Op.in]: missingOriginalIds } }] : []),
+          ],
+        },
+        planned: 'include',
+        access: { creator: userId },
+        balanceAdjustments: 'include',
+        completeness: 'all',
+      });
+
+      for (const tx of counterparts) {
+        if (txById.has(tx.id)) continue;
+        txById.set(tx.id, tx);
+        if (tx.transferNature === TRANSACTION_TRANSFER_NATURE.common_transfer && tx.transferId) {
+          txsByTransferId.set(tx.transferId, [...(txsByTransferId.get(tx.transferId) ?? []), tx]);
+        }
+      }
+
+      const extraAccountIds = [
+        ...new Set(
+          counterparts
+            .map((t) => t.accountId)
+            .filter((id): id is RecordId => Boolean(id) && !accountNameById.has(String(id))),
+        ),
+      ];
+      if (extraAccountIds.length) {
+        const extraAccounts = await Accounts.findAll({
+          where: { userId, id: { [Op.in]: extraAccountIds } },
+          attributes: ['id', 'name'],
+        });
+        for (const account of extraAccounts) accountNameById.set(String(account.id), account.name);
+      }
+    }
+  }
 
   // Subscriptions linked to transactions. The `userId` clause is defensive:
   // subscription_transactions should only ever link rows owned by the same
@@ -271,13 +334,23 @@ export async function transformTransactions({
       time: tx.time instanceof Date ? tx.time.toISOString().slice(11, 19) : '',
       account: accountName,
       type: deriveExportType({ tx }),
+      paymentType: tx.paymentType,
       category: categoryName,
       subcategory: subcategoryName,
+      payee: resolveRelationName({
+        id: tx.payeeId,
+        nameById: payeeNameById,
+        relation: 'payee',
+        context: `transaction ${tx.id}`,
+      }),
       amount: tx.amount.toNumber(),
       currency: tx.currencyCode ?? '',
       amountInBaseCurrency: tx.refAmount.toNumber(),
       baseCurrency: tx.refCurrencyCode ?? '',
       note: tx.note ?? '',
+      externalUrl: tx.externalUrl ?? '',
+      externalReference: tx.externalReference ?? '',
+      location: tx.location ? `${tx.location.latitude},${tx.location.longitude}` : '',
       tags: tagNamesByTxId.get(tx.id) ?? [],
       splitDetails,
       splits: splitsForJson,

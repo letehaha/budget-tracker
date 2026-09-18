@@ -1,23 +1,29 @@
 import {
   type StatementDetectDuplicatesResponse,
-  type StatementExecuteImportResponse,
   detectStatementDuplicates,
   estimateStatementCost,
   executeStatementImport,
   extractStatementTransactions,
+  getStatementImportStatus,
 } from '@/api/import-export';
 import { loadTransactions } from '@/api/transactions';
 import { fileToBase64 } from '@/common/utils/file-to-base64';
+import { useImportJobProgress } from '@/composable/use-import-job-progress';
 import { useWizardSteps } from '@/composable/use-wizard-steps';
+import { i18n } from '@/i18n';
+import { isApiErrorWithCode } from '@/js/errors';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import type {
-  AccountModel,
-  ExtractedMetadata,
-  ExtractedTransaction,
-  StatementCostEstimate,
-  StatementCostEstimateFailure,
-  StatementExtractionResult,
-  StatementTextExtractionErrorCode,
+import {
+  API_ERROR_CODES,
+  type AccountModel,
+  type ExtractedMetadata,
+  type ExtractedTransaction,
+  SSE_EVENT_TYPES,
+  type StatementCostEstimate,
+  type StatementCostEstimateFailure,
+  type StatementExtractionResult,
+  type StatementImportProgress,
+  type StatementTextExtractionErrorCode,
 } from '@bt/shared/types';
 import type { TransactionModel } from '@bt/shared/types/db-models';
 import { useQueryClient } from '@tanstack/vue-query';
@@ -128,10 +134,51 @@ export const useStatementParserStore = defineStore('statementParser', () => {
   // Set of transaction indices that user wants to exclude (manual exclusion)
   const excludedTransactionIndices = ref<Set<number>>(new Set());
 
-  // Step 6: Import execution
-  const isImporting = ref(false);
-  const importResult = ref<StatementExecuteImportResponse | null>(null);
+  // Step 6: Import execution. The execute endpoint enqueues a background job, so
+  // the terminal summary lives on `progress` (the `completed` branch) and the
+  // watchdog below follows the job over SSE + a status poll.
+  const isEnqueuing = ref(false);
+  /** Set only when the request that starts the job never lands, which is the one
+   *  case where re-submitting cannot duplicate rows. */
   const importError = ref<string | null>(null);
+
+  const jobProgress = useImportJobProgress<StatementImportProgress>({
+    sseEventType: SSE_EVENT_TYPES.STATEMENT_IMPORT_PROGRESS,
+    fetchStatus: getStatementImportStatus,
+    onComplete: () => {
+      // Note: import_completed is tracked on the backend for reliability
+      useOnboardingStore().completeTask('import-csv');
+      queryClient.invalidateQueries();
+    },
+    // The results step renders the failure from `importJobError`. Rows may still
+    // have been committed before the job died, so the caches are refreshed too.
+    onFailure: () => queryClient.invalidateQueries(),
+    onLostContact: () => queryClient.invalidateQueries(),
+  });
+
+  /** A job that started and then failed, or one this device lost contact with.
+   *  Rows may already have landed, so the UI must not offer a plain retry. */
+  const importJobError = computed(() => {
+    if (jobProgress.progress.value?.status === 'failed') {
+      // A failed job with an empty message would read as "no error" and drop the
+      // user back on the ready-to-import screen with a live Import button.
+      return jobProgress.progress.value.error || i18n.global.t('pages.statementParser.importResults.failedTitle');
+    }
+    return jobProgress.executeError.value;
+  });
+
+  const isImporting = computed(
+    () =>
+      // Lost contact and an expired job leave `progress` on queued/running, so
+      // without this the spinner outlives the error forever.
+      !importJobError.value &&
+      (isEnqueuing.value ||
+        jobProgress.progress.value?.status === 'queued' ||
+        jobProgress.progress.value?.status === 'running'),
+  );
+  const importResult = computed(() =>
+    jobProgress.progress.value?.status === 'completed' ? jobProgress.progress.value.summary : null,
+  );
 
   // The wizard's index space: duplicates, exclusions and `skipIndices` are positions
   // in this array, and it is exactly what is POSTed to detect-duplicates and execute.
@@ -285,9 +332,11 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     existingTransactions.value = [];
     overriddenDuplicateIndices.value = new Set();
     excludedTransactionIndices.value = new Set();
-    isImporting.value = false;
-    importResult.value = null;
+    isEnqueuing.value = false;
     importError.value = null;
+    jobProgress.stop();
+    jobProgress.progress.value = null;
+    jobProgress.setExecuteError(null);
   }
 
   // Entries for files still selected are kept as-is so their paid-for estimate/extraction survives.
@@ -558,31 +607,39 @@ export const useStatementParserStore = defineStore('statementParser', () => {
 
   async function executeImport() {
     if (!selectedAccount.value || !mergedTransactions.value.length) return;
+    // The Import button only disappears on the next tick, so a double click
+    // would otherwise fire two POSTs and import every row twice.
+    if (isImporting.value) return;
 
-    isImporting.value = true;
+    isEnqueuing.value = true;
     importError.value = null;
-    importResult.value = null;
+    jobProgress.setExecuteError(null);
 
     try {
-      const result = await executeStatementImport({
+      const { jobId } = await executeStatementImport({
         accountId: selectedAccount.value.id,
         transactions: mergedTransactions.value,
         skipIndices: skipIndices.value,
       });
-      importResult.value = result;
 
-      // Note: import_completed is tracked on the backend for reliability
-
-      // Mark onboarding task as complete
-      const onboardingStore = useOnboardingStore();
-      onboardingStore.completeTask('import-csv');
-
-      // Invalidate all queries to refetch data after import
-      queryClient.invalidateQueries();
+      jobProgress.start({
+        initialProgress: { jobId, status: 'queued', processedCount: 0, totalCount: 0 },
+      });
     } catch (error) {
+      // A conflict means a job of this user's is already running: follow that one
+      // rather than dead-ending on an error the user cannot act on.
+      const inFlightJobId = isApiErrorWithCode(error, API_ERROR_CODES.conflict)
+        ? (error.data.details?.jobId as string | undefined)
+        : undefined;
+      if (inFlightJobId) {
+        jobProgress.start({
+          initialProgress: { jobId: inFlightJobId, status: 'queued', processedCount: 0, totalCount: 0 },
+        });
+        return;
+      }
       importError.value = error instanceof Error ? error.message : 'Failed to import transactions';
     } finally {
-      isImporting.value = false;
+      isEnqueuing.value = false;
     }
   }
 
@@ -618,6 +675,7 @@ export const useStatementParserStore = defineStore('statementParser', () => {
     isImporting,
     importResult,
     importError,
+    importJobError,
 
     // Computed
     mergedTransactions,

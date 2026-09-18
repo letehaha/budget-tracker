@@ -31,6 +31,7 @@
       <SelectField
         :model-value="selectedCurrency"
         :values="currencyOptions"
+        :pinned-group="linkedCurrencyGroup"
         label-key="displayLabel"
         value-key="code"
         with-search
@@ -53,6 +54,7 @@
 import SelectField from '@/components/fields/select-field.vue';
 import { Button as UiButton } from '@/components/lib/ui/button';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { useLinkedCurrencyGroup } from '@/composable/use-linked-currency-group';
 import { formatUIAmount } from '@/js/helpers';
 import type { YnabAccountMappingValue, YnabParseAccount } from '@bt/shared/types';
 import { BanIcon, Undo2Icon } from '@lucide/vue';
@@ -75,6 +77,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const linkedCurrencyGroup = useLinkedCurrencyGroup();
 
 const isSkipped = computed(() => props.mapping?.skip === true);
 

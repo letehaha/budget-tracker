@@ -7,6 +7,7 @@ import {
 } from '@controllers/accounts.controller';
 import balanceAdjustment from '@controllers/accounts/balance-adjustment';
 import linkAccountToBankConnection from '@controllers/accounts/link-to-bank-connection';
+import getAccountTransactionCount from '@controllers/accounts/transaction-count';
 import unlinkAccountFromBankConnection from '@controllers/accounts/unlink-from-bunk-connection';
 import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
@@ -17,6 +18,12 @@ const router = Router({});
 
 router.get('/', authenticateSession, validateEndpoint(getAccounts.schema), getAccounts.handler);
 router.get('/:id', authenticateSession, validateEndpoint(getAccountById.schema), getAccountById.handler);
+router.get(
+  '/:id/transaction-count',
+  authenticateSession,
+  validateEndpoint(getAccountTransactionCount.schema),
+  getAccountTransactionCount.handler,
+);
 router.post(
   '/',
   authenticateSession,

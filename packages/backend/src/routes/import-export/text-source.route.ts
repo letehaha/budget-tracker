@@ -3,6 +3,7 @@ import {
   estimateCostController,
   executeImportController,
   extractController,
+  importStatusController,
 } from '@controllers/statement-parser';
 import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
@@ -63,9 +64,9 @@ router.post(
  * Execute statement import - create transactions in the database
  * POST /import/text-source/execute
  *
- * Creates transactions in the specified account from extracted statement data
+ * Enqueues the import as a background job
  * Body: StatementExecuteImportRequest
- * Returns: StatementExecuteImportResponse
+ * Returns: StatementExecuteImportQueuedResponse
  */
 router.post(
   '/text-source/execute',
@@ -73,6 +74,19 @@ router.post(
   checkBaseCurrencyLock,
   validateEndpoint(executeImportController.schema),
   executeImportController.handler,
+);
+
+/**
+ * Status of a statement import job
+ * GET /import/text-source/execute/status/:jobId
+ *
+ * Returns: StatementImportProgress
+ */
+router.get(
+  '/text-source/execute/status/:jobId',
+  authenticateSession,
+  validateEndpoint(importStatusController.schema),
+  importStatusController.handler,
 );
 
 export default router;

@@ -320,6 +320,10 @@
       "selectOption": "Select an option",
       "searchPlaceholder": "Search..."
     },
+    "currencySelect": {
+      "yourCurrencies": "Your currencies",
+      "otherCurrencies": "Other currencies"
+    },
     "comboboxAccounts": {
       "allAccounts": "All accounts",
       "account": "account",

@@ -9,12 +9,13 @@ const triggerSyncRequest = vi.fn();
 const auth = vi.hoisted(() => ({ isLoggedIn: { value: true } }));
 const user = vi.hoisted(() => ({ isDemo: { value: false }, hasFeature: vi.fn(() => true) }));
 // Holds the options `useQuery` was called with so a test can read back `enabled`.
-const query = vi.hoisted(() => ({ options: null as { enabled?: unknown } | null }));
+const query = vi.hoisted(() => ({ options: null as { enabled?: unknown } | null, data: { value: null as unknown } }));
 
 vi.mock('@/api/bank-data-providers', () => ({
   getSyncStatus: (...args: unknown[]) => getSyncStatus(...args),
   checkSync: (...args: unknown[]) => checkSync(...args),
   triggerSync: (...args: unknown[]) => triggerSyncRequest(...args),
+  SyncStatus: { IDLE: 'idle', QUEUED: 'queued', SYNCING: 'syncing', COMPLETED: 'completed', FAILED: 'failed' },
 }));
 
 // Captures the SSE handler the composable registers, so a test can push a status
@@ -70,7 +71,7 @@ vi.mock('@tanstack/vue-query', () => ({
   useQueryClient: () => queryClient,
   useQuery: (options: { enabled?: unknown }) => {
     query.options = options;
-    return { data: ref(null), isFetching: ref(false), refetch: vi.fn() };
+    return { data: query.data, isFetching: ref(false), refetch: vi.fn() };
   },
   useMutation: ({ mutationFn }: { mutationFn: () => Promise<unknown> }) => ({
     isPending: ref(false),
@@ -164,6 +165,49 @@ const buildStatus = ({ syncing }: { syncing: number }) => ({
   summary: { syncing, queued: 0, completed: 0, failed: 0, total: 1 },
   accounts: [],
   connectionsNeedingReauth: [],
+});
+
+describe('useSyncStatus hasSyncIssue', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    auth.isLoggedIn.value = true;
+    user.isDemo.value = false;
+    user.hasFeature.mockReturnValue(true);
+    query.data.value = null;
+  });
+
+  const statusWith = ({
+    accounts = [],
+    connectionsNeedingReauth = [],
+  }: {
+    accounts?: { status: string }[];
+    connectionsNeedingReauth?: { connectionId: string }[];
+  }) => ({
+    summary: { syncing: 0, queued: 0, completed: 1, failed: 0, total: 1 },
+    accounts,
+    connectionsNeedingReauth,
+  });
+
+  it('is false for a healthy status payload', () => {
+    query.data.value = statusWith({ accounts: [{ status: 'completed' }] });
+
+    expect(useSyncStatus().hasSyncIssue.value).toBe(false);
+  });
+
+  it('is true when an account failed to sync', () => {
+    query.data.value = statusWith({ accounts: [{ status: 'completed' }, { status: 'failed' }] });
+
+    expect(useSyncStatus().hasSyncIssue.value).toBe(true);
+  });
+
+  it('is true when a connection needs reauth even though no account row failed', () => {
+    query.data.value = statusWith({
+      accounts: [{ status: 'completed' }],
+      connectionsNeedingReauth: [{ connectionId: 'conn-1' }],
+    });
+
+    expect(useSyncStatus().hasSyncIssue.value).toBe(true);
+  });
 });
 
 describe('useSyncStatus cache invalidation on sync completion', () => {

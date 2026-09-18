@@ -2,7 +2,7 @@ import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent } from 'vue';
+import { type Ref, defineComponent, ref } from 'vue';
 
 import { useStatementParserStore } from './statement-parser';
 
@@ -13,7 +13,26 @@ vi.mock('@/api/import-export', () => ({
   extractStatementTransactions: vi.fn(),
   detectStatementDuplicates: vi.fn(),
   executeStatementImport: vi.fn(),
+  getStatementImportStatus: vi.fn(),
 }));
+
+// The store arms a `useImportJobProgress` watchdog at construction time. Mock it
+// so the store builds without real SSE or timers, and so tests can drive the job
+// state machine by writing to these refs.
+let mockProgress: Ref<unknown>;
+let mockExecuteError: Ref<string | null>;
+let mockStart: ReturnType<typeof vi.fn>;
+vi.mock('@/composable/use-import-job-progress', () => ({
+  useImportJobProgress: vi.fn(() => ({
+    progress: mockProgress,
+    executeError: mockExecuteError,
+    setExecuteError: vi.fn(),
+    start: mockStart,
+    stop: vi.fn(),
+  })),
+}));
+
+vi.mock('@/i18n', () => ({ i18n: { global: { t: (key: string) => key } } }));
 
 vi.mock('@/api/transactions', () => ({ loadTransactions: vi.fn() }));
 
@@ -32,11 +51,13 @@ vi.mock('./onboarding', () => ({ useOnboardingStore: vi.fn(() => ({ completeTask
 
 import * as statementApi from '@/api/import-export';
 import * as transactionsApi from '@/api/transactions';
-import type {
-  AccountModel,
-  ExtractedMetadata,
-  StatementCostEstimate,
-  StatementExtractionResult,
+import { ApiErrorResponseError } from '@/js/errors';
+import {
+  API_ERROR_CODES,
+  type AccountModel,
+  type ExtractedMetadata,
+  type StatementCostEstimate,
+  type StatementExtractionResult,
 } from '@bt/shared/types';
 
 const mockEstimate = vi.mocked(statementApi.estimateStatementCost);
@@ -115,6 +136,9 @@ const importFiles = async ({ store, files }: { store: ReturnType<typeof useState
 describe('useStatementParserStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockProgress = ref(null);
+    mockExecuteError = ref(null);
+    mockStart = vi.fn();
     mockEstimate.mockResolvedValue(COST_ESTIMATE);
     mountWithPlugins();
   });
@@ -503,6 +527,113 @@ describe('useStatementParserStore', () => {
       expect(payload.transactions).toEqual(store.mergedTransactions);
       expect(payload.transactions).toHaveLength(3);
       expect(payload.skipIndices).toEqual([1, 2]);
+    });
+  });
+
+  describe('import job state', () => {
+    const SUMMARY = {
+      imported: 2,
+      merged: 0,
+      skipped: 1,
+      errors: [],
+      newTransactionIds: ['tx-1', 'tx-2'],
+      batchId: 'batch-1',
+    };
+
+    /** A store with one extracted file and an account picked, ready to import. */
+    const readyStore = async () => {
+      const store = useStatementParserStore();
+      mockExtract.mockResolvedValue(EXTRACTION_RESULT);
+      await importFiles({ store, files: [aPdf()] });
+      store.selectAccount({ account: ACCOUNT });
+      return store;
+    };
+
+    it('reports a failed enqueue as importError, with no job error', async () => {
+      const store = await readyStore();
+      mockExecuteImport.mockRejectedValue(new Error('network down'));
+
+      await store.executeImport();
+
+      expect(store.importError).toBe('network down');
+      expect(store.isImporting).toBe(false);
+      expect(store.importJobError).toBeNull();
+    });
+
+    it('is importing while the job runs', async () => {
+      const store = await readyStore();
+      mockExecuteImport.mockResolvedValue({ jobId: 'job-1' });
+
+      await store.executeImport();
+      mockProgress.value = { jobId: 'job-1', status: 'running', processedCount: 1, totalCount: 3 };
+
+      expect(store.isImporting).toBe(true);
+      expect(store.importJobError).toBeNull();
+    });
+
+    it('exposes the summary once the job completes', async () => {
+      const store = await readyStore();
+
+      mockProgress.value = { jobId: 'job-1', status: 'completed', processedCount: 3, totalCount: 3, summary: SUMMARY };
+
+      expect(store.importResult).toEqual(SUMMARY);
+      expect(store.isImporting).toBe(false);
+    });
+
+    it('surfaces the error of a failed job', async () => {
+      const store = await readyStore();
+
+      mockProgress.value = { jobId: 'job-1', status: 'failed', processedCount: 1, totalCount: 3, error: 'worker died' };
+
+      expect(store.importJobError).toBe('worker died');
+      expect(store.isImporting).toBe(false);
+    });
+
+    it('still reports a failed job that carries no error message', async () => {
+      const store = await readyStore();
+
+      mockProgress.value = { jobId: 'job-1', status: 'failed', processedCount: 1, totalCount: 3, error: '' };
+
+      expect(store.importJobError).toBeTruthy();
+      expect(store.isImporting).toBe(false);
+    });
+
+    it('stops importing when contact with a running job is lost', async () => {
+      const store = await readyStore();
+
+      mockProgress.value = { jobId: 'job-1', status: 'running', processedCount: 1, totalCount: 3 };
+      mockExecuteError.value = 'Lost contact with the import job';
+
+      expect(store.isImporting).toBe(false);
+      expect(store.importJobError).toBe('Lost contact with the import job');
+    });
+
+    it('ignores a second import while one is in flight', async () => {
+      const store = await readyStore();
+      mockExecuteImport.mockResolvedValue({ jobId: 'job-1' });
+
+      await store.executeImport();
+      mockProgress.value = { jobId: 'job-1', status: 'queued', processedCount: 0, totalCount: 0 };
+      await store.executeImport();
+
+      expect(mockExecuteImport).toHaveBeenCalledTimes(1);
+    });
+
+    it('follows the in-flight job when the server answers with a conflict', async () => {
+      const store = await readyStore();
+      mockExecuteImport.mockRejectedValue(
+        new ApiErrorResponseError('Import already running', {
+          code: API_ERROR_CODES.conflict,
+          details: { jobId: 'job-9' },
+        }),
+      );
+
+      await store.executeImport();
+
+      expect(mockStart).toHaveBeenCalledWith({
+        initialProgress: { jobId: 'job-9', status: 'queued', processedCount: 0, totalCount: 0 },
+      });
+      expect(store.importError).toBeNull();
     });
   });
 

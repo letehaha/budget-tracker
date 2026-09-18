@@ -37,6 +37,9 @@
       "plannedFilter": {
         "label": "Заплановані"
       },
+      "attachments": {
+        "label": "Вкладення"
+      },
       "filterOperation": {
         "all": "Всі",
         "exclude": "Виключити",
