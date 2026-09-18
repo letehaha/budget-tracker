@@ -543,5 +543,14 @@
     "reorderStale": "The automation list has changed. Refresh and try again.",
     "ruleLimitReached": "You have reached the maximum number of automations.",
     "staleReference": "This automation references an item that no longer exists."
+  },
+  "attachments": {
+    "transactionNotFound": "Transaction not found.",
+    "attachmentNotFound": "Attachment not found.",
+    "fileNotFound": "Attachment file not found.",
+    "unsupportedFileType": "Unsupported file type. Upload a JPEG, PNG, WebP or PDF file.",
+    "tooManyAttachments": "A transaction can hold at most {{max}} attachments.",
+    "quotaExceeded": "Attachment storage quota exceeded.",
+    "noFileUploaded": "No file was uploaded."
   }
 }

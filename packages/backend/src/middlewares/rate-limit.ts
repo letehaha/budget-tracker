@@ -222,6 +222,16 @@ export const billingRateLimit = perUserNonDevRateLimit({ prefix: 'billing', wind
 export const msMoneyUploadRateLimit = perUserNonDevRateLimit({ prefix: 'ms-money-upload' });
 
 /**
+ * Attachment upload rate limit. Each call buffers a file of up to 10MB and writes it to
+ * object storage, so the budget bounds both memory churn and storage spend per user.
+ */
+export const attachmentUploadRateLimit = perUserNonDevRateLimit({
+  prefix: 'attachment-upload',
+  windowSeconds: 60,
+  maxAttempts: 30,
+});
+
+/**
  * Resource-lease refresh rate limit (per user, 150 refreshes per 5 minutes).
  *
  * A refresh rewrites a few bytes of lease metadata, so the concern is call

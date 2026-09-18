@@ -1,5 +1,5 @@
 import { api } from '@/api/_api';
-import { fetchZipDownload } from '@/api/_zip-download';
+import { fetchBinaryDownload } from '@/api/_binary-download';
 import type { BackupRestoreActiveStatus, BackupRestoreStatusResponse } from '@bt/shared/types';
 
 const DEFAULT_FILENAME = 'moneymatter-backup.zip';
@@ -11,7 +11,7 @@ interface DownloadBackupResult {
 
 /** Trigger a full-data backup and return the resulting zip as a Blob. */
 export async function downloadBackup(): Promise<DownloadBackupResult> {
-  const { blob, filename } = await fetchZipDownload({
+  const { blob, filename } = await fetchBinaryDownload({
     path: '/user/backup',
     feature: 'data-backup',
     defaultFilename: DEFAULT_FILENAME,

@@ -166,6 +166,17 @@
           />
         </div>
 
+        <div
+          v-else-if="filterKey === 'attachments'"
+          class="border-input bg-input-background flex h-10 items-center rounded-md border px-3"
+        >
+          <OperationPills
+            :label="$t('transactions.filters.attachments.label')"
+            :model-value="filters.attachmentFilter"
+            @update:model-value="emitFilters({ ...filters, attachmentFilter: $event })"
+          />
+        </div>
+
         <div v-else-if="filterKey === 'note'" class="w-56">
           <NoteIncludesFilter
             compact

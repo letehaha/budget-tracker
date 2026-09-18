@@ -55,7 +55,16 @@ import {
 } from '@models/transactions-query/where-builders';
 import Users from '@models/users.model';
 import { updateAccountBalanceForChangedTx } from '@services/accounts/update-balance-for-changed-tx';
-import { Op, Includeable, Order, WhereOptions, literal, where as sequelizeWhere } from 'sequelize';
+import {
+  Op,
+  FindAttributeOptions,
+  Includeable,
+  Order,
+  ProjectionAlias,
+  WhereOptions,
+  literal,
+  where as sequelizeWhere,
+} from 'sequelize';
 import {
   Table,
   BeforeCreate,
@@ -799,6 +808,8 @@ function buildExcludeRefundTxsCondition({ keepRefundsForTxId }: { keepRefundsFor
   );
 }
 
+const HAS_ATTACHMENTS_SQL = `EXISTS (SELECT 1 FROM "TransactionAttachments" ta WHERE ta."transactionId" = "Transactions"."id")`;
+
 export const findWithFilters = async ({
   planned,
   access,
@@ -824,6 +835,8 @@ export const findWithFilters = async ({
   excludeRefunds,
   excludeRefundTxs,
   keepRefundsForTxId,
+  hasAttachment,
+  includeHasAttachments,
   transferFilter,
   refundFilter,
   startDate,
@@ -880,6 +893,11 @@ export const findWithFilters = async ({
   /** With `excludeRefundTxs`: keep refunds linked to this original, so an edit dialog
    *  can still list and deselect its own links. */
   keepRefundsForTxId?: string;
+  /** Absent = both, `true` = only rows carrying attachments, `false` = only rows without. */
+  hasAttachment?: boolean;
+  /** Adds a `hasAttachments` boolean to every row. Costs an EXISTS subquery per row, so
+   *  only the user-facing list asks for it. */
+  includeHasAttachments?: boolean;
   transferFilter?: FILTER_OPERATION;
   refundFilter?: FILTER_OPERATION;
   startDate?: string;
@@ -955,6 +973,10 @@ export const findWithFilters = async ({
 
   if (excludeRefundTxs) {
     pushAndCondition(buildExcludeRefundTxsCondition({ keepRefundsForTxId }));
+  }
+
+  if (hasAttachment !== undefined) {
+    pushAndCondition(literal(`${hasAttachment ? '' : 'NOT '}${HAS_ATTACHMENTS_SQL}`));
   }
 
   if (categoryIds && categoryIds.length > 0) {
@@ -1217,6 +1239,13 @@ export const findWithFilters = async ({
   }
   const { limit, offset } = completenessToPagination({ completeness });
 
+  const hasAttachmentsAttribute: ProjectionAlias = [literal(HAS_ATTACHMENTS_SQL), 'hasAttachments'];
+  const resolvedAttributes: FindAttributeOptions | undefined = !includeHasAttachments
+    ? attributes
+    : attributes
+      ? [...attributes, hasAttachmentsAttribute]
+      : { include: [hasAttachmentsAttribute] };
+
   const transactions = await Transactions.findAll({
     include: queryInclude,
     where: whereClause,
@@ -1226,7 +1255,7 @@ export const findWithFilters = async ({
     raw: isRaw,
     // When raw is true and includeSplits/includeTags is requested, use nest to preserve nested structure
     nest: isRaw && (includeSplits || includeTags) ? true : undefined,
-    attributes,
+    attributes: resolvedAttributes,
   });
 
   // `info`, not `warn`: warn ships every occurrence to Sentry as its own event.

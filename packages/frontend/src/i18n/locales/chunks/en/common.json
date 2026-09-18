@@ -148,6 +148,7 @@
         "addedByTooltip": "This transaction was attached to the budget by {handle}",
         "externalLinkTooltip": "Open external link",
         "locationTooltip": "Open location on the map",
+        "attachmentsTooltip": "Has attachments",
         "hiddenAccount": "Hidden account",
         "selectRow": "Select transaction",
         "unselectableReasons": {

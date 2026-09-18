@@ -219,6 +219,7 @@ describe('Entitlements resolution (GET /user)', () => {
       expect(entitlements.features).not.toContain(FEATURES.backup_export);
       expect(entitlements.features).not.toContain(FEATURES.backup_restore);
       expect(entitlements.features).not.toContain(FEATURES.data_export);
+      expect(entitlements.features).not.toContain(FEATURES.attachments);
     } finally {
       clearMockSession(sessionToken!);
     }

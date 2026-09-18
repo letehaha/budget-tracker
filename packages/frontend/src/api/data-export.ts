@@ -1,4 +1,4 @@
-import { fetchZipDownload } from '@/api/_zip-download';
+import { fetchBinaryDownload } from '@/api/_binary-download';
 import type { ExportDateRange, ExportFormat, ExportGroup } from '@bt/shared/types';
 
 export interface ExportDataPayload {
@@ -23,7 +23,7 @@ export async function exportData({
   dateRange,
   accountIds,
 }: ExportDataPayload): Promise<ExportDataResult> {
-  const { blob, filename, response } = await fetchZipDownload({
+  const { blob, filename, response } = await fetchBinaryDownload({
     path: '/user/data-export',
     body: {
       format,

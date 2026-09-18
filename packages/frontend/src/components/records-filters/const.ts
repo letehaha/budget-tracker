@@ -28,6 +28,7 @@ export interface FiltersStruct {
   budgetIds: string[];
   excludedBudgetIds: string[];
   noteIncludes: string;
+  attachmentFilter: FILTER_OPERATION;
   categoryIds: string[];
   tagIds: string[];
   payeeIds: string[];
@@ -50,6 +51,7 @@ export const DEFAULT_FILTERS: FiltersStruct = {
   budgetIds: [],
   excludedBudgetIds: [],
   noteIncludes: '',
+  attachmentFilter: FILTER_OPERATION.all,
   categoryIds: [],
   tagIds: [],
   payeeIds: [],

@@ -66,6 +66,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import AccountField from './components/account-field.vue';
+import AttachmentsSection from './components/attachments-section.vue';
 import FormRow from './components/form-row.vue';
 import DestinationPanel from './components/destination-panel.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
@@ -1351,6 +1352,7 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
       />
     </FormRow>
+    <AttachmentsSection v-if="transaction?.id" :transaction-id="transaction.id" :disabled="isFormFieldsDisabled" />
     <FormRow v-if="!isTransferTx && showOriginalAmount">
       <AmountWithCurrencyField
         v-model:amount="form.originalAmount"

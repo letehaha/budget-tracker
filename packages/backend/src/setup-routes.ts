@@ -11,6 +11,7 @@ import { SUPPORTED_LOCALES } from './i18n';
 import accountGroupsRoutes from './routes/account-groups';
 import accountsRoutes from './routes/accounts.route';
 import adminRoutes from './routes/admin.route';
+import attachmentsRoutes from './routes/attachments.route';
 import bankDataProvidersRoutes from './routes/bank-data-providers.route';
 import betterAuthExtensionsRoutes from './routes/better-auth-extensions.route';
 import billingRoutes from './routes/billing.route';
@@ -174,6 +175,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/user`, userRoutes);
   app.use(`${API_PREFIX}/accounts`, accountsRoutes);
   app.use(`${API_PREFIX}/transactions`, transactionsRoutes);
+  app.use(`${API_PREFIX}/attachments`, attachmentsRoutes);
   app.use(`${API_PREFIX}/categories`, categoriesRoutes);
   app.use(`${API_PREFIX}/models/currencies`, modelsCurrenciesRoutes);
   app.use(`${API_PREFIX}/bank-data-providers`, bankDataProvidersRoutes);
