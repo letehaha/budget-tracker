@@ -89,6 +89,7 @@
               <Button variant="secondary" size="icon" :aria-label="syncButtonLabel">
                 <RefreshCcw v-if="syncStatus.isSyncing.value" class="animate-spin" :size="16" />
                 <AlertTriangleIcon v-else-if="syncStatus.syncStuck.value" class="text-destructive-text" :size="16" />
+                <CloudAlertIcon v-else-if="syncStatus.hasSyncIssue.value" class="text-destructive-text size-4" />
                 <SparklesIcon
                   v-else-if="categorizationStatus.isCategorizing.value"
                   class="text-primary-text animate-pulse"
@@ -166,6 +167,7 @@ import { ROUTES_NAMES } from '@/routes/constants';
 import { useAccountsStore } from '@/stores';
 import {
   AlertTriangleIcon,
+  CloudAlertIcon,
   CloudCheckIcon,
   HeartIcon,
   ImportIcon,
@@ -232,6 +234,7 @@ const hasConnections = computed(() => syncStatus.accountStatuses.value.length > 
 const syncButtonLabel = computed(() => {
   if (syncStatus.isSyncing.value) return t('header.sync.syncing');
   if (syncStatus.syncStuck.value) return t('header.sync.stuck');
+  if (syncStatus.hasSyncIssue.value) return t('header.sync.failed');
   if (categorizationStatus.isCategorizing.value) return t('header.categorization.categorizing');
   if (hasConnections.value) {
     return lastSyncRelativeTime.value
