@@ -316,6 +316,8 @@ export interface TransactionModel {
   originalAmount: number | null;
   originalCurrencyCode: string | null;
   refundLinked: boolean;
+  /** Serializer-derived, list reads only. */
+  hasAttachments?: boolean;
   isPlanned: boolean;
   /** Serializer-derived: set when a bank transaction merged into this row while it was planned. */
   plannedMerge?: { mergedAt: string } | null;

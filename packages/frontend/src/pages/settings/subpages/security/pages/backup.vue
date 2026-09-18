@@ -106,6 +106,8 @@
       </div>
     </div>
 
+    <p class="text-muted-foreground text-xs">{{ $t('settings.security.backup.attachmentsNotIncluded') }}</p>
+
     <input ref="fileInput" type="file" accept=".zip,application/zip" class="hidden" @change="handleFileSelected" />
 
     <RestoreBackupDialog

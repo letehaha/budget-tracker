@@ -1,0 +1,86 @@
+import { ATTACHMENT_FILENAME_HEADER, type TransactionAttachmentModel } from '@bt/shared/types';
+import { app } from '@root/app';
+import { API_PREFIX } from '@root/config';
+import type { listAttachments as apiListAttachments } from '@services/attachments/attachments.service';
+import request from 'supertest';
+
+import { makeRequest } from './common';
+
+const bufferParser = (res: NodeJS.ReadableStream, callback: (err: Error | null, body: Buffer) => void) => {
+  const chunks: Buffer[] = [];
+  res.on('data', (chunk: Buffer) => chunks.push(chunk));
+  res.on('end', () => callback(null, Buffer.concat(chunks)));
+};
+
+export interface UploadAttachmentResult {
+  statusCode: number;
+  response: TransactionAttachmentModel | null;
+  errorMessage: string | null;
+}
+
+/** POST raw file bytes through the authenticated upload endpoint. */
+export async function uploadAttachment({
+  transactionId,
+  file,
+  filename = 'receipt.png',
+  contentType = 'application/octet-stream',
+}: {
+  transactionId: string;
+  file: Buffer;
+  filename?: string;
+  contentType?: string;
+}): Promise<UploadAttachmentResult> {
+  const base = request(app)
+    .post(`${API_PREFIX}/transactions/${transactionId}/attachments`)
+    .set('Content-Type', contentType)
+    .set(ATTACHMENT_FILENAME_HEADER, encodeURIComponent(filename));
+  if (global.APP_AUTH_COOKIES) base.set('Cookie', global.APP_AUTH_COOKIES);
+
+  const result = await base.send(file);
+  const body = result.body as { response?: TransactionAttachmentModel & { message?: string } };
+  return {
+    statusCode: result.status,
+    response: result.status === 201 ? (body.response ?? null) : null,
+    errorMessage: result.status === 201 ? null : (body.response?.message ?? null),
+  };
+}
+
+export function listAttachments<R extends boolean | undefined = undefined>({
+  transactionId,
+  raw,
+}: {
+  transactionId: string;
+  raw?: R;
+}) {
+  return makeRequest<Awaited<ReturnType<typeof apiListAttachments>>, R>({
+    method: 'get',
+    url: `/transactions/${transactionId}/attachments`,
+    raw,
+  });
+}
+
+export interface DownloadAttachmentResult {
+  statusCode: number;
+  body: Buffer;
+  contentType: string | null;
+  contentDisposition: string | null;
+  nosniff: string | null;
+}
+
+export async function downloadAttachment({ id }: { id: string }): Promise<DownloadAttachmentResult> {
+  const base = request(app).get(`${API_PREFIX}/attachments/${id}/file`);
+  if (global.APP_AUTH_COOKIES) base.set('Cookie', global.APP_AUTH_COOKIES);
+
+  const result = await base.buffer(true).parse(bufferParser);
+  return {
+    statusCode: result.status,
+    body: result.body as Buffer,
+    contentType: (result.headers['content-type'] as string | undefined) ?? null,
+    contentDisposition: (result.headers['content-disposition'] as string | undefined) ?? null,
+    nosniff: (result.headers['x-content-type-options'] as string | undefined) ?? null,
+  };
+}
+
+export function deleteAttachment({ id }: { id: string }) {
+  return makeRequest({ method: 'delete', url: `/attachments/${id}` });
+}

@@ -115,6 +115,8 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   recordsPageRecordsList: [transactionChange, 'records-page-records-list'] as const,
 
+  transactionAttachments: ['transaction-attachments'] as const,
+
   recordsPageTransactionList: [transactionChange, 'records-page'] as const,
 
   accountSpecificTransactions: [transactionChange, 'account-transactions'] as const,

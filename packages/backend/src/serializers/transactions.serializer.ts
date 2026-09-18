@@ -57,6 +57,8 @@ export interface TransactionApiResponse {
   transferId: string | null;
   originalId: string | null;
   refundLinked: boolean;
+  /** Present on list reads only. */
+  hasAttachments?: boolean;
   isPlanned: boolean;
   /** Set when a bank transaction merged into this row while it was planned. */
   plannedMerge: { mergedAt: string } | null;
@@ -211,6 +213,10 @@ export function serializeTransaction(
     canEdit?: boolean;
   },
 ): TransactionApiResponse {
+  // Aliased literal: a plain property on raw rows, dataValues-only on model instances.
+  const hasAttachments = (tx.getDataValue?.('hasAttachments' as keyof Transactions) ??
+    (tx as { hasAttachments?: boolean }).hasAttachments) as boolean | undefined;
+
   return {
     id: tx.id,
     amount: centsToApiDecimal(tx.amount),
@@ -280,6 +286,7 @@ export function serializeTransaction(
     // `canEdit` is omitted on paths that don't compute it (write returns, internal
     // fetches). Property-existence check so an explicit `false` survives serialization.
     ...('canEdit' in tx ? { canEdit: tx.canEdit ?? false } : {}),
+    ...(hasAttachments !== undefined && { hasAttachments }),
   };
 }
 

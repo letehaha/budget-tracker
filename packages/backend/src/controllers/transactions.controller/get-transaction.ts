@@ -73,6 +73,7 @@ const schema = z.object({
         includeSplits: booleanQuery().optional(),
         includeTags: booleanQuery().optional(),
         includeGroups: booleanQuery().optional(),
+        includeHasAttachments: booleanQuery().optional(),
         excludeTransfer: booleanQuery().optional(),
         excludeRefunds: booleanQuery().optional(),
         // Excludes the refund side of refund links; originals that carry refunds stay.
@@ -80,6 +81,8 @@ const schema = z.object({
         // With excludeRefundTxs: keep refunds linked to this transaction visible.
         keepRefundsForTxId: recordId().optional(),
         excludeBalanceAdjustments: booleanQuery().optional(),
+        // Absent = both, true = only with attachments, false = only without.
+        hasAttachment: booleanQuery().optional(),
         // Absent = both, true = only planned, false = exclude planned.
         isPlanned: booleanQuery().optional(),
         transferFilter: z.nativeEnum(FILTER_OPERATION).optional(),

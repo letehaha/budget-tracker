@@ -46,3 +46,4 @@ export * from './data-export';
 export * from './backup';
 export * from './ai-categorization';
 export * from './billing';
+export * from './attachments';

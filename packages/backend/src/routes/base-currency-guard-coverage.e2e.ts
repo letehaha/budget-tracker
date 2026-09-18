@@ -74,6 +74,10 @@ const GUARD_EXEMPT_ROUTES = new Set<string>([
   // so a base-currency migration and a run cannot corrupt each other.
   'POST /api/v1/user/ai/categorization/trigger',
 
+  // Attachments are files on a transaction; they touch no amounts.
+  'DELETE /api/v1/attachments/:id',
+  'POST /api/v1/transactions/:transactionId/attachments',
+
   // AI suggestion call — reads nothing monetary, writes nothing.
   'POST /api/v1/import/ai-map-categories',
 

@@ -71,11 +71,14 @@
 
       <!-- Category -->
       <template v-else-if="column.id === TABLE_COLUMN.category">
-        <div v-if="!isTransferRow && category" class="flex items-center gap-2">
-          <CategoryCircle :category="category" />
-          <span class="max-w-32 truncate">{{ category.name }}</span>
+        <div class="flex items-center gap-2">
+          <template v-if="!isTransferRow && category">
+            <CategoryCircle :category="category" />
+            <span class="max-w-32 truncate">{{ category.name }}</span>
+          </template>
+          <span v-else class="text-muted-foreground">—</span>
+          <AttachmentIndicator :transaction="tx" />
         </div>
-        <span v-else class="text-muted-foreground">—</span>
       </template>
 
       <!-- Payee -->
@@ -181,6 +184,7 @@ import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { Checkbox } from '@/components/lib/ui/checkbox';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import AttachmentIndicator from '@/components/transactions-list/indicators/attachment-indicator.vue';
 import PlannedIndicator from '@/components/transactions-list/indicators/planned-indicator.vue';
 import RefundIndicator from '@/components/transactions-list/indicators/refund-indicator.vue';
 import SplitIndicator from '@/components/transactions-list/indicators/split-indicator.vue';
