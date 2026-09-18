@@ -188,14 +188,11 @@ export async function executeInvestmentImport({
         continue;
       }
 
-      // Non-trade categories (dividend, transfer, tax, fee, cancel, other) ride
-      // the same wire shape but `createInvestmentTransaction` only models
-      // buy/sell properly today – running them through would silently
-      // misclassify the row's transactionType (everything-not-buy becomes
-      // income, which is wrong for fee/tax). Surface them as failures with a
-      // clear reason instead.
-      if (!isTradeSide(tx.side)) {
-        const reason = `Skipped "${holding.parsedSymbol}" ${tx.side} on ${tx.date}: non-trade categories are not yet supported.`;
+      // `createInvestmentTransaction` types everything-not-buy as income, which
+      // is right for sell/dividend but wrong for fee/tax – reject the rest
+      // instead of silently misclassifying them.
+      if (!isTradeSide(tx.side) && tx.side !== INVESTMENT_TRANSACTION_CATEGORY.dividend) {
+        const reason = `Skipped "${holding.parsedSymbol}" ${tx.side} on ${tx.date}: this category is not yet supported.`;
         logger.warn(reason);
         warnings.push(reason);
         failedTransactions += 1;
@@ -204,8 +201,6 @@ export async function executeInvestmentImport({
 
       try {
         // `preloadedHoldingRef` skips a portfolio + holding lookup per row.
-        // tx.side is now narrowed to 'buy' | 'sell' – identical string values
-        // to the matching INVESTMENT_TRANSACTION_CATEGORY members.
         await createInvestmentTransaction({
           userId,
           portfolioId: holding.portfolioId,

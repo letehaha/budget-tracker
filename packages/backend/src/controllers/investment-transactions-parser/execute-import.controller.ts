@@ -27,7 +27,7 @@ const resolvedSecuritySchema = z
 const transactionSchema = z.object({
   tempId: z.string().min(1),
   date: dateString,
-  side: z.enum(['buy', 'sell']),
+  side: z.enum(['buy', 'sell', 'dividend']),
   quantity: decimalString,
   price: decimalString,
   fees: decimalString,

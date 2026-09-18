@@ -51,6 +51,7 @@ type TransactionSide = InvestmentImportTransaction['side'];
 const sideOptions = computed<Array<{ value: TransactionSide; label: string }>>(() => [
   { value: 'buy', label: t('investmentsImport.review.buy') },
   { value: 'sell', label: t('investmentsImport.review.sell') },
+  { value: 'dividend', label: t('investmentsImport.categories.dividend') },
 ]);
 
 function blockedProviderSymbolsForHolding(currentTempId: string): string[] {
@@ -70,7 +71,7 @@ function isTransactionValid(tx: InvestmentImportTransaction): boolean {
   // consideration. The source's BUY/SELL classification is authoritative.
   if (!Number.isFinite(price) || price < 0) return false;
   if (!Number.isFinite(fees) || fees < 0) return false;
-  return tx.side === 'buy' || tx.side === 'sell';
+  return tx.side === 'buy' || tx.side === 'sell' || tx.side === 'dividend';
 }
 
 function isHoldingValid(h: InvestmentImportHolding): boolean {
