@@ -13,6 +13,7 @@
     "automations": "Automations",
     "accountDetails": "Account details",
     "logout": "Logout",
+    "appVersion": "App version {version}",
     "settings": "Settings",
     "planned": {
       "planned": "Planned",
