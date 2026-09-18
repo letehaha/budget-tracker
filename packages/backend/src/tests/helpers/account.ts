@@ -37,6 +37,20 @@ export function getAccount({ id, raw = false }: { id: string; raw?: boolean }) {
   });
 }
 
+export function getAccountTransactionCount<R extends boolean | undefined = undefined>({
+  id,
+  raw,
+}: {
+  id: string;
+  raw?: R;
+}) {
+  return makeRequest<{ transactionCount: number }, R>({
+    method: 'get',
+    url: `/accounts/${id}/transaction-count`,
+    raw,
+  });
+}
+
 export function getAccounts(): Promise<Accounts[]> {
   return makeRequest({
     method: 'get',

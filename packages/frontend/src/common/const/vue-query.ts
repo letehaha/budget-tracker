@@ -119,6 +119,8 @@ export const VUE_QUERY_CACHE_KEYS = Object.freeze({
 
   accountSpecificTransactions: [transactionChange, 'account-transactions'] as const,
 
+  accountTransactionCount: [transactionChange, 'account-transaction-count'] as const,
+
   allAccounts: [transactionChange, securityPriceChange, 'all-accounts'] as const,
 
   accountGroupForAccount: ['account-group-for-account'] as const,
