@@ -13,6 +13,7 @@
     "automations": "Автоматизації",
     "accountDetails": "Деталі рахунку",
     "logout": "Вийти",
+    "appVersion": "Версія застосунку {version}",
     "settings": "Налаштування",
     "planned": {
       "planned": "Заплановане",
