@@ -277,6 +277,9 @@ export function createImportJobQueue<
     {
       connection,
       concurrency: 2,
+      // Stall recovery is not governed by `attempts`, and re-running a job that
+      // wrote rows would replay the whole payload: nothing deduplicates them.
+      maxStalledCount: 0,
     },
   );
 

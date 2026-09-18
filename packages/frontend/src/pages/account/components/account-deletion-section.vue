@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getAccountTransactionCount } from '@/api';
+import { VUE_QUERY_CACHE_KEYS } from '@/common/const';
 import { AlertDialog, ClickToCopy } from '@/components/common';
 import { InputField } from '@/components/fields';
 import { Button } from '@/components/lib/ui/button';
@@ -7,15 +9,15 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { isApiErrorWithCode } from '@/js/errors';
 import { ROUTES_NAMES } from '@/routes';
 import { useAccountsStore } from '@/stores';
-import { AccountModel, API_ERROR_CODES, TransactionModel } from '@bt/shared/types';
+import { AccountModel, API_ERROR_CODES } from '@bt/shared/types';
 import { Trash2Icon } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { useQuery } from '@tanstack/vue-query';
+import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 const props = defineProps<{
   account: AccountModel;
-  transactions: TransactionModel[];
 }>();
 const router = useRouter();
 
@@ -24,7 +26,16 @@ const accountsStore = useAccountsStore();
 const { t } = useI18n();
 const confirmAccountName = ref('');
 const removePortfolioTransfers = ref(true);
-const accountHasTransactions = computed(() => props.transactions.length > 0);
+const accountId = toRef(() => props.account.id);
+
+const wasDialogOpened = ref(false);
+const { data: transactionCountData, isLoading: isTransactionCountLoading } = useQuery({
+  queryKey: [...VUE_QUERY_CACHE_KEYS.accountTransactionCount, accountId],
+  queryFn: () => getAccountTransactionCount({ id: accountId.value }),
+  enabled: wasDialogOpened,
+});
+
+const transactionCount = computed(() => transactionCountData.value?.transactionCount);
 
 const deleteAccount = async () => {
   const accountName = props.account.name;
@@ -65,20 +76,23 @@ const deleteAccount = async () => {
 
       <AlertDialog
         :title="t('pages.account.deletion.confirmTitle')"
-        :accept-disabled="confirmAccountName !== account.name"
+        :accept-disabled="confirmAccountName !== account.name || isTransactionCountLoading"
         accept-variant="destructive"
         @accept="deleteAccount"
       >
         <template #trigger>
-          <Button variant="destructive">
+          <Button variant="destructive" @click="wasDialogOpened = true">
             <Trash2Icon class="size-4" /> {{ t('pages.account.deletion.deleteButton') }}
           </Button>
         </template>
         <template #description>
-          <template v-if="accountHasTransactions">
+          <template v-if="transactionCount === undefined">
+            {{ t('pages.account.deletion.cannotUndo') }} {{ t('pages.account.deletion.deleteConfirm') }}
+          </template>
+          <template v-else-if="transactionCount > 0">
             {{ t('pages.account.deletion.cannotUndo') }}
             <strong>
-              {{ t('pages.account.deletion.transactionCount', { count: transactions.length }) }}
+              {{ t('pages.account.deletion.transactionCount', { count: transactionCount }) }}
             </strong>
             {{ t('pages.account.deletion.deleteConfirm') }}
           </template>

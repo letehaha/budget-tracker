@@ -5,7 +5,7 @@
  * API Documentation: https://enablebanking.com/docs/api/reference
  */
 import { t } from '@i18n/index';
-import { BadGateway, BadRequestError, ForbiddenError, ValidationError } from '@js/errors';
+import { BadGateway, BadRequestError, ForbiddenError, TooManyRequests, ValidationError } from '@js/errors';
 import { logger } from '@js/utils/logger';
 import axios, { AxiosInstance } from 'axios';
 
@@ -66,11 +66,11 @@ type AspspAuthFailureReason = 'nested-code' | 'nested-status' | 'keyword-match';
  * forbidden by bank during maintenance") into connection deactivations.
  */
 const ASPSP_AUTH_FAILURE_KEYWORDS =
-  /refresh.?token|token.*(?:expired|invalid|revoked)|session.*(?:expired|invalid|revoked)|consent.*(?:expired|invalid|revoked|withdrawn)|reauthorization|reauthenticate|access.*(?:token|not\s+allowed)|forbidden.*authenticated|authenticated.*forbidden|psd2.*consent/;
+  /refresh.?token|token.*(?:expired|invalid|revoked)|session.*(?:expired|invalid|revoked)|consent.*(?:expired|invalid|revoked|withdrawn)|consent\s+status.*(?:not|n['’]t)\s+allow|reauthorization|reauthenticate|access.*(?:token|not\s+allowed)|forbidden.*authenticated|authenticated.*forbidden|psd2.*consent/;
 
 /**
- * Detect when an Enable Banking ASPSP_ERROR (HTTP 400) actually represents an
- * upstream session/token/consent failure. Matches on either:
+ * Detect when an Enable Banking 4xx actually represents an upstream
+ * session/token/consent failure. Matches on either:
  *   - nested HTTP code/status of 401 or 403 (string "401"/"403 FORBIDDEN" or numeric)
  *   - strict keyword pattern in the wrapper or nested message
  *
@@ -259,27 +259,6 @@ export class EnableBankingApiClient {
         rawData: safeStringify(data),
       };
 
-      // Detect ASPSP-wrapped session/token expiry. Upstream returns 401/403 but
-      // Enable Banking surfaces it as 400 ASPSP_ERROR – promote to ForbiddenError
-      // so the provider's handleProviderError marks the connection inactive and
-      // the UI prompts the user to reconnect.
-      if (status === 400 && aspspError === 'ASPSP_ERROR') {
-        const classification = classifyAspspError({ detail, aspspMessage });
-        if (classification.matched) {
-          // Audit log so we can review classifications in Sentry – the wrong
-          // call here either silently lets a broken connection keep failing
-          // (false negative) or kills a working one (false positive).
-          logger.warn(
-            `[EnableBankingApiClient] Classified ASPSP_ERROR as auth failure (reason=${classification.reason})`,
-            { ...errorDetails, message },
-          );
-          throw new ForbiddenError({
-            message: t({ key: 'bankDataProviders.enableBanking.sessionExpiredReconnect' }),
-            details: errorDetails,
-          });
-        }
-      }
-
       if (status === 401 || status === 403) {
         throw new ForbiddenError({
           message: t({ key: 'bankDataProviders.enableBanking.authenticationFailed', variables: { message } }),
@@ -287,7 +266,36 @@ export class EnableBankingApiClient {
         });
       }
 
+      // A throttle is transient, so it must not reach the 4xx auth classifier below:
+      // "Rate limit exceeded for this access token" matches its keywords, which
+      // would deactivate the connection until the user redoes the bank consent.
+      if (status === 429) {
+        throw new TooManyRequests({
+          message: t({ key: 'bankDataProviders.enableBanking.apiBadRequestError', variables: { message } }),
+          details: errorDetails,
+        });
+      }
+
+      // Session/token/consent expiry can arrive as any 4xx: wrapped in an
+      // ASPSP_ERROR envelope, or as Enable Banking's own top-level error body.
+      // Promote to ForbiddenError so handleProviderError deactivates the
+      // connection and the UI prompts a reconnect.
       if (status && status >= 400 && status < 500) {
+        const classification = classifyAspspError({ detail, aspspMessage: message });
+        if (classification.matched) {
+          // Audit log so we can review classifications in Sentry – the wrong
+          // call here either silently lets a broken connection keep failing
+          // (false negative) or kills a working one (false positive).
+          logger.warn(`[EnableBankingApiClient] Classified 4xx as auth failure (reason=${classification.reason})`, {
+            ...errorDetails,
+            message,
+          });
+          throw new ForbiddenError({
+            message: t({ key: 'bankDataProviders.enableBanking.sessionExpiredReconnect' }),
+            details: errorDetails,
+          });
+        }
+
         throw new BadRequestError({
           message: t({ key: 'bankDataProviders.enableBanking.apiBadRequestError', variables: { message } }),
           details: errorDetails,

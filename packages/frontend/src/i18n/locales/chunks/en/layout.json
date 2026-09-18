@@ -65,7 +65,8 @@
       "syncedTime": "Synced {time}",
       "connectBank": "Connect bank",
       "syncingAccounts": "Syncing {count} accounts",
-      "stuck": "Sync stuck"
+      "stuck": "Sync stuck",
+      "failed": "Sync failed, some accounts need attention"
     },
     "categorization": {
       "title": "AI Categorization",

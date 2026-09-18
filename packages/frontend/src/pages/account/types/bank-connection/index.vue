@@ -16,7 +16,7 @@ import AccountUnlinkSection from '@/pages/account/components/account-unlink-sect
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
 import SharingPanel from '@/pages/account/components/sharing-panel/sharing-panel.vue';
 import { ROUTES_NAMES } from '@/routes';
-import { AccountModel, SHARE_PERMISSIONS, TransactionModel } from '@bt/shared/types';
+import { AccountModel, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
 import { AlertTriangleIcon, ExternalLinkIcon } from '@lucide/vue';
 import { computed, ref, toRef } from 'vue';
@@ -29,7 +29,6 @@ const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
-  transactions: TransactionModel[];
 }>();
 
 const { data: connections } = useQuery<BankConnection[]>({
@@ -88,7 +87,7 @@ const tabItems = computed<PillTabItem[]>(() => {
 
           <AccountArchiveSection :account="account" />
 
-          <AccountDeletionSection :account="account" :transactions="transactions" />
+          <AccountDeletionSection :account="account" />
         </template>
       </div>
     </Tabs.TabsContent>
