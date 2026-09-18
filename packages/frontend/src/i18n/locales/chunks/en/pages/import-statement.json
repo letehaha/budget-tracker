@@ -166,6 +166,7 @@
         "importingDescription": "Please wait while we import your transactions...",
         "failedTitle": "Import Failed",
         "failedDescription": "Nothing was imported. The details below come from the server.",
+        "jobFailedDescription": "The import stopped before it finished. Some transactions may already have been created. Check your transactions before importing this statement again.",
         "tryAgainButton": "Try Again",
         "completeTitle": "Import Complete!",
         "completeWithIssuesTitle": "Import Completed with Issues",

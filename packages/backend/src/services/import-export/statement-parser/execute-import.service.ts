@@ -1,7 +1,7 @@
 import type {
   ExtractedTransaction,
-  StatementExecuteImportResponse,
   StatementImportError,
+  StatementImportSummary,
   TransactionImportDetails,
 } from '@bt/shared/types';
 import {
@@ -27,6 +27,12 @@ interface ExecuteImportParams {
   accountId: string;
   transactions: ExtractedTransaction[];
   skipIndices: number[];
+  /**
+   * Called with the cumulative `processedCount` after every row the loop visits
+   * (imported, merged, skipped or failed alike) so the worker can fan progress out
+   * over SSE. `totalCount` is the full row count. Optional.
+   */
+  onProgress?: (processedCount: number, totalCount: number) => void | Promise<void>;
 }
 
 /**
@@ -45,7 +51,8 @@ async function executeImportImpl({
   accountId,
   transactions,
   skipIndices,
-}: ExecuteImportParams): Promise<StatementExecuteImportResponse> {
+  onProgress,
+}: ExecuteImportParams): Promise<StatementImportSummary> {
   const batchId = uuidv4();
   const importedAt = new Date();
 
@@ -53,14 +60,16 @@ async function executeImportImpl({
   const skipSet = new Set(skipIndices);
   const transactionsToImport = transactions.filter((_, index) => !skipSet.has(index));
 
+  // Report the real total once up front so a no-op import still surfaces it
+  // instead of the worker reporting 0.
+  if (onProgress) await onProgress(0, transactions.length);
+
   if (transactionsToImport.length === 0) {
     return {
-      summary: {
-        imported: 0,
-        merged: 0,
-        skipped: skipIndices.length,
-        errors: [],
-      },
+      imported: 0,
+      merged: 0,
+      skipped: skipIndices.length,
+      errors: [],
       newTransactionIds: [],
       batchId,
     };
@@ -87,9 +96,16 @@ async function executeImportImpl({
   const newTransactionIds: string[] = [];
   let mergedCount = 0;
 
+  let processedCount = 0;
+  const tick = async () => {
+    processedCount += 1;
+    if (onProgress) await onProgress(processedCount, transactions.length);
+  };
+
   for (let i = 0; i < transactions.length; i++) {
     // Skip if in skip list
     if (skipSet.has(i)) {
+      await tick();
       continue;
     }
 
@@ -183,6 +199,10 @@ async function executeImportImpl({
         transactionIndex: i,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
+    } finally {
+      // `finally`, not a trailing call: the per-row validation branches above
+      // `continue` out of the loop body.
+      await tick();
     }
   }
 
@@ -196,12 +216,10 @@ async function executeImportImpl({
   }
 
   return {
-    summary: {
-      imported: newTransactionIds.length,
-      merged: mergedCount,
-      skipped: skipIndices.length,
-      errors,
-    },
+    imported: newTransactionIds.length,
+    merged: mergedCount,
+    skipped: skipIndices.length,
+    errors,
     newTransactionIds,
     batchId,
   };
@@ -211,7 +229,7 @@ async function executeImportImpl({
  * Execute statement import and queue AI categorization for imported transactions.
  * The categorization is queued AFTER the per-row transactions have committed.
  */
-export async function executeImport(params: ExecuteImportParams): Promise<StatementExecuteImportResponse> {
+export async function executeImport(params: ExecuteImportParams): Promise<StatementImportSummary> {
   const result = await executeImportImpl(params);
 
   // Queue AI categorization for the newly imported transactions. Each row was
