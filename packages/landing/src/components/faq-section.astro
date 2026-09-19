@@ -1,4 +1,5 @@
 ---
+import FaqAsk from '@/components/faq-ask.vue';
 import { FAQ_ITEMS } from '@/lib/faq';
 ---
 
@@ -7,7 +8,7 @@ import { FAQ_ITEMS } from '@/lib/faq';
     <div class="text-center">
       <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Questions, answered</h2>
       <p class="text-muted-foreground mt-4 text-lg">
-        Ask anything else at{' '}
+        Ask anything else below, or at{' '}
         <a href="mailto:support@moneymatter.app" class="text-primary hover:underline">support@moneymatter.app</a>.
       </p>
     </div>
@@ -26,6 +27,7 @@ import { FAQ_ITEMS } from '@/lib/faq';
           </details>
         ))
       }
+      <FaqAsk client:visible />
     </div>
   </div>
 </section>
