@@ -169,6 +169,10 @@
       "expiredTooltip": "Expected {days} days ago, no matching bank transaction",
       "mergedTooltip": "Confirmed from planned entry on {date}"
     },
+    "pending": {
+      "label": "Pending",
+      "tooltip": "The bank hasn't booked this transaction yet. It doesn't affect the account balance."
+    },
     "table": {
       "columns": {
         "date": "Date",

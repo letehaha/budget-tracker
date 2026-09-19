@@ -15,6 +15,12 @@
         "successNotification": "Transfer matching setting updated",
         "errorNotification": "Failed to update transfer matching setting"
       },
+      "pendingBankTransactions": {
+        "label": "Import pending bank transactions",
+        "description": "Store Enable Banking transactions before the bank books them. They're marked as pending, never change the account balance, and often lack merchant details until booked. Other providers aren't affected: SimpleFIN and LunchFlow always import booked transactions only, and Monobank imports every transaction as a regular one.",
+        "successNotification": "Pending transactions setting updated",
+        "errorNotification": "Failed to update pending transactions setting"
+      },
       "savingsCategories": {
         "label": "Count categories as savings",
         "description": "Spending in these categories (and their subcategories) is excluded from expenses in cash-flow analytics, so it counts toward monthly savings and the savings rate.",

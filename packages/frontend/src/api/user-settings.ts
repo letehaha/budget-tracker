@@ -102,6 +102,8 @@ export interface UserSettingsSchema {
    * manually-created one. Off when unset.
    */
   matchTransfersWithManualAccounts?: boolean;
+  /** Store bank transactions before they are booked. Off when unset. */
+  importPendingBankTransactions?: boolean;
   sidebarSections?: SidebarSectionsConfig;
   payeeExtractionUsesDescription?: boolean;
   /** Transactions sharing a raw merchant name before a Payee is auto-created. Defaults to 2. */

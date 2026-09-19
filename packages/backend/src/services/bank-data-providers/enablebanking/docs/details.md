@@ -94,16 +94,17 @@ POST /bank-data-providers/enablebanking/callback
   - Account details (`/accounts/{uid}/details`)
   - Account balances (`/accounts/{uid}/balances`)
 - Maps to application's `ProviderAccount` format
-- **Balance priority:** ITAV > ITBD > CLAV > first available
+- **Balance priority:** ITBD > CLBD > ITAV > CLAV > first available. Booked types come first so pending holds never move the account balance
 - Creates new accounts or updates existing ones by `externalId` (account UID)
 
 ## Transaction Sync Process
 
 - **No queue system** - synchronous, direct fetching
 - Determines date range:
-  - Existing account: from most recent transaction to now
+  - Existing account: from the most recent transaction to now, pulled back to `externalData.oldestPendingDate` (the oldest PDNG/HOLD payload the previous sync saw) so a pending payment that books after a newer row was stored is still fetched. Cleared once the bank reports nothing pending
   - New account: negotiates the lookback with the bank — 1095 days first, then 730, 365 and 90 as the ASPSP rejects each window
 - Automatic pagination via `continuation_key`
+- Drops PDNG/HOLD payloads unless the user enabled the `importPendingBankTransactions` setting (off by default). Already-stored pending rows still book or get revoked through the matcher
 - Generates unique `externalId` via SHA256 hash of transaction fields
 - Matches an incoming payload against stored rows with the four-tier matcher (entry_reference → originalId/pendingHash → IBAN fingerprint → pending upgrade); see `../../docs/architecture.md`
 - Saves new transactions to database
@@ -159,7 +160,7 @@ enablebanking/
 ├── aspsp.service.ts           # Bank/country listing utilities
 ├── enablebanking.provider.ts  # Core business logic, data mapping
 ├── utils/
-│   ├── balances.ts                # Balance payload shaping for logs
+│   ├── balances.ts                # Balance type priority + payload shaping for logs
 │   ├── candidate-selection.ts     # IBAN gate + nearest-date pick
 │   ├── candidate-selection.unit.ts # Unit tests for candidate selection
 │   ├── consent.ts                 # Consent validity end date

@@ -482,6 +482,7 @@ describe('Planned transactions – merge on sync', () => {
      * that confirms it. Returns the merged row id.
      */
     const mergePendingIntoPlan = async ({ splits }: { splits?: endpointsTypes.SplitInput[] } = {}) => {
+      await helpers.patchUserSettings({ patch: { importPendingBankTransactions: true }, raw: true });
       helpers.enablebanking.setFixedTransactions([ANCHOR]);
       const { connectionId, accountId } = await setupConnectionWithAccount();
       expect(await listAccountTransactions({ accountId })).toHaveLength(1);
