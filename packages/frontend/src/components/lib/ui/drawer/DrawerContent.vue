@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useDescribedByAttrs } from '@/components/lib/ui/dialog/described-by';
 import { cn } from '@/lib/utils';
 import type { DialogContentEmits, DialogContentProps } from 'reka-ui';
 import { useForwardPropsEmits } from 'reka-ui';
@@ -24,13 +25,14 @@ const delegatedProps = computed(() => {
 });
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const describedByAttrs = useDescribedByAttrs();
 </script>
 
 <template>
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerContent
-      v-bind="forwarded"
+      v-bind="{ ...forwarded, ...describedByAttrs }"
       :class="
         cn(
           'bg-dialog fixed inset-x-0 bottom-0 z-(--z-dialog) mt-24 flex h-auto max-h-[95vh] flex-col rounded-t-[10px] border pb-[env(safe-area-inset-bottom)]',

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Button from '@/components/lib/ui/button/Button.vue';
+import { useDescribedByAttrs } from '@/components/lib/ui/dialog/described-by';
 import { cn } from '@/lib/utils';
 import { XIcon } from '@lucide/vue';
 import {
@@ -36,6 +37,7 @@ const delegatedProps = computed(() => {
 });
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const describedByAttrs = useDescribedByAttrs();
 </script>
 
 <template>
@@ -46,7 +48,10 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       ]"
     />
-    <DialogContent :class="cn(sheetVariants({ side }), props.class)" v-bind="{ ...forwarded, ...$attrs }">
+    <DialogContent
+      :class="cn(sheetVariants({ side }), props.class)"
+      v-bind="{ ...forwarded, ...describedByAttrs, ...$attrs }"
+    >
       <slot />
 
       <DialogClose

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
+import { useDescribedByAttrs } from '@/components/lib/ui/dialog/described-by';
 import { cn } from '@/lib/utils';
 import { X } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
@@ -32,6 +33,7 @@ const delegatedProps = computed(() => {
 });
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits);
+const describedByAttrs = useDescribedByAttrs();
 </script>
 
 <template>
@@ -44,7 +46,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
       ]"
     />
     <DialogContent
-      v-bind="forwarded"
+      v-bind="{ ...forwarded, ...describedByAttrs }"
       :class="
         cn(
           'bg-dialog fixed top-1/2 left-1/2 z-(--z-dialog) flex max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col border p-6 shadow-lg duration-200 sm:rounded-lg',
