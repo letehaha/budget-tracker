@@ -188,12 +188,13 @@ import {
 } from '@/components/common/dropdown-menu';
 import { useBaseCurrency } from '@/composable/data-queries/currencies';
 import { useInfinitePayees } from '@/composable/data-queries/payees';
+import { useVirtualizerScrollMemory } from '@/composable/use-virtualizer-scroll-memory';
 import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-scroll';
 import { ROUTES_NAMES } from '@/routes/constants';
 import type { PayeeSortBy, PayeeSortDir } from '@/api/payees';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import { ArrowDownIcon, ArrowUpIcon, InfoIcon, PackageOpenIcon } from '@lucide/vue';
-import { useElementSize } from '@vueuse/core';
+import { useElementSize, useLocalStorage } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -223,8 +224,8 @@ const props = defineProps<{
 
 const { t, locale } = useI18n();
 
-const sortBy = ref<PayeeSortBy>('transactionCount');
-const sortDir = ref<PayeeSortDir>('desc');
+const sortBy = useLocalStorage<PayeeSortBy>('payees-table-sort-by', 'transactionCount');
+const sortDir = useLocalStorage<PayeeSortDir>('payees-table-sort-dir', 'desc');
 
 const sortOptions = computed<ReadonlyArray<{ key: PayeeSortBy; label: string }>>(() => [
   { key: 'transactionCount', label: t('payees.sort.transactionCount') },
@@ -271,6 +272,13 @@ const { virtualizer, virtualRows, totalSize } = useVirtualizedInfiniteScroll({
   estimateSize: () => (isCompact.value ? COMPACT_ROW_ESTIMATE_PX : WIDE_ROW_ESTIMATE_PX),
   overscan: 8,
   getItemKey: (index) => list.value[index]?.id ?? `idx-${index}`,
+});
+
+useVirtualizerScrollMemory({
+  storageKey: 'payees-table-row-index',
+  virtualizer,
+  scrollElement: scrollRef,
+  itemsCount: () => list.value.length,
 });
 
 const measureRow = (el: Element | null) => {
