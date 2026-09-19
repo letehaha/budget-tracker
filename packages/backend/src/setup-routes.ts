@@ -31,6 +31,7 @@ import ofxImportRoutes from './routes/import-export/ofx.route';
 import statementParserRoutes from './routes/import-export/text-source.route';
 import ynabImportRoutes from './routes/import-export/ynab.route';
 import investmentsRoutes from './routes/investments.route';
+import landingRoutes from './routes/landing.route';
 import loansRoutes from './routes/loans.route';
 import mcpRoutes from './routes/mcp.route';
 import notificationsRoutes from './routes/notifications.route';
@@ -210,6 +211,7 @@ export function setupRoutes(app: Express) {
   app.use(`${API_PREFIX}/sse`, sseRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhooksRoutes);
   app.use(`${API_PREFIX}/github`, githubRoutes);
+  app.use(`${API_PREFIX}/landing`, landingRoutes);
   app.use(`${API_PREFIX}/billing`, billingRoutes);
   app.use(`${API_PREFIX}/admin`, adminRoutes);
 

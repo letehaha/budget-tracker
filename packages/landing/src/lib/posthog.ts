@@ -1,5 +1,6 @@
 import posthog from 'posthog-js';
 
+import type { FaqOutcome } from './ask-faq';
 import { config } from './config';
 
 export type DemoStartLocation = 'hero' | 'hero_screenshot';
@@ -24,6 +25,10 @@ type LandingAnalyticsEvent =
   | {
       event: 'demo_setup_failed';
       properties: { reason: 'rate_limited' | 'server_error' | 'network'; status?: number };
+    }
+  | {
+      event: 'landing_faq_asked';
+      properties: { question: string; outcome: FaqOutcome; duration_ms: number; status?: number };
     };
 
 function isPostHogEnabled(): boolean {

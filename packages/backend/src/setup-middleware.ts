@@ -15,6 +15,11 @@ export function setupMiddleware(app: Express) {
   // Drop the default `X-Powered-By: Express` info-disclosure header.
   app.disable('x-powered-by');
 
+  // `req.ip` keys the per-IP rate limits. Behind nginx or Traefik the socket peer is the proxy, so
+  // Express has to read X-Forwarded-For. Trusting private ranges only means the first public
+  // address from the right wins, which a client cannot forge.
+  app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+
   app.use(requestIdMiddleware);
 
   // Opt-in (PERF_DEBUG=true): tag responses with per-request query count + timing.

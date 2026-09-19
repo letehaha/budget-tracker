@@ -10,7 +10,7 @@ export const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/
 export const VALID_GEMINI_API_KEY = 'test-valid-gemini-key-12345';
 export const INVALID_GEMINI_API_KEY = 'test-invalid-gemini-key';
 
-/** The mock in this file only backs the categorization feature's Gemini calls. */
+/** Most callers of this mock exercise categorization; others pass `expectedModel`. */
 const DEFAULT_EXPECTED_MODEL = getModelNameFromModelId({
   modelId: getDefaultModelForFeature({ feature: AI_FEATURE.categorization }),
 });
@@ -61,6 +61,8 @@ interface MockCategorizationOptions {
   shouldFail?: boolean;
   /** Custom error status code */
   errorStatus?: number;
+  /** Model the request must target; defaults to the categorization feature's model */
+  expectedModel?: string;
 }
 
 /**
@@ -75,10 +77,11 @@ export function createGeminiMock(options: MockCategorizationOptions = {}) {
     finishReason = 'STOP',
     shouldFail = false,
     errorStatus = 500,
+    expectedModel = DEFAULT_EXPECTED_MODEL,
   } = options;
 
   return http.post(GEMINI_API_URL, ({ request }) => {
-    const modelMismatch = rejectIfWrongModel({ request, expectedModel: DEFAULT_EXPECTED_MODEL });
+    const modelMismatch = rejectIfWrongModel({ request, expectedModel });
     if (modelMismatch) return modelMismatch;
 
     const url = new URL(request.url);

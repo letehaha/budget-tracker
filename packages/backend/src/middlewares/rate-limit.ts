@@ -139,6 +139,28 @@ export const demoStartRateLimit = createRateLimit({
 });
 
 /**
+ * Landing FAQ assistant, per IP: 10 questions per 10 minutes. Every call spends the
+ * operator's AI key on an unauthenticated route, hence `failClosed`.
+ */
+export const landingFaqIpRateLimit = createRateLimit({
+  windowSeconds: 10 * 60,
+  maxAttempts: 10,
+  keyGenerator: (req: Request) => `landing-faq:ip:${req.ip}`,
+  failClosed: true,
+});
+
+/**
+ * Landing FAQ assistant, all visitors combined: 1000 questions per day. Caps the daily AI
+ * spend when a botnet rotates IPs past the per-IP limit.
+ */
+export const landingFaqGlobalRateLimit = createRateLimit({
+  windowSeconds: 24 * 60 * 60,
+  maxAttempts: 1000,
+  keyGenerator: () => 'landing-faq:global',
+  failClosed: true,
+});
+
+/**
  * Stripe webhook rate limit (per IP, 120 deliveries per minute). Stripe retries and
  * backfills arrive in bursts, so the budget only has to stop a flood of forged bodies
  * reaching signature verification. Fail-open: a Redis outage must not drop real events.
