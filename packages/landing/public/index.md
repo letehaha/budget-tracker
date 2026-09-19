@@ -9,7 +9,7 @@ MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is ope
 - **Your finances. Your server. Your rules.**
 - Open source. Self-host for free, or use the cloud: Essential $5/mo or $30/yr, Plus $8/mo or $55/yr, 40-day free trial without a card
 - Self-host or use our cloud — either way, your data is never sold or shared
-- Shape the roadmap with your feedback (early adopter perk)
+- Shape the roadmap with your feedback
 
 ## Features
 
