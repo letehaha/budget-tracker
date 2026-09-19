@@ -239,8 +239,13 @@ EnableBankingProvider.syncTransactions()
 Set status = SYNCING
        ↓
 Fetch all transactions (paginated on continuation_key until the ASPSP
-stops returning one; an initial sync also negotiates the lookback window
+stops returning one; an incremental sync starts at the latest stored
+transaction or the oldest payment still pending on the previous sync,
+whichever is earlier; an initial sync also negotiates the lookback window
 by retrying 1095 → 730 → 365 → 90 days on date-range rejections)
+       ↓
+Drop PDNG/HOLD payloads unless the user setting
+`importPendingBankTransactions` is on (off by default)
        ↓
 Sort by date ascending, pre-booking (PDNG/HOLD) before BOOK within the
 same date so a same-batch booked copy finds its pending row already stored
@@ -573,7 +578,8 @@ bank-data-providers/
 │   │   ├── candidate-selection.ts    # IBAN gate + nearest-date pick
 │   │   ├── candidate-selection.unit.ts # Unit tests for candidate selection
 │   │   ├── consent.ts                # Consent validity end date
-│   │   └── balances.ts               # Balance payload shaping for logs
+│   │   ├── balances.ts               # Balance type priority + payload shaping for logs
+│   │   └── balances.unit.ts          # Unit tests for balance type priority
 │   ├── enablebanking-dedup.e2e.ts # E2E: matcher tiers + reconciliation
 │   ├── enablebanking-flow.e2e.ts # E2E: connect → sync flow
 │   └── docs/details.md

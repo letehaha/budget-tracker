@@ -321,6 +321,8 @@ export interface TransactionModel {
   isPlanned: boolean;
   /** Serializer-derived: set when a bank transaction merged into this row while it was planned. */
   plannedMerge?: { mergedAt: string } | null;
+  /** Serializer-derived: the bank has not booked this row yet. */
+  isPending?: boolean;
   /** Metadata about how this transaction was categorized */
   categorizationMeta?: CategorizationMeta | null;
   /** Linked Payee. Null when no Payee resolved (raw merchant missing/unmatched). */
