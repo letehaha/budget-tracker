@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useRegisterDescription } from '@/components/lib/ui/dialog/described-by';
 import { cn } from '@/lib/utils';
 import type { DrawerDescriptionProps } from 'vaul-vue';
 import { DrawerDescription } from 'vaul-vue';
@@ -12,6 +13,8 @@ const delegatedProps = computed(() => {
 
   return delegated;
 });
+
+useRegisterDescription();
 </script>
 
 <template>

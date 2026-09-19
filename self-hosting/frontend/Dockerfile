@@ -22,6 +22,7 @@ ARG SENTRY_PROJECT=
 # Copy root-level package files and post-install script
 COPY package*.json ./
 COPY post-install.sh ./
+COPY patches ./patches
 RUN chmod +x ./post-install.sh
 
 # Copy package files for workspaces
