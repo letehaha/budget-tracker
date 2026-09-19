@@ -1,0 +1,20 @@
+diff --git a/node_modules/reka-ui/dist/shared/useHideOthers.js b/node_modules/reka-ui/dist/shared/useHideOthers.js
+index c9e22b7..7559b9f 100644
+--- a/node_modules/reka-ui/dist/shared/useHideOthers.js
++++ b/node_modules/reka-ui/dist/shared/useHideOthers.js
+@@ -17,7 +17,14 @@ function useHideOthers(target) {
+ 		try {
+ 			isInsideClosedPopover = !!el?.closest("[popover]:not(:popover-open)");
+ 		} catch {}
+-		if (el && !isInsideClosedPopover) undo = hideOthers(el);
++		if (el && !isInsideClosedPopover) {
++			// Hiding while focus is still on the trigger makes Chrome log "Blocked aria-hidden".
++			const apply = () => {
++				if (unrefElement(target) === el) undo = hideOthers(el);
++			};
++			if (el.contains(document.activeElement)) apply();
++			else el.addEventListener("focusin", apply, { once: true });
++		}
+ 		else if (undo) undo();
+ 	});
+ 	onUnmounted(() => {
