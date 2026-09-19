@@ -77,6 +77,7 @@ Interpolated into the frontend container's `environment:` block. Change and
 | `API_HTTP`, `API_VER`                        | Point the SPA at a separate API origin (leave unset for same-origin)    |
 | `CSP_EXTRA_CONNECT`, `CSP_EXTRA_FORM_ACTION` | Extra CSP allow-list hosts (default to `API_HTTP`)                      |
 | `CSP_EXTRA_ANALYTICS`                        | CSP allow-list for analytics — **set this if you use Sentry**           |
+| `SKIP_LANDING`                               | `true` (default) redirects `/` to `/dashboard`; `false` serves landing  |
 
 `CSP_EXTRA_ANALYTICS` defaults to `VITE_POSTHOG_HOST` only. Sentry's ingest host
 is not derivable from the DSN by the entrypoint, so a Sentry deployment that

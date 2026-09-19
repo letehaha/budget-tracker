@@ -67,7 +67,9 @@ published image can be deployed with different settings without a rebuild.
    most deployments can leave them unset. `CSP_EXTRA_ANALYTICS` defaults to
    `POSTHOG_HOST` alone — **a deployment using Sentry must set it explicitly**
    to a value covering the Sentry ingest host, or `connect-src` blocks every
-   error report.
+   error report. The same pass fills `LANDING_REDIRECT` inside `location = /`:
+   `return 302 /dashboard;` when `SKIP_LANDING=true` (the self-host compose
+   default), empty otherwise so the hosted deployment keeps serving the landing.
 3. **Emits a conditional `/api` reverse-proxy block** when `BACKEND_URL` is set,
    so nginx proxies `/api/` to the backend on the internal network (same-origin
    deployments). SSE is passed through unbuffered.
