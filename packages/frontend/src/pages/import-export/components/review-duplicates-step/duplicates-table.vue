@@ -19,7 +19,7 @@
   <div ref="wrapperRef">
     <ScrollArea
       ref="scrollAreaRef"
-      class="border-warning/20 rounded-lg border"
+      class="border-warning/20 bg-muted/50 rounded-lg border"
       viewport-class="max-h-[28rem]"
       type="auto"
     >

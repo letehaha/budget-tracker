@@ -66,6 +66,8 @@ export interface MappingTableColumn {
   width?: string;
   /** Horizontal alignment of header + cell content. Defaults to 'start'. */
   align?: 'start' | 'center' | 'end';
+  /** Grid mode only: extra classes on this column's body cells (e.g. `self-end`). */
+  cellClass?: string;
   /**
    * When true, the column's `label` is omitted in card mode and only the cell
    * content renders (e.g. a leading status icon or a title line).
@@ -179,11 +181,14 @@ const rowClass = (item: T, index: number): string => props.getRowClass?.(item, i
 
     <template v-else>
       <!-- WIDE: CSS-grid table -->
-      <div :class="cn('border-border overflow-hidden rounded-lg border', GRID_BREAKPOINT.grid)" role="table">
+      <div
+        :class="cn('border-border bg-muted/50 overflow-hidden rounded-lg border', GRID_BREAKPOINT.grid)"
+        role="table"
+      >
         <!-- Header -->
         <div
           v-if="hasHeader"
-          class="bg-muted/50 border-border text-muted-foreground grid items-center gap-3 border-b px-4 py-2.5 text-xs font-medium"
+          class="border-border text-muted-foreground grid items-center gap-3 border-b px-4 py-2.5 text-xs font-medium"
           :style="{ gridTemplateColumns }"
           role="row"
         >
@@ -213,7 +218,7 @@ const rowClass = (item: T, index: number): string => props.getRowClass?.(item, i
             <div
               v-for="col in columns"
               :key="col.key"
-              :class="cn('flex min-w-0 items-center', alignClass[col.align ?? 'start'])"
+              :class="cn('flex min-w-0 items-center', alignClass[col.align ?? 'start'], col.cellClass)"
               role="cell"
             >
               <slot :name="`cell:${col.key}`" :item="item" :index="index" />

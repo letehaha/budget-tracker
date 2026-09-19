@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
 import InputField from '@/components/fields/input-field.vue';
 import SelectField from '@/components/fields/select-field.vue';
 import UiButton from '@/components/lib/ui/button/Button.vue';
@@ -17,6 +18,7 @@ import QuickActionsToolbar, { type QuickAction } from './quick-action-toolbar.vu
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  CircleHelpIcon,
   RefreshCwIcon,
   LinkIcon,
   PlusIcon,
@@ -351,18 +353,33 @@ async function handleNext() {
              holds right now — the import forces it as the final value (blank = sum of
              imported transactions). -->
         <template #create-new-cell="{ item }">
-          <div class="flex flex-col gap-1">
-            <InputField
-              type="number"
-              :model-value="balanceInputValue(item.name)"
-              :label="$t('pages.importExport.resolveValues.accounts.currentBalanceLabel')"
-              :placeholder="$t('pages.importExport.resolveValues.accounts.currentBalancePlaceholder')"
-              @update:model-value="(value) => onBalanceInput({ name: item.name, value })"
-            />
-            <span class="text-muted-foreground text-xs">
-              {{ $t('pages.importExport.resolveValues.accounts.currentBalanceHint') }}
-            </span>
-          </div>
+          <!-- non-label-wrapper: a `label` would bind to the hint button (its first labelable
+               descendant) instead of the input, so the input is named via aria-label. -->
+          <InputField
+            type="number"
+            class="w-full"
+            non-label-wrapper
+            :aria-label="$t('pages.importExport.resolveValues.accounts.currentBalanceLabel')"
+            :model-value="balanceInputValue(item.name)"
+            :label="$t('pages.importExport.resolveValues.accounts.currentBalanceLabel')"
+            :placeholder="$t('pages.importExport.resolveValues.accounts.currentBalancePlaceholder')"
+            @update:model-value="(value) => onBalanceInput({ name: item.name, value })"
+          >
+            <template #label-after>
+              <ResponsiveTooltip
+                :content="$t('pages.importExport.resolveValues.accounts.currentBalanceHint')"
+                content-class-name="max-w-64"
+              >
+                <button
+                  type="button"
+                  class="inline-flex cursor-help"
+                  :aria-label="$t('pages.importExport.resolveValues.accounts.currentBalanceHint')"
+                >
+                  <CircleHelpIcon class="size-3.5" />
+                </button>
+              </ResponsiveTooltip>
+            </template>
+          </InputField>
         </template>
       </AccountMappingTable>
 

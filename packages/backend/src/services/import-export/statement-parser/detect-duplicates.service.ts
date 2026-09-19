@@ -1,9 +1,6 @@
 import type { ExtractedTransaction, StatementDuplicateMatch } from '@bt/shared/types';
-import { asCents } from '@bt/shared/types';
-import {
-  type TransactionToCheck,
-  detectDuplicates as genericDetectDuplicates,
-} from '@root/services/transactions/duplicates-detection/detect-duplicates.service';
+import { Money, centsToApiDecimal } from '@common/types/money';
+import { detectDuplicates as genericDetectDuplicates } from '@root/services/transactions/duplicates-detection/detect-duplicates.service';
 
 interface DetectDuplicatesParams {
   userId: number;
@@ -14,35 +11,23 @@ interface DetectDuplicatesParams {
 /**
  * Detect duplicate transactions for statement import.
  *
- * This is a wrapper around the generic detectDuplicates service
- * that handles the ExtractedTransaction -> TransactionToCheck mapping
- * and returns StatementDuplicateMatch format.
+ * Extracted amounts are decimals (same format execute-import accepts), while the
+ * generic matcher compares cents, so amounts are converted on the way in and out.
  */
 export async function detectDuplicates({
   userId,
   accountId,
   transactions,
 }: DetectDuplicatesParams): Promise<StatementDuplicateMatch[]> {
-  // Map ExtractedTransaction to the generic TransactionToCheck format
-  // We need to preserve the original transaction for the response
-  type ExtractedWithBase = ExtractedTransaction & TransactionToCheck;
-
-  const transactionsToCheck: ExtractedWithBase[] = transactions.map((tx) => ({
-    ...tx,
-    // ExtractedTransaction.amount is unbranded; cast to Cents for duplicate detection
-    amount: asCents(tx.amount),
-  }));
-
   const duplicates = await genericDetectDuplicates({
     userId,
     accountId,
-    transactions: transactionsToCheck,
+    transactions: transactions.map((tx) => ({ ...tx, amount: Money.fromDecimal(tx.amount).toCents() })),
   });
 
-  // Map back to StatementDuplicateMatch format
   return duplicates.map((d) => ({
     transactionIndex: d.index,
-    extractedTransaction: d.incoming,
-    existingTransaction: d.existing,
+    extractedTransaction: transactions[d.index]!,
+    existingTransaction: { ...d.existing, amount: centsToApiDecimal(d.existing.amount) },
   }));
 }
