@@ -98,6 +98,7 @@ const COLUMN_DEFINITIONS: ColumnDefinition[] = [
   {
     id: TABLE_COLUMN.note,
     labelKey: 'transactions.table.columns.note',
+    sortField: TRANSACTION_SORT_FIELD.note,
     widthPx: 192,
     align: 'left',
   },

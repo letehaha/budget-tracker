@@ -38,7 +38,7 @@ const MAX_LIST_LIMIT = 200;
 const DEFAULT_LIST_LIMIT = 50;
 const AUTOCOMPLETE_LIMIT = 20;
 
-type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount';
+type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount' | 'defaultTagsCount';
 type PayeeSortDir = 'asc' | 'desc';
 
 async function assertCategoryOwnedByUser({
@@ -122,6 +122,9 @@ const SORT_COLUMN_BY_KEY: Record<PayeeSortBy, string> = {
   transactionCount: 's."transactionCount"',
   netFlow: 's."netFlowRefCents"',
   lastSeen: 's."lastSeenAt"',
+  // Scalar subquery rather than a join so it cannot multiply the rows the
+  // LIMIT/OFFSET pagination counts.
+  defaultTagsCount: '(SELECT COUNT(*) FROM "PayeeTags" pt WHERE pt."payeeId" = p.id)',
 };
 
 /**

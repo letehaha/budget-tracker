@@ -163,8 +163,11 @@ const driftKeypath = computed(() =>
     : 'planned.subscriptions.linked.driftUp',
 );
 
-/** Grows the gap block to the width its skipped slots would occupy as bars. */
-const gapBlockStyle = ({ gap }: { gap: LinkedPaymentsChartGap }) => ({ flex: `${gap.slotCount} 1 0%` });
+/** Grows the gap block to the width its skipped slots would occupy as bars, capped like the bars. */
+const gapBlockStyle = ({ gap }: { gap: LinkedPaymentsChartGap }) => ({
+  flex: `${gap.slotCount} 1 0%`,
+  maxWidth: `calc(${gap.slotCount} * var(--chart-slot-max) + ${gap.slotCount - 1} * var(--chart-slot-gap))`,
+});
 
 /** Expenses read with a leading minus, matching how transaction rows render amounts. */
 const formatRowAmount = ({ tx }: { tx: LinkedTransaction }): string =>
@@ -263,11 +266,12 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
         </div>
 
         <div
-          v-if="summary.chart"
+          v-if="summary.chart || summary.drift"
           class="border-border/60 @lg/linked:border-border @lg/linked:bg-card border-t px-3 pt-3 pb-2.5 @lg/linked:rounded-lg @lg/linked:border @lg/linked:p-3.5"
         >
           <div
-            class="flex h-11 items-end gap-1 @lg/linked:h-14 @lg/linked:gap-1.5"
+            v-if="summary.chart"
+            class="flex h-11 items-end gap-(--chart-slot-gap) [--chart-slot-gap:0.25rem] [--chart-slot-max:2.25rem] @lg/linked:h-14 @lg/linked:[--chart-slot-gap:0.375rem]"
             role="img"
             :aria-label="$t('planned.subscriptions.linked.chartLabel')"
           >
@@ -279,7 +283,7 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
                 :delay-duration="100"
               >
                 <div
-                  class="max-w-9 min-w-2 flex-1 rounded-t-sm"
+                  class="max-w-(--chart-slot-max) min-w-2 flex-1 rounded-t-sm"
                   :class="chartSlot.isLatest ? 'bg-app-expense-color' : 'bg-app-expense-color/30'"
                   :style="{ height: `${chartSlot.heightPct}%` }"
                 />
@@ -298,11 +302,11 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
               </ResponsiveTooltip>
 
               <ResponsiveTooltip v-else variant="chart" content-class-name="min-w-0" :delay-duration="100">
-                <div class="flex h-full items-end gap-1 @lg/linked:gap-1.5" :style="gapBlockStyle({ gap: chartSlot })">
+                <div class="flex h-full items-end gap-(--chart-slot-gap)" :style="gapBlockStyle({ gap: chartSlot })">
                   <div
                     v-for="index in chartSlot.slotCount"
                     :key="index"
-                    class="border-border max-w-9 min-w-2 flex-1 rounded-t-sm border border-dashed bg-transparent"
+                    class="border-border max-w-(--chart-slot-max) min-w-2 flex-1 rounded-t-sm border border-dashed bg-transparent"
                     style="height: 25%"
                   />
                 </div>
@@ -315,7 +319,12 @@ const getMatchSourceDotClass = ({ source }: { source: string }): string =>
             </template>
           </div>
 
-          <i18n-t v-if="summary.drift" :keypath="driftKeypath" tag="p" class="text-muted-foreground mt-2.5 text-xs">
+          <i18n-t
+            v-if="summary.drift"
+            :keypath="driftKeypath"
+            tag="p"
+            class="text-muted-foreground mt-2.5 text-xs first:mt-0"
+          >
             <template #percent>
               <span
                 class="font-semibold"

@@ -218,8 +218,12 @@ const minimumPayment = computed<number | null>(() => {
   });
 });
 
-// Seeds from the planned (or minimum) payment so the curve starts on a sensible value to nudge.
+// Seeds from the planned (or minimum) payment so the curve starts on a sensible value to nudge,
+// and re-seeds when either changes so an edited loan is reflected in the field, curve and legend.
 const customPayment = ref<number | null>(plannedPayment.value ?? minimumPayment.value ?? null);
+watch([plannedPayment, minimumPayment], () => {
+  customPayment.value = plannedPayment.value ?? minimumPayment.value ?? null;
+});
 
 const onCustomInput = (value: string | number | null) => {
   customPayment.value = typeof value === 'number' ? value : null;

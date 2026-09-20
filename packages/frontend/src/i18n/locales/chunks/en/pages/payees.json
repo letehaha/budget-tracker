@@ -11,14 +11,16 @@
       "category": "Category",
       "categoryHint": "Effective category for this payee. Shows the default if you've set one — otherwise the category most frequently used in past transactions. Auto-filled when creating a new transaction.",
       "topCategory": "Top category",
-      "defaultCategory": "Default category"
+      "defaultCategory": "Default category",
+      "defaultTags": "Default tags"
     },
     "sort": {
       "label": "Sort by",
       "transactionCount": "Tx amount",
       "netFlow": "Net flow",
       "name": "Name",
-      "lastSeen": "Recent activity"
+      "lastSeen": "Recent activity",
+      "defaultTags": "Default tags"
     },
     "actions": {
       "menu": "Actions",

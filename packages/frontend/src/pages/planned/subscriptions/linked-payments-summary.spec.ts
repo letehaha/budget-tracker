@@ -259,6 +259,19 @@ describe('buildLinkedPaymentsSummary', () => {
       expect(summary.chart).toBeNull();
     });
 
+    it('reports drift with three rising payments even though the chart stays null', () => {
+      const summary = buildSummary({
+        transactions: [
+          buildTx({ id: 'a', refAmount: 100, time: '2026-01-12T10:00:00.000Z' }),
+          buildTx({ id: 'b', refAmount: 110, time: '2026-02-12T10:00:00.000Z' }),
+          buildTx({ id: 'c', refAmount: 125, time: '2026-03-12T10:00:00.000Z' }),
+        ],
+      });
+
+      expect(summary.chart).toBeNull();
+      expect(summary.drift).toMatchObject({ percent: 25, direction: 'up' });
+    });
+
     it('returns slots once a fourth payment lands', () => {
       const summary = buildSummary({
         transactions: [

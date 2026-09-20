@@ -114,6 +114,38 @@ describe('Payees API', () => {
       expect(filtered.some((p) => p.name === 'Starbucks Coffee')).toBe(true);
       expect(filtered.some((p) => p.name === 'Walmart')).toBe(false);
     });
+
+    it('sorts by the number of default tags in both directions', async () => {
+      const [tagA, tagB] = await Promise.all([
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'Sort Tag A' }), raw: true }),
+        helpers.createTag({ payload: helpers.buildTagPayload({ name: 'Sort Tag B' }), raw: true }),
+      ]);
+
+      const [twoTags, oneTag, noTags] = await Promise.all([
+        helpers.createPayee({
+          payload: helpers.buildPayeePayload({ name: 'Tags Two Co', defaultTagIds: [tagA.id, tagB.id] }),
+          raw: true,
+        }),
+        helpers.createPayee({
+          payload: helpers.buildPayeePayload({ name: 'Tags One Co', defaultTagIds: [tagA.id] }),
+          raw: true,
+        }),
+        helpers.createPayee({
+          payload: helpers.buildPayeePayload({ name: 'Tags None Co' }),
+          raw: true,
+        }),
+      ]);
+
+      const desc = await helpers.listPayees({ sortBy: 'defaultTagsCount', sortDir: 'desc', raw: true });
+      const descIds = desc.map((p) => p.id);
+      expect(descIds.indexOf(twoTags.id)).toBeLessThan(descIds.indexOf(oneTag.id));
+      expect(descIds.indexOf(oneTag.id)).toBeLessThan(descIds.indexOf(noTags.id));
+
+      const asc = await helpers.listPayees({ sortBy: 'defaultTagsCount', sortDir: 'asc', raw: true });
+      const ascIds = asc.map((p) => p.id);
+      expect(ascIds.indexOf(noTags.id)).toBeLessThan(ascIds.indexOf(oneTag.id));
+      expect(ascIds.indexOf(oneTag.id)).toBeLessThan(ascIds.indexOf(twoTags.id));
+    }, 30000);
   });
 
   describe('GET /payees/lookup (getPayeesLookup)', () => {

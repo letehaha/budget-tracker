@@ -3,7 +3,7 @@
     <div class="overflow-hidden rounded-md border">
       <!-- Compact-only sort control (column headers handle sorting on wide layouts) -->
       <div
-        class="bg-muted/40 flex items-center justify-between gap-2 border-b px-3 py-2 text-xs @2xl/payees-table:hidden"
+        class="bg-muted/40 flex items-center justify-between gap-2 border-b px-3 py-2 text-xs @3xl/payees-table:hidden"
       >
         <span class="text-muted-foreground">{{ $t('payees.sort.label') }}</span>
         <DropdownMenu>
@@ -29,7 +29,7 @@
       <!-- Wide column header row -->
       <div
         :class="[
-          'bg-muted text-muted-foreground hidden gap-3 border-b px-3 py-2 text-xs font-medium tracking-wider uppercase @2xl/payees-table:grid',
+          'bg-muted text-muted-foreground hidden gap-3 border-b px-3 py-2 text-xs font-medium tracking-wider uppercase @3xl/payees-table:grid',
           DESKTOP_GRID,
         ]"
       >
@@ -59,6 +59,12 @@
             <InfoIcon class="size-3 cursor-help" @click.prevent.stop />
           </ResponsiveTooltip>
         </span>
+        <SortHeaderButton
+          :label="$t('payees.columns.defaultTags')"
+          :active="sortBy === 'defaultTagsCount'"
+          :dir="sortDir"
+          @click="setSort('defaultTagsCount')"
+        />
       </div>
 
       <!-- Loading state -->
@@ -97,7 +103,7 @@
               class="hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-ring block border-b px-3 py-2 transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
               <!-- Compact (card) -->
-              <div class="flex flex-col gap-1.5 @2xl/payees-table:hidden">
+              <div class="flex flex-col gap-1.5 @3xl/payees-table:hidden">
                 <div class="flex items-center gap-2">
                   <BrandLogo
                     :domain="list[virtualRow.index]!.logoDomain ?? null"
@@ -137,11 +143,20 @@
                       "
                     />
                   </dd>
+                  <dt class="text-muted-foreground">{{ $t('payees.columns.defaultTags') }}</dt>
+                  <dd class="flex min-w-0 justify-end">
+                    <TagsIndicator :tags="payeeTags({ ids: list[virtualRow.index]!.defaultTagIds })" />
+                    <span
+                      v-if="list[virtualRow.index]!.defaultTagIds.length === 0"
+                      class="text-muted-foreground text-sm"
+                      >—</span
+                    >
+                  </dd>
                 </dl>
               </div>
 
               <!-- Wide (grid row) -->
-              <div :class="['hidden items-center gap-3 text-sm @2xl/payees-table:grid', DESKTOP_GRID]">
+              <div :class="['hidden items-center gap-3 text-sm @3xl/payees-table:grid', DESKTOP_GRID]">
                 <div class="flex min-w-0 items-center gap-2">
                   <BrandLogo
                     :domain="list[virtualRow.index]!.logoDomain ?? null"
@@ -166,6 +181,12 @@
                     list[virtualRow.index]!.defaultCategoryId ?? list[virtualRow.index]!.stats?.topCategoryId ?? null
                   "
                 />
+                <span class="flex min-w-0 items-center">
+                  <TagsIndicator :tags="payeeTags({ ids: list[virtualRow.index]!.defaultTagIds })" />
+                  <span v-if="list[virtualRow.index]!.defaultTagIds.length === 0" class="text-muted-foreground text-sm"
+                    >—</span
+                  >
+                </span>
               </div>
             </router-link>
             <div v-else class="text-muted-foreground border-b px-3 py-3 text-center text-xs">
@@ -193,13 +214,17 @@ import { useVirtualizedInfiniteScroll } from '@/composable/virtualized-infinite-
 import { ROUTES_NAMES } from '@/routes/constants';
 import type { PayeeSortBy, PayeeSortDir } from '@/api/payees';
 import ResponsiveTooltip from '@/components/common/responsive-tooltip.vue';
+import { useTagsStore } from '@/stores';
+import type { RecordId } from '@bt/shared/types';
 import { ArrowDownIcon, ArrowUpIcon, InfoIcon, PackageOpenIcon } from '@lucide/vue';
 import { useElementSize, useLocalStorage } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import CategoryDisplay from './category-display.vue';
 import BrandLogo from '@/components/common/brand-logo.vue';
+import TagsIndicator from '@/components/common/tags-indicator.vue';
 import PayeeRowSkeleton from './payee-row-skeleton.vue';
 import SortHeaderButton from './sort-header-button.vue';
 
@@ -210,12 +235,12 @@ const SKELETON_ROW_COUNT = 6;
 // and inter-section padding. `min-h-80` keeps it usable on tiny viewports.
 const SCROLL_VERTICAL_OFFSET_PX = 340;
 const SCROLL_MAX_HEIGHT = `calc(100dvh - ${SCROLL_VERTICAL_OFFSET_PX}px)`;
-// Mirrors Tailwind's `@2xl` container-query breakpoint (42rem = 672px) so the
+// Mirrors Tailwind's `@3xl` container-query breakpoint (48rem = 768px) so the
 // virtualizer's row-height estimate switches in step with the CSS layout flip.
-const COMPACT_BREAKPOINT_PX = 672;
-const COMPACT_ROW_ESTIMATE_PX = 140;
+const COMPACT_BREAKPOINT_PX = 768;
+const COMPACT_ROW_ESTIMATE_PX = 164;
 const WIDE_ROW_ESTIMATE_PX = 48;
-const DESKTOP_GRID = 'grid-cols-[2fr_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.8fr)]';
+const DESKTOP_GRID = 'grid-cols-[2fr_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.2fr)]';
 const NET_FLOW_FALLBACK_CURRENCY = 'USD';
 
 const props = defineProps<{
@@ -223,6 +248,14 @@ const props = defineProps<{
 }>();
 
 const { t, locale } = useI18n();
+
+// The tags store isn't populated app-wide, so a direct visit to this page would
+// render empty tag cells without this.
+const tagsStore = useTagsStore();
+const { tagsMap } = storeToRefs(tagsStore);
+tagsStore.loadTags();
+
+const payeeTags = ({ ids }: { ids: RecordId[] }) => ids.flatMap((id) => tagsMap.value[id] ?? []);
 
 const sortBy = useLocalStorage<PayeeSortBy>('payees-table-sort-by', 'transactionCount');
 const sortDir = useLocalStorage<PayeeSortDir>('payees-table-sort-dir', 'desc');
@@ -232,6 +265,7 @@ const sortOptions = computed<ReadonlyArray<{ key: PayeeSortBy; label: string }>>
   { key: 'netFlow', label: t('payees.sort.netFlow') },
   { key: 'name', label: t('payees.sort.name') },
   { key: 'lastSeen', label: t('payees.sort.lastSeen') },
+  { key: 'defaultTagsCount', label: t('payees.sort.defaultTags') },
 ]);
 
 const currentSortLabel = computed(

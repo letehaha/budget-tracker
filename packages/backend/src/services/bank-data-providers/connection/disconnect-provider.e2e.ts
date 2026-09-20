@@ -2,6 +2,7 @@ import { API_ERROR_CODES, API_RESPONSE_STATUS, BANK_PROVIDER_TYPE } from '@bt/sh
 import { generateRandomRecordId } from '@common/lib/record-id-helpers';
 import { describe, expect, it } from '@jest/globals';
 import * as helpers from '@tests/helpers';
+import { VALID_LUNCHFLOW_API_KEY } from '@tests/mocks/lunchflow/mock-api';
 import { VALID_MONOBANK_TOKEN } from '@tests/mocks/monobank/mock-api';
 
 /**
@@ -56,4 +57,56 @@ describe('Disconnect provider', () => {
     expect(second.statusCode).toBe(404);
     expect((second.body.response as unknown as { code: string }).code).toBe(API_ERROR_CODES.notFound);
   });
+
+  it('deletes portfolio transfers funded by accounts removed with removeAssociatedAccounts', async () => {
+    // Fixed past month so the single bucket always holds the transfer, whenever the suite runs.
+    const range = { from: '2026-01-01', to: '2026-01-31', granularity: 'monthly' as const };
+
+    const { connectionId } = await helpers.bankDataProviders.connectProvider({
+      providerType: BANK_PROVIDER_TYPE.LUNCHFLOW,
+      credentials: { apiKey: VALID_LUNCHFLOW_API_KEY },
+      raw: true,
+    });
+
+    const { accounts: externalAccounts } = await helpers.bankDataProviders.listExternalAccounts({
+      connectionId,
+      raw: true,
+    });
+
+    const { syncedAccounts } = await helpers.bankDataProviders.connectSelectedAccounts({
+      connectionId,
+      accountExternalIds: [externalAccounts[0]!.externalId],
+      raw: true,
+    });
+
+    const portfolio = await helpers.createPortfolio({ raw: true });
+
+    await helpers.accountToPortfolioTransfer({
+      portfolioId: portfolio.id,
+      payload: { accountId: syncedAccounts[0]!.id, amount: '500', date: '2026-01-10' },
+      raw: true,
+    });
+
+    const before = await helpers.getInvestmentContributions({ ...range, raw: true });
+    expect(before.buckets[0]!.total).toBeGreaterThan(0);
+    expect(before.buckets[0]!.byPortfolio).toEqual([{ portfolioId: portfolio.id, amount: before.buckets[0]!.total }]);
+    expect(before.portfolios).toEqual([{ portfolioId: portfolio.id, name: portfolio.name }]);
+
+    await helpers.bankDataProviders.disconnectProvider({
+      connectionId,
+      removeAssociatedAccounts: true,
+      raw: true,
+    });
+
+    // The PortfolioTransfers -> Accounts FK is ON DELETE SET NULL, so destroying the linked
+    // accounts leaves the funding transfers behind, still counted as contributions, unless
+    // the disconnect deletes them too.
+    const { data: transfers } = await helpers.listPortfolioTransfers({ portfolioId: portfolio.id, raw: true });
+    expect(transfers).toHaveLength(0);
+
+    const after = await helpers.getInvestmentContributions({ ...range, raw: true });
+    expect(after.buckets[0]!.total).toBe(0);
+    expect(after.buckets[0]!.byPortfolio).toEqual([]);
+    expect(after.portfolios).toEqual([]);
+  }, 60_000);
 });

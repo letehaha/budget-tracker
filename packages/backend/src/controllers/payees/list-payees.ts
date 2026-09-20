@@ -11,7 +11,7 @@ const schema = z.object({
       q: z.string().trim().max(200).optional(),
       limit: z.coerce.number().int().min(1).max(200).optional(),
       offset: z.coerce.number().int().min(0).optional(),
-      sortBy: z.enum(['lastSeen', 'name', 'netFlow', 'transactionCount']).optional(),
+      sortBy: z.enum(['lastSeen', 'name', 'netFlow', 'transactionCount', 'defaultTagsCount']).optional(),
       sortDir: z.enum(['asc', 'desc']).optional(),
       // Scope to a single account's owner (mirrors the categories
       // `?accountId=` pattern). On a shared account the recipient sees the
