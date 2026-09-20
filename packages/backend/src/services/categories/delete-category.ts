@@ -3,9 +3,12 @@ import { findOrThrowNotFound } from '@common/utils/find-or-throw-not-found';
 import { ConflictError, ValidationError } from '@js/errors';
 import * as Categories from '@models/categories.model';
 import TransactionTemplates from '@models/transaction-templates.model';
-import { countTransactions, updateTransactions } from '@models/transactions-query';
+import { updateTransactions } from '@models/transactions-query';
 import { withTransaction } from '@services/common/with-transaction';
 import { pauseAutomationsReferencing, rewriteAutomationRef } from '@services/transaction-automations/references';
+import { repointSplits } from '@services/transactions/splits/repoint-splits';
+
+import { countCategoryTransactions } from './count-category-transactions';
 
 interface DeleteCategoryPayload extends Categories.DeleteCategoryPayload {
   replaceWithCategoryId?: string;
@@ -16,6 +19,10 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
     query: Categories.default.findOne({ where: { id: payload.categoryId, userId: payload.userId } }),
     message: 'Category with provided id does not exist.',
   });
+
+  if (payload.replaceWithCategoryId === payload.categoryId) {
+    throw new ValidationError({ message: 'Replacement category must differ from the deleted one.' });
+  }
 
   const parentCategory = await Categories.default.findOne({
     where: { parentId: payload.categoryId },
@@ -28,14 +35,9 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
     });
   }
 
-  // Total reach on both axes: every row pointing at the category must be reassigned
-  // before it can be dropped, so anything this count misses becomes an FK violation.
-  const transactionCount = await countTransactions({
-    where: { categoryId: payload.categoryId },
-    planned: 'include',
-    access: { creator: payload.userId },
-    balanceAdjustments: 'include',
-  });
+  // Every row pointing at the category must be reassigned before it is dropped: the FKs are
+  // SET NULL / CASCADE, so anything this count misses is silently uncategorized or deleted.
+  const transactionCount = await countCategoryTransactions({ categoryId: category.id, userId: payload.userId });
 
   const replacement = payload.replaceWithCategoryId
     ? await findOrThrowNotFound({
@@ -66,6 +68,7 @@ export const deleteCategory = withTransaction(async (payload: DeleteCategoryPayl
 
   // Without a successor the rules would silently lose their category action, so they are paused.
   if (replacement) {
+    await repointSplits({ from: category.id, to: replacement.id });
     await rewriteAutomationRef({
       userId: payload.userId,
       refType: 'category',
