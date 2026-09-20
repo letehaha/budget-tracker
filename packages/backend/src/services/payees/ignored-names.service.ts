@@ -38,10 +38,9 @@ export const addPayeeIgnoredName = withTransaction(
     if (existing) return existing;
 
     // Ignoring a name that still resolves to a Payee (canonical or alias)
-    // would be a silent no-op: the blocklist only gates Step-3 promotion in
-    // `resolvePayeeForRawMerchant`, and a resolvable name links at Step 1
-    // before the blocklist is consulted. Force-acknowledge deletes the
-    // resolved Payee so the ignore actually takes effect.
+    // would be a silent no-op: the blocklist deliberately exempts the
+    // exact-match step, so a resolvable name keeps linking. Force-acknowledge
+    // deletes the resolved Payee so the ignore actually takes effect.
     const hit = await resolveNormalizedName({ userId, normalized });
     if (hit) {
       if (!force) {
