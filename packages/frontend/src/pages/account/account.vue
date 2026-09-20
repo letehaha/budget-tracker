@@ -78,10 +78,10 @@
 
         <Card.CardContent>
           <template v-if="account.bankDataProviderConnectionId">
-            <BankConnectionView :account="account" :transactions="rawTransactionsList" />
+            <BankConnectionView :account="account" />
           </template>
           <template v-else>
-            <SystemAccount :account="account" :transactions="rawTransactionsList" />
+            <SystemAccount :account="account" />
           </template>
         </Card.CardContent>
       </Card.Card>

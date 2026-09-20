@@ -71,6 +71,36 @@ describe('Transaction templates', () => {
       expect(fetched!.amount).toBeNull();
     });
 
+    it('stores the original currency, keeps it on a partial update, clears it on null and rejects a non-ISO code', async () => {
+      const created = await helpers.createTransactionTemplate({
+        payload: buildPayload({ originalCurrencyCode: 'eur' }),
+        raw: true,
+      });
+      expect(created.originalCurrencyCode).toBe('EUR');
+
+      const renamed = await helpers.updateTransactionTemplate({
+        id: created.id,
+        payload: { name: 'Groceries renamed' },
+        raw: true,
+      });
+      expect(renamed.originalCurrencyCode).toBe('EUR');
+
+      const cleared = await helpers.updateTransactionTemplate({
+        id: created.id,
+        payload: { originalCurrencyCode: null },
+        raw: true,
+      });
+      expect(cleared.originalCurrencyCode).toBeNull();
+
+      const [fetched] = await helpers.getTransactionTemplates({ raw: true });
+      expect(fetched!.originalCurrencyCode).toBeNull();
+
+      const invalid = await helpers.createTransactionTemplate({
+        payload: buildPayload({ name: 'Invalid', originalCurrencyCode: 'ZZZ' }),
+      });
+      expect(invalid.statusCode).toBe(ERROR_CODES.ValidationError);
+    });
+
     it('rejects an amount without an account, a negative amount, a bank-connected account and an archived account with 422', async () => {
       const account = await helpers.createAccount({ raw: true });
       const bankAccount = await helpers.createAccount({

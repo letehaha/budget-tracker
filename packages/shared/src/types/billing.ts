@@ -46,10 +46,16 @@ export const FEATURES = {
   backup_export: 'backup_export',
   backup_restore: 'backup_restore',
   data_export: 'data_export',
+  attachments: 'attachments',
 } as const;
 export type Feature = (typeof FEATURES)[keyof typeof FEATURES];
 
-const ESSENTIAL_FEATURES: readonly Feature[] = [FEATURES.backup_export, FEATURES.backup_restore, FEATURES.data_export];
+const ESSENTIAL_FEATURES: readonly Feature[] = [
+  FEATURES.backup_export,
+  FEATURES.backup_restore,
+  FEATURES.data_export,
+  FEATURES.attachments,
+];
 const PLUS_FEATURES: readonly Feature[] = [...ESSENTIAL_FEATURES, FEATURES.bank_providers, FEATURES.operator_ai];
 /** Plus as of launch (2026-09-15). Deliberately not a reference to PLUS_FEATURES: features added later are paid for early adopters. */
 const EARLY_ADOPTER_FEATURES: readonly Feature[] = [
@@ -74,11 +80,8 @@ export const SEATS_BY_PLAN: Record<Plan, number> = {
   early_adopter: 5,
 };
 
-export const TRIAL_EXCLUDED_FEATURES: readonly Feature[] = [
-  FEATURES.backup_export,
-  FEATURES.backup_restore,
-  FEATURES.data_export,
-];
+/** Restore stays paid: restoring into a fresh trial account would renew the trial indefinitely. */
+export const TRIAL_EXCLUDED_FEATURES: readonly Feature[] = [FEATURES.backup_restore];
 
 export const TRIAL_DAYS = 40;
 

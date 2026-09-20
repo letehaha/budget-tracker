@@ -29,6 +29,11 @@ export const splitSchema = z.object({
   note: z.string().max(100, 'Split note must not exceed 100 characters').nullish(),
 });
 
+export const locationSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+});
+
 export const transactionDetailFieldsSchema = {
   externalUrl: z
     .string()
@@ -37,10 +42,5 @@ export const transactionDetailFieldsSchema = {
     .regex(/^https?:\/\//i, 'Only http(s) URLs are allowed')
     .nullish(),
   externalReference: z.string().max(255, 'The reference must not exceed 255 characters.').nullish(),
-  location: z
-    .object({
-      latitude: z.number().min(-90).max(90),
-      longitude: z.number().min(-180).max(180),
-    })
-    .nullish(),
+  location: locationSchema.nullish(),
 };

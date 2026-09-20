@@ -17,6 +17,7 @@ import { budgetBakersWalletImportQueue } from '@services/import-export/budget-ba
 import { csvImportQueue } from '@services/import-export/csv-import/csv-import-queue';
 import { msMoneyImportQueue } from '@services/import-export/ms-money-import';
 import { ofxImportQueue } from '@services/import-export/ofx-import';
+import { statementImportQueue } from '@services/import-export/statement-parser/statement-import-queue';
 import { ynabImportQueue } from '@services/import-export/ynab-import';
 import { Queue } from 'bullmq';
 
@@ -39,6 +40,7 @@ const importQueues: Queue[] = [
   budgetBakersWalletImportQueue,
   msMoneyImportQueue,
   ofxImportQueue,
+  statementImportQueue,
 ];
 
 /** Import workers write transactions row-by-row; an active job for this user could

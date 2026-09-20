@@ -9,6 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY post-install.sh ./
+COPY patches ./patches
 
 # Install shared and frontend package.json files separately to leverage Docker cache
 COPY packages/shared/package*.json ./packages/shared/

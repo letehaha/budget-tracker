@@ -1,5 +1,6 @@
 import { createController } from '@controllers/helpers/controller-factory';
 import { logger } from '@js/utils';
+import { trackBackupExported } from '@js/utils/posthog';
 import { exportUserBackup } from '@services/backup';
 import { z } from 'zod';
 
@@ -25,6 +26,7 @@ export const exportBackupController = createController(
     res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
     res.setHeader('Content-Length', result.buffer.length.toString());
     res.status(200).end(result.buffer);
+    trackBackupExported({ userId: user.id, sizeBytes: result.buffer.length });
     return;
   },
 );

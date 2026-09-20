@@ -16,7 +16,6 @@ import { logger } from '@js/utils/logger';
 import * as Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
-import PortfolioTransfers from '@models/investments/portfolio-transfers.model';
 import { countTransactions } from '@models/transactions-query';
 import { getBaseCurrency } from '@models/users-currencies.model';
 import Users from '@models/users.model';
@@ -40,6 +39,7 @@ import { pauseAutomationsReferencing } from '@services/transaction-automations/r
 import { Op } from 'sequelize';
 
 import { archiveAccount as performArchiveSideEffects } from './accounts/archive-account';
+import { removePortfolioTransfersForAccounts } from './accounts/remove-portfolio-transfers-for-accounts';
 import { restampRefInitialBalance } from './accounts/restamp-ref-initial-balance';
 import { unlinkSubscriptionsFromAccount } from './accounts/unlink-subscriptions-from-account';
 import { unlinkTemplatesFromAccount } from './accounts/unlink-templates-from-account';
@@ -501,14 +501,10 @@ const deleteAccountByIdInTx = withTransaction(
 
     await pauseAutomationsReferencing({ userId, refType: 'account', refId: account.id, label: account.name });
 
-    // Must run before the account destroy — the FK is ON DELETE SET NULL, so afterwards
-    // these rows would no longer reference the account and couldn't be targeted. Without
-    // this opt-in they survive as orphaned contributions and double-count if the user
-    // re-creates the account and re-links the same transfers.
+    // Without this opt-in the transfers survive as orphaned contributions and double-count
+    // if the user re-creates the account and re-links the same transfers.
     if (removePortfolioTransfers) {
-      await PortfolioTransfers.destroy({
-        where: { userId, [Op.or]: [{ fromAccountId: id }, { toAccountId: id }] },
-      });
+      await removePortfolioTransfersForAccounts({ userId, accountIds: [id] });
     }
 
     const affectedRows = await Accounts.deleteAccountById({ id, userId });

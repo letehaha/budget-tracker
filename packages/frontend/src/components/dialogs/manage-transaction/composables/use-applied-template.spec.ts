@@ -91,6 +91,7 @@ const sources: TemplateFormSources = {
   sourceAccounts: [createAccount(), createAccount({ id: OTHER_ACCOUNT_ID, name: 'Savings' })],
   categoriesMap: { [CATEGORY_ID]: createCategory() },
   knownTagIds: new Set<string>(),
+  currencies: [],
 };
 
 describe('useAppliedTemplate', () => {

@@ -10,7 +10,7 @@ import SettingAccountGroup from '@/pages/account/components/account-group.vue';
 import AccountLinkSection from '@/pages/account/components/account-link-section.vue';
 import SettingToggleVisibility from '@/pages/account/components/setting-toggle-visibility.vue';
 import SharingPanel from '@/pages/account/components/sharing-panel/sharing-panel.vue';
-import { AccountModel, SHARE_PERMISSIONS, TransactionModel } from '@bt/shared/types';
+import { AccountModel, SHARE_PERMISSIONS } from '@bt/shared/types';
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -18,7 +18,6 @@ const { t } = useI18n();
 
 const props = defineProps<{
   account: AccountModel;
-  transactions: TransactionModel[];
 }>();
 
 const { isOwner, permission } = useAccountAccess(toRef(() => props.account));
@@ -53,7 +52,7 @@ const tabItems = computed(() => {
 
           <AccountArchiveSection :account="account" />
 
-          <AccountDeletionSection :account="account" :transactions="transactions" />
+          <AccountDeletionSection :account="account" />
         </template>
       </div>
     </Tabs.TabsContent>

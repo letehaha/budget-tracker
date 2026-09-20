@@ -2,14 +2,19 @@
 import * as Drawer from '@/components/lib/ui/drawer';
 import * as Popover from '@/components/lib/ui/popover';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
+import { cn } from '@/lib/utils';
 import { createReusableTemplate } from '@vueuse/core';
+import type { HTMLAttributes } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const [UseTemplate, SlotContent] = createReusableTemplate();
 const isMobile = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile);
 
-const props = defineProps<{ open?: boolean }>();
+const props = defineProps<{
+  open?: boolean;
+  popoverClass?: HTMLAttributes['class'];
+}>();
 
 const emit = defineEmits(['update:open']);
 
@@ -49,7 +54,7 @@ defineExpose({ close });
         <slot name="trigger" />
       </Popover.PopoverTrigger>
 
-      <Popover.PopoverContent align="end" class="w-max max-w-64 min-w-48 p-1">
+      <Popover.PopoverContent align="end" :class="cn('w-max max-w-64 min-w-48 p-1', props.popoverClass)">
         <SlotContent />
       </Popover.PopoverContent>
     </Popover.Popover>

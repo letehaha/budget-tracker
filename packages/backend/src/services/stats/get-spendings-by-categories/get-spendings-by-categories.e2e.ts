@@ -1,5 +1,6 @@
 import {
   CategoryModel,
+  type RecordId,
   RESOURCE_TYPES,
   SHARE_PERMISSIONS,
   TRANSACTIONS_WRITE_SCOPES,
@@ -995,5 +996,132 @@ describe('[Stats] Spendings by categories – excludedCategoryIds', () => {
     });
 
     expect(result[splitCategory.id.toString()].amount).toBe(40);
+  });
+});
+
+const expense = async ({
+  accountId,
+  amount,
+  categoryId,
+  payeeId,
+}: {
+  accountId: RecordId;
+  amount: number;
+  categoryId: RecordId;
+  payeeId?: RecordId;
+}) => {
+  const [tx] = await helpers.createTransaction({
+    payload: helpers.buildTransactionPayload({
+      accountId,
+      amount,
+      categoryId,
+      transactionType: TRANSACTION_TYPES.expense,
+      ...(payeeId ? { payeeId } : {}),
+    }),
+    raw: true,
+  });
+  return tx;
+};
+
+describe('[Stats] Spendings by categories – page-level scope filters', () => {
+  it('accountIds narrows to the selected accounts', async () => {
+    const accountA = await helpers.createAccount({ raw: true });
+    const accountB = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Scoped'), color: '#112233', raw: true });
+
+    await expense({ accountId: accountA.id, amount: 70, categoryId: category.id });
+    await expense({ accountId: accountB.id, amount: 30, categoryId: category.id });
+
+    const result = await helpers.getSpendingsByCategories({
+      accountIds: [accountA.id],
+      raw: true,
+    });
+    expect(result[category.id].amount).toBe(70);
+  });
+
+  it('payeeIds keeps only transactions linked to the selected payees', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Scoped'), color: '#112233', raw: true });
+    const payeeA = await helpers.createPayee({ payload: { name: uniqueName('Acme') }, raw: true });
+    const payeeB = await helpers.createPayee({ payload: { name: uniqueName('Globex') }, raw: true });
+
+    await expense({ accountId: account.id, amount: 40, categoryId: category.id, payeeId: payeeA.id });
+    await expense({ accountId: account.id, amount: 25, categoryId: category.id, payeeId: payeeB.id });
+
+    const result = await helpers.getSpendingsByCategories({
+      payeeIds: [payeeA.id],
+      raw: true,
+    });
+    expect(result[category.id].amount).toBe(40);
+  });
+
+  it('tagIds counts a transaction carrying two selected tags exactly once', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Scoped'), color: '#112233', raw: true });
+    const tagA = await helpers.createTag({ payload: { name: uniqueName('TagA'), color: '#ff0000' }, raw: true });
+    const tagB = await helpers.createTag({ payload: { name: uniqueName('TagB'), color: '#00ff00' }, raw: true });
+
+    const doubleTagged = await expense({ accountId: account.id, amount: 50, categoryId: category.id });
+    await helpers.addTransactionsToTag({
+      tagId: tagA.id,
+      transactionIds: [doubleTagged.id],
+    });
+    await helpers.addTransactionsToTag({
+      tagId: tagB.id,
+      transactionIds: [doubleTagged.id],
+    });
+
+    await expense({ accountId: account.id, amount: 20, categoryId: category.id });
+
+    const result = await helpers.getSpendingsByCategories({
+      tagIds: [tagA.id, tagB.id],
+      raw: true,
+    });
+    expect(result[category.id].amount).toBe(50);
+  });
+
+  it('excludedPayeeIds drops the excluded payee while a payee-less transaction stays', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Scoped'), color: '#112233', raw: true });
+    const payee = await helpers.createPayee({ payload: { name: uniqueName('Acme') }, raw: true });
+
+    await expense({ accountId: account.id, amount: 40, categoryId: category.id, payeeId: payee.id });
+    await expense({ accountId: account.id, amount: 15, categoryId: category.id });
+
+    const result = await helpers.getSpendingsByCategories({ excludedPayeeIds: [payee.id], raw: true });
+    expect(result[category.id].amount).toBe(15);
+  });
+
+  it('excludedTagIds drops a transaction carrying an excluded tag and keeps an untagged one', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Scoped'), color: '#112233', raw: true });
+    const excludedTag = await helpers.createTag({
+      payload: { name: uniqueName('Hidden'), color: '#ff0000' },
+      raw: true,
+    });
+    const otherTag = await helpers.createTag({ payload: { name: uniqueName('Other'), color: '#00ff00' }, raw: true });
+
+    const tagged = await expense({ accountId: account.id, amount: 70, categoryId: category.id });
+    await helpers.addTransactionsToTag({ tagId: excludedTag.id, transactionIds: [tagged.id] });
+    await helpers.addTransactionsToTag({ tagId: otherTag.id, transactionIds: [tagged.id] });
+
+    await expense({ accountId: account.id, amount: 25, categoryId: category.id });
+
+    const result = await helpers.getSpendingsByCategories({ excludedTagIds: [excludedTag.id], raw: true });
+    expect(result[category.id].amount).toBe(25);
+  });
+
+  it('empty state: a tag with no transactions yields no categories', async () => {
+    const account = await helpers.createAccount({ raw: true });
+    const category = await helpers.addCustomCategory({ name: uniqueName('Scoped'), color: '#112233', raw: true });
+    const unusedTag = await helpers.createTag({ payload: { name: uniqueName('Unused'), color: '#123456' }, raw: true });
+
+    await expense({ accountId: account.id, amount: 60, categoryId: category.id });
+
+    const result = await helpers.getSpendingsByCategories({
+      tagIds: [unusedTag.id],
+      raw: true,
+    });
+    expect(result).toEqual({});
   });
 });

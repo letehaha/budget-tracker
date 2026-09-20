@@ -1,5 +1,5 @@
 import * as bankDataProvidersApi from '@/api/bank-data-providers';
-import type { ConnectionStatusSummary, SyncStatusResponse } from '@/api/bank-data-providers';
+import { type ConnectionStatusSummary, SyncStatus, type SyncStatusResponse } from '@/api/bank-data-providers';
 import { VUE_QUERY_CACHE_KEYS, VUE_QUERY_GLOBAL_PREFIXES } from '@/common/const';
 import type { AccountGroups } from '@/common/types/models';
 import { ensureChunkLoaded } from '@/i18n';
@@ -128,6 +128,12 @@ export function useSyncStatus() {
   const connectionsNeedingReauth = computed(() => {
     return syncStatusData.value?.connectionsNeedingReauth || [];
   });
+
+  const hasSyncIssue = computed(
+    () =>
+      connectionsNeedingReauth.value.length > 0 ||
+      accountStatuses.value.some((account) => account.status === SyncStatus.FAILED),
+  );
 
   // Built once per reactivity tick so per-account / per-group lookups stay O(1)
   // – three different sidebar/details components query this for every render.
@@ -363,6 +369,7 @@ export function useSyncStatus() {
     needsConfirmation,
     accountStatuses,
     connectionsNeedingReauth,
+    hasSyncIssue,
     isAccountNeedingReauth,
     isConnectionNeedingReauth,
     getConnectionStatus,

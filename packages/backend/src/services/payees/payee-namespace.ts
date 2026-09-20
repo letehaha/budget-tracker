@@ -1,6 +1,7 @@
 import { t } from '@i18n/index';
 import { ValidationError } from '@js/errors';
 import PayeeAliases from '@models/payee-aliases.model';
+import PayeeIgnoredNames from '@models/payee-ignored-names.model';
 import Payees from '@models/payees.model';
 
 import { insertOrAdopt } from '../common/run-in-savepoint';
@@ -65,6 +66,23 @@ export async function resolveNormalizedName({
   }
 
   return null;
+}
+
+/**
+ * Blocklist gate for every machine-driven link into the namespace (fuzzy
+ * match, auto-written alias, occurrence promotion). Exact canonical/alias hits
+ * deliberately skip it: a Payee or alias the user created under an ignored
+ * name is their explicit override of the block.
+ */
+export async function isPayeeNameIgnored({
+  userId,
+  normalizedName,
+}: {
+  userId: number;
+  normalizedName: string;
+}): Promise<boolean> {
+  const row = await PayeeIgnoredNames.findOne({ where: { userId, normalizedName }, attributes: ['id'] });
+  return row !== null;
 }
 
 /**

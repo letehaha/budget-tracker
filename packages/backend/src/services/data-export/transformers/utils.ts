@@ -1,3 +1,4 @@
+import { type RecordId } from '@bt/shared/types';
 import { logger } from '@js/utils';
 import { Op } from 'sequelize';
 
@@ -31,6 +32,22 @@ export function buildDateRangeClause({
   if (dateRange.from) op[Op.gte] = `${dateRange.from}T00:00:00.000Z`;
   if (dateRange.to) op[Op.lte] = `${dateRange.to}T23:59:59.999Z`;
   return { [field]: op };
+}
+
+/**
+ * Build a Sequelize WHERE fragment that constrains an account column to the
+ * requested accounts. Returns `{}` when no filter is given so callers can
+ * spread the result unconditionally.
+ */
+export function buildAccountIdsClause({
+  field,
+  accountIds,
+}: {
+  field: string;
+  accountIds?: RecordId[];
+}): Record<string, unknown> {
+  if (!accountIds) return {};
+  return { [field]: { [Op.in]: accountIds } };
 }
 
 /** Combined row count across every table in a built export. Shared by the

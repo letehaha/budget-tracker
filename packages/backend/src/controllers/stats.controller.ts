@@ -32,6 +32,14 @@ import { z } from 'zod';
 
 import { createController } from './helpers/controller-factory';
 
+const statsScopeQuery = {
+  accountIds: optionalCommaSeparatedIds(),
+  payeeIds: optionalCommaSeparatedIds(),
+  excludedPayeeIds: optionalCommaSeparatedIds(),
+  tagIds: optionalCommaSeparatedIds(),
+  excludedTagIds: optionalCommaSeparatedIds(),
+};
+
 const balanceHistorySchema = z.object({
   query: withDateOrder(z.object({ ...dateRange(), accountId: recordId().optional() })),
 });
@@ -92,6 +100,7 @@ const spendingsByCategoriesSchema = z.object({
     z.object({
       ...dateRange(),
       accountId: z.string().optional(),
+      ...statsScopeQuery,
       type: z.enum(Object.values(TRANSACTION_TYPES)).optional(),
       categoryIds: optionalCommaSeparatedIds(),
       excludedCategoryIds: optionalCommaSeparatedIds(),
@@ -108,6 +117,11 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
     from,
     to,
     accountId,
+    accountIds,
+    payeeIds,
+    excludedPayeeIds,
+    tagIds,
+    excludedTagIds,
     type: transactionType,
     categoryIds,
     excludedCategoryIds,
@@ -122,6 +136,11 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
         from,
         to,
         accountId,
+        accountIds,
+        payeeIds,
+        excludedPayeeIds,
+        tagIds,
+        excludedTagIds,
         categoryIds,
         excludedCategoryIds,
         excludePlanned,
@@ -138,6 +157,11 @@ export const getSpendingsByCategories = createController(spendingsByCategoriesSc
       from,
       to,
       accountId,
+      accountIds,
+      payeeIds,
+      excludedPayeeIds,
+      tagIds,
+      excludedTagIds,
       transactionType,
       categoryIds,
       excludedCategoryIds,
@@ -206,6 +230,7 @@ const cashFlowSchema = z.object({
       ...dateRange({ required: true }),
       granularity: z.enum(['monthly', 'biweekly', 'weekly']),
       accountId: z.string().optional(),
+      ...statsScopeQuery,
       categoryIds: optionalCommaSeparatedIds(),
       excludedCategoryIds: optionalCommaSeparatedIds(),
       excludePlanned: booleanQuery().optional(),
@@ -215,7 +240,20 @@ const cashFlowSchema = z.object({
 
 export const getCashFlow = createController(cashFlowSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, granularity, accountId, categoryIds, excludedCategoryIds, excludePlanned } = query;
+  const {
+    from,
+    to,
+    granularity,
+    accountId,
+    accountIds,
+    payeeIds,
+    excludedPayeeIds,
+    tagIds,
+    excludedTagIds,
+    categoryIds,
+    excludedCategoryIds,
+    excludePlanned,
+  } = query;
 
   const result = await statsService.getCashFlow(
     removeUndefinedKeys({
@@ -224,6 +262,11 @@ export const getCashFlow = createController(cashFlowSchema, async ({ user, query
       to,
       granularity,
       accountId,
+      accountIds,
+      payeeIds,
+      excludedPayeeIds,
+      tagIds,
+      excludedTagIds,
       categoryIds,
       excludedCategoryIds,
       excludePlanned,
@@ -366,13 +409,28 @@ const cumulativeDataSchema = z.object({
       ...dateRange({ required: true }),
       metric: z.enum(['expenses', 'income', 'savings']),
       accountId: z.string().optional(),
+      ...statsScopeQuery,
+      categoryIds: optionalCommaSeparatedIds(),
+      excludedCategoryIds: optionalCommaSeparatedIds(),
     }),
   ),
 });
 
 export const getCumulativeData = createController(cumulativeDataSchema, async ({ user, query }) => {
   const { id: userId } = user;
-  const { from, to, metric, accountId } = query;
+  const {
+    from,
+    to,
+    metric,
+    accountId,
+    accountIds,
+    payeeIds,
+    excludedPayeeIds,
+    tagIds,
+    excludedTagIds,
+    categoryIds,
+    excludedCategoryIds,
+  } = query;
 
   const result = await statsService.getCumulativeData(
     removeUndefinedKeys({
@@ -381,6 +439,13 @@ export const getCumulativeData = createController(cumulativeDataSchema, async ({
       to,
       metric,
       accountId: accountId ?? undefined,
+      accountIds,
+      payeeIds,
+      excludedPayeeIds,
+      tagIds,
+      excludedTagIds,
+      categoryIds,
+      excludedCategoryIds,
     }),
   );
 

@@ -5,6 +5,7 @@ import {
   RESOURCE_TYPES,
   SHARE_PERMISSIONS,
   type RecordId,
+  type TransactionLocation,
 } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
@@ -37,7 +38,7 @@ const MAX_LIST_LIMIT = 200;
 const DEFAULT_LIST_LIMIT = 50;
 const AUTOCOMPLETE_LIMIT = 20;
 
-type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount';
+type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount' | 'defaultTagsCount';
 type PayeeSortDir = 'asc' | 'desc';
 
 async function assertCategoryOwnedByUser({
@@ -121,6 +122,9 @@ const SORT_COLUMN_BY_KEY: Record<PayeeSortBy, string> = {
   transactionCount: 's."transactionCount"',
   netFlow: 's."netFlowRefCents"',
   lastSeen: 's."lastSeenAt"',
+  // Scalar subquery rather than a join so it cannot multiply the rows the
+  // LIMIT/OFFSET pagination counts.
+  defaultTagsCount: '(SELECT COUNT(*) FROM "PayeeTags" pt WHERE pt."payeeId" = p.id)',
 };
 
 /**
@@ -304,6 +308,7 @@ interface CreatePayeeParams extends EntityLogoPayload {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  defaultLocation?: TransactionLocation | null;
 }
 
 export const createPayee = withTransaction(
@@ -313,6 +318,7 @@ export const createPayee = withTransaction(
     defaultCategoryId,
     categorizationMode,
     defaultTagIds,
+    defaultLocation,
     logoDomain,
     logoInitials,
     logoColor,
@@ -347,6 +353,7 @@ export const createPayee = withTransaction(
       normalizedName: normalized,
       defaultCategoryId: defaultCategoryId ?? null,
       categorizationMode: categorizationMode ?? CATEGORIZATION_MODE.enforce,
+      defaultLocation: defaultLocation ?? null,
       // A supplied logo value is a manual override (`logoSource: 'manual'` makes
       // the resolver treat it as authoritative); null keys on create change
       // nothing, so they resolve to no writes and the resolver stays in charge.
@@ -387,6 +394,7 @@ interface UpdatePayeeParams extends EntityLogoPayload {
   categorizationMode?: CATEGORIZATION_MODE;
   /** Full replacement of the Payee's default-tag set; `[]` clears the rule. */
   defaultTagIds?: string[];
+  defaultLocation?: TransactionLocation | null;
 }
 
 /**
@@ -404,11 +412,16 @@ export const updatePayee = withTransaction(
     defaultCategoryId,
     categorizationMode,
     defaultTagIds,
+    defaultLocation,
     logoDomain,
     logoInitials,
     logoColor,
   }: UpdatePayeeParams): Promise<Payees> => {
     const payee = await loadPayeeOrThrow({ userId, id });
+
+    if (defaultLocation !== undefined) {
+      payee.defaultLocation = defaultLocation;
+    }
 
     if (defaultCategoryId === null) {
       payee.defaultCategoryId = null;

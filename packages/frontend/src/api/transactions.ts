@@ -75,12 +75,16 @@ export const loadTransactions = async ({
   includeGroups?: boolean;
   /** true = only planned rows, false = exclude them, absent = both. */
   isPlanned?: boolean;
+  /** true = only rows with attachments, false = only rows without, absent = both. */
+  hasAttachment?: boolean;
 }): Promise<endpointsTypes.GetTransactionsResponse> => {
   return api.get('/transactions', {
     ...params,
     // The client drops falsy query values, which would swallow `isPlanned: false`.
     // Stringifying keeps the "exclude planned" intent on the wire.
     isPlanned: params.isPlanned === undefined ? undefined : String(params.isPlanned),
+    hasAttachment: params.hasAttachment === undefined ? undefined : String(params.hasAttachment),
+    includeHasAttachments: true,
     from: from ? new Date(from).toISOString() : undefined,
     to: to ? new Date(to).toISOString() : undefined,
   });

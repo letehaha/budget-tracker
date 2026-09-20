@@ -241,9 +241,8 @@ describe('AI Categorization Service E2E', () => {
         },
       ];
 
-      const { newTransactionIds } = await helpers.statementExecuteImport({
+      const { newTransactionIds } = await helpers.statementExecuteImportAndWait({
         payload: { accountId: account.id, transactions, skipIndices: [] },
-        raw: true,
       });
 
       expect(newTransactionIds).toHaveLength(2);

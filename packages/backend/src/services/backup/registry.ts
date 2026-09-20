@@ -41,6 +41,7 @@ import SubscriptionTransactions from '@models/subscription-transactions.model';
 import Subscriptions from '@models/subscriptions.model';
 import TagReminders from '@models/tag-reminders.model';
 import Tags from '@models/tags.model';
+import TransactionAttachments from '@models/transaction-attachments.model';
 import TransactionAutomations from '@models/transaction-automations.model';
 import TransactionGroupItems from '@models/transaction-group-items.model';
 import TransactionGroups from '@models/transaction-groups.model';
@@ -556,6 +557,11 @@ export const BACKUP_EXCLUDED: readonly BackupExcludedDef[] = [
   },
   { model: BillingWebhookEvents, reason: 'Webhook dedupe markers for a Stripe account, meaningless outside it.' },
   { model: SignupLedger, reason: 'Global signup/trial ledger keyed by email hash, not per-user data.' },
+  {
+    model: TransactionAttachments,
+    reason:
+      'Rows point at files in attachment storage, which the backup archive does not carry — restoring rows alone would list attachments that cannot be opened. Attachments are not part of backup/restore.',
+  },
 ];
 
 /**

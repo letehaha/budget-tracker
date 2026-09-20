@@ -85,7 +85,7 @@
           "errors": "Errors",
           "rawData": "Raw Data",
           "duplicatesTitle": "{count} potential duplicates found",
-          "duplicatesHint": "Uncheck rows you want to import anyway",
+          "duplicatesHint": "Check rows you want to import anyway; unchecked duplicates are skipped.",
           "skip": "Skip",
           "match": "Match",
           "csvTransaction": "CSV Transaction",

@@ -9,11 +9,11 @@ MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is ope
 - **Your finances. Your server. Your rules.**
 - Open source. Self-host for free, or use the cloud: Essential $5/mo or $30/yr, Plus $8/mo or $55/yr, 40-day free trial without a card
 - Self-host or use our cloud — either way, your data is never sold or shared
-- Shape the roadmap with your feedback (early adopter perk)
+- Shape the roadmap with your feedback
 
 ## Features
 
-- Bank account synchronization (Monobank, EnableBanking, LunchFlow, more coming)
+- Bank account synchronization (LunchFlow, SimpleFIN, Monobank, more coming)
 - AI-powered transaction categorization that learns your spending patterns
 - Budget tracking with visual progress indicators
 - Investment portfolio tracking with real-time market data
@@ -28,7 +28,7 @@ MoneyMatter is a privacy-first alternative to apps like Mint and YNAB. It is ope
 
 ## AI Integration (MCP)
 
-MoneyMatter exposes a remote MCP (Model Context Protocol) server that gives AI assistants read-only, OAuth-secured access to your financial data. Ask natural-language questions like:
+MoneyMatter exposes a remote MCP (Model Context Protocol) server that gives AI assistants OAuth-secured access to your financial data. You choose the access level when connecting: read, write, or write and delete. Ask natural-language questions like:
 
 - "Compare my dining out this month to my 3-month average"
 - "Which subscriptions have increased in the past 6 months?"

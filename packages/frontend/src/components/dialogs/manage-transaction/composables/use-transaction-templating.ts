@@ -2,7 +2,7 @@ import type { FormattedCategory } from '@/common/types';
 import { useTransactionTemplates } from '@/composable/data-queries/transaction-templates';
 import { formatUIAmount } from '@/js/helpers';
 import { trackAnalyticsEvent } from '@/lib/posthog';
-import { useTagsStore } from '@/stores';
+import { useCurrenciesStore, useTagsStore } from '@/stores';
 import type { AccountModel, RecordId, TransactionTemplateModel } from '@bt/shared/types';
 import type { CreateTransactionTemplateBody } from '@bt/shared/types/endpoints';
 import { storeToRefs } from 'pinia';
@@ -54,6 +54,7 @@ export const useTransactionTemplating = ({
 }: TransactionTemplatingOptions) => {
   const { t } = useI18n();
   const { tags: allTags, isFetched: areTagsFetched } = storeToRefs(useTagsStore());
+  const { systemCurrencies } = storeToRefs(useCurrenciesStore());
   const form = session.form;
 
   const isOpen = ref(false);
@@ -74,18 +75,20 @@ export const useTransactionTemplating = ({
     sourceAccounts: toValue(sourceAccounts).filter((account) => isPinnableTemplateAccount({ account })),
     categoriesMap: buildFormattedCategoriesMap(toValue(formattedCategories)),
     knownTagIds: new Set(allTags.value.map((tag) => tag.id)),
+    currencies: systemCurrencies.value,
   }));
 
   const isVisible = computed(
     () => toValue(isFormCreation) && !toValue(isReadOnly) && form.value.type !== FORM_TYPES.transfer,
   );
 
-  // Applying before the pickers resolve would drop the template's account, category or tags.
+  // Applying before the pickers resolve would drop the template's account, category, tags or currency.
   const isDisabled = computed(
     () =>
       !toValue(isAccountsFetched) ||
       !toValue(isCategoriesReady) ||
       !areTagsFetched.value ||
+      systemCurrencies.value.length === 0 ||
       toValue(formattedCategories).length === 0,
   );
 

@@ -69,7 +69,7 @@
             "fitidDuplicate": "{count} duplicate bank transaction ID was found in the file | {count} duplicate bank transaction IDs were found in the file"
           },
           "duplicatesTitle": "{count} possible duplicate | {count} possible duplicates",
-          "duplicatesHint": "These transactions look like transactions that you already have. Clear a selection to import that transaction.",
+          "duplicatesHint": "These transactions look like transactions that you already have. Check a row to import it anyway; unchecked duplicates are skipped.",
           "back": "Back",
           "importing": "Starting import…",
           "importButton": "Import {count} transaction | Import {count} transactions"

@@ -86,7 +86,7 @@ export function initWebMcp(): void {
             'Cloud: Essential $5/mo or $30/yr, Plus $8/mo or $55/yr, 40-day free trial without a card. Self-hosting is free.',
           cloudSignUpUrl: 'https://moneymatter.app/sign-up',
           sourceCodeUrl: GITHUB_URL,
-          license: 'CC-BY-NC-SA-4.0',
+          license: 'AGPL-3.0',
         }),
       },
       {

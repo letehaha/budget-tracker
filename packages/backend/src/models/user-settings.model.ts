@@ -293,6 +293,9 @@ export const ZodSettingsSchema = z.object({
   // matcher. Opt-in because linking turns a manually recorded row into a transfer leg, and
   // transfer legs carry no category, so the row disappears from category stats.
   matchTransfersWithManualAccounts: z.boolean().optional(),
+  // When true, Enable Banking sync stores PDNG/HOLD payloads before the bank books them.
+  // Off by default: pending payloads often lack the merchant and final text.
+  importPendingBankTransactions: z.boolean().optional(),
   // Categories whose legs leave the cash-flow report entirely, so money moved into them counts as
   // savings rather than spend. Descendants are expanded server-side. Plain z.uuid(), not
   // recordId(): the branded RecordId output breaks the SettingsPatchSchemaIsInSync assertion below.
@@ -396,6 +399,7 @@ export const ZodSettingsPatchSchema = z.object({
   showSupportButton: z.boolean().optional(),
   hideZeroBalances: z.boolean().optional(),
   matchTransfersWithManualAccounts: z.boolean().optional(),
+  importPendingBankTransactions: z.boolean().optional(),
   savingsCategoryIds: z.array(z.uuid()).optional(),
   currencyDisplay: z.enum(endpointsTypes.CURRENCY_DISPLAY_PREFERENCES).optional(),
 });

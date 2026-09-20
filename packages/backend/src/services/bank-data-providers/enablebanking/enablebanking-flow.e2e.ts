@@ -5,6 +5,7 @@ import { ERROR_CODES } from '@js/errors';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import { connection as dbConnection } from '@models/index';
 import Transactions from '@models/transactions.model';
+import type { TransactionApiResponse } from '@root/serializers/transactions.serializer';
 import * as helpers from '@tests/helpers';
 import {
   FixedTransaction,
@@ -1951,6 +1952,7 @@ describe('Enable Banking Data Provider E2E', () => {
       });
 
       it('ignores a pending row, whose balance is available rather than booked', async () => {
+        await helpers.patchUserSettings({ patch: { importPendingBankTransactions: true }, raw: true });
         const { balances, storedTransactions } = await connectAccountWithLadder({
           transactions: [
             ...ladderTransactions,
@@ -2592,6 +2594,45 @@ describe('Enable Banking Data Provider E2E', () => {
       );
     });
 
+    it('promotes a top-level 400 consent-status refusal to ForbiddenError + deactivates with auth_failure marker', async () => {
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/transactions', () => {
+          return new HttpResponse(
+            JSON.stringify({
+              code: 400,
+              error: 'WRONG_SESSION_STATUS',
+              message: 'The consent status does not allow the requested access.',
+              detail: null,
+            }),
+            { status: 400 },
+          );
+        }),
+      );
+
+      const syncResult = await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+      });
+
+      expect(syncResult.status).toEqual(ERROR_CODES.Forbidden);
+
+      const connection = await BankDataProviderConnections.findByPk(connectionId);
+      const metadata = connection!.metadata as { deactivationReason?: string };
+      expect(connection!.isActive).toBe(false);
+      expect(metadata.deactivationReason).toBe(DEACTIVATION_REASON.AUTH_FAILURE);
+
+      const status = await helpers.makeRequest({
+        method: 'get',
+        url: '/bank-data-providers/sync/status',
+      });
+      expect(status.body.response.connectionsNeedingReauth).toEqual(
+        expect.arrayContaining([expect.objectContaining({ connectionId })]),
+      );
+    });
+
     it('promotes wrapped-400 with auth keyword in wrapper message only (no nested error_data)', async () => {
       const { connectionId, accountId } = await setupActiveConnection();
 
@@ -2829,5 +2870,98 @@ describe('Enable Banking Data Provider E2E', () => {
       await setIncludeLimit({ on: false });
       expect(await helpers.getTotalBalance({ date: today, raw: true })).toBe(rawTotal);
     }, 60_000);
+  });
+
+  describe('Pending transactions', () => {
+    const CARD_PENDING: FixedTransaction = {
+      amount: '20.00',
+      currency: 'EUR',
+      isExpense: true,
+      entryReference: 'pending_card',
+      status: 'PDNG',
+    };
+
+    const listIsPending = async ({ accountId }: { accountId: string }) => {
+      const txs = (await helpers.getTransactions({
+        accountIds: [accountId],
+        raw: true,
+      })) as unknown as TransactionApiResponse[];
+      return txs.map((tx) => tx.isPending);
+    };
+
+    it('skips PDNG and HOLD payloads by default', async () => {
+      helpers.enablebanking.setFixedTransactions([
+        { amount: '10.00', currency: 'EUR', isExpense: true, entryReference: 'booked_row' },
+        CARD_PENDING,
+        { ...CARD_PENDING, amount: '30.00', entryReference: 'held_row', status: 'HOLD' },
+      ]);
+      const { accountId } = await setupActiveConnection();
+
+      const rows = await Transactions.findAll({ where: { accountId } });
+      expect(rows.map((row) => row.amount.toNumber())).toEqual([10]);
+      expect(await listIsPending({ accountId })).toEqual([false]);
+    });
+
+    it('marks imported pending rows and still books them after the setting is turned off', async () => {
+      await helpers.patchUserSettings({ patch: { importPendingBankTransactions: true }, raw: true });
+      helpers.enablebanking.setFixedTransactions([CARD_PENDING]);
+      const { connectionId, accountId } = await setupActiveConnection();
+
+      expect(await listIsPending({ accountId })).toEqual([true]);
+
+      await helpers.patchUserSettings({ patch: { importPendingBankTransactions: false }, raw: true });
+      helpers.enablebanking.setFixedTransactions([{ ...CARD_PENDING, status: 'BOOK' }]);
+      await helpers.makeRequest({
+        method: 'post',
+        url: `/bank-data-providers/connections/${connectionId}/sync-transactions`,
+        payload: { accountId },
+        raw: true,
+      });
+
+      expect(await listIsPending({ accountId })).toEqual([false]);
+    });
+
+    it('keeps fetching from the oldest pending payment until it books', async () => {
+      const utcDaysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString().split('T')[0]!;
+      const newerBooked: FixedTransaction = {
+        amount: '10.00',
+        currency: 'EUR',
+        isExpense: true,
+        entryReference: 'newer_booked',
+        bookingDate: utcDaysAgo(2),
+      };
+      const olderPending: FixedTransaction = { ...CARD_PENDING, transactionDate: utcDaysAgo(10) };
+      helpers.enablebanking.setFixedTransactions([newerBooked, olderPending]);
+      const { connectionId, accountId } = await setupActiveConnection();
+      const sync = () => helpers.bankDataProviders.syncTransactionsForAccount({ connectionId, accountId, raw: true });
+
+      await sync();
+      expect(helpers.enablebanking.lastTransactionsQuery()?.dateFrom).toBe(utcDaysAgo(10));
+
+      helpers.enablebanking.setFixedTransactions([newerBooked, { ...olderPending, status: 'BOOK' }]);
+      await sync();
+      expect(await Transactions.count({ where: { accountId } })).toBe(2);
+
+      await sync();
+      expect(helpers.enablebanking.lastTransactionsQuery()?.dateFrom).toBe(utcDaysAgo(2));
+    });
+
+    it('uses the booked balance when the bank also reports a lower available one', async () => {
+      global.mswMockServer.use(
+        http.get('https://api.enablebanking.com/accounts/:accountId/balances', () =>
+          HttpResponse.json({
+            balances: [
+              { balance_type: 'ITAV', balance_amount: { amount: '1473.45', currency: 'EUR' } },
+              { balance_type: 'ITBD', balance_amount: { amount: '1523.45', currency: 'EUR' } },
+            ],
+          }),
+        ),
+      );
+
+      const { accountId } = await setupActiveConnection();
+
+      const account = await helpers.getAccount({ id: accountId, raw: true });
+      expect(account.currentBalance).toBe(1523.45);
+    });
   });
 });

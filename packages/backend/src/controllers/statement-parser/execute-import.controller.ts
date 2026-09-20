@@ -1,6 +1,6 @@
 import { recordId } from '@common/lib/zod/custom-types';
 import { createController } from '@controllers/helpers/controller-factory';
-import { executeImport } from '@services/import-export/statement-parser/execute-import.service';
+import { queueStatementImport } from '@services/import-export/statement-parser/statement-import-queue';
 import { z } from 'zod';
 
 const extractedTransactionSchema = z.object({
@@ -15,7 +15,8 @@ const extractedTransactionSchema = z.object({
 /**
  * Execute statement import - create transactions in the database
  *
- * Creates transactions in the specified account from extracted statement data.
+ * Enqueues a background job and answers with its id; the client follows it via
+ * GET /import/text-source/execute/status/:jobId.
  * Best-effort: each transaction is persisted independently, so a row that fails
  * is reported in `summary.errors` while the rest are still imported.
  */
@@ -33,15 +34,13 @@ export const executeImportController = createController(
   async ({ user, body }) => {
     const { accountId, transactions, skipIndices } = body;
 
-    const result = await executeImport({
+    const jobId = await queueStatementImport({
       userId: user.id,
       accountId,
       transactions,
       skipIndices,
     });
 
-    return {
-      data: result,
-    };
+    return { data: { jobId } };
   },
 );

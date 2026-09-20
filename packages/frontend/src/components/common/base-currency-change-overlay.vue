@@ -11,6 +11,13 @@
     :dismiss-label="$t('settings.currencies.setBase.overlay.dismiss')"
     @dismiss="stop"
   >
+    <template #icon>
+      <ArrowLeftRightIcon class="text-primary-text size-5" aria-hidden="true" />
+    </template>
+    <template #title>
+      {{ $t('settings.currencies.setBase.overlay.title') }}
+    </template>
+    <template #description>{{ $t('settings.currencies.setBase.overlay.description') }}</template>
     <template #progress>
       <BlockingJobProgress
         :ordered-step-keys="STEP_ORDER"
@@ -19,18 +26,7 @@
         :current-step-key="progress.kind === 'running' ? progress.step : null"
         preparing-label-key="settings.currencies.setBase.overlay.preparing"
         finishing-label-key="settings.currencies.setBase.overlay.finishing"
-        :counter-text="counterText"
       >
-        <template #icon>
-          <ArrowLeftRightIcon class="text-primary-text size-5" aria-hidden="true" />
-        </template>
-        <template #title>{{ $t('settings.currencies.setBase.overlay.title') }}</template>
-        <template #description>{{ $t('settings.currencies.setBase.overlay.description') }}</template>
-        <template #trailing>
-          <span v-if="counterText" class="text-muted-foreground shrink-0 text-xs tabular-nums">
-            {{ counterText }}
-          </span>
-        </template>
       </BlockingJobProgress>
     </template>
   </BlockingJobOverlay>
@@ -46,9 +42,7 @@ import { ensureChunkLoaded } from '@/i18n';
 import type { BaseCurrencyChangeStep } from '@bt/shared/types';
 import { ArrowLeftRightIcon } from '@lucide/vue';
 import { computed, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n();
 const { status, isBlocking, isTakingLong, liveFailure, statusUnreachable, stop } = useBaseCurrencyChangeStatus();
 
 // Declared in the backend's execution order (see BASE_CURRENCY_CHANGE_STEPS) so its
@@ -66,7 +60,6 @@ const STEP_LABEL_KEYS = {
 } satisfies Record<BaseCurrencyChangeStep, string>;
 
 const STEP_ORDER = Object.keys(STEP_LABEL_KEYS) as BaseCurrencyChangeStep[];
-const totalSteps = STEP_ORDER.length;
 
 // Keep the progress card up through the brief `completed` window too: the terminal
 // handler is wiping caches and about to reload, and dropping the overlay early would
@@ -85,29 +78,15 @@ watch(
   { immediate: true },
 );
 
-/**
- * Where the change is right now, mapped to what the bar shows:
- *  - `running`  → 0-based index of the step being processed (some done, one in flight)
- *  - `finishing`→ the brief `completed` window before the reload (bar full)
- *  - `preparing`→ queued, or running with no step yet (indeterminate bar)
- */
+// Running with an unknown step counts as preparing.
 const progress = computed<
-  { kind: 'running'; index: number; step: BaseCurrencyChangeStep } | { kind: 'finishing' } | { kind: 'preparing' }
+  { kind: 'running'; step: BaseCurrencyChangeStep } | { kind: 'finishing' } | { kind: 'preparing' }
 >(() => {
   const current = status.value;
   if (current?.state === 'completed') return { kind: 'finishing' };
-  if (current?.state === 'running' && current.step) {
-    const index = STEP_ORDER.indexOf(current.step);
-    if (index >= 0) return { kind: 'running', index, step: current.step };
+  if (current?.state === 'running' && current.step && STEP_ORDER.includes(current.step)) {
+    return { kind: 'running', step: current.step };
   }
   return { kind: 'preparing' };
 });
-
-const currentStepNumber = computed(() => (progress.value.kind === 'running' ? progress.value.index + 1 : null));
-
-const counterText = computed(() =>
-  currentStepNumber.value == null
-    ? null
-    : t('settings.currencies.setBase.overlay.stepCounter', { current: currentStepNumber.value, total: totalSteps }),
-);
 </script>

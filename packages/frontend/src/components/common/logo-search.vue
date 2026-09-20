@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { config } from '@/common/config';
 import { getServiceLogoUrl } from '@/common/utils/logo-url';
 import { getMonogramTextColor } from '@/common/utils/monogram-color';
 import { clampInitials, deriveInitials } from '@/common/utils/monogram-initials';
@@ -35,10 +36,14 @@ const { t } = useI18n({ useScope: 'global' });
 
 const selectedDomain = computed(() => (props.selection?.kind === 'brand' ? props.selection.domain : null));
 
+// Without the token every brand pick renders as a monogram anyway, so the brand
+// tab must not offer choices that cannot render.
+const brandLogosAvailable = Boolean(config.logoDevToken);
+
 // Panel re-mounts on each open, so an entity that already carries a monogram
 // lands on the tab that owns it.
 const currentMonogram = props.selection?.kind === 'monogram' ? props.selection : null;
-const activeTab = ref<string>(currentMonogram ? 'letters' : 'brand');
+const activeTab = ref<string>(currentMonogram || !brandLogosAvailable ? 'letters' : 'brand');
 
 // Brand search waits this long after the last keystroke before firing, so a
 // fast typist produces one request per word rather than one per character.
@@ -53,7 +58,11 @@ const debouncedQuery = computed(() => debounced.value.trim());
 // its "searching" state during that window instead of flashing "no results".
 const isTyping = computed(() => trimmedQuery.value !== debouncedQuery.value);
 
-const { results: brandResults, isFetching, isError } = useSearchBrandLogo({ q: debouncedQuery });
+const {
+  results: brandResults,
+  isFetching,
+  isError,
+} = useSearchBrandLogo({ q: debouncedQuery, enabled: brandLogosAvailable });
 
 // A trimmed query that looks like a bare domain (has a dot, no spaces, no
 // slashes – e.g. "amazon.com"). logo.dev always returns a 200 monogram for any
@@ -165,90 +174,116 @@ function applyMonogram() {
     </div>
 
     <TabsContent value="brand" class="mt-0 flex flex-col">
-      <div class="border-input border-b p-2">
-        <div class="relative">
-          <SearchIcon class="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
-          <!-- NOTE: raw <input> used here instead of InputField because this search
-               box lives inside a popover panel – no label, no error display, needs
-               a custom leading icon slot and a @focus handler that InputField does
-               not natively support without a full wrapper rewrite. -->
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="border-input bg-input-background focus-visible:ring-ring h-9 w-full rounded-md border pr-2 pl-8 text-sm focus-visible:ring-2 focus-visible:outline-hidden"
-            :placeholder="$t('common.logo.searchPlaceholder')"
-            data-test="logo-search-input"
-            @focus="selectAllOnFocus"
-          />
-        </div>
-      </div>
-
-      <!-- Prompt: query still too short to search and not a domain. -->
-      <div v-if="showTypePrompt" class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center">
-        <SearchIcon class="size-5" />
-        <p class="text-sm">{{ $t('common.logo.searchHint') }}</p>
-      </div>
-
-      <!-- First-search skeletons. -->
-      <div v-else-if="showSkeleton" class="flex flex-col gap-1 p-1.5">
-        <div v-for="row in SKELETON_ROW_COUNT" :key="row" class="flex items-center gap-3 px-3 py-2">
-          <div class="bg-muted size-8 shrink-0 animate-pulse rounded-lg" />
-          <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-            <div class="bg-muted h-3 w-2/5 animate-pulse rounded" />
-            <div class="bg-muted h-2.5 w-3/5 animate-pulse rounded" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Error state: distinct from no-results so the user knows to retry, not rephrase. -->
-      <div v-else-if="showError" class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center">
-        <AlertCircleIcon class="text-destructive-text size-5" />
-        <p class="text-sm">{{ $t('common.logo.searchError') }}</p>
-      </div>
-
-      <!-- No brand matched the search – point at the letters fallback. -->
       <div
-        v-else-if="showNoResults"
+        v-if="!brandLogosAvailable"
         class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center"
+        data-test="logo-brand-unavailable"
       >
-        <SearchIcon class="size-5" />
-        <p class="text-sm">{{ $t('common.logo.noResults') }}</p>
+        <AlertCircleIcon class="size-5" />
+        <p class="text-sm">{{ $t('common.logo.brandNotConfigured') }}</p>
         <Button
           type="button"
           variant="link"
           size="sm"
-          data-test="logo-no-results-letters"
+          data-test="logo-brand-unavailable-letters"
           @click="activeTab = 'letters'"
         >
           {{ $t('common.logo.noResultsLettersHint') }}
         </Button>
       </div>
 
-      <ScrollArea v-else class="max-h-72">
-        <div class="flex flex-col gap-1 p-1.5" role="listbox">
-          <Button
-            v-for="result in displayedResults"
-            :key="result.domain"
-            variant="ghost"
-            role="option"
-            :aria-selected="result.domain === selectedDomain"
-            :class="
-              cn(
-                'h-auto w-full justify-start gap-3 rounded-md px-3 py-2 text-left',
-                result.domain === selectedDomain && 'bg-primary/10 hover:bg-primary/15',
-              )
-            "
-            @click="handlePick(result)"
-          >
-            <AsyncLogo :url="result.logoUrl" :alt="result.name" class="size-8 shrink-0 rounded-lg" />
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium">{{ result.name }}</p>
-              <p class="text-muted-foreground truncate text-xs">{{ result.domain }}</p>
+      <template v-else>
+        <div class="border-input border-b p-2">
+          <div class="relative">
+            <SearchIcon class="text-muted-foreground absolute top-1/2 left-2 size-4 -translate-y-1/2" />
+            <!-- NOTE: raw <input> used here instead of InputField because this search
+               box lives inside a popover panel – no label, no error display, needs
+               a custom leading icon slot and a @focus handler that InputField does
+               not natively support without a full wrapper rewrite. -->
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="border-input bg-input-background focus-visible:ring-ring h-9 w-full rounded-md border pr-2 pl-8 text-sm focus-visible:ring-2 focus-visible:outline-hidden"
+              :placeholder="$t('common.logo.searchPlaceholder')"
+              data-test="logo-search-input"
+              @focus="selectAllOnFocus"
+            />
+          </div>
+        </div>
+
+        <!-- Prompt: query still too short to search and not a domain. -->
+        <div
+          v-if="showTypePrompt"
+          class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center"
+        >
+          <SearchIcon class="size-5" />
+          <p class="text-sm">{{ $t('common.logo.searchHint') }}</p>
+        </div>
+
+        <!-- First-search skeletons. -->
+        <div v-else-if="showSkeleton" class="flex flex-col gap-1 p-1.5">
+          <div v-for="row in SKELETON_ROW_COUNT" :key="row" class="flex items-center gap-3 px-3 py-2">
+            <div class="bg-muted size-8 shrink-0 animate-pulse rounded-lg" />
+            <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+              <div class="bg-muted h-3 w-2/5 animate-pulse rounded" />
+              <div class="bg-muted h-2.5 w-3/5 animate-pulse rounded" />
             </div>
-            <CheckIcon v-if="result.domain === selectedDomain" class="text-primary-text size-4 shrink-0" />
+          </div>
+        </div>
+
+        <!-- Error state: distinct from no-results so the user knows to retry, not rephrase. -->
+        <div
+          v-else-if="showError"
+          class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center"
+        >
+          <AlertCircleIcon class="text-destructive-text size-5" />
+          <p class="text-sm">{{ $t('common.logo.searchError') }}</p>
+        </div>
+
+        <!-- No brand matched the search – point at the letters fallback. -->
+        <div
+          v-else-if="showNoResults"
+          class="text-muted-foreground flex flex-col items-center gap-1.5 px-4 py-6 text-center"
+        >
+          <SearchIcon class="size-5" />
+          <p class="text-sm">{{ $t('common.logo.noResults') }}</p>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            data-test="logo-no-results-letters"
+            @click="activeTab = 'letters'"
+          >
+            {{ $t('common.logo.noResultsLettersHint') }}
           </Button>
         </div>
-      </ScrollArea>
+
+        <ScrollArea v-else class="max-h-72">
+          <div class="flex flex-col gap-1 p-1.5" role="listbox">
+            <Button
+              v-for="result in displayedResults"
+              :key="result.domain"
+              variant="ghost"
+              role="option"
+              :aria-selected="result.domain === selectedDomain"
+              :class="
+                cn(
+                  'h-auto w-full justify-start gap-3 rounded-md px-3 py-2 text-left',
+                  result.domain === selectedDomain && 'bg-primary/10 hover:bg-primary/15',
+                )
+              "
+              @click="handlePick(result)"
+            >
+              <AsyncLogo :url="result.logoUrl" :alt="result.name" class="size-8 shrink-0 rounded-lg" />
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium">{{ result.name }}</p>
+                <p class="text-muted-foreground truncate text-xs">{{ result.domain }}</p>
+              </div>
+              <CheckIcon v-if="result.domain === selectedDomain" class="text-primary-text size-4 shrink-0" />
+            </Button>
+          </div>
+        </ScrollArea>
+      </template>
     </TabsContent>
 
     <TabsContent value="letters" class="mt-0">

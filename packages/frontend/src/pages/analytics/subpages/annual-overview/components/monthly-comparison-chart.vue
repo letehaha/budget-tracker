@@ -1,16 +1,10 @@
 <template>
   <div class="border-border bg-card rounded-lg border p-4">
-    <!-- Header with title and category selector -->
     <div class="flex min-h-14 flex-wrap items-center gap-x-6 gap-y-2">
       <h3 class="text-lg font-semibold">
         {{ t('analytics.trends.monthlyComparison.title') }}
         <span class="text-muted-foreground font-normal">({{ metricLabel }})</span>
       </h3>
-
-      <!-- Category multi-select (hidden for savings metric) -->
-      <div v-if="props.metric !== 'savings'" class="w-72">
-        <ComboboxCategories v-model:category-ids="selectedCategoryIds" />
-      </div>
     </div>
 
     <!-- Loading skeleton -->
@@ -101,23 +95,52 @@
         </div>
 
         <!-- Legend -->
-        <div class="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm">
+        <div class="mt-3 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-xs">
           <template v-if="hasStackedBars">
-            <!-- Show category colors in legend when stacked -->
-            <div v-for="cat in chartCategories" :key="cat.categoryId" class="flex items-center gap-2">
-              <span class="inline-block size-3 rounded-sm" :style="{ backgroundColor: cat.color }"></span>
-              <span class="text-muted-foreground">{{ cat.name }}</span>
-            </div>
+            <DesktopOnlyTooltip
+              v-for="cat in chartCategories"
+              :key="cat.categoryId"
+              :content="$t('analytics.trends.legend.hide')"
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-7 gap-1.5 px-2 text-xs"
+                @click="emit('hide-category', { categoryId: cat.categoryId })"
+              >
+                <span class="inline-block size-2.5 shrink-0 rounded-sm" :style="{ backgroundColor: cat.color }"></span>
+                <span class="text-muted-foreground">{{ cat.name }}</span>
+              </Button>
+            </DesktopOnlyTooltip>
           </template>
           <template v-else>
-            <div class="flex items-center gap-2">
-              <span class="inline-block size-3 rounded-sm" :style="{ backgroundColor: singleBarColor }"></span>
+            <div class="flex items-center gap-1.5 px-2">
+              <span class="inline-block size-2.5 rounded-sm" :style="{ backgroundColor: singleBarColor }"></span>
               <span class="text-muted-foreground">{{ metricLabel }}</span>
             </div>
           </template>
-          <div v-if="showAverageLine" class="flex items-center gap-2">
+
+          <template v-if="props.metric !== 'savings'">
+            <DesktopOnlyTooltip
+              v-for="cat in hiddenCategories"
+              :key="`hidden-${cat.id}`"
+              :content="$t('analytics.trends.legend.show')"
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-7 gap-1.5 px-2 text-xs"
+                @click="emit('show-category', { categoryId: cat.id })"
+              >
+                <EyeOffIcon class="text-muted-foreground size-3 shrink-0" />
+                <span class="text-muted-foreground line-through">{{ cat.name }}</span>
+              </Button>
+            </DesktopOnlyTooltip>
+          </template>
+
+          <div v-if="showAverageLine" class="flex items-center gap-1.5 px-2">
             <span
-              class="inline-block h-0.5 w-4"
+              class="inline-block h-0.5 w-3"
               :style="{ background: AVERAGE_LINE_COLOR, borderStyle: 'dashed' }"
             ></span>
             <span class="text-muted-foreground">{{ t('analytics.trends.monthlyComparison.average') }}</span>
@@ -138,7 +161,8 @@ import {
   ChartTooltipHeader,
   ChartTooltipRow,
 } from '@/components/common/charts/chart-tooltip';
-import ComboboxCategories from '@/components/common/combobox-categories.vue';
+import { Button } from '@/components/lib/ui/button';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import { useFormatCurrency } from '@/composable';
 import { getChartColors } from '@/composable/charts/chart-colors';
 import { formatAxisCurrency } from '@/composable/charts/format-axis-currency';
@@ -148,15 +172,17 @@ import { useDateLocale } from '@/composable/use-date-locale';
 import { ROUTES_NAMES } from '@/routes';
 import { useCategoriesStore } from '@/stores';
 import { TRANSACTION_TYPES, type endpointsTypes } from '@bt/shared/types';
+import { EyeOffIcon } from '@lucide/vue';
 import { useQuery } from '@tanstack/vue-query';
-import { useResizeObserver, useSessionStorage } from '@vueuse/core';
+import { useResizeObserver } from '@vueuse/core';
 import * as d3 from 'd3';
 import { endOfMonth, startOfMonth } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 
+import { type TrendsFilters, toStatsFilterParams } from '../trends-filters';
 import ChartSkeleton from '../../cash-flow/components/chart-skeleton.vue';
 
 interface PeriodWithChange {
@@ -171,12 +197,17 @@ const props = defineProps<{
   from: Date;
   to: Date;
   metric: 'expenses' | 'income' | 'savings';
+  filters: TrendsFilters;
+}>();
+
+const emit = defineEmits<{
+  'hide-category': [payload: { categoryId: string }];
+  'show-category': [payload: { categoryId: string }];
 }>();
 
 const { t } = useI18n();
 const { format, locale } = useDateLocale();
 const { formatBaseCurrency, getCurrencySymbol } = useFormatCurrency();
-const route = useRoute();
 const router = useRouter();
 
 const { categories } = storeToRefs(useCategoriesStore());
@@ -185,30 +216,11 @@ const { categories } = storeToRefs(useCategoriesStore());
 const isTouchDevice = ref(false);
 onMounted(() => {
   isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-  // Initialize category selection from query params if present
-  if (route.query.categoryIds) {
-    const categoryIds = Array.isArray(route.query.categoryIds)
-      ? route.query.categoryIds.filter((id): id is string => id !== null)
-      : [route.query.categoryIds as string];
-
-    // Only set valid category IDs
-    const validIds = categoryIds.filter(Boolean);
-    if (validIds.length > 0) {
-      selectedCategoryIds.value = validIds;
-    }
-
-    // Clear query params from URL (replace to preserve back navigation)
-    router.replace({ query: {} });
-  }
 });
 
 const containerRef = ref<HTMLDivElement | null>(null);
 const svgRef = ref<SVGSVGElement | null>(null);
 const tooltipRef = ref<HTMLDivElement | null>(null);
-
-// Category multi-select state with session persistence
-const selectedCategoryIds = useSessionStorage<string[]>('trends-comparison-categories', []);
 
 const tooltip = reactive({
   visible: false,
@@ -243,7 +255,7 @@ const queryParams = computed(() => ({
   from: startOfMonth(props.from),
   to: endOfMonth(props.to),
   granularity: 'monthly' as const,
-  categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined,
+  ...toStatsFilterParams({ filters: props.filters }),
 }));
 
 // Fetch cash flow data
@@ -281,6 +293,13 @@ const chartCategories = computed(() => {
     }
     return false;
   });
+});
+
+const hiddenCategories = computed(() => {
+  if (props.filters.categories.mode !== 'exclude') return [];
+  return props.filters.categories.ids
+    .map((id) => categories.value.find((cat) => cat.id === id))
+    .filter((cat): cat is NonNullable<typeof cat> => Boolean(cat));
 });
 
 // Metric label
@@ -589,6 +608,8 @@ const renderChart = () => {
       onEnter: (event: MouseEvent) => handleAverageLabelMouseEnter(event, avgValue),
       onMove: handleMouseMove,
       onLeave: handleMouseLeave,
+      hitBand: true,
+      raiseOnHover: true,
     });
   }
 
@@ -636,11 +657,11 @@ const renderChart = () => {
 
       // Filter to only categories with data for current metric, then sort
       const filteredCategories = period.categories.filter((cat) => renderCategoryIds.has(cat.categoryId));
-      const sortedCategories = [...filteredCategories].sort((a, b) => {
-        const indexA = selectedCategoryIds.value.indexOf(a.categoryId);
-        const indexB = selectedCategoryIds.value.indexOf(b.categoryId);
-        return indexA - indexB;
-      });
+      // Only an include list carries a meaningful order; otherwise keep what the API returned.
+      const pickOrder = props.filters.categories.mode === 'include' ? props.filters.categories.ids : null;
+      const sortedCategories = pickOrder
+        ? [...filteredCategories].sort((a, b) => pickOrder.indexOf(a.categoryId) - pickOrder.indexOf(b.categoryId))
+        : filteredCategories;
 
       // Find which segments actually have height (non-zero amounts)
       const visibleSegments = sortedCategories.filter((cat) => getCategoryAmount(cat) > 0);
@@ -994,7 +1015,7 @@ useResizeObserver(containerRef, renderChart);
 
 // flush: 'post' waits for the v-else SVG container to mount after data loads,
 // so renderChart sees the correct container dimensions on the first paint.
-watch([chartData, () => props.metric, locale, selectedCategoryIds, currentTheme], renderChart, {
+watch([chartData, () => props.metric, locale, () => props.filters, currentTheme], renderChart, {
   deep: true,
   flush: 'post',
 });

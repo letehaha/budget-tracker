@@ -2,7 +2,7 @@
  * Statement Parser types
  * Types for AI-powered bank statement extraction from PDF, CSV, TXT files
  */
-import type { Cents } from './money';
+import type { Decimal } from './money';
 
 /**
  * Supported file types for statement parsing
@@ -209,7 +209,7 @@ export interface StatementDuplicateMatch {
   existingTransaction: {
     id: string;
     date: string;
-    amount: Cents;
+    amount: Decimal;
     note: string;
   };
 }
@@ -243,23 +243,49 @@ export interface StatementImportError {
 }
 
 /**
- * Response from statement import execution
+ * Response of POST /import/text-source/execute. The import runs as a background
+ * job; the client follows it over SSE (`STATEMENT_IMPORT_PROGRESS`) and/or by
+ * polling GET /import/text-source/execute/status/:jobId.
  */
-export interface StatementExecuteImportResponse {
-  summary: {
-    imported: number;
-    /**
-     * Rows that merged into an existing planned transaction instead of creating
-     * a new one. Counted here instead of `imported`, and absent from
-     * `newTransactionIds`.
-     */
-    merged?: number;
-    skipped: number;
-    errors: StatementImportError[];
-  };
+export interface StatementExecuteImportQueuedResponse {
+  jobId: string;
+}
+
+/**
+ * What the statement import worker reports once it finishes. Carried in the
+ * `completed` SSE event and the status endpoint's `completed` payload, so
+ * `newTransactionIds`/`batchId` survive to the client without a separate fetch.
+ */
+export interface StatementImportSummary {
+  imported: number;
+  /**
+   * Rows that merged into an existing planned transaction instead of creating a
+   * new one. Counted here instead of `imported`, and absent from
+   * `newTransactionIds`.
+   */
+  merged?: number;
+  skipped: number;
+  errors: StatementImportError[];
   newTransactionIds: string[];
   batchId: string;
 }
+
+/** Common counters every statement import progress event carries. */
+interface StatementImportProgressBase {
+  jobId: string;
+  processedCount: number;
+  totalCount: number;
+}
+
+/**
+ * SSE payload and GET /status response share the same envelope. Discriminated
+ * over `status` so `summary` is guaranteed when completed and `error` is
+ * guaranteed when failed.
+ */
+export type StatementImportProgress =
+  | (StatementImportProgressBase & { status: 'queued' | 'running' })
+  | (StatementImportProgressBase & { status: 'completed'; summary: StatementImportSummary })
+  | (StatementImportProgressBase & { status: 'failed'; error: string });
 
 // Re-export old names for backward compatibility during migration
 // TODO: Remove these after full migration

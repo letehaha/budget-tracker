@@ -8,9 +8,9 @@ jest.mock('@js/utils/logger', () => ({
   },
 }));
 
-import { BadRequestError, ForbiddenError } from '@js/errors';
+import { BadRequestError, ForbiddenError, TooManyRequests } from '@js/errors';
 
-import { classifyAspspError, isAspspDateRangeRejection, safeStringify } from './api-client';
+import { EnableBankingApiClient, classifyAspspError, isAspspDateRangeRejection, safeStringify } from './api-client';
 
 describe('safeStringify', () => {
   it('serializes plain objects normally', () => {
@@ -110,6 +110,24 @@ describe('classifyAspspError', () => {
     ])('does NOT match unrelated wording with bare keywords: "%s"', (aspspMessage) => {
       const result = classifyAspspError({ detail: {}, aspspMessage });
       expect(result.matched).toBe(false);
+    });
+
+    it.each([
+      'The consent status does not allow the requested access.',
+      'Consent status does not allow requested access',
+      "The consent status doesn't allow the requested access",
+    ])('matches consent-status refusals: "%s"', (aspspMessage) => {
+      const result = classifyAspspError({ detail: {}, aspspMessage });
+      expect(result).toEqual({ matched: true, reason: 'keyword-match' });
+    });
+
+    it.each([
+      'The dateFrom and dateTo must be within 2 years',
+      'Date range cannot exceed 90 days',
+      'Transaction history limited to 13 months',
+      'The date must be equal or less than 13 months',
+    ])('does NOT match date-range rejections: "%s"', (aspspMessage) => {
+      expect(classifyAspspError({ detail: {}, aspspMessage }).matched).toBe(false);
     });
 
     it('matches when the auth keyword appears only in nested message', () => {
@@ -278,5 +296,27 @@ describe('isAspspDateRangeRejection', () => {
       details: { method: 'getAccountTransactions', aspspError: 'ASPSP_ERROR' },
     });
     expect(isAspspDateRangeRejection(err)).toBe(true);
+  });
+});
+
+describe('handleApiError', () => {
+  const handleApiError = (error: unknown) => {
+    const client = new EnableBankingApiClient({ appId: 'app-id', privateKey: 'private-key' });
+    return (client as unknown as { handleApiError: (error: unknown, method: string) => never }).handleApiError(
+      error,
+      'getAccountTransactions',
+    );
+  };
+
+  it('throws TooManyRequests for a 429, even when its message matches an auth keyword', () => {
+    const message = 'Rate limit exceeded for this access token';
+    const error = Object.assign(new Error(message), {
+      isAxiosError: true,
+      config: { url: '/accounts/acc-1/transactions', method: 'get' },
+      response: { status: 429, data: { error: 'ASPSP_ERROR', detail: { message } } },
+    });
+
+    expect(() => handleApiError(error)).toThrow(TooManyRequests);
+    expect(() => handleApiError(error)).not.toThrow(ForbiddenError);
   });
 });

@@ -293,6 +293,7 @@ describe('Enable Banking transfer auto-linking (E2E)', () => {
   });
 
   it('skips pending rows and links them once they become booked', async () => {
+    await helpers.patchUserSettings({ patch: { importPendingBankTransactions: true }, raw: true });
     const { connectionId, mainAccountId, savingsAccountId } = await setupTwoAccounts();
 
     await syncAccountWith({ connectionId, accountId: mainAccountId, transactions: [expenseLeg()] });

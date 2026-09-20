@@ -1,18 +1,27 @@
+import { RecordId } from '@bt/shared/types';
 import Accounts from '@models/accounts.model';
 import Balances from '@models/balances.model';
 import { Op } from 'sequelize';
 
 import type { BalanceHistoryRow, ExportDateRange } from '../types';
-import { buildDateRangeClause, resolveRelationName, toDateOnly } from './utils';
+import { buildAccountIdsClause, buildDateRangeClause, resolveRelationName, toDateOnly } from './utils';
 
 export async function transformBalancesHistory({
   userId,
   dateRange,
+  accountIds: accountIdsFilter,
 }: {
   userId: number;
   dateRange?: ExportDateRange;
+  accountIds?: RecordId[];
 }): Promise<BalanceHistoryRow[]> {
-  const accounts = await Accounts.findAll({ where: { userId }, attributes: ['id', 'name'] });
+  const accounts = await Accounts.findAll({
+    where: {
+      userId,
+      ...buildAccountIdsClause({ field: 'id', accountIds: accountIdsFilter }),
+    },
+    attributes: ['id', 'name'],
+  });
   if (accounts.length === 0) return [];
 
   const accountNameById = new Map(accounts.map((a) => [String(a.id), a.name]));

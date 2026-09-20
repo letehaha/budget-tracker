@@ -15,7 +15,7 @@ const SESSION_ID_KEY = 'session-id';
  */
 type ErrorEnvelope = { response?: ApiBaseError } & Partial<ApiBaseError>;
 
-interface ZipDownloadResult {
+interface BinaryDownloadResult {
   blob: Blob;
   filename: string;
   /** Kept so callers can read endpoint-specific headers (e.g. `X-Total-Rows`). */
@@ -23,36 +23,40 @@ interface ZipDownloadResult {
 }
 
 /**
- * POST to a backend endpoint that streams a binary zip and return its blob,
+ * Call a backend endpoint that streams binary content and return its blob,
  * parsed filename and the raw `Response`.
  *
- * Uses raw `fetch` instead of the shared `ApiCaller` because the body is a zip,
+ * Uses raw `fetch` instead of the shared `ApiCaller` because the body is binary,
  * not the standard `{ status, response }` JSON envelope. On error the server
  * still returns the envelope; it is parsed and re-thrown via `ApiErrorResponseError`
  * so callers see the same shape as any regular API call. `feature` tags the Sentry
  * report if the error body itself can't be parsed.
  */
-export async function fetchZipDownload({
+export async function fetchBinaryDownload({
   path,
+  method = 'POST',
+  accept = 'application/zip, application/json',
   body,
   feature,
-  defaultFilename,
+  defaultFilename = '',
   silent,
 }: {
   path: string;
+  method?: 'GET' | 'POST';
+  accept?: string;
   body?: unknown;
   feature: string;
-  defaultFilename: string;
+  defaultFilename?: string;
   /** Suppresses the shared 402 toast so the caller can render the plan prompt itself. */
   silent?: boolean;
-}): Promise<ZipDownloadResult> {
+}): Promise<BinaryDownloadResult> {
   const url = `${API_HTTP}${API_VER}${path}`;
   const response = await fetch(url, {
-    method: 'POST',
+    method,
     headers: {
       'Content-Type': 'application/json',
       'X-Session-ID': window.sessionStorage?.getItem(SESSION_ID_KEY) || '',
-      Accept: 'application/zip, application/json',
+      Accept: accept,
     },
     credentials: 'include',
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

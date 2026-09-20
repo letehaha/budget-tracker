@@ -23,7 +23,16 @@ import {
   type ExportFileName,
   type ExportFormat,
   type ExportGroup,
+  type PAYMENT_TYPES,
+  type RecordId,
 } from '@bt/shared/types';
+
+/** Input every export domain builder receives. */
+export interface ExportBuildInput {
+  userId: number;
+  dateRange?: ExportDateRange;
+  accountIds?: RecordId[];
+}
 
 /**
  * Final on-disk row shape per file. All keys map 1:1 to CSV column headers
@@ -36,13 +45,19 @@ export interface TransactionRow {
   time: string;
   account: string;
   type: 'income' | 'expense' | 'transfer_out' | 'transfer_in';
+  paymentType: PAYMENT_TYPES;
   category: string;
   subcategory: string;
+  payee: string;
   amount: number;
   currency: string;
   amountInBaseCurrency: number;
   baseCurrency: string;
   note: string;
+  externalUrl: string;
+  externalReference: string;
+  /** `"<latitude>,<longitude>"`, empty when the transaction has no location. */
+  location: string;
   tags: string[];
   splitDetails: string;
   splits: Array<{ category: string; amount: number; note: string }> | null;
@@ -82,6 +97,13 @@ export interface TagRow {
   name: string;
   description: string;
   color: string;
+}
+
+export interface PayeeRow {
+  name: string;
+  defaultCategory: string;
+  aliases: string[];
+  defaultTags: string[];
 }
 
 export interface VehicleRow {
@@ -229,6 +251,7 @@ export type ExportTable =
   | { name: 'balances_history'; rows: BalanceHistoryRow[] }
   | { name: 'categories'; rows: CategoryRow[] }
   | { name: 'tags'; rows: TagRow[] }
+  | { name: 'payees'; rows: PayeeRow[] }
   | { name: 'vehicles'; rows: VehicleRow[] }
   | { name: 'properties'; rows: PropertyRow[] }
   | { name: 'budgets'; rows: BudgetRow[] }
@@ -267,9 +290,15 @@ export interface ExportManifest {
   /**
    * The closed date interval applied to event-table rows in this export.
    * Omitted when the request did not specify a range (i.e. the export covers
-   * the full history). When present, at least one of `from` / `to` is set;
-   * reference tables are always emitted in full regardless of this field.
+   * the full history). When present, at least one of `from` / `to` is set.
+   * The date range never filters reference tables.
    */
   dateRange?: ExportDateRange;
+  /**
+   * The accounts this export was narrowed to, constraining transactions,
+   * balance history and the accounts file. Omitted when the request asked for
+   * every account.
+   */
+  accountIds?: RecordId[];
   files: ManifestFileEntry[];
 }

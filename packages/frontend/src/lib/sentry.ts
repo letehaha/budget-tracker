@@ -114,6 +114,17 @@ export function initSentry({ app, router }: { app: App; router: Router }): void 
       /Failed to execute 'insertBefore' on 'Node'/,
       /Cannot read properties of null \(reading 'parentNode'\)/,
       /Cannot destructure property 'bum'/,
+      // TanStack cancels in-flight queries on purpose when the boot watchdog resets
+      // the cache; the rejection reaching a top-level await is not a bug.
+      // Fixes MONEY-MATTER-CLIENT-1N
+      'CancelledError',
+      // A bare `reject()`/`reject(null)` carries no stack, so nothing can be acted on.
+      // Fixes MONEY-MATTER-CLIENT-15
+      /Non-Error promise rejection captured with value: (null|undefined)/,
+      // Stale i18n JSON chunk after a deploy — same class as the dynamic-import
+      // patterns above; the page reload from chunk-reload-handler clears it.
+      // Fixes MONEY-MATTER-CLIENT-1P + MONEY-MATTER-CLIENT-1Q + MONEY-MATTER-CLIENT-1F
+      /resolved without message content/,
     ],
     // Before sending error, add extra context
     beforeSend(event, hint) {

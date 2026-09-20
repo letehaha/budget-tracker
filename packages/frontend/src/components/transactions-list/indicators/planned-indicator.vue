@@ -26,7 +26,7 @@ import { isPlanMatchWindowExpired, planExpiredDays } from '@/common/utils/planne
 import { useDateLocale } from '@/composable/use-date-locale';
 import { cn } from '@/lib/utils';
 import { TransactionModel } from '@bt/shared/types';
-import { CalendarClockIcon, CalendarX2Icon, CircleCheckIcon } from '@lucide/vue';
+import { CalendarClockIcon, CalendarX2Icon, CircleCheckIcon, HourglassIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -66,6 +66,15 @@ const marker = computed(() => {
       className: 'border-primary text-primary-text',
       label: t('transactions.planned.label'),
       tooltip: t('transactions.planned.plannedTooltip'),
+    };
+  }
+
+  if (props.transaction.isPending) {
+    return {
+      icon: HourglassIcon,
+      className: 'border-warning text-warning-text',
+      label: t('transactions.pending.label'),
+      tooltip: t('transactions.pending.tooltip'),
     };
   }
 

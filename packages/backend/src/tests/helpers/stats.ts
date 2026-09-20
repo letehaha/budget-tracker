@@ -6,6 +6,12 @@ import {
 import * as helpers from '@tests/helpers';
 import { format } from 'date-fns';
 
+const appendIdLists = ({ params, lists }: { params: URLSearchParams; lists: Record<string, string[] | undefined> }) => {
+  for (const [key, values] of Object.entries(lists)) {
+    if (values?.length) params.append(key, values.join(','));
+  }
+};
+
 export async function getBalanceHistory<R extends boolean | undefined = undefined>({
   from,
   to,
@@ -48,6 +54,11 @@ export const getSpendingsByCategories = async ({
   raw = false,
   from,
   to,
+  accountIds,
+  payeeIds,
+  excludedPayeeIds,
+  tagIds,
+  excludedTagIds,
   categoryIds,
   excludedCategoryIds,
   type,
@@ -57,6 +68,11 @@ export const getSpendingsByCategories = async ({
   raw?: boolean;
   from?: string;
   to?: string;
+  accountIds?: string[];
+  payeeIds?: string[];
+  excludedPayeeIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
   categoryIds?: string[];
   excludedCategoryIds?: string[];
   type?: TRANSACTION_TYPES;
@@ -66,6 +82,7 @@ export const getSpendingsByCategories = async ({
   const params = new URLSearchParams();
   if (from) params.append('from', from);
   if (to) params.append('to', to);
+  appendIdLists({ params, lists: { accountIds, payeeIds, excludedPayeeIds, tagIds, excludedTagIds } });
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
   if (excludedCategoryIds && excludedCategoryIds.length > 0) {
     params.append('excludedCategoryIds', excludedCategoryIds.join(','));
@@ -131,6 +148,11 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   to,
   granularity,
   accountId,
+  accountIds,
+  payeeIds,
+  excludedPayeeIds,
+  tagIds,
+  excludedTagIds,
   categoryIds,
   excludedCategoryIds,
   excludePlanned,
@@ -140,6 +162,11 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   to: string;
   granularity: endpointsTypes.CashFlowGranularity;
   accountId?: string;
+  accountIds?: string[];
+  payeeIds?: string[];
+  excludedPayeeIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
   categoryIds?: string[];
   excludedCategoryIds?: string[];
   excludePlanned?: boolean;
@@ -150,6 +177,7 @@ export async function getCashFlow<R extends boolean | undefined = undefined>({
   params.append('to', to);
   params.append('granularity', granularity);
   if (accountId) params.append('accountId', accountId);
+  appendIdLists({ params, lists: { accountIds, payeeIds, excludedPayeeIds, tagIds, excludedTagIds } });
   if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
   if (excludedCategoryIds && excludedCategoryIds.length > 0) {
     params.append('excludedCategoryIds', excludedCategoryIds.join(','));
@@ -307,12 +335,26 @@ export async function getCumulativeData<R extends boolean | undefined = undefine
   to,
   metric,
   accountId,
+  accountIds,
+  payeeIds,
+  excludedPayeeIds,
+  tagIds,
+  excludedTagIds,
+  categoryIds,
+  excludedCategoryIds,
   raw,
 }: {
   from: string;
   to: string;
   metric: endpointsTypes.CumulativeMetric;
   accountId?: string;
+  accountIds?: string[];
+  payeeIds?: string[];
+  excludedPayeeIds?: string[];
+  tagIds?: string[];
+  excludedTagIds?: string[];
+  categoryIds?: string[];
+  excludedCategoryIds?: string[];
   raw?: R;
 }) {
   const params = new URLSearchParams();
@@ -320,6 +362,11 @@ export async function getCumulativeData<R extends boolean | undefined = undefine
   params.append('to', to);
   params.append('metric', metric);
   if (accountId) params.append('accountId', accountId);
+  appendIdLists({ params, lists: { accountIds, payeeIds, excludedPayeeIds, tagIds, excludedTagIds } });
+  if (categoryIds && categoryIds.length > 0) params.append('categoryIds', categoryIds.join(','));
+  if (excludedCategoryIds && excludedCategoryIds.length > 0) {
+    params.append('excludedCategoryIds', excludedCategoryIds.join(','));
+  }
 
   const result = await helpers.makeRequest<endpointsTypes.GetCumulativeResponse, R>({
     method: 'get',

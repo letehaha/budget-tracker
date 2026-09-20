@@ -21,6 +21,13 @@ type EntitlementUser = Pick<Users, 'id' | 'role' | 'plan' | 'trialEndsAt'>;
 const ALL_FEATURES: readonly Feature[] = Object.values(FEATURES);
 const SELF_HOST_SEATS = 10;
 const TRIAL_FEATURES = PLAN_FEATURES.plus.filter((f) => !TRIAL_EXCLUDED_FEATURES.includes(f));
+const DEMO_EXCLUDED_FEATURES: readonly Feature[] = [
+  FEATURES.backup_export,
+  FEATURES.backup_restore,
+  FEATURES.data_export,
+  FEATURES.attachments,
+];
+const DEMO_FEATURES = PLAN_FEATURES.plus.filter((f) => !DEMO_EXCLUDED_FEATURES.includes(f));
 
 const toIso = (d: Date | string | null | undefined) => (d ? new Date(d).toISOString() : null);
 
@@ -52,7 +59,7 @@ export async function resolveEntitlements({ user }: { user: EntitlementUser }): 
   });
 
   if (isSelfHost()) return grant(ALL_FEATURES, SELF_HOST_SEATS);
-  if (user.role === USER_ROLES.demo) return grant(TRIAL_FEATURES, SEATS_BY_PLAN.plus);
+  if (user.role === USER_ROLES.demo) return grant(DEMO_FEATURES, SEATS_BY_PLAN.plus);
 
   const now = Date.now();
   const subscriptions = await BillingSubscriptions.findAll({

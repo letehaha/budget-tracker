@@ -1,5 +1,6 @@
 import posthog from 'posthog-js';
 
+import type { FaqOutcome } from './ask-faq';
 import { config } from './config';
 
 export type DemoStartLocation = 'hero' | 'hero_screenshot';
@@ -9,10 +10,12 @@ type LandingAnalyticsEvent =
       event: 'landing_cta_clicked';
       properties: { location: 'header' | 'hero' | 'cta_section' | 'self_host' | 'pricing'; action: string };
     }
-  | { event: 'landing_roadmap_clicked'; properties: { location: 'hero' | 'pricing' } }
+  | { event: 'landing_roadmap_clicked'; properties: { location: 'hero' | 'pricing' | 'community' } }
   | {
       event: 'landing_github_clicked';
-      properties: { location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' };
+      properties: {
+        location: 'header_nav' | 'header_star' | 'hero' | 'self_host' | 'cta_section' | 'footer' | 'community';
+      };
     }
   | { event: 'demo_started'; properties: { location: DemoStartLocation } }
   // `demo_started` fires on click; these two close out that funnel.
@@ -22,6 +25,10 @@ type LandingAnalyticsEvent =
   | {
       event: 'demo_setup_failed';
       properties: { reason: 'rate_limited' | 'server_error' | 'network'; status?: number };
+    }
+  | {
+      event: 'landing_faq_asked';
+      properties: { question: string; outcome: FaqOutcome; duration_ms: number; status?: number };
     };
 
 function isPostHogEnabled(): boolean {

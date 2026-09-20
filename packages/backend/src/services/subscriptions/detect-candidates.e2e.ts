@@ -231,6 +231,19 @@ describe('Subscription Candidate Detection', () => {
   });
 
   describe('Edge cases', () => {
+    it('truncates a suggested name longer than the 200-char column instead of failing', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const longNote = 'VERY LONG MERCHANT NAME '.repeat(20);
+
+      await createRecurringTransactions({ accountId: account.id, note: longNote, count: 4 });
+
+      const result = await helpers.detectSubscriptionCandidates({ raw: true });
+
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0]!.suggestedName).toHaveLength(200);
+      expect(longNote.startsWith(result.candidates[0]!.suggestedName)).toBe(true);
+    }, 60_000);
+
     it('returns empty results when no recurring patterns exist', async () => {
       const account = await helpers.createAccount({ raw: true });
 

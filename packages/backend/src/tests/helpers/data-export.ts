@@ -9,6 +9,7 @@ interface ExportDataParams {
   format?: ExportFormat;
   groups?: ExportGroup[];
   dateRange?: ExportDateRange;
+  accountIds?: string[];
   withoutAuth?: boolean;
 }
 
@@ -33,6 +34,7 @@ export async function exportData(params: ExportDataParams = {}): Promise<ExportD
     format: params.format ?? 'json',
     ...(params.groups !== undefined ? { groups: params.groups } : {}),
     ...(params.dateRange !== undefined ? { dateRange: params.dateRange } : {}),
+    ...(params.accountIds !== undefined ? { accountIds: params.accountIds } : {}),
   };
 
   const base = request(app).post(`${API_PREFIX}/user/data-export`).set('Accept', 'application/zip');

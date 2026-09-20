@@ -6,6 +6,7 @@ import { BelongsTo, BelongsToMany, Column, DataType, ForeignKey, Model, Table } 
 
 import Accounts from './accounts.model';
 import Categories from './categories.model';
+import Currencies from './currencies.model';
 import Payees from './payees.model';
 import Tags from './tags.model';
 import TransactionTemplateTags from './transaction-template-tags.model';
@@ -76,6 +77,10 @@ export default class TransactionTemplates extends Model {
     allowNull: true,
   })
   note!: string | null;
+
+  @ForeignKey(() => Currencies)
+  @Column({ allowNull: true, defaultValue: null, type: DataType.STRING(3) })
+  originalCurrencyCode!: string | null;
 
   declare createdAt: Date;
   declare updatedAt: Date;

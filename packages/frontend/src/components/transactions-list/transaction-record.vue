@@ -131,7 +131,8 @@
             <PlannedIndicator :transaction="transaction" />
             <SplitIndicator :transaction="transaction" />
             <RefundIndicator :transaction="transaction" />
-            <TagsIndicator :transaction="transaction" />
+            <TagsIndicator :tags="transaction.tags ?? []" />
+            <AttachmentIndicator :transaction="transaction" />
             <ResponsiveTooltip
               v-if="externalLinkHref && !compact"
               :content="$t('common.transactions.record.externalLinkTooltip')"
@@ -251,9 +252,10 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import PlannedIndicator from './indicators/planned-indicator.vue';
+import AttachmentIndicator from './indicators/attachment-indicator.vue';
 import RefundIndicator from './indicators/refund-indicator.vue';
 import SplitIndicator from './indicators/split-indicator.vue';
-import TagsIndicator from './indicators/tags-indicator.vue';
+import TagsIndicator from '@/components/common/tags-indicator.vue';
 
 const { t } = useI18n();
 

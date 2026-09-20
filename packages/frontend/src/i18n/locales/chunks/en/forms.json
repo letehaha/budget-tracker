@@ -366,6 +366,10 @@
       "selectOption": "Select an option",
       "searchPlaceholder": "Search..."
     },
+    "currencySelect": {
+      "yourCurrencies": "Your currencies",
+      "otherCurrencies": "Other currencies"
+    },
     "comboboxAccounts": {
       "allAccounts": "All accounts",
       "account": "account",
@@ -379,7 +383,9 @@
       "searchPlaceholder": "Search categories...",
       "unselectedPlaceholder": "All categories",
       "selectedOne": "1 category selected",
-      "selectedMany": "{n} categories selected"
+      "selectedMany": "{n} categories selected",
+      "excludingOne": "Excluding 1 category",
+      "excludingMany": "Excluding {n} categories"
     },
     "accountMultiSelect": {
       "ungrouped": "Ungrouped"

@@ -125,7 +125,7 @@ const routes: RouteRecordRaw[] = [
         path: '/analytics',
         name: ROUTES_NAMES.analytics,
         component: () => import('@/pages/analytics/index.vue'),
-        meta: { i18nChunks: ['pages/analytics'] as I18nChunkName[] },
+        meta: { i18nChunks: ['pages/analytics', 'pages/transactions'] as I18nChunkName[] },
         children: [
           {
             path: 'trends-comparison',

@@ -6,6 +6,14 @@ import { ERROR_CODES } from '@js/errors';
 import Transactions from '@models/transactions.model';
 import * as helpers from '@tests/helpers';
 
+const buildRows = ({ count }: { count: number }): ExtractedTransaction[] =>
+  Array.from({ length: count }, (_, index) => ({
+    date: `2024-04-${String((index % 28) + 1).padStart(2, '0')} 10:00:00`,
+    description: `Row ${index}`,
+    amount: index + 1,
+    type: 'expense' as const,
+  }));
+
 describe('Statement Parser - Execute Import endpoint', () => {
   /**
    * Helper to create extracted transactions in decimal format (as AI outputs them).
@@ -64,18 +72,17 @@ describe('Statement Parser - Execute Import endpoint', () => {
         },
       ];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account1.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
-      expect(result.summary.imported).toBe(5);
-      expect(result.summary.skipped).toBe(0);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(result.imported).toBe(5);
+      expect(result.skipped).toBe(0);
+      expect(result.errors).toHaveLength(0);
       expect(result.newTransactionIds).toHaveLength(5);
       expect(result.batchId).toBeDefined();
 
@@ -121,22 +128,20 @@ describe('Statement Parser - Execute Import endpoint', () => {
       const account = await helpers.createAccount({ raw: true });
       const transactions = createExtractedTransactions();
 
-      const result1 = await helpers.statementExecuteImport({
+      const result1 = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
-      const result2 = await helpers.statementExecuteImport({
+      const result2 = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
       // Verify batchIds are different between imports
@@ -165,18 +170,17 @@ describe('Statement Parser - Execute Import endpoint', () => {
         { date: '2025-12-04', description: 'Expense 3', amount: 150, type: 'expense' }, // index 3 - import
       ];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [0, 2],
         },
-        raw: true,
       });
 
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.skipped).toBe(2);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(result.imported).toBe(2);
+      expect(result.skipped).toBe(2);
+      expect(result.errors).toHaveLength(0);
       expect(result.newTransactionIds).toHaveLength(2);
 
       const allTransactions = await helpers.getTransactions({ raw: true });
@@ -191,36 +195,34 @@ describe('Statement Parser - Execute Import endpoint', () => {
       const accountAfterSkip = await helpers.getAccount({ id: account.id, raw: true });
       expect(accountAfterSkip.currentBalance).toBe(650);
 
-      const allSkipped = await helpers.statementExecuteImport({
+      const allSkipped = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [0, 1, 2, 3],
         },
-        raw: true,
       });
 
-      expect(allSkipped.summary.imported).toBe(0);
-      expect(allSkipped.summary.skipped).toBe(4);
-      expect(allSkipped.summary.errors).toHaveLength(0);
+      expect(allSkipped.imported).toBe(0);
+      expect(allSkipped.skipped).toBe(4);
+      expect(allSkipped.errors).toHaveLength(0);
       expect(allSkipped.newTransactionIds).toHaveLength(0);
       expect(allSkipped.batchId).toBeDefined();
 
       const accountAfterAllSkipped = await helpers.getAccount({ id: account.id, raw: true });
       expect(accountAfterAllSkipped.currentBalance).toBe(650);
 
-      const emptyImport = await helpers.statementExecuteImport({
+      const emptyImport = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions: [],
           skipIndices: [],
         },
-        raw: true,
       });
 
-      expect(emptyImport.summary.imported).toBe(0);
-      expect(emptyImport.summary.skipped).toBe(0);
-      expect(emptyImport.summary.errors).toHaveLength(0);
+      expect(emptyImport.imported).toBe(0);
+      expect(emptyImport.skipped).toBe(0);
+      expect(emptyImport.errors).toHaveLength(0);
       expect(emptyImport.newTransactionIds).toHaveLength(0);
 
       const accountAfterEmpty = await helpers.getAccount({ id: account.id, raw: true });
@@ -238,17 +240,16 @@ describe('Statement Parser - Execute Import endpoint', () => {
         { date: '2024-02-01 00:01:00', description: 'Start of February', amount: 2000, type: 'expense' },
       ];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
-      expect(result.summary.imported).toBe(4);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(result.imported).toBe(4);
+      expect(result.errors).toHaveLength(0);
 
       const allTransactions = await helpers.getTransactions({ raw: true });
       const importedNotes = allTransactions
@@ -323,7 +324,7 @@ describe('Statement Parser - Execute Import endpoint', () => {
 
       const todayStr = new Date().toISOString().split('T')[0];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions: [
@@ -366,13 +367,12 @@ describe('Statement Parser - Execute Import endpoint', () => {
           ],
           skipIndices: [],
         },
-        raw: true,
       });
 
-      expect(result.summary.imported).toBe(4);
-      expect(result.summary.errors).toHaveLength(2);
+      expect(result.imported).toBe(4);
+      expect(result.errors).toHaveLength(2);
 
-      const errorByIndex = new Map(result.summary.errors.map((e) => [e.transactionIndex, e.error]));
+      const errorByIndex = new Map(result.errors.map((e) => [e.transactionIndex, e.error]));
       expect(errorByIndex.get(1)).toContain('is in the future');
       expect(errorByIndex.get(3)).toContain('exceeds maximum allowed value');
       expect(errorByIndex.has(4)).toBe(false);
@@ -407,17 +407,16 @@ describe('Statement Parser - Execute Import endpoint', () => {
         { date: '2025-12-20 16:00:00', description: 'New income', amount: 500, type: 'income' },
       ];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
-      expect(result.summary.imported).toBe(4);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(result.imported).toBe(4);
+      expect(result.errors).toHaveLength(0);
 
       const allTransactions = await helpers.getTransactions({ accountIds: [account.id], raw: true });
       expect(allTransactions.filter((tx) => tx.accountId === account.id)).toHaveLength(5);
@@ -464,17 +463,16 @@ describe('Statement Parser - Execute Import endpoint', () => {
         },
       ];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
-      expect(result.summary.imported).toBe(4);
-      expect(result.summary.errors).toHaveLength(0);
+      expect(result.imported).toBe(4);
+      expect(result.errors).toHaveLength(0);
 
       const allTransactions = await helpers.getTransactions({ raw: true });
       const importedTxs = allTransactions.filter((tx) => result.newTransactionIds.includes(tx.id));
@@ -508,16 +506,15 @@ describe('Statement Parser - Execute Import endpoint', () => {
         { date: '2025-12-20', description: 'Utilities', amount: 200, type: 'expense' },
       ];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
-      expect(result.summary.imported).toBe(5);
+      expect(result.imported).toBe(5);
 
       // Initial: $1000.00
       // Income: $3000 + $500 = $3500.00
@@ -539,16 +536,15 @@ describe('Statement Parser - Execute Import endpoint', () => {
         { date: '2025-12-01', description: 'Big expense', amount: 500, type: 'expense' },
       ];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
-      expect(result.summary.imported).toBe(1);
+      expect(result.imported).toBe(1);
 
       // Expected: $100.00 - $500.00 = -$400.00
       const accountAfter = await helpers.getAccount({ id: account.id, raw: true });
@@ -572,19 +568,18 @@ describe('Statement Parser - Execute Import endpoint', () => {
         { date: '2024-03-03', description: 'Good row after', amount: 300, type: 'income' },
       ];
 
-      const result = await helpers.statementExecuteImport({
+      const result = await helpers.statementExecuteImportAndWait({
         payload: {
           accountId: account.id,
           transactions,
           skipIndices: [],
         },
-        raw: true,
       });
 
       // Two good rows imported; only the middle (index 1) row is reported as an error.
-      expect(result.summary.imported).toBe(2);
-      expect(result.summary.errors).toHaveLength(1);
-      expect(result.summary.errors[0]!.transactionIndex).toBe(1);
+      expect(result.imported).toBe(2);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]!.transactionIndex).toBe(1);
       expect(result.newTransactionIds).toHaveLength(2);
 
       // Honesty assertion: the rows reported as imported are actually in the
@@ -592,7 +587,7 @@ describe('Statement Parser - Execute Import endpoint', () => {
       const allTransactions = await helpers.getTransactions({ raw: true });
       const persisted = allTransactions.filter((tx) => result.newTransactionIds.includes(tx.id));
       expect(persisted).toHaveLength(2);
-      expect(persisted.length).toBe(result.summary.imported);
+      expect(persisted.length).toBe(result.imported);
     });
   });
 
@@ -610,13 +605,16 @@ describe('Statement Parser - Execute Import endpoint', () => {
       });
       await helpers.createTransaction({ payload: txPayload, raw: true });
 
+      // Only the middle row duplicates, so a wrong index-to-row mapping surfaces here.
       const transactions: ExtractedTransaction[] = [
+        { date: '2024-01-14', description: 'Coffee', amount: 4.2, type: 'expense' },
         {
           date: '2024-01-15 10:30:00',
           description: 'Grocery shopping',
-          amount: 10050, // Statement parser expects cents
+          amount: 100.5, // same decimal format the extraction returns and execute-import accepts
           type: 'expense',
         },
+        { date: '2024-01-16', description: 'Salary', amount: 100.5, type: 'income' },
       ];
 
       const result = await helpers.statementDetectDuplicates({
@@ -632,18 +630,18 @@ describe('Statement Parser - Execute Import endpoint', () => {
       const duplicate = result.duplicates[0]!;
 
       // Verify StatementDuplicateMatch structure
-      expect(duplicate.transactionIndex).toBe(0);
+      expect(duplicate.transactionIndex).toBe(1);
 
       // extractedTransaction should preserve the input
       expect(duplicate.extractedTransaction.date).toBe('2024-01-15 10:30:00');
       expect(duplicate.extractedTransaction.description).toBe('Grocery shopping');
-      expect(duplicate.extractedTransaction.amount).toBe(10050);
+      expect(duplicate.extractedTransaction.amount).toBe(100.5);
       expect(duplicate.extractedTransaction.type).toBe('expense');
 
       // existingTransaction should have DB transaction data
       expect(typeof duplicate.existingTransaction.id).toBe('string');
       expect(duplicate.existingTransaction.date).toBe('2024-01-15');
-      expect(duplicate.existingTransaction.amount).toBe(10050);
+      expect(duplicate.existingTransaction.amount).toBe(100.5);
       expect(duplicate.existingTransaction.note).toBe('Existing note');
     });
 
@@ -738,10 +736,13 @@ describe('Statement Parser - Execute Import endpoint', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const { summary, newTransactionIds } = response.body.response;
-      expect(summary.imported).toBe(importedCount);
-      expect(summary.skipped).toBe(TRANSACTION_COUNT - importedCount);
-      expect(summary.errors).toHaveLength(0);
+      const progress = await helpers.waitForStatementImportCompletion({ jobId: response.body.response.jobId });
+      helpers.expectStatementImportCompleted(progress);
+
+      const { imported, skipped, errors, newTransactionIds } = progress.summary;
+      expect(imported).toBe(importedCount);
+      expect(skipped).toBe(TRANSACTION_COUNT - importedCount);
+      expect(errors).toHaveLength(0);
       expect(newTransactionIds).toHaveLength(importedCount);
 
       const allTransactions = await helpers.getTransactions({
@@ -752,5 +753,83 @@ describe('Statement Parser - Execute Import endpoint', () => {
       const persisted = allTransactions.filter((tx) => newTransactionIds.includes(tx.id));
       expect(persisted).toHaveLength(importedCount);
     }, 60_000);
+  });
+
+  describe('background job contract', () => {
+    it('answers the execute call with a job id instead of the summary', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const response = await helpers.statementExecuteImport({
+        payload: { accountId: account.id, transactions: buildRows({ count: 2 }), skipIndices: [] },
+        raw: true,
+      });
+
+      expect(typeof response.jobId).toBe('string');
+
+      const progress = await helpers.waitForStatementImportCompletion({ jobId: response.jobId });
+      helpers.expectStatementImportCompleted(progress);
+      expect(progress.summary.imported).toBe(2);
+      expect(progress.totalCount).toBe(2);
+      expect(progress.processedCount).toBe(2);
+    });
+
+    it('404s the status endpoint for an unknown job id', async () => {
+      const response = await helpers.getStatementImportStatus({ jobId: 'statement-import-unknown' });
+
+      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it("404s the status endpoint for another user's job id", async () => {
+      const account = await helpers.createAccount({ raw: true });
+      const { jobId } = await helpers.statementExecuteImport({
+        payload: { accountId: account.id, transactions: buildRows({ count: 2 }), skipIndices: [] },
+        raw: true,
+      });
+
+      const secondUser = await helpers.signUpSecondUser();
+      const response = await helpers.asUser({
+        cookies: secondUser.cookies,
+        fn: () => helpers.getStatementImportStatus({ jobId }),
+      });
+
+      expect(response.statusCode).toBe(ERROR_CODES.NotFoundError);
+    });
+
+    it('refuses a second import while one is still in flight, importing the rows exactly once', async () => {
+      const account = await helpers.createAccount({ raw: true });
+      // Enough rows that the first job is still writing when the second request
+      // lands, without the wait below outliving this test's timeout.
+      const transactions = buildRows({ count: 150 });
+      const payload = { accountId: account.id, transactions, skipIndices: [] };
+
+      const { jobId } = await helpers.statementExecuteImport({ payload, raw: true });
+      const conflict = await helpers.statementExecuteImport({ payload, raw: false });
+
+      expect(conflict.statusCode).toBe(ERROR_CODES.ConflictError);
+      const errorBody = conflict.body.response as unknown as { details?: { jobId?: string } };
+      expect(errorBody.details?.jobId).toBe(jobId);
+
+      const progress = await helpers.waitForStatementImportCompletion({ jobId, timeoutMs: 60_000 });
+      helpers.expectStatementImportCompleted(progress);
+      expect(progress.summary.imported).toBe(transactions.length);
+
+      const allTransactions = await helpers.getTransactions({ accountIds: [account.id], limit: 200, raw: true });
+      expect(allTransactions).toHaveLength(transactions.length);
+    }, 90_000);
+
+    it('allows a new import once the previous one finished', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const first = await helpers.statementExecuteImportAndWait({
+        payload: { accountId: account.id, transactions: buildRows({ count: 2 }), skipIndices: [] },
+      });
+      const second = await helpers.statementExecuteImportAndWait({
+        payload: { accountId: account.id, transactions: buildRows({ count: 2 }), skipIndices: [] },
+      });
+
+      expect(first.imported).toBe(2);
+      expect(second.imported).toBe(2);
+      expect(second.batchId).not.toBe(first.batchId);
+    });
   });
 });

@@ -15,7 +15,11 @@
         "investments": "Investments"
       }
     },
+    "controls": {
+      "options": "Options"
+    },
     "cashFlow": {
+      "subtitle": "Income against expenses over time, and where the money went.",
       "income": "Income",
       "expenses": "Expenses",
       "netSavings": "Net Savings",
@@ -77,6 +81,7 @@
       }
     },
     "trends": {
+      "subtitle": "Compare spending, income and savings with the previous period.",
       "metrics": {
         "expenses": "Expenses",
         "income": "Income",
@@ -104,12 +109,28 @@
       "cumulativeProgress": {
         "title": "Cumulative Progress"
       },
+      "filters": {
+        "button": "Filters",
+        "title": "Filters",
+        "categories": "Categories",
+        "include": "Include",
+        "exclude": "Exclude",
+        "accounts": "Accounts",
+        "payees": "Payees",
+        "tags": "Tags",
+        "reset": "Reset"
+      },
+      "legend": {
+        "hide": "Hide from chart",
+        "show": "Show in chart"
+      },
       "vsPreviousPeriod": "vs previous period",
       "loadError": "Failed to load data",
       "noData": "No data available",
       "noDataHint": "No transactions recorded for this period"
     },
     "investmentCalculator": {
+      "subtitle": "Project how your portfolio could grow with regular contributions.",
       "initialBalance": "Initial balance",
       "useCurrentBalance": "Use current balance",
       "monthlyContribution": "Monthly contribution",
@@ -148,7 +169,6 @@
     }
   },
   "pivotReport": {
-    "title": "Pivot Report",
     "subtitle": "Break spending down by any dimension, lay it across time, and compare.",
     "controls": {
       "rows": "Rows",
@@ -182,6 +202,9 @@
     "filters": {
       "period": "Period",
       "allCategories": "All",
+      "button": "Filters",
+      "categories": "Categories",
+      "payees": "Payees",
       "accounts": "Accounts",
       "reset": "Reset",
       "resetTooltip": "Reset to defaults"
@@ -223,7 +246,6 @@
     }
   },
   "netWorthDrivers": {
-    "title": "Net Worth Drivers",
     "subtitle": "How much of your growth you saved, and how much the market returned. Transfers between your own accounts count as neither.",
     "portfolioFilter": {
       "scopeHint": "Filters investment holdings and growth only. Saved amounts and account cash are not affected."
@@ -302,7 +324,6 @@
     }
   },
   "investmentContributions": {
-    "title": "Investment Contributions",
     "subtitle": "How much cash you've moved into your portfolios over time, and where it went.",
     "average": "Average",
     "portfolioFilter": {
@@ -331,7 +352,6 @@
     }
   },
   "netWorthHistory": {
-    "title": "Net Worth History",
     "subtitle": "How your assets, liabilities and net worth changed over time",
     "granularity": {
       "weekly": "Weekly",

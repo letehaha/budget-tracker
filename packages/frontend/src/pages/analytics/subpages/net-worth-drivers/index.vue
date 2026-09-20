@@ -1,12 +1,6 @@
 <template>
   <div class="@container/net-worth-drivers space-y-5">
-    <div>
-      <h1 class="text-lg font-semibold">{{ $t('netWorthDrivers.title') }}</h1>
-      <p class="text-muted-foreground text-sm">{{ $t('netWorthDrivers.subtitle') }}</p>
-      <div v-if="!showNoPortfoliosPlaceholder" class="mt-1.5">
-        <CalculationInfoDialog />
-      </div>
-    </div>
+    <CalculationInfoDialog v-if="!showNoPortfoliosPlaceholder" />
 
     <!-- With no portfolios there is no growth to separate from saving, so the whole
          report collapses to a placeholder that points at where to start. -->
@@ -20,17 +14,14 @@
     />
 
     <template v-else>
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <PeriodSelector v-model="selectedPeriod" />
-        <div class="flex flex-wrap items-center gap-2">
-          <PortfolioFilter v-model="selectedPortfolioIds" scope-hint-key="netWorthDrivers.portfolioFilter.scopeHint" />
-          <GranularitySelector
-            v-model="selectedGranularity"
-            :granularities="endpointsTypes.NET_WORTH_DRIVERS_GRANULARITIES"
-            label-key-prefix="netWorthDrivers.granularity"
-          />
-        </div>
-      </div>
+      <ReportControls v-model:period="selectedPeriod">
+        <PortfolioFilter v-model="selectedPortfolioIds" scope-hint-key="netWorthDrivers.portfolioFilter.scopeHint" />
+        <GranularitySelector
+          v-model="selectedGranularity"
+          :granularities="endpointsTypes.NET_WORTH_DRIVERS_GRANULARITIES"
+          label-key-prefix="netWorthDrivers.granularity"
+        />
+      </ReportControls>
 
       <div v-if="isLoading" class="border-border bg-card space-y-3 rounded-lg border p-3">
         <div class="space-y-2">
@@ -152,7 +143,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { createPeriodSerializer } from '../../utils';
-import PeriodSelector from '../cash-flow/components/period-selector.vue';
+import ReportControls from '../../components/report-controls.vue';
 import CalculationInfoDialog from './components/calculation-info-dialog.vue';
 import GranularitySelector from '../../components/granularity-selector.vue';
 import NoPortfoliosPlaceholder from '../../components/no-portfolios-placeholder.vue';

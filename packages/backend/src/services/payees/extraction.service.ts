@@ -1,6 +1,5 @@
 import { logger } from '@js/utils/logger';
 import PayeeAliases from '@models/payee-aliases.model';
-import PayeeIgnoredNames from '@models/payee-ignored-names.model';
 import Payees from '@models/payees.model';
 import { findTransactions, updateTransactions } from '@models/transactions-query';
 import { enqueueLogoResolutionAfterCommit } from '@services/brand-logos';
@@ -11,7 +10,7 @@ import { insertOrAdopt } from '../common/run-in-savepoint';
 import { withTransaction } from '../common/with-transaction';
 import { FUZZY_MATCH_THRESHOLD, buildHaystack, fuzzyFindBestMatch } from './fuzzy-matcher';
 import { normalizePayeeName } from './normalize-name';
-import { ensureAliasExists, resolveNormalizedName } from './payee-namespace';
+import { ensureAliasExists, isPayeeNameIgnored, resolveNormalizedName } from './payee-namespace';
 
 interface ExtractionInput {
   userId: number;
@@ -140,6 +139,18 @@ export const resolvePayeeForRawMerchant = withTransaction(
       return { payeeId: exactPayeeId };
     }
 
+    // Everything below links or creates on the machine's own judgement, so it
+    // is gated on the user's ignored-names blocklist. Step 1 sits above the
+    // gate on purpose: a Payee or alias the user created with this name is
+    // their explicit override.
+    if (await isPayeeNameIgnored({ userId, normalizedName: normalizedQuery })) {
+      logger.info('[Payee extraction] suppressed by ignored-names blocklist', {
+        userId,
+        normalizedQuery,
+      });
+      return noMatch;
+    }
+
     // Step 2: fuzzy match across the user's full Payee + alias set.
     const userPayees = await Payees.findAll({
       where: { userId },
@@ -177,24 +188,6 @@ export const resolvePayeeForRawMerchant = withTransaction(
 
     // Step 3: occurrence-based promotion. Prior unmatched rows + the current tx must reach the
     // user's `payeePromotionThreshold` → spin up a new Payee and backfill the priors.
-    //
-    // First check the user's ignored-names blocklist: this is the only path
-    // that *creates* a new Payee from a raw string (Steps 1 + 2 only link to
-    // existing user-curated Payees, and intentional aliases must keep
-    // working). If this normalizedName is blocked, leave the tx unmatched
-    // so the next sync doesn't re-promote it.
-    const isIgnored = await PayeeIgnoredNames.findOne({
-      where: { userId, normalizedName: normalizedQuery },
-      attributes: ['id'],
-    });
-    if (isIgnored) {
-      logger.info('[Payee extraction] suppressed by ignored-names blocklist', {
-        userId,
-        normalizedQuery,
-      });
-      return noMatch;
-    }
-
     const { payeePromotionThreshold = 2 } = await getUserSettings({ userId });
     const priorIds = await collectPriorUnmatched({ userId, normalizedQuery });
     if (priorIds.length + 1 >= payeePromotionThreshold) {

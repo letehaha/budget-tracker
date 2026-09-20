@@ -1,4 +1,4 @@
-import { CATEGORIZATION_MODE, LogoResolutionState, RecordId } from '@bt/shared/types';
+import { CATEGORIZATION_MODE, LogoResolutionState, RecordId, TransactionLocation } from '@bt/shared/types';
 import { IdColumn } from '@common/types/id-column';
 import { Table, Column, Model, ForeignKey, BelongsTo, BelongsToMany, HasMany, DataType } from 'sequelize-typescript';
 
@@ -49,6 +49,12 @@ export default class Payees extends Model {
     defaultValue: CATEGORIZATION_MODE.enforce,
   })
   categorizationMode!: CATEGORIZATION_MODE;
+
+  @Column({
+    type: DataType.JSONB,
+    allowNull: true,
+  })
+  defaultLocation!: TransactionLocation | null;
 
   @Column({
     type: DataType.STRING(253),

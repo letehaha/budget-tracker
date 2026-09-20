@@ -196,6 +196,7 @@ export enum TRANSACTION_SORT_FIELD {
   accountName = 'accountName',
   categoryName = 'categoryName',
   payeeName = 'payeeName',
+  note = 'note',
   categorizationSource = 'categorizationSource',
 }
 

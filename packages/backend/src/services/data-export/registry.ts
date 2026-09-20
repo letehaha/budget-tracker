@@ -6,6 +6,7 @@ import { transformBudgets } from './transformers/budgets-transformer';
 import { transformCategories } from './transformers/categories-transformer';
 import { transformHoldings } from './transformers/holdings-transformer';
 import { transformInvestmentTransactions } from './transformers/investment-transactions-transformer';
+import { transformPayees } from './transformers/payees-transformer';
 import { transformPortfolioTransfers } from './transformers/portfolio-transfers-transformer';
 import { transformPortfolios } from './transformers/portfolios-transformer';
 import { transformProperties } from './transformers/properties-transformer';
@@ -14,7 +15,7 @@ import { transformTags } from './transformers/tags-transformer';
 import { transformTransactionTemplates } from './transformers/transaction-templates-transformer';
 import { transformTransactions } from './transformers/transactions-transformer';
 import { transformVehicles } from './transformers/vehicles-transformer';
-import type { ExportDateRange, ExportFileName, ExportGroup, ExportTable } from './types';
+import type { ExportBuildInput, ExportFileName, ExportGroup, ExportTable } from './types';
 
 /**
  * Kind of cell content. The writer uses this to decide formatting:
@@ -63,12 +64,14 @@ interface ExportDomainBase {
   readonly group: ExportGroup;
   readonly columns: readonly ColumnSpec[];
   /**
-   * `dateRange` is passed to every domain, but only time-anchored
-   * transformers (transactions, balance history, investment transactions,
-   * portfolio transfers) consult it. Reference tables ignore it so the
-   * resolved-name columns in the filtered CSVs stay readable.
+   * `dateRange` and `accountIds` are passed to every domain, but only the
+   * filtered transformers consult them: `dateRange` in the time-anchored ones
+   * (transactions, balance history, investment transactions, portfolio
+   * transfers), `accountIds` in transactions, balance history and accounts.
+   * The remaining reference tables ignore both so the resolved-name columns
+   * in the filtered CSVs stay readable.
    */
-  readonly build: (input: { userId: number; dateRange?: ExportDateRange }) => Promise<ExportTable['rows']>;
+  readonly build: (input: ExportBuildInput) => Promise<ExportTable['rows']>;
 }
 
 /**
@@ -87,7 +90,7 @@ interface ExportDomain<N extends ExportFileName> {
   readonly name: N;
   readonly group: ExportGroup;
   readonly columns: readonly ColumnSpec<RowOf<N>>[];
-  readonly build: (input: { userId: number; dateRange?: ExportDateRange }) => Promise<RowOf<N>[]>;
+  readonly build: (input: ExportBuildInput) => Promise<RowOf<N>[]>;
 }
 
 /**
@@ -107,19 +110,24 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
   defineDomain({
     name: 'transactions',
     group: 'transactions',
-    build: ({ userId, dateRange }) => transformTransactions({ userId, dateRange }),
+    build: ({ userId, dateRange, accountIds }) => transformTransactions({ userId, dateRange, accountIds }),
     columns: [
       { header: 'Date', field: 'date', kind: 'date' },
       { header: 'Time', field: 'time', kind: 'text' },
       { header: 'Account', field: 'account', kind: 'text' },
       { header: 'Type', field: 'type', kind: 'text' },
+      { header: 'PaymentType', field: 'paymentType', kind: 'text' },
       { header: 'Category', field: 'category', kind: 'text' },
       { header: 'Subcategory', field: 'subcategory', kind: 'text' },
+      { header: 'Payee', field: 'payee', kind: 'text' },
       { header: 'Amount', field: 'amount', kind: 'money' },
       { header: 'Currency', field: 'currency', kind: 'text' },
       { header: 'AmountInBaseCurrency', field: 'amountInBaseCurrency', kind: 'money' },
       { header: 'BaseCurrency', field: 'baseCurrency', kind: 'text' },
       { header: 'Note', field: 'note', kind: 'text' },
+      { header: 'ExternalUrl', field: 'externalUrl', kind: 'text' },
+      { header: 'ExternalReference', field: 'externalReference', kind: 'text' },
+      { header: 'Location', field: 'location', kind: 'text' },
       { header: 'Tags', field: 'tags', kind: 'array' },
       { header: 'SplitDetails', field: 'splitDetails', kind: 'text' },
       { header: 'RefundOf', field: 'refundOf', kind: 'text' },
@@ -131,7 +139,7 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
   defineDomain({
     name: 'accounts',
     group: 'transactions',
-    build: ({ userId }) => transformAccounts({ userId }),
+    build: ({ userId, accountIds }) => transformAccounts({ userId, accountIds }),
     columns: [
       { header: 'Name', field: 'name', kind: 'text' },
       { header: 'Type', field: 'type', kind: 'text' },
@@ -147,7 +155,7 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
   defineDomain({
     name: 'balances_history',
     group: 'transactions',
-    build: ({ userId, dateRange }) => transformBalancesHistory({ userId, dateRange }),
+    build: ({ userId, dateRange, accountIds }) => transformBalancesHistory({ userId, dateRange, accountIds }),
     columns: [
       { header: 'Account', field: 'account', kind: 'text' },
       { header: 'Date', field: 'date', kind: 'date' },
@@ -174,6 +182,17 @@ export const EXPORT_DOMAINS: ReadonlyArray<ExportDomainBase> = [
       { header: 'Name', field: 'name', kind: 'text' },
       { header: 'Description', field: 'description', kind: 'text' },
       { header: 'Color', field: 'color', kind: 'text' },
+    ],
+  }),
+  defineDomain({
+    name: 'payees',
+    group: 'transactions',
+    build: ({ userId }) => transformPayees({ userId }),
+    columns: [
+      { header: 'Name', field: 'name', kind: 'text' },
+      { header: 'DefaultCategory', field: 'defaultCategory', kind: 'text' },
+      { header: 'Aliases', field: 'aliases', kind: 'array' },
+      { header: 'DefaultTags', field: 'defaultTags', kind: 'array' },
     ],
   }),
   defineDomain({

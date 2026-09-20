@@ -98,7 +98,7 @@ export interface CreateTransactionBody {
   note?: TransactionModel['note'];
   externalUrl?: string;
   externalReference?: string;
-  location?: TransactionLocation;
+  location?: TransactionLocation | null;
   time: string;
   transactionType: TransactionModel['transactionType'];
   paymentType: TransactionModel['paymentType'];
@@ -821,6 +821,7 @@ export interface CreateTransactionTemplateBody {
   payeeId?: TransactionTemplateModel['payeeId'];
   paymentType?: TransactionTemplateModel['paymentType'];
   note?: TransactionTemplateModel['note'];
+  originalCurrencyCode?: TransactionTemplateModel['originalCurrencyCode'];
   /** Full replacement of the template's tag set. */
   tagIds?: TransactionTemplateModel['tagIds'];
 }

@@ -27,7 +27,9 @@ type ChartGroup = d3.Selection<SVGGElement, unknown, null, undefined>;
  *
  * When hover handlers are supplied the label becomes a hover target; passing
  * `hitBand` additionally lays a wide invisible band over the whole line so the
- * line itself is hoverable, not just the label.
+ * line itself is hoverable, not just the label. Passing `raiseOnHover` lifts the
+ * line and its label above later-drawn siblings while hovered; it implies the
+ * band and makes it the only hover target.
  */
 export const renderAverageLine = ({
   g,
@@ -39,6 +41,7 @@ export const renderAverageLine = ({
   onMove,
   onLeave,
   hitBand = false,
+  raiseOnHover = false,
 }: {
   // Inner chart group, already translated past the margins.
   g: ChartGroup;
@@ -55,9 +58,16 @@ export const renderAverageLine = ({
   // Lay a wide transparent band over the line so the whole line is a hover
   // target. Only meaningful alongside hover handlers.
   hitBand?: boolean;
+  // Move the line and its label to the front while hovered, restoring the
+  // original draw order on leave. Implies `hitBand`, which then carries the
+  // hover on its own. Only meaningful alongside hover handlers.
+  raiseOnHover?: boolean;
 }): void => {
+  const lineGroup = g.append('g').attr('class', 'average-line-group');
+
   // Both visible strokes ignore the pointer so bars underneath stay hoverable.
-  g.append('line')
+  lineGroup
+    .append('line')
     .attr('class', 'average-line-shadow')
     .attr('x1', 0)
     .attr('x2', innerWidth)
@@ -68,7 +78,8 @@ export const renderAverageLine = ({
     .attr('stroke-dasharray', DASH_PATTERN)
     .style('pointer-events', 'none');
 
-  g.append('line')
+  lineGroup
+    .append('line')
     .attr('class', 'average-line')
     .attr('x1', 0)
     .attr('x2', innerWidth)
@@ -84,7 +95,7 @@ export const renderAverageLine = ({
   const textBBox = (tempText.node() as SVGTextElement).getBBox();
   tempText.remove();
 
-  const labelGroup = g.append('g').attr('class', 'average-label-group');
+  const labelGroup = lineGroup.append('g').attr('class', 'average-label-group');
 
   labelGroup
     .append('rect')
@@ -108,9 +119,35 @@ export const renderAverageLine = ({
     .text(label);
 
   if (onEnter && onMove && onLeave) {
-    labelGroup.style('cursor', 'pointer').on('mouseenter', onEnter).on('mousemove', onMove).on('mouseleave', onLeave);
+    let enter = onEnter;
+    let leave = onLeave;
 
-    if (hitBand) {
+    if (raiseOnHover) {
+      const groupNode = lineGroup.node() as SVGGElement;
+      // Empty marker holding the group's original sibling slot, so leaving
+      // restores the exact draw order instead of dropping below the axes.
+      const anchorNode = g.append('g').attr('class', 'average-line-anchor').node() as SVGGElement;
+
+      enter = (event: MouseEvent) => {
+        groupNode.parentNode?.appendChild(groupNode);
+        onEnter(event);
+      };
+      leave = () => {
+        anchorNode.parentNode?.insertBefore(groupNode, anchorNode);
+        onLeave();
+      };
+
+      // The raised group moves under the cursor, so anything inside it that
+      // carries handlers would retarget the pointer and flip raise/restore in a
+      // loop. The band below is the only hover target instead.
+      labelGroup.style('pointer-events', 'none');
+    } else {
+      labelGroup.style('cursor', 'pointer').on('mouseenter', enter).on('mousemove', onMove).on('mouseleave', leave);
+    }
+
+    if (hitBand || raiseOnHover) {
+      // Stays outside the raised group so bars keep occluding it and a pointer
+      // moving from the line onto a bar reaches the bar's own handlers.
       g.append('line')
         .attr('class', 'average-hit')
         .attr('x1', 0)
@@ -119,9 +156,9 @@ export const renderAverageLine = ({
         .attr('y2', y)
         .attr('stroke', 'transparent')
         .attr('stroke-width', HIT_BAND_WIDTH)
-        .on('mouseenter', onEnter)
+        .on('mouseenter', enter)
         .on('mousemove', onMove)
-        .on('mouseleave', onLeave);
+        .on('mouseleave', leave);
     }
   }
 };

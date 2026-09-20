@@ -316,9 +316,13 @@ export interface TransactionModel {
   originalAmount: number | null;
   originalCurrencyCode: string | null;
   refundLinked: boolean;
+  /** Serializer-derived, list reads only. */
+  hasAttachments?: boolean;
   isPlanned: boolean;
   /** Serializer-derived: set when a bank transaction merged into this row while it was planned. */
   plannedMerge?: { mergedAt: string } | null;
+  /** Serializer-derived: the bank has not booked this row yet. */
+  isPending?: boolean;
   /** Metadata about how this transaction was categorized */
   categorizationMeta?: CategorizationMeta | null;
   /** Linked Payee. Null when no Payee resolved (raw merchant missing/unmatched). */
@@ -860,6 +864,8 @@ export interface PayeeModel extends EntityLogoFields {
    * means no tag rule.
    */
   defaultTagIds: RecordId[];
+  /** Stamped onto transactions linked to this Payee that carry no location of their own. */
+  defaultLocation: TransactionLocation | null;
   /** How logoDomain was resolved – see LogoResolutionState. 'manual' can pair
    *  with a null logoDomain (user explicitly cleared the logo); null only before
    *  the Payee has been through a resolution pass. */
@@ -957,6 +963,8 @@ export interface TransactionTemplateModel {
   payeeId: RecordId | null;
   paymentType: PAYMENT_TYPES | null;
   note: string | null;
+  /** ISO 4217 code preselected in the form's "original amount" field; the amount itself is typed each time. */
+  originalCurrencyCode: string | null;
   tagIds: RecordId[];
   createdAt: Date;
   updatedAt: Date;

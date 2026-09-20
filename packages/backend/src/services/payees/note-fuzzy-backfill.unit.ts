@@ -17,7 +17,12 @@ jest.mock('@models/payee-aliases.model', () => ({ __esModule: true, default: {} 
 // The follow-up writes each linked row triggers are covered by their own suites.
 jest.mock('./apply-categorization', () => ({ __esModule: true, applyPayeeCategorization: jest.fn() }));
 jest.mock('./apply-default-tags', () => ({ __esModule: true, applyPayeeDefaultTags: jest.fn() }));
-jest.mock('./payee-namespace', () => ({ __esModule: true, ensureAliasExists: jest.fn() }));
+jest.mock('./apply-default-location', () => ({ __esModule: true, applyPayeeDefaultLocation: jest.fn() }));
+jest.mock('./payee-namespace', () => ({
+  __esModule: true,
+  ensureAliasExists: jest.fn(),
+  isPayeeNameIgnored: jest.fn(async () => false),
+}));
 // The real wrapper opens a DB transaction; running the body straight through is
 // what a committed run looks like to the caller.
 jest.mock('../common/with-transaction', () => ({

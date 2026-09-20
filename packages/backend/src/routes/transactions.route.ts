@@ -1,3 +1,5 @@
+import { ATTACHMENT_MAX_FILE_BYTES, FEATURES } from '@bt/shared/types';
+import { listAttachmentsController, uploadAttachmentController } from '@controllers/attachments.controller';
 import {
   getTransactionById,
   getTransactionsByTransferId,
@@ -27,8 +29,10 @@ import unlinkFromPortfolio from '@controllers/transactions.controller/unlink-fro
 import updateTransaction from '@controllers/transactions.controller/update-transaction';
 import { authenticateSession } from '@middlewares/better-auth';
 import { checkBaseCurrencyLock } from '@middlewares/check-base-currency-lock';
+import { requireFeature } from '@middlewares/entitlements';
+import { attachmentUploadRateLimit } from '@middlewares/rate-limit';
 import { validateEndpoint } from '@middlewares/validations';
-import { Router } from 'express';
+import express, { Router } from 'express';
 
 const router = Router({});
 
@@ -111,6 +115,23 @@ router.get(
   authenticateSession,
   validateEndpoint(getPortfolioLink.schema),
   getPortfolioLink.handler,
+);
+
+// Attachments. Listing stays ungated so a lapsed user can still reach their own files.
+router.post(
+  '/:transactionId/attachments',
+  authenticateSession,
+  requireFeature(FEATURES.attachments),
+  attachmentUploadRateLimit,
+  express.raw({ type: 'application/octet-stream', limit: ATTACHMENT_MAX_FILE_BYTES }),
+  validateEndpoint(uploadAttachmentController.schema),
+  uploadAttachmentController.handler,
+);
+router.get(
+  '/:transactionId/attachments',
+  authenticateSession,
+  validateEndpoint(listAttachmentsController.schema),
+  listAttachmentsController.handler,
 );
 
 router.get('/', authenticateSession, validateEndpoint(getTransactions.schema), getTransactions.handler);

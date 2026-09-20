@@ -41,6 +41,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   type CurrencyModel,
+  type TransactionLocation,
   type TransactionModel,
 } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
@@ -66,6 +67,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import AccountField from './components/account-field.vue';
+import AttachmentsSection from './components/attachments-section.vue';
 import FormRow from './components/form-row.vue';
 import DestinationPanel from './components/destination-panel.vue';
 import LinkTransactionSection from './components/link-transaction-section.vue';
@@ -228,13 +230,20 @@ const handlePayeeSelected = ({
   defaultCategoryId,
   topCategoryId,
   defaultTagIds,
+  defaultLocation,
 }: {
   payeeId: string;
   defaultCategoryId: string | null;
   topCategoryId: string | null;
   defaultTagIds: string[];
+  defaultLocation: TransactionLocation | null;
 }) => {
   applyPayeeTags({ defaultTagIds });
+
+  if (defaultLocation && !isLocationFilled.value) {
+    form.value.latitude = defaultLocation.latitude;
+    form.value.longitude = defaultLocation.longitude;
+  }
 
   if (form.value.categoryUserTouched) return;
   const targetId = defaultCategoryId ?? topCategoryId;
@@ -1027,8 +1036,10 @@ const showExternalReference = computed(
 const showOriginalAmount = computed(
   () => isOptionalFieldEnabled('originalAmount') || props.transaction?.originalAmount != null,
 );
-const showLocation = computed(() => isOptionalFieldEnabled('location') || !!props.transaction?.location);
 const isLocationFilled = computed(() => form.value.latitude != null || form.value.longitude != null);
+const showLocation = computed(
+  () => isOptionalFieldEnabled('location') || !!props.transaction?.location || isLocationFilled.value,
+);
 const externalUrlHref = computed(() => {
   const value = form.value.externalUrl?.trim();
   return value && isHttpUrl(value) ? value : null;
@@ -1351,6 +1362,7 @@ onUnmounted(() => {
         :disabled="isFormFieldsDisabled"
       />
     </FormRow>
+    <AttachmentsSection v-if="transaction?.id" :transaction-id="transaction.id" :disabled="isFormFieldsDisabled" />
     <FormRow v-if="!isTransferTx && showOriginalAmount">
       <AmountWithCurrencyField
         v-model:amount="form.originalAmount"

@@ -3,9 +3,9 @@
     <Tooltip>
       <TooltipTrigger as-child>
         <div
-          class="border-primary text-primary-text flex size-6 items-center gap-0.5 rounded-sm border px-1 py-0.5 text-xs"
+          class="border-primary text-primary-text flex size-5 shrink-0 items-center justify-center rounded-sm border"
         >
-          <RotateCcwIcon class="size-4" />
+          <RotateCcwIcon class="size-3" />
         </div>
       </TooltipTrigger>
       <TooltipContent>{{ t('common.ui.refund') }}</TooltipContent>

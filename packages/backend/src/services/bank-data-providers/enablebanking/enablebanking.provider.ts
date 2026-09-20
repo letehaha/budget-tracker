@@ -31,6 +31,7 @@ import {
 import { createTransaction } from '@services/transactions';
 import { accountHasPlannedRows } from '@services/transactions/planned-matching';
 import { getExchangeRate } from '@services/user-exchange-rate/get-exchange-rate.service';
+import { getUserSettings } from '@services/user-settings/get-user-settings';
 import { addDays, subDays } from 'date-fns';
 import { Op, Sequelize } from 'sequelize';
 
@@ -50,7 +51,7 @@ import {
   StartAuthorizationResponse,
   TransactionStatus,
 } from './types';
-import { balancesForLog } from './utils/balances';
+import { balancesForLog, pickAccountBalance } from './utils/balances';
 import { filterIbanCompatible, pickNearestByDate } from './utils/candidate-selection';
 import { calculateConsentValidUntil } from './utils/consent';
 import {
@@ -564,13 +565,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             apiClient.getAccountBalances(accountId),
           ]);
 
-          // Get primary balance (prefer ITAV = Interim Available, then ITBD = Interim Booked)
-          const primaryBalance =
-            balances.find((b) => b.balance_type === 'ITAV') || // Interim Available
-            balances.find((b) => b.balance_type === 'ITBD') || // Interim Booked
-            balances.find((b) => b.balance_type === 'CLAV') || // Closing Available
-            balances.find((b) => b.balance_type === 'OPAV') || // Opening Available
-            balances[0];
+          const primaryBalance = pickAccountBalance({ balances });
 
           logger.info('[balance-diag] Enable Banking fetchAccounts balances', {
             connectionId,
@@ -805,16 +800,28 @@ export class EnableBankingProvider extends BaseBankDataProvider {
 
           const to = new Date();
 
-          // Incremental: `from` anchored to last tx – bank lookback can't be exceeded.
+          // Incremental: `from` anchored to last tx, pulled back to the oldest payment the
+          // previous sync saw pending. That payment books under its original date, so a
+          // newer stored row must not push it out of range.
           // Initial: no anchor, must negotiate window with bank.
           // Anchor capped at `to`: it is a MAX over every row on the account, so one
           // future-dated entry – a value_date past today – would ask for a date_from
           // the bank rejects on every sync.
-          const providerTransactions = latestTransaction
+          const storedOldestPendingDate = account.externalData?.oldestPendingDate;
+          const fetchedTransactions = latestTransaction
             ? await this.fetchTransactions(
                 connectionId,
                 apiUid,
-                { from: new Date(Math.min(latestTransaction.time.getTime(), to.getTime())), to },
+                {
+                  from: new Date(
+                    Math.min(
+                      latestTransaction.time.getTime(),
+                      to.getTime(),
+                      (typeof storedOldestPendingDate === 'string' && Date.parse(storedOldestPendingDate)) || Infinity,
+                    ),
+                  ),
+                  to,
+                },
                 account.externalId,
               )
             : await this.fetchInitialTransactionsWithShrinkingWindow({
@@ -825,6 +832,20 @@ export class EnableBankingProvider extends BaseBankDataProvider {
                 to,
               });
 
+          // oxlint-disable-next-line unicorn/consistent-function-scoping
+          const isPendingPayload = (tx: ProviderTransaction) =>
+            isPreBookingStatus({ status: getRawTransactionStatus({ externalData: tx.metadata }) });
+          const pendingTimes = fetchedTransactions.filter(isPendingPayload).map((tx) => tx.date.getTime());
+          const oldestPendingDate =
+            pendingTimes.length > 0 ? new Date(Math.min(...pendingTimes)).toISOString() : undefined;
+
+          // A skipped pending payload returns as BOOK on a later sync. Rows stored while
+          // the setting was on still get booked or revoked through the matcher below.
+          const { importPendingBankTransactions } = await getUserSettings({ userId: connection.userId });
+          const providerTransactions = importPendingBankTransactions
+            ? fetchedTransactions
+            : fetchedTransactions.filter((tx) => !isPendingPayload(tx));
+
           // Sort transactions by date (ascending) so the last transaction for each day
           // will have the correct end-of-day balance in balance_after_transaction.
           // This is important for Balances.handleTransactionChange() which uses the
@@ -833,8 +854,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
           // copies of the same purchase, the pending row must already exist for the
           // booked copy to upgrade it, otherwise both land as separate rows. It also
           // puts a cancellation after the payload that stored the row it removes.
-          const pendingFirstRank = (tx: ProviderTransaction) =>
-            isPreBookingStatus({ status: getRawTransactionStatus({ externalData: tx.metadata }) }) ? 0 : 1;
+          const pendingFirstRank = (tx: ProviderTransaction) => (isPendingPayload(tx) ? 0 : 1);
           providerTransactions.sort(
             (a, b) => a.date.getTime() - b.date.getTime() || pendingFirstRank(a) - pendingFirstRank(b),
           );
@@ -1047,6 +1067,10 @@ export class EnableBankingProvider extends BaseBankDataProvider {
             logger.info(
               `Enable Banking sync: ${createdTransactionIds.length} created, ${updatedCount} updated, ${mergedPlannedIds.length} planned confirmed, ${stalePendingIgnoredCount} stale pending ignored, ${revokedRemovedCount} revoked removed, ${revokedKeptCount} revoked kept for account ${account.id}`,
             );
+          }
+
+          if (oldestPendingDate !== storedOldestPendingDate) {
+            await account.update({ externalData: { ...account.externalData, oldestPendingDate } });
           }
 
           await notifyPlannedConfirmations({
@@ -1274,12 +1298,7 @@ export class EnableBankingProvider extends BaseBankDataProvider {
     const apiClient = new EnableBankingApiClient(credentials);
     const balances = await apiClient.getAccountBalances(accountExternalId);
 
-    // Prefer ITAV (Interim Available), then ITBD (Interim Booked)
-    const balance =
-      balances.find((b) => b.balance_type === 'ITAV') ||
-      balances.find((b) => b.balance_type === 'ITBD') ||
-      balances.find((b) => b.balance_type === 'CLAV') ||
-      balances[0];
+    const balance = pickAccountBalance({ balances });
 
     logger.info('[balance-diag] Enable Banking fetchBalance balances', {
       connectionId,

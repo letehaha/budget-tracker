@@ -17,11 +17,14 @@ const props = withDefaults(
     forceShow?: boolean;
     /** Stable name of what the demo user is being refused, e.g. `bank_connect_monobank`. */
     feature?: DemoBlockedFeature;
+    /** Classes for the wrapping span, e.g. `block w-full` around a full-width control. */
+    contentClass?: string;
   }>(),
   {
     message: undefined,
     forceShow: false,
     feature: undefined,
+    contentClass: undefined,
   },
 );
 
@@ -36,7 +39,7 @@ const tooltipMessage = computed(() => props.message || t('demo.featureNotAvailab
 // A disabled control isn't a hit target, so a click on it reaches nothing, not even this span.
 // Making the child inert to pointer events turns the span into the target instead.
 // Demo-only: `forceShow` states leave the child interactive, so pointer events stay on there.
-const wrapperClass = computed(() => cn('inline-block', isDemo.value && '*:pointer-events-none'));
+const wrapperClass = computed(() => cn('inline-block', isDemo.value && '*:pointer-events-none', props.contentClass));
 
 // The refusal never leaves the browser, so this is the only place it can be counted.
 function reportBlockedAttempt() {

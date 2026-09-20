@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRegisterDescription } from '@/components/lib/ui/dialog/described-by';
 import { cn } from '@/lib/utils';
 import { DialogDescription, type DialogDescriptionProps } from 'reka-ui';
 import { type HTMLAttributes, computed } from 'vue';
@@ -11,6 +12,8 @@ const delegatedProps = computed(() => {
 
   return delegated;
 });
+
+useRegisterDescription();
 </script>
 
 <template>
