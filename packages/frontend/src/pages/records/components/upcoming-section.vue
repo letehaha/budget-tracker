@@ -20,7 +20,7 @@ import SubscriptionMarkPaidDialog from '@/pages/planned/subscriptions/components
 import { useCategoriesStore } from '@/stores';
 import { useMutation, useQueryClient } from '@tanstack/vue-query';
 import { ACCOUNT_TYPES, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
-import { addDays, isBefore, parseISO, startOfDay } from 'date-fns';
+import { addDays, isBefore, isFuture, parseISO, startOfDay } from 'date-fns';
 import { AlertCircleIcon, CalendarClockIcon, CircleCheckIcon, EyeOffIcon, PencilIcon, Trash2Icon } from '@lucide/vue';
 import { storeToRefs } from 'pinia';
 import { computed, defineAsyncComponent, ref } from 'vue';
@@ -166,7 +166,13 @@ const queryClient = useQueryClient();
 const { addSuccessNotification, addErrorNotification } = useNotificationCenter();
 
 const confirmPlanMutation = useMutation({
-  mutationFn: ({ plan }: { plan: TransactionModel }) => editTransaction({ txId: plan.id, isPlanned: false }),
+  mutationFn: ({ plan }: { plan: TransactionModel }) =>
+    editTransaction({
+      txId: plan.id,
+      isPlanned: false,
+      // A confirmed plan is money that already moved, so a still-future date has to come back to now.
+      ...(isFuture(new Date(plan.time)) ? { time: new Date().toISOString() } : {}),
+    }),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: [VUE_QUERY_GLOBAL_PREFIXES.transactionChange] });
     addSuccessNotification(t('records.upcomingSection.confirmPlanSuccess'));
