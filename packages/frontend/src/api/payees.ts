@@ -17,7 +17,7 @@ export interface UpdatePayeePayload extends EntityLogoPayload {
   defaultTagIds?: string[];
 }
 
-export type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount';
+export type PayeeSortBy = 'lastSeen' | 'name' | 'netFlow' | 'transactionCount' | 'defaultTagsCount';
 export type PayeeSortDir = 'asc' | 'desc';
 
 interface ListPayeesParams {

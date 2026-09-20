@@ -36,11 +36,21 @@ export async function createPayee<R extends boolean | undefined = undefined>({
 export async function listPayees<R extends boolean | undefined = undefined>({
   q,
   accountId,
+  sortBy,
+  sortDir,
   raw,
-}: { q?: string; accountId?: string; raw?: R } = {}) {
+}: {
+  q?: string;
+  accountId?: string;
+  sortBy?: 'lastSeen' | 'name' | 'netFlow' | 'transactionCount' | 'defaultTagsCount';
+  sortDir?: 'asc' | 'desc';
+  raw?: R;
+} = {}) {
   const search = new URLSearchParams();
   if (q !== undefined) search.set('q', q);
   if (accountId !== undefined) search.set('accountId', accountId);
+  if (sortBy !== undefined) search.set('sortBy', sortBy);
+  if (sortDir !== undefined) search.set('sortDir', sortDir);
   const qs = search.toString();
   return makeRequest<PayeeWithStats[], R>({
     method: 'get',
