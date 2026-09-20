@@ -17,25 +17,34 @@ interface AccountDisplayBalances {
 }
 
 /**
- * Credit-limit-adjusted balances for an account, in both its own and the base currency.
- * The single source for this rule so the per-row display (`useAccountDisplayBalance`) and
- * the sidebar group roll-ups (`sumAccountsBaseBalance`) can't drift out of sync.
- */
-/**
  * Credit drawn on an account, for either the native or the ref balance pair.
- * Provider balances carry the limit inside the balance; a raw manual balance
- * tracks debt directly (0 = untouched card, negative = amount owed).
+ * When the balance itself embeds the credit limit, used is the limit minus the
+ * balance at any sign. Otherwise a positive balance is available credit and a
+ * negative one is debt owed; zero is ambiguous, so the caller decides whether it
+ * reads as a fully drawn card.
  */
 export const computeCreditUsed = ({
   balance,
   creditLimit,
   balanceIncludesCreditLimit,
+  zeroBalanceMeansFullyDrawn,
 }: {
   balance: number;
   creditLimit: number;
   balanceIncludesCreditLimit: boolean;
-}): number => Math.max(balanceIncludesCreditLimit ? creditLimit - balance : -balance, 0);
+  zeroBalanceMeansFullyDrawn: boolean;
+}): number => {
+  if (balanceIncludesCreditLimit) return Math.max(creditLimit - balance, 0);
+  if (balance > 0) return Math.max(creditLimit - balance, 0);
+  if (balance < 0) return -balance;
+  return zeroBalanceMeansFullyDrawn ? creditLimit : 0;
+};
 
+/**
+ * Credit-limit-adjusted balances for an account, in both its own and the base currency.
+ * The single source for this rule so the per-row display (`useAccountDisplayBalance`) and
+ * the sidebar group roll-ups (`sumAccountsBaseBalance`) can't drift out of sync.
+ */
 export const computeAccountDisplayBalances = ({
   currentBalance,
   refCurrentBalance,
