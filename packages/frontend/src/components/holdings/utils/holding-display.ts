@@ -1,4 +1,5 @@
 import type { HoldingModel } from '@bt/shared/types/investments';
+import { differenceInCalendarDays } from 'date-fns';
 
 export type HoldingSortKey =
   | 'symbol'
@@ -27,6 +28,15 @@ export const getAverageCost = (holding: HoldingModel) => {
 };
 
 export const getTotalCost = (holding: HoldingModel) => Number(holding.costBasis);
+
+// Fixed calendar-day window – wide enough for a weekend plus a market
+// holiday and the provider's one-day EOD lag. Per-exchange calendars if it misfires.
+const STALE_PRICE_DAYS = 5;
+
+export const isPriceStale = ({ holding, now = new Date() }: { holding: HoldingModel; now?: Date }) =>
+  !!holding.priceDate &&
+  Number(holding.quantity) !== 0 &&
+  differenceInCalendarDays(now, holding.priceDate) > STALE_PRICE_DAYS;
 
 /**
  * A position is "closed" once its quantity reaches zero AND the holding has

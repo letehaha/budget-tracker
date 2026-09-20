@@ -10,6 +10,7 @@ import { useNotificationCenter } from '@/components/notification-center';
 import { useDeleteHolding } from '@/composable/data-queries/holdings';
 import { useFormatCurrency } from '@/composable/formatters';
 import { getGainColorClass } from '@/composable/gain-color';
+import { useDateLocale } from '@/composable/use-date-locale';
 import { getApiErrorMessage } from '@/js/errors';
 import { captureException } from '@/lib/sentry';
 import { useCurrenciesStore } from '@/stores/currencies';
@@ -21,6 +22,7 @@ import {
   ArrowUpIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  ClockAlertIcon,
   PackageOpenIcon,
   PlusIcon,
   SearchXIcon,
@@ -40,6 +42,7 @@ import {
   getPrice,
   getTotalCost,
   groupHoldings,
+  isPriceStale,
   sortHoldings,
 } from './utils/holding-display';
 
@@ -79,6 +82,7 @@ const sortKey = ref<HoldingSortKey>('totalCost');
 const sortDir = ref<'asc' | 'desc'>('desc');
 
 const { formatAmountByCurrencyCode } = useFormatCurrency();
+const { format: formatDate } = useDateLocale();
 const { currencies } = storeToRefs(useCurrenciesStore());
 const formatCurrency = (amount: number, currencyCode: string) => {
   const userCurrency = currencies.value.find((c) => c.currency?.code === currencyCode.toUpperCase());
@@ -442,6 +446,16 @@ const theadLabelStyles = 'block max-w-32 truncate';
                   </td>
                   <td :class="[cellStyles, 'px-3 text-right tabular-nums']">
                     {{ formatCurrency(getPrice(row.holding), row.holding.currencyCode) }}
+                    <DesktopOnlyTooltip
+                      v-if="isPriceStale({ holding: row.holding })"
+                      content-class-name="max-w-60"
+                      :content="$t('portfolioDetail.holdingsTable.stalePrice')"
+                    >
+                      <div class="text-warning-text flex items-center justify-end gap-1 text-xs">
+                        <ClockAlertIcon class="size-3" />
+                        {{ formatDate(row.holding.priceDate!, 'd MMM') }}
+                      </div>
+                    </DesktopOnlyTooltip>
                   </td>
                   <td :class="[cellStyles, 'text-muted-foreground px-3 text-right tabular-nums']">
                     {{ formatCurrency(getAverageCost(row.holding), row.holding.currencyCode) }}
