@@ -4,7 +4,7 @@ import { ACCOUNT_TYPES, type AccountModel, type TransactionModel } from '@bt/sha
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { useBulkSelectability, useTransactionSelection } from './transaction-selection';
+import { sumSelectedTotals, useBulkSelectability, useTransactionSelection } from './transaction-selection';
 import { useBulkDeleteTransactions } from './use-bulk-delete-transactions';
 import { useBulkUpdateCategory } from './use-bulk-update-category';
 
@@ -49,6 +49,10 @@ export function useBulkTransactionActions({
     if (selectedIds.size === 0) return false;
     return getTransactions().some((tx) => selectedIds.has(tx.id) && isExternalTx(tx));
   });
+
+  const selectedTotals = computed(() =>
+    sumSelectedTotals({ transactions: getTransactions(), selectedIds: selection.selectedIds.value }),
+  );
 
   // Checkbox tri-state for "select all" headers (the list toolbar only needs
   // the boolean `isAllSelected`).
@@ -105,6 +109,7 @@ export function useBulkTransactionActions({
     ...selection,
     getUnselectableReason,
     hasExternalSelected,
+    selectedTotals,
     selectAllState,
     handleSelectAllToggle,
     isBulkEditDialogOpen,

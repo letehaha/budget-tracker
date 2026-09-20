@@ -80,7 +80,7 @@
             <ScrollArea class="h-full" :scroll-area-id="SCROLL_AREA_IDS.transactionsPage">
               <!-- No top padding: the list's bulk toolbar is sticky top-0 and must sit flush
                    with the scroll viewport edge, otherwise rows peek through the gap -->
-              <div v-if="isFetched" class="px-3 pb-3">
+              <div v-if="isFetched" class="pb-3 sm:px-3">
                 <TransactionsList
                   ref="transactionsListRef"
                   enable-bulk-edit

@@ -112,6 +112,7 @@ const {
   clearSelection,
   getUnselectableReason,
   hasExternalSelected,
+  selectedTotals,
   handleSelectAllToggle,
   isBulkEditDialogOpen,
   isCreateGroupDialogOpen,
@@ -171,6 +172,7 @@ watchEffect(() => {
       :is-all-selected="isAllSelected"
       :is-loading="isBulkLoading"
       :has-external-selected="hasExternalSelected"
+      :selected-totals="selectedTotals"
       @cancel="clearSelection"
       @edit="isBulkEditDialogOpen = true"
       @delete="isBulkDeleteDialogOpen = true"

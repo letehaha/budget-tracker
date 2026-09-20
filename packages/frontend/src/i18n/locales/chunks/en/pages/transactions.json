@@ -117,7 +117,13 @@
       "tagModeLabel": "Tag action",
       "tagModeAdd": "Add to existing tags",
       "tagModeReplace": "Replace all tags",
-      "tagModeRemove": "Remove these tags"
+      "tagModeRemove": "Remove these tags",
+      "totals": {
+        "income": "Income",
+        "expense": "Expense",
+        "net": "Net",
+        "transfers": "Transfers"
+      }
     },
     "transactionGroups": {
       "bulkActions": {
