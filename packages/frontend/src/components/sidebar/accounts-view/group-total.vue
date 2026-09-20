@@ -17,6 +17,8 @@ const props = defineProps<{
   loading?: boolean;
   /** Render the amount even when it rounds to zero, instead of hiding the row's value. */
   showZero?: boolean;
+  /** Merged last, so callers can override the default size and neutral color. */
+  textClass?: string;
 }>();
 
 const { formatCompactAmount, formatAmountByCurrencyCode } = useFormatCurrency();
@@ -32,7 +34,7 @@ const full = computed(() => `${prefix.value}${formatAmountByCurrencyCode(props.a
 </script>
 
 <template>
-  <span v-if="loading" class="bg-muted/30 inline-block h-3.5 w-14 shrink-0 animate-pulse rounded" />
+  <span v-if="loading" class="bg-muted/30 inline-block h-3.5 w-14 max-w-full shrink-0 animate-pulse rounded" />
   <DesktopOnlyTooltip v-else-if="!isZero || showZero" :content="full">
     <span
       :class="
@@ -40,6 +42,7 @@ const full = computed(() => `${prefix.value}${formatAmountByCurrencyCode(props.a
           'text-amount shrink-0 text-sm tabular-nums',
           amount < 0 ? 'text-destructive-text' : 'text-foreground',
           emphasis && 'font-medium',
+          textClass,
         )
       "
     >

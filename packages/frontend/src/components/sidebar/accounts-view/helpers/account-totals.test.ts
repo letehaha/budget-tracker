@@ -2,7 +2,7 @@ import type { AccountGroups } from '@/common/types/models';
 import { AccountModel } from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 
-import { collectGroupAccounts, sumAccountsBaseBalance } from './account-totals';
+import { collectGroupAccounts, flattenAccounts, sumAccountsBaseBalance } from './account-totals';
 
 // Readable string ids keep the flatten-order assertions legible; the account's
 // branded RecordId is loosened here since these fixtures never round-trip through the API.
@@ -121,5 +121,45 @@ describe('collectGroupAccounts', () => {
     });
 
     expect(collectGroupAccounts({ group }).map((a) => a.id)).toEqual(['root', 'child', 'grandchild']);
+  });
+});
+
+describe('flattenAccounts', () => {
+  it('returns an empty map for no groups', () => {
+    expect(flattenAccounts({ groups: [] })).toEqual({});
+  });
+
+  it("keys a flat group's accounts by id", () => {
+    const groups = [makeGroup({ accounts: [makeAccount({ id: 'a' }), makeAccount({ id: 'b' })] })];
+
+    expect(Object.keys(flattenAccounts({ groups }))).toEqual(['a', 'b']);
+  });
+
+  it('includes accounts nested in descendant groups', () => {
+    const groups = [
+      makeGroup({
+        accounts: [makeAccount({ id: 'root' })],
+        childGroups: [
+          makeGroup({
+            accounts: [makeAccount({ id: 'child' })],
+            childGroups: [makeGroup({ accounts: [makeAccount({ id: 'grandchild' })] })],
+          }),
+        ],
+      }),
+    ];
+
+    expect(Object.keys(flattenAccounts({ groups })).sort()).toEqual(['child', 'grandchild', 'root']);
+  });
+
+  it('collapses an account that appears in two groups into one entry', () => {
+    const groups = [
+      makeGroup({ accounts: [makeAccount({ id: 'shared', refCurrentBalance: 10 })] }),
+      makeGroup({ accounts: [makeAccount({ id: 'shared', refCurrentBalance: 20 })] }),
+    ];
+
+    const result = flattenAccounts({ groups });
+
+    expect(Object.keys(result)).toEqual(['shared']);
+    expect(result.shared!.refCurrentBalance).toBe(20);
   });
 });

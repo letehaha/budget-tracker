@@ -64,6 +64,21 @@ export const sumAccountsBaseBalance = ({
   return { total, isApprox };
 };
 
+/** Every account under the given groups and their descendants, keyed by account id. */
+export const flattenAccounts = ({ groups }: { groups: AccountGroups[] }): Record<string, AccountModel> =>
+  groups.reduce(
+    (acc, group) => {
+      group.accounts.forEach((account) => {
+        acc[account.id] = account;
+      });
+      if (group.childGroups.length) {
+        Object.assign(acc, flattenAccounts({ groups: group.childGroups }));
+      }
+      return acc;
+    },
+    {} as Record<string, AccountModel>,
+  );
+
 /** Flatten a group's own accounts plus every descendant group's accounts. */
 export const collectGroupAccounts = ({ group }: { group: AccountGroups }): AccountModel[] => {
   const accounts = [...group.accounts];

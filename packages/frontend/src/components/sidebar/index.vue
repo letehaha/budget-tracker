@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import UiButton from '@/components/lib/ui/button/Button.vue';
 import { Card, CardContent, CardHeader } from '@/components/lib/ui/card';
+import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import { PanelLeftIcon } from '@lucide/vue';
 
 import AccountsView from './accounts-view/index.vue';
 import NavigationLinks from './navigation-links.vue';
 import UserMenu from './user-menu.vue';
+import { useSidebarCollapsed } from './use-sidebar-collapsed';
 
 defineProps<{ mobileView?: boolean }>();
+
+const { isCollapsed } = useSidebarCollapsed();
 </script>
 
 <template>
@@ -24,7 +30,15 @@ defineProps<{ mobileView?: boolean }>();
 
       <div class="bg-border/50 mx-1 h-px" />
 
-      <UserMenu />
+      <UserMenu>
+        <template #trailing>
+          <DesktopOnlyTooltip v-if="!mobileView" :content="$t('sidebar.collapse')">
+            <UiButton variant="ghost" size="icon-sm" :aria-label="$t('sidebar.collapse')" @click="isCollapsed = true">
+              <PanelLeftIcon class="size-4" />
+            </UiButton>
+          </DesktopOnlyTooltip>
+        </template>
+      </UserMenu>
     </CardContent>
   </component>
 </template>

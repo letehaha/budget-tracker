@@ -9,7 +9,6 @@ import {
 } from '@/components/common/dropdown-menu';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import type { SelectedTotals } from '@/composable/transaction-selection';
-import SelectionTotals from './selection-totals.vue';
 import {
   GroupIcon,
   ListOrderedIcon,
@@ -21,6 +20,8 @@ import {
 } from '@lucide/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import SelectionTotals from './selection-totals.vue';
 
 const { t } = useI18n();
 

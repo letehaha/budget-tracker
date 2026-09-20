@@ -27,38 +27,43 @@ const net = computed<Figure>(() => ({
     props.totals.net > 0 ? 'text-app-income-color' : props.totals.net < 0 ? 'text-app-expense-color' : 'text-inherit',
 }));
 
-const breakdown = computed<Figure[]>(() => {
-  const figures: Figure[] = [
-    {
-      key: 'income',
-      label: t('transactions.bulkEdit.totals.income'),
-      value: props.totals.income,
-      colorClass: 'text-app-income-color',
-    },
-    {
-      key: 'expense',
-      label: t('transactions.bulkEdit.totals.expense'),
-      value: -props.totals.expense,
-      colorClass: 'text-app-expense-color',
-    },
-  ];
+const income = computed<Figure>(() => ({
+  key: 'income',
+  label: t('transactions.bulkEdit.totals.income'),
+  value: props.totals.income,
+  colorClass: 'text-app-income-color',
+}));
 
-  if (props.totals.transfers !== 0) {
-    figures.push({
-      key: 'transfers',
-      label: t('transactions.bulkEdit.totals.transfers'),
-      value: props.totals.transfers,
-      colorClass: 'text-app-transfer-color',
-    });
-  }
+const expense = computed<Figure>(() => ({
+  key: 'expense',
+  label: t('transactions.bulkEdit.totals.expense'),
+  value: -props.totals.expense,
+  colorClass: 'text-app-expense-color',
+}));
 
-  return figures;
-});
+const transfers = computed<Figure | null>(() =>
+  props.totals.transfers === 0
+    ? null
+    : {
+        key: 'transfers',
+        label: t('transactions.bulkEdit.totals.transfers'),
+        value: props.totals.transfers,
+        colorClass: 'text-app-transfer-color',
+      },
+);
 
-const inlineFigures = computed<Figure[]>(() => {
-  const [income, expense, transfers] = breakdown.value;
-  return [income!, expense!, net.value, ...(transfers ? [transfers] : [])];
-});
+const breakdown = computed<Figure[]>(() => [
+  income.value,
+  expense.value,
+  ...(transfers.value ? [transfers.value] : []),
+]);
+
+const inlineFigures = computed<Figure[]>(() => [
+  income.value,
+  expense.value,
+  net.value,
+  ...(transfers.value ? [transfers.value] : []),
+]);
 </script>
 
 <template>
@@ -90,7 +95,7 @@ const inlineFigures = computed<Figure[]>(() => {
     <PopoverContent align="start" class="w-auto min-w-56 p-3">
       <div class="flex flex-col">
         <span class="text-muted-foreground border-border mb-1 border-b pb-2 text-xs">
-          {{ t('transactions.bulkEdit.selectedCount', { count: selectedCount }) }}
+          {{ $t('transactions.bulkEdit.selectedCount', { count: selectedCount }) }}
         </span>
 
         <span
