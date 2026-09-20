@@ -776,6 +776,8 @@ export function buildOrderClause({
     [TRANSACTION_SORT_FIELD.categoryName]:
       '(SELECT "name" FROM "Categories" WHERE "Categories"."id" = "Transactions"."categoryId")',
     [TRANSACTION_SORT_FIELD.payeeName]: '(SELECT "name" FROM "Payees" WHERE "Payees"."id" = "Transactions"."payeeId")',
+    // NULLIF: notes saved as an empty string must land with the NULL ones, not first.
+    [TRANSACTION_SORT_FIELD.note]: `NULLIF("Transactions"."note", '')`,
     [TRANSACTION_SORT_FIELD.categorizationSource]: `("Transactions"."categorizationMeta"->>'source')`,
   };
 

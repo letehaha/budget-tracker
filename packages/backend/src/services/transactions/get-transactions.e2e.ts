@@ -589,6 +589,43 @@ describe('Retrieve transactions with filters', () => {
 
       expect(result.map((tx) => tx.accountId)).toEqual([accountA.id, accountZ.id]);
     });
+
+    it('sorts by note and keeps blank notes last in both directions', async () => {
+      const account = await helpers.createAccount({ raw: true });
+
+      const [withA] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, note: 'aaa-note' }),
+        raw: true,
+      });
+      const [withZ] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, note: 'zzz-note' }),
+        raw: true,
+      });
+      const [emptyNote] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id, note: '' }),
+        raw: true,
+      });
+      const [noNote] = await helpers.createTransaction({
+        payload: helpers.buildTransactionPayload({ accountId: account.id }),
+        raw: true,
+      });
+
+      const ascending = await helpers.getTransactions({
+        sortBy: TRANSACTION_SORT_FIELD.note,
+        order: SORT_DIRECTIONS.asc,
+        raw: true,
+      });
+      expect(ascending.slice(0, 2).map((tx) => tx.id)).toEqual([withA.id, withZ.id]);
+      expect(sortedIds(ascending.slice(2))).toEqual(sortedIds([emptyNote, noNote]));
+
+      const descending = await helpers.getTransactions({
+        sortBy: TRANSACTION_SORT_FIELD.note,
+        order: SORT_DIRECTIONS.desc,
+        raw: true,
+      });
+      expect(descending.slice(0, 2).map((tx) => tx.id)).toEqual([withZ.id, withA.id]);
+      expect(sortedIds(descending.slice(2))).toEqual(sortedIds([emptyNote, noNote]));
+    });
   });
 
   it('transferNatures filter selects natures and supersedes transferFilter', async () => {
