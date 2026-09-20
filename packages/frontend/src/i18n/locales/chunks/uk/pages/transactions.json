@@ -117,7 +117,13 @@
       "tagModeLabel": "Дія з тегами",
       "tagModeAdd": "Додати до існуючих тегів",
       "tagModeReplace": "Замінити всі теги",
-      "tagModeRemove": "Видалити ці теги"
+      "tagModeRemove": "Видалити ці теги",
+      "totals": {
+        "income": "Дохід",
+        "expense": "Витрата",
+        "net": "Чистий",
+        "transfers": "Перекази"
+      }
     },
     "transactionGroups": {
       "bulkActions": {
@@ -168,6 +174,10 @@
       "plannedTooltip": "Запланована транзакція",
       "expiredTooltip": "Очікувалася {days} дн. тому, відповідної банківської транзакції немає",
       "mergedTooltip": "Підтверджено із запланованого запису від {date}"
+    },
+    "pending": {
+      "label": "Непідтверджено",
+      "tooltip": "Банк ще не провів цю транзакцію. Вона не впливає на баланс рахунку."
     },
     "table": {
       "columns": {

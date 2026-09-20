@@ -60,6 +60,9 @@
             </div>
           </div>
         </div>
+        <p class="text-muted-foreground pb-2 text-xs">
+          {{ $t('pages.statementParser.transactionReview.toggleInfo') }}
+        </p>
 
         <ScrollArea class="max-h-80 rounded-lg border" viewport-class="max-h-80" with-horizontal-scrollbar>
           <div class="min-w-max">
@@ -78,6 +81,16 @@
               @click="handleRowClick(item)"
             >
               <div class="flex items-center gap-2 px-2 py-1.5">
+                <!-- Stop propagation so a direct checkbox click toggles once rather than also firing the row's @click. -->
+                <span class="inline-flex w-4 shrink-0" @click.stop>
+                  <Checkbox
+                    v-if="item.type !== 'existing'"
+                    :model-value="item.type === 'new' ? !item.isExcluded : item.isOverridden"
+                    :aria-label="item.description"
+                    @update:model-value="handleRowClick(item)"
+                  />
+                </span>
+
                 <!-- Status Indicator -->
                 <div
                   class="size-2 shrink-0 rounded-full ring-1"
@@ -136,21 +149,12 @@
                 </span>
 
                 <!-- Amount -->
-                <span class="ml-auto w-24 shrink-0 text-right font-mono text-xs font-medium">
+                <span
+                  class="ml-auto w-24 shrink-0 text-right font-mono text-xs font-medium"
+                  :class="item.txType === 'expense' ? 'text-app-expense-color' : 'text-app-income-color'"
+                >
                   {{ item.txType === 'expense' ? '-' : '+' }}{{ item.amount.toFixed(2) }}
                 </span>
-
-                <!-- Action Icon -->
-                <div class="w-6 shrink-0 text-center">
-                  <template v-if="item.type === 'new'">
-                    <CheckCircleIcon v-if="!item.isExcluded" class="text-success-text inline size-4" />
-                    <XCircleIcon v-else class="text-muted-foreground inline size-4" />
-                  </template>
-                  <template v-else-if="item.type === 'duplicate'">
-                    <CheckCircleIcon v-if="item.isOverridden" class="text-success-text inline size-4" />
-                    <BanIcon v-else class="text-muted-foreground inline size-4" />
-                  </template>
-                </div>
               </div>
             </div>
           </div>
@@ -172,13 +176,6 @@
               })
             }}
           </span>
-        </p>
-        <p class="text-muted-foreground mt-1">
-          {{ $t('pages.statementParser.transactionReview.toggleInfo') }}
-          <CheckCircleIcon class="text-success-text inline size-4" />
-          {{ $t('pages.statementParser.transactionReview.toggleWillImport') }}
-          <BanIcon class="text-muted-foreground inline size-4" />
-          {{ $t('pages.statementParser.transactionReview.toggleWillSkip') }}
         </p>
       </div>
 
@@ -204,9 +201,10 @@
 <script setup lang="ts">
 import { Button } from '@/components/lib/ui/button';
 import { Callout } from '@/components/lib/ui/callout';
+import { Checkbox } from '@/components/lib/ui/checkbox';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { useStatementParserStore } from '@/stores/statement-parser';
-import { ArrowLeftIcon, BanIcon, CheckCircleIcon, Loader2Icon, XCircleIcon } from '@lucide/vue';
+import { ArrowLeftIcon, Loader2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 
 const store = useStatementParserStore();
@@ -295,7 +293,7 @@ const timelineItems = computed((): TimelineItem[] => {
       date: dateStr,
       description: tx.note || 'No description',
       amount: Math.abs(tx.amount),
-      txType: tx.amount < 0 ? 'expense' : 'income',
+      txType: tx.transactionType,
     });
   });
 

@@ -63,6 +63,7 @@ const fullTransaction: TransactionApiResponse = {
   refundLinked: false,
   isPlanned: false,
   plannedMerge: null,
+  isPending: false,
   payeeId: null,
   payeeLocked: false,
   categorizationMeta: null,

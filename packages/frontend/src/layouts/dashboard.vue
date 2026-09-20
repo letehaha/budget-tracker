@@ -1,7 +1,8 @@
 <template>
   <div class="bg-background flex h-screen max-md:flex-col">
     <template v-if="!isMobileView">
-      <Sidebar />
+      <SidebarRail v-if="isCollapsed" />
+      <Sidebar v-else />
     </template>
 
     <ScrollArea ref="scrollAreaRef" class="flex-1" :scroll-area-id="SCROLL_AREA_IDS.dashboard">
@@ -45,6 +46,8 @@ import { ScrollArea, ScrollBar } from '@/components/lib/ui/scroll-area';
 import { SCROLL_AREA_IDS } from '@/components/lib/ui/scroll-area/types';
 import { QuickStartPanel, QuickStartSidebar, QuickStartTrigger } from '@/components/quick-start';
 import Sidebar from '@/components/sidebar/index.vue';
+import SidebarRail from '@/components/sidebar/sidebar-rail.vue';
+import { useSidebarCollapsed } from '@/components/sidebar/use-sidebar-collapsed';
 import UiHeader from '@/components/ui-header.vue';
 import { useIdleEnabled } from '@/composable/use-idle-enabled';
 import { CUSTOM_BREAKPOINTS, useWindowBreakpoints } from '@/composable/window-breakpoints';
@@ -64,6 +67,7 @@ const rootStore = useRootStore();
 const userCurrenciesStore = useCurrenciesStore();
 const onboardingStore = useOnboardingStore();
 const idleEnabled = useIdleEnabled();
+const { isCollapsed } = useSidebarCollapsed();
 const isMobileView = useWindowBreakpoints(CUSTOM_BREAKPOINTS.uiMobile, {
   wait: 50,
 });

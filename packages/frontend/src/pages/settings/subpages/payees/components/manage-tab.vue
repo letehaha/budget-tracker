@@ -22,17 +22,17 @@
 import { Button as UiButton } from '@/components/lib/ui/button';
 import InputField from '@/components/fields/input-field.vue';
 import { PlusIcon, SearchIcon } from '@lucide/vue';
-import { useDebounce } from '@vueuse/core';
-import { computed, reactive, ref } from 'vue';
+import { useDebounce, useSessionStorage } from '@vueuse/core';
+import { computed, reactive } from 'vue';
 
 import PayeeFormDialog from './payee-form-dialog.vue';
 import PayeesTable from './payees-table.vue';
 
 const DEBOUNCE_MS = 200;
 
-const searchQuery = ref('');
+const searchQuery = useSessionStorage('payees-search-query', '');
 const searchQueryDebounced = useDebounce(searchQuery, DEBOUNCE_MS);
-const debouncedQuery = computed(() => searchQueryDebounced.value.trim());
+const debouncedQuery = computed(() => (searchQueryDebounced.value ?? '').trim());
 
 const dialogState = reactive<{ isOpen: boolean; payee: null }>({ isOpen: false, payee: null });
 const openCreateDialog = () => {

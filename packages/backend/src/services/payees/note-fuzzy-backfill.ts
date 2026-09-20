@@ -7,10 +7,11 @@ import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { applyPayeeCategorization } from './apply-categorization';
+import { applyPayeeDefaultLocation } from './apply-default-location';
 import { applyPayeeDefaultTags } from './apply-default-tags';
 import { buildFuzzyIndex, buildHaystack } from './fuzzy-matcher';
 import { normalizePayeeName } from './normalize-name';
-import { ensureAliasExists } from './payee-namespace';
+import { ensureAliasExists, isPayeeNameIgnored } from './payee-namespace';
 
 interface NoteFuzzyBackfillInput {
   /**
@@ -112,6 +113,11 @@ export const runNoteFuzzyBackfill = withTransaction(
         const normalized = normalizePayeeName({ raw });
         if (!normalized) continue;
 
+        // This pass links and aliases on the machine's own judgement, so the
+        // user's ignored-names blocklist gates it exactly as it gates inline
+        // extraction. There is no exact-match step here to exempt.
+        if (await isPayeeNameIgnored({ userId, normalizedName: normalized })) continue;
+
         // Update by id only — auth was established at the candidate fetch via
         // the Accounts JOIN. `payeeId IS NULL AND payeeLocked = false` stays in
         // the WHERE as the idempotency guard against a concurrent sync linking
@@ -154,9 +160,14 @@ export const runNoteFuzzyBackfill = withTransaction(
             transactionId: tx.id,
             payeeId: match.payeeId,
           });
+          await applyPayeeDefaultLocation({
+            accountOwnerUserId: userId,
+            transactionId: tx.id,
+            payeeId: match.payeeId,
+          });
         } catch (error) {
           logger.error({
-            message: `${LOG_PREFIX} default-tag application failed for linked row; continuing`,
+            message: `${LOG_PREFIX} default-tag/location application failed for linked row; continuing`,
             error: error as Error,
           });
         }

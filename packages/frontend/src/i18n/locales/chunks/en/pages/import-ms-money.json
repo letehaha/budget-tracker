@@ -84,7 +84,7 @@
             "hint": "Microsoft Money keeps voided entries in the register but never applies them to your balance, so they're imported at zero and tagged \"Void\" — keeping their date, payee, category, memo and cheque number."
           },
           "duplicatesTitle": "{count} possible duplicate(s)",
-          "duplicatesHint": "These already look like transactions you have. Un-check one to import it anyway.",
+          "duplicatesHint": "These already look like transactions you have. Check a row to import it anyway; unchecked duplicates are skipped.",
           "back": "Back",
           "importing": "Starting import…",
           "importButton": "Import {count} transactions"

@@ -7,21 +7,14 @@ import {
   ChartColumnIcon,
   ChevronRightIcon,
   CreditCardIcon,
-  GroupIcon,
-  HandCoinsIcon,
   LayersIcon,
   LayoutDashboardIcon,
-  RepeatIcon,
-  RocketIcon,
-  TrendingUpIcon,
-  WalletIcon,
-  WrenchIcon,
-  ZapIcon,
 } from '@lucide/vue';
-import { computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { watch } from 'vue';
 
+import { SIDEBAR_NAV_CHILDREN } from './nav-items';
 import { useSidebarNavCollapse } from './use-nav-collapse';
+import { useSidebarNavRoutes } from './use-nav-routes';
 
 withDefaults(defineProps<{ bottomNav?: boolean }>(), { bottomNav: false });
 
@@ -30,23 +23,8 @@ const navItemActive = 'bg-primary/10 text-foreground';
 const navIconBase = 'size-4 shrink-0';
 const navIconActive = 'text-primary-text';
 
-const route = useRoute();
 const { isAccountsOpen, isTransactionsOpen, isPlannedOpen } = useSidebarNavCollapse();
-
-const isAccountsRoute = computed(
-  () =>
-    route.name === ROUTES_NAMES.accounts ||
-    route.name === ROUTES_NAMES.account ||
-    route.name === ROUTES_NAMES.accountIntegrationDetails ||
-    route.name === ROUTES_NAMES.loans ||
-    route.name === ROUTES_NAMES.loanDetail ||
-    route.name === ROUTES_NAMES.investments ||
-    route.name === ROUTES_NAMES.portfolioDetail ||
-    route.name === ROUTES_NAMES.portfolioTransactionsImport ||
-    route.name === ROUTES_NAMES.venture ||
-    route.name === ROUTES_NAMES.venturePlatformsList ||
-    route.name === ROUTES_NAMES.ventureDealDetail,
-);
+const { isAccountsRoute, isTransactionsRoute, isPlannedRoute } = useSidebarNavRoutes();
 
 watch(
   isAccountsRoute,
@@ -56,33 +34,12 @@ watch(
   { immediate: true },
 );
 
-const isTransactionsRoute = computed(
-  () =>
-    route.name === ROUTES_NAMES.transactions ||
-    route.name === ROUTES_NAMES.transactionGroups ||
-    route.name === ROUTES_NAMES.optimizations ||
-    route.name === ROUTES_NAMES.optimizationsTransfers ||
-    route.name === ROUTES_NAMES.optimizationsAiCategorization ||
-    route.name === ROUTES_NAMES.automations ||
-    route.name === ROUTES_NAMES.automationCreate ||
-    route.name === ROUTES_NAMES.automationDetails,
-);
-
 watch(
   isTransactionsRoute,
   (val) => {
     if (val) isTransactionsOpen.value = true;
   },
   { immediate: true },
-);
-
-const isPlannedRoute = computed(
-  () =>
-    route.name === ROUTES_NAMES.planned ||
-    route.name === ROUTES_NAMES.plannedSubscriptions ||
-    route.name === ROUTES_NAMES.plannedSubscriptionDetails ||
-    route.name === ROUTES_NAMES.plannedBudgets ||
-    route.name === ROUTES_NAMES.plannedBudgetDetails,
 );
 
 watch(
@@ -132,48 +89,20 @@ watch(
     </CollapsibleTrigger>
     <CollapsibleContent>
       <div class="border-border/40 mt-1 ml-2 grid gap-0.5 border-l pl-2">
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.accounts }">
+        <router-link
+          v-for="child in SIDEBAR_NAV_CHILDREN.accounts"
+          :key="child.routeName"
+          v-slot="{ isActive }"
+          :to="{ name: child.routeName }"
+        >
           <ui-button
             variant="ghost"
             as="span"
             :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
             size="sm"
           >
-            <WalletIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.accountsList') }}</span>
-          </ui-button>
-        </router-link>
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.loans }">
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
-            size="sm"
-          >
-            <HandCoinsIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.loans') }}</span>
-          </ui-button>
-        </router-link>
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.investments }">
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
-            size="sm"
-          >
-            <TrendingUpIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.investments') }}</span>
-          </ui-button>
-        </router-link>
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.venture }">
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
-            size="sm"
-          >
-            <RocketIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.venture') }}</span>
+            <component :is="child.icon" :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t(child.labelKey) }}</span>
           </ui-button>
         </router-link>
       </div>
@@ -205,48 +134,20 @@ watch(
     </CollapsibleTrigger>
     <CollapsibleContent>
       <div class="border-border/40 mt-1 ml-2 grid gap-0.5 border-l pl-2">
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactions }">
+        <router-link
+          v-for="child in SIDEBAR_NAV_CHILDREN.transactions"
+          :key="child.routeName"
+          v-slot="{ isActive }"
+          :to="{ name: child.routeName }"
+        >
           <ui-button
             variant="ghost"
             as="span"
             :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
             size="sm"
           >
-            <CreditCardIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.allTransactions') }}</span>
-          </ui-button>
-        </router-link>
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.transactionGroups }">
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
-            size="sm"
-          >
-            <GroupIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.transactionGroups') }}</span>
-          </ui-button>
-        </router-link>
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.optimizations }">
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
-            size="sm"
-          >
-            <WrenchIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.optimizations') }}</span>
-          </ui-button>
-        </router-link>
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.automations }">
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
-            size="sm"
-          >
-            <ZapIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.automations') }}</span>
+            <component :is="child.icon" :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t(child.labelKey) }}</span>
           </ui-button>
         </router-link>
       </div>
@@ -270,26 +171,20 @@ watch(
     </CollapsibleTrigger>
     <CollapsibleContent>
       <div class="border-border/40 mt-1 ml-2 grid gap-0.5 border-l pl-2">
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.plannedSubscriptions }">
+        <router-link
+          v-for="child in SIDEBAR_NAV_CHILDREN.planned"
+          :key="child.routeName"
+          v-slot="{ isActive }"
+          :to="{ name: child.routeName }"
+        >
           <ui-button
             variant="ghost"
             as="span"
             :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
             size="sm"
           >
-            <RepeatIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.planned.subscriptions') }}</span>
-          </ui-button>
-        </router-link>
-        <router-link v-slot="{ isActive }" :to="{ name: ROUTES_NAMES.plannedBudgets }">
-          <ui-button
-            variant="ghost"
-            as="span"
-            :class="['w-full justify-start gap-2 px-3', isActive && navItemActive]"
-            size="sm"
-          >
-            <WalletIcon :class="[navIconBase, isActive && navIconActive]" />
-            <span>{{ $t('navigation.planned.budgets') }}</span>
+            <component :is="child.icon" :class="[navIconBase, isActive && navIconActive]" />
+            <span>{{ $t(child.labelKey) }}</span>
           </ui-button>
         </router-link>
       </div>

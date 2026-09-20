@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/common/dropdown-menu';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
+import type { SelectedTotals } from '@/composable/transaction-selection';
 import {
   GroupIcon,
   ListOrderedIcon,
@@ -20,6 +21,8 @@ import {
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import SelectionTotals from './selection-totals.vue';
+
 const { t } = useI18n();
 
 const props = defineProps<{
@@ -28,6 +31,7 @@ const props = defineProps<{
   isAllSelected: boolean;
   /** Selection contains bank-connected transactions, which the backend refuses to delete. */
   hasExternalSelected?: boolean;
+  selectedTotals: SelectedTotals;
 }>();
 
 const emit = defineEmits<{
@@ -60,19 +64,20 @@ const handleEdit = () => {
 
 <template>
   <div
-    class="bg-card/95 sticky top-0 z-10 flex items-center justify-between gap-2 border-b px-3 py-3 backdrop-blur sm:gap-4"
+    class="bg-card/95 @container/bulk-toolbar sticky top-0 z-10 flex flex-wrap items-center justify-between gap-1 border-b px-3 py-3 backdrop-blur sm:gap-4"
   >
-    <div class="flex items-center gap-1 sm:gap-4">
+    <div class="flex flex-wrap items-center gap-x-1 gap-y-1.5 sm:gap-x-4">
       <!-- Select all / deselect all checkbox -->
       <div class="flex cursor-pointer items-center gap-2 whitespace-nowrap" @click="handleSelectAllClick">
         <Checkbox :model-value="isAllSelected" />
         <span class="text-sm">{{ t('transactions.bulkEdit.selectAll') }}</span>
       </div>
 
-      <!-- Selection count (desktop only) -->
-      <span v-if="hasSelection" class="text-muted-foreground text-sm">
+      <span v-if="hasSelection" class="text-muted-foreground hidden text-sm @4xl/bulk-toolbar:inline">
         {{ t('transactions.bulkEdit.selectedCount', { count: selectedCount }) }}
       </span>
+
+      <SelectionTotals v-if="hasSelection" :totals="selectedTotals" :selected-count="selectedCount" />
     </div>
 
     <!-- Mobile: compact dropdown with all actions -->

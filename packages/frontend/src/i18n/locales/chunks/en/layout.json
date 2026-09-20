@@ -23,6 +23,8 @@
     "venture": "Venture"
   },
   "sidebar": {
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
     "settings": {
       "title": "Settings",
       "sections": {

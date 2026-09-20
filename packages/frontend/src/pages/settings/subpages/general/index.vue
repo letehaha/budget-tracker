@@ -43,6 +43,24 @@
 
         <Separator />
 
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex-1">
+            <div class="text-sm font-medium">
+              {{ $t('settings.general.pendingBankTransactions.label') }}
+            </div>
+            <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+              {{ $t('settings.general.pendingBankTransactions.description') }}
+            </p>
+          </div>
+          <Switch
+            :model-value="importPendingBankTransactions"
+            :disabled="isUpdating"
+            @update:model-value="handlePendingBankTransactionsToggle"
+          />
+        </div>
+
+        <Separator />
+
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="min-w-48 flex-1">
             <div class="text-sm font-medium">
@@ -222,6 +240,7 @@ const {
 
 const includeCreditLimitInStats = computed(() => userSettings.value?.includeCreditLimitInStats ?? false);
 const matchTransfersWithManualAccounts = computed(() => userSettings.value?.matchTransfersWithManualAccounts ?? false);
+const importPendingBankTransactions = computed(() => userSettings.value?.importPendingBankTransactions ?? false);
 const savingsCategoryIds = computed(() => userSettings.value?.savingsCategoryIds ?? []);
 const showUpcomingTransactions = computed(() => !userSettings.value?.ui?.transactionsList?.hideUpcoming);
 
@@ -263,6 +282,19 @@ const handleManualTransferMatchingToggle = async (value: boolean) => {
     addSuccessNotification(t('settings.general.manualTransferMatching.successNotification'));
   } catch {
     addErrorNotification(t('settings.general.manualTransferMatching.errorNotification'));
+  }
+};
+
+const handlePendingBankTransactionsToggle = async (value: boolean) => {
+  try {
+    await mutateAsync({
+      ...userSettings.value,
+      importPendingBankTransactions: value,
+    });
+
+    addSuccessNotification(t('settings.general.pendingBankTransactions.successNotification'));
+  } catch {
+    addErrorNotification(t('settings.general.pendingBankTransactions.errorNotification'));
   }
 };
 

@@ -117,7 +117,13 @@
       "tagModeLabel": "Tag action",
       "tagModeAdd": "Add to existing tags",
       "tagModeReplace": "Replace all tags",
-      "tagModeRemove": "Remove these tags"
+      "tagModeRemove": "Remove these tags",
+      "totals": {
+        "income": "Income",
+        "expense": "Expense",
+        "net": "Net",
+        "transfers": "Transfers"
+      }
     },
     "transactionGroups": {
       "bulkActions": {
@@ -168,6 +174,10 @@
       "plannedTooltip": "Planned transaction",
       "expiredTooltip": "Expected {days} days ago, no matching bank transaction",
       "mergedTooltip": "Confirmed from planned entry on {date}"
+    },
+    "pending": {
+      "label": "Pending",
+      "tooltip": "The bank hasn't booked this transaction yet. It doesn't affect the account balance."
     },
     "table": {
       "columns": {

@@ -605,13 +605,16 @@ describe('Statement Parser - Execute Import endpoint', () => {
       });
       await helpers.createTransaction({ payload: txPayload, raw: true });
 
+      // Only the middle row duplicates, so a wrong index-to-row mapping surfaces here.
       const transactions: ExtractedTransaction[] = [
+        { date: '2024-01-14', description: 'Coffee', amount: 4.2, type: 'expense' },
         {
           date: '2024-01-15 10:30:00',
           description: 'Grocery shopping',
-          amount: 10050, // Statement parser expects cents
+          amount: 100.5, // same decimal format the extraction returns and execute-import accepts
           type: 'expense',
         },
+        { date: '2024-01-16', description: 'Salary', amount: 100.5, type: 'income' },
       ];
 
       const result = await helpers.statementDetectDuplicates({
@@ -627,18 +630,18 @@ describe('Statement Parser - Execute Import endpoint', () => {
       const duplicate = result.duplicates[0]!;
 
       // Verify StatementDuplicateMatch structure
-      expect(duplicate.transactionIndex).toBe(0);
+      expect(duplicate.transactionIndex).toBe(1);
 
       // extractedTransaction should preserve the input
       expect(duplicate.extractedTransaction.date).toBe('2024-01-15 10:30:00');
       expect(duplicate.extractedTransaction.description).toBe('Grocery shopping');
-      expect(duplicate.extractedTransaction.amount).toBe(10050);
+      expect(duplicate.extractedTransaction.amount).toBe(100.5);
       expect(duplicate.extractedTransaction.type).toBe('expense');
 
       // existingTransaction should have DB transaction data
       expect(typeof duplicate.existingTransaction.id).toBe('string');
       expect(duplicate.existingTransaction.date).toBe('2024-01-15');
-      expect(duplicate.existingTransaction.amount).toBe(10050);
+      expect(duplicate.existingTransaction.amount).toBe(100.5);
       expect(duplicate.existingTransaction.note).toBe('Existing note');
     });
 

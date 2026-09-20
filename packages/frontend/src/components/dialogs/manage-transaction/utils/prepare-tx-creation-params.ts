@@ -45,7 +45,7 @@ export const prepareTxCreationParams = ({
     note,
     externalUrl: form.externalUrl?.trim() || undefined,
     externalReference: form.externalReference?.trim() || undefined,
-    location: resolveFormLocation(form) ?? undefined,
+    location: resolveFormLocation(form),
     time: time.toUTCString(),
     transactionType: getTxTypeFromFormType(formTxType),
     paymentType: paymentType!.value,

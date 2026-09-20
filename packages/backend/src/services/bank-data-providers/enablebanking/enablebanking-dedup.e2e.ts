@@ -38,8 +38,9 @@ import { ReferenceNumberScheme } from './types';
  *     pending row is upgraded in place instead of gaining a booked twin.
  */
 describe('Enable Banking dedup improvements (E2E)', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     helpers.enablebanking.resetSessionCounter();
+    await helpers.patchUserSettings({ patch: { importPendingBankTransactions: true }, raw: true });
   });
 
   afterEach(() => {

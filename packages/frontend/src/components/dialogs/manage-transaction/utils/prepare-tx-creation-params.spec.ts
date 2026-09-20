@@ -140,7 +140,7 @@ describe('prepareTxCreationParams', () => {
       });
       expect(blank.externalUrl).toBeUndefined();
       expect(blank.externalReference).toBeUndefined();
-      expect(blank.location).toBeUndefined();
+      expect(blank.location).toBeNull();
     });
   });
 

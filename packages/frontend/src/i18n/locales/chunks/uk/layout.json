@@ -23,6 +23,8 @@
     "venture": "Венчур"
   },
   "sidebar": {
+    "collapse": "Згорнути бічну панель",
+    "expand": "Розгорнути бічну панель",
     "settings": {
       "title": "Налаштування",
       "sections": {

@@ -6,6 +6,7 @@ import Accounts from '@models/accounts.model';
 import BankDataProviderConnections from '@models/bank-data-provider-connections.model';
 import Users from '@models/users.model';
 import { withTransaction } from '@root/services/common/with-transaction';
+import { removePortfolioTransfersForAccounts } from '@services/accounts/remove-portfolio-transfers-for-accounts';
 import { unlinkAccountFromBankConnection } from '@services/accounts/unlink-from-bank-connection';
 import {
   AccountShareCleanupResult,
@@ -76,6 +77,8 @@ const disconnectProviderInTx = withTransaction(
           });
         }
       }
+
+      await removePortfolioTransfersForAccounts({ userId, accountIds: linkedAccounts.map((account) => account.id) });
 
       await Accounts.destroy({
         where: {

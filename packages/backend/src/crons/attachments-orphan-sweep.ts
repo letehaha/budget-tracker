@@ -25,7 +25,7 @@ const sweepOrphanBlobs = async ({ minAgeMs = MIN_AGE_MS }: { minAgeMs?: number }
   // A key outside the generated shape was not written by us: it is never an orphan, and
   // its second segment must not reach the `Op.in` on a UUID column.
   const candidates = (await listObjects()).filter(
-    (object) => object.lastModified.getTime() < cutoff && STORAGE_KEY_PATTERN.test(object.key),
+    (object) => object.lastModified.getTime() <= cutoff && STORAGE_KEY_PATTERN.test(object.key),
   );
 
   const orphans: string[] = [];

@@ -2,7 +2,7 @@
  * Statement Parser types
  * Types for AI-powered bank statement extraction from PDF, CSV, TXT files
  */
-import type { Cents } from './money';
+import type { Decimal } from './money';
 
 /**
  * Supported file types for statement parsing
@@ -209,7 +209,7 @@ export interface StatementDuplicateMatch {
   existingTransaction: {
     id: string;
     date: string;
-    amount: Cents;
+    amount: Decimal;
     note: string;
   };
 }

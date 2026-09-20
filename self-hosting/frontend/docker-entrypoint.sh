@@ -86,10 +86,15 @@ EOF
 [ -n "$CSP_EXTRA_FORM_ACTION" ] || CSP_EXTRA_FORM_ACTION="$API_HTTP"
 [ -n "$CSP_EXTRA_ANALYTICS" ] || CSP_EXTRA_ANALYTICS="$POSTHOG_HOST"
 
-# envsubst only touches the three named placeholders; every other `$var` in the
+# 302, not 301: browsers cache a 301 indefinitely, which would keep redirecting
+# after the operator turns SKIP_LANDING back off.
+LANDING_REDIRECT=""
+[ "${SKIP_LANDING:-}" != "true" ] || LANDING_REDIRECT="return 302 /dashboard;"
+
+# envsubst only touches the named placeholders; every other `$var` in the
 # template is an nginx runtime variable and must be left intact.
-export CSP_EXTRA_CONNECT CSP_EXTRA_FORM_ACTION CSP_EXTRA_ANALYTICS
-envsubst '$CSP_EXTRA_CONNECT $CSP_EXTRA_FORM_ACTION $CSP_EXTRA_ANALYTICS' \
+export CSP_EXTRA_CONNECT CSP_EXTRA_FORM_ACTION CSP_EXTRA_ANALYTICS LANDING_REDIRECT
+envsubst '$CSP_EXTRA_CONNECT $CSP_EXTRA_FORM_ACTION $CSP_EXTRA_ANALYTICS $LANDING_REDIRECT' \
   < /etc/nginx/templates/nginx.conf.template \
   > /etc/nginx/nginx.conf
 

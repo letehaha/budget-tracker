@@ -105,8 +105,21 @@ const columns = computed<MappingTableColumn[]>(() => [
   { key: 'status', label: '', width: '36px', hideLabelInCard: true, cardHeader: true },
   { key: 'name', label: t('importShared.columns.sourceName'), width: 'minmax(0,1fr)', cardHeader: true },
   { key: 'currency', label: t('importShared.columns.currency'), width: '80px', cardValue: 'inline' },
-  { key: 'action', label: t('importShared.columns.action'), width: '160px', cardValue: 'control' },
-  { key: 'target', label: t('importShared.columns.target'), width: 'minmax(0,1fr)', cardValue: 'control' },
+  // self-end: a labeled target field is taller than the select, so bottom-align the two controls.
+  {
+    key: 'action',
+    label: t('importShared.columns.action'),
+    width: '160px',
+    cardValue: 'control',
+    cellClass: 'self-end',
+  },
+  {
+    key: 'target',
+    label: t('importShared.columns.target'),
+    width: 'minmax(0,1fr)',
+    cardValue: 'control',
+    hideLabelInCard: true,
+  },
 ]);
 
 // ---- Status derivation ----
@@ -208,7 +221,7 @@ function onTargetChange({ name, account }: { name: string; account: AccountModel
       </template>
 
       <template #cell:currency="{ item }">
-        <span class="text-muted-foreground text-xs">{{ item.currency || '—' }}</span>
+        <span class="font-semibold">{{ item.currency || '—' }}</span>
       </template>
 
       <template #cell:action="{ item }">

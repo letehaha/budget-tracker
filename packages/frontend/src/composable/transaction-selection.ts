@@ -1,5 +1,5 @@
 import { useAccountsStore } from '@/stores';
-import { TransactionModel } from '@bt/shared/types';
+import { TRANSACTION_TRANSFER_NATURE, TRANSACTION_TYPES, TransactionModel } from '@bt/shared/types';
 import { storeToRefs } from 'pinia';
 import { computed, ref, triggerRef, watch } from 'vue';
 
@@ -65,6 +65,57 @@ export function getVanishedSelectedIds({
   if (loadedIds.length === 0) return [];
   const loaded = new Set(loadedIds);
   return Array.from(selectedIds).filter((id) => !loaded.has(id));
+}
+
+export interface SelectedTotals {
+  income: number;
+  expense: number;
+  net: number;
+  /** Amount moved by selected transfer rows. Reported apart from income/expense, never folded into net. */
+  transfers: number;
+}
+
+/**
+ * Never count these as income or expense, and never net them against each other:
+ * only one leg of a transfer pair is ever on screen, so either side would book a
+ * full-value amount that never happened.
+ * `transfer_out_wallet` is absent on purpose: that money leaves the tracked accounts.
+ */
+const INTERNAL_TRANSFER_NATURES = new Set<TRANSACTION_TRANSFER_NATURE>([
+  TRANSACTION_TRANSFER_NATURE.common_transfer,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_loan,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio,
+  TRANSACTION_TRANSFER_NATURE.transfer_to_venture,
+]);
+
+/**
+ * Totals in base currency (`refAmount`). Amounts are stored positive with the
+ * direction in `transactionType`, so split on the type, never on the sign.
+ */
+export function sumSelectedTotals({
+  transactions,
+  selectedIds,
+}: {
+  transactions: TransactionModel[];
+  selectedIds: Set<string>;
+}): SelectedTotals {
+  let income = 0;
+  let expense = 0;
+  let transfers = 0;
+
+  for (const tx of transactions) {
+    if (!selectedIds.has(tx.id)) continue;
+
+    if (INTERNAL_TRANSFER_NATURES.has(tx.transferNature)) {
+      transfers += tx.refAmount;
+    } else if (tx.transactionType === TRANSACTION_TYPES.income) {
+      income += tx.refAmount;
+    } else {
+      expense += tx.refAmount;
+    }
+  }
+
+  return { income, expense, net: income - expense, transfers };
 }
 
 export function useTransactionSelection({

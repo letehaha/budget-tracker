@@ -11,14 +11,16 @@
       "category": "Category",
       "categoryHint": "Effective category for this payee. Shows the default if you've set one — otherwise the category most frequently used in past transactions. Auto-filled when creating a new transaction.",
       "topCategory": "Top category",
-      "defaultCategory": "Default category"
+      "defaultCategory": "Default category",
+      "defaultTags": "Default tags"
     },
     "sort": {
       "label": "Sort by",
       "transactionCount": "Tx amount",
       "netFlow": "Net flow",
       "name": "Name",
-      "lastSeen": "Recent activity"
+      "lastSeen": "Recent activity",
+      "defaultTags": "Default tags"
     },
     "actions": {
       "menu": "Actions",
@@ -75,6 +77,11 @@
       "defaultTagsLabel": "Auto-apply tags",
       "defaultTagsPlaceholder": "Select tags to auto-apply",
       "defaultTagsHint": "These tags are automatically added to new transactions linked to this payee (bank syncs and imports).",
+      "defaultLocationLabel": "Default location",
+      "defaultLocationEmpty": "No location set",
+      "defaultLocationHint": "Transactions linked to this payee that have no location of their own get this one, both at creation and during bank sync.",
+      "clearDefaultLocationTitle": "Remove default location?",
+      "clearDefaultLocationDescription": "New transactions linked to this payee will no longer get this location. Existing transactions keep theirs.",
       "applyTagsToExisting": "Apply to existing transactions"
     },
     "logo": {

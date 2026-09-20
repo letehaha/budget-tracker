@@ -12,6 +12,10 @@ import type Tags from '@models/tags.model';
 import type TransactionGroups from '@models/transaction-groups.model';
 import type TransactionSplits from '@models/transaction-splits.model';
 import type Transactions from '@models/transactions.model';
+import {
+  getRawTransactionStatus,
+  isPreBookingStatus,
+} from '@services/bank-data-providers/enablebanking/utils/transaction-metadata';
 
 // ============================================================================
 // Response Types
@@ -62,6 +66,8 @@ export interface TransactionApiResponse {
   isPlanned: boolean;
   /** Set when a bank transaction merged into this row while it was planned. */
   plannedMerge: { mergedAt: string } | null;
+  /** Bank reported the row as PDNG/HOLD and has not booked it yet. */
+  isPending: boolean;
   payeeId: string | null;
   payeeLocked: boolean;
   /** How this tx's category was assigned (manual / ai / payee_rule / etc.). `null`
@@ -143,7 +149,8 @@ interface CreateTransactionInternal {
   note?: string;
   externalUrl?: string;
   externalReference?: string;
-  location?: TransactionLocation;
+  /** `null` is the caller's explicit "no location" and blocks the payee default; absent means "not mentioned". */
+  location?: TransactionLocation | null;
   time?: Date;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
@@ -245,6 +252,7 @@ export function serializeTransaction(
     refundLinked: tx.refundLinked,
     isPlanned: tx.isPlanned ?? false,
     plannedMerge: extractPlannedMerge({ externalData: tx.externalData }),
+    isPending: isPreBookingStatus({ status: getRawTransactionStatus({ externalData: tx.externalData }) }),
     payeeId: tx.payeeId ?? null,
     payeeLocked: tx.payeeLocked ?? false,
     categorizationMeta: tx.categorizationMeta ?? null,
@@ -333,7 +341,7 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     note: req.note || undefined,
     externalUrl: req.externalUrl || undefined,
     externalReference: req.externalReference || undefined,
-    location: req.location ?? undefined,
+    location: req.location,
     time: req.time ? new Date(req.time) : undefined,
     transactionType: req.transactionType,
     paymentType: req.paymentType,

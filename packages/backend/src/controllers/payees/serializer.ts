@@ -15,6 +15,7 @@ export function serializePayee(payee: Payees): PayeeModel {
     ...serializeLogoFields({ entity: payee }),
     logoSource: payee.logoSource,
     defaultTagIds: (payee.defaultTags ?? []).map((tag) => tag.id),
+    defaultLocation: payee.defaultLocation ?? null,
     createdAt: payee.createdAt,
     updatedAt: payee.updatedAt,
     aliases: payee.aliases?.map(
