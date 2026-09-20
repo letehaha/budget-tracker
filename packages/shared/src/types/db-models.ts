@@ -864,6 +864,8 @@ export interface PayeeModel extends EntityLogoFields {
    * means no tag rule.
    */
   defaultTagIds: RecordId[];
+  /** Stamped onto transactions linked to this Payee that carry no location of their own. */
+  defaultLocation: TransactionLocation | null;
   /** How logoDomain was resolved – see LogoResolutionState. 'manual' can pair
    *  with a null logoDomain (user explicitly cleared the logo); null only before
    *  the Payee has been through a resolution pass. */

@@ -7,6 +7,7 @@ import { Op } from 'sequelize';
 
 import { withTransaction } from '../common/with-transaction';
 import { applyPayeeCategorization } from './apply-categorization';
+import { applyPayeeDefaultLocation } from './apply-default-location';
 import { applyPayeeDefaultTags } from './apply-default-tags';
 import { buildFuzzyIndex, buildHaystack } from './fuzzy-matcher';
 import { normalizePayeeName } from './normalize-name';
@@ -154,9 +155,14 @@ export const runNoteFuzzyBackfill = withTransaction(
             transactionId: tx.id,
             payeeId: match.payeeId,
           });
+          await applyPayeeDefaultLocation({
+            accountOwnerUserId: userId,
+            transactionId: tx.id,
+            payeeId: match.payeeId,
+          });
         } catch (error) {
           logger.error({
-            message: `${LOG_PREFIX} default-tag application failed for linked row; continuing`,
+            message: `${LOG_PREFIX} default-tag/location application failed for linked row; continuing`,
             error: error as Error,
           });
         }

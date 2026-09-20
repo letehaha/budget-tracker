@@ -41,6 +41,7 @@ import {
   TRANSACTION_TRANSFER_NATURE,
   TRANSACTION_TYPES,
   type CurrencyModel,
+  type TransactionLocation,
   type TransactionModel,
 } from '@bt/shared/types';
 import { useQuery } from '@tanstack/vue-query';
@@ -229,13 +230,20 @@ const handlePayeeSelected = ({
   defaultCategoryId,
   topCategoryId,
   defaultTagIds,
+  defaultLocation,
 }: {
   payeeId: string;
   defaultCategoryId: string | null;
   topCategoryId: string | null;
   defaultTagIds: string[];
+  defaultLocation: TransactionLocation | null;
 }) => {
   applyPayeeTags({ defaultTagIds });
+
+  if (defaultLocation && !isLocationFilled.value) {
+    form.value.latitude = defaultLocation.latitude;
+    form.value.longitude = defaultLocation.longitude;
+  }
 
   if (form.value.categoryUserTouched) return;
   const targetId = defaultCategoryId ?? topCategoryId;
@@ -1028,8 +1036,10 @@ const showExternalReference = computed(
 const showOriginalAmount = computed(
   () => isOptionalFieldEnabled('originalAmount') || props.transaction?.originalAmount != null,
 );
-const showLocation = computed(() => isOptionalFieldEnabled('location') || !!props.transaction?.location);
 const isLocationFilled = computed(() => form.value.latitude != null || form.value.longitude != null);
+const showLocation = computed(
+  () => isOptionalFieldEnabled('location') || !!props.transaction?.location || isLocationFilled.value,
+);
 const externalUrlHref = computed(() => {
   const value = form.value.externalUrl?.trim();
   return value && isHttpUrl(value) ? value : null;
