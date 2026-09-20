@@ -608,6 +608,8 @@ const renderChart = () => {
       onEnter: (event: MouseEvent) => handleAverageLabelMouseEnter(event, avgValue),
       onMove: handleMouseMove,
       onLeave: handleMouseLeave,
+      hitBand: true,
+      raiseOnHover: true,
     });
   }
 
