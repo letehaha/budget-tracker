@@ -149,7 +149,8 @@ interface CreateTransactionInternal {
   note?: string;
   externalUrl?: string;
   externalReference?: string;
-  location?: TransactionLocation;
+  /** `null` is the caller's explicit "no location" and blocks the payee default; absent means "not mentioned". */
+  location?: TransactionLocation | null;
   time?: Date;
   transactionType: TRANSACTION_TYPES;
   paymentType: PAYMENT_TYPES;
@@ -340,7 +341,7 @@ export function deserializeCreateTransaction(req: CreateTransactionRequest, user
     note: req.note || undefined,
     externalUrl: req.externalUrl || undefined,
     externalReference: req.externalReference || undefined,
-    location: req.location ?? undefined,
+    location: req.location,
     time: req.time ? new Date(req.time) : undefined,
     transactionType: req.transactionType,
     paymentType: req.paymentType,

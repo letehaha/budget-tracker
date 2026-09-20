@@ -98,7 +98,7 @@ export interface CreateTransactionBody {
   note?: TransactionModel['note'];
   externalUrl?: string;
   externalReference?: string;
-  location?: TransactionLocation;
+  location?: TransactionLocation | null;
   time: string;
   transactionType: TransactionModel['transactionType'];
   paymentType: TransactionModel['paymentType'];

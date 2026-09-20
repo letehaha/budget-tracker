@@ -23,6 +23,7 @@ import { calculateRefAmount } from '@services/calculate-ref-amount.service';
 import { DOMAIN_EVENTS, eventBus } from '@services/common/event-bus';
 import { assertLoanPaymentAllowed } from '@services/loans/assert-loan-payment-allowed';
 import { applyPayeeCategorization } from '@services/payees/apply-categorization';
+import { applyPayeeDefaultLocation } from '@services/payees/apply-default-location';
 import { applyPayeeDefaultTags } from '@services/payees/apply-default-tags';
 import { resolvePayeeForIncomingRow } from '@services/payees/resolve-payee-for-incoming-row';
 import {
@@ -740,6 +741,17 @@ export const createTransaction = withTransaction(
             transactionId: baseTransaction!.id,
             payeeId: resolvedPayeeId,
           });
+        }
+
+        // Same "caller didn't mention it" contract as tags: an explicit `location`
+        // (even null, the form's cleared state) is the client's final answer.
+        if (payload.location === undefined) {
+          const appliedLocation = await applyPayeeDefaultLocation({
+            accountOwnerUserId,
+            transactionId: baseTransaction!.id,
+            payeeId: resolvedPayeeId,
+          });
+          if (appliedLocation) transactions[0]!.location = appliedLocation;
         }
       }
 

@@ -75,6 +75,11 @@
       "defaultTagsLabel": "Auto-apply tags",
       "defaultTagsPlaceholder": "Select tags to auto-apply",
       "defaultTagsHint": "These tags are automatically added to new transactions linked to this payee (bank syncs and imports).",
+      "defaultLocationLabel": "Default location",
+      "defaultLocationEmpty": "No location set",
+      "defaultLocationHint": "Transactions linked to this payee that have no location of their own get this one, both at creation and during bank sync.",
+      "clearDefaultLocationTitle": "Remove default location?",
+      "clearDefaultLocationDescription": "New transactions linked to this payee will no longer get this location. Existing transactions keep theirs.",
       "applyTagsToExisting": "Apply to existing transactions"
     },
     "logo": {

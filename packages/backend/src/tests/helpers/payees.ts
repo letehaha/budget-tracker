@@ -1,4 +1,11 @@
-import { CATEGORIZATION_MODE, EntityLogoPayload, PayeeLookupItem, PayeeModel, PayeeStats } from '@bt/shared/types';
+import {
+  CATEGORIZATION_MODE,
+  EntityLogoPayload,
+  PayeeLookupItem,
+  PayeeModel,
+  PayeeStats,
+  TransactionLocation,
+} from '@bt/shared/types';
 
 import { makeRequest } from './common';
 
@@ -7,6 +14,7 @@ export interface CreatePayeePayload extends EntityLogoPayload {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  defaultLocation?: TransactionLocation | null;
 }
 
 export interface UpdatePayeePayload extends EntityLogoPayload {
@@ -14,6 +22,7 @@ export interface UpdatePayeePayload extends EntityLogoPayload {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  defaultLocation?: TransactionLocation | null;
 }
 
 export type PayeeWithStats = PayeeModel & { stats: PayeeStats | null };

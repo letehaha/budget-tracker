@@ -5,6 +5,7 @@ import {
   RESOURCE_TYPES,
   SHARE_PERMISSIONS,
   type RecordId,
+  type TransactionLocation,
 } from '@bt/shared/types';
 import { t } from '@i18n/index';
 import { ConflictError, NotFoundError, ValidationError } from '@js/errors';
@@ -304,6 +305,7 @@ interface CreatePayeeParams extends EntityLogoPayload {
   defaultCategoryId?: string | null;
   categorizationMode?: CATEGORIZATION_MODE;
   defaultTagIds?: string[];
+  defaultLocation?: TransactionLocation | null;
 }
 
 export const createPayee = withTransaction(
@@ -313,6 +315,7 @@ export const createPayee = withTransaction(
     defaultCategoryId,
     categorizationMode,
     defaultTagIds,
+    defaultLocation,
     logoDomain,
     logoInitials,
     logoColor,
@@ -347,6 +350,7 @@ export const createPayee = withTransaction(
       normalizedName: normalized,
       defaultCategoryId: defaultCategoryId ?? null,
       categorizationMode: categorizationMode ?? CATEGORIZATION_MODE.enforce,
+      defaultLocation: defaultLocation ?? null,
       // A supplied logo value is a manual override (`logoSource: 'manual'` makes
       // the resolver treat it as authoritative); null keys on create change
       // nothing, so they resolve to no writes and the resolver stays in charge.
@@ -387,6 +391,7 @@ interface UpdatePayeeParams extends EntityLogoPayload {
   categorizationMode?: CATEGORIZATION_MODE;
   /** Full replacement of the Payee's default-tag set; `[]` clears the rule. */
   defaultTagIds?: string[];
+  defaultLocation?: TransactionLocation | null;
 }
 
 /**
@@ -404,11 +409,16 @@ export const updatePayee = withTransaction(
     defaultCategoryId,
     categorizationMode,
     defaultTagIds,
+    defaultLocation,
     logoDomain,
     logoInitials,
     logoColor,
   }: UpdatePayeeParams): Promise<Payees> => {
     const payee = await loadPayeeOrThrow({ userId, id });
+
+    if (defaultLocation !== undefined) {
+      payee.defaultLocation = defaultLocation;
+    }
 
     if (defaultCategoryId === null) {
       payee.defaultCategoryId = null;

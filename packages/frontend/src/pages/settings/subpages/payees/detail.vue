@@ -149,6 +149,8 @@
               </Button>
             </div>
           </div>
+
+          <PayeeDefaultLocationField :payee-id="payeeData.id" :default-location="payeeData.defaultLocation" />
         </div>
       </div>
     </Card>
@@ -356,6 +358,7 @@ import { useI18n } from 'vue-i18n';
 import BrandLogo from '@/components/common/brand-logo.vue';
 
 import PayeeActionsDropdown from './components/payee-actions-dropdown.vue';
+import PayeeDefaultLocationField from './components/payee-default-location-field.vue';
 import PayeeFormDialog from './components/payee-form-dialog.vue';
 import PayeeLogoPicker from './components/payee-logo-picker.vue';
 import PayeeTransactionsDialog from './components/payee-transactions-dialog.vue';

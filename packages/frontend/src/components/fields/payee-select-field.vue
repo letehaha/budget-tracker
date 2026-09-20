@@ -8,7 +8,7 @@ import { PlusIcon, SearchIcon, XIcon } from '@lucide/vue';
 import { useDebounce } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { PayeeModel } from '@bt/shared/types';
+import type { PayeeModel, TransactionLocation } from '@bt/shared/types';
 import PayeeFormDialog from '@/pages/settings/subpages/payees/components/payee-form-dialog.vue';
 import BrandLogo from '@/components/common/brand-logo.vue';
 import FieldLabel from './components/field-label.vue';
@@ -63,6 +63,7 @@ const emit = defineEmits<{
       defaultCategoryId: string | null;
       topCategoryId: string | null;
       defaultTagIds: string[];
+      defaultLocation: TransactionLocation | null;
     },
   ): void;
 }>();
@@ -132,6 +133,7 @@ function selectPayee(payee: {
   id: string;
   defaultCategoryId: string | null;
   defaultTagIds?: string[];
+  defaultLocation?: TransactionLocation | null;
   stats?: { topCategoryId: string | null } | null;
 }) {
   emit('update:modelValue', payee.id);
@@ -140,6 +142,7 @@ function selectPayee(payee: {
     defaultCategoryId: payee.defaultCategoryId,
     topCategoryId: payee.stats?.topCategoryId ?? null,
     defaultTagIds: payee.defaultTagIds ?? [],
+    defaultLocation: payee.defaultLocation ?? null,
   });
   isOpen.value = false;
   inputValue.value = '';
@@ -160,7 +163,12 @@ function openCreateDialog() {
 }
 
 function handlePayeeCreated(payee: PayeeModel) {
-  selectPayee({ id: payee.id, defaultCategoryId: payee.defaultCategoryId, defaultTagIds: payee.defaultTagIds });
+  selectPayee({
+    id: payee.id,
+    defaultCategoryId: payee.defaultCategoryId,
+    defaultTagIds: payee.defaultTagIds,
+    defaultLocation: payee.defaultLocation,
+  });
 }
 </script>
 
