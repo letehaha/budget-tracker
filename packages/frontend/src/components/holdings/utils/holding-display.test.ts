@@ -1,6 +1,6 @@
 import type { HoldingModel } from '@bt/shared/types/investments';
 
-import { groupHoldings, isClosedPosition, sortHoldings } from './holding-display';
+import { groupHoldings, isClosedPosition, isPriceStale, sortHoldings } from './holding-display';
 
 const makeHolding = (overrides: Partial<HoldingModel> & { symbol?: string }): HoldingModel => {
   const { symbol, ...rest } = overrides;
@@ -39,6 +39,28 @@ describe('isClosedPosition', () => {
     expect(isClosedPosition(makeHolding({ quantity: '0.5' }))).toBe(false);
     // Crypto drift residue is still a real (if small) position, not closed.
     expect(isClosedPosition(makeHolding({ quantity: '-0.000492' }))).toBe(false);
+  });
+});
+
+describe('isPriceStale', () => {
+  const now = new Date('2026-09-21T12:00:00Z');
+  const stale = (overrides: Partial<HoldingModel>) => isPriceStale({ holding: makeHolding(overrides), now });
+
+  it('flags an open position priced more than 5 calendar days ago', () => {
+    expect(stale({ quantity: '10', priceDate: new Date('2026-09-14T00:00:00Z') })).toBe(true);
+  });
+
+  it('tolerates a long weekend plus the EOD lag', () => {
+    expect(stale({ quantity: '10', priceDate: new Date('2026-09-17T00:00:00Z') })).toBe(false);
+  });
+
+  it('accepts the ISO string the API actually sends', () => {
+    expect(stale({ quantity: '10', priceDate: '2026-09-01T00:00:00.000Z' as unknown as Date })).toBe(true);
+  });
+
+  it('ignores holdings with no price or no open quantity', () => {
+    expect(stale({ quantity: '10' })).toBe(false);
+    expect(stale({ quantity: '0', priceDate: new Date('2026-01-01T00:00:00Z') })).toBe(false);
   });
 });
 

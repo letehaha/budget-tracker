@@ -1,8 +1,14 @@
-import { TransactionModel, TransactionSplitModel, type RecordId } from '@bt/shared/types';
+import {
+  TRANSACTION_TRANSFER_NATURE,
+  TRANSACTION_TYPES,
+  TransactionModel,
+  TransactionSplitModel,
+  type RecordId,
+} from '@bt/shared/types';
 import { describe, expect, it } from 'vitest';
 import { type Ref, nextTick, ref } from 'vue';
 
-import { getVanishedSelectedIds, useTransactionSelection } from './transaction-selection';
+import { getVanishedSelectedIds, sumSelectedTotals, useTransactionSelection } from './transaction-selection';
 
 const buildTx = (overrides: Partial<TransactionModel>): TransactionModel =>
   ({
@@ -233,5 +239,100 @@ describe('useTransactionSelection — scoped selection', () => {
     await nextTick();
 
     expect(selectedCount.value).toBe(2);
+  });
+});
+
+describe('sumSelectedTotals', () => {
+  const buildAmountTx = ({
+    id,
+    transactionType,
+    refAmount,
+    transferNature = TRANSACTION_TRANSFER_NATURE.not_transfer,
+  }: {
+    id: string;
+    transactionType: TRANSACTION_TYPES;
+    refAmount: number;
+    transferNature?: TRANSACTION_TRANSFER_NATURE;
+  }) => buildTx({ id: id as RecordId, transactionType, refAmount, transferNature });
+
+  it('partitions on transactionType and ignores unselected rows', () => {
+    const transactions = [
+      buildAmountTx({ id: '1', transactionType: TRANSACTION_TYPES.income, refAmount: 500 }),
+      buildAmountTx({ id: '2', transactionType: TRANSACTION_TYPES.expense, refAmount: 120 }),
+      buildAmountTx({ id: '3', transactionType: TRANSACTION_TYPES.expense, refAmount: 80 }),
+      buildAmountTx({ id: '4', transactionType: TRANSACTION_TYPES.income, refAmount: 999 }),
+    ];
+
+    expect(sumSelectedTotals({ transactions, selectedIds: new Set(['1', '2', '3']) })).toEqual({
+      income: 500,
+      expense: 200,
+      net: 300,
+      transfers: 0,
+    });
+  });
+
+  it.each([
+    ['common_transfer', TRANSACTION_TRANSFER_NATURE.common_transfer],
+    ['transfer_to_loan', TRANSACTION_TRANSFER_NATURE.transfer_to_loan],
+    ['transfer_to_portfolio', TRANSACTION_TRANSFER_NATURE.transfer_to_portfolio],
+    ['transfer_to_venture', TRANSACTION_TRANSFER_NATURE.transfer_to_venture],
+  ])('keeps %s out of income/expense and reports it as a transfer', (_name, transferNature) => {
+    const transactions = [
+      buildAmountTx({ id: '1', transactionType: TRANSACTION_TYPES.expense, refAmount: 4350, transferNature }),
+    ];
+
+    expect(sumSelectedTotals({ transactions, selectedIds: new Set(['1']) })).toEqual({
+      income: 0,
+      expense: 0,
+      net: 0,
+      transfers: 4350,
+    });
+  });
+
+  it('counts transfer_out_wallet as an ordinary expense', () => {
+    const transactions = [
+      buildAmountTx({
+        id: '1',
+        transactionType: TRANSACTION_TYPES.expense,
+        refAmount: 300,
+        transferNature: TRANSACTION_TRANSFER_NATURE.transfer_out_wallet,
+      }),
+    ];
+
+    expect(sumSelectedTotals({ transactions, selectedIds: new Set(['1']) })).toEqual({
+      income: 0,
+      expense: 300,
+      net: -300,
+      transfers: 0,
+    });
+  });
+
+  it('keeps the income leg of a transfer out of income', () => {
+    const transactions = [
+      buildAmountTx({
+        id: '1',
+        transactionType: TRANSACTION_TYPES.income,
+        refAmount: 4350,
+        transferNature: TRANSACTION_TRANSFER_NATURE.common_transfer,
+      }),
+    ];
+
+    expect(sumSelectedTotals({ transactions, selectedIds: new Set(['1']) })).toEqual({
+      income: 0,
+      expense: 0,
+      net: 0,
+      transfers: 4350,
+    });
+  });
+
+  it('returns zeros for an empty selection', () => {
+    const transactions = [buildAmountTx({ id: '1', transactionType: TRANSACTION_TYPES.income, refAmount: 500 })];
+
+    expect(sumSelectedTotals({ transactions, selectedIds: new Set() })).toEqual({
+      income: 0,
+      expense: 0,
+      net: 0,
+      transfers: 0,
+    });
   });
 });

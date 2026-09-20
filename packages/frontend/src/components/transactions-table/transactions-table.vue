@@ -7,14 +7,17 @@
       :clear-selection="clearSelection"
       :is-bulk-loading="isBulkLoading"
     >
-      <!-- Bulk actions bar: no vertical padding so both states stay exactly min-h tall (no jump on selection) -->
-      <div class="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 border-b px-3">
-        <span v-if="selectedCount > 0" class="text-sm whitespace-nowrap">
+      <!-- `min-h-12` keeps the unselected and selected states the same height, so selecting
+           a row does not shift the table. -->
+      <div class="@container/bulk-toolbar flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-3 py-2">
+        <span v-if="selectedCount > 0" class="hidden text-sm whitespace-nowrap @4xl/bulk-toolbar:inline">
           {{ $t('transactions.bulkEdit.selectedCount', { count: selectedCount }) }}
         </span>
         <span v-else class="text-muted-foreground text-sm">
           {{ $t('transactions.table.hint') }}
         </span>
+
+        <SelectionTotals v-if="selectedCount > 0" :totals="selectedTotals" :selected-count="selectedCount" />
 
         <!-- Narrow layout: collapse the action buttons to icon-only so they fit
              one row alongside "N selected" + Cancel. The Cancel control is always
@@ -250,6 +253,7 @@ import { Checkbox } from '@/components/lib/ui/checkbox';
 import { ScrollArea } from '@/components/lib/ui/scroll-area';
 import { DesktopOnlyTooltip } from '@/components/lib/ui/tooltip';
 import BulkActionDialogs from '@/components/transactions-list/bulk-action-dialogs.vue';
+import SelectionTotals from '@/components/transactions-list/selection-totals.vue';
 import TransactionDetailsModal from '@/components/transactions-list/transaction-details-modal.vue';
 import { useManageTransactionDialog } from '@/components/transactions-list/use-manage-transaction-dialog';
 import { useTransactionsDisplay } from '@/components/transactions-list/use-transactions-display';
@@ -342,6 +346,7 @@ const {
   clearSelection,
   getUnselectableReason,
   hasExternalSelected,
+  selectedTotals,
   selectAllState,
   handleSelectAllToggle,
   isBulkEditDialogOpen,

@@ -80,7 +80,7 @@
             <ScrollArea class="h-full" :scroll-area-id="SCROLL_AREA_IDS.transactionsPage">
               <!-- No top padding: the list's bulk toolbar is sticky top-0 and must sit flush
                    with the scroll viewport edge, otherwise rows peek through the gap -->
-              <div v-if="isFetched" class="px-3 pb-3">
+              <div v-if="isFetched" class="pb-3 sm:px-3">
                 <TransactionsList
                   ref="transactionsListRef"
                   enable-bulk-edit
@@ -303,7 +303,7 @@
                page itself slightly taller than the viewport, so the user can
                swipe up to push the view toggle / filters bar off-screen and
                gain extra rows of table. -->
-          <Card v-show="showTableCard" :class="['flex-1 overflow-hidden', tableCardSizingClass]">
+          <Card v-show="showTableCard" :class="['overflow-hidden', tableCardSizingClass]">
             <TransactionsTable
               ref="tableRef"
               :transactions="transactionsPages?.pages.flat() ?? []"
@@ -458,11 +458,11 @@ const useUnboundedPageHeight = computed(
   () => isMobileMode.value && !isFullscreenMode.value && activeView.value === 'table',
 );
 
-// Mobile non-fullscreen: pin the card to ~viewport height to force page-level
-// overflow (lets the user swipe away the toolbar). All other cases let flex-1
-// share the remaining space inside the fixed-height container.
+// Mobile non-fullscreen: pin the card to viewport height so the page overflows
+// (swipe-away toolbar). Must be a definite `h-`, not `min-h-` + flex-1: the table's
+// `h-full` would resolve to auto and the virtualizer would mount every row.
 const tableCardSizingClass = computed(() =>
-  isFullscreenMode.value || !isMobileMode.value ? 'min-h-0' : 'min-h-[calc(100dvh-var(--header-height))]',
+  isFullscreenMode.value || !isMobileMode.value ? 'min-h-0 flex-1' : 'h-[calc(100dvh-var(--header-height))] shrink-0',
 );
 
 // Filters apply automatically – no Apply button. One debounce window covers

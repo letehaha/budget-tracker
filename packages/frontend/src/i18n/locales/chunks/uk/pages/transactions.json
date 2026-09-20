@@ -117,7 +117,13 @@
       "tagModeLabel": "Дія з тегами",
       "tagModeAdd": "Додати до існуючих тегів",
       "tagModeReplace": "Замінити всі теги",
-      "tagModeRemove": "Видалити ці теги"
+      "tagModeRemove": "Видалити ці теги",
+      "totals": {
+        "income": "Дохід",
+        "expense": "Витрата",
+        "net": "Чистий",
+        "transfers": "Перекази"
+      }
     },
     "transactionGroups": {
       "bulkActions": {
